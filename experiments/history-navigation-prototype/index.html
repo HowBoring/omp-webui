@@ -252,9 +252,10 @@ hr { border:0; border-top:1px solid var(--border); margin:0; }
     const session=Model.current(state), active=Model.path(session), ids=new Set(active.map(n=>n.id));
     const selected=session.nodes.find(n=>n.id===state.selected);
     const fields=[ ["工作目录","/demo/project（模拟、已授权）"], ["当前 Session",state.current+"（模拟）"],
+      ["来源",state.current==="S-A"?"既有 OMP/TUI（模拟）":"新建分支（模拟）"],
       ["原生引用",state.registered?"已登记":"已发现，未登记"], ["执行状态",phase[state.phase]],
       ["当前 leaf",state.opened?(session.leaf||"空历史"):"未读取"], ["手动发送次数",state.sent],
-      ["文件修改","logger.ts 已修改 1 次（不回滚）"], ["视图代数",state.generation] ];
+      ["文件修改",state.opened?"logger.ts 已修改 1 次（不回滚）":"未知（不读取历史/文件）"], ["视图代数",state.generation] ];
     $("#hp-state").innerHTML=fields.map(([k,v])=>`<dt>${escape(k)}</dt><dd>${escape(v)}</dd>`).join("");
     $("#hp-notice").textContent=state.notice;
     $("#hp-sessions").innerHTML=Object.keys(state.sessions).map(id=>`<button class="btn" type="button" data-session="${id}" aria-pressed="${id===state.current}">打开 ${id}${id==="S-A"?" · 原会话":" · 新会话"}</button>`).join("");
