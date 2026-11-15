@@ -1,0 +1,68 @@
+$ tsx scripts/build.ts --scope artifacts --serial
+run-gates: build:artifacts running 8 gate(s) with 1 worker(s) from --serial.
+run-gates: start native addon
+
+== FAILED native addon (1.16s) ==
+command: pnpm run build:native-system
+outcome: exit 1
+$ tsx native/system/scripts/build.ts --host-addon-only
+<DSH_CHECKOUT>/native/system/scripts/build.ts:59
+        throw new Error(`build: Node-API headers missing at ${headers}; use a Node installation with development headers`)
+              ^
+
+Error: build: Node-API headers missing at <INITIAL_NODE>/include/node; use a Node installation with development headers
+    at <anonymous> (<DSH_CHECKOUT>/native/system/scripts/build.ts:59:15)
+    at ModuleJob.run (node:internal/modules/esm/module_job:561:25)
+    at async node:internal/modules/esm/loader:647:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v24.22.1
+[ELIFECYCLE] Command failed with exit code 1.
+
+== SKIPPED Host Typert (0.00s) ==
+command: tsx scripts/generate-typert.ts
+outcome: dependency failed or skipped: native
+
+== SKIPPED host compiler (0.00s) ==
+command: tsc -b <tsconfig.host.json references>
+outcome: dependency failed or skipped: native, host-typert
+
+== SKIPPED Host bundle (0.00s) ==
+command: pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE host
+outcome: dependency failed or skipped: host-src
+
+== SKIPPED Desktop bundle (0.00s) ==
+command: pnpm --filter @deepseek-ai/dsh-desktop run bundle
+outcome: dependency failed or skipped: host-bundle
+
+== SKIPPED client compiler (0.00s) ==
+command: tsc -b <tsconfig.client.json references>
+outcome: dependency failed or skipped: desktop-bundle
+
+== SKIPPED Client bundle (0.00s) ==
+command: pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE client
+outcome: dependency failed or skipped: client-src
+
+== SKIPPED Web build (0.00s) ==
+command: pnpm run build:web
+outcome: dependency failed or skipped: client-bundle
+
+run-gates: 0 passed, 1 failed, 7 skipped in 1.17s.
+run-gates: unsuccessful gates:
+  - FAILED native addon (1.16s, exit 1)
+    pnpm run build:native-system
+  - SKIPPED Host Typert (0.00s, dependency failed or skipped: native)
+    tsx scripts/generate-typert.ts
+  - SKIPPED host compiler (0.00s, dependency failed or skipped: native, host-typert)
+    tsc -b <tsconfig.host.json references>
+  - SKIPPED Host bundle (0.00s, dependency failed or skipped: host-src)
+    pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE host
+  - SKIPPED Desktop bundle (0.00s, dependency failed or skipped: host-bundle)
+    pnpm --filter @deepseek-ai/dsh-desktop run bundle
+  - SKIPPED client compiler (0.00s, dependency failed or skipped: desktop-bundle)
+    tsc -b <tsconfig.client.json references>
+  - SKIPPED Client bundle (0.00s, dependency failed or skipped: client-src)
+    pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE client
+  - SKIPPED Web build (0.00s, dependency failed or skipped: client-bundle)
+    pnpm run build:web
+[ELIFECYCLE] Command failed with exit code 1.

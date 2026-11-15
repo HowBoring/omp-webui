@@ -1,0 +1,29 @@
+{
+  "upstream": {
+    "sha": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "tag": "dsh-v0.2.2-rc.3"
+  },
+  "node": "24.22.1",
+  "pnpm": "11.28.5",
+  "node_archive_sha256": "6c172a9ab6718f7b801fb5a7bd486af2ee5e32758086a04b84fcce2aa77095e6",
+  "chromium": "156.0.8078.79",
+  "client_build_record": {
+    "formatVersion": 1,
+    "environment": {
+      "DSH_CLIENT_COMMIT_HASH": "38a6a5c",
+      "DSH_CLIENT_VERSION": "0.2.2-rc.3"
+    },
+    "artifacts": {
+      "fileCount": 371,
+      "sha256": "10c8e13ea78491128cccdbd3151065eb124f4083de7a19a75dc184a21a370bf5"
+    }
+  },
+  "sha256": {
+    "pnpm-lock.yaml": "c24a38565023f08480f3832a554a676ad7479d36c0868063c85ad66ba6d3e68a",
+    "apps/web/dist/index.html": "88718bd0dee8057e959b2dbcf06a6b95267bb5277a252a1b8142906a689d2b2e",
+    "apps/web/dist/assets/index-Ciz7DZxv.js": "65411dabad4de33466b12643cf30376d3d41ea1b7ce10ce329e97c89992d308b",
+    "apps/web/dist/assets/vendor-BUMdD3V7.js": "7675048a90d0419365a342c4eb81713aa8582b82a76b08ba2a8fc27160575265",
+    "packages/client/modules/lib/client.js": "fc491b97b5d923446faf9ebff238dba6d1f8a55b03e8bf71bea90355ee33bec6"
+  },
+  "screenshot_sha256": "9abd167cc28f6e942be113f09295f6299e35e022c6b2029bc6bf7b061d468002"
+}
