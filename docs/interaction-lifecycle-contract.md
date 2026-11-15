@@ -85,7 +85,9 @@ Host 期限到达时发起明确取消并请求停止，记录“等待到期”
 取消原因不能再被 elapsed-time heuristic 改成默认作答。wire/schema/handler/client 与实际
 worker 构建一起锁定并实验验证；只在 Host 收到 timed 请求后拒绝它不足以提供该保证。
 缺少可验证保证时标记相关能力不兼容，不宣称严格取消已实现，不导入私有 SDK 补洞。
-交付选择由[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)承接。
+已确认的[交付合同](rpc-delivery-contract.md)采用固定公开兼容构建和精确校验的全局 OMP，
+源于[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)。
+严格取消仍需实际 server 增量及原生竞态验证，交付路线定案不等于保证已经存在。
 
 ## 普通停止和静止准入
 

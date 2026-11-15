@@ -12,7 +12,8 @@ Status: 本地窄 transport 路线已由用户确认；工程语义为实施目�
 - Host client 缺口：通用 rpc-ui UI 往返、完整 prompt ack、优雅 EOF/drain 的公共便利接口。
   这些所需 wire 行为已有固定源码证据；不能把缺便利方法当作 wire 不存在。
 - OMP server 缺口：原生目录/描述与严格接续保证。两条 client 路线都仍需公共 RPC 扩展，
-  交付基线和兼容门禁由后续工单决定；本地 transport 不会消除该依赖。
+  连同交互取消保证，按已确认的[交付合同](rpc-delivery-contract.md)由固定公开兼容构建承接；
+  实际扩展与产物待交付，本地 transport 不会消除该依赖。
 
 ## 路线选择
 
@@ -78,6 +79,8 @@ Status: 本地窄 transport 路线已由用户确认；工程语义为实施目�
 - 优先使用明确 public RPC subpath 和 type-only wire types；不从 coding-agent 根入口加载 SDK。
 - 包版本、源码 pin、schema/生成输出和实际启动 worker 的来源需要一致；没有 ready version/digest
   字段时不能假定协议提供了它。保持来源和能力验证，不只比较一个浮动 semver 字符串。
+- 用户选择复用全局 OMP。每次启动验证实际全局入口、运行时/依赖闭包与唯一获准组合，
+  不以 PATH 名称、无关的 schema 包或隐式单独安装替代；安装更新后重新准入。
 - native dependency 或导出不兼容属于发布/兼容门禁，不能以私有 import 或复制运行时文件回避。
 - 若未来换成补齐能力的上游 client，必须通过同一外部行为测试后替换实现；不维护双重关联器。
 
@@ -89,8 +92,9 @@ Status: 本地窄 transport 路线已由用户确认；工程语义为实施目�
 4. stdin backpressure、EOF 后末尾输出、非零退出、超时 kill/reap、不自动重放的进程测试。
 5. 实际 OMP rpc-ui v2 和 UI 往返 smoke；LLM/工具闭环另行验收，不能以 fake worker 代替。
 
-本文不实现任何 transport；交互所有权/断线政策见上述已确认合同，最终 OMP server 构建基线仍待选择。
+本文不实现任何 transport；交互政策与交付路线已确认，实际兼容构建身份和运行证据仍待取得。
 安装/导出调查只证明相应模块事实，不证明真实 OMP 或 DSH 端到端通过。
 
 范围取舍见 [ADR 0004](adr/0004-local-public-rpc-transport.md)。目录、严格接续与交互取消保证的
-交付基线由[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)承接。
+[交付合同](rpc-delivery-contract.md)源于
+[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)。

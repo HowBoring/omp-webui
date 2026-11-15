@@ -27,6 +27,9 @@ stop-then-wait flow. Its disposable prototype is evidence for the interaction de
 The [Interaction lifecycle policy](docs/interaction-lifecycle-contract.md) permits the first valid answer
 from any authorized page, preserves work across ordinary browser disconnects, and rejects busy queue input.
 It defines cancellation and shutdown budgets; native timed-ask cancellation still requires a public RPC guarantee.
+The accepted [RPC delivery policy](docs/rpc-delivery-contract.md) uses a pinned public compatibility build
+and the user's **global OMP installation**, subject to exact artifact/schema/behavior verification.
+The MVP supports one validated combination; the compatibility build and global-install verification remain pending.
 
 ## Architecture at a glance
 
@@ -85,7 +88,8 @@ DSH source/release versions are not npm package versions: the reviewed source an
 Requirements:
 
 - Bun `>=1.4.4` for the Host.
-- OMP installed and available as `omp` for future RPC integration tests.
+- A global OMP installation matching the verified delivery combination for future RPC integration;
+  an ordinary `omp` name or the unmodified official baseline alone is insufficient for the full MVP.
 - Node.js `>=24.9.0` and pnpm `11.28.5` only when building the pinned DSH upstream client.
 
 ~~~bash

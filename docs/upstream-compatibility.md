@@ -30,6 +30,20 @@ This document records the exact upstream revisions inspected for the initial arc
   the public `prompt` slash dispatcher; neither `abort_retry` nor resending a prompt is equivalent.
 - The RPC command set does not currently provide a global read-only Session catalog.
 
+### Delivery policy and follow-up source check
+
+[ADR 0008](adr/0008-public-rpc-delivery.md) selects a fixed public compatibility build, the user's global
+OMP installation under the same exact gate, and one validated Host/OMP-build/schema combination.
+The [delivery contract](rpc-delivery-contract.md) separates source/artifact provenance from runtime
+semantic proof, and executable rollback from native-data compatibility. No compatibility build or
+actual global installation has been verified by recording that choice; the lock above is unchanged.
+
+The [2026-11-15 follow-up check](https://github.com/HowBoring/omp-webui/issues/25#issuecomment-6897128289)
+found the latest GitHub release still at the pinned SHA. Observed main
+`4193d01cbec0fa21cfdd18a6ac69d354f23bc474` is ahead, but the relevant public RPC types/mode/schema,
+ask and SessionManager files match the pin. Catalog/strict-continuation and explicit-answer-only
+expiry guarantees remain absent. This is source comparison, not a new runtime compatibility result.
+
 ### Interaction and Stop compatibility
 
 The accepted [Interaction lifecycle contract](interaction-lifecycle-contract.md) requires explicit

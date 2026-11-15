@@ -30,8 +30,12 @@ Status: scaffold created; implementation not complete.
   through a disposable prototype; record the [history interaction contract](history-interaction-contract.md).
 - [x] Confirm [Interaction lifecycle policy](interaction-lifecycle-contract.md): shared answering,
   live reconnect, busy admission, explicit expiry cancellation and separate Stop/revocation budgets.
+- [x] Select [RPC delivery policy](rpc-delivery-contract.md): pinned public compatibility build,
+  verified global OMP reuse and one supported Host/OMP-build/schema combination.
 - [ ] Specify and validate public OMP catalog/description, protected continuation and explicit-answer-only
-  UI expiry/cancellation guarantees; decide their delivery baseline and compatibility gates.
+  UI expiry/cancellation guarantees in an actual compatibility build and matched schema.
+- [ ] Verify the actual global launch/runtime closure, early capability guarantees, full conformance
+  evidence and native-data/TUI upgrade/rollback compatibility before product admission.
 
 Exit criterion: a real browser can load the pinned DSH shell and complete a harmless Remote request and stream against the Bun Host; a real OMP RPC worker can complete an interactive protocol round trip.
 

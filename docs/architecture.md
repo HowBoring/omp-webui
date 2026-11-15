@@ -218,6 +218,23 @@ gain an RPC UI handler in either mode. Native `ask` UI frames require `set_ask_d
 the tool ask flow and extension askDialog are distinct. Unsupported interactions must fail explicitly,
 never default to approval. Validate startup dialogs before marking a worker ready for browser commands.
 
+### 5.3 Delivery and actual worker identity
+
+[ADR 0008](adr/0008-public-rpc-delivery.md) selects an auditable public OMP compatibility build and
+reuse of the global OMP installation, with one validated Host/OMP-build/schema combination. The
+[delivery contract](rpc-delivery-contract.md) requires a controlled resolved launch target, its actual
+runtime/dependency closure, matching generated schema and independent conformance evidence. There
+is no hidden separately installed production worker or trust in arbitrary PATH/version output.
+
+Current `ready` negotiates framing, not general build/schema identity; `get_available_commands` lists
+slash commands. The new public guarantees must be verifiable before dependent operations/startup UI,
+and a normal Session-opening worker is not a read-only capability probe. Unknown/mismatched delivery
+blocks Session operations while only non-private health/diagnostics may remain. The compatibility
+artifact is not yet delivered; upstream pins remain review baselines, not an approved runtime tuple.
+
+Global installation updates couple WebUI and TUI maintenance. Upgrade the complete validated tuple;
+rollback additionally requires compatibility with current native data, without Host Session-file edits.
+
 ## 6. Core Host components
 
 ### 6.1 DSH Compatibility Gateway
@@ -340,6 +357,8 @@ Known gaps or caveats:
 - Native/tool ask expiry may generate default answers or reinterpret cancellation as timeout. The
   accepted lifecycle policy needs an additive, publicly verifiable cancellation guarantee; a Host timer
   cannot eliminate the native race. Delivery joins the catalog/strict-continuation compatibility gate.
+- Delivery follows the accepted public-compatibility/global-install policy above; actual extension
+  schemas, artifacts, installation identity and runtime proofs are still implementation gates.
 - `abort_retry` stops an automatic retry; it is not the same as a manual mid-loop retry command.
 - Manual `/retry` is already reachable through public `prompt` slash dispatch. A dedicated wire command
   is not required, but it cannot repair every crash. `/rewind` has only a TUI selector; public `branch`

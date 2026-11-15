@@ -38,7 +38,9 @@ Follow-on [catalog](../session-catalog-contract.md), [transport](../rpc-client-c
 [client composition](../client-composition.md), [local access](../local-access-contract.md) and
 [history interaction](../history-interaction-contract.md) contracts record the resolved choices.
 The [Interaction lifecycle contract](../interaction-lifecycle-contract.md) resolves answering, disconnect,
-expiry and Stop/revocation policy. Event projection and remaining delivery/acceptance decisions continue on the map.
+expiry and Stop/revocation policy. The [delivery contract](../rpc-delivery-contract.md) resolves the public
+compatibility route, global installation reuse and support window; actual delivery remains unimplemented.
+Event projection, attachments and remaining acceptance/handoff decisions continue on the map.
 Source review and prototype feedback are not runtime proof.
 The health-only scaffold remains unchanged until implementation and end-to-end validation follow.
 

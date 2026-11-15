@@ -21,7 +21,9 @@ This decision therefore does not claim the full integration is proven or that na
 are absent from the installed package graph.
 
 The required server catalog/description and protected-continuation extensions remain dependencies
-under either route. Their delivery baseline is decided separately; the upstream lock is unchanged.
+under either route, along with the later explicit-answer-only cancellation guarantee. [ADR 0008](0008-public-rpc-delivery.md)
+selects a public compatibility build and verified global installation reuse; the actual artifact remains
+undelivered and the upstream lock is unchanged.
 A future public RpcClient may replace the local adapter after it satisfies the same external
 contract and conformance tests. The [transport contract](../rpc-client-contract.md) records the
 boundary, validation responsibilities and remaining gates.
