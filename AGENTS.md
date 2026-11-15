@@ -66,3 +66,19 @@ bun run check
 ~~~
 
 The initial Host is only a health-check scaffold. Do not describe the DSH Gateway or OMP RPC integration as implemented until the corresponding end-to-end tests pass.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues in HowBoring/omp-webui. Before publishing specs, tickets or
+wayfinder maps, read docs/agents/issue-tracker.md.
+
+### Triage labels
+
+Use the five canonical labels mapped in docs/agents/triage-labels.md.
+
+### Domain docs
+
+Single-context: CONTEXT.md and docs/adr/.
+Before domain exploration or design, read docs/agents/domain.md.

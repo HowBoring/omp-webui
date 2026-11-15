@@ -19,9 +19,10 @@ Open Codex in this repository so it discovers `.agents/skills/`. In a new sessio
 invoke a skill by name, for example `$ask-matt`, `$grill-with-docs`, `$tdd`,
 `$implement`, or `$code-review`.
 
-Before using issue-driven workflows, invoke `$setup-matt-pocock-skills` to choose
-the issue tracker and triage vocabulary and configure the domain-document rules.
-This installation has not selected those project preferences or created tracker items.
+Project preferences are configured in [docs/agents](../docs/agents/): GitHub Issues,
+the five canonical triage labels, and single-context domain-document rules.
+`AGENTS.md` points skills to these files. Edit them directly when preferences change;
+rerun `$setup-matt-pocock-skills` to switch trackers or restart the setup.
 
 List the installed skills with:
 
