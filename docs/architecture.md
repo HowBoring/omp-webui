@@ -8,6 +8,10 @@ The Host reuses the DSH Web Client and implements the DSH Remote/Connection cont
 
 This is not an SDK embedding project and not a fork of the OMP Agent Runtime.
 
+The [OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14) and
+[scope ADR](adr/0002-native-session-mvp.md) include native TUI Session discovery/import and core history
+navigation. They record product requirements, not completed integration.
+
 ## 2. System context
 
 ~~~mermaid
@@ -98,13 +102,17 @@ Host memory may hold worker handles, pending requests, stream subscribers, and d
 The initial concurrency model is one supervised RPC worker per concurrently active top-level OMP Session.
 
 - Multiple browser tabs viewing the same Session attach to the same Host-owned worker.
-- Different active Sessions may have independent workers and progress concurrently.
+- The usable MVP permits one active top-level worker at a time; its catalog can list many Workspaces and Sessions.
+- Independent workers for concurrent Sessions remain a later extension of this ownership model.
 - Subagents remain children of their parent OMP worker and use OMP's native subagent RPC commands/events.
 - A cold Session has no worker until it is opened or activated.
 
 This is a logical ownership rule, not permission to create duplicate OMP writers. Before opening a Session, the Host must detect ownership conflicts and let OMP acquire its native Session lease. The RPC `get_session_lease` command is a probe; it is not a lease reservation API.
 
 If another TUI or Host already owns a Session, the Host must not force-open it. Return a stable conflict or provide a read-only path where available.
+The MVP supports continuation after the previous process exits, not live writer transfer. A lease probe
+neither identifies the owner nor reserves ownership; a sibling/continuation created on conflict must not
+be presented as successful attachment to the original Session.
 
 ### 4.2 Worker lifecycle
 
@@ -217,7 +225,15 @@ The Registry maps a stable OMP Session identity to its worker, lifecycle state, 
 
 A significant upstream gap exists: the current per-session OMP RPC protocol does not provide a global read-only Session Catalog equivalent to DSH's `session.list` and `workspace.list`. `get_session_lease` only probes lease ownership; it does not enumerate Sessions.
 
-To preserve the RPC-only boundary, the Host must not scan or parse OMP session directories. Add an additive public OMP RPC catalog command (paged, read-only, and returning stable Session IDs plus cwd/title/timestamps/parent metadata) before implementing the complete DSH workspace/session sidebar.
+The MVP must discover and import existing TUI Sessions and group them by working directory. To preserve
+the RPC-only boundary, the Host must not scan or parse OMP session directories. This requires a public
+OMP catalog capability before the complete sidebar can ship. Pagination, identity, metadata, discovery
+roots and import validation remain contract decisions, not existing wire fields or invented API names.
+
+Import registers a native Session reference; it does not copy its transcript or create a replacement
+conversation. The persistent Host index retains registered references across restarts. Opening a Session
+is a separate operation subject to native ownership and path validation. In the pinned implementation,
+`switch_session` may create a new Session for a missing path; it is not a read-only existence check.
 
 ### 6.4 Event Projection and Replay
 
@@ -251,14 +267,20 @@ generation/ID. Enforce at-most-once answers; stale replies and disconnections mu
 
 Use DSH client module/slot extension points for OMP-only capabilities such as:
 
+- MVP: Session Tree viewing, same-Session history navigation through `navigate_tree`, and a new
+  Branched Session through `branch` at a historical user-message point. `get_tree` supplies the tree;
+  UI labels must distinguish navigation from creating a new conversation. Re-read authoritative state
+  after each operation, handle native busy/cancellation rules, and do not automatically resubmit returned text.
+- MVP: manual retry through the public `prompt` route with `/retry`, subject to native preconditions
+  and explicit user action; retry may execute failed tools again.
 - BTW history and live side-question output.
-- Full OMP Session tree, labels, rewind, and fork.
+- Advanced tree editing/comparison and labels, beyond the core MVP history controls.
 - Subagent controls and transcript views.
 - OMP settings and provider credential management.
-- Manual retry through the public `prompt` route with `/retry`, subject to native preconditions
-  and explicit user action; retry may execute failed tools again.
 
 Do not rename or reinterpret DSH tool cards when their underlying semantics differ.
+History navigation changes conversation context; it does not undo filesystem or external side effects.
+The TUI `/tree` and `/rewind` selectors are not text handlers to send blindly through RPC.
 
 ## 7. Capability gaps and extension policy
 
@@ -300,7 +322,11 @@ and never automatically replay side-effecting prompts after a worker crash.
 
 ## 9. Persistence policy
 
-MVP state is in memory plus OMP-native persistence. A small atomic JSON or SQLite store may later hold WebUI-only preferences such as workspace ordering or per-browser layout.
+The MVP persists a small Host-owned reference index for registered Workspaces and Sessions so the list
+survives Host restart. Storage format and update/reconciliation rules remain open decisions. This index
+may contain authorized native references and WebUI metadata, not a second conversation store.
+Worker handles, pending interactions and projections remain transient and must be rebuilt where the
+public RPC contract permits. Crash recovery is manual; never replay prompts or tools automatically.
 
 Do not copy OMP transcripts, messages, branch trees, credentials, or Agent state into SQLite. Any cache must be disposable and reconstructible from OMP RPC.
 
@@ -327,7 +353,8 @@ M0 is complete only when all of the following are demonstrated:
 3. A browser stream can open through the DSH Gateway WebSocket mux and close/cancel correctly.
 4. The Host can start a real OMP `rpc-ui` worker, negotiate RPC v2, and complete a command round trip.
 5. The Host can receive an Extension UI request and return a validated response without using OMP SDK internals.
-6. The Session Catalog gap and the required upstream OMP RPC change are resolved or explicitly scoped out of the first UI slice.
+6. The Session Catalog gap and the required upstream OMP RPC change are specified. Native discovery/import
+   is required for the usable MVP; a narrower M0 transport proof must not be labelled a usable MVP.
 7. The event projection design has fixtures proving active-branch correctness and replay reconciliation.
 
 Until then, the project remains a scaffold, not a usable OMP WebUI.

@@ -38,6 +38,18 @@ _Avoid_: Browser tab, DSH Agent
 Returning to an existing conversation and its authoritative history.
 _Avoid_: New conversation, prompt replay
 
+**Session Tree**:
+The branching history within one OMP Session, including its active path and other historical paths.
+_Avoid_: Workspace list, chronological transcript
+
+**History Navigation**:
+Changing the active history point within the same OMP Session.
+_Avoid_: New conversation, filesystem rollback
+
+**Branched Session**:
+A new OMP Session created from a historical user-message point in another Session.
+_Avoid_: History Navigation, copy of the whole conversation
+
 **Interaction**:
 A pending request for an explicit user answer, such as approval or an ask dialog.
 _Avoid_: Notification, automatic consent
