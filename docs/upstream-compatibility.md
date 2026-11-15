@@ -176,6 +176,14 @@ The DSH Session wire event has a sequence, timestamp, data payload, and optional
 
 The Host must implement the DSH Connection envelope, Remote method contract, Gateway stream carrier, cancellation, and Session snapshot/event semantics expected by the pinned browser modules. A custom REST API or a raw WebSocket event feed is not compatible by itself.
 
+## Modified Client policy experiment
+
+The [public policy experiment](dsh-policy-validation.md) records a separately identified patch over
+this exact DSH baseline, public boot Config/navigation-provider and Controller-policy extensions,
+and isolated real-browser comparisons. These APIs belong to the experimental patch, not the
+unmodified official release. Production pins and the health-only runtime remain unchanged;
+real OMP RPC/Remote mapping, final roster and browser support still require their own validation.
+
 ## Prior art
 
 `https://github.com/LaneSun/omp-web` is useful prior art for the DSH client boot process, OMP feature mapping, and browser acceptance cases. It is not a runtime dependency and no old SDK-based Driver is copied into this scaffold. Its DSH baseline predates the current DSH Remote/Session stream contract; re-check all code and assumptions against the pins above.

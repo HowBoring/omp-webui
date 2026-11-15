@@ -18,6 +18,8 @@ see [ADR 0004](docs/adr/0004-local-public-rpc-transport.md) and the [transport c
 The [client composition](docs/client-composition.md) retains the DSH foundation with a small public
 navigation/action seam and OMP modules. New image/file input is required for the MVP, alongside
 Session-local model/thinking selection and WebUI appearance/language preferences; these remain unimplemented.
+The [public Client policy experiment](docs/dsh-policy-validation.md) now passes isolated patched/baseline
+checks; its patch and fixture assets remain on a separate experiment branch, without product runtime integration.
 The [local access policy](docs/local-access-contract.md) remembers browser authorization for 30 days,
 allows explicit persistent directory grants in the WebUI, and confines uploads to dedicated staging.
 Authentication and these grant operations remain unimplemented.

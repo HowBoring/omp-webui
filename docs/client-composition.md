@@ -1,6 +1,6 @@
 # DSH 客户端组合与能力合同目标
 
-Status: 用户已确认组合方向和产品范围；新公开接缝、最终构建清单及产品集成待验证。
+Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过，最终产品构建与集成仍待验证。
 
 日期：2026-11-15。决策：[原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)。
 取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。
@@ -54,7 +54,7 @@ openSession/retain/open 路径则读取其流。uiWorkspace 私有构造并捕�
 所以新接缝必须覆盖自动恢复/创建策略，以及菜单、快捷键、双击和其他动作入口；不能只改 CSS。
 支持能力与真实授权分别检查，Host 仍按实现范围拒绝未支持操作。[S3][S4]
 
-这是待实现的新扩展点需求，不是固定 release 已有 API。patch 记录 base SHA、内容摘要和
+这些是隔离候选补丁中的新扩展，不是固定官方 release 已有 API，详见[公开策略验证](dsh-policy-validation.md)。patch 记录 base SHA、内容摘要和
 构建身份；不得把修改后产物标为未经修改的官方 release。若需要扩大为大范围核心 fork，
 先记录阻塞并重开组合决策，不静默扩大变更。
 
@@ -95,7 +95,7 @@ receipt；composer 连已上传图片也可通过 file receipt 提交。图片 h
 ## 验证门禁
 
 - [DSH 导航与能力接缝：自动创建及动作门禁实证](https://github.com/HowBoring/omp-webui/issues/27)：
-  验证首开/恢复/目录切换/显式创建、失效身份、所有动作入口及真实 owner 语义；冻结 patch 和 manifest。
+  隔离实证和候选 patch/manifest 已固定，见[验证结果与边界](dsh-policy-validation.md)；真实 OMP/Bun 集成、最终 roster 和浏览器键位矩阵仍需验收。
 - 附件合同、实际浏览器上传/回执/取消/历史读取，以及 OMP 图片/普通文件链路必须验证。
 - 使用真实支持的 namespace/typed DTO；不以空 fixture 回答冒充产品服务。未知 capability、
   部分失败、非图片文件和被占用 Session 都需可见的正确结果。
@@ -104,8 +104,8 @@ receipt；composer 连已上传图片也可通过 file receipt 提交。图片 h
   实际启动 UI、busy 输入门禁、取消/重投与原生静止仍需真实验证；投影算法由对应工单细化。
   完整 OMP/DSH 端到端仍是验收门禁。
 
-现有实验只证明固定 28 插件空数据启动；本次仅追加源码核查与用户决策，没有实施 patch、
-新模块、上传存储或真实 OMP 集成。基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。
+已有 28 插件空数据启动与公开策略补丁的隔离对照证据；后者包含两个 fixture 插件，不是最终产品 roster。
+产品运行时仍未接入 DSH、上传存储或真实 OMP。官方基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。
 
 ## 固定一手证据
 

@@ -39,6 +39,14 @@ and real loopback HTTP startup/request/stop. They need no model credentials or e
 Health success proves Host liveness only. Independent review of the final file tree is reported with
 the delivered commit; it does not replace the pending integration checks below.
 
+## Isolated Client policy evidence
+
+On 2026-11-16 the [DSH public policy experiment](dsh-policy-validation.md) passed patched/baseline
+browser comparisons, 2,306 Client tests, artifact build and aggregate type checks. Its source patch,
+module/asset identities, traces, screenshots and review remain on a separate experiment branch.
+This does not implement the Bun Gateway/OMP/Broker or satisfy the real integration rows below;
+the tested shortcut profile and Linux Web limitations are explicit in that report.
+
 ## Outstanding M0 verification
 
 | Area | Required evidence before exposing the capability |

@@ -23,7 +23,8 @@ Status: scaffold created; implementation not complete.
 - [x] Select the local public-RPC transport route; isolated package/decoder probes are evidence inputs.
 - [ ] Implement the [transport contract](rpc-client-contract.md), including full prompt ack and EOF/drain tests.
 - [x] Select DSH foundation reuse plus a minimal public navigation/action seam, as recorded in [ADR 0005](adr/0005-dsh-client-composition.md).
-- [ ] Prove the [navigation/action seam](https://github.com/HowBoring/omp-webui/issues/27) and freeze the modified client manifest.
+- [x] Prove the public navigation/action policy in an [isolated experiment](dsh-policy-validation.md) and freeze its candidate patch/manifest.
+- [ ] Integrate and validate the final modified Client roster and supported browser/keybinding matrix against the real Host; Linux Web shortcut support remains a known gap.
 - [x] Define persistent browser access, WebUI directory grants and dedicated upload staging in [ADR 0006](adr/0006-persistent-local-browser-access.md).
 - [ ] Implement and verify [local admission and revocation](local-access-contract.md) before serving private Session data.
 - [x] Confirm tree selection, same-Session navigation, new-Session branching and stop-then-repeat behavior
