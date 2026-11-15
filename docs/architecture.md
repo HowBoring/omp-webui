@@ -178,15 +178,22 @@ DSH's `ready` is unrelated to OMP's stdio `ready`.
 - Route `extension_ui_request` frames to the Interaction Broker and send `extension_ui_response` frames back to the same worker.
 - Treat host-tool and host-URI requests as separate sub-protocols; these are not ordinary UI dialogs.
 
-The current OMP TypeScript `RpcClient` is useful reference code. It defaults to `--mode rpc` (its custom `spawn` override can supply `rpc-ui` argv), but its public API does not expose a general interface for receiving and answering all Extension UI requests. Do not reach into its private members. The implementation must either use a future public OMP client API or own a small, schema-backed JSONL transport. The latter must remain a protocol client, not an Agent SDK integration.
+Per [ADR 0004](adr/0004-local-public-rpc-transport.md), the MVP owns a small Bun JSONL transport over
+OMP's public protocol. The current TypeScript `RpcClient` remains reference code; its public UI,
+prompt admission and graceful EOF/drain surfaces do not cover the required Host contract. Do not
+reach into private members or add a second reader to the same worker's stdout. A future public
+client replacement must satisfy the same [transport contract](rpc-client-contract.md) and tests.
 
 Use the public `RpcFrameDecoder` at `@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame` for framing;
 the package's `./modes/rpc/*` export also covers `rpc-client` and `rpc-types`.
 The upstream `src/modes/rpc/wire/rpc-wire.schema.json` is a JSON Schema 2020-12 bundle with an
 `x-rpc` command table and stdout/inbound frame unions; generated TypeScript is beside it.
 Reuse these public wire/schema/client capabilities rather than inventing a second command schema
-or copying the old omp-web SDK Driver. M0 does not yet import the package; installed export resolution
-and native dependencies remain integration checks.
+or copying the old omp-web SDK Driver. Published-package probes verified the public decoder, wire type
+modules and `wire/index` schema generator under Bun 1.4.4; the JSON schema path itself is not a working
+package import. Generate validation inputs through the public generator at build time, tied to the
+worker version. Type-only wire modules are not runtime validators. The product scaffold still has no
+OMP dependency or real worker integration; RpcClient's eager configuration/native imports were not executed.
 
 `--no-ui` disables extension UI in both RPC modes. Although `rpc-ui --no-ui` retains tool dialogs,
 tools requiring approval fail closed without the extension UI. MCP authentication challenges do not

@@ -13,6 +13,8 @@ directory, manual recovery after the previous process exits, tree viewing, same-
 and branching from a historical user message into a new Session. These capabilities remain unimplemented.
 The [catalog contract](docs/session-catalog-contract.md) records the confirmed discovery, registration
 and occupied-Session behavior; its required public OMP extensions remain pending.
+The Host will use a local Bun transport over OMP's public decoder/wire/schema capabilities;
+see [ADR 0004](docs/adr/0004-local-public-rpc-transport.md) and the [transport contract](docs/rpc-client-contract.md).
 
 ## Architecture at a glance
 

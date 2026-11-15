@@ -20,6 +20,8 @@ Status: scaffold created; implementation not complete.
 - [ ] Implement one Gateway WebSocket Remote stream with cancellation.
 - [ ] Spawn a real `omp --mode rpc-ui` worker and negotiate RPC v2.
 - [ ] Complete an Extension UI request/response round trip.
+- [x] Select the local public-RPC transport route; isolated package/decoder probes are evidence inputs.
+- [ ] Implement the [transport contract](rpc-client-contract.md), including full prompt ack and EOF/drain tests.
 - [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
   [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
 

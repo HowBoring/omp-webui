@@ -34,17 +34,30 @@ This document records the exact upstream revisions inspected for the initial arc
 
 The current TypeScript `RpcClient` is a useful protocol reference and includes framing, request correlation, and many convenience methods. However, the reviewed public surface does not provide a general public API for receiving and answering all `rpc-ui` Extension UI requests, and its default startup mode is `rpc`.
 
-Do not reach into its private fields or methods. Either:
-
-1. use a future upstream public client API that exposes `rpc-ui` mode and Extension UI request/response handling; or
-2. implement a small local JSONL transport from the public wire schema, with explicit protocol conformance tests.
-
-The second option remains RPC-only; it must not import OMP Agent Runtime internals.
+Do not reach into its private fields or methods. [ADR 0004](adr/0004-local-public-rpc-transport.md)
+selects a small local Bun JSONL transport using public framing/wire/schema capabilities, with explicit
+conformance and failure tests. It remains RPC-only and does not import Agent Runtime internals.
+A future public client can replace it only after satisfying the same [transport contract](rpc-client-contract.md).
 
 The public `./modes/rpc/*` exports include `RpcClient`, `RpcFrameDecoder`, and RPC types. Prefer the
 upstream decoder and wire/schema capabilities for the local transport. A command builder as well as
 custom spawn can choose controlled `rpc-ui` argv, but neither provides the missing general UI API.
-Actual package installation and runtime imports remain unverified by the health-only M0 scaffold.
+The health-only product scaffold still imports none of these modules. Isolated Linux x64 probes of
+the published 18.20.2 package under Bun 1.4.4 verified decoder imports and a 1,200,097-byte synthetic
+object round trip through five v2 chunks. Five malformed-input cases also passed; full decoder and
+transport conformance remain untested. Type modules resolve and erase to empty runtime namespaces;
+no project-level TypeScript check against those declarations was performed.
+
+The JSON schema asset matches the pinned source but its package JSON subpath does not resolve.
+The public `@oh-my-pi/pi-coding-agent/modes/rpc/wire/index` module exports `buildRpcWireBundle()`;
+its generated bundle matched the published schema. Use this pinned generator as a build input,
+then generate and test boundary validators while preserving the schema's extension metadata.
+Neither the generator nor the type exports is an already implemented runtime validator.
+
+Only resolution was tested for `rpc-client`. Its static import closure reaches eager configuration
+reads and native initialization, so its runtime import was not executed within this experiment's
+no-user-configuration boundary. Installed native assets do not establish native ABI or CLI support.
+Evidence is recorded in [OMP 公共 RPC 模块分发：锁定包导出与 Bun 加载实证](https://github.com/HowBoring/omp-webui/issues/26).
 
 ### Manual recovery and ownership recheck
 
@@ -64,7 +77,8 @@ and an available `/retry` route do not establish that every crash outcome can be
 Likewise, reattaching a browser to a Host-owned worker differs from transferring another live process's
 writer ownership. The public lease probe neither identifies the owner nor transfers or reserves its claim.
 The [takeover feasibility research](https://github.com/HowBoring/omp-webui/issues/13) records the precise
-source boundaries and proposed validation; final product policy remains with the session-strategy decision.
+source boundaries and proposed validation. The selected product policy is recorded in
+[ADR 0003](adr/0003-session-discovery-and-registration.md) and the [catalog contract](session-catalog-contract.md).
 
 ## DeepSeek Harness
 
