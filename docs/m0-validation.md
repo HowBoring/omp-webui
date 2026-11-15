@@ -15,6 +15,11 @@ and usable WebUI remain pending under [the roadmap](roadmap.md).
   evidence is described in [upstream compatibility](upstream-compatibility.md).
 - OMP `18.20.2` matches its release/npm version; DSH source `0.2.2-rc.3` differs from its Web
   frontend/client npm latest versions. Source review is not an installed-client compatibility result.
+- DSH was subsequently pinned to the latest official published release (including prereleases):
+  `dsh-v0.2.2-rc.3` at `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`. The tag and package versions
+  were verified, and Connection, unary transport, Gateway, stream protocol, Session Controller and
+  Remote access were reread at that revision. It replaces the earlier post-release `master` pin;
+  the source version string is unchanged, but the commits and authentication composition differ.
 
 ## Passing local checks
 

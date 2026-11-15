@@ -48,8 +48,8 @@ Actual package installation and runtime imports remain unverified by the health-
 ## DeepSeek Harness
 
 - Repository: https://github.com/deepseek-ai/deepseek-harness
-- Reviewed ref: `master`
-- Commit: `39163dd30f703a79079e2d2446545cff3c453738`
+- Reviewed ref: `dsh-v0.2.2-rc.3`
+- Commit: `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`
 - Version: `0.2.2-rc.3`
 - Web frontend artifact entry: `@deepseek-ai/dsh-web-frontend` (`apps/web`)
 - Web Client boot kernel: `@deepseek-ai/dsh-client-web` (`packages/client/web`)
@@ -59,17 +59,25 @@ Actual package installation and runtime imports remain unverified by the health-
 - Build requirements from the root package: Node.js `>=24.9.0`, pnpm `11.28.5`
 
 The latest GitHub prerelease checked on 2026-11-15 is `dsh-v0.2.2-rc.3` (not a stable release).
+It is the selected latest official release, including prereleases. Its tag resolves to the exact commit
+above, which replaces the previous post-release `master` review baseline. Builds must use the locked
+commit, not resolve a moving branch or dist-tag. Upgrades require an explicit lock update and contract review.
 Source package versions differ from npm dist-tags: npm latest is `0.0.1-rc.5` for the Web frontend
 and `0.0.1-rc.1` for client-web. Do not assume `0.2.2-rc.3` is installable from npm or mix these
 artifacts without testing. Pin a matched upstream build and its dependency/asset closure before UI integration.
 
 Pinned source references:
 
-- [Connection](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/client/connection/README.md)
-- [Unary transport](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/client/connection/src/client/rpc.ts)
-- [Gateway](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/gateway/README.md)
-- [Stream and event protocol](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/gateway/src/stream-protocol.ts)
-- [Remote resource access](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/remote-access/README.md)
+- [Connection](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/client/connection/README.md)
+- [Unary transport](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/client/connection/src/client/rpc.ts)
+- [Gateway](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/api/gateway/README.md)
+- [Stream and event protocol](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/api/gateway/src/stream-protocol.ts)
+- [Remote resource access](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/api/remote-access/README.md)
+- [Session Controller](https://github.com/deepseek-ai/deepseek-harness/blob/38a6a5c965aa99ab525161efb7cc5cf1fe62fced/packages/api/session-controller/README.md)
+
+The release's Connection owns browser launch-token/Cookie authentication. Do not assume the later
+`master` authentication-provider split exists in this release. The selected release's unary envelopes,
+mux/event framing, Session Controller and resource-access contracts were rechecked after repinning.
 
 ### DSH Remote facts verified
 

@@ -26,9 +26,13 @@
   },
   "dsh": {
     "repository": "https://github.com/deepseek-ai/deepseek-harness",
-    "ref": "master",
-    "commit": "39163dd30f703a79079e2d2446545cff3c453738",
+    "ref": "dsh-v0.2.2-rc.3",
+    "commit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "version": "0.2.2-rc.3",
+    "selection": {
+      "policy": "latest-published-release-including-prereleases",
+      "checkedAt": "2026-11-15"
+    },
     "packages": {
       "sessionController": "@deepseek-ai/dsh-api-session-controller",
       "gateway": "@deepseek-ai/dsh-api-gateway",
@@ -42,6 +46,7 @@
     },
     "release": {
       "tag": "dsh-v0.2.2-rc.3",
+      "commit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
       "prerelease": true,
       "url": "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3"
     },

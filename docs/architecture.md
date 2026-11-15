@@ -48,6 +48,10 @@ flowchart TB
 
 The upstream DSH checkout and generated assets live under ignored `vendor/`. They are not copied into this repository.
 
+Select the latest official published DSH release, including prereleases, then lock its exact tag and commit
+in `upstreams.lock.json`. The current pin is `dsh-v0.2.2-rc.3` at
+`38a6a5c965aa99ab525161efb7cc5cf1fe62fced`; builds use that SHA rather than floating `master` or npm `latest`.
+
 ### 3.2 OMP Web Host
 
 The Host is a single-user local application initially. It owns:

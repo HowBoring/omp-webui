@@ -46,9 +46,12 @@ See [the architecture](docs/architecture.md), [ADR 0001](docs/adr/0001-rpc-first
 The exact upstream commits used for the initial compatibility review are recorded in [upstreams.lock.json](upstreams.lock.json):
 
 - OMP `18.20.2` — `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`
-- DSH `0.2.2-rc.3` — `39163dd30f703a79079e2d2446545cff3c453738`
+- DSH `0.2.2-rc.3` — tag `dsh-v0.2.2-rc.3`, commit `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`
 
 These are review baselines, not a promise that every upstream capability is already integrated. Update pins deliberately and rerun compatibility checks before changing them.
+
+DSH is pinned to the latest official published release, including prereleases, checked on 2026-11-15.
+The exact release commit is authoritative for builds; do not resolve floating `master` or npm `latest` at build time.
 
 DSH source/release versions are not npm package versions: the reviewed source and latest prerelease are
 `0.2.2-rc.3`, while npm latest is `0.0.1-rc.5` for `@deepseek-ai/dsh-web-frontend` and
