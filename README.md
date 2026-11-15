@@ -21,6 +21,9 @@ Session-local model/thinking selection and WebUI appearance/language preferences
 The [local access policy](docs/local-access-contract.md) remembers browser authorization for 30 days,
 allows explicit persistent directory grants in the WebUI, and confines uploads to dedicated staging.
 Authentication and these grant operations remain unimplemented.
+The accepted [history interaction contract](docs/history-interaction-contract.md) separates tree selection,
+same-Session navigation and new-Session branching, with explicit confirmation, unsent drafts and a
+stop-then-wait flow. Its disposable prototype is evidence for the interaction decision, not RPC integration.
 
 ## Architecture at a glance
 

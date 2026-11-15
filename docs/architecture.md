@@ -308,6 +308,12 @@ Do not rename or reinterpret DSH tool cards when their underlying semantics diff
 History navigation changes conversation context; it does not undo filesystem or external side effects.
 The TUI `/tree` and `/rewind` selectors are not text handlers to send blindly through RPC.
 
+The accepted [history interaction contract](history-interaction-contract.md) keeps selection separate
+from mutation, previews and confirms both history actions, and leaves returned drafts unsent.
+Running work must stop and reach verified quiescence before the user reinitiates navigation/branching;
+an abort acknowledgement does not execute the pending action. Session identity and leaf are read back
+before presenting the result. The prototype is a decision artifact, not runtime integration evidence.
+
 ## 7. Capability gaps and extension policy
 
 At the reviewed OMP baseline, the following are already available through RPC: prompt/steer/follow-up, abort, model and thinking selection, message/history/tree reads, branch/fork/navigation, subagent subscription/control, BTW and BTW history, automatic retry configuration, and Extension UI requests in `rpc-ui`.

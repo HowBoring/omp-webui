@@ -26,6 +26,8 @@ Status: scaffold created; implementation not complete.
 - [ ] Prove the [navigation/action seam](https://github.com/HowBoring/omp-webui/issues/27) and freeze the modified client manifest.
 - [x] Define persistent browser access, WebUI directory grants and dedicated upload staging in [ADR 0006](adr/0006-persistent-local-browser-access.md).
 - [ ] Implement and verify [local admission and revocation](local-access-contract.md) before serving private Session data.
+- [x] Confirm tree selection, same-Session navigation, new-Session branching and stop-then-repeat behavior
+  through a disposable prototype; record the [history interaction contract](history-interaction-contract.md).
 - [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
   [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
 
@@ -51,7 +53,9 @@ Exit criterion: one Session can be used through DSH WebUI with streaming and too
 
 - Full active-branch Conversation projection and separate full-tree History view.
 - Older-history pagination.
-- MVP Session Tree viewer, same-Session History Navigation and Branched Session from a historical user message.
+- Implement the accepted [history interaction contract](history-interaction-contract.md): full tree,
+  same-Session History Navigation and Branched Session from a historical user message, with confirmation
+  and returned drafts left unsent; verify real stop/quiescence, identity refresh and rebuild behavior.
 - Compaction and branch replacement correctness; navigation does not roll back files or external effects.
 - Approval, ask, select/confirm/input/editor, timeout, cancellation, and browser disconnect.
 - Multiple viewers of one Session and ownership conflict handling.

@@ -34,8 +34,11 @@ Native catalog and import validation are usable-MVP dependencies. The pinned pub
 operations but lacks a global Session catalog; current internal discovery helpers are evidence for an
 upstream design, not Host integration APIs. No proposed catalog method name or schema is accepted here.
 
-The exact discovery roots, paging, reference reconciliation, transport choice, interaction ownership,
-history UI and event projection are still decisions on the map. Source review is not runtime proof.
+Follow-on [catalog](../session-catalog-contract.md), [transport](../rpc-client-contract.md),
+[client composition](../client-composition.md), [local access](../local-access-contract.md) and
+[history interaction](../history-interaction-contract.md) contracts record the resolved choices.
+Interaction ownership, event projection and remaining delivery/acceptance decisions continue on the map.
+Source review and prototype feedback are not runtime proof.
 The health-only scaffold remains unchanged until implementation and end-to-end validation follow.
 
 Live transfer from an active external TUI/Host, parallel Session execution, arbitrary crash repair,

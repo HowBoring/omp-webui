@@ -99,7 +99,9 @@ receipt；composer 连已上传图片也可通过 file receipt 提交。图片 h
 - 附件合同、实际浏览器上传/回执/取消/历史读取，以及 OMP 图片/普通文件链路必须验证。
 - 使用真实支持的 namespace/typed DTO；不以空 fixture 回答冒充产品服务。未知 capability、
   部分失败、非图片文件和被占用 Session 都需可见的正确结果。
-- Tree 的具体交互原型与投影算法分别在对应工单推进；完整 OMP/DSH 端到端仍是验收门禁。
+- Tree 的选择/预览、原会话导航与新建会话确认、草稿手动发送，以及停止后重新发起流程，已由
+  用户通过原型确认，见[历史交互合同](history-interaction-contract.md)。投影算法和真实停止/重建
+  仍由对应工单决定；完整 OMP/DSH 端到端仍是验收门禁。
 
 现有实验只证明固定 28 插件空数据启动；本次仅追加源码核查与用户决策，没有实施 patch、
 新模块、上传存储或真实 OMP 集成。基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。
