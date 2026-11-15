@@ -10,8 +10,13 @@ A durable conversation with its messages, tool history and branches.
 _Avoid_: Browser session, transcript copy
 
 **WebUI-managed Session**:
-An OMP Session created through this WebUI and included in its managed conversation set.
-_Avoid_: Imported TUI session, separate WebUI transcript
+An OMP Session registered in the WebUI's managed conversation set, whether created here
+or imported from an existing OMP/TUI conversation.
+_Avoid_: Separate WebUI transcript
+
+**Imported Session**:
+An existing OMP Session registered for WebUI access while retaining its native conversation identity.
+_Avoid_: Transcript copy, new conversation
 
 **Workspace**:
 A registered working directory and the WebUI-managed Sessions associated with it.
