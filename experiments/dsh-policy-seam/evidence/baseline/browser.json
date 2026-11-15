@@ -1,0 +1,936 @@
+{
+  "mode": "baseline",
+  "checks": [
+    "automatic creation despite embedding policy",
+    "unsupported rename remains exposed",
+    "busy queue admitted",
+    "rename hotkey remains actionable"
+  ],
+  "errors": [],
+  "console_errors": [],
+  "chromium": "156.0.8078.79",
+  "browser_platform_profile": "Win32 (emulated navigator platform on Linux Chromium)",
+  "shortcut_preferences": {
+    "runtime": "web",
+    "platform": "windows",
+    "catalog": [
+      {
+        "id": "session.rename",
+        "binding": {
+          "code": "KeyG",
+          "modifiers": [
+            "control",
+            "alt"
+          ]
+        },
+        "modified": true,
+        "issue": null,
+        "conflicts": [],
+        "label": "Rename session",
+        "aliases": [
+          "rename session"
+        ],
+        "keys": [
+          "Ctrl",
+          "+",
+          "Alt",
+          "+",
+          "G"
+        ],
+        "aria": "Control+Alt+G"
+      },
+      {
+        "id": "session.fork",
+        "binding": {
+          "code": "KeyF",
+          "modifiers": [
+            "control",
+            "shift"
+          ]
+        },
+        "modified": true,
+        "issue": null,
+        "conflicts": [],
+        "label": "Fork session",
+        "aliases": [
+          "fork session"
+        ],
+        "keys": [
+          "Ctrl",
+          "+",
+          "Shift",
+          "+",
+          "F"
+        ],
+        "aria": "Control+Shift+F"
+      },
+      {
+        "id": "session.archive",
+        "binding": {
+          "code": "KeyA",
+          "modifiers": [
+            "control",
+            "alt"
+          ]
+        },
+        "modified": true,
+        "issue": null,
+        "conflicts": [],
+        "label": "Archive session",
+        "aliases": [
+          "archive session"
+        ],
+        "keys": [
+          "Ctrl",
+          "+",
+          "Alt",
+          "+",
+          "A"
+        ],
+        "aria": "Control+Alt+A"
+      }
+    ]
+  },
+  "initial": {
+    "startup": {
+      "revision": 1,
+      "pending": {
+        "id": "startup-1",
+        "epoch": "fixture-host-1"
+      }
+    },
+    "result": {
+      "ok": true,
+      "value": {
+        "runtime": "web",
+        "platform": "windows",
+        "catalog": [
+          {
+            "id": "session.rename",
+            "binding": {
+              "code": "KeyG",
+              "modifiers": [
+                "control",
+                "alt"
+              ]
+            },
+            "modified": true,
+            "issue": null,
+            "conflicts": [],
+            "label": "Rename session",
+            "aliases": [
+              "rename session"
+            ],
+            "keys": [
+              "Ctrl",
+              "+",
+              "Alt",
+              "+",
+              "G"
+            ],
+            "aria": "Control+Alt+G"
+          },
+          {
+            "id": "session.fork",
+            "binding": {
+              "code": "KeyF",
+              "modifiers": [
+                "control",
+                "shift"
+              ]
+            },
+            "modified": true,
+            "issue": null,
+            "conflicts": [],
+            "label": "Fork session",
+            "aliases": [
+              "fork session"
+            ],
+            "keys": [
+              "Ctrl",
+              "+",
+              "Shift",
+              "+",
+              "F"
+            ],
+            "aria": "Control+Shift+F"
+          },
+          {
+            "id": "session.archive",
+            "binding": {
+              "code": "KeyA",
+              "modifiers": [
+                "control",
+                "alt"
+              ]
+            },
+            "modified": true,
+            "issue": null,
+            "conflicts": [],
+            "label": "Archive session",
+            "aliases": [
+              "archive session"
+            ],
+            "keys": [
+              "Ctrl",
+              "+",
+              "Alt",
+              "+",
+              "A"
+            ],
+            "aria": "Control+Alt+A"
+          }
+        ]
+      }
+    },
+    "generation": 1,
+    "navigation": {
+      "intents": [],
+      "error": null
+    },
+    "catalog": {
+      "phase": "ready",
+      "ids": [
+        "fixture-created-1",
+        "fixture-existing"
+      ],
+      "retained": 1
+    }
+  },
+  "entries": [
+    {
+      "name": "@deepseek-ai/dsh-client-modules",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-api-gateway",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-api-session-controller",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-typert-registry",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-connection",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-file-upload",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-api-remotes",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-renderer",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-layout",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-locale",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-settings",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-session",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-api-remote-access",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-theme",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-shortcuts",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-chat",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-api-workspace-controller",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-conversation",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-workspace",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-sidebar",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-context-menu",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-input-trigger",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-sidebar-right",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-resources",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-file-drag",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-tool",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-approval",
+      "state": 2
+    },
+    {
+      "name": "@deepseek-ai/dsh-client-ui-user-questions",
+      "state": 2
+    },
+    {
+      "name": "@omp-webui/probe-policy",
+      "state": 2
+    },
+    {
+      "name": "@omp-webui/probe-controls",
+      "state": 2
+    }
+  ],
+  "final": {
+    "startup": {
+      "revision": 1,
+      "pending": {
+        "id": "startup-1",
+        "epoch": "fixture-host-1"
+      }
+    },
+    "result": {
+      "ok": true,
+      "value": {
+        "accepted": true
+      }
+    },
+    "generation": 1,
+    "navigation": {
+      "intents": [],
+      "error": null
+    },
+    "catalog": {
+      "phase": "ready",
+      "ids": [
+        "fixture-created-1",
+        "fixture-existing"
+      ],
+      "retained": 1
+    }
+  },
+  "host": {
+    "requests": [
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "81fd0168-4b02-4589-95b4-eba386c279b7",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "347d2bd8-dff2-4ec5-9947-73af5c31fc1b",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "probe/startup/read",
+        "payload": {},
+        "rpcId": "8a4a71d8-8810-4520-81fc-bc68cf65c8ba",
+        "result": {
+          "ok": true,
+          "value": {
+            "revision": 1,
+            "pending": {
+              "id": "startup-1",
+              "epoch": "fixture-host-1"
+            }
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "82deaf9a-13b9-453c-a533-8fc7ae779a8f",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/create",
+        "payload": {
+          "args": {
+            "request": {
+              "workspaceId": "fixture-ws"
+            }
+          }
+        },
+        "rpcId": "b7569f7a-2888-4df6-adc7-b5f45c3439cb",
+        "result": {
+          "ok": true,
+          "value": {
+            "sessionId": "fixture-created-1"
+          }
+        }
+      },
+      {
+        "endpoint": "probe/authorize",
+        "payload": {
+          "root": "/fixture/project"
+        },
+        "rpcId": "5d6966f2-af85-45c4-b183-7f89c954b49d",
+        "result": {
+          "ok": true,
+          "value": {
+            "authorized": true
+          }
+        }
+      },
+      {
+        "endpoint": "probe/register",
+        "payload": {
+          "reference": "fixture-existing"
+        },
+        "rpcId": "a5c9b694-ac70-485b-807b-4e199250c889",
+        "result": {
+          "ok": true,
+          "value": {
+            "registered": true
+          }
+        }
+      },
+      {
+        "endpoint": "probe/open",
+        "payload": {
+          "reference": "fixture-existing"
+        },
+        "rpcId": "01197794-fa26-446f-9ec1-ef3369aa9a17",
+        "result": {
+          "ok": true,
+          "value": {
+            "sessionId": "fixture-existing"
+          }
+        }
+      },
+      {
+        "endpoint": "probe/busy",
+        "payload": {
+          "running": true
+        },
+        "rpcId": "95c77450-eadf-4011-b0f5-4474f45bce6e",
+        "result": {
+          "ok": true,
+          "value": {
+            "running": true
+          }
+        }
+      },
+      {
+        "endpoint": "session/prompt",
+        "payload": {
+          "args": {
+            "request": {
+              "requestId": "41c7268b-c4d1-4f73-ae42-f70c1d6f1309",
+              "sessionId": "fixture-existing",
+              "mode": "queue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "fixture queue"
+                }
+              ],
+              "clientTimeZone": "Asia/Singapore"
+            }
+          }
+        },
+        "rpcId": "08874d27-5902-4051-a820-4af1769bc94e",
+        "result": {
+          "ok": true,
+          "value": {
+            "accepted": true
+          }
+        }
+      }
+    ],
+    "frames": [
+      {
+        "type": "open",
+        "streamId": "af32822c-8f80-4563-a30d-b70f7a2b9e2b",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d4aef561-e384-4d7f-b53e-a12a42be2fe9",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "0e0ad61b-6758-40fd-a062-38c62abf350f",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "34500a49-f36e-4d06-8a17-2063cde58194",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "81b37596-6047-4250-8126-508ac34b0435",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-created-1"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "12fec0c0-c062-45fc-a886-ecdd4b25e231",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "81b37596-6047-4250-8126-508ac34b0435"
+      }
+    ],
+    "selected": [
+      "@deepseek-ai/dsh-client-modules",
+      "@deepseek-ai/dsh-api-session-controller",
+      "@deepseek-ai/dsh-api-gateway",
+      "@deepseek-ai/dsh-typert-registry",
+      "@deepseek-ai/dsh-client-connection",
+      "@deepseek-ai/dsh-client-file-upload",
+      "@deepseek-ai/dsh-api-remotes",
+      "@deepseek-ai/dsh-client-ui-renderer",
+      "@deepseek-ai/dsh-client-ui-layout",
+      "@deepseek-ai/dsh-client-locale",
+      "@deepseek-ai/dsh-client-ui-settings",
+      "@deepseek-ai/dsh-client-ui-session",
+      "@deepseek-ai/dsh-api-remote-access",
+      "@deepseek-ai/dsh-client-ui-theme",
+      "@deepseek-ai/dsh-client-shortcuts",
+      "@deepseek-ai/dsh-client-ui-chat",
+      "@deepseek-ai/dsh-api-workspace-controller",
+      "@deepseek-ai/dsh-client-ui-conversation",
+      "@deepseek-ai/dsh-client-ui-workspace",
+      "@deepseek-ai/dsh-client-ui-sidebar",
+      "@deepseek-ai/dsh-client-ui-context-menu",
+      "@deepseek-ai/dsh-client-ui-input-trigger",
+      "@deepseek-ai/dsh-client-ui-sidebar-right",
+      "@deepseek-ai/dsh-client-resources",
+      "@deepseek-ai/dsh-client-ui-file-drag",
+      "@deepseek-ai/dsh-client-ui-tool",
+      "@deepseek-ai/dsh-client-ui-approval",
+      "@deepseek-ai/dsh-client-ui-user-questions",
+      "@omp-webui/probe-policy",
+      "@omp-webui/probe-controls"
+    ],
+    "authorized": true,
+    "registered": true,
+    "creates": 1,
+    "startup": {
+      "revision": 1,
+      "pending": {
+        "id": "startup-1",
+        "epoch": "fixture-host-1"
+      }
+    }
+  },
+  "passed": true,
+  "last_body": "DSH Local Build\n0.2.2-rc.3-38a6a5c\nNew Session\nCtrl\n+\nAlt\n+\nN\nWorkspaces\nFixture project\nRunning\nUntitled\n10mo\nproject\nSynthetic fixture history\n2023-11-15 06:13\nDeep diving\nDeep diving\nMessage or run a task, / commands, @ files or sessions\nIsolated policy fixture\n{\"startup\":{\"revision\":1,\"pending\":{\"id\":\"startup-1\",\"epoch\":\"fixture-host-1\"}},\"result\":{\"ok\":true,\"value\":{\"accepted\":true}},\"generation\":1,\"navigation\":{\"intents\":[],\"error\":null},\"catalog\":{\"phase\":\"ready\",\"ids\":[\"fixture-created-1\",\"fixture-existing\"],\"retained\":1}}\nbinddiscoverauthorizeregisterselectopennewbusyidlequeuesteerstopanswerstale\nPin session\nRename\nCtrl\n+\nAlt\n+\nG\nFork session\nCtrl\n+\nShift\n+\nF\nCopy Session ID\nArchive session\nCtrl\n+\nAlt\n+\nA\nRename session\nCancel\nRename",
+  "last_host": {
+    "requests": [
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "81fd0168-4b02-4589-95b4-eba386c279b7",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "347d2bd8-dff2-4ec5-9947-73af5c31fc1b",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "probe/startup/read",
+        "payload": {},
+        "rpcId": "8a4a71d8-8810-4520-81fc-bc68cf65c8ba",
+        "result": {
+          "ok": true,
+          "value": {
+            "revision": 1,
+            "pending": {
+              "id": "startup-1",
+              "epoch": "fixture-host-1"
+            }
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "82deaf9a-13b9-453c-a533-8fc7ae779a8f",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/create",
+        "payload": {
+          "args": {
+            "request": {
+              "workspaceId": "fixture-ws"
+            }
+          }
+        },
+        "rpcId": "b7569f7a-2888-4df6-adc7-b5f45c3439cb",
+        "result": {
+          "ok": true,
+          "value": {
+            "sessionId": "fixture-created-1"
+          }
+        }
+      },
+      {
+        "endpoint": "probe/authorize",
+        "payload": {
+          "root": "/fixture/project"
+        },
+        "rpcId": "5d6966f2-af85-45c4-b183-7f89c954b49d",
+        "result": {
+          "ok": true,
+          "value": {
+            "authorized": true
+          }
+        }
+      },
+      {
+        "endpoint": "probe/register",
+        "payload": {
+          "reference": "fixture-existing"
+        },
+        "rpcId": "a5c9b694-ac70-485b-807b-4e199250c889",
+        "result": {
+          "ok": true,
+          "value": {
+            "registered": true
+          }
+        }
+      },
+      {
+        "endpoint": "probe/open",
+        "payload": {
+          "reference": "fixture-existing"
+        },
+        "rpcId": "01197794-fa26-446f-9ec1-ef3369aa9a17",
+        "result": {
+          "ok": true,
+          "value": {
+            "sessionId": "fixture-existing"
+          }
+        }
+      },
+      {
+        "endpoint": "probe/busy",
+        "payload": {
+          "running": true
+        },
+        "rpcId": "95c77450-eadf-4011-b0f5-4474f45bce6e",
+        "result": {
+          "ok": true,
+          "value": {
+            "running": true
+          }
+        }
+      },
+      {
+        "endpoint": "session/prompt",
+        "payload": {
+          "args": {
+            "request": {
+              "requestId": "41c7268b-c4d1-4f73-ae42-f70c1d6f1309",
+              "sessionId": "fixture-existing",
+              "mode": "queue",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "fixture queue"
+                }
+              ],
+              "clientTimeZone": "Asia/Singapore"
+            }
+          }
+        },
+        "rpcId": "08874d27-5902-4051-a820-4af1769bc94e",
+        "result": {
+          "ok": true,
+          "value": {
+            "accepted": true
+          }
+        }
+      }
+    ],
+    "frames": [
+      {
+        "type": "open",
+        "streamId": "af32822c-8f80-4563-a30d-b70f7a2b9e2b",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d4aef561-e384-4d7f-b53e-a12a42be2fe9",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "0e0ad61b-6758-40fd-a062-38c62abf350f",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "34500a49-f36e-4d06-8a17-2063cde58194",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "81b37596-6047-4250-8126-508ac34b0435",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-created-1"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "12fec0c0-c062-45fc-a886-ecdd4b25e231",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "81b37596-6047-4250-8126-508ac34b0435"
+      }
+    ],
+    "selected": [
+      "@deepseek-ai/dsh-client-modules",
+      "@deepseek-ai/dsh-api-session-controller",
+      "@deepseek-ai/dsh-api-gateway",
+      "@deepseek-ai/dsh-typert-registry",
+      "@deepseek-ai/dsh-client-connection",
+      "@deepseek-ai/dsh-client-file-upload",
+      "@deepseek-ai/dsh-api-remotes",
+      "@deepseek-ai/dsh-client-ui-renderer",
+      "@deepseek-ai/dsh-client-ui-layout",
+      "@deepseek-ai/dsh-client-locale",
+      "@deepseek-ai/dsh-client-ui-settings",
+      "@deepseek-ai/dsh-client-ui-session",
+      "@deepseek-ai/dsh-api-remote-access",
+      "@deepseek-ai/dsh-client-ui-theme",
+      "@deepseek-ai/dsh-client-shortcuts",
+      "@deepseek-ai/dsh-client-ui-chat",
+      "@deepseek-ai/dsh-api-workspace-controller",
+      "@deepseek-ai/dsh-client-ui-conversation",
+      "@deepseek-ai/dsh-client-ui-workspace",
+      "@deepseek-ai/dsh-client-ui-sidebar",
+      "@deepseek-ai/dsh-client-ui-context-menu",
+      "@deepseek-ai/dsh-client-ui-input-trigger",
+      "@deepseek-ai/dsh-client-ui-sidebar-right",
+      "@deepseek-ai/dsh-client-resources",
+      "@deepseek-ai/dsh-client-ui-file-drag",
+      "@deepseek-ai/dsh-client-ui-tool",
+      "@deepseek-ai/dsh-client-ui-approval",
+      "@deepseek-ai/dsh-client-ui-user-questions",
+      "@omp-webui/probe-policy",
+      "@omp-webui/probe-controls"
+    ],
+    "authorized": true,
+    "registered": true,
+    "creates": 1,
+    "startup": {
+      "revision": 1,
+      "pending": {
+        "id": "startup-1",
+        "epoch": "fixture-host-1"
+      }
+    }
+  }
+}

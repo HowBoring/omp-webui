@@ -1,0 +1,787 @@
+{
+  "requests": [
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "7226c9f7-d17a-4f78-9474-e37b9ce4861f",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/list",
+      "payload": {
+        "args": {
+          "_request": {}
+        }
+      },
+      "rpcId": "20665f29-8bff-4ff8-b6ec-091aa3733ca6",
+      "result": {
+        "ok": true,
+        "value": {
+          "items": [
+            {
+              "sessionId": "fixture-existing",
+              "updatedAt": 1767225600000,
+              "running": false,
+              "blank": false,
+              "cwd": "/fixture/project",
+              "agentAvailable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/read",
+      "payload": {},
+      "rpcId": "12d44ffa-5ae2-435c-b587-3b604a855314",
+      "result": {
+        "ok": true,
+        "value": {
+          "revision": 1,
+          "pending": {
+            "id": "startup-1",
+            "epoch": "fixture-host-1"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "1c4df9f6-1869-4ab7-8a48-dabb6f648795",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "5c5f3fed-34ab-46ed-a42b-0b7f14b364f7",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/list",
+      "payload": {
+        "args": {
+          "_request": {}
+        }
+      },
+      "rpcId": "78212f52-b6fc-417f-8973-ec2e68ba2a00",
+      "result": {
+        "ok": true,
+        "value": {
+          "items": [
+            {
+              "sessionId": "fixture-existing",
+              "updatedAt": 1767225600000,
+              "running": false,
+              "blank": false,
+              "cwd": "/fixture/project",
+              "agentAvailable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/read",
+      "payload": {},
+      "rpcId": "c8f00db1-6576-417b-ad3f-772a21d8ccc6",
+      "result": {
+        "ok": true,
+        "value": {
+          "revision": 1,
+          "pending": {
+            "id": "startup-1",
+            "epoch": "fixture-host-1"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "a9ca6cc3-02f2-458e-ae33-89eb0cea2ac9",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "probe/discover",
+      "payload": {},
+      "rpcId": "63e995e5-3e1b-43c7-a341-172e6b2dfe55",
+      "result": {
+        "ok": true,
+        "value": {
+          "cwd": "/fixture/project",
+          "references": [
+            "fixture-existing"
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/open",
+      "payload": {
+        "reference": "fixture-existing"
+      },
+      "rpcId": "fab90d5a-0952-41a8-b594-e87d58d59c93",
+      "result": {
+        "ok": false,
+        "error": {
+          "code": "fixture/not-authorized-or-registered",
+          "message": "Explicit authorize and register required",
+          "details": {}
+        }
+      }
+    },
+    {
+      "endpoint": "probe/register",
+      "payload": {
+        "reference": "fixture-existing"
+      },
+      "rpcId": "ce5d9c91-3fa0-4256-9c64-aa05c4809f6d",
+      "result": {
+        "ok": true,
+        "value": {
+          "registered": true
+        }
+      }
+    },
+    {
+      "endpoint": "probe/authorize",
+      "payload": {
+        "root": "/fixture/project"
+      },
+      "rpcId": "d267e3eb-3b48-46f4-a3e5-04e16dd358c1",
+      "result": {
+        "ok": true,
+        "value": {
+          "authorized": true
+        }
+      }
+    },
+    {
+      "endpoint": "probe/open",
+      "payload": {
+        "reference": "fixture-existing"
+      },
+      "rpcId": "31662473-2c9e-48a1-a47d-222f1fa464e2",
+      "result": {
+        "ok": true,
+        "value": {
+          "sessionId": "fixture-existing"
+        }
+      }
+    },
+    {
+      "endpoint": "probe/busy",
+      "payload": {
+        "running": true
+      },
+      "rpcId": "fb8ee2d2-df4f-4d9c-ba83-ed89525bdb57",
+      "result": {
+        "ok": true,
+        "value": {
+          "running": true
+        }
+      }
+    },
+    {
+      "endpoint": "session/cancel",
+      "payload": {
+        "args": {
+          "request": {
+            "sessionId": "fixture-existing"
+          }
+        }
+      },
+      "rpcId": "ac876864-d408-4024-929d-526cc512463e",
+      "result": {
+        "ok": true,
+        "value": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "endpoint": "probe/busy",
+      "payload": {
+        "running": false
+      },
+      "rpcId": "6bdca26f-eacb-4d4a-ad8c-790a5863fb80",
+      "result": {
+        "ok": true,
+        "value": {
+          "running": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/prompt",
+      "payload": {
+        "args": {
+          "request": {
+            "requestId": "b7450602-21fc-4b7b-a3b6-525c013d2094",
+            "sessionId": "fixture-existing",
+            "mode": "queue",
+            "content": [
+              {
+                "type": "text",
+                "text": "edited while busy"
+              }
+            ],
+            "clientTimeZone": "Asia/Singapore"
+          }
+        }
+      },
+      "rpcId": "dad296e4-6a3e-45a6-b579-7407644a727a",
+      "result": {
+        "ok": true,
+        "value": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "bcacfc67-eecc-440a-a12e-639231827a3a",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/list",
+      "payload": {
+        "args": {
+          "_request": {}
+        }
+      },
+      "rpcId": "10588e8f-1a8c-4189-b12a-b2740f39af93",
+      "result": {
+        "ok": true,
+        "value": {
+          "items": [
+            {
+              "sessionId": "fixture-existing",
+              "updatedAt": 1767225600000,
+              "running": false,
+              "blank": false,
+              "cwd": "/fixture/project",
+              "agentAvailable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/read",
+      "payload": {},
+      "rpcId": "92c917db-ba89-463e-9a9a-6099ae5af4b9",
+      "result": {
+        "ok": true,
+        "value": {
+          "revision": 1,
+          "pending": {
+            "id": "startup-1",
+            "epoch": "fixture-host-1"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "09de84de-6483-4ad6-b2af-9e1e8414ed6e",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/answer",
+      "payload": {
+        "pending": {
+          "id": "startup-1",
+          "epoch": "fixture-host-1"
+        },
+        "answer": "yes"
+      },
+      "rpcId": "65b2e5f5-c9b6-4ae6-8e32-12522c118f87",
+      "result": {
+        "ok": true,
+        "value": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/answer",
+      "payload": {
+        "pending": {
+          "id": "startup-1",
+          "epoch": "fixture-host-1"
+        },
+        "answer": "old"
+      },
+      "rpcId": "d67e342f-1ebf-485c-8777-1d5eaa12ea98",
+      "result": {
+        "ok": false,
+        "error": {
+          "code": "fixture/stale-interaction",
+          "message": "No matching pending interaction",
+          "details": {}
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/answer",
+      "payload": {
+        "pending": {
+          "id": "startup-3",
+          "epoch": "fixture-host-1"
+        },
+        "answer": "old"
+      },
+      "rpcId": "7d8a2dd6-f610-41fe-88a5-b80dfc337c6b",
+      "result": {
+        "ok": false,
+        "error": {
+          "code": "fixture/stale-interaction",
+          "message": "No matching pending interaction",
+          "details": {}
+        }
+      }
+    },
+    {
+      "endpoint": "session/list",
+      "payload": {
+        "args": {
+          "_request": {}
+        }
+      },
+      "rpcId": "2875e8f0-d01b-4421-bc2c-d1ec84ad1242",
+      "result": {
+        "ok": true,
+        "value": {
+          "items": [
+            {
+              "sessionId": "fixture-existing",
+              "updatedAt": 1767225600000,
+              "running": false,
+              "blank": false,
+              "cwd": "/fixture/project",
+              "agentAvailable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/read",
+      "payload": {},
+      "rpcId": "15161322-29f4-4e87-bdac-4a0cf9f32139",
+      "result": {
+        "ok": true,
+        "value": {
+          "revision": 5,
+          "pending": {
+            "id": "startup-5",
+            "epoch": "fixture-host-1"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "f348905c-3414-42e2-b13c-c16e752a40ac",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/list",
+      "payload": {
+        "args": {
+          "_request": {}
+        }
+      },
+      "rpcId": "e72f4e76-f727-4b3a-93fb-4ccf16920492",
+      "result": {
+        "ok": true,
+        "value": {
+          "items": [
+            {
+              "sessionId": "fixture-existing",
+              "updatedAt": 1767225600000,
+              "running": false,
+              "blank": false,
+              "cwd": "/fixture/project",
+              "agentAvailable": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "endpoint": "probe/startup/read",
+      "payload": {},
+      "rpcId": "f96113ca-1549-49d4-9efe-6896ebd4cb4a",
+      "result": {
+        "ok": true,
+        "value": {
+          "revision": 5,
+          "pending": {
+            "id": "startup-5",
+            "epoch": "fixture-host-1"
+          }
+        }
+      }
+    },
+    {
+      "endpoint": "settings/describe",
+      "payload": {
+        "args": {}
+      },
+      "rpcId": "b01042dd-e9b6-4249-a575-ad179d992d56",
+      "result": {
+        "ok": true,
+        "value": {
+          "namespaces": [],
+          "writable": false,
+          "hasDocument": false
+        }
+      }
+    },
+    {
+      "endpoint": "session/create",
+      "payload": {
+        "args": {
+          "request": {
+            "workspaceId": "fixture-ws"
+          }
+        }
+      },
+      "rpcId": "a5e024c9-f04e-41fc-9fc3-47bafba0dd6d",
+      "result": {
+        "ok": true,
+        "value": {
+          "sessionId": "fixture-created-1"
+        }
+      }
+    }
+  ],
+  "frames": [
+    {
+      "type": "open",
+      "streamId": "4a24b67f-9ada-4117-b921-2bc765e78425",
+      "endpoint": "remoteAccess/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "23784658-bbbc-4e31-89a9-9a4b684a9e64",
+      "endpoint": "workspace/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "b51b0396-63fd-4b76-b6a1-93815e9c2615",
+      "endpoint": "$events",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "cfae6a16-d5b5-460e-981a-0d5b3b599920",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "b27fb8e9-e93d-41e2-963f-5f86fa7f8775",
+      "endpoint": "remoteAccess/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "3f7fd67b-63ad-400b-91fe-eba7698ade03",
+      "endpoint": "workspace/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "048ce243-e94e-43ad-ba60-7cdccd4b986a",
+      "endpoint": "$events",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "1b57e55c-2e83-4219-ad9c-f136f2a07754",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "151e002b-5f8c-4d95-9dc1-578492d6415a",
+      "endpoint": "session/follow",
+      "payload": {
+        "args": {
+          "request": {
+            "address": {
+              "kind": "session",
+              "sessionId": "fixture-existing"
+            },
+            "activate": true,
+            "assistantStream": true,
+            "maxMessages": 500,
+            "turnWindow": {
+              "minMessages": 50,
+              "minTurns": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "109ca41a-b835-4eda-8d5f-7c8396e71a99",
+      "endpoint": "remoteAccess/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "15170754-f7de-44fb-8cf6-5ee42eb1a2d7",
+      "endpoint": "workspace/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "a33b2d81-85ab-48ed-98c7-666da275b662",
+      "endpoint": "$events",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "a1170071-53e0-4dea-b561-21c6e50a64c1",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "5ea8974c-24c3-4395-8d43-0f1a27dd46ac",
+      "endpoint": "remoteAccess/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "cf4cbd3b-732d-4d4e-b74d-8f170b6bd515",
+      "endpoint": "workspace/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "a1340d0b-aeae-4734-86be-060b9f121da0",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "561e59c4-e45b-4a40-84cc-8a8556bf445c",
+      "endpoint": "$events",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "cancel",
+      "streamId": "a1340d0b-aeae-4734-86be-060b9f121da0"
+    },
+    {
+      "type": "open",
+      "streamId": "69a9abe7-4ec6-4c2d-a382-0cacb1ef5232",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "6b5f51ec-8853-4fb3-be5b-705709cc1ec5",
+      "endpoint": "remoteAccess/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "771559e5-e4f3-46ba-afa2-4de14ef74ae0",
+      "endpoint": "workspace/follow",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "3ba0756d-692a-470a-be9d-9fc41d6eab33",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "35322578-da4c-499f-8f70-decfbe25ba46",
+      "endpoint": "session/follow",
+      "payload": {
+        "args": {
+          "request": {
+            "address": {
+              "kind": "session",
+              "sessionId": "fixture-existing"
+            },
+            "activate": true,
+            "assistantStream": true,
+            "maxMessages": 500,
+            "turnWindow": {
+              "minMessages": 50,
+              "minTurns": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "c088de26-b7b7-45a4-b218-f6c1e73a48da",
+      "endpoint": "$events",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "cancel",
+      "streamId": "3ba0756d-692a-470a-be9d-9fc41d6eab33"
+    },
+    {
+      "type": "open",
+      "streamId": "a835755d-c363-4659-8379-641ab237a944",
+      "endpoint": "session/control",
+      "payload": {
+        "args": {}
+      }
+    },
+    {
+      "type": "open",
+      "streamId": "1f063167-0540-4ddf-89bc-c8be9269dd7d",
+      "endpoint": "session/follow",
+      "payload": {
+        "args": {
+          "request": {
+            "address": {
+              "kind": "session",
+              "sessionId": "fixture-created-1"
+            },
+            "activate": true,
+            "assistantStream": true,
+            "maxMessages": 500,
+            "turnWindow": {
+              "minMessages": 50,
+              "minTurns": 2
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "cancel",
+      "streamId": "35322578-da4c-499f-8f70-decfbe25ba46"
+    }
+  ],
+  "authorized": true,
+  "registered": true,
+  "creates": 1
+}

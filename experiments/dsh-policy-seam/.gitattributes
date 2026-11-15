@@ -1,0 +1,5 @@
+# Unified patch context includes required prefix spaces; validate the applied source separately.
+dsh-public-client-policy.patch -whitespace
+# Preserve captured stdout verbatim, including the runner's final blank line.
+evidence/*.log -whitespace
+evidence/**/*.log -whitespace

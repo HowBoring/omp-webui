@@ -1,0 +1,3 @@
+# These are deliberately retained, synthetic validation outputs.
+!evidence/**/*.log
+!evidence/*.log

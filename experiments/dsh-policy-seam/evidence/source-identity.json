@@ -1,0 +1,11 @@
+{
+  "upstream": "https://github.com/deepseek-ai/deepseek-harness",
+  "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "baseTree": "77ab54bbce37988207baa603b1d39aa9db9aeaaa",
+  "patchSha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+  "patchedTree": "be590b5411230c215158bb6359635d409a653523",
+  "localBuildCommit": "87f58a4730996725a9ae00df7ed075c22b3e77cf",
+  "localBuildCommitIsUpstream": false,
+  "independentCachedApplyTree": "be590b5411230c215158bb6359635d409a653523",
+  "independentApplyMatches": true
+}

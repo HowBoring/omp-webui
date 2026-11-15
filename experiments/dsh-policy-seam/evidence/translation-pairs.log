@@ -1,0 +1,2 @@
+$ tsx scripts/verify-translation-pairing.ts packages/api/session-controller/README.i18n.yaml packages/client/ui-workspace/README.i18n.yaml packages/api/workspace-controller/README.i18n.yaml packages/client/modules/README.i18n.yaml docs/subsystems/web-client.i18n.yaml docs/subsystems/client-modules.i18n.yaml
+verify-translation-pairing: 6 named pair(s) consistent; the corpus-wide check still runs in doc-sync.

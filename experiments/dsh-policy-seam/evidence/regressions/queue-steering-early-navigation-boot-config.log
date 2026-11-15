@@ -1,0 +1,90 @@
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+The plugin "vite-tsconfig-paths" is detected. Vite now supports tsconfig paths resolution natively via the resolve.tsconfigPaths option. You can remove the plugin and set resolve.tsconfigPaths: true in your Vite config instead.
+
+ RUN  v4.1.11 /workspace/work/omp-webui-current/vendor/dsh-policy-seam
+
+ ❯ |thread-safe| packages/client/modules/tests/entries.client.spec.ts (37 tests | 1 failed) 425ms
+   × passes explicit graph configuration through the real Cordis Loader and requires reload for policy changes 6ms
+ ❯ |thread-safe| packages/api/session-controller/tests/session-policy.client.spec.ts (4 tests | 1 failed) 203ms
+     × refuses busy queued steering without disabling queue withdrawal 15ms
+ ❯ |thread-safe| packages/client/ui-workspace/tests/workspaces-service.client.spec.ts (102 tests | 1 failed) 1961ms
+     × keeps explicit navigation made before catalog readiness ahead of startup restoration 34ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  |thread-safe| packages/api/session-controller/tests/session-policy.client.spec.ts > Session deployment policy > refuses busy queued steering without disabling queue withdrawal
+AssertionError: expected { ok: true, value: { accepted: true } } to match object { ok: false, …(1) }
+(2 matching properties omitted from actual)
+
+- Expected
++ Received
+
+  {
+-   "error": {
+-     "code": "client/session-busy",
+-   },
+-   "ok": false,
++   "ok": true,
+  }
+
+ ❯ packages/api/session-controller/tests/session-policy.client.spec.ts:55:81
+     53|     const session = await sessionBench(mock, start, SID, { policy: { a…
+     54|     session.handleRunning(true)
+     55|     expect(await session.updateQueue('queued' as MessageId, { kind: 's…
+       |                                                                                 ^
+     56|       ok: false, error: { code: 'client/session-busy' },
+     57|     })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  |thread-safe| packages/client/modules/tests/entries.client.spec.ts > passes explicit graph configuration through the real Cordis Loader and requires reload for policy changes
+AssertionError: expected [ undefined ] to deeply equal [ { navigationMode: 'external' } ]
+
+- Expected
++ Received
+
+  [
+-   {
+-     "navigationMode": "external",
+-   },
++   undefined,
+  ]
+
+ ❯ packages/client/modules/tests/entries.client.spec.ts:679:20
+    677|     'policy-consumer': () => ({ apply: (_ctx: Context, config: unknown…
+    678|   })
+    679|   expect(received).toEqual([{ navigationMode: 'external' }])
+       |                    ^
+    680|   await b.modules.entries.sync(graph({ ...configured, rev: 'r1' }))
+    681|   expect(received.at(-1)).toEqual({ navigationMode: 'external' })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  |thread-safe| packages/client/ui-workspace/tests/workspaces-service.client.spec.ts > UiWorkspaceService > keeps explicit navigation made before catalog readiness ahead of startup restoration
+AssertionError: expected [ 'new', 'restore' ] to deeply equal [ 'new' ]
+
+- Expected
++ Received
+
+  [
+    "new",
++   "restore",
+  ]
+
+ ❯ packages/client/ui-workspace/tests/workspaces-service.client.spec.ts:333:45
+    331|     b.workspaces.list.set(workspaceState([workspace('a')]))
+    332|     await setImmediate()
+    333|     expect(requests.map(item => item.kind)).toEqual(['new'])
+       |                                             ^
+    334|     expect(requests[0]!.signal.aborted).toBe(false)
+    335|   })
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  3 failed (3)
+      Tests  3 failed | 140 passed (143)
+   Start at  00:46:59
+   Duration  6.26s (transform 4.56s, setup 305ms, import 6.43s, tests 2.59s, environment 954ms)
+
