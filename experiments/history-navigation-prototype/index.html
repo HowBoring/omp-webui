@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OMP 历史操作 · 一次性逻辑原型</title>
+<style>
+:root { color-scheme:light dark; --background:light-dark(#fff,#171717); --foreground:light-dark(#202020,#eee); --muted-foreground:light-dark(#555,#bbb); --border:light-dark(#ddd,#444); --primary:light-dark(#292929,#eee); --primary-foreground:light-dark(#fff,#171717); --accent:light-dark(#edf3fa,#263548); --font-size-base:14px; }
+body { margin:24px auto; padding:0 16px; max-width:1000px; background:var(--background); color:var(--foreground); font:14px/1.5 system-ui,sans-serif; }
+h1,h2,h3,p { margin:0; } h1,h2,h3 { font-size:inherit; font-weight:500; }
+button,input,textarea { font:inherit; } button { cursor:pointer; color:inherit; }
+.btn,.nav-link { padding:8px 12px; border:1px solid var(--border); border-radius:6px; background:transparent; }
+.btn-primary,[aria-pressed="true"],.nav-link[aria-selected="true"] { background:var(--primary); color:var(--primary-foreground); }
+.btn:disabled { opacity:.5; cursor:default; }
+.viz-row,.nav { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.form-control { box-sizing:border-box; padding:8px; width:100%; color:inherit; background:transparent; border:1px solid var(--border); border-radius:6px; }
+.form-check { display:flex; gap:8px; align-items:start; }
+.text-muted { color:var(--muted-foreground); } .text-small { font-size:12px; }
+hr { border:0; border-top:1px solid var(--border); margin:0; }
+[hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<header style="margin-bottom:20px">
+  <h1>OMP 历史操作 · 一次性逻辑原型</h1>
+  <p>验证树中的选择、原会话导航和新建分支能否清楚区分。所有会话、执行和文件均为内存模拟；不调用 OMP/DSH，不读写项目文件，不代表最终视觉设计。关闭或真正刷新页面会重置。</p>
+</header>
+<!-- INLINE START -->
+<div id="omp-history-prototype" aria-label="OMP 历史操作逻辑演示">
+<style>
+#omp-history-prototype { display:grid; gap:calc(var(--font-size-base) * 1); overflow-wrap:anywhere; }
+#omp-history-prototype .hp-columns { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:calc(var(--font-size-base) * 1.5); }
+#omp-history-prototype .hp-stack { display:grid; align-content:start; gap:calc(var(--font-size-base) * .5); min-width:0; }
+#omp-history-prototype dl { display:grid; grid-template-columns:auto minmax(0,1fr); gap:calc(var(--font-size-base) * .25) calc(var(--font-size-base) * .75); margin:0; }
+#omp-history-prototype dd { margin:0; }
+#omp-history-prototype .hp-tree { display:grid; gap:calc(var(--font-size-base) * .25); }
+#omp-history-prototype .hp-tree-row { display:grid; grid-template-columns:minmax(0,1fr); padding-inline-start:var(--indent); }
+#omp-history-prototype .hp-path { overflow-wrap:anywhere; }
+#omp-history-prototype .hp-confirm { display:grid; gap:calc(var(--font-size-base) * .5); }
+#omp-history-prototype textarea { resize:vertical; }
+@media(max-width:650px) { #omp-history-prototype .hp-columns { grid-template-columns:minmax(0,1fr); } }
+</style>
+<div class="hp-stack">
+  <h2>会话树与手动恢复</h2>
+  <span class="text-small text-muted">一次性模拟 · 选择节点不改变历史 · 不撤销文件修改</span>
+</div>
+<div id="hp-notice" role="status" aria-live="polite"></div>
+<div class="hp-columns">
+  <section class="hp-stack" aria-label="当前状态">
+    <h3>当前状态</h3>
+    <dl id="hp-state"></dl>
+    <div class="viz-row" id="hp-sessions" aria-label="模拟会话列表"></div>
+  </section>
+  <section class="hp-stack" aria-label="当前活动路径">
+    <h3>当前活动路径</h3>
+    <div id="hp-path" class="hp-path"></div>
+    <label for="hp-draft">返回的文字草稿 · 未发送</label>
+    <textarea class="form-control" id="hp-draft" rows="2" readonly></textarea>
+    <div class="viz-row"><button class="btn" type="button" data-action="send">手动发送草稿（模拟）</button></div>
+  </section>
+</div>
+<hr>
+<div class="hp-columns">
+  <section class="hp-stack" aria-label="完整会话树">
+    <h3>完整会话树</h3>
+    <div class="text-small text-muted">● 当前 leaf　· 活动路径　○ 其他路径</div>
+    <div id="hp-tree" class="hp-tree"></div>
+  </section>
+  <section class="hp-stack" aria-label="所选节点的操作">
+    <h3 id="hp-selection">所选节点</h3>
+    <div id="hp-target"></div>
+    <div class="viz-row">
+      <button class="btn btn-primary" type="button" data-action="navigate">在原会话回到这里</button>
+      <button class="btn" type="button" data-action="branch">从这条用户消息新建会话</button>
+    </div>
+    <span class="text-small">用户消息：回到它之前，文字放回草稿。普通助手/工具节点：保留到该节点。新建会话仅支持用户消息。</span>
+    <div id="hp-confirm" class="hp-confirm" hidden>
+      <h3>确认历史操作</h3>
+      <div id="hp-preview"></div>
+      <label class="form-check"><input class="form-check-input" id="hp-ack" type="checkbox"><span class="form-check-label">我理解：文件和外部操作不会回滚；返回的草稿需手动发送。</span></label>
+      <div class="viz-row">
+        <button class="btn btn-primary" type="button" data-action="confirm">确认</button>
+        <button class="btn" type="button" data-action="cancel">取消</button>
+      </div>
+    </div>
+  </section>
+</div>
+<hr>
+<section class="hp-stack" aria-label="自由尝试">
+  <h3>自由尝试</h3>
+  <div class="viz-row">
+    <button class="btn" type="button" data-action="busy">模拟正在执行</button>
+    <button class="btn" type="button" data-action="stop">请求停止</button>
+    <button class="btn" type="button" data-action="settle">模拟已确认静止</button>
+    <button class="btn" type="button" data-action="crash">模拟进程退出</button>
+    <button class="btn" type="button" data-action="release">模拟 TUI 自行退出</button>
+    <button class="btn" type="button" data-action="open">手动重新打开</button>
+    <button class="btn" type="button" data-action="refresh">重建历史视图（模拟刷新）</button>
+  </div>
+</section>
+<section class="hp-stack" aria-label="引导场景">
+  <h3>引导场景 · 选择场景会重置模拟</h3>
+  <div class="nav nav-pills" role="tablist" aria-label="历史操作场景" id="hp-tabs"></div>
+  <div id="hp-walkthrough" role="tabpanel" class="hp-stack"></div>
+</section>
+<details>
+  <summary>操作记录与模拟边界</summary>
+  <ol id="hp-log"></ol>
+  <span class="text-small">不运行真实 RPC、上传、总结、hook、goal 或投影游标。占用发现和严格接续依赖尚待交付的公共扩展；停止协议与真实刷新重建另行验证。这里的“静止”由按钮模拟，不等于收到 abort 回执。</span>
+</details>
+</div>
+<script>
+(() => {
+  // Portable, pure model. Fake fixtures; not OMP entry schemas or an RPC implementation.
+  const Model = (() => {
+    const nodes = [
+      { id:"u1", parent:null, kind:"user", text:"检查项目" },
+      { id:"a2", parent:"u1", kind:"assistant", text:"发现日志问题" },
+      { id:"u3", parent:"a2", kind:"user", text:"修复日志格式" },
+      { id:"t4", parent:"u3", kind:"tool", text:"已写入 logger.ts" },
+      { id:"a5", parent:"t4", kind:"assistant", text:"修改完成" },
+      { id:"q6", parent:"a2", kind:"ask", text:"ask：选择处理范围（不可重答示例）" },
+      { id:"u7", parent:"a2", kind:"user", text:"先检查依赖" },
+      { id:"a8", parent:"u7", kind:"assistant", text:"依赖无需更新" }
+    ];
+    const current = s => s.sessions[s.current];
+    function path(session, leaf=session.leaf) {
+      const result=[];
+      while (leaf) { const n=session.nodes.find(n=>n.id===leaf); if (!n) break; result.unshift(n); leaf=n.parent; }
+      return result;
+    }
+    function initial(external=false) {
+      return { sessions:{ "S-A":{ id:"S-A", leaf:"a5", nodes:structuredClone(nodes) } }, current:"S-A",
+        selected:"u3", phase:external?"external":"idle", registered:!external, opened:!external,
+        draft:"", drafts:{}, sent:0, pending:null, ack:false, generation:1, serial:0,
+        notice:external?"已发现 TUI 会话；首次打开会登记引用，再尝试接续。":"点击树节点仅选择，不改变活动历史。",
+        log:[] };
+    }
+    function reduce(old, action) {
+      const s=structuredClone(old), session=current(s);
+      const say = text => { s.notice=text; s.log.push(text); return s; };
+      const access = () => !s.opened ? "当前不能读取历史；请先手动打开会话。" :
+        s.phase!=="idle" ? "会话尚未静止；先请求停止并等待确认，再手动选择历史操作。" : null;
+      if (action.type==="select") { s.selected=action.id; s.pending=null; s.ack=false; return say("只改变选择；当前 Session 与 leaf 未改变。"); }
+      if (action.type==="ack") { s.ack=action.value; return s; }
+      if (action.type==="cancel") { s.pending=null; s.ack=false; return say("已取消，历史与草稿未改变。"); }
+      if (action.type==="navigate" || action.type==="branch") {
+        const denied=access(); if (denied) return say(denied);
+        const n=session.nodes.find(n=>n.id===s.selected);
+        if (!n) return say("节点不存在；重新读取树并选择。entry_not_found（模拟）");
+        if (action.type==="branch" && n.kind!=="user") return say("新建会话只支持历史用户消息；请选择用户节点。");
+        if (action.type==="navigate" && n.kind==="ask") return say("此 ask 目标不能通过当前 RPC 重答；历史未改变。ask_reanswer_unsupported（模拟）");
+        s.pending={ type:action.type, session:s.current, entry:n.id }; s.ack=false;
+        return say("请确认操作；此时仍未改变历史。");
+      }
+      if (action.type==="confirm") {
+        if (!s.pending || !s.ack) return say("请先选择历史操作，并确认副作用提示。");
+        const denied=access(); if (denied) { s.pending=null; return say(denied); }
+        const p=s.pending, n=session.nodes.find(n=>n.id===p.entry);
+        if (p.session!==s.current || !n) { s.pending=null; return say("会话或节点已改变，请重新选择。"); }
+        const leaf=n.kind==="user" ? n.parent : n.id;
+        if (p.type==="branch") {
+          const id="S-B"+(++s.serial===1?"":"-"+s.serial);
+          s.sessions[id]={ id, leaf, nodes:structuredClone(path(session,leaf)) }; s.current=id;
+          s.draft=n.text; s.selected=leaf;
+        } else { session.leaf=leaf; if (n.kind==="user") s.draft=n.text; }
+        s.pending=null; s.ack=false; s.generation++;
+        return say(p.type==="branch" ? "已切到新 Session；原会话仍在列表。返回的文字未发送，文件修改仍在。" :
+          "已在原 Session 改变活动历史；其他路径仍在树中。文件修改仍在，草稿未发送。");
+      }
+      if (action.type==="busy") {
+        if (!s.opened || s.phase!=="idle") return say("请先打开一个静止的会话。");
+        s.phase="running"; s.pending=null; return say("模拟执行中；历史操作暂不可执行。");
+      }
+      if (action.type==="stop") {
+        if (s.phase!=="running") return say("没有可请求停止的本 Host 执行；不会结束外部 TUI。");
+        s.phase="stopping"; s.pending=null; return say("已请求停止，仍在等待静止；停止回执不是完成证明。");
+      }
+      if (action.type==="settle") {
+        if (!["running","stopping"].includes(s.phase)) return say("没有等待静止的本 Host 执行。");
+        s.phase="idle"; return say("已模拟确认静止。未自动执行先前的历史操作；请重新选择。");
+      }
+      if (action.type==="crash") {
+        if (!s.opened) return say("当前没有已打开的本 Host 会话。");
+        s.phase="failed"; s.opened=false; s.pending=null; return say("进程已退出；仅保留会话引用，不自动重启或重发内容。");
+      }
+      if (action.type==="release") {
+        if (s.phase!=="external") return say("本场景没有外部 TUI 占用。");
+        s.phase="available"; return say("模拟外部 TUI 自行退出；尚未打开或接续，请手动打开。");
+      }
+      if (action.type==="open") {
+        s.registered=true;
+        if (s.phase==="external") return say("已登记原生引用；外部 TUI 占用，仅显示目录信息，不读取历史/树。");
+        if (["running","stopping"].includes(s.phase)) return say("本 Host 仍有执行未静止；没有另启 worker。");
+        s.opened=true; s.phase="idle"; s.generation++;
+        return say("模拟严格接续成功，重新读取身份和活动历史；没有重发 prompt 或工具。");
+      }
+      if (action.type==="switch") {
+        const denied=access(); if (denied) return say(denied);
+        if (!s.sessions[action.id]) return say("会话不在模拟列表中。");
+        s.drafts[s.current]=s.draft;
+        s.current=action.id; s.selected=current(s).leaf; s.draft=s.drafts[action.id]||""; s.pending=null; s.generation++;
+        return say("已打开所选模拟 Session；各自草稿只保留在本页内存，不创建新 Session。");
+      }
+      if (action.type==="refresh") {
+        if (!s.opened) return say("仅刷新目录信息；占用或失败期间不读取历史。");
+        s.pending=null; s.generation++;
+        return say("按当前模拟 Session / leaf 重建视图；没有创建会话或重发内容。真正刷新页面会重置本原型。");
+      }
+      if (action.type==="send") {
+        const denied=access(); if (denied) return say(denied);
+        if (!s.draft) return say("没有待发送的文字草稿。");
+        const id="new-"+(++s.sent);
+        session.nodes.push({id,parent:session.leaf,kind:"user",text:s.draft}); session.leaf=id;
+        s.selected=id; s.draft=""; s.phase="running"; s.pending=null;
+        return say("已由明确的手动动作发送一次模拟消息；开始模拟执行。");
+      }
+      return s;
+    }
+    return { initial, reduce, current, path };
+  })();
+
+  const root=document.getElementById("omp-history-prototype");
+  const $=selector=>root.querySelector(selector);
+  const steps = {
+    same:{ name:"原会话回退", caption:"同一 Session，回到用户消息之前；原路径仍保留。", actions:[
+      ["选择「修复日志格式」",{type:"select",id:"u3"}], ["在原会话回到这里",{type:"navigate"}],
+      ["确认副作用提示",{type:"ack",value:true}], ["确认回退",{type:"confirm"}], ["模拟刷新视图",{type:"refresh"}]] },
+    branch:{ name:"新建分支", caption:"生成新 Session，原会话仍在；返回的草稿不会自动发送。", actions:[
+      ["选择「修复日志格式」",{type:"select",id:"u3"}], ["新建会话",{type:"branch"}],
+      ["确认副作用提示",{type:"ack",value:true}], ["确认新建",{type:"confirm"}],
+      ["回看原会话 S-A",{type:"switch",id:"S-A"}]] },
+    running:{ name:"执行中", caption:"先停止，再等待静止；历史操作需要重新发起。", actions:[
+      ["模拟执行中",{type:"busy"}], ["尝试回退（应阻止）",{type:"navigate"}], ["请求停止",{type:"stop"}],
+      ["再试回退（仍应阻止）",{type:"navigate"}], ["模拟确认静止",{type:"settle"}], ["重新发起回退",{type:"navigate"}]] },
+    external:{ name:"TUI 占用", caption:"首次打开只登记引用；旧进程自行退出后再手动打开。", external:true, actions:[
+      ["首次打开并登记",{type:"open"}], ["尝试回退（应阻止）",{type:"navigate"}],
+      ["模拟 TUI 自行退出",{type:"release"}], ["手动重新打开",{type:"open"}]] },
+    unsupported:{ name:"不支持的目标", caption:"此 ask 重答目标不可用；普通助手节点也不能作为新建会话的起点。", actions:[
+      ["选择 ask 示例",{type:"select",id:"q6"}], ["尝试回退（应拒绝）",{type:"navigate"}],
+      ["选择助手节点",{type:"select",id:"a2"}], ["尝试新建会话（应拒绝）",{type:"branch"}],
+      ["改为原会话导航",{type:"navigate"}]] },
+    recovery:{ name:"进程退出", caption:"不自动重放。演示手动重新打开成功，不承诺所有崩溃可恢复。", actions:[
+      ["模拟进程退出",{type:"crash"}], ["刷新（仍不重启）",{type:"refresh"}],
+      ["手动重新打开",{type:"open"}], ["重建历史视图",{type:"refresh"}]] }
+  };
+  let state=Model.initial(), scenario="same", step=0;
+  const phase={idle:"静止",running:"执行中",stopping:"等待静止",external:"外部 TUI 占用",available:"旧进程已退出，待打开",failed:"进程已退出，待手动恢复"};
+  const kind={user:"用户",assistant:"助手",tool:"工具",ask:"工具 / ask"};
+  const escape=text=>String(text).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function render() {
+    const session=Model.current(state), active=Model.path(session), ids=new Set(active.map(n=>n.id));
+    const selected=session.nodes.find(n=>n.id===state.selected);
+    const fields=[ ["工作目录","/demo/project（模拟、已授权）"], ["当前 Session",state.current+"（模拟）"],
+      ["原生引用",state.registered?"已登记":"已发现，未登记"], ["执行状态",phase[state.phase]],
+      ["当前 leaf",state.opened?(session.leaf||"空历史"):"未读取"], ["手动发送次数",state.sent],
+      ["文件修改","logger.ts 已修改 1 次（不回滚）"], ["视图代数",state.generation] ];
+    $("#hp-state").innerHTML=fields.map(([k,v])=>`<dt>${escape(k)}</dt><dd>${escape(v)}</dd>`).join("");
+    $("#hp-notice").textContent=state.notice;
+    $("#hp-sessions").innerHTML=Object.keys(state.sessions).map(id=>`<button class="btn" type="button" data-session="${id}" aria-pressed="${id===state.current}">打开 ${id}${id==="S-A"?" · 原会话":" · 新会话"}</button>`).join("");
+    $("#hp-path").textContent=state.opened?(active.map(n=>`${n.id} ${n.text}`).join(" → ")||"空历史") : "历史不可用，仅显示目录信息。";
+    $("#hp-draft").value=state.draft;
+    $("#hp-tree").innerHTML=state.opened ? session.nodes.map(n=>{
+      const depth=Model.path(session,n.id).length-1;
+      const mark=n.id===session.leaf?"● leaf":ids.has(n.id)?"· 活动路径":"○ 其他路径";
+      return `<div class="hp-tree-row" style="--indent:${Math.min(depth,3)*8}px"><button class="btn" type="button" data-entry="${n.id}" aria-pressed="${n.id===state.selected}">${escape(n.id)} · ${kind[n.kind]} · ${escape(n.text)} · ${mark}</button></div>`;
+    }).join("") : "待外部占用结束或手动恢复后读取。";
+    $("#hp-selection").textContent=state.opened&&selected?`所选节点 · ${selected.id}`:"所选节点 · 无可用历史";
+    $("#hp-target").textContent=state.opened&&selected?`${kind[selected.kind]}：${selected.text}`:"尚未打开历史；此处不能浏览或导航。";
+    $("#hp-confirm").hidden=!state.pending;
+    $("#hp-ack").checked=state.ack;
+    if (state.pending) {
+      const n=session.nodes.find(n=>n.id===state.pending.entry), leaf=n.kind==="user"?n.parent:n.id;
+      $("#hp-preview").textContent=(state.pending.type==="branch"?"将创建并切到新 Session，原会话不变。":"将改变原会话 "+state.current+" 的活动历史，其他路径保留。")+
+        ` 新 leaf：${leaf||"空历史"}。`+(n.kind==="user"?` 草稿：「${n.text}」，不自动发送。`:"不生成新的用户草稿。");
+    }
+    $("[data-action=confirm]").disabled=!state.ack;
+    $("#hp-log").innerHTML=state.log.slice(-8).map(line=>`<li>${escape(line)}</li>`).join("");
+    $("#hp-tabs").innerHTML=Object.entries(steps).map(([id,x])=>`<button class="nav-link ${id===scenario?"active":""}" id="hp-tab-${id}" type="button" role="tab" aria-selected="${id===scenario}" aria-controls="hp-walkthrough" data-scenario="${id}">${x.name}</button>`).join("");
+    const demo=steps[scenario], next=demo.actions[step];
+    $("#hp-walkthrough").setAttribute("aria-labelledby","hp-tab-"+scenario);
+    $("#hp-walkthrough").innerHTML=`<div>${demo.caption}</div><div class="viz-row"><span>步骤 ${Math.min(step+1,demo.actions.length)} / ${demo.actions.length}</span>${next?`<button class="btn" type="button" data-step="next">${next[0]}</button>`:"<span>场景完成；可自由尝试或重来。</span>"}<button class="btn" type="button" data-scenario="${scenario}">重来此场景</button></div>`;
+  }
+  root.addEventListener("click",event=>{
+    const b=event.target.closest("button"); if (!b||!root.contains(b)) return;
+    if (b.dataset.scenario) { scenario=b.dataset.scenario; state=Model.initial(steps[scenario].external); step=0; }
+    else if (b.dataset.step) { state=Model.reduce(state,steps[scenario].actions[step][1]); step++; }
+    else if (b.dataset.entry) state=Model.reduce(state,{type:"select",id:b.dataset.entry});
+    else if (b.dataset.session) state=Model.reduce(state,{type:"switch",id:b.dataset.session});
+    else if (b.dataset.action) state=Model.reduce(state,{type:b.dataset.action});
+    render();
+  });
+  $("#hp-ack").addEventListener("change",event=>{ state=Model.reduce(state,{type:"ack",value:event.target.checked}); render(); });
+  render();
+})();
+</script>
+<!-- INLINE END -->
+</body>
+</html>
