@@ -15,6 +15,9 @@ The [catalog contract](docs/session-catalog-contract.md) records the confirmed d
 and occupied-Session behavior; its required public OMP extensions remain pending.
 The Host will use a local Bun transport over OMP's public decoder/wire/schema capabilities;
 see [ADR 0004](docs/adr/0004-local-public-rpc-transport.md) and the [transport contract](docs/rpc-client-contract.md).
+The [client composition](docs/client-composition.md) retains the DSH foundation with a small public
+navigation/action seam and OMP modules. New image/file input is required for the MVP, alongside
+Session-local model/thinking selection and WebUI appearance/language preferences; these remain unimplemented.
 
 ## Architecture at a glance
 

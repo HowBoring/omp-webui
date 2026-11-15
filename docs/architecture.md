@@ -52,6 +52,17 @@ flowchart TB
 
 The upstream DSH checkout and generated assets live under ignored `vendor/`. They are not copied into this repository.
 
+[ADR 0005](adr/0005-dsh-client-composition.md) selects the tested DSH service foundation with small
+OMP catalog/history modules and a minimal public navigation/action policy seam. Stock restore and
+Workspace selection can request Session creation, and some keyboard routes bypass menu checks.
+Presentation-only slot replacement is insufficient. The seam must be proven before product integration;
+record its base commit and patch/build identity separately. The original 28-plugin startup experiment
+does not validate the modified composition. See the [client contract](client-composition.md).
+
+New image/file input is part of the usable MVP. Session-local model/thinking selection and WebUI-only
+appearance/language preferences are included; provider, credential and plugin administration is deferred.
+Attachment lifetime, byte ownership and history retrieval require their own contract before implementation.
+
 Select the latest official published DSH release, including prereleases, then lock its exact tag and commit
 in `upstreams.lock.json`. The current pin is `dsh-v0.2.2-rc.3` at
 `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`; builds use that SHA rather than floating `master` or npm `latest`.

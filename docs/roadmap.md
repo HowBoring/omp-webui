@@ -22,6 +22,8 @@ Status: scaffold created; implementation not complete.
 - [ ] Complete an Extension UI request/response round trip.
 - [x] Select the local public-RPC transport route; isolated package/decoder probes are evidence inputs.
 - [ ] Implement the [transport contract](rpc-client-contract.md), including full prompt ack and EOF/drain tests.
+- [x] Select DSH foundation reuse plus a minimal public navigation/action seam, as recorded in [ADR 0005](adr/0005-dsh-client-composition.md).
+- [ ] Prove the [navigation/action seam](https://github.com/HowBoring/omp-webui/issues/27) and freeze the modified client manifest.
 - [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
   [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
 
@@ -32,6 +34,8 @@ Exit criterion: a real browser can load the pinned DSH shell and complete a harm
 - Session Registry and worker lifecycle.
 - OMP process startup, RPC framing, v2 negotiation, request correlation, and stderr diagnostics.
 - New/open Session and model selection.
+- Session-local thinking selection and WebUI-only appearance/language preferences.
+- Required new image/file input, including its [attachment contract](https://github.com/HowBoring/omp-webui/issues/28), lifecycle and public OMP handoff.
 - Prompt, incremental assistant output, tool call/result, cancel, and prompt completion.
 - DSH `session.follow` snapshot and live event stream.
 - Event buffering/reconciliation during snapshot opening.
@@ -53,7 +57,7 @@ Exit criterion: one Session can be used through DSH WebUI with streaming and too
 - Manual `/retry` through the existing public `prompt` route, with native preconditions and tool side effects.
 
 Exit criterion: the expanded MVP can discover/import native Sessions, retain their registered list,
-chat with streaming/tools, recover manually, and navigate or branch history without mixing conversations.
+chat with streaming/tools and image/file input, recover manually, and navigate or branch history without mixing conversations.
 Authentication, path authorization and protocol correctness are prerequisites to opening private history.
 
 ## M3 — OMP feature extensions
@@ -63,7 +67,7 @@ Authentication, path authorization and protocol correctness are prerequisites to
 - OMP model roles, providers, credentials, and settings.
 - Plan/Vibe and other mode controls where public RPC supports them.
 - Advanced history labels, tree editing/comparison and broader recovery conveniences.
-- File references, image attachments, export, and other selected DSH capabilities.
+- Export and broader file-management capabilities beyond the required MVP attachment input/history behavior.
 
 Exit criterion: the supported OMP feature matrix is documented and each exposed feature has an end-to-end test.
 
