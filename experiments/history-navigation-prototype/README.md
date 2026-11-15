@@ -1,6 +1,12 @@
 # Throwaway history-navigation logic prototype
 
-**Status: awaiting maintainer feedback; no decision resolved.**
+**Status: interaction flow accepted by the maintainer; real integration remains unimplemented.**
+
+Verdict: “接受，按此形成 MVP 历史交互契约（推荐）”. The
+[resolution](https://github.com/HowBoring/omp-webui/issues/21#issuecomment-6896549006) records the answer;
+the [accepted contract on main](https://github.com/HowBoring/omp-webui/blob/28ed9676da9439663f9a7d77c92876843b39ca13/docs/history-interaction-contract.md)
+captures the decision and remaining gates. The reviewed HTML is unchanged. Its layout, fixture types
+and in-memory draft behavior are not production commitments.
 
 Question: can the maintainer distinguish selecting a tree entry, navigating within the same OMP
 Session, and creating a new Session before a historical user message, including blocking/recovery cases?
@@ -70,5 +76,6 @@ Real branch projection and reopen behavior belong to
 New image/file input remains required in the MVP; the text fixture does not narrow that scope.
 
 No automated tests are added for this disposable prototype. Browser walkthrough inspection is recorded
-in the issue as preview evidence only. Maintainer feedback is required before its proposed interaction
-becomes an accepted contract; the main branch remains unchanged.
+in the issue as preview evidence only. Main contains the accepted contract and pointers, while this
+disposable simulator remains on its prototype branch. Approval does not establish real RPC behavior,
+projection correctness, attachment restoration or a completed usable MVP.
