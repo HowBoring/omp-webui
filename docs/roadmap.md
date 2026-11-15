@@ -24,6 +24,8 @@ Status: scaffold created; implementation not complete.
 - [ ] Implement the [transport contract](rpc-client-contract.md), including full prompt ack and EOF/drain tests.
 - [x] Select DSH foundation reuse plus a minimal public navigation/action seam, as recorded in [ADR 0005](adr/0005-dsh-client-composition.md).
 - [ ] Prove the [navigation/action seam](https://github.com/HowBoring/omp-webui/issues/27) and freeze the modified client manifest.
+- [x] Define persistent browser access, WebUI directory grants and dedicated upload staging in [ADR 0006](adr/0006-persistent-local-browser-access.md).
+- [ ] Implement and verify [local admission and revocation](local-access-contract.md) before serving private Session data.
 - [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
   [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
 
@@ -77,7 +79,7 @@ Exit criterion: the supported OMP feature matrix is documented and each exposed 
 - Streaming render benchmarks and slow-browser backpressure.
 - Worker resource quotas and idle eviction.
 - Reproducible DSH asset build/package.
-- WSL2/Linux deployment, launch token, authentication, and optional SSH-tunnel workflow.
+- WSL2/Linux distribution and optional SSH-tunnel workflow under a separately reviewed exposure policy.
 - Upgrade checks for OMP and DSH pins.
 
 Exit criterion: repeatable install/update workflow with measured performance and documented security posture.

@@ -63,6 +63,7 @@ openSession/retain/open 路径则读取其流。uiWorkspace 私有构造并捕�
 | 能力 | 必要合同及边界 |
 | --- | --- |
 | 启动 | DSH Connection envelopes、Remote mux、$events generation、remoteAccess/follow；owner baseline 不是认证或实现能力声明 |
+| 本机访问 | 30 天可撤销浏览器授权，网页显式目录授权/撤销；普通 Session open 不扩大目录权限，按[本机访问合同](local-access-contract.md)实现 |
 | 目录/Session | workspace/follow 与 session/list 等既有 DTO 的真实适配；OMP 专用操作沿生成的 DSH Remote contributions，新增方法名/字段另定，不创造第二套浏览器协议 |
 | 创建/打开 | 明确用户动作和真实结果；workspace/initializeDefault 的“不适用”可返回原生合同允许的 undefined，但不能伪报创建成功 |
 | 聊天/取消 | session/prompt、session/cancel；DSH accepted 与 OMP prompt ack、prompt_result、settled 分开映射 |

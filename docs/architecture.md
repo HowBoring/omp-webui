@@ -330,20 +330,28 @@ When a feature is missing, add or propose a public OMP RPC command/event. Do not
 Initial deployment is local and single-user:
 
 - Bind to `127.0.0.1` by default.
-- Keep remote binding disabled until authentication, Host/Origin validation, WebSocket admission, and CSRF protections are implemented.
-- Use a random launch token and secure session cookie before serving private Session data.
+- Keep remote binding disabled for the MVP; loopback still requires authentication, Host/Origin validation, WebSocket admission and CSRF protection.
+- Use a random launch token and appropriately scoped HttpOnly browser cookie before serving private Session data.
 - Validate every Session ID, workspace path, attachment ID, and RPC operation against the authenticated owner scope.
 - Do not expose arbitrary process spawning or raw OMP RPC to the browser.
 - Bound request bodies, attachments, event buffers, output queues, worker count, and per-session resource use.
 - Use explicit environment allowlists for workers; redact credentials and prompt content from logs.
+
+[ADR 0006](adr/0006-persistent-local-browser-access.md) selects 30-day browser authorization across
+Host restarts, with logout and global revocation, plus explicit persistent WebUI grants for canonical
+working-directory roots and descendants. This does not expand the configured OMP Session discovery
+sources. Uploads go only to dedicated staging, never a browser-selected project destination.
+The [local access contract](local-access-contract.md) defines admission, lifecycle and required tests;
+these are policy targets, not implemented security features.
 
 The health-only scaffold intentionally has no application API and is not a remotely deployable service.
 
 Loopback is not authentication, and RPC is not a sandbox: OMP extensions and tools retain the Host
 user's privileges. Treat model/tool output and UI requests as untrusted data, sanitize rendered content,
 and apply a separate policy to external actions such as `open_url`. Browser input cannot select arbitrary
-executables, argv, environment, or host filesystem paths. Normalize authorized workspace paths and
-check symlink boundaries. Drain stdout after closing stdin, bound output queues and frame reassembly,
+executables, argv or environment. Directory candidates are accepted only by the authenticated, explicit
+grant operation and validated server-side; ordinary requests use authorized identities and paths.
+Normalize authorized workspace paths and check symlink boundaries. Drain stdout after closing stdin, bound output queues and frame reassembly,
 and never automatically replay side-effecting prompts after a worker crash.
 
 ## 9. Persistence policy
@@ -351,6 +359,8 @@ and never automatically replay side-effecting prompts after a worker crash.
 The MVP persists a small Host-owned reference index for registered Workspaces and Sessions so the list
 survives Host restart. Storage format and update/reconciliation rules remain open decisions. This index
 may contain authorized native references and WebUI metadata, not a second conversation store.
+Browser credential verification/revocation state and working-directory grants are separately persisted
+as private Host-owned data. They are distinct from OMP provider credentials and transcript storage.
 Worker handles, pending interactions and projections remain transient and must be rebuilt where the
 public RPC contract permits. Crash recovery is manual; never replay prompts or tools automatically.
 
