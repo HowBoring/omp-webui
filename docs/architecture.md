@@ -155,7 +155,7 @@ The DSH protocol is not "REST plus an arbitrary WebSocket". The implementation m
 - Route `extension_ui_request` frames to the Interaction Broker and send `extension_ui_response` frames back to the same worker.
 - Treat host-tool and host-URI requests as separate sub-protocols; these are not ordinary UI dialogs.
 
-The current OMP TypeScript `RpcClient` is useful reference code, but its public API does not yet expose the complete `rpc-ui` mode selection and Extension UI response surface needed by this Host. Do not reach into its private members. The implementation must either use a future public OMP client API or own a small, schema-backed JSONL transport. The latter must remain a protocol client, not an Agent SDK integration.
+The current OMP TypeScript `RpcClient` is useful reference code. It defaults to `--mode rpc` (its custom `spawn` override can supply `rpc-ui` argv), but its public API does not expose a general interface for receiving and answering all Extension UI requests. Do not reach into its private members. The implementation must either use a future public OMP client API or own a small, schema-backed JSONL transport. The latter must remain a protocol client, not an Agent SDK integration.
 
 ## 6. Core Host components
 
