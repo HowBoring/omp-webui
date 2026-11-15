@@ -78,8 +78,11 @@ MVP 继续是 Linux/WSL2、loopback、单用户。这里不开放公网绑定、
 - 目录消失、移动或 symlink 目标变化时重新验证，不回退到当前 cwd。新 profile/存储源
   不能通过名字相似或先前的旧授权自动获得权限。
 - 撤销目录立即拒绝新入站操作/订阅，相关 Host-owned worker 进入停止处理并显示真实状态；
-  具体 abort/settle、UI 结算与关闭预算由交互/进程策略完成。不能在仍执行时声称已停止，
+  按[交互生命周期合同](interaction-lifecycle-contract.md)取消 UI/工作并有界关闭。不能在仍执行时声称已停止，
   也不能回滚已经发生的副作用或终止未知外部 TUI。
+- 单凭据退出/到期只移除其页面与回答资格，执行与其他有效凭据继续。全撤销停止全部
+  Host-owned worker；目录撤权停止实际失去有效授权的 worker。后两种情况采用 30 秒协作/
+  排空加 5 秒终止宽限后必要强制回收；普通断线不触发此安全关闭流程。
 
 ## 暂存和附件权限
 
@@ -106,7 +109,7 @@ MVP 继续是 Linux/WSL2、loopback、单用户。这里不开放公网绑定、
 - Browser 无原始 RPC、shell、任意 argv/env/executable 通道。OMP 工具和扩展仍按自身配置、
   当前操作系统权限及原生审批运行；本机同权限恶意进程与已执行副作用不在 Host admission 的隔离保证内。
 - 拒绝新请求或断开浏览器，不等于自动 replay、同意 UI 或立即撤销正在执行的工具。
-  [交互策略工单](https://github.com/HowBoring/omp-webui/issues/22)决定关联、取消和未知结果的可见语义。
+  [交互生命周期合同](interaction-lifecycle-contract.md)记录已确认的关联、取消、停止和未知结果语义。
 
 ## 必需验证
 

@@ -59,15 +59,17 @@ Status: 本地窄 transport 路线已由用户确认；工程语义为实施目�
   通过相同 id 的 prompt_result 完成。agent_end、prompt_result 与 session_settled 不混为一谈。
 - 持续接收 Extension UI、host-tool/URI 等公共帧，不论是否有浏览器订阅。
 - 低层负责 schema/correlation/worker generation；Interaction Broker 负责用户授权、呈现、
-  回答者、超时及断线政策。不能默认同意或把取消浏览器流等同于 OMP abort。
+  回答者、超时及断线政策，按已确认的[交互生命周期合同](interaction-lifecycle-contract.md)实施。
+  不能默认同意或把取消浏览器流等同于 OMP abort；忙时拒绝新的 prompt/steer/follow-up 入队。
 - 不把传输层成功或原生 ack 当作模型任务成功；历史导航/branch 后身份和活动 leaf 由 RPC 回读。
 
 ### 关闭与故障
 
 - 停止接收新工作，按上层政策处理正在进行的任务和 pending UI，再关闭 stdin。
 - EOF 后继续读取 stdout/stderr，等待 exit；限时后才 kill/reap，关闭结果区分正常退出与强制中止。
-- stdin EOF 会排空已受理工作，不保证正在进行的工具立即结束；具体预算和 abort/settle
-  选择属于进程/交互政策，不能伪造一个固定版本不存在的 shutdown RPC。
+- stdin EOF 会排空已受理工作，不保证正在进行的工具立即结束。普通停止 30 秒未停妥后
+  由用户确认强制结束；安全撤权和 Host 关闭使用共享 30 秒协作/排空加 5 秒终止宽限预算。
+  必须保持尾帧读取和真实退出观察，不能伪造一个固定版本不存在的 shutdown RPC。
 - 丢失 worker 或发生协议错误后，未能确认终态的操作保持“结果未知”；不自动重放 prompt/工具。
 - 协议 client 不拥有 transcript；重建投影、索引、DSH cursors 和对话呈现由对应组件处理。
 
@@ -87,8 +89,8 @@ Status: 本地窄 transport 路线已由用户确认；工程语义为实施目�
 4. stdin backpressure、EOF 后末尾输出、非零退出、超时 kill/reap、不自动重放的进程测试。
 5. 实际 OMP rpc-ui v2 和 UI 往返 smoke；LLM/工具闭环另行验收，不能以 fake worker 代替。
 
-本文不实现任何 transport，不决定用户交互所有权/断线政策，不批准最终 OMP server 构建基线。
+本文不实现任何 transport；交互所有权/断线政策见上述已确认合同，最终 OMP server 构建基线仍待选择。
 安装/导出调查只证明相应模块事实，不证明真实 OMP 或 DSH 端到端通过。
 
-范围取舍见 [ADR 0004](adr/0004-local-public-rpc-transport.md)。目录与严格接续扩展的
-交付基线由[OMP 目录与严格接续扩展：交付基线和兼容门禁](https://github.com/HowBoring/omp-webui/issues/25)承接。
+范围取舍见 [ADR 0004](adr/0004-local-public-rpc-transport.md)。目录、严格接续与交互取消保证的
+交付基线由[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)承接。

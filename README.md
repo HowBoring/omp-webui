@@ -24,6 +24,9 @@ Authentication and these grant operations remain unimplemented.
 The accepted [history interaction contract](docs/history-interaction-contract.md) separates tree selection,
 same-Session navigation and new-Session branching, with explicit confirmation, unsent drafts and a
 stop-then-wait flow. Its disposable prototype is evidence for the interaction decision, not RPC integration.
+The [Interaction lifecycle policy](docs/interaction-lifecycle-contract.md) permits the first valid answer
+from any authorized page, preserves work across ordinary browser disconnects, and rejects busy queue input.
+It defines cancellation and shutdown budgets; native timed-ask cancellation still requires a public RPC guarantee.
 
 ## Architecture at a glance
 

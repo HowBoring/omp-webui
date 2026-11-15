@@ -31,7 +31,8 @@ Status: 用户已确认交互流程；以下为实施与验收目标，尚未实
 - 外部 owner 占用期间只显示目录元数据与占用原因，不读取或展示历史/树；旧进程自行退出后
   才能手动重新打开。首次打开已登记但接续失败时，保留登记和原因。
 - 本 Host 正在执行、停止尚未完成、结果不明或状态过期时，不提交历史修改。Host 也必须
-  执行准入，菜单隐藏不能代替拒绝快捷键或其他入口。具体并发/交互仲裁由后续合同规定。
+  执行准入，菜单隐藏不能代替拒绝快捷键或其他入口。具体并发/交互仲裁遵守
+  [交互生命周期合同](interaction-lifecycle-contract.md)。
 
 ## 动作与固定公共 RPC 的对应
 
@@ -64,7 +65,7 @@ DSH `dsh-v0.2.2-rc.3` / `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`。
   使用真实错误语义。过期节点需要重新读取和选择，不自动换目标、重试或重发 prompt。
   `branch` 的失败遵循其实际回复，不假定与 navigate 共享上述错误码。
 - 用户取消确认时不提交修改。原生回复表示 cancelled/aborted 时不展示虚构成功，
-  不自动重试或发送草稿；必要时回读实际状态。总结取消和 pending UI 的精确处理另定。
+  不自动重试或发送草稿；必要时回读实际状态。总结取消和 pending UI 处理遵守上述生命周期合同。
 - worker 退出或请求结果丢失时显示失败/结果未知；不自动重启执行，不重发 prompt/工具，
   也不重试可能已经提交的 branch/navigation。重新打开后以原生身份和历史重建结果为准。
 - 原 Session 的严格接续、缺失/替换引用和 owner 竞争仍需公共 OMP 扩展保证；不得用固定版本
@@ -113,11 +114,11 @@ Conversation 根据权威活动分支重建，其他路径保留在 History 中�
 ## 后续工单与固定一手来源
 
 - [原生会话 MVP 的交互所有权与取消、断线策略](https://github.com/HowBoring/omp-webui/issues/22)：
-  静止判断、交互/停止仲裁、取消、断线和关闭的真实生命周期。
+  已确认[交互生命周期合同](interaction-lifecycle-contract.md)，包括联合静止判断和停止/撤权预算；真实验证仍待完成。
 - [原生历史与树导航的投影、游标和重建规则](https://github.com/HowBoring/omp-webui/issues/23)：
   活动分支替换、snapshot/live 一致性、重连及草稿/未知 entry 的安全呈现。
-- [OMP 目录与严格接续扩展：交付基线和兼容门禁](https://github.com/HowBoring/omp-webui/issues/25)：
-  公共目录和保护身份/所有权的接续保证。
+- [OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)：
+  公共目录、保护身份/所有权的接续保证，以及不会默认作答的交互到期/取消保证。
 - [图片与文件输入：格式范围、RPC 链路与存储边界](https://github.com/HowBoring/omp-webui/issues/28)：
   附件输入、回执与历史/草稿恢复，必要的公共 RPC 增量。
 - [DSH 导航与能力接缝：自动创建及动作门禁实证](https://github.com/HowBoring/omp-webui/issues/27)：

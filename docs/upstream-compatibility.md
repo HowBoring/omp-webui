@@ -30,6 +30,22 @@ This document records the exact upstream revisions inspected for the initial arc
   the public `prompt` slash dispatcher; neither `abort_retry` nor resending a prompt is equivalent.
 - The RPC command set does not currently provide a global read-only Session catalog.
 
+### Interaction and Stop compatibility
+
+The accepted [Interaction lifecycle contract](interaction-lifecycle-contract.md) requires explicit
+answers and expiry-as-cancellation. Pinned native asks may instead submit recommended/first answers;
+the tool ask fallback can reinterpret near-deadline cancellation as timeout and return default form data.
+`set_ask_dialog` changes presentation availability, not those semantics. An earlier Host timer cannot
+guarantee it beats a server timer started before delivery. A public, verifiable server guarantee covering
+both paths is therefore a delivery gate; no new method name or completed extension is claimed here.
+
+During extension initialization only UI responses and ask opt-in bypass queued commands. Stop must
+cancel known startup UI before relying on abort, and may need owned-worker teardown. Branch summaries
+have `abort_branch_summary`; generic abort cannot overtake the same pending navigation. Queue-restoring
+abort can report `imagesDropped`/`truncated`; native `isSettled` excludes some pending UI/operations.
+The Host must combine native settlement with its own operation/Interaction state and test actual
+process teardown. Source links and acceptance cases are in the lifecycle contract; no live UI test passed yet.
+
 ### Important implementation caveat
 
 The current TypeScript `RpcClient` is a useful protocol reference and includes framing, request correlation, and many convenience methods. However, the reviewed public surface does not provide a general public API for receiving and answering all `rpc-ui` Extension UI requests, and its default startup mode is `rpc`.
@@ -122,6 +138,12 @@ Browser unary calls carry `client-request`, `rpcId`, `method`, and `payload` to 
 Streams use `/api/remote.mux`, including the `$events` stream whose opening ready item creates a
 Client generation. Waterfall results use `$events/result` with generation and event correlation.
 Identity authentication, Host/Origin source trust, and per-resource Remote authorization are separate boundaries.
+
+Stock Gateway broadcasts pending waterfalls to answering owner clients; the first result/rejection
+settles the transport invocation. Disconnect leaves it pending; reconnect assigns a new clientId and
+replays the same pending eventId. This does not validate OMP answers or enforce per-credential revocation
+for our Host. `userQuestions.attachWait` has multiple claims; `userQuestions.answer` handles continued
+questions through Inbox. The Broker must implement the accepted lifecycle policy over those real contracts.
 
 The Session Controller exposes, among other methods:
 

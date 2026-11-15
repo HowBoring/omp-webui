@@ -37,7 +37,8 @@ upstream design, not Host integration APIs. No proposed catalog method name or s
 Follow-on [catalog](../session-catalog-contract.md), [transport](../rpc-client-contract.md),
 [client composition](../client-composition.md), [local access](../local-access-contract.md) and
 [history interaction](../history-interaction-contract.md) contracts record the resolved choices.
-Interaction ownership, event projection and remaining delivery/acceptance decisions continue on the map.
+The [Interaction lifecycle contract](../interaction-lifecycle-contract.md) resolves answering, disconnect,
+expiry and Stop/revocation policy. Event projection and remaining delivery/acceptance decisions continue on the map.
 Source review and prototype feedback are not runtime proof.
 The health-only scaffold remains unchanged until implementation and end-to-end validation follow.
 

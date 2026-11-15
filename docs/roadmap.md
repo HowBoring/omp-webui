@@ -28,8 +28,10 @@ Status: scaffold created; implementation not complete.
 - [ ] Implement and verify [local admission and revocation](local-access-contract.md) before serving private Session data.
 - [x] Confirm tree selection, same-Session navigation, new-Session branching and stop-then-repeat behavior
   through a disposable prototype; record the [history interaction contract](history-interaction-contract.md).
-- [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
-  [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
+- [x] Confirm [Interaction lifecycle policy](interaction-lifecycle-contract.md): shared answering,
+  live reconnect, busy admission, explicit expiry cancellation and separate Stop/revocation budgets.
+- [ ] Specify and validate public OMP catalog/description, protected continuation and explicit-answer-only
+  UI expiry/cancellation guarantees; decide their delivery baseline and compatibility gates.
 
 Exit criterion: a real browser can load the pinned DSH shell and complete a harmless Remote request and stream against the Bun Host; a real OMP RPC worker can complete an interactive protocol round trip.
 
@@ -41,6 +43,7 @@ Exit criterion: a real browser can load the pinned DSH shell and complete a harm
 - Session-local thinking selection and WebUI-only appearance/language preferences.
 - Required new image/file input, including its [attachment contract](https://github.com/HowBoring/omp-webui/issues/28), lifecycle and public OMP handoff.
 - Prompt, incremental assistant output, tool call/result, cancel, and prompt completion.
+- Reject new prompt/steer/follow-up queue input while busy, preserving draft editing and UI answers.
 - DSH `session.follow` snapshot and live event stream.
 - Event buffering/reconciliation during snapshot opening.
 - Public Session Catalog capability and existing TUI Session discovery/import, grouped by Workspace.
@@ -57,9 +60,11 @@ Exit criterion: one Session can be used through DSH WebUI with streaming and too
   same-Session History Navigation and Branched Session from a historical user message, with confirmation
   and returned drafts left unsent; verify real stop/quiescence, identity refresh and rebuild behavior.
 - Compaction and branch replacement correctness; navigation does not roll back files or external effects.
-- Approval, ask, select/confirm/input/editor, timeout, cancellation, and browser disconnect.
+- Implement the [Interaction lifecycle contract](interaction-lifecycle-contract.md): approval, ask,
+  select/confirm/input/editor, deadlines, explicit cancellation, shared answering and live reconnect.
 - Multiple viewers of one Session and ownership conflict handling.
-- Manual worker crash recovery, continuation after the old owner exits, and Host shutdown cleanup.
+- Manual worker crash recovery, continuation after the old owner exits, user-confirmed force Stop,
+  security revocation and bounded Host shutdown cleanup, with observed exit and no replay.
 - Manual `/retry` through the existing public `prompt` route, with native preconditions and tool side effects.
 
 Exit criterion: the expanded MVP can discover/import native Sessions, retain their registered list,

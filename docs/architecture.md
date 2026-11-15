@@ -133,11 +133,14 @@ A worker has explicit states:
 - `attaching`: opening or restoring the requested Session.
 - `active`: attached and accepting commands.
 - `busy`: a Prompt or asynchronous Agent work is in progress.
-- `idle`: `session_settled` observed.
-- `stopping`: graceful shutdown requested.
+- `idle`: native settlement confirmed and no Host-tracked pending Interaction or busy operation.
+- `stopping`: Stop or shutdown requested; completion/exit has not yet been confirmed.
 - `failed`: process or protocol failure; recovery is required.
 
 Worker shutdown must drain or reject pending requests, settle UI interactions, close streams, and reap the child. Host shutdown must not leave orphaned OMP processes.
+The [Interaction lifecycle contract](interaction-lifecycle-contract.md) distinguishes ordinary Stop
+from security termination and shutdown. Its timers govern escalation, not a fabricated guarantee that
+the OS has completed exit. Startup and branch-summary work need their specific public cancellation paths.
 
 ### 4.3 Prompt lifecycle
 
@@ -153,6 +156,9 @@ The UI should render these states separately.
 Exception: a synchronous builtin slash command may complete in the successful `prompt` response with
 `data.agentInvoked: false`; no `prompt_result` follows. Every other accepted prompt completes through
 its correlated `prompt_result`. Its `sessionSettled` field, or a later `session_settled`, determines quiescence.
+Native settlement does not include every extension UI or branch-summary operation. Host admission
+additionally checks its pending interactions/operations. The MVP rejects new prompt/steer/follow-up
+input while busy; the user may keep editing drafts, answer UI or request Stop.
 
 ## 5. Protocol boundaries
 
@@ -282,12 +288,22 @@ Do not assume OMP entry order is the active conversation path. Do not invent a D
 
 The Broker owns pending OMP Extension UI requests and their browser-side dialogs.
 
-It must support request correlation, response validation, timeout, cancellation, session switching, browser disconnect, and worker shutdown. A pending `select`, `confirm`, `input`, `editor`, `ask`, or `cancel` interaction must not leave a tool or Agent turn permanently suspended.
+It must support request correlation, response validation, timeout, cancellation, session switching,
+browser disconnect, and worker shutdown. `select`, `confirm`, `input`, `editor` and opt-in `ask` may
+await answers; `cancel` is a notification targeting an existing UI id, not another question to answer.
 
 The Broker also separates Extension UI from host-tool and host-URI requests. These have different schemas and security boundaries.
 
 An answer belongs to an authorized Session, worker generation, OMP UI request ID, and DSH event
 generation/ID. Enforce at-most-once answers; stale replies and disconnections must not imply consent.
+
+[ADR 0007](adr/0007-interaction-lifecycle.md) and the [lifecycle contract](interaction-lifecycle-contract.md)
+select first-valid-answer settlement across authorized pages, live pending-UI retention across ordinary
+disconnects, a default 30-minute non-renewing Interaction deadline, and distinct Stop/revocation behavior.
+An ordinary Stop offers explicit user-confirmed force termination after 30 seconds; revoke-all, lost
+directory authorization and Host shutdown use 30-second cooperative/drain and 5-second termination
+phases. Native timed asks can synthesize default answers, requiring a verified public server guarantee
+before claiming strict expiry-as-cancellation. The Broker and this extension are unimplemented.
 
 ### 6.6 OMP-specific DSH client extensions
 
@@ -321,6 +337,9 @@ At the reviewed OMP baseline, the following are already available through RPC: p
 Known gaps or caveats:
 
 - Global Session enumeration is not exposed as a public RPC catalog.
+- Native/tool ask expiry may generate default answers or reinterpret cancellation as timeout. The
+  accepted lifecycle policy needs an additive, publicly verifiable cancellation guarantee; a Host timer
+  cannot eliminate the native race. Delivery joins the catalog/strict-continuation compatibility gate.
 - `abort_retry` stops an automatic retry; it is not the same as a manual mid-loop retry command.
 - Manual `/retry` is already reachable through public `prompt` slash dispatch. A dedicated wire command
   is not required, but it cannot repair every crash. `/rewind` has only a TUI selector; public `branch`

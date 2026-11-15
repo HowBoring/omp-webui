@@ -66,9 +66,9 @@ openSession/retain/open 路径则读取其流。uiWorkspace 私有构造并捕�
 | 本机访问 | 30 天可撤销浏览器授权，网页显式目录授权/撤销；普通 Session open 不扩大目录权限，按[本机访问合同](local-access-contract.md)实现 |
 | 目录/Session | workspace/follow 与 session/list 等既有 DTO 的真实适配；OMP 专用操作沿生成的 DSH Remote contributions，新增方法名/字段另定，不创造第二套浏览器协议 |
 | 创建/打开 | 明确用户动作和真实结果；workspace/initializeDefault 的“不适用”可返回原生合同允许的 undefined，但不能伪报创建成功 |
-| 聊天/取消 | session/prompt、session/cancel；DSH accepted 与 OMP prompt ack、prompt_result、settled 分开映射 |
+| 聊天/取消 | session/prompt、session/cancel；DSH accepted 与 OMP prompt ack、prompt_result、settled 分开映射；MVP 忙时拒绝新输入入队，不照搬 stock keepInbox 的停止语义 |
 | 历史/实时 | session/follow、实际分页调用、session/control 与 projections；active branch、assistant baseline 和重连规则由投影决策细化 |
-| 工具/交互 | 复用 Tool、approval、user-questions 呈现；$events/result、ask 回答和投影须绑定正确 Session/worker/UI generation，策略由 Broker 决策确定 |
+| 工具/交互 | 复用 Tool、approval、user-questions 呈现；$events/result、ask 回答和投影须绑定正确 Session/worker/UI generation，按[交互生命周期合同](interaction-lifecycle-contract.md)实施首个有效答复结算与重投 |
 | 模型/思考 | 只适配已授权当前 Session 的真实 OMP 能力；不据此开放 provider/凭据/角色全局管理 |
 | WebUI 偏好 | settings/describe 提供真实受支持 namespace；写入仅限 WebUI 自有偏好，按准确 namespace 合同适配，不回传伪成功 |
 | 图片/文件 | raw binary/base64 上传、暂存回执、prompt 消费、历史引用和失败/清理需要附件合同；不能把通用 multipart response 当成上传格式 |
@@ -100,8 +100,9 @@ receipt；composer 连已上传图片也可通过 file receipt 提交。图片 h
 - 使用真实支持的 namespace/typed DTO；不以空 fixture 回答冒充产品服务。未知 capability、
   部分失败、非图片文件和被占用 Session 都需可见的正确结果。
 - Tree 的选择/预览、原会话导航与新建会话确认、草稿手动发送，以及停止后重新发起流程，已由
-  用户通过原型确认，见[历史交互合同](history-interaction-contract.md)。投影算法和真实停止/重建
-  仍由对应工单决定；完整 OMP/DSH 端到端仍是验收门禁。
+  用户通过原型确认，见[历史交互合同](history-interaction-contract.md)。停止/交互政策亦已确认，
+  实际启动 UI、busy 输入门禁、取消/重投与原生静止仍需真实验证；投影算法由对应工单细化。
+  完整 OMP/DSH 端到端仍是验收门禁。
 
 现有实验只证明固定 28 插件空数据启动；本次仅追加源码核查与用户决策，没有实施 patch、
 新模块、上传存储或真实 OMP 集成。基线仍为 DSH dsh-v0.2.2-rc.3 / 38a6a5c965aa99ab525161efb7cc5cf1fe62fced。

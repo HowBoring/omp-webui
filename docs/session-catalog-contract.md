@@ -117,7 +117,7 @@ Q2 已确认：发现即展示，第一次打开时先登记原生引用，再�
 8. 所有测试使用隔离 fixtures，不以真实用户 Session 作为迁移或写入实验材料。
 
 新增公共扩展的交付基线与兼容门禁见
-[OMP 目录与严格接续扩展：交付基线和兼容门禁](https://github.com/HowBoring/omp-webui/issues/25)，
+[OMP 公共 RPC 扩展：目录、严格接续与交互取消的交付门禁](https://github.com/HowBoring/omp-webui/issues/25)，
 不因本文定案就更新上游版本锁。
 
 安全工单决定详细认证、授权配置入口和 symlink 策略；客户端组合工单决定 UI 入口；
