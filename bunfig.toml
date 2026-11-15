@@ -1,0 +1,9 @@
+telemetry = false
+
+[test]
+pathIgnorePatterns = [
+  "**/node_modules/**",
+  "**/vendor/**",
+  "**/dist/**",
+  "**/.git/**"
+]

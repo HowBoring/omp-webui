@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-11-15",
+  "omp": {
+    "repository": "https://github.com/can1357/oh-my-pi",
+    "ref": "main",
+    "commit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "version": "18.20.2",
+    "rpc": {
+      "targetProtocolVersion": 2,
+      "supportedProtocolVersions": [1, 2],
+      "mode": "rpc-ui",
+      "reference": "docs/rpc.md"
+    }
+  },
+  "dsh": {
+    "repository": "https://github.com/deepseek-ai/deepseek-harness",
+    "ref": "master",
+    "commit": "39163dd30f703a79079e2d2446545cff3c453738",
+    "version": "0.2.2-rc.3",
+    "packages": {
+      "webApp": "@deepseek-ai/dsh-web-app",
+      "sessionController": "@deepseek-ai/dsh-api-session-controller",
+      "gateway": "@deepseek-ai/dsh-api-gateway",
+      "connection": "@deepseek-ai/dsh-client-connection"
+    },
+    "build": {
+      "node": ">=24.9.0",
+      "packageManager": "pnpm@11.28.5"
+    }
+  }
+}
