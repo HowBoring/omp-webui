@@ -59,6 +59,8 @@ Costs and constraints:
 - DSH's sequenced Session journal must be projected carefully from OMP's tree-shaped durable history and live events.
 - The current OMP TypeScript RpcClient does not expose every `rpc-ui` operation through its public API; a small protocol transport or upstream client enhancement is required.
 - TUI-only features must be classified as RPC gaps, browser extensions, or intentionally unsupported.
+- DSH source/release and npm artifact versions differ. Select a matched external build and preserve
+  its licenses before client integration; source-level contract review alone is not proof of compatibility.
 
 ## Follow-up
 

@@ -50,6 +50,10 @@ The exact upstream commits used for the initial compatibility review are recorde
 
 These are review baselines, not a promise that every upstream capability is already integrated. Update pins deliberately and rerun compatibility checks before changing them.
 
+DSH source/release versions are not npm package versions: the reviewed source and latest prerelease are
+`0.2.2-rc.3`, while npm latest is `0.0.1-rc.5` for `@deepseek-ai/dsh-web-frontend` and
+`0.0.1-rc.1` for `@deepseek-ai/dsh-client-web`. No OMP or DSH runtime dependency is installed by this scaffold.
+
 ## Development
 
 Requirements:
@@ -59,17 +63,23 @@ Requirements:
 - Node.js `>=24.9.0` and pnpm `11.28.5` only when building the pinned DSH upstream client.
 
 ~~~bash
-bun install
+bun install --frozen-lockfile
 bun run dev
 ~~~
 
-The scaffold listens on `http://127.0.0.1:3180`. At this stage only `GET /healthz` is implemented; application and API routes intentionally return `501`.
+The scaffold listens on `http://127.0.0.1:3180`. At this stage only `GET /healthz` is implemented;
+unimplemented `/api/` routes return `501` and other paths return `404`. Health success indicates only Host liveness.
 
 ~~~bash
 bun run typecheck
 bun test
 bun run check
+bun run build
+bun dist/main.js
 ~~~
+
+The lockfile pins the tested development dependencies. `check` runs type checking, tests, and the Bun build.
+Recorded local results and remaining M0 integration work are in [M0 validation](docs/m0-validation.md).
 
 ## Repository layout
 

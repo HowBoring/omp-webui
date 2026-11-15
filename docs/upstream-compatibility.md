@@ -11,6 +11,9 @@ This document records the exact upstream revisions inspected for the initial arc
 - RPC reference: https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/docs/rpc.md
 - RPC types: https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/modes/rpc/rpc-types.ts
 - RPC frame implementation: https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/modes/rpc/rpc-frame.ts
+- Wire schema: https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json
+- Public export map: https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/package.json
+- Latest GitHub release and npm coding-agent version checked on 2026-11-15: `v18.20.2` / `18.20.2`.
 
 ### RPC facts verified
 
@@ -18,7 +21,7 @@ This document records the exact upstream revisions inspected for the initial arc
 - `ready` advertises protocol versions. The reviewed server supports v1 and v2; clients should negotiate v2.
 - Physical JSONL frames are capped at 1 MiB. Protocol v2 can reassemble logical frames up to 64 MiB through validated `rpc_chunk` frames.
 - Requests accept IDs and responses must be correlated by ID; responses can arrive out of order for concurrent commands.
-- `prompt` acknowledgement is separate from `prompt_result`; `session_settled` is the quiescence signal.
+- A synchronous builtin slash command can complete in its success response with `data.agentInvoked: false` and no later `prompt_result`. Other accepted prompts complete through a correlated `prompt_result`; its `sessionSettled` or a later `session_settled` determines quiescence.
 - `--mode rpc-ui` enables the interactive tool UI context, including `ask` and supported Extension UI dialogs. The normal WebUI worker must not use `--no-ui`.
 - Session commands include new/open/switch, history/tree reads, fork, branch, navigate, labels, and paged messages.
 - Subagent subscriptions, progress/events, transcript reads, cancellation, and steering are available.
@@ -37,21 +40,45 @@ Do not reach into its private fields or methods. Either:
 
 The second option remains RPC-only; it must not import OMP Agent Runtime internals.
 
+The public `./modes/rpc/*` exports include `RpcClient`, `RpcFrameDecoder`, and RPC types. Prefer the
+upstream decoder and wire/schema capabilities for the local transport. A command builder as well as
+custom spawn can choose controlled `rpc-ui` argv, but neither provides the missing general UI API.
+Actual package installation and runtime imports remain unverified by the health-only M0 scaffold.
+
 ## DeepSeek Harness
 
 - Repository: https://github.com/deepseek-ai/deepseek-harness
 - Reviewed ref: `master`
 - Commit: `39163dd30f703a79079e2d2446545cff3c453738`
 - Version: `0.2.2-rc.3`
-- Web app bundle: `@deepseek-ai/dsh-web-app`
+- Web frontend artifact entry: `@deepseek-ai/dsh-web-frontend` (`apps/web`)
+- Web Client boot kernel: `@deepseek-ai/dsh-client-web` (`packages/client/web`)
 - Session Controller: `@deepseek-ai/dsh-api-session-controller`
 - Gateway: `@deepseek-ai/dsh-api-gateway`
 - Connection: `@deepseek-ai/dsh-client-connection`
 - Build requirements from the root package: Node.js `>=24.9.0`, pnpm `11.28.5`
 
+The latest GitHub prerelease checked on 2026-11-15 is `dsh-v0.2.2-rc.3` (not a stable release).
+Source package versions differ from npm dist-tags: npm latest is `0.0.1-rc.5` for the Web frontend
+and `0.0.1-rc.1` for client-web. Do not assume `0.2.2-rc.3` is installable from npm or mix these
+artifacts without testing. Pin a matched upstream build and its dependency/asset closure before UI integration.
+
+Pinned source references:
+
+- [Connection](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/client/connection/README.md)
+- [Unary transport](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/client/connection/src/client/rpc.ts)
+- [Gateway](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/gateway/README.md)
+- [Stream and event protocol](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/gateway/src/stream-protocol.ts)
+- [Remote resource access](https://github.com/deepseek-ai/deepseek-harness/blob/39163dd30f703a79079e2d2446545cff3c453738/packages/api/remote-access/README.md)
+
 ### DSH Remote facts verified
 
 The current DSH browser client uses a generic Connection transport for unary Remote calls and a Gateway-owned WebSocket mux for Remote streams.
+
+Browser unary calls carry `client-request`, `rpcId`, `method`, and `payload` to `/api/<endpoint>`.
+Streams use `/api/remote.mux`, including the `$events` stream whose opening ready item creates a
+Client generation. Waterfall results use `$events/result` with generation and event correlation.
+Identity authentication, Host/Origin source trust, and per-resource Remote authorization are separate boundaries.
 
 The Session Controller exposes, among other methods:
 

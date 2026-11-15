@@ -127,6 +127,10 @@ Do not conflate these OMP signals:
 
 The UI should render these states separately.
 
+Exception: a synchronous builtin slash command may complete in the successful `prompt` response with
+`data.agentInvoked: false`; no `prompt_result` follows. Every other accepted prompt completes through
+its correlated `prompt_result`. Its `sessionSettled` field, or a later `session_settled`, determines quiescence.
+
 ## 5. Protocol boundaries
 
 ### 5.1 Browser to Host: DSH Connection and Remote
@@ -144,6 +148,13 @@ At the reviewed DSH baseline:
 
 The DSH protocol is not "REST plus an arbitrary WebSocket". The implementation must follow the pinned Connection, Typert Remote, Gateway stream, and Session contracts. See [upstream compatibility](upstream-compatibility.md).
 
+For the `/api` channel, browser unary calls use POST to `/api/<endpoint>` with `rpcId`, `method`, and
+`payload`; the current client resolves document-relative routes, so deployment prefixes require testing.
+The stream carrier is `/api/remote.mux`. The Gateway's `$events` logical stream opens with a `ready`
+item carrying `clientId` and Host facts, establishing a Client generation. Forwarded waterfall results
+use `$events/result` and an `eventId`; Broker routing must retain both generation and correlation.
+DSH's `ready` is unrelated to OMP's stdio `ready`.
+
 ### 5.2 Host to OMP: public RPC
 
 - Start `omp --mode rpc-ui`; do not use plain `rpc` for the normal interactive WebUI.
@@ -156,6 +167,20 @@ The DSH protocol is not "REST plus an arbitrary WebSocket". The implementation m
 - Treat host-tool and host-URI requests as separate sub-protocols; these are not ordinary UI dialogs.
 
 The current OMP TypeScript `RpcClient` is useful reference code. It defaults to `--mode rpc` (its custom `spawn` override can supply `rpc-ui` argv), but its public API does not expose a general interface for receiving and answering all Extension UI requests. Do not reach into its private members. The implementation must either use a future public OMP client API or own a small, schema-backed JSONL transport. The latter must remain a protocol client, not an Agent SDK integration.
+
+Use the public `RpcFrameDecoder` at `@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame` for framing;
+the package's `./modes/rpc/*` export also covers `rpc-client` and `rpc-types`.
+The upstream `src/modes/rpc/wire/rpc-wire.schema.json` is a JSON Schema 2020-12 bundle with an
+`x-rpc` command table and stdout/inbound frame unions; generated TypeScript is beside it.
+Reuse these public wire/schema/client capabilities rather than inventing a second command schema
+or copying the old omp-web SDK Driver. M0 does not yet import the package; installed export resolution
+and native dependencies remain integration checks.
+
+`--no-ui` disables extension UI in both RPC modes. Although `rpc-ui --no-ui` retains tool dialogs,
+tools requiring approval fail closed without the extension UI. MCP authentication challenges do not
+gain an RPC UI handler in either mode. Native `ask` UI frames require `set_ask_dialog` opt-in;
+the tool ask flow and extension askDialog are distinct. Unsupported interactions must fail explicitly,
+never default to approval. Validate startup dialogs before marking a worker ready for browser commands.
 
 ## 6. Core Host components
 
@@ -215,6 +240,9 @@ It must support request correlation, response validation, timeout, cancellation,
 
 The Broker also separates Extension UI from host-tool and host-URI requests. These have different schemas and security boundaries.
 
+An answer belongs to an authorized Session, worker generation, OMP UI request ID, and DSH event
+generation/ID. Enforce at-most-once answers; stale replies and disconnections must not imply consent.
+
 ### 6.6 OMP-specific DSH client extensions
 
 Use DSH client module/slot extension points for OMP-only capabilities such as:
@@ -255,6 +283,13 @@ Initial deployment is local and single-user:
 
 The health-only scaffold intentionally has no application API and is not a remotely deployable service.
 
+Loopback is not authentication, and RPC is not a sandbox: OMP extensions and tools retain the Host
+user's privileges. Treat model/tool output and UI requests as untrusted data, sanitize rendered content,
+and apply a separate policy to external actions such as `open_url`. Browser input cannot select arbitrary
+executables, argv, environment, or host filesystem paths. Normalize authorized workspace paths and
+check symlink boundaries. Drain stdout after closing stdin, bound output queues and frame reassembly,
+and never automatically replay side-effecting prompts after a worker crash.
+
 ## 9. Persistence policy
 
 MVP state is in memory plus OMP-native persistence. A small atomic JSON or SQLite store may later hold WebUI-only preferences such as workspace ordering or per-browser layout.
@@ -270,6 +305,10 @@ Do not copy OMP transcripts, messages, branch trees, credentials, or Agent state
 - Tests: `bun test`; browser acceptance: Playwright.
 - DSH client build only: Node.js `>=24.9.0` and pnpm `11.28.5`, matching the pinned DSH repository baseline.
 - DSH source and build outputs are generated under ignored `vendor/`.
+
+The checked-in `bun.lock` pins development tooling; no upstream Agent or DSH runtime is installed.
+DSH source `0.2.2-rc.3` differs from npm Web frontend/client latest versions; select and verify a matching
+artifact set before distributing the UI, preserving upstream licenses and third-party notices.
 
 ## 11. M0 exit criteria
 

@@ -8,9 +8,20 @@
     "version": "18.20.2",
     "rpc": {
       "targetProtocolVersion": 2,
-      "supportedProtocolVersions": [1, 2],
+      "supportedProtocolVersions": [
+        1,
+        2
+      ],
       "mode": "rpc-ui",
       "reference": "docs/rpc.md"
+    },
+    "release": {
+      "tag": "v18.20.2",
+      "url": "https://github.com/can1357/oh-my-pi/releases/tag/v18.20.2"
+    },
+    "npm": {
+      "package": "@oh-my-pi/pi-coding-agent",
+      "latest": "18.20.2"
     }
   },
   "dsh": {
@@ -19,14 +30,31 @@
     "commit": "39163dd30f703a79079e2d2446545cff3c453738",
     "version": "0.2.2-rc.3",
     "packages": {
-      "webApp": "@deepseek-ai/dsh-web-app",
       "sessionController": "@deepseek-ai/dsh-api-session-controller",
       "gateway": "@deepseek-ai/dsh-api-gateway",
-      "connection": "@deepseek-ai/dsh-client-connection"
+      "connection": "@deepseek-ai/dsh-client-connection",
+      "webFrontend": "@deepseek-ai/dsh-web-frontend",
+      "clientWeb": "@deepseek-ai/dsh-client-web"
     },
     "build": {
       "node": ">=24.9.0",
       "packageManager": "pnpm@11.28.5"
+    },
+    "release": {
+      "tag": "dsh-v0.2.2-rc.3",
+      "prerelease": true,
+      "url": "https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3"
+    },
+    "npm": {
+      "webFrontend": {
+        "package": "@deepseek-ai/dsh-web-frontend",
+        "latest": "0.0.1-rc.5"
+      },
+      "clientWeb": {
+        "package": "@deepseek-ai/dsh-client-web",
+        "latest": "0.0.1-rc.1"
+      },
+      "note": "The npm latest tags differ from the pinned source version. Matching client artifacts and their runtime dependency closure remain unverified."
     }
   }
 }
