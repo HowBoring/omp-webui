@@ -48,7 +48,8 @@ Exit criterion: browser operation is safe for normal daily coding sessions, incl
 - Subagent Hub, progress, transcript, cancel, and steering.
 - OMP model roles, providers, credentials, and settings.
 - Plan/Vibe and other mode controls where public RPC supports them.
-- Manual `/retry` only after a public RPC capability is available.
+- Manual `/retry` controls using its existing public `prompt` route, with native preconditions
+  and explicit warnings about replaying failed tools.
 - File references, image attachments, export, and other selected DSH capabilities.
 
 Exit criterion: the supported OMP feature matrix is documented and each exposed feature has an end-to-end test.

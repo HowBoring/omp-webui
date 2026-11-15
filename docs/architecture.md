@@ -255,7 +255,8 @@ Use DSH client module/slot extension points for OMP-only capabilities such as:
 - Full OMP Session tree, labels, rewind, and fork.
 - Subagent controls and transcript views.
 - OMP settings and provider credential management.
-- Manual retry only after an equivalent public OMP RPC capability exists.
+- Manual retry through the public `prompt` route with `/retry`, subject to native preconditions
+  and explicit user action; retry may execute failed tools again.
 
 Do not rename or reinterpret DSH tool cards when their underlying semantics differ.
 
@@ -267,6 +268,9 @@ Known gaps or caveats:
 
 - Global Session enumeration is not exposed as a public RPC catalog.
 - `abort_retry` stops an automatic retry; it is not the same as a manual mid-loop retry command.
+- Manual `/retry` is already reachable through public `prompt` slash dispatch. A dedicated wire command
+  is not required, but it cannot repair every crash. `/rewind` has only a TUI selector; public `branch`
+  and `navigate_tree` provide distinct history operations. See [compatibility notes](upstream-compatibility.md).
 - Dedicated RPC state transitions for every TUI-only mode (for example, all Plan/Vibe behavior) are not guaranteed.
 - Some terminal-only extension presentation features have no browser equivalent.
 - MCP authentication flows may have limitations in RPC UI mode.

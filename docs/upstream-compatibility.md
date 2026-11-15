@@ -26,7 +26,8 @@ This document records the exact upstream revisions inspected for the initial arc
 - Session commands include new/open/switch, history/tree reads, fork, branch, navigate, labels, and paged messages.
 - Subagent subscriptions, progress/events, transcript reads, cancellation, and steering are available.
 - BTW has dedicated `btw`, `btw_cancel`, and `get_btw_history` commands plus `btw_delta` and `btw_record` frames.
-- Automatic retry can be configured or aborted. This is not equivalent to a manual mid-loop retry command.
+- Automatic retry can be configured or aborted. Manual `/retry` is separately reachable through
+  the public `prompt` slash dispatcher; neither `abort_retry` nor resending a prompt is equivalent.
 - The RPC command set does not currently provide a global read-only Session catalog.
 
 ### Important implementation caveat
@@ -44,6 +45,26 @@ The public `./modes/rpc/*` exports include `RpcClient`, `RpcFrameDecoder`, and R
 upstream decoder and wire/schema capabilities for the local transport. A command builder as well as
 custom spawn can choose controlled `rpc-ui` argv, but neither provides the missing general UI API.
 Actual package installation and runtime imports remain unverified by the health-only M0 scaffold.
+
+### Manual recovery and ownership recheck
+
+The fixed RPC mode dispatches text-capable builtins, so `prompt` with `message: "/retry"` can invoke
+OMP's native retry handler. Retry has state-dependent refusal conditions and can replay some complete,
+failed tool batches; it is not a side-effect-free model request or a universal crash-repair command.
+See the pinned [RPC dispatch](https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/modes/rpc/rpc-mode.ts#L1940-L2009)
+and [retry handler](https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/slash-commands/builtin-lifecycle.ts#L545-L578).
+
+`/rewind` is an alias of the TUI-only branch selector, not an RPC text builtin. Sending that literal
+through prompt is not a rewind API. Public `branch(entryId)` creates a new Session; `navigate_tree(entryId)`
+changes the current Session's leaf. Neither reverses filesystem or external tool side effects.
+See the [builtin registry](https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/slash-commands/builtin-session.ts#L631-L688).
+
+Some interrupted-turn recovery needs `--restore`, which is currently TUI-only. Ordinary cold resume
+and an available `/retry` route do not establish that every crash outcome can be repaired over RPC.
+Likewise, reattaching a browser to a Host-owned worker differs from transferring another live process's
+writer ownership. The public lease probe neither identifies the owner nor transfers or reserves its claim.
+The [takeover feasibility research](https://github.com/HowBoring/omp-webui/issues/13) records the precise
+source boundaries and proposed validation; final product policy remains with the session-strategy decision.
 
 ## DeepSeek Harness
 
