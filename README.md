@@ -6,6 +6,9 @@ OMP remains the only Agent Runtime. This repository owns the Web Host, OMP RPC p
 
 > **Project status: scaffold / M0.** The initial commit establishes the architecture and development baseline. The health endpoint works; the DSH Gateway, OMP RPC transport, Session projection, and browser UI are not implemented yet.
 
+MVP planning lives in the [decision map](https://github.com/HowBoring/omp-webui/issues/1).
+Its child issues and dependencies are the canonical record of open decisions.
+
 ## Architecture at a glance
 
 ~~~mermaid
