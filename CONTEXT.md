@@ -18,6 +18,14 @@ _Avoid_: Separate WebUI transcript
 An existing OMP Session registered for WebUI access while retaining its native conversation identity.
 _Avoid_: Transcript copy, new conversation
 
+**Discovered Session**:
+An existing OMP Session found in a configured Session Source; discovery alone does not register or open it.
+_Avoid_: Imported Session, active conversation
+
+**Session Source**:
+A configured source of native OMP conversations within a selected OMP configuration.
+_Avoid_: Workspace, transcript store
+
 **Workspace**:
 A registered working directory and the WebUI-managed Sessions associated with it.
 _Avoid_: OMP Session, browser tab

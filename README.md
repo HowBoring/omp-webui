@@ -11,6 +11,8 @@ Its child issues and dependencies are the canonical record of open decisions.
 The agreed MVP includes existing TUI Session discovery/import, a persistent reference index grouped by working
 directory, manual recovery after the previous process exits, tree viewing, same-Session history navigation,
 and branching from a historical user message into a new Session. These capabilities remain unimplemented.
+The [catalog contract](docs/session-catalog-contract.md) records the confirmed discovery, registration
+and occupied-Session behavior; its required public OMP extensions remain pending.
 
 ## Architecture at a glance
 

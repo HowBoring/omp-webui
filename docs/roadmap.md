@@ -20,7 +20,8 @@ Status: scaffold created; implementation not complete.
 - [ ] Implement one Gateway WebSocket Remote stream with cancellation.
 - [ ] Spawn a real `omp --mode rpc-ui` worker and negotiate RPC v2.
 - [ ] Complete an Extension UI request/response round trip.
-- [ ] Decide and specify the additive OMP Session Catalog RPC, including read-only import validation.
+- [ ] Specify the public OMP catalog/description and protected-continuation extensions from the
+  [catalog contract](session-catalog-contract.md), then decide their delivery baseline and compatibility gates.
 
 Exit criterion: a real browser can load the pinned DSH shell and complete a harmless Remote request and stream against the Bun Host; a real OMP RPC worker can complete an interactive protocol round trip.
 

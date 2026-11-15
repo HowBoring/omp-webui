@@ -227,13 +227,21 @@ A significant upstream gap exists: the current per-session OMP RPC protocol does
 
 The MVP must discover and import existing TUI Sessions and group them by working directory. To preserve
 the RPC-only boundary, the Host must not scan or parse OMP session directories. This requires a public
-OMP catalog capability before the complete sidebar can ship. Pagination, identity, metadata, discovery
-roots and import validation remain contract decisions, not existing wire fields or invented API names.
+OMP catalog capability before the complete sidebar can ship. The [catalog contract](session-catalog-contract.md)
+records confirmed product choices and semantic targets; concrete public wire schemas, extension delivery
+and validation remain pending. Proposed capabilities are not API names or existing wire fields.
 
 Import registers a native Session reference; it does not copy its transcript or create a replacement
 conversation. The persistent Host index retains registered references across restarts. Opening a Session
 is a separate operation subject to native ownership and path validation. In the pinned implementation,
 `switch_session` may create a new Session for a missing path; it is not a read-only existence check.
+
+Per [ADR 0003](adr/0003-session-discovery-and-registration.md), the MVP discovers the startup-selected
+OMP configuration's default source plus explicitly authorized custom directories. It displays candidates
+without registering them; first open registers the reference before attempting continuation. Failed
+continuation retains the registration and reason. Externally owned Sessions expose catalog metadata,
+not history/tree browsing, until the previous owner exits. Missing/changed identities and ownership
+conflicts require protected public operations; a lease probe alone does not provide that guarantee.
 
 ### 6.4 Event Projection and Replay
 
