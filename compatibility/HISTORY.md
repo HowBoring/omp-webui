@@ -148,17 +148,15 @@ bun test compatibility/omp/fixtures/history-native.test.js
 bun test compatibility/omp/fixtures/history-public-rpc.test.js
 bun test compatibility/omp/fixtures/history-scale.test.js
 bun apps/history-fixture/build.ts
-bun apps/history-fixture/main.ts
-# In another terminal, while the preceding isolated fixture server runs:
-python3 tests/browser/history-browser.py
+bun scripts/prove-history-browser.ts
 ```
 
 The fixture server chooses a fresh synthetic HOME/profile **before any ordinary native imports**, writes native
 synthetic data through the real SessionManager, and communicates exclusively over actual stdio RPC. All child env
 is allowlisted. The no-provider preload denies fetch/preconnect, socket/TLS/HTTP/HTTP2/WebSocket/UDP and Bun.connect
 network dispatch; synthetic OpenAI metadata and hard-failing model hooks prevent inference. Loopback/stdout Bun socketpairs and native Unix publish locks require the execution environment's local network allowance. This is not permission for provider calls.
-`network-audit.json` in the synthetic profile records zero actual dispatches. Stopping the fixture drains its worker
-and removes that profile. The main product Host remains private-Session blocked throughout.
+`network-audit.json` in the synthetic profile records zero actual dispatches. The browser proof wrapper always stops the fixture in a `finally` block, drains its worker
+and removes that profile. The manual `bun apps/history-fixture/main.ts` entry is also available for inspection. The main product Host remains private-Session blocked throughout.
 
 Evidence is scoped separately: native manager/data fault tests; actual public native client/schema/server with
 public rename mutation; actual Bun history transport with cancellation; labelled DSH Remote contract faults; actual

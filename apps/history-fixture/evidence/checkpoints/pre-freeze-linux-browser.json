@@ -1,0 +1,38 @@
+{
+  "fixtureSha256": {
+    "compatibility/omp/fixtures/history-rpc.js": "01f8070eecdc7780bb9a1735dc4db295373455f9dd2352ea52ba37a651d2e569",
+    "compatibility/omp/fixtures/history-network-guard.js": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9",
+    "compatibility/omp/fixtures/no-provider.ts": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+    "apps/history-fixture/server.ts": "8b64bcd855f7ecf2d8591edbbb08b3503bc73f1380b8a4f659f6ad96b86c06e8",
+    "packages/compatibility/history-transport.ts": "7a3f8f0c8421cacecc531eb77d9958665b5fcf05a2913da695d3c2f0f2d034e0"
+  },
+  "bunLockSha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+  "ompBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "00ed9b7c1c9ae8a1827917260f04c59674261bbbaad9fcb2a0ede170f72bf09b",
+    "patchSha256": "ebd4c1bb312fbd877bf53ca4119b733d263ba2e88b618157ee33f71f96004988",
+    "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b"
+  },
+  "dshBuild": {
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceSha256": "caf074030b8fea9f95fd9702a3fd4e565cfe2f98b6d69b57f170a8f3ad49e765",
+    "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
+    "assets": {
+      "client.js": "030e6ec5c68f24722e875a584d3f53ef0e1afacdee68b9a463da498044141b10",
+      "index.html": "a3a1c218fc35ed6f5e7dbded6a26b95ad3f8c72d204dee4577c069e9e4be619f"
+    }
+  },
+  "kind": "actual-dsh-bun-native-fixture",
+  "browser": "156.0.8078.79",
+  "platform": "Linux Chromium",
+  "privateSessionAdmission": "blocked",
+  "cases": {
+    "sameCutPagedActiveFullTreeAndRunning": "PASS",
+    "retainedBoundariesFoldedAndExpandable": "PASS",
+    "nativeRetainedImagePreview": "PASS",
+    "hiddenStateNotExposed": "PASS",
+    "publicRemoteStaleCursorFault": "PASS"
+  },
+  "nativePageResponses": 8,
+  "windows": "DEFERRED"
+}
