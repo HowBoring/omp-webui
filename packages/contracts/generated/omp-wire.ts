@@ -848,6 +848,8 @@ export interface CatalogBudgets {
 	directoriesPerSnapshot: number;
 	sessionsPerSnapshot: number;
 	headerBytes: number;
+	generationControlBytes: number;
+	generationHeaderBytes: number;
 	pageItems: number;
 	responseBytes: number;
 	snapshotBytes: number;
@@ -879,6 +881,37 @@ export interface CatalogDescription {
 	status: "verified" | "missing" | "replaced" | "invalid_reference" | "source_unavailable" | "inaccessible";
 	observedAt: string;
 	item?: CatalogDescriptor;
+}
+
+export interface StrictStartupPolicy {
+	version: "strict-start-v1";
+	status: "prototype";
+	platforms: string[];
+	ownership: "native-exclusive-lease";
+	selectedInstance: "anchored-carrier";
+	publication: "native-generation-v1";
+	carrierFormat: "ompgen1";
+	xattrs: "required-fd-user-xattr";
+	durability: "process-crash-only";
+	rollback: "flatten-export-required";
+	maxLogicalBytes: number;
+	maxCarrierBytes: number;
+	maxRetainedBytes: number;
+	maxGenerations: number;
+	catalogCarrierPrefixBytes: number;
+	catalogControlBytes: number;
+	catalogGenerationPrefixBytes: number;
+}
+
+export interface StrictStartState {
+	version: "strict-start-v1";
+	phase: "waiting" | "opening" | "open" | "failed" | "cancelling" | "cancelled" | "outcome_unknown";
+	intent?: "continue" | "new";
+	operationId?: string;
+	code?: string;
+	binding?: CatalogDescriptor;
+	nativeSessionId?: string;
+	cwd?: string;
 }
 
 export type AutoCompactionReason = "threshold" | "overflow" | "idle" | "incomplete";
@@ -1157,12 +1190,15 @@ export interface CompatibilityReport {
 	sessionAdmission: "blocked";
 	capabilities: string[];
 	runtime: CompatibilityRuntime;
+	rpcUiStrictStartupPolicy?: StrictStartupPolicy;
 }
 
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
 export interface ReadyEvent {
 	type: "ready";
 	interactionPolicy?: InteractionPolicy;
+	strictStartup?: "strict-start-v1";
+	strictStartupPolicy?: StrictStartupPolicy;
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;
@@ -1897,6 +1933,12 @@ export interface HistoryObservationPollParams {
 	after: number;
 }
 
+export interface StrictStartParams {
+	intent: "continue" | "new";
+	expectedCwd: string;
+	reference?: string;
+}
+
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
 }
@@ -2285,6 +2327,9 @@ export interface RpcWireCommands {
 	history_content_page: { params: HistoryContentPageParams; result: HistoryContentPage };
 	history_snapshot_close: { params: HistorySnapshotCloseParams; result: HistorySnapshotCloseResult };
 	history_observation_poll: { params: HistoryObservationPollParams; result: HistoryPoll };
+	strict_start: { params: StrictStartParams; result: StrictStartState };
+	get_strict_state: { params: undefined; result: StrictStartState };
+	cancel_strict_start: { params: undefined; result: StrictStartState };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };
