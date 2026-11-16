@@ -1,6 +1,6 @@
 # ADR 0009: Preserve attachment originals independently of native model inputs
 
-- Status: Accepted Q1–Q9 product policies; Q10 preparation/admission policy pending; implementation and validation pending
+- Status: Accepted Q1–Q10 product policies; implementation and validation pending
 - Date: 2026-11-16
 - Decision: [图片与文件输入：格式范围、RPC 链路与存储边界](https://github.com/HowBoring/omp-webui/issues/28)
 
@@ -25,7 +25,14 @@ public draft-hydration work instead of browser-wide shared drafts or a durable d
 The selected formats and initial raw-input targets are recorded in the [attachment contract](../attachment-contract.md).
 Numbers are acceptance targets, not evidence that the current native/browser combination can meet them.
 Public RPC needs recoverable native submission/entry and persistence evidence; a process-local message ID,
-ack or in-memory entry snapshot cannot supply that proof. Q10 will determine the preparation/execution guarantee.
+ack or in-memory entry snapshot cannot supply that proof.
+
+All attachments must pass validation and necessary OMP preparation before prompt admission. Failure
+preserves the draft for retry or removal; content-affecting degradation such as truncation requires
+explicit user acceptance of the actual prepared result. Admission waits until every item is accounted
+for, accepting extra waiting and a public preparation/consumption guarantee in the pinned compatibility
+build. Execution must consume the validated result; changes invalidate stale acceptance.
+Model/tool execution can still have effects that cannot be rolled back. These guarantees are not yet implemented.
 
 This trades bounded Host-owned storage, metadata and recovery work for original availability. Expiring
 originals automatically would break historical downloads and possibly later file reads; keeping every

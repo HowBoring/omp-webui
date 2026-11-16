@@ -90,7 +90,8 @@ receipt；composer 连已上传图片也可通过 file receipt 提交。图片 h
 图片 bytes 映射、普通文件的受控可读位置与安全 @path 构造、格式/限额、原件保留、重启、
 取消、孤儿清理和历史访问见[附件合同](attachment-contract.md)。[ADR 0009](adr/0009-original-attachments-and-drafts.md)
 记录后来确认的 Host 原件保存政策；已发送原件不按时间淘汰，但受预算、主动删除与权限约束。
-Host 不新增 PDF/Office 解析器或第二份 transcript。准备失败时是否阻止执行仍待 Q10 确认。
+Host 不新增 PDF/Office 解析器或第二份 transcript。全部附件校验及必要 OMP 准备完成后才准入
+prompt；失败保留草稿，截断等降级须用户明确接受。当前公开 RPC 尚不能提供完整准备/消费保证。
 
 草稿按页签＋Session 隔离并在同页刷新或 Host 重启后恢复，不自动发送。stock DSH 的文字草稿
 按 Session ID 共享 localStorage，runtime 附件不在该快照中；现有导航策略补丁没有补齐恢复。

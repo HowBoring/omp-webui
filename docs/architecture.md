@@ -62,8 +62,9 @@ does not validate the modified composition. See the [client contract](client-com
 New image/file input is part of the usable MVP. Session-local model/thinking selection and WebUI-only
 appearance/language preferences are included; provider, credential and plugin administration is deferred.
 The [attachment contract](attachment-contract.md) records original retention, byte ownership and history
-retrieval targets. Native submission/persistence evidence and public draft recovery need additional
-interfaces; the preparation/admission policy is still pending and attachment integration is unimplemented.
+retrieval targets, with complete preparation before prompt admission and explicit acceptance of degradation.
+Native submission/persistence evidence, preparation/consumption and public draft recovery need additional
+interfaces; attachment integration is unimplemented.
 
 Select the latest official published DSH release, including prereleases, then lock its exact tag and commit
 in `upstreams.lock.json`. The current pin is `dsh-v0.2.2-rc.3` at

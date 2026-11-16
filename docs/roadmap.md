@@ -33,8 +33,12 @@ Status: scaffold created; implementation not complete.
   live reconnect, busy admission, explicit expiry cancellation and separate Stop/revocation budgets.
 - [x] Select [RPC delivery policy](rpc-delivery-contract.md): pinned public compatibility build,
   verified global OMP reuse and one supported Host/OMP-build/schema combination.
+- [x] Confirm the [attachment contract](attachment-contract.md): originals, quotas, per-tab recovery,
+  expiry/deletion and complete preparation before admission with explicit degradation consent.
 - [ ] Specify and validate public OMP catalog/description, protected continuation and explicit-answer-only
   UI expiry/cancellation guarantees in an actual compatibility build and matched schema.
+- [ ] Deliver and verify public attachment preparation/consumption and recoverable native submission/commit
+  association, plus the narrow DSH draft recovery seam; source review does not prove these implemented.
 - [ ] Verify the actual global launch/runtime closure, early capability guarantees, full conformance
   evidence and native-data/TUI upgrade/rollback compatibility before product admission.
 
@@ -46,7 +50,7 @@ Exit criterion: a real browser can load the pinned DSH shell and complete a harm
 - OMP process startup, RPC framing, v2 negotiation, request correlation, and stderr diagnostics.
 - New/open Session and model selection.
 - Session-local thinking selection and WebUI-only appearance/language preferences.
-- Required new image/file input, including its [attachment contract](https://github.com/HowBoring/omp-webui/issues/28), lifecycle and public OMP handoff.
+- Required new image/file input, including its [attachment contract](attachment-contract.md), lifecycle and public OMP handoff.
 - Prompt, incremental assistant output, tool call/result, cancel, and prompt completion.
 - Reject new prompt/steer/follow-up queue input while busy, preserving draft editing and UI answers.
 - DSH `session.follow` snapshot and live event stream.

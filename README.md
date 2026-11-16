@@ -32,9 +32,9 @@ It defines cancellation and shutdown budgets; native timed-ask cancellation stil
 The accepted [RPC delivery policy](docs/rpc-delivery-contract.md) uses a pinned public compatibility build
 and the user's **global OMP installation**, subject to exact artifact/schema/behavior verification.
 The MVP supports one validated combination; the compatibility build and global-install verification remain pending.
-The [attachment contract](docs/attachment-contract.md) records the accepted original-retention, quota,
-deletion and per-tab draft-recovery policies. Preparation/admission policy is still under discussion;
-attachment storage, durable native associations and browser integration remain unimplemented.
+The [attachment contract](docs/attachment-contract.md) records accepted original retention, quotas,
+deletion, per-tab draft recovery and complete preparation before prompt admission, with explicit acceptance
+of content-affecting degradation. Storage, public RPC guarantees and browser integration remain unimplemented.
 
 ## Architecture at a glance
 
