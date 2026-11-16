@@ -1,5 +1,9 @@
 /** Explicit public readonly-catalog stdio fault fixture, never native runtime evidence. */
 const mode=process.argv[2];
+// Explicit release latch belongs only to this public fault peer; install before advertising ready.
+let resume:()=>void=()=>{};
+const resumed=new Promise<void>(resolve=>{resume=resolve;});
+if(mode==="resume-read")process.once("SIGUSR1",()=>resume());
 const received=new Set<string>();
 const requests:object[]=[];
 const write=(frame:object):void=>{process.stdout.write(JSON.stringify(frame)+"\n");};
@@ -16,7 +20,7 @@ for await(const line of console){
       chunkId:"catalog-forbidden",index:0,count:5,byteLength:1048576,data:Buffer.alloc(64,32).toString("base64")})+"\n");
     else write(ack);
     if(mode==="never-read")await Bun.sleep(60000);
-    if(mode==="resume-read")await Bun.sleep(1000);
+    if(mode==="resume-read")await resumed;
   }else if(mode==="resume-read"&&"reference"in command&&typeof command.reference==="string"){
     const reference=command.reference;
     const status=reference.startsWith("probe:")&&received.has(reference.slice(6))?"replaced":"missing";

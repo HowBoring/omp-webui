@@ -1,5 +1,9 @@
 # Ticket 31 review fixes — isolated Linux catalog
 
+This is the retained first review-fix record. Its native corpus was synthetic header-first JSONL and did not
+cover OMP's title-slot-first serialization. The [native-layout correction](ticket-31-native-layout.md) records
+the actual SessionManager regression, corrected parser, canonical corpus and current tuple/measurements.
+
 The standards and spec findings on `5c26d6b643022c2ee46e8244cc0faa78a1bb176f` are corrected. This worktree
 merged the current integration `3643be43d6ed7d3b5c782ddb97d24398ecc64641` before its final clean build/check.
 The delivered surface is still the isolated readonly catalog. Product private Session admission remains blocked;
@@ -87,7 +91,7 @@ Both Host bundles were rebuilt and enrolled with **77417** assets. The catalog H
 `1eb3beae1512b8283438fd6f1d13882025a758d328ee617a861d4749578e0ac6`; the diagnostic bundle is
 `b0cc068258ff2318526f881615ccd7855cf634fbf73149c64ca8f9212d96553f`. The exact enrollment identity is
 `976f5ed5658d5112c18f57f1bc1d9392ba2767472b42a9e4300866594a8fdf42`.
-The [current tuple](../../apps/catalog/evidence/tuple.json) records every individual patch/client/Host identity.
+The [current tuple](../../apps/catalog/evidence/before-native-layout/tuple.json) records every individual patch/client/Host identity.
 Unmodified pinned DSH browser artifacts were copied from the previous worktree and verified by their retained
 source/contract/asset hashes; no redundant cold DSH build or shared source modification occurred. Dependencies are
 immutable read-only hard-link reuse in owned ignored directories. The native source clone is writable and owned.
@@ -99,8 +103,8 @@ Host listens is **1688.22 ms**. Host sampled peak RSS is **122944 KiB**, OS high
 All component thresholds pass. Startup/install verification and OMP/browser/tool whole-machine peaks are not timed
 or attributed to these operation samples; this machine is not formal S5 reference hardware.
 
-The [browser samples](../../apps/catalog/evidence/linux-browser.json) and
-[native trace](../../apps/catalog/evidence/trace-summary.json) are current. The preceding tuple, full browser samples
+The [browser samples](../../apps/catalog/evidence/before-native-layout/linux-browser.json) and
+[native trace](../../apps/catalog/evidence/before-native-layout/trace-summary.json) are current. The preceding tuple, full browser samples
 and trace remain under [before-review](../../apps/catalog/evidence/before-review/tuple.json). The earlier 686796 KiB
 startup HWM failure and streaming-hash correction remain in the [original acceptance record](ticket-31-catalog.md).
 The entire enrolled installation closure verified again after browser validation with the exact unchanged manifest

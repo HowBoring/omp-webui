@@ -10,14 +10,14 @@ export interface InteractionPort {
   readonly frames:readonly NativeFrame[];
   readonly exited?:Promise<number>;
   subscribe(listener:(frame:NativeFrame)=>void):()=>void;
-  command(command:object):Promise<NativeFrame>;
+  command(command:object):Promise<unknown>;
 }
 interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; tail:Promise<void>; retired:boolean }
 const interactive=new Set(["ask","select","input","editor","confirm"]);
 const presentation=new Set(["notify","setStatus","setWidget","setTitle","set_editor_text","open_url"]);
-const sourceRequest=z.object({id:z.string(),method:z.string(),title:z.string().optional(),timeout:z.number().optional(),
-  options:z.array(z.string()).optional(),questions:z.array(z.object({id:z.string(),question:z.string(),
-    options:z.array(z.object({label:z.string()})),multi:z.boolean().optional()})).optional()});
+const sourceRequest=z.object({id:z.string(),method:z.string(),message:z.string().max(32768).optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().max(65536).optional(),title:z.string().max(32768).optional(),timeout:z.number().optional(),
+  options:z.array(z.string().max(1024)).max(256).optional(),questions:z.array(z.object({id:z.string(),question:z.string().max(32768),
+    options:z.array(z.object({label:z.string().max(1024)})).max(256),multi:z.boolean().optional()})).max(64).optional()});
 
 /**
  * Ephemeral S0 adapter around the public native interaction contract. All pages
@@ -59,7 +59,7 @@ export class InteractionBridge {
       try {
         const effectiveAnswer=performance.now()>=entry.deadlineMono ? {type:"cancel" as const,timedOut:true} : answer;
         const reply=await this.port.command({type:"respond_ui",targetId:id,answer:effectiveAnswer});
-        const result=interactionReplySchema.parse(reply.data);
+        const result=interactionReplySchema.parse(reply);
         if(result.status !== "invalid") this.#retire(id,result.status,"explicit-native-acknowledgement");
         if(result.status === "expired") this.#stop();
         settled.resolve(result);
@@ -78,7 +78,12 @@ export class InteractionBridge {
     if(frame.type === "ready") {this.#policy=validPolicy(frame.interactionPolicy);return;}
     if(frame.type !== "extension_ui_request") return; // Tool/URI IDs never enter this map.
     if(!validRequest(frame)) {this.#stop();return;}
-    const request=sourceRequest.parse(frame);
+    const parsed=sourceRequest.safeParse(frame);
+    if(!parsed.success) {
+      if(typeof frame.id === "string")void this.port.command({type:"respond_ui",targetId:frame.id,answer:{type:"cancel"}}).catch(()=>{});
+      this.#stop();return;
+    }
+    const request=parsed.data;
     if(request.method === "cancel") {
       const target=z.string().parse(frame.targetId);
       this.#retire(target,frame.reason === "expired" ? "expired" : "cancelled",String(frame.reason ?? "native-cancel"));
@@ -94,7 +99,7 @@ export class InteractionBridge {
     const wait=Math.min(this.#target,request.timeout === undefined ? this.#target : Math.max(0,request.timeout));
     const createdAt=Date.now();
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
-      method:request.method,title:request.title ?? "Native ask",options:request.options,questions:request.questions,
+      method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
     const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,tail:Promise.resolve(),timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.

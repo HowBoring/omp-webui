@@ -1,0 +1,98 @@
+$ bun run typecheck && bun test && bun run build
+$ tsc --noEmit -p tsconfig.json
+bun test v1.4.4 (38afee6c8)
+
+tests/compatibility/candidate.test.ts:
+(pass) actual candidate launcher preflight uses isolated protocol without touching a user profile [12.73ms]
+(pass) preflight mixed with Session/UI arguments is rejected before ordinary CLI startup [19.91ms]
+
+tests/compatibility/preflight.test.ts:
+(pass) unknown startup installation blocks diagnostics before executing a launcher [0.31ms]
+(pass) verified install rejects same-version launcher, symlink, runtime and native closure replacements [384.10ms]
+(pass) enrolled launcher-content drift blocks the same-version candidate before launch [9.59ms]
+(pass) enrolled launcher-symlink drift blocks the same-version candidate before launch [5.40ms]
+(pass) enrolled runtime-content drift blocks the same-version candidate before launch [6.50ms]
+(pass) enrolled dependency-content drift blocks the same-version candidate before launch [5.32ms]
+(pass) enrolled new-dependency drift blocks the same-version candidate before launch [4.77ms]
+(pass) untracked intermediate dependency symlinks cannot be enrolled as a complete closure [2.61ms]
+
+tests/compatibility/dsh-source.test.ts:
+(pass) the declared complete source is accepted through the public DSH build gate [2358.46ms]
+(pass) an undeclared edit to a consumed DSH module blocks the build gate [2348.91ms]
+(pass) ignored startup environment files and undeclared untracked source cannot evade the gate [2904.40ms]
+
+tests/compatibility/assets.test.ts:
+(pass) changed served JavaScript or startup trust manifest cannot publish verified diagnostic UI [4.20ms]
+
+tests/compatibility/source.test.ts:
+(pass) a consumed public decoder changed outside the recorded patch blocks the candidate build [84.78ms]
+(pass) even an ignored extra startup environment file is rejected before importing generators [63.59ms]
+
+tests/compatibility/framing.test.ts:
+(pass) public OMP decoder reassembles chunked UTF-8 frames across arbitrary byte boundaries [12.31ms]
+(pass) physical byte ceiling includes newline and rejects a line before unbounded buffering [3.09ms]
+(pass) invalid physical UTF-8 and partial JSON EOF are explicit protocol failures [0.09ms]
+(pass) chunked frames are refused until public v2 negotiation completes [3.61ms]
+(pass) public OMP decoder rejects logical byte ceiling [0.06ms]
+(pass) public OMP decoder rejects count ceiling [0.01ms]
+(pass) public OMP decoder rejects nonintegral metadata [0.06ms]
+(pass) public OMP decoder rejects sequence must begin at zero [0.03ms]
+(pass) public OMP decoder rejects canonical base64 [0.02ms]
+(pass) chunk interleaving and incomplete chunk EOF are never silently ignored [0.08ms]
+(pass) chunk metadata remains bound to one ordered logical frame [0.05ms]
+(pass) public decoder refuses declared length mismatches after the final chunk [0.04ms]
+(pass) logical UTF-8 is validated after public chunk reassembly [20.37ms]
+
+tests/compatibility/transport.test.ts:
+(pass) real candidate transport negotiates public v2 then drains and reaps after the report [11.31ms]
+(pass) public request IDs correlate concurrent responses completed in reverse order [14.70ms]
+(pass) a valid report followed by partial EOF is a failed drain, never successful diagnostics [25.37ms]
+(pass) public transport rejects wrong-id without treating acknowledgement as compatibility [17.38ms]
+(pass) public transport rejects wrong-command without treating acknowledgement as compatibility [20.12ms]
+(pass) public transport rejects invalid-result without treating acknowledgement as compatibility [15.57ms]
+(pass) a duplicate terminal frame cannot turn into a successful diagnostic drain [17.40ms]
+(pass) a invalid-utf8 terminal frame cannot turn into a successful diagnostic drain [14.13ms]
+(pass) late response after timeout cannot revive a request, but its bytes are drained [237.75ms]
+(pass) stderr stays separate and its sensitive fixture contents are never returned [365.93ms]
+(pass) EOF drain reaps a non-exiting process within the diagnostic termination budget [90.42ms]
+(pass) cancellation rejects pending work and reaps without replay [21.21ms]
+(pass) blocked stdin flush cannot prevent EOF shutdown deadlines and process reaping [475.50ms]
+(pass) stdin EOF still drains a valid pending response before observing actual exit [17.14ms]
+
+tests/compatibility/runtime.test.ts:
+(pass) a real candidate with omitted runtime/native mappings is blocked despite a matched ready/schema/build [631.88ms]
+
+tests/host/diagnostics.test.ts:
+(pass) real Bun Gateway exposes only sanitized diagnostics and rejects browser launch controls [27.41ms]
+
+tests/host/http.test.ts:
+(pass) Host scaffold HTTP handler > exposes a health endpoint [0.21ms]
+(pass) Host scaffold HTTP handler > does not pretend the DSH API is implemented [0.07ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/remote.mux unavailable [0.04ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/unknown unavailable
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path / [0.04ms]
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /api [0.01ms]
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /missing
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /healthz/
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /.env
+(pass) Host scaffold HTTP handler > does not expose health through a mutation request [0.05ms]
+(pass) Host scaffold HTTP handler > serves a real loopback request and releases its listener [0.79ms]
+
+tests/browser/diagnostics-contract.test.ts:
+(pass) public diagnostic report > accepts bounded blocked reports and rejects browser execution controls or private data [0.42ms]
+(pass) public diagnostic report > verified reports require complete identity while session admission remains blocked [0.59ms]
+(pass) public diagnostic report > generated Remote descriptor has no business inputs and a strict result codec [0.04ms]
+
+tests/browser/diagnostics-remote.test.ts:
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > uses the Connection envelope and returns a typed RemoteResult [5.59ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > rejects mismatched correlation and malformed reports [18.06ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > withdrawal aborts the in-flight request and rejects stale captured calls [1.47ms]
+
+ 62 pass
+ 0 fail
+ 118 expect() calls
+Ran 62 tests across 12 files. [10.42s]
+$ bun build apps/host/src/main.ts --target=bun --outdir=dist
+Bundled 2 modules in 4ms
+
+  main.js  1.27 KB  (entry point)

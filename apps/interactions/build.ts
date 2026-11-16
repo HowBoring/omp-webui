@@ -80,6 +80,11 @@ for (const name of ["client.js", "index.html"]) {
 }
 const inputDigests = [...inputs.values()].sort((left, right) =>
   `${left.package}@${left.version}/${left.file}`.localeCompare(`${right.package}@${right.version}/${right.file}`, "en"));
+for (const input of inputDigests) {
+  if (["react","react-dom"].includes(input.package) && input.version !== "18.3.1") {
+    throw new Error("S0_REACT_REALM_MISMATCH");
+  }
+}
 const manifest = {
   kind: "S0-isolated-interactions", dshBase: actualBase,
   lockSha256: createHash("sha256").update(lockBytes).digest("hex"), runtime: { name: "bun", version: Bun.version },

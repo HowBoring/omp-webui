@@ -1,0 +1,21 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "public DSH Client/provider/Remote fixture; synthetic originals only",
+  "checks": [
+    "two live tabs, one Session: no shared draft reads/writes",
+    "two Sessions, same tab; refresh restores same tab owner without clock renewal or send",
+    "actual window.open copies sessionStorage; Web Lock rotates duplicated owner and edits stay isolated",
+    "real chips/quotes/command, stock attachment cards and repeated original order survive refresh; handles/receipts rebuilt",
+    "missing original preserves semantic text and visible reason; manual Enter cannot submit partial draft",
+    "late preparation cannot replace a newer browser edit",
+    "no prompt/create Remote calls; shared legacy key unchanged; fresh raw upload receipts distinct",
+    "delayed public Remote acceptance plus same-tab refresh: durable frozen text/originals, no upload, no replay, unknown recovery blocked",
+    "late acceptance never clears refreshed quarantine; explicit authoritative fixture outcome durably resolves without replay"
+  ],
+  "pageErrors": [],
+  "chromium": "156.0.8078.79",
+  "sharedKeyReads": 0,
+  "sharedKeyWrites": 0,
+  "result": "FAIL",
+  "failure": ""
+}

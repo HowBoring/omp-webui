@@ -24,7 +24,9 @@
     "diagnostics:enroll": "bun scripts/enroll-candidate.ts",
     "catalog:fixture": "bun --no-env-file vendor/host-catalog/catalog-fixture-main.js",
     "catalog:fixture-data": "bun scripts/create-catalog-fixture.ts",
-    "catalog:build": "bun apps/catalog/build.ts && bun scripts/build-catalog-host.ts"
+    "catalog:build": "bun apps/catalog/build.ts && bun scripts/build-catalog-host.ts",
+    "interactions:build": "bun apps/interactions/build.ts && bun scripts/build-interactions-host.ts",
+    "interactions:fixture": "bun --no-env-file vendor/host-interactions/interactions-fixture-main.js"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",

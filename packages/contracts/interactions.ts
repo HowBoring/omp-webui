@@ -17,7 +17,7 @@ export const pendingInteractionSchema=z.strictObject({
   id,generation:id,family:z.literal("extension-ui"),scope:z.discriminatedUnion("kind",[
     z.strictObject({kind:z.literal("startup")}),z.strictObject({kind:z.literal("session"),sessionId:id}),
   ]),method:z.enum(["ask","select","input","editor","confirm"]),title:z.string(),
-  options:z.array(z.string()).optional(),questions:z.array(question).optional(),
+  message:z.string().optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().optional(),options:z.array(z.string()).optional(),questions:z.array(question).optional(),
   createdAt:z.number(),deadline:z.number(),reason:z.literal("explicit-answer-required"),
 });
 export type PendingInteraction=z.infer<typeof pendingInteractionSchema>;
@@ -29,7 +29,7 @@ export const interactionSnapshotSchema=z.strictObject({
 export type InteractionSnapshot=z.infer<typeof interactionSnapshotSchema>;
 export const interactionReplySchema=z.strictObject({status:z.enum(["answered","cancelled","expired","invalid","stale"])});
 export type InteractionReply=z.infer<typeof interactionReplySchema>;
-const scenario=z.enum(["ask","timed-ask","select","tool","timed-tool"]);
+const scenario=z.enum(["ask","multi-ask","timed-ask","select","confirm","tool","timed-tool"]);
 export type InteractionScenario=z.infer<typeof scenario>;
 
 const codec=<T>(schema:z.ZodType<T>,typeSymbol:string)=>({mode:"strict" as const,typeSymbol,
