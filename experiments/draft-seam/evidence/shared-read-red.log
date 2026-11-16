@@ -1,0 +1,9 @@
+Bundled 2 modules in 13ms
+
+  client.js  8.41 KB  (entry point)
+
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-39/experiments/draft-seam/browser.py", line 65, in <module>
+    assert page.evaluate('window.__fixtureSharedReads') == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

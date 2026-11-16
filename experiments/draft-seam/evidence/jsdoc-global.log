@@ -1,0 +1,2 @@
+verify-export-jsdoc: 1 JSDoc completeness violation(s) (see AGENTS.md):
+  exported function 'sessionActionAvailable' (packages/client/ui-workspace/src/client/action-policy.ts:10) has no description prose above its block tags.
