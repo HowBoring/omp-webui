@@ -1,10 +1,10 @@
 {
-  "kind": "ticket31-review-fixes-readonly-catalog-linux-candidate",
+  "kind": "ticket31-native-title-slot-layout-linux-candidate",
   "ompBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-  "cumulativePatchSha256": "fff12945f224f4b3500133e20d21eea82bb17c083be5c636abd7eb5fe732e53f",
-  "sourceSha256": "1746107abbd6ec0678075b967665bc5c8cf56eea51e2b9f5be2a4e78d5a95dcf",
+  "cumulativePatchSha256": "0c5a4fc201bc3b28b07a65158fbe26fb76668b926557380093e082e4c4634a39",
+  "sourceSha256": "12c72dc14e30975ab0f90df49cfcf3fc1eb50f300366088dc04053ab1c6f437b",
   "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
-  "installationManifestSha256": "976f5ed5658d5112c18f57f1bc1d9392ba2767472b42a9e4300866594a8fdf42",
+  "installationManifestSha256": "bcd56a274b1b96d6148317d6078caece2e031f036670177087dc37635d8dc663",
   "installationAssets": 77417,
   "orderedPatches": [
     {
@@ -13,7 +13,7 @@
     },
     {
       "name": "0002-readonly-catalog.patch",
-      "sha256": "9e33915c02909630c4b2cefa2a49f71cc054b318c4a4fc538e63fb753436a387"
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
     }
   ],
   "catalogClient": {
@@ -28,19 +28,19 @@
   },
   "hostBundle": {
     "file": "catalog-fixture-main.js",
-    "sha256": "1eb3beae1512b8283438fd6f1d13882025a758d328ee617a861d4749578e0ac6"
+    "sha256": "d1af18a9a1eeda93202d03838c0cf27e723b990e95188071d80f2164e3c939da"
   },
   "runtime": {
     "name": "bun",
     "version": "1.4.4"
   },
   "screenshots": {
-    "catalog.png": "270f1a4eb6f2fb1e007062bbdbcec3e1ad69789a1c255b4c2bf1d2671e5dcae6"
+    "catalog.png": "b41c06b9eed4611942247447b65a7d38ff723f7f16d69bb9b6a18a4d536a1894"
   },
   "fixture": {
     "kind": "synthetic-native-v3",
     "seed": "catalog-v1-1000-cwd",
-    "sessions": 1002,
+    "sessions": 1004,
     "distinctDefaultBuckets": 1000,
     "additionalCases": [
       "same-ID custom copy",
@@ -48,16 +48,20 @@
       "unknown cwd",
       "malformed header",
       "invalid custom source",
-      "nested authorized bucket: same physical instance, distinct source-scoped reference"
+      "nested authorized bucket: same physical instance, distinct source-scoped reference",
+      "actual SessionManager.createEmptySessionFile",
+      "actual SessionManager serialization with user title"
     ],
-    "sourceScopedRows": 1003
+    "sourceScopedRows": 1005,
+    "actualSessionManagerFiles": 2,
+    "layout": "1000 synthetic records serialized with authoritative native title slots; actual Manager empty+titled records; explicit legacy/fault cases retained"
   },
   "upstreamReuse": "Owned writable OMP clone from local fixed-base object cache; immutable frozen dependency files reused read-only via hard links. Unmodified pinned DSH browser artifact directories copied and exact source/contract/asset hashes rechecked; no cold DSH build.",
   "productSessionAdmission": "blocked",
   "windowsChromeWsl2": "DEFERRED by owner",
   "diagnosticHostBundle": {
     "file": "diagnostics-main.js",
-    "sha256": "b0cc068258ff2318526f881615ccd7855cf634fbf73149c64ca8f9212d96553f"
+    "sha256": "e72ceb85274b56cdabd48043e274be14f503ae3502d2235430f2b059a97f16a0"
   },
   "integrationBase": "3643be43d6ed7d3b5c782ddb97d24398ecc64641",
   "transportFollowup": {
@@ -73,15 +77,16 @@
     "coalescedNegotiation": "validated correlated v2 ack takes effect before next same-read line; before/wrong ack chunks and all catalog chunks rejected"
   },
   "reusedEvidence": {
-    "nativeSourceSchemaAndPatch": "native patch/source regenerated and clean ordered 0001+0002 build repeated; wire/schema unchanged",
-    "nativeSyscallTrace": "rerun on current candidate; apps/catalog/evidence/trace-summary.json",
-    "native1000BucketAndRealTtlProof": "rerun through full check on current candidate, including actual 60.5-second TTL",
-    "dshClientAssets": "exact unmodified pinned browser assets reused; same-tuple actual browser and refreshed Host bundles/enrollment repeated"
+    "nativeSourceSchemaAndPatch": "native parser source/patch regenerated from clean ordered 0001+0002; wire/schema unchanged",
+    "nativeSyscallTrace": "rerun over actual Manager-authored empty+titled files; current trace-summary.json",
+    "native1000BucketAndRealTtlProof": "rerun with canonical native title-slot corpus, including actual 60.5-second TTL",
+    "dshClientAssets": "exact unmodified pinned browser assets reused; same-tuple actual browser and refreshed Host bundles/enrollment repeated",
+    "sharedTransport": "unchanged from 46647ee; all public transport cases rerun in full check"
   },
   "reviewVerification": {
     "fullCheck": {
-      "tests": 104,
-      "assertions": 899,
+      "tests": 106,
+      "assertions": 920,
       "result": "PASS"
     },
     "upstreamFreshArtifacts": {
@@ -90,7 +95,18 @@
       "result": "PASS"
     },
     "nativeTypes": "strict authored-module check PASS; unrelated upstream diagnostics excluded",
-    "priorEvidence": "before-review/",
-    "postBrowserInstallation": "full enrolled closure verified; exact manifest identity unchanged"
+    "priorEvidence": "before-native-layout/ and before-review/",
+    "postBrowserInstallation": "entire 77417-asset enrolled closure reverified after browser with exact unchanged identity",
+    "actualNativeLayout": {
+      "tests": 2,
+      "assertions": 25,
+      "result": "PASS"
+    }
+  },
+  "nativeMetadataRead": {
+    "bytes": 16384,
+    "kind": "one cumulative anchored title-slot plus immediately following header prefix",
+    "titleSlotParser": "authoritative session/session-title-slot.parseTitleSlotLine",
+    "titleSemantics": "current slot overrides legacy header; empty slot removes title; malformed leading records fail partial without search"
   }
 }
