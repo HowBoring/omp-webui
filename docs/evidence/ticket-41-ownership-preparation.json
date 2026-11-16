@@ -48,5 +48,24 @@
     "correctedActualCliRerun": "NOT_RUN"
   },
   "positiveHostHelperParentage": "NOT_RUN",
-  "backendCapabilityGranted": false
+  "backendCapabilityGranted": false,
+  "restoredSourceCheckpoint": {
+    "date": "2026-11-16",
+    "preservation": "/workspace/work/mvp-implementation/research/restore3-41-preserve-20261116T211210Z",
+    "preparedTree": "2b349f563eac3e17d2ac48400478a97a3c7eb14b",
+    "preparedSourceSha256": "2ec6b9694d7d53d33c4b933d3afdc331fc8a2198d67b957caaea9a7910c48c81",
+    "patchSha256": "b21f4f6917a8abd416216169fdf155d88731780b9027f15cb04b37bcd9e30643",
+    "pureTests": 40,
+    "pureAssertions": 136,
+    "osCasesSkipped": 1,
+    "typeCheckedFiles": 22,
+    "typeErrors": 0,
+    "parsedEntrypoints": 8,
+    "parsedConsumerFiles": 16,
+    "schemaCases": 41,
+    "actualEntrypointsExecuted": false,
+    "kernel": "NOT_RUN",
+    "nativeRuntime": "NOT_RUN",
+    "noCreateInspection": "SOURCE_AND_SYNTHETIC_SEAM_ONLY"
+  }
 }

@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..b98c1f5bcb 100644
+index a4b6abe4e7..a09f959698 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,15 @@
+@@ -2,6 +2,16 @@
  
  ## [Unreleased]
  
@@ -14,19 +14,20 @@ index a4b6abe4e7..b98c1f5bcb 100644
 +- Added the fail-closed public process-context interface and owned durable incomplete-fence source adapter; Native consumer/bootstrap integration remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +- Added operator-pinned signed-reply wire source and bounded process broker serialization; actual transport/global admission remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +- Gated normal/strict CLI startup in source and preserved early worker messages through bounded registration buffering; actual worker/CLI acceptance remains pending ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
++- Added bounded dispatcher-owned administration listings and generation-bound no-create broker inspection; unprotected stream and legacy runtime pruning remain unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
  ### Fixed
  
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..fe76ea91ef 100644
+index 0b34d8fc54..60d9f19630 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -10,6 +10,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
  Package-specific references:
  
  - [CHANGELOG](./CHANGELOG.md)
-+- [Execution ownership preparation](./docs/execution-ownership.md) (process context, durable fence and public contract source; Linux backend and ordinary-client integration unavailable)
++- [Execution ownership preparation](./docs/execution-ownership.md) (source process context, signed wire, no-create administration and durable fences; Linux backend/runtime unavailable)
 +- [Ownership consumer preparation](./docs/execution-ownership-consumers.md) / [执行归属消费端准备](./docs/execution-ownership-consumers.zh-CN.md) (dispatcher-only broker clients, private feature guards and unproven fallbacks)
  - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
  - [MCP configuration guide](../../docs/mcp-config.md)
@@ -125,10 +126,10 @@ index 0000000000..749ace4466
 +旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..b12eb7e023
+index 0000000000..b751802251
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,203 @@
+@@ -0,0 +1,217 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -212,8 +213,8 @@ index 0000000000..b12eb7e023
 +
 +| Resource | Limit / outcome |
 +| --- | --- |
-+| Physical UTF-8 frame | 16,384 bytes excluding LF; reject and close |
-+| Connection receive/output queue | 32,768 bytes each; reject/close, no unbounded retries |
++| Physical UTF-8 request / authenticated response | 16,384 / 1,048,576 bytes excluding LF; response includes signature and every envelope field; reject/close |
++| Request receive / response output queue | 32,768 / 1,048,577 bytes including one response LF; reject/close, no unbounded retries |
 +| Connections / pending requests | 64 total / 1 per connection; no pipelining |
 +| Process-context broker acquisitions | 64 outstanding including active; serialize, snapshot scope before enqueue, 10,000 ms total queue/dispatch deadline |
 +| Early worker registration buffering | 64 messages / 64 MiB logical payload per parent-port/global channel (two channels); 65,536 visited values / depth 64 |
@@ -241,7 +242,10 @@ index 0000000000..b12eb7e023
 +Each fresh 32-byte random nonce is bound to the exact UTF-8 request SHA256, operation, request ID, installation ID,
 +approved closure/schema, server generation and exact response. Signing bytes are the JSON array in
 +`authentication.signedBytes`, with that fixed ordering; JSON property order in an envelope does not choose signing
-+semantics. The physical authenticated frame remains at most 16,384 bytes excluding LF. One challenge may be pending;
++semantics. Requests remain at most 16,384 bytes excluding LF. The response-only envelope is at most 1,048,576 bytes
++excluding LF, including its signature and every field; enforce it before parse/buffering/signature canonicalization.
++This supports ordinary 64-scope listings, while exceptional JSON escaping can still exceed the bound; such a response
++fails `ownership_limit`, never truncates or returns partial metadata. One challenge may be pending;
 +replay, missing/altered fields, wrong keys, invalid signatures or replacement server generation fail closed. Closing
 +during asynchronous verification cannot restore authority. Dispatcher private keys belong only to protected local
 +dispatcher data, never Native/browser environment, logs or provider credentials. The fixed RFC 8032 private key in the
@@ -264,6 +268,8 @@ index 0000000000..b12eb7e023
 +| `requireExecutionOwnership()` | Synchronous registered-state guard; refuse before Session/factory effects if initialization failed or was omitted |
 +| `requireSharedExecution()` | Synchronous external-only guard; private policy throws typed `shared_service_unsupported` before shared effects |
 +| `acquireExecutionBroker(scope)` | Asynchronous fixed dispatcher grant matching the canonical project/global scope, generation, runtime directory and token; no executable/argv input |
++| `listExecutionBrokerScopes()` | External-only bounded metadata, at most 64 dispatcher-owned scopes; no PID/token/argv and no broker launch |
++| `inspectExecutionBroker(scope, generation)` | External-only no-create grant; revalidate exact current broker/protector and generation or refuse without replacement, directory creation or fallback |
 +
 +The normal CLI/strict source initializes before importing its runtime graph, and `main` initializes before local
 +inference registration. Preflight/catalog paths skip initialization and keep their pure source graph. The bootstrap
@@ -310,6 +316,15 @@ index 0000000000..b12eb7e023
 +The lead composition contains that delta plus cumulative README/CHANGELOG updates. The legacy broker public entry
 +must still reject without the dispatcher-owned generation handshake before publication. Actual broker protection and
 +end-to-end consumer behavior remain pending; a new no-spawn method alone does not prove them.
++
++Native `ps` now lists only dispatcher-owned scope metadata and uses generation-bound `inspect_broker` before metadata,
++client construction, every request and reconnect. Its ephemeral global client avoids closing the ordinary cached global
++client. An absent target produces no owned row; a missing/changed inspected generation is an error, never an automatic
++broker start or a legacy profile scan. Ordinary service factories retain their explicit acquire/start intent. Automatic
++legacy sibling-directory pruning is refused until it has authoritative external-lifetime evidence. The shared `stream`
++host is outside the protected broker tree and remains typed unavailable before factory/network effects; the existing
++optional TUI publisher may decline its nullable connection before redactor loading. No actual Native ps/stream/TUI
++acceptance is claimed by source parsing.
 +
 +The dedicated C private subreaper is the sole wait owner of Native and adopted descendants; Bun waits only for it.
 +Native stdio stays direct. A separate authenticated bounded control channel reports actual Native PID/generation,
@@ -550,6 +565,232 @@ index ff1bfe94d2..a4eaff9c0a 100755
 +    });
    }
  }
+diff --git a/packages/coding-agent/src/cli/ps-data.ts b/packages/coding-agent/src/cli/ps-data.ts
+index 7485ca8293..7a871fb156 100644
+--- a/packages/coding-agent/src/cli/ps-data.ts
++++ b/packages/coding-agent/src/cli/ps-data.ts
+@@ -1,23 +1,16 @@
+ /**
+  * Data layer shared by the `omp ps` renderers (plain CLI and interactive TUI):
+- * broker-scope discovery and daemon snapshot collection.
++ * dispatcher-owned scope discovery and daemon snapshot collection.
+  *
+- * Collection never spawns a broker: live scopes are queried over the broker
+- * socket, dead scopes are read from the persisted per-daemon `meta.json`
+- * snapshots and `spec.json` launch specs.
++ * Collection uses a generation-bound no-create grant, including reconnections;
++ * missing/changed brokers never start replacements or trigger legacy-root scans.
+  */
+ import type { Dirent } from "node:fs";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+-import {
+-	getDaemonRuntimeRoot,
+-	getGlobalDaemonRuntimeDir,
+-	getGlobalDaemonRuntimeRoot,
+-	getProjectDir,
+-	isEnoent,
+-} from "@oh-my-pi/pi-utils";
+-import { createDaemonBrokerClient, type DaemonBrokerClient } from "../launch/client";
+-import { canonicalProjectDir, daemonRuntimeDir, readDaemonScopeMeta, readStoredDaemonRecord } from "../launch/paths";
++import { getProjectDir, isEnoent } from "@oh-my-pi/pi-utils";
++import { createDaemonBrokerClient, createGlobalDaemonBrokerClient, type DaemonBrokerClient } from "../launch/client";
++import { canonicalProjectDir, readStoredDaemonRecord } from "../launch/paths";
+ import { readLiveDaemonBrokerPid } from "../launch/presence";
+ import type { DaemonSnapshot, DaemonSpec } from "@oh-my-pi/pi-tui/tools/daemon";
+ import {
+@@ -30,7 +23,9 @@ import {
+ } from "@oh-my-pi/pi-tui/apps/ps-data";
+ import { parseDaemonSnapshot, parseDaemonSpec } from "../launch/protocol";
+ 
+-const PROJECT_SCOPE_KEY = /^[0-9a-f]{16}$/;
++import { inspectExecutionBroker, listExecutionBrokerScopes, requireSharedExecution } from "../launch/ownership/context";
++import { OwnershipError, ownershipBrokerScope, ownershipScope, sameOwnershipScope, type OwnershipBrokerScope, type OwnershipScope } from "../launch/ownership/protocol";
++
+ /** Hard SIGTERM->SIGKILL grace used by `kill`; effectively immediate. */
+ export const KILL_GRACE_MS = 100;
+ 
+@@ -38,54 +33,40 @@ export const KILL_GRACE_MS = 100;
+ // Scope discovery
+ // ---------------------------------------------------------------------------
+ 
+-/** The single scope named by `target` (defaults to the current project). */
+-export async function targetScope(target: PsTarget): Promise<PsScope> {
+-	if (target.global) {
+-		const runtimeDir = await canonicalRuntimeDir(getGlobalDaemonRuntimeDir(target.global));
+-		return {
+-			kind: "global",
+-			runtimeDir,
+-			service: target.global,
+-			brokerPid: await readLiveDaemonBrokerPid(runtimeDir),
+-		};
+-	}
+-	const projectDir = await canonicalProjectDir(target.dir ?? getProjectDir());
+-	const runtimeDir = daemonRuntimeDir(projectDir);
+-	return { kind: "project", runtimeDir, projectDir, brokerPid: await readLiveDaemonBrokerPid(runtimeDir) };
++/** A correlation value only; the server reauthenticates scope/generation on every inspection and reconnect. */
++type OwnedPsScope = PsScope & { ownershipGeneration: string };
++
++async function admittedScope(known: OwnershipBrokerScope): Promise<OwnedPsScope> {
++	requireSharedExecution();
++	const grant = await inspectExecutionBroker(known.scope, known.generation);
++	if (grant.runtimeDirectory !== known.runtimeDirectory) throw new OwnershipError("dispatcher_mismatch");
++	const brokerPid = await readLiveDaemonBrokerPid(grant.runtimeDirectory);
++	const authority = { runtimeDir: grant.runtimeDirectory, brokerPid, ownershipGeneration: grant.generation };
++	return known.scope.kind === "project"
++		? { kind: "project", projectDir: known.scope.directory, ...authority }
++		: { kind: "global", service: known.scope.service, ...authority };
+ }
+ 
+-async function canonicalRuntimeDir(dir: string): Promise<string> {
+-	try {
+-		return await fs.realpath(dir);
+-	} catch {
+-		return path.resolve(dir);
+-	}
++function scopeRecord(scope: PsScope): OwnershipBrokerScope {
++	const generation = "ownershipGeneration" in scope ? scope.ownershipGeneration : undefined;
++	const selection = ownershipScope(scope.kind === "global" ? { kind: "global", service: scope.service }
++		: { kind: "project", directory: scope.projectDir });
++	return ownershipBrokerScope({ scope: selection, generation, runtimeDirectory: scope.runtimeDir });
+ }
+ 
+-/** Every scope on this machine: hash-keyed project scopes plus global service scopes. */
+-export async function discoverScopes(): Promise<PsScope[]> {
+-	const scopes: PsScope[] = [];
+-	for (const entry of await readdirQuiet(getDaemonRuntimeRoot())) {
+-		if (!entry.isDirectory() || !PROJECT_SCOPE_KEY.test(entry.name)) continue;
+-		const runtimeDir = path.join(getDaemonRuntimeRoot(), entry.name);
+-		scopes.push({
+-			kind: "project",
+-			runtimeDir,
+-			projectDir: await resolveScopeProjectDir(runtimeDir),
+-			brokerPid: await readLiveDaemonBrokerPid(runtimeDir),
+-		});
+-	}
+-	for (const entry of await readdirQuiet(getGlobalDaemonRuntimeRoot())) {
+-		if (!entry.isDirectory()) continue;
+-		const runtimeDir = await canonicalRuntimeDir(path.join(getGlobalDaemonRuntimeRoot(), entry.name));
+-		scopes.push({
+-			kind: "global",
+-			runtimeDir,
+-			service: entry.name,
+-			brokerPid: await readLiveDaemonBrokerPid(runtimeDir),
+-		});
+-	}
+-	return scopes;
++/** The current selected target, or no owned scope. An absent target never creates a broker or runtime directory. */
++export async function targetScope(target: PsTarget): Promise<OwnedPsScope | undefined> {
++	requireSharedExecution();
++	const selection = target.global ? ownershipScope({ kind: "global", service: target.global })
++		: ownershipScope({ kind: "project", directory: await canonicalProjectDir(target.dir ?? getProjectDir()) });
++	const known = (await listExecutionBrokerScopes()).find(value => sameOwnershipScope(value.scope, selection));
++	return known ? admittedScope(known) : undefined;
++}
++
++/** Only current dispatcher-owned scopes; no profile-derived legacy directory scan or adoption. */
++export async function discoverScopes(): Promise<OwnedPsScope[]> {
++	requireSharedExecution();
++	return Promise.all((await listExecutionBrokerScopes()).map(admittedScope));
+ }
+ 
+ async function readdirQuiet(dir: string): Promise<Dirent[]> {
+@@ -97,32 +78,6 @@ async function readdirQuiet(dir: string): Promise<Dirent[]> {
+ 	}
+ }
+ 
+-/**
+- * Map a hash-keyed project runtime dir back to its project directory:
+- * broker-written `scope.json` first, then any registered client presence file
+- * (covers brokers started before scope metadata existed).
+- */
+-async function resolveScopeProjectDir(runtimeDir: string): Promise<string | undefined> {
+-	const recorded = await readDaemonScopeMeta(runtimeDir);
+-	if (recorded) return recorded;
+-	for (const entry of await readdirQuiet(path.join(runtimeDir, "clients"))) {
+-		try {
+-			const decoded: unknown = await Bun.file(path.join(runtimeDir, "clients", entry.name)).json();
+-			if (
+-				typeof decoded === "object" &&
+-				decoded !== null &&
+-				"projectDir" in decoded &&
+-				typeof decoded.projectDir === "string"
+-			) {
+-				return decoded.projectDir;
+-			}
+-		} catch {
+-			// Unreadable presence files are skipped; the scope stays unlabeled.
+-		}
+-	}
+-	return undefined;
+-}
+-
+ // ---------------------------------------------------------------------------
+ // Snapshot collection
+ // ---------------------------------------------------------------------------
+@@ -132,7 +87,14 @@ async function resolveScopeProjectDir(runtimeDir: string): Promise<string | unde
+  * The caller owns the returned client and must close it.
+  */
+ export async function scopeClient(scope: PsScope): Promise<DaemonBrokerClient> {
+-	return createDaemonBrokerClient(scope.projectDir ?? scope.runtimeDir, { runtimeDir: scope.runtimeDir });
++	requireSharedExecution();
++	const known = scopeRecord(scope), grant = await inspectExecutionBroker(known.scope, known.generation);
++	if (grant.runtimeDirectory !== scope.runtimeDir) throw new OwnershipError("dispatcher_mismatch");
++	const options = { existingGeneration: known.generation };
++	const client = known.scope.kind === "global" ? await createGlobalDaemonBrokerClient(known.scope.service, options)
++		: await createDaemonBrokerClient(known.scope.directory, { runtimeDir: scope.runtimeDir, ...options });
++	if (client.runtimeDir !== scope.runtimeDir) { client.close(); throw new OwnershipError("dispatcher_mismatch"); }
++	return client;
+ }
+ 
+ /**
+@@ -176,6 +138,10 @@ function processAlive(pid: number | undefined): boolean {
+  * survivors as unsupervised.
+  */
+ export async function collectScope(scope: PsScope): Promise<PsScopeReport> {
++	requireSharedExecution();
++	const current = await admittedScope(scopeRecord(scope));
++	if (current.runtimeDir !== scope.runtimeDir) throw new OwnershipError("dispatcher_mismatch");
++	scope = current;
+ 	const persisted = await readPersistedDaemons(scope.runtimeDir);
+ 	if (scope.brokerPid !== undefined) {
+ 		try {
+@@ -199,7 +165,8 @@ export async function collectScope(scope: PsScope): Promise<PsScopeReport> {
+ 			} finally {
+ 				client.close();
+ 			}
+-		} catch {
++		} catch (error) {
++			if (error instanceof OwnershipError) throw error;
+ 			// Broker died or refused mid-query; fall through to the offline view.
+ 		}
+ 	}
+@@ -235,8 +202,10 @@ function compareRows(a: PsDaemonRow, b: PsDaemonRow): number {
+  * brokerless are hidden; the current project always shows.
+  */
+ export async function collectReports(all: boolean, target: PsTarget): Promise<PsScopeReport[]> {
++	requireSharedExecution();
+ 	if (!all && (target.dir !== undefined || target.global !== undefined)) {
+-		return [await collectScope(await targetScope(target))];
++		const scope = await targetScope(target);
++		return scope ? [await collectScope(scope)] : [];
+ 	}
+ 	if (all) {
+ 		const reports = await Promise.all((await discoverScopes()).map(collectScope));
+@@ -244,11 +213,11 @@ export async function collectReports(all: boolean, target: PsTarget): Promise<Ps
+ 	}
+ 	const globals = (await discoverScopes()).filter(scope => scope.kind === "global");
+ 	const [current, globalReports] = await Promise.all([
+-		targetScope(target).then(collectScope),
++		targetScope(target).then(scope => scope ? collectScope(scope) : undefined),
+ 		Promise.all(globals.map(collectScope)),
+ 	]);
+ 	const liveGlobals = globalReports
+ 		.map(report => ({ ...report, daemons: report.daemons.filter(row => !TERMINAL_STATES[row.snapshot.state]) }))
+ 		.filter(report => report.daemons.length > 0);
+-	return [current, ...liveGlobals];
++	return current ? [current, ...liveGlobals] : liveGlobals;
+ }
 diff --git a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts b/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
 index 0fde65a3ab..6de48998c2 100644
 --- a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
@@ -651,7 +892,7 @@ index 73216b616f..d0f4dbe8cb 100644
  	handles.clear();
  	await Promise.all(
 diff --git a/packages/coding-agent/src/launch/client.ts b/packages/coding-agent/src/launch/client.ts
-index be6b55bca1..817f1c4bab 100644
+index be6b55bca1..d760a82a21 100644
 --- a/packages/coding-agent/src/launch/client.ts
 +++ b/packages/coding-agent/src/launch/client.ts
 @@ -1,15 +1,9 @@
@@ -664,7 +905,7 @@ index be6b55bca1..817f1c4bab 100644
 -import { canonicalProjectDir, daemonBrokerEndpoint, daemonRuntimeDir } from "./paths";
 +import { logger, postmortem, toError } from "@oh-my-pi/pi-utils";
 +import { canonicalProjectDir, daemonBrokerEndpoint } from "./paths";
-+import { acquireExecutionBroker, type ExecutionBrokerSelection, requireSharedExecution } from "./ownership/context";
++import { acquireExecutionBroker, type ExecutionBrokerSelection, inspectExecutionBroker, requireSharedExecution } from "./ownership/context";
 +import { OwnershipError, type OwnershipScope } from "./ownership/protocol";
  import {
 -	DAEMON_BROKER_WORKER_ARG,
@@ -691,7 +932,7 @@ index be6b55bca1..817f1c4bab 100644
  interface PendingRequest {
  	operation: DaemonOperation;
  	resolve: (result: DaemonRpcResult) => void;
-@@ -38,11 +22,11 @@ interface PendingRequest {
+@@ -38,12 +22,14 @@ interface PendingRequest {
  	removeAbort?: () => void;
  }
  
@@ -704,9 +945,12 @@ index be6b55bca1..817f1c4bab 100644
 -	/** Last-client shutdown grace override in milliseconds. */
 +	/** Deprecated: lifecycle policy belongs to the dispatcher; any override is refused. */
  	idleGraceMs?: number;
++	/** Native administration only: never create/replace a broker, including request/reconnect/completion paths. */
++	existingGeneration?: string;
  }
  
-@@ -59,6 +43,8 @@ export interface DaemonBrokerClient {
+ export interface DaemonCompletionUnregisterOptions {
+@@ -59,6 +45,8 @@ export interface DaemonBrokerClient {
  	): (options?: DaemonCompletionUnregisterOptions) => void;
  	/** Canonical project directory or synthetic directory identifying a global scope. */
  	readonly projectDir: string;
@@ -715,7 +959,7 @@ index be6b55bca1..817f1c4bab 100644
  	request(operation: DaemonOperation, signal?: AbortSignal): Promise<DaemonRpcResult>;
  	close(): void;
  }
-@@ -66,38 +52,6 @@ export interface DaemonBrokerClient {
+@@ -66,38 +54,6 @@ export interface DaemonBrokerClient {
  /** A request reached the broker and the broker rejected the operation. */
  export class DaemonBrokerRejectedError extends Error {}
  
@@ -754,7 +998,7 @@ index be6b55bca1..817f1c4bab 100644
  function requestTimeoutMs(operation: DaemonOperation): number {
  	switch (operation.op) {
  		case "start":
-@@ -113,11 +67,10 @@ function requestTimeoutMs(operation: DaemonOperation): number {
+@@ -113,11 +69,11 @@ function requestTimeoutMs(operation: DaemonOperation): number {
  
  class SocketDaemonClient implements DaemonBrokerClient {
  	readonly projectDir: string;
@@ -763,18 +1007,19 @@ index be6b55bca1..817f1c4bab 100644
 -	#token: string;
 +	readonly #scope: OwnershipScope;
 +	readonly #selection: ExecutionBrokerSelection;
++	readonly #inspectOnly: boolean;
 +	readonly #token: string;
  	readonly #seenCompletionIds = new Set<string>();
 -	readonly #idleGraceMs: number | undefined;
  	readonly #pending = new Map<string, PendingRequest>();
  	readonly #completionSinks = new Map<string, (notification: DaemonCompletionNotification) => Promise<void> | void>();
  	readonly #completionUnsubscribes = new Set<string>();
-@@ -130,18 +83,22 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -130,18 +86,23 @@ class SocketDaemonClient implements DaemonBrokerClient {
  	#closed = false;
  	#completionReconnectTimer: NodeJS.Timeout | undefined;
  
 -	constructor(projectDir: string, runtimeDir: string, token: string, options: DaemonBrokerClientOptions) {
-+	constructor(projectDir: string, selection: ExecutionBrokerSelection) {
++	constructor(projectDir: string, selection: ExecutionBrokerSelection, inspectOnly = false) {
 +		requireSharedExecution();
  		this.projectDir = projectDir;
 -		this.#runtimeDir = runtimeDir;
@@ -783,6 +1028,7 @@ index be6b55bca1..817f1c4bab 100644
 -		this.#idleGraceMs = options.idleGraceMs;
 +		this.#scope = selection.scope;
 +		this.#selection = selection;
++		this.#inspectOnly = inspectOnly;
 +		this.#token = selection.token;
  	}
  
@@ -797,7 +1043,7 @@ index be6b55bca1..817f1c4bab 100644
  		const socket = this.#socket;
  		if (!socket || socket.closed) throw new Error("Daemon broker socket is unavailable");
  
-@@ -165,13 +122,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -165,13 +126,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
  				// Dropping the local entry alone leaves the broker polling a wait or
  				// follow until its own timeout; ask it to stop. The answer is unread.
  				if ((operation.op === "wait" || operation.op === "logs") && !socket.closed) {
@@ -812,7 +1058,7 @@ index be6b55bca1..817f1c4bab 100644
  				}
  			};
  			signal.addEventListener("abort", abort, { once: true });
-@@ -218,11 +169,13 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -218,11 +173,13 @@ class SocketDaemonClient implements DaemonBrokerClient {
  		owner: string,
  		sink: (notification: DaemonCompletionNotification) => Promise<void> | void,
  	): (options?: DaemonCompletionUnregisterOptions) => void {
@@ -826,7 +1072,7 @@ index be6b55bca1..817f1c4bab 100644
  			if (this.#completionSinks.get(owner) !== sink) return;
  			this.#completionSinks.delete(owner);
  			if (options?.preservePending) {
-@@ -241,10 +194,15 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -241,10 +198,15 @@ class SocketDaemonClient implements DaemonBrokerClient {
  
  	#publishCompletionOwners(): void {
  		if (this.#closed) return;
@@ -843,7 +1089,7 @@ index be6b55bca1..817f1c4bab 100644
  		if (
  			this.#closed ||
  			this.#completionSinks.size === 0 ||
-@@ -261,7 +219,8 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -261,7 +223,8 @@ class SocketDaemonClient implements DaemonBrokerClient {
  	}
  
  	async #connect(): Promise<void> {
@@ -853,7 +1099,7 @@ index be6b55bca1..817f1c4bab 100644
  		if (this.#connectPromise) return this.#connectPromise;
  		this.#connectPromise = this.#connectOnce();
  		try {
-@@ -272,53 +231,29 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -272,53 +235,30 @@ class SocketDaemonClient implements DaemonBrokerClient {
  	}
  
  	async #connectOnce(): Promise<void> {
@@ -887,7 +1133,8 @@ index be6b55bca1..817f1c4bab 100644
 -				"Run `omp --smoke-test` to verify broker startup, or `omp ps` to inspect supervised processes.",
 -		);
 +		// Revalidate every request/reconnect; a cached socket never grants authority.
-+		const selection = await acquireExecutionBroker(this.#scope);
++		const selection = this.#inspectOnly ? await inspectExecutionBroker(this.#scope, this.#selection.generation)
++			: await acquireExecutionBroker(this.#scope);
 +		this.validateSelection(selection);
 +		requireSharedExecution();
 +		if (this.#socket && !this.#socket.closed) return;
@@ -928,7 +1175,7 @@ index be6b55bca1..817f1c4bab 100644
  	}
  
  	#bindSocket(socket: IpcConnection): void {
-@@ -360,7 +295,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -360,7 +300,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
  			return;
  		}
  		if ("event" in message) {
@@ -937,7 +1184,7 @@ index be6b55bca1..817f1c4bab 100644
  			return;
  		}
  		const response = message;
-@@ -381,8 +316,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -381,8 +321,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
  	}
  
  	async #deliverCompletion(message: DaemonCompletionNotification): Promise<void> {
@@ -948,7 +1195,7 @@ index be6b55bca1..817f1c4bab 100644
  			return;
  		}
  		if (this.#inFlightCompletionIds.has(message.completionId)) return;
-@@ -396,7 +332,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -396,7 +337,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
  				if (oldest !== undefined) this.#seenCompletionIds.delete(oldest);
  			}
  			this.#seenCompletionIds.add(message.completionId);
@@ -957,7 +1204,7 @@ index be6b55bca1..817f1c4bab 100644
  		} catch (error) {
  			logger.warn("Daemon completion sink failed", {
  				owner: message.owner,
-@@ -409,7 +345,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -409,7 +350,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
  		}
  	}
  
@@ -968,7 +1215,7 @@ index be6b55bca1..817f1c4bab 100644
  		const socket = this.#socket;
  		if (!socket || socket.closed) return;
  		socket.send(
-@@ -437,50 +375,52 @@ class SocketDaemonClient implements DaemonBrokerClient {
+@@ -437,50 +380,65 @@ class SocketDaemonClient implements DaemonBrokerClient {
  	}
  }
  
@@ -1006,10 +1253,23 @@ index be6b55bca1..817f1c4bab 100644
 -	const runtimeDir = options.runtimeDir ?? daemonRuntimeDir(canonical);
 -	const token = await readOrCreateToken(runtimeDir);
 -	return new SocketDaemonClient(canonical, runtimeDir, token, options);
-+	const selection = await acquireExecutionBroker({ kind: "project", directory: canonical });
++	const scope: OwnershipScope = { kind: "project", directory: canonical };
++	const selection = options.existingGeneration === undefined ? await acquireExecutionBroker(scope)
++		: await inspectExecutionBroker(scope, options.existingGeneration);
 +	if ((options.runtimeDir !== undefined && options.runtimeDir !== selection.runtimeDirectory)
 +		|| options.idleGraceMs !== undefined) throw new OwnershipError("dispatcher_mismatch");
-+	return new SocketDaemonClient(canonical, selection);
++	return new SocketDaemonClient(canonical, selection, options.existingGeneration !== undefined);
++}
++
++/** Independent fixed-global client for callers that own and close their connection, including Native administration. */
++export async function createGlobalDaemonBrokerClient(service: string,
++	options: { existingGeneration?: string } = {}): Promise<DaemonBrokerClient> {
++	requireSharedExecution();
++	if (service !== "browser-relay" && service !== "text-predict") throw new OwnershipError("ownership_protocol");
++	const scope: OwnershipScope = { kind: "global", service };
++	const selection = options.existingGeneration === undefined ? await acquireExecutionBroker(scope)
++		: await inspectExecutionBroker(scope, options.existingGeneration);
++	return new SocketDaemonClient(selection.runtimeDirectory, selection, options.existingGeneration !== undefined);
  }
  
 -/** Get the process-shared daemon broker client for one canonical project directory. */
@@ -1042,7 +1302,7 @@ index be6b55bca1..817f1c4bab 100644
  }
  
  /** Close every project and machine-global broker connection held by this omp process. */
-@@ -492,23 +432,10 @@ export async function closeDaemonClients(): Promise<void> {
+@@ -492,23 +450,10 @@ export async function closeDaemonClients(): Promise<void> {
  	cancelExitCleanup = undefined;
  }
  
@@ -1073,10 +1333,10 @@ index be6b55bca1..817f1c4bab 100644
  }
 diff --git a/packages/coding-agent/src/launch/ownership/authentication.ts b/packages/coding-agent/src/launch/ownership/authentication.ts
 new file mode 100644
-index 0000000000..d2c9b68911
+index 0000000000..18eed73a5f
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/authentication.ts
-@@ -0,0 +1,169 @@
+@@ -0,0 +1,175 @@
 +import {
 +	decodeOwnershipRequest, decodeOwnershipResponse, OWNERSHIP_LIMITS, OwnershipError, ownershipGeneration,
 +	ownershipIdentity, type OwnershipIdentity, type OwnershipRequest,
@@ -1118,14 +1378,14 @@ index 0000000000..d2c9b68911
 +	}
 +	return source;
 +}
-+function frame(value: unknown): string {
-+	if (typeof value !== "string" || new TextEncoder().encode(value).length > OWNERSHIP_LIMITS.frameBytes) {
++function frame(value: unknown, maximum: number = OWNERSHIP_LIMITS.frameBytes): string {
++	if (typeof value !== "string" || new TextEncoder().encode(value).length > maximum) {
 +		throw new OwnershipError("ownership_limit");
 +	}
 +	return value;
 +}
-+function parse(value: string, keys: readonly string[]): Record<string, unknown> {
-+	const bounded = frame(value);
++function parse(value: string, keys: readonly string[], maximum: number = OWNERSHIP_LIMITS.frameBytes): Record<string, unknown> {
++	const bounded = frame(value, maximum);
 +	let decoded: unknown;
 +	try { decoded = JSON.parse(bounded); } catch { throw new OwnershipError("ownership_protocol"); }
 +	return record(decoded, keys);
@@ -1170,13 +1430,15 @@ index 0000000000..d2c9b68911
 +	server: { installation: string; identity: OwnershipIdentity; serverGeneration: string; privateKey: CryptoKey }): Promise<string> {
 +	if (challenge.installation !== ownershipGeneration(server.installation)) throw new OwnershipError("dispatcher_mismatch");
 +	sameIdentity(challenge.request.identity, ownershipIdentity(server.identity));
-+	decodeOwnershipResponse(frame(response), challenge.request);
++	decodeOwnershipResponse(frame(response, OWNERSHIP_LIMITS.responseFrameBytes), challenge.request);
 +	const reply: Omit<SignedReply, "signature"> = { version: OWNERSHIP_AUTH_VERSION, installation: server.installation,
 +		nonce: challenge.nonce, requestSha256: challenge.requestSha256, requestId: challenge.request.id,
 +		operation: challenge.request.operation.op, identity: ownershipIdentity(server.identity),
 +		serverGeneration: ownershipGeneration(server.serverGeneration), response };
++	// Bound the final authenticated envelope, including its fixed-size signature, BEFORE signing/canonicalization.
++	frame(JSON.stringify({ ...reply, signature: "A".repeat(86) }), OWNERSHIP_LIMITS.responseFrameBytes);
 +	const signature = await crypto.subtle.sign("Ed25519", server.privateKey, signedBytes(reply));
-+	return frame(JSON.stringify({ ...reply, signature: Buffer.from(signature).toString("base64url") }));
++	return frame(JSON.stringify({ ...reply, signature: Buffer.from(signature).toString("base64url") }), OWNERSHIP_LIMITS.responseFrameBytes);
 +}
 +
 +/** Fresh-nonce authentication for public Bun UDS clients in any realm. No socket descriptor/FFI access is needed. */
@@ -1225,7 +1487,11 @@ index 0000000000..d2c9b68911
 +			}
 +			this.#serverGeneration = reply.serverGeneration;
 +			return reply.response;
-+		} catch { this.#failed = true; throw new OwnershipError("dispatcher_mismatch"); }
++		} catch (error) {
++			this.#failed = true;
++			if (error instanceof OwnershipError && error.code === "ownership_limit") throw error;
++			throw new OwnershipError("dispatcher_mismatch");
++		}
 +		finally { this.#verifying = false; }
 +	}
 +
@@ -1233,7 +1499,7 @@ index 0000000000..d2c9b68911
 +
 +	#reply(value: string, expected: DecodedOwnershipChallenge): SignedReply {
 +		const source = parse(value, ["version", "installation", "nonce", "requestSha256", "requestId", "operation",
-+			"identity", "serverGeneration", "response", "signature"]);
++			"identity", "serverGeneration", "response", "signature"], OWNERSHIP_LIMITS.responseFrameBytes);
 +		const identity = ownershipIdentity(source.identity), generation = ownershipGeneration(source.serverGeneration);
 +		sameIdentity(identity, this.#approval.identity);
 +		if (source.version !== OWNERSHIP_AUTH_VERSION || source.installation !== expected.installation
@@ -1243,7 +1509,7 @@ index 0000000000..d2c9b68911
 +			|| typeof source.signature !== "string") throw new OwnershipError("dispatcher_mismatch");
 +		return { version: OWNERSHIP_AUTH_VERSION, installation: expected.installation, nonce: expected.nonce,
 +			requestSha256: expected.requestSha256, requestId: expected.request.id, operation: expected.request.operation.op,
-+			identity, serverGeneration: generation, response: frame(source.response), signature: source.signature };
++			identity, serverGeneration: generation, response: frame(source.response, OWNERSHIP_LIMITS.responseFrameBytes), signature: source.signature };
 +	}
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/bootstrap.ts b/packages/coding-agent/src/launch/ownership/bootstrap.ts
@@ -1266,13 +1532,13 @@ index 0000000000..bdbdc3c144
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
 new file mode 100644
-index 0000000000..296a300620
+index 0000000000..5dc255c6f8
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/client.ts
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,135 @@
 +import {
-+	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipGeneration, ownershipIdentity, ownershipScope,
-+	type OwnershipIdentity, type OwnershipOperation, type OwnershipRegistration, type OwnershipRequest, type OwnershipResult, type OwnershipScope,
++	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipGeneration, ownershipIdentity, ownershipScope, ownershipToken,
++	type OwnershipBrokerScope, type OwnershipIdentity, type OwnershipOperation, type OwnershipRegistration, type OwnershipRequest, type OwnershipResult, type OwnershipScope,
 +} from "./protocol";
 +
 +/**
@@ -1322,6 +1588,25 @@ index 0000000000..296a300620
 +		if (registration.policy === "private") throw new OwnershipError("shared_service_unsupported");
 +		const result = await this.#request({ op: "broker", scope: requestedScope });
 +		if (result.op !== "broker") throw this.#fail("ownership_protocol");
++		return result;
++	}
++
++	/** Read only registered dispatcher-owned scopes; acquiring each target remains a separate authenticated operation. */
++	async listScopes(): Promise<OwnershipBrokerScope[]> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if ((await this.classify()).policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "list_scopes" });
++		if (result.op !== "list_scopes") throw this.#fail("ownership_protocol");
++		return result.scopes;
++	}
++
++	/** Generation-bound read/administration grant. The server MUST NOT start, replace or recreate any broker. */
++	async inspectBroker(scope: OwnershipScope, generation: string): Promise<OwnershipResult & { op: "inspect_broker" }> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const requested = ownershipScope(scope), expected = ownershipToken(generation);
++		if ((await this.classify()).policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "inspect_broker", scope: requested, generation: expected });
++		if (result.op !== "inspect_broker") throw this.#fail("ownership_protocol");
 +		return result;
 +	}
 +
@@ -1388,13 +1673,13 @@ index 0000000000..296a300620
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/context.ts b/packages/coding-agent/src/launch/ownership/context.ts
 new file mode 100644
-index 0000000000..2683a029e8
+index 0000000000..a0b59ac0dc
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/context.ts
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,165 @@
 +import { connectProcessOwnershipClient } from "./bootstrap";
 +import type { OwnershipClient } from "./client";
-+import { OWNERSHIP_LIMITS, OwnershipError, ownershipScope, type OwnershipErrorCode, type OwnershipIdentity,
++import { OWNERSHIP_LIMITS, OwnershipError, ownershipScope, ownershipToken, type OwnershipBrokerScope, type OwnershipErrorCode, type OwnershipIdentity,
 +	type OwnershipRegistration, type OwnershipScope } from "./protocol";
 +
 +export type RegisteredExecutionOwnership = Readonly<OwnershipRegistration & {
@@ -1450,9 +1735,33 @@ index 0000000000..2683a029e8
 +	async acquireExecutionBroker(scope: OwnershipScope): Promise<ExecutionBrokerSelection> {
 +		this.requireSharedExecution();
 +		const requested = ownershipScope(scope);
++		return this.#queueShared(async state => {
++			const grant = await this.#client.broker(requested);
++			return Object.freeze({ scope: Object.freeze(grant.scope), generation: grant.generation,
++				runtimeDirectory: grant.runtimeDirectory, token: grant.token, dispatcher: state.dispatcher, identity: state.identity });
++		});
++	}
++
++	async listExecutionBrokerScopes(): Promise<readonly Readonly<OwnershipBrokerScope>[]> {
++		return this.#queueShared(async () => Object.freeze((await this.#client.listScopes()).map(value =>
++			Object.freeze({ ...value, scope: Object.freeze(value.scope) }))));
++	}
++
++	async inspectExecutionBroker(scope: OwnershipScope, generation: string): Promise<ExecutionBrokerSelection> {
++		this.requireSharedExecution();
++		const requested = ownershipScope(scope), expected = ownershipToken(generation);
++		return this.#queueShared(async state => {
++			const grant = await this.#client.inspectBroker(requested, expected);
++			return Object.freeze({ scope: Object.freeze(grant.scope), generation: grant.generation,
++				runtimeDirectory: grant.runtimeDirectory, token: grant.token, dispatcher: state.dispatcher, identity: state.identity });
++		});
++	}
++
++	async #queueShared<T>(operation: (state: RegisteredExecutionOwnership & { policy: "external" }) => Promise<T>): Promise<T> {
++		this.requireSharedExecution();
 +		if (this.#brokerOutstanding >= OWNERSHIP_LIMITS.contextRequests) throw new OwnershipError("ownership_limit");
 +		this.#brokerOutstanding++;
-+		const result = Promise.withResolvers<ExecutionBrokerSelection>();
++		const result = Promise.withResolvers<T>();
 +		let expired = false, dispatched = false;
 +		const timer: Timer = setTimeout(() => {
 +			expired = true;
@@ -1464,9 +1773,8 @@ index 0000000000..2683a029e8
 +				if (expired) return;
 +				const state = this.requireSharedExecution();
 +				dispatched = true;
-+				const grant = await this.#client.broker(requested);
-+				if (!expired) result.resolve(Object.freeze({ scope: Object.freeze(grant.scope), generation: grant.generation,
-+					runtimeDirectory: grant.runtimeDirectory, token: grant.token, dispatcher: state.dispatcher, identity: state.identity }));
++				const value = await operation(state);
++				if (!expired) result.resolve(value);
 +			} catch (error) { if (!expired) result.reject(this.#failure(error)); }
 +			finally { clearTimeout(timer); this.#brokerOutstanding--; }
 +		});
@@ -1520,17 +1828,31 @@ index 0000000000..2683a029e8
 +	if (!processContext) throw new OwnershipError("ownership_backend_unavailable");
 +	return processContext.acquireExecutionBroker(scope);
 +}
++
++/** Native administration metadata only. Each selected target must still acquire its current matched broker grant. */
++export async function listExecutionBrokerScopes(): Promise<readonly Readonly<OwnershipBrokerScope>[]> {
++	requireSharedExecution();
++	if (!processContext) throw new OwnershipError("ownership_backend_unavailable");
++	return processContext.listExecutionBrokerScopes();
++}
++
++/** No-create administration grant, including reconnects. Missing/changed generations never fall back to acquisition. */
++export async function inspectExecutionBroker(scope: OwnershipScope, generation: string): Promise<ExecutionBrokerSelection> {
++	requireSharedExecution();
++	if (!processContext) throw new OwnershipError("ownership_backend_unavailable");
++	return processContext.inspectExecutionBroker(scope, generation);
++}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000..d9c6607f9b
+index 0000000000..c6cb1a87e9
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,246 @@
 +import {
 +	decodeOwnershipRequest, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError,
-+	ownershipGeneration, ownershipIdentity, ownershipToken, sameOwnershipScope,
++	ownershipBrokerScope, ownershipGeneration, ownershipIdentity, ownershipToken, sameOwnershipScope,
 +	type OwnershipIdentity, type OwnershipRegistration, type OwnershipRequest, type OwnershipResponse,
-+	type OwnershipResult, type OwnershipScope,
++	type OwnershipBrokerScope, type OwnershipResult, type OwnershipScope,
 +} from "./protocol";
 +import { HelperWireSession } from "./helper-protocol";
 +
@@ -1565,6 +1887,9 @@ index 0000000000..d9c6607f9b
 +	 * Unknown start outcome retains its fence. Never accept arbitrary argv from this interface.
 +	 */
 +	broker(scope: OwnershipScope, permit: PublicationPermit): Promise<{ generation: string; runtimeDirectory: string; token: string }>;
++	/** No-create query of the retained matching broker/protector. Missing/changed identities return no grant, never spawn. */
++	inspectBroker(scope: OwnershipScope, generation: string, permit: PublicationPermit): Promise<
++		{ generation: string; runtimeDirectory: string; token: string } | undefined>;
 +	/** Verify exact owned broker pidfd, scope, release/schema and independent protector before publication. */
 +	publish(peer: StablePeer, scope: OwnershipScope, generation: string, permit: PublicationPermit): Promise<void>;
 +}
@@ -1578,6 +1903,7 @@ index 0000000000..d9c6607f9b
 +	readonly #pendingHelpers = new Map<string, StablePeer>();
 +	readonly #helperGenerations = new Set<string>();
 +	readonly #registrations = new Map<StablePeer, OwnershipRegistration>();
++	readonly #scopes = new Map<string, OwnershipBrokerScope>();
 +	readonly #helperSockets = new WeakMap<HelperWireSession, StablePeer>();
 +	#blocked = false;
 +	#busy = false;
@@ -1676,12 +2002,27 @@ index 0000000000..d9c6607f9b
 +		this.#assertAvailable();
 +		if (request.operation.op === "classify") return { op: "classify", registration };
 +		if (registration.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if (request.operation.op === "list_scopes") return { op: "list_scopes", scopes: [...this.#scopes.values()] };
 +		if (request.operation.op === "prepare_helper") return this.#prepareHelper(peer, request.operation.generation);
 +		if (request.operation.op === "helper_status") return this.#helperStatus(peer, request.operation.generation);
 +		const scope = await this.#system.canonicalScope(request.operation.scope);
 +		if (!sameOwnershipScope(scope, request.operation.scope)) throw new OwnershipError("ownership_unresolved");
 +		this.#assertAvailable();
 +		const permit: PublicationPermit = { assertCurrent: () => this.#assertAvailable() };
++		const scopeKey = JSON.stringify(scope);
++		if (request.operation.op === "inspect_broker") {
++			const known = this.#scopes.get(scopeKey);
++			if (!known || known.generation !== request.operation.generation) throw new OwnershipError("dispatcher_unavailable");
++			const grant = await this.#system.inspectBroker(scope, known.generation, permit);
++			this.#assertAvailable();
++			if (!grant || grant.generation !== known.generation || grant.runtimeDirectory !== known.runtimeDirectory) {
++				throw new OwnershipError("dispatcher_unavailable");
++			}
++			return { op: "inspect_broker", scope, ...grant };
++		}
++		if (request.operation.op === "broker" && !this.#scopes.has(scopeKey) && this.#scopes.size >= OWNERSHIP_LIMITS.brokerScopes) {
++			throw new OwnershipError("ownership_limit");
++		}
 +		try {
 +			if (request.operation.op === "publish") {
 +				await this.#system.publish(peer, scope, request.operation.generation, permit);
@@ -1690,6 +2031,8 @@ index 0000000000..d9c6607f9b
 +			}
 +			const broker = await this.#system.broker(scope, permit);
 +			this.#assertAvailable();
++			const owned = ownershipBrokerScope({ scope, generation: broker.generation, runtimeDirectory: broker.runtimeDirectory });
++			this.#scopes.set(scopeKey, Object.freeze({ ...owned, scope: Object.freeze(owned.scope) }));
 +			return { op: "broker", scope, ...broker };
 +		} catch (error) {
 +			// A lost backend answer can follow an irreversible spawn. Only durable operator recovery can reopen.
@@ -1925,22 +2268,28 @@ index 0000000000..adbb1f4496
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/framing.ts b/packages/coding-agent/src/launch/ownership/framing.ts
 new file mode 100644
-index 0000000000..2a1ca28fe7
+index 0000000000..3affc084ed
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/framing.ts
-@@ -0,0 +1,32 @@
+@@ -0,0 +1,38 @@
 +import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
 +
 +/** Bounded LF framing. A transport must also bound its receive queue and close on any thrown error. */
 +export class OwnershipFrames {
-+	readonly #bytes = new Uint8Array(OWNERSHIP_LIMITS.frameBytes);
++	readonly #bytes: Uint8Array;
++	readonly #queueLimit: number;
 +	#used = 0;
 +	#ended = false;
++	/** Requests retain the 16KiB default; response receivers explicitly select the independent 1MiB bound. */
++	constructor(direction: "request" | "response" = "request") {
++		this.#bytes = new Uint8Array(direction === "request" ? OWNERSHIP_LIMITS.frameBytes : OWNERSHIP_LIMITS.responseFrameBytes);
++		this.#queueLimit = direction === "request" ? OWNERSHIP_LIMITS.queuedBytesPerConnection : OWNERSHIP_LIMITS.queuedResponseBytesPerConnection;
++	}
 +
 +	push(chunk: Uint8Array): string[] {
 +		if (this.#ended) throw new OwnershipError("ownership_protocol");
 +		// More than one maximum-sized frame is never an admitted per-connection queue.
-+		if (chunk.byteLength + this.#used > OWNERSHIP_LIMITS.queuedBytesPerConnection) throw new OwnershipError("ownership_limit");
++		if (chunk.byteLength + this.#used > this.#queueLimit) throw new OwnershipError("ownership_limit");
 +		const frames: string[] = [];
 +		for (const byte of chunk) {
 +			if (byte !== 10) {
@@ -2605,16 +2954,17 @@ index 0000000000..878699c0f0
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
-index 0000000000..e6186c0b2f
+index 0000000000..9a13b90bcc
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/protocol.ts
-@@ -0,0 +1,172 @@
+@@ -0,0 +1,200 @@
 +/** Public Native lifecycle IPC. No request can name a PID, executable, argv, token path or environment. */
 +export const OWNERSHIP_VERSION = "omp-execution-ownership/1";
 +
 +/** Fixed resource limits; exceeding one fails closed and never falls back to a local broker. */
 +export const OWNERSHIP_LIMITS = Object.freeze({
 +	frameBytes: 16_384, connections: 64, pendingPerConnection: 1, queuedBytesPerConnection: 32_768,
++	responseFrameBytes: 1_048_576, queuedResponseBytesPerConnection: 1_048_577,
 +	registrations: 512, helpers: 64, helperGenerations: 512, ancestryDepth: 256,
 +	bridgeHandles: 1024, bridgeDescriptors: 2048, brokerScopes: 64, externalLifetimes: 256,
 +	connectMs: 1_000, requestMs: 10_000, idleMs: 30_000,
@@ -2640,9 +2990,11 @@ index 0000000000..e6186c0b2f
 +	| { kind: "global"; service: "browser-relay" | "text-predict" };
 +export type OwnershipOperation =
 +	| { op: "classify" }
++	| { op: "list_scopes" }
 +	| { op: "prepare_helper"; generation: string }
 +	| { op: "helper_status"; generation: string }
 +	| { op: "broker"; scope: OwnershipScope }
++	| { op: "inspect_broker"; scope: OwnershipScope; generation: string }
 +	| { op: "publish"; scope: OwnershipScope; generation: string };
 +export interface OwnershipRequest {
 +	version: typeof OWNERSHIP_VERSION;
@@ -2658,11 +3010,15 @@ index 0000000000..e6186c0b2f
 +	policy: "private" | "external";
 +	generation: string;
 +}
++/** Bounded dispatcher-owned administration metadata. Never a PID/token/argv or permission to contact a broker. */
++export interface OwnershipBrokerScope { scope: OwnershipScope; generation: string; runtimeDirectory: string }
 +export type OwnershipResult =
 +	| { op: "classify"; registration: OwnershipRegistration }
++	| { op: "list_scopes"; scopes: OwnershipBrokerScope[] }
 +	| { op: "prepare_helper"; generation: string }
 +	| { op: "helper_status"; generation: string; status: "pending" | "registered" }
 +	| { op: "broker"; scope: OwnershipScope; generation: string; runtimeDirectory: string; token: string }
++	| { op: "inspect_broker"; scope: OwnershipScope; generation: string; runtimeDirectory: string; token: string }
 +	| { op: "publish"; generation: string };
 +export type OwnershipResponse =
 +	| { version: typeof OWNERSHIP_VERSION; id: string; ok: true; identity: OwnershipIdentity; result: OwnershipResult }
@@ -2712,14 +3068,14 @@ index 0000000000..e6186c0b2f
 +	if (source.version !== OWNERSHIP_VERSION) throw new OwnershipError("dispatcher_mismatch");
 +	const operation = record(source.operation, ["op", "scope", "generation"]);
 +	let parsed: OwnershipOperation;
-+	if (operation.op === "classify" && Object.keys(operation).length === 1) parsed = { op: "classify" };
++	if ((operation.op === "classify" || operation.op === "list_scopes") && Object.keys(operation).length === 1) parsed = { op: operation.op };
 +	else if ((operation.op === "prepare_helper" || operation.op === "helper_status") && Object.keys(operation).length === 2) {
 +		parsed = { op: operation.op, generation: ownershipGeneration(operation.generation) };
 +	}
 +	else if (operation.op === "broker" && operation.generation === undefined) {
 +		parsed = { op: "broker", scope: ownershipScope(operation.scope) };
-+	} else if (operation.op === "publish") {
-+		parsed = { op: "publish", scope: ownershipScope(operation.scope), generation: ownershipToken(operation.generation) };
++	} else if (operation.op === "publish" || operation.op === "inspect_broker") {
++		parsed = { op: operation.op, scope: ownershipScope(operation.scope), generation: ownershipToken(operation.generation) };
 +	} else throw new OwnershipError("ownership_protocol");
 +	return { version: OWNERSHIP_VERSION, id: ownershipToken(source.id), identity: ownershipIdentity(source.identity), operation: parsed };
 +}
@@ -2736,9 +3092,28 @@ index 0000000000..e6186c0b2f
 +		policy: source.policy, generation: ownershipToken(source.generation) };
 +}
 +
++/** Validated scope metadata; the backend separately supplies canonical/pinned OS identity. */
++export function ownershipBrokerScope(value: unknown): OwnershipBrokerScope {
++	const source = record(value, ["scope", "generation", "runtimeDirectory"]);
++	if (Object.keys(source).length !== 3) throw new OwnershipError("ownership_protocol");
++	const directory = ownershipScope({ kind: "project", directory: source.runtimeDirectory });
++	if (directory.kind !== "project") throw new OwnershipError("ownership_protocol");
++	return { scope: ownershipScope(source.scope), generation: ownershipToken(source.generation), runtimeDirectory: directory.directory };
++}
++
 +function result(value: unknown, expected: OwnershipOperation): OwnershipResult {
-+	const source = record(value, ["op", "registration", "scope", "generation", "runtimeDirectory", "token", "status"]);
++	const source = record(value, ["op", "registration", "scope", "generation", "runtimeDirectory", "token", "status", "scopes"]);
 +	if (source.op !== expected.op) throw new OwnershipError("ownership_protocol");
++	if (source.op === "list_scopes" && Object.keys(source).length === 2) {
++		if (!Array.isArray(source.scopes) || source.scopes.length > OWNERSHIP_LIMITS.brokerScopes) throw new OwnershipError("ownership_limit");
++		const scopes = source.scopes.map(ownershipBrokerScope), seen = new Set<string>();
++		for (const scope of scopes) {
++			const key = JSON.stringify(scope.scope);
++			if (seen.has(key)) throw new OwnershipError("ownership_protocol");
++			seen.add(key);
++		}
++		return { op: "list_scopes", scopes };
++	}
 +	if (expected.op === "prepare_helper" && Object.keys(source).length === 2 && source.generation === expected.generation) {
 +		return { op: "prepare_helper", generation: ownershipGeneration(source.generation) };
 +	}
@@ -2751,20 +3126,22 @@ index 0000000000..e6186c0b2f
 +	}
 +	if (source.op === "publish" && expected.op === "publish" && Object.keys(source).length === 2
 +		&& source.generation === expected.generation) return { op: "publish", generation: expected.generation };
-+	if (source.op !== "broker" || expected.op !== "broker" || Object.keys(source).length !== 5) {
++	if ((source.op !== "broker" && source.op !== "inspect_broker")
++		|| (expected.op !== "broker" && expected.op !== "inspect_broker") || Object.keys(source).length !== 5) {
 +		throw new OwnershipError("ownership_protocol");
 +	}
 +	const scope = ownershipScope(source.scope);
 +	if (!sameOwnershipScope(scope, expected.scope)) throw new OwnershipError("ownership_protocol");
++	if (expected.op === "inspect_broker" && source.generation !== expected.generation) throw new OwnershipError("dispatcher_mismatch");
 +	const directory = ownershipScope({ kind: "project", directory: source.runtimeDirectory });
 +	if (directory.kind !== "project") throw new OwnershipError("ownership_protocol");
-+	return { op: "broker", scope, generation: ownershipToken(source.generation), runtimeDirectory: directory.directory,
++	return { op: source.op, scope, generation: ownershipToken(source.generation), runtimeDirectory: directory.directory,
 +		token: text(source.token, /^[a-f0-9]{64}$/) };
 +}
 +
 +/** Validate correlation, matched release/schema and operation before any endpoint/token reaches a Native client. */
 +export function decodeOwnershipResponse(frame: string, expected: OwnershipRequest): OwnershipResponse {
-+	if (new TextEncoder().encode(frame).length > OWNERSHIP_LIMITS.frameBytes) throw new OwnershipError("ownership_limit");
++	if (new TextEncoder().encode(frame).length > OWNERSHIP_LIMITS.responseFrameBytes) throw new OwnershipError("ownership_limit");
 +	let decoded: unknown;
 +	try { decoded = JSON.parse(frame); } catch { throw new OwnershipError("ownership_protocol"); }
 +	const source = record(decoded, ["version", "id", "ok", "identity", "result", "error"]);
@@ -2783,10 +3160,10 @@ index 0000000000..e6186c0b2f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
 new file mode 100644
-index 0000000000..c6b5599033
+index 0000000000..c8cb35f391
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/wire.schema.json
-@@ -0,0 +1,549 @@
+@@ -0,0 +1,652 @@
 +{
 +  "$schema": "http://json-schema.org/draft-07/schema#",
 +  "$id": "urn:omp:execution-ownership:1",
@@ -2971,6 +3348,38 @@ index 0000000000..c6b5599033
 +            "generation"
 +          ],
 +          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "list_scopes"
++            }
++          },
++          "required": [
++            "op"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "inspect_broker"
++            },
++            "scope": {
++              "$ref": "#/definitions/scope"
++            },
++            "generation": {
++              "$ref": "#/definitions/token"
++            }
++          },
++          "required": [
++            "op",
++            "scope",
++            "generation"
++          ],
++          "additionalProperties": false
 +        }
 +      ]
 +    },
@@ -3072,6 +3481,55 @@ index 0000000000..c6b5599033
 +            "op",
 +            "generation",
 +            "status"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "list_scopes"
++            },
++            "scopes": {
++              "type": "array",
++              "items": {
++                "$ref": "#/definitions/brokerScope"
++              },
++              "maxItems": 64,
++              "uniqueItems": true
++            }
++          },
++          "required": [
++            "op",
++            "scopes"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "inspect_broker"
++            },
++            "scope": {
++              "$ref": "#/definitions/scope"
++            },
++            "generation": {
++              "$ref": "#/definitions/token"
++            },
++            "runtimeDirectory": {
++              "$ref": "#/definitions/directory"
++            },
++            "token": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "scope",
++            "generation",
++            "runtimeDirectory",
++            "token"
 +          ],
 +          "additionalProperties": false
 +        }
@@ -3287,7 +3745,9 @@ index 0000000000..c6b5599033
 +            "prepare_helper",
 +            "helper_status",
 +            "broker",
-+            "publish"
++            "publish",
++            "list_scopes",
++            "inspect_broker"
 +          ]
 +        },
 +        "identity": {
@@ -3299,7 +3759,7 @@ index 0000000000..c6b5599033
 +        "response": {
 +          "type": "string",
 +          "minLength": 2,
-+          "maxLength": 16384
++          "maxLength": 1048576
 +        },
 +        "signature": {
 +          "type": "string",
@@ -3317,6 +3777,26 @@ index 0000000000..c6b5599033
 +        "serverGeneration",
 +        "response",
 +        "signature"
++      ],
++      "additionalProperties": false
++    },
++    "brokerScope": {
++      "type": "object",
++      "properties": {
++        "scope": {
++          "$ref": "#/definitions/scope"
++        },
++        "generation": {
++          "$ref": "#/definitions/token"
++        },
++        "runtimeDirectory": {
++          "$ref": "#/definitions/directory"
++        }
++      },
++      "required": [
++        "scope",
++        "generation",
++        "runtimeDirectory"
 +      ],
 +      "additionalProperties": false
 +    }
@@ -3492,6 +3972,133 @@ index 0000000000..db94e7cd31
 +/** Invoke only after cli-runtime's synchronous worker prefix has installed its actual buffering handlers. */
 +export function finishOwnershipWorkerBootstrap(): void { bootstrap?.finish(); bootstrap = undefined; }
 +export function cancelOwnershipWorkerBootstrap(): void { bootstrap?.close(); bootstrap = undefined; }
+diff --git a/packages/coding-agent/src/launch/presence.ts b/packages/coding-agent/src/launch/presence.ts
+index 8e61472b9c..660910cae0 100644
+--- a/packages/coding-agent/src/launch/presence.ts
++++ b/packages/coding-agent/src/launch/presence.ts
+@@ -1,32 +1,12 @@
+-import type { Dirent } from "node:fs";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+-import { isEnoent, logger, postmortem } from "@oh-my-pi/pi-utils";
+-import { canonicalProjectDir, daemonRuntimeDir } from "./paths";
++import { isEnoent, postmortem } from "@oh-my-pi/pi-utils";
++import { canonicalProjectDir } from "./paths";
++import { acquireExecutionBroker, requireSharedExecution } from "./ownership/context";
++import { OwnershipError } from "./ownership/protocol";
+ 
+ const CLIENTS_DIR = "clients";
+ const BROKER_PID_FILE = "broker.pid";
+-/**
+- * Basename of the container holding per-project daemon scopes
+- * (`<state>/run/daemons`). {@link pruneDeadDaemonRuntimeDirs} refuses to sweep
+- * any other root so a runtime dir passed from outside the state tree cannot
+- * turn the reclaim into an rm -rf of unrelated neighbours (issue #8721).
+- */
+-const DAEMONS_DIR = "daemons";
+-/**
+- * Name shape of a project daemon scope: the 16-hex wyhash of the project dir
+- * produced by `getDaemonRuntimeDir`. Only entries matching this are pruned,
+- * which excludes the machine-global `global` container and any foreign dir.
+- */
+-const DAEMON_SCOPE_KEY = /^[0-9a-f]{16}$/;
+-/**
+- * Grace before a dead daemon runtime dir becomes prune-eligible. Guards against
+- * deleting a scope whose owning omp process is mid-startup (token written, broker
+- * not yet spawned, presence not yet registered). The leak this reclaims is a
+- * weeks-scale accumulation, so a few minutes of slack costs nothing.
+- */
+-const DAEMON_RUNTIME_STALE_GRACE_MS = 5 * 60_000;
+-
+ /** Handle keeping one omp process registered in a project daemon scope. */
+ export interface DaemonProjectPresence {
+ 	close(): Promise<void>;
+@@ -37,8 +17,11 @@ export async function registerDaemonProjectPresence(
+ 	projectDir: string,
+ 	runtimeOverride?: string,
+ ): Promise<DaemonProjectPresence> {
++	requireSharedExecution();
+ 	const canonical = await canonicalProjectDir(projectDir);
+-	const runtimeDir = runtimeOverride ?? daemonRuntimeDir(canonical);
++	const selection = await acquireExecutionBroker({ kind: "project", directory: canonical });
++	if (runtimeOverride !== undefined && runtimeOverride !== selection.runtimeDirectory) throw new OwnershipError("dispatcher_mismatch");
++	const runtimeDir = selection.runtimeDirectory;
+ 	const clientsDir = path.join(runtimeDir, CLIENTS_DIR);
+ 	await fs.mkdir(clientsDir, { recursive: true, mode: 0o700 });
+ 	const id = `${process.pid}-${crypto.randomUUID()}`;
+@@ -59,6 +42,7 @@ export async function registerDaemonProjectPresence(
+ 
+ /** Return whether a registered omp process in this runtime directory is still alive. */
+ export async function hasLiveDaemonProjectPresence(runtimeDir: string): Promise<boolean> {
++	requireSharedExecution();
+ 	const clientsDir = path.join(runtimeDir, CLIENTS_DIR);
+ 	let entries: string[];
+ 	try {
+@@ -96,6 +80,7 @@ export async function hasLiveDaemonProjectPresence(runtimeDir: string): Promise<
+ 
+ /** PID recorded in the runtime dir's broker lease when that broker process is still alive; undefined otherwise. */
+ export async function readLiveDaemonBrokerPid(runtimeDir: string): Promise<number | undefined> {
++	requireSharedExecution();
+ 	let raw: unknown;
+ 	try {
+ 		raw = await Bun.file(path.join(runtimeDir, BROKER_PID_FILE)).json();
+@@ -114,51 +99,10 @@ export async function readLiveDaemonBrokerPid(runtimeDir: string): Promise<numbe
+ }
+ 
+ /**
+- * Remove sibling project daemon runtime directories whose broker is dead and
+- * whose client-presence set is empty, reclaiming the disk that short-lived
+- * project directories leave behind (issue #8674).
+- *
+- * Best-effort and non-throwing: a scope is deleted only when its `broker.pid`
+- * is absent/dead, no live client presence remains, and it has been untouched
+- * for {@link DAEMON_RUNTIME_STALE_GRACE_MS}. The caller's own `currentRuntimeDir`
+- * is always skipped, and the sweep runs only inside the {@link DAEMONS_DIR}
+- * container over entries named like a {@link DAEMON_SCOPE_KEY} — so a runtime
+- * dir relocated elsewhere (e.g. the smoke test under `os.tmpdir()`) never
+- * reclaims unrelated neighbours (issue #8721).
++ * Legacy heuristic pruning cannot establish external protector extinction or remove dispatcher-owned generations.
++ * Automatic callers must not use it; a future explicit maintenance path needs authoritative lifetime evidence.
+  */
+-export async function pruneDeadDaemonRuntimeDirs(currentRuntimeDir: string): Promise<void> {
+-	const root = path.dirname(currentRuntimeDir);
+-	if (path.basename(root) !== DAEMONS_DIR) return;
+-	const current = path.resolve(currentRuntimeDir);
+-	let entries: Dirent[];
+-	try {
+-		entries = await fs.readdir(root, { withFileTypes: true });
+-	} catch (error) {
+-		if (!isEnoent(error)) {
+-			logger.warn("Failed to scan daemon runtime root for pruning", {
+-				root,
+-				error: error instanceof Error ? error.message : String(error),
+-			});
+-		}
+-		return;
+-	}
+-	const now = Date.now();
+-	for (const entry of entries) {
+-		if (!entry.isDirectory() || !DAEMON_SCOPE_KEY.test(entry.name)) continue;
+-		const dir = path.join(root, entry.name);
+-		if (path.resolve(dir) === current) continue;
+-		try {
+-			const stat = await fs.stat(dir);
+-			if (now - stat.mtimeMs < DAEMON_RUNTIME_STALE_GRACE_MS) continue;
+-			if ((await readLiveDaemonBrokerPid(dir)) !== undefined) continue;
+-			if (await hasLiveDaemonProjectPresence(dir)) continue;
+-			await fs.rm(dir, { recursive: true, force: true });
+-		} catch (error) {
+-			if (isEnoent(error)) continue;
+-			logger.warn("Failed to prune dead daemon runtime dir", {
+-				dir,
+-				error: error instanceof Error ? error.message : String(error),
+-			});
+-		}
+-	}
++export async function pruneDeadDaemonRuntimeDirs(_currentRuntimeDir: string): Promise<void> {
++	requireSharedExecution();
++	throw new OwnershipError("ownership_backend_unavailable");
+ }
 diff --git a/packages/coding-agent/src/launch/services.ts b/packages/coding-agent/src/launch/services.ts
 index 53fe06a4ee..847ed9ddb2 100644
 --- a/packages/coding-agent/src/launch/services.ts
@@ -3775,6 +4382,92 @@ index 5bddc84cfe..dbaba65511 100644
  	registerLocalInferenceApi();
  	const extensionRoots = options.extensionRoots?.();
  	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
+diff --git a/packages/coding-agent/src/stream/paths.ts b/packages/coding-agent/src/stream/paths.ts
+index 2395e7ac10..a8d67d772a 100644
+--- a/packages/coding-agent/src/stream/paths.ts
++++ b/packages/coding-agent/src/stream/paths.ts
+@@ -1,12 +1,13 @@
+-import { ipcEndpoint } from "@oh-my-pi/pi-natives";
+-import { getDaemonRuntimeDir } from "@oh-my-pi/pi-utils";
+-import { canonicalProjectDir } from "../launch/paths";
++import { requireSharedExecution } from "../launch/ownership/context";
++import { OwnershipError } from "../launch/ownership/protocol";
+ 
+-/**
+- * Resolve the local IPC endpoint `omp stream` listens on for one project
+- * directory. Shares the daemon broker's canonical-cwd hashing so every omp
+- * process in the same directory agrees on the endpoint.
+- */
+-export async function streamSocketEndpoint(projectDir: string): Promise<string> {
+-	return ipcEndpoint(getDaemonRuntimeDir(await canonicalProjectDir(projectDir)), "stream");
++/** Stream is outside the protected broker tree until it has its own fixed approved external lifetime. */
++export function requireCoveredSharedStream(): never {
++	requireSharedExecution();
++	throw new OwnershipError("ownership_backend_unavailable");
++}
++
++/** No legacy profile-derived endpoint or unprotected local/external connection fallback is admitted. */
++export async function streamSocketEndpoint(_projectDir: string): Promise<string> {
++	requireCoveredSharedStream();
+ }
+diff --git a/packages/coding-agent/src/stream/publisher.ts b/packages/coding-agent/src/stream/publisher.ts
+index ea6f36ca79..75fa1fb668 100644
+--- a/packages/coding-agent/src/stream/publisher.ts
++++ b/packages/coding-agent/src/stream/publisher.ts
+@@ -3,7 +3,7 @@ import type { StreamChatMessage } from "@oh-my-pi/pi-wire";
+ import type { TUI } from "@oh-my-pi/pi-tui";
+ import { logger } from "@oh-my-pi/pi-utils";
+ import { STREAM_FLUSH_INTERVAL_MS, StreamPaintEncoder } from "./paint-encoder";
+-import { streamSocketEndpoint } from "./paths";
++import { requireCoveredSharedStream, streamSocketEndpoint } from "./paths";
+ import { STREAM_LOCAL_PROTO, type StreamSessionFrame, type StreamStreamerFrame } from "./protocol";
+ import type { StreamRedactor } from "./redactor";
+ 
+@@ -213,6 +213,7 @@ export class StreamPublisher {
+ 	}
+ 
+ 	constructor(conn: IpcConnection, options: Omit<StreamPublisherOptions, "redactor">, redactor: StreamRedactor) {
++		requireCoveredSharedStream();
+ 		this.#conn = conn;
+ 		this.#tui = options.tui;
+ 		this.#encoder = new StreamPaintEncoder(
+diff --git a/packages/coding-agent/src/stream/streamer.ts b/packages/coding-agent/src/stream/streamer.ts
+index 92e795e242..4cc90896b7 100644
+--- a/packages/coding-agent/src/stream/streamer.ts
++++ b/packages/coding-agent/src/stream/streamer.ts
+@@ -19,7 +19,7 @@ import {
+ 	type StreamSessionFrame,
+ 	type StreamStreamerFrame,
+ } from "./protocol";
+-import { streamSocketEndpoint } from "./paths";
++import { requireCoveredSharedStream, streamSocketEndpoint } from "./paths";
+ import { runStreamTui, type StreamTuiInfo } from "./console-tui";
+ import { StreamServerClient, type StreamServerFatalError } from "./server-client";
+ 
+@@ -110,6 +110,7 @@ export class StreamMuxHost {
+ 	#closing = false;
+ 
+ 	constructor(options: StreamMuxHostOptions) {
++		requireCoveredSharedStream();
+ 		this.#options = options;
+ 		this.#onEvent = options.onEvent;
+ 		this.#title = options.title;
+@@ -131,6 +132,7 @@ export class StreamMuxHost {
+ 	}
+ 
+ 	async start(): Promise<string> {
++		requireCoveredSharedStream();
+ 		if (this.#started) throw new Error("stream host is already started");
+ 		this.#started = true;
+ 		const endpoint = await streamSocketEndpoint(this.#options.projectDir);
+@@ -387,6 +389,7 @@ export function logConsoleSink(): (event: StreamConsoleEvent) => void {
+ 
+ /** Run the foreground console UX until a signal or fatal server rejection. */
+ export async function runStreamConsole(options: StreamConsoleOptions): Promise<number> {
++	requireCoveredSharedStream();
+ 	const interactive = process.stdout.isTTY === true && process.stdin.isTTY === true && !options.noTui;
+ 	const events: StreamConsoleEvent[] = [];
+ 	const listeners = new Set<(event: StreamConsoleEvent) => void>();
 diff --git a/packages/coding-agent/src/tools/browser.ts b/packages/coding-agent/src/tools/browser.ts
 index 18f78c1b24..5d4539d238 100644
 --- a/packages/coding-agent/src/tools/browser.ts
@@ -4095,10 +4788,10 @@ index 0fe343ff21..600abd9d92 100644
  	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644
-index 0000000000..8f6fc997fa
+index 0000000000..3985cff8c3
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-authentication.test.ts
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,126 @@
 +import { expect, test } from "bun:test";
 +import {
 +	OwnershipReplyVerifier, decodeOwnershipChallenge, signOwnershipReply,
@@ -4185,6 +4878,45 @@ index 0000000000..8f6fc997fa
 +	const signed = await signOwnershipReply(decoded, response, { installation, identity, serverGeneration, privateKey: key });
 +	await expect(verifier.verify(signed, challenge)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
 +	await expect(verifier.challenge(request)).rejects.toMatchObject({ code: "dispatcher_unavailable" });
++});
++
++test("bounded administration responses exceed request budget without expanding the request allowance", async () => {
++	const verifier = new OwnershipReplyVerifier({ installation, identity, publicKey });
++	const requestFrame = JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000002", identity,
++		operation: { op: "list_scopes" } });
++	const challenge = await verifier.challenge(requestFrame);
++	const decoded = await decodeOwnershipChallenge(challenge.frame, { installation, identity });
++	const responseFrame = JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000002", identity, ok: true,
++		result: { op: "list_scopes", scopes: Array.from({ length: 64 }, (_, index) => ({
++			scope: { kind: "project", directory: `/project-${index}/${"a".repeat(2048)}` },
++			generation: `generation-${String(index).padStart(16, "0")}`, runtimeDirectory: `/run/${"b".repeat(2048)}/${index}`,
++		})) } });
++	const key = await crypto.subtle.importKey("pkcs8", Buffer.from(privateKeyPkcs8, "hex"), "Ed25519", false, ["sign"]);
++	const signed = await signOwnershipReply(decoded, responseFrame, { installation, identity, serverGeneration, privateKey: key });
++	expect(new TextEncoder().encode(signed).length).toBeGreaterThan(16_384);
++	expect(new TextEncoder().encode(signed).length).toBeLessThanOrEqual(1_048_576);
++	expect(await verifier.verify(signed, challenge)).toBe(responseFrame);
++	await expect(decodeOwnershipChallenge("x".repeat(16_385), { installation, identity }))
++		.rejects.toMatchObject({ code: "ownership_limit" });
++});
++
++test("oversized or exceptionally escaped responses fail with an explicit limit instead of partial metadata", async () => {
++	const verifier = new OwnershipReplyVerifier({ installation, identity, publicKey });
++	const challenge = await verifier.challenge(request);
++	await expect(verifier.verify("x".repeat(1_048_577), challenge)).rejects.toMatchObject({ code: "ownership_limit" });
++	const listing = JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000002", identity, operation: { op: "list_scopes" } });
++	const next = await new OwnershipReplyVerifier({ installation, identity, publicKey }).challenge(listing);
++	const decoded = await decodeOwnershipChallenge(next.frame, { installation, identity });
++	const escaped = Array.from({ length: 15 }, () => "\\".repeat(199)).join("/");
++	const responseFrame = JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000002", identity, ok: true,
++		result: { op: "list_scopes", scopes: Array.from({ length: 64 }, (_, index) => ({
++			scope: { kind: "project", directory: `/project-${index}/${escaped}` },
++			generation: `generation-${String(index).padStart(16, "0")}`, runtimeDirectory: `/run-${index}/${escaped}`,
++		})) } });
++	expect(new TextEncoder().encode(responseFrame).length).toBeLessThan(1_048_576);
++	const key = await crypto.subtle.importKey("pkcs8", Buffer.from(privateKeyPkcs8, "hex"), "Ed25519", false, ["sign"]);
++	await expect(signOwnershipReply(decoded, responseFrame, { installation, identity, serverGeneration, privateKey: key }))
++		.rejects.toMatchObject({ code: "ownership_limit" });
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-cli.test.ts b/packages/coding-agent/test/execution-ownership-cli.test.ts
 new file mode 100644
@@ -4400,10 +5132,10 @@ index 0000000000..6adb8766d7
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-contract.test.ts b/packages/coding-agent/test/execution-ownership-contract.test.ts
 new file mode 100644
-index 0000000000..e530e52ed8
+index 0000000000..c345643593
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-contract.test.ts
-@@ -0,0 +1,46 @@
+@@ -0,0 +1,54 @@
 +import { expect, test } from "bun:test";
 +import { decodeOwnershipRequest, decodeOwnershipResponse, OwnershipError, type OwnershipResponse } from "../src/launch/ownership/protocol";
 +import { OwnershipFrames } from "../src/launch/ownership/framing";
@@ -4450,14 +5182,23 @@ index 0000000000..e530e52ed8
 +	}
 +	expect(decodeOwnershipRequest(request({ op: "classify" })).operation).toEqual({ op: "classify" });
 +});
++
++test("response framing permits exactly one MiB while request framing retains its smaller allowance", () => {
++	const response = new OwnershipFrames("response");
++	expect(response.push(new TextEncoder().encode("x".repeat(1_048_576) + "\n"))[0]?.length).toBe(1_048_576);
++	const excess = new OwnershipFrames("response");
++	expect(() => excess.push(new Uint8Array(1_048_577))).toThrow("ownership_limit");
++	expect(() => new OwnershipFrames().push(new Uint8Array(16_385))).toThrow("ownership_limit");
++});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000..3ad8369208
+index 0000000000..f480b92587
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,223 @@
 +import { expect, test } from "bun:test";
 +import { OwnershipClient } from "../src/launch/ownership/client";
++import { ExecutionOwnershipContext } from "../src/launch/ownership/context";
 +import { HelperWireSession, verifyHelperAcknowledgement, type HelperOwnershipRequest } from "../src/launch/ownership/helper-protocol";
 +import { OwnershipDispatcher, type OwnershipSystem, type PublicationPermit, type StablePeer } from "../src/launch/ownership/dispatcher";
 +import { OWNERSHIP_VERSION, type OwnershipIdentity, type OwnershipScope } from "../src/launch/ownership/protocol";
@@ -4471,6 +5212,7 @@ index 0000000000..3ad8369208
 +	readonly policies = new Map<StablePeer, "external" | "private" | "unresolved">();
 +	readonly durable = new Set<string>();
 +	readonly publications: OwnershipScope[] = [];
++	brokerAlive = true;
 +	failDurability = false;
 +	async ready(): Promise<void> {}
 +	async classify(peer: StablePeer) {
@@ -4491,6 +5233,11 @@ index 0000000000..3ad8369208
 +		return { generation: "broker-generation-0001", runtimeDirectory: "/run/native/project", token: "d".repeat(64) };
 +	}
 +	async publish(): Promise<void> { throw new Error("not an authenticated owned broker"); }
++	async inspectBroker(_scope: OwnershipScope, _generation: string, permit: PublicationPermit) {
++		permit.assertCurrent();
++		return this.brokerAlive ? { generation: "broker-generation-0001", runtimeDirectory: "/run/native/project", token: "d".repeat(64) }
++			: undefined;
++	}
 +}
 +
 +function frame(op: unknown): string {
@@ -4518,6 +5265,52 @@ index 0000000000..3ad8369208
 +	expect(await client.helperStatus(generation)).toBe("registered");
 +	expect(await dispatcher.handle(foreign, frame({ op: "helper_status", generation })))
 +		.toMatchObject({ ok: false, error: "ownership_unresolved" });
++});
++
++test("ordinary Native administration lists only dispatcher-owned scopes and private callers cannot inspect them", async () => {
++	const system = new SyntheticSystem(), external = {}, helper = {};
++	system.policies.set(external, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) { return JSON.stringify(await dispatcher.handle(external, frame)); }, close() {},
++	});
++	await client.broker({ kind: "project", directory: "/work/owned" });
++	expect(await client.listScopes()).toEqual([{ scope: { kind: "project", directory: "/work/owned" },
++		generation: "broker-generation-0001", runtimeDirectory: "/run/native/project" }]);
++	await register(dispatcher, system, helper);
++	expect(await dispatcher.handle(helper, frame({ op: "list_scopes" })))
++		.toMatchObject({ ok: false, error: "shared_service_unsupported" });
++});
++
++test("administration and consumer acquisition share bounded process serialization without inspecting legacy roots", async () => {
++	const system = new SyntheticSystem(), external = {};
++	system.policies.set(external, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const context = new ExecutionOwnershipContext(new OwnershipClient(identity, {
++		async exchange(frame) { return JSON.stringify(await dispatcher.handle(external, frame)); }, close() {},
++	}));
++	await context.initializeExecutionOwnership();
++	const [grant, scopes] = await Promise.all([
++		context.acquireExecutionBroker({ kind: "project", directory: "/work/owned" }), context.listExecutionBrokerScopes(),
++	]);
++	expect(scopes).toEqual([{ scope: grant.scope, generation: grant.generation, runtimeDirectory: grant.runtimeDirectory }]);
++});
++
++test("an administration reconnect after a listed broker exits refuses without creating its replacement", async () => {
++	const system = new SyntheticSystem(), external = {};
++	system.policies.set(external, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) { return JSON.stringify(await dispatcher.handle(external, frame)); }, close() {},
++	});
++	const scope: OwnershipScope = { kind: "project", directory: "/work/owned" };
++	const grant = await client.broker(scope);
++	await client.listScopes();
++	expect(await client.inspectBroker(scope, grant.generation)).toMatchObject({ generation: grant.generation,
++		runtimeDirectory: grant.runtimeDirectory, token: grant.token });
++	system.brokerAlive = false;
++	await expect(client.inspectBroker(scope, grant.generation)).rejects.toMatchObject({ code: "dispatcher_unavailable" });
++	expect(system.publications).toEqual([scope]);
 +});
 +
 +test("helper REGISTER is acknowledged after durable registration and COMPLETE stays fenced without extinction proof", async () => {
@@ -4628,10 +5421,10 @@ index 0000000000..3ad8369208
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-fences.test.ts b/packages/coding-agent/test/execution-ownership-fences.test.ts
 new file mode 100644
-index 0000000000..cc5c3333d0
+index 0000000000..d4b645ba3c
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-fences.test.ts
-@@ -0,0 +1,64 @@
+@@ -0,0 +1,65 @@
 +import { expect, test } from "bun:test";
 +import * as fs from "node:fs/promises";
 +import * as path from "node:path";
@@ -4653,6 +5446,7 @@ index 0000000000..cc5c3333d0
 +		async completeHelper() { throw new Error("no kernel extinction proof"); },
 +		async canonicalScope(scope) { return scope; },
 +		async broker() { throw new Error("external protector unavailable"); },
++		async inspectBroker() { return undefined; },
 +		async publish() { throw new Error("external protector unavailable"); },
 +	};
 +}

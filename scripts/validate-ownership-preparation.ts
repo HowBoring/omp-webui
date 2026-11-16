@@ -23,6 +23,10 @@ const base = { version: "omp-execution-ownership/1", id: "request-00000001",
   identity: { closure: "a".repeat(64), schema: "b".repeat(64) } };
 const cases: { operation: unknown; expected: boolean }[] = [
   { operation: { op: "classify" }, expected: true },
+  { operation: { op: "list_scopes" }, expected: true },
+  { operation: { op: "list_scopes", pid: 123 }, expected: false },
+  { operation: { op: "inspect_broker", scope: { kind: "project", directory: "/work" }, generation: "generation-00001" }, expected: true },
+  { operation: { op: "inspect_broker", scope: { kind: "project", directory: "/work" }, generation: "generation-00001", create: true }, expected: false },
   { operation: { op: "prepare_helper", generation: "e".repeat(64) }, expected: true },
   { operation: { op: "helper_status", generation: "e".repeat(64) }, expected: true },
   { operation: { op: "prepare_helper", generation: "e".repeat(64), pid: 123 }, expected: false },
@@ -53,6 +57,13 @@ const responseCases = [
   { value: { ...success, result: { ...success.result, token: "not-a-token" } }, expected: false },
   { value: { ...success, result: { ...success.result, runtimeDirectory: "/run/../elsewhere" } }, expected: false },
   { value: { version: base.version, id: base.id, ok: false, error: "unknown-success-fallback" }, expected: false },
+  { value: { ...success, result: { op: "list_scopes", scopes: [{ scope: success.result.scope,
+      generation: success.result.generation, runtimeDirectory: success.result.runtimeDirectory }] } }, expected: true },
+  { value: { ...success, result: { op: "list_scopes", scopes: [{ scope: success.result.scope,
+      generation: success.result.generation, runtimeDirectory: success.result.runtimeDirectory, pid: 123 }] } }, expected: false },
+  { value: { ...success, result: { op: "list_scopes", scopes: Array.from({ length: 65 }, () => ({
+      scope: success.result.scope, generation: success.result.generation, runtimeDirectory: success.result.runtimeDirectory })) } }, expected: false },
+  { value: { ...success, result: { ...success.result, op: "inspect_broker" } }, expected: true },
 ];
 for (const [index, item] of responseCases.entries()) {
   if (Boolean(validateResponse(item.value)) !== item.expected) throw new Error(`OWNERSHIP_RESPONSE_SCHEMA_CASE_${index}`);

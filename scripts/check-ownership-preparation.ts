@@ -40,15 +40,22 @@ try {
     if (result.exitCode !== 0) throw new Error("OWNERSHIP_SOURCE_CHECK_FAILED");
   }
   const parser = new Bun.Transpiler({ loader: "ts", target: "bun" });
-  const parsedEntrypoints = ["cli.ts", "cli-runtime.ts", "main.ts"];
+  const parsedEntrypoints = ["cli.ts", "cli-runtime.ts", "main.ts", "cli/ps-data.ts", "launch/presence.ts",
+    "stream/paths.ts", "stream/publisher.ts", "stream/streamer.ts"];
   for (const file of parsedEntrypoints) parser.transformSync(await Bun.file(join(source, "packages/coding-agent/src", file)).text());
   const consumerManifest: { files: { path: string; sha256: string }[] } = await Bun.file(
     join(repository, "compatibility/omp/execution-ownership-consumers.preparation.json")).json();
+  const preparation: { consumerSourceOverrides: { path: string; baseSha256: string; sha256: string }[] } = await Bun.file(
+    join(repository, "compatibility/omp/execution-ownership.preparation.json")).json();
   let consumerSourceFiles = 0, parsedConsumerFiles = 0;
   for (const file of consumerManifest.files) {
     if (file.path.endsWith("/README.md") || file.path.endsWith("/CHANGELOG.md")) continue;
     const bytes = await Bun.file(join(source, file.path)).bytes();
-    if (new Bun.CryptoHasher("sha256").update(bytes).digest("hex") !== file.sha256) throw new Error("CONSUMER_COMPOSITION_MISMATCH");
+    const override = preparation.consumerSourceOverrides.find(value => value.path === file.path);
+    if (override && override.baseSha256 !== file.sha256) throw new Error("CONSUMER_OVERRIDE_BASE_MISMATCH");
+    if (new Bun.CryptoHasher("sha256").update(bytes).digest("hex") !== (override?.sha256 ?? file.sha256)) {
+      throw new Error("CONSUMER_COMPOSITION_MISMATCH");
+    }
     consumerSourceFiles++;
     if (file.path.endsWith(".ts")) { parser.transformSync(bytes); parsedConsumerFiles++; }
   }

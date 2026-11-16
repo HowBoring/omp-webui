@@ -30,11 +30,11 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "67e0635118f7acc04813ead6b73f5511059452067cc82d0da956e5dd37cb224a"
+    "sha256": "b21f4f6917a8abd416216169fdf155d88731780b9027f15cb04b37bcd9e30643"
   },
-  "preparedTree": "68d5918cacb7a09b07d13670dbf0fcea530c835b",
-  "preparedSourceSha256": "171322154ed1636c64b2d6fd9f557a33eec82e54ce950c985f999aadaf392fd8",
-  "ownershipWireSchemaSha256": "8eb802c1c5f040364549d8f7fc398bd4e62f21d0867188f2d45e0f4826f13d38",
+  "preparedTree": "2b349f563eac3e17d2ac48400478a97a3c7eb14b",
+  "preparedSourceSha256": "2ec6b9694d7d53d33c4b933d3afdc331fc8a2198d67b957caaea9a7910c48c81",
+  "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
   "nativeBackend": "NOT IMPLEMENTED",
@@ -55,5 +55,13 @@
     "sha256": "08b24d8aa006da8afb8edd25785bc4c057ada451e8637c5400b59cc55dced164",
     "exactFiles": 18,
     "cumulativeDocuments": 2
-  }
+  },
+  "consumerSourceOverrides": [
+    {
+      "path": "packages/coding-agent/src/launch/client.ts",
+      "baseSha256": "8fb351ad6e6cf327a59592dbe98e8175258818b0270666ba7abfbce39bba30eb",
+      "sha256": "80c02131fa0949f3099df1f8aa6ddc0bb42b671b0a49846f35e2f84cb1b25ae9",
+      "reason": "Independent global admin client and generation-bound no-create request/reconnect mode"
+    }
+  ]
 }

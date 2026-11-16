@@ -186,3 +186,16 @@ owned separately and must be combined/reviewed with this Native contract; a stan
 After source/build preparation, first run bounded harmless OS proofs in a coordinator-cleared window. Actual Native
 bash/background/subagents, nested env-i denial, independent external TUI/service preservation, private LSP/blob and
 all attachment scenarios precede compatibility admission. Keep actual Windows/WSL2 owner-deferred and unclaimed.
+
+## Third-restore source checkpoint
+
+Recovered source was snapshotted before export: Host HEAD/index/worktree patches and 4,390 untracked/ignored owned
+source files are preserved outside the repository. The refreshed inactive 0010 patch remains stable patches 1–6
+plus 0010 only, with the consumer delta composed once. It includes bounded signed reply authentication, process
+context/worker inbox/fence modules and generation-bound `inspect_broker` administration requests. Inspection
+reconnects use that fixed operation; a missing listed broker does not invoke generic acquisition.
+
+Source-only verification after restore: **40 pass / 1 OS skip / 136 assertions**, focused types **22 files / 0 errors**,
+8 entrypoint and 16 consumer files parsed without executing their entrypoints, and **41 schema corpus cases** passed.
+The exact tuple is recorded in the JSON checkpoint. This is neither actual broker/UDS lifecycle evidence nor
+Native/global provenance; the backend and product private admission remain blocked.
