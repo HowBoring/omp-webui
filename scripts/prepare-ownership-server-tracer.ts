@@ -20,7 +20,8 @@ const library = await fs.readFile(artifact.file);
 if (hash(library) !== artifact.sha256) throw new Error("TRACER_BRIDGE_ARTIFACT_CHANGED");
 const modules = path.join(source, "packages/coding-agent/src/launch/ownership");
 const inputs = [...(await fs.readdir(modules)).filter(file => /\.(?:ts|c|json)$/.test(file)).map(file => path.join(modules, file)),
-  path.join(source, "packages/coding-agent/test/execution-ownership-server.test.ts"),
+  path.join(repository, "compatibility/omp/fixtures/ownership-server-public-uds.test.ts"),
+  path.join(repository, "compatibility/omp/fixtures/ownership-transport-drop.test.ts"),
   path.join(source, "packages/coding-agent/test/fixtures/ownership-server-runner.ts"), path.join(repository, "bunfig.toml"),
   path.join(repository, "compatibility/omp/fixtures/no-provider.ts"), path.resolve(buildPath), artifact.file, process.execPath,
   path.join(repository, "scripts/prepare-ownership-server-tracer.ts"),
@@ -37,7 +38,7 @@ const markerBytes = JSON.stringify({ kind: "ownership-server-synthetic-home/1", 
 await fs.writeFile(marker, markerBytes, { mode: 0o600, flag: "wx" });
 identities.push({ file: marker, sha256: hash(markerBytes) });
 const entry = path.join(root, "cwd/server.test.ts");
-const entryBytes = `import ${JSON.stringify(path.join(source, "packages/coding-agent/test/execution-ownership-server.test.ts"))};\n`;
+const entryBytes = `import ${JSON.stringify(path.join(repository, "compatibility/omp/fixtures/ownership-server-public-uds.test.ts"))};\n`;
 await fs.writeFile(entry, entryBytes, { mode: 0o600, flag: "wx" });
 identities.push({ file: entry, sha256: hash(entryBytes) });
 const bridge = path.join(root, "release/bridge.so"); await fs.writeFile(bridge, library, { mode: 0o600, flag: "wx" });
