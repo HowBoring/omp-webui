@@ -1,0 +1,57 @@
+{
+  "ticket": 40,
+  "date": "2026-11-16",
+  "integrationBase": "03bc1d09e1ae9d2a0d64c58ba42d74ae48d5a891",
+  "seam": "Shipped catalog build entrypoint, actual resolved public DSH packages and disposable filesystem/Git source fixtures; the established spec29 source/build seam.",
+  "change": "Update independent expected literals to the accepted three-patch DSH candidate. Also reject the former two-patch candidate before publication. No product source, patch, lock or dependency changes.",
+  "acceptedDsh": {
+    "base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "1e1207058448079f0c7e45287c4fd39dca7d2de2",
+    "sourceSha256": "2b67e0cad8c7f81fd3e442f56ffed8d0cc0da8a8afeaebd66fd0acfa645630b6",
+    "orderedPatchSha256": [
+      "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+      "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+      "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302"
+    ],
+    "patchManifestSha256": "e1e9145f770b6a3929e6c603e9bd64e78acd492cbe399ca8e3a6f31e161509c8",
+    "upstreamsLockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c"
+  },
+  "red": {
+    "owner": "Coordinator full integration run at integrationBase, before this test correction",
+    "command": "bun run check",
+    "log": "/workspace/work/mvp-implementation/merges/ticket-40-gate-full-check.log",
+    "logSha256": "3f2ec0b8fa729b189e55b17ef0fb066fbed999fdcc51055a672fc34e1de213e8",
+    "passed": 258,
+    "failed": 1,
+    "assertions": 2013,
+    "files": 60,
+    "seconds": 562.36,
+    "failure": "catalog-build.test.ts:57 expected the former c0b09e/d479 two-patch candidate; the real build emitted the accepted three-patch identity. The existing catalog negative case passed."
+  },
+  "green": {
+    "command": "bun test tests/compatibility/catalog-build.test.ts",
+    "exitCode": 0,
+    "passed": 2,
+    "failed": 0,
+    "assertions": 36,
+    "seconds": 27.32,
+    "testFileSha256": "9ed80a9156e887f2324ce23c8990f52423f5cb0ebb747cec8a6646748469083e",
+    "positive": "Actual browser client builds; exact base, candidate tree, source digest and all three ordered patch hashes match independent literals. Consumed-file and emitted-asset hashes remain checked.",
+    "negative": "Baseline, first patch, first two patches, edited consumed module, extra authored module, ignored .env and exact content without pinned ancestry all fail before client.js or manifest.json publication."
+  },
+  "lightChecks": [
+    { "command": "bun run typecheck", "exitCode": 0 },
+    { "command": "git diff --check", "exitCode": 0 },
+    { "command": "sha256sum compatibility/dsh/patches.json compatibility/dsh/patches/*.patch upstreams.lock.json", "result": "All accepted identities above match; declarations and product files are unchanged from integrationBase." },
+    { "command": "Read-only reconstruction of Git index tree from git ls-files --stage -z; git diff --quiet; git ls-files --others --exclude-standard -z", "result": "Resolved DSH indexed tree equals accepted sourceTree, with no unstaged or nonignored untracked files; no source writes." },
+    { "command": "rg for c0b09e, d479 and two-patch expectations", "result": "Only this live test expectation needed correction. Historical evidence and intermediate treeAfter values remain unchanged." }
+  ],
+  "environment": {
+    "platform": "Linux",
+    "bun": "1.4.4 (38afee6c8)",
+    "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/workspace/work/dsh-tooling/node-v24.22.1-linux-x64/bin:/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin:/usr/bin:/bin",
+    "TMPDIR": "/tmp",
+    "dependencies": "Readonly node_modules link to canonical integration dependencies; DSH package links resolve to /workspace/work/omp-webui-ticket-40-review-fix/vendor/dsh. No installs, link-dsh, source edits or canonical dependency mutation."
+  },
+  "remainingValidation": "Independent review and fresh merger-owned full zero-failure integration check. No full/native/browser suites were rerun here. Windows/WSL2 acceptance remains explicitly deferred."
+}
