@@ -1,8 +1,17 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 610cb9cd74..7bf62df069 100644
+index 610cb9cd74..c8aabd2178 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -9,6 +9,8 @@
+@@ -4,11 +4,17 @@
+ 
+ ### Fixed
+ 
++- Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
++
++### Fixed
++
+ - RPC UI requires explicit valid answers; native ask and tool expiry cancel without default submission.
+ 
  
  ### Added
  
@@ -13,10 +22,10 @@ index 610cb9cd74..7bf62df069 100644
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/docs/rpc-strict-start.md b/packages/coding-agent/docs/rpc-strict-start.md
 new file mode 100644
-index 0000000000..379d840aeb
+index 0000000000..283c53eb21
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-strict-start.md
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,37 @@
 +# Deferred strict rpc-ui startup (isolated Linux prototype)
 +
 +Launch the normal interactive mode with `--mode rpc-ui --strict-start`. The first ready frame exposes
@@ -52,6 +61,8 @@ index 0000000000..379d840aeb
 +Rollback requires a verified flattened export and exclusive access, not an older binary over extended data.
 +
 +Nested extended artifact Sessions are logically flattened for explicit native copy/fork/branch-copy operations. Real child leases and complete shared-reader cuts are prepared before destination publication; occupied/unknown/corrupt/budget cases refuse. Fresh files use Linux O_TMPFILE plus fd-bound linkat with no-clobber names; there is no rename/unlink/truncate fallback. Copy is bounded to8192 entries/256 directories/32 levels/64 native children/128MiB total body. Generic archive pack of nested extended artifacts currently refuses; parent-only flattened pack is supported. Native branch without copyArtifacts retains its ordinary no-copy semantics.
++
++Every write guard re-reads the current logical native header and resolves its recorded cwd against the reserved canonical directory. Same-inode ID or cwd changes fail before extension continuation or publication. Native ownership acquisition and readonly probes share the lightweight session lease module, including test-process directory selection and untrusted-ID normalization; probes never reserve or create directories. Factory-owned descriptors and leases transfer only after validation/initialization succeeds and are released on failure or cancellation. The full UTF-8 encoded commit must fit the physical carrier budget before any generation controls are prepared.
 diff --git a/packages/coding-agent/src/activity/index.ts b/packages/coding-agent/src/activity/index.ts
 index d729b075f6..eb159822bc 100644
 --- a/packages/coding-agent/src/activity/index.ts
@@ -382,18 +393,35 @@ index b77010881e..abe7125807 100644
  	const maxChars = tokenLimit * 4;
  	const headChars = Math.floor(maxChars * 0.6);
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-index fce1e66d0e..da698774f5 100644
+index fce1e66d0e..e189b420d9 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
+@@ -2,9 +2,10 @@
+ import * as fs from "node:fs/promises";
  import { openWithin } from "./catalog-path";
  import * as nodePath from "node:path";
- import { getSessionOwnersDir, relativePathWithinNormalizedRoot } from "@oh-my-pi/pi-utils/dirs";
+-import { getSessionOwnersDir, relativePathWithinNormalizedRoot } from "@oh-my-pi/pi-utils/dirs";
++import { relativePathWithinNormalizedRoot } from "@oh-my-pi/pi-utils/dirs";
 +import { readHeldGenerationMetadata } from "../../session/session-generation";
  import { parseTitleSlotLine } from "../../session/session-title-slot";
- import { isFileLockHeld } from "@oh-my-pi/pi-utils/file-lock";
+-import { isFileLockHeld } from "@oh-my-pi/pi-utils/file-lock";
++import { isSessionLeaseHeld } from "../../session/session-lease";
  import type { CatalogDescriptor, CatalogCwd } from "./wire/rpc-wire.generated";
-@@ -50,7 +51,12 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+ 
+ export const HEADER_BYTES = 16_384;
+@@ -28,9 +29,8 @@ function ownership(id: string): CatalogDescriptor["ownership"] {
+   const observedAt = new Date().toISOString();
+   // This v1 candidate supports Linux. Other native backends are deliberately unknown until validated.
+   if (process.platform !== "linux") return { state: "unknown", observedAt };
+-  const name = /^[A-Za-z0-9_-]{1,128}$/.test(id) ? id : `h-${Bun.hash.wyhash(id).toString(16).padStart(16, "0")}`;
+-  try { return { state: isFileLockHeld(nodePath.join(getSessionOwnersDir(), name)) ? "held" : "free", observedAt }; }
+-  catch { return { state: "unknown", observedAt }; }
++  const held = isSessionLeaseHeld(id);
++  return { state: held === null ? "unknown" : held ? "held" : "free", observedAt };
+ }
+ function isRecord(value:unknown):value is Record<string,unknown> {
+   return typeof value === "object" && value !== null && !Array.isArray(value);
+@@ -50,7 +50,12 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
      if (!before.isFile()) throw new Error("NOT_REGULAR_FILE");
      const bytes = Buffer.alloc(HEADER_BYTES);
      const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
@@ -839,18 +867,18 @@ index 0000000000..4763326da8
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..46604a52a4
+index 0000000000..2a28635509
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,298 @@
-+import { sessionHeaderIdFromPrefix } from "../../session/session-header-id";
+@@ -0,0 +1,295 @@
++import { sessionHeaderFromPrefix } from "../../session/session-header-id";
 +import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
 +import * as fs from "node:fs";
 +import * as path from "node:path";
 +import type { FileHandle } from "node:fs/promises";
-+import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
-+import { tryAcquireFileLock, type FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
++import type { FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
++import { tryAcquireSessionLease } from "../../session/session-lease";
 +import { resolveHeldGeneration, publishHeldGeneration, generationBudgets, readHeldGenerationMetadata } from "../../session/session-generation";
 +import { openWithin } from "./catalog-path";
 +import { hash, readDescriptor, type NativeSource } from "./catalog-metadata";
@@ -875,11 +903,11 @@ index 0000000000..46604a52a4
 +  #failure: Error | undefined;
 +
 +  constructor(source: NativeSource, filePath: string, descriptor: CatalogDescriptor,
-+    anchor: FileHandle | undefined, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string, initializing = false) {
++    anchor: FileHandle | undefined, lease: FileLockHandle, fd: number, parentFd: number, cwdFd: number, cwdPath: string, initializing = false) {
 +    this.#initializing = initializing;
 +    this.#source = source; this.filePath = filePath; this.descriptor = descriptor;
 +    this.#anchor = anchor; this.#lease = lease; this.#fd = fd;
-+    this.#parentFd = fs.openSync(path.dirname(filePath), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++    this.#parentFd = parentFd;
 +    const parent = fs.fstatSync(this.#parentFd, { bigint: true });
 +    this.#parentIdentity = hash(`${parent.dev}:${parent.ino}:${parent.birthtimeNs}`);
 +    this.#cwdFd = cwdFd; this.#cwdPath = cwdPath;
@@ -893,13 +921,12 @@ index 0000000000..46604a52a4
 +    signal.throwIfAborted();
 +    if (expected.cwd.status !== "known" || expected.cwd.canonical !== expectedCwd
 +      || await fs.promises.realpath(expectedCwd) !== expectedCwd) throw new Error("STRICT_CWD_MISMATCH");
-+    const name = /^[A-Za-z0-9_-]{1,128}$/.test(expected.nativeSessionId) ? expected.nativeSessionId
-+      : `h-${Bun.hash.wyhash(expected.nativeSessionId).toString(16).padStart(16, "0")}`;
 +    let lease: FileLockHandle | null;
-+    try { lease = tryAcquireFileLock(path.join(getSessionOwnersDir(), name)); }
++    try { lease = tryAcquireSessionLease(expected.nativeSessionId); }
 +    catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
 +    if (!lease) throw new Error("STRICT_OCCUPIED");
-+    let anchor: FileHandle | undefined, fd: number | undefined, cwdFd: number | undefined;
++    const resources = new AsyncDisposableStack(); resources.defer(() => lease.release());
++    let anchor: FileHandle | undefined, fd: number | undefined, cwdFd: number | undefined, parentFd: number | undefined;
 +    try {
 +      signal.throwIfAborted();
 +      const descriptor = await readDescriptor(source, filePath);
@@ -907,17 +934,14 @@ index 0000000000..46604a52a4
 +        throw new Error("STRICT_REPLACED");
 +      if (descriptor.cwd.status !== "known" || descriptor.cwd.canonical !== expectedCwd)
 +        throw new Error("STRICT_CWD_MISMATCH");
-+      anchor = await openWithin(source.root, source.rootIdentity, filePath);
-+      fd = fs.openSync(`/proc/self/fd/${anchor.fd}`, fs.constants.O_RDWR);
-+      cwdFd = fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-+      const reservation = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, cwdFd, expectedCwd);
++      anchor = resources.adopt(await openWithin(source.root, source.rootIdentity, filePath), file => file.close());
++      fd = resources.adopt(fs.openSync(`/proc/self/fd/${anchor.fd}`, fs.constants.O_RDWR), file => fs.closeSync(file));
++      cwdFd = resources.adopt(fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW), file => fs.closeSync(file));
++      parentFd = resources.adopt(fs.openSync(path.dirname(filePath), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW), file => fs.closeSync(file));
++      const reservation = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, parentFd, cwdFd, expectedCwd);
 +      reservation.assertCurrent(); reservation.assertWritableTail(); signal.throwIfAborted();
-+      return reservation;
-+    } catch (error) {
-+      if (fd !== undefined) fs.closeSync(fd);
-+      if (cwdFd !== undefined) fs.closeSync(cwdFd);
-+      await anchor?.close(); lease.release(); throw error;
-+    }
++      resources.move(); return reservation;
++    } finally { await resources.disposeAsync(); }
 +  }
 +
 +  /** Explicit New alone may exclusively create a native carrier. Failure never retries or deletes an uncertain creation. */
@@ -927,35 +951,35 @@ index 0000000000..46604a52a4
 +    if (await fs.promises.realpath(expectedCwd) !== expectedCwd) throw new Error("STRICT_CWD_MISMATCH");
 +    signal.throwIfAborted();
 +    let lease: FileLockHandle | null;
-+    try { lease = tryAcquireFileLock(path.join(getSessionOwnersDir(), nativeSessionId)); }
++    try { lease = tryAcquireSessionLease(nativeSessionId); }
 +    catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
 +    if (!lease) throw new Error("STRICT_OCCUPIED");
-+    let anchor: FileHandle | undefined, fd: number | undefined, cwdFd: number | undefined;
++    const resources = new AsyncDisposableStack(); resources.defer(() => lease.release());
++    let anchor: FileHandle | undefined, fd: number | undefined, cwdFd: number | undefined, parentFd: number | undefined;
 +    let parent: FileHandle | undefined;
 +    try {
 +      parent = await openWithin(source.root, source.rootIdentity, path.dirname(filePath), true);
 +      signal.throwIfAborted();
-+      cwdFd = fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-+      fd = fs.openSync(`/proc/self/fd/${parent.fd}/${path.basename(filePath)}`,
-+        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
++      cwdFd = resources.adopt(fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW), file => fs.closeSync(file));
++      fd = resources.adopt(fs.openSync(`/proc/self/fd/${parent.fd}/${path.basename(filePath)}`,
++        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600), file => fs.closeSync(file));
 +      const bytes = Buffer.from(body, "utf8"); let offset = 0;
 +      while (offset < bytes.length) {
 +        const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
 +        if (!count) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN"); offset += count;
 +      }
-+      anchor = await openWithin(source.root, source.rootIdentity, filePath);
++      anchor = resources.adopt(await openWithin(source.root, source.rootIdentity, filePath), file => file.close());
 +      const descriptor = await readDescriptor(source, filePath);
 +      if (descriptor.nativeSessionId !== nativeSessionId) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
-+      const result = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, cwdFd, expectedCwd);
++      parentFd = resources.adopt(fs.openSync(`/proc/self/fd/${parent.fd}`, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY), file => fs.closeSync(file));
++      const result = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, parentFd, cwdFd, expectedCwd);
 +      result.#writeAttempted = true; result.assertCurrent(); signal.throwIfAborted();
-+      return result;
++      await parent.close(); parent = undefined;
++      resources.move(); return result;
 +    } catch (error) {
-+      if (fd !== undefined) fs.closeSync(fd);
-+      if (cwdFd !== undefined) fs.closeSync(cwdFd);
-+      await anchor?.close(); lease.release();
 +      if (fd !== undefined) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
 +      throw error;
-+    } finally { await parent?.close(); }
++    } finally { try { await parent?.close(); } finally { await resources.disposeAsync(); } }
 +  }
 +
 +  /** Native explicit-transition factory. Source-owned logical serialization is exclusively materialized under a real lease. */
@@ -973,30 +997,28 @@ index 0000000000..46604a52a4
 +      || !("timestamp" in header) || typeof header.timestamp !== "string") throw new Error("STRICT_NATIVE_HEADER_INVALID");
 +    const nativeSessionId = header.id;
 +    let lease: FileLockHandle | null;
-+    try { lease = tryAcquireFileLock(path.join(getSessionOwnersDir(), nativeSessionId)); }
++    try { lease = tryAcquireSessionLease(nativeSessionId); }
 +    catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
 +    if (!lease) throw new Error("STRICT_OCCUPIED");
-+    const parentFd = fs.openSync(root, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-+    let fd: number | undefined, cwdFd: number | undefined;
++    const resources = new DisposableStack(); resources.defer(() => lease.release());
++    let fd: number | undefined, cwdFd: number | undefined, parentFd: number | undefined;
 +    try {
-+      cwdFd = fs.openSync(cwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-+      fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(filePath)}`,
-+        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
++      parentFd = resources.adopt(fs.openSync(root, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW), file => fs.closeSync(file));
++      cwdFd = resources.adopt(fs.openSync(cwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW), file => fs.closeSync(file));
++      fd = resources.adopt(fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(filePath)}`,
++        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600), file => fs.closeSync(file));
 +      const info = fs.fstatSync(fd, { bigint: true }), instanceId = hash(`${info.dev}:${info.ino}:${info.birthtimeNs}:${nativeSessionId}`);
 +      const reference = Buffer.from(JSON.stringify({ sourceId: source.sourceId, locator: path.basename(filePath), instanceId, nativeSessionId })).toString("base64url");
 +      const observedAt = new Date().toISOString();
 +      const descriptor: CatalogDescriptor = { sourceId: source.sourceId, instanceId, nativeSessionId, reference,
 +        aliases: [path.basename(filePath)], cwd: { status: "known", recorded: cwd, canonical: cwd },
 +        createdAt: header.timestamp, modifiedAt: observedAt, observedAt, ownership: { state: "held", observedAt } };
-+      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, cwdFd, cwd, true);
-+      reservation.#writeAt(body, 0); reservation.read(); return reservation;
++      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, parentFd, cwdFd, cwd, true);
++      reservation.#writeAt(body, 0); reservation.read(); resources.move(); return reservation;
 +    } catch (error) {
-+      if (fd !== undefined) fs.closeSync(fd);
-+      if (cwdFd !== undefined) fs.closeSync(cwdFd);
-+      lease.release();
 +      if (fd !== undefined) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
 +      throw error;
-+    } finally { fs.closeSync(parentFd); }
++    } finally { resources.dispose(); }
 +  }
 +
 +  /** Every data access is bound to the pinned inode; a new pathname is never adopted. */
@@ -1020,7 +1042,10 @@ index 0000000000..46604a52a4
 +        throw new Error("STRICT_REPLACED");
 +      if (!this.#initializing) {
 +        const prefix = readHeldGenerationMetadata(this.#fd, this.#parentFd, this.filePath, 16_384);
-+        if (sessionHeaderIdFromPrefix(prefix) !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
++        const header = sessionHeaderFromPrefix(prefix);
++        if (header?.id !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
++        if (typeof header.cwd !== "string" || fs.realpathSync(header.cwd) !== this.#cwdPath)
++          throw new Error("STRICT_CWD_CHANGED");
 +      }
 +    } catch (error) {
 +      this.#failure = error instanceof Error && error.message.startsWith("STRICT_") ? error : new Error("STRICT_MISSING_OR_INACCESSIBLE");
@@ -1094,7 +1119,7 @@ index 0000000000..46604a52a4
 +    this.#writeAttempted = true;
 +    try { return publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options); }
 +    catch (error) {
-+      const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
++      const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_CARRIER_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
 +      if (clean && !this.#failure) throw error;
 +      this.#failure = new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); throw this.#failure;
 +    }
@@ -1462,10 +1487,10 @@ index 0000000000..d3abb1cb3d
 +export const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
 new file mode 100644
-index 0000000000..d55b3aaa04
+index 0000000000..0a24c09930
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-generation.ts
-@@ -0,0 +1,340 @@
+@@ -0,0 +1,345 @@
 +import { strictStartupPolicy } from "../modes/rpc/strict-start-policy";
 +/** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
 +import * as fs from "node:fs";
@@ -1604,14 +1629,19 @@ index 0000000000..d55b3aaa04
 +  } catch (error) { throw error instanceof Error && error.message.startsWith("GENERATION_") ? error : new Error("GENERATION_CONTROL_UNAVAILABLE"); }
 +  finally { if (fd !== undefined) fs.closeSync(fd); }
 +}
++/** Full-body and catalog-prefix reads authenticate precisely the same committed metadata binding. */
++function readAuthenticatedMetadata(fd: number, directoryFd: number, record: CommitRecord, expectedId: string): GenerationMetadata {
++  const bytes = readSidecar(directoryFd, `${record.offset}-${record.token}.meta`, generationBudgets.metadataBytes);
++  if (hash(bytes) !== record.metadataSha256) throw new Error("GENERATION_METADATA_CORRUPT");
++  const value: unknown = JSON.parse(decoder.decode(bytes));
++  if (!metadata(value) || value.token !== record.token || value.offset !== record.offset
++    || value.carrier !== carrierIdentity(fd) || value.nativeSessionId !== expectedId) throw new Error("GENERATION_BINDING_MISMATCH");
++  return value;
++}
 +function resolveCommit(fd: number, parentFd: number, file: string, record: CommitRecord, expectedId: string): string {
 +  const directoryFd = openSidecar(parentFd, file);
 +  try {
-+    const bytes = readSidecar(directoryFd, `${record.offset}-${record.token}.meta`, generationBudgets.metadataBytes);
-+    if (hash(bytes) !== record.metadataSha256) throw new Error("GENERATION_METADATA_CORRUPT");
-+    const value: unknown = JSON.parse(decoder.decode(bytes));
-+    if (!metadata(value) || value.token !== record.token || value.offset !== record.offset
-+      || value.carrier !== carrierIdentity(fd) || value.nativeSessionId !== expectedId) throw new Error("GENERATION_BINDING_MISMATCH");
++    const value = readAuthenticatedMetadata(fd, directoryFd, record, expectedId);
 +    const body = readSidecar(directoryFd, `${record.token}.gen`, generationBudgets.bodyBytes);
 +    if (body.length !== value.bytes || hash(body) !== value.sha256) throw new Error("GENERATION_CONTENT_CORRUPT");
 +    const text = decoder.decode(body);
@@ -1633,11 +1663,7 @@ index 0000000000..d55b3aaa04
 +  }
 +  const directoryFd = openSidecar(parentFd, file);
 +  try {
-+    const metadataBytes = readSidecar(directoryFd, `${committed.offset}-${committed.token}.meta`, generationBudgets.metadataBytes);
-+    if (hash(metadataBytes) !== committed.metadataSha256) throw new Error("GENERATION_METADATA_CORRUPT");
-+    const value: unknown = JSON.parse(decoder.decode(metadataBytes));
-+    if (!metadata(value) || value.carrier !== carrierIdentity(fd) || value.nativeSessionId !== nativeId(decoder.decode(bytes))
-+      || value.offset !== committed.offset || value.token !== committed.token) throw new Error("GENERATION_BINDING_MISMATCH");
++    const value = readAuthenticatedMetadata(fd, directoryFd, committed, nativeId(decoder.decode(bytes)));
 +    let bodyFd: number;
 +    try { bodyFd = fs.openSync(`/proc/self/fd/${directoryFd}/${value.token}.gen`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW); }
 +    catch { throw new Error("GENERATION_CONTENT_UNAVAILABLE"); }
@@ -1739,16 +1765,22 @@ index 0000000000..d55b3aaa04
 +  const id = nativeId(before.text);
 +  if (!body.endsWith("\n") || nativeId(body) !== id) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
 +  if (options?.commitGuard && !options.commitGuard()) return false;
++  const token = crypto.randomUUID();
++  const value: GenerationMetadata = { format: "omp-native-generation", version: 1, token, carrier: carrierIdentity(fd),
++    nativeSessionId: id, offset: before.physicalBytes, bytes: bytes.length, sha256: hash(bytes),
++    prefixBytes: Math.min(16_384, bytes.length), prefixSha256: hash(bytes.subarray(0, 16_384)) };
++  const metadataBytes = Buffer.from(JSON.stringify(value), "utf8");
++  const payload = { type: COMMIT_TYPE, version: 1, token, offset: value.offset, metadataSha256: hash(metadataBytes) };
++  const record: CommitRecord = { ...payload, type: COMMIT_TYPE, version: 1, checksum: hash(JSON.stringify(payload)) };
++  const encodedCommit = Buffer.from(JSON.stringify(record) + "\n", "utf8");
++  // Refuse before even preparing controls: a committed carrier must remain readable by the same resolver.
++  if (before.physicalBytes + encodedCommit.length > generationBudgets.carrierBytes)
++    throw new Error("GENERATION_CARRIER_LIMIT");
 +  try { fs.mkdirSync(`/proc/self/fd/${parentFd}/${generationDirectory(file)}`, { mode: 0o700 }); }
 +  catch (error) { if (!isRecord(error) || error.code !== "EEXIST") throw error; }
 +  const directoryFd = openSidecar(parentFd, file);
 +  try {
 +    budget(directoryFd, bytes.length); assertCurrent();
-+    const token = crypto.randomUUID();
-+    const value: GenerationMetadata = { format: "omp-native-generation", version: 1, token, carrier: carrierIdentity(fd),
-+      nativeSessionId: id, offset: before.physicalBytes, bytes: bytes.length, sha256: hash(bytes),
-+      prefixBytes: Math.min(16_384, bytes.length), prefixSha256: hash(bytes.subarray(0, 16_384)) };
-+    const metadataBytes = Buffer.from(JSON.stringify(value), "utf8");
 +    for (const [name, contents] of [[`${token}.gen`, bytes], [`${value.offset}-${token}.meta`, metadataBytes]] as const) {
 +      const target = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`,
 +        fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o400);
@@ -1757,8 +1789,6 @@ index 0000000000..d55b3aaa04
 +    assertCurrent();
 +    if (options?.commitGuard && !options.commitGuard()) return false;
 +    if (fs.fstatSync(fd).size !== before.physicalBytes) throw new Error("STRICT_WRITE_CONFLICT");
-+    const payload = { type: COMMIT_TYPE, version: 1, token, offset: value.offset, metadataSha256: hash(metadataBytes) };
-+    const record: CommitRecord = { ...payload, type: COMMIT_TYPE, version: 1, checksum: hash(JSON.stringify(payload)) };
 +    const previousHead = readHead(fd), previous = previousHead ? committedHead(fd, previousHead) : undefined;
 +    const headPayload = { version: 1, carrier: carrierIdentity(fd), current: record, ...(previous ? { previous } : {}) };
 +    writeFileXattr(fd, HEAD_XATTR, Buffer.from(JSON.stringify({ ...headPayload, checksum: hash(JSON.stringify(headPayload)) })));
@@ -1769,7 +1799,7 @@ index 0000000000..d55b3aaa04
 +      assertCurrent();
 +      if (headerPosition(readHeldBytes(fd)).type !== CARRIER_TYPE) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
 +    }
-+    writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
++    writeComplete(fd, encodedCommit, value.offset); assertCurrent();
 +    const confirmed = resolveHeldGeneration(fd, parentFd, file);
 +    if (confirmed.text !== body) throw new Error("GENERATION_COMMIT_OUTCOME_UNKNOWN");
 +    return true;
@@ -1807,7 +1837,7 @@ index 0000000000..d55b3aaa04
 +  try { visit(fd, 0); } finally { fs.closeSync(fd); }
 +}
 diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
-index 53095a1562..5edcfcf2c7 100644
+index 53095a1562..aff31eac5d 100644
 --- a/packages/coding-agent/src/session/session-header-id.ts
 +++ b/packages/coding-agent/src/session/session-header-id.ts
 @@ -1,3 +1,4 @@
@@ -1815,7 +1845,28 @@ index 53095a1562..5edcfcf2c7 100644
  import { jsonContainerEnd, peekFileSync, tryParseJson } from "@oh-my-pi/pi-utils";
  import type { FileEntry, SessionHeader } from "./session-entries";
  import { parseTitleSlotLine } from "./session-title-slot";
-@@ -60,6 +61,7 @@ export function sessionIdFromContent(content: string): string | undefined {
+@@ -15,6 +16,11 @@ function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHea
+  * header); `undefined` when the window ends inside that record.
+  */
+ export function sessionHeaderIdFromPrefix(prefix: Uint8Array): string | undefined {
++	return sessionHeaderFromPrefix(prefix)?.id;
++}
++
++/** Bounded logical native header, shared by identity and cwd binding guards. */
++export function sessionHeaderFromPrefix(prefix: Uint8Array): SessionHeader | undefined {
+ 	let records = prefix;
+ 	const newline = prefix.indexOf(0x0a);
+ 	if (newline !== -1) {
+@@ -36,7 +42,7 @@ export function sessionHeaderIdFromPrefix(prefix: Uint8Array): string | undefine
+ 	const end = jsonContainerEnd(text, 0);
+ 	if (end === -1) return undefined;
+ 	const entry = tryParseJson<FileEntry>(text.slice(0, end)) ?? undefined;
+-	return isValidSessionHeader(entry) ? entry.id : undefined;
++	return isValidSessionHeader(entry) ? entry : undefined;
+ }
+ 
+ /**
+@@ -60,6 +66,7 @@ export function sessionIdFromContent(content: string): string | undefined {
   */
  export function readSessionHeaderIdSync(filePath: string): string | undefined {
  	try {
@@ -1823,6 +1874,117 @@ index 53095a1562..5edcfcf2c7 100644
  		return peekFileSync(filePath, SESSION_HEADER_READ_LIMIT, sessionHeaderIdFromPrefix);
  	} catch {
  		return undefined;
+diff --git a/packages/coding-agent/src/session/session-lease.ts b/packages/coding-agent/src/session/session-lease.ts
+new file mode 100644
+index 0000000000..9741366013
+--- /dev/null
++++ b/packages/coding-agent/src/session/session-lease.ts
+@@ -0,0 +1,105 @@
++/** Lightweight native ownership only: safe for readonly catalog and pre-runtime strict reservation. */
++import * as fs from "node:fs";
++import * as path from "node:path";
++import { getSessionOwnersDir, getTestTempDir } from "@oh-my-pi/pi-utils/dirs";
++import { isBunTestRuntime } from "@oh-my-pi/pi-utils/env";
++import { type FileLockHandle, isFileLockHeld, tryAcquireFileLock } from "@oh-my-pi/pi-utils/file-lock";
++import { isEnoent } from "@oh-my-pi/pi-utils/fs-error";
++
++const TEST_SESSION_OWNERS_DIR_ENV = "PI_TEST_SESSION_OWNERS_DIR";
++
++/**
++ * A test run never touches the real state dir for session ownership leases:
++ * bun test processes use one per-user directory in the OS temp dir. It is
++ * exported when this module loads, before a test can spawn an omp process,
++ * so spawned processes meet the same leases. Session ids are unique, so
++ * concurrent test processes can share it, and it is reused across runs (bun
++ * test fires no exit hook to remove it).
++ */
++function testSessionOwnersDir(): string | undefined {
++	const exported = process.env[TEST_SESSION_OWNERS_DIR_ENV];
++	if (exported || !isBunTestRuntime()) return exported;
++	const dir = getTestTempDir("omp-test-session-owners");
++	process.env[TEST_SESSION_OWNERS_DIR_ENV] = dir;
++	return dir;
++}
++testSessionOwnersDir();
++
++function sessionOwnersDir(): string {
++	return testSessionOwnersDir() ?? getSessionOwnersDir();
++}
++
++/**
++ * The lock path of a session's ownership lease, shared by every acquirer and
++ * prober so they cannot disagree on the name. Keyed by the session id from the
++ * journal's header, not by the file's path, so every process that reaches the
++ * journal (through a symlink, a hard link, or after a move) meets the same
++ * lease. Ids read from a file are untrusted: anything but a plain token is
++ * hashed so it cannot name a path outside the directory.
++ */
++function sessionLeasePath(sessionId: string, createDir: boolean): string {
++	const name = /^[A-Za-z0-9_-]{1,128}$/.test(sessionId)
++		? sessionId
++		: `h-${Bun.hash.wyhash(sessionId).toString(16).padStart(16, "0")}`;
++	const dir = sessionOwnersDir();
++	// Linux (abstract socket) and Windows (named mutex) locks never touch the
++	// filesystem; elsewhere the lock is a `flock` sidecar in that directory. The
++	// sidecars are empty and never removed: unlinking a flock file can split one
++	// lease between a holder of the old inode and a creator of a new one.
++	if (process.platform !== "linux" && process.platform !== "win32") {
++		if (createDir) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
++		// The test-run dir sits in the shared OS temp dir, where another local
++		// user could pre-create it or plant a symlink: refuse anything but a
++		// directory this user owns that nobody else can enter.
++		const st = fs.lstatSync(dir);
++		const uid = process.getuid?.();
++		if (!st.isDirectory() || (uid !== undefined && st.uid !== uid) || (st.mode & 0o077) !== 0) {
++			throw new Error(`Session ownership lease directory ${dir} is not a private directory owned by this user`);
++		}
++	}
++	return path.join(dir, name);
++}
++
++/**
++ * Take a session's ownership lease without waiting, or `null` while another
++ * process holds it. A process writing the session holds it (see
++ * `FileSessionStorage.claimSession`) until it exits; `omp gc` takes it to
++ * delete a session no running process owns. Throws when the lock cannot be
++ * probed.
++ */
++export function tryAcquireSessionLease(sessionId: string): FileLockHandle | null {
++	return tryAcquireFileLock(sessionLeasePath(sessionId, true));
++}
++
++/**
++ * Whether a process, this one included, holds a session's ownership lease,
++ * observed without taking it, so it never makes a concurrent claim fork the
++ * session (see `isFileLockHeld`). `null` when
++ * the lease cannot be probed. Never throws.
++ */
++export function isSessionLeaseHeld(sessionId: string): boolean | null {
++	try {
++		return isFileLockHeld(sessionLeasePath(sessionId, false));
++	} catch (err) {
++		// No sidecar directory yet: nobody has ever claimed a session here.
++		return isEnoent(err) ? false : null;
++	}
++}
++
++/** Session ids whose lease is held, and those whose lease could not be probed; the rest are free. */
++export interface SessionLeaseReport {
++	held: string[];
++	unknown: string[];
++}
++
++/** `isSessionLeaseHeld` over many ids, for `omp session lease` and RPC `get_session_lease`. */
++export function probeSessionLeases(sessionIds: readonly string[]): SessionLeaseReport {
++	const report: SessionLeaseReport = { held: [], unknown: [] };
++	for (const id of sessionIds) {
++		const held = isSessionLeaseHeld(id);
++		if (held === null) report.unknown.push(id);
++		else if (held) report.held.push(id);
++	}
++	return report;
++}
++
 diff --git a/packages/coding-agent/src/session/session-loader.ts b/packages/coding-agent/src/session/session-loader.ts
 index 0cfdcfaa0e..219391d0e2 100644
 --- a/packages/coding-agent/src/session/session-loader.ts
@@ -1852,7 +2014,7 @@ index 0cfdcfaa0e..219391d0e2 100644
  			const chunk = streamed.byteLength > unread ? streamed.subarray(0, unread) : streamed;
  			unread -= chunk.byteLength;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index b8a0b167a3..975011786d 100644
+index b8a0b167a3..30edfa33cc 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,3 +1,8 @@
@@ -2246,16 +2408,31 @@ index b8a0b167a3..975011786d 100644
  	}
  
  	/**
-@@ -4553,6 +4673,8 @@ export class SessionManager {
+@@ -4553,6 +4673,23 @@ export class SessionManager {
  		storage: SessionStorage = new FileSessionStorage(),
  		options?: { initialCwd?: string; parentSession?: string; suppressBreadcrumb?: boolean; throwIfMissing?: boolean },
  	): Promise<SessionManager> {
-+		if (storage instanceof FileSessionStorage && storage.existsSync(filePath) && isGenerationCarrier(filePath))
-+			storage = await openNativeGenerationStorage(filePath);
++		const acquiredStorage = storage instanceof FileSessionStorage && storage.existsSync(filePath) && isGenerationCarrier(filePath)
++			? await openNativeGenerationStorage(filePath) : undefined;
++		if (acquiredStorage) storage = acquiredStorage;
++		try {
++      return await SessionManager.#openWithStorage(filePath, sessionDir, storage, options);
++		} catch (error) {
++			// The factory owns its acquired backend until a fully initialized manager is returned.
++			await acquiredStorage?.releaseSessionOwnership();
++			throw error;
++		}
++	}
++
++  /** Initialize using a borrowed backend; the acquiring factory owns failure cleanup. */
++  static async #openWithStorage(
++    filePath: string, sessionDir: string | undefined, storage: SessionStorage,
++    options?: { initialCwd?: string; parentSession?: string; suppressBreadcrumb?: boolean; throwIfMissing?: boolean },
++  ): Promise<SessionManager> {
  		const probed = await loadSessionFile(filePath, storage, { throwIfMissing: options?.throwIfMissing });
  		const header = probed.entries.find(entry => entry.type === "session") as SessionHeader | undefined;
  		// Resume into the session's recorded cwd only when it is verifiably
-@@ -4583,6 +4705,10 @@ export class SessionManager {
+@@ -4583,8 +4720,13 @@ export class SessionManager {
  			throwIfMissing: options?.throwIfMissing,
  			newSession: { parentSession: options?.parentSession },
  		});
@@ -2264,18 +2441,34 @@ index b8a0b167a3..975011786d 100644
 +      manager.enableStrictContinuation(() => strictStorage.assertCurrent());
 +    }
  		return manager;
- 	}
+-	}
++  }
++
  
+ 	/**
+ 	 * Whether `session` is filed under `cwd` (its cwd-derived session directory,
 diff --git a/packages/coding-agent/src/session/session-storage.ts b/packages/coding-agent/src/session/session-storage.ts
-index 4750d350d0..b1887e00fe 100644
+index 4750d350d0..c8adef23dd 100644
 --- a/packages/coding-agent/src/session/session-storage.ts
 +++ b/packages/coding-agent/src/session/session-storage.ts
-@@ -1,3 +1,4 @@
+@@ -1,13 +1,12 @@
++import { tryAcquireSessionLease } from "./session-lease";
++export * from "./session-lease";
 +import { isGenerationCarrier, readNativeGeneration } from "./session-generation";
  import * as fs from "node:fs";
  import * as fsp from "node:fs/promises";
  import * as path from "node:path";
-@@ -160,6 +161,10 @@ export interface SessionStorage {
+ import { FileLock as NativeFileLock } from "@oh-my-pi/pi-natives";
+-import { getSessionOwnersDir, getTestTempDir } from "@oh-my-pi/pi-utils/dirs";
+-import { isBunTestRuntime } from "@oh-my-pi/pi-utils/env";
+ import {
+ 	type FileLockHandle,
+-	isFileLockHeld,
+-	tryAcquireFileLock,
+ 	withFileLockSync,
+ } from "@oh-my-pi/pi-utils/file-lock";
+ import { type FsError, hasFsCode, isEnoent } from "@oh-my-pi/pi-utils/fs-error";
+@@ -160,6 +159,10 @@ export interface SessionStorage {
  	 * advances that size.
  	 */
  	readonly defersSyncPublish?: boolean;
@@ -2286,7 +2479,7 @@ index 4750d350d0..b1887e00fe 100644
  	/**
  	 * Resolve once every write this storage queued for `path` has been confirmed
  	 * by, or rejected by, the backing store. In-body backends never queue, so
-@@ -194,6 +199,8 @@ export interface SessionStorage {
+@@ -194,6 +197,8 @@ export interface SessionStorage {
  	 * reading.
  	 */
  	updateSessionTitle(path: string, update: SessionTitleUpdate): Promise<void>;
@@ -2295,7 +2488,111 @@ index 4750d350d0..b1887e00fe 100644
  	statSync(path: string): SessionStorageStat;
  	listFilesSync(dir: string, pattern: string): string[];
  
-@@ -997,6 +1004,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -566,103 +571,6 @@ function publishLockPid(content: string): number | undefined {
+  */
+ const sessionLeases = new Map<string, { lease: FileLockHandle; holders: number }>();
+ 
+-const TEST_SESSION_OWNERS_DIR_ENV = "PI_TEST_SESSION_OWNERS_DIR";
+-
+-/**
+- * A test run never touches the real state dir for session ownership leases:
+- * bun test processes use one per-user directory in the OS temp dir. It is
+- * exported when this module loads, before a test can spawn an omp process,
+- * so spawned processes meet the same leases. Session ids are unique, so
+- * concurrent test processes can share it, and it is reused across runs (bun
+- * test fires no exit hook to remove it).
+- */
+-function testSessionOwnersDir(): string | undefined {
+-	const exported = process.env[TEST_SESSION_OWNERS_DIR_ENV];
+-	if (exported || !isBunTestRuntime()) return exported;
+-	const dir = getTestTempDir("omp-test-session-owners");
+-	process.env[TEST_SESSION_OWNERS_DIR_ENV] = dir;
+-	return dir;
+-}
+-testSessionOwnersDir();
+-
+-function sessionOwnersDir(): string {
+-	return testSessionOwnersDir() ?? getSessionOwnersDir();
+-}
+-
+-/**
+- * The lock path of a session's ownership lease, shared by every acquirer and
+- * prober so they cannot disagree on the name. Keyed by the session id from the
+- * journal's header, not by the file's path, so every process that reaches the
+- * journal (through a symlink, a hard link, or after a move) meets the same
+- * lease. Ids read from a file are untrusted: anything but a plain token is
+- * hashed so it cannot name a path outside the directory.
+- */
+-function sessionLeasePath(sessionId: string, createDir: boolean): string {
+-	const name = /^[A-Za-z0-9_-]{1,128}$/.test(sessionId)
+-		? sessionId
+-		: `h-${Bun.hash.wyhash(sessionId).toString(16).padStart(16, "0")}`;
+-	const dir = sessionOwnersDir();
+-	// Linux (abstract socket) and Windows (named mutex) locks never touch the
+-	// filesystem; elsewhere the lock is a `flock` sidecar in that directory. The
+-	// sidecars are empty and never removed: unlinking a flock file can split one
+-	// lease between a holder of the old inode and a creator of a new one.
+-	if (process.platform !== "linux" && process.platform !== "win32") {
+-		if (createDir) fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+-		// The test-run dir sits in the shared OS temp dir, where another local
+-		// user could pre-create it or plant a symlink: refuse anything but a
+-		// directory this user owns that nobody else can enter.
+-		const st = fs.lstatSync(dir);
+-		const uid = process.getuid?.();
+-		if (!st.isDirectory() || (uid !== undefined && st.uid !== uid) || (st.mode & 0o077) !== 0) {
+-			throw new Error(`Session ownership lease directory ${dir} is not a private directory owned by this user`);
+-		}
+-	}
+-	return path.join(dir, name);
+-}
+-
+-/**
+- * Take a session's ownership lease without waiting, or `null` while another
+- * process holds it. A process writing the session holds it (see
+- * `FileSessionStorage.claimSession`) until it exits; `omp gc` takes it to
+- * delete a session no running process owns. Throws when the lock cannot be
+- * probed.
+- */
+-export function tryAcquireSessionLease(sessionId: string): FileLockHandle | null {
+-	return tryAcquireFileLock(sessionLeasePath(sessionId, true));
+-}
+-
+-/**
+- * Whether a process, this one included, holds a session's ownership lease,
+- * observed without taking it, so it never makes a concurrent claim fork the
+- * session (see `isFileLockHeld`). `null` when
+- * the lease cannot be probed. Never throws.
+- */
+-export function isSessionLeaseHeld(sessionId: string): boolean | null {
+-	try {
+-		return isFileLockHeld(sessionLeasePath(sessionId, false));
+-	} catch (err) {
+-		// No sidecar directory yet: nobody has ever claimed a session here.
+-		return isEnoent(err) ? false : null;
+-	}
+-}
+-
+-/** Session ids whose lease is held, and those whose lease could not be probed; the rest are free. */
+-export interface SessionLeaseReport {
+-	held: string[];
+-	unknown: string[];
+-}
+-
+-/** `isSessionLeaseHeld` over many ids, for `omp session lease` and RPC `get_session_lease`. */
+-export function probeSessionLeases(sessionIds: readonly string[]): SessionLeaseReport {
+-	const report: SessionLeaseReport = { held: [], unknown: [] };
+-	for (const id of sessionIds) {
+-		const held = isSessionLeaseHeld(id);
+-		if (held === null) report.unknown.push(id);
+-		else if (held) report.held.push(id);
+-	}
+-	return report;
+-}
+-
+ /** Approximate size (UTF-16 units synchronously, bytes through a sink) buffered per staging-file write when streaming a body. */
+ const LINE_STREAM_CHUNK = 1 << 20;
+ 
+@@ -997,6 +905,7 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	writeTextSync(fpath: string, content: string, options?: SessionStorageWriteOptions): void {
@@ -2303,7 +2600,7 @@ index 4750d350d0..b1887e00fe 100644
  		this.#publishSync(fpath, tempPath => fs.writeFileSync(tempPath, content), options);
  	}
  
-@@ -1006,6 +1014,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1006,6 +915,7 @@ export class FileSessionStorage implements SessionStorage {
  	 * the lines are then joined and routed through it.
  	 */
  	writeLinesSync(fpath: string, lines: readonly string[], options?: SessionStorageWriteOptions): void {
@@ -2311,7 +2608,7 @@ index 4750d350d0..b1887e00fe 100644
  		if (this.writeTextSync !== FileSessionStorage.prototype.writeTextSync) {
  			this.writeTextSync(fpath, lines.join(""), options);
  			return;
-@@ -1052,6 +1061,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1052,6 +962,7 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	async updateSessionTitle(fpath: string, update: SessionTitleUpdate): Promise<void> {
@@ -2319,7 +2616,7 @@ index 4750d350d0..b1887e00fe 100644
  		const fd = fs.openSync(fpath, "r+");
  		try {
  			const buf = Buffer.from(serializeTitleSlot(update), "utf-8");
-@@ -1072,7 +1082,8 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1072,7 +983,8 @@ export class FileSessionStorage implements SessionStorage {
  
  	statSync(path: string): SessionStorageStat {
  		const stats = fs.statSync(path);
@@ -2329,7 +2626,7 @@ index 4750d350d0..b1887e00fe 100644
  	}
  
  	listFilesSync(dir: string, pattern: string): string[] {
-@@ -1099,14 +1110,18 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1099,14 +1011,18 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	readText(path: string): Promise<string> {
@@ -2350,7 +2647,7 @@ index 4750d350d0..b1887e00fe 100644
  		return peekFileEnds(path, prefixBytes, suffixBytes, (head, tail) => [
  			utf8Decoder.decode(head),
  			utf8Decoder.decode(tail),
-@@ -1114,6 +1129,10 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1114,6 +1030,10 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	async scanLines(path: string, visit: (line: string) => boolean): Promise<void> {
@@ -2361,7 +2658,7 @@ index 4750d350d0..b1887e00fe 100644
  		const fileHandle = await fsp.open(path, "r");
  		try {
  			for await (const line of fileHandle.readLines()) {
-@@ -1125,10 +1144,12 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1125,10 +1045,12 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	async writeText(path: string, content: string): Promise<void> {
@@ -2374,7 +2671,7 @@ index 4750d350d0..b1887e00fe 100644
  		await this.#publishAtomic(fpath, tempPath => fs.promises.writeFile(tempPath, content), options);
  	}
  
-@@ -1138,6 +1159,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1138,6 +1060,7 @@ export class FileSessionStorage implements SessionStorage {
  	 * full rewrite: the lines are then joined and routed through it.
  	 */
  	async writeLinesAtomic(fpath: string, lines: readonly string[], options?: WriteTextAtomicOptions): Promise<void> {
@@ -2382,7 +2679,7 @@ index 4750d350d0..b1887e00fe 100644
  		if (this.writeTextAtomic !== FileSessionStorage.prototype.writeTextAtomic) {
  			return this.writeTextAtomic(fpath, lines.join(""), options);
  		}
-@@ -1196,6 +1218,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1196,6 +1119,7 @@ export class FileSessionStorage implements SessionStorage {
  	 * Windows-style EPERM at the sync layer used by the atomic path.
  	 */
  	renameSync(source: string, target: string): void {
@@ -2390,7 +2687,7 @@ index 4750d350d0..b1887e00fe 100644
  		fs.renameSync(source, target);
  	}
  
-@@ -1281,6 +1304,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1281,6 +1205,7 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	async rename(path: string, nextPath: string): Promise<void> {
@@ -2398,7 +2695,7 @@ index 4750d350d0..b1887e00fe 100644
  		try {
  			await fs.promises.rename(path, nextPath);
  		} catch (err) {
-@@ -1289,6 +1313,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1289,6 +1214,7 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	unlink(path: string): Promise<void> {
@@ -2406,7 +2703,7 @@ index 4750d350d0..b1887e00fe 100644
  		return fs.promises.unlink(path);
  	}
  
-@@ -1299,6 +1324,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1299,6 +1225,7 @@ export class FileSessionStorage implements SessionStorage {
  	}
  
  	openWriter(fpath: string, options?: { flags?: "a" | "w"; onError?: (err: Error) => void }): SessionStorageWriter {
@@ -2414,7 +2711,7 @@ index 4750d350d0..b1887e00fe 100644
  		const lockPath = this.#publishLockPath(fpath);
  		const gatePath = this.#osGatePath(lockPath);
  		return new FileSessionStorageWriter(fpath, {
-@@ -1307,6 +1333,14 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1307,6 +1234,14 @@ export class FileSessionStorage implements SessionStorage {
  		});
  	}
  
@@ -2429,7 +2726,7 @@ index 4750d350d0..b1887e00fe 100644
  	/** Run a synchronous session mutation under its cross-process lock. */
  	withSessionFileLockSync<T>(sessionPath: string, operation: () => T): T {
  		return withFileLockSync(sessionPath, operation);
-@@ -1367,6 +1401,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1367,6 +1302,7 @@ export class FileSessionStorage implements SessionStorage {
  	 * durable append to a draft-only session.
  	 */
  	deleteSessionWithArtifactsIf(sessionPath: string, shouldDelete: (content: string) => boolean): Promise<boolean> {
@@ -2437,7 +2734,7 @@ index 4750d350d0..b1887e00fe 100644
  		const deleted = this.withSessionFileLockSync(sessionPath, () => {
  			const content = fs.readFileSync(sessionPath, "utf-8");
  			if (!shouldDelete(content)) return false;
-@@ -1395,6 +1430,7 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1395,6 +1331,7 @@ export class FileSessionStorage implements SessionStorage {
  		sessionPath: string,
  		options?: { historyDbPath?: string; statsDbPath?: string },
  	): Promise<void> {
