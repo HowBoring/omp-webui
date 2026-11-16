@@ -31,6 +31,10 @@ for (const patch of ompPatches) {
     sourceGit(omp,"apply",resolve("compatibility/omp",patch));
   }
 }
+if (process.argv.includes("--source-only")) {
+  console.info("Fixed ordered source patches prepared; existing dependency cache was not modified.");
+  process.exit(0);
+}
 await mkdir(runtime, { recursive: true });
 await cp("package.json", resolve(runtime, "package.json"));
 await cp("bun.lock", resolve(runtime, "bun.lock"));

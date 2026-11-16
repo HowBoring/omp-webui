@@ -4,19 +4,29 @@ import { tmpdir } from "node:os";
 import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
-export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0005-strict-continuation.patch"];
-export const authoredPaths = ["src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
+export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch"];
+export const authoredPaths = ["src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
+  "src/modes/rpc/wire/strict-start.ts", "src/modes/rpc/strict-mode.ts", "src/modes/rpc/strict-reservation.ts",
+  "src/modes/rpc/strict-context.ts", "src/modes/rpc/strict-input.ts", "src/session/session-manager.ts", "src/modes/rpc/history-client.ts",
+  "src/modes/rpc/rpc-history.ts", "src/modes/rpc/wire/history.ts", "src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
   "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts", "src/modes/rpc/wire/index.ts",
   "src/modes/rpc/wire/catalog.ts", "src/modes/rpc/catalog-mode.ts", "src/modes/rpc/catalog-native.ts",
-  "src/main.ts", "src/session/session-manager.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
-  "src/modes/rpc/strict-context.ts", "src/modes/rpc/strict-input.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts", "src/modes/rpc/wire/strict-start.ts", "src/modes/rpc/strict-mode.ts", "src/modes/rpc/strict-reservation.ts",
-  "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
+  "src/modes/rpc/rpc-interaction-policy.ts", "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
+  "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
+  "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
   .map(path => `packages/coding-agent/${path}`);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
-export const temporaryPaths = ["node_modules", "packages/coding-agent/src/modes/rpc/strict-command.generated.js",
-  "packages/coding-agent/src/modes/rpc/strict-state.generated.js", "packages/coding-agent/src/modes/rpc/strict.generated.ts", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/strict-command.generated.js",
+  "packages/coding-agent/src/modes/rpc/strict-state.generated.js", "packages/coding-agent/src/modes/rpc/strict.generated.ts", "packages/coding-agent/src/modes/rpc/history.generated.ts",
+  ...["command", "open", "page", "poll", "content", "notification"].flatMap(name => ["js", "d.ts"].map(extension => `packages/coding-agent/src/modes/rpc/history-${name}.generated.${extension}`)), "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-command.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-policy.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-command.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-policy.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.d.ts","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
   "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
   "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",
   "packages/coding-agent/src/modes/rpc/catalog-sources.generated.js", "packages/coding-agent/src/modes/rpc/catalog-description.generated.js"];

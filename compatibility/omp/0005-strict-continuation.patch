@@ -72,10 +72,10 @@ index eb3870fbb6..1b227d7408 100644
  		// Kick off plugin-root preload in parallel with the remaining startup work.
  		// Awaited later (before extension/skill discovery in createAgentSession needs it).
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-native.ts b/packages/coding-agent/src/modes/rpc/catalog-native.ts
-index 9b90165b3b..971416bc2a 100644
+index ea374c391e..2451b0cfe4 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-native.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-native.ts
-@@ -191,6 +191,18 @@ export class NativeCatalog {
+@@ -192,6 +192,18 @@ export class NativeCatalog {
      if (Buffer.byteLength(JSON.stringify(result))+1024 > catalogBudgets.responseBytes) throw new Error("CATALOG_RESPONSE_LIMIT");
      return result;
    }
@@ -95,15 +95,17 @@ index 9b90165b3b..971416bc2a 100644
      const observedAt = new Date().toISOString();
      if (reference.length > 4096) return {status:"invalid_reference",observedAt};
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 4408b13370..880277bfe5 100644
+index dc60e39d35..b1523ef9a3 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,3 +1,4 @@
+@@ -1,5 +1,6 @@
+ import { validateHistoryCommand } from "./history.generated";
+ import { RpcHistoryObservation } from "./rpc-history";
 +import { getStrictStartup, observeStrictStartup } from "./strict-context";
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1407,6 +1408,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1303,6 +1304,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	process.env.PI_NOTIFICATIONS = "off";
  
  	const frameEncoder = new RpcFrameEncoder();
@@ -112,7 +114,7 @@ index 4408b13370..880277bfe5 100644
  	// Bun on Windows writes a piped process.stdout with a blocking WriteFile on the
  	// JS thread and never reports backpressure, so a client that stops reading
  	// stdout froze the whole worker, stdin reader included. An fd write stream
-@@ -1419,7 +1422,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1315,7 +1318,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		dictationBridge?.dispose();
  		void session.dispose().finally(() => process.exit(1));
  	});
@@ -121,7 +123,7 @@ index 4408b13370..880277bfe5 100644
  		frameEncoder.encodeFrames({
  			type: "ready",
  			protocolVersion: 1,
-@@ -1800,6 +1803,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1732,6 +1735,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		uiContext: headless ? undefined : rpcUiContext,
  	});
  
@@ -129,8 +131,8 @@ index 4408b13370..880277bfe5 100644
 +
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
- 		sessionEvents.forward(event);
-@@ -2257,6 +2262,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 		historyObservation.observe(event);
+@@ -2190,6 +2195,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// State
  			// =================================================================
  
@@ -143,7 +145,7 @@ index 4408b13370..880277bfe5 100644
  				// A goal exit triggered by the last turn restores tools asynchronously; report after it.
  				await goalController.settled();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..46e34c363d 100644
+index a0c7055d75..efccf79be7 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -1,3 +1,4 @@
@@ -151,7 +153,7 @@ index 6d7b4f84cd..46e34c363d 100644
  /**
   * RPC protocol types for headless operation.
   *
-@@ -63,6 +64,9 @@ export type RpcCommand =
+@@ -72,6 +73,9 @@ export type RpcCommand =
  
  	// State
  	| { id?: string; type: "get_state" }
@@ -161,7 +163,7 @@ index 6d7b4f84cd..46e34c363d 100644
  	| { id?: string; type: "set_fast_mode"; enabled: boolean }
  	| { id?: string; type: "set_slow_mode"; enabled: boolean }
  	| {
-@@ -463,6 +467,7 @@ export type RpcResponse =
+@@ -479,6 +483,7 @@ export type RpcResponse =
  
  	// State
  	| { id?: string; type: "response"; command: "get_state"; success: true; data: RpcSessionState }
@@ -236,14 +238,15 @@ index 0000000000..3b0f72c44c
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
 new file mode 100644
-index 0000000000..28215850a8
+index 0000000000..74ce4adf6c
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,118 @@
 +/** Deferred rpc-ui startup. Intentional lazy-import exception: no ordinary Session/UI may precede ownership. */
 +import { RpcFrameEncoder, MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "./rpc-frame";
 +import { validateStrictCommand, type StrictCommand } from "./strict.generated";
 +import { NativeCatalog } from "./catalog-native";
++import { rpcInteractionPolicy } from "./rpc-interaction-policy";
 +import { StrictInput } from "./strict-input";
 +import { StrictReservation } from "./strict-reservation";
 +import { setStrictStartup, type StrictStartupContext } from "./strict-context";
@@ -257,7 +260,7 @@ index 0000000000..28215850a8
 +  let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
 +  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
 +    maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
-+    strictStartup: "strict-start-v1" });
++    strictStartup: "strict-start-v1", interactionPolicy: rpcInteractionPolicy });
 +  let negotiated = false, attempted = false;
 +  let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
 +  let handedOff = false, inputEnded = false;
@@ -289,6 +292,8 @@ index 0000000000..28215850a8
 +        { throwIfMissing: true, suppressBreadcrumb: true });
 +      reservation.assertCurrent(); abort.signal.throwIfAborted();
 +      manager.enableStrictContinuation(() => reservation!.assertCurrent());
++      manager.bindHistorySource({ sourceId: reservation.descriptor.sourceId, instanceId: reservation.descriptor.instanceId,
++        nativeSessionId: reservation.descriptor.nativeSessionId, reference: reservation.descriptor.reference });
 +      if (manager.getSessionId() !== reservation.descriptor.nativeSessionId || manager.getCwd() !== command.expectedCwd)
 +        throw new Error("STRICT_NATIVE_ID_OR_CWD_CHANGED");
 +      const owned = reservation;
@@ -488,7 +493,7 @@ index 0000000000..1fb90422d7
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 5da22a7c56..1dd3ae5c0a 100644
+index bbf37dcf49..800328dd61 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 @@ -1,3 +1,4 @@
@@ -496,46 +501,46 @@ index 5da22a7c56..1dd3ae5c0a 100644
  /**
   * The RPC command table: every `RpcCommand` with its parameters, its success
   * `data`, and the client-library metadata generators need.
-@@ -34,6 +35,7 @@ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
- 
- export const rpcCommands: readonly RpcCommandSpec[] = [
+@@ -38,6 +39,7 @@ export const rpcCommands: readonly RpcCommandSpec[] = [
+   ...interactionCommands,
    ...catalogCommands,
+   ...historyCommands,
 +  ...strictStartCommands,
    {
      name: "get_compatibility",
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index ed33f29b80..b28664451d 100644
+index f7b37ecfe7..3ef20656e3 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-@@ -23,6 +23,7 @@ export const frameDefs = {
- 	ReadyEvent: doc(
+@@ -25,6 +25,7 @@ export const frameDefs = {
  		{
  			type: "'ready'",
+ 			"interactionPolicy?": "InteractionPolicy",
 +      "strictStartup?": "'strict-start-v1'",
  			"protocolVersion?": "number.integer",
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index f873117435..217d1528df 100644
+index 93c54db31d..1e7b675bc3 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
-@@ -19,6 +19,7 @@ import { messageDefs, modelDefs } from "./content";
- import { doc, type WireDefs } from "./dsl";
+@@ -20,6 +20,7 @@ import { doc, type WireDefs } from "./dsl";
  import { eventDefs } from "./events";
+ import { interactionDefs } from "./interactions";
  import { frameDefs } from "./frames";
 +import { strictStartDefs } from "./strict-start";
  import { catalogDefs } from "./catalog";
+ import { historyDefs } from "./history";
  import { stateDefs } from "./state";
- 
-@@ -167,6 +168,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
+@@ -169,6 +170,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
  		...modelDefs,
  		...stateDefs,
      ...catalogDefs,
 +    ...strictStartDefs,
  		...eventDefs,
  		...frameDefs,
- 		...notificationDefs,
+ 		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/strict-start.ts b/packages/coding-agent/src/modes/rpc/wire/strict-start.ts
 new file mode 100644
 index 0000000000..b7b1fbe98f
@@ -557,10 +562,10 @@ index 0000000000..b7b1fbe98f
 +  { name: "cancel_strict_start", doc: "Cancel pending startup; already published side effects remain explicit.", result: "StrictStartState" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..8dd0a669a1 100644
+index b8a0b167a3..2e9454e9c5 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -945,6 +945,7 @@ export class SessionManager {
+@@ -948,6 +948,7 @@ export class SessionManager {
  	#sessionDir: string;
  	readonly #persist: boolean;
  	readonly #storage: SessionStorage;
@@ -568,7 +573,7 @@ index 5835039797..8dd0a669a1 100644
  	readonly #blobs: BlobStore;
  
  	#sessionId = "";
-@@ -1156,6 +1157,7 @@ export class SessionManager {
+@@ -1163,6 +1164,7 @@ export class SessionManager {
  	 * once the owner closed the session or exited.
  	 */
  	#claimSession(): void {
@@ -576,7 +581,7 @@ index 5835039797..8dd0a669a1 100644
  		const sessionId = this.#sessionId;
  		const sessionFile = this.#sessionFile;
  		if (!this.#persist || !sessionFile || !this.#storage.claimSession) return;
-@@ -1318,6 +1320,7 @@ export class SessionManager {
+@@ -1327,6 +1329,7 @@ export class SessionManager {
  	 * await it. Returns the sibling.
  	 */
  	#moveOffSessionFile(reason: SessionPersistenceNotice["reason"]): string {
@@ -584,7 +589,7 @@ index 5835039797..8dd0a669a1 100644
  		const from = this.#sessionFile as string;
  		const previousSessionId = this.#sessionId;
  		const timestamp = nowIso();
-@@ -2066,6 +2069,7 @@ export class SessionManager {
+@@ -2077,6 +2080,7 @@ export class SessionManager {
  	}
  
  	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
@@ -592,7 +597,7 @@ index 5835039797..8dd0a669a1 100644
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
  		this.#expectedDiskSize = null;
-@@ -2400,8 +2404,17 @@ export class SessionManager {
+@@ -2418,8 +2422,17 @@ export class SessionManager {
  			await this.#rewriteAtomically();
  		}
  	}
@@ -610,7 +615,7 @@ index 5835039797..8dd0a669a1 100644
  		await this.#setSessionFile(sessionFile);
  	}
  
-@@ -2530,6 +2543,7 @@ export class SessionManager {
+@@ -2548,6 +2561,7 @@ export class SessionManager {
  	 * @returns the old and new session file paths, or undefined when not persisting.
  	 */
  	async fork(): Promise<{ oldSessionFile: string; newSessionFile: string } | undefined> {
@@ -618,7 +623,7 @@ index 5835039797..8dd0a669a1 100644
  		if (!this.#persist || !this.#sessionFile) return undefined;
  
  		const oldSessionFile = this.#sessionFile;
-@@ -2574,6 +2588,7 @@ export class SessionManager {
+@@ -2592,6 +2606,7 @@ export class SessionManager {
  
  	/** Move the session to a new working directory. */
  	async moveTo(newCwd: string, targetSessionDir?: string): Promise<void> {
@@ -626,7 +631,7 @@ index 5835039797..8dd0a669a1 100644
  		const resolvedCwd = path.resolve(newCwd);
  		const resolvedTargetDir = targetSessionDir ? path.resolve(targetSessionDir) : undefined;
  		const managedRoot = resolveManagedSessionRoot(this.#sessionDir, this.#cwd);
-@@ -4159,6 +4174,7 @@ export class SessionManager {
+@@ -4250,6 +4265,7 @@ export class SessionManager {
  	 * Returns the new file path, or undefined when not persisting.
  	 */
  	createBranchedSession(leafId: string, options?: { copyArtifacts?: boolean }): string | undefined {

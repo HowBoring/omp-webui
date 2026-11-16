@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, test, spyOn } from "bun:test";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 
 test("real candidate transport negotiates public v2 then drains and reaps after the report", async () => {
@@ -58,10 +58,10 @@ test("a valid report followed by partial EOF is a failed drain, never successful
   expect(drain.protocolFailure).toBe("RPC_PROTOCOL");
 });
 
-for (const mode of ["wrong-id", "wrong-command", "invalid-result"]) {
+for (const mode of ["wrong-id", "wrong-command", "invalid-result", "missing-policy"]) {
   test(`public transport rejects ${mode} without treating acknowledgement as compatibility`, async () => {
     const client = await fixture(mode);
-    try { await expect(client.inspect()).rejects.toThrow(mode === "invalid-result" ? "RPC_RESULT_SCHEMA" : "RPC_PROTOCOL"); }
+    try { await expect(client.inspect()).rejects.toThrow(["invalid-result","missing-policy"].includes(mode) ? "RPC_RESULT_SCHEMA" : "RPC_PROTOCOL"); }
     finally { await client.close(); }
   });
 }
@@ -142,3 +142,30 @@ test("stdin EOF still drains a valid pending response before observing actual ex
   expect((await report).candidate).toBe("omp-webui-s0");
   expect(await closing).toEqual({ code: 0, forced: false, stderrBytes: 0 });
 });
+
+
+test("preflight rejects a duplicate generated ID without replacing its pending waiter", async () => {
+  const client = await fixture("late", 500);
+  const uuid = spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000030");
+  try {
+    const first = client.inspect();
+    await expect(client.inspect()).rejects.toThrow("RPC_DUPLICATE_ID");
+    expect((await first).sessionAdmission).toBe("blocked");
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+  } finally { uuid.mockRestore(); await client.close(); }
+});
+
+
+test("v2 negotiation applies before an adjacent chunk in the same pipe packet", async () => {
+  const client = await fixture("coalesced-v2", 1000);
+  try {
+    expect((await client.inspect()).sessionAdmission).toBe("blocked");
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+  } finally { await client.close(); }
+});
+
+for (const mode of ["chunk-before-ack", "wrong-ack-then-chunk"]) {
+  test(`${mode} cannot enable v2 chunks`, async () => {
+    await expect(fixture(mode, 1000)).rejects.toThrow("RPC_PROTOCOL");
+  });
+}

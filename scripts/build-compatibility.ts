@@ -48,15 +48,7 @@ const makeCommandSchemas = (names: string[]) => bundle["x-rpc"].commands.filter(
     properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
 });
 const catalogSchemas = makeCommandSchemas(["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
-const commandSchemas = bundle["x-rpc"].commands.filter(command =>
-  command.name === "get_compatibility" || command.name === "negotiate_protocol").map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return {
-    type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties },
-  };
-});
+const commandSchemas = makeCommandSchemas(["get_compatibility", "negotiate_protocol"]);
 // This S0 client deliberately validates only marker-free preflight definitions. Later
 // Session unions require a separately implemented policy for the upstream leniency markers.
 const audited = new Set<string>();
@@ -111,7 +103,7 @@ await Bun.write(join(source, "modes/rpc/strict.generated.ts"),
   `import command from "./strict-command.generated.js";\nimport state from "./strict-state.generated.js";\n` +
   `import type { RpcWireCommands,StrictStartState } from "./wire/rpc-wire.generated";\n` +
   `type StrictName = "strict_start" | "get_strict_state" | "cancel_strict_start" | "negotiate_protocol";\n` +
-  `export type StrictCommand = {[K in StrictName]:{id:string;type:K} & RpcWireCommands[K]["params"]}[StrictName];\n` +
+  `export type StrictCommand = {[K in StrictName]:{id:string;type:K} & (RpcWireCommands[K]["params"] extends undefined ? object : RpcWireCommands[K]["params"])}[StrictName];\n` +
   `export const validateStrictCommand = (value:unknown):value is StrictCommand => command(value);\n` +
   `export const validateStrictState = (value:unknown):value is StrictStartState => state(value);\n`);
 const build = { base, sourceSha256, patchSha256, schemaSha256: schema };
@@ -144,6 +136,43 @@ console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.
 
 }
 
+// The runtime startup-fast interaction dispatcher validates the same authored public command schema.
+const interactionSchemas = bundle["x-rpc"].commands.filter(command =>
+  ["get_interaction_policy", "respond_ui"].includes(command.name)).map(command => {
+  const params = command.params === null ? { properties: {}, required: [] }
+    : parameterDefinition.parse(bundle.$defs[command.params]);
+  return { type: "object", additionalProperties: false, required: ["type", ...params.required],
+    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
+});
+for (const schema of interactionSchemas) audit(schema);
+for (const name of ["InteractionPolicy", "UIReplyResult"]) audit(bundle.$defs[name]);
+const interactionValidator = ajv.compile({ $defs: bundle.$defs, anyOf: interactionSchemas });
+const interactionValidatorCode = standaloneCode(ajv, interactionValidator);
+await Bun.write(join(source, "modes/rpc/interactions-command.generated.js"), interactionValidatorCode);
+await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
+  `// Generated from authored wire/interactions.ts.\n` +
+  `import validate from './interactions-command.generated.js';\n` +
+  `import policy from './interactions-policy.generated.js';\n` +
+  `import result from './interactions-result.generated.js';\n` +
+  `import type { RpcUIAnswer, RpcInteractionPolicy, RpcUIReplyResult } from './rpc-interactions';\n` +
+  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer};\n` +
+  `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n` +
+  `export function validInteractionPolicy(value:unknown):value is RpcInteractionPolicy { return policy(value); }\n` +
+  `export function validInteractionResult(value:unknown):value is RpcUIReplyResult { return result(value); }\n`);
+await Bun.write(join(source,"modes/rpc/interactions-policy.generated.js"),standaloneCode(ajv,ajv.compile(definition("InteractionPolicy"))));
+await Bun.write(join(source,"modes/rpc/interactions-result.generated.js"),standaloneCode(ajv,ajv.compile(definition("UIReplyResult"))));
+for (const name of ["command","policy","result"]) {
+  await Bun.write(join(source,`modes/rpc/interactions-${name}.generated.d.ts`),
+    "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+}
+await emit("packages/contracts/generated/interaction-command.js", interactionValidatorCode);
+await emit("packages/contracts/generated/interaction-command.d.ts",
+  "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+for (const [name, definitionName] of Object.entries({"interaction-policy":"InteractionPolicy", "interaction-result":"UIReplyResult", "interaction-request":"ExtensionUiRequest"})) {
+  await emit(`packages/contracts/generated/${name}.js`, standaloneCode(ajv, ajv.compile(definition(definitionName))));
+  await emit(`packages/contracts/generated/${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+}
+
 // Host contracts/validators are emitted from exactly the schema used by the public candidate.
 await mkdir("packages/contracts/generated", { recursive: true });
 await emit("packages/contracts/generated/omp-wire.ts",
@@ -165,3 +194,6 @@ for (const name of [...Object.keys(outputs), "command"]) {
 }
 await emit("packages/contracts/generated/identity.ts",
   `// Generated from the same authored source patch and schema.\nexport const compatibilityBuild = ${JSON.stringify(build)};\n`);
+
+// Generate the narrow history public client and validators from this exact matched schema.
+await import("./build-history-contracts.ts");

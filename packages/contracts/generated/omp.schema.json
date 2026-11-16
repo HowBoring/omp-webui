@@ -10,6 +10,28 @@
     "inbound": "RpcInbound",
     "commands": [
       {
+        "name": "get_interaction_policy",
+        "doc": "Read the immutable effective rpc-ui policy, immediately available before extension startup UI or timers.",
+        "params": null,
+        "result": "InteractionPolicy",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "respond_ui",
+        "doc": "Atomically answer or cancel extension UI; invalid answers remain pending, old IDs return stale. Available during startup.",
+        "params": "RespondUiParams",
+        "result": "UIReplyResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "catalog_sources",
         "doc": "Readonly catalog v1 startup-selected profile and explicitly configured sources.",
         "params": null,
@@ -36,6 +58,61 @@
         "doc": "Revalidate an existing native reference without opening, repair or ownership acquisition.",
         "params": "DescribeSessionParams",
         "result": "CatalogDescription",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "history_snapshot_open",
+        "doc": "Atomic native retained-tree/active-chain/running-message observation, with bounded live watermark.",
+        "params": "HistorySnapshotOpenParams",
+        "result": "HistoryOpen",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "history_snapshot_page",
+        "doc": "Immutable, source/version/scope/expiry-bound native history page; any source change rejects old cursor.",
+        "params": "HistorySnapshotPageParams",
+        "result": "HistoryPage",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "history_content_page",
+        "doc": "Bounded retained native image bytes tied to immutable observation; never asserts exact original association.",
+        "params": "HistoryContentPageParams",
+        "result": "HistoryContentPage",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "history_snapshot_close",
+        "doc": "Release one native snapshot without changing history.",
+        "params": "HistorySnapshotCloseParams",
+        "result": "HistorySnapshotCloseResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "history_observation_poll",
+        "doc": "Bounded observation journal after a worker cut; explicit gaps require new snapshot.",
+        "params": "HistoryObservationPollParams",
+        "result": "HistoryPoll",
         "nullable": false,
         "unwrap": null,
         "timeoutMs": null,
@@ -5002,6 +5079,9 @@
         "safePreflight": {
           "const": true
         },
+        "rpcUiInteractionPolicy": {
+          "$ref": "#/$defs/InteractionPolicy"
+        },
         "sessionAdmission": {
           "const": "blocked"
         },
@@ -5022,6 +5102,7 @@
         "patchSha256",
         "schemaSha256",
         "safePreflight",
+        "rpcUiInteractionPolicy",
         "sessionAdmission",
         "capabilities",
         "runtime"
@@ -5032,6 +5113,9 @@
       "properties": {
         "type": {
           "const": "ready"
+        },
+        "interactionPolicy": {
+          "$ref": "#/$defs/InteractionPolicy"
         },
         "strictStartup": {
           "const": "strict-start-v1"
@@ -5821,6 +5905,9 @@
         "prefill": {
           "type": "string"
         },
+        "timeout": {
+          "type": "integer"
+        },
         "promptStyle": {
           "type": "boolean"
         }
@@ -5875,6 +5962,14 @@
           "const": "cancel"
         },
         "targetId": {
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "cancelled",
+            "expired",
+            "aborted"
+          ],
           "type": "string"
         }
       },
@@ -6170,7 +6265,7 @@
         "id",
         "cancelled"
       ],
-      "description": "Dismisses a dialog; `timedOut` reports the host's own deadline (an `ask` dialog then takes its recommended answers)."
+      "description": "Dismisses a dialog; `timedOut` reports the host's own deadline (rpc-ui cancels without substituting an answer)."
     },
     "AnswersUiResponse": {
       "type": "object",
@@ -6555,6 +6650,619 @@
         "scheme"
       ]
     },
+    "InteractionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "1"
+        },
+        "explicitAnswersOnly": {
+          "const": true
+        },
+        "nativeExpiry": {
+          "const": "cancel"
+        },
+        "toolExpiry": {
+          "const": "cancel"
+        },
+        "invalidAnswer": {
+          "const": "pending"
+        }
+      },
+      "required": [
+        "version",
+        "explicitAnswersOnly",
+        "nativeExpiry",
+        "toolExpiry",
+        "invalidAnswer"
+      ]
+    },
+    "UIValueAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "value"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    "UIConfirmAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "confirm"
+        },
+        "confirmed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "confirmed"
+      ]
+    },
+    "UICancelAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cancel"
+        },
+        "timedOut": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "UIAskAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "ask"
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AskAnswer"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "answers"
+      ]
+    },
+    "UIAnswer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UIValueAnswer"
+        },
+        {
+          "$ref": "#/$defs/UIConfirmAnswer"
+        },
+        {
+          "$ref": "#/$defs/UICancelAnswer"
+        },
+        {
+          "$ref": "#/$defs/UIAskAnswer"
+        }
+      ]
+    },
+    "UIReplyResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "answered",
+            "cancelled",
+            "expired",
+            "invalid",
+            "stale"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "HistoryScope": {
+      "enum": [
+        "tree",
+        "active",
+        "running"
+      ],
+      "type": "string"
+    },
+    "HistoryContent": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "origin": {
+          "const": "retained_native"
+        },
+        "originalAssociation": {
+          "const": "unproven"
+        }
+      },
+      "required": [
+        "cursor",
+        "mimeType",
+        "bytes",
+        "sha256",
+        "origin",
+        "originalAssociation"
+      ]
+    },
+    "HistoryContentPage": {
+      "type": "object",
+      "properties": {
+        "snapshot": {
+          "type": "string"
+        },
+        "cut": {
+          "$ref": "#/$defs/HistoryCut"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "content": {
+          "$ref": "#/$defs/HistoryContent"
+        },
+        "encoding": {
+          "const": "base64"
+        },
+        "partIndex": {
+          "type": "integer"
+        },
+        "data": {
+          "type": "string"
+        },
+        "nextCursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot",
+        "cut",
+        "expiresAt",
+        "content",
+        "encoding",
+        "partIndex",
+        "data"
+      ]
+    },
+    "HistoryItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "parentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "kind": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string"
+        },
+        "toolCallId": {
+          "type": "string"
+        },
+        "toolName": {
+          "type": "string"
+        },
+        "isError": {
+          "type": "boolean"
+        },
+        "stopReason": {
+          "type": "string"
+        },
+        "contents": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryContent"
+          }
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "partIndex": {
+          "type": "integer"
+        },
+        "partCount": {
+          "type": "integer"
+        },
+        "role": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "boundary": {
+          "enum": [
+            "compaction",
+            "reset",
+            "branch"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "parentId",
+        "kind",
+        "active",
+        "text"
+      ]
+    },
+    "HistorySourceBinding": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "reference"
+      ]
+    },
+    "HistoryCut": {
+      "type": "object",
+      "properties": {
+        "durability": {
+          "const": "not_attested"
+        },
+        "sourceBindingStatus": {
+          "enum": [
+            "worker",
+            "catalog"
+          ],
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "workerId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "contentRevision": {
+          "type": "string"
+        },
+        "leafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observationSeq": {
+          "type": "integer"
+        },
+        "catalogBinding": {
+          "$ref": "#/$defs/HistorySourceBinding"
+        }
+      },
+      "required": [
+        "durability",
+        "sourceBindingStatus",
+        "sourceId",
+        "sessionId",
+        "workerId",
+        "contextId",
+        "contentRevision",
+        "leafId",
+        "observationSeq"
+      ]
+    },
+    "HistoryLimits": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "type": "integer"
+        },
+        "runningMessages": {
+          "type": "integer"
+        },
+        "scanItems": {
+          "type": "integer"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "nativeItemBytes": {
+          "type": "integer"
+        },
+        "itemBytes": {
+          "type": "integer"
+        },
+        "ms": {
+          "type": "integer"
+        },
+        "snapshotBytes": {
+          "type": "integer"
+        },
+        "cacheBytes": {
+          "type": "integer"
+        },
+        "snapshots": {
+          "type": "integer"
+        },
+        "pageItems": {
+          "type": "integer"
+        },
+        "pageBytes": {
+          "type": "integer"
+        },
+        "responseBytes": {
+          "type": "integer"
+        },
+        "ttlMs": {
+          "type": "integer"
+        },
+        "contentItems": {
+          "type": "integer"
+        },
+        "contentPageBytes": {
+          "type": "integer"
+        },
+        "liveEvents": {
+          "type": "integer"
+        },
+        "liveBytes": {
+          "type": "integer"
+        },
+        "pollItems": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "entries",
+        "runningMessages",
+        "scanItems",
+        "bytes",
+        "nativeItemBytes",
+        "itemBytes",
+        "ms",
+        "snapshotBytes",
+        "cacheBytes",
+        "snapshots",
+        "pageItems",
+        "pageBytes",
+        "responseBytes",
+        "ttlMs",
+        "contentItems",
+        "contentPageBytes",
+        "liveEvents",
+        "liveBytes",
+        "pollItems"
+      ]
+    },
+    "HistoryCursors": {
+      "type": "object",
+      "properties": {
+        "tree": {
+          "type": "string"
+        },
+        "active": {
+          "type": "string"
+        },
+        "running": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "tree",
+        "active",
+        "running"
+      ]
+    },
+    "HistoryOpen": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "coherent-history-v1"
+        },
+        "snapshot": {
+          "type": "string"
+        },
+        "cursor": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/HistoryScope"
+        },
+        "cut": {
+          "$ref": "#/$defs/HistoryCut"
+        },
+        "cursors": {
+          "$ref": "#/$defs/HistoryCursors"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "streaming": {
+          "type": "boolean"
+        },
+        "compacting": {
+          "type": "boolean"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HistoryItem"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scannedBytes": {
+          "type": "integer"
+        },
+        "scanMs": {
+          "type": "number"
+        },
+        "snapshotMs": {
+          "type": "number"
+        },
+        "limits": {
+          "$ref": "#/$defs/HistoryLimits"
+        }
+      },
+      "required": [
+        "version",
+        "snapshot",
+        "cursor",
+        "scope",
+        "cut",
+        "cursors",
+        "expiresAt",
+        "count",
+        "streaming",
+        "compacting",
+        "prefix",
+        "scannedBytes",
+        "scanMs",
+        "snapshotMs",
+        "limits"
+      ]
+    },
+    "HistoryPage": {
+      "type": "object",
+      "properties": {
+        "snapshot": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/HistoryScope"
+        },
+        "cut": {
+          "$ref": "#/$defs/HistoryCut"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryItem"
+          }
+        },
+        "complete": {
+          "const": true
+        },
+        "nextCursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot",
+        "scope",
+        "cut",
+        "expiresAt",
+        "items",
+        "complete"
+      ]
+    },
+    "HistoryChange": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "seq",
+        "kind"
+      ]
+    },
+    "HistoryPoll": {
+      "type": "object",
+      "properties": {
+        "cut": {
+          "$ref": "#/$defs/HistoryCut"
+        },
+        "after": {
+          "type": "integer"
+        },
+        "through": {
+          "type": "integer"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryChange"
+          }
+        },
+        "hasMore": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cut",
+        "after",
+        "through",
+        "events",
+        "hasMore"
+      ]
+    },
     "RpcNotification": {
       "anyOf": [
         {
@@ -6643,6 +7351,21 @@
       ],
       "description": "Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`."
     },
+    "RespondUiParams": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "string"
+        },
+        "answer": {
+          "$ref": "#/$defs/UIAnswer"
+        }
+      },
+      "required": [
+        "targetId",
+        "answer"
+      ]
+    },
     "CatalogPageParams": {
       "type": "object",
       "properties": {
@@ -6663,6 +7386,76 @@
       },
       "required": [
         "reference"
+      ]
+    },
+    "HistorySnapshotOpenParams": {
+      "type": "object",
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/HistoryScope"
+        }
+      },
+      "required": [
+        "scope"
+      ]
+    },
+    "HistorySnapshotPageParams": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cursor"
+      ]
+    },
+    "HistoryContentPageParams": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "cursor"
+      ]
+    },
+    "HistorySnapshotCloseParams": {
+      "type": "object",
+      "properties": {
+        "snapshot": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot"
+      ]
+    },
+    "HistorySnapshotCloseResult": {
+      "type": "object",
+      "properties": {
+        "closed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "closed"
+      ]
+    },
+    "HistoryObservationPollParams": {
+      "type": "object",
+      "properties": {
+        "workerId": {
+          "type": "string"
+        },
+        "after": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "workerId",
+        "after"
       ]
     },
     "StrictStartParams": {

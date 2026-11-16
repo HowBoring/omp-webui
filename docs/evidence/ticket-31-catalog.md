@@ -1,5 +1,8 @@
 # Ticket 31 — bounded readonly native catalog, Linux fixture
 
+This is the retained pre-review acceptance record. The [review-fix evidence](ticket-31-review-fixes.md)
+records the corrected overlapping-source behavior, shared stdio core and current tuple/measurements.
+
 Status: **PASS for AC1–5 on the isolated Linux component**. Product private Session admission remains blocked.
 This is not protected continuation, authorization integration, complete MVP or formal S5 acceptance.
 The latest integration branch, including accepted ticket 42 and transport fix
@@ -11,9 +14,9 @@ in the tuple reuse record.
 
 The [versioned native contract](../../compatibility/CATALOG.md) defines the actual wire, identity, source layout,
 partial failures and fixed limits. The [runbook](../../apps/catalog/README.md) reproduces native/Host/DSH/browser use.
-Exact hashes and platform facts are in [tuple.json](../../apps/catalog/evidence/tuple.json),
-[browser results](../../apps/catalog/evidence/linux-browser.json) and
-[native trace summary](../../apps/catalog/evidence/trace-summary.json).
+Exact hashes and platform facts are in [tuple.json](../../apps/catalog/evidence/before-review/tuple.json),
+[browser results](../../apps/catalog/evidence/before-review/linux-browser.json) and
+[native trace summary](../../apps/catalog/evidence/before-review/trace-summary.json).
 
 | Acceptance | Actual evidence |
 | --- | --- |

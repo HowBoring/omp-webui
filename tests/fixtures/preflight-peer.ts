@@ -6,6 +6,9 @@ const write = (value: unknown) => { process.stdout.write(JSON.stringify(value) +
 await Bun.sleep(Number(process.argv[3] ?? 0));
 write(ready);
 const requests: Record<string, unknown>[] = [];
+const chunkedStartup = mode === "coalesced-v2" || mode === "chunk-before-ack" || mode === "wrong-ack-then-chunk";
+const chunkFrame = (index: number, data: Buffer) => ({ type: "rpc_chunk", chunkId: "coalesced-startup", index,
+  count: 5, byteLength: 1048576, data: data.toString("base64") });
 for await (const line of console) {
   if (line.length === 0) continue;
   const command: unknown = JSON.parse(line);
@@ -14,17 +17,32 @@ for await (const line of console) {
   }
   if (command.type === "negotiate_protocol") {
     await Bun.sleep(Number(process.argv[4] ?? 0));
-    write({ type: "response", id: command.id, command: command.type, success: true, data: { protocolVersion: 2 } });
+    const ack = { type: "response", id: command.id, command: mode === "wrong-ack-then-chunk" ? "prompt" : command.type,
+      success: true, data: { protocolVersion: 2 } };
+    if (chunkedStartup) {
+      // One sub-PIPE_BUF write forces adjacent frames into one pipe packet: the first chunk has no complete JSON yet.
+      const frames = [ack, chunkFrame(0, Buffer.alloc(64, 32))];
+      if (mode === "chunk-before-ack") frames.reverse();
+      process.stdout.write(frames.map(frame => JSON.stringify(frame) + "\n").join(""));
+    } else write(ack);
     if (mode === "never-read") await Bun.sleep(60_000);
     continue;
   }
   const report = {
     candidate: "omp-webui-s0", base: "fixture", sourceSha256: "fixture", patchSha256: "fixture",
+    rpcUiInteractionPolicy:{version:"1",explicitAnswersOnly:true,nativeExpiry:"cancel",toolExpiry:"cancel",invalidAnswer:"pending"},
     schemaSha256: "fixture", safePreflight: true, sessionAdmission: "blocked", capabilities: ["fixture"],
     runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
   };
   const response = { type: "response", id: command.id, command: command.type, success: true, data: report };
-  if (mode === "eof-response") { requests.push(response); }
+  if (chunkedStartup) {
+    // The remaining bytes contain this request's actual correlation ID, padded as valid JSON whitespace.
+    const bytes = Buffer.alloc(1048576 - 64, 32);
+    bytes.write(JSON.stringify(response));
+    for (let offset = 0, index = 1; offset < bytes.length; offset += 262144, index++) {
+      write(chunkFrame(index, bytes.subarray(offset, offset + 262144)));
+    }
+  } else if (mode === "eof-response") { requests.push(response); }
   else if (mode === "out-of-order") {
     requests.push(response);
     if (requests.length === 2) {
@@ -34,7 +52,10 @@ for await (const line of console) {
     }
   } else if (mode === "wrong-id") write({ ...response, id: "wrong" });
   else if (mode === "wrong-command") write({ ...response, command: "prompt" });
-  else if (mode === "invalid-result") write({ ...response, data: { safePreflight: true } });
+  else if (mode === "missing-policy") {
+    const {rpcUiInteractionPolicy:_policy,...oldReport}=report;
+    write({...response,data:oldReport});
+  } else if (mode === "invalid-result") write({ ...response, data: { safePreflight: true } });
   else if (mode === "duplicate") { write(response); write(response); }
   else if (mode === "no-response") continue;
   else if (mode === "late") { await Bun.sleep(100); write(response); }
