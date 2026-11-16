@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
-export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch"];
-export const authoredPaths = ["src/session/session-manager.ts", "src/modes/rpc/history-client.ts",
+export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0006-live-settlement.patch"];
+export const authoredPaths = ["src/session/history-context.ts", "src/session/session-manager.ts", "src/session/agent-session.ts", "src/session/live-message-observation.ts", "src/modes/rpc/rpc-session-events.ts", "docs/rpc-live-observation.md", "README.md", "src/modes/rpc/history-client.ts",
   "src/modes/rpc/rpc-history.ts", "src/modes/rpc/wire/history.ts", "src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
   "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts", "src/modes/rpc/wire/index.ts",
   "src/modes/rpc/wire/catalog.ts", "src/modes/rpc/catalog-mode.ts", "src/modes/rpc/catalog-native.ts",

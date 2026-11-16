@@ -66,7 +66,7 @@
       },
       {
         "name": "history_snapshot_open",
-        "doc": "Atomic native retained-tree/active-chain/running-message observation, with bounded live watermark.",
+        "doc": "Atomic native retained-tree/active-chain/running/live observation. Optional live handoff permits only verified append/prefix progress.",
         "params": "HistorySnapshotOpenParams",
         "result": "HistoryOpen",
         "nullable": false,
@@ -77,7 +77,7 @@
       },
       {
         "name": "history_snapshot_page",
-        "doc": "Immutable, source/version/scope/expiry-bound native history page; any source change rejects old cursor.",
+        "doc": "Immutable same-cut native history page. Default rejects any content change; opt-in live handoff rejects discontinuities.",
         "params": "HistorySnapshotPageParams",
         "result": "HistoryPage",
         "nullable": false,
@@ -6692,11 +6692,19 @@
         "status"
       ]
     },
+    "HistoryHandoff": {
+      "enum": [
+        "current",
+        "live"
+      ],
+      "type": "string"
+    },
     "HistoryScope": {
       "enum": [
         "tree",
         "active",
-        "running"
+        "running",
+        "live"
       ],
       "type": "string"
     },
@@ -6769,6 +6777,110 @@
         "data"
       ]
     },
+    "HistoryLiveIdentity": {
+      "type": "object",
+      "properties": {
+        "workerId": {
+          "type": "string"
+        },
+        "messageId": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "branchLeafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toolOwnerMessageId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workerId",
+        "messageId",
+        "sourceId",
+        "sessionId",
+        "contextId",
+        "branchLeafId"
+      ]
+    },
+    "HistorySettlement": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "observed",
+            "no_entry",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "durability": {
+          "const": "not_attested"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "durability"
+      ]
+    },
+    "HistoryNativeChange": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "contextRevision": {
+          "type": "integer"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "leafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entryId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "revision",
+        "contextRevision",
+        "sessionId",
+        "leafId"
+      ]
+    },
     "HistoryItem": {
       "type": "object",
       "properties": {
@@ -6792,6 +6904,25 @@
           "type": "boolean"
         },
         "text": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "live": {
+          "$ref": "#/$defs/HistoryLiveIdentity"
+        },
+        "settlement": {
+          "$ref": "#/$defs/HistorySettlement"
+        },
+        "livePhase": {
+          "enum": [
+            "streaming",
+            "ended"
+          ],
           "type": "string"
         },
         "toolCallId": {
@@ -6895,6 +7026,12 @@
         "contentRevision": {
           "type": "string"
         },
+        "nativeRevision": {
+          "type": "integer"
+        },
+        "retainedRevision": {
+          "type": "string"
+        },
         "leafId": {
           "anyOf": [
             {
@@ -6920,6 +7057,8 @@
         "workerId",
         "contextId",
         "contentRevision",
+        "nativeRevision",
+        "retainedRevision",
         "leafId",
         "observationSeq"
       ]
@@ -7018,12 +7157,16 @@
         },
         "running": {
           "type": "string"
+        },
+        "live": {
+          "type": "string"
         }
       },
       "required": [
         "tree",
         "active",
-        "running"
+        "running",
+        "live"
       ]
     },
     "HistoryOpen": {
@@ -7031,6 +7174,13 @@
       "properties": {
         "version": {
           "const": "coherent-history-v1"
+        },
+        "handoff": {
+          "enum": [
+            "current",
+            "live"
+          ],
+          "type": "string"
         },
         "snapshot": {
           "type": "string"
@@ -7084,6 +7234,7 @@
       },
       "required": [
         "version",
+        "handoff",
         "snapshot",
         "cursor",
         "scope",
@@ -7145,6 +7296,18 @@
         },
         "kind": {
           "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/HistoryNativeChange"
+        },
+        "live": {
+          "$ref": "#/$defs/HistoryLiveIdentity"
+        },
+        "item": {
+          "$ref": "#/$defs/HistoryItem"
+        },
+        "settlement": {
+          "$ref": "#/$defs/HistorySettlement"
         }
       },
       "required": [
@@ -7312,6 +7475,9 @@
       "properties": {
         "scope": {
           "$ref": "#/$defs/HistoryScope"
+        },
+        "handoff": {
+          "$ref": "#/$defs/HistoryHandoff"
         }
       },
       "required": [

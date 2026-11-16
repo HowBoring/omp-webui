@@ -91,7 +91,7 @@ async function page(current: number): Promise<void> {
   } catch { if (current === revision) fail(); }
   finally { if (current === revision) { busyRevision = undefined; more.disabled = cursor === undefined; } }
 }
-function selectedScope(): HistoryScope {
+function selectedScope(): Extract<HistoryScope, "tree" | "active" | "running"> {
   const value = scope.value;
   if (value !== "tree" && value !== "active" && value !== "running") throw new Error("history_invalid_scope");
   return value;
