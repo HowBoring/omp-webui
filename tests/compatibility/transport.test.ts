@@ -11,8 +11,32 @@ test("real candidate transport negotiates public v2 then drains and reaps after 
   expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
 });
 
-const fixture = (mode: string, timeoutMs = 500) => PreflightTransport.open({
-  argv: [process.execPath, "tests/fixtures/preflight-peer.ts", mode], env: {}, timeoutMs,
+const fixture = (mode: string, timeoutMs = 500, readyDelayMs = 0, negotiateDelayMs = 0) => PreflightTransport.open({
+  argv: [process.execPath, "tests/fixtures/preflight-peer.ts", mode, String(readyDelayMs), String(negotiateDelayMs)],
+  env: {}, timeoutMs,
+  // Cold Bun startup is unrelated to the deliberately short request and shutdown deadlines.
+  readyTimeoutMs: 3000,
+});
+
+test("slow ready and negotiation do not consume the short late-response request budget", async () => {
+  const client = await fixture("late", 50, 150, 150);
+  try { await expect(client.inspect()).rejects.toThrow("RPC_REQUEST_TIMEOUT"); }
+  finally { await client.close(); }
+});
+
+test("ready and negotiation share one independently bounded startup deadline", async () => {
+  const start = performance.now();
+  await expect(PreflightTransport.open({
+    argv: [process.execPath, "tests/fixtures/preflight-peer.ts", "late", "150", "150"],
+    env: {}, timeoutMs: 1000, readyTimeoutMs: 200,
+  })).rejects.toThrow("RPC_READY_TIMEOUT");
+  expect(performance.now() - start).toBeLessThan(1200);
+});
+
+test("omitting the startup override preserves the selected timeout for ready", async () => {
+  await expect(PreflightTransport.open({
+    argv: [process.execPath, "tests/fixtures/preflight-peer.ts", "late", "150"], env: {}, timeoutMs: 50,
+  })).rejects.toThrow("RPC_READY_TIMEOUT");
 });
 
 test("public request IDs correlate concurrent responses completed in reverse order", async () => {
@@ -65,11 +89,13 @@ test("stderr stays separate and its sensitive fixture contents are never returne
 });
 
 test("EOF drain reaps a non-exiting process within the diagnostic termination budget", async () => {
-  const client = await fixture("hung", 50);
+  const client = await fixture("hung", 50, 150);
   await client.inspect();
+  const start = performance.now();
   const result = await client.close();
   expect(result.forced).toBe(true);
   expect(result.code).not.toBe(0);
+  expect(performance.now() - start).toBeLessThan(1200);
 });
 
 test("cancellation rejects pending work and reaps without replay", async () => {
@@ -77,24 +103,37 @@ test("cancellation rejects pending work and reaps without replay", async () => {
   const client = await PreflightTransport.open({
     argv: [process.execPath, "tests/fixtures/preflight-peer.ts", "no-response"], env: {}, signal: abort.signal,
   });
-  const pending = client.inspect();
+  const pending = Array.from({ length: 32 }, () => client.inspect());
+  const settled = Promise.allSettled(pending);
   abort.abort();
-  await expect(pending).rejects.toThrow("RPC_CANCELLED");
-  expect((await client.close()).protocolFailure).toBe("RPC_CANCELLED");
-});
-
-test("blocked stdin flush cannot prevent EOF shutdown deadlines and process reaping", async () => {
-  const client = await fixture("never-read", 50);
-  // Enough bounded rounds to fill a real Linux pipe after the child stops reading.
-  for (let round = 0; round < 8; round++) {
-    await Promise.allSettled(Array.from({ length: 32 }, () => client.inspect()));
-  }
+  for (const request of pending) await expect(request).rejects.toThrow("RPC_CANCELLED");
+  await settled;
   const start = performance.now();
   const result = await client.close();
-  expect(result.forced).toBe(true);
+  expect(result.protocolFailure).toBe("RPC_CANCELLED");
   expect(result.code).not.toBe(0);
   expect(performance.now() - start).toBeLessThan(1200);
 });
+
+test("blocked stdin keeps queued work bounded while shutdown still reaps the process", async () => {
+  const client = await fixture("never-read", 10);
+  try {
+    // Offer over 500 KiB of small public commands; the fixture consumes none after negotiation.
+    // Once flush blocks, timed-out pending slots cannot admit more queued writes.
+    for (let round = 0; round < 256; round++) {
+      await Promise.allSettled(Array.from({ length: 32 }, () => client.inspect()));
+    }
+    await expect(client.inspect()).rejects.toThrow("RPC_PENDING_LIMIT");
+  } finally {
+    const start = performance.now();
+    const result = await client.close();
+    expect(result.forced).toBe(true);
+    expect(result.code).not.toBe(0);
+    expect(performance.now() - start).toBeLessThan(1200);
+    // The killed non-reader releases an actual pending flush with a broken-stdin failure.
+    expect(result.protocolFailure).toBe("RPC_STDIN");
+  }
+}, 15_000);
 
 test("stdin EOF still drains a valid pending response before observing actual exit", async () => {
   const client = await fixture("eof-response");

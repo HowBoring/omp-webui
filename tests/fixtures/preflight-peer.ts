@@ -3,6 +3,7 @@ const mode = process.argv[2];
 const ready = { type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
   maxFrameBytes: 1048576, maxReassembledFrameBytes: 67108864 };
 const write = (value: unknown) => { process.stdout.write(JSON.stringify(value) + "\n"); };
+await Bun.sleep(Number(process.argv[3] ?? 0));
 write(ready);
 const requests: Record<string, unknown>[] = [];
 for await (const line of console) {
@@ -12,6 +13,7 @@ for await (const line of console) {
     throw new Error("invalid fixture command");
   }
   if (command.type === "negotiate_protocol") {
+    await Bun.sleep(Number(process.argv[4] ?? 0));
     write({ type: "response", id: command.id, command: command.type, success: true, data: { protocolVersion: 2 } });
     if (mode === "never-read") await Bun.sleep(60_000);
     continue;
