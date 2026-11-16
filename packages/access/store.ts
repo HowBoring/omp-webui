@@ -51,17 +51,23 @@ export class AccessStore {
     ).get();
   }
 
-  private digest(value: string) {
-    if (!this.present()) return null;
+  private liveMaterial() {
+    if (!this.present()) return "lost";
     const material = this.material();
-    if (!material || material.scope !== this.scope || material.secret !== this.generation) return null;
+    if (!material || material.scope !== this.scope || material.secret !== this.generation) return "changed";
+    return material;
+  }
+
+  private digest(value: string) {
+    const material = this.liveMaterial();
+    if (typeof material === "string") return null;
     return createHmac("sha256", material.secret).update(value).digest("base64url");
   }
 
   bootstrap() {
-    if (!this.present()) throw new Error("Access material lost; restart Host");
-    const material = this.material();
-    if (!material || material.scope !== this.scope || material.secret !== this.generation) {
+    const material = this.liveMaterial();
+    if (material === "lost") throw new Error("Access material lost; restart Host");
+    if (material === "changed") {
       throw new Error("Access scope changed; restart Host");
     }
     return material.bootstrap;
@@ -84,9 +90,7 @@ export class AccessStore {
   }
 
   current(credential: Credential, now: number): Credential | null {
-    if (!this.present()) return null;
-    const material = this.material();
-    if (material?.scope !== this.scope || material.secret !== this.generation) return null;
+    if (typeof this.liveMaterial() === "string") return null;
     return this.db.query<Credential, [string, number]>(
       "SELECT id, expiresAt FROM credentials WHERE id=? AND expiresAt>?",
     ).get(credential.id, now);

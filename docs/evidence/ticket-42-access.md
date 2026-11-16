@@ -99,3 +99,29 @@ TLS Secure flag; routine-log secret absence. The Bun suite adds live WS expiry/l
 
 Native Session access, DSH Connection/Gateway, grants, revoke-all worker shutdown and full MVP acceptance are
 separate dependent tickets. The access screen states that compatibility and resource admission are pending.
+
+## Review follow-up (2026-11-16)
+
+The optional duplication finding against `42871f2d07e0e343a5dde77d2cb469d9a815fde4` is addressed by one private
+`liveMaterial()` helper in `packages/access/store.ts`. It centralizes presence, scope and generation validation;
+browser callers still return null and bootstrap still throws the same distinct lost-material/scope-change errors.
+No authentication policy, clock, key format, database schema, origin, DSH or native compatibility input changed.
+
+With Bun 1.4.4 on PATH, validation in the isolated review-fix checkout was:
+
+```sh
+bun install --frozen-lockfile
+bun scripts/link-dsh.ts /workspace/work/omp-webui-ticket-30/vendor/dsh-clean
+bun test tests/access
+node_modules/.bin/tsc --noEmit -p tsconfig.json
+node_modules/.bin/tsc --noEmit -p tsconfig.scripts.json
+bun run build
+python3 tests/access/browser.py
+```
+
+The access suite passed 9 tests/79 assertions before and after the refactor. Both TypeScript projects and the
+Host build passed. Actual Linux Chromium 156.0.8078.79 passed all seven browser groups listed above, including
+Host/browser restarts and TLS. No new implementation-coupled tests were added. The Host bundle SHA-256 is
+`98b8be50ef7cecca72754f5b8a37ab171c212e475f1149f27aa35303c6ed9231`.
+The unchanged ticket #30 DSH checkout was linked read-only for type resolution; no fresh DSH/native build or
+native execution validation is claimed for this follow-up. Windows/WSL2 remains deferred by the user.
