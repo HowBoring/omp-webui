@@ -52,5 +52,10 @@ export default function busy(pi: ExtensionAPI): void {
     },
   });
   // Fixture-only literal input is scheduled by a deliberately installed native extension, after final startup binding.
-  pi.on("session_start", () => { setTimeout(() => { void pi.sendUserMessage("Synthetic native busy proof").catch(() => {}); }, 100); });
+  pi.on("session_start", () => {
+    const ready = setInterval(() => {
+      if (!fs.existsSync(path.join(home, "start-busy-fixture"))) return;
+      clearInterval(ready); void pi.sendUserMessage("Synthetic native busy proof").catch(() => {});
+    }, 25);
+  });
 }

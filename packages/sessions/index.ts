@@ -3,6 +3,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
+import type { SessionIndexReader } from "../workspaces/index.ts";
+import type { CatalogPageInput } from "../contracts/catalog.ts";
 import type { CatalogDescriptor } from "../contracts/generated/omp-wire.ts";
 
 const text = z.string().min(1).max(4096);
@@ -16,7 +18,7 @@ interface Row { body: string }
 interface Snapshot { records: RegisteredSession[]; offset: number; expires: number; size: number }
 
 /** Metadata-only, FULL synchronous Host persistence. Native files, history, prompts and credentials never enter this store. */
-export class SessionIndex {
+export class SessionIndex implements SessionIndexReader {
   readonly #db: Database;
   readonly #file: string;
   readonly #identity: string;
@@ -97,7 +99,7 @@ export class SessionIndex {
     this.#current(); const record = this.get(id); if (!record) throw new Error("INDEX_REFERENCE_UNKNOWN");
     record.attempt = sessionAttempt.parse(attempt); record.observedAt = new Date(this.now()).toISOString(); this.#write(record); return record;
   }
-  async page(options: { cursor?: string; pageSize?: number }): Promise<{ records: RegisteredSession[]; nextCursor?: string }> {
+  async page(options: CatalogPageInput): Promise<{ records: RegisteredSession[]; nextCursor?: string }> {
     this.#current();
     const size = options.pageSize ?? 32;
     if (!Number.isInteger(size) || size < 1 || size > 32) throw new Error("INDEX_PAGE_LIMIT");

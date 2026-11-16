@@ -75,7 +75,11 @@ export class SessionSupervisor {
         this.options.index.observe(record.id, { state: "failed", code: "SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION" });
         throw new Error("SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION");
       }
-      await existing.opening; this.#current(identity, existing); return this.#view(existing);
+      await existing.opening; this.#current(identity, existing);
+      if (existing.worker) {
+        const observed = await existing.worker.startup.state(); this.#current(identity, existing); this.#accept(existing, observed);
+      }
+      return this.#view(existing);
     }
     if (existing && !existing.exited) throw new Error("SESSION_WORKER_DRAINING");
     const cwd = selected.cwd.status === "known" ? selected.cwd.canonical : undefined;
@@ -137,8 +141,14 @@ export class SessionSupervisor {
     }
   }
   #accept(active: Active, result: StrictStartState): void {
+    if (result.phase !== "open") {
+      const code = result.code && /^(STRICT|GENERATION)_[A-Z_]+$/.test(result.code) ? result.code : "SESSION_OPEN_NOT_CONFIRMED";
+      active.state = "outcome_unknown";
+      if (active.record) this.options.index.observe(active.record.id, { state: "outcome_unknown", code });
+      throw new Error(code);
+    }
     const binding = result.binding;
-    if (result.phase !== "open" || !binding || result.cwd !== active.cwd || binding.cwd.canonical !== active.cwd
+    if (!binding || result.cwd !== active.cwd || binding.cwd.canonical !== active.cwd
       || binding.ownership.state !== "held" || result.nativeSessionId !== binding.nativeSessionId
       || (active.selected && !same(binding, active.selected))) throw new Error("SESSION_FINAL_BINDING_REJECTED");
     active.key = key(binding); active.record = this.options.index.register(binding);
@@ -233,6 +243,7 @@ export class SessionSupervisor {
   async #drain(active: Active, reason: string): Promise<WorkerExit> {
     const start = performance.now(), deadline = start + 30_000, notificationsAtStop = active.worker?.notificationCount ?? 0;
     let settled = false, queuedInputsWithdrawn = false, uiCancelled = false;
+    const priorUIOutcomes = new Set(active.bridge?.snapshot().outcomes.map(outcome => outcome.id) ?? []);
     const cooperative = async () => {
       const worker = active.worker ?? await active.launching; if (!worker) return;
       active.worker = worker;
@@ -247,6 +258,9 @@ export class SessionSupervisor {
     let timer: Timer | undefined;
     const timeout = new Promise<void>(resolve => { timer = setTimeout(resolve, Math.max(0, deadline - performance.now())); });
     await Promise.race([cooperative().catch(() => {}), timeout]); if (timer) clearTimeout(timer);
+    const ui = active.bridge?.snapshot();
+    uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
+      !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
     active.bridge?.dispose();
     const remaining = Math.max(0, deadline - performance.now());
     const drain = active.worker ? await active.worker.close({ cooperativeMs: remaining, terminationGraceMs: 5000, readerGraceMs: 1000 })

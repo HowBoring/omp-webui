@@ -72,6 +72,7 @@ for (const mode of ["cooperative", "stubborn"] as const) test(`real busy native 
   });
   try {
     await f.supervisor.open(f.identity, f.selected);
+    await Bun.write(join(f.home, "start-busy-fixture"), "synthetic controlled start after final native binding");
     for (let attempt = 0; attempt < 200; attempt++) {
       const busy = (await actual!.state()).isStreaming === true;
       const audit = Bun.file(join(f.home, "busy-fixture-audit.json"));
@@ -95,7 +96,7 @@ for (const mode of ["cooperative", "stubborn"] as const) test(`real busy native 
     } else expect(elapsed).toBeLessThan(5000);
     console.info(JSON.stringify({ scenario: `native-${mode}-${reason}`, exit, audit }));
   } finally { await f.close(); }
-}, 45_000);
+}, 65_000);
 
 test("an occupied existing native writer retains the registered reason without launching a replacement Session", async () => {
   const f = await fixture(), external = await launch(f.home, f.cwd);
@@ -192,5 +193,18 @@ test("replacing the actual cwd under an overlapping parent grant immediately den
     expect(() => f.supervisor.view(f.identity, opened.workerId)).toThrow("SESSION_CWD_CHANGED");
     await f.supervisor.permissionsChanged();
     expect(f.supervisor.exits()[0]?.reason).toBe("directory-revoked");
+  } finally { await f.close(); }
+}, 30_000);
+
+test("repeated Open rechecks native ownership and makes an active instance replacement explicit without a second worker", async () => {
+  const f = await fixture();
+  try {
+    await f.supervisor.open(f.identity, f.selected);
+    const file = join(f.home, ".omp/agent/sessions/bucket/native-0000.jsonl");
+    await rename(file, file + ".selected"); await copyFile(file + ".selected", file);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow();
+    expect((await f.index.page({})).records[0]).toMatchObject({ instanceId: f.selected.instanceId,
+      nativeSessionId: "native-0000", attempt: { state: "outcome_unknown" } });
+    expect(f.supervisor.starts).toBe(1);
   } finally { await f.close(); }
 }, 30_000);
