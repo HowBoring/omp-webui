@@ -5,10 +5,10 @@
       "name": "same-native-identity-and-registration-reuse-without-refresh-replay",
       "result": "PASS",
       "binding": {
-        "sourceId": "b196acedd611664f0c1616a8807aafb11011a129a18888245f566332070ef333",
-        "instanceId": "0311ef166e5039d51d23cae90b2e6486bd6745cfbb827ed2674d7b6dc6f7fe8f",
+        "sourceId": "dc4c50cfd272b9813f8f602511693928317b921169823b8076c6bfb9a4dad882",
+        "instanceId": "045291652cf5a3f9c42352fd4aca328cb0d4efdd88d260b5684ddcee67481826",
         "nativeSessionId": "native-0000",
-        "reference": "eyJzb3VyY2VJZCI6ImIxOTZhY2VkZDYxMTY2NGYwYzE2MTZhODgwN2FhZmIxMTAxMWExMjlhMTg4ODgyNDVmNTY2MzMyMDcwZWYzMzMiLCJsb2NhdG9yIjoiYnVja2V0L25hdGl2ZS0wMDAwLmpzb25sIiwiaW5zdGFuY2VJZCI6IjAzMTFlZjE2NmU1MDM5ZDUxZDIzY2FlOTBiMmU2NDg2YmQ2NzQ1Y2ZiYjgyN2VkMjY3NGQ3YjZkYzZmN2ZlOGYiLCJuYXRpdmVTZXNzaW9uSWQiOiJuYXRpdmUtMDAwMCJ9",
+        "reference": "eyJzb3VyY2VJZCI6ImRjNGM1MGNmZDI3MmI5ODEzZjhmNjAyNTExNjkzOTI4MzE3YjkyMTE2OTgyM2I4MDc2YzZiZmI5YTRkYWQ4ODIiLCJsb2NhdG9yIjoiYnVja2V0L25hdGl2ZS0wMDAwLmpzb25sIiwiaW5zdGFuY2VJZCI6IjA0NTI5MTY1MmNmNWEzZjljNDIzNTJmZDRhY2EzMjhjYjBkNGVmZGQ4OGQyNjBiNTY4NGRkY2VlNjc0ODE4MjYiLCJuYXRpdmVTZXNzaW9uSWQiOiJuYXRpdmUtMDAwMCJ9",
         "aliases": [
           "bucket/native-0000.jsonl"
         ],
@@ -19,11 +19,11 @@
         },
         "title": "Native Session 0",
         "createdAt": "2026-01-01T00:00:00.000Z",
-        "modifiedAt": "2026-11-16T13:50:16.570Z",
-        "observedAt": "2026-11-16T13:52:24.686Z",
+        "modifiedAt": "2026-11-16T15:21:51.773Z",
+        "observedAt": "2026-11-16T15:25:52.914Z",
         "ownership": {
           "state": "held",
-          "observedAt": "2026-11-16T13:52:24.686Z"
+          "observedAt": "2026-11-16T15:25:52.914Z"
         }
       }
     },
