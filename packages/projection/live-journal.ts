@@ -1,0 +1,282 @@
+import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
+import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
+import type { JsonValue } from '@deepseek-ai/dsh-util-values';
+import type {
+  SessionFollowFrame, SessionHistoryRecord, SessionPage, SessionPageRequest,
+  SessionAssistantStreamBaseline, SessionAssistantStreamFrame,
+} from '@deepseek-ai/dsh-api-session-controller/types';
+import type { HistoryClient } from '../contracts/generated/history-client.ts';
+import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
+
+type AssistantFrameInput = {
+  [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
+}[SessionAssistantStreamFrame['type']];
+const MAX_EVENTS = 60_000, MAX_BYTES = 32 * 1024 * 1024;
+const MAX_ITEM_BYTES = 512 * 1024, PAGE_BYTES = 768 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
+const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
+const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
+  live.workerId, live.sourceId, live.sessionId, live.contextId, live.branchLeafId, live.messageId,
+]);
+interface Attempt {
+  id: LlmAttemptId; live: HistoryLiveIdentity; index: number; turn: number; step: number;
+  startedAfterSeq: number; stream: JsonValue[]; bytes: number;
+}
+interface OpeningBudget { bytes: number; items: number }
+
+/** Read only one native immutable cut; all parts and both requested views share its budgets. */
+async function readItems(history: HistoryClient, cursor: string, opened: HistoryOpen, budget: OpeningBudget) {
+  const parts = new Map<string, HistoryItem>();
+  let next: string | undefined = cursor;
+  while (next) {
+    const page = await history.page(next);
+    if (page.snapshot !== opened.snapshot || page.cut.contentRevision !== opened.cut.contentRevision) {
+      throw Error('live_open_cut_changed');
+    }
+    for (const item of page.items) {
+      budget.bytes += new TextEncoder().encode(JSON.stringify(item)).byteLength; budget.items++;
+      if (budget.bytes > OPEN_BYTES || budget.items > MAX_EVENTS) throw Error('live_open_budget');
+      const id = item.entryId ?? item.id, prior = parts.get(id);
+      if (prior) {
+        if (item.partIndex !== (prior.partIndex ?? 0) + 1 || item.partCount !== prior.partCount) {
+          throw Error('live_open_parts');
+        }
+        prior.text += item.text; prior.partIndex = item.partIndex;
+      } else {
+        if (item.partIndex !== undefined && item.partIndex !== 0) throw Error('live_open_parts');
+        parts.set(id, {...item});
+      }
+    }
+    next = page.nextCursor;
+  }
+  for (const item of parts.values()) {
+    if ((item.partIndex ?? 0) + 1 !== (item.partCount ?? 1)) throw Error('live_open_parts');
+  }
+  return parts.values();
+}
+
+/** Disposable bounded DSH generation. Native observations remain authoritative and not-attested. */
+export class LiveJournal {
+  readonly generation = crypto.randomUUID();
+  readonly sessionId;
+  readonly #records: SessionHistoryRecord[] = [];
+  readonly #entries = new Set<string>();
+  readonly #groups: number[] = [];
+  readonly #settled = new Set<string>();
+  readonly #pendingFinals = new Set<string>();
+  readonly #appended = new Map<string, {item: HistoryItem; bytes: number}>();
+  readonly #listeners = new Set<(frame: SessionFollowFrame) => void>();
+  #bytes = 0; #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
+  #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null;
+  private constructor(readonly opened: HistoryOpen) {
+    this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
+    this.#nativeLeaf = opened.cut.leafId;
+  }
+  static async open(history: HistoryClient): Promise<LiveJournal> {
+    const opened = await history.open('active', 'live'), journal = new LiveJournal(opened);
+    try {
+      if (opened.compacting) throw Error('live_open_compacting');
+      const budget = {bytes: 0, items: 0};
+      for (const item of await readItems(history, opened.cursor, opened, budget)) journal.#commit(item);
+      const live = [...await readItems(history, opened.cursors.live, opened, budget)];
+      journal.#adoptOpening(live);
+      if (opened.prefix && !journal.#attempt) throw Error('live_prefix_identity_unavailable');
+      await journal.#catchUp(history);
+      return journal;
+    } catch (error) {
+      journal.invalidate(error instanceof Error ? error.message : 'live_open_failed'); throw error;
+    } finally { await history.close(opened.snapshot); }
+  }
+  #adoptOpening(items: HistoryItem[]): void {
+    for (const item of items) {
+      if (!item.live || item.live.contextId !== this.opened.cut.contextId) throw Error('live_open_identity');
+      if (this.#settled.has(identity(item.live))) continue;
+      if (item.livePhase === 'streaming') {
+        if (item.role !== 'assistant' || this.#attempt) throw Error('live_overlapping_assistant');
+        this.#beginAttempt(item.live); this.#chunk(item.text, false);
+      } else {
+        this.#pendingFinals.add(identity(item.live));
+      }
+    }
+    if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
+    // Every earlier runtime message must settle before a newer active Step can be published.
+    if (this.#attempt && this.#pendingFinals.size > 0) throw Error('live_open_pending_order');
+  }
+  async #catchUp(history: HistoryClient): Promise<void> {
+    let target: number | undefined;
+    for (let reads = 0; reads <= ASSOCIATIONS; reads++) {
+      const poll = await history.poll(this.opened.cut.workerId, this.#after);
+      target ??= poll.cut.observationSeq;
+      const before = this.#after; this.accept(poll);
+      if (this.#after >= target) return;
+      if (this.#after === before) throw Error('live_open_gap');
+    }
+    throw Error('live_open_buffer_overflow');
+  }
+  get cursor(): number { return this.#records.length - 1; }
+  get after(): number { return this.#after; }
+  get failure(): string | undefined { return this.#failure; }
+  invalidate(code: string): void { this.#failure ??= code; this.#listeners.clear(); }
+  #fail(code: string): never { this.invalidate(code); throw Error(code); }
+  #assert(): void { if (this.#failure) throw Error(this.#failure); }
+  page(request: Pick<SessionPageRequest, 'throughSeq' | 'beforeSeq' | 'maxMessages'>): SessionPage {
+    return this.#page(request, PAGE_BYTES);
+  }
+  #page(request: Pick<SessionPageRequest, 'throughSeq' | 'beforeSeq' | 'maxMessages'>, limit: number): SessionPage {
+    this.#assert();
+    const through = request.throughSeq ?? this.cursor, before = request.beforeSeq ?? through + 1;
+    if (!Number.isSafeInteger(through) || through > this.cursor || through < -1 || !Number.isSafeInteger(before)
+      || before < 0 || before > through + 1) throw Error('live_stale_page');
+    const maximum = request.maxMessages ?? 32;
+    if (!Number.isSafeInteger(maximum) || maximum < 1) throw Error('live_page_limit');
+    const end = Math.min(through + 1, before), groups = this.#groups.filter(start => start < end);
+    let start = end, bytes = 1024, count = 0;
+    for (let index = groups.length - 1; index >= 0 && count < Math.min(128, maximum); index--) {
+      const candidate = groups[index]!;
+      const size = this.#records.slice(candidate, start).reduce((sum, record) => sum + Buffer.byteLength(JSON.stringify(record)), 0);
+      if (bytes + size > limit) { if (!count) throw Error('live_page_group_bytes'); break; }
+      bytes += size; start = candidate; count++;
+    }
+    return structuredClone({records: this.#records.slice(start, end), hasMore: start > 0});
+  }
+  snapshot(): Extract<SessionFollowFrame, {type: 'snapshot'}> {
+    this.#assert();
+    const assistantStream: SessionAssistantStreamBaseline = {revision: this.#assistantRevision,
+      ...(this.#attempt ? {activeAttempt: {
+        attemptId: this.#attempt.id, startedAfterSeq: this.#cursor(this.#attempt.startedAfterSeq),
+        turn: this.#attempt.turn, step: this.#attempt.step, nextIndex: this.#attempt.index,
+        stream: structuredClone(this.#attempt.stream),
+      }} : {}),
+    };
+    const reserve = Buffer.byteLength(JSON.stringify(assistantStream)) + 8192;
+    if (reserve >= PAGE_BYTES) throw Error('live_prefix_bytes');
+    const page = this.#page({throughSeq: this.cursor, maxMessages: 32}, PAGE_BYTES - reserve);
+    return {type: 'snapshot', header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
+      cursor: this.cursor, ...page, projections: {asOfSeq: this.cursor, values: {}}, assistantStream};
+  }
+  subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
+    this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
+  }
+  #publish(frame: SessionFollowFrame): void { for (const listener of this.#listeners) listener(structuredClone(frame)); }
+  #event(type: string, data: JsonValue, surface = false): SessionHistoryRecord {
+    const entry: SessionHistoryRecord = {type: 'event', event: {type, seq: this.#records.length, time: 0, data,
+      ...(surface ? {surfaceOp: 'append'} : {ignorable: true})}};
+    const bytes = Buffer.byteLength(JSON.stringify(entry));
+    if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
+    this.#bytes += bytes;
+    if (this.#records.length >= MAX_EVENTS || this.#bytes > MAX_BYTES) this.#fail('live_projection_evicted');
+    this.#records.push(structuredClone(entry)); this.#publish(entry); return entry;
+  }
+  #commit(item: HistoryItem): SessionHistoryRecord | undefined {
+    const id = item.entryId ?? item.id; if (this.#entries.has(id)) return;
+    this.#entries.add(id); if (item.live) this.#settled.add(identity(item.live));
+    const content = [{type: 'text', text: item.text}];
+    if (item.role === 'user') {
+      this.#groups.push(this.#records.length); this.#turn++; this.#event('turn/start', {turn: this.#turn});
+      return this.#event('user/message', {id, role: 'user', source: {kind: 'user'}, content}, true);
+    }
+    if (item.role === 'assistant') return this.#commitAssistant(item, id, content);
+    if (!this.#attempt) this.#groups.push(this.#records.length);
+    return this.#event('omp/native-record', {id, kind: item.kind, text: item.text, role: item.role ?? null});
+  }
+  #commitAssistant(item: HistoryItem, id: string, content: {type: string; text: string}[]) {
+    if (!item.provider || !item.model) this.#fail('live_missing_model_source');
+    const attempt = item.live && this.#attempt && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
+    const turn = attempt?.turn ?? this.#turn, step = attempt?.step ?? ++this.#step;
+    if (!attempt) { this.#groups.push(this.#records.length); this.#event('step/start', {turn, step}); }
+    const entry = this.#event('assistant/message', {turn, step, message: {id, role: 'assistant',
+      source: {kind: 'model', provider: item.provider, model: item.model}, content}, stream: [],
+      ...(item.stopReason === 'aborted' ? {interrupted: true} : {})}, true);
+    if (!attempt) this.#event('step/end', {turn, step});
+    return entry;
+  }
+  #cursor(value: number) { return value === -1 ? -1 : SessionSeq(value); }
+  #beginAttempt(live: HistoryLiveIdentity): void {
+    if (this.#attempt) this.#fail('live_overlapping_assistant');
+    if (live.branchLeafId !== null && !this.#entries.has(live.branchLeafId)) this.#fail('live_prefix_off_branch');
+    this.#groups.push(this.#records.length);
+    const turn = this.#turn, step = ++this.#step; this.#event('step/start', {turn, step});
+    this.#attempt = {id: LlmAttemptId(identity(live)), live, index: 0, turn, step,
+      startedAfterSeq: this.cursor, stream: [], bytes: 0};
+  }
+  #frame(frame: AssistantFrameInput): void {
+    this.#publish({type: 'assistant-stream', frame: {...frame, revision: ++this.#assistantRevision} as SessionAssistantStreamFrame});
+  }
+  #chunk(text: string, publish = true): void {
+    const attempt = this.#attempt; if (!attempt) this.#fail('live_missing_attempt');
+    const chunk = {type: 'block-end' as const, index: 0, block: {type: 'text' as const, text}};
+    const record = {type: 'chunk', time: 0, chunk};
+    const bytes = Buffer.byteLength(JSON.stringify(record));
+    if (bytes > MAX_ITEM_BYTES || attempt.index >= ASSOCIATIONS || attempt.bytes + bytes > ATTEMPT_BYTES) this.#fail('live_attempt_evicted');
+    const index = attempt.index++; attempt.bytes += bytes; attempt.stream.push(record);
+    if (publish) this.#frame({type: 'chunk', attemptId: attempt.id, index, time: 0, chunk});
+  }
+  accept(poll: HistoryPoll): void {
+    this.#assert();
+    if (poll.cut.workerId !== this.opened.cut.workerId || poll.cut.sessionId !== this.sessionId || poll.after !== this.#after) {
+      this.#fail('live_observation_out_of_order');
+    }
+    if (poll.cut.sourceId !== this.opened.cut.sourceId || poll.cut.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
+    for (const event of poll.events) {
+      if (event.seq !== this.#after + 1) this.#fail('live_observation_gap');
+      this.#apply(event); this.#after = event.seq;
+    }
+    if (!poll.hasMore && [...this.#appended.values()].some(value => value.item.active)) this.#fail('live_unassociated_source_append');
+    if (this.#settled.size > ASSOCIATIONS) this.#fail('live_settlement_evicted');
+    if (poll.through !== this.#after || (!poll.hasMore && poll.cut.leafId !== this.#nativeLeaf)) this.#fail('live_observation_gap');
+  }
+  #sourceAppend(event: HistoryChange): void {
+    const source = event.source, item = event.item;
+    if (!source?.entryId || !item) this.#fail('live_source_payload_missing');
+    if (source.leafId !== this.#nativeLeaf && (source.leafId !== source.entryId || item.parentId !== this.#nativeLeaf)) {
+      this.#fail('live_branch_changed');
+    }
+    this.#nativeLeaf = source.leafId;
+    if (this.#entries.has(source.entryId)) this.#fail('live_duplicate_native_append');
+    if (item.kind !== 'message' && !(item.kind === 'custom_message' && item.role === 'custom')) {
+      if (item.active) this.#commit(item); return;
+    }
+    // A native-only append without a live lifecycle is already an authoritative source record.
+    if (!item.live) { if (item.active) this.#commit(item); return; }
+    const bytes = Buffer.byteLength(JSON.stringify(item));
+    if (this.#appended.size >= ASSOCIATIONS || this.#appendBytes + bytes > ATTEMPT_BYTES) this.#fail('live_association_evicted');
+    this.#appended.set(source.entryId, {item, bytes}); this.#appendBytes += bytes;
+  }
+  #apply(event: HistoryChange): void {
+    if (['native_setLeaf', 'native_clear', 'native_rebuild', 'native_rewrite', 'native_source_replaced', 'native_source_binding',
+      'native_untracked_rewrite', 'native_runtime_replaced', 'native_live_gap', 'native_settlement_evicted', 'auto_compaction_start'].includes(event.kind)) {
+      this.#fail('live_projection_invalidated');
+    }
+    if (event.kind === 'native_append') this.#sourceAppend(event);
+    if (!event.live || !event.item) return;
+    const key = identity(event.live); if (this.#settled.has(key)) return;
+    if (event.item.role === 'toolResult' && !event.live.toolOwnerMessageId) this.#fail('live_tool_owner_unavailable');
+    if (event.live.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
+    if (event.kind === 'message_start' && event.item.role === 'assistant') {
+      this.#beginAttempt(event.live); const attempt = this.#attempt!;
+      this.#frame({type: 'start', attemptId: attempt.id, startedAfterSeq: this.#cursor(this.cursor), turn: attempt.turn, step: attempt.step});
+    } else if (event.kind === 'message_update' && event.item.role === 'assistant') {
+      if (!this.#attempt || identity(this.#attempt.live) !== key) this.#fail('live_late_attempt');
+      this.#chunk(event.item.text);
+    } else if (event.kind === 'message_settlement') this.#settle(event, key);
+  }
+  #settle(event: HistoryChange, key: string): void {
+    const settlement = event.settlement, item = event.item, live = event.live;
+    if (!settlement || !item || !live) this.#fail('live_missing_settlement');
+    if (settlement.status === 'failed') this.#fail('live_native_decision_failed');
+    const attempt = this.#attempt && identity(this.#attempt.live) === key ? this.#attempt : undefined;
+    if (item.role === 'assistant' && !attempt && !this.#pendingFinals.has(key)) this.#fail('live_late_attempt');
+    const source = settlement.entryId ? this.#appended.get(settlement.entryId) : undefined;
+    if (source) { this.#appendBytes -= source.bytes; this.#appended.delete(settlement.entryId!); }
+    let entry: SessionHistoryRecord | undefined;
+    if (settlement.status === 'observed') {
+      if (!settlement.entryId || (!source && !this.#entries.has(settlement.entryId))) this.#fail('live_unknown_settlement_entry');
+      if (source?.item.active) entry = this.#commit({...item, id: settlement.entryId, entryId: settlement.entryId});
+    }
+    this.#settled.add(key); this.#pendingFinals.delete(key);
+    if (attempt) {
+      this.#frame({type: 'end', attemptId: attempt.id, index: attempt.index, outcome: entry
+        ? {kind: 'committed', eventType: 'assistant/message', seq: entry.event.seq} : {kind: 'abandoned'}});
+      this.#event('step/end', {turn: attempt.turn, step: attempt.step}); this.#attempt = undefined;
+    }
+  }
+}

@@ -7,8 +7,9 @@ export type HistoryCommand = { [K in "history_snapshot_open" | "history_snapshot
 export class HistoryClient {
   readonly #request: (command: HistoryCommand) => Promise<unknown>;
   constructor(request: (command: HistoryCommand) => Promise<unknown>) { this.#request = request; }
-  async open(scope: HistoryScope): Promise<HistoryOpen> {
-    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope });
+  /** Live handoff permits verified append/prefix progress; pages retain the original cut. Default is strict. */
+  async open(scope: HistoryScope, handoff?: "current" | "live"): Promise<HistoryOpen> {
+    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope, ...(handoff ? { handoff } : {}) });
     if (!validHistoryOpen(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
   }
   async page(cursor: string): Promise<HistoryPage> {
