@@ -10,6 +10,28 @@
     "inbound": "RpcInbound",
     "commands": [
       {
+        "name": "attachment_prepare",
+        "doc": "Prepare every controlled original without input hooks, model/tool calls or message commits. Any failure blocks the whole input.",
+        "params": "AttachmentPrepareParams",
+        "result": "AttachmentReceipt",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "attachment_cancel",
+        "doc": "Invalidate pending or ready preparation. Cancelled or late results cannot be consumed.",
+        "params": "AttachmentCancelParams",
+        "result": "AttachmentCancelResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_interaction_policy",
         "doc": "Read the immutable effective rpc-ui policy, immediately available before extension startup UI or timers.",
         "params": null,
@@ -1004,6 +1026,310 @@
     ]
   },
   "$defs": {
+    "AttachmentFormat": {
+      "enum": [
+        "utf8",
+        "png",
+        "jpeg",
+        "webp",
+        "gif",
+        "pdf",
+        "docx",
+        "pptx",
+        "xlsx",
+        "epub"
+      ],
+      "type": "string"
+    },
+    "AttachmentBinding": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "modelFingerprint": {
+          "type": "string"
+        },
+        "imageCapable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "contextId",
+        "modelFingerprint",
+        "imageCapable"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentOriginal": {
+      "type": "object",
+      "properties": {
+        "originalId": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/AttachmentFormat"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "originalId",
+        "format",
+        "sha256",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentText": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "text"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentImage": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "image"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "mimeType",
+        "data",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentRepresentation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttachmentText"
+        },
+        {
+          "$ref": "#/$defs/AttachmentImage"
+        }
+      ]
+    },
+    "AttachmentReadyItem": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "ready"
+        },
+        "originalId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "representation": {
+          "$ref": "#/$defs/AttachmentRepresentation"
+        },
+        "degradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "originalId",
+        "originalSha256",
+        "preparedId",
+        "preparedSha256",
+        "representation",
+        "degradations"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentFailedItem": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "failed"
+        },
+        "originalId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "originalId",
+        "originalSha256",
+        "preparedId",
+        "preparedSha256",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentItem": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttachmentReadyItem"
+        },
+        {
+          "$ref": "#/$defs/AttachmentFailedItem"
+        }
+      ]
+    },
+    "AttachmentReceipt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "attachment-preparation-v1"
+        },
+        "budgetVersion": {
+          "type": "string"
+        },
+        "receiptId": {
+          "type": "string"
+        },
+        "preparationId": {
+          "type": "string"
+        },
+        "draftId": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "draftFingerprint": {
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/$defs/AttachmentBinding"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentItem"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "budgetVersion",
+        "receiptId",
+        "preparationId",
+        "draftId",
+        "draftRevision",
+        "authorityGeneration",
+        "draftFingerprint",
+        "binding",
+        "expiresAt",
+        "status",
+        "resultDigest",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentConsent": {
+      "type": "object",
+      "properties": {
+        "receiptId": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "acceptedDegradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "receiptId",
+        "resultDigest",
+        "draftRevision",
+        "authorityGeneration",
+        "acceptedDegradations"
+      ],
+      "additionalProperties": false
+    },
     "Attribution": {
       "enum": [
         "user",
@@ -7886,6 +8212,62 @@
         }
       ],
       "description": "Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`."
+    },
+    "AttachmentPrepareParams": {
+      "type": "object",
+      "properties": {
+        "preparationId": {
+          "type": "string"
+        },
+        "draftId": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentOriginal"
+          }
+        }
+      },
+      "required": [
+        "preparationId",
+        "draftId",
+        "draftRevision",
+        "authorityGeneration",
+        "message",
+        "objects"
+      ]
+    },
+    "AttachmentCancelParams": {
+      "type": "object",
+      "properties": {
+        "preparationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "preparationId"
+      ]
+    },
+    "AttachmentCancelResult": {
+      "type": "object",
+      "properties": {
+        "cancelled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cancelled"
+      ]
     },
     "RespondUiParams": {
       "type": "object",

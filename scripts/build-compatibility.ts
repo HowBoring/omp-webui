@@ -119,6 +119,9 @@ if (!checkGenerated) {
 const built = await Bun.build({
   entrypoints: [join(source, "cli.ts")], target: "bun", outdir: output, splitting: true,
   plugins: [{ name: "deferred-ordinary-cli", setup(build) {
+    build.onResolve({ filter: /^\.\/attachments\/(worker|deny-network)$/ }, ({ path: entry }) => ({
+      path: `../omp/packages/coding-agent/src/${entry.slice(2)}.ts`, external: true,
+    }));
     build.onResolve({ filter: /^\.\/modes\/rpc\/strict-mode$/ }, () => ({
       path: "../omp/packages/coding-agent/src/modes/rpc/strict-mode.ts", external: true,
     }));
@@ -205,3 +208,4 @@ await import("./build-history-contracts.ts");
 await import("./build-live-contracts.ts");
 
 await import("./build-submission-contracts.ts");
+await import("./build-attachment-contracts.ts");

@@ -22,6 +22,10 @@ export const authoredPaths = ["src/session/submission-records.ts", "src/session/
     "packages/coding-agent/src/markit/converters/pdf/index.ts", "packages/coding-agent/src/markit/converters/docx.ts",
     "packages/coding-agent/src/markit/converters/pptx.ts", "packages/utils/src/image-animation.ts",
     "packages/utils/src/stream.ts", "packages/tui/package.json",
+    "packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+    "packages/coding-agent/src/modes/rpc/attachment-client.ts", "packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+    "packages/coding-agent/scripts/gen-rpc/model.ts",
+    "packages/coding-agent/scripts/gen-rpc/python.ts",
   ]);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
@@ -34,7 +38,9 @@ export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/submissions.
   "packages/coding-agent/src/modes/rpc/interactions-result.generated.js",
   "packages/coding-agent/src/modes/rpc/interactions-command.generated.d.ts",
   "packages/coding-agent/src/modes/rpc/interactions-policy.generated.d.ts",
-  "packages/coding-agent/src/modes/rpc/interactions-result.generated.d.ts","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.d.ts", "packages/coding-agent/src/modes/rpc/attachments.generated.ts",
+  ...["command", "receipt"].flatMap(name => ["js", "d.ts"].map(ext => `packages/coding-agent/src/modes/rpc/attachment-${name}.generated.${ext}`)),
+  "node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
   "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
   "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",
   "packages/coding-agent/src/modes/rpc/catalog-sources.generated.js", "packages/coding-agent/src/modes/rpc/catalog-description.generated.js"];

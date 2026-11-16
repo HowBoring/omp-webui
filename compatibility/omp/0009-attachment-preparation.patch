@@ -1,3 +1,31 @@
+diff --git a/packages/coding-agent/scripts/gen-rpc/model.ts b/packages/coding-agent/scripts/gen-rpc/model.ts
+index 4377153696..f9e701ee64 100644
+--- a/packages/coding-agent/scripts/gen-rpc/model.ts
++++ b/packages/coding-agent/scripts/gen-rpc/model.ts
+@@ -181,7 +181,7 @@ export function unionLeaves(model: WireModel, name: string): string[] {
+ export function unionDispatch(model: WireModel, name: string): WireDispatch | undefined {
+ 	const members = unionMembers(model.defs.get(name));
+ 	if (!members) return undefined;
+-	for (const property of ["type", "role", "method", "stage"]) {
++	for (const property of ["type", "role", "method", "stage", "kind", "status"]) {
+ 		const cases = new Map<string, string>();
+ 		let routes = true;
+ 		for (const member of members) {
+diff --git a/packages/coding-agent/scripts/gen-rpc/python.ts b/packages/coding-agent/scripts/gen-rpc/python.ts
+index 8b4f3689d3..3612cefe53 100644
+--- a/packages/coding-agent/scripts/gen-rpc/python.ts
++++ b/packages/coding-agent/scripts/gen-rpc/python.ts
+@@ -565,7 +565,9 @@ class PythonEmitter {
+ 			return `Sequence[${this.#paramAnnotation(type.items, where)}]`;
+ 		}
+ 		if (type.kind === "ref" && this.#def(type.name).kind === "object" && !this.#isOpen(type.name)) {
+-			throw new Error(`${where}: record-typed parameters need a hand-written command`);
++			// Input records use wire-key JSON dictionaries; output records remain decoded frozen dataclasses.
++			this.#runtime.add("JsonObject");
++			return "JsonObject";
+ 		}
+ 		const inner = nonNull(type);
+ 		if (inner) return `${this.#paramAnnotation(inner, where)} | None`;
 diff --git a/packages/coding-agent/src/attachments/deny-network.ts b/packages/coding-agent/src/attachments/deny-network.ts
 new file mode 100644
 index 0000000000..811404f310
@@ -532,6 +560,214 @@ index 1b9f6c8f71..57bc9edb35 100644
  }
  
  export interface MarkitOptions {
+diff --git a/packages/coding-agent/src/modes/rpc/attachment-client.ts b/packages/coding-agent/src/modes/rpc/attachment-client.ts
+new file mode 100644
+index 0000000000..f2e7395fbc
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/attachment-client.ts
+@@ -0,0 +1,23 @@
++/** Public preparation client. It owns no path, Session, Agent or provider authority. */
++import type { RpcWireCommands, AttachmentReceipt } from "./wire/rpc-wire.generated";
++export type AttachmentCommand = { id?: string; type: "attachment_prepare" } & RpcWireCommands["attachment_prepare"]["params"]
++	| { id?: string; type: "attachment_cancel"; preparationId: string };
++export class AttachmentClient {
++	constructor(private readonly send: (command: AttachmentCommand) => Promise<unknown>,
++		private readonly validateReceipt: (value: unknown) => value is AttachmentReceipt) {}
++	async prepare(input: RpcWireCommands["attachment_prepare"]["params"]): Promise<AttachmentReceipt> {
++		const result = await this.send({ ...input, id: crypto.randomUUID(), type: "attachment_prepare" });
++		if (!this.validateReceipt(result) || result.preparationId !== input.preparationId || result.draftId !== input.draftId ||
++			result.draftRevision !== input.draftRevision || result.authorityGeneration !== input.authorityGeneration) {
++			throw new Error("ATTACHMENT_RECEIPT_INVALID");
++		}
++		return result;
++	}
++	async cancel(preparationId: string): Promise<{ cancelled: boolean }> {
++		const result = await this.send({ id: crypto.randomUUID(), type: "attachment_cancel", preparationId });
++		if (!result || typeof result !== "object" || !("cancelled" in result) || typeof result.cancelled !== "boolean") {
++			throw new Error("ATTACHMENT_CANCEL_INVALID");
++		}
++		return { cancelled: result.cancelled };
++	}
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-attachments.ts b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
+new file mode 100644
+index 0000000000..e870a9186c
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
+@@ -0,0 +1,26 @@
++import type { AgentSession } from "../../session/agent-session";
++import { AttachmentPreparations } from "../../attachments/receipts";
++import { validAttachmentCommand } from "./attachments.generated";
++import type { AttachmentCommand } from "./attachment-client";
++
++/** Uses protected native identity and current runtime context; Host generations supply additional fences, not authority. */
++export function createAttachmentPreparations(session: AgentSession): AttachmentPreparations {
++	return new AttachmentPreparations(() => {
++		const target = session.sessionManager.getSubmissionTarget();
++		const runtime = session.getHistoryRuntimeContext();
++		const context = session.sessionManager.getHistoryMessageContext(runtime);
++		return { ...target, contextId: context.contextId,
++			modelFingerprint: Bun.SHA256.hash(JSON.stringify(runtime), "hex"), imageCapable: session.model?.input.includes("image") ?? false };
++	});
++}
++
++/** Validate the complete same-source public command before conversion or object decoding. */
++export function validateAttachmentCommand(value: unknown): asserts value is AttachmentCommand {
++	if (!validAttachmentCommand(value)) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++	for (const key of ["preparationId", "draftId", "draftRevision", "authorityGeneration"] as const) {
++		if (!(key in value)) continue;
++		const field: unknown = Reflect.get(value, key);
++		if (typeof field !== "string" || !/^[A-Za-z0-9_-]{1,96}$/.test(field)) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++	}
++	if (value.id !== undefined && value.id.length > 96) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 66fff2dfdb..ad9927d549 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1,5 +1,6 @@
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { RpcSubmissions } from "./rpc-submissions";
++import { createAttachmentPreparations, validateAttachmentCommand } from "./rpc-attachments";
+ import { runSubmission, submissionScope } from "../../session/submission-provenance";
+ import { validateHistoryCommand } from "./history.generated";
+ import { RpcHistoryObservation } from "./rpc-history";
+@@ -440,6 +441,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
+  * A Set, not a Record: `type` is untrusted input and must not hit prototype keys.
+  */
+ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
++	"attachment_prepare",
+ 	"bash",
+ 	"predict_word",
+ 	"live_start",
+@@ -1845,6 +1847,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	await emitAvailableCommandsUpdate();
+ 
+ 	const submissions = new RpcSubmissions(session);
++	const attachments = createAttachmentPreparations(session);
+ 	const inputGate = new RpcUserInputGate();
+ 	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
+ 	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
+@@ -1987,6 +1990,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			// Prompting
+ 			// =================================================================
+ 
++			case "attachment_prepare": {
++				try { validateAttachmentCommand(command); return success(id, command.type, await attachments.prepare(command)); }
++				catch (failure) { const code = failure instanceof Error ? failure.message : "ATTACHMENT_PREPARATION_FAILED";
++					return error(id, command.type, code, code); }
++			}
++			case "attachment_cancel": {
++				try { validateAttachmentCommand(command); return success(id, command.type, attachments.cancel(command.preparationId)); }
++				catch (failure) { const code = failure instanceof Error ? failure.message : "ATTACHMENT_CANCEL_FAILED";
++					return error(id, command.type, code, code); }
++			}
+ 			case "submission_query": {
+ 				try { submissions.validate(command); return success(id, command.type,
+ 					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index b2ea42a01b..75abd44ea5 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -1,5 +1,7 @@
+ import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
++import type { AttachmentCommand } from "./attachment-client";
++import type { AttachmentReceipt } from "../../attachments/receipts";
+ import type { StrictStartState } from "./wire/rpc-wire.generated";
+ /**
+  * RPC protocol types for headless operation.
+@@ -51,6 +53,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+ export type RpcMessageUpdates = "full" | "delta";
+ 
+ export type RpcCommand =
++  | AttachmentCommand
+   | SubmissionCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+@@ -447,6 +450,8 @@ export interface RpcSubagentMessagesResult {
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | { id?: string; type: "response"; command: "attachment_prepare"; success: true; data: AttachmentReceipt }
++  | { id?: string; type: "response"; command: "attachment_cancel"; success: true; data: { cancelled: boolean } }
+   | { id?: string; type: "response"; command: "submission_submit" | "submission_query"; success: true; data: SubmissionResult }
+   | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
+   | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
+diff --git a/packages/coding-agent/src/modes/rpc/wire/attachments.ts b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
+new file mode 100644
+index 0000000000..6b1b4dd32e
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
+@@ -0,0 +1,28 @@
++/** Controlled inline objects, ephemeral preparation receipts, and exact-result consent. No path read authority. */
++export const attachmentDefs = {
++	AttachmentFormat: "'utf8' | 'png' | 'jpeg' | 'webp' | 'gif' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'epub'",
++	AttachmentBinding: { "+": "reject", sourceId: "string", instanceId: "string", nativeSessionId: "string", contextId: "string",
++		modelFingerprint: "string", imageCapable: "boolean" },
++	AttachmentOriginal: { "+": "reject", originalId: "string", format: "AttachmentFormat", sha256: "string", data: "string" },
++	AttachmentText: { "+": "reject", kind: "'text'", text: "string" },
++	AttachmentImage: { "+": "reject", kind: "'image'", mimeType: "string", data: "string", width: "number.integer", height: "number.integer" },
++	AttachmentRepresentation: "AttachmentText | AttachmentImage",
++	AttachmentReadyItem: { "+": "reject", status: "'ready'", originalId: "string", originalSha256: "string", preparedId: "string",
++		preparedSha256: "string", representation: "AttachmentRepresentation", degradations: "string[]" },
++	AttachmentFailedItem: { "+": "reject", status: "'failed'", originalId: "string", originalSha256: "string", preparedId: "string",
++		preparedSha256: "string", code: "string" },
++	AttachmentItem: "AttachmentReadyItem | AttachmentFailedItem",
++	AttachmentReceipt: { "+": "reject", version: "'attachment-preparation-v1'", budgetVersion: "string", receiptId: "string",
++		preparationId: "string", draftId: "string", draftRevision: "string", authorityGeneration: "string",
++		draftFingerprint: "string", binding: "AttachmentBinding", expiresAt: "number.integer", status: "'ready' | 'failed'",
++		resultDigest: "string", items: "AttachmentItem[]" },
++	AttachmentConsent: { "+": "reject", receiptId: "string", resultDigest: "string", draftRevision: "string",
++		authorityGeneration: "string", acceptedDegradations: "string[]" },
++};
++export const attachmentCommands = [
++	{ name: "attachment_prepare", doc: "Prepare every controlled original without input hooks, model/tool calls or message commits. Any failure blocks the whole input.",
++		params: { preparationId: "string", draftId: "string", draftRevision: "string", authorityGeneration: "string",
++			message: "string", objects: "AttachmentOriginal[]" }, result: "AttachmentReceipt" },
++	{ name: "attachment_cancel", doc: "Invalidate pending or ready preparation. Cancelled or late results cannot be consumed.",
++		params: { preparationId: "string" }, result: { cancelled: "boolean" } },
++] as const;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index 97966b2eee..7731ef0cb6 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -11,6 +11,7 @@ import { interactionCommands } from "./interactions";
+ import { doc } from "./dsl";
+ import { catalogCommands } from "./catalog";
+ import { historyCommands } from "./history";
++import { attachmentCommands } from "./attachments";
+ 
+ /** One RPC command as described to generators. */
+ export interface RpcCommandSpec {
+@@ -37,6 +38,7 @@ export interface RpcCommandSpec {
+ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
+ 
+ export const rpcCommands: readonly RpcCommandSpec[] = [
++  ...attachmentCommands,
+   ...interactionCommands,
+   ...catalogCommands,
+   ...historyCommands,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+index afeae50dfa..23defe2aca 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -25,6 +25,7 @@ import { strictStartDefs } from "./strict-start";
+ import { catalogDefs } from "./catalog";
+ import { historyDefs } from "./history";
+ import { stateDefs } from "./state";
++import { attachmentDefs } from "./attachments";
+ 
+ export type { RpcCommandSpec } from "./commands";
+ 
+@@ -167,6 +168,7 @@ function collectCommands(defs: WireDefs): RpcWireCommand[] {
+  */
+ export function buildRpcWireBundle(): RpcWireBundle {
+ 	const defs: WireDefs = {
++		...attachmentDefs,
+ 		...messageDefs,
+ 		...modelDefs,
+ 		...stateDefs,
 diff --git a/packages/tui/package.json b/packages/tui/package.json
 index 4904e09958..b286a849e9 100644
 --- a/packages/tui/package.json
