@@ -1,0 +1,420 @@
+{
+  "status": "PASS_SCOPED_C_LAUNCHER_REAL_BUN_SHARED_LOCK_DRAINED",
+  "recordedAt": "2026-11-16T22:53:38.666410+00:00",
+  "sourceHead": "6db8025890e74e452ac2c8e433e8c3c715299b93",
+  "scope": "ONE already-completed unchanged C launcher direct exec to real pinned Bun; inherited maintenance LOCK_SH mechanics only; no rerun",
+  "fixture": "/tmp/launcher-lock-tracer-CarLw9/fixture.json",
+  "fixtureSha256": "76bc93ab5d1a360b3a783dc87e8c4e0a72e514d327b35139d27d3eb60cb1b46f",
+  "actualResult": {
+    "status": "PASS",
+    "parentPid": 480297,
+    "kernelEndpoint": "P_ALL/ECHILD",
+    "signalsSent": 0,
+    "interrupted": false,
+    "events": [
+      {
+        "stage": "SPAWN",
+        "role": "before",
+        "pid": 480300,
+        "pidfdHeld": true
+      },
+      {
+        "stage": "EXCLUSIVE_ACQUIRED",
+        "role": "before",
+        "pid": 480300,
+        "exitCode": 0
+      },
+      {
+        "stage": "SPAWN",
+        "role": "bun",
+        "pid": 480301,
+        "pidfdHeld": true
+      },
+      {
+        "stage": "BUN_READY",
+        "pid": 480301,
+        "executable": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+        "bunVersion": "1.4.4",
+        "args": [
+          "--launcher-lock-fixture"
+        ],
+        "guardPresent": true
+      },
+      {
+        "stage": "ACTUAL_BUN_AND_INHERITED_LOCK",
+        "pid": 480301,
+        "executable": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+        "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+        "locks": [
+          {
+            "fd": 3,
+            "flags": "0500000",
+            "lock": "1: FLOCK  ADVISORY  READ 480301 00:1b:337520 0 EOF",
+            "cloexecAfterBunStartup": false
+          }
+        ]
+      },
+      {
+        "stage": "SPAWN",
+        "role": "during",
+        "pid": 480309,
+        "pidfdHeld": true
+      },
+      {
+        "stage": "EXCLUSIVE_REFUSED",
+        "role": "during",
+        "pid": 480309,
+        "exitCode": 73
+      },
+      {
+        "stage": "ACTUAL_BUN_AND_INHERITED_LOCK",
+        "pid": 480301,
+        "executable": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+        "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+        "locks": [
+          {
+            "fd": 3,
+            "flags": "0500000",
+            "lock": "1: FLOCK  ADVISORY  READ 480301 00:1b:337520 0 EOF",
+            "cloexecAfterBunStartup": false
+          }
+        ]
+      },
+      {
+        "stage": "STDIN_EOF_SENT",
+        "pid": 480301
+      },
+      {
+        "stage": "BUN_EOF",
+        "pid": 480301,
+        "guardDenied": 0,
+        "guardDispatched": 0
+      },
+      {
+        "stage": "SPAWN",
+        "role": "after",
+        "pid": 480310,
+        "pidfdHeld": true
+      },
+      {
+        "stage": "EXCLUSIVE_ACQUIRED",
+        "role": "after",
+        "pid": 480310,
+        "exitCode": 0
+      }
+    ],
+    "children": [
+      {
+        "role": "before",
+        "pid": 480300,
+        "code": 1,
+        "status": 0
+      },
+      {
+        "role": "during",
+        "pid": 480309,
+        "code": 1,
+        "status": 73
+      },
+      {
+        "role": "bun",
+        "pid": 480301,
+        "code": 1,
+        "status": 0
+      },
+      {
+        "role": "after",
+        "pid": 480310,
+        "code": 1,
+        "status": 0
+      }
+    ],
+    "admittedChildren": 4,
+    "postInputsUnchanged": true
+  },
+  "postflight": {
+    "inputsVerified": 20,
+    "sourceInputs": [
+      {
+        "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
+        "bytes": 30894944,
+        "sha256": "fa67443527ed9647f760d807e2a38f26340757123e643c4639cf273ed15d5ea7",
+        "mode": 493,
+        "device": "27",
+        "inode": "9223372036854863101",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/home/fixture-marker.json",
+        "bytes": 61,
+        "sha256": "b80d613d31733048b350462735276d5d6d5cfa81848c21810e92a9ec6101f869",
+        "mode": 384,
+        "device": "27",
+        "inode": "337518",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/maintenance.lock",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 384,
+        "device": "27",
+        "inode": "337520",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/release/bin/omp",
+        "bytes": 759560,
+        "sha256": "1962e83a4fa6196637dbb4d8eff0c25f9d752110e62083fb0070e11dfee7427a",
+        "mode": 448,
+        "device": "27",
+        "inode": "337569",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+        "bytes": 107308936,
+        "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+        "mode": 493,
+        "device": "27",
+        "inode": "337519",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bunfig.toml",
+        "bytes": 96,
+        "sha256": "93d561bcfae54690a1168ecfbf5a47a4f2dba07a567b57986556ef7f75e429b4",
+        "mode": 384,
+        "device": "27",
+        "inode": "337523",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/no-provider.ts",
+        "bytes": 3122,
+        "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+        "mode": 384,
+        "device": "27",
+        "inode": "337522",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/release/worker/cli.js",
+        "bytes": 1905,
+        "sha256": "4da32dbabf16bcb3f300b80ad5f81860da5c0033707ad4ef0e5dacd77fbb8b1a",
+        "mode": 384,
+        "device": "27",
+        "inode": "337521",
+        "links": 1
+      },
+      {
+        "file": "/tmp/launcher-lock-tracer-CarLw9/tools/exclusive-probe",
+        "bytes": 759552,
+        "sha256": "caa4d2b00112a20fc9a2b3ec7ad3a00d42e1e9798a76b439bd47d7b17c639184",
+        "mode": 448,
+        "device": "27",
+        "inode": "337574",
+        "links": 1
+      },
+      {
+        "file": "/usr/bin/x86_64-linux-gnu-gcc-14",
+        "bytes": 1162264,
+        "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+        "mode": 493,
+        "device": "27",
+        "inode": "9223372036855080353",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/compatibility/launcher/omp-entry.c",
+        "bytes": 3131,
+        "sha256": "581a2259d80505c2ff301073c3558a05b1f79502bfec67b7ceb179c03aebfb22",
+        "mode": 384,
+        "device": "27",
+        "inode": "203992",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/no-provider.ts",
+        "bytes": 3122,
+        "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+        "mode": 384,
+        "device": "27",
+        "inode": "99204",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/packages/delivery/artifact.ts",
+        "bytes": 6988,
+        "sha256": "c147ab6f8944fe16d78ee805a704b6ff16fd64835cf81dbc6e5963a212cdef8b",
+        "mode": 384,
+        "device": "27",
+        "inode": "202497",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/packages/delivery/resolver.ts",
+        "bytes": 1668,
+        "sha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d",
+        "mode": 384,
+        "device": "27",
+        "inode": "196661",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/scripts/build-controlled-launcher.ts",
+        "bytes": 2013,
+        "sha256": "4571c2ed9d5feed9af81831178a5a06dc25a48fbd8ca09700c12aff6fac6f907",
+        "mode": 384,
+        "device": "27",
+        "inode": "203991",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/scripts/prepare-launcher-lock-tracer.ts",
+        "bytes": 7534,
+        "sha256": "90c6144c38811c0db29ffae6842952d5ade52f16e0b4ea109a86f2fd3151b5b9",
+        "mode": 384,
+        "device": "27",
+        "inode": "337566",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/scripts/retain-launcher-lock-tracer.py",
+        "bytes": 14364,
+        "sha256": "f905573d5bc6df46373c7fd3c5abf1ebbac5a66708836dad7a43e95fcebc7d8a",
+        "mode": 384,
+        "device": "27",
+        "inode": "336749",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/tests/delivery/fixtures/launcher-lock-child.ts",
+        "bytes": 1985,
+        "sha256": "12652f7497b50f12288bb696243d474edd3510b77358e0f2f5b67dfa304e8dbe",
+        "mode": 384,
+        "device": "27",
+        "inode": "337564",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/tests/delivery/fixtures/maintenance-exclusive-probe.c",
+        "bytes": 2035,
+        "sha256": "92cd455ba6d0f541ddf23d496bf9571af834a602c1509bc9bae8239497909365",
+        "mode": 384,
+        "device": "27",
+        "inode": "337565",
+        "links": 1
+      },
+      {
+        "file": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "bytes": 107308936,
+        "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+        "mode": 493,
+        "device": "27",
+        "inode": "162910",
+        "links": 1
+      }
+    ],
+    "knownOwnPidsAbsent": {
+      "480297": true,
+      "480300": true,
+      "480309": true,
+      "480301": true,
+      "480310": true
+    },
+    "observation": "Exact known fixture parent and children only; no broad process census",
+    "readOnlyRevalidation": true
+  },
+  "rawArtifacts": {
+    "after.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "after.stdout.log": {
+      "bytes": 44,
+      "sha256": "2ea6ca18d9a0c081c3fe22fa18903b016fc79e031e13827f9911f29e316c331f"
+    },
+    "before.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "before.stdout.log": {
+      "bytes": 44,
+      "sha256": "c84c649cbb458a2a4528b614d456bacb47ed4081499079a0801301ce52012635"
+    },
+    "bun.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "bun.stdout.log": {
+      "bytes": 248,
+      "sha256": "9414edf1d89b7f6769b2051dfc2120d944b0e788f91d967129a4b0a5b6f5bafc"
+    },
+    "during.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "during.stdout.log": {
+      "bytes": 43,
+      "sha256": "2ca0d9f8c8e9d9d52fe120fc2bed9321e89040351ae5352490ff27de2cd60ff3"
+    },
+    "fixture.json": {
+      "bytes": 8072,
+      "sha256": "76bc93ab5d1a360b3a783dc87e8c4e0a72e514d327b35139d27d3eb60cb1b46f"
+    },
+    "maintenance.lock": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "preflight.json": {
+      "bytes": 424,
+      "sha256": "6aaa8087828c1310968de80a81954a42713b56ebb43e1af4afa23db5efdeb6f4"
+    },
+    "result.json": {
+      "bytes": 2683,
+      "sha256": "2cd07a66197db84323f71a261e9f15fecf68074779031613b64d0f288b3abe44"
+    },
+    "source-types.json": {
+      "bytes": 451,
+      "sha256": "b0965cc543eeb12325a5d1491646491307a698995ad03a86e1b6983943e14f42"
+    }
+  },
+  "waitProof": {
+    "soleWaitOwner": "Python retaining parent480297",
+    "centralWait": "waitid(P_ALL,0,WEXITED|WNOHANG|__WALL)",
+    "endpoint": "actual ChildProcessError/ECHILD from central wait after admission closed",
+    "resultWrittenAfterDrain": true,
+    "heldChildPidfds": 4,
+    "actualParentToolExitCode": "NOT_CAPTURED",
+    "parentToolNote": "Root confirms no retained top-level Python completion chunk/exit status. Exact-five-PID absence is separate from the saved actual child statuses and ECHILD; no parent exit code is inferred."
+  },
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "backendCapabilityGranted": false,
+  "notEstablished": [
+    "owner-selected global installation or complete final release/platform closure",
+    "descendant/shared service maintenance protection",
+    "private helper REGISTER/START/extinction and control I/O shim",
+    "Native CLI/SDK/Agent/TUI/browser/product behavior",
+    "broker publication and full matched capability admission"
+  ],
+  "runtimeReclaim": {
+    "status": "RECLAIMED_AFTER_PROOF_SAVE_EXACT_IDENTITY_AND_ACTUAL_DRAIN",
+    "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+    "bytes": 107308936,
+    "expectedIdentity": {
+      "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+      "bytes": 107308936,
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "mode": 493,
+      "device": "27",
+      "inode": "337519",
+      "links": 1
+    },
+    "reclaimedAt": "2026-11-16T22:54:03.602869+00:00",
+    "absentAfter": true,
+    "sourceBunPreserved": true,
+    "allOtherFixtureArtifactsPreserved": true
+  }
+}
