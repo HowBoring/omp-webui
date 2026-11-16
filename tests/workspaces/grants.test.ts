@@ -39,7 +39,9 @@ test("symlink escape, source cwd replacement and canonical-root replacement neve
     expect(grants.authorize().status).toBe("unknown");
     expect(grants.authorize(join(home, "missing")).status).toBe("missing");
     const pending = grants.preview(root);
-    await rename(root, join(home, "moved")); await mkdir(root);
+    await rename(root, join(home, "moved"));
+    expect(grants.authorize(root).status).toBe("missing");
+    await mkdir(root);
     expect(() => grants.confirm(pending.confirmation)).toThrow("DIRECTORY_CHANGED");
     expect(grants.list()[0]!.status).toBe("changed");
     expect(grants.authorize(root).status).toBe("changed");
@@ -60,5 +62,19 @@ test("confirmation expiry, single use and lost durable state fail closed", async
     expect(grants.authorize(home).status).toBe("authorized");
     await rm(join(home, "state", "directory-grants.sqlite"));
     expect(() => grants.authorize(home)).toThrow();
+  } finally { grants.close(); await rm(home, { recursive: true, force: true }); }
+});
+
+test("revoking an ancestor preserves only separately granted descendants", async () => {
+  const home = await mkdtemp(join(tmpdir(), "omp-grants-overlap-"));
+  const child = join(home, "child"), sibling = join(home, "sibling");
+  await mkdir(child); await mkdir(sibling);
+  const grants = new DirectoryGrants(join(home, "state"));
+  try {
+    const ancestor = grants.confirm(grants.preview(home).confirmation);
+    grants.confirm(grants.preview(child).confirmation);
+    grants.revoke(ancestor.id);
+    expect(grants.authorize(child).status).toBe("authorized");
+    expect(grants.authorize(sibling).status).toBe("ungranted");
   } finally { grants.close(); await rm(home, { recursive: true, force: true }); }
 });

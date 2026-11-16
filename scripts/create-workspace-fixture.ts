@@ -42,6 +42,10 @@ try {
     { id: "synthetic-registered-missing", reference: missing, nativeSessionId: "missing-native", title: "Remembered missing native title" },
     { id: "synthetic-registered-unknown-source", reference: absentSource, nativeSessionId: first.nativeSessionId, title: "Source removed" },
     { id: "synthetic-invalid-reference", reference: "invalid", nativeSessionId: "invalid-native", title: "Invalid persisted metadata reference" },
+    ...items.filter(item => /^native-00(0[2-9]|[12][0-9]|3[01])$/.test(item.nativeSessionId)).map(item => ({
+      id: `synthetic-registered-${item.nativeSessionId}`, reference: item.reference, nativeSessionId: item.nativeSessionId,
+      title: item.title, cwd: item.cwd.recorded,
+    })),
   ], null, 2));
   const replaced = join(source, "bucket", "native-0001.jsonl");
   await rename(replaced, join(home, "replaced-original.jsonl"));

@@ -9,7 +9,7 @@ const path = z.string().min(1).max(4096), id = z.string().uuid();
 const directory = z.strictObject({ status: z.enum(["authorized", "ungranted", "unknown", "missing", "inaccessible", "changed"]),
   canonical: path.optional() });
 const registered = z.strictObject({ items: z.array(z.strictObject({ id: z.string().max(128),
-  nativeSessionId: z.string().max(128), title: z.string().max(8192),
+  nativeSessionId: z.string().max(128), workspace: z.string().max(4096), title: z.string().max(8192),
   nativeStatus: z.enum(["verified", "missing", "replaced", "invalid_reference", "source_unavailable", "inaccessible"]),
   observedAt: z.string().datetime(), directory, ownership: z.strictObject({ state: z.enum(["held", "free", "unknown"]),
     observedAt: z.string().datetime() }), admission: z.literal("blocked_pending_41_44") })).max(32),

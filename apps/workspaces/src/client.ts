@@ -9,7 +9,7 @@ const element = <T extends HTMLElement>(id: string) => document.getElementById(i
 const root = element("catalog"), status = element("status"), next = element<HTMLButtonElement>("next");
 const confirm = element<HTMLButtonElement>("confirm"), review = element("confirmation");
 const text = (tag: string, value: string) => { const node = document.createElement(tag); node.textContent = value; return node; };
-let csrf = "", confirmation: string | undefined, cursor: string | undefined, generation = 0, disposed = false;
+let csrf = "", confirmation: string | undefined, cursor: string | undefined, generation = 0, connectionEpoch = 0, disposed = false;
 function blocked(reason: string): void { root.dataset.status = "blocked"; root.replaceChildren(text("p", reason)); next.disabled = true; }
 function render(result: Extract<WorkspacePage, { status: "ok" }>): void {
   const { page, access } = result;
@@ -44,16 +44,19 @@ async function load(restart = false): Promise<void> {
     if (result.value.page.status !== "scanning") break;
   } while (cursor);
 }
+let registeredGeneration = 0, grantsGeneration = 0;
 let registeredCursor: string | undefined;
 async function registered(restart = true): Promise<void> {
+  const epoch = connectionEpoch, current = ++registeredGeneration;
   if (restart) registeredCursor = undefined;
   const result = await ctx.remote.ompWorkspaces.registered({ pageSize: 32,
     ...(registeredCursor ? { cursor: registeredCursor } : {}) });
+  if (disposed || epoch !== connectionEpoch || current !== registeredGeneration) return;
   if (!result.ok) { element("registered").replaceChildren(text("p", "index_unavailable")); return; }
   const view = element("registered"); view.replaceChildren();
   for (const item of result.value.items) {
     const row = text("article", `${item.title}; registered reference ${item.id}; native ${item.nativeStatus}; `
-      + `directory ${item.directory.status}; ownership ${item.ownership.state}; history/open/execution blocked`);
+      + `Workspace metadata ${item.workspace}; directory ${item.directory.status}; ownership ${item.ownership.state}; history/open/execution blocked`);
     row.dataset.nativeStatus = item.nativeStatus; view.append(row);
   }
   registeredCursor = result.value.nextCursor;
@@ -61,8 +64,11 @@ async function registered(restart = true): Promise<void> {
 }
 element("registered-next").addEventListener("click", () => void perform(() => registered(false)));
 async function grants(): Promise<void> {
+  const epoch = connectionEpoch, current = ++grantsGeneration;
   await registered();
+  if (disposed || epoch !== connectionEpoch || current !== grantsGeneration) return;
   const result = await ctx.remote.ompWorkspaces.grants();
+  if (disposed || epoch !== connectionEpoch || current !== grantsGeneration) return;
   if (!result.ok) throw new Error("grants_unavailable");
   const list = element("grants"); list.replaceChildren();
   for (const grant of result.value) {
@@ -114,11 +120,14 @@ async function boot(): Promise<void> {
   const view = element("sources"); view.append(text("h2", `Selected native profile: ${sources.value.profile}`));
   for (const source of sources.value.sources) view.append(text("p", `${source.kind} source ${source.sourceId}: ${source.status}`));
   ctx.effect(() => ctx.connection.generation.subscribe(() => {
-    if (!ctx.connection.generation.getSnapshot()) { ++generation; blocked("connection_unavailable"); }
+    ++connectionEpoch;
+    if (!ctx.connection.generation.getSnapshot()) {
+      ++generation; blocked("connection_unavailable"); element("grants").replaceChildren(); element("registered").replaceChildren();
+    }
     else void perform(async () => { await grants(); await load(true); });
   }));
   await grants(); if (ctx.connection.generation.getSnapshot()) await load(true);
 }
-window.addEventListener("pagehide", () => { disposed = true; ++generation; void ctx.fiber.dispose(); }, { once: true });
+window.addEventListener("pagehide", () => { disposed = true; ++connectionEpoch; ++generation; void ctx.fiber.dispose(); }, { once: true });
 window.addEventListener("pageshow", event => { if (event.persisted) location.reload(); });
 void boot().catch(() => blocked("workspace_boot_failed"));

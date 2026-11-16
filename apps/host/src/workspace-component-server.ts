@@ -47,7 +47,6 @@ async function* idle(signal: AbortSignal): AsyncGenerator<never> {
 /** Loopback diagnostics carrier. No private Session or general Remote routes are mounted. */
 export async function startWorkspaceComponentServer(options: Options) {
   const ctx = new Context();
-  const lifetime = new AbortController();
   const assets = resolve(options.assets ?? "vendor/dsh-workspaces");
   const staticAssets = await trustedDiagnosticAssets(options.manifest, assets);
   await ctx.plugin(TypertRegistry);
@@ -61,6 +60,7 @@ export async function startWorkspaceComponentServer(options: Options) {
   const sockets = new Set<ServerWebSocket<SocketData>>();
   const owner = new Peer(ctx, { principal: { kind: "owner" } });
 
+  let inflight = 0;
   let access: ReturnType<typeof openBrowserAccess>;
   const server = Bun.serve<SocketData>({
     hostname: "127.0.0.1", port: options.port ?? 3180, maxRequestBodySize: 16_384,
@@ -93,8 +93,12 @@ export async function startWorkspaceComponentServer(options: Options) {
         if (request.headers.get("origin") !== carrier.url.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
         if (identity instanceof Response) return identity;
-        const response = await dispatch(request, ctx, owner);
-        return access.revalidate(identity) ? response : new Response("Access invalidated", { status: 401 });
+        if (inflight >= 32) return Response.json({ error: { code: "WORKSPACE_REQUEST_LIMIT" } }, { status: 429 });
+        ++inflight;
+        try {
+          const response = await dispatch(request, ctx, owner, () => access.revalidate(identity));
+          return access.revalidate(identity) ? response : new Response("Access invalidated", { status: 401 });
+        } finally { --inflight; }
       }
       if (path.startsWith("/api/")) return new Response("Private Session admission is blocked", { status: 501 });
       if (request.method === "GET" && path === "/healthz") {
@@ -136,7 +140,7 @@ export async function startWorkspaceComponentServer(options: Options) {
     server,
     bootstrapLink: () => access.bootstrapLink(),
     async stop(): Promise<void> {
-      lifetime.abort(); access.close(); directories.close();
+      access.close(); directories.close();
       for (const socket of sockets) socket.close(1001, "Host shutdown");
       await unregister();
       await ctx.fiber.dispose();
@@ -145,7 +149,7 @@ export async function startWorkspaceComponentServer(options: Options) {
   };
 }
 
-async function dispatch(request: Request, ctx: Context, peer: Peer): Promise<Response> {
+async function dispatch(request: Request, ctx: Context, peer: Peer, current: () => boolean): Promise<Response> {
   try {
     if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") return new Response("JSON required", { status: 415 });
     const envelope = clientRequestSchema.parse(await request.json());
@@ -153,6 +157,8 @@ async function dispatch(request: Request, ctx: Context, peer: Peer): Promise<Res
     if (!method || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({args:z.record(z.string(),z.unknown())}).parse(envelope.payload);
     const args = z.record(z.string(),z.unknown()).parse(method.input({strict:true}).create().parse(payload.args));
+    request.signal.throwIfAborted();
+    if (!current()) return new Response("Access invalidated", { status: 401 });
     const value = await ctx.typertGateway.invoke({namespace:method.namespace,method:method.method,
       args,peer,signal:request.signal});
     return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });

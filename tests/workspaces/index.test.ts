@@ -20,3 +20,32 @@ test("readonly Session Index metadata keeps failed references visible without ad
     expect(page.nextCursor).toBe("more");
   } finally { grants.close(); await rm(home, { recursive: true, force: true }); }
 });
+
+test("native registered descriptions recheck every directory right after a concurrent revoke before publishing the page", async () => {
+  const { nativeFixture } = await import("../catalog/fixture.ts");
+  const { CatalogTransport } = await import("../../packages/compatibility/catalog-transport.ts");
+  const home = await mkdtemp(join(tmpdir(), "omp-index-revoke-"));
+  const grants = new DirectoryGrants(join(home, "state"));
+  await nativeFixture(home, 2);
+  const transport = await CatalogTransport.open({ argv: [process.execPath, "--no-env-file", "vendor/omp-candidate/cli.js", "--rpc-catalog"],
+    cwd: process.cwd(), env: { HOME: home, TMPDIR: home, BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" } });
+  try {
+    const page = await transport.catalog.page();
+    const grant = grants.confirm(grants.preview(home).confirmation);
+    const waiting = Promise.withResolvers<void>(), resume = Promise.withResolvers<void>();
+    let requests = 0;
+    // Deliberate public RPC latency fixture; every description still comes from the actual native child.
+    const delayed = new CatalogClient(async command => {
+      if (command.type !== "describe_session") throw new Error("UNEXPECTED_PUBLIC_RPC");
+      if (++requests === 2) { waiting.resolve(); await resume.promise; }
+      return transport.catalog.describe(command.reference);
+    });
+    const pending = registeredPage(delayed, grants, { page: async () => ({ records: page.items.map(item => ({
+      id: `registered-${item.nativeSessionId}`, reference: item.reference, nativeSessionId: item.nativeSessionId,
+    })) }) }, {});
+    await waiting.promise; grants.revoke(grant.id); resume.resolve();
+    const result = await pending;
+    expect(result.items.map(item => item.directory.status)).toEqual(["ungranted", "ungranted"]);
+    expect(result.items.map(item => item.nativeStatus)).toEqual(["verified", "verified"]);
+  } finally { await transport.close(); grants.close(); await rm(home, { recursive: true, force: true }); }
+});

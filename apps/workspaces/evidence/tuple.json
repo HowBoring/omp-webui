@@ -1,0 +1,67 @@
+{
+  "kind": "isolated-authenticated-workspace-component",
+  "testedIntegration": "2118454e02ac1e5db40847fec62f812308698309",
+  "omp": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "12c72dc14e30975ab0f90df49cfcf3fc1eb50f300366088dc04053ab1c6f437b",
+    "patchSha256": "0c5a4fc201bc3b28b07a65158fbe26fb76668b926557380093e082e4c4634a39",
+    "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
+    "candidateCliSha256": "94917181587477ab27db968530b314ba5d3b703e2d7fccd8257546e9a2f7d475",
+    "installationSha256": "25de9cf1bda7119bd3636e39d1cddf2acc2dd1ab222f664a7da91bc932f7192d",
+    "installationAssets": 77431
+  },
+  "dsh": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+    "mode": "candidate",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      }
+    ],
+    "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+  },
+  "browserBuild": {
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4"
+    },
+    "sourceInputs": 239,
+    "sourceSha256": "042c7f9afdb374cf100c8fb075ae328ee7550dd5b0aa395e4031f759178911ab",
+    "contractSha256": "1d96d19beaa87dadaa4f02ee7303b1d5af25dca517ca6e4b2490c341e59e464f",
+    "assets": {
+      "client.js": "920c0f4285a901d49443bd3769cc99533af4aca4f523def6d5f1481d16a17c4e",
+      "index.html": "cfffdd049f27cc803ae2eac651e30fd6248ee9f5785a9e7e78b20adb9e3b6bd3"
+    }
+  },
+  "browserBuildManifestSha256": "ba2f790db9541f9771d8020bab49d957d941d80da9286632583015312de02cdd",
+  "hostBuild": {
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4"
+    },
+    "inputs": 256,
+    "bundle": {
+      "file": "workspace-component-main.js",
+      "sha256": "1da6ad97583171d9cfd75fc38a7f063473970c12da1e060d274f8d5943615d58"
+    },
+    "manifestSha256": "08d2794108985ba1f8a06da023e1f825d0410ea4ef578ffd5182f3c0c9eb009b"
+  },
+  "closureReuse": {
+    "OMP": "Owned clean fixed-base clone + accepted two patches; readonly #31 frozen dependency cache",
+    "DSH": "Owned package links to immutable #39-final-fix/vendor/dsh-final compiled closure; full candidate source verification; no shared source or symlink target edits",
+    "unusedOwnedDSH": "Exact c0 source preserved solely for local mutation tests; 331 unused generated lib/build directories removed after checking no final package link/build input/process depended on them"
+  },
+  "productAdmission": "BLOCKED pending #41 combined/global gate and #44 protected open/worker revocation",
+  "windowsWSL2": "DEFERRED by user",
+  "builtOnIntegration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
+  "integrationRefresh": "Latest merge changes catalog build/provenance tests only; all enrolled Workspace/Host/OMP/client inputs unchanged."
+}

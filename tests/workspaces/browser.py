@@ -28,7 +28,10 @@ def main():
         stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
     assert lock.stdout.readline().strip()=='held'
     before = native_manifest()
-    host = None; logs = ''; cases = []
+    class Cases(list):
+        def append(self, item):
+            super().append(item); print(item, flush=True)
+    host = None; logs = ''; cases = Cases()
     def start():
         nonlocal host
         host = subprocess.Popen([BUN, '--no-env-file', ENTRY], cwd=ROOT,
@@ -40,11 +43,22 @@ def main():
                 with socket.create_connection(('127.0.0.1',3182), timeout=.2):return
             except OSError:time.sleep(.1)
         raise AssertionError('Component Host readiness timeout')
-    def stop():
+    def stop(crash=False):
         nonlocal host, logs
         if host:
-            host.terminate(); output,_=host.communicate(timeout=15); logs+=output; assert host.returncode==0
+            children=subprocess.run(['ps','--ppid',str(host.pid),'-o','pid='],capture_output=True,text=True).stdout.split()
+            host.kill() if crash else host.terminate()
+            output,_=host.communicate(timeout=15); logs+=output; assert host.returncode==(-9 if crash else 0)
             host=None
+            def running(pid):
+                try:return 'State:\tZ' not in Path(f'/proc/{pid}/status').read_text()
+                except OSError:return False
+            deadline=time.monotonic()+5
+            while time.monotonic()<deadline:
+                alive=[pid for pid in children if running(pid)]
+                if not alive:break
+                time.sleep(.05)
+            assert not alive,'Readonly native child survived Host loss/shutdown'
     def bootstrap():
         return subprocess.check_output([BUN,'--no-env-file',ENTRY,'--print-bootstrap'],cwd=ROOT,text=True).strip()
     try:
@@ -63,9 +77,16 @@ def main():
             assert 'INVALID_METADATA' in page.locator('#catalog').inner_text()
             page.locator('#registered article[data-native-status="missing"]').wait_for()
             registered_statuses=page.locator('#registered article').evaluate_all('(rows)=>rows.map(row=>row.dataset.nativeStatus)')
-            assert registered_statuses==['verified','replaced','missing','source_unavailable','invalid_reference'],registered_statuses
+            assert registered_statuses[:5]==['verified','replaced','missing','source_unavailable','invalid_reference'],registered_statuses
+            assert len(registered_statuses)==32
             assert 'ownership held' in page.locator('#registered article').first.inner_text()
             assert 'ownership unknown' in page.locator('#registered article[data-native-status="missing"]').inner_text()
+            page.locator('#registered-next').click()
+            page.locator('#registered article').filter(has_text='synthetic-registered-native-0029').wait_for()
+            assert page.locator('#registered article').count()==3
+            assert page.locator('#registered-next').is_disabled()
+            cases.append('PASS separate readonly Session Index provider pagination reaches all 35 explicit synthetic references')
+            page.locator('#refresh').click();page.locator('#catalog[data-status="partial"]').wait_for()
             cases.append('PASS explicit synthetic Session Index metadata maps actual public describe verified/held, replaced, missing, invalid and source unavailable; failed references retained with unknown ownership')
             sources=page.locator('#sources').inner_text()
             assert 'Selected native profile: default' in sources
@@ -73,7 +94,8 @@ def main():
             project=str(ROOT/'vendor/workspace-fixture/project')
             # A repeat run starts with explicit owner revocation of prior synthetic grants.
             for button in page.get_by_role('button',name='Revoke directory').all():
-                button.click();page.locator('#catalog[data-status="partial"]').wait_for()
+                button.click()
+                page.wait_for_function('() => document.querySelectorAll("#grants p").length===0 && document.querySelectorAll("#catalog article[data-directory=authorized]").length===0')
             assert page.locator('#catalog article[data-directory="authorized"]').count()==0
             page.get_by_label('Directory path').fill(project)
             page.get_by_role('button',name='Review directory',exact=True).click()
@@ -104,11 +126,13 @@ def main():
             assert context.request.post(ORIGIN+'/api/ompWorkspaces/preview',data={**envelope,'payload':{'args':{'path':project,'sources':['/']}}},headers={'Origin':ORIGIN,'x-omp-csrf':csrf}).status==400
             cases.append('PASS no CSRF/null Origin/source expansion rejected; history/open/execution gates stay closed')
             saved=context.request.get(ORIGIN+'/auth/status').json()
-            stop(); start(); page.reload()
+            assert (ROOT/'vendor/workspace-access').stat().st_mode&0o777==0o700
+            assert (ROOT/'vendor/workspace-access/directory-grants.sqlite').stat().st_mode&0o777==0o600
+            stop(crash=True); start(); page.reload()
             page.locator('#catalog article[data-directory="authorized"]').first.wait_for(timeout=60000)
             assert context.request.get(ORIGIN+'/auth/status').json()==saved
             assert project in page.locator('#grants').inner_text()
-            cases.append('PASS actual Host process restart restores absolute browser credential and persistent directory grant')
+            cases.append('PASS actual SIGKILL Host restart restores absolute browser credential and persistent directory grant; readonly native child exits on Host loss')
             # Replace a previously canonical root without modifying any native Session file.
             root=ROOT/'vendor/workspace-fixture/project'; moved=root.with_name('project-original')
             root.rename(moved); root.mkdir()
@@ -119,7 +143,7 @@ def main():
             finally:
                 root.rmdir();moved.rename(root)
             page.get_by_role('button',name='Revoke directory').click()
-            page.locator('#catalog article[data-directory="ungranted"]').first.wait_for()
+            page.wait_for_function('() => document.querySelectorAll("#grants p").length===0 && document.querySelectorAll("#catalog article[data-directory=authorized]").length===0')
             assert page.locator('#catalog article[data-directory="authorized"]').count()==0
             stop();start();page.reload();page.locator('#catalog[data-status="partial"]').wait_for(timeout=60000)
             assert page.locator('#grants').inner_text()==''
@@ -154,8 +178,9 @@ def main():
             'windowsWSL2':'DEFERRED by user','performance':'NOT RUN; this is functional component evidence'}
         (OUT/'browser.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
     finally:
-        stop()
-        lock.stdin.close(); lock.wait(timeout=10)
-        assert lock.returncode==0
+        try:stop()
+        finally:
+            lock.stdin.close(); lock.wait(timeout=10)
+            assert lock.returncode==0
 
 if __name__=='__main__':main()

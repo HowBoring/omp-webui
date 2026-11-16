@@ -1,5 +1,6 @@
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogPageInput } from "../contracts/catalog.ts";
+import { catalogDirectoryAccess } from "./catalog.ts";
 import type { DirectoryGrants } from "./grants.ts";
 
 /** Metadata only, supplied by the Session Index owner (#44). This component never registers discoveries. */
@@ -15,18 +16,23 @@ export async function registeredPage(catalog: CatalogClient, grants: DirectoryGr
   options: CatalogPageInput) {
   const page = await index.page(options);
   if (page.records.length > 32) throw new Error("INDEX_PAGE_LIMIT");
-  const items = [];
+  const descriptions = [];
   for (const record of page.records) {
-    const description = await catalog.describe(record.reference);
-    const native = description.status === "verified" ? description.item : undefined;
-    const identityMatches = native?.nativeSessionId === record.nativeSessionId;
-    const nativeStatus = native && !identityMatches ? "replaced" as const : description.status;
-    items.push({ id: record.id, nativeSessionId: record.nativeSessionId, title: native?.title ?? record.title ?? record.nativeSessionId,
-      nativeStatus, observedAt: description.observedAt,
-      directory: native && identityMatches ? grants.authorize(native.cwd.recorded, native.cwd.canonical)
+    descriptions.push({ record, description: await catalog.describe(record.reference) });
+  }
+  // Compute all current rights after the final asynchronous native lookup, immediately before publication.
+  const items = descriptions.map(({ record, description }) => {
+    if (description.status === "verified" && !description.item) throw new Error("CATALOG_RESULT_SCHEMA");
+    const described = description.status === "verified" ? description.item : undefined;
+    const native = described?.nativeSessionId === record.nativeSessionId ? described : undefined;
+    const nativeStatus = described && !native ? "replaced" as const : description.status;
+    return { id: record.id, nativeSessionId: record.nativeSessionId, title: native?.title ?? record.title ?? record.nativeSessionId,
+      nativeStatus, workspace: native?.cwd.canonical ?? native?.cwd.recorded ?? record.cwd ?? "Unknown working directory",
+      observedAt: description.observedAt,
+      directory: native ? catalogDirectoryAccess(grants, native.cwd)
         : { status: "unknown" as const },
       ownership: native?.ownership ?? { state: "unknown" as const, observedAt: description.observedAt },
-      admission: "blocked_pending_41_44" as const });
-  }
+      admission: "blocked_pending_41_44" as const };
+  });
   return { items, ...(page.nextCursor === undefined ? {} : { nextCursor: page.nextCursor }) };
 }
