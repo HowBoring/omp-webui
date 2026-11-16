@@ -16,6 +16,7 @@ test("native operation results persist independently of primary input creation a
     const cases = [
       { key: "handled-with-effect", message: "handled", inputOutcome: "no_input", operationOutcome: "succeeded" },
       { key: "ordinary-success", message: "literal", inputOutcome: "generated", operationOutcome: "succeeded" },
+      { key: "builtin-usage-failure", message: "/force", inputOutcome: "no_input", operationOutcome: "failed" },
       { key: "provider-refusal", message: "refusal", inputOutcome: "generated", operationOutcome: "failed" },
     ];
     let worker = strictWorker(home, cwd, controlledRuntime);

@@ -33,7 +33,7 @@
     "Late detached/reemission/held queues/cancellation races",
     "Known clean write failure vs partial unknown and publication cuts",
     "Logical copies/large native reader/TUI/baseline rollback refusal",
-    "Matched DSH/Bun/browser and complete check",
-    "Native session-only command-effect policy gap for Web administration exclusion"
-  ]
+    "Matched DSH/Bun/browser and complete check"
+  ],
+  "webAdministrationScope": "Coordinator clarified exclusion concerns Web provider/key/plugin management UI, not a ban on owner explicit Native public prompt commands. Preserve Native authorization/approval; do not expose raw credential/config state or automatically administer profiles."
 }

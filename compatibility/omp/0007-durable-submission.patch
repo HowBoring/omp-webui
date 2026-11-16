@@ -220,7 +220,7 @@ index b7e4c368d9..4eeffe1c5d 100644
      if ([...tree, ...running, ...live].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
      const snapshot = crypto.randomUUID();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..cd44e84dba 100644
+index 3a336fa764..7e8e62fdb9 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,7 @@
@@ -314,7 +314,8 @@ index 3a336fa764..cd44e84dba 100644
 +	const submissions = new RpcSubmissions(session, task => shutdownCoordinator.track(task));
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
- 	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
+-	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
++	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
  	const dispatchOrderedUserInput = (
  		command: OrderedUserInput,
  		ticket: RpcPromptTicket | undefined,
@@ -358,7 +359,23 @@ index 3a336fa764..cd44e84dba 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1941,17 +1969,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1921,6 +1949,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				if (!isCurrent()) return "cancelled";
+ 				if (builtinResult !== false) {
+ 					if (!("prompt" in builtinResult)) {
++            if (initiatingSubmission && builtinResult.failed) return "local-failed";
+ 						if (builtinResult.agentInvoked === true && ticket) {
+ 							void session.waitForIdle().then(
+ 								() => promptResults.settle(ticket),
+@@ -1932,6 +1961,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 							);
+ 							return "builtin-agent";
+ 						}
++            if (initiatingSubmission && backgroundedBuiltin) return "local-unknown";
+ 						return "local";
+ 					}
+ 					text = builtinResult.prompt;
+@@ -1941,17 +1971,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -380,7 +397,7 @@ index 3a336fa764..cd44e84dba 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +2003,43 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1974,6 +2005,47 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -395,6 +412,7 @@ index 3a336fa764..cd44e84dba 100644
 +					const reservation = await submissions.reserve(command);
 +					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
 +					const { scope } = reservation;
++          let ticket: RpcPromptTicket | undefined;
 +          try {
 +            if (command.idleOnly && (command.inputType !== "prompt" || command.streamingBehavior !== undefined))
 +              throw new Error("SUBMISSION_IDLE_PROMPT_REQUIRED");
@@ -405,18 +423,21 @@ index 3a336fa764..cd44e84dba 100644
 +							await session.abort({ reason: USER_INTERRUPT_LABEL });
 +						}
 +						const result = Promise.withResolvers<SubmissionOperationOutcome>();
-+            const ticket = input.type === "prompt" || input.type === "abort_and_prompt" ? promptResults.begin(id, status => {
++            ticket = input.type === "prompt" || input.type === "abort_and_prompt" ? promptResults.begin(id, status => {
 +              result.resolve(status === "completed" ? "succeeded" : status === "aborted" ? "cancelled" : "failed");
 +            }) : undefined;
 +						const outcome = await submissions.run(scope, () => dispatchOrderedUserInput(input, ticket));
-+						if (ticket && outcome === "local") promptResults.discard(ticket);
++						if (ticket && (outcome === "local" || outcome === "local-failed" || outcome === "local-unknown")) promptResults.discard(ticket);
 +						if (ticket && outcome === "cancelled") promptResults.settle(ticket);
 +						const completion = submissions.complete(scope.origin, outcome === "local" ? "succeeded"
-+              : outcome === "cancelled" ? "cancelled" : ticket ? result.promise : "unknown");
++              : outcome === "local-failed" ? "failed" : outcome === "local-unknown" ? "unknown" : outcome === "cancelled" ? "cancelled" : ticket ? result.promise : "unknown");
 +						shutdownCoordinator.track(completion);
-+						if (outcome === "local") await completion;
++						if (outcome === "local" || outcome === "local-failed" || outcome === "local-unknown") await completion;
 +						return success(id, command.type, submissions.query(command.clientSubmissionId));
-+					} catch (failure) { await submissions.reject(scope.origin, failure); throw failure; }
++					} catch (failure) {
++            if (ticket) promptResults.discard(ticket);
++            await submissions.reject(scope.origin, failure); throw failure;
++          }
 +				} catch (failure) { const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
 +					return error(id, command.type, code, code); }
 +			}
@@ -935,7 +956,7 @@ index 0000000000..bb80bd4fd4
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 68a1154008..181d756574 100644
+index 68a1154008..361777cee8 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
@@ -980,7 +1001,7 @@ index 68a1154008..181d756574 100644
 +
 +  #assertSubmissionIdle(): void {
 +    this.#assertSubmissionCurrent();
-+    if (submissionScope()?.idleOnly && (this.agent.state.isStreaming || this.queuedMessageCount > 0
++    if (submissionScope()?.idleOnly && (this.isStreaming || this.queuedMessageCount > 0
 +      || this.isCompacting || this.isSessionTransitioning)) throw new Error("SUBMISSION_BUSY");
 +  }
 +
@@ -1034,7 +1055,15 @@ index 68a1154008..181d756574 100644
  		this.#messageObservations.observe(event);
  		const eventPromptGeneration = this.#promptGeneration;
  		if (event.type === "agent_end" && this.#activeAgentContinue) {
-@@ -8869,6 +8907,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8785,6 +8823,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * {@link PromptDroppedError} instead.
+ 	 */
+ 	async prompt(text: string, options?: PromptOptions): Promise<boolean> {
++    this.#assertSubmissionIdle();
+ 		return this.#admitSubmission(() => this.#prompt(text, options));
+ 	}
+ 
+@@ -8869,6 +8908,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	async #prompt(text: string, options?: PromptOptions): Promise<boolean> {
@@ -1042,7 +1071,7 @@ index 68a1154008..181d756574 100644
  		// Stamp the operator's submission instant before ANY async preprocessing —
  		// command execution, image normalization, vision-model description — so the
  		// prompt→yield delta includes the whole wait, whatever path the prompt takes.
-@@ -8894,6 +8933,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8894,6 +8934,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			// pass supersedes its interrupted-turn resume only if it claims the session.
  			// Locally handled commands and failed dispatches release that claim.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
@@ -1050,7 +1079,7 @@ index 68a1154008..181d756574 100644
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchPrompt(text, options, submittedAt, outcome, followUps);
  			try {
-@@ -8927,7 +8967,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8927,7 +8968,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		outcome: PromptDispatchOutcome,
  		followUps: PromptFollowUps | undefined,
  	): Promise<boolean> {
@@ -1060,7 +1089,7 @@ index 68a1154008..181d756574 100644
  		// Slash/custom-command handling below rewrites `text`; keep the original
  		// so a dropped prompt is handed back exactly as the user typed it.
  		const typedText = text;
-@@ -8941,7 +8982,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8941,8 +8983,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// Handle extension commands first (execute immediately, even during streaming)
  		if (expandPromptTemplates && text.startsWith("/")) {
  			if (options?.runCommands !== false) {
@@ -1069,9 +1098,11 @@ index 68a1154008..181d756574 100644
 +        const command = await this.#tryExecuteExtensionCommand(text, options?.onPromptAdmitted);
 +        this.#assertSubmissionCurrent();
  				if (command) {
++          if (command === "failed" && submissionScope()) throw new Error("SUBMISSION_EXTENSION_COMMAND_FAILED");
  					// Queued only now, so whatever the command sent runs before them. A failed
  					// command hands them back with itself instead of letting them run without it.
-@@ -8951,7 +8994,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 					if (command === "ran") followUps?.release();
+@@ -8951,7 +8996,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				}
  
  				// Try custom commands (TypeScript slash commands)
@@ -1082,7 +1113,7 @@ index 68a1154008..181d756574 100644
  				if (customResult !== null) {
  					if (customResult === "") {
  						followUps?.release();
-@@ -9038,7 +9083,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9038,7 +9085,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const eagerTaskPrelude =
  			!options?.synthetic && !hasPendingUserDirective ? this.#todo.createEagerTaskPrelude(expandedText) : undefined;
  		const attachmentSourceNotices = this.#createAttachmentSourceNotices(options?.images, submittedAt);
@@ -1093,7 +1124,7 @@ index 68a1154008..181d756574 100644
  
  		const userContent: (TextContent | ImageContent)[] = [{ type: "text", text: expandedText }];
  		if (normalizedImages?.length) {
-@@ -9197,7 +9244,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9197,7 +9246,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			onPromptQueued?: PromptOptions["onPromptQueued"];
  		},
  	): Promise<boolean> {
@@ -1102,7 +1133,7 @@ index 68a1154008..181d756574 100644
  	}
  
  	async #promptCustomMessage<T = unknown>(
-@@ -9215,6 +9262,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9215,6 +9264,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			// prompts and the CLI initial message must not start during idle/manual
  			// compaction or before a handoff commits its history.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
@@ -1110,7 +1141,7 @@ index 68a1154008..181d756574 100644
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchCustomPrompt(message, options, outcome, followUps);
  			try {
-@@ -9324,12 +9372,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9324,12 +9374,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
@@ -1128,7 +1159,7 @@ index 68a1154008..181d756574 100644
  		const descriptionNotice = hasSkillImages
  			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
  			: undefined;
-@@ -9604,7 +9656,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9604,7 +9658,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// every pre-dispatch bail (generation bump from abort, disposal, usage
  		// preflight denial) exits silently, and prompt() uses the outcome to hand
  		// the typed text back to the host instead of losing it.
@@ -1138,7 +1169,7 @@ index 68a1154008..181d756574 100644
  		// Client ownership is reserved by #prompt before dispatch preprocessing
  		// and released when its bracket settles; callers that reach this
  		// directly (auto-continue, queued-hidden drain) are autonomous and
-@@ -9740,9 +9793,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9740,9 +9795,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const preparation = await logger.time("prompt:prepareAgentStart", () =>
  				this.#prepareAgentStart(message, expandedText, options?.images, generation, setupAbort.signal, "direct"),
  			);
@@ -1151,7 +1182,37 @@ index 68a1154008..181d756574 100644
  			const baseXdevCatalogDelivered = preparation.baseXdevCatalogDelivered;
  
  			// Auto thinking: classify this real user turn and set the effective level
-@@ -10305,7 +10360,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9913,7 +9970,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const ctx = this.#extensionRunner.createCommandContext();
+ 
+ 		try {
+-			await this.#extensionRunner.runScoped(() => command.handler(args, ctx));
++			await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "extension" } : undefined,
++        () => this.#extensionRunner!.runScoped(() => command.handler(args, ctx)));
+ 			return "ran";
+ 		} catch (err) {
+ 			// Emit error via extension runner
+@@ -10042,7 +10100,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const args = parseCommandArgs(argsString);
+ 			// Commands that consult findScopedSettings, including /review, must see this
+ 			// session's cache kill switch instead of the default enabled cache.
+-			const result = await withActiveSettings(this.settings, () => loaded.command.execute(args, ctx, argsString));
++			const result = await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "extension" } : undefined,
++        () => withActiveSettings(this.settings, () => loaded.command.execute(args, ctx, argsString)));
+ 			// If result is a string, it's a prompt to send to LLM
+ 			// If void/undefined, command handled everything
+ 			return result ?? "";
+@@ -10058,7 +10117,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				const message = err instanceof Error ? err.message : String(err);
+ 				logger.error("Custom command failed", { commandName, error: message });
+ 			}
+-			return ""; // Command was handled (with error)
++			if (submissionScope()) throw new Error("SUBMISSION_CUSTOM_COMMAND_FAILED");
++      return ""; // Command was handled (with error)
+ 		}
+ 	}
+ 
+@@ -10305,7 +10365,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			promptGeneration?: number;
  		},
  	): Promise<boolean> {
@@ -1161,7 +1222,7 @@ index 68a1154008..181d756574 100644
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
-@@ -10365,6 +10421,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10365,6 +10426,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
@@ -1169,7 +1230,7 @@ index 68a1154008..181d756574 100644
  			this.#irc.queueAside(records);
  			options?.onPromptAdmitted?.();
  			// The awaits above (image normalization / vision description) can span the run's
-@@ -10414,6 +10471,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10414,6 +10476,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -1177,7 +1238,7 @@ index 68a1154008..181d756574 100644
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
  			return group;
-@@ -10903,16 +10961,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10903,16 +10966,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
@@ -1202,7 +1263,7 @@ index 68a1154008..181d756574 100644
  		if (deliverAs === "aside") {
  			if (await this.#sessionGenerationChanged(sessionGeneration)) return;
  			// Non-interrupting: rides the same step-boundary aside poll as
-@@ -10972,7 +11036,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10972,7 +11041,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			acceptTerminalEmptyStop?: boolean;
  		},
  	): Promise<boolean> {
@@ -1212,7 +1273,7 @@ index 68a1154008..181d756574 100644
  	}
  
  	async #sendCustomMessage<T = unknown>(
-@@ -11058,7 +11123,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11058,7 +11128,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: normalizedPayload.attribution,
  			timestamp: Date.now(),
  		};
