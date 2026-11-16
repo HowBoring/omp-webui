@@ -4,9 +4,11 @@ All five #33 acceptance criteria are implemented on the real candidate native
 paths. This slice remains S0 isolated: no product private Session admission,
 global OMP installation, real provider/model call or Windows acceptance is claimed.
 Windows is explicitly deferred. Native source froze at
-`13fd5508440af24e877ec9cbb607e983962b1bc2`; subsequent changes cover fixture/evidence
-and current-integration DSH source verification. The final branch includes
-integration `9d5e5eb196e929086ae80bac965c4011f838d4f6`.
+`13fd5508440af24e877ec9cbb607e983962b1bc2`; subsequent changes cover Host bounds,
+shared carrier/build machinery, fixtures/evidence and current-integration DSH
+source verification. The final branch includes
+integration `2118454e02ac1e5db40847fec62f812308698309`, including the accepted
+#39 catalog candidate build gate.
 
 | Acceptance criterion | Implementation and actual evidence |
 | --- | --- |
@@ -142,3 +144,59 @@ browser errors and Host/native exit 0, no forced kill, complete stdout drain and
 acknowledged native abort commands. Raw Playwright traces/screenshots/logs remain
 ignored outputs whose hashes are retained. Broker #47, complete durable delivery,
 product Session authority/admission and Windows remain outside this slice.
+
+
+## Independent review fixes
+
+The unbounded Host answer tail was removed. Retained capacity is one answer per
+interaction and eight per worker, checked before retaining the payload or creating
+continuations. Excess attempts receive the typed Host-only
+`INTERACTION_ANSWER_LIMIT` result; the native acknowledgement schema and patch
+0003/source freeze are unchanged. Cancellation has sixteen reserved worker slots,
+duplicates share one request, and one coalesced abort runs independently of answer
+acknowledgements. Native `invalid` keeps the original request and deadline; delayed
+`answered`, `cancelled`, `expired` and `stale` results remain native facts.
+
+The public controlled-port regression holds the head acknowledgement and floods
+512 answers, verifies immediate overload and exactly one admitted attempt, then
+observes invalid/retry, delayed native success, late staleness, cancellation bypass,
+512 duplicate cancels, per-worker bounds, expiry progress and disposal. A separate
+controlled monotonic-clock case reaches the deadline before its timer callback;
+it sends native cancellation/abort and returns a real `stale` acknowledgement,
+proving elapsed time alone cannot fabricate an `expired` result. Public DSH Remote
+validation accepts the Host overload union while the native result schema rejects
+it. Original red logs remain under
+[review-fix](../../apps/interactions/evidence/review-fix/bridge-red.json), alongside
+[the deadline red](../../apps/interactions/evidence/review-fix/deadline-red.json).
+
+Shared build identity collection now covers diagnostics, interactions and catalog.
+Each retains its actual-resolved-source candidate verification. The #39 catalog
+child-workspace harness copies the shared collector and still exercises a real
+successful candidate build, as well as baseline/partial/wrong-ancestry/unrecorded
+source rejection. The shared bounded DSH events carrier owns peer/stream admission,
+origin mechanics, cancellation, backpressure and disposal; slice routes, validators
+and authorization remain explicit. There is no general browser-to-native RPC path.
+
+The new default/configured Linux browser runs use the rebuilt Host and canonical
+DSH candidate, retain 10/11 passing cases, and observe native/Host exit 0 without
+forced termination or unread stdout. The existing native-only syscall trace is
+explicitly reused, after checking unchanged native source identity and guard,
+extension, public-client and core-loop fixture hashes; it is not a new trace run.
+Native source mutation checks run only on owned OMP/DSH source clones. Shared
+candidate builds, runtime dependencies and DSH source remain read-only.
+
+Review validation commands and exact results are retained in
+[review validation](../../apps/interactions/evidence/review-fix/validation.json).
+Setup failures are retained there: missing PATH/.bin tooling, missing React type
+links, and the React realm guard rejecting the initial incorrect React 19
+dependency link. A test-only widened TypeScript literal also failed the final
+check and was corrected with a const literal; its diagnostic is retained. The links were corrected to the pinned React 18.3.1
+realm before final builds and browser runs. No failed attempt is counted as PASS.
+
+Final review-fix integration validation on the merged 2118454 combination passed
+**128 tests / 1,001 assertions across 29 files in 132.74 seconds**, root strict
+TypeScript and Host build. The preliminary pre-deadline/Remote run passed
+126 tests / 1,041 assertions; the final run includes both additional cases.
+Each count is the observed output of its own run; all 128 final cases passed. The affected public source gates passed 5 tests / 7
+assertions; the actual catalog build gate passed 2 tests / 32 assertions.
+No native patch, generated wire contract or retained native syscall trace changed.

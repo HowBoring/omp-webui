@@ -38,11 +38,13 @@ test("explicit cancellation bypasses a held answer without rewriting its delayed
   try {
     worker.ask("cancel");const head=bridge.answer(bridge.generation,"cancel",{type:"value",value:"explicit"});
     const cancel=bridge.answer(bridge.generation,"cancel",{type:"cancel"});
+    const repeated=Array.from({length:512},()=>bridge.answer(bridge.generation,"cancel",{type:"cancel"}));
     expect(worker.requests.map(item=>item.command)).toEqual([
       {type:"respond_ui",targetId:"cancel",answer:{type:"value",value:"explicit"}},
       {type:"respond_ui",targetId:"cancel",answer:{type:"cancel"}},
     ]);
     worker.requests[1]!.reply.resolve({status:"stale"});expect(await cancel).toEqual({status:"stale"});
+    expect(await Promise.all(repeated)).toEqual(Array.from({length:512},()=>({status:"stale"})));
     worker.requests[0]!.reply.resolve({status:"answered"});expect(await head).toEqual({status:"answered"});
   }finally{bridge.dispose();}
 });
@@ -76,4 +78,25 @@ test("worker answer capacity remains bounded across interactions and disposal",a
   for(const request of worker.requests)request.reply.resolve({status:"stale"});
   expect(await Promise.all(accepted)).toEqual(Array.from({length:8},()=>({status:"stale"})));
   worker.ask("after-disposal");expect(bridge.snapshot().pending).toHaveLength(0);
+});
+
+test("a Host deadline reached before its timer callback sends cancellation and returns the actual native result",async()=>{
+  const original=Object.getOwnPropertyDescriptor(performance,"now");
+  const worker=controlledPort();let now=0;
+  Object.defineProperty(performance,"now",{value:()=>now,configurable:true});
+  const bridge=new InteractionBridge(worker.port,{waitMs:60_000});
+  try {
+    worker.ask("deadline-before-timer");now=60_000;
+    const reply=bridge.answer(bridge.generation,"deadline-before-timer",{type:"value",value:"too late"});
+    expect(worker.requests.map(item=>item.command)).toEqual([
+      {type:"respond_ui",targetId:"deadline-before-timer",answer:{type:"cancel",timedOut:true}},
+      {type:"abort"},
+    ]);
+    worker.requests[0]!.reply.resolve({status:"stale"});
+    expect(await reply).toEqual({status:"stale"});
+    worker.requests[1]!.reply.resolve({});
+  }finally {
+    bridge.dispose();
+    if(original)Object.defineProperty(performance,"now",original);else Reflect.deleteProperty(performance,"now");
+  }
 });

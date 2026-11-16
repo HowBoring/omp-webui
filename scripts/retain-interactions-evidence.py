@@ -1,7 +1,11 @@
 """Retain sanitized summaries; full bundles/logs/traces stay in ignored vendor outputs."""
-import hashlib, json
+import argparse, hashlib, json
 from pathlib import Path
 
+parser=argparse.ArgumentParser()
+parser.add_argument('--reuse-native-trace',action='store_true',
+    help='Retain the existing native-only syscall trace when native source, fixture and guard are unchanged')
+args=parser.parse_args()
 root=Path.cwd();destination=root/'apps/interactions/evidence'
 destination.mkdir(parents=True,exist_ok=True)
 sha=lambda data:hashlib.sha256(data).hexdigest()
@@ -30,17 +34,31 @@ for directory,name,expected in [('interactions-browser-final','linux-browser',10
     result['rawArtifacts']={filename:sha((source/filename).read_bytes())
        for filename in ['summary.json','host.log','trace.zip','root-Slot.png']}
     (destination/(name+'.json')).write_text(json.dumps(result,indent=2)+'\n')
-trace=json.loads((root/'vendor/interactions-native-evidence/trace-summary.json').read_text())
+if args.reuse_native_trace:
+    prior=json.loads((destination/'tuple.json').read_text())
+    assert prior['OMP']==identity
+    assert prior['orderedPatches']==[
+        {'file':path.name,'sha256':sha(path.read_bytes())}
+        for path in sorted((root/'compatibility/omp').glob('*.patch'))]
+    for path in ['tests/interactions/no-provider.ts','tests/interactions/native-extension.ts',
+                 'tests/interactions/native-core-loop.ts','tests/interactions/native-client.ts']:
+        assert prior['sourceManifestSha256'][path]==sha((root/path).read_bytes()),path
+    trace=json.loads((destination/'native-trace.json').read_text())
+else:
+    trace=json.loads((root/'vendor/interactions-native-evidence/trace-summary.json').read_text())
 assert trace['status']=='PASS' and trace['OMP']==identity and trace['inetDispatchSyscalls']==0
 (destination/'native-trace.json').write_text(json.dumps(trace,indent=2)+'\n')
 tuple={'kind':'ticket33-isolated-explicit-interaction-linux-candidate','OMP':identity,
-  'nativeSourceFreeze':'13fd5508440af24e877ec9cbb607e983962b1bc2','orderedPatches':[
+  'nativeSourceFreeze':'13fd5508440af24e877ec9cbb607e983962b1bc2',
+  'nativeTraceReused':args.reuse_native_trace,'orderedPatches':[
     {'file':path.name,'sha256':sha(path.read_bytes())} for path in sorted((root/'compatibility/omp').glob('*.patch'))],
   'Host':json.loads((destination/'linux-browser.json').read_text())['Host'],
   'DSH':json.loads((destination/'linux-browser.json').read_text())['DSH'],
   'sourceManifestSha256':{path:sha((root/path).read_bytes()) for path in [
     'vendor/host-interactions/manifest.json','vendor/dsh-interactions/manifest.json',
     'tests/interactions/no-provider.ts','tests/interactions/native-extension.ts',
-    'tests/interactions/native-core-loop.ts','tests/interactions/native-client.ts','bun.lock']}}
+    'tests/interactions/native-core-loop.ts','tests/interactions/native-client.ts','bun.lock',
+    'scripts/build-identities.ts','apps/diagnostics/build.ts','apps/interactions/build.ts','apps/catalog/build.ts',
+    'apps/host/src/dsh-events-carrier.ts','packages/interactions/bridge.ts','packages/contracts/interactions.ts']}}
 (destination/'tuple.json').write_text(json.dumps(tuple,indent=2)+'\n')
 print(json.dumps({'status':'retained','browserCases':counts,'nativeInetDispatchSyscalls':trace['inetDispatchSyscalls']}))

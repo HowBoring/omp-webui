@@ -68,7 +68,28 @@ Default Host wait is 1,800,000 ms. Operator-only S0_INTERACTION_WAIT_MS configur
 it (positive, at most one day); earlier native constraints take precedence.
 Monotonic timers and display deadlines are created once. Refresh, reconnect,
 snapshots and all viewers leaving never renew them. Expiry sends acknowledged
-native cancellation and abort; real browser Host logs retain abort acknowledgement.
+native cancellation and abort independently; real browser Host logs retain abort acknowledgement.
+Browser answer retention is bounded before payloads/continuations are retained:
+one outstanding answer per interaction, eight per worker, and no answer queue.
+Excess attempts return the typed Host result
+`{status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"}` immediately. This is Host
+admission feedback, separate from the unchanged native `respond_ui` result schema.
+Up to sixteen cancellation requests and one coalesced abort have separate capacity;
+duplicate cancellation attempts share the existing request. A held answer reply
+cannot delay cancellation, expiry or abort. Invalid native replies release answer
+capacity without renewing the interaction deadline. The original native result is
+returned unchanged even when its acknowledgement arrives after the Host deadline
+or an earlier cancellation notice. The monotonic deadline check also covers an
+answer reaching the Host before its already-due timer callback: it requests native
+expiry cancellation and returns that native result, rather than inventing expiry.
+
+The diagnostics and interactions servers share only the bounded public DSH
+`$events` carrier (eight peers, one stream per peer, 16-KiB frames, cancellation,
+slow-viewer failure and disposal). Their route whitelists, payload validators and
+S0 authorization/admission remain explicit. Diagnostics, interactions and catalog
+share package/input/asset identity collection; each build still verifies its actual
+resolved DSH source against the complete declared candidate before bundling.
+
 Future Broker #47 can enforce a shorter policy or Stop. This slice does not claim
 durable delivery, authentication, global installation or product admission.
 

@@ -8,12 +8,12 @@
       "case": "root-startup-public-Slot-no-Session",
       "status": "PASS",
       "defaultWaitMs": 4000,
-      "interactionId": "15d065bc33b858aa"
+      "interactionId": "15d069efaca105cb"
     },
     {
       "case": "refresh-and-all-viewers-disconnect-never-renew",
       "status": "PASS",
-      "originalDeadline": 1794832969880
+      "originalDeadline": 1794834071191
     },
     {
       "case": "real-Linux-keyboard-explicit-root-answer",
@@ -42,7 +42,7 @@
     {
       "case": "real-native-ask-expiry-cancels",
       "status": "PASS",
-      "interactionId": "15d065c19d3858b6"
+      "interactionId": "15d069f41b2105d7"
     },
     {
       "case": "real-native-HTML-form-partial-expiry-no-defaults",
@@ -52,7 +52,7 @@
       "case": "configured-Host-expiry-offline-no-renewal",
       "status": "PASS",
       "waitMs": 4000,
-      "interactionId": "15d065c3bbb858bd"
+      "interactionId": "15d069f615a105de"
     },
     {
       "case": "product-Session-admission-remains-blocked",
@@ -74,12 +74,12 @@
       "version": "1.4.4",
       "executableSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
     },
-    "inputs": 246,
+    "inputs": 247,
     "bundle": {
       "file": "interactions-fixture-main.js",
-      "sha256": "93b54fb25f7776dc064af88c97a54c69dd0de00d54584b0352908e4b38cdfd6f"
+      "sha256": "7be0cb6295aaa12a3cffeee3d9bba1560f13e0b37ab45a34e366430a20b12741"
     },
-    "inputSetSha256": "8ef71cce3a92192123ad62e920cab655d6b6095dbd2db776871bbe7b9611a642"
+    "inputSetSha256": "bc53e64d5986cd27d1d5f81a16ba76b727dd80997b914d3cb1454a8cd1012bab"
   },
   "DSH": {
     "kind": "S0-isolated-interactions",
@@ -110,25 +110,25 @@
     },
     "sourceInputs": 255,
     "inputs": 255,
-    "sourceSha256": "aba4299345a0a4a86458edfc4b8c8544dd7ad215c563d39737a21a96853c63c1",
-    "contractSha256": "520266598312853b77c0ac3d8994c26c97b1f1de2900b1b06abfbf63f4c09e87",
+    "sourceSha256": "6b8f040e64fa45d91f189c9530db2626f6a4e7cb90366919867241db0ab1b79a",
+    "contractSha256": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
     "assets": {
-      "client.js": "21865bab6e410a515acbe6068e467c65550e5863b85785c5b6c20120721d55f6",
+      "client.js": "e70609e020d439ba2ff963880f278a67aabce1ca80beea5fb8c498a61c9f701d",
       "index.html": "28c2c860702e135d3f3c48b9e9ee524676c039e32c462e74d929b1c3982e28af"
     },
-    "inputSetSha256": "19c73961498a71371ae1fafd98a789d2d6e2c09988572f96b72dab459310920a"
+    "inputSetSha256": "4acf94ee2251438fe082347315d657c187ef5252516e9f9204f1799d456d13e5"
   },
   "nativeWorker": {
     "code": 0,
     "forced": false,
     "stdoutDrained": true,
     "stderrBytes": 96,
-    "acknowledgedAbortCommands": 9
+    "acknowledgedAbortCommands": 3
   },
   "rawArtifacts": {
-    "summary.json": "a443d38c608730806ceed86d92a8ef4ccb8f3c74a6894b4602a65efe85f24f30",
-    "host.log": "bd78d289358304a03de47b1f8fa143e3da7d18174f21ec123c391cf9229685cc",
-    "trace.zip": "be9f8e68b5380c347f4d884776165bd3232754c56d0dbc319bfb1f8a13007ea3",
+    "summary.json": "704a42eb1431002ac683a467a0356727c0f1339490ba4a6c9a3ca565568e18c2",
+    "host.log": "275f96bf893f4b6976f380887a84505f7fa03b2763268caaa9d088c5a9ef1cf8",
+    "trace.zip": "62d6123d0276ef40951ce11b3bbe0026f38bb138e7a888d38bc15fdc7f668294",
     "root-Slot.png": "c9044a3c65e08edee3124d2a7d973ac200f28b36b5718f717fbedcd9a1045de2"
   }
 }

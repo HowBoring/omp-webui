@@ -15,3 +15,9 @@ Regenerate using `scripts/trace-interactions.py`, both browser commands in
 `compatibility/INTERACTIONS.md`, then `python3 scripts/retain-interactions-evidence.py`.
 No raw user data or credentials are present: every profile/Session is synthetic.
 Product admission and Windows acceptance are outside this evidence.
+
+The current browser summaries were rerun after the independent review fixes and
+shared carrier/build extraction. `tuple.json.nativeTraceReused` explicitly records
+that the unchanged native-only syscall trace was retained; its OMP identity and
+native guard/fixture hashes are verified before reuse. `review-fix/` retains both
+red regressions and exact new validation outcomes, including setup failures.
