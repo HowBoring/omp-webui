@@ -1,5 +1,5 @@
 {
-  "rev": "56630310f8c27ef38257dcdf09ac1756ec210f456df96089da239831777feb16",
+  "rev": "5fe7c27631c25e61d31bb291d1259bf74b591ba06abafd1cfa1d0d022b7df896",
   "release": {
     "version": "0.2.2-rc.3",
     "commit": "38a6a5c"
@@ -371,14 +371,14 @@
     },
     {
       "id": "@omp-webui/draft-navigation",
-      "url": "plugins/??@omp-webui/draft-navigation/client.js&rev=9c73ae38eea0",
-      "rev": "9c73ae38eea0",
+      "url": "plugins/??@omp-webui/draft-navigation/client.js&rev=b49743e10ddf",
+      "rev": "b49743e10ddf",
       "inject": []
     },
     {
       "id": "@omp-webui/draft-fixture",
-      "url": "plugins/??@omp-webui/draft-fixture/client.js&rev=d0807e2fd7f9",
-      "rev": "d0807e2fd7f9",
+      "url": "plugins/??@omp-webui/draft-fixture/client.js&rev=2028ea093678",
+      "rev": "2028ea093678",
       "inject": [
         "@deepseek-ai/dsh-api-session-controller",
         "@deepseek-ai/dsh-client-ui-conversation",
@@ -399,8 +399,8 @@
     },
     {
       "phase": "application",
-      "url": "plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/draft-navigation/client.js,@omp-webui/draft-fixture/client.js&rev=7909231bd276",
-      "rev": "7909231bd276",
+      "url": "plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/draft-navigation/client.js,@omp-webui/draft-fixture/client.js&rev=ed9076d34858",
+      "rev": "ed9076d34858",
       "entries": [
         "@deepseek-ai/dsh-api-gateway",
         "@deepseek-ai/dsh-api-session-controller",

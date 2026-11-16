@@ -5,7 +5,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "2ce74a5d-2b81-4a12-9afa-af9b607bcf26",
+      "rpcId": "208c8bcf-44f6-470d-a66a-944d7a053238",
       "result": {
         "ok": true,
         "value": {
@@ -22,7 +22,7 @@
           "_request": {}
         }
       },
-      "rpcId": "d1fc51a1-4062-48d1-bdb1-4f677b1c1f31",
+      "rpcId": "82f82caf-cd6f-4b0d-98a2-1d0d35196358",
       "result": {
         "ok": true,
         "value": {
@@ -52,7 +52,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "288a3b02-093a-4129-a5a8-e1cd0899dd6b",
+      "rpcId": "9e3fc70c-75bb-486a-9287-b65097351931",
       "result": {
         "ok": true,
         "value": {
@@ -67,7 +67,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "f84a856c-5422-4e69-9414-418940bb2423",
+      "rpcId": "8fd60c6a-fd29-4866-b0a0-708b2f7b6b08",
       "result": {
         "ok": true,
         "value": {
@@ -84,7 +84,7 @@
           "_request": {}
         }
       },
-      "rpcId": "cceab50d-0731-416b-91d7-a53c476c9a7f",
+      "rpcId": "c048a7e4-925c-4b95-877a-f831d6eee86f",
       "result": {
         "ok": true,
         "value": {
@@ -114,7 +114,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "1f392ff3-743f-445e-ae4b-fdcead11d414",
+      "rpcId": "d71dc9d0-cb65-4fa4-ad54-3460a0d72cbb",
       "result": {
         "ok": true,
         "value": {
@@ -129,7 +129,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "80d02066-3ad3-420e-9e90-2e1752c6da3b",
+      "rpcId": "fa219163-a271-42b4-a11b-23ab22a3775f",
       "result": {
         "ok": true,
         "value": {
@@ -146,7 +146,7 @@
           "_request": {}
         }
       },
-      "rpcId": "9a16fbc6-d354-4d8b-bca5-ed184c0ce2e8",
+      "rpcId": "8c70c4a4-43bb-403f-b96d-c8073be704ff",
       "result": {
         "ok": true,
         "value": {
@@ -176,7 +176,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "e40d43e4-7de8-437c-ab46-baf3c420c3c0",
+      "rpcId": "11f58615-3b92-4c44-9d94-68af7528a9c3",
       "result": {
         "ok": true,
         "value": {
@@ -191,7 +191,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "90727da7-c67a-4be8-86a5-5460eded78fe",
+      "rpcId": "fa838f98-0d98-41be-a337-a225bbc9e753",
       "result": {
         "ok": true,
         "value": {
@@ -208,7 +208,7 @@
           "_request": {}
         }
       },
-      "rpcId": "648bc33b-4120-4799-97e1-ab3688980033",
+      "rpcId": "d65ca37a-8113-467b-ac47-79ddfff5abdf",
       "result": {
         "ok": true,
         "value": {
@@ -238,7 +238,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "302645a5-64f0-440a-9210-4f813cb1a209",
+      "rpcId": "027d5bb8-0d66-4e35-9d94-cac623859e7b",
       "result": {
         "ok": true,
         "value": {
@@ -253,7 +253,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "f1e7bbfd-d361-4227-bc48-d86a077520f3",
+      "rpcId": "2f0cb619-3f3b-41a1-937f-6efebc06a6a1",
       "result": {
         "ok": true,
         "value": {
@@ -270,7 +270,7 @@
           "_request": {}
         }
       },
-      "rpcId": "f3a441c8-6c10-49da-83bf-4fed742d2cbc",
+      "rpcId": "a45cd304-cef4-4653-8ca5-6a658cb19501",
       "result": {
         "ok": true,
         "value": {
@@ -300,7 +300,7 @@
       "payload": {
         "args": {}
       },
-      "rpcId": "1b37d0d7-5813-47d4-91bc-800a44f12b3e",
+      "rpcId": "e2ffc0db-c347-48ba-82a7-3736eb6b685e",
       "result": {
         "ok": true,
         "value": {
@@ -314,7 +314,7 @@
   "frames": [
     {
       "type": "open",
-      "streamId": "e638179d-09df-4c82-8258-c1674c0857f9",
+      "streamId": "29e2c366-9605-4e9c-9d92-e83fd99ecb41",
       "endpoint": "remoteAccess/follow",
       "payload": {
         "args": {}
@@ -322,7 +322,7 @@
     },
     {
       "type": "open",
-      "streamId": "920110ad-64c4-4ef5-bcb1-376dd4f994a7",
+      "streamId": "145dfa01-11fe-498d-a968-7072a84883e6",
       "endpoint": "workspace/follow",
       "payload": {
         "args": {}
@@ -330,7 +330,7 @@
     },
     {
       "type": "open",
-      "streamId": "260b3a52-566c-4923-9e78-62fce6611595",
+      "streamId": "c328ff48-a580-4044-9c1e-b76ae8533d99",
       "endpoint": "$events",
       "payload": {
         "args": {}
@@ -338,7 +338,7 @@
     },
     {
       "type": "open",
-      "streamId": "0d9a5f6e-06de-455b-9d08-d5463f0a31ef",
+      "streamId": "8edb4c62-0116-45e3-a869-1ee15c077f23",
       "endpoint": "session/control",
       "payload": {
         "args": {}
@@ -346,7 +346,7 @@
     },
     {
       "type": "open",
-      "streamId": "404e3da8-a126-4509-8b20-a81dd066f10b",
+      "streamId": "b809ab03-afb5-45fa-83ad-b961326c0cda",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -368,7 +368,7 @@
     },
     {
       "type": "open",
-      "streamId": "4c4bd996-00b5-4316-890b-e903027512d7",
+      "streamId": "e92b1d91-608a-4100-823c-9db8888c6449",
       "endpoint": "remoteAccess/follow",
       "payload": {
         "args": {}
@@ -376,7 +376,7 @@
     },
     {
       "type": "open",
-      "streamId": "bcb727f4-7b31-41d8-98f4-18ebffe54b9b",
+      "streamId": "eb651649-7059-4ec7-b0eb-92b3345b5253",
       "endpoint": "workspace/follow",
       "payload": {
         "args": {}
@@ -384,7 +384,7 @@
     },
     {
       "type": "open",
-      "streamId": "dd973246-5718-4956-b965-ed34b9fc8698",
+      "streamId": "ca78b1af-8be9-4c7e-b1e0-bf2c90168432",
       "endpoint": "$events",
       "payload": {
         "args": {}
@@ -392,7 +392,7 @@
     },
     {
       "type": "open",
-      "streamId": "11dd1402-7bcb-4e94-a72b-131ce867b3df",
+      "streamId": "76a50aac-b1b2-4876-b3c6-0b475ee4aad1",
       "endpoint": "session/control",
       "payload": {
         "args": {}
@@ -400,7 +400,7 @@
     },
     {
       "type": "open",
-      "streamId": "d8499a19-2f9c-41e6-994c-781c704f2cd7",
+      "streamId": "ff71df48-3172-46b2-b9a1-470c1dc8643c",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -422,7 +422,7 @@
     },
     {
       "type": "open",
-      "streamId": "1fb60400-b8e6-4a6c-a1c5-48c6bcc8e89a",
+      "streamId": "2d4380f7-9bff-4cad-9758-f33c3d4e04c7",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -444,7 +444,7 @@
     },
     {
       "type": "open",
-      "streamId": "237ac0d9-580a-40ed-a9be-a20919684887",
+      "streamId": "3622d84d-e0b0-4861-bde0-379353563ea6",
       "endpoint": "remoteAccess/follow",
       "payload": {
         "args": {}
@@ -452,7 +452,7 @@
     },
     {
       "type": "open",
-      "streamId": "e7b594b2-9918-4a45-8d53-5e9f33bb9f67",
+      "streamId": "f70d9161-c481-46fc-b54a-235d08a55060",
       "endpoint": "workspace/follow",
       "payload": {
         "args": {}
@@ -460,7 +460,7 @@
     },
     {
       "type": "open",
-      "streamId": "e6cdf907-b465-46c3-91e5-469d48c6206a",
+      "streamId": "ec9a6c34-1dbb-4816-9740-0563568bb01b",
       "endpoint": "$events",
       "payload": {
         "args": {}
@@ -468,7 +468,7 @@
     },
     {
       "type": "open",
-      "streamId": "b0b3b079-b8cc-4afe-82bf-4d8a2a6ade80",
+      "streamId": "f4480859-d8f1-4874-8d1f-1077bdfb9d01",
       "endpoint": "session/control",
       "payload": {
         "args": {}
@@ -476,7 +476,7 @@
     },
     {
       "type": "open",
-      "streamId": "b4cd1eeb-8e5c-49c7-b07c-ed3a812fba6d",
+      "streamId": "7fb5ee0b-5cf9-4cf6-8719-3b770e691dab",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -498,7 +498,7 @@
     },
     {
       "type": "open",
-      "streamId": "b6d101a1-9d37-4266-a64a-6bbf32bccd54",
+      "streamId": "b58d73fe-0ccd-43c8-80cb-f22e1b43df2b",
       "endpoint": "remoteAccess/follow",
       "payload": {
         "args": {}
@@ -506,7 +506,7 @@
     },
     {
       "type": "open",
-      "streamId": "94c0f471-57bd-40eb-beb1-eb426275362b",
+      "streamId": "c1d43316-29b0-4af0-8bca-d6ca9af2f989",
       "endpoint": "workspace/follow",
       "payload": {
         "args": {}
@@ -514,7 +514,7 @@
     },
     {
       "type": "open",
-      "streamId": "1de4d433-b587-4740-8f8a-4e3b21ed1950",
+      "streamId": "70b13bb1-399b-43ec-8966-a1edb913b33f",
       "endpoint": "$events",
       "payload": {
         "args": {}
@@ -522,7 +522,7 @@
     },
     {
       "type": "open",
-      "streamId": "a0d4f23b-2642-4bc3-bd12-a509dc479ce4",
+      "streamId": "c3c72c89-7cce-4d50-b413-4b312c4ad3b9",
       "endpoint": "session/control",
       "payload": {
         "args": {}
@@ -530,7 +530,7 @@
     },
     {
       "type": "open",
-      "streamId": "0d8eabd3-0498-4416-8794-b60f7ad31e62",
+      "streamId": "9af4fe53-e24a-458b-82d7-856efe9bdc05",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -552,7 +552,7 @@
     },
     {
       "type": "open",
-      "streamId": "16cb7c5a-8f9a-4cfd-a7d0-4d81ceb2fe64",
+      "streamId": "88e31a71-497e-4517-a69f-02ccbabcaa0d",
       "endpoint": "remoteAccess/follow",
       "payload": {
         "args": {}
@@ -560,7 +560,7 @@
     },
     {
       "type": "open",
-      "streamId": "00d3f0dd-db96-46d5-abc2-7e4e3228b995",
+      "streamId": "e75f8e25-a1ad-47eb-a836-4499d695f439",
       "endpoint": "workspace/follow",
       "payload": {
         "args": {}
@@ -568,7 +568,7 @@
     },
     {
       "type": "open",
-      "streamId": "e344190d-1273-49e5-9230-1d171b0e529c",
+      "streamId": "27a38f50-171c-4423-bf25-1ffc8795a4f1",
       "endpoint": "$events",
       "payload": {
         "args": {}
@@ -576,7 +576,7 @@
     },
     {
       "type": "open",
-      "streamId": "f0487463-3078-4d04-a210-0564be16ee71",
+      "streamId": "ccd92002-1118-4614-bd55-cbbf6f6f82c6",
       "endpoint": "session/control",
       "payload": {
         "args": {}
@@ -584,7 +584,7 @@
     },
     {
       "type": "open",
-      "streamId": "eb6a2c78-fa75-41d9-863d-b70b26732014",
+      "streamId": "aa74ce04-69dc-4cbe-8868-c39a62107a64",
       "endpoint": "session/follow",
       "payload": {
         "args": {
@@ -609,18 +609,18 @@
     {
       "receiptId": "fixture-receipt-1",
       "file": {
-        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
-        "name": "second.txt",
-        "bytes": 23
+        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+        "name": "first.txt",
+        "bytes": 22
       },
       "sessionId": "fixture-existing"
     },
     {
       "receiptId": "fixture-receipt-2",
       "file": {
-        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
-        "name": "first.txt",
-        "bytes": 22
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
       },
       "sessionId": "fixture-existing"
     },

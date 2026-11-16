@@ -1,6 +1,6 @@
 {
   "ticket": "https://github.com/HowBoring/omp-webui/issues/39",
-  "integrationBase": "dacdb9b",
+  "integrationBase": "3643be43d6ed7d3b5c782ddb97d24398ecc64641",
   "scope": "actual DSH Client/public provider/Remote fixture on Linux; synthetic originals only",
   "productSessionAdmission": "blocked pending later native/original-store/product gates",
   "source": {
@@ -41,9 +41,9 @@
       "result": "74 files, 1469 tests; includes 20 new public Conversation/provider tests"
     },
     {
-      "status": "BLOCKED",
+      "status": "PASS",
       "command": "DSH_SOURCE=vendor/dsh-baseline-proof bun run check",
-      "result": "after integration42: 70 pass, 1 fail; existing 50ms fixture startup raised RPC_READY_TIMEOUT; coordinator owns a separate deterministic transport fix before final handoff"
+      "result": "linked to final DSH candidate: typecheck; 74 tests, 237 assertions; Host build; source-gate mutation tests use a separate owned baseline clone"
     },
     {
       "status": "PASS",
@@ -58,7 +58,7 @@
     {
       "status": "PASS",
       "command": "DSH_SOURCE=vendor/dsh-final experiments/draft-seam/run.sh",
-      "result": "actual rebuilt Client; public provider/Remote; Linux Chromium; 7 browser scenarios; 0 page errors"
+      "result": "actual rebuilt Client; public provider/Remote; Linux Chromium; 7 browser scenarios; 0 page errors; 0 legacy Conversation-key reads and writes"
     },
     {
       "status": "PASS",
@@ -94,6 +94,10 @@
     {
       "red": "actual browser Storage-boundary counter observed legacy-key read for View preference in provider mode",
       "green": "provider mode also bypasses shared View preference reads; actual browser counters now record zero shared reads and writes"
+    },
+    {
+      "integratedFailure": "pre-existing short request/drain fixture also used 50ms for process startup; integrated run reported RPC_READY_TIMEOUT",
+      "resolution": "coordinator-owned reviewed transport startup/queue fix merged at3643be43; original failure retained; fresh integrated74-test gate passes and diagnostic Hostbundle/inputs regenerated"
     }
   ],
   "acceptance": {
@@ -108,5 +112,11 @@
     "product Session/browser integration or final product plugin roster",
     "Windows Chrome/WSL2 — NOT RUN, explicitly deferred by the user; executable override retains the browser scenarios"
   ],
-  "validationState": "DSH slice frozen and passing; integrated repository rerun waits for coordinator-owned transport startup fix"
+  "validationState": "PASS for ticket39 public DSH Client/provider fixture scope; product native/original-store/platform gates remain as explicitly listed",
+  "fixtureGraph": {
+    "totalModules": 32,
+    "upstreamModules": 30,
+    "fixtureModules": 2,
+    "isFinalProductRoster": false
+  }
 }

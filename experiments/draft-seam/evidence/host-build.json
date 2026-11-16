@@ -427,7 +427,7 @@
     },
     {
       "path": "packages/compatibility/transport.ts",
-      "sha256": "6d451c8293971372583e4c0af2359212f6b60130da4541e042240286d1a42d66"
+      "sha256": "cee41a7512b8be48b614475574acef0345a99e577cbab4aed58ba3479491c877"
     },
     {
       "path": "packages/contracts/diagnostics.ts",
@@ -964,6 +964,6 @@
   ],
   "bundle": {
     "file": "diagnostics-main.js",
-    "sha256": "983289b0c83f6dea8d4cde75b0e419ef1b44c62dd1996d096e1279ff7c7efb28"
+    "sha256": "78f50ae0286be22d910f63df2afb8297858751d19fd768d355d5bf916bf4cc4f"
   }
 }
