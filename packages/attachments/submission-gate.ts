@@ -104,7 +104,7 @@ export class AttachmentSubmissionGate {
     if (!flow.nativeStarted && ["failed", "cancelled"].includes(flow.phase)) return "not-submitted";
     const result = flow.result;
     if (!result || !this.#matchesReservation(flow, result) || result.persistence !== "committed") return "unresolved";
-    if (result.terminal && result.inputOutcome === "no_input") return "not-submitted";
+    // inputOutcome describes input generation, never whether hooks/commands executed or a replay is safe.
     const committed = new Set(result.relations.filter(relation => relation.status === "observed" && relation.persistence === "committed")
       .flatMap(relation => relation.attachments?.map(link => link.preparedId) ?? []));
     return result.inputOutcome === "generated" && result.relations.some(relation => relation.role === "input" && relation.persistence === "committed")

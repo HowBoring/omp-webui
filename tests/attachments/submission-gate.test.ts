@@ -10,7 +10,7 @@ const attempt = { selection, submissionId: "attempt", requestId: "request" };
 function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
-  let failSubmit = false;
+  let failSubmit = false, noInput = false;
   const bridge = new AttachmentBridge({ async authorize(request) {
     if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
     if (request.revision !== revision) throw Error("ATTACHMENT_DRAFT_CHANGED");
@@ -27,7 +27,7 @@ function fixture() {
   }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
     submits++; submittedMessage = input.message; if (failSubmit) throw Error("RPC_LOST_RESPONSE");
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId, target, found: true, duplicate: false,
-      admission: "local", reservation: "committed", inputOutcome: "generated", persistence: "committed", terminal: true, nextOffset: null,
+      admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", persistence: "committed", terminal: true, nextOffset: null,
       origin: { ...target, clientSubmissionId: input.clientSubmissionId },
       relations: [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" },
         { relationId: "entry:prepared", role: "prepared", status: "observed", persistence: "committed", entryId: "prepared", attachments: [{
@@ -36,7 +36,7 @@ function fixture() {
   } }));
   const gate = new AttachmentSubmissionGate(bridge, async () => { if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED"); });
   return { gate, counts: () => ({ prepares, submits }), messages: () => ({ preparedMessage, submittedMessage }),
-    edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; } };
+    edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; }, handledWithoutInput: () => { noInput = true; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
   for (let i = 0; i < 40; i++) { const state = await gate.status("request"); if (state.phase === "awaiting-consent") return state; await Promise.resolve(); }
@@ -84,4 +84,13 @@ test("lost native response remains unresolved and never authorizes a new send fr
   expect(await f.gate.status("request")).toMatchObject({ phase: "unresolved", recovery: "unresolved" });
   await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
   expect(f.counts().submits).toBe(1);
+});
+
+
+test("committed no_input is not proof that native hooks or commands never executed", async () => {
+  const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput();
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+  expect(await f.gate.status("request")).toMatchObject({ nativeState: "reserved", recovery: "unresolved" });
+  await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
 });
