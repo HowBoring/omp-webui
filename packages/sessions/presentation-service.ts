@@ -16,7 +16,7 @@ export class SessionPresentationService extends TypertRemoteService {
     const current = await this.supervisor.listed(this.identity());
     return { items: current ? [{ sessionId: SessionId(current.view.registration.nativeSessionId),
       updatedAt: Date.parse(current.view.registration.observedAt), agentAvailable: true, running: current.running,
-      blank: false, formatStatus: "current" as const }] : [] };
+      blank: current.blank, formatStatus: "current" as const }] : [] };
   }
   @Remote("projections") async projections(request: SessionProjectionsRequest) {
     const journal = await this.supervisor.presentation(this.identity(), request.sessionId);

@@ -226,11 +226,12 @@ export class SessionSupervisor {
     this.#browser(identity); const active = this.#active;
     if (!active) throw new Error("SESSION_MANUAL_OPEN_REQUIRED"); this.#current(identity, active);
   }
-  async listed(identity: BrowserAccess): Promise<{ view: SessionView; running: boolean } | undefined> {
+  async listed(identity: BrowserAccess): Promise<{ view: SessionView; running: boolean; blank: boolean } | undefined> {
     this.#browser(identity); const active = this.#active;
     if (!active?.worker || active.state !== "open" || active.retired || active.exited) return undefined;
     this.#current(identity, active); const state = await active.worker.state(); this.#current(identity, active);
-    return { view: this.#view(active), running: !nativeSettled(state) };
+    const journal = await this.presentation(identity, active.record!.nativeSessionId); this.#current(identity, active);
+    return { view: this.#view(active), running: !nativeSettled(state), blank: journal.cursor < 0 };
   }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {
     this.#browser(identity); const active = this.#active;
