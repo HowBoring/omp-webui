@@ -403,7 +403,7 @@ index 4763326da8..2acbd31b6d 100644
    let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
    let activeContext: StrictStartupContext | undefined;
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-index 2a28635509..7a86feae7a 100644
+index d6e23b09c7..7cf82c42de 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 @@ -1,4 +1,6 @@
@@ -463,7 +463,17 @@ index 2a28635509..7a86feae7a 100644
        if (typeof candidate === "object" && candidate !== null && "type" in candidate && candidate.type === "session") header = candidate;
      }
      if (typeof header !== "object" || header === null || !("id" in header) || typeof header.id !== "string"
-@@ -236,15 +271,25 @@ export class StrictReservation {
+@@ -171,8 +206,7 @@ export class StrictReservation {
+         const prefix = readHeldGenerationMetadata(this.#fd, this.#parentFd, this.filePath, 16_384);
+         const header = sessionHeaderFromPrefix(prefix);
+         if (header?.id !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
+-        if (typeof header.cwd !== "string" || !path.isAbsolute(header.cwd)
+-          || fs.realpathSync(header.cwd) !== this.#cwdPath)
++        if (typeof header.cwd !== "string" || !path.isAbsolute(header.cwd) || fs.realpathSync(header.cwd) !== this.#cwdPath)
+           throw new Error("STRICT_CWD_CHANGED");
+       }
+     } catch (error) {
+@@ -237,15 +271,25 @@ export class StrictReservation {
    }
  
    read(): string {
@@ -493,7 +503,7 @@ index 2a28635509..7a86feae7a 100644
      catch (error) {
        const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_CARRIER_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
        if (clean && !this.#failure) throw error;
-@@ -255,14 +300,25 @@ export class StrictReservation {
+@@ -256,14 +300,25 @@ export class StrictReservation {
    get writeAttempted(): boolean { return this.#writeAttempted; }
  
    append(line: string): void {
@@ -863,7 +873,7 @@ index 0a24c09930..8efdf7cb7e 100644
            } finally { fs.closeSync(child); }
          }
 diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
-index aff31eac5d..3a2577f470 100644
+index aff31eac5d..9bc866b65c 100644
 --- a/packages/coding-agent/src/session/session-header-id.ts
 +++ b/packages/coding-agent/src/session/session-header-id.ts
 @@ -1,3 +1,4 @@
@@ -871,12 +881,23 @@ index aff31eac5d..3a2577f470 100644
  import { isGenerationCarrier, readNativeGenerationPrefix } from "./session-generation";
  import { jsonContainerEnd, peekFileSync, tryParseJson } from "@oh-my-pi/pi-utils";
  import type { FileEntry, SessionHeader } from "./session-entries";
-@@ -7,7 +8,7 @@ import { parseTitleSlotLine } from "./session-title-slot";
+@@ -6,10 +7,6 @@ import { parseTitleSlotLine } from "./session-title-slot";
+ /** Upper bound on the bytes read to find a header: real headers (and the title slot before them) are far smaller. */
  export const SESSION_HEADER_READ_LIMIT = 1024 * 1024;
  
- function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
+-function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
 -	return entry?.type === "session" && typeof entry.id === "string";
-+	return nativeSessionHeader(entry) !== undefined;
+-}
+-
+ /**
+  * The header id from a file's leading bytes, past the optional title slot
+  * line. Parses only the first record, which may span lines (a pretty-printed
+@@ -42,7 +39,7 @@ export function sessionHeaderFromPrefix(prefix: Uint8Array): SessionHeader | und
+ 	const end = jsonContainerEnd(text, 0);
+ 	if (end === -1) return undefined;
+ 	const entry = tryParseJson<FileEntry>(text.slice(0, end)) ?? undefined;
+-	return isValidSessionHeader(entry) ? entry : undefined;
++	return nativeSessionHeader(entry);
  }
  
  /**

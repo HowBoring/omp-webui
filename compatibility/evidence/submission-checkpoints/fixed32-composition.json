@@ -1,0 +1,59 @@
+{
+  "status": "CLEAN_FIXED32_COMPOSITION_CHECKPOINT_NOT_FINAL_ACCEPTANCE",
+  "fixed32": "6f5d0db905b6bb291fa342b427b16c109ceb7979",
+  "build": {
+    "sourceSha256": "c4f04676d706382ed25361030c7df67d93651f983746b01c6025b61ae4a2234b",
+    "patchSha256": "f6573f056ef21cad6216fd19c8bd250ea4fe10b98f9cfe482e1f7a87683a1882",
+    "schemaSha256": "68da71277f27dc72385e01101f4fc18d2197f129b0de3745d6b6727caecb68be"
+  },
+  "files": [
+    {
+      "path": "compatibility/omp/0005-strict-continuation.patch",
+      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+    },
+    {
+      "path": "compatibility/omp/0006-live-settlement.patch",
+      "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+    },
+    {
+      "path": "compatibility/omp/0007-durable-submission.patch",
+      "sha256": "570ed9ac4f033bceef3380062b02d4da6871a571d4fbfd3ffd8a5daf02198026"
+    }
+  ],
+  "checks": [
+    {
+      "command": "bun scripts/build-compatibility.ts",
+      "status": "PASS",
+      "scope": "ordered1\u20137 build and same-source generated artifacts"
+    },
+    {
+      "command": "bun scripts/check-submission-native.ts",
+      "status": "PASS",
+      "scope": "authored native submission modules only; unrelated upstream diagnostics excluded"
+    },
+    {
+      "command": "bun test tests/submissions/cwd-guard.test.ts",
+      "status": "PASS",
+      "tests": 1,
+      "assertions": 5,
+      "seconds": 4.67,
+      "scope": "exact final checkpoint; current logical-header relative cwd refused before cached-proof adoption"
+    },
+    {
+      "command": "focused reservation/generated/new-session/cwd-guard/copies run",
+      "status": "PASS",
+      "tests": 7,
+      "assertions": 55,
+      "seconds": 47.95,
+      "scope": "preceding0676a48 composition before pure canonical return adjustment in shared header helper; same fixed32 guards"
+    }
+  ],
+  "notRun": [
+    "final clean source reset",
+    "whole combined suite",
+    "new-ledger browser tuple",
+    "final large/OS/TUI/archive combination"
+  ],
+  "privateSessionAdmission": "blocked",
+  "next": "Coordinator schedules final gates; retain mandatory outstanding scope in external research/ticket-36-resume.md"
+}
