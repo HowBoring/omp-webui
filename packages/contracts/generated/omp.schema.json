@@ -1026,6 +1026,53 @@
     ]
   },
   "$defs": {
+    "RpcInputPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "bounded-jsonl-input-v1"
+        },
+        "encoding": {
+          "const": "fatal-utf8"
+        },
+        "framing": {
+          "const": "unchunked-jsonl"
+        },
+        "malformed": {
+          "const": "sanitized-drop-line"
+        },
+        "partialEof": {
+          "const": "reject"
+        },
+        "maxLineBytes": {
+          "type": "integer"
+        },
+        "maxPendingBytes": {
+          "type": "integer"
+        },
+        "maxPendingFrames": {
+          "type": "integer"
+        },
+        "maxStartupBytes": {
+          "type": "integer"
+        },
+        "maxStartupFrames": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "encoding",
+        "framing",
+        "malformed",
+        "partialEof",
+        "maxLineBytes",
+        "maxPendingBytes",
+        "maxPendingFrames",
+        "maxStartupBytes",
+        "maxStartupFrames"
+      ]
+    },
     "AttachmentFormat": {
       "enum": [
         "utf8",
@@ -1329,6 +1376,75 @@
         "acceptedDegradations"
       ],
       "additionalProperties": false
+    },
+    "PreparedAttachmentLink": {
+      "type": "object",
+      "properties": {
+        "originalId": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "representationKind": {
+          "enum": [
+            "text",
+            "image"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "originalId",
+        "preparedId",
+        "originalSha256",
+        "preparedSha256",
+        "representationKind"
+      ],
+      "additionalProperties": false
+    },
+    "SubmissionPreparation": {
+      "type": "object",
+      "properties": {
+        "receiptId": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "acceptedDegradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
+        }
+      },
+      "required": [
+        "receiptId",
+        "resultDigest",
+        "draftRevision",
+        "authorityGeneration",
+        "acceptedDegradations",
+        "attachments"
+      ]
     },
     "Attribution": {
       "enum": [
@@ -4725,6 +4841,12 @@
         },
         "reason": {
           "type": "string"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
         }
       },
       "required": [
@@ -4809,6 +4931,9 @@
         },
         "code": {
           "type": "string"
+        },
+        "preparation": {
+          "$ref": "#/$defs/SubmissionPreparation"
         }
       },
       "required": [
@@ -5818,6 +5943,9 @@
         },
         "submissionPolicy": {
           "$ref": "#/$defs/SubmissionPolicy"
+        },
+        "rpcInputPolicy": {
+          "$ref": "#/$defs/RpcInputPolicy"
         },
         "protocolVersion": {
           "type": "integer"
@@ -8439,6 +8567,9 @@
         },
         "streamingBehavior": {
           "$ref": "#/$defs/StreamingBehavior"
+        },
+        "preparationConsent": {
+          "$ref": "#/$defs/AttachmentConsent"
         }
       },
       "required": [

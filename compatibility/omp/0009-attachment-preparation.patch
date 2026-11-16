@@ -1,3 +1,84 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 3eb72c3efc..17bd1a903d 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -9,6 +9,8 @@
+ 
+ ### Added
+ 
++- Added controlled attachment preparation, explicit degradation consent, exact staged consumption and durable original/prepared provenance ([WebUI #38](https://github.com/HowBoring/omp-webui/issues/38)).
++
+ - Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
+ 
+ - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index ba1689e681..48dc4291ef 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -9,6 +9,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
+ 
+ Package-specific references:
+ 
++- [Controlled attachment preparation, exact-result consent and consumption](docs/rpc-attachments.md)
++
+ - [CHANGELOG](./CHANGELOG.md)
+ - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
+ - [MCP configuration guide](../../docs/mcp-config.md)
+diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
+new file mode 100644
+index 0000000000..b8decf1f8f
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-attachments.md
+@@ -0,0 +1,49 @@
++# Controlled attachment preparation v1
++
++This compatibility extension adds `attachment_prepare`, `attachment_cancel` and optional
++`submission_submit.preparationConsent` to the same public JSONL RPC/schema/client build. There was
++no baseline generic document-ingestion RPC. Preparation does not call prompt, ReadTool, input hooks,
++models or tools, append a message, read a browser-selected path, extract document images to disk,
++or use the shared document cache. Originals and processed representations are different objects.
++
++Preparation takes an ordered draft revision, authority generation, unchanged native prose, and
++controlled `{originalId,format,sha256,data}` objects. It returns every item's actual failure or staged
++text/image representation, degradation codes, a versioned binding and an expiring digest. Any failed
++item prevents consumption of the entire input. Truncation, document structure loss, omitted images/
++PDF text and first-frame animation loss require explicit acceptance of that result. Names are
++presentation data outside this interface; no filename becomes `@path` or an extraction destination.
++Native manual `@path`, slash commands and templates retain their own meaning.
++
++Protected native source/instance/Session, history context, model/thinking/tool context, draft,
++object identity/order/content, authority generation and budget version fence the receipt. The Host
++must also check authentication/current grants at each intake/read/consumption. Opaque generations
++and content hashes grant no original or filesystem access. Cancellation invalidates pending
++publication and ready receipts; restart requires fresh preparation. Stale or partially ready input
++never silently becomes text-only input.
++
++Consumption freezes the exact staged bundle, then #36 durably reserves its stable client submission
++identity before input dispatch. Explicit causal original/prepared identities travel on actual native
++user/companion objects. Consumption never rereads a path or reconverts an original. Durable duplicate
++lookup precedes ephemeral receipt validation, so receipt loss cannot cause replay. Query distinguishes
++reserved originals from actual committed entry relations: reservation/acknowledgement alone is not
++a Sent Attachment. `attachment-provenance-v1` is a native required feature; older compatibility
++readers must refuse rather than rewrite away metadata they do not understand.
++
++Converters use an owned Linux process, synthetic home, allowlisted environment, pre-import network
++denial, 512 MiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
++Missing containment/converters refuse preparation. Raw limits remain 10 MiB/image, 5 MiB/text/document,
++eight objects and 32 MiB/input. Decoded images allow 16,777,216 pixels/64 MiB RGBA, including declared
++animation frames. Prepared images fit 1568 pixels/500 KiB and avoid WebP; inline text fits 3000 lines/
++50 KiB after at most 2 MiB conversion output. ZIP limits are 2048 members, 512 KiB index, 8 MiB/member,
++32 MiB expansion and 1024 path bytes. Preparation has sixty seconds; two receipts/16 MiB are staged
++for five minutes. Processed receipt/model data has a separate 8 MiB limit.
++
++The advertised `bounded-jsonl-input-v1` policy keeps stdin unchunked and caps complete JSONL commands,
++including base64, escapes, metadata and newline, at 48 MiB. UTF-8 is fatal. Malformed input, oversize
++lines and partial EOF produce fixed sanitized errors. Startup holds at most eight frames/48 MiB;
++the dispatcher retains at most 32 frames/64 MiB. Strict-start's earlier control/handoff limits remain
++separate. Stdout retains its independent 1 MiB physical/64 MiB negotiated reassembly limits;
++preparation replies additionally cap logical/physical aggregate bytes at 9/12 MiB.
++
++Private product Session admission remains blocked. Native data/fault, Host/DSH/browser, rollback
++and the final matched artifact gates remain independent from isolated preparation/source checks.
 diff --git a/packages/coding-agent/scripts/gen-rpc/model.ts b/packages/coding-agent/scripts/gen-rpc/model.ts
 index 4377153696..f9e701ee64 100644
 --- a/packages/coding-agent/scripts/gen-rpc/model.ts
@@ -187,10 +268,10 @@ index 0000000000..d016c77260
 +}
 diff --git a/packages/coding-agent/src/attachments/limits.ts b/packages/coding-agent/src/attachments/limits.ts
 new file mode 100644
-index 0000000000..fbd6cea68d
+index 0000000000..8a11abe0a0
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/limits.ts
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,16 @@
 +/** Versioned independently from raw originals: all limits are refusal ceilings, never silent fallback. */
 +export const ATTACHMENT_BUDGET_VERSION = "attachment-budgets-v1";
 +export const ATTACHMENT_LIMITS = Object.freeze({
@@ -204,6 +285,7 @@ index 0000000000..fbd6cea68d
 +	conversionMs: 10_000, inputMs: 60_000, preparedBytes: 8 * 1024 * 1024,
 +	conversionDataBytes: 512 * 1024 * 1024, conversionCpuSeconds: 8,
 +	messageBytes: 128 * 1024, rpcBytes: 48 * 1024 * 1024,
++	rpcOutputBytes: 9 * 1024 * 1024, rpcOutputWireBytes: 12 * 1024 * 1024,
 +	receiptMs: 300_000, receipts: 2, stagedBytes: 16 * 1024 * 1024,
 +});
 diff --git a/packages/coding-agent/src/attachments/prepare.ts b/packages/coding-agent/src/attachments/prepare.ts
@@ -282,16 +364,18 @@ index 0000000000..a94faaffdf
 +}
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
 new file mode 100644
-index 0000000000..a18646cc88
+index 0000000000..2d11a000ab
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/receipts.ts
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,185 @@
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
 +import type { FileMentionMessage } from "../session/messages";
 +import { decodeBase64ImageData } from "@oh-my-pi/pi-utils/mime";
 +import type { AttachmentFormat, AttachmentPreparation } from "./prepare";
 +import { prepareAttachmentIsolated } from "./isolated";
 +import { ATTACHMENT_BUDGET_VERSION, ATTACHMENT_LIMITS } from "./limits";
++import { stageAttachmentMessage } from "../session/submission-provenance";
++import { measureAttachmentRpc, measureAttachmentOutput } from "./rpc-budget";
 +
 +export interface AttachmentBinding {
 +	sourceId: string; instanceId: string; nativeSessionId: string; contextId: string;
@@ -322,7 +406,7 @@ index 0000000000..a18646cc88
 +	message: string; images: ImageContent[]; companionMessages: FileMentionMessage[];
 +	preparationDigest: string; attachments: PreparedAttachmentLink[];
 +}
-+interface Staged { receipt: AttachmentReceipt; message: string; bytes: number; reserved: string | undefined }
++interface Staged { receipt: AttachmentReceipt; message: string; bytes: number; reserved: string | undefined; bundle?: PreparedSubmission }
 +const sha256 = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
 +
 +/** Ephemeral immutable receipts. Restart and every draft/context/authority change require fresh preparation. */
@@ -366,6 +450,7 @@ index 0000000000..a18646cc88
 +				draftFingerprint: sha256(JSON.stringify(draft)), binding, expiresAt,
 +				status: items.every(item => item.status === "ready") ? "ready" as const : "failed" as const, items };
 +			const receipt: AttachmentReceipt = { ...base, resultDigest: sha256(JSON.stringify(base)) };
++			measureAttachmentOutput({ type: "response", id: "x".repeat(96), command: "attachment_prepare", success: true, data: receipt });
 +			const bytes = Buffer.byteLength(JSON.stringify(receipt));
 +			if (bytes > ATTACHMENT_LIMITS.preparedBytes || this.#bytes + bytes > ATTACHMENT_LIMITS.stagedBytes) {
 +				throw new Error("ATTACHMENT_PREPARED_BUDGET");
@@ -379,7 +464,7 @@ index 0000000000..a18646cc88
 +		}
 +	}
 +
-+	validateAndFreeze(consent: AttachmentConsent): PreparedSubmission {
++	validateAndFreeze(consent: AttachmentConsent, clientSubmissionId?: string): PreparedSubmission {
 +		this.#prune();
 +		const staged = this.#receipts.get(consent.receiptId);
 +		if (!staged) throw new Error("ATTACHMENT_RECEIPT_STALE");
@@ -388,43 +473,64 @@ index 0000000000..a18646cc88
 +		if (staged.receipt.resultDigest !== consent.resultDigest || staged.receipt.draftRevision !== consent.draftRevision ||
 +			staged.receipt.authorityGeneration !== consent.authorityGeneration ||
 +			staged.receipt.budgetVersion !== ATTACHMENT_BUDGET_VERSION) throw new Error("ATTACHMENT_CONSENT_STALE");
++		if (staged.reserved && staged.reserved !== clientSubmissionId) throw new Error("ATTACHMENT_ALREADY_RESERVED");
 +		const required = new Set(staged.receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []));
 +		if ([...required].some(code => !consent.acceptedDegradations.includes(code)) ||
 +			consent.acceptedDegradations.some(code => !required.has(code))) {
 +			throw new Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
 +		}
++		if (clientSubmissionId) staged.reserved = clientSubmissionId;
++		return staged.bundle ??= this.#freezeBundle(staged);
++	}
++
++	/** Called only after the native reservation has been durably verified. */
++	markReserved(receiptId: string, clientSubmissionId: string): void {
++		const staged = this.#receipts.get(receiptId);
++		if (!staged || staged.reserved !== clientSubmissionId) throw new Error("ATTACHMENT_RESERVATION_MISMATCH");
++	}
++
++	#freezeBundle(staged: Staged): PreparedSubmission {
 +		const images: ImageContent[] = [];
 +		const companionMessages: FileMentionMessage[] = [];
 +		const attachments: PreparedAttachmentLink[] = [];
 +		for (const item of staged.receipt.items) {
 +			if (item.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
 +			const representation = item.representation;
-+			attachments.push({ originalId: item.originalId, originalSha256: item.originalSha256,
-+				preparedId: item.preparedId, preparedSha256: item.preparedSha256, representationKind: representation.kind });
++			const link = { originalId: item.originalId, originalSha256: item.originalSha256,
++				preparedId: item.preparedId, preparedSha256: item.preparedSha256, representationKind: representation.kind };
++			attachments.push(Object.freeze(link));
 +			if (representation.kind === "image") images.push({ type: "image", data: representation.data, mimeType: representation.mimeType });
-+			else companionMessages.push({ role: "fileMention", timestamp: Date.now(), files: [{
-+				path: `attachment-prepared://${item.preparedId}`, content: representation.text,
-+				byteSize: Buffer.byteLength(representation.text),
-+			}] });
++			else {
++				const message: FileMentionMessage = { role: "fileMention", timestamp: staged.receipt.expiresAt - ATTACHMENT_LIMITS.receiptMs,
++					files: [{ path: `attachment-prepared://${item.preparedId}`, content: representation.text,
++						byteSize: Buffer.byteLength(representation.text) }] };
++				stageAttachmentMessage(message, [link]);
++				Object.freeze(message.files[0]); Object.freeze(message.files); Object.freeze(message);
++				companionMessages.push(message);
++			}
 +		}
-+		return { message: staged.message, images, companionMessages,
-+			preparationDigest: staged.receipt.resultDigest, attachments };
++		for (const image of images) Object.freeze(image);
++		Object.freeze(images); Object.freeze(companionMessages); Object.freeze(attachments);
++		return Object.freeze({ message: staged.message, images, companionMessages,
++			preparationDigest: staged.receipt.resultDigest, attachments });
 +	}
 +
 +	#validateDraft(draft: AttachmentDraft): void {
 +		if (draft.objects.length < 1 || draft.objects.length > ATTACHMENT_LIMITS.objects ||
 +			Buffer.byteLength(draft.message) > ATTACHMENT_LIMITS.messageBytes) throw new Error("ATTACHMENT_INPUT_BUDGET");
-+		if (Buffer.byteLength(JSON.stringify({ id: "x".repeat(96), type: "attachment_prepare", ...draft })) + 1 >
-+			ATTACHMENT_LIMITS.rpcBytes) throw new Error("ATTACHMENT_RPC_BUDGET");
++		measureAttachmentRpc({ id: "x".repeat(96), type: "attachment_prepare", preparationId: draft.preparationId,
++			draftId: draft.draftId, draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
++			message: draft.message, objects: draft.objects });
 +		let bytes = 0;
 +		const ids = new Set<string>();
 +		for (const object of draft.objects) {
 +			if (!/^[A-Za-z0-9_-]{1,96}$/.test(object.originalId) || ids.has(object.originalId) ||
 +				!/^[a-f0-9]{64}$/.test(object.sha256)) throw new Error("ATTACHMENT_OBJECT_INVALID");
 +			ids.add(object.originalId);
-+			bytes += Math.floor(object.data.length / 4) * 3;
++			const padding = object.data.endsWith("==") ? 2 : object.data.endsWith("=") ? 1 : 0;
++			bytes += Math.floor(object.data.length * 3 / 4) - padding;
 +		}
-+		if (bytes > ATTACHMENT_LIMITS.originalBytes + draft.objects.length * 2) throw new Error("ATTACHMENT_INPUT_BUDGET");
++		if (bytes > ATTACHMENT_LIMITS.originalBytes) throw new Error("ATTACHMENT_INPUT_BUDGET");
 +	}
 +
 +	async #prepareItem(original: ControlledOriginal, binding: AttachmentBinding, signal: AbortSignal): Promise<AttachmentPreparedItem> {
@@ -446,6 +552,61 @@ index 0000000000..a18646cc88
 +			this.#receipts.delete(id); this.#bytes -= value.bytes;
 +		}
 +	}
++}
+diff --git a/packages/coding-agent/src/attachments/rpc-budget.ts b/packages/coding-agent/src/attachments/rpc-budget.ts
+new file mode 100644
+index 0000000000..a1774d215d
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/rpc-budget.ts
+@@ -0,0 +1,23 @@
++import { RpcFrameEncoder } from "../modes/rpc/rpc-frame";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Stdin is one unchunked JSONL command. Base64 originals, escapes, metadata and newline are already in these bytes. */
++export function measureAttachmentRpc(frame: object): { logicalBytes: number; wireBytes: number; frames: number } {
++	const logicalBytes = Buffer.byteLength(JSON.stringify(frame)) + 1;
++	if (logicalBytes > ATTACHMENT_LIMITS.rpcBytes) throw new Error("ATTACHMENT_RPC_BUDGET");
++	return { logicalBytes, wireBytes: logicalBytes, frames: 1 };
++}
++
++/** Stdout separately uses the genuine public v2 encoder, including physical chunk envelopes and newlines. */
++export function measureAttachmentOutput(frame: object): { logicalBytes: number; wireBytes: number; frames: number } {
++	const logicalBytes = Buffer.byteLength(JSON.stringify(frame)) + 1;
++	if (logicalBytes > ATTACHMENT_LIMITS.rpcOutputBytes) throw new Error("ATTACHMENT_RPC_OUTPUT_BUDGET");
++	const encoder = new RpcFrameEncoder();
++	encoder.setProtocolVersion(2);
++	let wireBytes = 0, frames = 0;
++	for (const line of encoder.encodeFrames(frame)) {
++		wireBytes += Buffer.byteLength(line); frames++;
++		if (wireBytes > ATTACHMENT_LIMITS.rpcOutputWireBytes) throw new Error("ATTACHMENT_RPC_WIRE_BUDGET");
++	}
++	return { logicalBytes, wireBytes, frames };
++}
+diff --git a/packages/coding-agent/src/attachments/validation.ts b/packages/coding-agent/src/attachments/validation.ts
+new file mode 100644
+index 0000000000..819c8e9002
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/validation.ts
+@@ -0,0 +1,20 @@
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import type { PreparedAttachmentLink } from "./receipts";
++
++const identity = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(value);
++const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
++
++/** Pure native persisted-metadata validation; object/content hashes convey no read authority. */
++export function validPreparedLinks(value: unknown): value is PreparedAttachmentLink[] {
++	return Array.isArray(value) && value.length <= 8 && value.every(link => isRecord(link) &&
++		identity(link.originalId) && identity(link.preparedId) && digest(link.originalSha256) && digest(link.preparedSha256) &&
++		(link.representationKind === "text" || link.representationKind === "image") &&
++		Object.keys(link).every(key => ["originalId", "preparedId", "originalSha256", "preparedSha256", "representationKind"].includes(key)));
++}
++
++export function validNativePreparation(value: unknown): boolean {
++	return isRecord(value) && identity(value.receiptId) && digest(value.resultDigest) && identity(value.draftRevision) &&
++		identity(value.authorityGeneration) && Array.isArray(value.acceptedDegradations) && value.acceptedDegradations.length <= 16 &&
++		value.acceptedDegradations.every(code => typeof code === "string" && /^[a-z_]{1,64}$/.test(code)) &&
++		validPreparedLinks(value.attachments);
 +}
 diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
 new file mode 100644
@@ -621,18 +782,105 @@ index 0000000000..e870a9186c
 +	}
 +	if (value.id !== undefined && value.id.length > 96) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
 +}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
+new file mode 100644
+index 0000000000..6f942579bd
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
+@@ -0,0 +1,7 @@
++/** Pure public input guarantee. Stdin commands are unchunked JSONL; stdout framing is independent. */
++export const rpcInputPolicy = Object.freeze({
++	version: "bounded-jsonl-input-v1", encoding: "fatal-utf8", framing: "unchunked-jsonl",
++	malformed: "sanitized-drop-line", partialEof: "reject", maxLineBytes: 48 * 1024 * 1024,
++	maxPendingBytes: 64 * 1024 * 1024, maxPendingFrames: 32,
++	maxStartupBytes: 48 * 1024 * 1024, maxStartupFrames: 8,
++} as const);
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-input.ts b/packages/coding-agent/src/modes/rpc/rpc-input.ts
+index ea64e54560..63a031ecb1 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-input.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-input.ts
+@@ -1,4 +1,5 @@
+-import { readLines } from "@oh-my-pi/pi-utils";
++import { ConcatSink } from "@oh-my-pi/pi-utils/stream";
++import { rpcInputPolicy } from "./rpc-input-policy";
+ 
+ /**
+  * Claims Bun's singleton stdin reader immediately and exposes a separately readable stream.
+@@ -45,21 +46,39 @@ export function claimRpcInput(): ReadableStream<Uint8Array> {
+  */
+ export async function readRpcInputFrames(
+ 	input: ReadableStream<Uint8Array>,
+-	onFrame: (frame: unknown) => void,
++	onFrame: (frame: unknown, encodedBytes: number) => void,
+ 	onParseError: (message: string) => void,
+ ): Promise<void> {
+-	const decoder = new TextDecoder();
+-	for await (const line of readLines(input)) {
+-		const text = decoder.decode(line).trim();
+-		if (!text) continue;
+-		let parsed: unknown;
+-		try {
+-			parsed = JSON.parse(text);
+-		} catch (error: unknown) {
+-			const message = error instanceof Error ? error.message : String(error);
+-			onParseError(`Failed to parse command: ${message}`);
+-			continue;
++	const sink = new ConcatSink();
++	let used = 0, discarded = false;
++	for await (const chunk of input) {
++		let offset = 0;
++		while (offset < chunk.byteLength) {
++			const newline = chunk.indexOf(10, offset);
++			const end = newline < 0 ? chunk.byteLength : newline;
++			const part = chunk.subarray(offset, end);
++			if (!discarded && used + part.byteLength + 1 > rpcInputPolicy.maxLineBytes) {
++				sink.clear(); used = 0; discarded = true; onParseError("RPC_INPUT_LIMIT");
++			}
++			if (!discarded) { sink.append(part); used += part.byteLength; }
++			if (newline >= 0) {
++				if (!discarded) parseInputLine(sink.flush() ?? new Uint8Array(), used + 1, onFrame, onParseError);
++				sink.clear(); used = 0; discarded = false;
++			}
++			offset = newline < 0 ? chunk.byteLength : newline + 1;
+ 		}
+-		onFrame(parsed);
+ 	}
++	if (used > 0 && !discarded) onParseError("RPC_INPUT_PARTIAL_EOF");
++}
++
++function parseInputLine(line: Uint8Array, encodedBytes: number,
++	onFrame: (frame: unknown, encodedBytes: number) => void, onParseError: (message: string) => void): void {
++	let text: string;
++	try { text = new TextDecoder("utf-8", { fatal: true }).decode(line).trim(); }
++	catch { onParseError("RPC_INPUT_INVALID_UTF8"); return; }
++	if (!text) return;
++	let parsed: unknown;
++	try { parsed = JSON.parse(text); }
++	catch { onParseError("RPC_INPUT_INVALID_JSON"); return; }
++	onFrame(parsed, encodedBytes);
+ }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 66fff2dfdb..ad9927d549 100644
+index 66fff2dfdb..02c62344de 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,5 +1,6 @@
+@@ -1,5 +1,7 @@
  import { nativeSubmissionPolicy } from "../../session/submission-policy";
  import { RpcSubmissions } from "./rpc-submissions";
 +import { createAttachmentPreparations, validateAttachmentCommand } from "./rpc-attachments";
++import { rpcInputPolicy } from "./rpc-input-policy";
  import { runSubmission, submissionScope } from "../../session/submission-provenance";
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
-@@ -440,6 +441,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
+@@ -386,7 +388,7 @@ export async function tryRunRpcSkillCommand(
+ export interface RpcInputFrameDeps {
+ 	handleCommand: (command: RpcCommand) => Promise<RpcResponse>;
+ 	output: RpcOutput;
+-	errorResponse: (id: string | undefined, command: string, message: string) => RpcResponse;
++	errorResponse: (id: string | undefined, command: string, message: string, code?: string) => RpcResponse;
+ 	trackBackgroundTask?: (task: Promise<void>) => void;
+ 	pendingExtensionRequests: Map<string, PendingExtensionRequest>;
+ 	onHostToolResult: (frame: RpcHostToolResult) => void;
+@@ -440,6 +442,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
   * A Set, not a Record: `type` is untrusted input and must not hit prototype keys.
   */
  const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
@@ -640,15 +888,132 @@ index 66fff2dfdb..ad9927d549 100644
  	"bash",
  	"predict_word",
  	"live_start",
-@@ -1845,6 +1847,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -603,22 +606,36 @@ export class RpcInputDispatcher {
+ 	readonly #deps: RpcInputFrameDeps;
+ 	readonly #afterSerialCommand: (() => Promise<void>) | undefined;
+ 	readonly #acceptInput: ((command: RpcCommand) => void) | undefined;
++	readonly #retained = new WeakMap<object, number>();
++	#retainedBytes = 0;
++	#retainedFrames = 0;
+ 
+ 	constructor(options: {
+ 		deps: RpcInputFrameDeps;
+ 		afterSerialCommand?: () => Promise<void>;
+ 		acceptInput?: (command: RpcCommand) => void;
+ 	}) {
+-		this.#deps = options.deps;
++		this.#deps = { ...options.deps, handleCommand: async command => {
++			try { return await options.deps.handleCommand(command); }
++			finally { this.#release(command); }
++		} };
+ 		this.#afterSerialCommand = options.afterSerialCommand;
+ 		this.#acceptInput = options.acceptInput;
+ 	}
+ 
+ 	/** Accept a parsed input frame without blocking the stdin reader. */
+-	dispatch(parsed: unknown): void {
++	dispatch(parsed: unknown, encodedBytes?: number): void {
+ 		try {
+ 			if (dispatchRpcControlFrame(parsed, this.#deps)) return;
++			if (!isRecord(parsed)) throw new Error("RPC_INPUT_COMMAND_OBJECT");
+ 			const command = parsed as RpcCommand;
++			const bytes = encodedBytes ?? Buffer.byteLength(JSON.stringify(parsed)) + 1;
++			if (this.#retainedFrames >= rpcInputPolicy.maxPendingFrames ||
++				this.#retainedBytes + bytes > rpcInputPolicy.maxPendingBytes) {
++				this.#deps.output(this.#deps.errorResponse(command.id, command.type, "RPC_INPUT_QUEUE_LIMIT", "RPC_INPUT_QUEUE_LIMIT"));
++				return;
++			}
++			this.#retained.set(command, bytes); this.#retainedBytes += bytes; this.#retainedFrames++;
+ 			this.#acceptInput?.(command);
+ 			// Bash and predict_word retain their immediate side channel. Prompts,
+ 			// steers, follow-ups and steer_subagent start through the serial tail, but
+@@ -638,11 +655,18 @@ export class RpcInputDispatcher {
+ 				this.#tasks.delete(task);
+ 			});
+ 		} catch (err: unknown) {
++			if (isRecord(parsed)) this.#release(parsed);
+ 			const message = err instanceof Error ? err.message : String(err);
+ 			this.#deps.output(this.#deps.errorResponse(undefined, "parse", `Failed to parse command: ${message}`));
+ 		}
+ 	}
+ 
++	#release(command: object): void {
++		const bytes = this.#retained.get(command);
++		if (bytes === undefined) return;
++		this.#retained.delete(command); this.#retainedBytes -= bytes; this.#retainedFrames--;
++	}
++
+ 	/** Await every accepted serial command, including commands queued before EOF. */
+ 	async drain(): Promise<void> {
+ 		while (this.#tasks.size > 0) {
+@@ -1330,7 +1354,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	if (!strictStartup) outputWriter.write(
+ 		frameEncoder.encodeFrames({
+-			type: "ready", submissionPolicy: nativeSubmissionPolicy,
++			type: "ready", submissionPolicy: nativeSubmissionPolicy, rpcInputPolicy,
+ 			protocolVersion: 1,
+ 			supportedProtocolVersions: [1, 2],
+ 			maxFrameBytes: MAX_RPC_FRAME_BYTES,
+@@ -1683,22 +1707,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	// Read stdin from now on: `session_start` may be waiting on a dialog only the client can answer. Until the
+ 	// command loop below exists, negotiation, interaction control and the ask-dialog opt-in are handled at once; every other
+ 	// frame is held, in arrival order, for that loop.
+-	let heldFrames: unknown[] | undefined = [];
+-	const receiveFrame = (parsed: unknown): void => {
++	let heldFrames: { frame: unknown; bytes: number }[] | undefined = [];
++	let heldBytes = 0;
++	const receiveFrame = (parsed: unknown, bytes: number): void => {
+ 		if (interactionControl(parsed)) return;
+ 		if (!heldFrames) {
+-			inputDispatcher.dispatch(parsed);
++			inputDispatcher.dispatch(parsed, bytes);
+ 		} else if (isRpcExtensionUIResponse(parsed)) {
+ 			pendingExtensionRequests.get(parsed.id)?.resolve(parsed);
+ 		} else if (isRecord(parsed) && parsed.type === "set_ask_dialog") {
+ 			output(setAskDialog(parsed as RpcCommand & { type: "set_ask_dialog" }));
+ 		} else {
+-			heldFrames.push(parsed);
++			if (heldFrames.length >= rpcInputPolicy.maxStartupFrames || heldBytes + bytes > rpcInputPolicy.maxStartupBytes) {
++				output(error(isRecord(parsed) && typeof parsed.id === "string" ? parsed.id : undefined,
++					isRecord(parsed) && typeof parsed.type === "string" ? parsed.type : "parse", "RPC_INPUT_QUEUE_LIMIT", "RPC_INPUT_QUEUE_LIMIT"));
++			} else { heldFrames.push({ frame: parsed, bytes }); heldBytes += bytes; }
+ 		}
+ 	};
+ 	// A transport error during startup must not be an unhandled rejection; the final await below still throws it.
+ 	// Input ending while startup still runs means no client is left to answer a dialog it awaits: reject them.
+-	const inputRead = readRpcInputFrames(input, receiveFrame, message => output(error(undefined, "parse", message)));
++	const inputRead = readRpcInputFrames(input, receiveFrame, message => output(error(undefined, "parse", message, message)));
+ 	const rejectStartupDialogs = (): void => {
+ 		if (heldFrames) pendingExtensionRequests.rejectAll("RPC client disconnected during startup");
+ 	};
+@@ -1844,7 +1872,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
  	await emitAvailableCommandsUpdate();
  
- 	const submissions = new RpcSubmissions(session);
+-	const submissions = new RpcSubmissions(session);
 +	const attachments = createAttachmentPreparations(session);
++	const submissions = new RpcSubmissions(session, attachments);
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
  	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
-@@ -1987,6 +1990,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1866,10 +1895,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				if (!isCurrent()) return "cancelled";
+ 				if (result.handled) return "local";
+ 				if (result.text !== undefined) text = result.text;
++				if (initiatingSubmission?.prepared && result.images !== undefined &&
++					(result.images.length !== images?.length || result.images.some((image, index) => image !== images?.[index]))) {
++					throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++				}
+ 				if (result.images !== undefined) images = result.images;
+ 			}
+ 			if (!isCurrent()) return "cancelled";
+-			if (!text.trim() && !images?.length) return "local";
++			if (!text.trim() && !images?.length && !initiatingSubmission?.prepared?.companionMessages.length) return "local";
+ 			if (command.type === "steer") {
+ 				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
+ 				return "admitted";
+@@ -1987,6 +2020,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -665,12 +1030,142 @@ index 66fff2dfdb..ad9927d549 100644
  			case "submission_query": {
  				try { submissions.validate(command); return success(id, command.type,
  					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
+@@ -1999,7 +2042,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
+ 					const { scope } = reservation;
+ 					try {
+-						const input = { ...command, type: command.inputType };
++						const input = { ...command, type: command.inputType,
++							...(scope.prepared ? { images: scope.prepared.images } : {}) };
+ 						inputGate.alias(command, input);
+ 						if (input.type === "abort_and_prompt") {
+ 							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
+@@ -2962,7 +3006,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	// the reader and killing the whole process (issue #5194).
+ 	const held = heldFrames;
+ 	heldFrames = undefined;
+-	for (const parsed of held) inputDispatcher.dispatch(parsed);
++	for (const parsed of held) inputDispatcher.dispatch(parsed.frame, parsed.bytes);
++	heldBytes = 0;
+ 	await inputRead;
+ 
+ 	// stdin closed — RPC client is gone. Fail pending side-channel requests
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+index 8e354143c2..8c28dba37f 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+@@ -6,11 +6,13 @@ import { messageSubmission, runSubmission, sameSubmission } from "../../session/
+ import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget } from "../../session/submission-provenance";
+ import { validSubmissionCommand } from "./submissions.generated";
+ import type { SubmissionResult } from "./wire/rpc-wire.generated";
++import type { AttachmentConsent, AttachmentPreparations, PreparedSubmission } from "../../attachments/receipts";
+ export type { SubmissionResult } from "./wire/rpc-wire.generated";
+ export interface SubmissionSubmit {
+   id?: string; type: "submission_submit"; clientSubmissionId: string; sourceId: string; instanceId: string; nativeSessionId: string; preparationId: string;
+   inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt"; message: string; images?: ImageContent[];
+   streamingBehavior?: "steer" | "followUp";
++  preparationConsent?: AttachmentConsent;
+ }
+ export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
+ interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>> }
+@@ -18,7 +20,7 @@ export class RpcSubmissions {
+   readonly #pending = new Map<string, PendingSubmission>();
+   #target: SubmissionTarget | undefined;
+   readonly #failures = new Map<string, "failed" | "unknown">();
+-  constructor(readonly session: AgentSession) {
++  constructor(readonly session: AgentSession, readonly attachments?: AttachmentPreparations) {
+     try { this.#target = session.sessionManager.getSubmissionTarget(); } catch { /* Ordinary unprotected sessions refuse this API. */ }
+     session.subscribeMessageObservations(observation => {
+       if (observation.kind !== "message_settlement" || !observation.settlement) return;
+@@ -30,7 +32,8 @@ export class RpcSubmissions {
+       if (decision.status === "observed") return;
+       if (pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
+       pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
+-        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry",
++        ...(cause.attachments ? { attachments: cause.attachments } : {}) });
+     });
+   }
+   validate(command: unknown): void {
+@@ -54,10 +57,30 @@ export class RpcSubmissions {
+     if (target.sourceId !== command.sourceId || target.instanceId !== command.instanceId
+         || target.nativeSessionId !== command.nativeSessionId) throw new Error("SUBMISSION_TARGET_MISMATCH");
+     const origin = { ...target, clientSubmissionId: command.clientSubmissionId };
++    const originalRequestFingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
++      type: command.inputType, message: command.message, images: command.images ?? [],
++      streamingBehavior: command.streamingBehavior ?? null, preparationConsent: command.preparationConsent ?? null }), "hex");
++    let prepared: PreparedSubmission | undefined;
++    if (command.preparationConsent) {
++      const existing = this.session.sessionManager.getExistingSubmission(command.clientSubmissionId);
++      if (existing) {
++        if (!sameSubmission(existing.origin, origin) || existing.originalRequestFingerprint !== originalRequestFingerprint) {
++          throw new Error("SUBMISSION_CONFLICT");
++        }
++        return { admitted: false, scope: { origin, phase: "extension" } };
++      }
++      if (command.images?.length) throw new Error("ATTACHMENT_INLINE_CONFLICT");
++      if (!this.attachments) throw new Error("ATTACHMENT_PREPARATION_UNAVAILABLE");
++      prepared = this.attachments.validateAndFreeze(command.preparationConsent, command.clientSubmissionId);
++      if (prepared.message !== command.message) throw new Error("ATTACHMENT_DRAFT_CHANGED");
++    }
+     const fingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
+-      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null }), "hex");
++      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null,
++      ...(prepared ? { prepared } : {}) }), "hex");
+     const reservation: NativeSubmission = { origin, fingerprint, preparationId: command.preparationId,
+-      terminal: false, inputOutcome: "unresolved", noEntries: [] };
++      terminal: false, inputOutcome: "unresolved", noEntries: [],
++      ...(prepared && command.preparationConsent ? { originalRequestFingerprint,
++        preparation: { ...command.preparationConsent, attachments: prepared.attachments } } : {}) };
+     let admitted: boolean;
+     try { admitted = await this.session.sessionManager.reserveSubmission(reservation); }
+     catch (failure) {
+@@ -65,8 +88,9 @@ export class RpcSubmissions {
+       throw failure;
+     }
+     const tasks = new Set<Promise<unknown>>();
++    if (prepared && command.preparationConsent) this.attachments!.markReserved(command.preparationConsent.receiptId, command.clientSubmissionId);
+     if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks });
+-    return { admitted, scope: { origin, phase: "extension", tasks, onTaskOverflow: () => {
++    return { admitted, scope: { origin, phase: "extension", ...(prepared ? { prepared, attachmentDelivery: { delivered: false } } : {}), tasks, onTaskOverflow: () => {
+       const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
+     } } };
+   }
+@@ -106,13 +130,15 @@ export class RpcSubmissions {
+     const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
+     const retained = new Set(durableEntries.map(entry => entry.id));
+     const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
+-    for (const entry of durableEntries) facts.set(entry.id, { entryId: entry.id, role: entry.submission!.role });
++    for (const entry of durableEntries) facts.set(entry.id, { entryId: entry.id, role: entry.submission!.role,
++      ...(entry.submission!.attachments ? { attachments: entry.submission!.attachments } : {}) });
+     const relations: SubmissionResult["relations"] = [...facts.values()].map(fact => ({ relationId: `entry:${fact.entryId}`,
+       role: fact.role, status: "observed", persistence: "committed", entryId: fact.entryId,
+-      availability: retained.has(fact.entryId) ? "retained" : "removed" }));
++      availability: retained.has(fact.entryId) ? "retained" : "removed", ...(fact.attachments ? { attachments: fact.attachments } : {}) }));
+     for (const entry of this.session.sessionManager.getEntries()) {
+       if (facts.has(entry.id) || !entry.submission || !sameSubmission(entry.submission.origin, value.origin)) continue;
+-      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id });
++      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id,
++        ...(entry.submission.attachments ? { attachments: entry.submission.attachments } : {}) });
+     }
+     relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
+     const end = Math.min(offset + limit, relations.length);
+@@ -121,6 +147,7 @@ export class RpcSubmissions {
+         && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
+       reservation: "committed", inputOutcome: value.inputOutcome, terminal: value.terminal,
+       persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
+-      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
++      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null,
++      ...(value.preparation ? { preparation: value.preparation } : {}) };
+   }
+ }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index b2ea42a01b..75abd44ea5 100644
+index b2ea42a01b..b6e5f2b6d9 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -1,5 +1,7 @@
- import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
+-import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
++import type { SubmissionPolicy, RpcInputPolicy } from "./wire/rpc-wire.generated";
  import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
 +import type { AttachmentCommand } from "./attachment-client";
 +import type { AttachmentReceipt } from "../../attachments/receipts";
@@ -685,7 +1180,15 @@ index b2ea42a01b..75abd44ea5 100644
    | SubmissionCommand
    | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
    | { id?: string; type: "history_content_page"; cursor: string }
-@@ -447,6 +450,8 @@ export interface RpcSubagentMessagesResult {
+@@ -391,6 +394,7 @@ export interface RpcAbortAndRestoreQueueResult {
+ 
+ export interface RpcReadyFrame {
+   submissionPolicy?: SubmissionPolicy;
++  rpcInputPolicy?: RpcInputPolicy;
+ 	/** Effective before extension initialization and timers; immutable for this worker. */
+ 	interactionPolicy?: RpcInteractionPolicy;
+ 	type: "ready";
+@@ -447,6 +451,8 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -694,14 +1197,36 @@ index b2ea42a01b..75abd44ea5 100644
    | { id?: string; type: "response"; command: "submission_submit" | "submission_query"; success: true; data: SubmissionResult }
    | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
    | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
+diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+index 2acbd31b6d..55bf521cdb 100644
+--- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+@@ -1,4 +1,5 @@
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
++import { rpcInputPolicy } from "./rpc-input-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+@@ -19,7 +20,7 @@ export async function runStrictMode(runtimeArgs: string[] = []): Promise<void> {
+     for (const frame of encoder.encodeFrames(value)) process.stdout.write(frame);
+   };
+   let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
+-  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
++  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2], rpcInputPolicy,
+     maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
+     strictStartup: "strict-start-v1", strictStartupPolicy, submissionPolicy: nativeSubmissionPolicy, interactionPolicy: rpcInteractionPolicy });
+   let negotiated = false, attempted = false;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/attachments.ts b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
 new file mode 100644
-index 0000000000..6b1b4dd32e
+index 0000000000..448d6a2c22
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
-@@ -0,0 +1,28 @@
+@@ -0,0 +1,35 @@
 +/** Controlled inline objects, ephemeral preparation receipts, and exact-result consent. No path read authority. */
 +export const attachmentDefs = {
++	RpcInputPolicy: { version: "'bounded-jsonl-input-v1'", encoding: "'fatal-utf8'", framing: "'unchunked-jsonl'",
++		malformed: "'sanitized-drop-line'", partialEof: "'reject'", maxLineBytes: "number.integer",
++		maxPendingBytes: "number.integer", maxPendingFrames: "number.integer", maxStartupBytes: "number.integer", maxStartupFrames: "number.integer" },
 +	AttachmentFormat: "'utf8' | 'png' | 'jpeg' | 'webp' | 'gif' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'epub'",
 +	AttachmentBinding: { "+": "reject", sourceId: "string", instanceId: "string", nativeSessionId: "string", contextId: "string",
 +		modelFingerprint: "string", imageCapable: "boolean" },
@@ -720,6 +1245,10 @@ index 0000000000..6b1b4dd32e
 +		resultDigest: "string", items: "AttachmentItem[]" },
 +	AttachmentConsent: { "+": "reject", receiptId: "string", resultDigest: "string", draftRevision: "string",
 +		authorityGeneration: "string", acceptedDegradations: "string[]" },
++	PreparedAttachmentLink: { "+": "reject", originalId: "string", preparedId: "string", originalSha256: "string",
++		preparedSha256: "string", representationKind: "'text' | 'image'" },
++	SubmissionPreparation: { receiptId: "string", resultDigest: "string", draftRevision: "string",
++		authorityGeneration: "string", acceptedDegradations: "string[]", attachments: "PreparedAttachmentLink[]" },
 +};
 +export const attachmentCommands = [
 +	{ name: "attachment_prepare", doc: "Prepare every controlled original without input hooks, model/tool calls or message commits. Any failure blocks the whole input.",
@@ -748,6 +1277,18 @@ index 97966b2eee..7731ef0cb6 100644
    ...interactionCommands,
    ...catalogCommands,
    ...historyCommands,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+index 7dbe653b1a..64944e8015 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+@@ -30,6 +30,7 @@ export const frameDefs = {
+       "strictStartup?": "'strict-start-v1'",
+       "strictStartupPolicy?": "StrictStartupPolicy",
+       "submissionPolicy?": "SubmissionPolicy",
++      "rpcInputPolicy?": "RpcInputPolicy",
+ 			"protocolVersion?": "number.integer",
+ 			"supportedProtocolVersions?": "number.integer[]",
+ 			"maxFrameBytes?": "number.integer",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
 index afeae50dfa..23defe2aca 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
@@ -768,6 +1309,309 @@ index afeae50dfa..23defe2aca 100644
  		...messageDefs,
  		...modelDefs,
  		...stateDefs,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+index 6679486e23..933e047e8a 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/submissions.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+@@ -7,17 +7,17 @@ export const submissionDefs = {
+     maxMessageBytes:"number.integer",maxImagesBytes:"number.integer",maxPendingTasks:"number.integer"},
+   SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
+   SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
+-    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
++    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string", "attachments?": "PreparedAttachmentLink[]" },
+   SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", target: "SubmissionTarget", found: "boolean", duplicate: "boolean",
+     admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
+     inputOutcome: "'unresolved' | 'generated' | 'no_input'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
+-    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
++    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string", "preparation?": "SubmissionPreparation" },
+   SubmissionOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", clientSubmissionId: "string" },
+ };
+ export const submissionCommands = [
+   { name: "submission_submit", doc: "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
+     params: { clientSubmissionId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", preparationId: "string", inputType: "'prompt' | 'steer' | 'follow_up' | 'abort_and_prompt'",
+-      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
++      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior", "preparationConsent?": "AttachmentConsent" }, result: "SubmissionResult" },
+   { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
+     params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
+ ] as const;
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index b6c52add3d..4567823bf4 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -1,4 +1,4 @@
+-import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask, stageInputAttachmentMessage, takePreparedAttachmentMessages } from "./submission-provenance";
+ import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
+ import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
+ /**
+@@ -8670,6 +8670,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
++		const scope = submissionScope();
++		if (scope?.phase === "input" && scope.prepared && images?.length) {
++			if (images.length !== scope.prepared.images.length || images.some((image, index) => image !== scope.prepared!.images[index])) {
++				throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++			}
++			if (!this.model?.input.includes("image")) throw new Error("ATTACHMENT_TARGET_CHANGED");
++			return Promise.resolve(images);
++		}
+ 		return normalizeModelContextImages(images, { model: this.model });
+ 	}
+ 
+@@ -9117,6 +9125,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 					userInitiated: options?.userInitiated === true ? true : undefined,
+ 				}
+ 			: { role: "user" as const, content: userContent, attribution: promptAttribution, timestamp: submittedAt };
++		stageInputAttachmentMessage(message, normalizedImages);
+ 
+ 		const preludeMessages: AgentMessage[] = [];
+ 		if (eagerTodoPrelude) {
+@@ -9701,6 +9710,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			if (options?.prependMessages) {
+ 				messages.push(...options.prependMessages);
+ 			}
++			messages.push(...takePreparedAttachmentMessages());
+ 
+ 			// Early bail-out: if a newer abort/prompt cycle started during setup,
+ 			// return before mutating shared state (nextTurn messages, system prompt).
+@@ -10316,7 +10326,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const timestamp = options?.timestamp;
+ 		const rawText = options?.rawText ?? text;
+ 		const preprocessed = options?.preprocessed;
+-		const prependMessages = options?.prependMessages ?? [];
++		const prependMessages: readonly AgentMessage[] = [...(options?.prependMessages ?? []),
++			...takePreparedAttachmentMessages()];
+ 		// Captured before any await below so the aside branch can detect a
+ 		// newSession()/switchSession() that completed while normalization/vision
+ 		// description was in flight and drop a record that would otherwise land in a
+@@ -10370,6 +10381,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const records: AgentMessage[] = [...prependMessages, ...attachmentSourceNotices];
+ 			if (imageDescriptionNotice) records.push(imageDescriptionNotice);
+ 			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
++			stageInputAttachmentMessage(userMessage, normalizedImages);
+ 			this.#queuedMessageRawText.set(userMessage, rawText);
+ 			records.push(userMessage);
+ 			for (const message of records) captureSubmission(message, message.role);
+@@ -10422,6 +10434,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				: { role: "user", content, steering: true, attribution, timestamp };
+ 		this.#queuedMessageRawText.set(userMessage, rawText);
+ 		const group = [...companions, userMessage];
++		stageInputAttachmentMessage(userMessage, content.filter((part): part is ImageContent => part.type === "image"));
+ 		for (const message of group) captureSubmission(message, message.role);
+ 		if (mode === "followUp") {
+ 			for (const message of group) this.agent.followUp(message);
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index 7133c28143..408b55ff3b 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -2,6 +2,7 @@ import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./
+ import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
+ import { causalSubmission, sameSubmission } from "./submission-provenance";
++import { validPreparedLinks } from "../attachments/validation";
+ import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
+ import { nativeHistoryContextId } from "./history-context";
+ import { associateMessageEntry } from "./live-message-observation";
+@@ -4258,6 +4259,14 @@ export class SessionManager {
+ 		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
+ 	}
+ 	/** Permanent append-only native reservation. No execution may precede its verified publication. */
++	getExistingSubmission(clientSubmissionId: string): NativeSubmission | undefined {
++		this.getSubmissionTarget();
++		if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
++		this.#storage.assertReadableState();
++		const value = this.#verifiedSubmissions.find(item => item.origin.clientSubmissionId === clientSubmissionId);
++		return value ? structuredClone(value) : undefined;
++	}
++
+ 	reserveSubmission(value: NativeSubmission): Promise<boolean> {
+ 		return this.#withAtomicPersistenceLock(async () => {
+ 			this.getSubmissionTarget();
+@@ -4268,6 +4277,13 @@ export class SessionManager {
+ 			}
+ 			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
+ 			await this.#ensureSubmissionFormat();
++			if (value.preparation && !this.#header.requiredFeatures?.includes("attachment-provenance-v1")) {
++				this.#header.requiredFeatures = [...(this.#header.requiredFeatures ?? []), "attachment-provenance-v1"];
++				await this.#rewriteAtomically();
++				if (!this.readSubmissionState().header.requiredFeatures?.includes("attachment-provenance-v1")) {
++					throw new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++				}
++			}
+ 			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
+ 			this.#nativeSubmissions.push(reserved);
+ 			await this.#appendSubmissionControl(reserved);
+@@ -4281,7 +4297,7 @@ export class SessionManager {
+ 			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
+ 			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 			const entryFacts = [...this.#verifiedSubmissionEntries].flatMap(([entryId, submission]) => sameSubmission(submission.origin, origin)
+-				? [{ entryId, role: submission.role }] : []);
++				? [{ entryId, role: submission.role, ...(submission.attachments ? { attachments: structuredClone(submission.attachments) } : {}) }] : []);
+ 			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 			await this.flush();
+ 			const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
+@@ -4330,11 +4346,17 @@ export class SessionManager {
+ 			const value = byKey.get(submission.origin.clientSubmissionId);
+ 			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
+ 			value.entryFacts ??= [];
+-			if (!value.entryFacts.some(fact => fact.entryId === entryId)) value.entryFacts.push({entryId,role:submission.role});
++			if (!value.entryFacts.some(fact => fact.entryId === entryId)) value.entryFacts.push({entryId,role:submission.role,
++				...(submission.attachments ? { attachments: structuredClone(submission.attachments) } : {})});
+ 			if (value.entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 		}
+ 	}
+ 	#captureSubmissionProof(): void {
++		for (const entry of this.#entries) {
++			if (entry.submission?.attachments !== undefined && !validPreparedLinks(entry.submission.attachments)) {
++				throw new Error("SUBMISSION_METADATA_CORRUPT");
++			}
++		}
+ 		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
+ 		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
+ 			? [[entry.id, structuredClone(entry.submission)] as const] : []));
+diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
+index 85ef1dd61e..c076479eae 100644
+--- a/packages/coding-agent/src/session/session-required-features.ts
++++ b/packages/coding-agent/src/session/session-required-features.ts
+@@ -4,7 +4,7 @@ import type { SessionHeader } from "./session-entries";
+ export function nativeSessionHeader(value: unknown): SessionHeader | undefined {
+   if (!isRecord(value) || (value.type !== "session" && value.type !== "ompsub1") || typeof value.id !== "string") return;
+   if (value.requiredFeatures !== undefined && (!Array.isArray(value.requiredFeatures)
+-    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
++    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1" && feature !== "attachment-provenance-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
+   if (value.type === "ompsub1" && (!Array.isArray(value.requiredFeatures)
+     || !value.requiredFeatures.includes("durable-submission-v1")))
+     throw new Error("SUBMISSION_METADATA_CORRUPT");
+diff --git a/packages/coding-agent/src/session/submission-policy.ts b/packages/coding-agent/src/session/submission-policy.ts
+index 95661b2e45..bf56a12d23 100644
+--- a/packages/coding-agent/src/session/submission-policy.ts
++++ b/packages/coding-agent/src/session/submission-policy.ts
+@@ -4,5 +4,5 @@ export const nativeSubmissionPolicy = Object.freeze({
+   durability: "process-crash-only", dedup: "permanent-refuse-at-capacity", query: "read-only-no-execution",
+   logicalHeader: "ompsub1", carrier: "ompgen2", maxSubmissions: 10_000, maxMetadataBytes: 32 * 1024 * 1024,
+   maxEntryFacts: 100_000, maxNoEntryFacts: 4096, maxQueryRelations: 128, maxMessageBytes: 262_144,
+-  maxImagesBytes: 524_288, maxPendingTasks: 4096,
++  maxImagesBytes: 8 * 1024 * 1024, maxPendingTasks: 4096,
+ } as const);
+diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
+index a2a89c55b7..16563304f2 100644
+--- a/packages/coding-agent/src/session/submission-provenance.ts
++++ b/packages/coding-agent/src/session/submission-provenance.ts
+@@ -1,17 +1,30 @@
+ import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ /** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
+ import * as asyncHooks from "node:async_hooks";
++import type { PreparedAttachmentLink, PreparedSubmission, AttachmentConsent } from "../attachments/receipts";
++import type { FileMentionMessage } from "./messages";
+ export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
+ export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
+-export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution" }
+-export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void }
+-export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
++export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution"; attachments?: PreparedAttachmentLink[] }
++export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; prepared?: PreparedSubmission; attachmentDelivery?: { delivered: boolean } }
++export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string; attachments?: PreparedAttachmentLink[] }
+ export interface NativeSubmission {
++  originalRequestFingerprint?: string; preparation?: AttachmentConsent & { attachments: PreparedAttachmentLink[] };
+   reservedAt?: string; completedAt?: string; origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
+-  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
++  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string; attachments?: PreparedAttachmentLink[] }[]; noEntries: SubmissionNoEntry[];
+ }
+ const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
+ const originals = new WeakMap<object, SubmissionCausality>();
++const attachmentMessages = new WeakMap<object, PreparedAttachmentLink[]>();
++/** Association is attached to the actual staged object; never reconstructed by text, hash or append order. */
++export function stageAttachmentMessage(message: object, links: PreparedAttachmentLink[]): void { attachmentMessages.set(message, links); }
++/** The native input group takes controlled companions once; nested/background messages cannot duplicate their delivery. */
++export function takePreparedAttachmentMessages(): FileMentionMessage[] {
++  const value = scope.getStore();
++  if (value?.phase !== "input" || !value.prepared || !value.attachmentDelivery || value.attachmentDelivery.delivered) return [];
++  value.attachmentDelivery.delivered = true;
++  return value.prepared.companionMessages;
++}
+ export function runSubmission<T>(value: SubmissionScope | undefined, run: () => T): T {
+   return scope.run(value, run);
+ }
+@@ -19,8 +32,20 @@ export function submissionScope(): SubmissionScope | undefined { return scope.ge
+ export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
+ export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
+   if (!value || originals.has(message)) return;
++  const attachments = attachmentMessages.get(message);
+   originals.set(message, { origin: value.origin, role: role === "user" && value.phase === "input" ? "input"
+-    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional" });
++    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional",
++    ...(attachments?.length ? { attachments: structuredClone(attachments) } : {}) });
++}
++
++/** Called only by native user-input construction, after the staged image objects passed unchanged through ingress. */
++export function stageInputAttachmentMessage(message: object, images: readonly object[] | undefined): void {
++  const value = scope.getStore();
++  if (value?.phase !== "input" || !value.prepared || !images?.length) return;
++  if (images.length !== value.prepared.images.length || images.some((image, index) => image !== value.prepared!.images[index])) {
++    throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++  }
++  stageAttachmentMessage(message, value.prepared.attachments.filter(link => link.representationKind === "image"));
+ }
+ export function causalSubmission(message?: object): SubmissionCausality | undefined {
+   const explicit = message && originals.get(message);
+diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
+index 8af5938efb..b04b4dac6a 100644
+--- a/packages/coding-agent/src/session/submission-records.ts
++++ b/packages/coding-agent/src/session/submission-records.ts
+@@ -4,6 +4,7 @@ import type { CustomEntry, SessionEntry } from "./session-entries";
+ import type { NativeSubmission } from "./submission-provenance";
+ import { sameSubmission } from "./submission-provenance";
+ import { nativeSubmissionPolicy as policy } from "./submission-policy";
++import { validNativePreparation, validPreparedLinks } from "../attachments/validation";
+ export const SUBMISSION_CONTROL = "omp.native-control/submission-v1";
+ export function isSubmissionControl(entry: SessionEntry): entry is CustomEntry {
+   return entry.type === "custom" && entry.customType === SUBMISSION_CONTROL;
+@@ -37,8 +38,14 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
+       throw new Error("SUBMISSION_METADATA_CORRUPT");
+     for (const fact of value.entryFacts ?? []) if (!isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")
+       throw new Error("SUBMISSION_METADATA_CORRUPT");
++    if ((value.originalRequestFingerprint !== undefined && (typeof value.originalRequestFingerprint !== "string" ||
++      !/^[a-f0-9]{64}$/.test(value.originalRequestFingerprint))) ||
++      (value.preparation !== undefined && (!validNativePreparation(value.preparation) || value.originalRequestFingerprint === undefined)) ||
++      (value.entryFacts ?? []).some(fact => isRecord(fact) && fact.attachments !== undefined && !validPreparedLinks(fact.attachments)))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
+     for (const fact of value.noEntries) if (!isRecord(fact) || typeof fact.relationId !== "string"
+-      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string")
++      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string"
++      || (fact.attachments !== undefined && !validPreparedLinks(fact.attachments)))
+       throw new Error("SUBMISSION_METADATA_CORRUPT");
+     const record = value as unknown as NativeSubmission, prior = values.get(record.origin.clientSubmissionId);
+     if (prior && (!sameSubmission(prior.origin, record.origin) || prior.fingerprint !== record.fingerprint
+diff --git a/packages/tui/CHANGELOG.md b/packages/tui/CHANGELOG.md
+index 7d4b305bca..594da55d55 100644
+--- a/packages/tui/CHANGELOG.md
++++ b/packages/tui/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Exposed specific image decoder and UTF-8 output-truncation subpaths for native preparation.
++
+ ## [18.20.1] - 2026-11-14
+ 
+ ### Added
+diff --git a/packages/tui/README.md b/packages/tui/README.md
+index 82a09db18d..5c138dc55a 100644
+--- a/packages/tui/README.md
++++ b/packages/tui/README.md
+@@ -4,6 +4,9 @@ Minimal terminal UI framework with differential rendering and synchronized outpu
+ 
+ ## Features
+ 
++The public `chat/image-loading` and `tools/streaming-output` subpaths expose the central decoder and
++UTF-8-safe truncation helpers to native preparation without importing the TUI package barrel.
++
+ - **Differential Rendering**: Three-strategy rendering system that only updates what changed
+ - **Synchronized Output**: Uses CSI 2026 for atomic screen updates (no flicker)
+ - **Bracketed Paste Mode**: Handles large pastes correctly with markers for >10 line pastes
 diff --git a/packages/tui/package.json b/packages/tui/package.json
 index 4904e09958..b286a849e9 100644
 --- a/packages/tui/package.json
@@ -781,6 +1625,36 @@ index 4904e09958..b286a849e9 100644
  		"./tools": {
  			"types": "./src/tools/index.ts",
  			"import": "./src/tools/index.ts"
+diff --git a/packages/utils/CHANGELOG.md b/packages/utils/CHANGELOG.md
+index b18292f5a3..0527f54cfb 100644
+--- a/packages/utils/CHANGELOG.md
++++ b/packages/utils/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Added bounded owned-stream reading and image animation container facts for native attachment preparation.
++
+ ## [18.20.2] - 2026-11-14
+ 
+ ### Added
+diff --git a/packages/utils/README.md b/packages/utils/README.md
+index ff3ad90fc3..39e2f11cad 100644
+--- a/packages/utils/README.md
++++ b/packages/utils/README.md
+@@ -4,6 +4,10 @@ Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero c
+ 
+ ## Notable modules
+ 
++The `image-animation` subpath inspects GIF/APNG/WebP frame metadata before bounded decoding.
++`stream.readStreamBounded` reads an owned stream with a byte ceiling; callers terminate its producer
++on overflow. These helpers do not dispatch tools or model work.
++
+ | Module                                                                                                             | Purpose                                                                                      |
+ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+ | `logger`                                                                                                           | Centralized logger writing to `~/.omp/logs/` (`bun test`: temp dir), rotating, never stdout  |
 diff --git a/packages/utils/src/image-animation.ts b/packages/utils/src/image-animation.ts
 new file mode 100644
 index 0000000000..2d89fdc505
