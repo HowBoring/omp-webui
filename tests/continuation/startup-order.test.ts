@@ -43,14 +43,18 @@ for(const area of ["cwd","source","bucket"] as const)test(`owned ${area} namespa
  }finally{await rm(home,{recursive:true,force:true});}
 },20_000);
 
-test("an in-place native header ID replacement is a different instance and cannot receive a later native write",async()=>{
+for (const binding of ["ID", "cwd", "relative cwd"] as const) test(`an in-place native header ${binding} replacement cannot receive a later native write`,async()=>{
  const home=await mkdtemp(join(tmpdir(),"strict-inplace-id-"));
  try{const root=await nativeFixture(home),selected=await selectedDescriptor(home),cwd=join(home,"project"),file=join(root,"bucket/native-0000.jsonl"),worker=strictWorker(home,cwd,isolatedRuntimeArgs);
   try{await negotiateStrict(worker);expect(await worker.request({type:"strict_start",intent:"continue",reference:selected.reference,expectedCwd:cwd})).toMatchObject({success:true});
-   const physical=await stat(file,{bigint:true}),replacement=(await Bun.file(file).text()).replaceAll('"id":"native-0000"','"id":"native-9999"');await writeFile(file,replacement);
+   const migratedCwd=join(home,"changed");await mkdir(migratedCwd);
+   const physical=await stat(file,{bigint:true}),original=await Bun.file(file).text();
+   const replacement=binding==="ID"?original.replaceAll('"id":"native-0000"','"id":"native-9999"')
+    :original.replace(JSON.stringify(cwd),JSON.stringify(binding==="relative cwd"?".":migratedCwd));await writeFile(file,replacement);
    const after=await stat(file,{bigint:true});expect([after.dev,after.ino,after.birthtimeNs]).toEqual([physical.dev,physical.ino,physical.birthtimeNs]);
-   expect(await worker.request({type:"history_snapshot_open",scope:"tree"})).toMatchObject({success:false});
+   if(binding==="relative cwd")expect(await worker.request({type:"history_snapshot_open",scope:"tree"})).toMatchObject({success:false});
    expect(await worker.request({type:"set_session_name",name:"Must not change replacement ID"})).toMatchObject({success:false});expect(await Bun.file(file).text()).toBe(replacement);
+   expect(await worker.request({type:"history_snapshot_open",scope:"tree"})).toMatchObject({success:false});
    expect(await worker.request({type:"get_strict_state"})).toMatchObject({data:{phase:"outcome_unknown"}});
   }finally{await worker.close();worker.child.kill();await worker.child.exited;}
  }finally{await rm(home,{recursive:true,force:true});}

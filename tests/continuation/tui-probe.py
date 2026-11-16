@@ -10,7 +10,7 @@ import pexpect
 root = pathlib.Path(__file__).resolve().parents[2]
 home = pathlib.Path(sys.argv[1]).resolve()
 file = pathlib.Path(sys.argv[2]).resolve()
-baseline = sys.argv[3] == "baseline"
+baseline = sys.argv[3] in ("baseline", "rollback")
 assert file.is_relative_to(home) and (home / "project").is_dir()
 bun = sys.argv[4]
 launcher = "/workspace/work/rpc-public-module-probe/tarball/package/dist/cli.js" if baseline else str(root / "vendor/omp-candidate/cli.js")
@@ -26,7 +26,7 @@ child = pexpect.spawn(bun, args, cwd=str(home / "project"), env=env, encoding="u
                       dimensions=(40, 160))
 observed = ""
 try:
-    if baseline:
+    if sys.argv[3] == "baseline":
         child.expect(pexpect.EOF)
         observed += child.before
         child.close()

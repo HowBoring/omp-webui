@@ -14,7 +14,7 @@ interface Options {
 }
 interface Active {
   id: ContinuationWorkerId; record: ContinuationRegistration; client: Promise<StrictTransport>;
-  selected?: CatalogDescriptor; retired: boolean; drained: boolean; started: boolean;
+  selected?: CatalogDescriptor; retired: boolean; drained: boolean; started: boolean; exited: boolean;
 }
 export class ContinuationFixture {
   readonly #choices = new Map<ContinuationSelectionId, CatalogDescriptor>();
@@ -97,8 +97,10 @@ export class ContinuationFixture {
     if (action.type === "continue" && !selected) throw new Error("STRICT_SELECTION_INVALID");
     const existing = selected ? this.#records.find(record => record.reference === selected.reference) : undefined;
     const active = this.#active;
-    if (active && !active.retired && active.selected?.reference === selected?.reference && existing?.attempt === "open") {
-      await this.#recheck(); return;
+    if (active && !active.drained && selected && active.selected?.reference === selected.reference && existing === active.record) {
+      // Repeated explicit Continue can observe the same pending/unknown worker; it cannot replace its truthful outcome or replay startup.
+      if (!active.retired) await this.#recheck();
+      return;
     }
     if (this.#records.length >= 32 && !existing) throw new Error("STRICT_REGISTRATION_LIMIT");
     const record: ContinuationRegistration = existing ?? { id: brandString<ContinuationRegistrationId>(crypto.randomUUID()),
@@ -119,7 +121,7 @@ export class ContinuationFixture {
     }
     if (this.#cancelRequested) { record.attempt = "cancelled"; record.code = "STRICT_CANCELLED"; await this.#save(); return; }
     const current: Active = { id: brandString<ContinuationWorkerId>(crypto.randomUUID()), record,
-      client: this.options.launch(selected), retired: false, drained: false, started: false, ...(selected ? { selected } : {}) };
+      client: this.options.launch(selected), retired: false, drained: false, started: false, exited: false, ...(selected ? { selected } : {}) };
     this.#active = current; this.#state = undefined; this.#starts++;
     try {
       const client = await current.client;
@@ -128,6 +130,7 @@ export class ContinuationFixture {
         await client.close(); current.drained = true; await this.#save(); return;
       }
       void client.exited.then(() => {
+        current.exited = true;
         if (!current.retired && current.record.attempt !== "cancelled") {
           current.record.attempt = "outcome_unknown"; current.record.code = "STRICT_WORKER_EXITED";
           if (this.#active === current && this.#state) this.#state = { ...this.#state, phase: "outcome_unknown", code: "STRICT_WORKER_EXITED" };
@@ -167,7 +170,7 @@ export class ContinuationFixture {
   }
   async #recheck(): Promise<void> {
     const active = this.#active;
-    if (!active || active.retired || ["cancelled", "failed"].includes(active.record.attempt)) return;
+    if (!active || active.retired || active.exited || ["cancelled", "failed"].includes(active.record.attempt)) return;
     try { this.#accept(active, await (await active.client).startup.state()); }
     catch { active.record.attempt = "outcome_unknown"; active.record.code = "STRICT_OUTCOME_UNAVAILABLE";
       if (this.#state) this.#state = { ...this.#state, phase: "outcome_unknown", code: "STRICT_OUTCOME_UNAVAILABLE" };

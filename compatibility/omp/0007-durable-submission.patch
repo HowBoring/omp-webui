@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 50c9fed23a..3eb72c3efc 100644
+index a4b6abe4e7..2d1a13fcc1 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -9,9 +9,12 @@
+@@ -13,9 +13,12 @@
  
  ### Added
  
@@ -40,7 +40,7 @@ index 0000000000..28295d807c
 +
 +The `ompgen2` discriminator prevents unsupported generation readers from opening submission-bearing data. Matched native copies retain origin facts and tombstones; a copied fact is inherited, never an admission into the destination. An unsupported required feature is refused. Product private admission remains blocked pending combined native/TUI/browser/fault acceptance.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-index da698774f5..9a9a41d2df 100644
+index e189b420d9..c255209d03 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 @@ -1,3 +1,4 @@
@@ -48,7 +48,7 @@ index da698774f5..9a9a41d2df 100644
  /** Native readonly descriptor implementation. Never calls SessionManager/load/migrate/repair. */
  import * as fs from "node:fs/promises";
  import { openWithin } from "./catalog-path";
-@@ -52,7 +53,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+@@ -51,7 +52,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
      const bytes = Buffer.alloc(HEADER_BYTES);
      const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
      let prefix: Buffer = bytes.subarray(0, bytesRead);
@@ -57,7 +57,7 @@ index da698774f5..9a9a41d2df 100644
        const parent = await openWithin(source.root, source.rootIdentity, nodePath.dirname(target), true);
        try { prefix = readHeldGenerationMetadata(file.fd, parent.fd, target, HEADER_BYTES, prefix); }
        finally { await parent.close(); }
-@@ -65,7 +66,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+@@ -64,7 +65,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
      const start = slot ? firstEnd+1 : 0;
      const end = slot ? prefix.indexOf(10, start) : firstEnd;
      if (end < 0) throw new Error("HEADER_LIMIT");
@@ -220,7 +220,7 @@ index 3a336fa764..66fff2dfdb 100644
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..8e354143c2
+index 0000000000..345c18f6b9
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -0,0 +1,126 @@
@@ -345,7 +345,7 @@ index 0000000000..8e354143c2
 +    return { version: "durable-submission-v1", clientSubmissionId, target, found: true, duplicate,
 +      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
 +        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
-+      reservation: "committed", inputOutcome: value.inputOutcome, terminal: value.terminal,
++      reservation: "committed", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
 +      persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
 +      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
 +  }
@@ -403,12 +403,12 @@ index 4763326da8..2acbd31b6d 100644
    let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
    let activeContext: StrictStartupContext | undefined;
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-index 46604a52a4..c7ca996047 100644
+index d6e23b09c7..7cf82c42de 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 @@ -1,4 +1,6 @@
 +import { readFileXattr } from "../../utils/file-xattr";
- import { sessionHeaderIdFromPrefix } from "../../session/session-header-id";
+ import { sessionHeaderFromPrefix } from "../../session/session-header-id";
 +import { nativeSessionHeader } from "../../session/session-required-features";
  import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
  /** Exact-instance ownership acquired before ordinary Session or extension initialization. */
@@ -454,7 +454,7 @@ index 46604a52a4..c7ca996047 100644
    readonly descriptor: CatalogDescriptor;
    readonly filePath: string;
    readonly #source: NativeSource;
-@@ -121,7 +156,7 @@ export class StrictReservation {
+@@ -117,7 +152,7 @@ export class StrictReservation {
      const source: NativeSource = { root, rootIdentity, sourceId: hash(`native-explicit:${root}:${rootIdentity}`) };
      let header: unknown;
      for (const line of body.split("\n", 3).slice(0, 2)) {
@@ -463,7 +463,17 @@ index 46604a52a4..c7ca996047 100644
        if (typeof candidate === "object" && candidate !== null && "type" in candidate && candidate.type === "session") header = candidate;
      }
      if (typeof header !== "object" || header === null || !("id" in header) || typeof header.id !== "string"
-@@ -239,15 +274,25 @@ export class StrictReservation {
+@@ -171,8 +206,7 @@ export class StrictReservation {
+         const prefix = readHeldGenerationMetadata(this.#fd, this.#parentFd, this.filePath, 16_384);
+         const header = sessionHeaderFromPrefix(prefix);
+         if (header?.id !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
+-        if (typeof header.cwd !== "string" || !path.isAbsolute(header.cwd)
+-          || fs.realpathSync(header.cwd) !== this.#cwdPath)
++        if (typeof header.cwd !== "string" || !path.isAbsolute(header.cwd) || fs.realpathSync(header.cwd) !== this.#cwdPath)
+           throw new Error("STRICT_CWD_CHANGED");
+       }
+     } catch (error) {
+@@ -237,15 +271,25 @@ export class StrictReservation {
    }
  
    read(): string {
@@ -491,9 +501,9 @@ index 46604a52a4..c7ca996047 100644
 +      return published;
 +    }
      catch (error) {
-       const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
+       const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_CARRIER_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
        if (clean && !this.#failure) throw error;
-@@ -258,14 +303,25 @@ export class StrictReservation {
+@@ -256,14 +300,25 @@ export class StrictReservation {
    get writeAttempted(): boolean { return this.#writeAttempted; }
  
    append(line: string): void {
@@ -755,7 +765,7 @@ index 6b96d2abb9..61e02dcd7b 100644
  	id: string;
  	parentId: string | null;
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
-index d55b3aaa04..dd21e0ad45 100644
+index 0a24c09930..8efdf7cb7e 100644
 --- a/packages/coding-agent/src/session/session-generation.ts
 +++ b/packages/coding-agent/src/session/session-generation.ts
 @@ -1,3 +1,4 @@
@@ -810,7 +820,7 @@ index d55b3aaa04..dd21e0ad45 100644
        if (!match) throw new Error("GENERATION_HEADER_ENCODING_UNSUPPORTED");
        const textOffset = match.index + match[0].lastIndexOf(value.type);
        return { type: value.type, valueOffset: start + Buffer.byteLength(line.slice(0, textOffset)) };
-@@ -156,7 +159,7 @@ export function readHeldGenerationMetadata(fd: number, parentFd: number, file: s
+@@ -161,7 +164,7 @@ export function readHeldGenerationMetadata(fd: number, parentFd: number, file: s
    const prefix = knownPrefix ?? Buffer.alloc(maximum);
    const count = knownPrefix ? knownPrefix.length : fs.readSync(fd, prefix, 0, prefix.length, 0);
    const bytes = prefix.subarray(0, count), header = headerPosition(bytes);
@@ -819,7 +829,7 @@ index d55b3aaa04..dd21e0ad45 100644
    const head = readHead(fd);
    if (!head) throw new Error("GENERATION_CONTROL_MISSING");
    const committed = committedHead(fd, head);
-@@ -190,10 +193,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
+@@ -191,10 +194,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
    const complete = bytes.lastIndexOf(10) + 1;
    const header = headerPosition(bytes);
    const head = readHead(fd);
@@ -832,7 +842,7 @@ index d55b3aaa04..dd21e0ad45 100644
    const physical = decoder.decode(normalized);
    let latest: { record: CommitRecord; end: number } | undefined, offset = 0;
    for (const line of physical.split("\n")) {
-@@ -296,10 +299,17 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
+@@ -301,10 +304,17 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
      writeFileXattr(fd, HEAD_XATTR, Buffer.from(JSON.stringify({ ...headPayload, checksum: hash(JSON.stringify(headPayload)) })));
      assertCurrent();
      const header = headerPosition(readHeldBytes(fd));
@@ -851,9 +861,9 @@ index d55b3aaa04..dd21e0ad45 100644
 -      if (headerPosition(readHeldBytes(fd)).type !== CARRIER_TYPE) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
 +      if (headerPosition(readHeldBytes(fd)).type !== carrierType) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
      }
-     writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
+     writeComplete(fd, encodedCommit, value.offset); assertCurrent();
      const confirmed = resolveHeldGeneration(fd, parentFd, file);
-@@ -326,7 +336,7 @@ export function assertPlainArtifactTree(directory: string): void {
+@@ -331,7 +341,7 @@ export function assertPlainArtifactTree(directory: string): void {
            const child = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
            try {
              const prefix = Buffer.alloc(16_384), count = fs.readSync(child, prefix, 0, prefix.length, 0);
@@ -863,7 +873,7 @@ index d55b3aaa04..dd21e0ad45 100644
            } finally { fs.closeSync(child); }
          }
 diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
-index 5edcfcf2c7..cde2a95af8 100644
+index aff31eac5d..9bc866b65c 100644
 --- a/packages/coding-agent/src/session/session-header-id.ts
 +++ b/packages/coding-agent/src/session/session-header-id.ts
 @@ -1,3 +1,4 @@
@@ -871,12 +881,23 @@ index 5edcfcf2c7..cde2a95af8 100644
  import { isGenerationCarrier, readNativeGenerationPrefix } from "./session-generation";
  import { jsonContainerEnd, peekFileSync, tryParseJson } from "@oh-my-pi/pi-utils";
  import type { FileEntry, SessionHeader } from "./session-entries";
-@@ -7,7 +8,7 @@ import { parseTitleSlotLine } from "./session-title-slot";
+@@ -6,10 +7,6 @@ import { parseTitleSlotLine } from "./session-title-slot";
+ /** Upper bound on the bytes read to find a header: real headers (and the title slot before them) are far smaller. */
  export const SESSION_HEADER_READ_LIMIT = 1024 * 1024;
  
- function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
+-function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
 -	return entry?.type === "session" && typeof entry.id === "string";
-+	return nativeSessionHeader(entry) !== undefined;
+-}
+-
+ /**
+  * The header id from a file's leading bytes, past the optional title slot
+  * line. Parses only the first record, which may span lines (a pretty-printed
+@@ -42,7 +39,7 @@ export function sessionHeaderFromPrefix(prefix: Uint8Array): SessionHeader | und
+ 	const end = jsonContainerEnd(text, 0);
+ 	if (end === -1) return undefined;
+ 	const entry = tryParseJson<FileEntry>(text.slice(0, end)) ?? undefined;
+-	return isValidSessionHeader(entry) ? entry : undefined;
++	return nativeSessionHeader(entry);
  }
  
  /**
@@ -901,7 +922,7 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 9ce3e51889..7133c28143 100644
+index af1edf0fdc..645d21851f 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
@@ -1118,7 +1139,7 @@ index 9ce3e51889..7133c28143 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -4193,6 +4248,106 @@ export class SessionManager {
+@@ -4193,6 +4248,108 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1154,8 +1175,10 @@ index 9ce3e51889..7133c28143 100644
 +			const value = this.#nativeSubmissions.find(item => sameSubmission(item.origin, origin));
 +			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
 +			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
-+			const entryFacts = [...this.#verifiedSubmissionEntries].flatMap(([entryId, submission]) => sameSubmission(submission.origin, origin)
-+				? [{ entryId, role: submission.role }] : []);
++			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
++			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
++				facts.set(entryId,{entryId,role:submission.role});
++			const entryFacts = [...facts.values()];
 +			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
 +			await this.flush();
 +			const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
@@ -1225,7 +1248,7 @@ index 9ce3e51889..7133c28143 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4440,6 +4595,7 @@ export class SessionManager {
+@@ -4440,6 +4597,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -1233,7 +1256,7 @@ index 9ce3e51889..7133c28143 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4731,8 @@ export class SessionManager {
+@@ -4575,6 +4733,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -1242,7 +1265,7 @@ index 9ce3e51889..7133c28143 100644
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4748,8 @@ export class SessionManager {
+@@ -4590,8 +4750,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -1253,7 +1276,7 @@ index 9ce3e51889..7133c28143 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4758,7 @@ export class SessionManager {
+@@ -4600,6 +4760,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;

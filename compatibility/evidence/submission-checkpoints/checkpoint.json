@@ -1,0 +1,34 @@
+{
+  "status": "DEVELOPMENT_CHECKPOINT_NOT_FINAL_ACCEPTANCE",
+  "ticket": 36,
+  "privateSessionAdmission": "blocked",
+  "nativeSourceBeforeNarrowQueryCorrection": "6a8af0e22c55c75696fdeedcd94ce729dd839d08bf9db8c58772f6ca62b6d4fe",
+  "schemaSha256": "68da71277f27dc72385e01101f4fc18d2197f129b0de3745d6b6727caecb68be",
+  "scope": "Synthetic native component observations; no global install, real inference, full product, Windows or formal performance acceptance.",
+  "scaleTupleLimit": "The 1024 no-input run began before shared control-leaf extraction and reopened afterward. It is a development observation, not one frozen combined tuple.",
+  "textScaleTupleLimit": "Native source remained6a8 during the 1000-turn run. The provider initially loaded the committed b07a220 fixture; a later unused slow-input fixture branch existed at reopen. Final fixed32 combination must be rerun.",
+  "timing": "All retained samples are unscored component samples. Text-turn samples include a controlled100ms provider delay. Neither P95 nor maximum is a formalMVP performance PASS.",
+  "knownFailedAttempts": [
+    "1000 text turns initial10s request deadline",
+    "1000 text turns240s test deadline: stopped after705 controlled calls",
+    "recent standalone ptrace submission-entry-crash setup timed out before first assertion even at30s; fault firing not attested for those attempts"
+  ],
+  "cleanup": "Owned old browser hosts280265/289963 stopped through SIGTERM handlers; text-scale workers exited or were reaped by owned harness; all corresponding synthetic profiles removed. Source worktrees retained.",
+  "files": [
+    {
+      "path": "text-scale-timeout.json",
+      "sha256": "4c0f02c2a89090c57c3878c3b59eb8582fa7b400e26f6bbed07520215cc0eaa5",
+      "bytes": 202
+    },
+    {
+      "path": "text-scale.json",
+      "sha256": "100b47c6f9bd2a95dca76a5e333cd1b2664be6843e895672de5f9a061c744291",
+      "bytes": 23898
+    },
+    {
+      "path": "scale.json",
+      "sha256": "a7eb792d72b50c4c4a99fdd32c1ebfcf34c03f57637e71bb53f9fc840690fb18",
+      "bytes": 24068
+    }
+  ]
+}

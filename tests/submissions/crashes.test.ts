@@ -14,7 +14,7 @@ for (const stage of ["submission-reservation-crash", "submission-before-entry-cr
       const selected = await selectedDescriptor(home);
       const command = { type: "submission_submit", clientSubmissionId: "crash-input", preparationId: "literal-prepared", inputType: "prompt",
         sourceId: selected.sourceId, instanceId: selected.instanceId, nativeSessionId: selected.nativeSessionId, message: "literal" };
-      let worker = strictWorker(home, cwd, runtime, undefined, { name: stage, target });
+      let worker = strictWorker(home, cwd, runtime, undefined, { name: stage, target }, undefined, undefined, 30_000);
       try {
         await negotiateStrict(worker);
         expect(await worker.request({ type: "strict_start", intent: "continue", reference: selected.reference, expectedCwd: cwd })).toMatchObject({ success: true });
@@ -33,10 +33,11 @@ for (const stage of ["submission-reservation-crash", "submission-before-entry-cr
         const hasInput = facts.relations.some(relation => relation.role === "input" && relation.persistence === "committed");
         expect(hasInput).toBe(stage === "submission-entry-crash" || stage === "submission-completion-crash");
         expect(query).toMatchObject({ success: true, data: { found: true, reservation: "committed",
+          inputOutcome: stage === "submission-entry-crash" || stage === "submission-completion-crash" ? "generated" : "unresolved",
           terminal: stage === "submission-completion-crash", persistence: stage === "submission-completion-crash" ? "committed" : "unresolved" } });
         expect(await worker.request(command)).toMatchObject({ success: true, data: { duplicate: true } });
         expect((await worker.close()).code).toBe(0);
       } finally { worker.child.kill(); await worker.child.exited; }
       expect(await fs.readFile(path.join(home, "submission-provider-effects.json"), "utf8").catch(() => "absent")).toBe(before);
     } finally { await fs.rm(home, { recursive: true, force: true }); }
-  }, 30000);
+  }, 45000);
