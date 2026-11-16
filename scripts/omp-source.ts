@@ -9,7 +9,7 @@ export const authoredPaths = ["src/session/session-manager.ts", "src/modes/rpc/h
   "src/modes/rpc/rpc-history.ts", "src/modes/rpc/wire/history.ts", "src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
   "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts", "src/modes/rpc/wire/index.ts",
   "src/modes/rpc/wire/catalog.ts", "src/modes/rpc/catalog-mode.ts", "src/modes/rpc/catalog-native.ts",
-  "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
+  "src/modes/rpc/rpc-interaction-policy.ts", "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
   "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
   "src/extensibility/extensions/types.ts", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
   .map(path => `packages/coding-agent/${path}`);
@@ -18,7 +18,12 @@ const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.gener
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
 export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/history.generated.ts",
   ...["command", "open", "page", "poll", "content"].flatMap(name => ["js", "d.ts"].map(extension => `packages/coding-agent/src/modes/rpc/history-${name}.generated.${extension}`)), "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
-  "packages/coding-agent/src/modes/rpc/interactions-command.generated.js","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-command.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-policy.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-command.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-policy.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.d.ts","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
   "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
   "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",
   "packages/coding-agent/src/modes/rpc/catalog-sources.generated.js", "packages/coding-agent/src/modes/rpc/catalog-description.generated.js"];

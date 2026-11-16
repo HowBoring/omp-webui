@@ -15,55 +15,119 @@ index de8f379980..2ad422b5e6 100644
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/src/extensibility/extensions/types.ts b/packages/coding-agent/src/extensibility/extensions/types.ts
-index aa988d36f3..b430e442b8 100644
+index aa988d36f3..4c2284a6e9 100644
 --- a/packages/coding-agent/src/extensibility/extensions/types.ts
 +++ b/packages/coding-agent/src/extensibility/extensions/types.ts
-@@ -336,6 +336,8 @@ export type ExtensionApprovalAnswer =
+@@ -335,7 +335,12 @@ export type ExtensionApprovalAnswer =
+ // (custom editor component, header/footer, widgets, theming, terminal input)
  // and may be invoked from event handlers that have already taken the agent
  // loop's lock — hooks intentionally cannot.
++/** Abort reason used by explicit-only surfaces to retain native form expiry. */
++export const EXPLICIT_INTERACTION_EXPIRY_REASON = "omp.explicit-interaction.expired";
++
  export interface ExtensionUIContext {
 +	/** Effective rpc-ui policy: silence/expiry never submits native or tool defaults. TUI omits this. */
 +	readonly explicitAnswersOnly?: true;
  	/** True when selector timeouts start only after the dialog is presented. */
  	timeoutStartsOnPresentation?: boolean;
  	/** True when pasteToEditor updates a local or remote composer; absent means unsupported. */
+diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
+index 5a9731a9c2..b11fd51964 100644
+--- a/packages/coding-agent/src/modes/rpc/preflight.ts
++++ b/packages/coding-agent/src/modes/rpc/preflight.ts
+@@ -1,4 +1,5 @@
+ /** Public startup path: no Session, user configuration, extensions, native UI or model imports. */
++import { rpcInteractionPolicy } from "./rpc-interaction-policy";
+ import { RpcFrameEncoder, MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "./rpc-frame";
+ import { compatibilityBuild, validateCommand } from "./preflight.generated";
+ import type { CompatibilityReport } from "./wire/rpc-wire.generated";
+@@ -33,6 +34,7 @@ export async function runPreflight(): Promise<void> {
+         const report: CompatibilityReport = {
+           candidate: "omp-webui-s0", ...compatibilityBuild, safePreflight: true, sessionAdmission: "blocked",
+           capabilities: ["safe-preflight-v1", "rpc-framing-v2"],
++          rpcUiInteractionPolicy: rpcInteractionPolicy,
+           runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
+         };
+         await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index cfcbbdeeb1..3d8c711548 100644
+index cfcbbdeeb1..943e3c262f 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-@@ -4,6 +4,7 @@
+@@ -4,6 +4,8 @@
   * Spawns the agent in RPC mode and provides a typed API for all operations.
   */
  
++import { validInteractionPolicy, validInteractionResult } from "./interactions.generated";
 +import type { RpcInteractionPolicy, RpcUIReplyResult, RpcUIAnswer } from "./rpc-interactions";
  import { isPromise } from "node:util/types";
  import type { AgentEvent, AgentMessage, AgentToolResult, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
  import type { CompactionResult } from "@oh-my-pi/pi-agent-core/compaction";
-@@ -338,6 +339,18 @@ function isPageFallbackError(error: unknown): boolean {
+@@ -338,6 +340,22 @@ function isPageFallbackError(error: unknown): boolean {
  // ============================================================================
  
  export class RpcClient {
 +	/** Available before extension startup completes; require explicitAnswersOnly before presenting UI. */
 +	async getInteractionPolicy(): Promise<RpcInteractionPolicy> {
 +		const response = await this.#send({ type: "get_interaction_policy" });
-+		return response.data as RpcInteractionPolicy;
++		const data = this.#getData<unknown>(response);
++		if (!validInteractionPolicy(data)) throw new Error("Invalid effective interaction policy");
++		return Object.freeze(data);
 +	}
 +
 +	/** Acknowledged business settlement; sending bytes alone is not acceptance. */
 +	async respondUI(targetId: string, answer: RpcUIAnswer): Promise<RpcUIReplyResult> {
 +		const result = await this.#send({ type: "respond_ui", targetId, answer });
-+		return result.data as RpcUIReplyResult;
++		const data = this.#getData<unknown>(result);
++		if (!validInteractionResult(data)) throw new Error("Invalid interaction settlement");
++		return data;
 +	}
 +
  	#process: RpcAgentProcess | null = null;
  	#reaping: Promise<void> | null = null;
  	#eventListeners: RpcEventListener[] = [];
-diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
+@@ -364,6 +382,17 @@ export class RpcClient {
+ 	#protocolVersion: RpcProtocolVersion = 1;
+ 	#supportsBashExcludeFromContext = false;
+ 	#extensionUiListeners: Set<(req: RpcExtensionUIRequest) => void> = new Set();
++	#interactionPolicy: RpcInteractionPolicy | undefined;
++
++	/** Immutable policy from ready, available to startup UI listeners before start() finishes. */
++	get interactionPolicy(): RpcInteractionPolicy | undefined { return this.#interactionPolicy; }
++
++	/** Observe public extension UI, including startup questions. Disposal only detaches this listener. */
++	onExtensionUIRequest(listener: (request: RpcExtensionUIRequest) => void): () => void {
++		this.#extensionUiListeners.add(listener);
++		return () => { this.#extensionUiListeners.delete(listener); };
++	}
++
+ 	#abortController = new AbortController();
+ 
+ 	constructor(private options: RpcClientOptions = {}) {
+@@ -389,6 +418,7 @@ export class RpcClient {
+ 		this.#abortController = new AbortController();
+ 		this.#protocolVersion = 1;
+ 		this.#supportsBashExcludeFromContext = false;
++		this.#interactionPolicy = undefined;
+ 
+ 		const cliPath = this.options.cliPath ?? "dist/cli.js";
+ 		const args = ["--mode", "rpc"];
+@@ -451,6 +481,10 @@ export class RpcClient {
+ 		void (async () => {
+ 			for await (const line of lines) {
+ 				if (!readySettled && isRecord(line) && line.type === "ready") {
++					if (line.interactionPolicy !== undefined) {
++						if (!validInteractionPolicy(line.interactionPolicy)) throw new Error("Invalid ready interaction policy");
++						this.#interactionPolicy = Object.freeze(line.interactionPolicy);
++					}
+ 					protocolV2Supported = supportsRpcProtocolV2(line);
+ 					this.#supportsBashExcludeFromContext = line.supportsBashExcludeFromContext === true;
+ 					readySettled = true;
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts b/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts
 new file mode 100644
-index 0000000000..f56bcb5b9a
+index 0000000000..64fb13ddce
 --- /dev/null
-+++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
-@@ -0,0 +1,111 @@
++++ b/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts
+@@ -0,0 +1,9 @@
 +/** Effective for every rpc-ui request, before extension initialization or native timers. */
 +export const rpcInteractionPolicy = Object.freeze({
 +	version: "1" as const,
@@ -73,6 +137,13 @@ index 0000000000..f56bcb5b9a
 +	invalidAnswer: "pending" as const,
 +});
 +export type RpcInteractionPolicy = typeof rpcInteractionPolicy;
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
+new file mode 100644
+index 0000000000..6ba0efabc3
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
+@@ -0,0 +1,103 @@
++export * from "./rpc-interaction-policy";
 +export type RpcUIReplyStatus = "answered" | "cancelled" | "expired" | "invalid" | "stale";
 +export type RpcUIAnswer =
 +	| { type: "value"; value: string }
@@ -87,7 +158,7 @@ index 0000000000..f56bcb5b9a
 +export interface RpcUIReplyResult { status: RpcUIReplyStatus }
 +
 +import { Snowflake } from "@oh-my-pi/pi-utils";
-+import type { ExtensionUIDialogOptions } from "../../extensibility/extensions/types";
++import { EXPLICIT_INTERACTION_EXPIRY_REASON, type ExtensionUIDialogOptions } from "../../extensibility/extensions/types";
 +import type { RpcExtensionUIResponse } from "./rpc-types";
 +
 +export interface RpcPendingUIRequest {
@@ -140,7 +211,7 @@ index 0000000000..f56bcb5b9a
 +		if (reason === "expired") opts?.onTimeout?.();
 +		resolve(cancelledValue);
 +	};
-+	const onAbort = () => cancel("aborted");
++	const onAbort = () => cancel(opts?.signal?.reason === EXPLICIT_INTERACTION_EXPIRY_REASON ? "expired" : "aborted");
 +	opts?.signal?.addEventListener("abort", onAbort, { once: true });
 +	pending.set(id, {
 +		cancel,
@@ -429,7 +500,7 @@ index 4408b13370..98fcb32191 100644
  			inputDispatcher.dispatch(parsed);
  		} else if (isRpcExtensionUIResponse(parsed)) {
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..02835977a1 100644
+index 6d7b4f84cd..2fe43f30be 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -33,6 +33,7 @@ import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
@@ -467,7 +538,15 @@ index 6d7b4f84cd..02835977a1 100644
  	| { id?: string; type: "response"; command: "set_ask_dialog"; success: true; data: { enabled: boolean } }
  	| {
  			id?: string;
-@@ -833,7 +840,7 @@ export type RpcExtensionUIRequest =
+@@ -822,6 +829,7 @@ export type RpcExtensionUIRequest =
+ 			id: string;
+ 			method: "editor";
+ 			title: string;
++			timeout?: number;
+ 			prefill?: string;
+ 			promptStyle?: boolean;
+ 	  }
+@@ -833,7 +841,7 @@ export type RpcExtensionUIRequest =
  			questions: RpcAskDialogQuestion[];
  			timeout?: number;
  	  }
@@ -497,10 +576,18 @@ index 5da22a7c56..666b2e6d59 100644
    {
      name: "get_compatibility",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index ed33f29b80..76251f59c1 100644
+index ed33f29b80..f7b37ecfe7 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-@@ -23,6 +23,7 @@ export const frameDefs = {
+@@ -16,6 +16,7 @@ export const frameDefs = {
+     patchSha256: "string",
+     schemaSha256: "string",
+     safePreflight: "true",
++    rpcUiInteractionPolicy: "InteractionPolicy",
+     sessionAdmission: "'blocked'",
+     capabilities: "string[]",
+     runtime: "CompatibilityRuntime",
+@@ -23,6 +24,7 @@ export const frameDefs = {
  	ReadyEvent: doc(
  		{
  			type: "'ready'",
@@ -508,7 +595,15 @@ index ed33f29b80..76251f59c1 100644
  			"protocolVersion?": "number.integer",
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
-@@ -220,7 +221,7 @@ export const frameDefs = {
+@@ -213,6 +215,7 @@ export const frameDefs = {
+ 		method: "'editor'",
+ 		title: "string",
+ 		"prefill?": "string",
++		"timeout?": "number.integer",
+ 		"promptStyle?": "boolean",
+ 	},
+ 	AskUiRequest: doc(
+@@ -220,7 +223,7 @@ export const frameDefs = {
  		"Every question of one extension `ui.askDialog` call; sent only after `set_ask_dialog` enables it.",
  	),
  	CancelUiRequest: doc(
@@ -517,7 +612,7 @@ index ed33f29b80..76251f59c1 100644
  		"Close the dialog opened by request `targetId`; a later answer to it is ignored.",
  	),
  	NotifyUiRequest: {
-@@ -273,7 +274,7 @@ export const frameDefs = {
+@@ -273,7 +276,7 @@ export const frameDefs = {
  	),
  	CancelUiResponse: doc(
  		{ type: "'extension_ui_response'", id: "string", cancelled: "true", "timedOut?": "boolean" },
@@ -586,10 +681,20 @@ index 0000000000..9e45d179ca
 +	},
 +];
 diff --git a/packages/coding-agent/src/tools/ask.ts b/packages/coding-agent/src/tools/ask.ts
-index bb17bfc5f5..ee7ef1c922 100644
+index bb17bfc5f5..f15f8a8d62 100644
 --- a/packages/coding-agent/src/tools/ask.ts
 +++ b/packages/coding-agent/src/tools/ask.ts
-@@ -77,7 +77,7 @@ export function recoverAskHtml(toolCallArguments: unknown): string | undefined {
+@@ -38,7 +38,8 @@ import { theme } from "@oh-my-pi/pi-tui/theme";
+ import type { AskToolDetails } from "@oh-my-pi/pi-tui/tools/ask";
+ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+ import { isRecord, prompt, untilAborted } from "@oh-my-pi/pi-utils";
+-import type { ExtensionUIContext, ExtensionUIDialogOptions, ExtensionUISelectItem } from "../extensibility/extensions";
++import { EXPLICIT_INTERACTION_EXPIRY_REASON, type ExtensionUIContext,
++	type ExtensionUIDialogOptions, type ExtensionUISelectItem } from "../extensibility/extensions";
+ import { askTimeoutMs, cfgAskNotify } from "../modes/settings";
+ import askDescription from "../prompts/tools/ask.md" with { type: "text" };
+ import askHeadlessForkMessage from "../prompts/tools/ask-headless-fork.md" with { type: "text" };
+@@ -77,7 +78,7 @@ export function recoverAskHtml(toolCallArguments: unknown): string | undefined {
  // =============================================================================
  
  /** The dialog primitives the fallback walks a form with. */
@@ -598,7 +703,16 @@ index bb17bfc5f5..ee7ef1c922 100644
  
  /** One prompt's outcome: the answer, or undefined with `timedOut` telling a deadline from a cancel. */
  interface PromptOutcome<T> {
-@@ -144,7 +144,7 @@ async function promptWithTimeout<T>(
+@@ -126,7 +127,7 @@ async function promptWithTimeout<T>(
+ 		timeoutStartedMs = Date.now();
+ 		timeoutId = setTimeout(() => {
+ 			timedOut = true;
+-			timeoutController?.abort();
++			timeoutController?.abort(ui.explicitAnswersOnly ? EXPLICIT_INTERACTION_EXPIRY_REASON : undefined);
+ 		}, durationMs);
+ 	};
+ 	const dialogOptions: ExtensionUIDialogOptions = {
+@@ -144,7 +145,7 @@ async function promptWithTimeout<T>(
  			if (timeout !== undefined && !ui.timeoutStartsOnPresentation) armFallbackTimeout(timeout);
  			return shown;
  		});
@@ -607,7 +721,7 @@ index bb17bfc5f5..ee7ef1c922 100644
  			// Fallback for surfaces that enforce `timeout` without invoking
  			// `onTimeout`: their auto-cancel resolves right at the deadline. A
  			// cancel arriving well past it is a deliberate user Esc.
-@@ -332,12 +332,12 @@ async function askFieldByField(
+@@ -332,12 +333,12 @@ async function askFieldByField(
  				if (value === undefined) delete data[field.name];
  				else data[field.name] = value;
  			}
@@ -622,7 +736,7 @@ index bb17bfc5f5..ee7ef1c922 100644
  		if (outcome.value === undefined) return undefined;
  		data[field.name] = textValue(field, outcome.value);
  	}
-@@ -426,7 +426,14 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+@@ -426,7 +427,14 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  		};
  		if (steeringSignal?.aborted) onSteer();
  		else steeringSignal?.addEventListener("abort", onSteer, { once: true });
@@ -632,13 +746,13 @@ index bb17bfc5f5..ee7ef1c922 100644
 +		const expiry = new AbortController();
 +		let expiryTimer: NodeJS.Timeout | undefined;
 +		if (extensionUi.explicitAnswersOnly && timeout !== undefined) {
-+			expiryTimer = setTimeout(() => expiry.abort(), timeout);
++			expiryTimer = setTimeout(() => expiry.abort(EXPLICIT_INTERACTION_EXPIRY_REASON), timeout);
 +		}
 +		const dialogSignal = AbortSignal.any([...(signal ? [signal] : []), userSteering.signal, expiry.signal]);
  		const abortError = (): ToolAbortError =>
  			new ToolAbortError(userSteering.signal.aborted ? "Ask interrupted by message" : "Ask input was cancelled");
  		const cancelAsk = (): never => {
-@@ -456,10 +463,19 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+@@ -456,10 +464,19 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  				answered = await askFieldByField(extensionUi, form, timeout, dialogSignal);
  			}
  		} catch (error) {

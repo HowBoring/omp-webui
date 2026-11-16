@@ -5001,6 +5001,9 @@
         "safePreflight": {
           "const": true
         },
+        "rpcUiInteractionPolicy": {
+          "$ref": "#/$defs/InteractionPolicy"
+        },
         "sessionAdmission": {
           "const": "blocked"
         },
@@ -5021,6 +5024,7 @@
         "patchSha256",
         "schemaSha256",
         "safePreflight",
+        "rpcUiInteractionPolicy",
         "sessionAdmission",
         "capabilities",
         "runtime"
@@ -5819,6 +5823,9 @@
         },
         "prefill": {
           "type": "string"
+        },
+        "timeout": {
+          "type": "integer"
         },
         "promptStyle": {
           "type": "boolean"

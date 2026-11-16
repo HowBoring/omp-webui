@@ -1153,6 +1153,7 @@ export interface CompatibilityReport {
 	patchSha256: string;
 	schemaSha256: string;
 	safePreflight: true;
+	rpcUiInteractionPolicy: InteractionPolicy;
 	sessionAdmission: "blocked";
 	capabilities: string[];
 	runtime: CompatibilityRuntime;
@@ -1424,6 +1425,7 @@ export interface EditorUiRequest {
 	method: "editor";
 	title: string;
 	prefill?: string;
+	timeout?: number;
 	promptStyle?: boolean;
 }
 

@@ -3,8 +3,13 @@
     "target": "ESNext",
     "module": "Preserve",
     "moduleResolution": "Bundler",
-    "lib": ["ESNext", "DOM"],
-    "types": ["bun"],
+    "lib": [
+      "ESNext",
+      "DOM"
+    ],
+    "types": [
+      "bun"
+    ],
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -14,11 +19,15 @@
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true,
     "verbatimModuleSyntax": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx"
   },
   "include": [
     "apps/**/*.ts",
     "packages/**/*.ts",
-    "tests/**/*.ts"
+    "tests/**/*.ts",
+    "apps/**/*.tsx",
+    "packages/**/*.tsx",
+    "tests/**/*.tsx"
   ]
 }
