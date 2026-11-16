@@ -224,3 +224,18 @@ wrapper. At runtime it establishes a subreaper before admission, holds the exact
 its wait domain through `P_ALL/ECHILD`. Cancellation, observer failure or an EOF/exit timeout keeps that parent alive;
 no process signals or numeric-PID discovery are implemented. A 30-second marker is diagnostic, never extinction.
 The actual tool invocation requires network-enabled sandbox permissions. The wrapper and server test are **NOT RUN**.
+
+## First actual independent server attempt: FAIL, drained
+
+The coordinator-cleared network-enabled attempt on frozen `60e1724` ran exactly once. It produced **0 pass / 1 fail /
+3 assertions / 197 ms**: the existing pre-import guard refused `Bun.connect` because the endpoint was outside the
+synthetic HOME. The server reached its public READY/listen boundary, then the test sent stdin EOF and awaited server
+exit0/signalnull. The retaining Python held the strace child, observed root exit1 and actual `P_ALL/ECHILD`, and sent
+zero signals. All31 source/tool/fixture inputs and protected operator pins remained unchanged; own socket is absent,
+fences empty, all four exact own PIDs absent.
+
+The narrow trace contains one successful SO_PEERPIDFD from the server's self-socketpair ABI probe, **zero actual client
+accept/registration/signature success**, and zero AF_INET/AF_INET6 socket calls. One guard-denial marker is observed;
+raw guard counters were not captured. This is a fixture placement failure and ABI/listener/EOF cleanup evidence,
+not semantic server authentication GREEN or global/private admission. Exact raw hashes and identities are recorded
+in `ticket-41-first-server-red.json`; no source repair or rerun preceded this result/drain checkpoint.

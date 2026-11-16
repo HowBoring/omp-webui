@@ -1,0 +1,112 @@
+{
+  "status": "FAIL_FIXTURE_GUARD_REFUSAL_DRAINED",
+  "date": "2026-11-16T21:44:27Z",
+  "sourceHead": "60e1724d7976943e6d1553156f74e4b16b2d05ac",
+  "fixture": "/tmp/ownership-server-tracer-SOt2Bg/fixture.json",
+  "fixtureSha256": "b01ba367141e542617ba4b4650b57b62ed27a4162c608f3b3dfff2e0f3e16a98",
+  "scope": "ONE independent guarded server/public Bun UDS identity tracer; no Native/Agent/helper/service",
+  "actualTool": {
+    "networkEnabled": true,
+    "rootExitCode": 1,
+    "chunkId": "7a0e97",
+    "retainingParentPid": 471783,
+    "stracePid": 471786
+  },
+  "test": {
+    "passed": 0,
+    "failed": 1,
+    "assertions": 3,
+    "milliseconds": 197,
+    "failure": "S0_FIXTURE_NETWORK_DENIED:Bun.connect before client socket connect",
+    "serverEvent": {
+      "fixture": "ownership-server-public-uds",
+      "serverPid": 471799,
+      "clientPid": 471789,
+      "serverExit": 0,
+      "signal": null,
+      "stdinEofSent": true,
+      "serverAwaited": true
+    }
+  },
+  "guard": {
+    "deniedMarkers": 1,
+    "dispatchedCounter": "NOT_CAPTURED",
+    "note": "Do not infer raw guard counters; one observed denial and independent narrow socket trace are recorded."
+  },
+  "networkTrace": {
+    "successfulPeerPidfdCalls": 1,
+    "peerPidfdScope": "ABI_SELF_SOCKETPAIR_ONLY_SERVER_PID_471799",
+    "actualClientAccepts": 0,
+    "actualClientRegistrations": 0,
+    "actualSignedReplySuccess": false,
+    "inetOrInet6SocketCalls": 0,
+    "socketBind": true,
+    "socketListen": true,
+    "note": "Narrow selected syscall domain only; no whole-machine or public-client authentication claim."
+  },
+  "containment": {
+    "stage": "DRAINED",
+    "parentPid": 471783,
+    "rootPid": 471786,
+    "kernelEndpoint": "P_ALL/ECHILD",
+    "rootStatus": {
+      "pid": 471786,
+      "code": 1,
+      "status": 1
+    },
+    "reaped": [
+      {
+        "pid": 471786,
+        "code": 1,
+        "status": 1
+      }
+    ],
+    "reapedCount": 1,
+    "signalsSent": 0,
+    "observerFailed": false,
+    "interrupted": false,
+    "status": "FAIL"
+  },
+  "postflight": {
+    "sourceInputsVerified": 31,
+    "operatorPinsUnchanged": true,
+    "endpointAbsent": true,
+    "fencesEmpty": true,
+    "knownOwnPidsAbsent": {
+      "471783": true,
+      "471786": true,
+      "471789": true,
+      "471799": true
+    }
+  },
+  "rootCause": {
+    "syntheticHome": "/tmp/ownership-server-tracer-SOt2Bg/home",
+    "endpoint": "/tmp/ownership-server-tracer-SOt2Bg/state/socket",
+    "guardRule": "Unix endpoint must be a descendant of HOME",
+    "productionCodeDiagnosis": "NONE; fixture placement refusal precedes public client/server exchange"
+  },
+  "artifacts": {
+    "stdout.log": {
+      "bytes": 178,
+      "sha256": "9554d4af530ab8adb7cea9751989397135815e047f1d2fcc2a6a44addedd8e76"
+    },
+    "stderr.log": {
+      "bytes": 848,
+      "sha256": "2ffdd8edcc7b71a10ae2a96f8695c522724ee3373a9a63d381dce6ed51d4039a"
+    },
+    "network.trace": {
+      "bytes": 629,
+      "sha256": "afad8e470bdfe61688018ecf2b201aeb784c755a041332cf99ac37b4d9f5064c"
+    },
+    "containment.json": {
+      "bytes": 376,
+      "sha256": "a2c11ad2067d04fe11e2205d3b506176c545e25499b78a4af589fe7c80388d1c"
+    },
+    "preflight.json": {
+      "bytes": 240,
+      "sha256": "5ebc0f0f7b1a6d3686e823f466220f100276ad4fe18605aa5e9468fde5611362"
+    }
+  },
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}
