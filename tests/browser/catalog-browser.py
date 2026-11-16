@@ -8,6 +8,7 @@ async def main():
     result={'kind':'actual-synthetic-native-catalog-through-DSH-Remote','platform':platform.platform(),'cases':[],
         'hardware':{'cpus':os.cpu_count(),'memoryKiB':int(Path('/proc/meminfo').read_text().splitlines()[0].split()[1])},
         'limits':'Linux fixture; no real profile/global installation/provider/model; Windows deferred; timings are this environment, not formal reference hardware S5 acceptance'}
+    actual_native=json.loads(Path('vendor/catalog-fixture/native-manager.json').read_text())
     host_pid=None
     for item in Path('/proc').iterdir():
         if not item.name.isdigit():continue
@@ -38,7 +39,7 @@ async def main():
         assert 'Synthetic native data only' in await page.locator('body').inner_text()
         assert 'INVALID_SOURCE' in await page.locator('#catalog').inner_text()
         assert 'INVALID_METADATA' in await page.locator('#catalog').inner_text()
-        ids=[]; rows=0; older=[]; scoped=[]; verified_scopes=[]
+        ids=[]; rows=0; older=[]; scoped=[]; verified_scopes=[]; native_described=[]
         while True:
             articles=page.locator('article'); ids.extend(await articles.evaluate_all('(rows)=>rows.map(row=>row.dataset.nativeId)'))
             rows+=await articles.count()
@@ -54,16 +55,27 @@ async def main():
                 source_id=await row.get_attribute('data-source-id')
                 assert description['item']['sourceId']==source_id,description
                 verified_scopes.append(source_id)
+            actual_rows=page.locator(f'article[data-native-id="{actual_native["id"]}"],article[data-native-id="{actual_native["emptyId"]}"]')
+            for row_index in range(await actual_rows.count()):
+                row=actual_rows.nth(row_index)
+                native_id=await row.get_attribute('data-native-id')
+                if native_id==actual_native['id']:assert await row.locator('h2').inner_text()=='Actual native slot title'
+                async with page.expect_response(lambda response: '/api/ompCatalogFixture/describe' in response.url) as described:
+                    await row.locator('button').click()
+                description=(await (await described.value).json())['result']['value']
+                assert description['status']=='verified' and description['item']['nativeSessionId']==native_id,description
+                native_described.append(native_id)
             if await page.locator('#next').is_disabled():break
             started=time.perf_counter(); await page.locator('#next').click()
             await page.locator('#catalog[data-status="partial"]').wait_for()
             older.append((time.perf_counter()-started)*1000)
-        assert rows==1003,(rows,errors)
-        assert set(ids)=={f'native-{n:04d}' for n in range(1000)}|{'unknown-cwd'}
+        assert set(native_described)=={actual_native['id'],actual_native['emptyId']},native_described
+        assert rows==1005,(rows,errors)
+        assert set(ids)=={f'native-{n:04d}' for n in range(1000)}|{'unknown-cwd',actual_native['id'],actual_native['emptyId']}
         assert ids.count('native-0000')==3
         assert len(set(scoped))==3,scoped
         assert set(verified_scopes)==set(scoped),verified_scopes
-        result['cases'].append({'name':'all-1000-distinct-bucket-native-sessions-and-custom-copy-reachable','result':'PASS','rows':rows,'overlappingSourceScopesForNative0000':len(set(scoped)),'verifiedScopedReferences':len(set(verified_scopes))})
+        result['cases'].append({'name':'all-1000-distinct-bucket-native-sessions-and-custom-copy-reachable','result':'PASS','rows':rows,'overlappingSourceScopesForNative0000':len(set(scoped)),'verifiedScopedReferences':len(set(verified_scopes)),'actualSessionManagerFiles':2})
         await page.locator('article button').first.click()
         await page.locator('#detail').get_by_text('verified',exact=True).wait_for()
         result['cases'].append({'name':'actual-native-description-and-observation','result':'PASS'})

@@ -29,11 +29,12 @@ external source inputs so native asset lookup works; preflight never imports thi
   source_unavailable or inaccessible. It never opens a Session or reserves a lease.
 
 A descriptor contains native Session ID, sourceId, instanceId, durable scoped reference, verified relative aliases,
-header title (optional, at most 512 characters), header timestamp as createdAt, **filesystem mtime** as modifiedAt,
+current native title-slot title, or legacy header title (optional, at most 512 characters), header timestamp as createdAt, **filesystem mtime** as modifiedAt,
 actual recorded/canonical cwd or unknown/missing/inaccessible/invalid status, observation timestamp, native
 held/free/unknown ownership observation with timestamp, and optional parentSession/continuationOf relations.
-It exposes no transcript, prompt, exact message count, model state or title-generation request. Metadata beyond the
-16 KiB first header line is not scanned. Missing title is honest; no current worker cwd substitutes for a missing header cwd.
+It exposes no transcript, prompt, exact message count, model state or title-generation request. The authoritative optional leading title slot and immediately following header share one
+16 KiB metadata prefix; bytes beyond that prefix are not read. A corrupt slot/header is an explicit partial failure,
+never skipped to search later records. An empty current slot removes a stale header title. Missing title is honest; no current worker cwd substitutes for a missing header cwd.
 
 sourceId = SHA256(profile + ':' + canonical source root + ':' + SHA256(dev:ino:birthtimeNs)).
 instanceId = SHA256(dev:ino:birthtimeNs:nativeSessionId). Native Session ID is a distinct logical identifier.
@@ -59,7 +60,7 @@ return unknown until their native backend is validated; Windows/WSL2 acceptance 
 | --- | ---: |
 | Directory entries examined per request / snapshot | 256 / 8192 |
 | Directories / Sessions per snapshot | 2048 / 4096 |
-| Native first-header read | 16384 bytes |
+| Native leading metadata read (title slot + header) | 16384 bytes |
 | Requested items per page | 1–32 |
 | Full JSON response including reserved envelope allowance | 262144 bytes |
 | Retained serialized descriptor bytes per snapshot | 16777216 |
