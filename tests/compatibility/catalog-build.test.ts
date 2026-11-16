@@ -23,7 +23,7 @@ const identity = z.object({
 /** Run the shipped catalog entrypoint in an isolated workspace, with its real source and package links. */
 async function workspace(): Promise<string> {
   const dir = await mkdtemp(resolve(tmpdir(), "catalog-build-"));
-  for (const path of ["apps/catalog", "packages", "scripts/dsh-source.ts", "compatibility/dsh",
+  for (const path of ["apps/catalog", "packages", "scripts/dsh-source.ts", "scripts/build-identities.ts", "compatibility/dsh",
     "package.json", "upstreams.lock.json"]) {
     await mkdir(resolve(dir, path, ".."), { recursive: true });
     await cp(resolve(root, path), resolve(dir, path), { recursive: true });

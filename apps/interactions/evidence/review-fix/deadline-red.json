@@ -1,0 +1,40 @@
+{
+  "command": "bun test tests/interactions/bridge.test.ts --test-name-pattern 'before its timer'",
+  "exitCode": 1,
+  "testsPassed": 0,
+  "testsFailed": 1,
+  "testsFiltered": 4,
+  "assertions": 1,
+  "failures": [
+    {
+      "case": "monotonic Host deadline before timer callback",
+      "expected": [
+        {
+          "type": "respond_ui",
+          "targetId": "deadline-before-timer",
+          "answer": {
+            "type": "cancel",
+            "timedOut": true
+          }
+        },
+        {
+          "type": "abort"
+        }
+      ],
+      "observed": [
+        {
+          "type": "respond_ui",
+          "targetId": "deadline-before-timer",
+          "answer": {
+            "type": "value",
+            "value": "too late"
+          }
+        }
+      ]
+    }
+  ],
+  "status": "FAIL",
+  "phase": "retained original failure",
+  "rawLog": "vendor/review-deadline-red.log",
+  "rawLogSha256": "fe3c80af9c842d8b332b2aa55513d5c77f40af6561f859c5a2022b62919d14df"
+}

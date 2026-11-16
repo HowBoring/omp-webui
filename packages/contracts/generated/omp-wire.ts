@@ -1153,6 +1153,7 @@ export interface CompatibilityReport {
 	patchSha256: string;
 	schemaSha256: string;
 	safePreflight: true;
+	rpcUiInteractionPolicy: InteractionPolicy;
 	sessionAdmission: "blocked";
 	capabilities: string[];
 	runtime: CompatibilityRuntime;
@@ -1161,6 +1162,7 @@ export interface CompatibilityReport {
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
 export interface ReadyEvent {
 	type: "ready";
+	interactionPolicy?: InteractionPolicy;
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;
@@ -1423,6 +1425,7 @@ export interface EditorUiRequest {
 	method: "editor";
 	title: string;
 	prefill?: string;
+	timeout?: number;
 	promptStyle?: boolean;
 }
 
@@ -1441,6 +1444,7 @@ export interface CancelUiRequest {
 	id: string;
 	method: "cancel";
 	targetId: string;
+	reason?: "cancelled" | "expired" | "aborted";
 }
 
 export interface NotifyUiRequest {
@@ -1516,7 +1520,7 @@ export interface ConfirmUiResponse {
 	confirmed: boolean;
 }
 
-/** Dismisses a dialog; `timedOut` reports the host's own deadline (an `ask` dialog then takes its recommended answers). */
+/** Dismisses a dialog; `timedOut` reports the host's own deadline (rpc-ui cancels without substituting an answer). */
 export interface CancelUiResponse {
 	type: "extension_ui_response";
 	id: string;
@@ -1642,11 +1646,50 @@ export interface HostUriSchemeDefinition {
 	immutable?: boolean;
 }
 
+export interface InteractionPolicy {
+	version: "1";
+	explicitAnswersOnly: true;
+	nativeExpiry: "cancel";
+	toolExpiry: "cancel";
+	invalidAnswer: "pending";
+}
+
+export interface UIValueAnswer {
+	type: "value";
+	value: string;
+}
+
+export interface UIConfirmAnswer {
+	type: "confirm";
+	confirmed: boolean;
+}
+
+export interface UICancelAnswer {
+	type: "cancel";
+	timedOut?: boolean;
+}
+
+export interface UIAskAnswer {
+	type: "ask";
+	answers: AskAnswer[];
+}
+
+export type UIAnswer = UIValueAnswer | UIConfirmAnswer | UICancelAnswer | UIAskAnswer;
+
+export interface UIReplyResult {
+	status: "answered" | "cancelled" | "expired" | "invalid" | "stale";
+}
+
 /** Unsolicited outbound frame (everything except responses and host tool/URI requests), discriminated by `type`. */
 export type RpcNotification = ReadyEvent | PromptResultEvent | SessionSettledEvent | ExtensionError | ExtensionUiRequest | AvailableCommandsUpdateEvent | SubagentLifecycleEvent | SubagentProgressEvent | SubagentEvent | LivePhaseEvent | LiveLevelsEvent | LiveTranscriptEvent | LiveEndEvent | DictationStateEvent | DictationTranscriptEvent | DictationEndEvent | BtwDeltaEvent | BtwRecordEvent | CommandOutputEvent | SessionInfoUpdateEvent | ConfigUpdateEvent | RpcFrameErrorEvent | RpcAgentEvent;
 
 /** Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`. */
 export type RpcServerFrame = RpcResponse | RpcHostRequest | RpcNotification;
+
+export interface RespondUiParams {
+	targetId: string;
+	answer: UIAnswer;
+}
 
 export interface CatalogPageParams {
 	cursor?: string;
@@ -2035,6 +2078,8 @@ export interface GetBtwHistoryResult {
 
 /** Every RPC command's parameters and successful response `data`. */
 export interface RpcWireCommands {
+	get_interaction_policy: { params: undefined; result: InteractionPolicy };
+	respond_ui: { params: RespondUiParams; result: UIReplyResult };
 	catalog_sources: { params: undefined; result: CatalogSources };
 	catalog_page: { params: CatalogPageParams; result: CatalogPage };
 	describe_session: { params: DescribeSessionParams; result: CatalogDescription };

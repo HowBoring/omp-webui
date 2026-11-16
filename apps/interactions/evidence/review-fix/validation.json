@@ -1,0 +1,226 @@
+{
+  "scope": "S0 isolated Linux review fixes; no private Session or product admission",
+  "integration": "2118454e02ac1e5db40847fec62f812308698309",
+  "findings": {
+    "standardsHard": {
+      "finding": "unbounded answer tail",
+      "status": "FIXED"
+    },
+    "standardsHeuristic": {
+      "finding": "duplicate build identities and DSH fixture carrier mechanics",
+      "status": "FIXED"
+    },
+    "specActionable": 0
+  },
+  "bounds": {
+    "queuedAnswers": 0,
+    "outstandingAnswersPerInteraction": 1,
+    "outstandingAnswersPerWorker": 8,
+    "outstandingCancellationsPerWorker": 16,
+    "outstandingAbortPerWorker": 1,
+    "overload": {
+      "status": "overloaded",
+      "code": "INTERACTION_ANSWER_LIMIT",
+      "source": "Host admission; not native acknowledgement"
+    },
+    "duplicateCancellation": "shares current request"
+  },
+  "tests": [
+    {
+      "command": "bun test tests/interactions/bridge.test.ts --timeout 1000",
+      "phase": "red",
+      "status": "FAIL",
+      "testsPassed": 0,
+      "testsFailed": 3,
+      "assertions": 2,
+      "retained": "bridge-red.json"
+    },
+    {
+      "command": "bun test tests/interactions/bridge.test.ts --test-name-pattern 'before its timer'",
+      "phase": "red",
+      "status": "FAIL",
+      "testsPassed": 0,
+      "testsFailed": 1,
+      "testsFiltered": 4,
+      "assertions": 1,
+      "retained": "deadline-red.json"
+    },
+    {
+      "command": "bun test tests/browser/interactions-remote.test.ts tests/interactions/bridge.test.ts",
+      "status": "PASS",
+      "testsPassed": 6,
+      "testsFailed": 0,
+      "assertions": 28,
+      "rawLog": "vendor/review-bridge-green.log"
+    },
+    {
+      "command": "bun test tests/interactions tests/browser/diagnostics-contract.test.ts tests/browser/diagnostics-remote.test.ts tests/host/diagnostics.test.ts",
+      "status": "PASS",
+      "testsPassed": 21,
+      "testsFailed": 0,
+      "assertions": 84,
+      "note": "before additional deadline/Remote cases; covered again by final integration suite"
+    },
+    {
+      "command": "bun test tests/compatibility/catalog-build.test.ts",
+      "status": "PASS",
+      "testsPassed": 2,
+      "testsFailed": 0,
+      "assertions": 32,
+      "note": "actual canonical-candidate build plus baseline/partial/undeclared-source/ancestry faults; collector copied into child harness"
+    },
+    {
+      "command": "DSH_SOURCE=$PWD/vendor/dsh-owned bun test tests/compatibility/dsh-source.test.ts tests/compatibility/source.test.ts",
+      "status": "PASS",
+      "testsPassed": 5,
+      "testsFailed": 0,
+      "assertions": 7,
+      "rawLog": "vendor/review-source-tests.log"
+    },
+    {
+      "command": "DSH_SOURCE=$PWD/vendor/dsh-owned bun run check",
+      "status": "PASS",
+      "testsPassed": 126,
+      "testsFailed": 0,
+      "assertions": 1041,
+      "seconds": 134.29,
+      "rawLog": "vendor/review-full-check-before-deadline.log",
+      "note": "preliminary run before additional deadline/Remote cases"
+    },
+    {
+      "command": "DSH_SOURCE=$PWD/vendor/dsh-owned bun run check",
+      "status": "FAIL",
+      "phase": "test TypeScript assertion literal",
+      "exitCode": 2,
+      "retained": "remote-typecheck-red.json",
+      "correction": "const literal preserves Host overload discriminants"
+    },
+    {
+      "command": "DSH_SOURCE=$PWD/vendor/dsh-owned bun run check",
+      "status": "PASS",
+      "exitCode": 0,
+      "testsPassed": 128,
+      "testsFailed": 0,
+      "assertions": 1001,
+      "files": 29,
+      "seconds": 132.74,
+      "typecheck": "PASS",
+      "hostBuild": "PASS",
+      "networkPermission": "enabled for actual stdio/loopback",
+      "rawLog": "vendor/review-full-check-final.log"
+    }
+  ],
+  "checks": [
+    {
+      "command": "bun scripts/check-interactions-native.ts",
+      "status": "PASS",
+      "scope": "authored interaction modules and public RpcClient only",
+      "rawLog": "vendor/review-native-typecheck.log"
+    },
+    {
+      "command": "bun scripts/build-compatibility.ts --check",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/review-generated-check-final.log",
+      "note": "own source clone only; generated Host native wire identity unchanged"
+    },
+    {
+      "command": "bun scripts/dsh-source.ts /workspace/work/omp-webui-ticket-39-final-fix/vendor/dsh-final",
+      "status": "PASS",
+      "rawLog": "vendor/review-canonical-dsh-source.json",
+      "mode": "candidate",
+      "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+    },
+    {
+      "command": "bun run interactions:build",
+      "status": "PASS",
+      "rawLog": "vendor/review-interactions-build.log"
+    },
+    {
+      "command": "bun run diagnostics:build",
+      "status": "PASS",
+      "rawLog": "vendor/review-diagnostics-build.log"
+    },
+    {
+      "command": "bun run catalog:build",
+      "status": "PASS",
+      "rawLog": "vendor/review-catalog-build.log"
+    },
+    {
+      "command": "python3 scripts/retain-interactions-evidence.py --reuse-native-trace",
+      "status": "PASS",
+      "nativeTrace": "REUSED; unchanged OMP source/patch/schema and native guard/fixture hashes checked"
+    }
+  ],
+  "browser": {
+    "status": "PASS",
+    "platform": "Linux Chromium156.0.8078.79",
+    "defaultCases": 10,
+    "configuredCases": 11,
+    "configuredWaitMs": 4000,
+    "browserErrors": 0,
+    "hostExitCode": 0,
+    "nativeExitCode": 0,
+    "nativeForced": false,
+    "stdoutDrained": true,
+    "commands": [
+      "python3 tests/browser/interactions-browser.py --bun /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --evidence vendor/interactions-browser-final",
+      "python3 tests/browser/interactions-browser.py --bun /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --port 3184 --wait-ms 4000 --evidence vendor/interactions-browser-configured-final"
+    ],
+    "tuple": "../tuple.json"
+  },
+  "setupFailures": [
+    {
+      "status": "FAIL",
+      "command": "bun run typecheck",
+      "observed": "tsc: command not found; exit127",
+      "correction": "own node_modules/.bin/tsc link"
+    },
+    {
+      "status": "FAIL",
+      "command": "bun run typecheck",
+      "observed": "TS7016 missing React declarations and consequent inferred-parameter diagnostics",
+      "correction": "own @types/react and @types/react-dom links"
+    },
+    {
+      "status": "FAIL",
+      "command": "bun run interactions:build / diagnostics:build / catalog:build",
+      "observed": "bun: command not found; exit127",
+      "correction": "prepend actual Bun1.4.4 directory to PATH"
+    },
+    {
+      "status": "FAIL",
+      "command": "bun run interactions:build",
+      "observed": "S0_REACT_REALM_MISMATCH; initially linked React 19.2.7",
+      "correction": "own per-package links to pinned React/ReactDOM 18.3.1 and scheduler"
+    }
+  ],
+  "sourceOwnership": {
+    "DSHBuilds": "canonical reviewed source read-only; own per-package node_modules links",
+    "DSHMutationTests": "owned source-only clone vendor/dsh-owned",
+    "OMPSourceMutationAndGeneratedChecks": "owned source-only clone vendor/omp-owned",
+    "OMPFixtureRuntime": "unchanged ticket33 native candidate/runtime cache read-only"
+  },
+  "nativeSourceFreeze": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+  "limits": {
+    "Windows": "NOT RUN / explicitly deferred",
+    "realProviderInference": "NOT RUN; controlled literal provider only",
+    "productSessionAdmission": "BLOCKED",
+    "Broker47": "outside S0 scope",
+    "newNativeSyscallTrace": "NOT RUN; previous unchanged-native trace reused"
+  },
+  "rawLogSha256": {
+    "vendor/review-bridge-green.log": "4d362f53b210fc7082ed979ef7b8ac73057fc6c983f4fb2dfdbcd9b73da389ef",
+    "vendor/review-source-tests.log": "b8a291a03768bde94eb1d9056c400be345794c3518e37c8b563fded24c83c37e",
+    "vendor/review-full-check-before-deadline.log": "cb0132a9dd7d2d0ce2a6c56e1917b35d508b8be5a1cf176e14ceafa2ac5229fd",
+    "vendor/review-full-check-final.log": "91d0e7554d715cad59a6bc19fe0f008ba2246d4ea7744707d188a3c07f6244ce",
+    "vendor/review-native-typecheck.log": "132ee5de2e263c79bb9ede25c748979f66906796da312ea8c2cbfc491b649268",
+    "vendor/review-generated-check-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "vendor/review-canonical-dsh-source.json": "8b44f7936804b78a638359993934db8ad848f875e86609934f48dcacef7c8caf",
+    "vendor/review-interactions-build.log": "5ac1de06eb577ebb90377d562e931b2a12514ceabce3df1c8801831a10b2c1e6",
+    "vendor/review-diagnostics-build.log": "f1163b429b70d78d72374d6816b00cc2f012c56eb13a722fddd40a049428f345",
+    "vendor/review-catalog-build.log": "18db431cc6355cbaba867c70c38f2c4b3fc023cabb5b057792a12e5f2cacc8a7",
+    "vendor/review-browser-default.log": "0467ff6293b35aacf6353431abca1624da92ddc9ff137a134c773155d6d20fb6",
+    "vendor/review-browser-configured.log": "18c2d9293ecbf4cea56a03bedd4e09a6db6d914f4db04efcc879ae6e465bbcb3"
+  }
+}
