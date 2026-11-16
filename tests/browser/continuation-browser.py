@@ -66,7 +66,7 @@ async def main():
         lost=await action('article[data-native-id="native-0003"] button')
         assert next(record for record in lost['registrations'] if record.get('nativeSessionId')=='native-0003')['attempt']=='outcome_unknown',lost
         lost_starts=lost['worker']['starts'];await asyncio.sleep(.5)
-        recovered=await action('#recheck')
+        recovered=await action('article[data-native-id="native-0003"] button')
         for _ in range(10):
             if recovered.get('state',{}).get('phase')=='open':break
             await asyncio.sleep(.2);recovered=await action('#recheck')

@@ -1,21 +1,39 @@
 {
   "kind": "actual-owned-native-syscall-observation",
-  "source": "https://omp.sh/schemas/rpc-wire.json",
+  "build": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "2fc226972a094936ced2f081d1ca67d647947968cd8f3696de918d2d16f9c415",
+    "patchSha256": "46f81f53da4b5b79494a1d098b6d7a41f6ea3ed5a5f2291a64967366b49a9485",
+    "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+  },
   "INETCalls": 0,
-  "xattrCalls": 19,
-  "nativeControlWrites": 2,
-  "traceFiles": 101,
-  "tracesSha256": "66a61270ce201bff982479eba46e8fa3e57767b74cba004d1b75f6e9e6f91ec9",
+  "xattrCalls": 103,
+  "nativeControlWrites": 6,
+  "noClobberLinkCalls": 2,
+  "traceFiles": 192,
+  "tracesSha256": "f5189bf60ffc4c6d7dddb8cc45b2faf8017f5ff05ec0c1705d9889a6cca84cbe",
+  "rawTraceDirectory": "vendor/strict-evidence/final",
+  "checks": {
+    "tests": 2,
+    "assertions": 21,
+    "result": "PASS"
+  },
   "samples": {
     "xattrs": [
-      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d06400, 1024) = -1 ENODATA (No data available)",
-      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d08400, 1024) = -1 ENODATA (No data available)",
-      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d09800, 1024) = -1 ENODATA (No data available)"
+      "fgetxattr(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x2cb07599c00, 1024) = -1 ENODATA (No data available)",
+      "fgetxattr(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x2cb07598400, 1024) = -1 ENODATA (No data available)",
+      "fgetxattr(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x2cb0759a800, 1024) = -1 ENODATA (No data available)"
     ],
     "controlWrites": [
-      "pwrite64(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"ompgen1\", 7, 265) = 7",
-      "pwrite64(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"{\\\"type\\\":\\\"omp_generation_commit\\\",\\\"version\\\":1,\\\"token\\\":\\\"832de544-274e-4e24-9d75-d499988dd35a\\\",\\\"offset\\\":620,\\\"metadataSha256\\\":\\\"6855baf37d768b37192bfb17d8da53ed28c14c\"..., 267, 620) = 267"
+      "pwrite64(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0000.jsonl>, \"ompgen1\", 7, 265) = 7",
+      "pwrite64(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0000.jsonl>, \"{\\\"type\\\":\\\"omp_generation_commit\\\",\\\"version\\\":1,\\\"token\\\":\\\"1d34145f-2938-465c-8d2e-9e3391c79c8c\\\",\\\"offset\\\":616,\\\"metadataSha256\\\":\\\"e8927f809b5b8e6c72a340ff6ff1ee6a4b0bcb\"..., 267, 616) = 267",
+      "pwrite64(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0001.jsonl>, \"ompgen1\", 7, 265) = 7",
+      "pwrite64(14</tmp/strict-nested-P5RA66/.omp/agent/sessions/bucket/native-0001.jsonl>, \"{\\\"type\\\":\\\"omp_generation_commit\\\",\\\"version\\\":1,\\\"token\\\":\\\"9cf9ffb4-ff1c-431f-91bc-ee038ab07af6\\\",\\\"offset\\\":616,\\\"metadataSha256\\\":\\\"2c654bfdec279c6f987afcdd6e94916ede0353\"..., 267, 616) = 267"
+    ],
+    "fdBoundLinks": [
+      "linkat(AT_FDCWD</tmp/strict-nested-P5RA66/project>, \"/proc/self/fd/17\", 16</tmp/strict-nested-P5RA66/explicit-copy>, \"tool.log.jsonl\", AT_SYMLINK_FOLLOW) = 0",
+      "linkat(AT_FDCWD</tmp/strict-nested-P5RA66/project>, \"/proc/self/fd/17\", 16</tmp/strict-nested-P5RA66/explicit-copy>, \"child.jsonl\", AT_SYMLINK_FOLLOW) = 0"
     ]
   },
-  "scope": "one successful strict generation publication/reopen test; Linux synthetic HOME/cwd, pre-import provider guard; no power-loss claim"
+  "scope": "successful strict generation title publication/reopen and native nested artifact logical copy; Linux synthetic HOME/cwd, pre-import provider guard; no power-loss or general performance claim"
 }

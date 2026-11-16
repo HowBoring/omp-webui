@@ -24,7 +24,8 @@ test("the actual Host adapter preserves terminal knowledge, marks lost workers u
    await restored.act({type:"discover"});expect(starts).toBe(1);
    if(!owned)throw new Error("NO_OWNED_WORKER");process.kill(owned.processId,"SIGKILL");await owned.exited;await new Promise(resolve=>setTimeout(resolve,20));
    expect(fixture.snapshot()).toMatchObject({state:{phase:"outcome_unknown",code:"STRICT_WORKER_EXITED"},registrations:[{attempt:"outcome_unknown"}],worker:{status:"outcome_unknown",starts:1}});
-   expect((await fixture.act({type:"recheck"})).state?.phase).toBe("outcome_unknown");expect(starts).toBe(1);
+   expect((await fixture.act({type:"recheck"})).state?.phase).toBe("outcome_unknown");
+   const retried=await fixture.act({type:"continue",selectionId:choice.selectionId});expect(retried.registrations[0]?.attempt).toBe("outcome_unknown");expect(retried.worker.starts).toBe(1);expect(starts).toBe(1);
   }finally{await fixture.close();await catalog.close();}
  }finally{await rm(home,{recursive:true,force:true});}
 },20_000);
