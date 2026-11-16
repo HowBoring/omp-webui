@@ -19,6 +19,20 @@ SO_PEERPIDFD, retained ancestor pidfds and revalidated ordinary ancestry. PID/en
 Missing/changing chains fail closed. Helper uncertainty globally fences new shared registrations and maintenance;
 orphan reparenting never promotes a private descendant to external. No recovery kills numeric guessed PIDs.
 
+Authentication is asymmetric. The server obtains actual client/helper SO_PEERPIDFD identities. Ordinary Bun clients,
+including worker realms, use public UDS APIs and verify Ed25519 replies against the operator's independently pinned
+public key in an outside-release approval record; clients do not load FFI or claim a retained server pidfd. Each reply
+binds a fresh nonce, exact request SHA256, protocol/operation/request ID, installation ID, approved closure/schema,
+server generation and response. Invalid/missing signatures or a replacement generation fail closed, without trust
+enrollment, fallback or automatic keys. The dispatcher private key stays in protected local dispatcher data, never
+browser state/logs or provider credentials. Signature authenticity does not prove actual global provenance, mapped
+bytes, lifecycle or admission; those remain independent gates. No operator record currently exists.
+
+The helper's bounded 512-byte C wire remains separate. Actual helper REGISTER must match the server-observed kernel
+peer, direct Host parent and approved helper binary. Host prepare/status travels over the authenticated client channel;
+Host must verify registered status before START. A fake endpoint's minimal helper ACK cannot by itself release Native.
+The held helper socket remains bound through COMPLETE after actual extinction and server acknowledgement.
+
 Private Native rejects named shared service administration, browser/relay, IDA, external text-prediction control and
 external LSP mux before factory/token/mkdir/request/completion effects, with typed `shared_service_unsupported`.
 Preserve generic bash, private background execution and Native parent-owned subagents. Private LSP and local blob

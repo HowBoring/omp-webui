@@ -8,6 +8,7 @@ if (!source || process.argv.length !== 3) throw new Error("USAGE: validate-owner
 const modulePath = resolve(source, "packages/coding-agent/src/launch/ownership");
 const { decodeOwnershipRequest } = await import(pathToFileURL(resolve(modulePath, "protocol.ts")).href);
 const { decodeHelperRequest, encodeHelperSuccess } = await import(pathToFileURL(resolve(modulePath, "helper-protocol.ts")).href);
+const { decodeOwnershipChallenge } = await import(pathToFileURL(resolve(modulePath, "authentication.ts")).href);
 const schema: unknown = await Bun.file(resolve(modulePath, "wire.schema.json")).json();
 const ajv = new Ajv({ allErrors: true, strict: true });
 if (typeof schema !== "object" || schema === null || Array.isArray(schema)) throw new Error("OWNERSHIP_SCHEMA_OBJECT");
@@ -16,6 +17,8 @@ const validate = ajv.compile({ $ref: "ownership#/definitions/request" });
 const validateResponse = ajv.compile({ $ref: "ownership#/definitions/response" });
 const validateHelper = ajv.compile({ $ref: "ownership#/definitions/helperRequest" });
 const validateHelperResponse = ajv.compile({ $ref: "ownership#/definitions/helperResponse" });
+const validateAuthenticatedRequest = ajv.compile({ $ref: "ownership#/definitions/authenticatedRequest" });
+const validateAuthenticatedResponse = ajv.compile({ $ref: "ownership#/definitions/authenticatedResponse" });
 const base = { version: "omp-execution-ownership/1", id: "request-00000001",
   identity: { closure: "a".repeat(64), schema: "b".repeat(64) } };
 const cases: { operation: unknown; expected: boolean }[] = [
@@ -70,6 +73,37 @@ for (const [index, item] of helperCases.entries()) {
 if (!validateHelperResponse(JSON.parse(encodeHelperSuccess(decodeHelperRequest(JSON.stringify(helper), helper.installation))))) {
   throw new Error("OWNERSHIP_HELPER_RESPONSE_SCHEMA");
 }
+const authenticated = { version: "omp-execution-auth/1", installation: "c".repeat(64), nonce: "d".repeat(64),
+  request: JSON.stringify({ ...base, operation: { op: "classify" } }) };
+const authenticationCases = [
+  { value: authenticated, expected: true },
+  { value: { ...authenticated, version: "legacy" }, expected: false },
+  { value: { ...authenticated, nonce: "short" }, expected: false },
+  { value: { ...authenticated, installation: "environment-only" }, expected: false },
+  { value: { ...authenticated, pid: 123 }, expected: false },
+];
+for (const [index, item] of authenticationCases.entries()) {
+  let decoded = true;
+  try { await decodeOwnershipChallenge(JSON.stringify(item.value), { installation: authenticated.installation, identity: base.identity }); }
+  catch { decoded = false; }
+  if (Boolean(validateAuthenticatedRequest(item.value)) !== item.expected || decoded !== item.expected) {
+    throw new Error(`OWNERSHIP_AUTHENTICATION_SCHEMA_CASE_${index}`);
+  }
+}
+const authenticatedResponse = { version: authenticated.version, installation: authenticated.installation,
+  nonce: authenticated.nonce, requestSha256: "e".repeat(64), requestId: base.id, operation: "classify",
+  identity: base.identity, serverGeneration: "f".repeat(64), response: JSON.stringify(success), signature: "A".repeat(86) };
+const authenticatedResponseCases = [
+  { value: authenticatedResponse, expected: true },
+  { value: { ...authenticatedResponse, signature: "missing" }, expected: false },
+  { value: { ...authenticatedResponse, publicKey: "self-enrollment" }, expected: false },
+  { value: { ...authenticatedResponse, operation: "arbitrary-exec" }, expected: false },
+];
+for (const [index, item] of authenticatedResponseCases.entries()) {
+  if (Boolean(validateAuthenticatedResponse(item.value)) !== item.expected) throw new Error(`OWNERSHIP_AUTHENTICATED_RESPONSE_SCHEMA_CASE_${index}`);
+}
 process.stdout.write(JSON.stringify({ scope: "source-only-public-module-schema", requestCases: cases.length,
-  responseCases: responseCases.length, helperCases: helperCases.length + 1, passed: cases.length + responseCases.length + helperCases.length + 1,
+  responseCases: responseCases.length, helperCases: helperCases.length + 1,
+  authenticationCases: authenticationCases.length + authenticatedResponseCases.length,
+  passed: cases.length + responseCases.length + helperCases.length + 1 + authenticationCases.length + authenticatedResponseCases.length,
   kernel: "NOT RUN", nativeRuntime: "NOT RUN", actualGlobal: "BLOCKED" }) + "\n");

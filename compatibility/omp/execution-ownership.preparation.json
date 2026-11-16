@@ -30,11 +30,11 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "fac600809a89314621261f950adb5b24e9e8ce34e6083d58a1bb5632716b508d"
+    "sha256": "cce7ed6a1e5d88280da6a8698d0ab173c8d291f9f6b5097f657e95a1d0ac2b6c"
   },
-  "preparedTree": "a2d6f32d2978d31be1c859d6c3c2183dc50b379a",
-  "preparedSourceSha256": "ef1b0b3ccdec279613b6396eb3955aa0daf59a6fe76e863537d3225ca1389868",
-  "ownershipWireSchemaSha256": "edc849e959791fa7116be5668d6fffee45b0f8f642b3d3f872fb22510aca9135",
+  "preparedTree": "e6d43ce4adc8de8caee6c511df514e12cdcbc899",
+  "preparedSourceSha256": "8051f1f68d451274c53d11b953c7dc5e673051da1d3b9a3313786cf20d787d05",
+  "ownershipWireSchemaSha256": "8eb802c1c5f040364549d8f7fc398bd4e62f21d0867188f2d45e0f4826f13d38",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
   "nativeBackend": "NOT IMPLEMENTED",
@@ -44,5 +44,10 @@
   "actualGlobal": "BLOCKED",
   "privateAdmission": "BLOCKED",
   "processContext": "SOURCE_ONLY_BOOTSTRAP_UNAVAILABLE",
-  "durableFenceAdapter": "SOURCE_AND_SYNTHETIC_FS_ONLY"
+  "durableFenceAdapter": "SOURCE_AND_SYNTHETIC_FS_ONLY",
+  "signedReplyAuthentication": "SOURCE_ONLY_PINNED_OPERATOR_RECORD_ABSENT",
+  "contextBrokerQueue": {
+    "outstanding": 64,
+    "totalDeadlineMs": 10000
+  }
 }
