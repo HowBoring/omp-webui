@@ -10,7 +10,7 @@ setup. The build verifies the DSH source checkout's exact pin and absence of
 tracked changes, compiles public export-map source entrypoints into one realm,
 and writes ignored `vendor/dsh-diagnostics/{index.html,client.js,manifest.json}`.
 The manifest records the lock, actual consumed source bytes, contract and served
-asset hashes. This shell has no DSH source patch. Upstream source and built
+asset hashes, retaining each package/version/relative input file and its digest. This shell has no DSH source patch. Upstream source and built
 assets are never committed. Resolve all three DSH foundation packages and Cordis
 from the same fixed source checkout; do not substitute npm's different latest.
 
@@ -25,6 +25,8 @@ identity. Unknown fields, paths in codes and unbounded strings are rejected.
 The Client uses actual Connection HTTP envelopes and Gateway mux `$events`.
 Only an established Connection generation can publish preflight. Generation loss
 clears prior identity, and a late report cannot republish after loss or disposal.
+Page suspension clears rendered identity; a persisted-page restoration reloads
+the shell and obtains a fresh Connection and preflight.
 The page renders safe static codes for transport/module/schema faults and never
 renders Remote error messages or details. If JavaScript fails, the static HTML
 continues to show blocked asset status.
