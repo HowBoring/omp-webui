@@ -83,8 +83,8 @@
     },
     {
       "path": "tests/catalog/fixture.ts",
-      "bytes": 5410,
-      "sha256": "c7739dbddda11f4ccb936781bb6a1d1e174790cacab7ea47f54d8c4b8ab7f4ab"
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
     },
     {
       "path": "tests/submissions/fixture.ts",
@@ -140,8 +140,8 @@
       "result": "PASS; Host strict types, no runtime execution"
     },
     {
-      "command": "pinned-bun build --no-env-file tests/attachments/public-rpc.test.ts --target=bun --packages=external --external='*' --outdir=/tmp/ticket-38-runtime-prep-20261116T232323Z/syntax",
-      "result": "PASS; emitted test syntax only, imports external, no evaluation"
+      "command": "pinned-bun build --no-env-file tests/attachments/public-rpc.test.ts tests/catalog/fixture.ts --target=bun --packages=external --external='*' --outdir=/tmp/ticket-38-runtime-prep-guard-amendment/syntax",
+      "result": "PASS; emitted both source files with imports external; no evaluation"
     },
     {
       "command": "git diff --check",
@@ -150,16 +150,22 @@
     {
       "command": "Python hashlib/byte comparison of prior matched provenance and snapshot Native index/diffs",
       "result": "PASS; 290 prior records and frozen Native snapshot unchanged"
+    },
+    {
+      "command": "git diff f40ce63d07b3c4131d9f5d3c6fda2f9c45f3192e..5655bd7447ffadceef85c25fa42d9dd86dacc938 -- tests/catalog/fixture.ts; exact git apply",
+      "result": "PASS; reused Root-approved guarded helper delta without Native/build changes"
     }
   ],
   "plannedRuntime": {
-    "status": "NOT RUN; requires Root explicit single actual runtime window",
+    "status": "NOT RUN; first Root window stopped at read-only readiness gap before actual execution. Guard fixed source-only; requires a fresh Root window.",
     "argv": [
       "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
       "test",
       "--no-env-file",
       "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
-      "tests/attachments/public-rpc.test.ts"
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public PNG and text commit exact indexed parts with matching query and history links$"
     ],
     "environment": {
       "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
@@ -171,12 +177,34 @@
       "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
     },
     "perCaseDeadlineMs": 45000,
-    "scope": "Only these two cases. Existing child synthetic HOME, allowlisted env and preimport no-provider guard. No Host/browser/socket probe/fault shim/C/private Session imports or session-file parsing.",
+    "scope": "Next proposed window: ONLY first named success case selected with anchored -t pattern. Second negative case requires its separate Root GO. Existing synthetic child HOME/allowlists and preimport guards include title-serializer authoring child. No Host/browser/socket probe/fault shim/C/private Session imports or session-file parsing.",
     "cleanup": "Each case closes and awaits its owned strictWorker, removes its synthetic child home; top launcher must inspect network audit and clean only its fresh top profile."
   },
   "limitations": [
     "Both new runtime cases NOT RUN. Types/syntax are not runtime proof.",
-    "No Native source, patches, build artifacts, dependencies, other worktrees, global installation or product data changed.",
+    "Only test fixture helper and runtime-readiness evidence changed in this amendment. Native source, patches, build artifacts, dependencies, other worktrees, global installation and product data unchanged.",
     "All remaining selected image/document formats, saved-history restart/copy/branch, transforms, budgets, fault/persistence, actual browser/DSH consent and final matched1-10 evidence remain mandatory and open."
-  ]
+  ],
+  "previousReadinessSha256": "0636b4d3137abfee3ce573e3db5e52c7ef99e770d684c0ddf5b9666f4e68a802",
+  "guardAmendment": {
+    "status": "SOURCE ONLY; no authoring child or runtime executed",
+    "sourceHostCheckpoint": "c19d2db77bc6183aab6316e796bbe949da5b1004",
+    "canonicalHelperDelta": {
+      "base": "f40ce63d07b3c4131d9f5d3c6fda2f9c45f3192e",
+      "head": "5655bd7447ffadceef85c25fa42d9dd86dacc938",
+      "path": "tests/catalog/fixture.ts"
+    },
+    "snapshot": "/tmp/ticket-38-runtime-prep-guard-amendment",
+    "snapshotIdentity": {
+      "path": "/tmp/ticket-38-runtime-prep-guard-amendment/identities.json",
+      "bytes": 236,
+      "sha256": "583b403460dc4a73afc0b409d3936285391481e78b0a46172ac3a37d9556d597"
+    },
+    "behavior": "nativeFixture passes its synthetic home to nativeTitleSlots; serializer Bun child preloads existing no-provider.ts before pure Native import and sets explicit HOME, TMPDIR and disabled transpiler cache. Existing callers retain default /tmp.",
+    "fixture": {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    }
+  }
 }
