@@ -1716,7 +1716,9 @@ export interface UIReplyResult {
 	status: "answered" | "cancelled" | "expired" | "invalid" | "stale";
 }
 
-export type HistoryScope = "tree" | "active" | "running";
+export type HistoryHandoff = "current" | "live";
+
+export type HistoryScope = "tree" | "active" | "running" | "live";
 
 export interface HistoryContent {
 	cursor: string;
@@ -1738,12 +1740,43 @@ export interface HistoryContentPage {
 	nextCursor?: string;
 }
 
+export interface HistoryLiveIdentity {
+	workerId: string;
+	messageId: string;
+	sourceId: string;
+	sessionId: string;
+	contextId: string;
+	branchLeafId: string | null;
+	toolOwnerMessageId?: string;
+}
+
+export interface HistorySettlement {
+	status: "observed" | "no_entry" | "failed";
+	durability: "not_attested";
+	entryId?: string;
+	reason?: string;
+}
+
+export interface HistoryNativeChange {
+	kind: string;
+	revision: number;
+	contextRevision: number;
+	sessionId: string;
+	leafId: string | null;
+	entryId?: string;
+}
+
 export interface HistoryItem {
 	id: string;
 	parentId: string | null;
 	kind: string;
 	active: boolean;
 	text: string;
+	provider?: string;
+	model?: string;
+	live?: HistoryLiveIdentity;
+	settlement?: HistorySettlement;
+	livePhase?: "streaming" | "ended";
 	toolCallId?: string;
 	toolName?: string;
 	isError?: boolean;
@@ -1772,6 +1805,8 @@ export interface HistoryCut {
 	workerId: string;
 	contextId: string;
 	contentRevision: string;
+	nativeRevision: number;
+	retainedRevision: string;
 	leafId: string | null;
 	observationSeq: number;
 	catalogBinding?: HistorySourceBinding;
@@ -1803,10 +1838,12 @@ export interface HistoryCursors {
 	tree: string;
 	active: string;
 	running: string;
+	live: string;
 }
 
 export interface HistoryOpen {
 	version: "coherent-history-v1";
+	handoff: "current" | "live";
 	snapshot: string;
 	cursor: string;
 	scope: HistoryScope;
@@ -1836,6 +1873,10 @@ export interface HistoryPage {
 export interface HistoryChange {
 	seq: number;
 	kind: string;
+	source?: HistoryNativeChange;
+	live?: HistoryLiveIdentity;
+	item?: HistoryItem;
+	settlement?: HistorySettlement;
 }
 
 export interface HistoryPoll {
@@ -1868,6 +1909,7 @@ export interface DescribeSessionParams {
 
 export interface HistorySnapshotOpenParams {
 	scope: HistoryScope;
+	handoff?: HistoryHandoff;
 }
 
 export interface HistorySnapshotPageParams {

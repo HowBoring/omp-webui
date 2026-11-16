@@ -1,0 +1,420 @@
+{
+  "status": "REVIEW_FIX_CANDIDATE",
+  "issue": 35,
+  "date": "2026-11-16",
+  "integration": "2842168abe27d733c353c6fe14153f0e660f1d8a",
+  "previousEvidence": "live-checkpoint.json",
+  "previousNativeSourceSha256": "4970972e7bfdae73dafcd133b83790b1ced71b3bfc4e375b637ac4565e468726",
+  "build": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
+    "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
+    "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+  },
+  "orderedPatches": [
+    {
+      "path": "compatibility/omp/0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "path": "compatibility/omp/0002-readonly-catalog.patch",
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+    },
+    {
+      "path": "compatibility/omp/0003-explicit-interactions.patch",
+      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+    },
+    {
+      "path": "compatibility/omp/0004-coherent-history.patch",
+      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+    },
+    {
+      "path": "compatibility/omp/0006-live-settlement.patch",
+      "sha256": "537a90d0ecb91d554977f23e1562909d4e2b54f6a90d1b9dc802bd998d6831ea"
+    }
+  ],
+  "change": "Single pure nativeHistoryContextId helper shared by lifecycle stamping and coherent capture; same captured inputs and ordered JSON envelope.",
+  "schemaUnchanged": true,
+  "generatedOutputs": "Only packages/contracts/generated/identity.ts changes; source and aggregate patch digests updated.",
+  "dshSource": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+    "mode": "candidate",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      }
+    ],
+    "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+  },
+  "browserAssets": {
+    "manifestSha256": "5d9374b0011001263f6997287c93af9342ddcbac8666ea7071cde0288468075d",
+    "sourceInputs": 667,
+    "sourceSha256": "effb82d0a8634a35ef766413d8712b79e1d792c2e98da48d2c06a28c17354090",
+    "contractSha256": "57c042eb0ca9535294c98ebbadb07cca3a39274ab6759879948d9464fdfa7602",
+    "assets": {
+      "client.js": "53a0518c77949bc3edd71276d2a5bfa46481f653055d185bb7865665f4985481",
+      "index.html": "67eefc16316f9cb6c3399a7ead11b516fdeb3e1d2c8a4d32071d1d1d125e6bf1"
+    }
+  },
+  "browserAssetsUnchanged": true,
+  "browser": [
+    {
+      "status": "PASS",
+      "mode": "stable",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 14,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "stable",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "b37aa729764ed8b1c95471e483ab855fd1a61316ac2b2bc8c089f6c268853219",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "first-materialization",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 11,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "first-materialization",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 1,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "5deaf8c549f2244a89809945bf32f76e150522e4ab196fa53442d75c8f83b3fe",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "active-opening",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 9,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "active-opening",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "4a03156424ada131985b26eb852adef3e8ddd5b45dc28287db553067610ec4bd",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "refusal",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 11,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "refusal",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "347276c0225ba8c87b74268eb34577115a2751fce58c2b8ff4c776b5a45ed89c",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "empty-error",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 9,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "empty-error",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "d55d6c34571ae7faa7edf1b379757443f5572c80022e838a7c117f7f05151052",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "rewind",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 14,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "rewind",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 4,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "8d38907cba7a2a19ff59ba000d5e73014c909365800ccc6b59e6b37ca997a48a",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    }
+  ],
+  "checks": {
+    "cleanOrderedNativeBuild": "PASS (0001\u20130004 + 0006 only; regenerated 0006 against exact prior tree)",
+    "generatedCheck": "PASS; schema and validators unchanged",
+    "authoredNativeTypecheck": "PASS (8 authored modules; unrelated upstream diagnostics excluded)",
+    "focusedRun": {
+      "tests": 64,
+      "files": 10,
+      "passed": 63,
+      "failed": 1,
+      "assertions": 449,
+      "seconds": 111.35,
+      "failure": "Existing empty-overflow test handled expected invalidation on initial poll but omitted final after-settled poll"
+    },
+    "correctedSettlementRerun": {
+      "passed": 6,
+      "failed": 0,
+      "assertions": 21,
+      "seconds": 20.95,
+      "change": "Both polls use existing specific empty-overflow/live_projection_invalidated handling; other failures and final-invalid-state assertion preserved"
+    },
+    "nativeCoverage": "19 live native and 19 coherent history native cases PASS; 9 actual public native RPC cases PASS in focused run",
+    "hostTypecheck": "PASS after test correction",
+    "hostBuild": "PASS",
+    "browser": "6 fresh actual Chromium scenarios PASS on this native tuple",
+    "full194TestSuite": "NOT RERUN; prior full run belongs to previousNativeSourceSha256; final composed merger gate remains separate",
+    "fullDshPackageBuild": "NOT RERUN; DSH c0 source and narrow browser assets unchanged; live fixture rebuilt from 667 consumed inputs"
+  },
+  "baselineFailure": {
+    "passed": 37,
+    "failed": 1,
+    "assertions": 338,
+    "reason": "Default sandbox denied native OS file lock (EPERM); network-enabled rerun passes native case"
+  },
+  "retainedNetworkTraces": [
+    {
+      "file": "vendor/live-evidence/omp-live-cli-9EPRHL.network.strace",
+      "sha256": "4a03156424ada131985b26eb852adef3e8ddd5b45dc28287db553067610ec4bd"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-Qp0qwV.network.strace",
+      "sha256": "5deaf8c549f2244a89809945bf32f76e150522e4ab196fa53442d75c8f83b3fe"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-UxaquT.network.strace",
+      "sha256": "b37aa729764ed8b1c95471e483ab855fd1a61316ac2b2bc8c089f6c268853219"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-faZOnv.network.strace",
+      "sha256": "8d38907cba7a2a19ff59ba000d5e73014c909365800ccc6b59e6b37ca997a48a"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-jq5h66.network.strace",
+      "sha256": "d55d6c34571ae7faa7edf1b379757443f5572c80022e838a7c117f7f05151052"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-y53cwL.network.strace",
+      "sha256": "347276c0225ba8c87b74268eb34577115a2751fce58c2b8ff4c776b5a45ed89c"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "file": "vendor/baseline-native.log",
+      "sha256": "ce923bfb5f9824e06d3b5d07fd5b78a40f864c6f49ec204a0dd13f1633d3c8a1"
+    },
+    {
+      "file": "vendor/refactor-build.log",
+      "sha256": "c469fb26c9b208805efbb45bcd144ba7e2f66b7f6b9ec9796bbe5b7c575b0f30"
+    },
+    {
+      "file": "vendor/refactor-generated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "vendor/refactor-native-types.log",
+      "sha256": "516f528bf6fc073c9a636e6d4f73552615f9210f16f83f1db286da1687fa62e3"
+    },
+    {
+      "file": "vendor/refactor-tests.log",
+      "sha256": "24ebe422f908884eca481a2e7c70e74138068b6053f2e2149aaaee257fcd3378"
+    },
+    {
+      "file": "vendor/refactor-overflow-rerun.log",
+      "sha256": "8c68dff241178b12eb29a21882dbd57f9dacedabad0197366de5de88731f9a3a"
+    },
+    {
+      "file": "vendor/refactor-settlement-green.log",
+      "sha256": "fc6a14384c5541e2eac4e99f6c3ed95641edd80cf3971da8bcf88c51921289db"
+    },
+    {
+      "file": "vendor/refactor-host-types-final.log",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    {
+      "file": "vendor/refactor-host-build.log",
+      "sha256": "385b6cc1ce18432fd296da601c2e5ea4ceb6c5e035d9470c8eac4bc4dd65f854"
+    },
+    {
+      "file": "vendor/refactor-browser-build.log",
+      "sha256": "a87306b1bb614a9ef4135b604c8057d95f8a55ce0b65b9e92417538c052f6341"
+    },
+    {
+      "file": "vendor/refactor-browser.log",
+      "sha256": "750efce685ff936050d0dce0b778a3ba141e75adfaa2983d489fef7b2f4a7d59"
+    },
+    {
+      "file": "vendor/refactor-generated-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "vendor/live-evidence/active-opening.png",
+      "sha256": "202235495b289aad1c6768d1ad063795339c4caf8cb8fc93ab88ce8895e5bf0c"
+    },
+    {
+      "file": "vendor/live-evidence/empty-error.png",
+      "sha256": "1ff08ff9f3b994f0b4fd2da92365b8a5b8df32e9b6a0e7fdf2aad1144774c181"
+    },
+    {
+      "file": "vendor/live-evidence/first-materialization.png",
+      "sha256": "adaf75b3ea8c1dfbea6c0fb2311d798bccbb2bd5f3d90351159ad8f5e9f67681"
+    },
+    {
+      "file": "vendor/live-evidence/refusal.png",
+      "sha256": "7d73a626eea61e4129f1e2952f9ecfbf73376fd9bdd34cdb82bc1a72ea360e08"
+    },
+    {
+      "file": "vendor/live-evidence/rewind.png",
+      "sha256": "fb13cd7c94eb37cd6fc200ffbdcbc4adfab9dfa0af7afa468377b3121c73fdb2"
+    },
+    {
+      "file": "vendor/live-evidence/stable.png",
+      "sha256": "42f5d67f69eeb4a8eb09a816d5d0b6c25061110c354888c5b315a01659b40a07"
+    }
+  ],
+  "scope": {
+    "provider": "controlled in-process; never real AI",
+    "durability": "not_attested",
+    "productSessionAdmission": "blocked",
+    "windows": "DEFERRED by owner",
+    "native0005": "Not included; #32 frozen checkpoint remains independent",
+    "laterGates": [
+      "#36 durable submission/provenance",
+      "#39/#40 multi-holder and integrated drafts/attachments/Interactions",
+      "#41 full 0005+0006 composition"
+    ]
+  },
+  "cleanup": {
+    "browserProfilesRemoved": 6,
+    "ownedBunProcessesRemaining": 0
+  }
+}
