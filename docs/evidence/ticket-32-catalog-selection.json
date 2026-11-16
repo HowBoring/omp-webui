@@ -1,0 +1,118 @@
+{
+  "kind": "ticket-32-test-helper-catalog-selection",
+  "integrationBase": "c3c6395426b00fc2e1f205637cefab3c9c47e079",
+  "scope": "isolated synthetic Linux public Native catalog and strict continuation; test helper only",
+  "seams": [
+    "actual public catalog RPC via CatalogTransport",
+    "selectedDescriptor fixture helper (no mocks)",
+    "actual typed strict continuation via StrictTransport"
+  ],
+  "fixture": {
+    "nativeSessions": 1,
+    "nativeSessionId": "native-0000",
+    "emptyDirectories": 600,
+    "observedScanningExamined": [
+      256,
+      512
+    ],
+    "sameOpaqueScanCursor": true
+  },
+  "bounds": {
+    "totalCatalogSelectionMs": 3000,
+    "maximumPages": 64,
+    "drain": "existing bounded shared transport close",
+    "repeatedScanCursors": "accepted unchanged",
+    "terminalEmptyComplete": "STRICT_FIXTURE_DESCRIPTOR_MISSING",
+    "emptyFailure": "actual catalog failure code propagated",
+    "firstItemSelection": "preserved, including valid item on partial page"
+  },
+  "checks": {
+    "initialRegression": {
+      "result": "EXPECTED RED",
+      "error": "STRICT_FIXTURE_DESCRIPTOR_MISSING",
+      "pass": 0,
+      "fail": 1,
+      "assertions": 4
+    },
+    "mainRegressionGreen": {
+      "result": "PASS",
+      "pass": 1,
+      "fail": 0,
+      "assertions": 9
+    },
+    "failureMappingRed": {
+      "result": "EXPECTED RED",
+      "expected": "INVALID_METADATA",
+      "observed": "STRICT_FIXTURE_CATALOG_STALLED",
+      "pass": 1,
+      "fail": 1
+    },
+    "focusedFinal": {
+      "command": "bun test tests/continuation/catalog-selection.test.ts tests/continuation/transport.test.ts",
+      "result": "PASS",
+      "pass": 5,
+      "fail": 0,
+      "assertions": 22,
+      "files": 2,
+      "durationSeconds": 8.56
+    },
+    "typecheck": {
+      "command": "bun node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ESNext --module Preserve --moduleResolution Bundler --strict --skipLibCheck --noUncheckedIndexedAccess --exactOptionalPropertyTypes --types bun --allowImportingTsExtensions tests/continuation/worker.ts tests/continuation/catalog-selection.test.ts",
+      "result": "PASS"
+    }
+  },
+  "immutableNative": {
+    "sourceFiles": 10639,
+    "sourceInventorySha256": "0c0402cb66d93354b3aa275a3ef68066833fd557b178a43bf5760d9eddba1bd8",
+    "sourceUnchanged": true,
+    "pairedAssetsUnchanged": true,
+    "remainingOwnedCandidatePids": [],
+    "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+    "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+    "assets": {
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate/cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate/rpc-wire.schema.json": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate/chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate/omp": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate/installation.json": "a2511780eb4d064f5deb88167864a7ad3bb72ba7149fbf9848346d61133f212f",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-runtime/package.json": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d",
+      "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-runtime/bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a"
+    }
+  },
+  "environment": {
+    "bun": "1.4.4 (38afee6c8)",
+    "python": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "pythonImports": [
+      "pexpect",
+      "playwright"
+    ],
+    "rootReact": "18.3.1",
+    "guard": "no-provider.ts preloaded before Native imports",
+    "environment": "allowlisted; synthetic HOME/cwd; no provider dispatch authorized",
+    "networkSandbox": "enabled for Bun stdio/process tests"
+  },
+  "cleanup": {
+    "publicClients": "awaited close in finally; observed explicit clients unforced",
+    "syntheticDirectories": "removed in finally on both red and green",
+    "ownedNativeCandidateProcessesRemaining": 0,
+    "sourceRuntime": "readonly links to retained exact paired source/candidate/runtime; no rebuild/generator run"
+  },
+  "logSha256": {
+    "red": "367017074f09094ab4a17fab059fcb3f15bee69190f8522c3cbba702a6a610d3",
+    "green": "0ad14a08f2cd9f9c66dfde6f725dbacd68bee43f27f75bfae8058a716c97782a",
+    "failure-red": "4612570eb48843c12027873f3d01815b1772050e5f7e533d96dd2f965f6bedee",
+    "final-tests": "321ba3ecffddf9286d592820a1806c7db31653cc8d72bb7af02e597cd2369ed7",
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remainingGates": [
+    "fresh independent review of this narrow diff",
+    "whole integration zero-failure suite before #32 closure"
+  ],
+  "notRun": [
+    "full suite",
+    "browser",
+    "Native TUI",
+    "provider inference",
+    "Windows/WSL"
+  ]
+}
