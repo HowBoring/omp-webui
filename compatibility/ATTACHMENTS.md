@@ -45,3 +45,15 @@ Steer/follow-up/abort-and-prompt refuse before receipt claim and durable reserva
 handler routes that cannot safely consume new attachments refuse before their side effects. Unknown slash text retains
 Native routing, and actual skill/file-command/prompt-template expansion paths carry explicit input/prepared object origins.
 The post-Enter public Remote/provider/slot integration and its failure/reconnect coverage remain under implementation.
+
+
+Latest source/build checkpoint: exact common7 `a6408bb`, navigation8 `e9573a3`, and regenerated own9
+compose in ordered1–9. The [matched build record](evidence/attachment-a640-e957-matched-build.json)
+records the clean source checkpoint, native source/patch/schema identities, declared source inputs and
+actual CLI/chunk/generated artifact hashes. Clean ordered preparation, genuine build/generation and
+`--check`, authored attachment/navigation/submission TypeScript and Host TypeScript passed. The inspected
+pure suite passed51 tests/160 assertions across11 files. These checks execute no Native worker or provider.
+
+Runtime for this tuple is **NOT RUN**. Format/converter tests, public Native history/provider/persistence,
+transform and budget faults, actual DSH exact serialization/browser workflow, full suite and independent
+review remain open. Prior tuple evidence remains historical. Whole38 and product admission stay incomplete.
