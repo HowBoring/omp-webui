@@ -18,10 +18,10 @@ test("empty scanning pages with a repeated cursor still select and strictly cont
       env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" }, timeoutMs: 3000 });
     try {
       const first = await catalog.catalog.page();
-      expect(first).toMatchObject({ status: "scanning", items: [], failures: [], examined: 256 });
+      expect(first).toMatchObject({ status: "scanning", items: [], failures: [] });
       expect(first.nextCursor).toBeDefined();
       const second = await catalog.catalog.page({ cursor: first.nextCursor! });
-      expect(second).toMatchObject({ status: "scanning", items: [], failures: [], examined: 512,
+      expect(second).toMatchObject({ status: "scanning", items: [], failures: [],
         snapshot: first.snapshot, nextCursor: first.nextCursor });
     } finally { expect((await catalog.close()).forced).toBe(false); }
     const selected = await selectedDescriptor(home);

@@ -15,7 +15,8 @@
       256,
       512
     ],
-    "sameOpaqueScanCursor": true
+    "sameOpaqueScanCursor": true,
+    "observedScanningExaminedScope": "Historical observations from the original red/green runs; not contract assertions. The 256-entry ceiling and 250 ms scan window can stop a scan independently."
   },
   "bounds": {
     "totalCatalogSelectionMs": 3000,
@@ -54,11 +55,22 @@
       "fail": 0,
       "assertions": 22,
       "files": 2,
-      "durationSeconds": 8.56
+      "durationSeconds": 8.56,
+      "scope": "Historical focused run before scan-window assertion refinement (commit 52cdb278afb603f83b091704579d567c2b8513cc)"
     },
     "typecheck": {
       "command": "bun node_modules/typescript/bin/tsc --ignoreConfig --noEmit --target ESNext --module Preserve --moduleResolution Bundler --strict --skipLibCheck --noUncheckedIndexedAccess --exactOptionalPropertyTypes --types bun --allowImportingTsExtensions tests/continuation/worker.ts tests/continuation/catalog-selection.test.ts",
       "result": "PASS"
+    },
+    "scanWindowRefinement": {
+      "change": "Removed exact examined=256/512 assertions; retained two empty scanning pages, same snapshot/repeated opaque cursor, and strict continuation of the selected native instance. Helper, product, Native source, schema and budgets unchanged.",
+      "command": "bun test tests/continuation/catalog-selection.test.ts tests/continuation/transport.test.ts",
+      "result": "PASS",
+      "pass": 5,
+      "fail": 0,
+      "assertions": 22,
+      "files": 2,
+      "durationSeconds": 10.09
     }
   },
   "immutableNative": {
@@ -102,7 +114,8 @@
     "green": "0ad14a08f2cd9f9c66dfde6f725dbacd68bee43f27f75bfae8058a716c97782a",
     "failure-red": "4612570eb48843c12027873f3d01815b1772050e5f7e533d96dd2f965f6bedee",
     "final-tests": "321ba3ecffddf9286d592820a1806c7db31653cc8d72bb7af02e597cd2369ed7",
-    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    "types": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scan-window-tests": "5a3b956b5a0558ec8482ec442ea87f2882f0fe37f87de9ae270362b8e8dae595"
   },
   "remainingGates": [
     "fresh independent review of this narrow diff",
