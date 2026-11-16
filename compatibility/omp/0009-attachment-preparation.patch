@@ -1,0 +1,635 @@
+diff --git a/packages/coding-agent/src/attachments/deny-network.ts b/packages/coding-agent/src/attachments/deny-network.ts
+new file mode 100644
+index 0000000000..811404f310
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/deny-network.ts
+@@ -0,0 +1,24 @@
++/** Preparation helper only. Installed before native converter imports; it owns no Agent or provider credentials. */
++import http from "node:http";
++import https from "node:https";
++import http2 from "node:http2";
++import net from "node:net";
++import tls from "node:tls";
++import dgram from "node:dgram";
++import { syncBuiltinESMExports } from "node:module";
++
++const deny = (): never => { throw new Error("ATTACHMENT_NETWORK_FORBIDDEN"); };
++globalThis.fetch = Object.assign(deny, { preconnect: deny });
++globalThis.WebSocket = class { constructor() { deny(); } } as unknown as typeof WebSocket;
++http.request = deny;
++http.get = deny;
++https.request = deny;
++https.get = deny;
++http2.connect = deny;
++net.Socket.prototype.connect = deny;
++net.connect = deny;
++net.createConnection = deny;
++tls.connect = deny;
++dgram.createSocket = deny;
++Bun.connect = deny;
++syncBuiltinESMExports();
+diff --git a/packages/coding-agent/src/attachments/document.ts b/packages/coding-agent/src/attachments/document.ts
+new file mode 100644
+index 0000000000..feaa94b3f9
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/document.ts
+@@ -0,0 +1,53 @@
++import { openArchive } from "@oh-my-pi/pi-utils/ar";
++import { Markit } from "../markit/registry";
++import type { AttachmentInput, AttachmentPreparation } from "./prepare";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Check package identity and all declared expansion before an engine can allocate member content. */
++async function validatePackage(input: AttachmentInput): Promise<void> {
++	const archive = await openArchive({ bytes: input.bytes, format: "zip" }, { limits: {
++		maxEntries: ATTACHMENT_LIMITS.archiveEntries, maxInMemorySize: ATTACHMENT_LIMITS.archiveBytes,
++		maxMemberSize: ATTACHMENT_LIMITS.archiveMemberBytes, maxIndexSize: ATTACHMENT_LIMITS.archiveIndexBytes,
++		maxPathBytes: ATTACHMENT_LIMITS.archivePathBytes, maxLinkDepth: 0,
++	} });
++	let total = 0;
++	for (const entry of archive.indexEntries()) {
++		if (entry.storage?.type === "link") throw new Error("attachment_archive_link");
++		total += entry.size;
++		if (total > ATTACHMENT_LIMITS.archiveBytes) throw new Error("attachment_archive_budget");
++	}
++	const required: Record<string, string> = { docx: "word/document.xml", pptx: "ppt/presentation.xml",
++		xlsx: "xl/workbook.xml", epub: "META-INF/container.xml" };
++	if (!archive.getNode(required[input.format])) throw new Error("attachment_format_mismatch");
++	if (input.format !== "epub" && !archive.getNode("[Content_Types].xml")) throw new Error("attachment_format_mismatch");
++	if (input.format === "epub") {
++		const type = await archive.readFile("mimetype");
++		if (new TextDecoder("utf-8", { fatal: true }).decode(type.bytes) !== "application/epub+zip") {
++			throw new Error("attachment_format_mismatch");
++		}
++	}
++}
++
++/** Uses native converter engines without shared caches, image extraction or executable/user paths. */
++export async function convertAttachmentDocument(input: AttachmentInput): Promise<AttachmentPreparation> {
++	try {
++		if (input.format === "pdf") {
++			if (new TextDecoder().decode(input.bytes.subarray(0, 5)) !== "%PDF-") {
++				return { status: "failed", code: "attachment_format_mismatch" };
++			}
++		} else await validatePackage(input);
++		const result = await new Markit().convert(Buffer.from(input.bytes), { extension: `.${input.format}` });
++		if (!result.markdown.trim()) return { status: "failed", code: "attachment_conversion_empty" };
++		if (Buffer.byteLength(result.markdown) > ATTACHMENT_LIMITS.convertedBytes) {
++			return { status: "failed", code: "attachment_conversion_output_budget" };
++		}
++		const degradations = ["document_structure_changed"];
++		if (result.facts?.pagesNeedingOcr?.length) degradations.push("pdf_ocr_required");
++		if (result.facts?.hasEncodingIssues) degradations.push("pdf_encoding_issues");
++		if (result.facts?.emptyText) degradations.push("document_no_extractable_text");
++		if (result.facts?.omittedImages) degradations.push("document_images_omitted");
++		return { status: "ready", representation: { kind: "text", text: result.markdown }, degradations };
++	} catch {
++		return { status: "failed", code: "attachment_conversion_failed" };
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/isolated.ts b/packages/coding-agent/src/attachments/isolated.ts
+new file mode 100644
+index 0000000000..d016c77260
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/isolated.ts
+@@ -0,0 +1,64 @@
++import type { AttachmentInput, AttachmentPreparation } from "./prepare";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import * as os from "node:os";
++import { workerHostEntry } from "@oh-my-pi/pi-utils/worker-host";
++import { readStreamBounded } from "@oh-my-pi/pi-utils/stream";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++function isPreparation(value: unknown): value is AttachmentPreparation {
++	if (!value || typeof value !== "object") return false;
++	if ("status" in value && value.status === "failed") return "code" in value && typeof value.code === "string";
++	if (!("status" in value) || value.status !== "ready" || !("degradations" in value) ||
++		!Array.isArray(value.degradations) || !value.degradations.every(code => typeof code === "string") ||
++		!("representation" in value) || !value.representation || typeof value.representation !== "object") return false;
++	const representation = value.representation;
++	if (!("kind" in representation)) return false;
++	if (representation.kind === "text") return "text" in representation && typeof representation.text === "string";
++	return representation.kind === "image" && "data" in representation && typeof representation.data === "string" &&
++		"mimeType" in representation && typeof representation.mimeType === "string" &&
++		"width" in representation && typeof representation.width === "number" &&
++		"height" in representation && typeof representation.height === "number";
++}
++
++/** Runs conversion in an owned, cancellable process; cancelled inputs never produce a usable representation. */
++export async function prepareAttachmentIsolated(input: AttachmentInput, signal?: AbortSignal): Promise<AttachmentPreparation> {
++	if (signal?.aborted) return { status: "failed", code: "attachment_cancelled" };
++	if (process.platform !== "linux" || !await Bun.file("/usr/bin/prlimit").exists()) {
++		return { status: "failed", code: "attachment_converter_unavailable" };
++	}
++	const profile = await fs.mkdtemp(path.join(os.tmpdir(), "omp-preparation-"));
++	const host = workerHostEntry();
++	const argv = host ? [host, "__omp_worker_attachment", input.format]
++		: [new URL("./worker.ts", import.meta.url).pathname, input.format];
++	const child = Bun.spawn(["/usr/bin/prlimit", `--data=${ATTACHMENT_LIMITS.conversionDataBytes}`,
++		`--cpu=${ATTACHMENT_LIMITS.conversionCpuSeconds}`, "--core=0", "--fsize=0", "--", process.execPath,
++		"--no-env-file", ...argv], {
++		stdin: input.bytes, stdout: "pipe", stderr: "pipe", cwd: profile,
++		env: { PATH: "/usr/bin:/bin", HOME: profile, PI_CODING_AGENT_DIR: profile, TMPDIR: profile,
++			OMP_OFFLINE: "1", NO_COLOR: "1", TERM: "dumb" },
++	});
++	let timedOut = false;
++	const abort = (): void => { child.kill("SIGKILL"); };
++	const timer: Timer = setTimeout(() => { timedOut = true; abort(); }, ATTACHMENT_LIMITS.conversionMs);
++	signal?.addEventListener("abort", abort, { once: true });
++	try {
++		if (signal?.aborted) abort();
++		const [output] = await Promise.all([
++			readStreamBounded(child.stdout, ATTACHMENT_LIMITS.convertedBytes).catch(error => { abort(); throw error; }),
++			readStreamBounded(child.stderr, 16 * 1024).catch(error => { abort(); throw error; }),
++		]);
++		const code = await child.exited;
++		if (signal?.aborted) return { status: "failed", code: "attachment_cancelled" };
++		if (timedOut) return { status: "failed", code: "attachment_conversion_timeout" };
++		if (code !== 0) return { status: "failed", code: "attachment_converter_resource_failure" };
++		const result: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(output));
++		return isPreparation(result) ? result : { status: "failed", code: "attachment_converter_protocol" };
++	} catch {
++		return { status: "failed", code: signal?.aborted ? "attachment_cancelled" : "attachment_converter_resource_failure" };
++	} finally {
++		clearTimeout(timer); signal?.removeEventListener("abort", abort);
++		abort(); await child.exited;
++		await fs.rm(profile, { recursive: true, force: true });
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/limits.ts b/packages/coding-agent/src/attachments/limits.ts
+new file mode 100644
+index 0000000000..fbd6cea68d
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/limits.ts
+@@ -0,0 +1,15 @@
++/** Versioned independently from raw originals: all limits are refusal ceilings, never silent fallback. */
++export const ATTACHMENT_BUDGET_VERSION = "attachment-budgets-v1";
++export const ATTACHMENT_LIMITS = Object.freeze({
++	imageBytes: 10 * 1024 * 1024, documentBytes: 5 * 1024 * 1024,
++	objects: 8, originalBytes: 32 * 1024 * 1024,
++	imagePixels: 16_777_216, imageDimension: 16_384, decodedBytes: 64 * 1024 * 1024,
++	preparedImageBytes: 500 * 1024, preparedImageDimension: 1568,
++	textBytes: 50 * 1024, textLines: 3000, convertedBytes: 2 * 1024 * 1024,
++	archiveBytes: 32 * 1024 * 1024, archiveMemberBytes: 8 * 1024 * 1024,
++	archiveIndexBytes: 512 * 1024, archiveEntries: 2048, archivePathBytes: 1024,
++	conversionMs: 10_000, inputMs: 60_000, preparedBytes: 8 * 1024 * 1024,
++	conversionDataBytes: 512 * 1024 * 1024, conversionCpuSeconds: 8,
++	messageBytes: 128 * 1024, rpcBytes: 48 * 1024 * 1024,
++	receiptMs: 300_000, receipts: 2, stagedBytes: 16 * 1024 * 1024,
++});
+diff --git a/packages/coding-agent/src/attachments/prepare.ts b/packages/coding-agent/src/attachments/prepare.ts
+new file mode 100644
+index 0000000000..a94faaffdf
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/prepare.ts
+@@ -0,0 +1,68 @@
++import { truncateHead, truncateHeadBytes } from "@oh-my-pi/pi-tui/tools/streaming-output";
++import { imageDecodeFailureReason } from "@oh-my-pi/pi-tui/chat/image-loading";
++import { parseImageMetadata } from "@oh-my-pi/pi-utils/mime";
++import { imageAnimation } from "@oh-my-pi/pi-utils/image-animation";
++import { resizeImage } from "../utils/image-resize";
++import { ATTACHMENT_LIMITS } from "./limits";
++import { convertAttachmentDocument } from "./document";
++
++/** Native conversion boundary. It never dispatches input or calls an Agent, extension, model or tool. */
++export type AttachmentFormat = "utf8" | "png" | "jpeg" | "webp" | "gif" | "pdf" | "docx" | "pptx" | "xlsx" | "epub";
++export interface AttachmentInput { format: AttachmentFormat; bytes: Uint8Array }
++export type AttachmentPreparation =
++	| { status: "failed"; code: string }
++	| { status: "ready"; representation: PreparedRepresentation; degradations: string[] };
++export type PreparedRepresentation = { kind: "text"; text: string }
++	| { kind: "image"; mimeType: string; data: string; width: number; height: number };
++
++function prepareText(text: string): AttachmentPreparation {
++	const truncated = truncateHead(text);
++	const content = truncated.firstLineExceedsLimit ? truncateHeadBytes(text, 50 * 1024).text : truncated.content;
++	return { status: "ready", representation: { kind: "text", text: content },
++		degradations: truncated.truncated ? ["text_truncated"] : [] };
++}
++
++async function prepareImage(input: AttachmentInput): Promise<AttachmentPreparation> {
++	const metadata = parseImageMetadata(input.bytes);
++	const mimeType = `image/${input.format}`;
++	if (!metadata || metadata.mimeType !== mimeType) return { status: "failed", code: "attachment_format_mismatch" };
++	const { width, height } = metadata;
++	if (!width || !height) return { status: "failed", code: "attachment_invalid_image" };
++	let animation;
++	try { animation = imageAnimation(input.bytes, mimeType); }
++	catch { return { status: "failed", code: "attachment_invalid_image" }; }
++	if (width > ATTACHMENT_LIMITS.imageDimension || height > ATTACHMENT_LIMITS.imageDimension ||
++		width * height * animation.frames > ATTACHMENT_LIMITS.imagePixels ||
++		width * height * animation.frames * 4 > ATTACHMENT_LIMITS.decodedBytes) {
++		return { status: "failed", code: "attachment_decoded_budget" };
++	}
++	const image = { type: "image" as const, mimeType, data: input.bytes.toBase64() };
++	if (await imageDecodeFailureReason(image)) return { status: "failed", code: "attachment_invalid_image" };
++	const source = animation.animated ? await new Bun.Image(input.bytes).png().bytes() : input.bytes;
++	const result = await resizeImage({ bytes: source, mimeType: animation.animated ? "image/png" : mimeType }, { excludeWebP: true });
++	if (result.decodeFailed) return { status: "failed", code: "attachment_image_conversion_failed" };
++	if (result.buffer.length > ATTACHMENT_LIMITS.preparedImageBytes) return { status: "failed", code: "attachment_prepared_budget" };
++	const degradations = result.wasResized ? ["image_transformed"] : [];
++	if (animation.animated) degradations.push("animation_first_frame_only");
++	return { status: "ready", representation: { kind: "image", mimeType: result.mimeType, data: result.data,
++		width: result.width, height: result.height }, degradations };
++}
++
++export async function prepareAttachment(input: AttachmentInput): Promise<AttachmentPreparation> {
++	const isImage = ["png", "jpeg", "webp", "gif"].includes(input.format);
++	const ceiling = isImage ? ATTACHMENT_LIMITS.imageBytes : ATTACHMENT_LIMITS.documentBytes;
++	if (input.bytes.byteLength > ceiling) return { status: "failed", code: "attachment_original_budget" };
++	if (isImage) return prepareImage(input);
++	if (input.format !== "utf8") {
++		const converted = await convertAttachmentDocument(input);
++		if (converted.status === "failed" || converted.representation.kind !== "text") return converted;
++		const result = prepareText(converted.representation.text);
++		return result.status === "ready" ? { ...result, degradations: [...converted.degradations, ...result.degradations] } : result;
++	}
++	try {
++		const text = new TextDecoder("utf-8", { fatal: true }).decode(input.bytes);
++		return prepareText(text);
++	} catch {
++		return { status: "failed", code: "attachment_invalid_utf8" };
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
+new file mode 100644
+index 0000000000..a18646cc88
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/receipts.ts
+@@ -0,0 +1,161 @@
++import type { ImageContent } from "@oh-my-pi/pi-ai";
++import type { FileMentionMessage } from "../session/messages";
++import { decodeBase64ImageData } from "@oh-my-pi/pi-utils/mime";
++import type { AttachmentFormat, AttachmentPreparation } from "./prepare";
++import { prepareAttachmentIsolated } from "./isolated";
++import { ATTACHMENT_BUDGET_VERSION, ATTACHMENT_LIMITS } from "./limits";
++
++export interface AttachmentBinding {
++	sourceId: string; instanceId: string; nativeSessionId: string; contextId: string;
++	modelFingerprint: string; imageCapable: boolean;
++}
++export interface ControlledOriginal { originalId: string; format: AttachmentFormat; sha256: string; data: string }
++export interface AttachmentDraft {
++	preparationId: string; draftId: string; draftRevision: string; authorityGeneration: string;
++	message: string; objects: ControlledOriginal[];
++}
++export type AttachmentPreparedItem = AttachmentPreparation & { originalId: string; originalSha256: string;
++	preparedId: string; preparedSha256: string };
++export interface AttachmentReceipt {
++	version: "attachment-preparation-v1"; budgetVersion: string; receiptId: string; preparationId: string;
++	draftId: string; draftRevision: string; authorityGeneration: string; draftFingerprint: string;
++	binding: AttachmentBinding; expiresAt: number; status: "ready" | "failed"; resultDigest: string;
++	items: AttachmentPreparedItem[];
++}
++export interface AttachmentConsent {
++	receiptId: string; resultDigest: string; draftRevision: string; authorityGeneration: string;
++	acceptedDegradations: string[];
++}
++export interface PreparedAttachmentLink {
++	originalId: string; preparedId: string; originalSha256: string; preparedSha256: string;
++	representationKind: "text" | "image";
++}
++export interface PreparedSubmission {
++	message: string; images: ImageContent[]; companionMessages: FileMentionMessage[];
++	preparationDigest: string; attachments: PreparedAttachmentLink[];
++}
++interface Staged { receipt: AttachmentReceipt; message: string; bytes: number; reserved: string | undefined }
++const sha256 = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
++
++/** Ephemeral immutable receipts. Restart and every draft/context/authority change require fresh preparation. */
++export class AttachmentPreparations {
++	readonly #binding: () => AttachmentBinding;
++	readonly #receipts = new Map<string, Staged>();
++	#pending: { preparationId: string; draftId: string; abort: AbortController } | undefined;
++	#bytes = 0;
++	constructor(binding: () => AttachmentBinding) { this.#binding = binding; }
++
++	/** Cancel both pending publication and ready receipts. Late worker output cannot recreate either. */
++	cancel(preparationId: string): { cancelled: boolean } {
++		let cancelled = false;
++		if (this.#pending?.preparationId === preparationId) { this.#pending.abort.abort(); cancelled = true; }
++		for (const [id, staged] of this.#receipts) {
++			if (staged.receipt.preparationId !== preparationId) continue;
++			if (staged.reserved) throw new Error("ATTACHMENT_ALREADY_RESERVED");
++			this.#receipts.delete(id); this.#bytes -= staged.bytes; cancelled = true;
++		}
++		return { cancelled };
++	}
++
++	async prepare(draft: AttachmentDraft): Promise<AttachmentReceipt> {
++		const binding = structuredClone(this.#binding());
++		this.#prune();
++		if (this.#pending) throw new Error("ATTACHMENT_PREPARATION_BUSY");
++		this.#validateDraft(draft);
++		if (this.#receipts.size >= ATTACHMENT_LIMITS.receipts) throw new Error("ATTACHMENT_RECEIPT_BUDGET");
++		const pending = { preparationId: draft.preparationId, draftId: draft.draftId, abort: new AbortController() };
++		this.#pending = pending;
++		const timer: Timer = setTimeout(() => pending.abort.abort(), ATTACHMENT_LIMITS.inputMs);
++		try {
++			const items: AttachmentPreparedItem[] = [];
++			for (const original of draft.objects) items.push(await this.#prepareItem(original, binding, pending.abort.signal));
++			if (pending.abort.signal.aborted) throw new Error("ATTACHMENT_CANCELLED");
++			if (JSON.stringify(binding) !== JSON.stringify(this.#binding())) throw new Error("ATTACHMENT_CONTEXT_CHANGED");
++			const expiresAt = Date.now() + ATTACHMENT_LIMITS.receiptMs;
++			const base = { version: "attachment-preparation-v1" as const, budgetVersion: ATTACHMENT_BUDGET_VERSION,
++				receiptId: crypto.randomUUID(), preparationId: draft.preparationId, draftId: draft.draftId,
++				draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
++				draftFingerprint: sha256(JSON.stringify(draft)), binding, expiresAt,
++				status: items.every(item => item.status === "ready") ? "ready" as const : "failed" as const, items };
++			const receipt: AttachmentReceipt = { ...base, resultDigest: sha256(JSON.stringify(base)) };
++			const bytes = Buffer.byteLength(JSON.stringify(receipt));
++			if (bytes > ATTACHMENT_LIMITS.preparedBytes || this.#bytes + bytes > ATTACHMENT_LIMITS.stagedBytes) {
++				throw new Error("ATTACHMENT_PREPARED_BUDGET");
++			}
++			this.#receipts.set(receipt.receiptId, { receipt, message: draft.message, bytes, reserved: undefined });
++			this.#bytes += bytes;
++			return structuredClone(receipt);
++		} finally {
++			clearTimeout(timer);
++			if (this.#pending === pending) this.#pending = undefined;
++		}
++	}
++
++	validateAndFreeze(consent: AttachmentConsent): PreparedSubmission {
++		this.#prune();
++		const staged = this.#receipts.get(consent.receiptId);
++		if (!staged) throw new Error("ATTACHMENT_RECEIPT_STALE");
++		if (staged.receipt.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
++		if (JSON.stringify(staged.receipt.binding) !== JSON.stringify(this.#binding())) throw new Error("ATTACHMENT_CONTEXT_CHANGED");
++		if (staged.receipt.resultDigest !== consent.resultDigest || staged.receipt.draftRevision !== consent.draftRevision ||
++			staged.receipt.authorityGeneration !== consent.authorityGeneration ||
++			staged.receipt.budgetVersion !== ATTACHMENT_BUDGET_VERSION) throw new Error("ATTACHMENT_CONSENT_STALE");
++		const required = new Set(staged.receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []));
++		if ([...required].some(code => !consent.acceptedDegradations.includes(code)) ||
++			consent.acceptedDegradations.some(code => !required.has(code))) {
++			throw new Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
++		}
++		const images: ImageContent[] = [];
++		const companionMessages: FileMentionMessage[] = [];
++		const attachments: PreparedAttachmentLink[] = [];
++		for (const item of staged.receipt.items) {
++			if (item.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
++			const representation = item.representation;
++			attachments.push({ originalId: item.originalId, originalSha256: item.originalSha256,
++				preparedId: item.preparedId, preparedSha256: item.preparedSha256, representationKind: representation.kind });
++			if (representation.kind === "image") images.push({ type: "image", data: representation.data, mimeType: representation.mimeType });
++			else companionMessages.push({ role: "fileMention", timestamp: Date.now(), files: [{
++				path: `attachment-prepared://${item.preparedId}`, content: representation.text,
++				byteSize: Buffer.byteLength(representation.text),
++			}] });
++		}
++		return { message: staged.message, images, companionMessages,
++			preparationDigest: staged.receipt.resultDigest, attachments };
++	}
++
++	#validateDraft(draft: AttachmentDraft): void {
++		if (draft.objects.length < 1 || draft.objects.length > ATTACHMENT_LIMITS.objects ||
++			Buffer.byteLength(draft.message) > ATTACHMENT_LIMITS.messageBytes) throw new Error("ATTACHMENT_INPUT_BUDGET");
++		if (Buffer.byteLength(JSON.stringify({ id: "x".repeat(96), type: "attachment_prepare", ...draft })) + 1 >
++			ATTACHMENT_LIMITS.rpcBytes) throw new Error("ATTACHMENT_RPC_BUDGET");
++		let bytes = 0;
++		const ids = new Set<string>();
++		for (const object of draft.objects) {
++			if (!/^[A-Za-z0-9_-]{1,96}$/.test(object.originalId) || ids.has(object.originalId) ||
++				!/^[a-f0-9]{64}$/.test(object.sha256)) throw new Error("ATTACHMENT_OBJECT_INVALID");
++			ids.add(object.originalId);
++			bytes += Math.floor(object.data.length / 4) * 3;
++		}
++		if (bytes > ATTACHMENT_LIMITS.originalBytes + draft.objects.length * 2) throw new Error("ATTACHMENT_INPUT_BUDGET");
++	}
++
++	async #prepareItem(original: ControlledOriginal, binding: AttachmentBinding, signal: AbortSignal): Promise<AttachmentPreparedItem> {
++		const failed = (code: string): AttachmentPreparedItem => ({ originalId: original.originalId,
++			originalSha256: original.sha256, preparedId: crypto.randomUUID(), preparedSha256: "", status: "failed", code });
++		const decoded = decodeBase64ImageData(original.data);
++		if (decoded.reason) return failed("attachment_invalid_base64");
++		if (sha256(decoded.bytes) !== original.sha256) return failed("attachment_original_changed");
++		const image = ["png", "jpeg", "webp", "gif"].includes(original.format);
++		if (image && !binding.imageCapable) return failed("attachment_target_has_no_image_input");
++		const result = await prepareAttachmentIsolated({ format: original.format, bytes: decoded.bytes }, signal);
++		return { ...result, originalId: original.originalId, originalSha256: original.sha256,
++			preparedId: crypto.randomUUID(), preparedSha256: result.status === "ready" ? sha256(JSON.stringify(result.representation)) : "" };
++	}
++
++	#prune(): void {
++		for (const [id, value] of this.#receipts) {
++			if (value.receipt.expiresAt > Date.now()) continue;
++			this.#receipts.delete(id); this.#bytes -= value.bytes;
++		}
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
+new file mode 100644
+index 0000000000..bf5c42685d
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/worker.ts
+@@ -0,0 +1,27 @@
++import "./deny-network";
++import { readStreamBounded } from "@oh-my-pi/pi-utils/stream";
++import { prepareAttachment } from "./prepare";
++import type { AttachmentFormat } from "./prepare";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Private process selector: inline bytes only, no filename/path read capability. */
++export async function runAttachmentWorker(format: AttachmentFormat): Promise<void> {
++	try {
++		const bytes = await readStreamBounded(Bun.stdin.stream(), ATTACHMENT_LIMITS.imageBytes);
++		const result = await prepareAttachment({ format, bytes });
++		await Bun.stdout.write(JSON.stringify(result));
++	} catch {
++		await Bun.stdout.write(JSON.stringify({ status: "failed", code: "attachment_converter_error" }));
++	}
++}
++
++export function isAttachmentFormat(value: unknown): value is AttachmentFormat {
++	return typeof value === "string" && ["utf8", "png", "jpeg", "webp", "gif", "pdf", "docx", "pptx", "xlsx", "epub"].includes(value);
++}
++
++if (import.meta.main) {
++	const format = process.argv[2];
++	if (!isAttachmentFormat(format)) {
++		process.exitCode = 2;
++	} else await runAttachmentWorker(format);
++}
+diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
+index ff1bfe94d2..ba8ee38c99 100755
+--- a/packages/coding-agent/src/cli.ts
++++ b/packages/coding-agent/src/cli.ts
+@@ -17,6 +17,13 @@ function validStrictArgs(args: string[]): boolean {
+ }
+ 
+ export async function runCli(argv: string[]): Promise<void> {
++  if (argv.length === 2 && argv[0] === "__omp_worker_attachment") {
++    // The converter selector precedes the ordinary Session/provider startup graph.
++    await import("./attachments/deny-network");
++    const { runAttachmentWorker, isAttachmentFormat } = await import("./attachments/worker");
++    if (!isAttachmentFormat(argv[1])) throw new Error("ATTACHMENT_FORMAT_UNSUPPORTED");
++    await runAttachmentWorker(argv[1]); return;
++  }
+   if (argv.length === 1 && argv[0] === "--rpc-preflight") {
+     const { runPreflight } = await import("./modes/rpc/preflight");
+     await runPreflight();
+@@ -36,7 +43,9 @@ export async function runCli(argv: string[]): Promise<void> {
+ }
+ 
+ if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
+-  if (process.argv.slice(2).includes("--strict-start")) {
++  if (process.argv[2] === "__omp_worker_attachment") {
++    void runCli(process.argv.slice(2)).catch(() => { process.exitCode = 1; });
++  } else if (process.argv.slice(2).includes("--strict-start")) {
+     const args = process.argv.slice(2);
+     if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
+     else void runCli(args).catch(() => { process.exitCode = 1; });
+diff --git a/packages/coding-agent/src/markit/converters/docx.ts b/packages/coding-agent/src/markit/converters/docx.ts
+index 97191bd6ce..21909693c1 100644
+--- a/packages/coding-agent/src/markit/converters/docx.ts
++++ b/packages/coding-agent/src/markit/converters/docx.ts
+@@ -46,6 +46,6 @@ export class DocxConverter implements Converter {
+ 		if (!imageDir) {
+ 			markdown = markdown.replace(/!\[([^\]]*)\]\(data:[^)]*\)/g, "<!-- image: $1 -->");
+ 		}
+-		return { markdown: markdown.trim() };
++		return { markdown: markdown.trim(), facts: { omittedImages: imageDir ? 0 : imageCount } };
+ 	}
+ }
+diff --git a/packages/coding-agent/src/markit/converters/pdf/index.ts b/packages/coding-agent/src/markit/converters/pdf/index.ts
+index 80a43cb407..f8932c484b 100644
+--- a/packages/coding-agent/src/markit/converters/pdf/index.ts
++++ b/packages/coding-agent/src/markit/converters/pdf/index.ts
+@@ -32,6 +32,8 @@ export class PdfConverter implements Converter {
+ 
+ 		const conversion: ConversionResult = {
+ 			markdown: notice ? [result.markdown, notice].filter(Boolean).join("\n\n") : result.markdown,
++			facts: { pagesNeedingOcr: result.pagesNeedingOcr, hasEncodingIssues: result.hasEncodingIssues,
++				emptyText: result.markdown.trim().length === 0 },
+ 		};
+ 		if (result.title !== undefined) conversion.title = result.title;
+ 		return conversion;
+diff --git a/packages/coding-agent/src/markit/converters/pptx.ts b/packages/coding-agent/src/markit/converters/pptx.ts
+index 1be29836bd..f04afe9863 100644
+--- a/packages/coding-agent/src/markit/converters/pptx.ts
++++ b/packages/coding-agent/src/markit/converters/pptx.ts
+@@ -253,7 +253,7 @@ export class PptxConverter implements Converter {
+ 			}
+ 			sections.push(slideLines.join("\n"));
+ 		}
+-		return { markdown: sections.join("\n\n").trim() };
++		return { markdown: sections.join("\n\n").trim(), facts: { omittedImages: imageDir ? 0 : imageCount } };
+ 	}
+ 
+ 	extractText(shape: Shape): string {
+diff --git a/packages/coding-agent/src/markit/types.ts b/packages/coding-agent/src/markit/types.ts
+index 1b9f6c8f71..57bc9edb35 100644
+--- a/packages/coding-agent/src/markit/types.ts
++++ b/packages/coding-agent/src/markit/types.ts
+@@ -14,6 +14,8 @@ export interface StreamInfo {
+ export interface ConversionResult {
+ 	markdown: string;
+ 	title?: string;
++	/** Structured content omissions; prose notices are not a machine-readable consent contract. */
++	facts?: { pagesNeedingOcr?: number[]; hasEncodingIssues?: boolean; omittedImages?: number; emptyText?: boolean };
+ }
+ 
+ export interface MarkitOptions {
+diff --git a/packages/tui/package.json b/packages/tui/package.json
+index 4904e09958..b286a849e9 100644
+--- a/packages/tui/package.json
++++ b/packages/tui/package.json
+@@ -57,6 +57,8 @@
+ 			"types": "./src/chrome/index.ts",
+ 			"import": "./src/chrome/index.ts"
+ 		},
++		"./tools/streaming-output": "./src/tools/streaming-output.ts",
++		"./chat/image-loading": "./src/chat/image-loading.ts",
+ 		"./tools": {
+ 			"types": "./src/tools/index.ts",
+ 			"import": "./src/tools/index.ts"
+diff --git a/packages/utils/src/image-animation.ts b/packages/utils/src/image-animation.ts
+new file mode 100644
+index 0000000000..2d89fdc505
+--- /dev/null
++++ b/packages/utils/src/image-animation.ts
+@@ -0,0 +1,59 @@
++/** Container facts used before image decode. Frame data is never treated as a trusted allocation size. */
++export interface ImageAnimation { frames: number; animated: boolean }
++
++function gifFrames(bytes: Uint8Array): number {
++	if (bytes.length < 14) throw new Error("Invalid GIF");
++	let offset = 13 + ((bytes[10] & 0x80) ? 3 * 2 ** ((bytes[10] & 7) + 1) : 0);
++	let frames = 0;
++	const blocks = (): void => {
++		for (;;) {
++			if (offset >= bytes.length) throw new Error("Truncated GIF blocks");
++			const count = bytes[offset++];
++			if (count === 0) return;
++			offset += count;
++			if (offset > bytes.length) throw new Error("Truncated GIF block");
++		}
++	};
++	while (offset < bytes.length) {
++		const marker = bytes[offset++];
++		if (marker === 0x3b && frames > 0) return frames;
++		if (marker === 0x21) { offset++; blocks(); continue; }
++		if (marker !== 0x2c || offset + 9 > bytes.length) throw new Error("Invalid GIF frame");
++		const flags = bytes[offset + 8];
++		offset += 9 + ((flags & 0x80) ? 3 * 2 ** ((flags & 7) + 1) : 0);
++		offset++; // LZW minimum code size.
++		blocks();
++		frames++;
++	}
++	throw new Error("Missing GIF trailer");
++}
++
++/** Count declared/contained frames without decoding. Full image decoding remains a separate required check. */
++export function imageAnimation(bytes: Uint8Array, mimeType: string): ImageAnimation {
++	let frames = 1;
++	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
++	if (mimeType === "image/gif") frames = gifFrames(bytes);
++	if (mimeType === "image/png") {
++		for (let offset = 8; offset + 12 <= bytes.length;) {
++			const length = view.getUint32(offset);
++			if (offset + 12 + length > bytes.length) throw new Error("Truncated PNG chunk");
++			if (String.fromCharCode(...bytes.subarray(offset + 4, offset + 8)) === "acTL") {
++				if (length !== 8) throw new Error("Invalid APNG control");
++				frames = view.getUint32(offset + 8);
++			}
++			offset += 12 + length;
++		}
++	}
++	if (mimeType === "image/webp") {
++		frames = 0;
++		for (let offset = 12; offset + 8 <= bytes.length;) {
++			const length = view.getUint32(offset + 4, true);
++			if (offset + 8 + length > bytes.length) throw new Error("Truncated WebP chunk");
++			if (String.fromCharCode(...bytes.subarray(offset, offset + 4)) === "ANMF") frames++;
++			offset += 8 + length + (length & 1);
++		}
++		frames ||= 1;
++	}
++	if (frames < 1) throw new Error("Invalid animation frame count");
++	return { frames, animated: frames > 1 };
++}
+diff --git a/packages/utils/src/stream.ts b/packages/utils/src/stream.ts
+index 8998bc931c..542dc79e06 100644
+--- a/packages/utils/src/stream.ts
++++ b/packages/utils/src/stream.ts
+@@ -11,6 +11,18 @@ const CR = 0x0d;
+ // so one oversized frame does not pin its peak buffer for the stream's life.
+ const CONCAT_SINK_RETAIN_BYTES = 1024 * 1024;
+ 
++/** Read a complete owned stream with an allocation ceiling. Callers must terminate its producer on overflow. */
++export async function readStreamBounded(stream: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array> {
++	const sink = new ConcatSink();
++	let bytes = 0;
++	for await (const chunk of stream) {
++		bytes += chunk.byteLength;
++		if (bytes > maxBytes) throw new Error("STREAM_BYTE_LIMIT");
++		sink.append(chunk);
++	}
++	return sink.flush() ?? new Uint8Array();
++}
++
+ /**
+  * Split a byte stream on LF boundaries.
+  *

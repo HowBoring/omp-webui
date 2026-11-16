@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
-export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch", "0006-live-settlement.patch", "0007-durable-submission.patch"];
+export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch", "0006-live-settlement.patch", "0007-durable-submission.patch", "0009-attachment-preparation.patch"];
 export const authoredPaths = ["src/session/submission-records.ts", "src/session/submission-policy.ts", "src/session/session-required-features.ts", "src/session/session-artifact-copy.ts", "src/utils/file-new-publication.ts", "src/session/submission-provenance.ts", "src/session/session-entries.ts", "src/modes/rpc/rpc-submissions.ts", "src/modes/rpc/wire/submissions.ts", "src/modes/rpc/submission-client.ts", "docs/rpc-submissions.md", "src/session/history-context.ts", "src/session/agent-session.ts", "src/session/live-message-observation.ts", "src/modes/rpc/rpc-session-events.ts", "docs/rpc-live-observation.md", "README.md", "src/debug/report-bundle.ts", "docs/rpc-strict-start.md", "src/modes/rpc/strict-start-policy.ts", "src/activity/index.ts", "src/memories/index.ts", "src/modes/rpc/rpc-subagents.ts", "src/cli/gc-cli.ts", "src/cli/gc-strip.ts", "src/session/session-header-id.ts", "src/session/session-transfer.ts", "src/cli/render-cli.ts", "src/modes/rpc/strict-client.ts", "src/session/session-drafts.ts", "src/session/session-loader.ts", "src/session/generation-storage-factory.ts", "src/utils/file-xattr.ts", "src/session/session-generation.ts", "src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
   "src/modes/rpc/wire/strict-start.ts", "src/modes/rpc/strict-mode.ts", "src/modes/rpc/strict-reservation.ts",
   "src/modes/rpc/strict-context.ts", "src/modes/rpc/strict-input.ts", "src/session/session-manager.ts", "src/modes/rpc/history-client.ts",
@@ -14,7 +14,15 @@ export const authoredPaths = ["src/session/submission-records.ts", "src/session/
   "src/modes/rpc/rpc-interaction-policy.ts", "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
   "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
   "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "test/rpc-extension-ui.test.ts", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
-  .map(path => `packages/coding-agent/${path}`);
+  .map(path => `packages/coding-agent/${path}`).concat([
+    "packages/coding-agent/src/attachments/limits.ts", "packages/coding-agent/src/attachments/prepare.ts",
+    "packages/coding-agent/src/attachments/document.ts", "packages/coding-agent/src/attachments/isolated.ts",
+    "packages/coding-agent/src/attachments/worker.ts", "packages/coding-agent/src/attachments/deny-network.ts",
+    "packages/coding-agent/src/attachments/receipts.ts", "packages/coding-agent/src/markit/types.ts",
+    "packages/coding-agent/src/markit/converters/pdf/index.ts", "packages/coding-agent/src/markit/converters/docx.ts",
+    "packages/coding-agent/src/markit/converters/pptx.ts", "packages/utils/src/image-animation.ts",
+    "packages/utils/src/stream.ts", "packages/tui/package.json",
+  ]);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
