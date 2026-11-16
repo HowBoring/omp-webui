@@ -1,0 +1,19 @@
+{
+  "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "sourceTree": "e24dc6e0639b215ef27f240cf211a622b46efef4",
+  "mode": "candidate",
+  "patches": [
+    {
+      "path": "patches/0001-navigation-policy.patch",
+      "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+      "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+    },
+    {
+      "path": "patches/0002-semantic-drafts.patch",
+      "sha256": "119fc9957cb621748e4b85706e87aad72a7eaa52cc88db10bd3df7515b3d19d3",
+      "treeAfter": "e24dc6e0639b215ef27f240cf211a622b46efef4"
+    }
+  ],
+  "sourceSha256": "3caeb452df800a4d6a458d9372153b532d02de2f9edc73e7a2c6b34c248b835a"
+}

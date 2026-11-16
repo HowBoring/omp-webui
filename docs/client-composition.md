@@ -95,8 +95,10 @@ prompt；失败保留草稿，截断等降级须用户明确接受。当前公�
 
 草稿按页签＋Session 隔离并在同页刷新或 Host 重启后恢复，不自动发送。stock DSH 的文字草稿
 按 Session ID 共享 localStorage，runtime 附件不在该快照中；现有导航策略补丁没有补齐恢复。
-需要窄公开接缝承载语义快照、有序原件引用、匹配 binding 的原子恢复和新回执状态，并允许
-配置持久化归属/键。当前只有源码可行性依据，没有该补丁或浏览器恢复实证；不走私有 registry。
+现有[公开草稿补丁与隔离实证](../experiments/draft-seam/README.md)承载语义快照、有序原件引用、
+匹配 binding／修订的原子恢复及独立回执状态，并允许 provider 接管持久化归属和键，禁用旧共享
+读写。Linux 真实 DSH Client／受控公开 Remote 与 provider 夹具验证不覆盖新编辑、冻结提交、
+双页签／重复页签与刷新恢复；这不构成产品 Host 原件库、原生准备或完整产品闭环证明。
 
 ## 投影代次重建
 

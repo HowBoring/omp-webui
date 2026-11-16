@@ -1,0 +1,126 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "public DSH Client/provider/Remote fixture; synthetic originals only",
+  "checks": [
+    "two live tabs, one Session: no shared draft reads/writes",
+    "two Sessions, same tab; refresh restores same tab owner without clock renewal or send",
+    "actual window.open copies sessionStorage; Web Lock rotates duplicated owner and edits stay isolated",
+    "real chips/quotes/command, stock attachment cards and repeated original order survive refresh; handles/receipts rebuilt",
+    "missing original preserves semantic text and visible reason; manual Enter cannot submit partial draft",
+    "late preparation cannot replace a newer browser edit",
+    "no prompt/create Remote calls; shared legacy key unchanged; fresh raw upload receipts distinct"
+  ],
+  "pageErrors": [],
+  "chromium": "156.0.8078.79",
+  "sharedKeyReads": 0,
+  "sharedKeyWrites": 0,
+  "uploads": [
+    {
+      "receiptId": "fixture-receipt-1",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-2",
+      "file": {
+        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+        "name": "first.txt",
+        "bytes": 22
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-3",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-4",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-5",
+      "file": {
+        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+        "name": "first.txt",
+        "bytes": 22
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-6",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
+    }
+  ],
+  "result": "PASS",
+  "final": {
+    "ready": true,
+    "result": {
+      "status": "blocked",
+      "reason": "revision"
+    },
+    "active": "fixture-existing",
+    "semantic": {
+      "scope": {
+        "tabOwner": "b0ad894f-2184-48ef-956a-2e4ebb1ace74",
+        "hostContext": "persistent-fixture-host-origin-data",
+        "sourceContext": "native-fixture-source-a",
+        "nativeSessionId": "fixture-existing",
+        "projectionGeneration": "fixture-projection-1",
+        "storageKey": "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]"
+      },
+      "revision": 8,
+      "phase": "plain",
+      "draft": {
+        "text": "Newer user edit while preparing",
+        "references": []
+      },
+      "originals": [],
+      "readiness": []
+    },
+    "owner": "b0ad894f-2184-48ef-956a-2e4ebb1ace74",
+    "saved": {
+      "records": {
+        "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]": {
+          "record": {
+            "draft": {
+              "text": "Newer user edit while preparing",
+              "references": []
+            },
+            "originals": []
+          },
+          "editedAt": 1794826216591
+        },
+        "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-second\"]": {
+          "record": {
+            "draft": {
+              "text": "Tab A \u2014 native B draft",
+              "references": []
+            },
+            "originals": []
+          },
+          "editedAt": 1794826203261
+        }
+      },
+      "owner": "b0ad894f-2184-48ef-956a-2e4ebb1ace74"
+    }
+  }
+}

@@ -107,3 +107,23 @@ No real profile/history, provider, model or unknown TUI is touched. The candidat
 strict continuation, explicit-answer expiry, attachment receipts, coherent history or private Session security
 as implemented. Linux is the current scope. The owner explicitly deferred Windows/WSL2 acceptance until
 implementation completes and they switch environments; it is not recorded as a Linux blocker or a Windows pass.
+
+## Ordered DSH client extensions (#39)
+
+`compatibility/dsh/patches.json` declares the fixed DSH base, ordered public patches, each patch SHA256 and
+resulting Git tree. `scripts/dsh-source.ts` reconstructs those trees in temporary indexes, compares the complete
+effective authored source tree, rejects undeclared untracked/ignored source (including `.env`), and records the
+source identity without changing the user's Git index. Only explicitly named dependency/build output roots are
+excluded from authored-source comparison; served artifacts have separate digests.
+
+`DSH_SOURCE=<owned checkout> DSH_STORE_DIR=<pnpm cache> bun run dsh:prepare` verifies and applies the complete
+set to a verified fixed baseline, then runs frozen installation, all eight artifact gates and both aggregate
+check gates. An already matching candidate is accepted; an unknown tree is refused rather than reset/repaired.
+`apps/diagnostics/build.ts` accepts only the verified fixed baseline or this exact declared candidate. Its
+manifest includes the base, effective source tree, ordered patch identities and actual input/asset digests;
+acceptance does not mean an unmodified official release or grant product Session admission.
+
+`experiments/draft-seam` validates the public provider-owned semantic draft and atomic hydration seam through
+actual DSH Client/provider fixtures and Linux Chromium. Its records explicitly distinguish fixture-original
+preparation from a durable Host original store. See its README and accepted seams for the public API, tab owner
+policy, cancellation/frozen revision fences, and remaining product/platform boundaries.

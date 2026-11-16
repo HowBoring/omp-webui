@@ -1,0 +1,41 @@
+{"baseCommit":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceHead":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceTree":"e24dc6e0639b215ef27f240cf211a622b46efef4","mode":"candidate","patches":[{"path":"patches/0001-navigation-policy.patch","sha256":"d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4","treeAfter":"be590b5411230c215158bb6359635d409a653523"},{"path":"patches/0002-semantic-drafts.patch","sha256":"119fc9957cb621748e4b85706e87aad72a7eaa52cc88db10bd3df7515b3d19d3","treeAfter":"e24dc6e0639b215ef27f240cf211a622b46efef4"}],"sourceSha256":"3caeb452df800a4d6a458d9372153b532d02de2f9edc73e7a2c6b34c248b835a"}
+native/system/packages/darwin-arm64      | [WARN] Unsupported platform: wanted: {"cpu":["arm64"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+native/system/packages/darwin-x64        | [WARN] Unsupported platform: wanted: {"cpu":["x64"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+native/system/packages/linux-arm64       | [WARN] Unsupported platform: wanted: {"cpu":["arm64"],"os":["linux"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+packages/experimental/cua-macos          | [WARN] Unsupported platform: wanted: {"cpu":["any"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+Scope: all 398 workspace projects
+Already up to date
+Done in 1.2s using pnpm v11.28.5
+Update available! 11.28.5 → 12.21.0.
+Changelog: https://pnpm.io/v/12.21.0
+To update, run: curl -fsSL https://get.pnpm.io/install.sh | sh -
+{"baseCommit":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceHead":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceTree":"e24dc6e0639b215ef27f240cf211a622b46efef4","mode":"candidate","patches":[{"path":"patches/0001-navigation-policy.patch","sha256":"d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4","treeAfter":"be590b5411230c215158bb6359635d409a653523"},{"path":"patches/0002-semantic-drafts.patch","sha256":"119fc9957cb621748e4b85706e87aad72a7eaa52cc88db10bd3df7515b3d19d3","treeAfter":"e24dc6e0639b215ef27f240cf211a622b46efef4"}],"sourceSha256":"3caeb452df800a4d6a458d9372153b532d02de2f9edc73e7a2c6b34c248b835a"}
+$ tsx scripts/build.ts --scope artifacts --serial
+run-gates: build:artifacts running 8 gate(s) with 1 worker(s) from --serial.
+run-gates: start native addon
+run-gates: PASS native addon (1.19s)
+run-gates: start Host Typert
+run-gates: PASS Host Typert (9.68s)
+run-gates: start host compiler
+run-gates: PASS host compiler (0.94s)
+run-gates: start Host bundle
+run-gates: PASS Host bundle (9.79s)
+run-gates: start Desktop bundle
+run-gates: PASS Desktop bundle (2.52s)
+run-gates: start client compiler
+run-gates: PASS client compiler (5.04s)
+run-gates: start Client bundle
+run-gates: PASS Client bundle (8.22s)
+run-gates: start Web build
+run-gates: PASS Web build (9.24s)
+
+run-gates: 8 passed, 0 failed, 0 skipped in 46.62s.
+build: recorded 371 client artifact(s) with 3 public value(s)
+$ tsx scripts/build.ts --scope check --serial
+run-gates: build:check running 2 gate(s) with 1 worker(s) from --serial.
+run-gates: start host aggregate check
+run-gates: PASS host aggregate check (15.76s)
+run-gates: start client aggregate check
+run-gates: PASS client aggregate check (7.88s)
+
+run-gates: 2 passed, 0 failed, 0 skipped in 23.65s.

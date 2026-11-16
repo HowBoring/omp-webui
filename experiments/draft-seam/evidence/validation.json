@@ -1,0 +1,112 @@
+{
+  "ticket": "https://github.com/HowBoring/omp-webui/issues/39",
+  "integrationBase": "dacdb9b",
+  "scope": "actual DSH Client/public provider/Remote fixture on Linux; synthetic originals only",
+  "productSessionAdmission": "blocked pending later native/original-store/product gates",
+  "source": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "e24dc6e0639b215ef27f240cf211a622b46efef4",
+    "mode": "candidate",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "119fc9957cb621748e4b85706e87aad72a7eaa52cc88db10bd3df7515b3d19d3",
+        "treeAfter": "e24dc6e0639b215ef27f240cf211a622b46efef4"
+      }
+    ],
+    "sourceSha256": "3caeb452df800a4d6a458d9372153b532d02de2f9edc73e7a2c6b34c248b835a"
+  },
+  "toolchain": {
+    "bun": "1.4.4",
+    "node": "24.22.1",
+    "pnpm": "11.28.5",
+    "chromium": "156.0.8078.79"
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-final DSH_STORE_DIR=/workspace/work/dsh-tooling/pnpm-store bun run dsh:prepare",
+      "result": "frozen install; 8 artifact gates, 2 aggregate gates; final complete authored-source verification"
+    },
+    {
+      "status": "PASS",
+      "command": "node node_modules/vitest/vitest.mjs run packages/client/ui-conversation/tests packages/api/session-controller/tests/session-policy.client.spec.ts packages/client/ui-workspace/tests --maxWorkers=2",
+      "cwd": "vendor/dsh-final",
+      "result": "74 files, 1469 tests; includes 20 new public Conversation/provider tests"
+    },
+    {
+      "status": "BLOCKED",
+      "command": "DSH_SOURCE=vendor/dsh-baseline-proof bun run check",
+      "result": "after integration42: 70 pass, 1 fail; existing 50ms fixture startup raised RPC_READY_TIMEOUT; coordinator owns a separate deterministic transport fix before final handoff"
+    },
+    {
+      "status": "PASS",
+      "command": "bun node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json",
+      "result": "build-script typecheck"
+    },
+    {
+      "status": "PASS",
+      "command": "bun scripts/dsh-source.ts vendor/dsh-baseline-proof",
+      "result": "unmodified fixed baseline accepted; recorded source tree 77ab54bbce37988207baa603b1d39aa9db9aeaaa"
+    },
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-final experiments/draft-seam/run.sh",
+      "result": "actual rebuilt Client; public provider/Remote; Linux Chromium; 7 browser scenarios; 0 page errors"
+    },
+    {
+      "status": "PASS",
+      "command": "bun experiments/draft-seam/record-evidence.mjs vendor/dsh-final experiments/draft-seam/evidence",
+      "result": "371 built artifacts verified against the DSH build record; per-file digests and actual served response digests retained"
+    }
+  ],
+  "tdd": [
+    {
+      "red": "public provider registration absent",
+      "green": "exclusive effect-owned provider mode and semantic restore"
+    },
+    {
+      "red": "command token omitted from atomically restored snapshot",
+      "green": "retain semantic command metadata while claim resolution is pending"
+    },
+    {
+      "red": "restore began before a failed submission and later wrongly applied",
+      "green": "monotonic submission-entry epoch fences the older restore after failure"
+    },
+    {
+      "red": "provider withdrawal left ready runtime handles/readiness alive",
+      "green": "release handles, retain text/originals as invalid, preserve observable identity on provider replacement"
+    },
+    {
+      "regression": "stock command rollback permits a later programmatic edit; an initial broad guard changed it",
+      "fixed": "frozen guard applies to hydration; stock setDraft behavior retained and full regression passes"
+    },
+    {
+      "aggregate": "2 fixture overrides had never-return method typings",
+      "fixed": "declare overrides through the public Session fixture at construction; both aggregate gates pass"
+    },
+    {
+      "red": "actual browser Storage-boundary counter observed legacy-key read for View preference in provider mode",
+      "green": "provider mode also bypasses shared View preference reads; actual browser counters now record zero shared reads and writes"
+    }
+  ],
+  "acceptance": {
+    "AC1": "PASS — exported semantic record/decoder, provider ownership and key, scoped observable read/subscribe, exact retained binding + complete scope + hydration revision CAS",
+    "AC2": "PASS — provider Config disables all legacy Conversation-key reads (draft and View preference) and all writes; stock default retained; browser Storage boundary records zero reads/writes",
+    "AC3": "PASS — text/quotes/commands/repeated refs/ordered stock file cards; two tabs/one Session; two Sessions/one tab; refresh and actual window.open storage copy independence",
+    "AC4": "PASS — stable originals separate from fresh runtime receipts/readiness; all scope fields, newer edits, failed/frozen submissions, supersession, upload cancellation, provider withdrawal and final binding disposal fenced",
+    "AC5": "PASS — actual built DSH Client and controlled public provider/Remote fixture; no Host original-store proof claimed"
+  },
+  "notProven": [
+    "actual durable Host Attachment Original store, authorization, retention/GC or native preparation/consumption/commit guarantees",
+    "product Session/browser integration or final product plugin roster",
+    "Windows Chrome/WSL2 — NOT RUN, explicitly deferred by the user; executable override retains the browser scenarios"
+  ],
+  "validationState": "DSH slice frozen and passing; integrated repository rerun waits for coordinator-owned transport startup fix"
+}

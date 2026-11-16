@@ -1,0 +1,997 @@
+diff --git a/packages/client/ui-conversation/src/client/apply.ts b/packages/client/ui-conversation/src/client/apply.ts
+index 37420f7f..e7577436 100644
+--- a/packages/client/ui-conversation/src/client/apply.ts
++++ b/packages/client/ui-conversation/src/client/apply.ts
+@@ -65,12 +65,16 @@ export const inject = [
+ 
+ /** Conversation runtime configuration. */
+ export interface Config {
++  /** Provider mode disables shared SessionId draft reads AND Conversation store persistence. */
++  draftPersistence?: 'stock' | 'provider'
++
+   /** Maximum generic-file uploads allowed to run concurrently in browser Workers. */
+   maxConcurrentFileUploads?: number
+ }
+ 
+ /** Validated Conversation runtime configuration. */
+ export const Config: z<Config> = z.object({
++  draftPersistence: z.union(['stock', 'provider']).default('stock'),
+   maxConcurrentFileUploads: z.natural().min(1).default(2),
+ })
+ 
+@@ -189,7 +193,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+ 
+   ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt }), 'ui-conversation: dictionaries')
+   const t = ctx.locale.bind(NS)
+-  const conversationStore = createConversationStore()
++  const conversationStore = createConversationStore(config.draftPersistence)
+   const submissionPolicy = new ComposerSubmissionPolicy(
+     ctx.configForms.get<ConversationSettings>(CONVERSATION_SETTINGS_NAMESPACE),
+   )
+@@ -225,7 +229,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+     if (active !== undefined) uiConversation.binding(sessionId).activate(active.id)
+   }
+   const restoreView = (sessionId: SessionId): void => {
+-    activateView(sessionId, readConversationViewPreference(sessionId))
++    activateView(sessionId, config.draftPersistence === 'provider' ? null : readConversationViewPreference(sessionId))
+   }
+   const conversationViews = createSnapshotStore<readonly ViewTab[]>(viewTabs())
+   const viewPins = createViewPins()
+@@ -300,7 +304,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+     }, 'ui-conversation: fixed stop reference')
+   })
+ 
+-  const inputHub = new InputHub(ctx, t)
++  const inputHub = new InputHub(ctx, t, config.draftPersistence)
+   const composerBlocks = new ComposerBlockRegistry()
+ 
+   ctx.inject(['commandUi'], (scope) => {
+@@ -425,7 +429,8 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+             },
+           },
+         },
+-        bindDraftPersistence: write => inputHub.shell(sessionId).bindDraftPersistence(write),
++        bindDraftPersistence: write => config.draftPersistence === 'provider'
++          ? () => {} : inputHub.shell(sessionId).bindDraftPersistence(write),
+         openView,
+       }
+     },
+diff --git a/packages/client/ui-conversation/src/client/contract/input.ts b/packages/client/ui-conversation/src/client/contract/input.ts
+index 3d8ebd6d..68f4e191 100644
+--- a/packages/client/ui-conversation/src/client/contract/input.ts
++++ b/packages/client/ui-conversation/src/client/contract/input.ts
+@@ -13,6 +13,7 @@ import type { ObservableSnapshot, SnapshotStore } from '@deepseek-ai/dsh-client-
+ import type { Branded } from '@deepseek-ai/dsh-brand'
+ import type { QuoteSummary } from '@deepseek-ai/dsh-client-ui-primitives'
+ import type { ArbitrateKey, ArbitrateOutcome, DraftQuote, Occurrence, ReferenceInsert, TokenSpan } from './draft-editor.ts'
++import type { ConversationDrafts } from './semantic-draft.ts'
+ import type { InputSubmitMode, MessageSubmission } from './composer-submission.ts'
+ 
+ /** Attachment payload passed to a claimed command submission. */
+@@ -225,7 +226,7 @@ export interface SessionInput extends InputTarget {
+ }
+ 
+ /** Session-addressed access to the per-session input facade. */
+-export interface SessionInputResolver {
++export interface SessionInputResolver extends ConversationDrafts {
+   /** Resolve the facade for one session-scope ctx. */
+   for(actx: Context): SessionInput
+   /**
+diff --git a/packages/client/ui-conversation/src/client/contract/semantic-draft.ts b/packages/client/ui-conversation/src/client/contract/semantic-draft.ts
+new file mode 100644
+index 00000000..4ac47df7
+--- /dev/null
++++ b/packages/client/ui-conversation/src/client/contract/semantic-draft.ts
+@@ -0,0 +1,76 @@
++/** Public provider-owned semantic drafts; receipts and browser URLs are never persisted. */
++import type { Context } from '@deepseek-ai/cordis'
++import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
++import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
++import type { DraftSnapshot } from './draft-editor.ts'
++import type { DraftAttachmentId, InputState } from './input.ts'
++
++/** Stable identity of the saved draft. Generation fences hydration, but must not enter the storage key. */
++export interface DraftScope {
++  readonly tabOwner: string
++  /** Persisted Host identity/origin/data-directory context, not a process/run id. */
++  readonly hostContext: string
++  readonly sourceContext: string
++  readonly nativeSessionId: string
++  readonly projectionGeneration: string
++  /** Provider-owned key: stable across refresh/Host restart and isolated by tab/source/native Session. */
++  readonly storageKey: string
++}
++
++/** An ordered logical original, never an upload receipt, path, object URL or content-hash authority. */
++export interface DraftOriginalRef {
++  readonly id: string
++  readonly name: string
++  readonly mediaType: string
++}
++
++export interface SemanticDraftRecord {
++  readonly draft: DraftSnapshot
++  readonly originals: readonly DraftOriginalRef[]
++}
++
++export type DraftOriginalReadiness =
++  | { readonly status: 'ready'; readonly attachmentId: DraftAttachmentId }
++  | { readonly status: 'invalid'; readonly reason: string }
++
++export interface SemanticDraftState extends SemanticDraftRecord {
++  readonly scope: DraftScope
++  /** Advances on edits, attachment changes and submission entry; failed submissions still fence older restores. */
++  readonly revision: number
++  readonly phase: InputState['phase']
++  readonly readiness: readonly DraftOriginalReadiness[]
++}
++
++/** Providers reauthorize/revalidate each original and return current bytes, never replay old receipts. */
++export type PreparedDraftOriginal =
++  | { readonly status: 'ready'; readonly file: File }
++  | { readonly status: 'invalid'; readonly reason: string }
++
++export interface ConversationDraftProvider {
++  scope(binding: SessionBinding): DraftScope
++  read(scope: DraftScope, signal: AbortSignal): Promise<SemanticDraftRecord | undefined>
++  /** Automatic hydration/refresh must not advance an original-retention clock. */
++  write(scope: DraftScope, record: SemanticDraftRecord, reason: 'edit' | 'hydrate'): void
++  prepare(scope: DraftScope, originals: readonly DraftOriginalRef[], signal: AbortSignal): Promise<readonly PreparedDraftOriginal[]>
++}
++
++export interface DraftHydrationRequest {
++  readonly binding: SessionBinding
++  readonly scope: DraftScope
++  readonly expectedRevision: number
++  readonly record: SemanticDraftRecord
++  readonly signal?: AbortSignal
++}
++
++export type DraftHydrationResult =
++  | { readonly status: 'applied' }
++  | { readonly status: 'empty' }
++  | { readonly status: 'blocked'; readonly reason: 'provider' | 'binding' | 'scope' | 'revision' | 'frozen' | 'invalid' | 'preparation' | 'cancelled' }
++
++/** Additive input face. Registration is effect-owned and available only in provider persistence mode. */
++export interface ConversationDrafts {
++  registerDraftProvider(ctx: Context, provider: ConversationDraftProvider): () => void
++  draft(binding: SessionBinding): ObservableSnapshot<SemanticDraftState>
++  restoreDraft(binding: SessionBinding, signal?: AbortSignal): Promise<DraftHydrationResult>
++  hydrateDraft(request: DraftHydrationRequest): Promise<DraftHydrationResult>
++}
+diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
+index 8a1b95e9..d30bed98 100644
+--- a/packages/client/ui-conversation/src/client/index.ts
++++ b/packages/client/ui-conversation/src/client/index.ts
+@@ -117,3 +117,10 @@ declare module '@deepseek-ai/cordis' {
+ 
+ export type { TextInteractionDefinition, TextInteractionGesture, TextInteractionRequest, TextInteractionSurface, TextInteractionTrigger } from './contract/text-interaction.ts'
+ export type { ConversationInteractionRegistry } from './conversation/interaction-registry.ts'
++
++export type {
++  ConversationDraftProvider, ConversationDrafts, DraftScope, DraftOriginalRef, SemanticDraftRecord,
++  SemanticDraftState, DraftOriginalReadiness, PreparedDraftOriginal, DraftHydrationRequest, DraftHydrationResult,
++} from './contract/semantic-draft.ts'
++
++export { parseSemanticDraftRecord } from './semantic-draft.ts'
+diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
+index 1fd208b6..df4ef2f6 100644
+--- a/packages/client/ui-conversation/src/client/input/facade.ts
++++ b/packages/client/ui-conversation/src/client/input/facade.ts
+@@ -23,6 +23,7 @@ import type {
+ import type {
+   ArbitrateKey, ArbitrateOutcome, ComposerKeyboard, DraftInput, DraftSnapshot, ReferenceInsert, TokenSpan,
+ } from '../contract/draft-editor.ts'
++import type { DraftOriginalRef, DraftOriginalReadiness } from '../contract/semantic-draft.ts'
+ import type { InputSubmitMode, MessageSubmission, MessageSubmissionState } from '../contract/composer-submission.ts'
+ import { serializeDraftPrompt } from './prompt.ts'
+ import { SubmitMachine } from './machine.ts'
+@@ -167,15 +168,23 @@ export class SessionInputShell implements SessionInput {
+     return this.draftEditor.projection
+   }
+   private rev = 0
++  private submissionEpoch = 0
++  /** Monotonic hydration CAS also remembers submissions that have since failed. */
++  get restorationRevision(): number { return this.rev + this.submissionEpoch }
+   private readonly unregister: () => void
+   private noticeSeq = 0
+   private lastPublishedDraft: DraftSnapshot | undefined
+   private draftSnapshotCache: { revision: number; value: DraftSnapshot } | undefined
+   private attachmentIds: readonly DraftAttachmentId[] = []
+   private disposed = false
++  private atomicDraft = false
++  /** Stable originals are separate from runtime receipt readiness. */
++  originals: readonly DraftOriginalRef[] = []
++  originalReadiness: readonly DraftOriginalReadiness[] = []
+   /** Conversation store writer for the current semantic document. */
+   private persistDraft: ((draft: DraftSnapshot) => void) | undefined
+   /** A restored draft's command token waiting for the trigger pipeline, with the revision its restore produced. */
++  private semanticCommand: { readonly token: string; readonly rev: number } | undefined
+   private pendingCommand: { readonly token: string; readonly rev: number } | undefined
+   /** The in-flight claim resolution for a restored command chip. */
+   private commandRestore: AbortController | undefined
+@@ -231,11 +240,31 @@ export class SessionInputShell implements SessionInput {
+     this.cancelCommandRestore()
+     if (draft.references.length === 0 && (draft.quotes?.length ?? 0) === 0) this.draftEditor.setDraft(draft.text)
+     else this.draftEditor.restoreDraft(draft.text, draft.references, draft.quotes, { remove: this.deps.quoteRemoveLabel?.() ?? '' })
++    this.semanticCommand = draft.command === undefined ? undefined : { token: draft.command.token, rev: this.rev }
++    this.draftSnapshotCache = undefined
+     if (draft.command === undefined) return
+     this.pendingCommand = { token: draft.command.token, rev: this.rev }
+     this.restoreCommand()
+   }
+ 
++  /** Publish semantic document and ordered originals in a single editor/store transaction. */
++  hydrateSemanticDraft(
++    revision: number, draft: DraftSnapshot, originals: readonly DraftOriginalRef[],
++    readiness: readonly DraftOriginalReadiness[],
++  ): boolean {
++    if (this.draftInitializationBlocked() || revision !== this.restorationRevision) return false
++    this.atomicDraft = true
++    try {
++      this.originals = originals
++      this.originalReadiness = readiness
++      this.attachmentIds = readiness.flatMap(item => item.status === 'ready' ? [item.attachmentId] : [])
++      this.rev += 1
++      this.setDraft(draft)
++    } finally { this.atomicDraft = false }
++    this.publish(true)
++    return true
++  }
++
+   /**
+    * @param text - selected transcript text.
+    * @param summary - readable composer display of the quote.
+@@ -293,7 +322,8 @@ export class SessionInputShell implements SessionInput {
+   get draftSnapshot(): DraftSnapshot {
+     if (this.draftSnapshotCache?.revision === this.rev) return this.draftSnapshotCache.value
+     const value = snapshotDraft(
+-      this.projection.clipboardText, this.projection.occurrences, this.projection.command?.token, this.projection.quotes,
++      this.projection.clipboardText, this.projection.occurrences, this.projection.command?.token
++        ?? (this.semanticCommand?.rev === this.rev ? this.semanticCommand.token : undefined), this.projection.quotes,
+     )
+     this.draftSnapshotCache = { revision: this.rev, value }
+     return value
+@@ -374,6 +404,9 @@ export class SessionInputShell implements SessionInput {
+    */
+   pruneAttachments(available: readonly DraftAttachmentId[]): void {
+     const keep = new Set(available)
++    this.originalReadiness = this.originalReadiness.map(item =>
++      item.status === 'ready' && !keep.has(item.attachmentId)
++        ? { status: 'invalid', reason: 'Runtime attachment unavailable; restore the original again.' } : item)
+     const next = this.attachmentIds.filter(id => keep.has(id))
+     if (next.length === this.attachmentIds.length) return
+     this.attachmentIds = next
+@@ -401,6 +434,10 @@ export class SessionInputShell implements SessionInput {
+    */
+   submit(mode: InputSubmitMode = 'queue', source?: 'click' | 'enter', allowEmpty = false): void {
+     if (this.disposed) return
++    if (this.originalReadiness.some(item => item.status === 'invalid')) {
++      this.notify('error', 'One or more attachment originals are unavailable; retry or remove them before sending.')
++      return
++    }
+     const timestamp = Date.now()
+     let state: MessageSubmissionState | undefined
+     if (this.snapshot.phase === 'plain' && (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0)) {
+@@ -871,8 +908,23 @@ export class SessionInputShell implements SessionInput {
+     }
+   }
+ 
+-  private publish(): void {
++  private publish(hydrated = false): void {
++    if (this.atomicDraft) return
++    const previous = this.state.getSnapshot()
++    if (previous.attachmentIds !== this.attachmentIds) {
++      if (!hydrated) {
++        if (this.semanticCommand?.rev === this.rev) {
++          this.semanticCommand = { token: this.semanticCommand.token, rev: this.rev + 1 }
++        }
++        this.rev += 1
++      }
++      const retained = this.originalReadiness.map((item, index) => ({ item, ref: this.originals[index] }))
++        .filter(({ item }) => item.status === 'invalid' || this.attachmentIds.includes(item.attachmentId))
++      this.originals = retained.flatMap(({ ref }) => ref === undefined ? [] : [ref])
++      this.originalReadiness = retained.map(({ item }) => item)
++    }
+     const next = this.compose()
++    if (!frozen(previous.phase) && frozen(next.phase)) this.submissionEpoch += 1
+     this.state.set(next)
+     const draft = this.draftSnapshot
+     if (draft !== this.lastPublishedDraft) {
+diff --git a/packages/client/ui-conversation/src/client/input/hub.ts b/packages/client/ui-conversation/src/client/input/hub.ts
+index f6e9ce41..fdc65ec2 100644
+--- a/packages/client/ui-conversation/src/client/input/hub.ts
++++ b/packages/client/ui-conversation/src/client/input/hub.ts
+@@ -26,6 +26,9 @@ import type { InputSubmitMode } from '../contract/composer-submission.ts'
+ import type { PopupDismissFace } from './facade.ts'
+ import { SessionInputShell } from './facade.ts'
+ import { reportMessageSubmission } from './submission-analytics.ts'
++import { SemanticDrafts } from './semantic-drafts.ts'
++import type { ConversationDraftProvider, DraftHydrationRequest } from '../contract/semantic-draft.ts'
++import type { ConversationController } from '../service.ts'
+ import { readConversationDraft } from '../stores.ts'
+ 
+ /** Structural command face for per-session popup resolution. */
+@@ -56,6 +59,7 @@ interface ConversationAttachmentFace {
+ 
+ /** Session-addressed input facade registry (SessionInputResolver face + composer-layer extras). */
+ export class InputHub implements SessionInputResolver {
++  private readonly semanticDrafts: SemanticDrafts
+   private readonly shells = new WeakMap<SessionBinding, SessionInputShell>()
+ 
+   /**
+@@ -65,7 +69,20 @@ export class InputHub implements SessionInputResolver {
+   constructor(
+     private readonly rootCtx: Context,
+     private readonly t: TranslateNS<'conversation'>,
+-  ) {}
++    private readonly draftPersistence: 'stock' | 'provider' = 'stock',
++  ) {
++    this.semanticDrafts = new SemanticDrafts(draftPersistence, () => this.sessions(),
++      binding => this.shellFor(binding), () => this.rootCtx.get('conversation') as ConversationController)
++  }
++
++  registerDraftProvider(ctx: Context, provider: ConversationDraftProvider): () => void {
++    return this.semanticDrafts.register(ctx, provider)
++  }
++
++  draft(binding: SessionBinding) { return this.semanticDrafts.draft(binding) }
++  restoreDraft(binding: SessionBinding, signal?: AbortSignal) { return this.semanticDrafts.restore(binding, signal) }
++  hydrateDraft(request: DraftHydrationRequest) { return this.semanticDrafts.hydrate(request) }
++
+ 
+   /**
+    * Resolve the facade for one session-scope ctx (SessionInputResolver face).
+@@ -180,7 +197,8 @@ export class InputHub implements SessionInputResolver {
+         return () => { shell.refreshLexiconSubscription() }
+       }, 'conversation.input: reference catalogs')
+     })
+-    shell.setDraft(readConversationDraft(binding.sessionId))
++    if (this.draftPersistence === 'stock') shell.setDraft(readConversationDraft(binding.sessionId))
++    this.semanticDrafts.watch(binding, shell)
+     return shell
+   }
+ 
+diff --git a/packages/client/ui-conversation/src/client/input/semantic-drafts.ts b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
+new file mode 100644
+index 00000000..0f4d803c
+--- /dev/null
++++ b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
+@@ -0,0 +1,249 @@
++/** Provider persistence and atomic hydration coordinated at the retained Session input boundary. */
++import type { Context } from '@deepseek-ai/cordis'
++import type { ISessions, SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
++import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
++import type { ConversationController } from '../service.ts'
++import type { SessionInputShell } from './facade.ts'
++import type {
++  ConversationDraftProvider, DraftHydrationRequest, DraftHydrationResult, DraftScope,
++  DraftOriginalReadiness, SemanticDraftState,
++} from '../contract/semantic-draft.ts'
++import { parseSemanticDraftRecord } from '../semantic-draft.ts'
++
++const blocked = (reason: Extract<DraftHydrationResult, { status: 'blocked' }>['reason']): DraftHydrationResult =>
++  ({ status: 'blocked', reason })
++const frozen = (shell: SessionInputShell): boolean =>
++  !['plain', 'claimed'].includes(shell.snapshot.phase)
++const sameScope = (a: DraftScope, b: DraftScope): boolean =>
++  a.tabOwner === b.tabOwner && a.hostContext === b.hostContext && a.sourceContext === b.sourceContext
++  && a.nativeSessionId === b.nativeSessionId && a.projectionGeneration === b.projectionGeneration
++  && a.storageKey === b.storageKey
++
++/** Bound any provider that ignores abort; its late result has no publication authority. */
++function abortable<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
++  return new Promise((resolve, reject) => {
++    const abort = (): void => { reject(new Error('draft operation cancelled')) }
++    if (signal.aborted) { abort(); return }
++    signal.addEventListener('abort', abort, { once: true })
++    work.then(resolve, reject).finally(() => { signal.removeEventListener('abort', abort) })
++  })
++}
++
++interface Entry {
++  readonly shell: SessionInputShell
++  store?: SnapshotStore<SemanticDraftState>
++  stop?: (() => void) | undefined
++  hydrating: boolean
++}
++
++export class SemanticDrafts {
++  private provider: ConversationDraftProvider | undefined
++  private readonly entries = new Map<SessionBinding, Entry>()
++  private readonly operations = new Map<SessionBinding, AbortController>()
++
++  constructor(
++    private readonly mode: 'stock' | 'provider',
++    private readonly sessions: () => ISessions,
++    private readonly shellFor: (binding: SessionBinding) => SessionInputShell,
++    private readonly conversation: () => ConversationController,
++  ) {}
++
++  register(ctx: Context, provider: ConversationDraftProvider): () => void {
++    if (this.mode !== 'provider' || this.provider !== undefined) throw new Error('draft provider requires exclusive provider mode')
++    this.provider = provider
++    for (const [binding, entry] of this.entries) this.connect(binding, entry)
++    return ctx.effect(() => () => {
++      if (this.provider !== provider) return
++      this.provider = undefined
++      for (const op of this.operations.values()) op.abort()
++      for (const entry of this.entries.values()) this.withdraw(entry)
++    }, 'conversation: draft provider')
++  }
++
++  watch(binding: SessionBinding, shell: SessionInputShell): void {
++    const entry: Entry = { shell, hydrating: false }
++    this.entries.set(binding, entry)
++    this.connect(binding, entry)
++    binding.ctx.effect(() => () => {
++      this.operations.get(binding)?.abort()
++      this.operations.delete(binding)
++      entry.stop?.()
++      this.entries.delete(binding)
++    }, 'conversation: semantic draft')
++  }
++
++  private connect(binding: SessionBinding, entry: Entry): void {
++    if (this.provider === undefined || entry.stop !== undefined) return
++    const provider = this.provider
++    const initial = this.snapshot(binding, entry.shell, provider)
++    if (entry.store === undefined) entry.store = createSnapshotStore(initial)
++    else entry.store.set(initial)
++    let previous = JSON.stringify({ draft: initial.draft, originals: initial.originals })
++    entry.stop = entry.shell.state.subscribe(() => {
++      if (this.sessions().binding(binding.sessionId) !== binding || this.provider !== provider) return
++      const state = this.snapshot(binding, entry.shell, provider)
++      entry.store?.set(state)
++      const record = { draft: state.draft, originals: state.originals }
++      const next = JSON.stringify(record)
++      if (previous === next) return
++      previous = next
++      try { provider.write(state.scope, record, entry.hydrating ? 'hydrate' : 'edit') }
++      catch { entry.shell.notify('error', 'Draft persistence failed; keep this page open and retry.') }
++    })
++  }
++
++  /** Withdraw only provider-owned runtime handles; durable originals and the semantic document remain. */
++  private withdraw(entry: Entry): void {
++    entry.stop?.()
++    entry.stop = undefined
++    const owned = new Set(entry.shell.originalReadiness.flatMap(item =>
++      item.status === 'ready' ? [item.attachmentId] : []))
++    for (const id of owned) this.conversation()?.releaseDraftAttachment(id)
++    entry.shell.pruneAttachments(entry.shell.snapshot.attachmentIds.filter(id => !owned.has(id)))
++    const previous = entry.store?.getSnapshot()
++    if (previous !== undefined) entry.store?.set({
++      ...previous, revision: entry.shell.restorationRevision, phase: entry.shell.snapshot.phase,
++      draft: structuredClone(entry.shell.draftSnapshot), originals: structuredClone(entry.shell.originals),
++      readiness: structuredClone(entry.shell.originalReadiness),
++    })
++  }
++
++  private snapshot(binding: SessionBinding, shell: SessionInputShell, provider: ConversationDraftProvider): SemanticDraftState {
++    return {
++      scope: { ...provider.scope(binding) }, revision: shell.restorationRevision, phase: shell.snapshot.phase,
++      draft: structuredClone(shell.draftSnapshot), originals: structuredClone(shell.originals),
++      readiness: structuredClone(shell.originalReadiness),
++    }
++  }
++
++  draft(binding: SessionBinding): SnapshotStore<SemanticDraftState> {
++    if (this.sessions().binding(binding.sessionId) !== binding) throw new Error('semantic draft requires a retained binding')
++    this.shellFor(binding)
++    const store = this.entries.get(binding)?.store
++    if (store === undefined || this.sessions().binding(binding.sessionId) !== binding) {
++      throw new Error('semantic draft requires a retained binding and registered provider')
++    }
++    return store
++  }
++
++  private begin(binding: SessionBinding, signal?: AbortSignal): AbortController {
++    this.operations.get(binding)?.abort()
++    const operation = new AbortController()
++    this.operations.set(binding, operation)
++    const abort = (): void => { operation.abort() }
++    signal?.addEventListener('abort', abort, { once: true })
++    operation.signal.addEventListener('abort', () => { signal?.removeEventListener('abort', abort) }, { once: true })
++    if (signal?.aborted) operation.abort()
++    return operation
++  }
++
++  private guard(request: DraftHydrationRequest, provider: ConversationDraftProvider): DraftHydrationResult | undefined {
++    if (this.provider !== provider) return blocked('provider')
++    if (this.sessions().binding(request.binding.sessionId) !== request.binding) return blocked('binding')
++    if (!sameScope(request.scope, provider.scope(request.binding))) return blocked('scope')
++    const shell = this.shellFor(request.binding)
++    if (frozen(shell)) return blocked('frozen')
++    if (shell.restorationRevision !== request.expectedRevision) return blocked('revision')
++    return undefined
++  }
++
++  async restore(binding: SessionBinding, signal?: AbortSignal): Promise<DraftHydrationResult> {
++    const provider = this.provider
++    if (provider === undefined) return blocked('provider')
++    if (this.sessions().binding(binding.sessionId) !== binding) return blocked('binding')
++    const state = this.draft(binding).getSnapshot()
++    const request = { binding, scope: { ...provider.scope(binding) }, expectedRevision: state.revision }
++    const initial = this.guard({ ...request, record: state }, provider)
++    if (initial !== undefined) return initial
++    const op = this.begin(binding, signal)
++    try {
++      if (op.signal.aborted) return blocked('cancelled')
++      const record = await abortable(provider.read(request.scope, op.signal), op.signal)
++      const stale = this.guard({ ...request, record: state }, provider)
++      if (stale !== undefined) return stale
++      if (record === undefined) return { status: 'empty' }
++      return await this.apply({ ...request, record: structuredClone(record) }, provider, op)
++    } catch { return blocked(op.signal.aborted ? 'cancelled' : 'preparation') }
++    finally { this.finish(binding, op) }
++  }
++
++  async hydrate(request: DraftHydrationRequest): Promise<DraftHydrationResult> {
++    const provider = this.provider
++    if (provider === undefined) return blocked('provider')
++    const initial = this.guard(request, provider)
++    if (initial !== undefined) return initial
++    // Capture caller-owned input before any asynchronous provider work.
++    const owned = { ...request, scope: { ...request.scope }, record: structuredClone(request.record) }
++    const op = this.begin(request.binding, request.signal)
++    try { return await this.apply(owned, provider, op) }
++    catch { return blocked(op.signal.aborted ? 'cancelled' : 'preparation') }
++    finally { this.finish(request.binding, op) }
++  }
++
++  private finish(binding: SessionBinding, op: AbortController): void {
++    if (this.operations.get(binding) === op) this.operations.delete(binding)
++    op.abort()
++  }
++
++  private async apply(
++    request: DraftHydrationRequest, provider: ConversationDraftProvider, op: AbortController,
++  ): Promise<DraftHydrationResult> {
++    if (op.signal.aborted) return blocked('cancelled')
++    const record = parseSemanticDraftRecord(request.record)
++    if (record === undefined) return blocked('invalid')
++    const { draft, originals } = record
++    const prepared = await abortable(provider.prepare(request.scope, originals, op.signal), op.signal)
++    if (prepared.length !== originals.length || prepared.some((item, index) =>
++      item.status === 'invalid' ? typeof item.reason !== 'string'
++        : item.status !== 'ready' || !(item.file instanceof File)
++          || item.file.name !== originals[index]?.name || item.file.type !== originals[index]?.mediaType)) {
++      return blocked('preparation')
++    }
++    const stale = this.guard(request, provider)
++    if (stale !== undefined) return stale
++    const controller = this.conversation()
++    const created = controller.createDrafts(request.binding.sessionId,
++      prepared.flatMap(item => item.status === 'ready' ? [item.file] : []), true)
++    let committed = false
++    try {
++      await abortable(this.waitForUploads(controller, created.map(item => item.id), op.signal), op.signal)
++      if (op.signal.aborted) return blocked('cancelled')
++      const late = this.guard(request, provider)
++      if (late !== undefined) return late
++      let index = 0
++      const readiness: DraftOriginalReadiness[] = prepared.map(item => item.status === 'invalid'
++        ? { status: 'invalid', reason: item.reason }
++        : { status: 'ready', attachmentId: created[index++]!.id })
++      const entry = this.entries.get(request.binding)!
++      const oldIds = entry.shell.snapshot.attachmentIds
++      entry.hydrating = true
++      try { committed = entry.shell.hydrateSemanticDraft(request.expectedRevision, draft, originals, readiness) }
++      finally { entry.hydrating = false }
++      if (!committed) return blocked('revision')
++      for (const id of oldIds) controller.releaseDraftAttachment(id)
++      return { status: 'applied' }
++    } finally { if (!committed) controller.releaseDraftAttachments(created) }
++  }
++
++  private waitForUploads(
++    controller: ConversationController, ids: readonly import('../contract/input.ts').DraftAttachmentId[], signal: AbortSignal,
++  ): Promise<void> {
++    return new Promise((resolve, reject) => {
++      let stop = (): void => {}
++      const finish = (error?: Error): void => {
++        stop()
++        signal.removeEventListener('abort', abort)
++        if (error === undefined) resolve(); else reject(error)
++      }
++      const abort = (): void => { finish(new Error('draft upload cancelled')) }
++      const check = (): void => {
++        const uploads = controller.fileUploads.getSnapshot()
++        if (ids.some(id => uploads[id]?.status === 'error')) finish(new Error('draft upload failed'))
++        else if (ids.every(id => uploads[id]?.status === 'ready')) finish()
++      }
++      stop = controller.fileUploads.subscribe(check)
++      signal.addEventListener('abort', abort, { once: true })
++      if (signal.aborted) abort(); else check()
++    })
++  }
++}
+diff --git a/packages/client/ui-conversation/src/client/semantic-draft.ts b/packages/client/ui-conversation/src/client/semantic-draft.ts
+new file mode 100644
+index 00000000..a69a68fd
+--- /dev/null
++++ b/packages/client/ui-conversation/src/client/semantic-draft.ts
+@@ -0,0 +1,20 @@
++/** Runtime decoder for the public provider record; ephemeral readiness/receipt fields are rejected. */
++import { z } from 'zod'
++import type { SemanticDraftRecord } from './contract/semantic-draft.ts'
++import { parseStoredDraft } from './draft.ts'
++
++const recordSchema = z.object({
++  draft: z.unknown(),
++  originals: z.array(z.object({
++    id: z.string().min(1), name: z.string(), mediaType: z.string().min(1),
++  }).strict()),
++}).strict()
++
++/** Decode persisted or caller-supplied records before any preparation/publication. */
++export function parseSemanticDraftRecord(value: unknown): SemanticDraftRecord | undefined {
++  const record = recordSchema.safeParse(value)
++  if (!record.success) return undefined
++  const draft = parseStoredDraft(record.data.draft)
++  if (draft === undefined) return undefined
++  return { draft, originals: record.data.originals }
++}
+diff --git a/packages/client/ui-conversation/src/client/stores.ts b/packages/client/ui-conversation/src/client/stores.ts
+index 34e4261a..a254ad3d 100644
+--- a/packages/client/ui-conversation/src/client/stores.ts
++++ b/packages/client/ui-conversation/src/client/stores.ts
+@@ -19,10 +19,10 @@ type ConversationActions = {
+  * Declare per-session draft persistence and View selection.
+  * @returns the store handle.
+  */
+-export function createConversationStore(): EngineStoreHandle<ConversationStoreState, ConversationActions> {
++export function createConversationStore(persistence: 'stock' | 'provider' = 'stock'): EngineStoreHandle<ConversationStoreState, ConversationActions> {
+   return defineStore({
+     init: (): ConversationStoreState => ({ draft: '', view: null, viewRequest: null }),
+-    persist: CONVERSATION_STORE_KEY,
++    ...(persistence === 'stock' ? { persist: CONVERSATION_STORE_KEY } : {}),
+     actions: {
+       setDraft: (d, text: DraftInput) => { d.draft = text },
+       setView: (d, view: string) => { d.view = view },
+diff --git a/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
+new file mode 100644
+index 00000000..411d8653
+--- /dev/null
++++ b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
+@@ -0,0 +1,339 @@
++// @vitest-environment jsdom
++/** Public Conversation/provider boundary. Synthetic Session and original-provider fixture only. */
++import { expect, it, onTestFinished, vi } from 'vitest'
++import { SlotTestRuntime, stubConfigForm } from '@deepseek-ai/dsh-client-test-runtime'
++import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
++import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
++import { apply, inject, type ConversationDraftProvider } from '@deepseek-ai/dsh-client-ui-conversation/client'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++
++async function fixture(draftPersistence: 'stock' | 'provider' = 'provider', session: Record<string, unknown> = {}) {
++  const runtime = await SlotTestRuntime.create()
++  onTestFinished(() => runtime.dispose())
++  runtime.ctx.provide('uiWorkspace', { openWorkspace: async () => {}, openSession: async () => {} } as never)
++  runtime.ctx.provide('configForms', {
++    developerTools: { enabled: createSnapshotStore(false) }, get: () => stubConfigForm().scope,
++  } as never)
++  const locale = new LocaleRuntime(runtime.ctx)
++  runtime.ctx.provide('locale', locale)
++  runtime.slots.installLocale(locale)
++  runtime.ctx.provide('shortcuts', { catalog: createSnapshotStore([]) })
++  await runtime.mount({ inject: [...inject], apply: ctx => apply(ctx, { draftPersistence, maxConcurrentFileUploads: 2 }) })
++  const id = SessionId('synthetic-draft-session')
++  await runtime.sessions.add({ id, session })
++  const ref = runtime.sessions.retain(id)
++  onTestFinished(() => ref.release())
++  await ref.ready
++  return { runtime, id, binding: ref.binding, ref, input: runtime.ctx.conversation.input }
++}
++
++it('restores provider text without importing the shared SessionId draft or writing that key', async () => {
++  localStorage.setItem('dsh.conversation.synthetic-draft-session', JSON.stringify({ draft: 'other tab private draft' }))
++  onTestFinished(() => localStorage.clear())
++  const b = await fixture()
++  const saved: unknown[] = []
++  const provider: ConversationDraftProvider = {
++    scope: () => ({
++      tabOwner: 'tab-a', hostContext: 'fixture-host', sourceContext: 'fixture-source',
++      nativeSessionId: b.id, projectionGeneration: 'g1', storageKey: 'fixture/tab-a/native-a',
++    }),
++    read: async () => ({ draft: { text: 'provider draft', references: [] }, originals: [] }),
++    write: (_scope, record) => { saved.push(record) },
++    prepare: async () => [],
++  }
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  expect(b.input.for(b.binding.ctx).state.getSnapshot().draft).toBe('')
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(b.input.draft(b.binding).getSnapshot().draft.text).toBe('provider draft')
++  b.input.for(b.binding.ctx).setDraft('new explicit edit')
++  expect(saved.at(-1)).toEqual({ draft: { text: 'new explicit edit', references: [] }, originals: [] })
++  expect(JSON.parse(localStorage.getItem('dsh.conversation.synthetic-draft-session')!).draft)
++    .toBe('other tab private draft')
++})
++
++it('atomically exposes quotes, command and repeated ordered refs while unavailable originals block sending', async () => {
++  const b = await fixture()
++  const record = {
++    draft: {
++      text: '/saved @a @a\n> quoted',
++      command: { token: '/saved ' },
++      references: [6, 9].map(offset => ({
++        source: 'reference', ref: 'same-original', label: 'a', clipboardText: '@a', offset: offset + 1, length: 2,
++      })),
++      quotes: [{ offset: 13, length: 8, text: 'quoted' }],
++    },
++    originals: [
++      { id: 'original-b', name: 'second.txt', mediaType: 'text/plain' },
++      { id: 'original-a', name: 'first.txt', mediaType: 'text/plain' },
++      { id: 'original-b', name: 'second.txt', mediaType: 'text/plain' },
++    ],
++  }
++  const provider: ConversationDraftProvider = {
++    scope: () => ({ tabOwner: 't', hostContext: 'h', sourceContext: 's', nativeSessionId: b.id,
++      projectionGeneration: 'g', storageKey: 'stable-key' }),
++    read: async () => record,
++    write: () => {},
++    prepare: async (_scope, refs) => refs.map(ref => ({ status: 'invalid', reason: `missing:${ref.id}` })),
++  }
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  const source = b.input.draft(b.binding)
++  const observed: unknown[] = []
++  source.subscribe(() => observed.push(source.getSnapshot()))
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(source.getSnapshot()).toMatchObject(record)
++  expect(observed).toHaveLength(1)
++  b.input.for(b.binding.ctx).submit()
++  expect(b.input.for(b.binding.ctx).state.getSnapshot().phase).toBe('plain')
++  expect(source.getSnapshot().draft).toEqual(record.draft)
++})
++
++function deferred<T>() {
++  let resolve!: (value: T) => void
++  const promise = new Promise<T>(done => { resolve = done })
++  return { promise, resolve }
++}
++
++function providerFor(id: string, options: Partial<ConversationDraftProvider> = {}): ConversationDraftProvider {
++  return {
++    scope: () => ({ tabOwner: 't', hostContext: 'persistent-host', sourceContext: 'source-a', nativeSessionId: id,
++      projectionGeneration: 'g1', storageKey: 'stable-across-host-restart' }),
++    read: async () => ({ draft: { text: 'saved', references: [] }, originals: [] }),
++    write: () => {}, prepare: async () => [], ...options,
++  }
++}
++
++it('keeps a newer edit when an older provider read completes', async () => {
++  const b = await fixture()
++  const read = deferred<Awaited<ReturnType<ConversationDraftProvider['read']>>>()
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, { read: () => read.promise }))
++  const result = b.input.restoreDraft(b.binding)
++  b.input.for(b.binding.ctx).setDraft('newer edit')
++  read.resolve({ draft: { text: 'old saved version', references: [] }, originals: [] })
++  expect(await result).toEqual({ status: 'blocked', reason: 'revision' })
++  expect(b.input.draft(b.binding).getSnapshot().draft.text).toBe('newer edit')
++})
++
++it.each(['tabOwner', 'hostContext', 'sourceContext', 'nativeSessionId', 'projectionGeneration', 'storageKey'] as const)(
++  'fences changed %s even when the retained binding and editable draft match', async (field) => {
++    const b = await fixture()
++    const preparation = deferred<Awaited<ReturnType<ConversationDraftProvider['prepare']>>>()
++    const started = deferred<void>()
++    let changed = false
++    const base = providerFor(b.id)
++    b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++      scope: binding => ({ ...base.scope(binding), ...(changed ? { [field]: 'changed-context' } : {}) }),
++      prepare: () => { started.resolve(); return preparation.promise },
++    }))
++    const result = b.input.restoreDraft(b.binding)
++    await started.promise
++    changed = true
++    preparation.resolve([])
++    expect(await result).toEqual({ status: 'blocked', reason: 'scope' })
++    expect(b.input.draft(b.binding).getSnapshot().draft.text).toBe('')
++  },
++)
++
++it('bounds cancellation even when a provider ignores its abort signal and rejects late publication', async () => {
++  const b = await fixture()
++  const read = deferred<Awaited<ReturnType<ConversationDraftProvider['read']>>>()
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, { read: () => read.promise }))
++  const abort = new AbortController()
++  const result = b.input.restoreDraft(b.binding, abort.signal)
++  abort.abort()
++  expect(await result).toEqual({ status: 'blocked', reason: 'cancelled' })
++  read.resolve({ draft: { text: 'late read', references: [] }, originals: [] })
++  await Promise.resolve()
++  expect(b.input.draft(b.binding).getSnapshot().draft.text).toBe('')
++})
++
++it('never restores over a frozen submission or overwrites a later programmatic edit', async () => {
++  const result = deferred<{ ok: true; value: { accepted: true } }>()
++  const b = await fixture('provider', { prompt: () => result.promise })
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id))
++  const input = b.input.for(b.binding.ctx)
++  input.setDraft('frozen input')
++  input.submit()
++  input.setDraft('late programmatic replacement')
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'blocked', reason: 'frozen' })
++  expect(input.state.getSnapshot().draft).toBe('late programmatic replacement')
++  result.resolve({ ok: true, value: { accepted: true } })
++})
++
++it('keeps ready runtime receipts out of saved records and prepares fresh receipts on each restore', async () => {
++  const b = await fixture()
++  let uploads = 0
++  b.runtime.fileUpload.upload = async (_id, file) => ({ ok: true, value: {
++    receiptId: `fixture-receipt-${++uploads}`,
++    file: { attachmentId: `fixture-content-${uploads}`, name: (file as File).name, bytes: 3 },
++  } })
++  const saved: { record: unknown; reason: string }[] = []
++  const original = { id: 'stable-logical-original', name: 'original.txt', mediaType: 'text/plain' }
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++    read: async () => ({ draft: { text: 'attached', references: [] }, originals: [original] }),
++    prepare: async () => [{ status: 'ready', file: new File(['abc'], 'original.txt', { type: 'text/plain' }) }],
++    write: (_scope, record, reason) => saved.push({ record, reason }),
++  }))
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  const first = b.input.draft(b.binding).getSnapshot().readiness
++  expect(first[0]?.status).toBe('ready')
++  expect(saved).toEqual([{ reason: 'hydrate', record: {
++    draft: { text: 'attached', references: [] }, originals: [original],
++  } }])
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(uploads).toBe(2)
++  expect(b.input.draft(b.binding).getSnapshot().readiness).not.toEqual(first)
++  expect(JSON.stringify(saved)).not.toContain('receipt')
++})
++
++it('rejects receipt-bearing persistence data without preparing or changing the current draft', async () => {
++  const b = await fixture()
++  let prepares = 0
++  const provider = providerFor(b.id, { prepare: async () => { prepares++; return [] } })
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  const source = b.input.draft(b.binding)
++  b.input.for(b.binding.ctx).setDraft('keep this complete draft')
++  const state = source.getSnapshot()
++  const result = await b.input.hydrateDraft({ binding: b.binding, scope: state.scope,
++    expectedRevision: state.revision, record: {
++      draft: { text: 'untrusted saved input', references: [] },
++      originals: [{ id: 'old', name: 'a', mediaType: 'text/plain', receiptId: 'do-not-replay' }],
++    } as never })
++  expect(result).toEqual({ status: 'blocked', reason: 'invalid' })
++  expect(prepares).toBe(0)
++  expect(source.getSnapshot().draft.text).toBe('keep this complete draft')
++})
++
++it('releases prepared runtime handles after a newer edit fences a late upload result', async () => {
++  const b = await fixture()
++  const upload = deferred<unknown>()
++  let started!: () => void
++  const uploading = new Promise<void>(resolve => { started = resolve })
++  b.runtime.fileUpload.upload = () => { started(); return upload.promise }
++  const provider = providerFor(b.id, {
++    read: async () => ({ draft: { text: 'old attached draft', references: [] },
++      originals: [{ id: 'stable', name: 'a.txt', mediaType: 'text/plain' }] }),
++    prepare: async () => [{ status: 'ready', file: new File(['abc'], 'a.txt', { type: 'text/plain' }) }],
++  })
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  const result = b.input.restoreDraft(b.binding)
++  await uploading
++  b.input.for(b.binding.ctx).setDraft('newer complete input')
++  upload.resolve({ ok: true, value: { receiptId: 'late-receipt',
++    file: { attachmentId: 'fixture-content', name: 'a.txt', bytes: 3 } } })
++  expect(await result).toEqual({ status: 'blocked', reason: 'revision' })
++  expect(b.input.draft(b.binding).getSnapshot()).toMatchObject({
++    draft: { text: 'newer complete input', references: [] }, originals: [], readiness: [],
++  })
++  // Public state exposes no orphaned ready handle after cleanup.
++  expect(b.input.for(b.binding.ctx).state.getSnapshot().attachmentIds).toEqual([])
++})
++
++it('cancels an old restore when a newer restore supersedes it and on provider disposal', async () => {
++  const b = await fixture()
++  const first = deferred<Awaited<ReturnType<ConversationDraftProvider['read']>>>()
++  let reads = 0
++  const dispose = b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++    read: () => ++reads === 1 ? first.promise : Promise.resolve({ draft: { text: 'latest', references: [] }, originals: [] }),
++  }))
++  const old = b.input.restoreDraft(b.binding)
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(await old).toEqual({ status: 'blocked', reason: 'cancelled' })
++  first.resolve({ draft: { text: 'late old result', references: [] }, originals: [] })
++  await Promise.resolve()
++  expect(b.input.draft(b.binding).getSnapshot().draft.text).toBe('latest')
++  dispose()
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'blocked', reason: 'provider' })
++})
++
++it('fences a restore started before a submission even after that submission fails and editing resumes', async () => {
++  const b = await fixture('provider', { prompt: async () => { throw new Error('fixture prompt refusal') } })
++  const preparation = deferred<Awaited<ReturnType<ConversationDraftProvider['prepare']>>>()
++  const started = deferred<void>()
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++    prepare: () => { started.resolve(); return preparation.promise },
++  }))
++  const input = b.input.for(b.binding.ctx)
++  input.setDraft('submitted draft retained on failure')
++  const result = b.input.restoreDraft(b.binding)
++  await started.promise
++  input.submit()
++  await vi.waitFor(() => { expect(input.state.getSnapshot().phase).toBe('plain') })
++  preparation.resolve([])
++  expect(await result).toEqual({ status: 'blocked', reason: 'revision' })
++  expect(input.state.getSnapshot().draft).toBe('submitted draft retained on failure')
++})
++
++
++it('cancels restore on final retained binding release and never recreates the disposed input', async () => {
++  const b = await fixture()
++  const read = deferred<Awaited<ReturnType<ConversationDraftProvider['read']>>>()
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, { read: () => read.promise }))
++  const source = b.input.draft(b.binding)
++  const result = b.input.restoreDraft(b.binding)
++  b.ref.release()
++  await b.runtime.sessions.disposeScopes()
++  expect(await result).toEqual({ status: 'blocked', reason: 'cancelled' })
++  read.resolve({ draft: { text: 'disposed generation', references: [] }, originals: [] })
++  await Promise.resolve()
++  expect(source.getSnapshot().draft.text).toBe('')
++  expect(() => b.input.draft(b.binding)).toThrow('retained binding')
++})
++
++it('keeps stock persistence as the default opt-in boundary for other DSH consumers', async () => {
++  const b = await fixture('stock')
++  expect(() => b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id))).toThrow('exclusive provider mode')
++})
++
++
++it('provider withdrawal releases readiness, preserves originals/text, and keeps subscriptions stable on replacement', async () => {
++  let prompts = 0
++  const b = await fixture('provider', { prompt: async () => { prompts++; return { ok: true, value: { accepted: true } } } })
++  let uploads = 0
++  b.runtime.fileUpload.upload = async () => ({ ok: true, value: { receiptId: `fixture-fresh-${++uploads}`,
++    file: { attachmentId: 'fixture-content', name: 'a.txt', bytes: 3 } } })
++  const original = { id: 'stable', name: 'a.txt', mediaType: 'text/plain' }
++  const provider = providerFor(b.id, {
++    read: async () => ({ draft: { text: 'preserve on withdrawal', references: [] }, originals: [original] }),
++    prepare: async () => [{ status: 'ready', file: new File(['abc'], 'a.txt', { type: 'text/plain' }) }],
++  })
++  const dispose = b.input.registerDraftProvider(b.runtime.ctx, provider)
++  const source = b.input.draft(b.binding)
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  dispose()
++  expect(source.getSnapshot().readiness[0]?.status).toBe('invalid')
++  expect(source.getSnapshot().originals).toEqual([original])
++  expect(source.getSnapshot().draft.text).toBe('preserve on withdrawal')
++  b.input.for(b.binding.ctx).submit()
++  expect(prompts).toBe(0)
++  b.input.registerDraftProvider(b.runtime.ctx, provider)
++  expect(b.input.draft(b.binding)).toBe(source)
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(source.getSnapshot().readiness[0]?.status).toBe('ready')
++  expect(uploads).toBe(2)
++})
++
++it('cancelling hydration aborts the actual public upload carrier and retains the prior complete draft', async () => {
++  const b = await fixture()
++  const started = deferred<void>()
++  let uploadAborted = false
++  b.runtime.fileUpload.upload = (_id, _file, _name, signal) => new Promise((_resolve, reject) => {
++    if (!(signal instanceof AbortSignal)) throw new Error('fixture upload requires an abort signal')
++    signal.addEventListener('abort', () => { uploadAborted = true; reject(new Error('upload cancelled')) }, { once: true })
++    started.resolve()
++  })
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++    read: async () => ({ draft: { text: 'saved attachment draft', references: [] },
++      originals: [{ id: 'stable', name: 'a.txt', mediaType: 'text/plain' }] }),
++    prepare: async () => [{ status: 'ready', file: new File(['abc'], 'a.txt', { type: 'text/plain' }) }],
++  }))
++  b.input.for(b.binding.ctx).setDraft('retain my complete live draft')
++  const cancel = new AbortController()
++  const result = b.input.restoreDraft(b.binding, cancel.signal)
++  await started.promise
++  cancel.abort()
++  expect(await result).toEqual({ status: 'blocked', reason: 'cancelled' })
++  expect(uploadAborted).toBe(true)
++  expect(b.input.draft(b.binding).getSnapshot()).toMatchObject({
++    draft: { text: 'retain my complete live draft', references: [] }, originals: [], readiness: [],
++  })
++})
