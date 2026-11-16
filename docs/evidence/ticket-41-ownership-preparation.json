@@ -95,9 +95,9 @@
       "loaded": false
     },
     "syntheticFixture": {
-      "file": "/tmp/ownership-server-tracer-2Yln6e/fixture.json",
-      "sha256": "dcaeca55d9e22bf77209220984e9ed5fcd161f5577246842732367340b90f962",
-      "sourceInputsVerified": 28,
+      "file": "/tmp/ownership-server-tracer-SOt2Bg/fixture.json",
+      "sha256": "b01ba367141e542617ba4b4650b57b62ed27a4162c608f3b3dfff2e0f3e16a98",
+      "sourceInputsVerified": 31,
       "endpointAbsent": true,
       "helperAbsent": true,
       "fencesEmpty": true
@@ -106,6 +106,14 @@
     "privateHelperPaths": "NOT_RUN",
     "maintenanceRetention": "NOT_RUN",
     "brokerCreation": "UNAVAILABLE",
-    "productPrivateAdmission": "BLOCKED"
+    "productPrivateAdmission": "BLOCKED",
+    "retainingParent": {
+      "file": "/workspace/work/omp-webui-ticket-41/scripts/retain-ownership-server-tracer.py",
+      "sha256": "c5bb5022c30886a482256ee196c6cbcf3186a5157387b7960068b909ecfd9088",
+      "interpreter": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "syntax": "PASS_AST_ONLY",
+      "executed": false,
+      "signalsSent": 0
+    }
   }
 }

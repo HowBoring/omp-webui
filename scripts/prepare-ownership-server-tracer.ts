@@ -23,7 +23,10 @@ const inputs = [...(await fs.readdir(modules)).filter(file => /\.(?:ts|c|json)$/
   path.join(source, "packages/coding-agent/test/execution-ownership-server.test.ts"),
   path.join(source, "packages/coding-agent/test/fixtures/ownership-server-runner.ts"), path.join(repository, "bunfig.toml"),
   path.join(repository, "compatibility/omp/fixtures/no-provider.ts"), path.resolve(buildPath), artifact.file, process.execPath,
-  path.join(repository, "scripts/prepare-ownership-server-tracer.ts")];
+  path.join(repository, "scripts/prepare-ownership-server-tracer.ts"),
+  path.join(repository, "scripts/retain-ownership-server-tracer.py"),
+  await fs.realpath("/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3"),
+  await fs.realpath("/usr/bin/strace")];
 const identities = await Promise.all(inputs.sort().map(async file => ({ file, sha256: hash(await fs.readFile(file)) })));
 const root = await fs.mkdtemp("/tmp/ownership-server-tracer-"); await fs.chmod(root, 0o700);
 for (const name of ["operator", "release", "state", "state/fences", "home", "profile", "cwd", "config", "data", "cache", "xdg-state"]) {
@@ -58,6 +61,9 @@ const keyPin = await pinned("key.json", { version: "omp-execution-signing-key/1"
 const fixture = { format: "omp-execution-server-tracer/1", scope: "synthetic-operator-public-uds-kernel-peer-signature-only",
   approval: approvalPin, key: keyPin, sourceInputs: identities,
   guard: path.join(repository, "compatibility/omp/fixtures/no-provider.ts"), bunConfig: path.join(repository, "bunfig.toml"),
+  retainingParent: path.join(repository, "scripts/retain-ownership-server-tracer.py"),
+  retainingInterpreter: "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+  retentionPolicy: "sole-P_ALL-waiter-with-held-root-pidfd-no-signals-retain-until-ECHILD",
   createdSyntheticKeys: true, autoEnrolledClientTrust: false, ffiLoaded: false, endpointOpened: false,
   nativeExecuted: false, helperAuthorized: false, maintenanceRetentionProven: false, productPrivateAdmission: "BLOCKED" };
 await fs.writeFile(path.join(root, "fixture.json"), JSON.stringify(fixture, null, 2) + "\n", { mode: 0o600, flag: "wx" });

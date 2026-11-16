@@ -211,9 +211,16 @@ Guarded source checks: **42 pass / 2 OS skip / 142 assertions**, focused Native 
 types **159 files / 0 errors**, schema corpus **41 cases**. Static test/server bundles compile 15 modules; the C bridge
 compiles under its fixed strict flags to 21,608 bytes, with no library load/probe. Exact hashes are in the JSON.
 
-An explicitly synthetic operator fixture is prepared under `/tmp/ownership-server-tracer-2Yln6e`, with 28 frozen
+An explicitly synthetic operator fixture is prepared under `/tmp/ownership-server-tracer-SOt2Bg`, with 31 frozen
 source/tool/bridge inputs rehashed, protected public/key pins outside its release, no endpoint, no authorized helper
 executable and empty fence directory. Its first opt-in actual test will start one independent guarded Bun server
 child, use the parent's public UDS client and signed replies, and close/await the child through public stdin EOF.
 Narrow socket/peer syscall tracing is planned; it has **NOT RUN**. This preparation does not establish global closure,
 maintenance retention, helper lifecycle, protected broker/services or Native/worker/browser behavior.
+
+The exact outer command now names a concrete independent Python retaining parent. Its frozen input hash and
+interpreter/strace hashes are included in the 31-member manifest. Source syntax is checked without executing the
+wrapper. At runtime it establishes a subreaper before admission, holds the exact strace child pidfd, and alone reaps
+its wait domain through `P_ALL/ECHILD`. Cancellation, observer failure or an EOF/exit timeout keeps that parent alive;
+no process signals or numeric-PID discovery are implemented. A 30-second marker is diagnostic, never extinction.
+The actual tool invocation requires network-enabled sandbox permissions. The wrapper and server test are **NOT RUN**.
