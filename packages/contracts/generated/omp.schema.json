@@ -153,6 +153,28 @@
         "clientOmit": []
       },
       {
+        "name": "submission_submit",
+        "doc": "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
+        "params": "SubmissionSubmitParams",
+        "result": "SubmissionResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "submission_query",
+        "doc": "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
+        "params": "SubmissionQueryParams",
+        "result": "SubmissionResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_compatibility",
         "doc": "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
         "params": null,
@@ -4249,6 +4271,176 @@
         "phase"
       ]
     },
+    "SubmissionTarget": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId"
+      ]
+    },
+    "SubmissionRelation": {
+      "type": "object",
+      "properties": {
+        "relationId": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "no_entry",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "persistence": {
+          "enum": [
+            "committed",
+            "observed",
+            "failed",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "relationId",
+        "role",
+        "status",
+        "persistence"
+      ]
+    },
+    "SubmissionResult": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-submission-v1"
+        },
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "found": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "admission": {
+          "enum": [
+            "local",
+            "inherited",
+            "absent"
+          ],
+          "type": "string"
+        },
+        "reservation": {
+          "enum": [
+            "committed",
+            "unknown",
+            "absent"
+          ],
+          "type": "string"
+        },
+        "inputOutcome": {
+          "enum": [
+            "unresolved",
+            "generated",
+            "no_input"
+          ],
+          "type": "string"
+        },
+        "persistence": {
+          "enum": [
+            "committed",
+            "failed",
+            "unknown",
+            "unresolved"
+          ],
+          "type": "string"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubmissionRelation"
+          }
+        },
+        "nextOffset": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "#/$defs/SubmissionOrigin"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "clientSubmissionId",
+        "found",
+        "duplicate",
+        "admission",
+        "reservation",
+        "inputOutcome",
+        "persistence",
+        "terminal",
+        "relations",
+        "nextOffset"
+      ]
+    },
+    "SubmissionOrigin": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "clientSubmissionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "clientSubmissionId"
+      ]
+    },
     "AutoCompactionReason": {
       "enum": [
         "threshold",
@@ -7737,6 +7929,73 @@
       "required": [
         "intent",
         "expectedCwd"
+      ]
+    },
+    "SubmissionSubmitParams": {
+      "type": "object",
+      "properties": {
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "preparationId": {
+          "type": "string"
+        },
+        "inputType": {
+          "enum": [
+            "prompt",
+            "steer",
+            "follow_up",
+            "abort_and_prompt"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImageContent"
+          }
+        },
+        "streamingBehavior": {
+          "$ref": "#/$defs/StreamingBehavior"
+        }
+      },
+      "required": [
+        "clientSubmissionId",
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "preparationId",
+        "inputType",
+        "message"
+      ]
+    },
+    "SubmissionQueryParams": {
+      "type": "object",
+      "properties": {
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "clientSubmissionId"
       ]
     },
     "NegotiateProtocolParams": {

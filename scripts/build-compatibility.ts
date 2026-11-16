@@ -203,3 +203,5 @@ await emit("packages/contracts/generated/identity.ts",
 await import("./build-history-contracts.ts");
 
 await import("./build-live-contracts.ts");
+
+await import("./build-submission-contracts.ts");

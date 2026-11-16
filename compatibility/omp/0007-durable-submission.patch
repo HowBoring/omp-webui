@@ -1,0 +1,757 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 768fc266cc..3eb72c3efc 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -9,6 +9,8 @@
+ 
+ ### Added
+ 
++- Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
++
+ - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
+ 
+ - Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index 0b34d8fc54..ba1689e681 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -44,3 +44,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
+    - `HINDSIGHT_BANK_MISSION`, `HINDSIGHT_DEBUG`
+ 
+ Switching backends mid-session immediately replaces the live backend, memory tools, listeners, and system-prompt context. Existing users with `memories.enabled = true|false` are migrated to `memory.backend = "local"|"off"` exactly once on first launch; afterward, `memory.backend` is the sole runtime selector.
++
++Durable submission prototype: see [public reservation and recovery semantics](docs/rpc-submissions.md).
+diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
+new file mode 100644
+index 0000000000..383f9f8c70
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-submissions.md
+@@ -0,0 +1,7 @@
++# Durable native submission prototype
++
++`submission_submit` binds a permanent client identity to the exact protected native target, immutable preparation identity and input bytes. A reservation is published before extension, builtin, abort, model or tool dispatch. Duplicate keys return existing facts without executing. Conflicting bytes or targets are refused. This does not promise exactly-once external effects: a crashed reserved input remains unresolved and never resumes automatically.
++
++`submission_query` reads the protected logical native bytes without executing, flushing, repairing or retrying. A reservation differs from completion; individual committed entry relations differ from memory observations, explicit no-entry decisions and unresolved outcomes. Durable means recoverability after a software process crash, not fsync or power-loss durability. The ledger admits at most 16 permanent keys / 12,000 bytes; full ledgers refuse new admission, never evict tombstones. Query pages have at most 128 relations. Native entries hold minimal causal origin fields; metadata contains no prompt copy. Reservation/completion preserve the active leaf and do not enter model context.
++
++The `ompgen2` discriminator prevents unsupported generation readers from opening submission-bearing data. Matched native copies retain origin facts and tombstones; a copied fact is inherited, never an admission into the destination. An unsupported required feature is refused. Product private admission remains blocked pending combined native/TUI/browser/fault acceptance.
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+index da698774f5..6722130805 100644
+--- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
++++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+@@ -52,7 +52,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+     const bytes = Buffer.alloc(HEADER_BYTES);
+     const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
+     let prefix: Buffer = bytes.subarray(0, bytesRead);
+-    if (/"type"\s*:\s*"ompgen1"/.test(prefix.toString("utf8"))) {
++    if (/"type"\s*:\s*"ompgen[12]"/.test(prefix.toString("utf8"))) {
+       const parent = await openWithin(source.root, source.rootIdentity, nodePath.dirname(target), true);
+       try { prefix = readHeldGenerationMetadata(file.fd, parent.fd, target, HEADER_BYTES, prefix); }
+       finally { await parent.close(); }
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 3a336fa764..c7c988cddf 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1,3 +1,5 @@
++import { RpcSubmissions } from "./rpc-submissions";
++import { runSubmission, submissionScope } from "../../session/submission-provenance";
+ import { validateHistoryCommand } from "./history.generated";
+ import { RpcHistoryObservation } from "./rpc-history";
+ import { getStrictStartup, observeStrictStartup } from "./strict-context";
+@@ -515,6 +517,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+ }
+ 
+ const USER_INPUT_TYPES: Record<string, true> = {
++	submission_submit: true,
+ 	prompt: true,
+ 	steer: true,
+ 	follow_up: true,
+@@ -560,6 +563,12 @@ export class RpcUserInputGate {
+ 		if (isAbort) this.#validFrom = sequence;
+ 	}
+ 
++	/** Preserve accepted-frame authority when the reserved command becomes a native input. */
++	alias(source: RpcCommand, destination: RpcCommand): void {
++		const sequence = this.#acceptedAt.get(source);
++		if (sequence !== undefined) this.#acceptedAt.set(destination, sequence);
++	}
++
+ 	/** A session change succeeded: invalidate input accepted before its frame. */
+ 	commitSessionChange(command: RpcCommand): void {
+ 		const sequence = this.#acceptedAt.get(command);
+@@ -1834,14 +1843,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	await emitAvailableCommandsUpdate();
+ 
++	const submissions = new RpcSubmissions(session);
+ 	const inputGate = new RpcUserInputGate();
+ 	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
+ 	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
+ 	const dispatchOrderedUserInput = (
+ 		command: OrderedUserInput,
+ 		ticket: RpcPromptTicket | undefined,
+-	): Promise<OrderedInputOutcome> =>
+-		inputGate.enqueue(async () => {
++	): Promise<OrderedInputOutcome> => {
++		const initiatingSubmission = submissionScope();
++		return inputGate.enqueue(() => runSubmission(initiatingSubmission, async () => {
+ 			const sessionId = session.sessionId;
+ 			const isCurrent = () =>
+ 				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
+@@ -1859,11 +1870,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			if (!isCurrent()) return "cancelled";
+ 			if (!text.trim() && !images?.length) return "local";
+ 			if (command.type === "steer") {
+-				await session.steer(text, images);
++				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
+ 				return "admitted";
+ 			}
+ 			if (command.type === "follow_up") {
+-				await session.followUp(text, images);
++				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.followUp(text, images));
+ 				return "admitted";
+ 			}
+ 			if (command.type === "prompt") {
+@@ -1941,17 +1952,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			await watchAndReportPromptResult({
+ 				ticket,
+ 				startPrompt: onPromptAdmitted =>
+-					session.prompt(text, {
++					runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.prompt(text, {
+ 						images,
+ 						...(command.type === "prompt" ? { streamingBehavior: command.streamingBehavior } : {}),
+ 						onPromptAdmitted,
+-					}),
++					})),
+ 				results: promptResults,
+ 				onError: onPromptError(command.id, command.type),
+ 				extensionUserMessageTracker,
+ 			});
+ 			return "admitted";
+-		});
++		}));
++	};
+ 	// Abort controllers for builtin commands whose work outlives the prompt
+ 	// response (e.g. the `/mcp reauth` browser wait, dispatched through
+ 	// `runCommandInBackground`). Host abort and disconnect must tear those
+@@ -1974,6 +1986,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			// Prompting
+ 			// =================================================================
+ 
++			case "submission_query": {
++				try { submissions.validate(command); return success(id, command.type,
++					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
++				catch (failure) { const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
++					return error(id, command.type, code, code); }
++			}
++			case "submission_submit": {
++				try {
++					const reservation = await submissions.reserve(command);
++					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
++					const { scope } = reservation;
++					try {
++						const input = { ...command, type: command.inputType };
++						inputGate.alias(command, input);
++						if (input.type === "abort_and_prompt") {
++							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
++							await session.abort({ reason: USER_INTERRUPT_LABEL });
++						}
++						const ticket = input.type === "prompt" || input.type === "abort_and_prompt" ? promptResults.begin(id) : undefined;
++						const outcome = await submissions.run(scope, () => dispatchOrderedUserInput(input, ticket));
++						if (ticket && outcome === "local") promptResults.discard(ticket);
++						if (ticket && outcome === "cancelled") promptResults.settle(ticket);
++						const completion = submissions.complete(scope.origin, outcome === "local");
++						shutdownCoordinator.track(completion);
++						if (outcome === "local") await completion;
++						return success(id, command.type, submissions.query(command.clientSubmissionId));
++					} catch (failure) { submissions.fail(scope.origin, failure); throw failure; }
++				} catch (failure) { const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
++					return error(id, command.type, code, code); }
++			}
++
+ 			case "prompt": {
+ 				// Taken before any dispatch so a builtin that schedules a turn (e.g. `/retry`)
+ 				// cannot start its run ahead of the prompt's event-stream position.
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+new file mode 100644
+index 0000000000..ad295b6910
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+@@ -0,0 +1,107 @@
++/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
++import type { AgentSession } from "../../session/agent-session";
++import type { ImageContent } from "@oh-my-pi/pi-ai";
++import { messageSubmission, runSubmission, sameSubmission } from "../../session/submission-provenance";
++import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope } from "../../session/submission-provenance";
++import { validSubmissionCommand } from "./submissions.generated";
++import type { SubmissionResult } from "./wire/rpc-wire.generated";
++export type { SubmissionResult } from "./wire/rpc-wire.generated";
++export interface SubmissionSubmit {
++  id?: string; type: "submission_submit"; clientSubmissionId: string; sourceId: string; instanceId: string; nativeSessionId: string; preparationId: string;
++  inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt"; message: string; images?: ImageContent[];
++  streamingBehavior?: "steer" | "followUp";
++}
++export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
++interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>> }
++export class RpcSubmissions {
++  readonly #pending = new Map<string, PendingSubmission>();
++  readonly #failures = new Map<string, "failed" | "unknown">();
++  constructor(readonly session: AgentSession) {
++    session.subscribeMessageObservations(observation => {
++      if (observation.kind !== "message_settlement" || !observation.settlement) return;
++      const cause = messageSubmission(observation.message);
++      if (!cause) return;
++      const pending = this.#pending.get(cause.origin.clientSubmissionId);
++      if (!pending || !sameSubmission(pending.origin, cause.origin)) return;
++      const decision = observation.settlement;
++      if (decision.status === "observed") return;
++      if (pending.noEntries.size >= 32) { pending.overflow = true; return; }
++      pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
++        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++    });
++  }
++  validate(command: unknown): void {
++    if (!validSubmissionCommand(command)) throw new Error("SUBMISSION_COMMAND_SCHEMA");
++    const value = command as SubmissionCommand;
++    if (!/^[A-Za-z0-9_-]{1,96}$/.test(value.clientSubmissionId) || (value.id !== undefined && value.id.length > 96))
++      throw new Error("SUBMISSION_COMMAND_SCHEMA");
++    if (value.type === "submission_query") {
++      if ((value.offset ?? 0) < 0 || (value.limit ?? 64) < 1 || (value.limit ?? 64) > 128)
++        throw new Error("SUBMISSION_QUERY_BOUNDS");
++      return;
++    }
++    if (value.preparationId.length < 1 || value.preparationId.length > 96 || Buffer.byteLength(value.message) > 262_144
++      || !/^[a-f0-9]{64}$/.test(value.sourceId) || !/^[a-f0-9]{64}$/.test(value.instanceId)
++      || value.nativeSessionId.length < 1 || value.nativeSessionId.length > 128
++      || Buffer.byteLength(JSON.stringify(value.images ?? [])) > 524_288) throw new Error("SUBMISSION_COMMAND_SCHEMA");
++  }
++  async reserve(command: SubmissionSubmit): Promise<{ admitted: boolean; scope: SubmissionScope }> {
++    this.validate(command);
++    const target = this.session.sessionManager.getSubmissionTarget();
++    if (target.sourceId !== command.sourceId || target.instanceId !== command.instanceId
++        || target.nativeSessionId !== command.nativeSessionId) throw new Error("SUBMISSION_TARGET_MISMATCH");
++    const origin = { ...target, clientSubmissionId: command.clientSubmissionId };
++    const fingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
++      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null }), "hex");
++    const reservation: NativeSubmission = { origin, fingerprint, preparationId: command.preparationId,
++      terminal: false, inputOutcome: "unresolved", noEntries: [] };
++    const admitted = await this.session.sessionManager.reserveSubmission(reservation);
++    const tasks = new Set<Promise<unknown>>();
++    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks });
++    return { admitted, scope: { origin, phase: "extension", tasks } };
++  }
++  run<T>(scope: SubmissionScope, run: () => T): T { return runSubmission(scope, run); }
++  async complete(origin: SubmissionOrigin, local: boolean): Promise<void> {
++    const pending = this.#pending.get(origin.clientSubmissionId);
++    if (!pending) return;
++    try {
++      while (pending.tasks.size) await Promise.allSettled([...pending.tasks]);
++      await this.session.waitForAdmittedSubmissions();
++      await this.session.waitForIdle();
++      if (pending.overflow) throw new Error("SUBMISSION_RELATION_LIMIT");
++      const state = this.session.sessionManager.readSubmissionState();
++      const generated = state.entries.some(entry => entry.submission && sameSubmission(entry.submission.origin, origin)
++        && entry.submission.role === "input");
++      await this.session.sessionManager.completeSubmission(origin, generated ? "generated" : local ? "no_input" : "unresolved",
++        [...pending.noEntries.values()]);
++    } catch (failure) { this.fail(origin, failure); }
++    finally { this.#pending.delete(origin.clientSubmissionId); }
++  }
++  fail(origin: SubmissionOrigin, failure: unknown): void {
++    const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
++    this.#failures.set(origin.clientSubmissionId, /UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY/.test(code) ? "unknown" : "failed");
++  }
++  query(clientSubmissionId: string, offset = 0, limit = 64, duplicate = false): SubmissionResult {
++    this.validate({ type: "submission_query", clientSubmissionId, offset, limit });
++    const target = this.session.sessionManager.getSubmissionTarget();
++    let state;
++    try { state = this.session.sessionManager.readSubmissionState(); }
++    catch { return { version: "durable-submission-v1", clientSubmissionId, found: false, duplicate, admission: "absent",
++      reservation: "unknown", inputOutcome: "unresolved", persistence: "unknown", terminal: false, relations: [], nextOffset: null,
++      code: "SUBMISSION_SOURCE_UNREADABLE" }; }
++    const value = state.header.nativeSubmissions?.find(item => item.origin.clientSubmissionId === clientSubmissionId);
++    if (!value) return { version: "durable-submission-v1", clientSubmissionId, found: false, duplicate, admission: "absent",
++      reservation: "absent", inputOutcome: "unresolved", persistence: "unresolved", terminal: false, relations: [], nextOffset: null };
++    const relations: SubmissionResult["relations"] = state.entries.flatMap(entry => entry.submission
++      && sameSubmission(entry.submission.origin, value.origin) ? [{ relationId: `entry:${entry.id}`, role: entry.submission.role,
++        status: "observed" as const, persistence: "committed" as const, entryId: entry.id }] : []);
++    relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
++    const end = Math.min(offset + limit, relations.length);
++    return { version: "durable-submission-v1", clientSubmissionId, found: true, duplicate,
++      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
++        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
++      reservation: "committed", inputOutcome: value.inputOutcome, terminal: value.terminal,
++      persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
++      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
++  }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index efccf79be7..1e974cbbf6 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -1,3 +1,4 @@
++import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
+ import type { StrictStartState } from "./wire/rpc-wire.generated";
+ /**
+  * RPC protocol types for headless operation.
+@@ -49,6 +50,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+ export type RpcMessageUpdates = "full" | "delta";
+ 
+ export type RpcCommand =
++  | SubmissionCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+   | { id?: string; type: "history_snapshot_page"; cursor: string }
+@@ -443,6 +445,7 @@ export interface RpcSubagentMessagesResult {
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | { id?: string; type: "response"; command: "submission_submit" | "submission_query"; success: true; data: SubmissionResult }
+   | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
+   | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
+   | { id?: string; type: "response"; command: "history_snapshot_page"; success: true; data: HistoryPage }
+diff --git a/packages/coding-agent/src/modes/rpc/submission-client.ts b/packages/coding-agent/src/modes/rpc/submission-client.ts
+new file mode 100644
+index 0000000000..6f087cad80
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/submission-client.ts
+@@ -0,0 +1,19 @@
++/** Public bounded native submission API; query never retransmits input. */
++import type { RpcWireCommands, SubmissionResult } from "./wire/rpc-wire.generated";
++export type SubmissionClientName = "submission_submit" | "submission_query";
++export type SubmissionClientCommand = { [K in SubmissionClientName]: { id: string; type: K } & RpcWireCommands[K]["params"] }[SubmissionClientName];
++export class SubmissionClient {
++  constructor(private readonly send: (command: SubmissionClientCommand) => Promise<unknown>,
++    private readonly validate: (value: unknown) => value is SubmissionResult) {}
++  async #request(command: SubmissionClientCommand): Promise<SubmissionResult> {
++    const result = await this.send(command);
++    if (!this.validate(result) || result.clientSubmissionId !== command.clientSubmissionId) throw new Error("SUBMISSION_RESULT_INVALID");
++    return result;
++  }
++  submit(input: RpcWireCommands["submission_submit"]["params"]): Promise<SubmissionResult> {
++    return this.#request({ ...input, id: crypto.randomUUID(), type: "submission_submit" });
++  }
++  query(clientSubmissionId: string, offset = 0, limit = 64): Promise<SubmissionResult> {
++    return this.#request({ id: crypto.randomUUID(), type: "submission_query", clientSubmissionId, offset, limit });
++  }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index 800328dd61..97966b2eee 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -1,3 +1,4 @@
++import { submissionCommands } from "./submissions";
+ import { strictStartCommands } from "./strict-start";
+ /**
+  * The RPC command table: every `RpcCommand` with its parameters, its success
+@@ -40,6 +41,7 @@ export const rpcCommands: readonly RpcCommandSpec[] = [
+   ...catalogCommands,
+   ...historyCommands,
+   ...strictStartCommands,
++  ...submissionCommands,
+   {
+     name: "get_compatibility",
+     doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+index 1e7b675bc3..afeae50dfa 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -1,3 +1,4 @@
++import { submissionDefs } from "./submissions";
+ /**
+  * RPC wire schema: the single source the client libraries are generated from.
+  *
+@@ -171,6 +172,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
+ 		...stateDefs,
+     ...catalogDefs,
+     ...strictStartDefs,
++    ...submissionDefs,
+ 		...eventDefs,
+ 		...frameDefs,
+ 		...interactionDefs,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+new file mode 100644
+index 0000000000..daac1e1ba3
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+@@ -0,0 +1,18 @@
++/** Recoverable ingress identity. Only protected native storage may admit input. Query never executes. */
++export const submissionDefs = {
++  SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
++  SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
++    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "reason?": "string" },
++  SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", found: "boolean", duplicate: "boolean",
++    admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
++    inputOutcome: "'unresolved' | 'generated' | 'no_input'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
++    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
++  SubmissionOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", clientSubmissionId: "string" },
++};
++export const submissionCommands = [
++  { name: "submission_submit", doc: "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
++    params: { clientSubmissionId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", preparationId: "string", inputType: "'prompt' | 'steer' | 'follow_up' | 'abort_and_prompt'",
++      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
++  { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
++    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
++] as const;
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index a4fc26d8d8..85b1cedb56 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -1,3 +1,4 @@
++import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
+ import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
+ import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
+ /**
+@@ -3752,7 +3753,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		this.#admittedSubmissionCount++;
+ 		try {
+ 			if (this.hasPendingDeferredExtensions) await this.loadDeferredExtensions();
+-			return await this.#inLogContext(work);
++			const admittedWork = this.#inLogContext(work);
++			trackSubmissionTask(admittedWork);
++			return await admittedWork;
+ 		} finally {
+ 			if (--this.#admittedSubmissionCount === 0 && this.#admittedSubmissionsSettled) {
+ 				const settled = this.#admittedSubmissionsSettled;
+@@ -4283,8 +4286,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	#queueMessageEndPersistence(message: AgentMessage, promptGeneration: number): Promise<void> {
+ 		const key = sessionMessagePersistenceKey(message);
+ 		const live = nativeMessageIdentity(message);
++		const causality = messageSubmission(message);
++		const initiatingSubmission = causality ? { origin: causality.origin, phase: "extension" as const } : submissionScope();
+ 		const pending = this.#messageEndPersistenceTail
+-			.then(() => this.#messageObservations.withIdentity(message, live, () => {
++			.then(() => runSubmission(initiatingSubmission, () => this.#messageObservations.withIdentity(message, live, () => {
+ 				try {
+ 					const settlement = this.#persistMessageEnd(message, promptGeneration);
+ 					if (settlement.status === "no_entry" && settlement.reason === "empty_error") {
+@@ -4294,7 +4299,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 					this.#messageObservations.settle(message, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
+ 					throw error;
+ 				}
+-			}))
++			})))
+ 			.finally(() => {
+ 				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
+ 					this.#pendingMessageEndPersistence.delete(key);
+@@ -4717,6 +4722,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
++		if (event.type === "message_start" || event.type === "message_end") captureSubmission(event.message, event.message.role);
+ 		this.#messageObservations.observe(event);
+ 		const eventPromptGeneration = this.#promptGeneration;
+ 		if (event.type === "agent_end" && this.#activeAgentContinue) {
+@@ -9743,6 +9749,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const preparedMessages = preparation.commit();
+ 			if (!preparedMessages) return false;
+ 			messages.push(...preparedMessages);
++			for (const prepared of messages) captureSubmission(prepared, prepared.role);
+ 			const baseXdevCatalogDelivered = preparation.baseXdevCatalogDelivered;
+ 
+ 			// Auto thinking: classify this real user turn and set the effective level
+@@ -10365,6 +10372,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
+ 			this.#queuedMessageRawText.set(userMessage, rawText);
+ 			records.push(userMessage);
++			for (const message of records) captureSubmission(message, message.role);
+ 			this.#irc.queueAside(records);
+ 			options?.onPromptAdmitted?.();
+ 			// The awaits above (image normalization / vision description) can span the run's
+@@ -10414,6 +10422,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				: { role: "user", content, steering: true, attribution, timestamp };
+ 		this.#queuedMessageRawText.set(userMessage, rawText);
+ 		const group = [...companions, userMessage];
++		for (const message of group) captureSubmission(message, message.role);
+ 		if (mode === "followUp") {
+ 			for (const message of group) this.agent.followUp(message);
+ 			return group;
+@@ -11059,6 +11068,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			timestamp: Date.now(),
+ 		};
+ 		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
++		captureSubmission(normalizedAppMessage, normalizedAppMessage.role);
+ 		if (this.isStreaming) {
+ 			// Queued into a turn the agent owns: that turn holds the session. Busy only
+ 			// from another prompt's setup claims nothing (that prompt decides).
+diff --git a/packages/coding-agent/src/session/session-entries.ts b/packages/coding-agent/src/session/session-entries.ts
+index 6b96d2abb9..61e02dcd7b 100644
+--- a/packages/coding-agent/src/session/session-entries.ts
++++ b/packages/coding-agent/src/session/session-entries.ts
+@@ -1,3 +1,4 @@
++import type { NativeSubmission, SubmissionCausality } from "./submission-provenance";
+ import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
+ import type {
+ 	ImageContent,
+@@ -40,6 +41,9 @@ export const EPHEMERAL_MODEL_CHANGE_ROLE = "fallback";
+ export const PREWALK_MODEL_CHANGE_ROLE = "prewalk";
+ 
+ export interface SessionHeader {
++	/** Native reservation tombstones. Never removed by navigation, pruning, compaction or copies. */
++	nativeSubmissions?: NativeSubmission[];
++	requiredFeatures?: string[];
+ 	type: "session";
+ 	version?: number; // v1 sessions don't have this
+ 	id: string;
+@@ -91,6 +95,8 @@ export interface NewSessionOptions {
+ }
+ 
+ export interface SessionEntryBase {
++	/** Written on the actual entry before its native append; never inferred from content. */
++	submission?: SubmissionCausality;
+ 	type: string;
+ 	id: string;
+ 	parentId: string | null;
+diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
+index b1c89d5402..331d972752 100644
+--- a/packages/coding-agent/src/session/session-generation.ts
++++ b/packages/coding-agent/src/session/session-generation.ts
+@@ -9,6 +9,8 @@ export const generationBudgets = Object.freeze({ bodyBytes: strictStartupPolicy.
+   generations: strictStartupPolicy.maxGenerations, directoryEntries: 128, metadataBytes: 1024, markerBytes: 1024 });
+ const HEAD_XATTR = "user.omp-generation-v1";
+ const CARRIER_TYPE = "ompgen1";
++const SUBMISSION_CARRIER_TYPE = "ompgen2";
++const isCarrierType = (value: unknown): value is "ompgen1" | "ompgen2" => value === CARRIER_TYPE || value === SUBMISSION_CARRIER_TYPE;
+ const COMMIT_TYPE = "omp_generation_commit";
+ const hash = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
+ const decoder = new TextDecoder("utf8", { fatal: true });
+@@ -30,7 +32,7 @@ export function isGenerationCarrier(file: string): boolean {
+   try {
+     fd = fs.openSync(file, "r");
+     const bytes = Buffer.alloc(16_384), count = fs.readSync(fd, bytes, 0, bytes.length, 0);
+-    return /"type"\s*:\s*"ompgen1"/.test(bytes.subarray(0, count).toString("utf8"));
++    return /"type"\s*:\s*"ompgen[12]"/.test(bytes.subarray(0, count).toString("utf8"));
+   } finally { if (fd !== undefined) fs.closeSync(fd); }
+ }
+ export function carrierIdentity(fd: number): string {
+@@ -51,7 +53,7 @@ export function readHeldBytes(fd: number, max = generationBudgets.carrierBytes):
+ function nativeId(text: string): string {
+   for (const line of text.split("\n", 3).slice(0, 2)) {
+     let value: unknown; try { value = JSON.parse(line); } catch { continue; }
+-    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE) && typeof value.id === "string") return value.id;
++    if (isRecord(value) && (value.type === "session" || isCarrierType(value.type)) && typeof value.id === "string") return value.id;
+   }
+   throw new Error("GENERATION_NATIVE_HEADER_INVALID");
+ }
+@@ -77,7 +79,7 @@ function marker(value: unknown): value is CommitRecord {
+   if (hash(JSON.stringify(payload)) !== value.checksum) throw new Error("GENERATION_COMMIT_CORRUPT");
+   return true;
+ }
+-interface HeaderPosition { type: "session" | "ompgen1"; valueOffset: number }
++interface HeaderPosition { type: "session" | "ompgen1" | "ompgen2"; valueOffset: number }
+ function headerPosition(bytes: Buffer): HeaderPosition {
+   let start = 0;
+   for (let index = 0; index < 2; index++) {
+@@ -85,8 +87,8 @@ function headerPosition(bytes: Buffer): HeaderPosition {
+     if (end < 0 || end > 16_384) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
+     const line = decoder.decode(bytes.subarray(start, end));
+     const value: unknown = JSON.parse(line);
+-    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE)) {
+-      const match = /"type"\s*:\s*"(session|ompgen1)"/.exec(line);
++    if (isRecord(value) && (value.type === "session" || isCarrierType(value.type))) {
++      const match = /"type"\s*:\s*"(session|ompgen[12])"/.exec(line);
+       if (!match) throw new Error("GENERATION_HEADER_ENCODING_UNSUPPORTED");
+       const textOffset = match.index + match[0].lastIndexOf(value.type);
+       return { type: value.type, valueOffset: start + Buffer.byteLength(line.slice(0, textOffset)) };
+@@ -190,10 +192,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
+   const complete = bytes.lastIndexOf(10) + 1;
+   const header = headerPosition(bytes);
+   const head = readHead(fd);
+-  if (header.type === CARRIER_TYPE && !head) throw new Error("GENERATION_CONTROL_MISSING");
++  if (isCarrierType(header.type) && !head) throw new Error("GENERATION_CONTROL_MISSING");
+   const committed = head ? committedHead(fd, head) : undefined;
+   const normalized = Buffer.from(bytes.subarray(0, complete));
+-  if (header.type === CARRIER_TYPE) normalized.write("session", header.valueOffset, "ascii");
++  if (isCarrierType(header.type)) normalized.write("session", header.valueOffset, "ascii");
+   const physical = decoder.decode(normalized);
+   let latest: { record: CommitRecord; end: number } | undefined, offset = 0;
+   for (const line of physical.split("\n")) {
+@@ -296,10 +298,13 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
+     writeFileXattr(fd, HEAD_XATTR, Buffer.from(JSON.stringify({ ...headPayload, checksum: hash(JSON.stringify(headPayload)) })));
+     assertCurrent();
+     const header = headerPosition(readHeldBytes(fd));
+-    if (header.type === "session") {
+-      writeComplete(fd, Buffer.from(CARRIER_TYPE, "ascii"), header.valueOffset);
++    // The new discriminator makes unsupported native rollback refuse this data before opening it.
++    const carrierType = body.includes('"durable-submission-v1"') || header.type === SUBMISSION_CARRIER_TYPE
++      ? SUBMISSION_CARRIER_TYPE : CARRIER_TYPE;
++    if (header.type !== carrierType) {
++      writeComplete(fd, Buffer.from(carrierType, "ascii"), header.valueOffset);
+       assertCurrent();
+-      if (headerPosition(readHeldBytes(fd)).type !== CARRIER_TYPE) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
++      if (headerPosition(readHeldBytes(fd)).type !== carrierType) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
+     }
+     writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
+     const confirmed = resolveHeldGeneration(fd, parentFd, file);
+diff --git a/packages/coding-agent/src/session/session-loader.ts b/packages/coding-agent/src/session/session-loader.ts
+index 219391d0e2..4cb2657702 100644
+--- a/packages/coding-agent/src/session/session-loader.ts
++++ b/packages/coding-agent/src/session/session-loader.ts
+@@ -146,7 +146,9 @@ function splitTitleSlot(content: string): { body: string; slot: SessionTitleUpda
+ }
+ 
+ function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
+-	return entry?.type === "session" && typeof entry.id === "string";
++	if (entry?.type === "session" && entry.requiredFeatures?.some(feature => feature !== "durable-submission-v1"))
++    throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
++  return entry?.type === "session" && typeof entry.id === "string";
+ }
+ 
+ function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index e78111ac3c..2aff25bde6 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -1,3 +1,5 @@
++import { causalSubmission, sameSubmission } from "./submission-provenance";
++import type { NativeSubmission, SubmissionOrigin, SubmissionTarget } from "./submission-provenance";
+ import { nativeHistoryContextId } from "./history-context";
+ import { associateMessageEntry } from "./live-message-observation";
+ import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
+@@ -2207,6 +2209,7 @@ export class SessionManager {
+ 		if (entry.type === "message" && entry.message.role === "assistant" && normalizeAssistantUsage(entry.message)) {
+ 			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
+ 		}
++		entry.submission ??= causalSubmission(entry.type === "message" ? entry.message : undefined);
+ 		this.#entries.push(entry);
+ 		this.#index.insert(entry);
+ 		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+@@ -2919,6 +2922,8 @@ export class SessionManager {
+ 		manager.#additionalDirectories = [...this.#additionalDirectories];
+ 		manager.#header.additionalDirectories =
+ 			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
++		manager.#header.nativeSubmissions = structuredClone(this.#header.nativeSubmissions);
++		manager.#header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
+ 		manager.#entries = structuredClone(this.#entries);
+ 		manager.#index.rebuild(manager.#entries);
+ 		manager.#historyChanged("rebuild", true);
+@@ -4171,6 +4176,74 @@ export class SessionManager {
+ 		this.#historyChanged("source_binding", true);
+ 	}
+ 
++	/** A durable submission requires the genuine lease and pinned native publication backend. */
++	getSubmissionTarget(): SubmissionTarget {
++		if (!(this.#storage instanceof StrictSessionStorage) || !this.#persist || !this.#sessionFile)
++			throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
++		this.#storage.assertCurrent();
++		const binding = this.#historySourceBinding;
++		if (!binding || binding.nativeSessionId !== this.#sessionId) throw new Error("SUBMISSION_TARGET_UNAVAILABLE");
++		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
++	}
++	/** Permanent bounded native reservation; failures never authorize dispatch or an automatic retry. */
++	reserveSubmission(value: NativeSubmission): Promise<boolean> {
++		return this.#withAtomicPersistenceLock(async () => {
++			this.getSubmissionTarget();
++			const prior = this.#header.nativeSubmissions?.find(item => item.origin.clientSubmissionId === value.origin.clientSubmissionId);
++			if (prior) {
++				if (!sameSubmission(prior.origin, value.origin) || prior.fingerprint !== value.fingerprint)
++					throw new Error("SUBMISSION_CONFLICT");
++				return false;
++			}
++			if ((this.#header.nativeSubmissions?.length ?? 0) >= 16) throw new Error("SUBMISSION_CAPACITY");
++			const next = [...(this.#header.nativeSubmissions ?? []), structuredClone(value)];
++			if (Buffer.byteLength(JSON.stringify(next)) > 12_000) throw new Error("SUBMISSION_METADATA_LIMIT");
++			this.#header.nativeSubmissions = next;
++			this.#header.requiredFeatures = [...new Set([...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
++			await this.#publishSubmissionState();
++			return true;
++		});
++	}
++	completeSubmission(origin: SubmissionOrigin, outcome: NativeSubmission["inputOutcome"], noEntries: NativeSubmission["noEntries"]): Promise<void> {
++		return this.#withAtomicPersistenceLock(async () => {
++			this.getSubmissionTarget();
++			const value = this.#header.nativeSubmissions?.find(item => sameSubmission(item.origin, origin));
++			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
++			if (noEntries.length > 32 || Buffer.byteLength(JSON.stringify(noEntries)) > 4096)
++				throw new Error("SUBMISSION_RELATION_LIMIT");
++			value.noEntries = structuredClone(noEntries); value.inputOutcome = outcome; value.terminal = true;
++			if (Buffer.byteLength(JSON.stringify(this.#header.nativeSubmissions)) > 12_000)
++				throw new Error("SUBMISSION_METADATA_LIMIT");
++			await this.#publishSubmissionState();
++		});
++	}
++	async #publishSubmissionState(): Promise<void> {
++		// No ordinary append notification, memory entry or successful flush supplies the proof.
++		// Publication includes the native metadata and every corresponding retained entry.
++		this.getSubmissionTarget();
++		if (this.#diskFailure) throw this.#diskFailure;
++		await this.flush();
++		this.#forceFileCreation = true;
++		await this.#rewriteAtomically();
++		this.getSubmissionTarget();
++		if (this.#diskFailure || !this.#fileIsCurrent || this.#rewriteRequired)
++			throw this.#diskFailure ?? new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++		const persisted = this.readSubmissionState();
++		if (JSON.stringify(persisted.header.nativeSubmissions) !== JSON.stringify(this.#header.nativeSubmissions))
++			throw new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++	}
++	/** Read the actual protected logical bytes without migration, execution, flush, repair or replay. */
++	readSubmissionState(): { header: SessionHeader; entries: SessionEntry[] } {
++		this.getSubmissionTarget();
++		if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
++		const loaded = parseSessionContent(this.#storage.readTextSync(this.#sessionFile!));
++		if (loaded.invalidHeader || loaded.malformedRecords) throw new Error("SUBMISSION_SOURCE_UNREADABLE");
++		const [header, ...entries] = loaded.entries;
++		if (!header || header.type !== "session" || header.id !== this.#sessionId) throw new Error("SUBMISSION_SOURCE_UNREADABLE");
++		this.getSubmissionTarget();
++		return { header, entries: entries as SessionEntry[] };
++	}
++
+ 	/** Native live origins use the same source/context identity as coherent observation cuts. */
+ 	getHistoryMessageContext(context?: unknown) {
+ 		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
+@@ -4415,6 +4488,8 @@ export class SessionManager {
+ 
+ 		this.flushSync();
+     this.#beginExplicitNativeTransition();
++		header.nativeSubmissions = structuredClone(this.#header.nativeSubmissions);
++		header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
+ 		this.#header = header;
+ 		this.#entries = [...entriesToKeep, ...labels];
+ 		this.#sessionId = newSessionId;
+diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
+new file mode 100644
+index 0000000000..13352883bc
+--- /dev/null
++++ b/packages/coding-agent/src/session/submission-provenance.ts
+@@ -0,0 +1,41 @@
++/** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
++import * as asyncHooks from "node:async_hooks";
++export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
++export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
++export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution" }
++export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>> }
++export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
++export interface NativeSubmission {
++  origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
++  inputOutcome: "unresolved" | "generated" | "no_input"; noEntries: SubmissionNoEntry[];
++}
++const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
++const originals = new WeakMap<object, SubmissionCausality>();
++export function runSubmission<T>(value: SubmissionScope | undefined, run: () => T): T {
++  return scope.run(value, run);
++}
++export function submissionScope(): SubmissionScope | undefined { return scope.getStore(); }
++export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
++export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
++  if (!value || originals.has(message)) return;
++  originals.set(message, { origin: value.origin, role: role === "user" && value.phase === "input" ? "input"
++    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional" });
++}
++export function causalSubmission(message?: object): SubmissionCausality | undefined {
++  const explicit = message && originals.get(message);
++  if (explicit) return explicit;
++  const value = scope.getStore();
++  return value ? { origin: value.origin, role: "additional" } : undefined;
++}
++export function sameSubmission(a: SubmissionOrigin, b: SubmissionOrigin): boolean {
++  return a.clientSubmissionId === b.clientSubmissionId && a.sourceId === b.sourceId
++    && a.instanceId === b.instanceId && a.nativeSessionId === b.nativeSessionId;
++}
++
++/** Retain native admitted work, including preprocessing that has not started an agent loop yet. */
++export function trackSubmissionTask<T>(task: Promise<T>): void {
++  const tasks = scope.getStore()?.tasks;
++  if (!tasks) return;
++  tasks.add(task);
++  void task.then(() => tasks.delete(task), () => tasks.delete(task));
++}

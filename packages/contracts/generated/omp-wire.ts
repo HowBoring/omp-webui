@@ -914,6 +914,44 @@ export interface StrictStartState {
 	cwd?: string;
 }
 
+export interface SubmissionTarget {
+	sourceId: string;
+	instanceId: string;
+	nativeSessionId: string;
+}
+
+export interface SubmissionRelation {
+	relationId: string;
+	role: string;
+	status: "observed" | "no_entry" | "failed";
+	persistence: "committed" | "observed" | "failed" | "unknown";
+	entryId?: string;
+	reason?: string;
+}
+
+export interface SubmissionResult {
+	version: "durable-submission-v1";
+	clientSubmissionId: string;
+	found: boolean;
+	duplicate: boolean;
+	admission: "local" | "inherited" | "absent";
+	reservation: "committed" | "unknown" | "absent";
+	inputOutcome: "unresolved" | "generated" | "no_input";
+	persistence: "committed" | "failed" | "unknown" | "unresolved";
+	terminal: boolean;
+	relations: SubmissionRelation[];
+	nextOffset: number | null;
+	origin?: SubmissionOrigin;
+	code?: string;
+}
+
+export interface SubmissionOrigin {
+	sourceId: string;
+	instanceId: string;
+	nativeSessionId: string;
+	clientSubmissionId: string;
+}
+
 export type AutoCompactionReason = "threshold" | "overflow" | "idle" | "incomplete";
 
 export type AutoCompactionAction = "context-full" | "remote" | "handoff" | "shake" | "snapcompact";
@@ -1939,6 +1977,24 @@ export interface StrictStartParams {
 	reference?: string;
 }
 
+export interface SubmissionSubmitParams {
+	clientSubmissionId: string;
+	sourceId: string;
+	instanceId: string;
+	nativeSessionId: string;
+	preparationId: string;
+	inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt";
+	message: string;
+	images?: ImageContent[];
+	streamingBehavior?: StreamingBehavior;
+}
+
+export interface SubmissionQueryParams {
+	clientSubmissionId: string;
+	offset?: number;
+	limit?: number;
+}
+
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
 }
@@ -2330,6 +2386,8 @@ export interface RpcWireCommands {
 	strict_start: { params: StrictStartParams; result: StrictStartState };
 	get_strict_state: { params: undefined; result: StrictStartState };
 	cancel_strict_start: { params: undefined; result: StrictStartState };
+	submission_submit: { params: SubmissionSubmitParams; result: SubmissionResult };
+	submission_query: { params: SubmissionQueryParams; result: SubmissionResult };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };
