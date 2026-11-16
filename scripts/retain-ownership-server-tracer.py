@@ -68,7 +68,7 @@ def verify_fixture(file, expected):
         declared.add(name)
     for required in [Path(__file__).resolve(), BUN, PYTHON.resolve(), STRACE.resolve(),
                      ROOT / "bunfig.toml", ROOT / "compatibility/omp/fixtures/no-provider.ts",
-                     file.parent / "cwd/server.test.ts"]:
+                     file.parent / "cwd/server.test.ts", file.parent / "home/fixture-marker.json"]:
         if required not in declared:
             raise RuntimeError("TRACER_REQUIRED_INPUT_ABSENT")
     if Path(sys.executable).resolve() != PYTHON.resolve():
@@ -76,7 +76,10 @@ def verify_fixture(file, expected):
     pinned(value["approval"])
     pinned(value["key"])  # Only hash/metadata: never parse or print the private signing key.
     approval = json.loads(Path(value["approval"]["path"]).read_text())
-    state = file.parent / "state"
+    state = file.parent / "home/state"
+    if value["syntheticHome"] != str(file.parent / "home") or json.loads((file.parent / "home/fixture-marker.json").read_text()) != {
+            "kind": "ownership-server-synthetic-home/1", "privateData": False}:
+        raise RuntimeError("TRACER_SYNTHETIC_HOME_MARKER_CHANGED")
     if Path(approval["endpoint"]) != state / "socket" or Path(approval["releaseRoot"]) != file.parent / "release" \
             or Path(approval["helper"]["file"]).exists() or (state / "socket").exists() \
             or any((state / "fences").iterdir()) or digest(Path(approval["bridge"]["file"])) != approval["bridge"]["sha256"]:

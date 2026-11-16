@@ -29,15 +29,19 @@ const inputs = [...(await fs.readdir(modules)).filter(file => /\.(?:ts|c|json)$/
   await fs.realpath("/usr/bin/strace")];
 const identities = await Promise.all(inputs.sort().map(async file => ({ file, sha256: hash(await fs.readFile(file)) })));
 const root = await fs.mkdtemp("/tmp/ownership-server-tracer-"); await fs.chmod(root, 0o700);
-for (const name of ["operator", "release", "state", "state/fences", "home", "profile", "cwd", "config", "data", "cache", "xdg-state"]) {
+for (const name of ["operator", "release", "home", "home/state", "home/state/fences", "profile", "cwd", "config", "data", "cache", "xdg-state"]) {
   await fs.mkdir(path.join(root, name), { mode: 0o700 });
 }
+const marker = path.join(root, "home/fixture-marker.json");
+const markerBytes = JSON.stringify({ kind: "ownership-server-synthetic-home/1", privateData: false });
+await fs.writeFile(marker, markerBytes, { mode: 0o600, flag: "wx" });
+identities.push({ file: marker, sha256: hash(markerBytes) });
 const entry = path.join(root, "cwd/server.test.ts");
 const entryBytes = `import ${JSON.stringify(path.join(source, "packages/coding-agent/test/execution-ownership-server.test.ts"))};\n`;
 await fs.writeFile(entry, entryBytes, { mode: 0o600, flag: "wx" });
 identities.push({ file: entry, sha256: hash(entryBytes) });
 const bridge = path.join(root, "release/bridge.so"); await fs.writeFile(bridge, library, { mode: 0o600, flag: "wx" });
-const state = path.join(root, "state"), fences = path.join(state, "fences");
+const state = path.join(root, "home/state"), fences = path.join(state, "fences");
 const stateStat = await fs.stat(state, { bigint: true }), fenceStat = await fs.stat(fences, { bigint: true });
 const keys = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"]);
 const publicKey = Buffer.from(await crypto.subtle.exportKey("raw", keys.publicKey)).toString("base64url");
@@ -60,6 +64,7 @@ const approvalPin = await pinned("approval.json", approval);
 const keyPin = await pinned("key.json", { version: "omp-execution-signing-key/1", installation, publicKey, privateKey });
 const fixture = { format: "omp-execution-server-tracer/1", scope: "synthetic-operator-public-uds-kernel-peer-signature-only",
   approval: approvalPin, key: keyPin, sourceInputs: identities,
+  syntheticHome: path.join(root, "home"), marker: { file: marker, sha256: hash(markerBytes) },
   guard: path.join(repository, "compatibility/omp/fixtures/no-provider.ts"), bunConfig: path.join(repository, "bunfig.toml"),
   retainingParent: path.join(repository, "scripts/retain-ownership-server-tracer.py"),
   retainingInterpreter: "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",

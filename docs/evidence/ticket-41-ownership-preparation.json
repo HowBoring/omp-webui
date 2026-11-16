@@ -95,25 +95,49 @@
       "loaded": false
     },
     "syntheticFixture": {
-      "file": "/tmp/ownership-server-tracer-SOt2Bg/fixture.json",
-      "sha256": "b01ba367141e542617ba4b4650b57b62ed27a4162c608f3b3dfff2e0f3e16a98",
-      "sourceInputsVerified": 31,
+      "file": "/tmp/ownership-server-tracer-XKSI1y/fixture.json",
+      "sha256": "0ed61ad701f153b0908c1192f1f0bf66dedd6bf69b1e2540698705a8d7719ab8",
+      "sourceInputsVerified": 32,
       "endpointAbsent": true,
       "helperAbsent": true,
-      "fencesEmpty": true
+      "fencesEmpty": true,
+      "syntheticHome": "/tmp/ownership-server-tracer-XKSI1y/home",
+      "endpoint": "/tmp/ownership-server-tracer-XKSI1y/home/state/socket",
+      "marker": {
+        "file": "/tmp/ownership-server-tracer-XKSI1y/home/fixture-marker.json",
+        "sha256": "d1d22e3509dad2e7da464253e68779a067097352dd0b66822e7bcd9eaab70fc7"
+      }
     },
-    "actualServerTracer": "NOT_RUN",
+    "actualServerTracer": "NOT_RUN_CORRECTED_FIXTURE",
     "privateHelperPaths": "NOT_RUN",
     "maintenanceRetention": "NOT_RUN",
     "brokerCreation": "UNAVAILABLE",
     "productPrivateAdmission": "BLOCKED",
     "retainingParent": {
       "file": "/workspace/work/omp-webui-ticket-41/scripts/retain-ownership-server-tracer.py",
-      "sha256": "c5bb5022c30886a482256ee196c6cbcf3186a5157387b7960068b909ecfd9088",
+      "sha256": "c6c590a594ffc46e823f829de85a6a18633e9483127efba3052fcff1e72055b2",
       "interpreter": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
       "syntax": "PASS_AST_ONLY",
       "executed": false,
       "signalsSent": 0
-    }
+    },
+    "firstActualResult": "ticket-41-first-server-red.json"
+  },
+  "fixturePlacementCorrection": {
+    "status": "READY_SOURCE_ONLY_NOT_RUN",
+    "firstRedCheckpoint": "9eb659e",
+    "scope": "fixture preparation and retaining wrapper synthetic path checks only",
+    "nativeAndGuardSourceMembersUnchanged": 22,
+    "newFixtureSha256": "0ed61ad701f153b0908c1192f1f0bf66dedd6bf69b1e2540698705a8d7719ab8",
+    "wrapperSha256": "c6c590a594ffc46e823f829de85a6a18633e9483127efba3052fcff1e72055b2",
+    "home": "/tmp/ownership-server-tracer-XKSI1y/home",
+    "endpoint": "/tmp/ownership-server-tracer-XKSI1y/home/state/socket",
+    "marker": {
+      "file": "/tmp/ownership-server-tracer-XKSI1y/home/fixture-marker.json",
+      "sha256": "d1d22e3509dad2e7da464253e68779a067097352dd0b66822e7bcd9eaab70fc7"
+    },
+    "operatorRecordsOutsideRelease": true,
+    "providerGuardUnchanged": true,
+    "productionCodeUnchanged": true
   }
 }

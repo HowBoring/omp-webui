@@ -239,3 +239,14 @@ accept/registration/signature success**, and zero AF_INET/AF_INET6 socket calls.
 raw guard counters were not captured. This is a fixture placement failure and ABI/listener/EOF cleanup evidence,
 not semantic server authentication GREEN or global/private admission. Exact raw hashes and identities are recorded
 in `ticket-41-first-server-red.json`; no source repair or rerun preceded this result/drain checkpoint.
+
+## Corrected fixture placement prepared, not rerun
+
+After the committed first-RED/drain checkpoint, coordinator-authorized fixture preparation moves state/socket/fences
+inside the marked synthetic HOME `/tmp/ownership-server-tracer-XKSI1y/home`. The new endpoint is
+`/tmp/ownership-server-tracer-XKSI1y/home/state/socket`; the operator approval/key records remain outside
+the selected synthetic release. The existing provider/UDS guard and all 22 declared Native/guard source members
+are byte-identical to the first attempt; no production client/server/C repair was made. A protected synthetic HOME
+marker is added to the now32-member frozen manifest. The retaining wrapper checks that marker and the corrected
+state path. All32 members and record pins rehash successfully; endpoint absent, helper unauthorized, fences empty.
+The corrected fixture and wrapper are **NOT RUN** and need a separate coordinator clearance.
