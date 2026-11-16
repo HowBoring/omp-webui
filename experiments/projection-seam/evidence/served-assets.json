@@ -1,23 +1,18 @@
 {
-  "/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/projection-navigation/client.js,@omp-webui/projection-fixture/client.js&rev=6db741099fa8": {
+  "/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/projection-navigation/client.js,@omp-webui/projection-fixture/client.js&rev=3bb4f455fd94": {
     "status": 200,
-    "sha256": "98ac2a52040ce1d35f1df55a4bb7fa06c10f08ee9d100c55e536d6ebc1e01291",
-    "bytes": 5095495
+    "sha256": "7f5fa2bfe40ced322e538f55cf06e6bfc1b476bdc6a0dfe40fb600bcf0a67beb",
+    "bytes": 5100990
   },
-  "/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=496a264020ac": {
+  "/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=689ea0ba487b": {
     "status": 200,
-    "sha256": "0cce0b926897cc8a11dc75a904c502459964f53f80478f519338ed2aaf7af1bf",
+    "sha256": "317c1bcd052af89fd54b6143c1b12da7e3257df641a58a545273950b10fb1979",
     "bytes": 26498
   },
   "/assets/vendor-DV2921Zo.css": {
     "status": 200,
     "sha256": "4cea59483551208ce61ff27251da83d5f7a0893ef34cfe4b808d61be6e13ebc7",
     "bytes": 27312
-  },
-  "/assets/vendor-BUMdD3V7.js": {
-    "status": 200,
-    "sha256": "7675048a90d0419365a342c4eb81713aa8582b82a76b08ba2a8fc27160575265",
-    "bytes": 741528
   },
   "/assets/index-Ciz7DZxv.js": {
     "status": 200,
@@ -28,6 +23,11 @@
     "status": 200,
     "sha256": "d487cca8d8a97f1e0cc5eca02343528c873e544eb7ec3a5b323a0f035553551d",
     "bytes": 92252
+  },
+  "/assets/vendor-BUMdD3V7.js": {
+    "status": 200,
+    "sha256": "7675048a90d0419365a342c4eb81713aa8582b82a76b08ba2a8fc27160575265",
+    "bytes": 741528
   },
   "/favicon.svg": {
     "status": 200,

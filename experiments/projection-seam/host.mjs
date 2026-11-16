@@ -198,6 +198,10 @@ const server = createServer(async (request, response) => {
       const op = url.searchParams.get('op');
       if (op === 'ask') await native.port.prompt('ASK_FOR_PROJECTION_PROOF');
       else if (op === 'model') await native.port.model();
+      else if (op === 'model-first') await native.port.model('first');
+      else if (op === 'hold-history') native.port.holdHistory();
+      else if (op === 'release-history') native.port.releaseHistory();
+      else if (op === 'fail-history') native.port.releaseHistory(true);
       else if (op === 'retry') await native.retry();
       else if (op === 'rewind') {
         const state = await native.port.state();
@@ -403,8 +407,24 @@ sockets.on('connection', (socket) => {
       return;
     }
     if (frame.endpoint === 'session/control') {
-      let streams = controls.get(socket); if (!streams) { streams = new Set(); controls.set(socket, streams); } streams.add(frame.streamId);
-      send({ type: 'baseline', value: { projections: { [SESSION]: opening(SESSION).projections } } }); return;
+      const signal = subscriptions.get(frame.streamId).signal;
+      void (async () => {
+        try {
+          if (native) await native.ready(signal);
+          if (signal.aborted || socket.readyState !== 1) return;
+          const baseline = opening(SESSION).projections;
+          let streams = controls.get(socket);
+          if (!streams) { streams = new Set(); controls.set(socket, streams); }
+          streams.add(frame.streamId);
+          send({ type: 'baseline', value: { projections: { [SESSION]: baseline } } });
+        } catch (error) {
+          if (!signal.aborted && socket.readyState === 1) {
+            subscriptions.delete(frame.streamId);
+            socket.send(JSON.stringify({ type: 'error', streamId: frame.streamId,
+              error: { code: 'gateway/internal', message: String(error), details: {} } }));
+          }
+        }
+      })(); return;
     }
     const targetId = frame.payload?.args?.request?.address?.sessionId ?? SESSION;
     if (frame.endpoint === 'session/follow') {
@@ -413,7 +433,7 @@ sockets.on('connection', (socket) => {
         const signal = subscriptions.get(frame.streamId).signal;
         void (async () => {
           try {
-            await native.ready(); if (signal.aborted) return;
+            await native.ready(signal); if (signal.aborted) return;
             const journal = native.journal, identity = projection();
             const stop = journal.subscribe(value => send({ ...value, projection: identity }));
             signal.addEventListener('abort', stop, { once: true }); send(opening(targetId));

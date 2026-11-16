@@ -34,12 +34,24 @@ export async function openSharedNative(selection:ProcessSelection){
     defaultTimeoutMs:10000,notification:frame=>{if(!validLiveNotification(frame)&&!validUI(frame))return false;record(frame);return true;},
   });
   const request=<K extends keyof RpcWireCommands>(type:K,params:RpcWireCommands[K]['params'])=>core.request({id:crypto.randomUUID(),type,...params});
-  return {frames,exited:core.exited,history:new HistoryClient(command=>core.request(command)),
+  let historyGate: ReturnType<typeof Promise.withResolvers<void>> | undefined;
+  let historyWaiting = 0;
+  const history = new HistoryClient(async command => {
+    if(command.type === 'history_snapshot_open' && historyGate){
+      historyWaiting++;
+      try{await historyGate.promise;}finally{historyWaiting--;}
+    }
+    return core.request(command);
+  });
+  return {frames,exited:core.exited,history,
+    holdHistory(){if(historyGate)throw Error('history_gate_already_held');historyGate=Promise.withResolvers<void>();void historyGate.promise.catch(()=>{});},
+    releaseHistory(fail=false){const gate=historyGate;historyGate=undefined;if(fail)gate?.reject(Error('controlled_native_history_failure'));else gate?.resolve();},
+    historyFault(){return {held:historyGate!==undefined,waiting:historyWaiting};},
     subscribe(listener:(frame:Frame)=>void){if(listeners.size>=16)throw Error('projection_native_listener_budget');listeners.add(listener);return()=>{listeners.delete(listener);};},
     command(fields:object){const value=z.object({type:z.string()}).catchall(z.unknown()).parse(fields);return core.request({...value,id:crypto.randomUUID()});},
     async state():Promise<SessionState>{const value=await request('get_state',undefined);if(!validState(value))throw Error('projection_native_state_schema');return value as SessionState;},
     prompt(message:string){return request('prompt',{message});},
-    model(){return request('set_model',{provider:'s0-projection',modelId:'second'});},
+    model(modelId='second'){return request('set_model',{provider:'s0-projection',modelId});},
     navigate(entryId:string){return request('navigate_tree',{entryId});},
     close(){return core.close();},
   };

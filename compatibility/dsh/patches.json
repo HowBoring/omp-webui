@@ -15,8 +15,8 @@
     },
     {
       "path": "patches/0003-projection-rebuild.patch",
-      "sha256": "9ed0bdddc9175484c9dc3e310d27c189d86b96e6fb2bf6afaba42d520f584459",
-      "treeAfter": "89f725caab557041ab8ad5fb97ce4d296c1f6c92"
+      "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+      "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
     }
   ]
 }

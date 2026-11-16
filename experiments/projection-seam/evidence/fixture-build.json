@@ -7,7 +7,7 @@
   "dshSource": {
     "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
-    "sourceTree": "89f725caab557041ab8ad5fb97ce4d296c1f6c92",
+    "sourceTree": "1e1207058448079f0c7e45287c4fd39dca7d2de2",
     "mode": "candidate",
     "patches": [
       {
@@ -22,11 +22,11 @@
       },
       {
         "path": "patches/0003-projection-rebuild.patch",
-        "sha256": "9ed0bdddc9175484c9dc3e310d27c189d86b96e6fb2bf6afaba42d520f584459",
-        "treeAfter": "89f725caab557041ab8ad5fb97ce4d296c1f6c92"
+        "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+        "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
       }
     ],
-    "sourceSha256": "c07563c30e444c69035777ae6deded38010998acba63b5b7638e852ef46be88f"
+    "sourceSha256": "2b67e0cad8c7f81fd3e442f56ffed8d0cc0da8a8afeaebd66fd0acfa645630b6"
   },
   "sourceInputs": 99,
   "inputs": [
@@ -40,7 +40,7 @@
       "package": "@omp-webui/projection-fixture",
       "version": "0.0.0",
       "file": "client.js",
-      "sha256": "910813b25b5b12e8680bbedf1c86e43f730a79a5c146cb7f37ee32b569b35789"
+      "sha256": "d66e2847a0cdd684ded74f3274c662f083ff4db7a3c3effc99940eeeaa890973"
     },
     {
       "package": "@omp-webui/projection-fixture",
@@ -625,10 +625,10 @@
       "sha256": "01d9b119e318d8b9f1a8fa720d06424457429425a61d0730984b750e6a5edf7d"
     }
   ],
-  "sourceSha256": "8f4aeb8faec7a4c1c4b45333bb7fd69a242feeddc069cf546f1c01b23ab5a520",
+  "sourceSha256": "56f025f402ca4137dad8f4a0e838d1684d3657c2fc823699de0169989b6089c5",
   "lockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
   "assets": {
-    "controls/client.js": "77bbffa4ad53cf59d5da3530b4de7344b511724850f89ccded14e53d89abe955",
+    "controls/client.js": "cbfb67243d900fab61b6f8b01efd92a0db4c3a6ec1e5df54b83bf3dfeb9bea47",
     "controls/index.js": "371a4f386c8ce082104e1002dcdb8c5d864640e5fa74da6ba088f5d53d74779a",
     "controls/package.json": "3051aae9ac208bbc86cd1520a8e0a463933dca52abe77f484a1f50c6310b35da",
     "navigation/client.js": "321baf8ad52ae8211693c2e442058145ddc0c58b887970ad369068a6e429fb2b",

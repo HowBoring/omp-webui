@@ -25,7 +25,7 @@ Physical follow restart and Connection readiness repair transport within their e
 All journal frames, assistant frames, pages, control/list/unary/result projection writers and scoped mutations
 carry or capture the binding. Retired invalidations, late callbacks and lower same-generation cursors cannot
 publish into a successor. Complete control baselines also represent absent capabilities. Staging and retired
-generation tracking have explicit item/byte bounds and visible failure rather than silent mixing.
+generation tracking have explicit item/byte bounds and visible failure rather than silent mixing. The 4-MiB staging budget counts UTF-8 JSON for the complete baseline and update key/value/sequence rows, including wrappers and separators; it does not bound JavaScript heap usage. Native control openings await the current journal and return typed failure if rebuilding fails, with independent stream cancellation. A terminal control error withdraws scoped presentation. Public projection retry restores a new Session-owned control observer and its complete baseline before presentation readiness; it coalesces concurrent retries and fences retired observers and released holders. Generic Gateway streams retain their terminal semantics.
 
 Provider-mode semantic drafts remain in the retained input shell. Rebuild aborts old hydration, preparation,
 checkpoint and recovery publication, keeps newer in-memory text, ordered repeated originals and unresolved

@@ -91,7 +91,7 @@ window.__ModuleLoader__.load({ id: '@omp-webui/projection-fixture', factory: req
         await ctx.sessions.refresh();
         const reference = ctx.sessions.retain(info.sessionId, { source: 'controllerOperation' });
         references.push(reference);
-        await reference.ready;
+        try { await reference.ready; } catch { /* The public failed binding keeps retry and Interaction answering visible. */ }
         binding = reference.binding;
         initialBinding ??= binding;
         initialScope ??= binding.ctx;

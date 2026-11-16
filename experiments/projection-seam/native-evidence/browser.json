@@ -1,23 +1,30 @@
 {
   "scope": "actual native RPC+Ask+Bridge+LiveJournal+full built DSH graph; literal in-process provider only",
   "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
-  "base": "http://127.0.0.1:34337",
+  "base": "http://127.0.0.1:45073",
   "checks": [
+    "controlled public history-open hold: new full DSH tab and control stream wait for current baseline; cancelled control emits nothing; same native Ask and worker survive",
     "public native model context change rebuilds both tabs in place; exact native Session/source/worker/PID, builtin Ask ID/deadline, real Gateway invocation, independent drafts and originals survive",
+    "failed actual-native rebuild plus physical browser reconnect: typed control failures without baseline, withdrawn rows, original Ask ID/deadline and same worker/PID; public projection retry restores control observation before presentation readiness",
     "original native select and editor explicitly answered once through typed Remote and accepted Bridge; repeated old answer stale; independent Gateway invocation settles stock approval UI",
-    "actual idle native branch navigation rotates projection and withdraws off-branch rows in both tabs while worker and drafts survive; native durability remains not_attested",
+    "actual idle native branch navigation rotates projection and withdraws off-branch rows in all three views after public retry, including the failed joining holder; worker and drafts survive; native durability remains not_attested",
     "final browser-holder release and a new holder reopen the same native Session and worker without any stale projection callback"
   ],
   "pageErrors": [],
   "consoleErrors": [],
+  "expectedFailures": [
+    "[session-controller] control stream failed: RemoteError: Error: Error: controlled_native_history_failure\n    at RemoteStreamMuxClient.open (http://127.0.0.1:45073/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/projection-navigation/client.js,@omp-webui/projection-fixture/client.js&rev=3bb4f455fd94:2:7612)",
+    "[session-controller] control stream failed: RemoteError: Error: Error: controlled_native_history_failure\n    at RemoteStreamMuxClient.open (http://127.0.0.1:45073/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/projection-navigation/client.js,@omp-webui/projection-fixture/client.js&rev=3bb4f455fd94:2:7612)",
+    "[session-controller] control stream failed: RemoteError: Error: Error: controlled_native_history_failure\n    at RemoteStreamMuxClient.open (http://127.0.0.1:45073/plugins/??@deepseek-ai/dsh-api-gateway/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-renderer/client.js,@deepseek-ai/dsh-client-ui-layout/client.js,@deepseek-ai/dsh-client-locale/client.js,@deepseek-ai/dsh-client-ui-settings/client.js,@deepseek-ai/dsh-client-ui-session/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-client-ui-theme/client.js,@deepseek-ai/dsh-client-shortcuts/client.js,@deepseek-ai/dsh-client-ui-chat/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-client-ui-conversation/client.js,@deepseek-ai/dsh-client-ui-workspace/client.js,@deepseek-ai/dsh-client-ui-sidebar/client.js,@deepseek-ai/dsh-client-ui-context-menu/client.js,@deepseek-ai/dsh-client-ui-input-trigger/client.js,@deepseek-ai/dsh-client-ui-sidebar-right/client.js,@deepseek-ai/dsh-client-resources/client.js,@deepseek-ai/dsh-client-ui-file-drag/client.js,@deepseek-ai/dsh-client-ui-tool/client.js,@deepseek-ai/dsh-client-ui-approval/client.js,@deepseek-ai/dsh-client-ui-user-questions/client.js,@deepseek-ai/dsh-client-ui-attachment/client.js,@deepseek-ai/dsh-client-ui-trajectory/client.js,@omp-webui/projection-navigation/client.js,@omp-webui/projection-fixture/client.js&rev=3bb4f455fd94:2:7612)"
+  ],
   "chromium": "156.0.8078.79",
   "nativeQuestion": {
-    "id": "15d086b8932709d9",
-    "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+    "id": "15d0a22251c3285c",
+    "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
     "family": "extension-ui",
     "scope": {
       "kind": "session",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f"
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc"
     },
     "method": "select",
     "title": "Pick",
@@ -25,71 +32,123 @@
       "default",
       "chosen"
     ],
-    "createdAt": 1794841612878,
-    "deadline": 1794841732871,
+    "createdAt": 1794848799049,
+    "deadline": 1794848919044,
     "reason": "explicit-answer-required"
   },
-  "nativeEditor": {
-    "id": "15d086bb81a709da",
-    "generation": "b1624c69-67db-4f16-b147-792305fa741a",
-    "family": "extension-ui",
-    "scope": {
-      "kind": "session",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f"
-    },
-    "method": "editor",
-    "title": "Reason",
-    "promptStyle": true,
-    "prefill": "default reason",
-    "createdAt": 1794841615880,
-    "deadline": 1794841732870,
-    "reason": "explicit-answer-required"
-  },
-  "before": {
-    "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+  "controlDuringRebuild": [
+    {
+      "type": "item",
+      "streamId": "proof-control",
+      "value": {
+        "type": "baseline",
+        "value": {
+          "projections": {
+            "01a1e552-480e-722f-b5ae-60dc0818f2dc": {
+              "asOfSeq": 15,
+              "values": {},
+              "projection": {
+                "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+                "generation": "92ce9d68-cf64-466d-ba1c-d3a6903de4d4"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "failedControl": [
+    {
+      "type": "error",
+      "streamId": "proof-control",
+      "error": {
+        "code": "gateway/internal",
+        "message": "Error: controlled_native_history_failure",
+        "details": {}
+      }
+    }
+  ],
+  "reconnectedControl": [
+    {
+      "type": "error",
+      "streamId": "proof-control",
+      "error": {
+        "code": "gateway/internal",
+        "message": "Error: Error: controlled_native_history_failure",
+        "details": {}
+      }
+    }
+  ],
+  "failedRebuild": {
+    "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
     "projection": {
-      "source": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-      "generation": "a9959480-bf29-479d-9fc4-46b17c0728e5"
+      "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+      "generation": "72c0be93-872d-4ee4-bb2a-0bae671b6b3c"
     },
     "cut": {
       "durability": "not_attested",
       "sourceBindingStatus": "worker",
-      "sourceId": "5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
-      "workerId": "65343d6f-fe67-4bce-8cc3-1752562066f4",
-      "contextId": "ad981cad6c8e2328a9ff96cd81dcf7d6a397d7c0133c72f1063f031d5f9c856d",
-      "contentRevision": "6fc9557addae6c77751c4b64aab590e9c36c0002b787f3b56b132c2a0077c344",
-      "nativeRevision": 8,
-      "retainedRevision": "40824442618a68db6df8514e64170377d919aa2488548c11659fa729db9476fd",
-      "leafId": "6544d436",
-      "observationSeq": 27
+      "sourceId": "452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "workerId": "e6031058-a2f6-49cb-9da5-4bc6f31101d4",
+      "contextId": "8f1e273d88e9d3108a22d2f285ef77ddffb6d47db056dde3434962023bd5c570",
+      "contentRevision": "b13bb1c6ce955b9f7ce1922e318b16c935db4946672b41626f0785ea660ae304",
+      "nativeRevision": 12,
+      "retainedRevision": "6c20e4e2dec7ac1d60a2c6ecf8d9ff39ae48f01a29a40d37cadfa5db57cb3876",
+      "leafId": "ab46d310",
+      "observationSeq": 51
     },
+    "failure": "Error: controlled_native_history_failure",
+    "historyFault": {
+      "held": false,
+      "waiting": 0
+    },
+    "rebuilding": false,
     "interaction": {
       "stage": "S0-isolated-interactions",
       "sessionAdmission": "blocked",
-      "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+      "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
       "policyVerified": true,
-      "pending": [],
+      "pending": [
+        {
+          "id": "15d0a22251c3285c",
+          "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+          "family": "extension-ui",
+          "scope": {
+            "kind": "session",
+            "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc"
+          },
+          "method": "select",
+          "title": "Pick",
+          "options": [
+            "default",
+            "chosen"
+          ],
+          "createdAt": 1794848799049,
+          "deadline": 1794848919044,
+          "reason": "explicit-answer-required"
+        }
+      ],
       "outcomes": []
     },
     "process": {
       "type": "extension_ui_request",
-      "id": "15d0866385e709d5",
+      "id": "15d0a1e795c32858",
       "method": "notify",
-      "message": "{\"kind\":\"projection-native-process\",\"pid\":295522}"
+      "message": "{\"kind\":\"projection-native-process\",\"pid\":376003}"
     },
     "compatibility": {
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
     },
     "preflight": {
       "candidate": "omp-webui-s0",
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
       "safePreflight": true,
       "sessionAdmission": "blocked",
       "capabilities": [
@@ -103,6 +162,27 @@
         "toolExpiry": "cancel",
         "invalidAnswer": "pending"
       },
+      "rpcUiStrictStartupPolicy": {
+        "version": "strict-start-v1",
+        "status": "prototype",
+        "platforms": [
+          "linux"
+        ],
+        "ownership": "native-exclusive-lease",
+        "selectedInstance": "anchored-carrier",
+        "publication": "native-generation-v1",
+        "carrierFormat": "ompgen1",
+        "xattrs": "required-fd-user-xattr",
+        "durability": "process-crash-only",
+        "rollback": "flatten-export-required",
+        "maxLogicalBytes": 134217728,
+        "maxCarrierBytes": 268435456,
+        "maxRetainedBytes": 536870912,
+        "maxGenerations": 64,
+        "catalogCarrierPrefixBytes": 16384,
+        "catalogControlBytes": 6144,
+        "catalogGenerationPrefixBytes": 16384
+      },
       "runtime": {
         "name": "bun",
         "version": "1.4.4",
@@ -111,55 +191,512 @@
       }
     },
     "closure": {
-      "source": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp",
-      "candidate": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp-candidate",
-      "tree": "5b4a12bfad7c8b84aa9b9ce49aa3b7b38baa8722",
+      "source": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp",
+      "candidate": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate",
+      "tree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
       "build": {
         "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-        "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-        "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-        "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+        "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+        "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+        "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
       },
-      "generatedSourceSchema": "53372679b8e14b3da4e11fdccb2e1a1946789b5e22ad91eff6a4169078e13bf0",
+      "generatedSourceSchema": "9ac9b3c3dd78017124277d54d8eb288272c1bc5e3efb18c1d9a14dc53803e3f0",
       "authoredFiles": {
+        "packages/coding-agent/src/session/session-lease.ts": "def0a83a9c0e137a9bc95535d03130ce6d9a32098500f903a19329f403b26cac",
         "packages/coding-agent/src/session/history-context.ts": "af94fbf90d9055326b2d35844a9d8875c006eb55dace38bbb9b9b358b837bf80",
-        "packages/coding-agent/src/session/session-manager.ts": "0efa0de548b9c0b7b7c5ab26d8474a476d88d973dbe12efe2cc092f1e4a5bb42",
-        "packages/coding-agent/src/session/agent-session.ts": "1388569f353c4da9453749744625999a2713dab0eaf9db4dbd90e527186bbb26",
         "packages/coding-agent/src/session/live-message-observation.ts": "9061c8c487d35bbb29436fe8499437a983d38da62859aeff0aeb931dcee4916e",
         "packages/coding-agent/src/modes/rpc/rpc-session-events.ts": "1a324be4f45daee43b2fbda613d28b947f7d5ecb0747dbbc547acf5e0963c873",
         "packages/coding-agent/docs/rpc-live-observation.md": "28511224151de3c4b369dedd6e67d7252f0842b8d1e43430af374f8fde775e89",
         "packages/coding-agent/README.md": "a5986e4188e13e82d01e07e90ca3c5baba102e11110d968201d9e02c371852bb",
+        "packages/coding-agent/src/session/agent-session.ts": "176854b14132d1692d6b52b319ca7bcf16eb9b9a7e31649e0dfc755cc0825e7d",
+        "packages/coding-agent/src/session/session-artifact-copy.ts": "91769c17b250f2a59cb7c1de5c7a445e8e34f099a2a34afa8125a0f43b0cc8f2",
+        "packages/coding-agent/src/utils/file-new-publication.ts": "a5f97187937433a477974231737dca931b58f959e6d9ed3707e4afd907cbcbf7",
+        "packages/coding-agent/src/debug/report-bundle.ts": "ca934182048f2f17c5d236afe1a193c133cfe3655ceaeb154fe6075a9c2258c5",
+        "packages/coding-agent/docs/rpc-strict-start.md": "b3e3807d5861bb8a847b59b47af85eb15e86e022a2c0d0108ababa1b95787cae",
+        "packages/coding-agent/src/modes/rpc/strict-start-policy.ts": "c086435dbce63b751d4b66e24a38b76eaddfd0b91570eb91ff97f3af4181c2a0",
+        "packages/coding-agent/src/activity/index.ts": "8b6129be7458ac12dd7e9ae5181369b70f3473dec171eeeaceb1efacc1adcd38",
+        "packages/coding-agent/src/memories/index.ts": "8b1907cebcba2f4b3a246ee324919e55d8be49b789de2d154e0d6f658c962b23",
+        "packages/coding-agent/src/modes/rpc/rpc-subagents.ts": "0862f94b741308d1dbb07a5939acdf7bf9b572e9786f6ac6b2f21ec21bd84240",
+        "packages/coding-agent/src/cli/gc-cli.ts": "a83c5731c2f77a48f84371ddd93bb1f1c8aa6567683ef1e1b39b2d81c09c5148",
+        "packages/coding-agent/src/cli/gc-strip.ts": "bfec47c012ce9e9562d395fa4ff6309e3c231e488289801d4f9d67084fd0932f",
+        "packages/coding-agent/src/session/session-header-id.ts": "aa28d924f26e9339c489b0911a71cbaeaaedf91dfaf08c86174588f402b14308",
+        "packages/coding-agent/src/session/session-transfer.ts": "afb801c22d7f4d0deaa6cc789b6c3598b7a32fabbf6553ed6e1547c0c0d6bbb4",
+        "packages/coding-agent/src/cli/render-cli.ts": "07609e726ad817f4331af5463119ea8156db48cf9947e0b5af1e25680fe0e3c2",
+        "packages/coding-agent/src/modes/rpc/strict-client.ts": "8d41e9d79f28ad2761c9df6dfe3344cd315f9efc7b0e0098e0b8b0b8fac49517",
+        "packages/coding-agent/src/session/session-drafts.ts": "b04f93cd6ca2a7d524e5eae13a609fba60a15051b5adfe2f63d9fe7b800c8cb7",
+        "packages/coding-agent/src/session/session-loader.ts": "a86809964fdc226b8c5f913415da4db0639acfd2e9454ac5b8c2388416ad46b7",
+        "packages/coding-agent/src/session/generation-storage-factory.ts": "f376fdfdf38245995e5bd27b650b97be2f9408574789ba5eceea72185dae8a8f",
+        "packages/coding-agent/src/utils/file-xattr.ts": "150683ad0db1ee5dd9e836516ff59616e22ad63b4acdd67d42b4dee486f9e40e",
+        "packages/coding-agent/src/session/session-generation.ts": "4204ba89576f7c9ca36112d04cd84a40822be0c8727487a72d1c6ae14dc017b5",
+        "packages/coding-agent/src/main.ts": "69ab19b1aab4a6ab7c4b87ac2fe4a4458fce937d1e7093c776c20855b1679d21",
+        "packages/coding-agent/src/session/session-storage.ts": "e0768fc60bad67ae5f4aebc86df5bac1b9e2addbfbdc92b5e45208dda213dd4d",
+        "packages/coding-agent/src/session/strict-session-storage.ts": "04a57706c30a719c317811eb07839f397e6a9e904fb8e94967aeb40ae1525dd4",
+        "packages/coding-agent/src/modes/rpc/wire/strict-start.ts": "b1147edd1565d51d5e024478fa71131f3d1e059738f251794f70a3d553a1ede9",
+        "packages/coding-agent/src/modes/rpc/strict-mode.ts": "9d8e068afa9a30b0d90576c25e4682ff22032ee0b286f7b444644461d6be69ed",
+        "packages/coding-agent/src/modes/rpc/strict-reservation.ts": "3d2e67e9540b31eb4e6ba31cb9f51c7779623c229750483ded55a0bd6152eb87",
+        "packages/coding-agent/src/modes/rpc/strict-context.ts": "e8e4f30390f59cd3539915b34360ba16caceadcee4530d1676ed682dbfcbac1a",
+        "packages/coding-agent/src/modes/rpc/strict-input.ts": "6bf5446940700ecbb6b6eab5e4d9360f1b42f7361decd0e1edfec18a052e9abe",
+        "packages/coding-agent/src/session/session-manager.ts": "893aca051170756c8b8e9c0b6b9bc36abf83eb52e4ac196f439d8790402e7661",
         "packages/coding-agent/src/modes/rpc/history-client.ts": "c78d5c2d8296da01bedb5f8064789e521c9bf0a5f5ad937c0e164109fa17ea24",
         "packages/coding-agent/src/modes/rpc/rpc-history.ts": "277c672bcc75513eecc6ad2c2e9213fa06bfd661e0516bd1fb47d44c9a65796e",
         "packages/coding-agent/src/modes/rpc/wire/history.ts": "e33a4512ed05191644540be7fc1c51443cd922825fbc4fd25ec6426b7b99bc82",
-        "packages/coding-agent/src/cli.ts": "8f41d88268c4de5e4add664e835e4c2560f5466f717eee8fd5670d92d9b8ac0d",
+        "packages/coding-agent/src/cli.ts": "b0ba16e58974cd80ea87675841be0fa85e745dcdd0822225779258030ff3c8b0",
         "packages/coding-agent/src/cli-runtime.ts": "2cf125f0a7de2e2ad6431e69c367fe676f8fa8ae1f2430397f4c1de2167208f2",
-        "packages/coding-agent/src/modes/rpc/preflight.ts": "1126c69e1d4a812f0a8937aaffd1ff9b5c48ba12bca3b974bfda8d7d67786fbc",
-        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "08be7d623f0067790f74d6de22bc8944e36e31a31a767897d8d1a86eaddfbb6a",
-        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "acf66aaef0d9ce4dd302f92d7a19612adb2cdcfec610f64e723a28c60afc70b2",
-        "packages/coding-agent/src/modes/rpc/wire/index.ts": "183537936cd3dd7cdfb99db36ba4dbed69d16624a5e4a59f85e7b96834f2203c",
-        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "426592c94b9baaf0b6c661c0153457e812f20cd1a1cdac415e2f0ebd663235fb",
+        "packages/coding-agent/src/modes/rpc/preflight.ts": "c3bb227a281940819c8716ecb685e41c43545afb899ad86ca57e69dcc17c9a63",
+        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "886435f793f44a456d89fd97ef1040ad20c5bbf31fef6faff9cd2f046bc31940",
+        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "464f5c370b81a1b32735de8bc1888dfc531650be9cd41acfb62e2c670188f24f",
+        "packages/coding-agent/src/modes/rpc/wire/index.ts": "a80c42d2af076b8716236d4a1aac58d7d058124bc4ae33c08d4ead7e2f109900",
+        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "b48c96686d83c69217bccdab97e6be1c3280231d0a8e897c4f2b9b9a50167a54",
         "packages/coding-agent/src/modes/rpc/catalog-mode.ts": "965f643bca8e0791315ac01875f2ccdceab85f91739cfb5612b5da0285e328cc",
-        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "9ba3d3e2278f6abb5a59663ef502d26c44c8ed6d6b6dbb9449a9b9c38b6613ba",
+        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "e895e2594d466cf2fb71358d559863745e2ab1e933c37f7743d6c125e8a1dcaf",
         "packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts": "0e543aa8d3ef51f764c3b074df85b9d5fd1f020a38d9c5b3e81e6a2e8da1cac6",
         "packages/coding-agent/src/modes/rpc/rpc-interactions.ts": "2830f870e6232ac7a77ad5ee132e457b9ce89f6bd18c487001041b80fc7665cb",
-        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "f358a65dcbbc7a534b1fe6fada0ba5a84e59f3cb35e0c8eebeb4b57b2528cd22",
-        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "2e0e0c7f5d47897490b8201aa8b12cc451040f00ce4a1596067291a7629391a8",
+        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "77eac68adf38d7b47d6f9c0b125591d7f67b77d88849a75c9c64e752f3266d53",
+        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "af9242cb01bde0f38e356124bd277c11dc2f5b466cbea7875d22863cdd992ea2",
         "packages/coding-agent/src/modes/rpc/rpc-client.ts": "9bea4a14bd19bd3ea30211197665a47549d73b147f798171c631bd2976dc8625",
         "packages/coding-agent/src/modes/rpc/wire/interactions.ts": "c12cfa44bd14264993533e47febf623bf204b031bbfec5309defd9d607556bca",
         "packages/coding-agent/src/tools/ask.ts": "a0bb87f93be34eaca6d611fc7f43b9049ee72005e0ba4ed7c731e3933fc8b811",
         "packages/coding-agent/src/extensibility/extensions/types.ts": "bedda9045718b59606dc2ca0ec401f626159e83ad3ab7ffed08860ba6c4c54a8",
         "packages/coding-agent/docs/rpc-interactions.md": "c191ee6b76e5b3ceb38a1f58a8fbb5980966b8730cc8a5d7c6a497ff414db83d",
         "packages/coding-agent/test/rpc-extension-ui.test.ts": "dfda8bdc1446a6d50c33cad805f5099f7794d3530deb6138ff0e415adfdc4b24",
-        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "4127436c240f9a40ee4fb431d892a0586d1e976d9c75c5535a562ea54b78b58d",
+        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "b2d8b4412411c80bfcd3ed0d1884bbcf8fbfa794f965c10825b08697cdda47e6",
         "packages/coding-agent/src/modes/rpc/catalog-path.ts": "0a59b0762737dd93d2dcb4dcad48bdecd3bf7637e7f32a25126c82d128ceee93",
         "packages/coding-agent/src/modes/rpc/catalog-client.ts": "f0da4a0570cad95dbe3cc4d1b6a06e17737d1855b264591435befcaf91d9271b",
-        "packages/coding-agent/CHANGELOG.md": "ea0d0969a14f471726e70c92bd96d37d8a87cfa9b0c67125918f7209a86aaed1"
+        "packages/coding-agent/CHANGELOG.md": "735cc4991079aa9724007d21b279bd5ce6d1dcc8338049e8d3e1026f0d245234"
       },
       "artifacts": {
-        "cli.js": "978361a157f7d69728b909a8b7379a460c3cfdf7cd9ce64233a41c20dd931f3a",
-        "rpc-wire.schema.json": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
-        "chunk-z36g2nh0.js": "a418b5e340243d7e610af994a34c77ae1c02ca15d468512f3b20a4364c8372fd"
+        "cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+        "rpc-wire.schema.json": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+        "chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7",
+        "installation.json": "a2511780eb4d064f5deb88167864a7ad3bb72ba7149fbf9848346d61133f212f"
+      }
+    },
+    "state": {
+      "model": {
+        "id": "first",
+        "name": "Literal projection fixture first",
+        "api": "s0-projection",
+        "provider": "s0-projection",
+        "baseUrl": "https://forbidden.invalid",
+        "reasoning": false,
+        "input": [
+          "text"
+        ],
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0
+        },
+        "contextWindow": 32768,
+        "maxTokens": 1024,
+        "identity": {
+          "class": "unknown"
+        },
+        "requiresGlyphTokenization": false,
+        "supportsComputerUse": false
+      },
+      "isStreaming": true,
+      "isCompacting": false,
+      "steeringMode": "one-at-a-time",
+      "followUpMode": "one-at-a-time",
+      "interruptMode": "immediate",
+      "sessionFile": "/tmp/omp-projection-native-KXl9vA/sessions/-tmp/2026-11-16T17-05-37-294Z_01a1e552-480e-722f-b5ae-60dc0818f2dc.jsonl",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "autoCompactionEnabled": false,
+      "queuedMessageCount": 0,
+      "hasPendingAsyncWork": false,
+      "isSettled": false,
+      "queuedMessages": {
+        "steering": [],
+        "followUp": [],
+        "liveSteered": 0
+      },
+      "todoPhases": [],
+      "fastModeEnabled": false,
+      "tokensPerSecond": null,
+      "fastModeActive": false,
+      "slowModeSupported": false,
+      "slowModeEnabled": false,
+      "messageCount": 4,
+      "systemPrompt": [
+        "You are omp's trusted coding assistant.\n\n# Engineering\n- Correctness, then six-month maintainability. Delete dead weight; prefer boring design to needless abstraction.\n- Compiled code: NEVER avoidable allocation, copying, computation.\n- Unexpected repo changes are the user's; adapt. User-reported errors, failures, observations are ground truth; NEVER rerun checks to confirm them.\n- Final chat MAY use LaTeX math (`$`, `$$`) and color (\\textcolor, \\colorbox, \\fcolorbox).\n- MAY react to the user when chatting: start reply with emoji.\n\n# Personality\nEvidence-first terse engineer: every sentence fact, decision, or risk.\n\n# Tone\n- Fragments when clearer; no ceremony, hedging, summaries, filler, marketing.\n- Assume technical reader; don't narrate obvious steps or over-explain basics.\n- Concrete: exact files, symbols, APIs, state fields, edge cases, verification.\n- Uncertainty: state at claim; name tradeoff; choose boring/safe option.\n- Code: invariants, risks, verification.\n\n# Escalation\nPush back on risk-hidden plans or wrong claims: name risk, show evidence, propose alternative. If overruled, execute user's call; don't relitigate.\n\n\u2042 Runtime\n# Internal URLs\nMost FS/bash tools resolve these; path selectors: `read` docs.\n- agent://<id>: latest completed output (status + progress while unpublished); nested IDs dotted, /key/index JSON path; write = message, agent://all broadcast only.\n- history://<id>: read-only concise transcript (tool calls/results summarized); bare lists registered and retained on-disk agents, not persisted unregistered top-level sessions.\n- artifact://<id>: spilled output; page :N-M or :raw:N-M.\n- local://<name>.md: shared artifact.\n- proc://: jobs, agents, and services; proc://<id> status/output; proc://<id>/kill with empty `content` cancels/stops jobs, agents, and services; proc://<id>/streams: a bash job's pipes so far (live under `| tail`/`| grep`; never rerun to see it); parked agents/missing job \u2260 lost: check agent://<id>, history://<id>.\n- ssh://host/<path>: remote UTF-8 file/dir for read/write/grep; bare lists hosts.\n- issue://<N> / pr://<N> (<owner>/<repo>/<N> for other repos): GitHub issue/PR; bare: recent; pr://<N>/diff: changed files.\n- mcp://<uri>: MCP resource.\n- omp://: harness docs, AVOID unless asked.\n\n- proc://<id>/streams lists a bash job's pipes, proc://<id>/streams/<n> reads what crossed pipe n so far. Write sends stdin to services only (empty = Enter); proc://<id>/mode: persist|session|detached (services only); start long-lived work as a named service when it needs stdin or lifetime controls. Completed jobs evicted (process-local).\n- ssh://host/<path>: max 1 MiB. /~/path and /~ use the connected remote account's HOME, not local HOME; /~user is unsupported, /%7E/ is literal. Encode : ? # as %3A %3F %23. Needs verified POSIX shell; else bash remote SSH or sshfs.\n- issue:// / pr:// bare listing takes ?state=&limit=&author=&label=. PR diff: pr://<N>/diff (files), /diff/<i>, /diff/all. ?at=<generation> pins that cached snapshot.\n\n# Tool Inventory\nask\n\u2042 Tool Policy\n# General\nEvery turn costs seconds: batch all independent reads/searches/checks into one turn. Once the change is verified, stop and report; no extra audits, broad suites, or repo-wide checks unless asked. SHOULD resolve prerequisites, parallelize independent calls. Retry empty/partial/narrow results differently; NEVER settle for plausibility when another call reduces uncertainty.\n\n# Tool I/O\n- Prefer relative paths.\n- Most tools take `i`: capitalized 2\u20136-word present-participle intent (e.g. \"Reading model role settings\").\n\n- XML tags inject system content; may interrupt/notify inside user messages: MUST treat as system-authored/authoritative. User content is sanitized.\n# Specialized Tools\n# Exploration\nNEVER open guessed files.\n\u2042 Workflow\n# 1. Before Editing\n- Reuse existing patterns; NEVER add a second convention.\n- Tool failed or file changed underneath? Re-read first.\n- Ask before destructive commands or deleting unrelated code you didn't write; code your change makes obsolete is in scope.\n\n# 2. Verify\nRun the narrowest check that exercises the change, once. Investigation: the output is the proof; no tests.\n- UI: verify the actual surface.\n  - TUI/CLI: launch the program; observe output/state.\n  - No runtime for changed surface: throwaway script; report visual limit.\n- Bug: a failing test or user report is the repro; add a regression test only when no existing test covers the path.\n- Feature: prove via throwaway script; new tests ONLY for uncertain edges or on request.\n- New tests MUST catch plausible consumer-visible bugs; deterministic, isolated, full-suite-safe. NEVER test wiring, echoes, source text, incidental defaults, tautologies, bare not-throw, length-grew.\n- Tests your change breaks: update contract tests; delete wording/implementation ones regardless of author, NEVER re-pin.\n\n# 3. Cleanup\nAfter smoke proof: permanent fix/feature: update docs/changelog; delete throwaway scripts.\n\n\u2042 Delivery\n- NEVER fabricate output; unobserved claims = `[INFERENCE]`; report only verification you ran.\n- Solve the real ask: no extra scope (retries, validation, abstraction \"while you're at it\"), no symptom fixes (suppressed errors, special-cased input).\n- Clean cutover: migrate every caller; remove obsolete code, comments, aliases, re-exports; no shims.\n- Done = every requested behavior, end to end. NEVER stubs, placeholders, mocks, no-ops, fake fallbacks, `TODO`s, \"follow-up\"/\"MVP\" deferrals, narrowed tests, or silently narrowed scope; shrink only with explicit user approval.\n- Blocked only when tools can't reach the info; a failed check is not a blocker. Finish reachable work, then state what's missing and what you tried. NEVER ask for info tools can find.\n- Match the requested output format.\n\n\u2042 Critical\n<critical>\n- NEVER yield while actionable work remains; a finished phase or todo is not a stop.\n- NEVER narrate or weigh session limits, token budgets, or effort estimates.\n- NEVER re-audit applied edits or run git to validate them; tool results are verification.\n</critical>",
+        "<project-context>\n<workstation>\n- OS: linux 6.18.57\n- Arch: x64\n- Model: s0-projection/first\n</workstation>\n</project-context>\n\n<critical>\n- Each response MUST advance the task; completion only stopping condition.\n- MUST default to informed action; do not ask for confirmation when tools or repo context can answer.\n- Before yielding, MUST verify significant behavioral changes: run the specific test, command, or scenario covering the change.\n</critical>"
+      ],
+      "dumpTools": [
+        {
+          "name": "ask",
+          "description": "Ask the user to fill in one HTML form; blocks until they submit or cancel.\n\nAsk only for materially different tradeoffs the user must decide.\nDefault: act using code/config/docs/history and conventions.\nSeveral viable choices: pick conservative/standard, proceed, state choice.\n\n<instruction>\n- `html`: one <form> of plain semantic HTML, rendered natively in the user's terminal.\n  - NEVER <script>, <style>, style=, or buttons (<button>, type=\"submit\"): the UI supplies Submit and Cancel.\n- Every control needs a name; the submitted form data arrives as JSON `{\"name\": value}`.\n- One-of: `<input type=\"radio\">`; many-of: type=\"checkbox\"; long lists: <select>.\n- Wrap each control in a <label>; group a question in a <fieldset> with a <legend>, or put it in a <p> right before the group.\n- Radio and checkbox groups automatically get an \"Other\" free-text answer. NEVER add your own \"Other\" option or a text field for it.\n- Preselect your recommendation with checked/selected/value: those values are submitted if the user does not answer in time.\n- Context the user needs to decide (findings, tradeoffs, diffs, drafts) goes inside the form: <p>, <ul>, <table>, <pre>.\n- Keep forms short: a few questions, 2\u20135 options each; ask follow-ups in a later call.\n- Answer values:\n  - radio group or <select> \u2192 the chosen value\n  - checkbox group (shared name) or <select multiple> \u2192 an array\n  - lone checkbox or radio group left unchecked \u2192 omitted\n  - type=\"number\" \u2192 a number; text fields \u2192 their text\n  - automatic \"Other\" text \u2192 the radio's value, or an extra checkbox array entry\n- Free input: `<input type=\"text|number|date|email|url\">`, <textarea>; placeholder, min/max, pattern, required are enforced.\n- Pictures: `<img src=\"\u2026\" alt=\"\u2026\">` and inline <svg> diagrams, as their own blocks.\n  - `src`: an http(s) URL, a data: URI, or a file path relative to the working directory.\n  - Inside a <label> an image shows only its alt.\n- Example, a choice with context and a number:\n```html\n<form>\n  <p>Sessions live in memory and are lost on restart.</p>\n  <fieldset>\n    <legend>Session store</legend>\n    <label><input type=\"radio\" name=\"store\" value=\"sqlite\" checked> SQLite: one file, no new service</label>\n    <label><input type=\"radio\" name=\"store\" value=\"redis\"> Redis: shared across instances, needs ops</label>\n  </fieldset>\n  <label>Session lifetime (days) <input type=\"number\" name=\"ttl_days\" value=\"30\" min=\"1\"></label>\n</form>\n```\n</instruction>",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "html": {
+                "type": "string",
+                "description": "one HTML <form>"
+              }
+            },
+            "required": [
+              "html"
+            ],
+            "additionalProperties": false
+          }
+        }
+      ],
+      "contextUsage": {
+        "tokens": 2277,
+        "contextWindow": 32768,
+        "percent": 6.9488525390625
+      },
+      "goal": null
+    }
+  },
+  "nativeEditor": {
+    "id": "15d0a2281103285d",
+    "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+    "family": "extension-ui",
+    "scope": {
+      "kind": "session",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc"
+    },
+    "method": "editor",
+    "title": "Reason",
+    "promptStyle": true,
+    "prefill": "default reason",
+    "createdAt": 1794848804934,
+    "deadline": 1794848919044,
+    "reason": "explicit-answer-required"
+  },
+  "answeredWhileFailed": true,
+  "joiningAfterRecovery": {
+    "ready": true,
+    "id": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+    "projection": {
+      "phase": "ready",
+      "binding": {
+        "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+        "generation": "72c0be93-872d-4ee4-bb2a-0bae671b6b3c"
+      },
+      "aborted": false
+    },
+    "semantic": {
+      "scope": {
+        "tabOwner": "6385f3b9-dacd-4475-9d82-469530dde73a",
+        "hostContext": "persistent-projection-fixture",
+        "sourceContext": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+        "nativeSessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+        "projectionGeneration": "72c0be93-872d-4ee4-bb2a-0bae671b6b3c",
+        "storageKey": "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]"
+      },
+      "revision": 0,
+      "phase": "plain",
+      "draft": {
+        "text": "",
+        "references": []
+      },
+      "originals": [],
+      "readiness": []
+    },
+    "saved": {
+      "records": {
+        "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]": {
+          "record": {
+            "draft": {
+              "text": "",
+              "references": []
+            },
+            "originals": []
+          },
+          "editedAt": null
+        }
+      },
+      "owner": "6385f3b9-dacd-4475-9d82-469530dde73a"
+    },
+    "bindingStable": true,
+    "scopeStable": true,
+    "retains": {
+      "referenceCount": 3,
+      "retainedBy": {
+        "controllerOperation": 1,
+        "mainView": 1,
+        "sidebarView": 1
+      }
+    },
+    "pending": null,
+    "journal": [
+      {
+        "type": "omp/native-record",
+        "seq": 0
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 1
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 2
+      },
+      {
+        "type": "turn/start",
+        "seq": 3
+      },
+      {
+        "type": "user/message",
+        "seq": 4
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 5
+      },
+      {
+        "type": "step/start",
+        "seq": 6
+      },
+      {
+        "type": "assistant/message",
+        "seq": 7
+      },
+      {
+        "type": "step/end",
+        "seq": 8
+      },
+      {
+        "type": "turn/start",
+        "seq": 9
+      },
+      {
+        "type": "user/message",
+        "seq": 10
+      },
+      {
+        "type": "step/start",
+        "seq": 11
+      },
+      {
+        "type": "assistant/message",
+        "seq": 12
+      },
+      {
+        "type": "step/end",
+        "seq": 13
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 14
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 15
+      },
+      {
+        "type": "omp/native-record",
+        "seq": 16
+      }
+    ],
+    "nativeInteraction": {
+      "stage": "S0-isolated-interactions",
+      "sessionAdmission": "blocked",
+      "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+      "policyVerified": true,
+      "pending": [
+        {
+          "id": "15d0a2281103285d",
+          "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+          "family": "extension-ui",
+          "scope": {
+            "kind": "session",
+            "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc"
+          },
+          "method": "editor",
+          "title": "Reason",
+          "promptStyle": true,
+          "prefill": "default reason",
+          "createdAt": 1794848804934,
+          "deadline": 1794848919044,
+          "reason": "explicit-answer-required"
+        }
+      ],
+      "outcomes": [
+        {
+          "id": "15d0a22251c3285c",
+          "status": "answered",
+          "reason": "explicit-native-acknowledgement"
+        }
+      ]
+    },
+    "result": {
+      "status": "done"
+    }
+  },
+  "before": {
+    "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+    "projection": {
+      "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+      "generation": "978d6a2b-0aa2-4946-a0fd-3322ad1dbf26"
+    },
+    "cut": {
+      "durability": "not_attested",
+      "sourceBindingStatus": "worker",
+      "sourceId": "452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "workerId": "e6031058-a2f6-49cb-9da5-4bc6f31101d4",
+      "contextId": "6e56a4a190ccf1997b51b84939ebcba0cb98a4abbff70ef72c1d5331d798184f",
+      "contentRevision": "aa142f130ca970beba9c10e208ac8f5460651b3a5ee54b7080073112445213d6",
+      "nativeRevision": 8,
+      "retainedRevision": "d58cda1a7a0ab8463bac257968dfe3da9e7a861f7488af66df400d134e2af2bc",
+      "leafId": "93ee1ea3",
+      "observationSeq": 27
+    },
+    "historyFault": {
+      "held": false,
+      "waiting": 0
+    },
+    "rebuilding": false,
+    "interaction": {
+      "stage": "S0-isolated-interactions",
+      "sessionAdmission": "blocked",
+      "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+      "policyVerified": true,
+      "pending": [],
+      "outcomes": []
+    },
+    "process": {
+      "type": "extension_ui_request",
+      "id": "15d0a1e795c32858",
+      "method": "notify",
+      "message": "{\"kind\":\"projection-native-process\",\"pid\":376003}"
+    },
+    "compatibility": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+    },
+    "preflight": {
+      "candidate": "omp-webui-s0",
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+      "safePreflight": true,
+      "sessionAdmission": "blocked",
+      "capabilities": [
+        "safe-preflight-v1",
+        "rpc-framing-v2"
+      ],
+      "rpcUiInteractionPolicy": {
+        "version": "1",
+        "explicitAnswersOnly": true,
+        "nativeExpiry": "cancel",
+        "toolExpiry": "cancel",
+        "invalidAnswer": "pending"
+      },
+      "rpcUiStrictStartupPolicy": {
+        "version": "strict-start-v1",
+        "status": "prototype",
+        "platforms": [
+          "linux"
+        ],
+        "ownership": "native-exclusive-lease",
+        "selectedInstance": "anchored-carrier",
+        "publication": "native-generation-v1",
+        "carrierFormat": "ompgen1",
+        "xattrs": "required-fd-user-xattr",
+        "durability": "process-crash-only",
+        "rollback": "flatten-export-required",
+        "maxLogicalBytes": 134217728,
+        "maxCarrierBytes": 268435456,
+        "maxRetainedBytes": 536870912,
+        "maxGenerations": 64,
+        "catalogCarrierPrefixBytes": 16384,
+        "catalogControlBytes": 6144,
+        "catalogGenerationPrefixBytes": 16384
+      },
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4",
+        "platform": "linux",
+        "arch": "x64"
+      }
+    },
+    "closure": {
+      "source": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp",
+      "candidate": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate",
+      "tree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
+      "build": {
+        "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+        "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+        "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+        "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+      },
+      "generatedSourceSchema": "9ac9b3c3dd78017124277d54d8eb288272c1bc5e3efb18c1d9a14dc53803e3f0",
+      "authoredFiles": {
+        "packages/coding-agent/src/session/session-lease.ts": "def0a83a9c0e137a9bc95535d03130ce6d9a32098500f903a19329f403b26cac",
+        "packages/coding-agent/src/session/history-context.ts": "af94fbf90d9055326b2d35844a9d8875c006eb55dace38bbb9b9b358b837bf80",
+        "packages/coding-agent/src/session/live-message-observation.ts": "9061c8c487d35bbb29436fe8499437a983d38da62859aeff0aeb931dcee4916e",
+        "packages/coding-agent/src/modes/rpc/rpc-session-events.ts": "1a324be4f45daee43b2fbda613d28b947f7d5ecb0747dbbc547acf5e0963c873",
+        "packages/coding-agent/docs/rpc-live-observation.md": "28511224151de3c4b369dedd6e67d7252f0842b8d1e43430af374f8fde775e89",
+        "packages/coding-agent/README.md": "a5986e4188e13e82d01e07e90ca3c5baba102e11110d968201d9e02c371852bb",
+        "packages/coding-agent/src/session/agent-session.ts": "176854b14132d1692d6b52b319ca7bcf16eb9b9a7e31649e0dfc755cc0825e7d",
+        "packages/coding-agent/src/session/session-artifact-copy.ts": "91769c17b250f2a59cb7c1de5c7a445e8e34f099a2a34afa8125a0f43b0cc8f2",
+        "packages/coding-agent/src/utils/file-new-publication.ts": "a5f97187937433a477974231737dca931b58f959e6d9ed3707e4afd907cbcbf7",
+        "packages/coding-agent/src/debug/report-bundle.ts": "ca934182048f2f17c5d236afe1a193c133cfe3655ceaeb154fe6075a9c2258c5",
+        "packages/coding-agent/docs/rpc-strict-start.md": "b3e3807d5861bb8a847b59b47af85eb15e86e022a2c0d0108ababa1b95787cae",
+        "packages/coding-agent/src/modes/rpc/strict-start-policy.ts": "c086435dbce63b751d4b66e24a38b76eaddfd0b91570eb91ff97f3af4181c2a0",
+        "packages/coding-agent/src/activity/index.ts": "8b6129be7458ac12dd7e9ae5181369b70f3473dec171eeeaceb1efacc1adcd38",
+        "packages/coding-agent/src/memories/index.ts": "8b1907cebcba2f4b3a246ee324919e55d8be49b789de2d154e0d6f658c962b23",
+        "packages/coding-agent/src/modes/rpc/rpc-subagents.ts": "0862f94b741308d1dbb07a5939acdf7bf9b572e9786f6ac6b2f21ec21bd84240",
+        "packages/coding-agent/src/cli/gc-cli.ts": "a83c5731c2f77a48f84371ddd93bb1f1c8aa6567683ef1e1b39b2d81c09c5148",
+        "packages/coding-agent/src/cli/gc-strip.ts": "bfec47c012ce9e9562d395fa4ff6309e3c231e488289801d4f9d67084fd0932f",
+        "packages/coding-agent/src/session/session-header-id.ts": "aa28d924f26e9339c489b0911a71cbaeaaedf91dfaf08c86174588f402b14308",
+        "packages/coding-agent/src/session/session-transfer.ts": "afb801c22d7f4d0deaa6cc789b6c3598b7a32fabbf6553ed6e1547c0c0d6bbb4",
+        "packages/coding-agent/src/cli/render-cli.ts": "07609e726ad817f4331af5463119ea8156db48cf9947e0b5af1e25680fe0e3c2",
+        "packages/coding-agent/src/modes/rpc/strict-client.ts": "8d41e9d79f28ad2761c9df6dfe3344cd315f9efc7b0e0098e0b8b0b8fac49517",
+        "packages/coding-agent/src/session/session-drafts.ts": "b04f93cd6ca2a7d524e5eae13a609fba60a15051b5adfe2f63d9fe7b800c8cb7",
+        "packages/coding-agent/src/session/session-loader.ts": "a86809964fdc226b8c5f913415da4db0639acfd2e9454ac5b8c2388416ad46b7",
+        "packages/coding-agent/src/session/generation-storage-factory.ts": "f376fdfdf38245995e5bd27b650b97be2f9408574789ba5eceea72185dae8a8f",
+        "packages/coding-agent/src/utils/file-xattr.ts": "150683ad0db1ee5dd9e836516ff59616e22ad63b4acdd67d42b4dee486f9e40e",
+        "packages/coding-agent/src/session/session-generation.ts": "4204ba89576f7c9ca36112d04cd84a40822be0c8727487a72d1c6ae14dc017b5",
+        "packages/coding-agent/src/main.ts": "69ab19b1aab4a6ab7c4b87ac2fe4a4458fce937d1e7093c776c20855b1679d21",
+        "packages/coding-agent/src/session/session-storage.ts": "e0768fc60bad67ae5f4aebc86df5bac1b9e2addbfbdc92b5e45208dda213dd4d",
+        "packages/coding-agent/src/session/strict-session-storage.ts": "04a57706c30a719c317811eb07839f397e6a9e904fb8e94967aeb40ae1525dd4",
+        "packages/coding-agent/src/modes/rpc/wire/strict-start.ts": "b1147edd1565d51d5e024478fa71131f3d1e059738f251794f70a3d553a1ede9",
+        "packages/coding-agent/src/modes/rpc/strict-mode.ts": "9d8e068afa9a30b0d90576c25e4682ff22032ee0b286f7b444644461d6be69ed",
+        "packages/coding-agent/src/modes/rpc/strict-reservation.ts": "3d2e67e9540b31eb4e6ba31cb9f51c7779623c229750483ded55a0bd6152eb87",
+        "packages/coding-agent/src/modes/rpc/strict-context.ts": "e8e4f30390f59cd3539915b34360ba16caceadcee4530d1676ed682dbfcbac1a",
+        "packages/coding-agent/src/modes/rpc/strict-input.ts": "6bf5446940700ecbb6b6eab5e4d9360f1b42f7361decd0e1edfec18a052e9abe",
+        "packages/coding-agent/src/session/session-manager.ts": "893aca051170756c8b8e9c0b6b9bc36abf83eb52e4ac196f439d8790402e7661",
+        "packages/coding-agent/src/modes/rpc/history-client.ts": "c78d5c2d8296da01bedb5f8064789e521c9bf0a5f5ad937c0e164109fa17ea24",
+        "packages/coding-agent/src/modes/rpc/rpc-history.ts": "277c672bcc75513eecc6ad2c2e9213fa06bfd661e0516bd1fb47d44c9a65796e",
+        "packages/coding-agent/src/modes/rpc/wire/history.ts": "e33a4512ed05191644540be7fc1c51443cd922825fbc4fd25ec6426b7b99bc82",
+        "packages/coding-agent/src/cli.ts": "b0ba16e58974cd80ea87675841be0fa85e745dcdd0822225779258030ff3c8b0",
+        "packages/coding-agent/src/cli-runtime.ts": "2cf125f0a7de2e2ad6431e69c367fe676f8fa8ae1f2430397f4c1de2167208f2",
+        "packages/coding-agent/src/modes/rpc/preflight.ts": "c3bb227a281940819c8716ecb685e41c43545afb899ad86ca57e69dcc17c9a63",
+        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "886435f793f44a456d89fd97ef1040ad20c5bbf31fef6faff9cd2f046bc31940",
+        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "464f5c370b81a1b32735de8bc1888dfc531650be9cd41acfb62e2c670188f24f",
+        "packages/coding-agent/src/modes/rpc/wire/index.ts": "a80c42d2af076b8716236d4a1aac58d7d058124bc4ae33c08d4ead7e2f109900",
+        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "b48c96686d83c69217bccdab97e6be1c3280231d0a8e897c4f2b9b9a50167a54",
+        "packages/coding-agent/src/modes/rpc/catalog-mode.ts": "965f643bca8e0791315ac01875f2ccdceab85f91739cfb5612b5da0285e328cc",
+        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "e895e2594d466cf2fb71358d559863745e2ab1e933c37f7743d6c125e8a1dcaf",
+        "packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts": "0e543aa8d3ef51f764c3b074df85b9d5fd1f020a38d9c5b3e81e6a2e8da1cac6",
+        "packages/coding-agent/src/modes/rpc/rpc-interactions.ts": "2830f870e6232ac7a77ad5ee132e457b9ce89f6bd18c487001041b80fc7665cb",
+        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "77eac68adf38d7b47d6f9c0b125591d7f67b77d88849a75c9c64e752f3266d53",
+        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "af9242cb01bde0f38e356124bd277c11dc2f5b466cbea7875d22863cdd992ea2",
+        "packages/coding-agent/src/modes/rpc/rpc-client.ts": "9bea4a14bd19bd3ea30211197665a47549d73b147f798171c631bd2976dc8625",
+        "packages/coding-agent/src/modes/rpc/wire/interactions.ts": "c12cfa44bd14264993533e47febf623bf204b031bbfec5309defd9d607556bca",
+        "packages/coding-agent/src/tools/ask.ts": "a0bb87f93be34eaca6d611fc7f43b9049ee72005e0ba4ed7c731e3933fc8b811",
+        "packages/coding-agent/src/extensibility/extensions/types.ts": "bedda9045718b59606dc2ca0ec401f626159e83ad3ab7ffed08860ba6c4c54a8",
+        "packages/coding-agent/docs/rpc-interactions.md": "c191ee6b76e5b3ceb38a1f58a8fbb5980966b8730cc8a5d7c6a497ff414db83d",
+        "packages/coding-agent/test/rpc-extension-ui.test.ts": "dfda8bdc1446a6d50c33cad805f5099f7794d3530deb6138ff0e415adfdc4b24",
+        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "b2d8b4412411c80bfcd3ed0d1884bbcf8fbfa794f965c10825b08697cdda47e6",
+        "packages/coding-agent/src/modes/rpc/catalog-path.ts": "0a59b0762737dd93d2dcb4dcad48bdecd3bf7637e7f32a25126c82d128ceee93",
+        "packages/coding-agent/src/modes/rpc/catalog-client.ts": "f0da4a0570cad95dbe3cc4d1b6a06e17737d1855b264591435befcaf91d9271b",
+        "packages/coding-agent/CHANGELOG.md": "735cc4991079aa9724007d21b279bd5ce6d1dcc8338049e8d3e1026f0d245234"
+      },
+      "artifacts": {
+        "cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+        "rpc-wire.schema.json": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+        "chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7",
+        "installation.json": "a2511780eb4d064f5deb88167864a7ad3bb72ba7149fbf9848346d61133f212f"
       }
     },
     "state": {
@@ -192,8 +729,8 @@
       "steeringMode": "one-at-a-time",
       "followUpMode": "one-at-a-time",
       "interruptMode": "immediate",
-      "sessionFile": "/tmp/omp-projection-native-it72aD/sessions/-tmp/2026-11-16T15-05-23-743Z_01a1e4e4-361f-754c-9432-311ba5dcb73f.jsonl",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+      "sessionFile": "/tmp/omp-projection-native-KXl9vA/sessions/-tmp/2026-11-16T17-05-37-294Z_01a1e552-480e-722f-b5ae-60dc0818f2dc.jsonl",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
       "autoCompactionEnabled": false,
       "queuedMessageCount": 0,
       "hasPendingAsyncWork": false,
@@ -242,37 +779,42 @@
     }
   },
   "afterContextChange": {
-    "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+    "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
     "projection": {
-      "source": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-      "generation": "62b88040-859d-4e2d-92c9-8e7a742bf8ef"
+      "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+      "generation": "92ce9d68-cf64-466d-ba1c-d3a6903de4d4"
     },
     "cut": {
       "durability": "not_attested",
       "sourceBindingStatus": "worker",
-      "sourceId": "5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
-      "workerId": "65343d6f-fe67-4bce-8cc3-1752562066f4",
-      "contextId": "4efb475e89016f0bb49494b3aefc17529856eb54873e4d469a83bc4978e9217d",
-      "contentRevision": "98a872da75d1e7e11f5dc37c1ecf4e687ca65af97fda259b24b352635ab9d635",
+      "sourceId": "452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "workerId": "e6031058-a2f6-49cb-9da5-4bc6f31101d4",
+      "contextId": "8f1e273d88e9d3108a22d2f285ef77ddffb6d47db056dde3434962023bd5c570",
+      "contentRevision": "b13bb1c6ce955b9f7ce1922e318b16c935db4946672b41626f0785ea660ae304",
       "nativeRevision": 12,
-      "retainedRevision": "37ee3f0dacc62d6d629311660ad58d76073b4c984c4877e9b78cc7d0db191c26",
-      "leafId": "2e99fbdc",
+      "retainedRevision": "6c20e4e2dec7ac1d60a2c6ecf8d9ff39ae48f01a29a40d37cadfa5db57cb3876",
+      "leafId": "ab46d310",
       "observationSeq": 51
     },
+    "historyFault": {
+      "held": false,
+      "waiting": 0
+    },
+    "rebuilding": false,
     "interaction": {
       "stage": "S0-isolated-interactions",
       "sessionAdmission": "blocked",
-      "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+      "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
       "policyVerified": true,
       "pending": [
         {
-          "id": "15d086b8932709d9",
-          "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+          "id": "15d0a22251c3285c",
+          "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
           "family": "extension-ui",
           "scope": {
             "kind": "session",
-            "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f"
+            "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc"
           },
           "method": "select",
           "title": "Pick",
@@ -280,8 +822,8 @@
             "default",
             "chosen"
           ],
-          "createdAt": 1794841612878,
-          "deadline": 1794841732871,
+          "createdAt": 1794848799049,
+          "deadline": 1794848919044,
           "reason": "explicit-answer-required"
         }
       ],
@@ -289,22 +831,22 @@
     },
     "process": {
       "type": "extension_ui_request",
-      "id": "15d0866385e709d5",
+      "id": "15d0a1e795c32858",
       "method": "notify",
-      "message": "{\"kind\":\"projection-native-process\",\"pid\":295522}"
+      "message": "{\"kind\":\"projection-native-process\",\"pid\":376003}"
     },
     "compatibility": {
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
     },
     "preflight": {
       "candidate": "omp-webui-s0",
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
       "safePreflight": true,
       "sessionAdmission": "blocked",
       "capabilities": [
@@ -318,6 +860,27 @@
         "toolExpiry": "cancel",
         "invalidAnswer": "pending"
       },
+      "rpcUiStrictStartupPolicy": {
+        "version": "strict-start-v1",
+        "status": "prototype",
+        "platforms": [
+          "linux"
+        ],
+        "ownership": "native-exclusive-lease",
+        "selectedInstance": "anchored-carrier",
+        "publication": "native-generation-v1",
+        "carrierFormat": "ompgen1",
+        "xattrs": "required-fd-user-xattr",
+        "durability": "process-crash-only",
+        "rollback": "flatten-export-required",
+        "maxLogicalBytes": 134217728,
+        "maxCarrierBytes": 268435456,
+        "maxRetainedBytes": 536870912,
+        "maxGenerations": 64,
+        "catalogCarrierPrefixBytes": 16384,
+        "catalogControlBytes": 6144,
+        "catalogGenerationPrefixBytes": 16384
+      },
       "runtime": {
         "name": "bun",
         "version": "1.4.4",
@@ -326,55 +889,84 @@
       }
     },
     "closure": {
-      "source": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp",
-      "candidate": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp-candidate",
-      "tree": "5b4a12bfad7c8b84aa9b9ce49aa3b7b38baa8722",
+      "source": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp",
+      "candidate": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate",
+      "tree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
       "build": {
         "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-        "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-        "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-        "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+        "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+        "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+        "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
       },
-      "generatedSourceSchema": "53372679b8e14b3da4e11fdccb2e1a1946789b5e22ad91eff6a4169078e13bf0",
+      "generatedSourceSchema": "9ac9b3c3dd78017124277d54d8eb288272c1bc5e3efb18c1d9a14dc53803e3f0",
       "authoredFiles": {
+        "packages/coding-agent/src/session/session-lease.ts": "def0a83a9c0e137a9bc95535d03130ce6d9a32098500f903a19329f403b26cac",
         "packages/coding-agent/src/session/history-context.ts": "af94fbf90d9055326b2d35844a9d8875c006eb55dace38bbb9b9b358b837bf80",
-        "packages/coding-agent/src/session/session-manager.ts": "0efa0de548b9c0b7b7c5ab26d8474a476d88d973dbe12efe2cc092f1e4a5bb42",
-        "packages/coding-agent/src/session/agent-session.ts": "1388569f353c4da9453749744625999a2713dab0eaf9db4dbd90e527186bbb26",
         "packages/coding-agent/src/session/live-message-observation.ts": "9061c8c487d35bbb29436fe8499437a983d38da62859aeff0aeb931dcee4916e",
         "packages/coding-agent/src/modes/rpc/rpc-session-events.ts": "1a324be4f45daee43b2fbda613d28b947f7d5ecb0747dbbc547acf5e0963c873",
         "packages/coding-agent/docs/rpc-live-observation.md": "28511224151de3c4b369dedd6e67d7252f0842b8d1e43430af374f8fde775e89",
         "packages/coding-agent/README.md": "a5986e4188e13e82d01e07e90ca3c5baba102e11110d968201d9e02c371852bb",
+        "packages/coding-agent/src/session/agent-session.ts": "176854b14132d1692d6b52b319ca7bcf16eb9b9a7e31649e0dfc755cc0825e7d",
+        "packages/coding-agent/src/session/session-artifact-copy.ts": "91769c17b250f2a59cb7c1de5c7a445e8e34f099a2a34afa8125a0f43b0cc8f2",
+        "packages/coding-agent/src/utils/file-new-publication.ts": "a5f97187937433a477974231737dca931b58f959e6d9ed3707e4afd907cbcbf7",
+        "packages/coding-agent/src/debug/report-bundle.ts": "ca934182048f2f17c5d236afe1a193c133cfe3655ceaeb154fe6075a9c2258c5",
+        "packages/coding-agent/docs/rpc-strict-start.md": "b3e3807d5861bb8a847b59b47af85eb15e86e022a2c0d0108ababa1b95787cae",
+        "packages/coding-agent/src/modes/rpc/strict-start-policy.ts": "c086435dbce63b751d4b66e24a38b76eaddfd0b91570eb91ff97f3af4181c2a0",
+        "packages/coding-agent/src/activity/index.ts": "8b6129be7458ac12dd7e9ae5181369b70f3473dec171eeeaceb1efacc1adcd38",
+        "packages/coding-agent/src/memories/index.ts": "8b1907cebcba2f4b3a246ee324919e55d8be49b789de2d154e0d6f658c962b23",
+        "packages/coding-agent/src/modes/rpc/rpc-subagents.ts": "0862f94b741308d1dbb07a5939acdf7bf9b572e9786f6ac6b2f21ec21bd84240",
+        "packages/coding-agent/src/cli/gc-cli.ts": "a83c5731c2f77a48f84371ddd93bb1f1c8aa6567683ef1e1b39b2d81c09c5148",
+        "packages/coding-agent/src/cli/gc-strip.ts": "bfec47c012ce9e9562d395fa4ff6309e3c231e488289801d4f9d67084fd0932f",
+        "packages/coding-agent/src/session/session-header-id.ts": "aa28d924f26e9339c489b0911a71cbaeaaedf91dfaf08c86174588f402b14308",
+        "packages/coding-agent/src/session/session-transfer.ts": "afb801c22d7f4d0deaa6cc789b6c3598b7a32fabbf6553ed6e1547c0c0d6bbb4",
+        "packages/coding-agent/src/cli/render-cli.ts": "07609e726ad817f4331af5463119ea8156db48cf9947e0b5af1e25680fe0e3c2",
+        "packages/coding-agent/src/modes/rpc/strict-client.ts": "8d41e9d79f28ad2761c9df6dfe3344cd315f9efc7b0e0098e0b8b0b8fac49517",
+        "packages/coding-agent/src/session/session-drafts.ts": "b04f93cd6ca2a7d524e5eae13a609fba60a15051b5adfe2f63d9fe7b800c8cb7",
+        "packages/coding-agent/src/session/session-loader.ts": "a86809964fdc226b8c5f913415da4db0639acfd2e9454ac5b8c2388416ad46b7",
+        "packages/coding-agent/src/session/generation-storage-factory.ts": "f376fdfdf38245995e5bd27b650b97be2f9408574789ba5eceea72185dae8a8f",
+        "packages/coding-agent/src/utils/file-xattr.ts": "150683ad0db1ee5dd9e836516ff59616e22ad63b4acdd67d42b4dee486f9e40e",
+        "packages/coding-agent/src/session/session-generation.ts": "4204ba89576f7c9ca36112d04cd84a40822be0c8727487a72d1c6ae14dc017b5",
+        "packages/coding-agent/src/main.ts": "69ab19b1aab4a6ab7c4b87ac2fe4a4458fce937d1e7093c776c20855b1679d21",
+        "packages/coding-agent/src/session/session-storage.ts": "e0768fc60bad67ae5f4aebc86df5bac1b9e2addbfbdc92b5e45208dda213dd4d",
+        "packages/coding-agent/src/session/strict-session-storage.ts": "04a57706c30a719c317811eb07839f397e6a9e904fb8e94967aeb40ae1525dd4",
+        "packages/coding-agent/src/modes/rpc/wire/strict-start.ts": "b1147edd1565d51d5e024478fa71131f3d1e059738f251794f70a3d553a1ede9",
+        "packages/coding-agent/src/modes/rpc/strict-mode.ts": "9d8e068afa9a30b0d90576c25e4682ff22032ee0b286f7b444644461d6be69ed",
+        "packages/coding-agent/src/modes/rpc/strict-reservation.ts": "3d2e67e9540b31eb4e6ba31cb9f51c7779623c229750483ded55a0bd6152eb87",
+        "packages/coding-agent/src/modes/rpc/strict-context.ts": "e8e4f30390f59cd3539915b34360ba16caceadcee4530d1676ed682dbfcbac1a",
+        "packages/coding-agent/src/modes/rpc/strict-input.ts": "6bf5446940700ecbb6b6eab5e4d9360f1b42f7361decd0e1edfec18a052e9abe",
+        "packages/coding-agent/src/session/session-manager.ts": "893aca051170756c8b8e9c0b6b9bc36abf83eb52e4ac196f439d8790402e7661",
         "packages/coding-agent/src/modes/rpc/history-client.ts": "c78d5c2d8296da01bedb5f8064789e521c9bf0a5f5ad937c0e164109fa17ea24",
         "packages/coding-agent/src/modes/rpc/rpc-history.ts": "277c672bcc75513eecc6ad2c2e9213fa06bfd661e0516bd1fb47d44c9a65796e",
         "packages/coding-agent/src/modes/rpc/wire/history.ts": "e33a4512ed05191644540be7fc1c51443cd922825fbc4fd25ec6426b7b99bc82",
-        "packages/coding-agent/src/cli.ts": "8f41d88268c4de5e4add664e835e4c2560f5466f717eee8fd5670d92d9b8ac0d",
+        "packages/coding-agent/src/cli.ts": "b0ba16e58974cd80ea87675841be0fa85e745dcdd0822225779258030ff3c8b0",
         "packages/coding-agent/src/cli-runtime.ts": "2cf125f0a7de2e2ad6431e69c367fe676f8fa8ae1f2430397f4c1de2167208f2",
-        "packages/coding-agent/src/modes/rpc/preflight.ts": "1126c69e1d4a812f0a8937aaffd1ff9b5c48ba12bca3b974bfda8d7d67786fbc",
-        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "08be7d623f0067790f74d6de22bc8944e36e31a31a767897d8d1a86eaddfbb6a",
-        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "acf66aaef0d9ce4dd302f92d7a19612adb2cdcfec610f64e723a28c60afc70b2",
-        "packages/coding-agent/src/modes/rpc/wire/index.ts": "183537936cd3dd7cdfb99db36ba4dbed69d16624a5e4a59f85e7b96834f2203c",
-        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "426592c94b9baaf0b6c661c0153457e812f20cd1a1cdac415e2f0ebd663235fb",
+        "packages/coding-agent/src/modes/rpc/preflight.ts": "c3bb227a281940819c8716ecb685e41c43545afb899ad86ca57e69dcc17c9a63",
+        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "886435f793f44a456d89fd97ef1040ad20c5bbf31fef6faff9cd2f046bc31940",
+        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "464f5c370b81a1b32735de8bc1888dfc531650be9cd41acfb62e2c670188f24f",
+        "packages/coding-agent/src/modes/rpc/wire/index.ts": "a80c42d2af076b8716236d4a1aac58d7d058124bc4ae33c08d4ead7e2f109900",
+        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "b48c96686d83c69217bccdab97e6be1c3280231d0a8e897c4f2b9b9a50167a54",
         "packages/coding-agent/src/modes/rpc/catalog-mode.ts": "965f643bca8e0791315ac01875f2ccdceab85f91739cfb5612b5da0285e328cc",
-        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "9ba3d3e2278f6abb5a59663ef502d26c44c8ed6d6b6dbb9449a9b9c38b6613ba",
+        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "e895e2594d466cf2fb71358d559863745e2ab1e933c37f7743d6c125e8a1dcaf",
         "packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts": "0e543aa8d3ef51f764c3b074df85b9d5fd1f020a38d9c5b3e81e6a2e8da1cac6",
         "packages/coding-agent/src/modes/rpc/rpc-interactions.ts": "2830f870e6232ac7a77ad5ee132e457b9ce89f6bd18c487001041b80fc7665cb",
-        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "f358a65dcbbc7a534b1fe6fada0ba5a84e59f3cb35e0c8eebeb4b57b2528cd22",
-        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "2e0e0c7f5d47897490b8201aa8b12cc451040f00ce4a1596067291a7629391a8",
+        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "77eac68adf38d7b47d6f9c0b125591d7f67b77d88849a75c9c64e752f3266d53",
+        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "af9242cb01bde0f38e356124bd277c11dc2f5b466cbea7875d22863cdd992ea2",
         "packages/coding-agent/src/modes/rpc/rpc-client.ts": "9bea4a14bd19bd3ea30211197665a47549d73b147f798171c631bd2976dc8625",
         "packages/coding-agent/src/modes/rpc/wire/interactions.ts": "c12cfa44bd14264993533e47febf623bf204b031bbfec5309defd9d607556bca",
         "packages/coding-agent/src/tools/ask.ts": "a0bb87f93be34eaca6d611fc7f43b9049ee72005e0ba4ed7c731e3933fc8b811",
         "packages/coding-agent/src/extensibility/extensions/types.ts": "bedda9045718b59606dc2ca0ec401f626159e83ad3ab7ffed08860ba6c4c54a8",
         "packages/coding-agent/docs/rpc-interactions.md": "c191ee6b76e5b3ceb38a1f58a8fbb5980966b8730cc8a5d7c6a497ff414db83d",
         "packages/coding-agent/test/rpc-extension-ui.test.ts": "dfda8bdc1446a6d50c33cad805f5099f7794d3530deb6138ff0e415adfdc4b24",
-        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "4127436c240f9a40ee4fb431d892a0586d1e976d9c75c5535a562ea54b78b58d",
+        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "b2d8b4412411c80bfcd3ed0d1884bbcf8fbfa794f965c10825b08697cdda47e6",
         "packages/coding-agent/src/modes/rpc/catalog-path.ts": "0a59b0762737dd93d2dcb4dcad48bdecd3bf7637e7f32a25126c82d128ceee93",
         "packages/coding-agent/src/modes/rpc/catalog-client.ts": "f0da4a0570cad95dbe3cc4d1b6a06e17737d1855b264591435befcaf91d9271b",
-        "packages/coding-agent/CHANGELOG.md": "ea0d0969a14f471726e70c92bd96d37d8a87cfa9b0c67125918f7209a86aaed1"
+        "packages/coding-agent/CHANGELOG.md": "735cc4991079aa9724007d21b279bd5ce6d1dcc8338049e8d3e1026f0d245234"
       },
       "artifacts": {
-        "cli.js": "978361a157f7d69728b909a8b7379a460c3cfdf7cd9ce64233a41c20dd931f3a",
-        "rpc-wire.schema.json": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
-        "chunk-z36g2nh0.js": "a418b5e340243d7e610af994a34c77ae1c02ca15d468512f3b20a4364c8372fd"
+        "cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+        "rpc-wire.schema.json": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+        "chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7",
+        "installation.json": "a2511780eb4d064f5deb88167864a7ad3bb72ba7149fbf9848346d61133f212f"
       }
     },
     "state": {
@@ -407,8 +999,8 @@
       "steeringMode": "one-at-a-time",
       "followUpMode": "one-at-a-time",
       "interruptMode": "immediate",
-      "sessionFile": "/tmp/omp-projection-native-it72aD/sessions/-tmp/2026-11-16T15-05-23-743Z_01a1e4e4-361f-754c-9432-311ba5dcb73f.jsonl",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+      "sessionFile": "/tmp/omp-projection-native-KXl9vA/sessions/-tmp/2026-11-16T17-05-37-294Z_01a1e552-480e-722f-b5ae-60dc0818f2dc.jsonl",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
       "autoCompactionEnabled": false,
       "queuedMessageCount": 0,
       "hasPendingAsyncWork": false,
@@ -457,38 +1049,43 @@
     }
   },
   "afterRewind": {
-    "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+    "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
     "projection": {
-      "source": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-      "generation": "bb8c5c7a-a0a3-4748-8c7a-9ecfa197d924"
+      "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+      "generation": "ac33f183-c56b-4e1f-899e-d807c2657f8e"
     },
     "cut": {
       "durability": "not_attested",
       "sourceBindingStatus": "worker",
-      "sourceId": "5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
-      "workerId": "65343d6f-fe67-4bce-8cc3-1752562066f4",
-      "contextId": "9b29dfb64218ed11fe9719a3d1d1db18724a164e3fd4bd2160d923acdc00dbf8",
-      "contentRevision": "1f39e102fcba013bf658f372211ad5985b63f91548a9d4674bb84c73fa4a661c",
+      "sourceId": "452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "workerId": "e6031058-a2f6-49cb-9da5-4bc6f31101d4",
+      "contextId": "27f445ac85d9692140791416debb00447940064a43f0fe1e0ab5bcf7586acf7d",
+      "contentRevision": "61e737e4acaa35c73c641e0728f0f6d7a62c498e7b67fd36b84c9bba5bdf5442",
       "nativeRevision": 16,
-      "retainedRevision": "0fde72c0f7b120cb3b3d16263a9f33df4e8a6725219dda0c16178824fbe4f039",
-      "leafId": "ffc56453",
-      "observationSeq": 79
+      "retainedRevision": "48b9c05712680e6536eb231b762185d8320e470aa5203c3f6475f674d931f622",
+      "leafId": "1e8ca754",
+      "observationSeq": 81
     },
+    "historyFault": {
+      "held": false,
+      "waiting": 0
+    },
+    "rebuilding": false,
     "interaction": {
       "stage": "S0-isolated-interactions",
       "sessionAdmission": "blocked",
-      "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+      "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
       "policyVerified": true,
       "pending": [],
       "outcomes": [
         {
-          "id": "15d086b8932709d9",
+          "id": "15d0a22251c3285c",
           "status": "answered",
           "reason": "explicit-native-acknowledgement"
         },
         {
-          "id": "15d086bb81a709da",
+          "id": "15d0a2281103285d",
           "status": "answered",
           "reason": "explicit-native-acknowledgement"
         }
@@ -496,22 +1093,22 @@
     },
     "process": {
       "type": "extension_ui_request",
-      "id": "15d0866385e709d5",
+      "id": "15d0a1e795c32858",
       "method": "notify",
-      "message": "{\"kind\":\"projection-native-process\",\"pid\":295522}"
+      "message": "{\"kind\":\"projection-native-process\",\"pid\":376003}"
     },
     "compatibility": {
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
     },
     "preflight": {
       "candidate": "omp-webui-s0",
       "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-      "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-      "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
+      "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+      "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
       "safePreflight": true,
       "sessionAdmission": "blocked",
       "capabilities": [
@@ -525,6 +1122,27 @@
         "toolExpiry": "cancel",
         "invalidAnswer": "pending"
       },
+      "rpcUiStrictStartupPolicy": {
+        "version": "strict-start-v1",
+        "status": "prototype",
+        "platforms": [
+          "linux"
+        ],
+        "ownership": "native-exclusive-lease",
+        "selectedInstance": "anchored-carrier",
+        "publication": "native-generation-v1",
+        "carrierFormat": "ompgen1",
+        "xattrs": "required-fd-user-xattr",
+        "durability": "process-crash-only",
+        "rollback": "flatten-export-required",
+        "maxLogicalBytes": 134217728,
+        "maxCarrierBytes": 268435456,
+        "maxRetainedBytes": 536870912,
+        "maxGenerations": 64,
+        "catalogCarrierPrefixBytes": 16384,
+        "catalogControlBytes": 6144,
+        "catalogGenerationPrefixBytes": 16384
+      },
       "runtime": {
         "name": "bun",
         "version": "1.4.4",
@@ -533,61 +1151,90 @@
       }
     },
     "closure": {
-      "source": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp",
-      "candidate": "/workspace/work/omp-webui-ticket-35-review-fix/vendor/omp-candidate",
-      "tree": "5b4a12bfad7c8b84aa9b9ce49aa3b7b38baa8722",
+      "source": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp",
+      "candidate": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/omp-candidate",
+      "tree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
       "build": {
         "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-        "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
-        "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
-        "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+        "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+        "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+        "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
       },
-      "generatedSourceSchema": "53372679b8e14b3da4e11fdccb2e1a1946789b5e22ad91eff6a4169078e13bf0",
+      "generatedSourceSchema": "9ac9b3c3dd78017124277d54d8eb288272c1bc5e3efb18c1d9a14dc53803e3f0",
       "authoredFiles": {
+        "packages/coding-agent/src/session/session-lease.ts": "def0a83a9c0e137a9bc95535d03130ce6d9a32098500f903a19329f403b26cac",
         "packages/coding-agent/src/session/history-context.ts": "af94fbf90d9055326b2d35844a9d8875c006eb55dace38bbb9b9b358b837bf80",
-        "packages/coding-agent/src/session/session-manager.ts": "0efa0de548b9c0b7b7c5ab26d8474a476d88d973dbe12efe2cc092f1e4a5bb42",
-        "packages/coding-agent/src/session/agent-session.ts": "1388569f353c4da9453749744625999a2713dab0eaf9db4dbd90e527186bbb26",
         "packages/coding-agent/src/session/live-message-observation.ts": "9061c8c487d35bbb29436fe8499437a983d38da62859aeff0aeb931dcee4916e",
         "packages/coding-agent/src/modes/rpc/rpc-session-events.ts": "1a324be4f45daee43b2fbda613d28b947f7d5ecb0747dbbc547acf5e0963c873",
         "packages/coding-agent/docs/rpc-live-observation.md": "28511224151de3c4b369dedd6e67d7252f0842b8d1e43430af374f8fde775e89",
         "packages/coding-agent/README.md": "a5986e4188e13e82d01e07e90ca3c5baba102e11110d968201d9e02c371852bb",
+        "packages/coding-agent/src/session/agent-session.ts": "176854b14132d1692d6b52b319ca7bcf16eb9b9a7e31649e0dfc755cc0825e7d",
+        "packages/coding-agent/src/session/session-artifact-copy.ts": "91769c17b250f2a59cb7c1de5c7a445e8e34f099a2a34afa8125a0f43b0cc8f2",
+        "packages/coding-agent/src/utils/file-new-publication.ts": "a5f97187937433a477974231737dca931b58f959e6d9ed3707e4afd907cbcbf7",
+        "packages/coding-agent/src/debug/report-bundle.ts": "ca934182048f2f17c5d236afe1a193c133cfe3655ceaeb154fe6075a9c2258c5",
+        "packages/coding-agent/docs/rpc-strict-start.md": "b3e3807d5861bb8a847b59b47af85eb15e86e022a2c0d0108ababa1b95787cae",
+        "packages/coding-agent/src/modes/rpc/strict-start-policy.ts": "c086435dbce63b751d4b66e24a38b76eaddfd0b91570eb91ff97f3af4181c2a0",
+        "packages/coding-agent/src/activity/index.ts": "8b6129be7458ac12dd7e9ae5181369b70f3473dec171eeeaceb1efacc1adcd38",
+        "packages/coding-agent/src/memories/index.ts": "8b1907cebcba2f4b3a246ee324919e55d8be49b789de2d154e0d6f658c962b23",
+        "packages/coding-agent/src/modes/rpc/rpc-subagents.ts": "0862f94b741308d1dbb07a5939acdf7bf9b572e9786f6ac6b2f21ec21bd84240",
+        "packages/coding-agent/src/cli/gc-cli.ts": "a83c5731c2f77a48f84371ddd93bb1f1c8aa6567683ef1e1b39b2d81c09c5148",
+        "packages/coding-agent/src/cli/gc-strip.ts": "bfec47c012ce9e9562d395fa4ff6309e3c231e488289801d4f9d67084fd0932f",
+        "packages/coding-agent/src/session/session-header-id.ts": "aa28d924f26e9339c489b0911a71cbaeaaedf91dfaf08c86174588f402b14308",
+        "packages/coding-agent/src/session/session-transfer.ts": "afb801c22d7f4d0deaa6cc789b6c3598b7a32fabbf6553ed6e1547c0c0d6bbb4",
+        "packages/coding-agent/src/cli/render-cli.ts": "07609e726ad817f4331af5463119ea8156db48cf9947e0b5af1e25680fe0e3c2",
+        "packages/coding-agent/src/modes/rpc/strict-client.ts": "8d41e9d79f28ad2761c9df6dfe3344cd315f9efc7b0e0098e0b8b0b8fac49517",
+        "packages/coding-agent/src/session/session-drafts.ts": "b04f93cd6ca2a7d524e5eae13a609fba60a15051b5adfe2f63d9fe7b800c8cb7",
+        "packages/coding-agent/src/session/session-loader.ts": "a86809964fdc226b8c5f913415da4db0639acfd2e9454ac5b8c2388416ad46b7",
+        "packages/coding-agent/src/session/generation-storage-factory.ts": "f376fdfdf38245995e5bd27b650b97be2f9408574789ba5eceea72185dae8a8f",
+        "packages/coding-agent/src/utils/file-xattr.ts": "150683ad0db1ee5dd9e836516ff59616e22ad63b4acdd67d42b4dee486f9e40e",
+        "packages/coding-agent/src/session/session-generation.ts": "4204ba89576f7c9ca36112d04cd84a40822be0c8727487a72d1c6ae14dc017b5",
+        "packages/coding-agent/src/main.ts": "69ab19b1aab4a6ab7c4b87ac2fe4a4458fce937d1e7093c776c20855b1679d21",
+        "packages/coding-agent/src/session/session-storage.ts": "e0768fc60bad67ae5f4aebc86df5bac1b9e2addbfbdc92b5e45208dda213dd4d",
+        "packages/coding-agent/src/session/strict-session-storage.ts": "04a57706c30a719c317811eb07839f397e6a9e904fb8e94967aeb40ae1525dd4",
+        "packages/coding-agent/src/modes/rpc/wire/strict-start.ts": "b1147edd1565d51d5e024478fa71131f3d1e059738f251794f70a3d553a1ede9",
+        "packages/coding-agent/src/modes/rpc/strict-mode.ts": "9d8e068afa9a30b0d90576c25e4682ff22032ee0b286f7b444644461d6be69ed",
+        "packages/coding-agent/src/modes/rpc/strict-reservation.ts": "3d2e67e9540b31eb4e6ba31cb9f51c7779623c229750483ded55a0bd6152eb87",
+        "packages/coding-agent/src/modes/rpc/strict-context.ts": "e8e4f30390f59cd3539915b34360ba16caceadcee4530d1676ed682dbfcbac1a",
+        "packages/coding-agent/src/modes/rpc/strict-input.ts": "6bf5446940700ecbb6b6eab5e4d9360f1b42f7361decd0e1edfec18a052e9abe",
+        "packages/coding-agent/src/session/session-manager.ts": "893aca051170756c8b8e9c0b6b9bc36abf83eb52e4ac196f439d8790402e7661",
         "packages/coding-agent/src/modes/rpc/history-client.ts": "c78d5c2d8296da01bedb5f8064789e521c9bf0a5f5ad937c0e164109fa17ea24",
         "packages/coding-agent/src/modes/rpc/rpc-history.ts": "277c672bcc75513eecc6ad2c2e9213fa06bfd661e0516bd1fb47d44c9a65796e",
         "packages/coding-agent/src/modes/rpc/wire/history.ts": "e33a4512ed05191644540be7fc1c51443cd922825fbc4fd25ec6426b7b99bc82",
-        "packages/coding-agent/src/cli.ts": "8f41d88268c4de5e4add664e835e4c2560f5466f717eee8fd5670d92d9b8ac0d",
+        "packages/coding-agent/src/cli.ts": "b0ba16e58974cd80ea87675841be0fa85e745dcdd0822225779258030ff3c8b0",
         "packages/coding-agent/src/cli-runtime.ts": "2cf125f0a7de2e2ad6431e69c367fe676f8fa8ae1f2430397f4c1de2167208f2",
-        "packages/coding-agent/src/modes/rpc/preflight.ts": "1126c69e1d4a812f0a8937aaffd1ff9b5c48ba12bca3b974bfda8d7d67786fbc",
-        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "08be7d623f0067790f74d6de22bc8944e36e31a31a767897d8d1a86eaddfbb6a",
-        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "acf66aaef0d9ce4dd302f92d7a19612adb2cdcfec610f64e723a28c60afc70b2",
-        "packages/coding-agent/src/modes/rpc/wire/index.ts": "183537936cd3dd7cdfb99db36ba4dbed69d16624a5e4a59f85e7b96834f2203c",
-        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "426592c94b9baaf0b6c661c0153457e812f20cd1a1cdac415e2f0ebd663235fb",
+        "packages/coding-agent/src/modes/rpc/preflight.ts": "c3bb227a281940819c8716ecb685e41c43545afb899ad86ca57e69dcc17c9a63",
+        "packages/coding-agent/src/modes/rpc/wire/commands.ts": "886435f793f44a456d89fd97ef1040ad20c5bbf31fef6faff9cd2f046bc31940",
+        "packages/coding-agent/src/modes/rpc/wire/frames.ts": "464f5c370b81a1b32735de8bc1888dfc531650be9cd41acfb62e2c670188f24f",
+        "packages/coding-agent/src/modes/rpc/wire/index.ts": "a80c42d2af076b8716236d4a1aac58d7d058124bc4ae33c08d4ead7e2f109900",
+        "packages/coding-agent/src/modes/rpc/wire/catalog.ts": "b48c96686d83c69217bccdab97e6be1c3280231d0a8e897c4f2b9b9a50167a54",
         "packages/coding-agent/src/modes/rpc/catalog-mode.ts": "965f643bca8e0791315ac01875f2ccdceab85f91739cfb5612b5da0285e328cc",
-        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "9ba3d3e2278f6abb5a59663ef502d26c44c8ed6d6b6dbb9449a9b9c38b6613ba",
+        "packages/coding-agent/src/modes/rpc/catalog-native.ts": "e895e2594d466cf2fb71358d559863745e2ab1e933c37f7743d6c125e8a1dcaf",
         "packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts": "0e543aa8d3ef51f764c3b074df85b9d5fd1f020a38d9c5b3e81e6a2e8da1cac6",
         "packages/coding-agent/src/modes/rpc/rpc-interactions.ts": "2830f870e6232ac7a77ad5ee132e457b9ce89f6bd18c487001041b80fc7665cb",
-        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "f358a65dcbbc7a534b1fe6fada0ba5a84e59f3cb35e0c8eebeb4b57b2528cd22",
-        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "2e0e0c7f5d47897490b8201aa8b12cc451040f00ce4a1596067291a7629391a8",
+        "packages/coding-agent/src/modes/rpc/rpc-mode.ts": "77eac68adf38d7b47d6f9c0b125591d7f67b77d88849a75c9c64e752f3266d53",
+        "packages/coding-agent/src/modes/rpc/rpc-types.ts": "af9242cb01bde0f38e356124bd277c11dc2f5b466cbea7875d22863cdd992ea2",
         "packages/coding-agent/src/modes/rpc/rpc-client.ts": "9bea4a14bd19bd3ea30211197665a47549d73b147f798171c631bd2976dc8625",
         "packages/coding-agent/src/modes/rpc/wire/interactions.ts": "c12cfa44bd14264993533e47febf623bf204b031bbfec5309defd9d607556bca",
         "packages/coding-agent/src/tools/ask.ts": "a0bb87f93be34eaca6d611fc7f43b9049ee72005e0ba4ed7c731e3933fc8b811",
         "packages/coding-agent/src/extensibility/extensions/types.ts": "bedda9045718b59606dc2ca0ec401f626159e83ad3ab7ffed08860ba6c4c54a8",
         "packages/coding-agent/docs/rpc-interactions.md": "c191ee6b76e5b3ceb38a1f58a8fbb5980966b8730cc8a5d7c6a497ff414db83d",
         "packages/coding-agent/test/rpc-extension-ui.test.ts": "dfda8bdc1446a6d50c33cad805f5099f7794d3530deb6138ff0e415adfdc4b24",
-        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "4127436c240f9a40ee4fb431d892a0586d1e976d9c75c5535a562ea54b78b58d",
+        "packages/coding-agent/src/modes/rpc/catalog-metadata.ts": "b2d8b4412411c80bfcd3ed0d1884bbcf8fbfa794f965c10825b08697cdda47e6",
         "packages/coding-agent/src/modes/rpc/catalog-path.ts": "0a59b0762737dd93d2dcb4dcad48bdecd3bf7637e7f32a25126c82d128ceee93",
         "packages/coding-agent/src/modes/rpc/catalog-client.ts": "f0da4a0570cad95dbe3cc4d1b6a06e17737d1855b264591435befcaf91d9271b",
-        "packages/coding-agent/CHANGELOG.md": "ea0d0969a14f471726e70c92bd96d37d8a87cfa9b0c67125918f7209a86aaed1"
+        "packages/coding-agent/CHANGELOG.md": "735cc4991079aa9724007d21b279bd5ce6d1dcc8338049e8d3e1026f0d245234"
       },
       "artifacts": {
-        "cli.js": "978361a157f7d69728b909a8b7379a460c3cfdf7cd9ce64233a41c20dd931f3a",
-        "rpc-wire.schema.json": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
-        "chunk-z36g2nh0.js": "a418b5e340243d7e610af994a34c77ae1c02ca15d468512f3b20a4364c8372fd"
+        "cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+        "rpc-wire.schema.json": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+        "chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7",
+        "installation.json": "a2511780eb4d064f5deb88167864a7ad3bb72ba7149fbf9848346d61133f212f"
       }
     },
     "state": {
       "model": {
-        "id": "second",
-        "name": "Literal projection fixture second",
+        "id": "first",
+        "name": "Literal projection fixture first",
         "api": "s0-projection",
         "provider": "s0-projection",
         "baseUrl": "https://forbidden.invalid",
@@ -614,8 +1261,8 @@
       "steeringMode": "one-at-a-time",
       "followUpMode": "one-at-a-time",
       "interruptMode": "immediate",
-      "sessionFile": "/tmp/omp-projection-native-it72aD/sessions/-tmp/2026-11-16T15-05-23-743Z_01a1e4e4-361f-754c-9432-311ba5dcb73f.jsonl",
-      "sessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+      "sessionFile": "/tmp/omp-projection-native-KXl9vA/sessions/-tmp/2026-11-16T17-05-37-294Z_01a1e552-480e-722f-b5ae-60dc0818f2dc.jsonl",
+      "sessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
       "autoCompactionEnabled": false,
       "queuedMessageCount": 0,
       "hasPendingAsyncWork": false,
@@ -634,7 +1281,7 @@
       "messageCount": 0,
       "systemPrompt": [
         "You are omp's trusted coding assistant.\n\n# Engineering\n- Correctness, then six-month maintainability. Delete dead weight; prefer boring design to needless abstraction.\n- Compiled code: NEVER avoidable allocation, copying, computation.\n- Unexpected repo changes are the user's; adapt. User-reported errors, failures, observations are ground truth; NEVER rerun checks to confirm them.\n- Final chat MAY use LaTeX math (`$`, `$$`) and color (\\textcolor, \\colorbox, \\fcolorbox).\n- MAY react to the user when chatting: start reply with emoji.\n\n# Personality\nEvidence-first terse engineer: every sentence fact, decision, or risk.\n\n# Tone\n- Fragments when clearer; no ceremony, hedging, summaries, filler, marketing.\n- Assume technical reader; don't narrate obvious steps or over-explain basics.\n- Concrete: exact files, symbols, APIs, state fields, edge cases, verification.\n- Uncertainty: state at claim; name tradeoff; choose boring/safe option.\n- Code: invariants, risks, verification.\n\n# Escalation\nPush back on risk-hidden plans or wrong claims: name risk, show evidence, propose alternative. If overruled, execute user's call; don't relitigate.\n\n\u2042 Runtime\n# Internal URLs\nMost FS/bash tools resolve these; path selectors: `read` docs.\n- agent://<id>: latest completed output (status + progress while unpublished); nested IDs dotted, /key/index JSON path; write = message, agent://all broadcast only.\n- history://<id>: read-only concise transcript (tool calls/results summarized); bare lists registered and retained on-disk agents, not persisted unregistered top-level sessions.\n- artifact://<id>: spilled output; page :N-M or :raw:N-M.\n- local://<name>.md: shared artifact.\n- proc://: jobs, agents, and services; proc://<id> status/output; proc://<id>/kill with empty `content` cancels/stops jobs, agents, and services; proc://<id>/streams: a bash job's pipes so far (live under `| tail`/`| grep`; never rerun to see it); parked agents/missing job \u2260 lost: check agent://<id>, history://<id>.\n- ssh://host/<path>: remote UTF-8 file/dir for read/write/grep; bare lists hosts.\n- issue://<N> / pr://<N> (<owner>/<repo>/<N> for other repos): GitHub issue/PR; bare: recent; pr://<N>/diff: changed files.\n- mcp://<uri>: MCP resource.\n- omp://: harness docs, AVOID unless asked.\n\n- proc://<id>/streams lists a bash job's pipes, proc://<id>/streams/<n> reads what crossed pipe n so far. Write sends stdin to services only (empty = Enter); proc://<id>/mode: persist|session|detached (services only); start long-lived work as a named service when it needs stdin or lifetime controls. Completed jobs evicted (process-local).\n- ssh://host/<path>: max 1 MiB. /~/path and /~ use the connected remote account's HOME, not local HOME; /~user is unsupported, /%7E/ is literal. Encode : ? # as %3A %3F %23. Needs verified POSIX shell; else bash remote SSH or sshfs.\n- issue:// / pr:// bare listing takes ?state=&limit=&author=&label=. PR diff: pr://<N>/diff (files), /diff/<i>, /diff/all. ?at=<generation> pins that cached snapshot.\n\n# Tool Inventory\nask\n\u2042 Tool Policy\n# General\nEvery turn costs seconds: batch all independent reads/searches/checks into one turn. Once the change is verified, stop and report; no extra audits, broad suites, or repo-wide checks unless asked. SHOULD resolve prerequisites, parallelize independent calls. Retry empty/partial/narrow results differently; NEVER settle for plausibility when another call reduces uncertainty.\n\n# Tool I/O\n- Prefer relative paths.\n- Most tools take `i`: capitalized 2\u20136-word present-participle intent (e.g. \"Reading model role settings\").\n\n- XML tags inject system content; may interrupt/notify inside user messages: MUST treat as system-authored/authoritative. User content is sanitized.\n# Specialized Tools\n# Exploration\nNEVER open guessed files.\n\u2042 Workflow\n# 1. Before Editing\n- Reuse existing patterns; NEVER add a second convention.\n- Tool failed or file changed underneath? Re-read first.\n- Ask before destructive commands or deleting unrelated code you didn't write; code your change makes obsolete is in scope.\n\n# 2. Verify\nRun the narrowest check that exercises the change, once. Investigation: the output is the proof; no tests.\n- UI: verify the actual surface.\n  - TUI/CLI: launch the program; observe output/state.\n  - No runtime for changed surface: throwaway script; report visual limit.\n- Bug: a failing test or user report is the repro; add a regression test only when no existing test covers the path.\n- Feature: prove via throwaway script; new tests ONLY for uncertain edges or on request.\n- New tests MUST catch plausible consumer-visible bugs; deterministic, isolated, full-suite-safe. NEVER test wiring, echoes, source text, incidental defaults, tautologies, bare not-throw, length-grew.\n- Tests your change breaks: update contract tests; delete wording/implementation ones regardless of author, NEVER re-pin.\n\n# 3. Cleanup\nAfter smoke proof: permanent fix/feature: update docs/changelog; delete throwaway scripts.\n\n\u2042 Delivery\n- NEVER fabricate output; unobserved claims = `[INFERENCE]`; report only verification you ran.\n- Solve the real ask: no extra scope (retries, validation, abstraction \"while you're at it\"), no symptom fixes (suppressed errors, special-cased input).\n- Clean cutover: migrate every caller; remove obsolete code, comments, aliases, re-exports; no shims.\n- Done = every requested behavior, end to end. NEVER stubs, placeholders, mocks, no-ops, fake fallbacks, `TODO`s, \"follow-up\"/\"MVP\" deferrals, narrowed tests, or silently narrowed scope; shrink only with explicit user approval.\n- Blocked only when tools can't reach the info; a failed check is not a blocker. Finish reachable work, then state what's missing and what you tried. NEVER ask for info tools can find.\n- Match the requested output format.\n\n\u2042 Critical\n<critical>\n- NEVER yield while actionable work remains; a finished phase or todo is not a stop.\n- NEVER narrate or weigh session limits, token budgets, or effort estimates.\n- NEVER re-audit applied edits or run git to validate them; tool results are verification.\n</critical>",
-        "<project-context>\n<workstation>\n- OS: linux 6.18.57\n- Arch: x64\n- Model: s0-projection/second\n</workstation>\n</project-context>\n\n<critical>\n- Each response MUST advance the task; completion only stopping condition.\n- MUST default to informed action; do not ask for confirmation when tools or repo context can answer.\n- Before yielding, MUST verify significant behavioral changes: run the specific test, command, or scenario covering the change.\n</critical>"
+        "<project-context>\n<workstation>\n- OS: linux 6.18.57\n- Arch: x64\n- Model: s0-projection/first\n</workstation>\n</project-context>\n\n<critical>\n- Each response MUST advance the task; completion only stopping condition.\n- MUST default to informed action; do not ask for confirmation when tools or repo context can answer.\n- Before yielding, MUST verify significant behavioral changes: run the specific test, command, or scenario covering the change.\n</critical>"
       ],
       "dumpTools": [
         {
@@ -666,23 +1313,23 @@
   "states": [
     {
       "ready": true,
-      "id": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+      "id": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
       "projection": {
         "phase": "ready",
         "binding": {
-          "source": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-          "generation": "bb8c5c7a-a0a3-4748-8c7a-9ecfa197d924"
+          "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "generation": "ac33f183-c56b-4e1f-899e-d807c2657f8e"
         },
         "aborted": false
       },
       "semantic": {
         "scope": {
-          "tabOwner": "a0d03c58-2a25-47ce-8012-2fdab9afbc2c",
+          "tabOwner": "e63e35b2-26e7-45dd-972e-a52d3048f566",
           "hostContext": "persistent-projection-fixture",
-          "sourceContext": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-          "nativeSessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
-          "projectionGeneration": "bb8c5c7a-a0a3-4748-8c7a-9ecfa197d924",
-          "storageKey": "[\"persistent-projection-fixture\",\"[\\\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\\\",\\\"01a1e4e4-361f-754c-9432-311ba5dcb73f\\\"]\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]"
+          "sourceContext": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "nativeSessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+          "projectionGeneration": "ac33f183-c56b-4e1f-899e-d807c2657f8e",
+          "storageKey": "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]"
         },
         "revision": 6,
         "phase": "plain",
@@ -710,21 +1357,21 @@
         "readiness": [
           {
             "status": "ready",
-            "attachmentId": "9002dfc6-73f7-4ac7-a9f2-f1ed4d1e3c0e"
+            "attachmentId": "6d81bda9-be62-40f5-8ae0-d168f08f8199"
           },
           {
             "status": "ready",
-            "attachmentId": "83f4ae56-ddfd-4b02-9fdd-156bd1c0f242"
+            "attachmentId": "094a4608-9c30-401e-8534-96e58506d87b"
           },
           {
             "status": "ready",
-            "attachmentId": "d770f9df-7a04-4262-bd39-84f09a09d01d"
+            "attachmentId": "8849e562-c87d-441f-b09b-3fc25e2732ea"
           }
         ]
       },
       "saved": {
         "records": {
-          "[\"persistent-projection-fixture\",\"[\\\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\\\",\\\"01a1e4e4-361f-754c-9432-311ba5dcb73f\\\"]\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]": {
+          "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]": {
             "record": {
               "draft": {
                 "text": "Native tab A draft",
@@ -748,10 +1395,10 @@
                 }
               ]
             },
-            "editedAt": 1794841610506
+            "editedAt": 1794848796251
           }
         },
-        "owner": "a0d03c58-2a25-47ce-8012-2fdab9afbc2c"
+        "owner": "e63e35b2-26e7-45dd-972e-a52d3048f566"
       },
       "bindingStable": true,
       "scopeStable": true,
@@ -781,17 +1428,17 @@
       "nativeInteraction": {
         "stage": "S0-isolated-interactions",
         "sessionAdmission": "blocked",
-        "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+        "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
         "policyVerified": true,
         "pending": [],
         "outcomes": [
           {
-            "id": "15d086b8932709d9",
+            "id": "15d0a22251c3285c",
             "status": "answered",
             "reason": "explicit-native-acknowledgement"
           },
           {
-            "id": "15d086bb81a709da",
+            "id": "15d0a2281103285d",
             "status": "answered",
             "reason": "explicit-native-acknowledgement"
           }
@@ -803,23 +1450,23 @@
     },
     {
       "ready": true,
-      "id": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
+      "id": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
       "projection": {
         "phase": "ready",
         "binding": {
-          "source": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-          "generation": "bb8c5c7a-a0a3-4748-8c7a-9ecfa197d924"
+          "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "generation": "ac33f183-c56b-4e1f-899e-d807c2657f8e"
         },
         "aborted": false
       },
       "semantic": {
         "scope": {
-          "tabOwner": "1336bc80-9a5a-4c31-825c-14c20c055ed4",
+          "tabOwner": "b1c0a0ce-37c7-4f48-8636-d761a08d7737",
           "hostContext": "persistent-projection-fixture",
-          "sourceContext": "[\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]",
-          "nativeSessionId": "01a1e4e4-361f-754c-9432-311ba5dcb73f",
-          "projectionGeneration": "bb8c5c7a-a0a3-4748-8c7a-9ecfa197d924",
-          "storageKey": "[\"persistent-projection-fixture\",\"[\\\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\\\",\\\"01a1e4e4-361f-754c-9432-311ba5dcb73f\\\"]\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]"
+          "sourceContext": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "nativeSessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+          "projectionGeneration": "ac33f183-c56b-4e1f-899e-d807c2657f8e",
+          "storageKey": "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]"
         },
         "revision": 6,
         "phase": "plain",
@@ -847,21 +1494,21 @@
         "readiness": [
           {
             "status": "ready",
-            "attachmentId": "8720fd30-2403-4243-ba0f-6f0b7daa75aa"
+            "attachmentId": "79d3d77b-700d-47f6-b580-02fdb958e413"
           },
           {
             "status": "ready",
-            "attachmentId": "faac80d9-86dc-4f01-91c6-d48b39adc537"
+            "attachmentId": "31ee7792-c289-4ab4-80f3-6bc2dc77c0d1"
           },
           {
             "status": "ready",
-            "attachmentId": "e41f608b-948f-49a3-bf49-a83bb02cab9e"
+            "attachmentId": "ee79eea0-5098-417a-b717-e8bd6b43251a"
           }
         ]
       },
       "saved": {
         "records": {
-          "[\"persistent-projection-fixture\",\"[\\\"5d0867ff2de923fc0001de6cc5dc62d31a725ada307dc5baaef554823bb8c65c\\\",\\\"01a1e4e4-361f-754c-9432-311ba5dcb73f\\\"]\",\"01a1e4e4-361f-754c-9432-311ba5dcb73f\"]": {
+          "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]": {
             "record": {
               "draft": {
                 "text": "Native tab B draft",
@@ -885,10 +1532,10 @@
                 }
               ]
             },
-            "editedAt": 1794841610781
+            "editedAt": 1794848796455
           }
         },
-        "owner": "1336bc80-9a5a-4c31-825c-14c20c055ed4"
+        "owner": "b1c0a0ce-37c7-4f48-8636-d761a08d7737"
       },
       "bindingStable": true,
       "scopeStable": true,
@@ -918,24 +1565,116 @@
       "nativeInteraction": {
         "stage": "S0-isolated-interactions",
         "sessionAdmission": "blocked",
-        "generation": "b1624c69-67db-4f16-b147-792305fa741a",
+        "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
         "policyVerified": true,
         "pending": [],
         "outcomes": [
           {
-            "id": "15d086b8932709d9",
+            "id": "15d0a22251c3285c",
             "status": "answered",
             "reason": "explicit-native-acknowledgement"
           },
           {
-            "id": "15d086bb81a709da",
+            "id": "15d0a2281103285d",
             "status": "answered",
             "reason": "explicit-native-acknowledgement"
           }
         ]
       },
       "result": {
-        "status": "applied"
+        "status": "done"
+      }
+    },
+    {
+      "ready": true,
+      "id": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+      "projection": {
+        "phase": "ready",
+        "binding": {
+          "source": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "generation": "ac33f183-c56b-4e1f-899e-d807c2657f8e"
+        },
+        "aborted": false
+      },
+      "semantic": {
+        "scope": {
+          "tabOwner": "6385f3b9-dacd-4475-9d82-469530dde73a",
+          "hostContext": "persistent-projection-fixture",
+          "sourceContext": "[\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]",
+          "nativeSessionId": "01a1e552-480e-722f-b5ae-60dc0818f2dc",
+          "projectionGeneration": "ac33f183-c56b-4e1f-899e-d807c2657f8e",
+          "storageKey": "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]"
+        },
+        "revision": 0,
+        "phase": "plain",
+        "draft": {
+          "text": "",
+          "references": []
+        },
+        "originals": [],
+        "readiness": []
+      },
+      "saved": {
+        "records": {
+          "[\"persistent-projection-fixture\",\"[\\\"452fc01b420a33f268f24b9385f9b3122e7fe26cfdd6cc0029c2f98868162702\\\",\\\"01a1e552-480e-722f-b5ae-60dc0818f2dc\\\"]\",\"01a1e552-480e-722f-b5ae-60dc0818f2dc\"]": {
+            "record": {
+              "draft": {
+                "text": "",
+                "references": []
+              },
+              "originals": []
+            },
+            "editedAt": null
+          }
+        },
+        "owner": "6385f3b9-dacd-4475-9d82-469530dde73a"
+      },
+      "bindingStable": true,
+      "scopeStable": true,
+      "retains": {
+        "referenceCount": 3,
+        "retainedBy": {
+          "controllerOperation": 1,
+          "mainView": 1,
+          "sidebarView": 1
+        }
+      },
+      "pending": null,
+      "journal": [
+        {
+          "type": "omp/native-record",
+          "seq": 0
+        },
+        {
+          "type": "omp/native-record",
+          "seq": 1
+        },
+        {
+          "type": "omp/native-record",
+          "seq": 2
+        }
+      ],
+      "nativeInteraction": {
+        "stage": "S0-isolated-interactions",
+        "sessionAdmission": "blocked",
+        "generation": "3847824f-0aed-4eaf-a9c0-50d9dc25a5ac",
+        "policyVerified": true,
+        "pending": [],
+        "outcomes": [
+          {
+            "id": "15d0a22251c3285c",
+            "status": "answered",
+            "reason": "explicit-native-acknowledgement"
+          },
+          {
+            "id": "15d0a2281103285d",
+            "status": "answered",
+            "reason": "explicit-native-acknowledgement"
+          }
+        ]
+      },
+      "result": {
+        "status": "done"
       }
     }
   ],

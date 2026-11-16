@@ -40,7 +40,7 @@ index 3c2d2f31..e045e222 100644
  
  | 概念 | Owner 与用途 |
 diff --git a/docs/subsystems/web-client.i18n.yaml b/docs/subsystems/web-client.i18n.yaml
-index f2bc60cb..1aed3bb6 100644
+index f2bc60cb..b0ef37f7 100644
 --- a/docs/subsystems/web-client.i18n.yaml
 +++ b/docs/subsystems/web-client.i18n.yaml
 @@ -18,8 +18,8 @@
@@ -54,8 +54,19 @@ index f2bc60cb..1aed3bb6 100644
  /web-client-architecture/client-models/workspaces:
    en: c063711f8247c240
    zh: 5e54758bbaf1670c
+@@ -30,8 +30,8 @@
+   en: a254278432416473
+   zh: 567c2d3c6a20b304
+ /web-client-architecture/reconnection:
+-  en: 478f461e261b1ca5
+-  zh: 626791d04656faee
++  en: e69e50b4946bee13
++  zh: 2e76192c174d2232
+ /web-client-architecture/package-boundaries:
+   en: 3e64e8c28f0c4cb1
+   zh: 47aa81c2ace5ba89
 diff --git a/docs/subsystems/web-client.md b/docs/subsystems/web-client.md
-index cdcfb55f..ae8d910e 100644
+index cdcfb55f..ed8606b3 100644
 --- a/docs/subsystems/web-client.md
 +++ b/docs/subsystems/web-client.md
 @@ -39,6 +39,8 @@ Each API controller package owns a paired Host and Client face. The Host side ow
@@ -67,8 +78,17 @@ index cdcfb55f..ae8d910e 100644
  [`api/session-controller`](../../packages/api/session-controller/README.md) exposes Host commands for list, search, creation, prompt, queue, cancellation, pagination, and follow/control streams. Its Client side is organized as `ClientSessions → SessionManager → Session`:
  
  - `ClientSessions` provides `ctx.sessions`, owns references, source counts, Session scopes, and stable `SessionBinding` objects, and projects catalog state without selecting a global current Session.
+@@ -80,6 +82,8 @@ Web and desktop share the [Coding Tools preference](../../packages/client/ui-set
+ 
+ Physical and logical recovery are separate. Gateway mux restores the physical WebSocket; each `RemoteStream` reopens its own logical source when the Connection publishes a usable generation. A carrier failure is retryable, while a business error, malformed opening item, or protocol violation is terminal for the owning logical stream.
+ 
++With Session Controller's opt-in `projectionRebuild` policy, terminal control loss withdraws retained presentation. `SessionControlStream.recover()` recreates only the domain observer and accepts its complete control baseline; public `ISessions.retryProjection()` awaits that recovery before opening the presentation baseline. Concurrent retries join, retired callbacks are fenced, and released references cannot recreate a scope. The exact SessionReference, AgentContext, worker and pending Interaction remain owned. Defaults keep Gateway's terminal stream behavior.
++
+ Recovery follows the data's semantics:
+ 
+ - A durable Session journal validates logical sequence ranges and replaces its window from every generation's opening snapshot; `page()` supplies older history and repairs any later range gap.
 diff --git a/docs/subsystems/web-client.zh.md b/docs/subsystems/web-client.zh.md
-index d17e4820..fcc525e3 100644
+index d17e4820..8a3254c7 100644
 --- a/docs/subsystems/web-client.zh.md
 +++ b/docs/subsystems/web-client.zh.md
 @@ -39,6 +39,8 @@ Connection 拥有请求 URL 解析、request correlation、`/api` carrier、trus
@@ -80,8 +100,17 @@ index d17e4820..fcc525e3 100644
  [`api/session-controller`](../../packages/api/session-controller/README.zh.md)公开 Session list、search、creation、prompt、queue、cancellation、pagination 及 follow/control stream 等 Host command。其 Client 侧按 `ClientSessions → SessionManager → Session` 组织：
  
  - `ClientSessions` 提供 `ctx.sessions`，拥有 reference、source count、Session scope 与稳定的 `SessionBinding` object，并投影不含全局 current Session 选择的 catalog state。
+@@ -80,6 +82,8 @@ Web 和桌面端共享[代码工作工具偏好](../../packages/client/ui-settin
+ 
+ 物理恢复与逻辑恢复彼此独立。Gateway mux 恢复物理 WebSocket；Connection 发布可用 generation 后，每个 `RemoteStream` 分别重开自己的 logical source。Carrier failure 可以重试；business error、非法 opening item 或 protocol violation 会令所属 logical stream 终止。
+ 
++启用 Session Controller 的 `projectionRebuild` 策略时，控制流终止失联会撤回已保留的展示。`SessionControlStream.recover()` 只重建领域观察器并接收其完整控制基线；公开的 `ISessions.retryProjection()` 等待此恢复后才打开展示基线。并发重试共享恢复，已退休的回调被隔离，已释放的引用不能重建作用域。精确的 SessionReference、AgentContext、worker 与待处理 Interaction 保持其所有权。默认设置保留 Gateway 的流终止行为。
++
+ 恢复方式由数据语义决定：
+ 
+ - 持久 Session journal 校验逻辑 seq range，并根据每个 generation 的 opening snapshot 替换窗口；`page()` 提供更早历史并修复后续 range gap。
 diff --git a/packages/api/session-controller/README.i18n.yaml b/packages/api/session-controller/README.i18n.yaml
-index ef87103e..8fb8b68e 100644
+index ef87103e..790d31f1 100644
 --- a/packages/api/session-controller/README.i18n.yaml
 +++ b/packages/api/session-controller/README.i18n.yaml
 @@ -18,8 +18,8 @@
@@ -90,13 +119,13 @@ index ef87103e..8fb8b68e 100644
  /session-controller/client-references:
 -  en: e8979a803ec3e194
 -  zh: c567efcd971728ba
-+  en: 2040f1e638fad127
-+  zh: 581113d8d9f4da18
++  en: c785f1fe75deb5a3
++  zh: 6a6308411818db4f
  /session-controller/session-media-references:
    en: 954923654eebe2dc
    zh: 6bd9a7d2ea965aed
 diff --git a/packages/api/session-controller/README.md b/packages/api/session-controller/README.md
-index ec9c2d43..1aa27d0c 100644
+index ec9c2d43..080bb9da 100644
 --- a/packages/api/session-controller/README.md
 +++ b/packages/api/session-controller/README.md
 @@ -83,6 +83,10 @@ The controller composes `ArchivedSessionGate` through `ctx.plugin`: it loads onc
@@ -105,13 +134,13 @@ index ec9c2d43..1aa27d0c 100644
  
 +`@deepseek-ai/dsh-api-session-controller/projection` exposes the React-free `parseProjectionBinding`, `projectionSource`, and `projectionGeneration` decoders to providers; decoding validates opaque identity, while authenticated source authority remains the provider’s responsibility.
 +
-+Opt-in `projectionRebuild: true` separates disposable presentation from the exact retained execution binding. `binding.projection` reports rebuilding, ready, or failed with a generation cancellation signal. Typed control invalidation names the next branded source/generation; duplicate and retired invalidations are ignored. A fresh journal, complete projections, and mandatory assistant baseline commit at one cut. Every page and projection writer must carry that identity; stock providers reject scoped reads. Old rows withdraw immediately, failed baselines stay visibly failed, and `sessions.retryProjection(id)` retries only the last authority. Stop, Agent Contexts, pending Interactions, and independent retains keep their lifetimes. Staging allows 512 changed keys and 4 MiB of serialized values; 256 retired generations per Client lifetime prevent authority replay, then require a visible reload failure. Defaults retain stock reconnect and pagination behavior.
++Opt-in `projectionRebuild: true` separates disposable presentation from the exact retained execution binding. `binding.projection` reports rebuilding, ready, or failed with a generation cancellation signal. Typed control invalidation names the next branded source/generation; duplicate and retired invalidations are ignored. A fresh journal, complete projections, and mandatory assistant baseline commit at one cut. Every page and projection writer must carry that identity; stock providers reject scoped reads. Old rows withdraw immediately, failed baselines stay visibly failed, and `sessions.retryProjection(id)` retries only the last authority. A terminal control failure withdraws scoped presentation before cancellation callbacks; retry explicitly recreates the Session-owned observer, accepts its complete control baseline, then opens the presentation baseline. Concurrent retries share observer recovery; old callbacks cannot publish and final release cannot resurrect a scope. It does not use physical reconnect as projection reset or change Gateway stream semantics. Stop, Agent Contexts, pending Interactions, and independent retains keep their lifetimes. Staging allows 512 combined baseline/update entries and 4 MiB of UTF-8 JSON for `{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }`, including the complete baseline identity/cut, keys, sequences, wrappers and separators. These are serialized payload limits, not JavaScript heap limits; 256 retired generations per Client lifetime prevent authority replay, then require a visible reload failure. Defaults retain stock reconnect and pagination behavior.
 +
  `sessions.retain(target, { source, signal? })` immediately acquires one exact Client generation and starts its shared initial history opening. The target is a known Session id or a durable direct-parent subagent address; the Host validates an explicit address when history opens. The returned reference supports idempotent `release()` and `Symbol.dispose`; its `ready` Promise follows the shared `Session.open()` result and resolves to the exact binding when that attempt settles, including when a Remote failure is represented by `openState: 'error'`. It rejects when `Session.open()` rejects, its waiter is cancelled, or the reference is released early. Cancelling one waiter does not cancel another owner's opening. `sessions.using(target, options, operation)` waits for that settlement, holds its reference until the callback settles, and propagates rejected readiness and callback failures.
  
  References keep local Session data, scoped Contexts, and history streams alive, not Host Agents. Ordinary Session retention never adds a catalog row. Retained subagents with a known direct-parent address keep a fallback row and notify list readers even before the parent catalog arrives; these rows do not join Host-list membership. Fork-title assignment sends rename directly and applies the returned title projection without retaining the child or opening its history. Final release withdraws the generation before teardown; later acquisition can create a new generation with the same id. `binding(id)` and `scope(id)` only borrow an existing generation. `retainInfo(id)` observes stable read-only source counts independently of catalog membership and performs no history I/O. Consumer source keys are declaration-merge extensible; navigation and completion acknowledgement belong to UI consumers, not this Controller. See [Client Session references](../../../.agents/notes/implemented/architecture/2026-09-15-client-session-references.md) for ownership and teardown rules. An unknown-mode subagent address permits history reads with direct-parent consistency validation; access is checked separately on the child Session. Successful descriptor restoration determines the displayed mode; failures remain local to the child. Control requests carry only the target id, and the Host checks continuation availability. Client snapshots retain only the subagent address; runtime admission owns continuation availability.
 diff --git a/packages/api/session-controller/README.zh.md b/packages/api/session-controller/README.zh.md
-index 85c71abd..4ba3e083 100644
+index 85c71abd..d6716844 100644
 --- a/packages/api/session-controller/README.zh.md
 +++ b/packages/api/session-controller/README.zh.md
 @@ -83,6 +83,10 @@ Client 的首次 `follow`、重连首屏与 `loadOlder()` 至少请求 50 条以
@@ -120,7 +149,7 @@ index 85c71abd..4ba3e083 100644
  
 +`@deepseek-ai/dsh-api-session-controller/projection` 向 provider 提供不依赖 React 的 `parseProjectionBinding`、`projectionSource` 和 `projectionGeneration` 解码器；解码仅验证不透明身份，鉴权后的来源权威仍由 provider 负责。
 +
-+显式设置 `projectionRebuild: true` 后，可丢弃的展示状态与精确保留的执行绑定分离。`binding.projection` 携带代次取消信号，报告 rebuilding、ready 或 failed。类型化控制失效帧指定下一组带品牌的来源／代次；重复或已退休的失效通知被忽略。新 journal、完整 projections 与必需的 assistant baseline 在共同 cut 一起提交。每个历史页和投影写入方都必须携带该身份；stock provider 拒绝带代次的读取。旧行立即撤回，基线失败持续可见，`sessions.retryProjection(id)` 仅重试最后的权威代次。Stop、Agent Context、待处理 Interaction 和独立引用保持各自生命周期。暂存最多允许 512 个变更键及 4 MiB 序列化值；每个 Client 生命周期保留 256 个已退休代次以拒绝权威重放，超过后明确提示重新加载。默认设置保持 stock 重连与分页行为。
++显式设置 `projectionRebuild: true` 后，可丢弃的展示状态与精确保留的执行绑定分离。`binding.projection` 携带代次取消信号，报告 rebuilding、ready 或 failed。类型化控制失效帧指定下一组带品牌的来源／代次；重复或已退休的失效通知被忽略。新 journal、完整 projections 与必需的 assistant baseline 在共同 cut 一起提交。每个历史页和投影写入方都必须携带该身份；stock provider 拒绝带代次的读取。旧行立即撤回，基线失败持续可见，`sessions.retryProjection(id)` 仅重试最后的权威代次。控制流终止失败会先撤回带代次的展示，再触发取消回调；重试显式重建 Session 所拥有的观察器，接收完整控制基线后才打开展示基线。并发重试共享观察器恢复；旧回调不能发布，最后一次释放后不能复活作用域。此过程不把物理重连当作投影重置，也不改变 Gateway 流语义。Stop、Agent Context、待处理 Interaction 和独立引用保持各自生命周期。暂存基线与更新合计最多 512 个条目；`{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }` 的 UTF-8 JSON 最多 4 MiB，包括完整基线身份与 cut、键、序号、包装和分隔符。这是序列化载荷限制，并非 JavaScript 堆限制；每个 Client 生命周期保留 256 个已退休代次以拒绝权威重放，超过后明确提示重新加载。默认设置保持 stock 重连与分页行为。
 +
  `sessions.retain(target, { source, signal? })` 立即获取一个精确 Client generation 的引用，并启动其共享的首次历史打开。目标是已知 Session id 或持久的直接父子 subagent 地址；Host 在打开历史时校验显式地址。返回引用支持幂等的 `release()` 和 `Symbol.dispose`；其 `ready` Promise 跟随共享的 `Session.open()` 结果，并在该次尝试结算时解析为确切 binding，包括 Remote failure 以 `openState: 'error'` 表示的情况。仅当 `Session.open()` 拒绝、等待方取消或引用提前释放时，`ready` 才拒绝。取消一个等待方不会取消其他 owner 的打开。`sessions.using(target, options, operation)` 等待该次结算，持有引用直到回调结束，并传播被拒绝的就绪与回调失败。
  
@@ -172,15 +201,20 @@ index 00000000..e1166fd1
 +  | { readonly phase: 'ready'; readonly binding: SessionProjectionBinding; readonly signal: AbortSignal }
 +  | { readonly phase: 'failed'; readonly binding?: SessionProjectionBinding; readonly signal: AbortSignal; readonly error: RemoteFailure }
 diff --git a/packages/api/session-controller/src/client/contract/sessions.ts b/packages/api/session-controller/src/client/contract/sessions.ts
-index 5bed96af..8ce25fef 100644
+index 5bed96af..9ea57ea9 100644
 --- a/packages/api/session-controller/src/client/contract/sessions.ts
 +++ b/packages/api/session-controller/src/client/contract/sessions.ts
-@@ -107,6 +107,9 @@ export interface ISessions {
+@@ -107,6 +107,14 @@ export interface ISessions {
     * @returns completion of the current or newly started refresh.
     */
    refreshProjections(sessionId: SessionId): Promise<void>
-+  /** Retry the last authoritative projection; never invents a new generation or retains a Session.
-+   * @param sessionId - currently retained Session. @returns current rebuild completion. */
++  /**
++   * Retry the last authority without retaining, replaying execution or replacing references. Scoped policy first
++   * restores a terminal control observer and accepts its baseline, then opens the coherent presentation baseline.
++   * Failure or final scope release prevents readiness; concurrent retries share observer recovery.
++   * @param sessionId - currently retained Session.
++   * @returns completion of restored observation and the current presentation rebuild; rejects on failure or release.
++   */
 +  retryProjection(sessionId: SessionId): Promise<void>
  
    /**
@@ -207,7 +241,7 @@ index b6ba71b9..f7a169ee 100644
    readonly pendingSubmissions: readonly PendingSubmission[]
    readonly running: boolean
 diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
-index 56c7193d..da383fc5 100644
+index 56c7193d..1aa7daea 100644
 --- a/packages/api/session-controller/src/client/index.ts
 +++ b/packages/api/session-controller/src/client/index.ts
 @@ -27,6 +27,8 @@ export type {
@@ -227,6 +261,24 @@ index 56c7193d..da383fc5 100644
  })
  
  /** Consumer-owned reference labels; extend this map through the package's canonical /client entry. */
+@@ -127,7 +130,7 @@ export const inject = [
+ export function apply(ctx: Context, config: Config = Config({})): void {
+   const remotes = ctx.remote as unknown as SessionRemotes
+   const connection = ctx.get('connection') as ConnectionHandle
+-  const sessions = new ClientSessions(ctx, remotes, config)
++  const sessions = new ClientSessions(ctx, remotes, config, () => control.recover())
+   ctx.remote.$on('api-session/added', (summary) => { sessions.handleSessionAdded(summary) })
+   ctx.remote.$on('api-session/removed', (sessionId) => { sessions.handleSessionRemoved(sessionId) })
+   ctx.remote.$on('api-session/status', (sessionId, running) => {
+@@ -142,7 +145,7 @@ export function apply(ctx: Context, config: Config = Config({})): void {
+ 
+   const control = createSessionControlStream(remotes, {
+     accept: (frame) => { sessions.handleControlFrame(frame) },
+-    failed: (error) => { console.error('[session-controller] control stream failed:', error) },
++    failed: (error) => { sessions.handleControlFailure(error); console.error('[session-controller] control stream failed:', error) },
+   })
+   const connected = (): void => {
+     if (connection.generation.getSnapshot() === undefined) return
 diff --git a/packages/api/session-controller/src/client/sessions/manager.ts b/packages/api/session-controller/src/client/sessions/manager.ts
 index b5a2e048..a1473e88 100644
 --- a/packages/api/session-controller/src/client/sessions/manager.ts
@@ -405,7 +457,7 @@ index b5a2e048..a1473e88 100644
      this.listMutations = null
      this.listInflight = null
 diff --git a/packages/api/session-controller/src/client/sessions/projection-store.ts b/packages/api/session-controller/src/client/sessions/projection-store.ts
-index c10c81c4..8d2eb161 100644
+index c10c81c4..a59f300f 100644
 --- a/packages/api/session-controller/src/client/sessions/projection-store.ts
 +++ b/packages/api/session-controller/src/client/sessions/projection-store.ts
 @@ -16,6 +16,10 @@ import type { SessionProjectionMap } from '@deepseek-ai/dsh-session-projection/t
@@ -431,7 +483,7 @@ index c10c81c4..8d2eb161 100644
    | { kind: 'cached'; value: unknown }
    | { kind: 'sequenced'; value: unknown; seq: SessionSeqCursor }
  
-+/** Serialized UTF-8 staging cost, including non-ASCII values. */
++/** UTF-8 JSON payload cost; bookkeeping and engine heap allocations are not serialized. */
 +function projectionBytes(value: unknown): number {
 +  return new TextEncoder().encode(JSON.stringify(value)).byteLength
 +}
@@ -439,7 +491,17 @@ index c10c81c4..8d2eb161 100644
  /** Per-key notification channel: the bare face plus its batching notifier. */
  interface Channel {
    face: ObservableSnapshot<unknown>
-@@ -90,6 +100,94 @@ interface Channel {
+@@ -86,10 +96,115 @@ interface Channel {
+  * Session is the truth and a cached value never outranks it. A key the store
+  * has never seen reads `undefined` (capability absent). Faces are identity-stable
+  * per key (create-on-demand, cached) so the React side binds each exactly
+- * once; the store-level channel (`subscribeAny`) serves coarse consumers (the
++ * once. During rebuild the canonical staged payload includes the complete baseline,
++ * update keys, values, sequences, tuple/object wrappers and commas; its UTF-8 JSON
++ * encoding is capped at 4 MiB and 512 combined baseline/update entries. This is a
++ * serialized payload bound, not a JavaScript heap limit. Overflow withdraws all
++ * values and reports failure to the presentation owner before throwing.
++ * The store-level channel (`subscribeAny`) serves coarse consumers (the
   * manager's list projection reads the `title` key).
   */
  export class ProjectionValueStore {
@@ -449,7 +511,11 @@ index c10c81c4..8d2eb161 100644
 +  private blocked = false
 +  private readonly retired = new Set<string>()
 +  private readonly staged = new Map<string, { value: unknown; seq: SessionSeqCursor }>()
++  // Canonical payload: { baseline: <complete baseline or null>, updates: [[key, { value, seq }], ...] }.
++  // The empty envelope is 30 bytes, including null and []; row commas add one byte each.
 +  private stagedBytes = 0
++  private stagedBaselineBytes = 4
++  private stagedBaselineCount = 0
 +  private stagedBaseline: ProjectionsBaseline | undefined
 +
 +  /** @param failed - presentation owner notified before a bounded staging failure escapes. */
@@ -487,6 +553,8 @@ index c10c81c4..8d2eb161 100644
 +    this.staging = true
 +    this.staged.clear()
 +    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
 +    this.stagedBaseline = undefined
 +    this.clear()
 +    return true
@@ -496,6 +564,8 @@ index c10c81c4..8d2eb161 100644
 +    this.blocked = true
 +    this.staged.clear()
 +    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
 +    this.stagedBaseline = undefined
 +    this.clear()
 +  }
@@ -505,6 +575,8 @@ index c10c81c4..8d2eb161 100644
 +    this.staging = true
 +    this.staged.clear()
 +    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
 +    this.stagedBaseline = undefined
 +    this.clear()
 +  }
@@ -528,13 +600,15 @@ index c10c81c4..8d2eb161 100644
 +    for (const [key, row] of this.staged) this.apply(key, row.value, row.seq, baseline.projection)
 +    this.staged.clear()
 +    this.stagedBytes = 0
++    this.stagedBaselineBytes = 4
++    this.stagedBaselineCount = 0
 +    this.stagedBaseline = undefined
 +  }
 +
    private readonly rows = new Map<string, Row>()
    private readonly channels = new Map<string, Channel>()
    private valuesCache: Readonly<Partial<SessionProjectionMap>> | undefined
-@@ -155,8 +253,24 @@ export class ProjectionValueStore {
+@@ -155,8 +270,26 @@ export class ProjectionValueStore {
     * @param key - projection key.
     * @param value - whole value computed by the host unit.
     * @param seq - the unit's watermark at emission.
@@ -547,10 +621,12 @@ index c10c81c4..8d2eb161 100644
 +      if (this.stagedBaseline !== undefined && seq <= this.stagedBaseline.asOfSeq) return
 +      const previous = this.staged.get(key)
 +      if (previous !== undefined && previous.seq >= seq) return
-+      const bytes = projectionBytes(value)
-+      const oldBytes = previous === undefined ? 0 : projectionBytes(previous.value)
-+      if (this.staged.size + Object.keys(this.stagedBaseline?.values ?? {}).length >= 512 && previous === undefined
-+        || this.stagedBytes + bytes - oldBytes + projectionBytes(this.stagedBaseline?.values) > 4 * 1024 * 1024) {
++      const bytes = projectionBytes([key, { value, seq }])
++      const oldBytes = previous === undefined ? 0 : projectionBytes([key, previous])
++      const count = this.staged.size + (previous === undefined ? 1 : 0)
++      if (count + this.stagedBaselineCount > 512
++        || 26 + this.stagedBaselineBytes + this.stagedBytes + bytes - oldBytes + Math.max(0, count - 1)
++          > 4 * 1024 * 1024) {
 +        this.overflow('projection staging budget exceeded')
 +      }
 +      this.stagedBytes += bytes - oldBytes
@@ -560,7 +636,7 @@ index c10c81c4..8d2eb161 100644
      const row = this.rows.get(key)
      // higher seq wins among sequenced rows; replays and stale frames drop. A
      // cached row has no comparable seq and always yields.
-@@ -172,8 +286,10 @@ export class ProjectionValueStore {
+@@ -172,8 +305,10 @@ export class ProjectionValueStore {
     * a key, and the list's view of the persisted checkpoint cannot be newer
     * than it.
     * @param values - whole values by key viewed from the persisted checkpoint.
@@ -572,7 +648,7 @@ index c10c81c4..8d2eb161 100644
      for (const key of Object.keys(values)) {
        if (this.rows.get(key)?.kind === 'sequenced') continue
        this.rows.set(key, { kind: 'cached', value: values[key] })
-@@ -192,6 +308,22 @@ export class ProjectionValueStore {
+@@ -192,6 +327,26 @@ export class ProjectionValueStore {
     * @param baseline - the response's projections block.
     */
    seed(baseline: ProjectionsBaseline): void {
@@ -582,20 +658,24 @@ index c10c81c4..8d2eb161 100644
 +      for (const [key, row] of this.staged) {
 +        if (row.seq <= baseline.asOfSeq) {
 +          this.staged.delete(key)
-+          this.stagedBytes -= projectionBytes(row.value)
++          this.stagedBytes -= projectionBytes([key, row])
 +        }
 +      }
-+      if (Object.keys(baseline.values).length + this.staged.size > 512
-+        || projectionBytes(baseline.values) + this.stagedBytes > 4 * 1024 * 1024) {
++      const bytes = projectionBytes(baseline)
++      const count = Object.keys(baseline.values).length
++      if (count + this.staged.size > 512
++        || 26 + bytes + this.stagedBytes + Math.max(0, this.staged.size - 1) > 4 * 1024 * 1024) {
 +        this.overflow('projection staging budget exceeded')
 +      }
 +      this.stagedBaseline = baseline
++      this.stagedBaselineBytes = bytes
++      this.stagedBaselineCount = count
 +      return
 +    }
      for (const [key, row] of this.rows) {
        if (row.kind !== 'cached') continue
        this.rows.delete(key)
-@@ -200,7 +332,7 @@ export class ProjectionValueStore {
+@@ -200,7 +355,7 @@ export class ProjectionValueStore {
      // Erased walk: the framework crosses the open key space; per-key typing
      // is re-established at the consumer (useProjection's map lookup).
      const values = baseline.values as Record<string, unknown>
@@ -605,7 +685,7 @@ index c10c81c4..8d2eb161 100644
        if (Object.hasOwn(values, key)) continue
        // Every cached row was deleted above; the kind test only narrows the
 diff --git a/packages/api/session-controller/src/client/sessions/service.ts b/packages/api/session-controller/src/client/sessions/service.ts
-index 2d2da2a2..91bb8882 100644
+index 2d2da2a2..7f9592eb 100644
 --- a/packages/api/session-controller/src/client/sessions/service.ts
 +++ b/packages/api/session-controller/src/client/sessions/service.ts
 @@ -1,5 +1,6 @@
@@ -615,7 +695,15 @@ index 2d2da2a2..91bb8882 100644
  import type { Context, Fiber } from '@deepseek-ai/cordis'
  import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
  import { SessionSeq, type SessionId } from '@deepseek-ai/dsh-session/types'
-@@ -109,6 +110,8 @@ export interface SessionBinding {
+@@ -10,6 +11,7 @@ import type { SessionProjectionSummaryValues } from '@deepseek-ai/dsh-session-pr
+ import {
+   createSnapshotStore, notifySubscribers, type ObservableSnapshot, type SnapshotStore,
+ } from '@deepseek-ai/dsh-client-store'
++import { remoteErrorOf, RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import type { RemoteFailure, RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { SessionEventSource } from '../contract/events.ts'
+ import type { SessionFace } from '../contract/session.ts'
+@@ -109,6 +111,8 @@ export interface SessionBinding {
    readonly session: SessionFace
    /** Contiguous event window reserved for Conversation assembly. */
    readonly eventSource: SessionEventSource
@@ -624,18 +712,79 @@ index 2d2da2a2..91bb8882 100644
    readonly ctx: AgentContext
  }
  
-@@ -608,6 +611,10 @@ export class ClientSessions implements ISessions {
+@@ -267,16 +271,19 @@ export class ClientSessions implements ISessions {
+   private readonly retainObservers = new Map<SessionId, RetentionObserver>()
+   private readonly scopeDrops = new Set<Promise<void>>()
+   private closed = false
++  private controlFailure: RemoteFailure | undefined
+ 
+   /**
+    * @param ctx - client root context (scope fibers mount under it).
+    * @param remote - generated Remote namespaces shared with every Session.
+    * @param policy - deployment selection; omission preserves standard Client behavior.
++   * @param recoverControl - await a restored control baseline before scoped retry; omission requires callers to supply control frames.
+    */
+   constructor(
+     private readonly rootCtx: Context,
+     remote: SessionRemotes,
+     policy: ClientSessionPolicy = {},
++    private readonly recoverControl?: () => Promise<void>,
+   ) {
+     this.policy = Object.freeze({ ...policy, disabledActions: Object.freeze([...(policy.disabledActions ?? [])]) })
+     this.manager = new SessionManager(remote, this.policy)
+@@ -311,7 +318,11 @@ export class ClientSessions implements ISessions {
+     const id = this.manager.resolveTarget(target)
+     const reference = this.retainScope(id, source)
+     try {
+-      reference.attachOpening(this.manager.get(id).open(), signal)
++      const session = this.manager.get(id)
++      if (this.controlFailure !== undefined) {
++        session.rejectProjection(this.controlFailure)
++        reference.attachOpening(Promise.reject(this.controlFailure), signal)
++      } else reference.attachOpening(session.open(), signal)
+       return reference
+     } catch (error) {
+       reference.release()
+@@ -399,6 +410,20 @@ export class ClientSessions implements ISessions {
+    */
+   handleControlFrame(frame: Parameters<SessionManager['handleControlFrame']>[0]): void {
+     this.manager.handleControlFrame(frame)
++    if (frame.type === 'baseline') this.controlFailure = undefined
++  }
++
++  /**
++   * Withdraw scoped presentation after terminal control loss; exact references and execution remain owned.
++   * @param error - terminal failure; stock policy retains its existing diagnostics-only behavior.
++   */
++  handleControlFailure(error: unknown): void {
++    if (this.policy.projectionRebuild !== true) return
++    const failure = remoteErrorOf(error) ?? new RemoteError(
++      'gateway/internal', 'Session control observation failed', {}, { cause: error },
++    )
++    this.controlFailure = failure
++    for (const record of this.scopes.values()) record.session.rejectProjection(failure)
+   }
+ 
+   /**
+@@ -608,6 +633,17 @@ export class ClientSessions implements ISessions {
      notifySubscribers(observer.listeners, '[session-controller] reference sources')
    }
  
-+  retryProjection(sessionId: SessionId): Promise<void> {
-+    return this.scopes.get(sessionId)?.session.retryProjection() ?? Promise.reject(new Error('projection retry requires a retained Session'))
++  async retryProjection(sessionId: SessionId): Promise<void> {
++    const record = this.scopes.get(sessionId)
++    if (record === undefined) throw new Error('projection retry requires a retained Session')
++    if (this.policy.projectionRebuild === true) {
++      if (this.recoverControl !== undefined) await this.recoverControl()
++      if (this.controlFailure !== undefined) throw this.controlFailure
++    }
++    if (this.closed || this.scopes.get(sessionId) !== record) throw new Error('projection retry owner released')
++    await record.session.retryProjection()
 +  }
 +
    private retireScope(id: SessionId, record: ScopeRecord, disposeFiber = true): void {
      if (!record.live) return
      record.live = false
-@@ -626,7 +633,7 @@ export class ClientSessions implements ISessions {
+@@ -626,7 +662,7 @@ export class ClientSessions implements ISessions {
      // The Session owns its scoped dispatch point (host Agent.loopCtx mirror);
      // mint and bind are one step so a live scope record implies a bound actx.
      session.bindScope(ctx)
@@ -645,7 +794,7 @@ index 2d2da2a2..91bb8882 100644
        fiber,
        ctx,
 diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
-index 735ee75f..08a07b46 100644
+index 735ee75f..fbdb95e7 100644
 --- a/packages/api/session-controller/src/client/sessions/session.ts
 +++ b/packages/api/session-controller/src/client/sessions/session.ts
 @@ -10,6 +10,10 @@ import type { UserMessage } from '@deepseek-ai/dsh-llm/types'
@@ -951,7 +1100,7 @@ index 735ee75f..08a07b46 100644
    }
  
    /** Single removal point: drop the echo, publish, then notify the owner. */
-@@ -1012,14 +1126,47 @@ export class Session implements SessionFace {
+@@ -1012,14 +1126,48 @@ export class Session implements SessionFace {
      this.openPromise = null
      this.openState = 'error'
      this.openError = error
@@ -960,21 +1109,22 @@ index 735ee75f..08a07b46 100644
      this.notifier.markDirty()
    }
  
-+  /** Stop presentation after a scoped protocol failure without ending Agent execution.
++  /** Withdraw failed presentation before cancellation callbacks, without ending Agent execution.
 +   * @param error - structured failure shown to all retained holders. */
 +  rejectProjection(error: RemoteFailure): void {
 +    this.openGeneration++
-+    this.projectionController.abort()
++    const retiredController = this.projectionController
 +    const events = this.events
 +    this.events = undefined
-+    void events?.dispose()
 +    this.openPromise = null
-+    this.clearOlderHistory()
-+    this.eventSource.replace([], false)
 +    this.openState = 'error'
 +    this.openError = error
 +    this.failProjection(error)
++    this.clearOlderHistory()
++    this.eventSource.replace([], false)
 +    this.notifier.markDirty()
++    retiredController.abort()
++    void events?.dispose()
 +  }
 +
 +  private projectionUnavailable(): RemoteFailure | undefined {
@@ -1000,7 +1150,7 @@ index 735ee75f..08a07b46 100644
        running: this.running,
        subagent: this.address === undefined
 diff --git a/packages/api/session-controller/src/client/transport.ts b/packages/api/session-controller/src/client/transport.ts
-index 554eec51..c4904d58 100644
+index 554eec51..66bc8ff7 100644
 --- a/packages/api/session-controller/src/client/transport.ts
 +++ b/packages/api/session-controller/src/client/transport.ts
 @@ -1,6 +1,8 @@
@@ -1012,7 +1162,111 @@ index 554eec51..c4904d58 100644
  import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
  import {
    RemoteJournalStream,
-@@ -104,6 +106,10 @@ export interface SessionEventStreamOptions {
+@@ -80,11 +82,98 @@ function toSessionJournalChange(
+ type SessionControlBaselineFrame = Extract<SessionControlFrame, { type: 'baseline' }>
+ type SessionControlDeltaFrame = Exclude<SessionControlFrame, SessionControlBaselineFrame>
+ 
+-/** Gateway-owned control snapshot stream configured for Session frames. */
+-export type SessionControlStream = RemoteSnapshotStream<
+-  SessionControlBaselineFrame,
+-  SessionControlDeltaFrame
+->
++/** Session-owned control observer; terminal recovery is explicit and preserves retained execution. */
++export interface SessionControlStream {
++  /** Start the current observer once. */
++  start(): void
++  /** Repair only a physical generation; terminal failures require recover(). */
++  restart(): void
++  /** Recreate a terminal observer and await its accepted baseline; concurrent calls join.
++   * Reject on baseline failure or disposal. */
++  recover(): Promise<void>
++  /** Cancel pending recovery and await every owned observer's cleanup. */
++  dispose(): Promise<void>
++}
++
++type ControlObservation =
++  | { kind: 'observing' }
++  | { kind: 'failed' }
++  | { kind: 'recovering'; done: PromiseWithResolvers<void>; cleanup?: Promise<void> }
++  | { kind: 'disposed' }
++
++class SessionControlObserver implements SessionControlStream {
++  private revision = 0
++  private observation: ControlObservation = { kind: 'observing' }
++  private stream: RemoteSnapshotStream<SessionControlBaselineFrame, SessionControlDeltaFrame>
++
++  constructor(private readonly remote: SessionRemotes, private readonly options: SessionControlStreamOptions) {
++    this.stream = this.createObserver()
++  }
++
++  start(): void { this.stream.start() }
++  restart(): void { if (this.observation.kind === 'observing') this.stream.restart() }
++
++  recover(): Promise<void> {
++    if (this.observation.kind === 'disposed') return Promise.reject(new Error('Session control observer disposed'))
++    if (this.observation.kind === 'observing') return Promise.resolve()
++    if (this.observation.kind === 'recovering') return this.observation.done.promise
++    const operation: Extract<ControlObservation, { kind: 'recovering' }> = {
++      kind: 'recovering', done: Promise.withResolvers<void>(),
++    }
++    this.observation = operation
++    this.revision++
++    const previous = this.stream
++    operation.cleanup = (async () => {
++      await previous.dispose()
++      if (this.observation !== operation) return
++      this.stream = this.createObserver()
++      this.stream.start()
++    })().catch((error: unknown) => { if (this.observation === operation) this.failed(error) })
++    return operation.done.promise
++  }
++
++  async dispose(): Promise<void> {
++    const observation = this.observation
++    this.observation = { kind: 'disposed' }
++    this.revision++
++    if (observation.kind === 'recovering') observation.done.reject(new Error('Session control observer disposed'))
++    await this.stream.dispose()
++    if (observation.kind === 'recovering') await observation.cleanup
++  }
++
++  private failed(error: unknown): void {
++    const observation = this.observation
++    this.observation = { kind: 'failed' }
++    if (observation.kind === 'recovering') observation.done.reject(error)
++    this.options.failed(error)
++  }
++
++  private createObserver(): RemoteSnapshotStream<SessionControlBaselineFrame, SessionControlDeltaFrame> {
++    const revision = ++this.revision
++    const stream = this.remote.$stream<SessionControlFrame>({
++      name: 'session control stream', open: signal => this.remote.session.control(signal),
++      ended: accepted => accepted
++        ? new RemoteStreamCarrierError('session control stream ended without a terminal result')
++        : new Error('session control stream ended before its opening snapshot'),
++      ...(this.options.carrierFailed === undefined ? {} : { carrierFailed: this.options.carrierFailed }),
++    })
++    return new RemoteSnapshotStream(stream, {
++      name: 'session control stream',
++      isSnapshot: (frame): frame is SessionControlBaselineFrame => frame.type === 'baseline',
++      replace: (frame) => {
++        if (revision !== this.revision) return
++        this.options.accept(frame)
++        const observation = this.observation
++        if (observation.kind === 'recovering') {
++          this.observation = { kind: 'observing' }
++          observation.done.resolve()
++        }
++      },
++      update: (frame) => { if (revision === this.revision) this.options.accept(frame) },
++      failed: (error) => { if (revision === this.revision) this.failed(error) },
++    })
++  }
++}
+ 
+ /** Domain sinks used by the Host-wide Session control stream. */
+ export interface SessionControlStreamOptions {
+@@ -104,6 +193,10 @@ export interface SessionEventStreamOptions {
    readonly carrierFailed?: (error: RemoteStreamCarrierError) => void
    /** Publish a terminal stream, page, or protocol failure after opening. */
    readonly failed: (error: unknown) => void
@@ -1023,7 +1277,30 @@ index 554eec51..c4904d58 100644
  }
  
  /**
-@@ -146,6 +152,9 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -116,21 +209,7 @@ export function createSessionControlStream(
+   remote: SessionRemotes,
+   options: SessionControlStreamOptions,
+ ): SessionControlStream {
+-  const stream = remote.$stream<SessionControlFrame>({
+-    name: 'session control stream',
+-    open: signal => remote.session.control(signal),
+-    ended: accepted => accepted
+-      ? new RemoteStreamCarrierError('session control stream ended without a terminal result')
+-      : new Error('session control stream ended before its opening snapshot'),
+-    ...(options.carrierFailed === undefined ? {} : { carrierFailed: options.carrierFailed }),
+-  })
+-  return new RemoteSnapshotStream(stream, {
+-    name: 'session control stream',
+-    isSnapshot: (frame): frame is SessionControlBaselineFrame => frame.type === 'baseline',
+-    replace: options.accept,
+-    update: options.accept,
+-    failed: options.failed,
+-  })
++  return new SessionControlObserver(remote, options)
+ }
+ 
+ /** Gateway-owned event journal bound to one ordinary or direct-subagent Session address. */
+@@ -146,6 +225,9 @@ export class SessionEventStream extends RemoteJournalStream<
     * @param address - durable ordinary-Session or direct-subagent address.
     * @param options - Session event-window destinations.
     */
@@ -1033,7 +1310,7 @@ index 554eec51..c4904d58 100644
    constructor(
      private readonly remote: SessionRemotes,
      private readonly address: SessionAddress,
-@@ -166,6 +175,8 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -166,6 +248,8 @@ export class SessionEventStream extends RemoteJournalStream<
          : { carrierFailed: options.carrierFailed }),
        failed: options.failed,
      })
@@ -1042,7 +1319,7 @@ index 554eec51..c4904d58 100644
    }
  
    /** @inheritdoc */
-@@ -180,9 +191,23 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -180,9 +264,23 @@ export class SessionEventStream extends RemoteJournalStream<
        address: this.address,
        activate: true,
        assistantStream: true,
@@ -1066,7 +1343,7 @@ index 554eec51..c4904d58 100644
          for (const record of frame.records) assertSessionWireEvent(record.event)
          if (frame.assistantStream === undefined) {
            throw new RemoteError(
-@@ -196,6 +221,7 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -196,6 +294,7 @@ export class SessionEventStream extends RemoteJournalStream<
            type: 'opened',
            cursor: frame.cursor,
            page: {
@@ -1074,7 +1351,7 @@ index 554eec51..c4904d58 100644
              records: frame.records,
              hasMore: frame.hasMore,
              projections: frame.projections,
-@@ -204,6 +230,7 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -204,6 +303,7 @@ export class SessionEventStream extends RemoteJournalStream<
          }
          continue
        }
@@ -1082,7 +1359,7 @@ index 554eec51..c4904d58 100644
        if (frame.type === 'assistant-stream') {
          const expected = (assistantRevision ?? 0) + 1
          if (frame.frame.revision !== expected) {
-@@ -227,10 +254,13 @@ export class SessionEventStream extends RemoteJournalStream<
+@@ -227,10 +327,13 @@ export class SessionEventStream extends RemoteJournalStream<
      signal: AbortSignal,
    ): Promise<SessionJournalPage> {
      const result = await this.remote.session.page(
@@ -1382,10 +1659,10 @@ index 49cd7c0f..2da21c15 100644
  export interface SessionQueuedItem {
 diff --git a/packages/api/session-controller/tests/projection-rebuild.client.spec.ts b/packages/api/session-controller/tests/projection-rebuild.client.spec.ts
 new file mode 100644
-index 00000000..26f5bf67
+index 00000000..634e7d42
 --- /dev/null
 +++ b/packages/api/session-controller/tests/projection-rebuild.client.spec.ts
-@@ -0,0 +1,229 @@
+@@ -0,0 +1,394 @@
 +/** Projection replacement through public retains and typed Remote controls. */
 +import { Context } from '@deepseek-ai/cordis'
 +import { describe, expect, onTestFinished, vi } from 'vitest'
@@ -1393,6 +1670,7 @@ index 00000000..26f5bf67
 +import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 +import { ok } from '@deepseek-ai/dsh-remote-mock'
 +import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { createSessionControlStream } from '../src/client/transport.ts'
 +import { ClientSessions } from '../src/client/sessions/service.ts'
 +import { parseProjectionBinding } from '../src/projection-binding.ts'
 +import type { SessionFollowRequest, SessionProjectionBinding } from '../src/types.ts'
@@ -1614,7 +1892,331 @@ index 00000000..26f5bf67
 +    expect(reference.binding.session.projections.faceOf('title').getSnapshot()).toBeUndefined()
 +  })
 +
++  it('rejects a complete staged row one byte over budget with multibyte keys and values', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new path', 0))
++      } else stream.push(snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    // {"baseline":null,"updates":[]} is 30 bytes; ["界",{"value":"é","seq":2}] adds 30.
++    const key = '界' + 'k'.repeat(4 * 1024 * 1024 - 60)
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++      seq: 2, changes: [{ key, val: 'é!' }] })
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({
++      phase: 'failed', error: { code: 'gateway/internal' },
++    })
++    expect(reference.binding.eventSource.getSnapshot().entries).toEqual([])
++    expect(reference.binding.session.projections.faceOf(key).getSnapshot()).toBeUndefined()
++  })
++
++  it.for(['update', 'baseline'] as const)('admits an exact serialized %s budget, then visibly fails one byte over', async (route, { mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) {
++        await opening.promise
++        stream.push(snapshot(NEXT, 'new path', 0))
++      } else stream.push(snapshot(OLD, 'old path', 5))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    // Complete baseline envelope is 134 UTF-8 bytes before padding; update envelope is 60.
++    const key = route === 'update' ? '界' + 'k'.repeat(4 * 1024 * 1024 - 60) : '界'
++    const value = route === 'baseline' ? 'é' + 'v'.repeat(4 * 1024 * 1024 - 134) : 'é'
++    const publish = (val: string, seq: number): void => {
++      if (route === 'update') sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT,
++        seq, changes: [{ key, val }] })
++      else sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++        [ID]: { projection: NEXT, asOfSeq: seq, values: { [key]: val } },
++      } } })
++    }
++    publish(value, 2)
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    // Replacing the same entry must reclaim its prior key/row/baseline charge.
++    publish(value, 3)
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    if (route === 'baseline') expect(() => { publish(value, 10) }).toThrow('projection staging budget exceeded')
++    else publish(value, 10)
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({ phase: 'failed', error: { code: 'gateway/internal' } })
++    opening.resolve(undefined)
++    await vi.waitFor(() => { expect(reference.binding.eventSource.getSnapshot().entries).toEqual([]) })
++  })
++
++  it('bounds the combined baseline and staged update entry count', async ({ mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    const opening = Promise.withResolvers<undefined>()
++    onTestFinished(async () => { opening.resolve(undefined); await ctx.fiber.dispose() })
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    await sessions.refresh()
++    mock.stream(FOLLOW, async ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      if (request.projection?.generation === NEXT.generation) await opening.promise
++      stream.push(snapshot(request.projection ?? OLD, 'path', 0))
++    })
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    await reference.ready
++    sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    sessions.handleControlFrame({ type: 'baseline', value: { projections: {
++      [ID]: { projection: NEXT, asOfSeq: 1, values: { title: 'baseline' } },
++    } } })
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 2,
++      changes: Array.from({ length: 511 }, (_, index) => ({ key: `key-${index}`, val: index })) })
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 3,
++      changes: [{ key: 'key-0', val: 'replacement' }] })
++    expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++    sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: NEXT, seq: 4,
++      changes: [{ key: 'one-too-many', val: null }] })
++    expect(reference.binding.projection.getSnapshot()).toMatchObject({ phase: 'failed', error: { code: 'gateway/internal' } })
++  })
++
++  it.for(['retained', 'released'] as const)('keeps control recovery owned by the %s references', async (ownership, { mock, start }) => {
++    const client = await start()
++    const ctx = new Context()
++    const gate = Promise.withResolvers<undefined>()
++    let opens = 0
++    mock.remote.session.list.mockResolvedValue(ok({ items: [
++      { sessionId: ID, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++    ] }))
++    mock.stream('session/control', async (_args, stream) => {
++      if (opens++ > 0) await gate.promise
++      stream.push({ type: 'baseline', value: { projections: {
++        [ID]: { projection: OLD, asOfSeq: 6, values: { title: 'old path' } },
++      } } })
++    })
++    mock.stream(FOLLOW, ([raw], stream) => {
++      const request = raw as SessionFollowRequest
++      stream.push(snapshot(request.projection ?? OLD, request.projection?.generation === NEXT.generation ? 'later path' : 'old path', 5))
++    })
++    const control = createSessionControlStream(client.ctx.remote, {
++      accept: (frame) => { sessions.handleControlFrame(frame) }, failed: (error) => { sessions.handleControlFailure(error) },
++    })
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true }, () => control.recover())
++    onTestFinished(async () => { gate.resolve(undefined); await control.dispose(); await ctx.fiber.dispose() })
++    await sessions.refresh(); control.start()
++    using first = sessions.retain(ID, { source: 'controllerOperation' })
++    await first.ready
++    const binding = first.binding
++    const active = binding.projection.getSnapshot()
++    const aborted: unknown[] = []
++    if (active.phase !== 'stock') active.signal.addEventListener('abort', () => {
++      aborted.push({ phase: binding.projection.getSnapshot().phase, entries: binding.eventSource.getSnapshot().entries })
++    }, { once: true })
++    mock.streams.fail('session/control', new RemoteError('gateway/internal', 'controlled control failure', {}))
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot().phase).toBe('failed') })
++    expect(aborted).toEqual([{ phase: 'failed', entries: [] }])
++    using joining = sessions.retain(ID, { source: 'controllerOperation' })
++    await expect(joining.ready).rejects.toThrow('controlled control failure')
++    const retry = sessions.retryProjection(ID)
++    const overlapping = sessions.retryProjection(ID)
++    expect(binding.projection.getSnapshot().phase).toBe('failed')
++    expect(binding.eventSource.getSnapshot().entries).toEqual([])
++    const settled = Promise.allSettled([retry, overlapping])
++    if (ownership === 'released') { first.release(); joining.release() }
++    gate.resolve(undefined)
++    const outcomes = await settled
++    if (ownership === 'released') {
++      expect(outcomes.map(outcome => outcome.status)).toEqual(['rejected', 'rejected'])
++      expect(sessions.retainInfo(ID).getSnapshot().referenceCount).toBe(0)
++      return
++    }
++    expect(outcomes.map(outcome => outcome.status)).toEqual(['fulfilled', 'fulfilled'])
++    expect(binding.projection.getSnapshot().phase).toBe('ready')
++    expect(joining.binding).toBe(binding)
++    mock.streams.push('session/control', { type: 'projection-invalidated', sessionId: ID, projection: NEXT })
++    await vi.waitFor(() => { expect(binding.projection.getSnapshot()).toMatchObject({ phase: 'ready', binding: NEXT }) })
++    expect(JSON.stringify(binding.eventSource.getSnapshot())).toContain('later path')
++    expect(first.binding).toBe(binding)
++  })
++
 +})
+diff --git a/packages/api/session-controller/tests/projection-staging.perf.ts b/packages/api/session-controller/tests/projection-staging.perf.ts
+new file mode 100644
+index 00000000..855b8123
+--- /dev/null
++++ b/packages/api/session-controller/tests/projection-staging.perf.ts
+@@ -0,0 +1,77 @@
++/** Scoped public-controller diagnostic; invoke through the Host's projection-performance.py runner. */
++import { Context } from '@deepseek-ai/cordis'
++import { expect, onTestFinished } from 'vitest'
++import { writeFileSync } from 'node:fs'
++import { createClientTest, webApp } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { ok } from '@deepseek-ai/dsh-remote-mock'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++import { createSessionControlStream } from '../src/client/transport.ts'
++import { ClientSessions } from '../src/client/sessions/service.ts'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
++import type { SessionFollowRequest } from '../src/types.ts'
++import { FOLLOW } from './remote/session.client.ts'
++import { followSnapshot } from './remote/history.client.ts'
++import { historyValue } from './event-script.client.ts'
++
++const it = createClientTest({ roster: webApp.closure(['@deepseek-ai/dsh-api-gateway']) })
++it('measures a near-budget control baseline and repeated updates before coherent publication', async ({ mock, start }) => {
++  const output = process.env.PROJECTION_PERF_OUTPUT
++  if (output === undefined) throw new Error('PROJECTION_PERF_OUTPUT required')
++  const client = await start()
++  const ctx = new Context()
++  const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++  const id = SessionId('projection-performance')
++  const projection = parseProjectionBinding({ source: 'synthetic-performance', generation: 'next' })
++  const gate = Promise.withResolvers<undefined>()
++  onTestFinished(async () => { gate.resolve(undefined); await ctx.fiber.dispose() })
++  mock.remote.session.list.mockResolvedValue(ok({ items: [
++    { sessionId: id, updatedAt: 1, running: true, blank: false, agentAvailable: true },
++  ] }))
++  await sessions.refresh()
++  mock.stream(FOLLOW, async ([raw], stream) => {
++    const request = raw as SessionFollowRequest
++    if (request.projection !== undefined) await gate.promise
++    stream.push({ ...followSnapshot(historyValue([]), { address: { kind: 'session', sessionId: id }, assistantStream: true }),
++      projection: request.projection ?? parseProjectionBinding({ source: 'synthetic-performance', generation: 'old' }) })
++  })
++  using reference = sessions.retain(id, { source: 'controllerOperation' })
++  await reference.ready
++  sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: id, projection })
++  const baseline = { projection, asOfSeq: 1, values: { payload: '界'.repeat(1_300_000) } }
++  const updates = Array.from({ length: 200 }, (_, index) => ({ type: 'projection' as const, sessionId: id,
++    projection, seq: index + 2, changes: [{ key: 'title', val: `control-${index}-é` }] }))
++  const controlGate = Promise.withResolvers<undefined>()
++  const produced = Promise.withResolvers<undefined>()
++  mock.stream('session/control', async (_args, stream) => {
++    await controlGate.promise
++    stream.push({ type: 'baseline', value: { projections: { [id]: baseline } } })
++    for (const update of updates) stream.push(update)
++    produced.resolve(undefined)
++  })
++  const control = createSessionControlStream(client.ctx.remote, {
++    accept: (frame) => { sessions.handleControlFrame(frame) },
++    failed: (error) => { sessions.handleControlFailure(error) },
++  })
++  onTestFinished(async () => { controlGate.resolve(undefined); await control.dispose() })
++  control.start()
++  await mock.streams.opened('session/control', 1)
++  await client.flush()
++  globalThis.gc?.()
++  const before = process.memoryUsage()
++  writeFileSync(output + '.start', JSON.stringify({ pid: process.pid, before }))
++  const started = performance.now()
++  controlGate.resolve(undefined)
++  await produced.promise
++  await mock.streams.drained('session/control')
++  const runtimeMs = performance.now() - started
++  expect(reference.binding.projection.getSnapshot().phase).toBe('rebuilding')
++  expect(reference.binding.session.projections.faceOf('title').getSnapshot()).toBeUndefined()
++  await client.flush()
++  globalThis.gc?.()
++  await client.flush()
++  globalThis.gc?.()
++  const steady = process.memoryUsage()
++  writeFileSync(output, JSON.stringify({ runtimeMs, before, steady, maxRssKiB: process.resourceUsage().maxRSS,
++    gcAvailable: globalThis.gc !== undefined, baselineBytes: 3_900_105,
++    updates: updates.length, finalPhase: reference.binding.projection.getSnapshot().phase }))
++}, 60_000)
+diff --git a/packages/api/session-controller/tests/transport.client.spec.ts b/packages/api/session-controller/tests/transport.client.spec.ts
+index db0857e5..6b3409fd 100644
+--- a/packages/api/session-controller/tests/transport.client.spec.ts
++++ b/packages/api/session-controller/tests/transport.client.spec.ts
+@@ -4,6 +4,7 @@ import {
+   RemoteStreamCarrierError,
+   type RemoteStreamOptions,
+ } from '@deepseek-ai/dsh-api-gateway/client'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
+ import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+ import { streamHandle } from '@deepseek-ai/dsh-remote-mock'
+ import { LlmAttemptId } from '@deepseek-ai/dsh-llm'
+@@ -663,6 +664,64 @@ describe('Session Client stream adapters', () => {
+     expect(remote.signals[0]?.aborted).toBe(true)
+   })
+ 
++  it('explicitly recovers a terminal control failure and observes subsequent invalidations', async () => {
++    const failure = Promise.withResolvers<unknown>()
++    const accepted: SessionControlFrame[] = []
++    let open = 0
++    const gate = Promise.withResolvers<undefined>()
++    const provider = new ScriptedSessionRemote([], [])
++    const remote = sessionClient({
++      follow: provider.follow.bind(provider), page: provider.page.bind(provider),
++      control: signal => streamHandle((async function* () {
++        if (open++ === 0) throw new RemoteError('gateway/internal', 'controlled rebuild failure', {})
++        await gate.promise
++        yield { type: 'baseline' as const, value: { projections: {} } }
++        yield { type: 'projection-invalidated' as const, sessionId: ADDRESS.sessionId,
++          projection: parseProjectionBinding({ source: 'source', generation: 'later' }) }
++        if (!signal?.aborted) await new Promise<void>((resolve) => { signal?.addEventListener('abort', () => { resolve() }, { once: true }) })
++      })()),
++    })
++    const stream = createSessionControlStream(remote, { accept: (frame) => { accepted.push(frame) }, failed: failure.resolve })
++    try {
++      stream.start()
++      await failure.promise
++      const recovery = stream.recover()
++      expect(stream.recover()).toBe(recovery)
++      expect(accepted).toEqual([])
++      gate.resolve(undefined)
++      await recovery
++      await vi.waitFor(() => { expect(accepted.map(frame => frame.type)).toEqual(['baseline', 'projection-invalidated']) })
++    } finally { gate.resolve(undefined); await stream.dispose() }
++  })
++
++  it('cancels a recovered control opening and rejects its late baseline after disposal', async () => {
++    const failure = Promise.withResolvers<unknown>()
++    const entered = Promise.withResolvers<undefined>()
++    const accepted: SessionControlFrame[] = []
++    let opened = false
++    const provider = new ScriptedSessionRemote([], [])
++    const remote = sessionClient({
++      follow: provider.follow.bind(provider), page: provider.page.bind(provider),
++      control: signal => streamHandle((async function* () {
++        if (!opened) { opened = true; throw new RemoteError('gateway/internal', 'controlled failure', {}) }
++        entered.resolve(undefined)
++        if (!signal?.aborted) await new Promise<void>((resolve) => {
++          signal?.addEventListener('abort', () => { resolve() }, { once: true })
++        })
++        yield { type: 'baseline' as const, value: { projections: {} } }
++      })()),
++    })
++    const stream = createSessionControlStream(remote, { accept: (frame) => { accepted.push(frame) }, failed: failure.resolve })
++    stream.start()
++    await failure.promise
++    const recovery = stream.recover()
++    const rejected = expect(recovery).rejects.toThrow('Session control observer disposed')
++    await entered.promise
++    await stream.dispose()
++    await rejected
++    expect(accepted).toEqual([])
++  })
++
+   it('maps the Host-wide control baseline and deltas into one snapshot stream', async () => {
+     const baseline: SessionControlFrame = {
+       type: 'baseline',
 diff --git a/packages/api/session-controller/tsconfig.client.json b/packages/api/session-controller/tsconfig.client.json
 index a1375420..eb36c481 100644
 --- a/packages/api/session-controller/tsconfig.client.json
@@ -2519,3 +3121,27 @@ index e657bf3f..ded6672c 100644
        "@deepseek-ai/dsh-api-session-controller/remote-events": ["./packages/api/session-controller/src/remote-events.ts"],
        "@deepseek-ai/dsh-api-settings-controller": ["./packages/api/settings-controller/src/index.ts"],
        "@deepseek-ai/dsh-api-settings-controller/types": ["./packages/api/settings-controller/src/types.ts"],
+diff --git a/tsconfig.client.json b/tsconfig.client.json
+index f5159615..5aeb9dce 100644
+--- a/tsconfig.client.json
++++ b/tsconfig.client.json
+@@ -14,6 +14,7 @@
+     "types": ["node"]
+   },
+   "include": [
++    "packages/api/session-controller/tests/projection-staging.perf.ts",
+     // The native/renderer keyboard fixture imports only these Cordis-free Desktop modules.
+     "apps/desktop/tests/keyboard.spec.ts",
+     "apps/desktop/src/keyboard.ts",
+diff --git a/tsconfig.host.json b/tsconfig.host.json
+index 31c80a81..5b6c87b2 100644
+--- a/tsconfig.host.json
++++ b/tsconfig.host.json
+@@ -268,6 +268,7 @@
+   // suffixes are mutually exclusive, so each aggregate excludes the other's
+   // and the package test glob above needs no per-file entry.
+   "exclude": [
++    "packages/api/session-controller/tests/projection-staging.perf.ts",
+     "apps/desktop/tests/keyboard.spec.ts",
+     "packages/client/*/src/**",
+     "benchmarks/**/*.client.ts",

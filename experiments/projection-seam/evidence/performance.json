@@ -1,0 +1,522 @@
+{
+  "command": [
+    "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+    "/workspace/work/omp-webui-ticket-40-review-fix/experiments/projection-seam/performance.py",
+    "/workspace/work/omp-webui-ticket-40-review-fix/vendor/dsh",
+    "/workspace/work/omp-webui-ticket-40/vendor/dsh",
+    "--output",
+    "/workspace/work/omp-webui-ticket-40-review-fix/experiments/projection-seam/evidence/performance.json"
+  ],
+  "cwd": "/workspace/work/omp-webui-ticket-40-review-fix",
+  "scope": "local #40 public ClientSessions staging diagnostic; not #60 product benchmark",
+  "fixedSourceTree": "1e1207058448079f0c7e45287c4fd39dca7d2de2",
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "node": "24.22.1",
+    "cpu": "AMD EPYC 9V74 80-Core Processor",
+    "logicalCpus": 5,
+    "vitest": "4.1.11",
+    "storage": "overlayfs",
+    "memTotal": "MemTotal:       18440100 kB",
+    "virtualization": "container-other"
+  },
+  "input": {
+    "baseline": "one 1,300,000-character U+754C payload; complete baseline 3,900,105 UTF-8 bytes",
+    "updates": "200 sequential title updates control-0-\u00e9 through control-199-\u00e9 at seq2..201",
+    "operation": "retain actual Client Session, hold public Remote follow, invalidate, complete typed Remote control baseline then updates through the actual observer; assert rebuilding and no premature publication",
+    "cache": "fresh Vitest fork each sample; filesystem/module caches warm after two unscored runs",
+    "sha256": "cb38ca7795021f86f95dc34305c47bc542acbb78db9495f9c6c2c67607c50925",
+    "serializedCorpusBytes": 3937491
+  },
+  "measurement": {
+    "runtime": "one performance.now interval around baseline +200 updates through public typed Remote control and Session-owned observer; no hooks inside production algorithm",
+    "peak": "external /proc/PID/status VmRSS polling every5ms after start marker, plus process OS maxRSS (includes earlier boot high-water)",
+    "steady": "process.memoryUsage after public client.flush, full GC, another public flush and full GC; baseline and last update remain staged",
+    "warmups": 2,
+    "scored": 5,
+    "gcRequired": true,
+    "order": "reviewed/fixed pairs for each sample, fresh fork every operation batch"
+  },
+  "algorithms": {
+    "reviewed89f": {
+      "sourceFileSha256": "d9eb81208e213d1e95275cf6ebe691fc2aa5b0e8b35e8e5c277db69577b8dee3",
+      "samples": [
+        {
+          "runtimeMs": 2024.334962,
+          "before": {
+            "rss": 125562880,
+            "heapTotal": 104943616,
+            "heapUsed": 33763608,
+            "external": 3481749,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 131977216,
+            "heapTotal": 106496000,
+            "heapUsed": 33927936,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 216632,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 0,
+          "warmup": true,
+          "sampledPeakRssKiB": 216976,
+          "rssSamples": 381,
+          "loadAverageAtStart": [
+            "0.17",
+            "0.43",
+            "0.96"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17320500 kB"
+        },
+        {
+          "runtimeMs": 2305.0953329999998,
+          "before": {
+            "rss": 125349888,
+            "heapTotal": 105467904,
+            "heapUsed": 33746096,
+            "external": 3482763,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 127758336,
+            "heapTotal": 106496000,
+            "heapUsed": 33928680,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 222788,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 1,
+          "warmup": true,
+          "sampledPeakRssKiB": 222920,
+          "rssSamples": 411,
+          "loadAverageAtStart": [
+            "0.23",
+            "0.44",
+            "0.96"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17100004 kB"
+        },
+        {
+          "runtimeMs": 2752.9899670000004,
+          "before": {
+            "rss": 125480960,
+            "heapTotal": 104943616,
+            "heapUsed": 33764504,
+            "external": 3481049,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 128552960,
+            "heapTotal": 106496000,
+            "heapUsed": 33930688,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 228276,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 2,
+          "warmup": false,
+          "sampledPeakRssKiB": 228368,
+          "rssSamples": 488,
+          "loadAverageAtStart": [
+            "0.35",
+            "0.46",
+            "0.96"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17172636 kB"
+        },
+        {
+          "runtimeMs": 2533.631943,
+          "before": {
+            "rss": 125960192,
+            "heapTotal": 104943616,
+            "heapUsed": 33778248,
+            "external": 3481327,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 132554752,
+            "heapTotal": 106233856,
+            "heapUsed": 33940184,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 223356,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 3,
+          "warmup": false,
+          "sampledPeakRssKiB": 223812,
+          "rssSamples": 468,
+          "loadAverageAtStart": [
+            "0.53",
+            "0.50",
+            "0.97"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17177952 kB"
+        },
+        {
+          "runtimeMs": 2493.311957,
+          "before": {
+            "rss": 125632512,
+            "heapTotal": 104943616,
+            "heapUsed": 33762432,
+            "external": 3482434,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 128593920,
+            "heapTotal": 106233856,
+            "heapUsed": 33926880,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 223376,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 4,
+          "warmup": false,
+          "sampledPeakRssKiB": 223744,
+          "rssSamples": 461,
+          "loadAverageAtStart": [
+            "0.68",
+            "0.53",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17198364 kB"
+        },
+        {
+          "runtimeMs": 2403.052176,
+          "before": {
+            "rss": 125345792,
+            "heapTotal": 105730048,
+            "heapUsed": 33764504,
+            "external": 3415748,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 164528128,
+            "heapTotal": 173342720,
+            "heapUsed": 33944112,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 216328,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 5,
+          "warmup": false,
+          "sampledPeakRssKiB": 216532,
+          "rssSamples": 427,
+          "loadAverageAtStart": [
+            "0.70",
+            "0.54",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17125644 kB"
+        },
+        {
+          "runtimeMs": 2351.6988560000004,
+          "before": {
+            "rss": 124903424,
+            "heapTotal": 104157184,
+            "heapUsed": 33751808,
+            "external": 3417087,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 164196352,
+            "heapTotal": 173080576,
+            "heapUsed": 33939312,
+            "external": 2817415,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 215908,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 6,
+          "warmup": false,
+          "sampledPeakRssKiB": 215900,
+          "rssSamples": 438,
+          "loadAverageAtStart": [
+            "0.75",
+            "0.55",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17262404 kB"
+        }
+      ],
+      "medianRuntimeMs": 2493.311957,
+      "maximumRuntimeMs": 2752.9899670000004,
+      "maximumSampledPeakRssKiB": 228368,
+      "maximumOsHighWaterRssKiB": 228276,
+      "medianSteadyRssBytes": 132554752,
+      "medianSteadyHeapUsedBytes": 33939312,
+      "medianSteadyExternalBytes": 2817415,
+      "medianSteadyHeapPlusExternalBytes": 36756727
+    },
+    "fixed": {
+      "sourceFileSha256": "241177ab3f05e9fcfb638707497b60722fc4d3dc722928a9251e1cf63f4d46ba",
+      "samples": [
+        {
+          "runtimeMs": 39.320758999999725,
+          "before": {
+            "rss": 125435904,
+            "heapTotal": 103895040,
+            "heapUsed": 33792016,
+            "external": 3482712,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 131981312,
+            "heapTotal": 107020288,
+            "heapUsed": 36429024,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 131324,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 0,
+          "warmup": true,
+          "sampledPeakRssKiB": 131760,
+          "rssSamples": 10,
+          "loadAverageAtStart": [
+            "0.23",
+            "0.44",
+            "0.96"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17200128 kB"
+        },
+        {
+          "runtimeMs": 16.626361999999972,
+          "before": {
+            "rss": 126009344,
+            "heapTotal": 104681472,
+            "heapUsed": 33781576,
+            "external": 3483417,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 132620288,
+            "heapTotal": 107282432,
+            "heapUsed": 36417032,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 131980,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 1,
+          "warmup": true,
+          "sampledPeakRssKiB": 132536,
+          "rssSamples": 6,
+          "loadAverageAtStart": [
+            "0.29",
+            "0.45",
+            "0.96"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   16963180 kB"
+        },
+        {
+          "runtimeMs": 18.962241000000176,
+          "before": {
+            "rss": 124649472,
+            "heapTotal": 105205760,
+            "heapUsed": 33765504,
+            "external": 3415748,
+            "arrayBuffers": 802051
+          },
+          "steady": {
+            "rss": 131264512,
+            "heapTotal": 107544576,
+            "heapUsed": 36418752,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 130608,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 2,
+          "warmup": false,
+          "sampledPeakRssKiB": 130988,
+          "rssSamples": 7,
+          "loadAverageAtStart": [
+            "0.48",
+            "0.49",
+            "0.97"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17018016 kB"
+        },
+        {
+          "runtimeMs": 14.335712000000058,
+          "before": {
+            "rss": 125476864,
+            "heapTotal": 104419328,
+            "heapUsed": 33782256,
+            "external": 3481749,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 131915776,
+            "heapTotal": 107020288,
+            "heapUsed": 36418616,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 131376,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 3,
+          "warmup": false,
+          "sampledPeakRssKiB": 131772,
+          "rssSamples": 5,
+          "loadAverageAtStart": [
+            "0.56",
+            "0.50",
+            "0.97"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17100608 kB"
+        },
+        {
+          "runtimeMs": 24.627919999999904,
+          "before": {
+            "rss": 126222336,
+            "heapTotal": 104419328,
+            "heapUsed": 33784792,
+            "external": 3483417,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 132714496,
+            "heapTotal": 107282432,
+            "heapUsed": 36418776,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 132020,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 4,
+          "warmup": false,
+          "sampledPeakRssKiB": 132892,
+          "rssSamples": 9,
+          "loadAverageAtStart": [
+            "0.70",
+            "0.54",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17047080 kB"
+        },
+        {
+          "runtimeMs": 18.58144799999991,
+          "before": {
+            "rss": 131600384,
+            "heapTotal": 70340608,
+            "heapUsed": 33789240,
+            "external": 4380010,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 138100736,
+            "heapTotal": 72941568,
+            "heapUsed": 36429168,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 137284,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 5,
+          "warmup": false,
+          "sampledPeakRssKiB": 137592,
+          "rssSamples": 7,
+          "loadAverageAtStart": [
+            "0.75",
+            "0.55",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17176096 kB"
+        },
+        {
+          "runtimeMs": 20.612383000000136,
+          "before": {
+            "rss": 126181376,
+            "heapTotal": 104157184,
+            "heapUsed": 33779096,
+            "external": 3482434,
+            "arrayBuffers": 210026
+          },
+          "steady": {
+            "rss": 132767744,
+            "heapTotal": 106758144,
+            "heapUsed": 36416160,
+            "external": 2823468,
+            "arrayBuffers": 210026
+          },
+          "maxRssKiB": 132176,
+          "gcAvailable": true,
+          "baselineBytes": 3900105,
+          "updates": 200,
+          "finalPhase": "rebuilding",
+          "sample": 6,
+          "warmup": false,
+          "sampledPeakRssKiB": 132452,
+          "rssSamples": 6,
+          "loadAverageAtStart": [
+            "0.86",
+            "0.58",
+            "0.98"
+          ],
+          "availableMemoryAtStart": "MemAvailable:   17083216 kB"
+        }
+      ],
+      "medianRuntimeMs": 18.962241000000176,
+      "maximumRuntimeMs": 24.627919999999904,
+      "maximumSampledPeakRssKiB": 137592,
+      "maximumOsHighWaterRssKiB": 137284,
+      "medianSteadyRssBytes": 132714496,
+      "medianSteadyHeapUsedBytes": 36418752,
+      "medianSteadyExternalBytes": 2823468,
+      "medianSteadyHeapPlusExternalBytes": 39242220
+    }
+  },
+  "reviewedSourceTree": "89f725caab557041ab8ad5fb97ce4d296c1f6c92",
+  "limitations": [
+    "RSS is process-wide, including public test-runtime boot; sampled peak includes post-workload GC and settlement. OS high-water can precede measured interval.",
+    "Shared container CPU load is not isolated; adjacent reviewed/fixed pairs and all sample/load data are reported. Five scored local samples locate this changed path; no browser/Host/native latency, product targets, cgroup pressure or Windows claim.",
+    "Both algorithms successfully admit the same input. Only projection-store.ts is substituted; test/runtime/provider/Session control observer and operations are identical; the isolated comparison measures the staging algorithm delta."
+  ]
+}

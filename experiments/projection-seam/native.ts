@@ -51,13 +51,24 @@ export async function openNativeProjection(){
       finally{polling=false;}}
     const timer=setInterval(()=>{void poll();},25);
     return {port,bridge,get journal(){return journal;},binding,
-      async ready(){await rebuilding;if(failure)throw Error(failure);},
+      async ready(signal?:AbortSignal){
+        const cancelled=Promise.withResolvers<never>();
+        const abort=()=>cancelled.reject(signal?.reason??Error('projection_open_cancelled'));
+        signal?.addEventListener('abort',abort,{once:true});
+        try{
+          if(signal?.aborted)abort();
+          for(;;){const pending=rebuilding;await Promise.race([pending,cancelled.promise]);
+            if(pending!==rebuilding)continue;if(failure)throw Error(failure);return;}
+        }finally{signal?.removeEventListener('abort',abort);}
+      },
       info(){return {sessionId:journal.sessionId,projection:binding(),cut:journal.opened.cut,failure,
-        interaction:bridge.snapshot(),process:port.frames.find(frame=>frame.type==='extension_ui_request'&&typeof frame.message==='string'&&frame.message.includes('projection-native-process')),
+        historyFault:port.historyFault(),rebuilding:rebuilding!==undefined,interaction:bridge.snapshot(),process:port.frames.find(frame=>frame.type==='extension_ui_request'&&typeof frame.message==='string'&&frame.message.includes('projection-native-process')),
         compatibility:compatibilityBuild,preflight,closure};},
       subscribe(listener:()=>void){listeners.add(listener);return()=>{listeners.delete(listener);};},
-      async retry(){if(!failure)return;failure=undefined;rebuilding=(async()=>{journal=await LiveJournal.open(port.history);})();try{await rebuilding;}finally{rebuilding=undefined;}},
-      async close(){stopped=true;clearInterval(timer);bridge.dispose();const drain=await port.close();
+      async retry(){if(!failure)return;failure=undefined;
+        rebuilding=(async()=>{try{journal=await LiveJournal.open(port.history);}catch(error){failure=String(error);throw error;}})();
+        try{await rebuilding;}finally{rebuilding=undefined;}},
+      async close(){stopped=true;port.releaseHistory(true);clearInterval(timer);bridge.dispose();const drain=await port.close();
         try {const trace=await Bun.file(join(profile,'network.strace')).text();const audit=await Bun.file(join(profile,'network-audit.json')).json();
           return {drain,audit,traceSha256:Bun.SHA256.hash(trace,'hex'),inetConnects:trace.split('\n').filter(line=>/connect\(.*sa_family=AF_INET6?\b/.test(line)).length,
             inetSends:trace.split('\n').filter(line=>/send(to|msg)\(.*sa_family=AF_INET6?\b/.test(line)).length,trace};}

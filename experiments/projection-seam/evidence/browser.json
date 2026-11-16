@@ -1,7 +1,7 @@
 {
   "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
   "scope": "Synthetic public Client/Remote/provider + real Gateway Agent invocation; native worker pending",
-  "base": "http://127.0.0.1:42847",
+  "base": "http://127.0.0.1:33755",
   "checks": [
     "two tabs share synthetic Session identity; independent drafts and multiple holders retain exact execution binding",
     "negative controls: physical follow restart and Connection ready keep the same generation and original rows",
@@ -27,7 +27,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "b664de25-0133-4c2b-9fed-0a36477ce86a",
+        "rpcId": "8c92ab30-bb5a-467a-9451-a6c3f4508873",
         "result": {
           "ok": true,
           "value": {
@@ -44,7 +44,7 @@
             "_request": {}
           }
         },
-        "rpcId": "5cc3d48a-25fc-422f-a710-6c9c314e5db2",
+        "rpcId": "f00686b9-97c1-4dc8-9abe-a22486faf353",
         "result": {
           "ok": true,
           "value": {
@@ -76,7 +76,7 @@
             "_request": {}
           }
         },
-        "rpcId": "3312fb12-ee33-42d4-ac95-ef06078a09bf",
+        "rpcId": "e9c0a79a-689f-45ab-8398-ca488bd21be7",
         "result": {
           "ok": true,
           "value": {
@@ -106,7 +106,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "ea14bcdf-bdc3-45c0-87ad-fec1bd66e2e4",
+        "rpcId": "283c65c2-581a-4ccb-9e98-c47cf642ebfa",
         "result": {
           "ok": true,
           "value": {
@@ -121,7 +121,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "a5f323fb-603a-43af-ba48-1cb95ed4d82a",
+        "rpcId": "2815beec-ee16-4478-94ac-5a46db06eda8",
         "result": {
           "ok": true,
           "value": {
@@ -138,7 +138,7 @@
             "_request": {}
           }
         },
-        "rpcId": "d8e58820-abfb-4915-bf3d-45e78b26534f",
+        "rpcId": "7b59fbbe-60f0-432c-92de-b8c8cfad4029",
         "result": {
           "ok": true,
           "value": {
@@ -170,7 +170,7 @@
             "_request": {}
           }
         },
-        "rpcId": "0a5859ef-f9d0-45dd-be5c-e35796d40993",
+        "rpcId": "c47de51d-2de9-41b8-8dfe-2f36e1a4f006",
         "result": {
           "ok": true,
           "value": {
@@ -200,7 +200,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "69243796-a266-40a7-afe8-c8702a15d317",
+        "rpcId": "252704b3-ea89-411d-9d2a-ac094f8f6eca",
         "result": {
           "ok": true,
           "value": {
@@ -217,7 +217,7 @@
             "_request": {}
           }
         },
-        "rpcId": "9c88cd5c-5c9e-4cd1-b986-16728672f5e1",
+        "rpcId": "f756b043-e7b1-4f5d-b260-b8986138e18c",
         "result": {
           "ok": true,
           "value": {
@@ -247,7 +247,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "368ebe20-1059-4172-9178-b8024512338d",
+        "rpcId": "f7d0839d-bb39-4c08-b44f-27c6b2684866",
         "result": {
           "ok": true,
           "value": {
@@ -264,7 +264,7 @@
             "_request": {}
           }
         },
-        "rpcId": "e7d1c304-c19a-4824-9995-be0e17cb8d2d",
+        "rpcId": "a75dc549-ac8f-4f41-a208-ff00cbb2957b",
         "result": {
           "ok": true,
           "value": {
@@ -294,7 +294,7 @@
         "payload": {
           "args": {}
         },
-        "rpcId": "4de810da-76ef-46a8-a19c-5ff25444c75b",
+        "rpcId": "1224839b-bb9f-46f8-8439-e57420fe0511",
         "result": {
           "ok": true,
           "value": {
@@ -327,21 +327,21 @@
             }
           }
         },
-        "rpcId": "7fa66e0e-96b0-413a-9f8e-9428d2336e88"
+        "rpcId": "7e9a2439-1c38-4209-9fa5-6c895800b04b"
       },
       {
         "endpoint": "$events/result",
         "payload": {
           "args": {
-            "clientId": "6b8e8883-284b-45a4-9340-2c6ec89a1c5e",
-            "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+            "clientId": "00a8abd7-734a-4ccf-ba3d-1363a3bbc05d",
+            "eventId": "ce9f2541-5101-429b-b020-11620ef185b5",
             "outcome": {
               "kind": "result",
               "value": "allowed-once"
             }
           }
         },
-        "rpcId": "9c42109c-0dc7-4ac7-8bbc-41c66d14d258",
+        "rpcId": "7de13550-d8cf-4875-858b-1d162bafdc15",
         "result": {
           "ok": true
         }
@@ -351,7 +351,7 @@
         "payload": {
           "args": {
             "request": {
-              "requestId": "2669619c-e942-4315-95ed-72e8637526ec",
+              "requestId": "e4a3dd00-60fa-4461-82ae-97b1261d8c81",
               "sessionId": "fixture-existing",
               "mode": "queue",
               "content": [
@@ -369,7 +369,7 @@
                 },
                 {
                   "type": "text",
-                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb"
+                  "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d"
                 }
               ],
               "clientTimeZone": "Asia/Singapore",
@@ -380,7 +380,7 @@
             }
           }
         },
-        "rpcId": "e4dab3c4-6cdf-4b4a-8e18-6ee2bec21bf4",
+        "rpcId": "17e4c335-ef10-44af-9299-4aad591ff05c",
         "result": {
           "ok": true,
           "value": {
@@ -392,7 +392,7 @@
     "frames": [
       {
         "type": "open",
-        "streamId": "6d565b9b-1f85-4dc7-a1a2-1202eeaab7fa",
+        "streamId": "c3c02b8c-78a0-4735-bedd-9bcd7daf9dbe",
         "endpoint": "remoteAccess/follow",
         "payload": {
           "args": {}
@@ -400,7 +400,7 @@
       },
       {
         "direction": "server",
-        "streamId": "6d565b9b-1f85-4dc7-a1a2-1202eeaab7fa",
+        "streamId": "c3c02b8c-78a0-4735-bedd-9bcd7daf9dbe",
         "value": {
           "type": "baseline",
           "owner": true
@@ -408,7 +408,7 @@
       },
       {
         "type": "open",
-        "streamId": "8d60c683-89ea-4236-ac29-9e36d12a914e",
+        "streamId": "e358d6bc-77b6-4816-b848-ab6edbf13052",
         "endpoint": "workspace/follow",
         "payload": {
           "args": {}
@@ -416,7 +416,7 @@
       },
       {
         "direction": "server",
-        "streamId": "8d60c683-89ea-4236-ac29-9e36d12a914e",
+        "streamId": "e358d6bc-77b6-4816-b848-ab6edbf13052",
         "value": {
           "type": "baseline",
           "value": {
@@ -440,7 +440,7 @@
       },
       {
         "type": "open",
-        "streamId": "d133e973-2719-43c0-be83-69aab11880c6",
+        "streamId": "fecd11d6-18ba-4410-a918-97c23063328e",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -463,7 +463,7 @@
       },
       {
         "direction": "server",
-        "streamId": "d133e973-2719-43c0-be83-69aab11880c6",
+        "streamId": "fecd11d6-18ba-4410-a918-97c23063328e",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -507,7 +507,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -530,7 +530,7 @@
       },
       {
         "type": "open",
-        "streamId": "4a19043e-6c4a-4316-a739-918cf27dc674",
+        "streamId": "e3866757-7e20-4732-887e-3afcf0355778",
         "endpoint": "$events",
         "payload": {
           "args": {}
@@ -538,10 +538,10 @@
       },
       {
         "direction": "server",
-        "streamId": "4a19043e-6c4a-4316-a739-918cf27dc674",
+        "streamId": "e3866757-7e20-4732-887e-3afcf0355778",
         "value": {
           "type": "ready",
-          "clientId": "05331083-32d5-4224-93a0-78cb82ddb99c",
+          "clientId": "af80571d-72dc-48b7-8007-c1d0c4eeb5de",
           "host": {
             "home": "/synthetic-projection-only"
           }
@@ -549,7 +549,7 @@
       },
       {
         "type": "open",
-        "streamId": "a7a8efd2-520f-4846-a72f-fc98c9db0196",
+        "streamId": "a6ba70b7-9750-4bf0-9237-f29d7c6f9e53",
         "endpoint": "session/control",
         "payload": {
           "args": {}
@@ -557,7 +557,7 @@
       },
       {
         "direction": "server",
-        "streamId": "a7a8efd2-520f-4846-a72f-fc98c9db0196",
+        "streamId": "a6ba70b7-9750-4bf0-9237-f29d7c6f9e53",
         "value": {
           "type": "baseline",
           "value": {
@@ -578,7 +578,7 @@
       },
       {
         "type": "open",
-        "streamId": "3f2e39b7-e7eb-4620-aa51-7aa2d4a186da",
+        "streamId": "baefdd48-68ad-4dd5-981e-b84f64202978",
         "endpoint": "remoteAccess/follow",
         "payload": {
           "args": {}
@@ -586,7 +586,7 @@
       },
       {
         "direction": "server",
-        "streamId": "3f2e39b7-e7eb-4620-aa51-7aa2d4a186da",
+        "streamId": "baefdd48-68ad-4dd5-981e-b84f64202978",
         "value": {
           "type": "baseline",
           "owner": true
@@ -594,7 +594,7 @@
       },
       {
         "type": "open",
-        "streamId": "b04f1de2-c3e4-4d65-a8c8-e11a9245a4a1",
+        "streamId": "640e3258-4c99-42de-9511-011f5dfb7a9b",
         "endpoint": "workspace/follow",
         "payload": {
           "args": {}
@@ -602,7 +602,7 @@
       },
       {
         "direction": "server",
-        "streamId": "b04f1de2-c3e4-4d65-a8c8-e11a9245a4a1",
+        "streamId": "640e3258-4c99-42de-9511-011f5dfb7a9b",
         "value": {
           "type": "baseline",
           "value": {
@@ -626,7 +626,7 @@
       },
       {
         "type": "open",
-        "streamId": "d7425b30-d333-4041-b90e-772f1d5be326",
+        "streamId": "a202e525-3661-44dd-b052-aa4f351c00c8",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -649,7 +649,7 @@
       },
       {
         "direction": "server",
-        "streamId": "d7425b30-d333-4041-b90e-772f1d5be326",
+        "streamId": "a202e525-3661-44dd-b052-aa4f351c00c8",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -693,7 +693,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -716,7 +716,7 @@
       },
       {
         "type": "open",
-        "streamId": "c3ae8c07-354e-4905-a2c9-4c93f3e51e00",
+        "streamId": "8e8fcd0f-1899-45c1-b48e-d0aef74e60f7",
         "endpoint": "$events",
         "payload": {
           "args": {}
@@ -724,10 +724,10 @@
       },
       {
         "direction": "server",
-        "streamId": "c3ae8c07-354e-4905-a2c9-4c93f3e51e00",
+        "streamId": "8e8fcd0f-1899-45c1-b48e-d0aef74e60f7",
         "value": {
           "type": "ready",
-          "clientId": "a18fd302-b3e4-4346-8478-4befe4b65340",
+          "clientId": "caa847a5-6fae-455d-9ce0-576e59142d80",
           "host": {
             "home": "/synthetic-projection-only"
           }
@@ -735,7 +735,7 @@
       },
       {
         "type": "open",
-        "streamId": "0c2cd932-126a-4784-9e87-3540725ac170",
+        "streamId": "c232011a-e379-4f36-a3c2-f066a6109a95",
         "endpoint": "session/control",
         "payload": {
           "args": {}
@@ -743,7 +743,7 @@
       },
       {
         "direction": "server",
-        "streamId": "0c2cd932-126a-4784-9e87-3540725ac170",
+        "streamId": "c232011a-e379-4f36-a3c2-f066a6109a95",
         "value": {
           "type": "baseline",
           "value": {
@@ -764,7 +764,7 @@
       },
       {
         "type": "open",
-        "streamId": "9e380949-c4a7-41b6-8206-82d0a0b1949c",
+        "streamId": "8aecc04a-f7e0-44d5-bb97-8d28bf7cb846",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -791,7 +791,7 @@
       },
       {
         "direction": "server",
-        "streamId": "9e380949-c4a7-41b6-8206-82d0a0b1949c",
+        "streamId": "8aecc04a-f7e0-44d5-bb97-8d28bf7cb846",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -835,7 +835,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -858,7 +858,7 @@
       },
       {
         "type": "open",
-        "streamId": "02256a98-e1db-4d77-933b-dd00c54c1aad",
+        "streamId": "ba36dabc-acd4-4227-a89e-e5387cd119a3",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -885,7 +885,7 @@
       },
       {
         "direction": "server",
-        "streamId": "02256a98-e1db-4d77-933b-dd00c54c1aad",
+        "streamId": "ba36dabc-acd4-4227-a89e-e5387cd119a3",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -929,7 +929,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -952,7 +952,7 @@
       },
       {
         "type": "open",
-        "streamId": "e9f3c566-670d-46ac-a717-d7f3379635d2",
+        "streamId": "cf611ea5-7e4c-451e-9e51-3af9c1f86acc",
         "endpoint": "remoteAccess/follow",
         "payload": {
           "args": {}
@@ -960,7 +960,7 @@
       },
       {
         "direction": "server",
-        "streamId": "e9f3c566-670d-46ac-a717-d7f3379635d2",
+        "streamId": "cf611ea5-7e4c-451e-9e51-3af9c1f86acc",
         "value": {
           "type": "baseline",
           "owner": true
@@ -968,7 +968,7 @@
       },
       {
         "type": "open",
-        "streamId": "538bf792-f611-4ad7-a874-49e20bc4c588",
+        "streamId": "8bfd2cd7-22ce-49cc-9c6a-d24c744b894f",
         "endpoint": "workspace/follow",
         "payload": {
           "args": {}
@@ -976,7 +976,7 @@
       },
       {
         "direction": "server",
-        "streamId": "538bf792-f611-4ad7-a874-49e20bc4c588",
+        "streamId": "8bfd2cd7-22ce-49cc-9c6a-d24c744b894f",
         "value": {
           "type": "baseline",
           "value": {
@@ -1000,7 +1000,7 @@
       },
       {
         "type": "open",
-        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c",
+        "streamId": "1db7b7bb-06f8-4dc3-bf1b-dc0e8ee90778",
         "endpoint": "session/control",
         "payload": {
           "args": {}
@@ -1008,7 +1008,7 @@
       },
       {
         "direction": "server",
-        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c",
+        "streamId": "1db7b7bb-06f8-4dc3-bf1b-dc0e8ee90778",
         "value": {
           "type": "baseline",
           "value": {
@@ -1029,7 +1029,7 @@
       },
       {
         "type": "open",
-        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861",
+        "streamId": "bab74a71-68f7-4c78-aa02-d9dd9e25be5f",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1056,7 +1056,7 @@
       },
       {
         "direction": "server",
-        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861",
+        "streamId": "bab74a71-68f7-4c78-aa02-d9dd9e25be5f",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1100,7 +1100,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1123,7 +1123,7 @@
       },
       {
         "type": "open",
-        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "streamId": "d4f65778-202e-4ab9-bdd0-6758757a954d",
         "endpoint": "$events",
         "payload": {
           "args": {}
@@ -1131,233 +1131,10 @@
       },
       {
         "direction": "server",
-        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "streamId": "d4f65778-202e-4ab9-bdd0-6758757a954d",
         "value": {
           "type": "ready",
-          "clientId": "acfe019f-54b7-4e96-9ede-e82e70e0bc9f",
-          "host": {
-            "home": "/synthetic-projection-only"
-          }
-        }
-      },
-      {
-        "type": "cancel",
-        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c"
-      },
-      {
-        "type": "open",
-        "streamId": "79add5ca-5b14-4ffd-afac-f4717f041885",
-        "endpoint": "session/control",
-        "payload": {
-          "args": {}
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "79add5ca-5b14-4ffd-afac-f4717f041885",
-        "value": {
-          "type": "baseline",
-          "value": {
-            "projections": {
-              "fixture-existing": {
-                "projection": {
-                  "source": "verified-synthetic-source-session",
-                  "generation": "projection-1"
-                },
-                "asOfSeq": 6,
-                "values": {
-                  "title": "OFF BRANCH ORIGINAL"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "type": "open",
-        "streamId": "d1aad77b-83b4-4632-8190-b51eafc8b4df",
-        "endpoint": "remoteAccess/follow",
-        "payload": {
-          "args": {}
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "d1aad77b-83b4-4632-8190-b51eafc8b4df",
-        "value": {
-          "type": "baseline",
-          "owner": true
-        }
-      },
-      {
-        "type": "open",
-        "streamId": "fa0ef69e-9dde-4f3e-bb17-e28853ff0565",
-        "endpoint": "workspace/follow",
-        "payload": {
-          "args": {}
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "fa0ef69e-9dde-4f3e-bb17-e28853ff0565",
-        "value": {
-          "type": "baseline",
-          "value": {
-            "items": [
-              {
-                "workspaceId": "fixture-ws",
-                "path": "/fixture/project",
-                "title": "Fixture project",
-                "sessionIds": [
-                  "fixture-existing",
-                  "fixture-second"
-                ],
-                "createdAt": "2026-01-01T00:00:00.000Z",
-                "updatedAt": "2026-01-01T00:00:00.000Z"
-              }
-            ],
-            "archivedSessionIds": [],
-            "pinnedSessionIds": []
-          }
-        }
-      },
-      {
-        "type": "open",
-        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34",
-        "endpoint": "session/control",
-        "payload": {
-          "args": {}
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34",
-        "value": {
-          "type": "baseline",
-          "value": {
-            "projections": {
-              "fixture-existing": {
-                "projection": {
-                  "source": "verified-synthetic-source-session",
-                  "generation": "projection-1"
-                },
-                "asOfSeq": 6,
-                "values": {
-                  "title": "OFF BRANCH ORIGINAL"
-                }
-              }
-            }
-          }
-        }
-      },
-      {
-        "type": "open",
-        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784",
-        "endpoint": "session/follow",
-        "payload": {
-          "args": {
-            "request": {
-              "address": {
-                "kind": "session",
-                "sessionId": "fixture-existing"
-              },
-              "activate": true,
-              "assistantStream": true,
-              "projectionRebuild": true,
-              "projection": {
-                "source": "verified-synthetic-source-session",
-                "generation": "projection-1"
-              },
-              "maxMessages": 500,
-              "turnWindow": {
-                "minMessages": 50,
-                "minTurns": 2
-              }
-            }
-          }
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784",
-        "value": {
-          "type": "snapshot",
-          "projection": {
-            "source": "verified-synthetic-source-session",
-            "generation": "projection-1"
-          },
-          "header": {
-            "version": 4,
-            "id": "fixture-existing",
-            "createdAt": 1767225600000,
-            "isSeeded": false
-          },
-          "cursor": 6,
-          "records": [
-            {
-              "type": "event",
-              "event": {
-                "type": "turn/start",
-                "seq": 5,
-                "time": 1700000000000,
-                "data": {
-                  "turn": 0
-                }
-              }
-            },
-            {
-              "type": "event",
-              "event": {
-                "seq": 6,
-                "time": 1700000000000,
-                "type": "user/message",
-                "surfaceOp": "append",
-                "data": {
-                  "content": [
-                    {
-                      "type": "text",
-                      "text": "OFF BRANCH ORIGINAL"
-                    }
-                  ],
-                  "source": {
-                    "kind": "user"
-                  },
-                  "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
-                }
-              }
-            }
-          ],
-          "hasMore": true,
-          "projections": {
-            "projection": {
-              "source": "verified-synthetic-source-session",
-              "generation": "projection-1"
-            },
-            "asOfSeq": 6,
-            "values": {
-              "title": "OFF BRANCH ORIGINAL"
-            }
-          },
-          "assistantStream": {
-            "revision": 0
-          }
-        }
-      },
-      {
-        "type": "open",
-        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
-        "endpoint": "$events",
-        "payload": {
-          "args": {}
-        }
-      },
-      {
-        "direction": "server",
-        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
-        "value": {
-          "type": "ready",
-          "clientId": "6b8e8883-284b-45a4-9340-2c6ec89a1c5e",
+          "clientId": "a016944a-fb68-42c7-83ad-74c4976c7846",
           "host": {
             "home": "/synthetic-projection-only"
           }
@@ -1365,11 +1142,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34"
+        "streamId": "1db7b7bb-06f8-4dc3-bf1b-dc0e8ee90778"
       },
       {
         "type": "open",
-        "streamId": "532d36bb-b303-44e5-be31-894706f170b0",
+        "streamId": "b9c4f2a4-23bf-409f-bb30-525a47197f48",
         "endpoint": "session/control",
         "payload": {
           "args": {}
@@ -1377,7 +1154,230 @@
       },
       {
         "direction": "server",
-        "streamId": "532d36bb-b303-44e5-be31-894706f170b0",
+        "streamId": "b9c4f2a4-23bf-409f-bb30-525a47197f48",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "67698aa7-7419-409a-93b8-f479d65fb406",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "67698aa7-7419-409a-93b8-f479d65fb406",
+        "value": {
+          "type": "baseline",
+          "owner": true
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "856eb511-4e8b-459b-8612-fa24ead36d89",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "856eb511-4e8b-459b-8612-fa24ead36d89",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "items": [
+              {
+                "workspaceId": "fixture-ws",
+                "path": "/fixture/project",
+                "title": "Fixture project",
+                "sessionIds": [
+                  "fixture-existing",
+                  "fixture-second"
+                ],
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            ],
+            "archivedSessionIds": [],
+            "pinnedSessionIds": []
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "ad14cd01-ddfd-4f5d-a919-b7f20d43241c",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "ad14cd01-ddfd-4f5d-a919-b7f20d43241c",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "a1331432-056e-454e-b699-27228e04764a",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "a1331432-056e-454e-b699-27228e04764a",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "fc6a221b-ff0f-47e1-adc0-9fb5ec963818",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "fc6a221b-ff0f-47e1-adc0-9fb5ec963818",
+        "value": {
+          "type": "ready",
+          "clientId": "00a8abd7-734a-4ccf-ba3d-1363a3bbc05d",
+          "host": {
+            "home": "/synthetic-projection-only"
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "ad14cd01-ddfd-4f5d-a919-b7f20d43241c"
+      },
+      {
+        "type": "open",
+        "streamId": "3abfb41a-58b7-4e40-86bf-89e413885dfb",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "3abfb41a-58b7-4e40-86bf-89e413885dfb",
         "value": {
           "type": "baseline",
           "value": {
@@ -1398,11 +1398,11 @@
       },
       {
         "direction": "server",
-        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "streamId": "d4f65778-202e-4ab9-bdd0-6758757a954d",
         "value": {
           "type": "waterfall",
           "event": "approval/request",
-          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+          "eventId": "ce9f2541-5101-429b-b020-11620ef185b5",
           "agentId": "fixture-existing",
           "request": {
             "toolName": "synthetic projection fixture",
@@ -1412,11 +1412,11 @@
       },
       {
         "direction": "server",
-        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
+        "streamId": "fc6a221b-ff0f-47e1-adc0-9fb5ec963818",
         "value": {
           "type": "waterfall",
           "event": "approval/request",
-          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+          "eventId": "ce9f2541-5101-429b-b020-11620ef185b5",
           "agentId": "fixture-existing",
           "request": {
             "toolName": "synthetic projection fixture",
@@ -1426,7 +1426,7 @@
       },
       {
         "type": "open",
-        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f",
+        "streamId": "1592fb07-09bf-4ba4-b004-ac21594fac83",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1453,7 +1453,7 @@
       },
       {
         "direction": "server",
-        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f",
+        "streamId": "1592fb07-09bf-4ba4-b004-ac21594fac83",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1497,7 +1497,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1520,11 +1520,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861"
+        "streamId": "a1331432-056e-454e-b699-27228e04764a"
       },
       {
         "type": "open",
-        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218",
+        "streamId": "67f45980-6a09-429e-bb04-803d7eca9a85",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1551,7 +1551,7 @@
       },
       {
         "direction": "server",
-        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218",
+        "streamId": "67f45980-6a09-429e-bb04-803d7eca9a85",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1595,7 +1595,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1618,11 +1618,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784"
+        "streamId": "bab74a71-68f7-4c78-aa02-d9dd9e25be5f"
       },
       {
         "type": "open",
-        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe",
+        "streamId": "27684bd1-6856-4810-b865-2f5803fba449",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1649,7 +1649,7 @@
       },
       {
         "direction": "server",
-        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe",
+        "streamId": "27684bd1-6856-4810-b865-2f5803fba449",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1693,7 +1693,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1716,11 +1716,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218"
+        "streamId": "1592fb07-09bf-4ba4-b004-ac21594fac83"
       },
       {
         "type": "open",
-        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17",
+        "streamId": "4bf6fbfb-8e04-425d-8368-4ccc4188aea4",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1747,7 +1747,7 @@
       },
       {
         "direction": "server",
-        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17",
+        "streamId": "4bf6fbfb-8e04-425d-8368-4ccc4188aea4",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1791,7 +1791,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1814,19 +1814,19 @@
       },
       {
         "type": "cancel",
-        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f"
+        "streamId": "67f45980-6a09-429e-bb04-803d7eca9a85"
       },
       {
         "direction": "server",
-        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "streamId": "d4f65778-202e-4ab9-bdd0-6758757a954d",
         "value": {
           "type": "cancel",
-          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac"
+          "eventId": "ce9f2541-5101-429b-b020-11620ef185b5"
         }
       },
       {
         "type": "open",
-        "streamId": "7abb02c6-7855-454d-9b07-bd6f4eeb371b",
+        "streamId": "aaae2a3f-7599-4082-9d9b-ccb00671174f",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1853,11 +1853,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe"
+        "streamId": "27684bd1-6856-4810-b865-2f5803fba449"
       },
       {
         "type": "open",
-        "streamId": "013381db-e480-4e4d-aacf-a8086a4041fa",
+        "streamId": "393e3103-8b2b-4078-82ce-de0519862d97",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1884,11 +1884,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17"
+        "streamId": "4bf6fbfb-8e04-425d-8368-4ccc4188aea4"
       },
       {
         "type": "open",
-        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1",
+        "streamId": "521981b8-ead8-484d-84e8-d4f73b4f00f9",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -1915,7 +1915,7 @@
       },
       {
         "direction": "server",
-        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1",
+        "streamId": "521981b8-ead8-484d-84e8-d4f73b4f00f9",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -1959,7 +1959,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -1982,7 +1982,7 @@
       },
       {
         "type": "open",
-        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162",
+        "streamId": "cfa767a0-4096-4f45-9879-9ac1687eaa13",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2009,7 +2009,7 @@
       },
       {
         "direction": "server",
-        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162",
+        "streamId": "cfa767a0-4096-4f45-9879-9ac1687eaa13",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2053,7 +2053,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2076,7 +2076,7 @@
       },
       {
         "type": "open",
-        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6",
+        "streamId": "e8236457-20e3-43fa-a141-517f55061245",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2103,7 +2103,7 @@
       },
       {
         "direction": "server",
-        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6",
+        "streamId": "e8236457-20e3-43fa-a141-517f55061245",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2147,7 +2147,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2169,12 +2169,8 @@
         }
       },
       {
-        "type": "cancel",
-        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162"
-      },
-      {
         "type": "open",
-        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93",
+        "streamId": "56f22610-9d4e-42d9-909a-2f6bcac249ed",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2201,7 +2197,7 @@
       },
       {
         "direction": "server",
-        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93",
+        "streamId": "56f22610-9d4e-42d9-909a-2f6bcac249ed",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2245,7 +2241,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2268,11 +2264,15 @@
       },
       {
         "type": "cancel",
-        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1"
+        "streamId": "cfa767a0-4096-4f45-9879-9ac1687eaa13"
+      },
+      {
+        "type": "cancel",
+        "streamId": "521981b8-ead8-484d-84e8-d4f73b4f00f9"
       },
       {
         "type": "open",
-        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc",
+        "streamId": "f838e955-9adf-4c86-97e1-cd8de732b24e",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2299,11 +2299,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93"
+        "streamId": "56f22610-9d4e-42d9-909a-2f6bcac249ed"
       },
       {
         "type": "open",
-        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529",
+        "streamId": "cae74946-4414-4ed3-8f4e-cf92cd7c3c65",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2330,11 +2330,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6"
+        "streamId": "e8236457-20e3-43fa-a141-517f55061245"
       },
       {
         "type": "open",
-        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa",
+        "streamId": "3bc82980-1b5d-4664-95b2-67065b8dc9ce",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2361,11 +2361,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc"
+        "streamId": "cae74946-4414-4ed3-8f4e-cf92cd7c3c65"
       },
       {
         "type": "open",
-        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74",
+        "streamId": "1cbc0c0b-db26-4c85-9213-53b508974937",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2392,11 +2392,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529"
+        "streamId": "f838e955-9adf-4c86-97e1-cd8de732b24e"
       },
       {
         "direction": "server",
-        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc",
+        "streamId": "f838e955-9adf-4c86-97e1-cd8de732b24e",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2440,7 +2440,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2463,7 +2463,7 @@
       },
       {
         "direction": "server",
-        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529",
+        "streamId": "cae74946-4414-4ed3-8f4e-cf92cd7c3c65",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2507,7 +2507,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2530,7 +2530,7 @@
       },
       {
         "direction": "server",
-        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa",
+        "streamId": "3bc82980-1b5d-4664-95b2-67065b8dc9ce",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2574,7 +2574,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2597,7 +2597,7 @@
       },
       {
         "direction": "server",
-        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74",
+        "streamId": "1cbc0c0b-db26-4c85-9213-53b508974937",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2641,7 +2641,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2664,7 +2664,7 @@
       },
       {
         "type": "open",
-        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527",
+        "streamId": "3582641f-c128-4111-adf3-efa04d5d5918",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2691,7 +2691,7 @@
       },
       {
         "direction": "server",
-        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527",
+        "streamId": "3582641f-c128-4111-adf3-efa04d5d5918",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2735,7 +2735,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2758,11 +2758,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74"
+        "streamId": "1cbc0c0b-db26-4c85-9213-53b508974937"
       },
       {
         "type": "open",
-        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6",
+        "streamId": "3994ec89-0eea-4c15-b9ea-992772eb285f",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2789,7 +2789,7 @@
       },
       {
         "direction": "server",
-        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6",
+        "streamId": "3994ec89-0eea-4c15-b9ea-992772eb285f",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2833,7 +2833,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2856,11 +2856,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa"
+        "streamId": "3bc82980-1b5d-4664-95b2-67065b8dc9ce"
       },
       {
         "type": "open",
-        "streamId": "6850a9ae-3411-4ef9-9b32-d7b69aa5c623",
+        "streamId": "c88b199e-6eb7-44bf-a58c-3c2b32c2e509",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2887,7 +2887,7 @@
       },
       {
         "direction": "server",
-        "streamId": "6850a9ae-3411-4ef9-9b32-d7b69aa5c623",
+        "streamId": "c88b199e-6eb7-44bf-a58c-3c2b32c2e509",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -2931,7 +2931,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -2954,11 +2954,11 @@
       },
       {
         "type": "cancel",
-        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527"
+        "streamId": "3994ec89-0eea-4c15-b9ea-992772eb285f"
       },
       {
         "type": "open",
-        "streamId": "904c0c8c-d026-4d2e-9dd0-59704c20635d",
+        "streamId": "47760314-0686-4202-a6b2-504e3fe24797",
         "endpoint": "session/follow",
         "payload": {
           "args": {
@@ -2985,7 +2985,7 @@
       },
       {
         "direction": "server",
-        "streamId": "904c0c8c-d026-4d2e-9dd0-59704c20635d",
+        "streamId": "47760314-0686-4202-a6b2-504e3fe24797",
         "value": {
           "type": "snapshot",
           "projection": {
@@ -3029,7 +3029,7 @@
                     "kind": "user"
                   },
                   "role": "user",
-                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                  "id": "72a568c1-54ac-4c4f-8010-ac0e4aa91d24"
                 }
               }
             }
@@ -3052,7 +3052,7 @@
       },
       {
         "type": "cancel",
-        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6"
+        "streamId": "3582641f-c128-4111-adf3-efa04d5d5918"
       }
     ],
     "uploads": [
@@ -3122,18 +3122,18 @@
       {
         "receiptId": "fixture-receipt-8",
         "file": {
-          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
-          "name": "first.txt",
-          "bytes": 22
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
         },
         "sessionId": "fixture-existing"
       },
       {
         "receiptId": "fixture-receipt-9",
         "file": {
-          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
-          "name": "second.txt",
-          "bytes": 23
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
         },
         "sessionId": "fixture-existing"
       },
@@ -3176,18 +3176,18 @@
       {
         "receiptId": "fixture-receipt-14",
         "file": {
-          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
-          "name": "first.txt",
-          "bytes": 22
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
         },
         "sessionId": "fixture-existing"
       },
       {
         "receiptId": "fixture-receipt-15",
         "file": {
-          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
-          "name": "second.txt",
-          "bytes": 23
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
         },
         "sessionId": "fixture-existing"
       },
@@ -3341,7 +3341,7 @@
     },
     "interaction": {
       "phase": "answered",
-      "deadline": 1794840851389,
+      "deadline": 1794849189094,
       "outcome": {
         "kind": "result",
         "value": "allowed-once"
@@ -3363,7 +3363,7 @@
       },
       "semantic": {
         "scope": {
-          "tabOwner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+          "tabOwner": "51326687-329b-4ec4-afc7-8bc07ecac77d",
           "hostContext": "persistent-projection-fixture",
           "sourceContext": "verified-synthetic-source-session",
           "nativeSessionId": "fixture-existing",
@@ -3408,10 +3408,10 @@
           }
         ],
         "unresolved": {
-          "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+          "id": "4066a6c9-59f2-4117-b6dc-9e3a250b5601",
           "ownsDraft": true,
           "draft": {
-            "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+            "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
             "references": []
           },
           "originals": [
@@ -3438,7 +3438,7 @@
           "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
             "record": {
               "draft": {
-                "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
                 "references": []
               },
               "originals": [
@@ -3459,10 +3459,10 @@
                 }
               ],
               "unresolved": {
-                "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+                "id": "4066a6c9-59f2-4117-b6dc-9e3a250b5601",
                 "ownsDraft": true,
                 "draft": {
-                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                  "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
                   "references": []
                 },
                 "originals": [
@@ -3484,14 +3484,14 @@
                 ]
               }
             },
-            "editedAt": 1794840744059
+            "editedAt": 1794849081572
           }
         },
-        "owner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+        "owner": "51326687-329b-4ec4-afc7-8bc07ecac77d",
         "dispatches": {
-          "c4e0c340-d4ae-4a91-9863-3b4f69469e31": {
+          "4066a6c9-59f2-4117-b6dc-9e3a250b5601": {
             "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]",
-            "requestId": "2669619c-e942-4315-95ed-72e8637526ec"
+            "requestId": "e4a3dd00-60fa-4461-82ae-97b1261d8c81"
           }
         }
       },
@@ -3534,7 +3534,7 @@
       },
       "semantic": {
         "scope": {
-          "tabOwner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973",
+          "tabOwner": "49c76cae-609b-4571-b41b-a42ec6a789cb",
           "hostContext": "persistent-projection-fixture",
           "sourceContext": "verified-synthetic-source-session",
           "nativeSessionId": "fixture-existing",
@@ -3567,15 +3567,15 @@
         "readiness": [
           {
             "status": "ready",
-            "attachmentId": "76681a10-2830-44fd-b0da-11bd14e9e828"
+            "attachmentId": "24b814df-c372-4793-afa5-c3e93c8ecc4d"
           },
           {
             "status": "ready",
-            "attachmentId": "00a61a6d-033b-49c5-be7f-9fbd2d18aae8"
+            "attachmentId": "b2ba7b99-ec10-4c2f-9b92-f0923a57897f"
           },
           {
             "status": "ready",
-            "attachmentId": "22d4b49a-062a-4641-9d94-b7bf2c94aaa9"
+            "attachmentId": "a5f1a1d3-f1f6-4e98-bdc5-3d4fb724821c"
           }
         ]
       },
@@ -3605,10 +3605,10 @@
                 }
               ]
             },
-            "editedAt": 1794840739032
+            "editedAt": 1794849076538
           }
         },
-        "owner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973"
+        "owner": "49c76cae-609b-4571-b41b-a42ec6a789cb"
       },
       "bindingStable": true,
       "scopeStable": true,
@@ -3650,7 +3650,7 @@
       },
       "semantic": {
         "scope": {
-          "tabOwner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+          "tabOwner": "51326687-329b-4ec4-afc7-8bc07ecac77d",
           "hostContext": "persistent-projection-fixture",
           "sourceContext": "verified-synthetic-source-session",
           "nativeSessionId": "fixture-existing",
@@ -3695,10 +3695,10 @@
           }
         ],
         "unresolved": {
-          "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+          "id": "4066a6c9-59f2-4117-b6dc-9e3a250b5601",
           "ownsDraft": true,
           "draft": {
-            "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+            "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
             "references": []
           },
           "originals": [
@@ -3725,7 +3725,7 @@
           "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
             "record": {
               "draft": {
-                "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
                 "references": []
               },
               "originals": [
@@ -3746,10 +3746,10 @@
                 }
               ],
               "unresolved": {
-                "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+                "id": "4066a6c9-59f2-4117-b6dc-9e3a250b5601",
                 "ownsDraft": true,
                 "draft": {
-                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                  "text": "Newer edit in 51326687-329b-4ec4-afc7-8bc07ecac77d",
                   "references": []
                 },
                 "originals": [
@@ -3771,14 +3771,14 @@
                 ]
               }
             },
-            "editedAt": 1794840744059
+            "editedAt": 1794849081572
           }
         },
-        "owner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+        "owner": "51326687-329b-4ec4-afc7-8bc07ecac77d",
         "dispatches": {
-          "c4e0c340-d4ae-4a91-9863-3b4f69469e31": {
+          "4066a6c9-59f2-4117-b6dc-9e3a250b5601": {
             "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]",
-            "requestId": "2669619c-e942-4315-95ed-72e8637526ec"
+            "requestId": "e4a3dd00-60fa-4461-82ae-97b1261d8c81"
           }
         }
       },
@@ -3821,7 +3821,7 @@
       },
       "semantic": {
         "scope": {
-          "tabOwner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973",
+          "tabOwner": "49c76cae-609b-4571-b41b-a42ec6a789cb",
           "hostContext": "persistent-projection-fixture",
           "sourceContext": "verified-synthetic-source-session",
           "nativeSessionId": "fixture-existing",
@@ -3854,15 +3854,15 @@
         "readiness": [
           {
             "status": "ready",
-            "attachmentId": "76681a10-2830-44fd-b0da-11bd14e9e828"
+            "attachmentId": "24b814df-c372-4793-afa5-c3e93c8ecc4d"
           },
           {
             "status": "ready",
-            "attachmentId": "00a61a6d-033b-49c5-be7f-9fbd2d18aae8"
+            "attachmentId": "b2ba7b99-ec10-4c2f-9b92-f0923a57897f"
           },
           {
             "status": "ready",
-            "attachmentId": "22d4b49a-062a-4641-9d94-b7bf2c94aaa9"
+            "attachmentId": "a5f1a1d3-f1f6-4e98-bdc5-3d4fb724821c"
           }
         ]
       },
@@ -3892,10 +3892,10 @@
                 }
               ]
             },
-            "editedAt": 1794840739032
+            "editedAt": 1794849076538
           }
         },
-        "owner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973"
+        "owner": "49c76cae-609b-4571-b41b-a42ec6a789cb"
       },
       "bindingStable": true,
       "scopeStable": true,
