@@ -1563,11 +1563,111 @@ export interface HostUriSchemeDefinition {
 	immutable?: boolean;
 }
 
+export type HistoryScope = "tree" | "active" | "running";
+
+export interface HistoryItem {
+	id: string;
+	parentId: string | null;
+	kind: string;
+	active: boolean;
+	text: string;
+	role?: string;
+	timestamp?: string;
+	boundary?: "compaction" | "reset" | "branch";
+}
+
+export interface HistoryCut {
+	sourceId: string;
+	sessionId: string;
+	workerId: string;
+	contextId: string;
+	contentRevision: string;
+	leafId: string | null;
+	observationSeq: number;
+}
+
+export interface HistoryLimits {
+	entries: number;
+	bytes: number;
+	itemBytes: number;
+	ms: number;
+	snapshotBytes: number;
+	cacheBytes: number;
+	snapshots: number;
+	pageItems: number;
+	pageBytes: number;
+	responseBytes: number;
+	ttlMs: number;
+	liveEvents: number;
+	liveBytes: number;
+	pollItems: number;
+}
+
+export interface HistoryOpen {
+	version: "coherent-history-v1";
+	snapshot: string;
+	cursor: string;
+	scope: HistoryScope;
+	cut: HistoryCut;
+	expiresAt: number;
+	count: number;
+	streaming: boolean;
+	compacting: boolean;
+	prefix: HistoryItem | null;
+	scannedBytes: number;
+	scanMs: number;
+	limits: HistoryLimits;
+}
+
+export interface HistoryPage {
+	snapshot: string;
+	scope: HistoryScope;
+	cut: HistoryCut;
+	expiresAt: number;
+	items: HistoryItem[];
+	complete: true;
+	nextCursor?: string;
+}
+
+export interface HistoryChange {
+	seq: number;
+	kind: string;
+}
+
+export interface HistoryPoll {
+	cut: HistoryCut;
+	after: number;
+	through: number;
+	events: HistoryChange[];
+	hasMore: boolean;
+}
+
 /** Unsolicited outbound frame (everything except responses and host tool/URI requests), discriminated by `type`. */
 export type RpcNotification = ReadyEvent | PromptResultEvent | SessionSettledEvent | ExtensionError | ExtensionUiRequest | AvailableCommandsUpdateEvent | SubagentLifecycleEvent | SubagentProgressEvent | SubagentEvent | LivePhaseEvent | LiveLevelsEvent | LiveTranscriptEvent | LiveEndEvent | DictationStateEvent | DictationTranscriptEvent | DictationEndEvent | BtwDeltaEvent | BtwRecordEvent | CommandOutputEvent | SessionInfoUpdateEvent | ConfigUpdateEvent | RpcFrameErrorEvent | RpcAgentEvent;
 
 /** Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`. */
 export type RpcServerFrame = RpcResponse | RpcHostRequest | RpcNotification;
+
+export interface HistorySnapshotOpenParams {
+	scope: HistoryScope;
+}
+
+export interface HistorySnapshotPageParams {
+	cursor: string;
+}
+
+export interface HistorySnapshotCloseParams {
+	snapshot: string;
+}
+
+export interface HistorySnapshotCloseResult {
+	closed: boolean;
+}
+
+export interface HistoryObservationPollParams {
+	workerId: string;
+	after: number;
+}
 
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
@@ -1947,6 +2047,10 @@ export interface GetBtwHistoryResult {
 
 /** Every RPC command's parameters and successful response `data`. */
 export interface RpcWireCommands {
+	history_snapshot_open: { params: HistorySnapshotOpenParams; result: HistoryOpen };
+	history_snapshot_page: { params: HistorySnapshotPageParams; result: HistoryPage };
+	history_snapshot_close: { params: HistorySnapshotCloseParams; result: HistorySnapshotCloseResult };
+	history_observation_poll: { params: HistoryObservationPollParams; result: HistoryPoll };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };
