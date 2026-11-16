@@ -29,7 +29,7 @@ function render(snapshot: ContinuationSnapshot): void {
   }));
   document.querySelector<HTMLElement>("#worker")!.textContent = `Worker ${snapshot.worker.status}; starts ${snapshot.worker.starts}; ${snapshot.worker.id ?? "none"}`;
   outcome.dataset.phase = snapshot.state?.phase ?? snapshot.registrations.at(-1)?.attempt ?? "waiting";
-  outcome.textContent = snapshot.state ? `${snapshot.state.intent}: ${snapshot.state.phase}; verified native identity ${snapshot.state.nativeSessionId ?? "unavailable"}; ${snapshot.state.code ?? ""}`
+  outcome.textContent = snapshot.state ? `${snapshot.state.intent}: ${snapshot.state.phase}; ${snapshot.state.phase === "open" ? "Verified" : "Last observed"} native identity ${snapshot.state.nativeSessionId ?? "unavailable"}; ${snapshot.state.code ?? ""}`
     : snapshot.registrations.at(-1)?.code ?? "Choose an explicit action.";
 }
 async function act(action: ContinuationAction): Promise<void> {

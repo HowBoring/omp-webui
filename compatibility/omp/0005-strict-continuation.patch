@@ -839,10 +839,11 @@ index 0000000000..4763326da8
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..85ec6f16b7
+index 0000000000..46604a52a4
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,291 @@
+@@ -0,0 +1,298 @@
++import { sessionHeaderIdFromPrefix } from "../../session/session-header-id";
 +import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
 +import * as fs from "node:fs";
@@ -850,7 +851,7 @@ index 0000000000..85ec6f16b7
 +import type { FileHandle } from "node:fs/promises";
 +import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
 +import { tryAcquireFileLock, type FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
-+import { resolveHeldGeneration, publishHeldGeneration, generationBudgets } from "../../session/session-generation";
++import { resolveHeldGeneration, publishHeldGeneration, generationBudgets, readHeldGenerationMetadata } from "../../session/session-generation";
 +import { openWithin } from "./catalog-path";
 +import { hash, readDescriptor, type NativeSource } from "./catalog-metadata";
 +import type { CatalogDescriptor } from "./wire/rpc-wire.generated";
@@ -868,12 +869,14 @@ index 0000000000..85ec6f16b7
 +  readonly #cwdPath: string;
 +  readonly #cwdIdentity: string;
 +  #writeAttempted = false;
++  #initializing: boolean;
 +  #released = false;
 +  #cancelled = false;
 +  #failure: Error | undefined;
 +
 +  constructor(source: NativeSource, filePath: string, descriptor: CatalogDescriptor,
-+    anchor: FileHandle | undefined, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string) {
++    anchor: FileHandle | undefined, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string, initializing = false) {
++    this.#initializing = initializing;
 +    this.#source = source; this.filePath = filePath; this.descriptor = descriptor;
 +    this.#anchor = anchor; this.#lease = lease; this.#fd = fd;
 +    this.#parentFd = fs.openSync(path.dirname(filePath), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
@@ -985,7 +988,7 @@ index 0000000000..85ec6f16b7
 +      const descriptor: CatalogDescriptor = { sourceId: source.sourceId, instanceId, nativeSessionId, reference,
 +        aliases: [path.basename(filePath)], cwd: { status: "known", recorded: cwd, canonical: cwd },
 +        createdAt: header.timestamp, modifiedAt: observedAt, observedAt, ownership: { state: "held", observedAt } };
-+      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, cwdFd, cwd);
++      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, cwdFd, cwd, true);
 +      reservation.#writeAt(body, 0); reservation.read(); return reservation;
 +    } catch (error) {
 +      if (fd !== undefined) fs.closeSync(fd);
@@ -1015,6 +1018,10 @@ index 0000000000..85ec6f16b7
 +      const instance = (stat: fs.BigIntStats) => hash(`${stat.dev}:${stat.ino}:${stat.birthtimeNs}:${this.descriptor.nativeSessionId}`);
 +      if (!named.isFile() || instance(named) !== this.descriptor.instanceId || instance(held) !== this.descriptor.instanceId)
 +        throw new Error("STRICT_REPLACED");
++      if (!this.#initializing) {
++        const prefix = readHeldGenerationMetadata(this.#fd, this.#parentFd, this.filePath, 16_384);
++        if (sessionHeaderIdFromPrefix(prefix) !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
++      }
 +    } catch (error) {
 +      this.#failure = error instanceof Error && error.message.startsWith("STRICT_") ? error : new Error("STRICT_MISSING_OR_INACCESSIBLE");
 +      throw this.#failure;
@@ -1119,7 +1126,7 @@ index 0000000000..85ec6f16b7
 +        if (count === 0) throw new Error("STRICT_WRITE_FAILED");
 +        offset += count;
 +      }
-+      this.assertCurrent();
++      this.#initializing = false; this.assertCurrent();
 +    } catch {
 +      this.#failure = new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); throw this.#failure;
 +    }
@@ -1297,10 +1304,10 @@ index 0000000000..f1bfa72a94
 +}
 diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
 new file mode 100644
-index 0000000000..a96b149784
+index 0000000000..0db8962316
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-artifact-copy.ts
-@@ -0,0 +1,140 @@
+@@ -0,0 +1,143 @@
 +/** Bounded native logical copy for artifact trees containing generation Sessions; source leases survive every publication. */
 +import * as fs from "node:fs";
 +import * as path from "node:path";
@@ -1329,8 +1336,11 @@ index 0000000000..a96b149784
 +  const assertSources = (): void => {
 +    assertDirectories(sources);
 +    if (closed) throw new Error("GENERATION_ARTIFACT_COPY_CLOSED");
-+    for (const entry of entries) if (identity(fs.lstatSync(`/proc/self/fd/${entry.parent.fd}/${entry.name}`, { bigint: true })) !== entry.identity)
-+      throw new Error("GENERATION_ARTIFACT_CHANGED");
++    for (const entry of entries) {
++      if (identity(fs.lstatSync(`/proc/self/fd/${entry.parent.fd}/${entry.name}`, { bigint: true })) !== entry.identity) throw new Error("GENERATION_ARTIFACT_CHANGED");
++      if (entry.nativeId && entry.fd !== undefined && sessionHeaderIdFromPrefix(readHeldGenerationMetadata(entry.fd, entry.parent.fd, path.join(source,entry.relative),16_384)) !== entry.nativeId)
++        throw new Error("GENERATION_ARTIFACT_NATIVE_ID_CHANGED");
++    }
 +  };
 +  const inventory = (parent: Directory, relative: string, depth: number): void => {
 +    if (depth > budgets.depth) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
@@ -1842,7 +1852,7 @@ index 0cfdcfaa0e..219391d0e2 100644
  			const chunk = streamed.byteLength > unread ? streamed.subarray(0, unread) : streamed;
  			unread -= chunk.byteLength;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index b8a0b167a3..8506005ff0 100644
+index b8a0b167a3..975011786d 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,3 +1,8 @@
@@ -2159,7 +2169,15 @@ index b8a0b167a3..8506005ff0 100644
  		const storage = new FileSessionStorage();
  		// The header id is what the lease is keyed on; a null claim means
  		// another live process owns the session, so leave it alone.
-@@ -4250,7 +4363,10 @@ export class SessionManager {
+@@ -4103,6 +4216,7 @@ export class SessionManager {
+ 		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
+ 		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
+ 		const hash = new Bun.CryptoHasher("sha256");
++    if (this.#historySourceBinding) this.#strictContinuation?.();
+ 		const sourceBinding = this.#historySourceBinding?.nativeSessionId === this.#sessionId ? this.#historySourceBinding : undefined;
+ 		const sourceId = sourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
+ 		let scannedBytes = 0;
+@@ -4250,7 +4364,10 @@ export class SessionManager {
  	 * Returns the new file path, or undefined when not persisting.
  	 */
  	createBranchedSession(leafId: string, options?: { copyArtifacts?: boolean }): string | undefined {
@@ -2170,7 +2188,7 @@ index b8a0b167a3..8506005ff0 100644
  		const branchPath = this.getBranch(leafId);
  		if (branchPath.length === 0) throw new Error(`Entry ${leafId} not found`);
  
-@@ -4300,6 +4416,8 @@ export class SessionManager {
+@@ -4300,6 +4417,8 @@ export class SessionManager {
  			parentId = labelEntry.id;
  		}
  
@@ -2179,7 +2197,7 @@ index b8a0b167a3..8506005ff0 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4325,13 +4443,15 @@ export class SessionManager {
+@@ -4325,13 +4444,15 @@ export class SessionManager {
  		if (options?.copyArtifacts && sourceSessionFile) {
  			this.#pendingArtifactCopy = {
  				sessionFile: newSessionFile,
@@ -2196,7 +2214,7 @@ index b8a0b167a3..8506005ff0 100644
  	}
  
  	/** Resolve the canonical default session directory for a cwd. */
-@@ -4361,20 +4481,19 @@ export class SessionManager {
+@@ -4361,20 +4482,19 @@ export class SessionManager {
  	 * `setSessionFile` / `AgentSession.switchSession` when a caller explicitly
  	 * needs a brand-new persisted session at a cwd-derived path.
  	 */
@@ -2228,7 +2246,7 @@ index b8a0b167a3..8506005ff0 100644
  	}
  
  	/**
-@@ -4553,6 +4672,8 @@ export class SessionManager {
+@@ -4553,6 +4673,8 @@ export class SessionManager {
  		storage: SessionStorage = new FileSessionStorage(),
  		options?: { initialCwd?: string; parentSession?: string; suppressBreadcrumb?: boolean; throwIfMissing?: boolean },
  	): Promise<SessionManager> {
@@ -2237,7 +2255,7 @@ index b8a0b167a3..8506005ff0 100644
  		const probed = await loadSessionFile(filePath, storage, { throwIfMissing: options?.throwIfMissing });
  		const header = probed.entries.find(entry => entry.type === "session") as SessionHeader | undefined;
  		// Resume into the session's recorded cwd only when it is verifiably
-@@ -4583,6 +4704,10 @@ export class SessionManager {
+@@ -4583,6 +4705,10 @@ export class SessionManager {
  			throwIfMissing: options?.throwIfMissing,
  			newSession: { parentSession: options?.parentSession },
  		});
