@@ -85,7 +85,7 @@ index dca44f560b..facf7847a7 100644
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..66fff2dfdb 100644
+index 3a336fa764..e71a0ac1e3 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,6 @@
@@ -95,7 +95,36 @@ index 3a336fa764..66fff2dfdb 100644
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
  import { getStrictStartup, observeStrictStartup } from "./strict-context";
-@@ -515,6 +518,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -448,8 +451,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+ /**
+  * Dispatch a single parsed frame from the RPC input stream.
+  *
+- * `bash`, `predict_word`, `prompt` and `steer_subagent` are dispatched in the
+- * background so the caller can keep reading subsequent frames while one is
++ * `bash`, `predict_word`, `prompt`, `submission_submit` and `steer_subagent` are
++ * dispatched in the background so the caller can keep reading subsequent frames while one is
+  * still settling: a `bash` command can run for a long time, and a `prompt`
+  * command's response is held until the message is admitted, which can span
+  * real wall-clock time (image normalization, a vision-model description call).
+@@ -466,7 +469,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+  *
+  * @returns `undefined` when the frame was routed to a side-channel handler
+  *   (extension UI response, host tool/URI frames) or dispatched in the
+- *   background (`bash`, `predict_word`, `live_start`, `live_connect`, `dictation_start`, `prompt`, `steer`, `follow_up`, `steer_subagent`). Otherwise a promise that
++ *   background (`bash`, `predict_word`, `live_start`, `live_connect`, `dictation_start`,
++ *   `prompt`, `submission_submit`, `steer`, `follow_up`, `steer_subagent`). Otherwise a promise that
+  *   resolves once the response for the command has been emitted via `output`.
+  *   Errors from `handleCommand` on a command dispatched inline propagate; the
+  *   caller is expected to wrap them.
+@@ -492,6 +496,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+ 	if (
+ 		BACKGROUND_COMMANDS.has(command.type) ||
+ 		command.type === "prompt" ||
++		command.type === "submission_submit" ||
+ 		command.type === "steer" ||
+ 		command.type === "dictation_start" ||
+ 		command.type === "follow_up" ||
+@@ -515,6 +520,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  }
  
  const USER_INPUT_TYPES: Record<string, true> = {
@@ -103,7 +132,7 @@ index 3a336fa764..66fff2dfdb 100644
  	prompt: true,
  	steer: true,
  	follow_up: true,
-@@ -560,6 +564,12 @@ export class RpcUserInputGate {
+@@ -560,6 +566,12 @@ export class RpcUserInputGate {
  		if (isAbort) this.#validFrom = sequence;
  	}
  
@@ -116,7 +145,7 @@ index 3a336fa764..66fff2dfdb 100644
  	/** A session change succeeded: invalidate input accepted before its frame. */
  	commitSessionChange(command: RpcCommand): void {
  		const sequence = this.#acceptedAt.get(command);
-@@ -1320,7 +1330,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1320,7 +1332,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -125,7 +154,7 @@ index 3a336fa764..66fff2dfdb 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1834,14 +1844,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1834,17 +1846,29 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -142,9 +171,24 @@ index 3a336fa764..66fff2dfdb 100644
 +		const initiatingSubmission = submissionScope();
 +		return inputGate.enqueue(() => runSubmission(initiatingSubmission, async () => {
  			const sessionId = session.sessionId;
- 			const isCurrent = () =>
- 				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
-@@ -1859,11 +1871,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+-			const isCurrent = () =>
+-				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
++			const isCurrent = () => {
++				if (!inputGate.isCurrent(command) || shutdownState.requested || session.sessionId !== sessionId) return false;
++				if (initiatingSubmission) {
++					// Admission can wait behind an awaited input hook. Recheck the held native
++					// namespace, lease and cwd before each subsequent ingress side effect.
++					const target = session.sessionManager.getSubmissionTarget();
++					const origin = initiatingSubmission.origin;
++					if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
++						|| target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
++				}
++				return true;
++			};
+ 			if (!isCurrent()) return "cancelled";
+ 			let text = command.message;
+ 			let images = command.images;
+@@ -1859,11 +1883,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			if (!isCurrent()) return "cancelled";
  			if (!text.trim() && !images?.length) return "local";
  			if (command.type === "steer") {
@@ -158,7 +202,7 @@ index 3a336fa764..66fff2dfdb 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1941,17 +1953,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1941,17 +1965,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -180,7 +224,7 @@ index 3a336fa764..66fff2dfdb 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +1987,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1974,6 +1999,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -220,10 +264,10 @@ index 3a336fa764..66fff2dfdb 100644
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..345c18f6b9
+index 0000000000..618b561af7
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,126 @@
+@@ -0,0 +1,128 @@
 +import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
 +import type { AgentSession } from "../../session/agent-session";
@@ -315,7 +359,9 @@ index 0000000000..345c18f6b9
 +  }
 +  fail(origin: SubmissionOrigin, failure: unknown): void {
 +    const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
-+    this.#failures.set(origin.clientSubmissionId, /UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY/.test(code) ? "unknown" : "failed");
++    // Loss of protected authority cannot prove a terminal no-entry publication.
++    const unknown = /^STRICT_|UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY|^SUBMISSION_TARGET_|^SUBMISSION_PROTECTED_STORAGE_REQUIRED$/.test(code);
++    this.#failures.set(origin.clientSubmissionId, unknown ? "unknown" : "failed");
 +  }
 +  query(clientSubmissionId: string, offset = 0, limit = 64, duplicate = false): SubmissionResult {
 +    this.validate({ type: "submission_query", clientSubmissionId, offset, limit });

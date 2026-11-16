@@ -11,7 +11,20 @@ export default function(pi) {
   process.on("exit", () => fs.writeFileSync(path.join(home, "submission-network-audit.json"), JSON.stringify({
     denied: guard.denied(), actualNetworkDispatches: guard.dispatched(), guard: "preimport-no-provider-v1" })));
   let calls = 0;
-  pi.on("input", event => {
+  pi.on("input", async event => {
+    if (event.text === "hold-queued-ingress" || event.text === "hold-submission-ingress") {
+      fs.writeFileSync(path.join(home, "submission-ingress-held.json"), JSON.stringify({ entered: true }));
+      const deadline = Date.now() + 10000;
+      while (!fs.existsSync(path.join(home, "submission-ingress-release"))) {
+        if (Date.now() > deadline) throw Error("SUBMISSION_INGRESS_FIXTURE_RELEASE_TIMEOUT");
+        await Bun.sleep(10);
+      }
+      return { handled: true };
+    }
+    if (event.text === "queued-after-reservation") {
+      fs.writeFileSync(path.join(home, "submission-forbidden-ingress.json"), JSON.stringify({ entered: true }));
+      return { handled: true };
+    }
     if (event.text === "handled") {
       pi.sendMessage({ customType: "submission-extra", content: "literal handled extra", display: true });
       return { handled: true };
