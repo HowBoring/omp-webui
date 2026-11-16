@@ -26,7 +26,7 @@ export interface WorkerExit {
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<SessionWorker>; worker?: SessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
-  journal?: Promise<LiveJournal>; journalValue?: LiveJournal; retired: boolean; exited: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
+  journal?: Promise<LiveJournal>; journalValue?: LiveJournal; retired: boolean; exited: boolean; idlePending?: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
 }
 const same = (left: CatalogDescriptor, right: CatalogDescriptor) => left.sourceId === right.sourceId
   && left.instanceId === right.instanceId && left.nativeSessionId === right.nativeSessionId;
@@ -60,7 +60,11 @@ export class SessionSupervisor {
     if (this.options.grants.authorize(cwd, cwd).status !== "authorized") throw new Error("SESSION_DIRECTORY_DENIED");
   }
   #current(identity: BrowserAccess, active: Active): void {
-    this.#browser(identity); this.#directory(active.cwd);
+    this.#browser(identity); this.#ownedCurrent(active);
+  }
+  #ownedCurrent(active: Active): void {
+    if (this.#closed) throw new Error("SESSION_HOST_CLOSING");
+    this.#directory(active.cwd);
     if (directoryIdentity(active.cwd) !== active.cwdIdentity) throw new Error("SESSION_CWD_CHANGED");
     if (active !== this.#active || active.retired || active.exited) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
   }
@@ -81,7 +85,7 @@ export class SessionSupervisor {
       }
       return this.#view(existing);
     }
-    if (existing && !existing.exited) throw new Error("SESSION_WORKER_DRAINING");
+    if (existing && (!existing.exited || existing.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
     const cwd = selected.cwd.status === "known" ? selected.cwd.canonical : undefined;
     if (!cwd) {
       this.options.index.observe(record.id, { state: "failed", code: "SESSION_CWD_UNKNOWN" }); throw new Error("SESSION_CWD_UNKNOWN");
@@ -94,7 +98,8 @@ export class SessionSupervisor {
   }
   async create(identity: BrowserAccess, cwd: string): Promise<SessionView> {
     this.#browser(identity); this.#directory(cwd);
-    if (this.#active && !this.#active.exited) throw new Error("SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION");
+    await this.#prepareRetirement(identity, "explicit-new"); this.#browser(identity); this.#directory(cwd);
+    if (this.#active && (!this.#active.exited || this.#active.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
     const active: Active = { id: randomUUID(), key: randomUUID(), cwd, cwdIdentity: directoryIdentity(cwd), generation: randomUUID(), opening: Promise.resolve(),
       state: "opening", retired: false, exited: false, startupAttempted: false };
     this.#active = active; active.opening = this.#perform(identity, active, "new");
@@ -129,9 +134,11 @@ export class SessionSupervisor {
       this.#current(identity, active); active.startupAttempted = true;
       const result = await active.worker.startup.start({ intent, expectedCwd: active.cwd,
         ...(active.selected ? { reference: active.selected.reference } : {}) });
-      this.#current(identity, active); this.#accept(active, result);
+      this.#ownedCurrent(active); this.#accept(active, result);
     } catch (error) {
-      const code = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "SESSION_OPEN_OUTCOME_UNKNOWN";
+      const failure = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "SESSION_OPEN_OUTCOME_UNKNOWN";
+      const code = active.startupAttempted && (active.retired || ["SESSION_HOST_CLOSING", "SESSION_DIRECTORY_DENIED",
+        "SESSION_CWD_CHANGED", "SESSION_MANUAL_OPEN_REQUIRED"].includes(failure)) ? "SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN" : failure;
       active.state = "outcome_unknown";
       const unknown = code.startsWith("RPC_") || code.includes("UNKNOWN") || code.includes("LOST");
       if (active.record) this.options.index.observe(active.record.id, { state: unknown ? "outcome_unknown" : "failed", code });
@@ -183,8 +190,37 @@ export class SessionSupervisor {
   }
   async switchTo(identity: BrowserAccess, selected: CatalogDescriptor): Promise<SessionView> {
     this.#browser(identity);
-    if (this.#active && !this.#active.exited) await this.#stop(this.#active, "explicit-switch");
-    this.#browser(identity); return this.open(identity, selected);
+    if (selected.cwd.status !== "known" || !selected.cwd.canonical) throw new Error("SESSION_CWD_UNKNOWN");
+    this.#directory(selected.cwd.canonical);
+    if (this.#active?.key === key(selected) && !this.#active.retired && !this.#active.exited) return this.open(identity, selected);
+    await this.#prepareRetirement(identity, "explicit-switch"); this.#browser(identity); return this.open(identity, selected);
+  }
+  async #prepareRetirement(identity: BrowserAccess, reason: string): Promise<void> {
+    const active = this.#active; if (!active || (active.exited && !active.idlePending)) return;
+    if (active.retired || !active.worker || active.state !== "open") throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    this.#current(identity, active);
+    const state = await active.worker.state(); this.#current(identity, active);
+    if (!nativeSettled(state) || active.bridge?.snapshot().pending.length) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    active.retired = true; active.idlePending = true; active.state = "outcome_unknown";
+    if (active.record) this.options.index.observe(active.record.id,
+      { state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" });
+    const start = performance.now(), atStop = active.worker.notificationCount;
+    const retired = await active.worker.retireIdle();
+    if (retired.status === "pending") {
+      void retired.completion.then(drain => this.#finishIdle(active, reason, start, atStop, drain)).catch(() => {});
+      throw new Error("SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48");
+    }
+    this.#finishIdle(active, reason, start, atStop, retired.drain);
+  }
+  #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
+    if (active.stopping) return;
+    active.exited = true; active.idlePending = false; active.state = "closed"; active.bridge?.dispose();
+    if (active.record) this.options.index.observe(active.record.id, { state: drain.code === 0 && !drain.protocolFailure ? "closed" : "outcome_unknown",
+      ...(drain.code === 0 && !drain.protocolFailure ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
+    this.#exits.push({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
+      queuedInputsWithdrawn: false, uiCancelled: true, drain, notificationCount: active.worker?.notificationCount ?? 0,
+      tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) });
+    if (this.#exits.length > 32) this.#exits.shift();
   }
   assertObjectAccess(identity: BrowserAccess): void {
     this.#browser(identity); const active = this.#active;
@@ -222,7 +258,7 @@ export class SessionSupervisor {
   }
   /** Recompute overlapping root grants. Browser logout withdraws only that browser's view/answer rights. */
   async permissionsChanged(): Promise<void> {
-    const active = this.#active; if (!active || active.retired || active.exited) return;
+    const active = this.#active; if (!active || active.stopping || (active.exited && !active.idlePending)) return;
     let authorized = false;
     try { authorized = this.options.grants.authorize(active.cwd, active.cwd).status === "authorized"
       && directoryIdentity(active.cwd) === active.cwdIdentity; } catch {}
@@ -230,11 +266,11 @@ export class SessionSupervisor {
   }
   async revokeAll(): Promise<void> {
     this.#closed = true; clearInterval(this.#sweeper);
-    if (this.#active && !this.#active.exited) await this.#stop(this.#active, "all-browser-access-revoked");
+    if (this.#active && (!this.#active.exited || this.#active.idlePending)) await this.#stop(this.#active, "all-browser-access-revoked");
   }
   async close(): Promise<void> {
     this.#closed = true; clearInterval(this.#sweeper);
-    if (this.#active && !this.#active.exited) await this.#stop(this.#active, "host-shutdown");
+    if (this.#active && (!this.#active.exited || this.#active.idlePending)) await this.#stop(this.#active, "host-shutdown");
   }
   #stop(active: Active, reason: string): Promise<WorkerExit> {
     active.retired = true;
@@ -265,7 +301,7 @@ export class SessionSupervisor {
     const remaining = Math.max(0, deadline - performance.now());
     const drain = active.worker ? await active.worker.close({ cooperativeMs: remaining, terminationGraceMs: 5000, readerGraceMs: 1000 })
       : { code: 0, forced: false, stderrBytes: 0 };
-    active.exited = true; active.state = "closed";
+    active.exited = true; active.idlePending = false; active.state = "closed";
     if (active.record && this.options.index.get(active.record.id)?.attempt.state === "open") {
       this.options.index.observe(active.record.id, { state: drain.code === 0 && !drain.forced ? "closed" : "outcome_unknown",
         ...(drain.code === 0 && !drain.forced ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) });

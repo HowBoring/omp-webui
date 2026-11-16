@@ -57,3 +57,14 @@ The accepted test seams are the actual authorized DSH browser/Bun/public-native
 workflow, complemented by public native RPC/TUI and deterministic boundary faults,
 plus controlled clocks for long expiry boundaries. Test fixtures are synthetic,
 use an egress guard before native imports, and never use a real provider.
+
+## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)
+
+**BLOCKED / not attested:** exercise a genuine native tool and a native subagent
+that create child processes, then force this Host's owned worker out. Establish the
+native-owned cleanup boundary from matched source plus actual runtime evidence.
+If a legitimate supervised child survives, add a public ownership/containment
+contract before claiming complete cleanup. Do not infer ownership from a PID tree,
+kill arbitrary descendants, target an external TUI, or turn this component's direct
+Bun-child reap result into a blanket descendant-cleanup PASS. Final integration
+admission remains closed until the applicable gate is resolved.

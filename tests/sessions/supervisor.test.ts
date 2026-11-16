@@ -11,7 +11,7 @@ import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import { resolve } from "node:path";
 import { catalog, launch, selection } from "./worker.ts";
 async function fixture(startup = false, workerFactory: typeof launch = launch) {
-  const home = await mkdtemp(join(tmpdir(), "session-supervisor-")); await nativeFixture(home);
+  const home = await mkdtemp(join(tmpdir(), "session-supervisor-")); await nativeFixture(home, 2);
   const cwd = join(home, "project"), dataDir = join(home, "host"), origin = "http://127.0.0.1:4321";
   const authority = openBrowserAccess({ dataDir, origin }), grants = new DirectoryGrants(dataDir), index = new SessionIndex(dataDir);
   const grant = grants.confirm(grants.preview(cwd).confirmation), discovery = await catalog(home);
@@ -79,6 +79,12 @@ for (const mode of ["cooperative", "stubborn"] as const) test(`real busy native 
       if (busy && (mode === "cooperative" || (await audit.exists() && (await audit.json()).toolStarted === true))) break;
       if (attempt === 199) throw new Error("SYNTHETIC_BUSY_NOT_OBSERVED"); await Bun.sleep(10);
     }
+    const warm = await f.supervisor.open(f.identity, f.selected);
+    expect(f.supervisor.view(f.identity, warm.workerId).workerId).toBe(warm.workerId);
+    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    const other = (await f.discovery.catalog.page()).items.find(item => item.nativeSessionId === "native-0001")!;
+    await expect(f.supervisor.switchTo(f.identity, other)).rejects.toThrow("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    expect(f.supervisor.starts).toBe(1);
     const start = performance.now(), revokedAt = Date.now();
     if (reason === "directory-revoked") { f.grants.revoke(f.grant.id); await f.supervisor.permissionsChanged(); }
     else if (reason === "all-browser-access-revoked") { f.authority.revokeAll(); await f.supervisor.revokeAll(); }
@@ -131,26 +137,21 @@ test("lost strict-start reply is unknown until manual observation recovers the s
   } finally { await f.close(); }
 }, 30_000);
 
-test("explicit New confirms a distinct native identity and requires an explicit switch before opening another", async () => {
+test("explicit New retires a confirmed idle worker and confirms a distinct identity; Switch returns to the original", async () => {
   const f = await fixture();
   try {
     const original = await f.supervisor.open(f.identity, f.selected);
-    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION");
-    await f.supervisor.switchTo(f.identity, f.selected);
+    expect(f.supervisor.view(f.identity, original.workerId).workerId).toBe(original.workerId);
+    expect(f.supervisor.starts).toBe(1);
+    const created = await f.supervisor.create(f.identity, f.cwd);
+    expect(created.registration.nativeSessionId).not.toBe(original.registration.nativeSessionId);
+    expect(created.registration.instanceId).not.toBe(original.registration.instanceId);
     expect(f.supervisor.starts).toBe(2);
-    await f.supervisor.close();
-    // New is explicit in a fresh Host supervisor, never an implicit response to a failed Open or refresh.
-    const next = new SessionSupervisor({ authority: f.authority, grants: f.grants, index: f.index,
-      catalog: f.discovery.catalog, launch: directory => launch(f.home, directory) });
-    try {
-      const created = await next.create(f.identity, f.cwd);
-      expect(created.registration.nativeSessionId).not.toBe(original.registration.nativeSessionId);
-      expect(created.registration.instanceId).not.toBe(original.registration.instanceId);
-      expect(next.view(f.identity, created.workerId).registration.id).toBe(created.registration.id);
-      expect(next.starts).toBe(1);
-    } finally { await next.close(); }
+    expect(f.supervisor.exits()[0]).toMatchObject({ reason: "explicit-new", nativeSettled: true, drain: { code: 0, forced: false } });
+    expect((await f.supervisor.switchTo(f.identity, f.selected)).registration.nativeSessionId).toBe("native-0000");
+    expect(f.supervisor.starts).toBe(3);
   } finally { await f.close(); }
-}, 30_000);
+}, 45_000);
 
 test("logout removes that browser's view and answer permission while another valid browser keeps the worker", async () => {
   const f = await fixture();
@@ -208,3 +209,46 @@ test("repeated Open rechecks native ownership and makes an active instance repla
     expect(f.supervisor.starts).toBe(1);
   } finally { await f.close(); }
 }, 30_000);
+
+test("logout during admitted native startup withdraws that browser while another browser can finish the same worker", async () => {
+  const f = await fixture(true);
+  try {
+    const opening = f.supervisor.open(f.identity, f.selected);
+    void opening.catch(() => {});
+    let pending = f.supervisor.interactions(f.identity)?.pending ?? [];
+    for (let attempt = 0; pending.length === 0 && attempt < 1500; attempt++) {
+      await Bun.sleep(10); pending = f.supervisor.interactions(f.identity)?.pending ?? [];
+    }
+    expect(pending[0]?.scope).toEqual({ kind: "startup" });
+    const exchange = await f.authority.handle(new Request(f.authority.bootstrapLink(), { headers: { host: "127.0.0.1:4321" } }));
+    const cookie = exchange!.headers.get("set-cookie")!.split(";")[0]!;
+    const other = f.authority.admit(new Request(f.origin, { headers: { host: "127.0.0.1:4321", cookie } }), "read");
+    if (other instanceof Response) throw new Error("synthetic second login failed");
+    const status = await f.authority.handle(new Request(f.origin + "/auth/status", { headers: { host: "127.0.0.1:4321", cookie: f.cookie } }));
+    const csrf = (await status!.json()).csrf;
+    await f.authority.handle(new Request(f.origin + "/auth/logout", { method: "POST", headers: {
+      host: "127.0.0.1:4321", origin: f.origin, cookie: f.cookie, "x-omp-csrf": csrf } }));
+    await f.supervisor.answer(other, pending[0]!.generation, pending[0]!.id, { type: "value", value: "Other authorized browser" });
+    await expect(opening).rejects.toThrow("SESSION_AUTH_REQUIRED");
+    expect(await f.supervisor.recheck(other)).toMatchObject({ state: "open", registration: { nativeSessionId: "native-0000" } });
+    expect(f.supervisor.exits()).toHaveLength(0); expect(f.supervisor.starts).toBe(1);
+  } finally { await f.close(); }
+}, 30_000);
+
+test("root revocation cancels genuine unbound startup UI and retains an honest unpublished open outcome", async () => {
+  const f = await fixture(true);
+  try {
+    const opening = f.supervisor.open(f.identity, f.selected); void opening.catch(() => {});
+    let pending = f.supervisor.interactions(f.identity)?.pending ?? [];
+    for (let attempt = 0; pending.length === 0 && attempt < 1500; attempt++) {
+      await Bun.sleep(10); pending = f.supervisor.interactions(f.identity)?.pending ?? [];
+    }
+    expect(pending[0]?.scope).toEqual({ kind: "startup" });
+    f.grants.revoke(f.grant.id); await f.supervisor.permissionsChanged();
+    await expect(opening).rejects.toThrow("SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN");
+    expect((await f.index.page({})).records[0]).toMatchObject({ nativeSessionId: "native-0000", attempt: { state: "outcome_unknown" } });
+    expect(f.supervisor.exits()[0]).toMatchObject({ reason: "directory-revoked", uiCancelled: true,
+      drain: { forced: false, stdoutEOF: true, stderrEOF: true } });
+    expect([0, 1]).toContain(f.supervisor.exits()[0]!.drain.code);
+  } finally { await f.close(); }
+}, 45_000);

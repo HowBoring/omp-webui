@@ -18,7 +18,11 @@ uses the same authored strict/Interaction/history schemas. Root Interactions can
 therefore precede final Session binding without fabricating a DSH Session.
 
 One active native Session has one RPC worker and any number of authorized views.
-Different Session switches and explicit New are separate actions. New exposes its
+Different Session switches and explicit New are separate actions. A busy worker
+or pending UI refuses New/Switch until Stop, proven quiescence and a fresh action.
+Same-Session warm views remain available while busy. Confirmed-idle retirement uses
+graceful EOF without background signal timers; an unconfirmed exit retains the
+owned handle/generation and blocks replacement pending explicit #48 force policy. New exposes its
 identity only after genuine native confirmation. Actual DSH controller/Conversation
 presentation is a disposable read-only public native cut with `not_attested`
 recoverability, independent of registration persistence.

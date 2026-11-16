@@ -10,6 +10,7 @@ import { UiConversation } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { registerTrajectoryMessageDefinitions } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-message-definitions.ts";
 import { registerTrajectoryAssistantDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-assistant-definition.ts";
 import { registerTrajectoryConversationView } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-snapshot-builder.ts";
+import { NativeInteractionCard } from "./interaction-card.tsx";
 import { useEffect, useState } from "react";
 import type { PropsRenderSlots, StandardSourceBinding, HostObservable } from "@deepseek-ai/dsh-client-ui-slots";
 import { sessionsContribution, type PublicSessionView, type SessionSelectionId } from "../../../packages/contracts/sessions.ts";
@@ -35,17 +36,6 @@ async function present(view: PublicSessionView) {
 function Shell({ renderSlot }: PropsRenderSlots<"s1.sessions">) {
   return <main data-session-root-slot="true"><h1>Supervised native Sessions</h1>
     <p>Isolated S1 component · synthetic data only · normal product admission remains blocked.</p>{renderSlot("s1.sessions", {})}</main>;
-}
-function Ask({ card, answer }: { card: PendingInteraction; answer: (answer: UIAnswer) => Promise<void> }) {
-  const [value, setValue] = useState(card.prefill ?? "");
-  return <section data-interaction-id={card.id} data-scope={card.scope.kind}><h2>{card.title}</h2>
-    <p>{card.scope.kind === "startup" ? "Startup · native identity not confirmed" : `Session ${card.scope.sessionId}`}</p>
-    {card.method === "select" ? card.options?.map(option => <button key={option} onClick={() => void answer({ type: "value", value: option })}>{option}</button>)
-      : card.method === "confirm" ? <><button onClick={() => void answer({ type: "confirm", confirmed: true })}>Confirm</button><button onClick={() => void answer({ type: "confirm", confirmed: false })}>Deny</button></>
-      : card.method === "ask" ? <p>Structured ask is unavailable in this Session component. Cancel to stop startup.</p>
-        : <><input aria-label="Explicit answer" type={card.secret ? "password" : "text"} value={value} onChange={event => setValue(event.target.value)} />
-          <button onClick={() => void answer({ type: "value", value })}>Submit explicit answer</button></>}
-    <button onClick={() => void answer({ type: "cancel" })}>Cancel interaction</button></section>;
 }
 type Catalog = Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>> extends RemoteResult<infer T> ? T : never;
 type Index = Awaited<ReturnType<typeof ctx.remote.ompSessions.index>> extends RemoteResult<infer T> ? T : never;
@@ -94,7 +84,7 @@ function Surface() {
       <p>History is an observed native cut; durability is not attested. Unsupported retained content is shown explicitly.</p>
       <div id="conversation">{rows.map((row, index) => <pre className="row" key={index}>{row}</pre>)}</div>
     </div>
-    {interaction?.pending.map(card => <Ask key={card.id} card={card} answer={async answer => { await perform(async () => { resultValue(await ctx.remote.ompSessions.answer(card.generation, card.id, answer)); }); }} />)}
+    {interaction?.pending.map(card => <NativeInteractionCard key={card.id} card={card} onAnswer={async answer => { await perform(async () => { resultValue(await ctx.remote.ompSessions.answer(card.generation, card.id, answer)); }); }} />)}
   </div>;
 }
 async function boot() {

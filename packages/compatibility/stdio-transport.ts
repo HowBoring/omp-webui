@@ -24,6 +24,9 @@ export interface DrainResult {
   terminationSent?: boolean; forceSent?: boolean; stdoutEOF?: boolean; stderrEOF?: boolean;
 }
 
+export type GracefulDrainResult = { status: "closed"; drain: DrainResult }
+  | { status: "pending"; completion: Promise<DrainResult>; stdoutEOF: boolean; stderrEOF: boolean };
+
 /** Host-internal command envelope. Mode adapters retain their generated command/result interfaces. */
 export interface StdioCommand { id: string; type: string }
 
@@ -64,8 +67,11 @@ export class BoundedStdioTransport {
   private stdoutEOF = false;
   private stderrEOF = false;
   private processExited = false;
+  private terminationObserved = false;
+  private forceObserved = false;
   private readonly writes: StdioWriteQueue;
   private closing: Promise<DrainResult> | undefined;
+  private graceful: Promise<DrainResult> | undefined;
   private readonly signal: AbortSignal | undefined;
   private readonly cancelled = () => { this.fail("RPC_CANCELLED"); };
 
@@ -208,6 +214,32 @@ export class BoundedStdioTransport {
     if (!this.processExited) this.child.kill("SIGTERM");
   }
 
+  /** Idle retirement has no signal timers. Timeout retains the exact handle; a later authorized shutdown may escalate it. */
+  async closeGracefully(timeoutMs = 5000): Promise<GracefulDrainResult> {
+    if (!Number.isFinite(timeoutMs) || timeoutMs < 0 || timeoutMs > 10_000) throw new Error("RPC_DRAIN_POLICY");
+    const completion = this.graceful ??= this.gracefulDrain();
+    const elapsed = Promise.withResolvers<void>();
+    const timer = setTimeout(() => elapsed.resolve(), timeoutMs);
+    try {
+      return await Promise.race([completion.then(drain => ({ status: "closed" as const, drain })),
+        elapsed.promise.then(() => ({ status: "pending" as const, completion,
+          stdoutEOF: this.stdoutEOF, stderrEOF: this.stderrEOF }))]);
+    } finally { clearTimeout(timer); }
+  }
+
+  private async gracefulDrain(): Promise<DrainResult> {
+    this.admitting = false;
+    await this.writes.drain();
+    try { this.child.stdin.end(); } catch {}
+    const code = await this.child.exited;
+    await Promise.all([this.stdout, this.stderr]);
+    this.signal?.removeEventListener("abort", this.cancelled);
+    return { code, forced: this.terminationObserved || this.forceObserved, stderrBytes: this.stderrBytes,
+      terminationSent: this.terminationObserved, forceSent: this.forceObserved,
+      stdoutEOF: this.stdoutEOF, stderrEOF: this.stderrEOF,
+      ...(this.fault === undefined ? {} : { protocolFailure: this.fault.message }) };
+  }
+
   close(policy?: DrainPolicy): Promise<DrainResult> {
     if (policy && (![policy.cooperativeMs, policy.terminationGraceMs, policy.readerGraceMs].every(value => Number.isFinite(value) && value >= 0)
       || policy.cooperativeMs > 30_000 || policy.terminationGraceMs > 5_000 || policy.readerGraceMs > 5_000)) {
@@ -224,11 +256,11 @@ export class BoundedStdioTransport {
     const readerGrace = policy?.readerGraceMs ?? 500;
     const terminate = setTimeout(() => {
       if (this.processExited) return;
-      forced = true; terminationSent = true; this.child.kill("SIGTERM");
+      forced = true; terminationSent = true; this.terminationObserved = true; this.child.kill("SIGTERM");
     }, cooperative);
     const kill = setTimeout(() => {
       if (this.processExited) return;
-      forced = true; forceSent = true; this.child.kill("SIGKILL");
+      forced = true; forceSent = true; this.forceObserved = true; this.child.kill("SIGKILL");
     }, cooperative + grace);
     const stopReaders = setTimeout(() => {
       this.fail("RPC_DRAIN_TIMEOUT");

@@ -84,5 +84,6 @@ export class SessionWorker {
     if (!liveState(value)) throw new Error("SESSION_STATE_SCHEMA"); return value as SessionState;
   }
   control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
+  retireIdle(timeoutMs = 5000) { this.#retired = true; return this.core.closeGracefully(timeoutMs); }
   close(policy: DrainPolicy) { this.#retired = true; return this.core.close(policy); }
 }
