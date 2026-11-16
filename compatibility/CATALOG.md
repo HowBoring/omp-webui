@@ -92,14 +92,20 @@ ordered patch bytes. Extend these lists and the narrow generator hook for each r
 only the final configured patch against the preceding exact tree; later features must regenerate after merging the
 current integration and prior patches. No later feature should edit or collapse 0001/0002.
 
-## Initial actual native evidence
+## Actual native and browser evidence
 
-`bun test tests/catalog/catalog.test.ts` passes 7 tests / 221 assertions: every one of 1000 Sessions in 1000 distinct
-buckets is reachable; whole synthetic-home manifests are byte/stat-identical before/after; selected profile/custom
+`bun test tests/catalog/catalog.test.ts` passes 10 tests / 234 assertions: every one of 1000 Sessions in 1000 distinct
+buckets is reachable; whole synthetic-home byte/inode/mode/size/mtime/ctime manifests are identical before/after (atime excluded); selected profile/custom
 scope, aliases/same-ID copies, unknown cwd, native lease held/free and injected real socket EMFILE→unknown,
-metadata/scan limits, partial errors, stale paging and file/root replacement are exercised. Real 60-second TTL and
-cross-child/page-scope checks pass separately. `scripts/trace-catalog.py` proves no write/create/rename/unlink,
-ordinary Session imports, lease binds or non-Unix connects in the actual candidate. Bun runtime transpiler caching
-is explicitly disabled in controlled fixture children so the entire HOME remains unchanged.
-Browser UI/evidence and final clean-stack reproduction follow in the next ticket commit; this checkpoint does not
-claim ticket completion or product admission.
+metadata/scan/response limits, partial permission errors, stale paging and file/root replacement are exercised.
+Actual large descriptors require multiple byte-packed pages; every descriptor remains reachable.
+Real 60-second TTL and cross-child/page-scope checks pass separately. Protocol tests prove malformed/oversized input,
+ordinary Session commands, partial EOF and cancellation fail without native mutations or orphaned children.
+`scripts/trace-catalog.py` proves no write/create/rename/unlink, ordinary Session imports, lease binds or non-Unix
+connects in the actual candidate. Bun runtime transpiler caching is explicitly disabled in controlled fixture
+children so the entire HOME remains unchanged. The authored new native modules pass strict TypeScript using actual
+upstream types; unrelated full-upstream diagnostics are outside that narrow check, not claimed as passing.
+
+The [typed DSH fixture](../apps/catalog/README.md) and [Linux evidence](../docs/evidence/ticket-31-catalog.md)
+record the real browser/native path, exact tuple, clean patch reproduction, fixed corpus and remaining product gates.
+Only the isolated readonly component is delivered; it does not admit private Sessions or implement protected open.

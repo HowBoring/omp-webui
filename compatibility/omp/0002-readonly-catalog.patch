@@ -194,10 +194,10 @@ index 0000000000..6e987c31d9
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-native.ts b/packages/coding-agent/src/modes/rpc/catalog-native.ts
 new file mode 100644
-index 0000000000..8a931611ec
+index 0000000000..9b90165b3b
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/catalog-native.ts
-@@ -0,0 +1,213 @@
+@@ -0,0 +1,215 @@
 +/** Bounded native discovery. Snapshot memory is finite; opendir never materializes a whole root. */
 +import { openWithin } from "./catalog-path";
 +import { opendir, realpath, stat } from "node:fs/promises";
@@ -216,7 +216,7 @@ index 0000000000..8a931611ec
 +interface Snapshot {
 +  id:string; created:number; expires:number; examined:number; scanMs:number; bytes:number;
 +  directories:Directory[]; pending:Directory[]; items:Map<string,CatalogDescriptor>; sorted?:CatalogDescriptor[];
-+  failures:CatalogFailure[]; pageSize:number;
++  failures:CatalogFailure[]; pageSize:number; expiryTimer?:ReturnType<typeof setTimeout>;
 +}
 +const failure = (error:unknown):string => error instanceof Error && !('code' in error)
 +  ? /^[A-Z][A-Z_]+$/.test(error.message) ? error.message:"INVALID_METADATA" : errorCode(error);
@@ -249,6 +249,7 @@ index 0000000000..8a931611ec
 +    return {version:"readonly-catalog-v1",profile:getActiveProfile() ?? "default",sources,budgets:catalogBudgets};
 +  }
 +  private async closeSnapshot(snapshot:Snapshot):Promise<void> {
++    if(snapshot.expiryTimer) {clearTimeout(snapshot.expiryTimer);delete snapshot.expiryTimer;}
 +    for (const directory of snapshot.directories) {
 +      if (directory.handle) { await directory.handle.close().catch(() => {}); delete directory.handle; }
 +      if (directory.anchor) { await directory.anchor.close(); delete directory.anchor; }
@@ -277,7 +278,8 @@ index 0000000000..8a931611ec
 +      snapshot.pending.push(directory); snapshot.directories.push(directory);
 +    }
 +    this.snapshots.set(snapshot.id,snapshot);
-+    setTimeout(() => { if (this.snapshots.delete(snapshot.id)) void this.closeSnapshot(snapshot); },catalogBudgets.tokenTtlMs).unref();
++    snapshot.expiryTimer=setTimeout(() => { if (this.snapshots.delete(snapshot.id)) void this.closeSnapshot(snapshot); },catalogBudgets.tokenTtlMs);
++    snapshot.expiryTimer.unref();
 +    return snapshot;
 +  }
 +  private async validate(snapshot:Snapshot):Promise<void> {

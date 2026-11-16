@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir, readlink, realpath } from "node:fs/promises";
+import { lstat, readFile, readdir, readlink, realpath, open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { z } from "zod";
 
@@ -39,7 +39,18 @@ export async function identifyAsset(root: string, path: string, excluded: string
     return { path, kind: "directory", identity: digest(JSON.stringify(names)), mode };
   }
   if (!stat.isFile()) throw new Error("Unsupported closure object");
-  return { path, kind: "file", identity: digest(await readFile(absolute)), mode };
+  const content = new Bun.CryptoHasher("sha256");
+  // Runtime/native assets exceed 100 MiB. Identity verification must not retain whole-file buffers.
+  const file = await open(absolute, "r");
+  try {
+    const buffer = Buffer.alloc(Math.max(4096, Math.min(stat.size, 65_536)));
+    while (true) {
+      const { bytesRead } = await file.read(buffer, 0, buffer.length, null);
+      if (bytesRead === 0) break;
+      content.update(buffer.subarray(0, bytesRead));
+    }
+  } finally { await file.close(); }
+  return { path, kind: "file", identity: content.digest("hex"), mode };
 }
 
 /** A manifest is an operator-selected trust root, never supplied by a browser. */
