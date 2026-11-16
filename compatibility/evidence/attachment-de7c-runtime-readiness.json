@@ -1,0 +1,182 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_RUNTIME_READINESS_ONLY_ACTUAL_NOT_RUN",
+  "parentHostHead": "9b22a4a8379f052f25347ddf40b86dfa0354510c",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "f2e6abeec0a807557125f108055b83bc041869a2cf42a99cd1c6f53ec3dbc870",
+    "patchSha256": "c4fe066897608e398c197ae641074fe05756f0be2ec721f1e817b26d4580007e",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "snapshot": {
+    "path": "/tmp/ticket-38-runtime-prep-20261116T232323Z",
+    "manifest": {
+      "path": "/tmp/ticket-38-runtime-prep-20261116T232323Z/manifest.json",
+      "bytes": 1186,
+      "sha256": "2bf39fe350d50ab16ab4d658622d9b3ce3aab4717ff1ed5652dd3a2bde968d0d"
+    },
+    "nativePaths": 166,
+    "nativeDiffsUnchanged": {
+      "native-head.txt": "573d5927ecbdba846e6a631a629bcde6099599a416fd5079b02bb7ab4cdea1ec",
+      "native-index.patch": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-worktree.patch": "cf94a68572df07128fdd25ec43bf7d7460b3a008cd0d1f15c3d09ccddeb92ef3",
+      "native-head.patch": "cf94a68572df07128fdd25ec43bf7d7460b3a008cd0d1f15c3d09ccddeb92ef3"
+    },
+    "nativeIndexUnchanged": true
+  },
+  "previousProvenance": {
+    "matchedBuildEvidence": {
+      "path": "compatibility/evidence/attachment-de7c-matched-build.json",
+      "bytes": 67109,
+      "sha256": "4bfe49cdeed1096629bd8fa5d740af5a5a66317071703163ccf962d537a639a2"
+    },
+    "verifiedFileRecords": 290,
+    "mismatches": []
+  },
+  "inputs": [
+    {
+      "id": "image",
+      "format": "png",
+      "bytes": 68,
+      "originalSha256": "6b1048f8a6d40bac0b2954c18fefa40c4ea7a96120fc2e54b7317c0e43c2bbec",
+      "expectedPreparedRepresentationSha256": "b9c50aa231fe688a56f0808874659608cdf2db9ba4c8b64aa0252a775c961fe4"
+    },
+    {
+      "id": "document",
+      "format": "utf8",
+      "bytes": 28,
+      "originalSha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+      "expectedPreparedRepresentationSha256": "e603d01747bf11e95e94972008c3befe7d041b60b064fa8134add64c18019b0e"
+    },
+    {
+      "id": "invalid",
+      "format": "utf8",
+      "bytes": 2,
+      "originalSha256": "eddf68639913a3cb8331cdfe7f87559e0beccf2c289c0d90ac4d89b3204004f8"
+    }
+  ],
+  "test": {
+    "path": "tests/attachments/public-rpc.test.ts",
+    "bytes": 12394,
+    "sha256": "1adfae59c4bb3520d9f1b1557d967988aba4cf9fb6cf81f15d2fdfb2205174bc"
+  },
+  "fixtures": [
+    {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 6277,
+      "sha256": "5332bf508eab8ac1c31dfaaea24e2d0675a8df66d2bf2c52345db620b04e0b3f"
+    },
+    {
+      "path": "compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5410,
+      "sha256": "c7739dbddda11f4ccb936781bb6a1d1e174790cacab7ea47f54d8c4b8ab7f4ab"
+    },
+    {
+      "path": "tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "cases": [
+    "actual public PNG and text commit exact indexed parts with matching query and history links",
+    "actual public failed mixed preparation refuses all input before reservation or effects"
+  ],
+  "publicSeam": [
+    "attachment_prepare",
+    "submission_submit",
+    "submission_query",
+    "get_entries",
+    "history_snapshot_open",
+    "history_snapshot_page",
+    "history_snapshot_close",
+    "attachment_cancel"
+  ],
+  "association": "Exact public SubmissionRelation.entryId and link.entryPart.kind/index address get_entries saved message arrays. Public HistoryItem.entryId matches the same relation; never infer association from text, hashes or append order. Provider capture hashes verify delivered representation bytes independently.",
+  "confirmedWire": {
+    "receiptStatuses": [
+      "ready",
+      "failed"
+    ],
+    "invalidUtf8Code": "attachment_invalid_utf8",
+    "failedReceiptSubmissionError": "ATTACHMENT_NOT_READY",
+    "absentQuery": {
+      "found": false,
+      "admission": "absent",
+      "reservation": "absent",
+      "terminal": false,
+      "inputOutcome": "unresolved",
+      "operationOutcome": "unknown",
+      "persistence": "unresolved",
+      "relations": [],
+      "nextOffset": null
+    },
+    "locator": {
+      "kind": [
+        "content",
+        "files"
+      ],
+      "indexMinimum": 0,
+      "indexMaximum": 65535
+    }
+  },
+  "checks": [
+    {
+      "command": "pinned-bun --no-env-file run typecheck",
+      "result": "PASS; Host strict types, no runtime execution"
+    },
+    {
+      "command": "pinned-bun build --no-env-file tests/attachments/public-rpc.test.ts --target=bun --packages=external --external='*' --outdir=/tmp/ticket-38-runtime-prep-20261116T232323Z/syntax",
+      "result": "PASS; emitted test syntax only, imports external, no evaluation"
+    },
+    {
+      "command": "git diff --check",
+      "result": "PASS"
+    },
+    {
+      "command": "Python hashlib/byte comparison of prior matched provenance and snapshot Native index/diffs",
+      "result": "PASS; 290 prior records and frozen Native snapshot unchanged"
+    }
+  ],
+  "plannedRuntime": {
+    "status": "NOT RUN; requires Root explicit single actual runtime window",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-... synthetic profile>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "scope": "Only these two cases. Existing child synthetic HOME, allowlisted env and preimport no-provider guard. No Host/browser/socket probe/fault shim/C/private Session imports or session-file parsing.",
+    "cleanup": "Each case closes and awaits its owned strictWorker, removes its synthetic child home; top launcher must inspect network audit and clean only its fresh top profile."
+  },
+  "limitations": [
+    "Both new runtime cases NOT RUN. Types/syntax are not runtime proof.",
+    "No Native source, patches, build artifacts, dependencies, other worktrees, global installation or product data changed.",
+    "All remaining selected image/document formats, saved-history restart/copy/branch, transforms, budgets, fault/persistence, actual browser/DSH consent and final matched1-10 evidence remain mandatory and open."
+  ]
+}
