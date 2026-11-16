@@ -18,3 +18,7 @@ for (const [name, code] of Object.entries({ command, result })) {
   await Bun.write(`packages/contracts/generated/submission-${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
 await Bun.write(resolve(root, "submissions.generated.ts"), `import command from "./submission-command.generated.js";\nimport result from "./submission-result.generated.js";\nimport type { SubmissionCommand } from "./rpc-submissions";\nimport type { SubmissionResult } from "./wire/rpc-wire.generated";\nexport const validSubmissionCommand = (value: unknown): value is SubmissionCommand => command(value);\nexport const validSubmissionResult = (value: unknown): value is SubmissionResult => result(value);\n`);
+const client = (await Bun.file(resolve(root, "submission-client.ts")).text()).replace("./wire/rpc-wire.generated", "./omp-wire");
+if (process.argv.includes("--check")) {
+  if (await Bun.file("packages/contracts/generated/submission-client.ts").text() !== client) throw new Error("SUBMISSION_CLIENT_STALE");
+} else await Bun.write("packages/contracts/generated/submission-client.ts", client);

@@ -6,12 +6,13 @@ import { z } from "zod";
 import { PhysicalFrames } from "../../packages/compatibility/framing.ts";
 const frameSchema = z.object({ type: z.string(), id: z.string().optional() }).catchall(z.unknown());
 export type StrictFrame = z.infer<typeof frameSchema>;
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }) {
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, trace?: string) {
   if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
-  const child = Bun.spawn([...(fault && fault.name !== "unknown-lease"
-    ? [Bun.which("python3") ?? "/usr/bin/python3", resolve("tests/continuation/syscall-faults.py")] : []),
+  if (trace && !trace.startsWith(home + "/")) throw new Error("STRICT_FIXTURE_TRACE_PATH");
+  const child = Bun.spawn([...(trace ? ["strace", "--kill-on-exit", "-f", "-e", "trace=network", "-o", trace] : []), ...(fault && fault.name !== "unknown-lease"
+    ? [Bun.which("python3") ?? "/usr/bin/python3", resolve(fault.name.startsWith("submission-") ? "tests/submissions/syscall-faults.py" : "tests/continuation/syscall-faults.py")] : []),
     process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/no-provider.ts"),
-    ...(fault ? ["--preload", resolve("tests/continuation/native-faults.ts")] : []),
+    ...(fault ? ["--preload", resolve(fault.name.startsWith("submission-") ? "tests/submissions/wire-faults.ts" : "tests/continuation/native-faults.ts")] : []),
     resolve("vendor/omp-candidate/cli.js"), "--mode", "rpc-ui", ...(ordinaryFile ? ["--session", ordinaryFile] : ["--strict-start"]), ...runtimeArgs], {
     cwd, env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", TMPDIR: home,
       ...(fault ? { OMP_STRICT_FIXTURE_HOME: home, OMP_STRICT_FAULT: fault.name, OMP_STRICT_FAULT_TARGET: fault.target, LD_PRELOAD: resolve("vendor/strict-fixture/native-faults.so") } : {}),
