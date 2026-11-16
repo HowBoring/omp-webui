@@ -66,8 +66,13 @@ before rebuilding/updating its tuple; source/module/asset changes invalidate it.
 ```sh
 OMP_WEB_MANIFEST="$PWD/vendor/omp-candidate/installation.json" \
 OMP_WEB_LAUNCHER="$PWD/vendor/omp-candidate/omp" \
+OMP_WEB_MANIFEST_SHA256="$REVIEWED_MANIFEST_SHA256" \
 OMP_WEB_PORT=3180 bun run diagnostics
 ```
+
+`REVIEWED_MANIFEST_SHA256` must be the independently recorded reviewed enrollment digest. Do not derive it
+from the mutable manifest as part of Host startup. The CLI now requires that value; explicit isolated fixture
+callers without it remain development fixtures and do not establish product trust.
 
 Only loopback binds. Neither an HTTP argument nor a Remote parameter can choose executable, argv, profile or
 paths. The page uses actual DSH Cordis/Connection/TypertRegistry/ClientRemote, a strict public diagnostic
@@ -133,3 +138,12 @@ acceptance does not mean an unmodified official release or grant product Session
 actual DSH Client/provider fixtures and Linux Chromium. Its records explicitly distinguish fixture-original
 preparation from a durable Host original store. See its README and accepted seams for the public API, tab owner
 policy, cancellation/frozen revision fences, and remaining product/platform boundaries.
+
+
+## Global delivery preparation (#41)
+
+[The delivery preparation module](../packages/delivery/README.md) adds an explicit-root exhaustive relocatable
+inventory, mandatory independent digest, narrow ordinary-entry resolver and a coordinated Linux flock/C entry
+prototype. Its operator report always remains BLOCKED. No complete final artifact was staged, no actual global
+installation was selected or changed, and no private Session admission is enabled. See
+[the component evidence](../docs/evidence/ticket-41-delivery-preparation.md) for actual results and remaining gates.

@@ -1,0 +1,61 @@
+{
+  "format": "omp-webui-ticket-41-component-evidence-v1",
+  "status": "COMPONENT PASS; ISSUE BLOCKED",
+  "initialIntegrationBase": "03bc1d09e1ae9d2a0d64c58ba42d74ae48d5a891",
+  "platform": {
+    "os": "Linux",
+    "kernel": "6.18.57",
+    "arch": "x86_64",
+    "bun": "1.4.4 (38afee6c8)",
+    "gcc": "Debian 14.2.0-19"
+  },
+  "seams": [
+    "real filesystem provenance",
+    "real Linux flock/static C/actual Bun harmless exec",
+    "existing public Bun HTTP diagnostic admission",
+    "public DSH diagnostic Remote fixtures"
+  ],
+  "affectedChecks": {
+    "tests": {
+      "passed": 34,
+      "failed": 0,
+      "assertions": 83,
+      "files": 11
+    },
+    "typecheck": "PASS",
+    "gitDiffCheck": "PASS"
+  },
+  "actualGlobal": "BLOCKED: no owner-selected actual global entry or installation policy",
+  "finalCombination": "NOT FROZEN; no final artifact/schema/client identity asserted",
+  "nativeWorkers": "NOT RUN",
+  "browserUi": "NOT RUN",
+  "nativeTuiDataUpgradeRollback": "NOT RUN",
+  "windowsWsl2": "OWNER DEFERRED until development complete",
+  "cleanupCapability": "BLOCKED: Native private-child/shared-service ownership and maintenance lifetimes unresolved",
+  "largeArtifactStaging": "NOT RUN: dependency freeze, disk and runtime coordination pending",
+  "privateSessionAdmission": "blocked",
+  "rawLogsTracked": false,
+  "sourceSha256": {
+    "apps/host/src/diagnostics-main.ts": "d383b301952f2f192f8b81f4c8a4beaa43eacecfe7255dd0c19fc22a4a610c38",
+    "apps/host/src/diagnostics-server.ts": "cd66d3f0748bab288acd2a0eb985f5ccfc4844bd8a423000333b7bd53c4b13ba",
+    "compatibility/launcher/omp-entry.c": "581a2259d80505c2ff301073c3558a05b1f79502bfec67b7ceb179c03aebfb22",
+    "packages/compatibility/assets.ts": "f3e0cc282d1eb42da2f321bc2f3e6f03f75d76b10c5c1c4b9c1cfbac3b16da71",
+    "packages/delivery/artifact.ts": "640beaa49283745cb64a467a64818df6fcaa57913a70a413f24848f7602e4651",
+    "packages/delivery/coordinator.ts": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae",
+    "packages/delivery/gate.ts": "37f31ca2850344db23300cb7ab9c163bfc9aa6a4a811c82c101a5e39c879cd26",
+    "packages/delivery/maintenance.ts": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba",
+    "packages/delivery/resolver.ts": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d",
+    "scripts/build-controlled-launcher.ts": "4571c2ed9d5feed9af81831178a5a06dc25a48fbd8ca09700c12aff6fac6f907",
+    "scripts/inspect-delivery.ts": "e98fca187ea92a2964bd59a0002827856e6c20ab304ee2be13663ea8a92d12fb",
+    "tests/compatibility/assets.test.ts": "e6f82bc1d6e5b97c47ce6fec1caf14556ca7cbb556a68e7290d1176a43ca1751",
+    "tests/delivery/artifact.test.ts": "e405f444129d8a294bacb270ad395d4f3c45936760d1a93de95c0be977c1934a",
+    "tests/delivery/coordinator.test.ts": "c998a0492fed272547ed45729bf9ff0529fc6a13364c6b3bf8f535f8cb1dd68f",
+    "tests/delivery/fixtures.ts": "a7064bc3e8f7043b407f9dd4bb9333622b815e40d18c1a8bf51054cd594cf2a3",
+    "tests/delivery/gate.test.ts": "125b3e13408f3baea0b0f02494a4d3661496e624b8a75b4de8b8d2ace612cd3f",
+    "tests/delivery/launcher-fixture.ts": "db810c58406c4406c3679c00ba29c7decd3044c8c600236759517abcb6198b5b",
+    "tests/delivery/launcher.test.ts": "9e90245b6cff7e05c10d86383b63ec917c02eac6955c9430bd2aa2f0e7279bfe",
+    "tests/delivery/maintenance.test.ts": "5d01b83909f74141fb3dc6b0a0ae0fd584da673ec523406216ca1c195ca6fa9c",
+    "tests/delivery/resolver.test.ts": "507fd03078c0977f7153f858c4b4bbe9972306723d77ac027530db2fa9d56495",
+    "tests/host/diagnostics-trust.test.ts": "94502c29bf1424938386eb41c1d27f4b6f48537f4c5340b1f6935dd67bec9496"
+  }
+}

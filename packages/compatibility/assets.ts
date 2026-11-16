@@ -3,9 +3,10 @@ import { dirname, relative, resolve } from "node:path";
 import { digest, identifyAsset, manifestSchema } from "./installation.ts";
 
 /** Serve only assets in the startup-selected trust manifest; no source or launcher facts reach the browser. */
-export async function trustedDiagnosticAssets(manifestPath: string, directory: string) {
+export async function trustedDiagnosticAssets(manifestPath: string, directory: string, expectedIdentity?: string) {
   try {
     const bytes = await readFile(manifestPath);
+    if (expectedIdentity !== undefined && digest(bytes) !== expectedIdentity) throw new Error("trust changed");
     const manifest = manifestSchema.parse(JSON.parse(bytes.toString("utf8")));
     const root = resolve(dirname(manifestPath), "../..");
     const identity = digest(bytes);

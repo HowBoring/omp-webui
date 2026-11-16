@@ -30,8 +30,9 @@ export async function startDiagnosticsServer(options: Options) {
   const ctx = new Context();
   const lifetime = new AbortController();
   const assets = resolve(options.assets ?? "vendor/dsh-diagnostics");
-  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets);
-  const selection = { ...options, ...(staticAssets.identity === undefined ? {} : { expectedIdentity: staticAssets.identity }) };
+  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets, options.expectedIdentity);
+  const selection = { ...options, ...(options.expectedIdentity !== undefined || staticAssets.identity === undefined
+    ? {} : { expectedIdentity: staticAssets.identity }) };
   let busy = false;
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);
