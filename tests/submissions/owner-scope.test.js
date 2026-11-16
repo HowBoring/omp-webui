@@ -1,7 +1,7 @@
 /** Pure public Native causal-carrier contract. Actual SDK/helper RED is recorded separately. */
 import { expect, test } from "bun:test";
 import {
-  assertSubmissionCurrent, captureSubmission, capturedSubmissionScope, copySubmission,
+  assertSubmissionCurrent, causalSubmission, captureSubmission, capturedSubmissionScope, copySubmission,
   runSubmission, runSubmissionForOwner, sdkMessageSubmission, submissionScope,
 } from "../../vendor/omp/packages/coding-agent/src/session/submission-provenance.ts";
 
@@ -62,4 +62,26 @@ test("raw SDK reuse under distinct owners is detached-ambiguous even when their 
   runSubmission(first, () => expect(sdkMessageSubmission(raw)?.owner).toBe(first.owner));
   runSubmission(second, () => expect(sdkMessageSubmission(raw)?.owner).toBe(second.owner));
   expect(() => sdkMessageSubmission(raw)).toThrow("SUBMISSION_CAUSALITY_AMBIGUOUS");
+});
+
+test("owner entry admission clears implicit async work while retaining earned original and copied causes", async () => {
+  const parent = {}, child = {}, original = {}, copied = {}, unbound = {};
+  const scope = { origin, owner: parent, phase: "input" };
+  await runSubmission(scope, async () => {
+    captureSubmission(original, "user");
+    copySubmission(original, copied);
+    await runSubmissionForOwner(child, async () => {
+      expect(causalSubmission()).toBeUndefined();
+      expect(causalSubmission(unbound)).toBeUndefined();
+      for (const message of [original, copied]) {
+        expect(causalSubmission(message)).toEqual({ origin, role: "input" });
+        expect(capturedSubmissionScope(message)?.owner).toBe(parent);
+      }
+      await Promise.resolve().then(() => expect(causalSubmission()).toBeUndefined());
+    });
+    expect(submissionScope()).toBe(scope);
+    expect(causalSubmission()).toEqual({ origin, role: "additional" });
+    expect(() => runSubmissionForOwner(parent, () => assertSubmissionCurrent(() => ({ ...origin,
+      instanceId: "4".repeat(64) })))).toThrow("SUBMISSION_TARGET_CHANGED");
+  });
 });

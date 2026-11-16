@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 2d1a13fcc1..0c8a57f019 100644
+index 3f15bb5540..ec34bf1bd7 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -13,6 +13,8 @@
+@@ -15,6 +15,8 @@
  
  ### Added
  
@@ -12,13 +12,13 @@ index 2d1a13fcc1..0c8a57f019 100644
  
  - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 48f8d9f5ac..909b41619c 100644
+index 7e51b0abc2..4ec32d95ed 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -46,3 +46,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
  Switching backends mid-session immediately replaces the live backend, memory tools, listeners, and system-prompt context. Existing users with `memories.enabled = true|false` are migrated to `memory.backend = "local"|"off"` exactly once on first launch; afterward, `memory.backend` is the sole runtime selector.
  
- Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
+ Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers and direct task/revival manager appends keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
 +
 +Candidate protected durable navigation is documented in [rpc-navigation.md](docs/rpc-navigation.md).
 diff --git a/packages/coding-agent/docs/rpc-navigation.md b/packages/coding-agent/docs/rpc-navigation.md
@@ -915,7 +915,7 @@ index 8efdf7cb7e..58e634fe88 100644
      const carrierType = requiresSubmissions || header.type === SUBMISSION_CARRIER_TYPE
        ? SUBMISSION_CARRIER_TYPE : CARRIER_TYPE;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index a75ed42527..a672c55e53 100644
+index 24b62bbf4d..4bac09ab32 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,3 +1,6 @@
@@ -1020,7 +1020,7 @@ index a75ed42527..a672c55e53 100644
  		if (loaded && this.#storage instanceof StrictSessionStorage) this.#captureSubmissionProof();
  		this.#historyChanged("rebuild", true);
  	}
-@@ -2404,6 +2426,8 @@ export class SessionManager {
+@@ -2410,6 +2432,8 @@ export class SessionManager {
  			// a rollback observe the move it is undoing.
  			header: structuredClone(this.#header),
  			nativeSubmissions: structuredClone(this.#nativeSubmissions),
@@ -1029,7 +1029,7 @@ index a75ed42527..a672c55e53 100644
  			entries: [...this.#entries],
  		};
  	}
-@@ -2438,9 +2462,11 @@ export class SessionManager {
+@@ -2444,9 +2468,11 @@ export class SessionManager {
  	}
  
  	restoreState(snapshot: SessionManagerStateSnapshot): void {
@@ -1043,7 +1043,7 @@ index a75ed42527..a672c55e53 100644
  		if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
  		this.#closeWriterEventually();
  		this.#diskTail = Promise.resolve();
-@@ -2462,12 +2488,25 @@ export class SessionManager {
+@@ -2468,12 +2494,25 @@ export class SessionManager {
  			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
  			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
  			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
@@ -1073,7 +1073,7 @@ index a75ed42527..a672c55e53 100644
  		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
  		this.#sessionName = snapshot.sessionName;
  
-@@ -3003,9 +3042,11 @@ export class SessionManager {
+@@ -3009,9 +3048,11 @@ export class SessionManager {
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
  		manager.#nativeSubmissions = structuredClone(this.#nativeSubmissions);
@@ -1085,7 +1085,7 @@ index a75ed42527..a672c55e53 100644
  		manager.#historyChanged("rebuild", true);
  		manager.#forceFileCreation = true;
  		manager.#materializeSubmissionCopy();
-@@ -3015,7 +3056,7 @@ export class SessionManager {
+@@ -3021,7 +3062,7 @@ export class SessionManager {
  
  	/** Native ledger copies require a fresh protected target rather than a pathname-based atomic rename. */
  	#materializeSubmissionCopy(): void {
@@ -1094,7 +1094,7 @@ index a75ed42527..a672c55e53 100644
  		if (!this.#sessionFile) throw new Error("SUBMISSION_COPY_TARGET_MISSING");
  		const body = this.#serializeBody();
  		const storage = createExplicitNativeStorage(this.#sessionFile, body.lines.join(""), this.#cwd);
-@@ -4270,6 +4311,85 @@ export class SessionManager {
+@@ -4276,6 +4317,85 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1180,7 +1180,7 @@ index a75ed42527..a672c55e53 100644
  	/** A durable submission requires the genuine lease and pinned native publication backend. */
  	getSubmissionTarget(): SubmissionTarget {
  		if (!(this.#storage instanceof StrictSessionStorage) || !this.#persist || !this.#sessionFile)
-@@ -4370,6 +4490,7 @@ export class SessionManager {
+@@ -4376,6 +4496,7 @@ export class SessionManager {
  	#captureSubmissionProof(): void {
  		assertSubmissionEntries(this.#entries, this.#nativeSubmissions);
  		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
@@ -1188,7 +1188,7 @@ index a75ed42527..a672c55e53 100644
  		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
  			? [[entry.id, structuredClone(entry.submission)] as const] : []));
  	}
-@@ -4768,6 +4889,8 @@ export class SessionManager {
+@@ -4774,6 +4895,8 @@ export class SessionManager {
  			options?.sessionFile,
  		);
  		manager.#nativeSubmissions = readSubmissionRecords([...(sourceHeader?.nativeSubmissions ?? []).map(submissionRecord), ...history]);
@@ -1197,7 +1197,7 @@ index a75ed42527..a672c55e53 100644
  		manager.#header.requiredFeatures = structuredClone(sourceHeader?.requiredFeatures);
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
-@@ -4784,15 +4907,19 @@ export class SessionManager {
+@@ -4790,15 +4913,19 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;

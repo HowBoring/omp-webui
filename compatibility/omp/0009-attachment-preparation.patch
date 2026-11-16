@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 0c8a57f019..52c94ebef1 100644
+index ec34bf1bd7..0f91409276 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -14,6 +14,7 @@
+@@ -16,6 +16,7 @@
  ### Added
  
  - Added protected navigation reservations, final native position receipts and read-only recovery queries ([WebUI #37](https://github.com/HowBoring/omp-webui/issues/37)).
@@ -11,7 +11,7 @@ index 0c8a57f019..52c94ebef1 100644
  - Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
  
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 909b41619c..f8819c0693 100644
+index 4ec32d95ed..1f62e8f548 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -9,6 +9,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
@@ -2158,7 +2158,7 @@ index 46a04f5715..d03956a4f7 100644
  	if (len === 0) prefixOutputLen = 0;
  
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index a672c55e53..9e3b9bdbae 100644
+index 4bac09ab32..b98714bd16 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -4,6 +4,7 @@ import type { NativeNavigation } from "./navigation-records";
@@ -2166,10 +2166,10 @@ index a672c55e53..9e3b9bdbae 100644
  import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
 +import { locatePreparedEntryParts } from "../attachments/entry-parts";
- import { causalSubmission, sameSubmission, validSubmissionCausality } from "./submission-provenance";
+ import { causalSubmission, runSubmissionForOwner, sameSubmission, validSubmissionCausality } from "./submission-provenance";
  import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
  import { nativeHistoryContextId } from "./history-context";
-@@ -2282,6 +2283,8 @@ export class SessionManager {
+@@ -2288,6 +2289,8 @@ export class SessionManager {
  			if (!this.#verifiedSubmissions.some(value => sameSubmission(value.origin, origin)))
  				throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
  		}
@@ -2178,7 +2178,7 @@ index a672c55e53..9e3b9bdbae 100644
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2489,7 +2492,8 @@ export class SessionManager {
+@@ -2495,7 +2498,8 @@ export class SessionManager {
  			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
  			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
        restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
@@ -2188,7 +2188,7 @@ index a672c55e53..9e3b9bdbae 100644
      }
      if (navigationTombstones?.length) {
        const records = new Map((snapshot.nativeNavigations ?? []).map(item => [item.origin.navigationId, item]));
-@@ -4400,6 +4404,14 @@ export class SessionManager {
+@@ -4406,6 +4410,14 @@ export class SessionManager {
  		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
  	}
  	/** Permanent append-only native reservation. No execution may precede its verified publication. */
@@ -2203,7 +2203,7 @@ index a672c55e53..9e3b9bdbae 100644
  	reserveSubmission(value: NativeSubmission): Promise<boolean> {
  		return this.#withAtomicPersistenceLock(async () => {
  			this.getSubmissionTarget();
-@@ -4410,6 +4422,13 @@ export class SessionManager {
+@@ -4416,6 +4428,13 @@ export class SessionManager {
  			}
  			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
  			await this.#ensureSubmissionFormat();
@@ -2217,7 +2217,7 @@ index a672c55e53..9e3b9bdbae 100644
  			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
  			this.#nativeSubmissions.push(reserved);
  			await this.#appendSubmissionControl(reserved);
-@@ -4425,7 +4444,8 @@ export class SessionManager {
+@@ -4431,7 +4450,8 @@ export class SessionManager {
  			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
  			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
@@ -2227,7 +2227,7 @@ index a672c55e53..9e3b9bdbae 100644
  			const entryFacts = [...facts.values()];
  			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			await this.flush();
-@@ -4483,7 +4503,8 @@ export class SessionManager {
+@@ -4489,7 +4509,8 @@ export class SessionManager {
  			const value = byKey.get(submission.origin.clientSubmissionId);
  			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
  			value.entryFacts ??= [];
