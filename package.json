@@ -11,6 +11,7 @@
     "dev": "bun --watch apps/host/src/main.ts",
     "start": "bun apps/host/src/main.ts",
     "test": "bun test",
+    "test:access:browser": "python3 tests/access/browser.py",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "bun run typecheck && bun test && bun run build",
     "build": "bun build apps/host/src/main.ts --target=bun --outdir=dist",
@@ -20,7 +21,10 @@
     "dsh:prepare": "bash scripts/prepare-dsh.sh",
     "dsh:link": "bun scripts/link-dsh.ts",
     "diagnostics:build": "bun apps/diagnostics/build.ts && bun scripts/build-diagnostics-host.ts",
-    "diagnostics:enroll": "bun scripts/enroll-candidate.ts"
+    "diagnostics:enroll": "bun scripts/enroll-candidate.ts",
+    "catalog:fixture": "bun --no-env-file vendor/host-catalog/catalog-fixture-main.js",
+    "catalog:fixture-data": "bun scripts/create-catalog-fixture.ts",
+    "catalog:build": "bun apps/catalog/build.ts && bun scripts/build-catalog-host.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",

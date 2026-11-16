@@ -55,10 +55,10 @@ index 0000000000..4c0c803c14
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 new file mode 100644
-index 0000000000..add5857818
+index 0000000000..8e99defe08
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-@@ -0,0 +1,78 @@
+@@ -0,0 +1,82 @@
 +/** Native readonly descriptor implementation. Never calls SessionManager/load/migrate/repair. */
 +import { realpath, stat } from "node:fs/promises";
 +import { openWithin } from "./catalog-path";
@@ -96,6 +96,9 @@ index 0000000000..add5857818
 +  try { return { state: isFileLockHeld(join(getSessionOwnersDir(), name)) ? "held" : "free", observedAt }; }
 +  catch { return { state: "unknown", observedAt }; }
 +}
++function isRecord(value:unknown):value is Record<string,unknown> {
++  return typeof value === "object" && value !== null && !Array.isArray(value);
++}
 +function text(value: unknown, max: number): string | undefined {
 +  return typeof value === "string" && value.length <= max ? value : undefined;
 +}
@@ -114,12 +117,13 @@ index 0000000000..add5857818
 +    const end = bytes.subarray(0, bytesRead).indexOf(10);
 +    if (end < 0) throw new Error("HEADER_LIMIT");
 +    const value: unknown = JSON.parse(new TextDecoder("utf-8", {fatal:true}).decode(bytes.subarray(0, end)));
-+    if (typeof value !== "object" || value === null || !("type" in value) || value.type !== "session"
++    if (!isRecord(value) || value.type !== "session"
 +      || !("id" in value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128
 +      || !("timestamp" in value) || typeof value.timestamp !== "string" || !Number.isFinite(Date.parse(value.timestamp))) {
 +      throw new Error("INVALID_HEADER");
 +    }
-+    const header = value as Record<string, unknown>;
++    const header = value;
++    const title=text(header.title,512),parentSession=text(header.parentSession,128),continuationOf=text(header.continuationOf,128);
 +    const nativeSessionId = value.id;
 +    const instanceId = hash(`${before.dev}:${before.ino}:${before.birthtimeNs}:${nativeSessionId}`);
 +    const locator = relative(source.root, target);
@@ -130,9 +134,9 @@ index 0000000000..add5857818
 +      hash(`${before.dev}:${before.ino}:${before.birthtimeNs}`)) throw new Error("CHANGED_DURING_READ");
 +    return {sourceId:source.sourceId, instanceId, nativeSessionId,
 +      reference:Buffer.from(JSON.stringify(ref)).toString("base64url"), aliases:[relative(source.root,path)], cwd,
-+      ...(text(header.title,512) === undefined ? {} : {title:text(header.title,512)}),
-+      ...(text(header.parentSession,128) === undefined ? {} : {parentSession:text(header.parentSession,128)}),
-+      ...(text(header.continuationOf,128) === undefined ? {} : {continuationOf:text(header.continuationOf,128)}),
++      ...(title === undefined ? {} : {title}),
++      ...(parentSession === undefined ? {} : {parentSession}),
++      ...(continuationOf === undefined ? {} : {continuationOf}),
 +      createdAt:value.timestamp, modifiedAt:new Date(Number(before.mtimeMs)).toISOString(), observedAt:new Date().toISOString(),
 +      ownership:ownership(nativeSessionId)};
 +  } finally { await file.close(); }

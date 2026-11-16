@@ -157,3 +157,27 @@ test("native lease backend errors surface unknown rather than free (real syscall
     finally {await client.close();}
   } finally {await rm(home,{recursive:true,force:true});}
 });
+
+test("response-byte packing preserves every large descriptor through continuation rather than exceeding the native wire budget",async()=>{
+  const home=await mkdtemp(join(tmpdir(),"catalog-response-"));
+  try {
+    const root=join(home,".omp/agent/sessions"), bucket=join(root,"b".repeat(240));await mkdir(bucket,{recursive:true});
+    for(let n=0;n<32;n++) {
+      const file=join(bucket,`native-${n}.jsonl`);
+      await Bun.write(file,JSON.stringify({type:"session",id:`large-${String(n).padStart(2,"0")}`,timestamp:"2026-01-01T00:00:00Z",
+        cwd:`/${"x".repeat(4000)}`,title:"T".repeat(512)})+"\n");
+      for(let alias=0;alias<15;alias++)await link(file,join(bucket,`${n}-${alias}-${"a".repeat(220)}.jsonl`));
+    }
+    const client=await open(home);
+    try {
+      let cursor:string|undefined,ids:string[]=[];let completedPages=0,packed=false;
+      do {
+        const page=await client.catalog.page({...(cursor?{cursor}:{})});
+        expect(Buffer.byteLength(JSON.stringify(page))+1024).toBeLessThanOrEqual(262144);
+        if(page.status!=="scanning") {completedPages++;packed ||= page.items.length<32 && page.nextCursor!==undefined;}
+        ids.push(...page.items.map(item=>item.nativeSessionId));cursor=page.nextCursor;
+      } while(cursor && completedPages<10);
+      expect(packed).toBe(true);expect(ids).toEqual(Array.from({length:32},(_,n)=>`large-${String(n).padStart(2,"0")}`));
+    } finally{await client.close();}
+  } finally{await rm(home,{recursive:true,force:true});}
+},10000);
