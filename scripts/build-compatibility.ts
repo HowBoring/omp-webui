@@ -48,15 +48,7 @@ const makeCommandSchemas = (names: string[]) => bundle["x-rpc"].commands.filter(
     properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
 });
 const catalogSchemas = makeCommandSchemas(["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
-const commandSchemas = bundle["x-rpc"].commands.filter(command =>
-  command.name === "get_compatibility" || command.name === "negotiate_protocol").map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return {
-    type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties },
-  };
-});
+const commandSchemas = makeCommandSchemas(["get_compatibility", "negotiate_protocol"]);
 // This S0 client deliberately validates only marker-free preflight definitions. Later
 // Session unions require a separately implemented policy for the upstream leniency markers.
 const audited = new Set<string>();

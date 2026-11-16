@@ -1,5 +1,8 @@
 # Ticket 31 catalog transport follow-up
 
+This retained record explains the original fixes and mutation proof. The [review-fix evidence](ticket-31-review-fixes.md)
+records their extraction into the shared core and the final repeated public-client/native/browser checks.
+
 The final ticket branch merges integration `3643be43d6ed7d3b5c782ddb97d24398ecc64641`, including the
 [shared preflight transport fix](ticket-30-transport-deadlines.md). The copied catalog transport had the same
 startup-budget and queued-write defects. Native catalog API, source patch, schema, identity and budgets are unchanged.

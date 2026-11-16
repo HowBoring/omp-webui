@@ -214,3 +214,51 @@ test("catalog leaves legacy directories, malformed primary Sessions and valid ba
     }finally{await client.close();}
   }finally{await rm(home,{recursive:true,force:true});}
 });
+
+for (const partial of [false, true]) {
+  test(`nested authorized sources preserve both scoped descriptors through every ${partial ? "partial" : "complete"} page`, async () => {
+    const home = await mkdtemp(join(tmpdir(), "catalog-overlap-"));
+    try {
+      const root = await nativeFixture(home, 40), nested = join(root, "bucket");
+      await symlink(nested, join(root, "bucket-alias"));
+      // A directory below the native bucket is outside the default source's traversal depth.
+      await mkdir(join(nested, "deeper"));
+      await Bun.write(join(nested, "deeper/extra.jsonl"),
+        '{"type":"session","id":"custom-depth-only","timestamp":"2026-01-01T00:00:00Z"}\n');
+      const configured = [nested, ...(partial ? [join(home, "missing")] : [])];
+      const before = await filesystemManifest(home);
+      const client = await open(home, { OMP_CATALOG_SOURCES: JSON.stringify(configured) });
+      try {
+        const sources = (await client.catalog.sources()).sources;
+        const defaultId = sources.find(source => source.kind === "default")!.sourceId;
+        const customId = sources.find(source => source.kind === "custom" && source.status === "ready")!.sourceId;
+        const items = []; let cursor: string | undefined; let pages = 0;
+        do {
+          const page = await client.catalog.page({ pageSize: 1, ...(cursor ? { cursor } : {}) });
+          if (page.status !== "scanning") expect(page.status).toBe(partial ? "partial" : "complete");
+          expect(page.failures.map(failure => failure.code)).toEqual(partial ? ["INVALID_SOURCE"] : []);
+          items.push(...page.items); cursor = page.nextCursor; pages++;
+        } while (cursor && pages < 100);
+        expect(cursor).toBeUndefined();
+        expect(items).toHaveLength(81);
+        for (const sourceId of [defaultId, customId]) {
+          expect(items.filter(item => item.sourceId === sourceId && item.nativeSessionId !== "custom-depth-only")
+            .map(item => item.nativeSessionId)).toEqual(Array.from({ length: 40 }, (_, n) => `native-${String(n).padStart(4, "0")}`));
+        }
+        const pair = items.filter(item => item.nativeSessionId === "native-0000");
+        expect(new Set(pair.map(item => item.instanceId)).size).toBe(1);
+        expect(new Set(pair.map(item => item.reference)).size).toBe(2);
+        expect(pair.map(item => item.aliases)).toEqual(pair.map(item => item.sourceId === defaultId
+          ? ["bucket/native-0000.jsonl"] : ["native-0000.jsonl"]));
+        expect(items.find(item => item.nativeSessionId === "custom-depth-only")?.sourceId).toBe(customId);
+        for (const item of pair) {
+          const description = await client.catalog.describe(item.reference);
+          expect(description.status).toBe("verified");
+          expect(description.item?.sourceId).toBe(item.sourceId);
+          expect(description.item?.instanceId).toBe(item.instanceId);
+        }
+        expect(await filesystemManifest(home)).toEqual(before);
+      } finally { await client.close(); }
+    } finally { await rm(home, { recursive: true, force: true }); }
+  });
+}
