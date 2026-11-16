@@ -881,6 +881,17 @@ export interface CatalogDescription {
 	item?: CatalogDescriptor;
 }
 
+export interface StrictStartState {
+	version: "strict-start-v1";
+	phase: "waiting" | "opening" | "open" | "failed" | "cancelled" | "outcome_unknown";
+	intent?: "continue" | "new";
+	operationId?: string;
+	code?: string;
+	binding?: CatalogDescriptor;
+	nativeSessionId?: string;
+	cwd?: string;
+}
+
 export type AutoCompactionReason = "threshold" | "overflow" | "idle" | "incomplete";
 
 export type AutoCompactionAction = "context-full" | "remote" | "handoff" | "shake" | "snapcompact";
@@ -1161,6 +1172,7 @@ export interface CompatibilityReport {
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
 export interface ReadyEvent {
 	type: "ready";
+	strictStartup?: "strict-start-v1";
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;
@@ -1657,6 +1669,12 @@ export interface DescribeSessionParams {
 	reference: string;
 }
 
+export interface StrictStartParams {
+	intent: "continue" | "new";
+	expectedCwd: string;
+	reference?: string;
+}
+
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
 }
@@ -2038,6 +2056,9 @@ export interface RpcWireCommands {
 	catalog_sources: { params: undefined; result: CatalogSources };
 	catalog_page: { params: CatalogPageParams; result: CatalogPage };
 	describe_session: { params: DescribeSessionParams; result: CatalogDescription };
+	strict_start: { params: StrictStartParams; result: StrictStartState };
+	get_strict_state: { params: undefined; result: StrictStartState };
+	cancel_strict_start: { params: undefined; result: StrictStartState };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };

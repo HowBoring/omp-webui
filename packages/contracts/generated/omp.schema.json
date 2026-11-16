@@ -43,6 +43,39 @@
         "clientOmit": []
       },
       {
+        "name": "strict_start",
+        "doc": "Explicitly create or continue after exact-instance ownership and cwd validation. Never replay.",
+        "params": "StrictStartParams",
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "get_strict_state",
+        "doc": "Observe this worker's truthful startup outcome; never retries an operation.",
+        "params": null,
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "cancel_strict_start",
+        "doc": "Cancel pending startup; already published side effects remain explicit.",
+        "params": null,
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_compatibility",
         "doc": "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
         "params": null,
@@ -4007,6 +4040,51 @@
         "observedAt"
       ]
     },
+    "StrictStartState": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "strict-start-v1"
+        },
+        "phase": {
+          "enum": [
+            "waiting",
+            "opening",
+            "open",
+            "failed",
+            "cancelled",
+            "outcome_unknown"
+          ],
+          "type": "string"
+        },
+        "intent": {
+          "enum": [
+            "continue",
+            "new"
+          ],
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/$defs/CatalogDescriptor"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "phase"
+      ]
+    },
     "AutoCompactionReason": {
       "enum": [
         "threshold",
@@ -4954,6 +5032,9 @@
       "properties": {
         "type": {
           "const": "ready"
+        },
+        "strictStartup": {
+          "const": "strict-start-v1"
         },
         "protocolVersion": {
           "type": "integer"
@@ -6582,6 +6663,28 @@
       },
       "required": [
         "reference"
+      ]
+    },
+    "StrictStartParams": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "enum": [
+            "continue",
+            "new"
+          ],
+          "type": "string"
+        },
+        "expectedCwd": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent",
+        "expectedCwd"
       ]
     },
     "NegotiateProtocolParams": {
