@@ -117,16 +117,6 @@
       "file": "vendor/review-refresh-regression-negative.log",
       "sha256": "c329ed699cd3a8f2c2f054657c62c0ebf7d86582fd9ffe91e6e98e7d435ebc86"
     },
-    "initialPostFixStaleFault": {
-      "status": "PASS",
-      "file": "vendor/review-refresh-green.log",
-      "sha256": "5ecf94e3fc35c2aac7c592e199575d45f3211e3d3a8d2a112dec79564f6cb375"
-    },
-    "oldStaleFaultInterceptedClose": {
-      "status": "PASS",
-      "file": "vendor/review-lifecycle-green.log",
-      "sha256": "bf181456a86f850f96caa95bc3c3cfd4776e9e78b468f1e8b5b3d5667322acc9"
-    },
     "matchedBuiltHostBrowser": {
       "status": "PASS",
       "file": "vendor/review-built-host-browser-matched.log",
@@ -186,6 +176,26 @@
       "status": "FAIL: command ordering; corrected",
       "file": "vendor/review-native-affected-isolated.log",
       "sha256": "3818c66ad64b0a2dfc2b38ee5958c19836da7a69746ed920eb6d087a0536e7e9"
+    },
+    "initialFixedBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-refresh-green.log",
+      "sha256": "5ecf94e3fc35c2aac7c592e199575d45f3211e3d3a8d2a112dec79564f6cb375"
+    },
+    "sourceHostLifecycleBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-lifecycle-green.log",
+      "sha256": "bf181456a86f850f96caa95bc3c3cfd4776e9e78b468f1e8b5b3d5667322acc9"
+    },
+    "schemaHelperTypecheck": {
+      "status": "PASS",
+      "file": "vendor/review-schema-helper-typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "initialSchemaHelperTs6Command": {
+      "status": "FAIL: TypeScript6 requires --ignoreConfig for explicit files; corrected",
+      "file": "vendor/review-schema-helper-typecheck.log",
+      "sha256": "5b766b55df5bc15c215149742c8fe88d72a584cb45f5422c7edca1594b6d0cb5"
     }
   },
   "priorNativeStress": {
@@ -212,5 +222,40 @@
     "Generation loss/online and disposal are controlled standard browser events while native open responses are delayed; no DSH/controller private mutation",
     "Native 10k/100MiB stress and full repository/upstream suites not repeated; current affected gates listed above",
     "Windows/WSL2 deferred; formal30-sample performance not run"
-  ]
+  ],
+  "commands": {
+    "affectedHostAndSchemaTests": "bun test tests/history tests/compatibility/command-contracts.test.ts",
+    "ownedDshSourceAndCatalogBuildTests": "bun test tests/compatibility/dsh-source.test.ts tests/compatibility/catalog-build.test.ts (owned vendor/dsh only)",
+    "nativeAffectedTests": {
+      "argv": [
+        "bun",
+        "test",
+        "--no-env-file",
+        "--preload",
+        "<worktree>/compatibility/omp/fixtures/no-provider.ts",
+        "<worktree>/compatibility/omp/fixtures/history-native.test.js",
+        "<worktree>/compatibility/omp/fixtures/history-public-rpc.test.js"
+      ],
+      "cwd": "fresh synthetic temporary directory",
+      "environment": [
+        "PATH",
+        "HOME=<synthetic directory>",
+        "PI_CODING_AGENT_DIR=<same synthetic directory>"
+      ],
+      "allOtherEnvironment": "removed"
+    },
+    "strictTypecheck": "bun run typecheck",
+    "schemaHelperTypecheck": "tsc --ignoreConfig --noEmit --target ESNext --module Preserve --moduleResolution Bundler --allowImportingTsExtensions --strict --skipLibCheck --types bun scripts/command-schemas.ts",
+    "nativeSourceBuildAndGeneratedCheck": [
+      "bun scripts/prepare-compatibility.ts --reset --source-only",
+      "bun scripts/build-compatibility.ts",
+      "bun scripts/build-compatibility.ts --check"
+    ],
+    "browserAndHostBuild": [
+      "bun apps/history-fixture/build.ts",
+      "bun run build",
+      "bun build apps/history-fixture/main.ts --target=bun --outdir=vendor/host-history"
+    ],
+    "matchedBuiltHostBrowser": "bun scripts/prove-history-browser.ts --built"
+  }
 }
