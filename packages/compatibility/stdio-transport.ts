@@ -13,7 +13,16 @@ interface Pending {
   reject(reason: Error): void;
   timer: Timer;
 }
-export interface DrainResult { code: number; forced: boolean; stderrBytes: number; protocolFailure?: string }
+export interface DrainPolicy {
+  /** Cooperative stdin EOF/drain before SIGTERM. This does not attest native quiescence. */
+  cooperativeMs: number;
+  terminationGraceMs: number;
+  readerGraceMs: number;
+}
+export interface DrainResult {
+  code: number; forced: boolean; stderrBytes: number; protocolFailure?: string;
+  terminationSent?: boolean; forceSent?: boolean; stdoutEOF?: boolean; stderrEOF?: boolean;
+}
 
 /** Host-internal command envelope. Mode adapters retain their generated command/result interfaces. */
 export interface StdioCommand { id: string; type: string }
@@ -52,6 +61,9 @@ export class BoundedStdioTransport {
   private admitting = true;
   private fault: Error | undefined;
   private stderrBytes = 0;
+  private stdoutEOF = false;
+  private stderrEOF = false;
+  private processExited = false;
   private readonly writes: StdioWriteQueue;
   private closing: Promise<DrainResult> | undefined;
   private readonly signal: AbortSignal | undefined;
@@ -65,6 +77,7 @@ export class BoundedStdioTransport {
       env: selection.env, ...(selection.cwd === undefined ? {} : { cwd: selection.cwd }),
       stdin: "pipe", stdout: "pipe", stderr: "pipe",
     });
+    void this.child.exited.then(() => { this.processExited = true; });
     this.writes = new StdioWriteQueue(this.child.stdin, policy.pendingLimit ?? 32,
       policy.queuedBytes ?? (policy.pendingLimit ?? 32) * policy.commandBytes);
     this.stdoutReader = this.child.stdout.getReader();
@@ -124,6 +137,7 @@ export class BoundedStdioTransport {
       if (next.done) break;
       this.frames.push(next.value, frame => this.accept(frame));
     }
+    this.stdoutEOF = true;
     this.frames.finish();
     if (!this.readySeen || this.pending.size !== 0) this.fail("RPC_UNEXPECTED_EOF");
   }
@@ -174,7 +188,7 @@ export class BoundedStdioTransport {
   private async readStderr(): Promise<void> {
     while (true) {
       const next = await this.stderrReader.read();
-      if (next.done) break;
+      if (next.done) { this.stderrEOF = true; break; }
       this.stderrBytes += next.value.byteLength;
       if (this.stderrBytes > (this.policy.stderrBytes ?? 65_536)) throw new Error("RPC_STDERR_LIMIT");
       // Never retain or return stderr content. Only the bounded byte count is diagnostic data.
@@ -191,29 +205,43 @@ export class BoundedStdioTransport {
       item.reject(this.fault);
     }
     this.pending.clear();
-    this.child.kill("SIGTERM");
+    if (!this.processExited) this.child.kill("SIGTERM");
   }
 
-  close(): Promise<DrainResult> {
-    return this.closing ??= this.drain();
+  close(policy?: DrainPolicy): Promise<DrainResult> {
+    if (policy && (!Object.values(policy).every(value => Number.isFinite(value) && value >= 0)
+      || policy.cooperativeMs > 30_000 || policy.terminationGraceMs > 5_000 || policy.readerGraceMs > 5_000)) {
+      return Promise.reject(new Error("RPC_DRAIN_POLICY"));
+    }
+    return this.closing ??= this.drain(policy);
   }
 
-  private async drain(): Promise<DrainResult> {
+  private async drain(policy?: DrainPolicy): Promise<DrainResult> {
     this.admitting = false;
-    let forced = false;
-    const terminate = setTimeout(() => { forced = true; this.child.kill("SIGTERM"); }, this.timeout);
-    const kill = setTimeout(() => { forced = true; this.child.kill("SIGKILL"); }, this.timeout + 500);
+    let forced = false, terminationSent = false, forceSent = false;
+    const cooperative = policy?.cooperativeMs ?? this.timeout;
+    const grace = policy?.terminationGraceMs ?? 500;
+    const readerGrace = policy?.readerGraceMs ?? 500;
+    const terminate = setTimeout(() => {
+      if (this.processExited) return;
+      forced = true; terminationSent = true; this.child.kill("SIGTERM");
+    }, cooperative);
+    const kill = setTimeout(() => {
+      if (this.processExited) return;
+      forced = true; forceSent = true; this.child.kill("SIGKILL");
+    }, cooperative + grace);
     const stopReaders = setTimeout(() => {
       this.fail("RPC_DRAIN_TIMEOUT");
       void this.stdoutReader.cancel();
       void this.stderrReader.cancel();
-    }, this.timeout + 1000);
+    }, cooperative + grace + readerGrace);
     try {
       await this.writes.drain();
       try { this.child.stdin.end(); } catch {}
       const code = await this.child.exited;
       await Promise.all([this.stdout, this.stderr]);
       return { code, forced, stderrBytes: this.stderrBytes,
+        ...(policy ? { terminationSent, forceSent, stdoutEOF: this.stdoutEOF, stderrEOF: this.stderrEOF } : {}),
         ...(this.fault === undefined ? {} : { protocolFailure: this.fault.message }) };
     } finally {
       clearTimeout(terminate); clearTimeout(kill); clearTimeout(stopReaders);
