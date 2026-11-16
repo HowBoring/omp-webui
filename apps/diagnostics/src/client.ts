@@ -84,6 +84,10 @@ async function boot(): Promise<void> {
 window.addEventListener("pagehide", () => {
   disposed = true;
   ++revision;
+  blocked("diagnostic_page_suspended");
   void ctx.fiber.dispose();
 }, { once: true });
+window.addEventListener("pageshow", event => {
+  if (event.persisted && disposed) window.location.reload();
+});
 void boot().catch(() => blocked("diagnostic_boot_failed"));
