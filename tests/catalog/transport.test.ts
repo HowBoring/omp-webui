@@ -1,5 +1,5 @@
 /** Public stdio fault evidence, distinct from actual native catalog tests. */
-import{test,expect}from"bun:test";
+import{test,expect,spyOn}from"bun:test";
 import{CatalogTransport}from"../../packages/compatibility/catalog-transport.ts";
 
 const fixture=(mode:string,timeoutMs=50,readyDelayMs=0,negotiateDelayMs=0)=>CatalogTransport.open({
@@ -63,3 +63,59 @@ test("catalog requests that expire while queued are not published when a real bl
     expect(await client.close()).toEqual({code:0,forced:false,stderrBytes:0});
   }finally{await client.close();}
 },10000);
+
+
+test("catalog correlates concurrent readonly responses completed in reverse order", async () => {
+  const client = await fixture("out-of-order", 500);
+  try {
+    const order: string[] = [];
+    const first = client.catalog.describe("first").then(result => { order.push("first"); return result; });
+    const second = client.catalog.describe("second").then(result => { order.push("second"); return result; });
+    expect((await first).status).toBe("missing");
+    expect((await second).status).toBe("missing");
+    expect(order).toEqual(["second", "first"]);
+  } finally { await client.close(); }
+});
+
+for (const mode of ["wrong-id", "wrong-command", "unknown-notification"]) {
+  test(`catalog rejects ${mode} through its readonly policy`, async () => {
+    const client = await fixture(mode, 500);
+    try { await expect(client.catalog.describe("fixture-reference")).rejects.toThrow("RPC_PROTOCOL"); }
+    finally { await client.close(); }
+  });
+}
+
+test("catalog partial EOF fails terminal drain after a valid description", async () => {
+  const client = await fixture("tail", 500);
+  await client.catalog.describe("fixture-reference");
+  expect((await client.close()).protocolFailure).toBe("RPC_PROTOCOL");
+});
+
+test("catalog cancellation rejects pending readonly work and reaps the child", async () => {
+  const abort = new AbortController();
+  const client = await CatalogTransport.open({ argv: [process.execPath, "tests/fixtures/catalog-peer.ts", "no-response"],
+    env: {}, signal: abort.signal });
+  const request = client.catalog.describe("fixture-reference");
+  const outcome = request.catch(error => error instanceof Error ? error.message : "UNKNOWN");
+  abort.abort(); expect(await outcome).toBe("RPC_CANCELLED");
+  expect((await client.close()).protocolFailure).toBe("RPC_CANCELLED");
+  expect(() => process.kill(client.processId, 0)).toThrow();
+});
+
+test("catalog rejects a duplicate generated ID without replacing its pending waiter", async () => {
+  const client = await fixture("late", 500);
+  const uuid = spyOn(crypto, "randomUUID").mockReturnValue("00000000-0000-4000-8000-000000000031");
+  try {
+    const first = client.catalog.describe("first");
+    await expect(client.catalog.describe("second")).rejects.toThrow("RPC_DUPLICATE_ID");
+    expect((await first).status).toBe("missing");
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+  } finally { uuid.mockRestore(); await client.close(); }
+});
+
+
+test("catalog still rejects chunks adjacent to a valid negotiation ack", async () => {
+  const client = await fixture("chunk-after-ack", 500);
+  try { await expect(client.catalog.describe("fixture-reference")).rejects.toThrow("RPC_PROTOCOL"); }
+  finally { expect((await client.close()).protocolFailure).toBe("RPC_PROTOCOL"); }
+});

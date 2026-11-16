@@ -38,18 +38,32 @@ async def main():
         assert 'Synthetic native data only' in await page.locator('body').inner_text()
         assert 'INVALID_SOURCE' in await page.locator('#catalog').inner_text()
         assert 'INVALID_METADATA' in await page.locator('#catalog').inner_text()
-        ids=[]; rows=0; older=[]
+        ids=[]; rows=0; older=[]; scoped=[]; verified_scopes=[]
         while True:
             articles=page.locator('article'); ids.extend(await articles.evaluate_all('(rows)=>rows.map(row=>row.dataset.nativeId)'))
             rows+=await articles.count()
+            scoped.extend(await articles.evaluate_all('(rows)=>rows.filter(row=>row.dataset.nativeId==="native-0000").map(row=>row.dataset.sourceId)'))
+            matched=page.locator('article[data-native-id="native-0000"]')
+            for row_index in range(await matched.count()):
+                row=matched.nth(row_index)
+                async with page.expect_response(lambda response: '/api/ompCatalogFixture/describe' in response.url) as described:
+                    await row.locator('button').click()
+                envelope=await (await described.value).json()
+                description=envelope['result']['value']
+                assert description['status']=='verified',description
+                source_id=await row.get_attribute('data-source-id')
+                assert description['item']['sourceId']==source_id,description
+                verified_scopes.append(source_id)
             if await page.locator('#next').is_disabled():break
             started=time.perf_counter(); await page.locator('#next').click()
             await page.locator('#catalog[data-status="partial"]').wait_for()
             older.append((time.perf_counter()-started)*1000)
-        assert rows==1002,(rows,errors)
+        assert rows==1003,(rows,errors)
         assert set(ids)=={f'native-{n:04d}' for n in range(1000)}|{'unknown-cwd'}
-        assert ids.count('native-0000')==2
-        result['cases'].append({'name':'all-1000-distinct-bucket-native-sessions-and-custom-copy-reachable','result':'PASS','rows':rows})
+        assert ids.count('native-0000')==3
+        assert len(set(scoped))==3,scoped
+        assert set(verified_scopes)==set(scoped),verified_scopes
+        result['cases'].append({'name':'all-1000-distinct-bucket-native-sessions-and-custom-copy-reachable','result':'PASS','rows':rows,'overlappingSourceScopesForNative0000':len(set(scoped)),'verifiedScopedReferences':len(set(verified_scopes))})
         await page.locator('article button').first.click()
         await page.locator('#detail').get_by_text('verified',exact=True).wait_for()
         result['cases'].append({'name':'actual-native-description-and-observation','result':'PASS'})
