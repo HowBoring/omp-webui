@@ -180,3 +180,38 @@ test('an off-branch corrupt parent cycle and unknown structural entry fail inste
   manager.getEntry(other).parentId=first; manager.getEntry(other).type='future_non_ignorable';
   expect(()=>history.open('tree')).toThrow('history_unknown_entry');
 });
+
+test('native leaf round trip and trusted source binding change reject prior cuts despite identical final leaf/count', () => {
+  const manager=SessionManager.inMemory(profile);
+  const root=manager.appendMessage({role:'user',content:'root',timestamp:1});
+  const leaf=manager.appendMessage({role:'user',content:'leaf',timestamp:2});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  const before=history.open('tree');
+  manager.branch(root);manager.branch(leaf);
+  expect(manager.getLeafId()).toBe(before.cut.leafId);expect(manager.getEntries()).toHaveLength(2);
+  expect(()=>history.page(before.cursor)).toThrow('history_changed');history.close(before.snapshot);
+  const worker=history.open('tree');
+  expect(()=>manager.bindHistorySource({sourceId:'a'.repeat(64),instanceId:'b'.repeat(64),nativeSessionId:'wrong',reference:'opaque'})).toThrow('history_source_binding_mismatch');
+  // Trusted native caller fixture only: actual catalog verification/open/lease belongs to ticket32.
+  manager.bindHistorySource({sourceId:'a'.repeat(64),instanceId:'b'.repeat(64),nativeSessionId:manager.getSessionId(),reference:'opaque'});
+  expect(()=>history.page(worker.cursor)).toThrow('history_changed');history.close(worker.snapshot);
+  const catalog=history.open('tree');
+  expect(catalog.cut.sourceBindingStatus).toBe('catalog');expect(catalog.cut.sourceId).toBe('a'.repeat(64));
+});
+
+test('eight retained 4 MiB image representations and 5 MiB text remain accessible without a giant response', () => {
+  const manager=SessionManager.inMemory(profile);
+  const representations=Array.from({length:8},(_,index)=>Buffer.alloc(4*1024*1024,index+1));
+  const text='t'.repeat(5*1024*1024);
+  manager.appendMessage({role:'user',content:[{type:'text',text},...representations.map(data=>({type:'image',mimeType:'image/png',data:data.toString('base64')}))],timestamp:1});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  const opened=history.open('tree');
+  let cursor=opened.cursor,parts=[],contents;
+  while(cursor){const page=history.page(cursor);contents??=page.items[0].contents;parts.push(...page.items.map(row=>row.text));cursor=page.nextCursor;}
+  expect(parts.join('').startsWith(text+'\n')).toBe(true);expect(contents).toHaveLength(8);
+  for(let index=0;index<contents.length;index++){
+    cursor=contents[index].cursor;const encoded=[];
+    while(cursor){const page=history.contentPage(cursor);expect(Buffer.byteLength(JSON.stringify(page))).toBeLessThan(768*1024);encoded.push(page.data);cursor=page.nextCursor;}
+    expect(Buffer.from(encoded.join(''),'base64').equals(representations[index])).toBe(true);
+  }
+},120000);

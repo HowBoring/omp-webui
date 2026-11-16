@@ -34,7 +34,7 @@ index 0000000000..40f254d14f
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index cfcbbdeeb1..62fc4a79b6 100644
+index 3d8c711548..e6cc2e9027 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -1,3 +1,4 @@
@@ -42,7 +42,7 @@ index cfcbbdeeb1..62fc4a79b6 100644
  /**
   * RPC Client for programmatic access to the coding agent.
   *
-@@ -1041,6 +1042,22 @@ export class RpcClient {
+@@ -1054,6 +1055,22 @@ export class RpcClient {
  	 * `SessionManager` on the server: no `since` returns all entries in append
  	 * order, `since` returns entries strictly after the matching durable entry.
  	 */
@@ -67,16 +67,16 @@ index cfcbbdeeb1..62fc4a79b6 100644
  		return this.#getData<{ entries: SessionEntry[]; leafId: string | null }>(response);
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..a312adb0f1
+index 0000000000..7af75ff9df
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -0,0 +1,300 @@
+@@ -0,0 +1,302 @@
 +/** Coherent native history v1. In-memory observations are not persistence receipts. */
 +import { randomUUID, createHash } from "node:crypto";
 +import type { SessionManager } from "../../session/session-manager";
 +
 +export const HISTORY_LIMITS = Object.freeze({
-+  entries: 20_000, bytes: 320 * 1024 * 1024, nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 5_000,
++  entries: 20_000, runningMessages: 20_000, scanItems: 40_002, bytes: 320 * 1024 * 1024, nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 5_000,
 +  snapshotBytes: 256 * 1024 * 1024, cacheBytes: 512 * 1024 * 1024, snapshots: 2,
 +  pageItems: 128, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 600_000,
 +  contentItems: 20_000, contentPageBytes: 256 * 1024, liveEvents: 4096, liveBytes: 8 * 1024 * 1024, pollItems: 128,
@@ -97,7 +97,7 @@ index 0000000000..a312adb0f1
 +export interface HistoryOpen {
 +  version: "coherent-history-v1"; snapshot: string; cursor: string; scope: HistoryScope; cut: HistoryCut;
 +  cursors: Record<HistoryScope, string>; expiresAt: number; count: number; streaming: boolean; compacting: boolean;
-+  prefix: HistoryItem | null; scannedBytes: number; scanMs: number;
++  prefix: HistoryItem | null; scannedBytes: number; scanMs: number; snapshotMs: number;
 +  limits: Readonly<Record<keyof typeof HISTORY_LIMITS, number>>;
 +}
 +export interface HistoryPage {
@@ -143,7 +143,8 @@ index 0000000000..a312adb0f1
 +  if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
 +    if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
 +    return { role, text: (textContent(message.content) || `[${role}]`) +
-+      (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : ""),
++      (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
++      (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
 +      ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
 +      ...(typeof message.toolName === "string" ? {toolName:message.toolName} : {}),
 +      ...(typeof message.isError === "boolean" ? {isError:message.isError} : {}),
@@ -151,7 +152,8 @@ index 0000000000..a312adb0f1
 +      ...(content ? { contents: content(message.content) } : {}) };
 +  }
 +  if (role === "bashExecution" || role === "pythonExecution") return { role,
-+    text: typeof message.output === "string" ? message.output : "[Native execution]",
++    text: (typeof message.output === "string" ? message.output : "[Native execution]") +
++      (message.cancelled === true ? "\n[Native execution cancelled]" : ""),
 +    ...(content && Array.isArray(message.images) ? {contents:content(message.images)} : {}) };
 +  return { text: "[Native message: unsupported display type]" };
 +}
@@ -300,7 +302,7 @@ index 0000000000..a312adb0f1
 +    const rows = { tree, active: activeRows, running };
 +    const open: HistoryOpen = { version: "coherent-history-v1", snapshot, cursor, cursors, scope, cut: value.cut,
 +      expiresAt: Date.now() + HISTORY_LIMITS.ttlMs, count: rows[scope].length, streaming: value.runtime.streaming,
-+      compacting: value.runtime.compacting, prefix, scannedBytes: value.scannedBytes, scanMs: value.scanMs, limits: HISTORY_LIMITS };
++      compacting: value.runtime.compacting, prefix, scannedBytes: value.scannedBytes, scanMs: value.scanMs, snapshotMs: performance.now() - started, limits: HISTORY_LIMITS };
 +    if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
 +    this.#expire();
 +    let total = bytes;
@@ -372,7 +374,7 @@ index 0000000000..a312adb0f1
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 4408b13370..a611b238c5 100644
+index 98fcb32191..daa82e7bb8 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,5 @@
@@ -381,7 +383,7 @@ index 4408b13370..a611b238c5 100644
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1467,6 +1469,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1361,6 +1363,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		costCapRefusal: () => session.costCapRefusal,
  		settledWithoutRun: () => void settleWatcher.check(),
  	});
@@ -392,7 +394,7 @@ index 4408b13370..a611b238c5 100644
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -1802,6 +1808,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1723,6 +1729,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
@@ -400,7 +402,7 @@ index 4408b13370..a611b238c5 100644
  		sessionEvents.forward(event);
  		// Before the prompt-result and settle reports: a goal continuation decided at this
  		// agent_end is scheduled (and reported as pending) before either reads settlement.
-@@ -2342,6 +2349,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2263,6 +2270,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
  			}
  
@@ -427,7 +429,7 @@ index 4408b13370..a611b238c5 100644
  				try {
  					return success(
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..971340a753 100644
+index 02835977a1..eeeac46706 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -30,6 +30,7 @@ import type { SubagentEventPayload, SubagentLifecyclePayload, SubagentProgressPa
@@ -438,7 +440,7 @@ index 6d7b4f84cd..971340a753 100644
  import type { RpcMessagesPage } from "./rpc-messages";
  import type { GoalModeState } from "../../goals/state";
  import type { RpcGoalOp, RpcGoalResult } from "./rpc-goal";
-@@ -46,6 +47,11 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -47,6 +48,11 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
@@ -448,9 +450,9 @@ index 6d7b4f84cd..971340a753 100644
 +  | { id?: string; type: "history_snapshot_close"; snapshot: string }
 +  | { id?: string; type: "history_observation_poll"; workerId: string; after: number }
  	// Protocol
- 	| { id?: string; type: "negotiate_protocol"; protocolVersion: number }
- 
-@@ -428,6 +434,11 @@ export interface RpcSubagentMessagesResult {
+ 	| { id?: string; type: "get_interaction_policy" }
+ 	| { id?: string; type: "respond_ui"; targetId: string; answer: RpcUIAnswer }
+@@ -433,6 +439,11 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -463,20 +465,20 @@ index 6d7b4f84cd..971340a753 100644
  	| {
  			id?: string;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 5da22a7c56..06df7c39ac 100644
+index 666b2e6d59..bbf37dcf49 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-@@ -7,6 +7,7 @@
-  */
+@@ -8,6 +8,7 @@
+ import { interactionCommands } from "./interactions";
  import { doc } from "./dsl";
  import { catalogCommands } from "./catalog";
 +import { historyCommands } from "./history";
  
  /** One RPC command as described to generators. */
  export interface RpcCommandSpec {
-@@ -34,6 +35,7 @@ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
- 
+@@ -36,6 +37,7 @@ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
  export const rpcCommands: readonly RpcCommandSpec[] = [
+   ...interactionCommands,
    ...catalogCommands,
 +  ...historyCommands,
    {
@@ -484,7 +486,7 @@ index 5da22a7c56..06df7c39ac 100644
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
 new file mode 100644
-index 0000000000..2593e96bc0
+index 0000000000..9f862a7e9f
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
 @@ -0,0 +1,37 @@
@@ -500,14 +502,14 @@ index 0000000000..2593e96bc0
 +  HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
 +  HistoryCut: { sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
 +    contentRevision: "string", leafId: "string | null", observationSeq: "number.integer" },
-+  HistoryLimits: { entries: "number.integer", bytes: "number.integer", nativeItemBytes: "number.integer", itemBytes: "number.integer", ms: "number.integer",
++  HistoryLimits: { entries: "number.integer", runningMessages: "number.integer", scanItems: "number.integer", bytes: "number.integer", nativeItemBytes: "number.integer", itemBytes: "number.integer", ms: "number.integer",
 +    snapshotBytes: "number.integer", cacheBytes: "number.integer", snapshots: "number.integer", pageItems: "number.integer",
 +    pageBytes: "number.integer", responseBytes: "number.integer", ttlMs: "number.integer", contentItems: "number.integer", contentPageBytes: "number.integer", liveEvents: "number.integer",
 +    liveBytes: "number.integer", pollItems: "number.integer" },
 +  HistoryCursors: { tree: "string", active: "string", running: "string" },
 +  HistoryOpen: { version: "'coherent-history-v1'", snapshot: "string", cursor: "string", scope: "HistoryScope", cut: "HistoryCut",
 +    cursors: "HistoryCursors", expiresAt: "number.integer", count: "number.integer", streaming: "boolean", compacting: "boolean", prefix: "HistoryItem | null",
-+    scannedBytes: "number.integer", scanMs: "number", limits: "HistoryLimits" },
++    scannedBytes: "number.integer", scanMs: "number", snapshotMs: "number", limits: "HistoryLimits" },
 +  HistoryPage: { snapshot: "string", scope: "HistoryScope", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
 +    complete: "true", "nextCursor?": "string" },
 +  HistoryChange: { seq: "number.integer", kind: "string" },
@@ -526,72 +528,145 @@ index 0000000000..2593e96bc0
 +    params: { workerId: "string", after: "number.integer" }, result: "HistoryPoll" },
 +] as const;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index f873117435..ac33a1bc78 100644
+index 9f8449ecb3..93c54db31d 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
-@@ -20,6 +20,7 @@ import { doc, type WireDefs } from "./dsl";
- import { eventDefs } from "./events";
+@@ -21,6 +21,7 @@ import { eventDefs } from "./events";
+ import { interactionDefs } from "./interactions";
  import { frameDefs } from "./frames";
  import { catalogDefs } from "./catalog";
 +import { historyDefs } from "./history";
  import { stateDefs } from "./state";
  
  export type { RpcCommandSpec } from "./commands";
-@@ -169,6 +170,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
-     ...catalogDefs,
+@@ -171,6 +172,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
  		...eventDefs,
  		...frameDefs,
+ 		...interactionDefs,
 +		...historyDefs,
  		...notificationDefs,
  	};
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..45d4ae1fa6 100644
+index 5835039797..0d7cc41b1f 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,4 +1,5 @@
+@@ -1,4 +1,8 @@
++export interface NativeHistoryChange {
++  kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
++}
  import * as fs from "node:fs";
 +import { createHash } from "node:crypto";
  import * as path from "node:path";
  import type {
  	ImageContent,
-@@ -959,6 +960,10 @@ export class SessionManager {
+@@ -959,6 +963,10 @@ export class SessionManager {
  	#titleRevision = 0;
  	/** Bumped by in-place entry updates, which a {@link SessionBodyStamp} cannot otherwise see. */
  	#bodyRevision = 0;
 +	#historyRevision = 0;
 +	#historyContextRevision = 0;
 +	#historySourceBinding: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string } | undefined;
-+	readonly #historyListeners = new Set<(change: { kind: string; revision: number; contextRevision: number }) => void>();
++	readonly #historyListeners = new Set<(change: NativeHistoryChange) => void>();
  	#sessionFile: string | undefined;
  	#header!: SessionHeader;
  	#titleUpdatedAt = "";
-@@ -2132,6 +2137,7 @@ export class SessionManager {
+@@ -1234,9 +1242,11 @@ export class SessionManager {
+ 			if (this.#index.has(entry.id)) continue;
+ 			this.#entries.push(entry);
+ 			this.#index.insert(entry);
++			this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+ 			adopted++;
+ 		}
+ 		this.#index.setLeaf(leaf);
++		this.#historyChanged("setLeaf", true);
+ 		this.#expectedDiskSize = diskSize;
+ 		if (adopted > 0)
+ 			logger.warn("Kept session entries another writer added", { sessionFile: this.#sessionFile, adopted });
+@@ -1585,6 +1595,8 @@ export class SessionManager {
+ 	}
+ 
+ 	#recordFullRewrite(bytes: number): void {
++		this.#historySourceBinding = undefined;
++		this.#historyChanged("source_replaced", true);
+ 		this.#expectedDiskSize = bytes;
+ 	}
+ 
+@@ -2104,6 +2116,7 @@ export class SessionManager {
+ 
+ 		this.#entries = [];
+ 		this.#index.clear();
++		this.#historyChanged("clear", true);
+ 		this.#fileIsCurrent = false;
+ 		this.#rewriteRequired = false;
+ 		this.#loadedMalformedRecords = 0;
+@@ -2132,6 +2145,7 @@ export class SessionManager {
  	}
  
  	#applyEntries(header: SessionHeader, entries: SessionEntry[]): void {
-+		this.#historyChanged("load", true);
++		this.#historySourceBinding = undefined;
  		this.#header = header;
  		this.#entries = entries;
  		this.#sessionId = header.id;
-@@ -2153,6 +2159,7 @@ export class SessionManager {
+@@ -2141,6 +2155,7 @@ export class SessionManager {
+ 		const repairedUsage = normalizeLoadedUsage(entries);
+ 		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
+ 		this.#index.rebuild(entries);
++		this.#historyChanged("rebuild", true);
  	}
+ 
+ 	#freshEntryFields(): { id: string; parentId: string | null; timestamp: string; runtime: RuntimeIdentity } {
+@@ -2154,6 +2169,7 @@ export class SessionManager {
  
  	#setLeaf(id: string | null): void {
-+		this.#historyChanged("leaf", true);
  		this.#index.setLeaf(id);
++		this.#historyChanged("setLeaf", true);
  		const batch = this.#atomicEntryBatch;
  		if (batch && !batch.collecting) {
-@@ -2162,6 +2169,8 @@ export class SessionManager {
+ 			batch.externalLeafChanged = true;
+@@ -2171,6 +2187,7 @@ export class SessionManager {
+ 		}
+ 		this.#entries.push(entry);
+ 		this.#index.insert(entry);
++		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+ 		const batch = this.#atomicEntryBatch;
+ 		if (batch?.collecting) batch.entryIds.add(entry.id);
+ 		if (batch && !batch.collecting) {
+@@ -2203,7 +2220,9 @@ export class SessionManager {
+ 		const restoredLeaf = retainedAncestor(batch.externalLeafChanged ? batch.externalLeafId : batch.preBatchLeafId);
+ 		this.#entries = retained;
+ 		this.#index.rebuild(retained);
++		this.#historyChanged("rebuild", true);
+ 		this.#index.setLeaf(restoredLeaf && this.#index.has(restoredLeaf) ? restoredLeaf : null);
++		this.#historyChanged("setLeaf", true);
  	}
  
- 	#recordEntry(entry: SessionEntry): void {
-+		this.#historyChanged("append", false);
-+		if (entry.type === "compaction" || entry.type === "reset_boundary") this.#historyContextRevision++;
- 		if (this.#released) {
- 			logger.warn("Dropped session entry appended after terminal release", { type: entry.type });
- 			return;
-@@ -3796,6 +3805,7 @@ export class SessionManager {
+ 	#draftPath(): string | null {
+@@ -2817,6 +2836,7 @@ export class SessionManager {
+ 			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
+ 		manager.#entries = structuredClone(this.#entries);
+ 		manager.#index.rebuild(manager.#entries);
++		manager.#historyChanged("rebuild", true);
+ 		manager.#forceFileCreation = true;
+ 		await manager.#rewriteAtomically();
+ 		return manager;
+@@ -3090,6 +3110,7 @@ export class SessionManager {
+ 		this.seal();
+ 		this.#entries = [];
+ 		this.#index.clear();
++		this.#historyChanged("clear", true);
+ 		this.#inMemoryArtifacts = null;
+ 		this.#closeWriterEventually();
+ 		this.#entriesReleased = true;
+@@ -3502,6 +3523,7 @@ export class SessionManager {
+ 		if (trigger) entry.trigger = trigger;
+ 		this.#entries.push(entry);
+ 		this.#index.insert(entry);
++		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+ 		this.#notifyEntryAppended(entry);
+ 		await this.#persistTitleChangeEntry(entry, { title, source, updatedAt: timestamp });
+ 		// Keep the recent-sessions title index current so welcome-screen lookups
+@@ -3796,6 +3818,7 @@ export class SessionManager {
  	 * outputs). Use sparingly.
  	 */
  	async rewriteEntries(): Promise<void> {
@@ -599,23 +674,25 @@ index 5835039797..45d4ae1fa6 100644
  		this.#bodyRevision++;
  		if (!this.#persist || !this.#sessionFile) return;
  		await this.#rewriteAtomically();
-@@ -4045,6 +4055,63 @@ export class SessionManager {
+@@ -4045,6 +4068,66 @@ export class SessionManager {
  	}
  
  	/** All session entries (excludes header). Returns a shallow copy. */
 +	/** Set only by native strict-open after catalog revalidation under the real lease. Not a browser command. */
 +	bindHistorySource(binding: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string }): void {
 +		if (binding.nativeSessionId !== this.#sessionId) throw new Error("history_source_binding_mismatch");
++		if (!/^[a-f0-9]{64}$/.test(binding.sourceId) || !/^[a-f0-9]{64}$/.test(binding.instanceId) ||
++			binding.reference.length === 0 || binding.reference.length > 4096) throw new Error("history_source_binding_invalid");
 +		this.#historySourceBinding = { ...binding };
 +		this.#historyChanged("source_binding", true);
 +	}
 +
 +	/** Independent native observer; never replaces the collaboration append callback. */
-+	subscribeHistoryChanges(listener: (change: { kind: string; revision: number; contextRevision: number }) => void): () => void {
++	subscribeHistoryChanges(listener: (change: NativeHistoryChange) => void): () => void {
 +		this.#historyListeners.add(listener);
 +		return () => { this.#historyListeners.delete(listener); };
 +	}
-+	#historyChanged(kind: string, context: boolean): void {
++	#historyChanged(kind: string, context: boolean, entryId?: string): void {
 +		this.#historyRevision++;
 +		if (context) this.#historyContextRevision++;
 +		for (const listener of this.#historyListeners) {
@@ -629,8 +706,9 @@ index 5835039797..45d4ae1fa6 100644
 +	 * Includes full hidden entry payloads in the revision, but never returns those bytes on RPC.
 +	 * Runtime must be sampled by the RPC controller in this same synchronous JS turn.
 +	 */
-+	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
++	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
 +		const started = performance.now();
++		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
 +		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
 +		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
 +		const hash = createHash("sha256");
@@ -652,7 +730,7 @@ index 5835039797..45d4ae1fa6 100644
 +		const entries = this.#entries.map(copy);
 +		// Bound each running message independently, rather than treating the full list as one item.
 +		const running = runtime;
-+		if (running.messages.length > limits.entries) throw new Error("history_scan_entries");
++		if (running.messages.length > limits.runningMessages || this.#entries.length + running.messages.length + 2 > limits.scanItems) throw new Error("history_scan_entries");
 +		const messages = running.messages.map(copy);
 +		const state = copy({ prefix: running.prefix ?? null, streaming: running.streaming, compacting: running.compacting });
 +		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, entries,
@@ -663,3 +741,32 @@ index 5835039797..45d4ae1fa6 100644
  	getEntries(): SessionEntry[] {
  		return [...this.#entries];
  	}
+@@ -4103,6 +4186,7 @@ export class SessionManager {
+ 			}
+ 			this.#entries = this.#entries.filter(candidate => candidate.id !== entryId);
+ 			this.#index.rebuild(this.#entries);
++			this.#historyChanged("rebuild", true);
+ 			if (entry.type === "message" && entry.message.role === "assistant") {
+ 				const { api, provider, model, usage, stopReason, errorMessage } = entry.message;
+ 				// Off-branch like late usage: totals count every entry, and the kept
+@@ -4218,6 +4302,7 @@ export class SessionManager {
+ 		this.#titleUpdatedAt = timestamp;
+ 		this.#hasTitleSlot = true;
+ 		this.#index.rebuild(this.#entries);
++		this.#historyChanged("rebuild", true);
+ 		this.#artifactManager = null;
+ 		this.#artifactManagerSessionFile = null;
+ 		this.#forceFileCreation = this.#persist;
+@@ -4359,10 +4444,12 @@ export class SessionManager {
+ 		manager.#hasTitleSlot = true;
+ 		manager.#entries = history;
+ 		manager.#index.rebuild(history);
++		manager.#historyChanged("rebuild", true);
+ 		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
+ 		if (options?.repairInterruptedTail) {
+ 			SessionManager.#repairForkedInterruptedTail(history, manager.#index.pathTo());
+ 			manager.#index.rebuild(history);
++			manager.#historyChanged("rebuild", true);
+ 		}
+ 		manager.#forceFileCreation = true;
+ 		await manager.#rewriteAtomically();

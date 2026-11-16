@@ -13,7 +13,7 @@ function element<T extends HTMLElement>(selector: string): T {
 }
 const state = element("#state"), list = element("#history");
 const more = element<HTMLButtonElement>("#more"), scope = element<HTMLSelectElement>("#scope");
-let opened: HistoryOpen | undefined, cursor: string | undefined, revision = 0, disposed = false, busy = false;
+let opened: HistoryOpen | undefined, cursor: string | undefined, revision = 0, disposed = false, busyRevision: number | undefined;
 const rows = new Map<string, HTMLElement>();
 const urls = new Set<string>();
 function status(value: string): void { state.textContent = value; state.dataset.status = value.startsWith("history_") ? "error" : "ready"; }
@@ -21,7 +21,7 @@ async function read(options: HistoryRequest): Promise<HistoryResult> {
   const result = await ctx.remote.ompHistoryFixture.read(options);
   if (!result.ok) throw new Error("history_remote_failed"); return result.value;
 }
-function fail(): void { more.disabled = true; status("history_read_failed: request a new observation"); }
+function fail(): void { cursor = undefined; more.disabled = true; status("history_read_failed: request a new observation"); }
 function clear(): void {
   list.replaceChildren(); rows.clear(); for (const url of urls) URL.revokeObjectURL(url); urls.clear();
 }
@@ -56,27 +56,28 @@ function render(item: HistoryItem): void {
     rows.set(id, row); list.append(row);
     for (const content of item.contents ?? []) {
       const button = document.createElement("button"); button.textContent = `Preview retained ${content.mimeType} (${content.bytes} bytes)`;
-      button.onclick = () => { button.disabled = true; void preview(content, row!, revision).catch(fail); };
+      button.onclick = () => { button.disabled = true; const current = revision;
+        void preview(content, row!, current).catch(() => { if (current === revision) fail(); }); };
       row.append(button);
     }
   }
   row.append(document.createTextNode(item.text));
 }
 async function page(current: number): Promise<void> {
-  if (!cursor || busy) return; busy = true; more.disabled = true;
+  if (!cursor || busyRevision === current) return; busyRevision = current; more.disabled = true;
   try {
     const result = await read({operation:"page", cursor});
     if (disposed || current !== revision) return;
-    if (result.status !== "page") { status(result.status === "error" ? result.code : "history_invalid_result"); return; }
+    if (result.status !== "page") { cursor = undefined; status(result.status === "error" ? result.code : "history_invalid_result"); return; }
     if (result.value.cut.contentRevision !== opened?.cut.contentRevision) throw new Error("history_changed");
     for (const item of result.value.items) render(item);
     cursor = result.value.nextCursor;
     status(`Snapshot ${opened.cut.contentRevision.slice(0,12)} · ${rows.size} readable records · ${cursor ? "more pages" : "complete"}`);
   } catch { if (current === revision) fail(); }
-  finally { busy = false; if (current === revision) more.disabled = cursor === undefined; }
+  finally { if (current === revision) { busyRevision = undefined; more.disabled = cursor === undefined; } }
 }
 async function refresh(): Promise<void> {
-  const current = ++revision; busy = false; clear(); more.disabled = true; cursor = undefined;
+  const current = ++revision; busyRevision = undefined; clear(); more.disabled = true; cursor = undefined;
   const prior = opened; opened = undefined;
   try {
     if (prior) await read({operation:"close", snapshot:prior.snapshot});
@@ -89,7 +90,7 @@ async function refresh(): Promise<void> {
 more.onclick = () => { void page(revision); };
 element<HTMLButtonElement>("#refresh").onclick = () => { void refresh(); };
 scope.onchange = () => {
-  if (!opened) return; ++revision; busy = false; clear(); cursor = opened.cursors[scope.value as HistoryScope]; void page(revision);
+  if (!opened) return; ++revision; busyRevision = undefined; clear(); cursor = opened.cursors[scope.value as HistoryScope]; void page(revision);
 };
 async function boot(): Promise<void> {
   connection(ctx); registry(ctx); gateway(ctx); await ctx.remote.$mount(historyContribution);

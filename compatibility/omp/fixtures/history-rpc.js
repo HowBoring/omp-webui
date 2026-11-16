@@ -36,4 +36,4 @@ agent.replaceMessages(manager.buildSessionContext().messages);
 const session = new AgentSession({agent,sessionManager:manager,
   settings:Settings.isolated({'compaction.enabled':false, 'goal.continuationModes':[]}),
   modelRegistry:new ModelRegistry(authStorage,resolve(profile,'models.yml'))});
-await runRpcMode(session, {rpcUi:true});
+await runRpcMode(session);

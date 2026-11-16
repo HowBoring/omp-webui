@@ -171,3 +171,6 @@ for (const name of [...Object.keys(outputs), "command"]) {
 }
 await emit("packages/contracts/generated/identity.ts",
   `// Generated from the same authored source patch and schema.\nexport const compatibilityBuild = ${JSON.stringify(build)};\n`);
+
+// Generate the narrow history public client and validators from this exact matched schema.
+await import("./build-history-contracts.ts");

@@ -4,7 +4,7 @@ import type { RemoteResult } from "@deepseek-ai/dsh-typert-protocol";
 import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import { validHistoryOpen, validHistoryPage, validHistoryContent } from "./generated/history.generated.ts";
 import type { HistoryOpen, HistoryPage, HistoryContentPage } from "./generated/omp-wire.ts";
-const token = z.string().uuid();
+const token = z.string().min(1).max(128);
 export const historyRequest = z.discriminatedUnion("operation", [
   z.strictObject({ operation: z.literal("open"), scope: z.enum(["tree", "active", "running"]) }),
   z.strictObject({ operation: z.literal("page"), cursor: token }),
