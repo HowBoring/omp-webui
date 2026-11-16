@@ -14,11 +14,85 @@ index de8f379980..2ad422b5e6 100644
  ### Added
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
+diff --git a/packages/coding-agent/docs/rpc-interactions.md b/packages/coding-agent/docs/rpc-interactions.md
+new file mode 100644
+index 0000000000..effb4ddb77
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-interactions.md
+@@ -0,0 +1,58 @@
++# Explicit-only RPC UI interactions (compatibility candidate)
++
++This additive contract is effective for rpc-ui before extension initialization.
++It does not change ordinary TUI defaults or write a global setting.
++
++`--rpc-preflight` returns `get_compatibility.data.rpcUiInteractionPolicy` without
++loading the ordinary CLI, configuration, extensions or Session runtime. Verify
++that report and drain/reap the probe before starting a UI worker. The ordinary
++worker's first `ready.interactionPolicy` repeats the immutable effective policy:
++
++```json
++{"version":"1","explicitAnswersOnly":true,"nativeExpiry":"cancel","toolExpiry":"cancel","invalidAnswer":"pending"}
++```
++
++`get_interaction_policy` and `respond_ui` bypass the serial command queue,
++including during extension startup. They must not wait for `get_state` or
++protocol negotiation when an extension is waiting on startup UI.
++
++```json
++{"id":"p","type":"get_interaction_policy"}
++{"id":"a","type":"respond_ui","targetId":"native-ui-id","answer":{"type":"value","value":"exact option label"}}
++```
++
++Other answer variants are `{type:"confirm",confirmed:boolean}`,
++`{type:"cancel",timedOut?:boolean}` and `{type:"ask",answers:[{id,selectedOptions,customInput?}]}`.
++The successful response data is `{status:"answered"|"cancelled"|"expired"|"invalid"|"stale"}`.
++Malformed command schemas fail with `INVALID_UI_COMMAND`. Business-invalid
++answers keep the request and its original deadline pending. Exact question IDs,
++order, labels, types, cardinality and duplicate options are validated before an
++answer can win. `confirmed:false` is an explicit answer; cancellation is separate.
++
++The first valid answer, cancellation, signal abort or expiry removes a pending
++request once. A deadline check runs before accepting a reply even when the timer
++callback is delayed. Native ask expiry and `timedOut:true` cancel; no recommended
++option is generated. The legacy `extension_ui_response` side channel has the
++same settlement rules, but does not acknowledge consumption. Prefer `respond_ui`.
++Native cancellation notifications carry `targetId` and an optional reason
++`cancelled`, `expired` or `aborted`. Tool and URI response ID families stay separate.
++
++The builtin HTML ask tool receives `explicitAnswersOnly` through the real RPC UI
++and core ToolContextStore/user-wait wrappers. One original monotonic form budget
++bounds all fields, retries, input and editor prompts. The same-process extension
++option `deadlineMonotonicMs` carries that budget through wrappers; it is never a
++browser wire timestamp. RPC requests advertise remaining `timeout` milliseconds.
++The parser, native timer and abort paths cannot turn silence or cancellation into
++preselected form data. A timed-out formDialog result also cancels.
++
++The public TypeScript RpcClient exposes `interactionPolicy`,
++`onExtensionUIRequest`, `getInteractionPolicy` and `respondUI`. Register the UI
++listener before `start()`; a startup listener can validate the cached ready policy
++and answer while `start()` is still awaiting negotiation. Generated Python, Go,
++Rust and TypeScript wire clients share the authored schema and tagged answer union.
++
++Host policy remains separate: its default target is 30 minutes from creating the
++pending record, configurable for later requests and bounded by earlier native
++constraints. Redelivery, browser refresh and disconnect never renew a request.
++Host expiry cancels and requests Stop. Worker replacement cannot restore old UI
++IDs or replay an answer. The S0 browser fixture does not grant product Session access.
 diff --git a/packages/coding-agent/src/extensibility/extensions/types.ts b/packages/coding-agent/src/extensibility/extensions/types.ts
-index aa988d36f3..4c2284a6e9 100644
+index aa988d36f3..305705936c 100644
 --- a/packages/coding-agent/src/extensibility/extensions/types.ts
 +++ b/packages/coding-agent/src/extensibility/extensions/types.ts
-@@ -335,7 +335,12 @@ export type ExtensionApprovalAnswer =
+@@ -227,6 +227,9 @@ export function timedOutAskDialogResult(questions: ExtensionAskDialogQuestion[])
+  * UI dialog options for extensions.
+  */
+ export interface ExtensionUIDialogOptions {
++	/** Absolute performance.now() budget for one explicit-only compound interaction; never renewed between fields. */
++	deadlineMonotonicMs?: number;
++
+ 	signal?: AbortSignal;
+ 	timeout?: number;
+ 	/** Invoked when the UI times out while waiting for a selection/input */
+@@ -335,7 +338,12 @@ export type ExtensionApprovalAnswer =
  // (custom editor component, header/footer, widgets, theming, terminal input)
  // and may be invoked from event handlers that have already taken the agent
  // loop's lock — hooks intentionally cannot.
@@ -139,10 +213,10 @@ index 0000000000..64fb13ddce
 +export type RpcInteractionPolicy = typeof rpcInteractionPolicy;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 new file mode 100644
-index 0000000000..6ba0efabc3
+index 0000000000..c0ca7c41de
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,107 @@
 +export * from "./rpc-interaction-policy";
 +export type RpcUIReplyStatus = "answered" | "cancelled" | "expired" | "invalid" | "stale";
 +export type RpcUIAnswer =
@@ -195,7 +269,10 @@ index 0000000000..6ba0efabc3
 +	if (opts?.signal?.aborted) return Promise.resolve(cancelledValue);
 +	const id = Snowflake.next() as string;
 +	const { promise, resolve, reject } = Promise.withResolvers<T>();
-+	const deadline = opts?.timeout === undefined ? undefined : performance.now() + Math.max(0, opts.timeout);
++	const relative = opts?.timeout === undefined ? undefined : performance.now() + Math.max(0, opts.timeout);
++	const absolute = opts?.deadlineMonotonicMs;
++	if (absolute !== undefined && !Number.isFinite(absolute)) return Promise.reject(new Error("Invalid dialog deadline"));
++	const deadline = absolute === undefined ? relative : relative === undefined ? absolute : Math.min(absolute, relative);
 +	let timer: NodeJS.Timeout | undefined;
 +	let settled = false;
 +	const cleanup = () => {
@@ -207,9 +284,9 @@ index 0000000000..6ba0efabc3
 +	const cancel = (reason: "cancelled" | "expired" | "aborted") => {
 +		if (settled) return;
 +		cleanup();
++		resolve(cancelledValue);
 +		output({ type: "extension_ui_request", id: Snowflake.next() as string, method: "cancel", targetId: id, reason });
 +		if (reason === "expired") opts?.onTimeout?.();
-+		resolve(cancelledValue);
 +	};
 +	const onAbort = () => cancel(opts?.signal?.reason === EXPLICIT_INTERACTION_EXPIRY_REASON ? "expired" : "aborted");
 +	opts?.signal?.addEventListener("abort", onAbort, { once: true });
@@ -238,7 +315,8 @@ index 0000000000..6ba0efabc3
 +	});
 +	if (settled) return promise;
 +	if (deadline !== undefined) timer = setTimeout(() => cancel("expired"), Math.max(0, deadline - performance.now()));
-+	output({ type: "extension_ui_request", id, ...request });
++	output({ type: "extension_ui_request", id, ...request,
++		...(deadline === undefined ? {} : { timeout: Math.max(0, Math.floor(deadline - performance.now())) }) });
 +	return promise;
 +}
 +
@@ -681,7 +759,7 @@ index 0000000000..9e45d179ca
 +	},
 +];
 diff --git a/packages/coding-agent/src/tools/ask.ts b/packages/coding-agent/src/tools/ask.ts
-index bb17bfc5f5..f15f8a8d62 100644
+index bb17bfc5f5..3920008fa9 100644
 --- a/packages/coding-agent/src/tools/ask.ts
 +++ b/packages/coding-agent/src/tools/ask.ts
 @@ -38,7 +38,8 @@ import { theme } from "@oh-my-pi/pi-tui/theme";
@@ -694,16 +772,34 @@ index bb17bfc5f5..f15f8a8d62 100644
  import { askTimeoutMs, cfgAskNotify } from "../modes/settings";
  import askDescription from "../prompts/tools/ask.md" with { type: "text" };
  import askHeadlessForkMessage from "../prompts/tools/ask-headless-fork.md" with { type: "text" };
-@@ -77,7 +78,7 @@ export function recoverAskHtml(toolCallArguments: unknown): string | undefined {
+@@ -77,7 +78,10 @@ export function recoverAskHtml(toolCallArguments: unknown): string | undefined {
  // =============================================================================
  
  /** The dialog primitives the fallback walks a form with. */
 -type FallbackUI = Pick<ExtensionUIContext, "select" | "input" | "editor" | "timeoutStartsOnPresentation">;
 +type FallbackUI = Pick<ExtensionUIContext, "select" | "input" | "editor" | "timeoutStartsOnPresentation" | "explicitAnswersOnly">;
++
++/** RPC resolves the original form budget at each presentation, including retries. */
++type PromptTimeout = number | undefined | { deadlineMonotonicMs: number };
  
  /** One prompt's outcome: the answer, or undefined with `timedOut` telling a deadline from a cancel. */
  interface PromptOutcome<T> {
-@@ -126,7 +127,7 @@ async function promptWithTimeout<T>(
+@@ -112,10 +116,13 @@ const OTHER_ROW = `${OTHER_LABEL} (type your own)`;
+  */
+ async function promptWithTimeout<T>(
+ 	ui: FallbackUI,
+-	timeout: number | undefined,
++	timeoutBudget: PromptTimeout,
+ 	signal: AbortSignal,
+ 	show: (dialogOptions: ExtensionUIDialogOptions) => Promise<T | undefined>,
+ ): Promise<PromptOutcome<T>> {
++	const compound = typeof timeoutBudget === "object" ? timeoutBudget : undefined;
++	const timeout = typeof timeoutBudget === "object" ?
++		Math.max(0, Math.ceil(timeoutBudget.deadlineMonotonicMs - performance.now())) : timeoutBudget;
+ 	let timedOut = false;
+ 	const timeoutController = timeout === undefined ? undefined : new AbortController();
+ 	const dialogSignal = timeoutController ? AbortSignal.any([signal, timeoutController.signal]) : signal;
+@@ -126,10 +133,11 @@ async function promptWithTimeout<T>(
  		timeoutStartedMs = Date.now();
  		timeoutId = setTimeout(() => {
  			timedOut = true;
@@ -712,7 +808,11 @@ index bb17bfc5f5..f15f8a8d62 100644
  		}, durationMs);
  	};
  	const dialogOptions: ExtensionUIDialogOptions = {
-@@ -144,7 +145,7 @@ async function promptWithTimeout<T>(
++		...(compound ?? {}),
+ 		timeout,
+ 		signal: dialogSignal,
+ 		onTimeout: () => {
+@@ -144,7 +152,7 @@ async function promptWithTimeout<T>(
  			if (timeout !== undefined && !ui.timeoutStartsOnPresentation) armFallbackTimeout(timeout);
  			return shown;
  		});
@@ -721,7 +821,53 @@ index bb17bfc5f5..f15f8a8d62 100644
  			// Fallback for surfaces that enforce `timeout` without invoking
  			// `onTimeout`: their auto-cancel resolves right at the deadline. A
  			// cancel arriving well past it is a deliberate user Esc.
-@@ -332,12 +333,12 @@ async function askFieldByField(
+@@ -172,7 +180,7 @@ async function askChoice(
+ 	ui: FallbackUI,
+ 	field: ChoiceField,
+ 	text: FieldText,
+-	timeout: number | undefined,
++	timeout: PromptTimeout,
+ 	signal: AbortSignal,
+ ): Promise<PromptOutcome<ChoiceAnswer>> {
+ 	const { question } = text;
+@@ -281,7 +289,7 @@ async function askText(
+ 	ui: FallbackUI,
+ 	field: TextField,
+ 	text: FieldText,
+-	timeout: number | undefined,
++	timeout: PromptTimeout,
+ 	signal: AbortSignal,
+ ): Promise<PromptOutcome<string>> {
+ 	const useEditor = field.multiline || field.value !== "";
+@@ -293,10 +301,14 @@ async function askText(
+ 		if (useEditor) {
+ 			// The editor has no countdown: typing a long answer must not race a deadline.
+ 			const prefill = current;
+-			const value = await untilAborted(signal, () =>
+-				ui.editor(title, prefill, { signal }, field.multiline ? undefined : { promptStyle: true }),
+-			);
+-			outcome = { value, timedOut: false };
++			if (ui.explicitAnswersOnly) {
++				outcome = await promptWithTimeout(ui, timeout, signal, options =>
++					ui.editor(title, prefill, options, field.multiline ? undefined : { promptStyle: true }));
++			} else {
++				const value = await untilAborted(signal, () =>
++					ui.editor(title, prefill, { signal }, field.multiline ? undefined : { promptStyle: true }));
++				outcome = { value, timedOut: false };
++			}
+ 		} else {
+ 			outcome = await promptWithTimeout(ui, timeout, signal, dialogOptions =>
+ 				ui.input(title, field.placeholder || undefined, dialogOptions),
+@@ -316,7 +328,7 @@ async function askText(
+ async function askFieldByField(
+ 	ui: FallbackUI,
+ 	form: HtmlForm,
+-	timeout: number | undefined,
++	timeout: PromptTimeout,
+ 	signal: AbortSignal,
+ ): Promise<{ data: HtmlFormData; timedOut: boolean } | undefined> {
+ 	const data = defaultFormData(form);
+@@ -332,12 +344,12 @@ async function askFieldByField(
  				if (value === undefined) delete data[field.name];
  				else data[field.name] = value;
  			}
@@ -736,7 +882,7 @@ index bb17bfc5f5..f15f8a8d62 100644
  		if (outcome.value === undefined) return undefined;
  		data[field.name] = textValue(field, outcome.value);
  	}
-@@ -426,7 +427,14 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+@@ -426,13 +438,23 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  		};
  		if (steeringSignal?.aborted) onSteer();
  		else steeringSignal?.addEventListener("abort", onSteer, { once: true });
@@ -744,6 +890,8 @@ index bb17bfc5f5..f15f8a8d62 100644
 +		// RPC policy bounds the entire form, including retries and subsequent fields.
 +		// TUI retains its normal per-presentation timers and default behavior.
 +		const expiry = new AbortController();
++		const deadline = extensionUi.explicitAnswersOnly && timeout !== undefined ? performance.now() + timeout : undefined;
++		const promptTimeout: PromptTimeout = deadline === undefined ? timeout : { deadlineMonotonicMs: deadline };
 +		let expiryTimer: NodeJS.Timeout | undefined;
 +		if (extensionUi.explicitAnswersOnly && timeout !== undefined) {
 +			expiryTimer = setTimeout(() => expiry.abort(EXPLICIT_INTERACTION_EXPIRY_REASON), timeout);
@@ -752,8 +900,25 @@ index bb17bfc5f5..f15f8a8d62 100644
  		const abortError = (): ToolAbortError =>
  			new ToolAbortError(userSteering.signal.aborted ? "Ask interrupted by message" : "Ask input was cancelled");
  		const cancelAsk = (): never => {
-@@ -456,10 +464,19 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
- 				answered = await askFieldByField(extensionUi, form, timeout, dialogSignal);
+ 			if (userSteering.signal.aborted) throw abortError();
+ 			context.abort();
+-			throw new ToolAbortError("Ask tool was cancelled by the user");
++			throw new ToolAbortError(deadline !== undefined && performance.now() >= deadline ?
++				"Ask input expired without an explicit answer" : "Ask tool was cancelled by the user");
+ 		};
+ 
+ 		// Send notification if waiting and not suppressed
+@@ -450,16 +472,27 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+ 			if (extensionUi.formDialog) {
+ 				const formDialog = extensionUi.formDialog.bind(extensionUi);
+ 				answered = await untilAborted(dialogSignal, () =>
+-					formDialog(params.html, { timeout, signal: dialogSignal }),
++					formDialog(params.html, { timeout: deadline === undefined ? timeout : Math.max(0, Math.ceil(deadline - performance.now())),
++						...(deadline === undefined ? {} : {deadlineMonotonicMs: deadline}), signal: dialogSignal }),
+ 				);
+ 			} else {
+-				answered = await askFieldByField(extensionUi, form, timeout, dialogSignal);
++				answered = await askFieldByField(extensionUi, form, promptTimeout, dialogSignal);
  			}
  		} catch (error) {
 -			if (error instanceof Error && error.name === "AbortError") throw abortError();
@@ -770,7 +935,8 @@ index bb17bfc5f5..f15f8a8d62 100644
 +			steeringSignal?.removeEventListener("abort", onSteer);
  		}
 -		if (!answered) return cancelAsk();
-+		if (!answered || (extensionUi.explicitAnswersOnly && answered.timedOut)) return cancelAsk();
++		if (!answered || (extensionUi.explicitAnswersOnly &&
++			(answered.timedOut || (deadline !== undefined && performance.now() >= deadline)))) return cancelAsk();
  
  		const notes = answered.notes?.length ? answered.notes : undefined;
  		const details: AskToolDetails = {
