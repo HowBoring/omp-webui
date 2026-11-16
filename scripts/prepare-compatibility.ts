@@ -1,6 +1,6 @@
 import { mkdir, cp, lstat, rm, symlink } from "node:fs/promises";
 import { resolve } from "node:path";
-import { ompBase, sourceGit } from "./omp-source.ts";
+import { ompBase, sourceGit, ompPatches, authoredPaths, temporaryPaths } from "./omp-source.ts";
 
 const omp = resolve("vendor/omp");
 const runtime = resolve("vendor/omp-runtime");
@@ -19,16 +19,17 @@ if (sourceGit(omp, "rev-parse", "HEAD").trim() !== ompBase) throw new Error("Wro
 if (process.argv.includes("--reset")) {
   // Only the owned ignored checkout and known generated/new source files are reset.
   sourceGit(omp, "reset", "--hard", ompBase);
-  for (const file of ["src/cli-runtime.ts", "src/modes/rpc/preflight.ts", "src/modes/rpc/preflight.generated.ts",
-    "src/modes/rpc/preflight-validator.generated.js"]) {
-    await rm(resolve(omp, "packages/coding-agent", file), { force: true });
+  for (const file of [...authoredPaths,...temporaryPaths].filter(file => file !== "node_modules")) {
+    const tracked = sourceGit(omp,"ls-files","--",file).trim();
+    if (!tracked) await rm(resolve(omp,file),{force:true});
   }
 }
-const check = Bun.spawnSync(["git", "-C", omp, "apply", "--reverse", "--check",
-  resolve("compatibility/omp/0001-safe-preflight.patch")]);
-if (check.exitCode !== 0) {
-  sourceGit(omp, "apply", "--check", resolve("compatibility/omp/0001-safe-preflight.patch"));
-  sourceGit(omp, "apply", resolve("compatibility/omp/0001-safe-preflight.patch"));
+for (const patch of ompPatches) {
+  const check = Bun.spawnSync(["git","-C",omp,"apply","--reverse","--check",resolve("compatibility/omp",patch)]);
+  if (check.exitCode !== 0) {
+    sourceGit(omp,"apply","--check",resolve("compatibility/omp",patch));
+    sourceGit(omp,"apply",resolve("compatibility/omp",patch));
+  }
 }
 await mkdir(runtime, { recursive: true });
 await cp("package.json", resolve(runtime, "package.json"));

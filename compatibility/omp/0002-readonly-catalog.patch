@@ -1,0 +1,520 @@
+diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
+index 2ca3a5cd59..9c607012e8 100755
+--- a/packages/coding-agent/src/cli.ts
++++ b/packages/coding-agent/src/cli.ts
+@@ -10,12 +10,19 @@ export async function runCli(argv: string[]): Promise<void> {
+     await runPreflight();
+     return;
+   }
++  if (argv.length === 1 && argv[0] === "--rpc-catalog") {
++    const { runCatalog } = await import("./modes/rpc/catalog-mode");
++    await runCatalog(); return;
++  }
+   const runtime = await import("./cli-runtime");
+   await runtime.runCli(argv);
+ }
+ 
+ if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
+-  if (process.argv.slice(2).includes("--rpc-preflight")) {
++  if (process.argv.slice(2).includes("--rpc-catalog")) {
++    if (process.argv.length !== 3) process.exitCode = 2;
++    else void runCli(["--rpc-catalog"]).catch(() => { process.exitCode = 1; });
++  } else if (process.argv.slice(2).includes("--rpc-preflight")) {
+     if (process.argv.length !== 3) {
+       process.stderr.write("rpc-preflight accepts no other arguments\n");
+       process.exitCode = 2;
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-client.ts b/packages/coding-agent/src/modes/rpc/catalog-client.ts
+new file mode 100644
+index 0000000000..4c0c803c14
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/catalog-client.ts
+@@ -0,0 +1,24 @@
++/** Narrow public catalog client. No process spawn, configuration or Agent SDK imports. */
++import { validCatalogPage, validCatalogSources, validCatalogDescription } from "./catalog.generated";
++import type { RpcWireCommands, CatalogPage, CatalogSources, CatalogDescription } from "./wire/rpc-wire.generated";
++export type CatalogCommand = {id:string;type:"catalog_sources"}
++  | ({id:string;type:"catalog_page"} & RpcWireCommands["catalog_page"]["params"])
++  | ({id:string;type:"describe_session"} & RpcWireCommands["describe_session"]["params"]);
++export class CatalogClient {
++  constructor(private readonly request:(command:CatalogCommand)=>Promise<unknown>) {}
++  async sources():Promise<CatalogSources> {
++    const value = await this.request({id:crypto.randomUUID(),type:"catalog_sources"});
++    if (!validCatalogSources(value)) throw new Error("CATALOG_RESULT_SCHEMA");
++    return value;
++  }
++  async page(options:RpcWireCommands["catalog_page"]["params"] = {}):Promise<CatalogPage> {
++    const value = await this.request({id:crypto.randomUUID(),type:"catalog_page",...options});
++    if (!validCatalogPage(value)) throw new Error("CATALOG_RESULT_SCHEMA");
++    return value;
++  }
++  async describe(reference:string):Promise<CatalogDescription> {
++    const value = await this.request({id:crypto.randomUUID(),type:"describe_session",reference});
++    if (!validCatalogDescription(value)) throw new Error("CATALOG_RESULT_SCHEMA");
++    return value;
++  }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+new file mode 100644
+index 0000000000..add5857818
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+@@ -0,0 +1,78 @@
++/** Native readonly descriptor implementation. Never calls SessionManager/load/migrate/repair. */
++import { realpath, stat } from "node:fs/promises";
++import { openWithin } from "./catalog-path";
++import { isAbsolute, join, relative } from "node:path";
++import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
++import { isFileLockHeld } from "@oh-my-pi/pi-utils/file-lock";
++import type { CatalogDescriptor, CatalogCwd } from "./wire/rpc-wire.generated";
++
++export const HEADER_BYTES = 16_384;
++export const hash = (text: string): string => Bun.SHA256.hash(text, "hex");
++export const inside = (root: string, target: string): boolean => {
++  const part = relative(root, target);
++  return part === "" || (!part.startsWith("..") && !isAbsolute(part));
++};
++export async function physicalId(path: string): Promise<string> {
++  const info = await stat(path, { bigint: true });
++  return hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`);
++}
++export function errorCode(error: unknown): string {
++  return error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : "INVALID_METADATA";
++}
++async function cwdInfo(recorded: unknown): Promise<CatalogCwd> {
++  if (typeof recorded !== "string" || recorded.length === 0) return { status: "unknown" };
++  if (recorded.length > 4096 || !isAbsolute(recorded) || recorded.includes("\0")) return { status: "invalid" };
++  try {
++    const canonical = await realpath(recorded);
++    return (await stat(canonical)).isDirectory() ? { recorded, canonical, status: "known" } : { recorded, status: "invalid" };
++  } catch (error) { return { recorded, status: errorCode(error) === "ENOENT" ? "missing" : "inaccessible" }; }
++}
++function ownership(id: string): CatalogDescriptor["ownership"] {
++  const observedAt = new Date().toISOString();
++  // This v1 candidate supports Linux. Other native backends are deliberately unknown until validated.
++  if (process.platform !== "linux") return { state: "unknown", observedAt };
++  const name = /^[A-Za-z0-9_-]{1,128}$/.test(id) ? id : `h-${Bun.hash.wyhash(id).toString(16).padStart(16, "0")}`;
++  try { return { state: isFileLockHeld(join(getSessionOwnersDir(), name)) ? "held" : "free", observedAt }; }
++  catch { return { state: "unknown", observedAt }; }
++}
++function text(value: unknown, max: number): string | undefined {
++  return typeof value === "string" && value.length <= max ? value : undefined;
++}
++export interface NativeSource { sourceId: string; root: string; rootIdentity:string }
++export interface NativeReference { sourceId: string; locator: string; instanceId: string; nativeSessionId: string }
++export async function readDescriptor(source: NativeSource, path: string): Promise<CatalogDescriptor> {
++  const target = await realpath(path);
++  if (!inside(source.root, target)) throw new Error("OUTSIDE_SOURCE");
++  if (relative(source.root, path).length > 1024 || relative(source.root, target).length > 1024) throw new Error("LOCATOR_LIMIT");
++  const file = await openWithin(source.root,source.rootIdentity,target);
++  try {
++    const before = await file.stat({bigint:true});
++    if (!before.isFile()) throw new Error("NOT_REGULAR_FILE");
++    const bytes = Buffer.alloc(HEADER_BYTES);
++    const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
++    const end = bytes.subarray(0, bytesRead).indexOf(10);
++    if (end < 0) throw new Error("HEADER_LIMIT");
++    const value: unknown = JSON.parse(new TextDecoder("utf-8", {fatal:true}).decode(bytes.subarray(0, end)));
++    if (typeof value !== "object" || value === null || !("type" in value) || value.type !== "session"
++      || !("id" in value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128
++      || !("timestamp" in value) || typeof value.timestamp !== "string" || !Number.isFinite(Date.parse(value.timestamp))) {
++      throw new Error("INVALID_HEADER");
++    }
++    const header = value as Record<string, unknown>;
++    const nativeSessionId = value.id;
++    const instanceId = hash(`${before.dev}:${before.ino}:${before.birthtimeNs}:${nativeSessionId}`);
++    const locator = relative(source.root, target);
++    const ref: NativeReference = {sourceId:source.sourceId, locator, instanceId, nativeSessionId};
++    const cwd = await cwdInfo(header.cwd);
++    const after = await file.stat({bigint:true});
++    if (before.ctimeNs !== after.ctimeNs || before.size !== after.size || await physicalId(target) !==
++      hash(`${before.dev}:${before.ino}:${before.birthtimeNs}`)) throw new Error("CHANGED_DURING_READ");
++    return {sourceId:source.sourceId, instanceId, nativeSessionId,
++      reference:Buffer.from(JSON.stringify(ref)).toString("base64url"), aliases:[relative(source.root,path)], cwd,
++      ...(text(header.title,512) === undefined ? {} : {title:text(header.title,512)}),
++      ...(text(header.parentSession,128) === undefined ? {} : {parentSession:text(header.parentSession,128)}),
++      ...(text(header.continuationOf,128) === undefined ? {} : {continuationOf:text(header.continuationOf,128)}),
++      createdAt:value.timestamp, modifiedAt:new Date(Number(before.mtimeMs)).toISOString(), observedAt:new Date().toISOString(),
++      ownership:ownership(nativeSessionId)};
++  } finally { await file.close(); }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-mode.ts b/packages/coding-agent/src/modes/rpc/catalog-mode.ts
+new file mode 100644
+index 0000000000..6e987c31d9
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/catalog-mode.ts
+@@ -0,0 +1,45 @@
++/** Public isolated read-only mode. Normal AgentSession/config/extensions are not imported. */
++import { RpcFrameEncoder, MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "./rpc-frame";
++import { validateCatalogCommand } from "./catalog.generated";
++import { NativeCatalog } from "./catalog-native";
++
++export async function runCatalog():Promise<void> {
++  const encoder = new RpcFrameEncoder();
++  const write = async (frame:object):Promise<void> => {
++    const lines = encoder.encodeFrames(frame);
++    for (const line of lines) await Bun.stdout.write(line);
++  };
++  const catalog = await NativeCatalog.create();
++  await write({type:"ready",protocolVersion:1,supportedProtocolVersions:[1,2],
++    maxFrameBytes:MAX_RPC_FRAME_BYTES,maxReassembledFrameBytes:MAX_RPC_REASSEMBLED_BYTES});
++  let negotiated = false;
++  const buffer = new Uint8Array(16_384);
++  let used = 0;
++  try {
++    for await (const bytes of Bun.stdin.stream()) for (const byte of bytes) {
++      if (used === buffer.length) throw new Error("CATALOG_INPUT_LIMIT");
++      buffer[used++] = byte;
++      if (byte !== 10) continue;
++      const command:unknown = JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(buffer.subarray(0,used-1)));
++      used = 0;
++      if (!validateCatalogCommand(command) || command.id.length > 128) throw new Error("CATALOG_COMMAND_SCHEMA");
++      if (command.type === "negotiate_protocol") {
++        if (negotiated || command.protocolVersion !== 2) throw new Error("CATALOG_NEGOTIATION");
++        negotiated = true; encoder.setProtocolVersion(2);
++        await write({type:"response",id:command.id,command:command.type,success:true,data:{protocolVersion:2}}); continue;
++      }
++      if (!negotiated) throw new Error("CATALOG_NEGOTIATION_REQUIRED");
++      const deadline = setTimeout(() => process.exit(3),3000);
++      try {
++        const data = command.type === "catalog_sources" ? catalog.sourcesReport()
++          : command.type === "catalog_page" ? await catalog.page(command.cursor,command.pageSize)
++          : await catalog.describe(command.reference);
++        await write({type:"response",id:command.id,command:command.type,success:true,data});
++      } catch (error) {
++        const code = error instanceof Error && /^CATALOG_[A-Z_]+$/.test(error.message) ? error.message:"CATALOG_FAILED";
++        await write({type:"response",id:command.id,command:command.type,success:false,error:code});
++      } finally { clearTimeout(deadline); }
++    }
++    if (used) throw new Error("CATALOG_PARTIAL_EOF");
++  } finally { await catalog.close(); }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-native.ts b/packages/coding-agent/src/modes/rpc/catalog-native.ts
+new file mode 100644
+index 0000000000..8a931611ec
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/catalog-native.ts
+@@ -0,0 +1,213 @@
++/** Bounded native discovery. Snapshot memory is finite; opendir never materializes a whole root. */
++import { openWithin } from "./catalog-path";
++import { opendir, realpath, stat } from "node:fs/promises";
++import type { Dir } from "node:fs";
++import { isAbsolute, join, relative } from "node:path";
++import { getActiveProfile, getSessionsDir, setProfile } from "@oh-my-pi/pi-utils/dirs";
++import { readDescriptor, physicalId, hash, inside, errorCode, type NativeSource } from "./catalog-metadata";
++import type { CatalogBudgets, CatalogDescriptor, CatalogFailure, CatalogPage, CatalogSources,
++  CatalogSource, CatalogDescription } from "./wire/rpc-wire.generated";
++
++export const catalogBudgets: CatalogBudgets = { scanEntriesPerRequest:256, scanEntriesPerSnapshot:8192,
++  directoriesPerSnapshot:2048, sessionsPerSnapshot:4096, headerBytes:16384, pageItems:32, responseBytes:262144,
++  snapshotBytes:16777216, snapshots:4, scanWindowMs:250, scanTotalMs:10000, tokenTtlMs:60000 };
++interface Source extends NativeSource { kind:"default"|"custom"; aliases:string[]; rootIdentity:string; status:"ready"|"invalid" }
++interface Directory { source:Source; path:string; depth:number; identity?:string; mtime?:number; handle?:Dir; anchor?:import("node:fs/promises").FileHandle }
++interface Snapshot {
++  id:string; created:number; expires:number; examined:number; scanMs:number; bytes:number;
++  directories:Directory[]; pending:Directory[]; items:Map<string,CatalogDescriptor>; sorted?:CatalogDescriptor[];
++  failures:CatalogFailure[]; pageSize:number;
++}
++const failure = (error:unknown):string => error instanceof Error && !('code' in error)
++  ? /^[A-Z][A-Z_]+$/.test(error.message) ? error.message:"INVALID_METADATA" : errorCode(error);
++const order = (a:string,b:string):number => a < b ? -1 : a > b ? 1 : 0;
++
++export class NativeCatalog {
++  private readonly snapshots = new Map<string,Snapshot>();
++  private constructor(private readonly sources:Source[]) {}
++  static async create():Promise<NativeCatalog> {
++    setProfile(process.env.OMP_PROFILE ?? process.env.PI_PROFILE);
++    const custom:unknown = JSON.parse(process.env.OMP_CATALOG_SOURCES ?? "[]");
++    if (!Array.isArray(custom) || custom.length > 15 || custom.some(path => typeof path !== "string"
++      || !isAbsolute(path) || path.length > 4096)) throw new Error("CATALOG_SOURCE_CONFIG_INVALID");
++    const roots = [getSessionsDir(), ...custom];
++    const sources:Source[] = [];
++    for (const [index,path] of roots.entries()) {
++      let root = path, rootIdentity = "missing", status:Source["status"] = "invalid";
++      try { root = await realpath(path); rootIdentity = await physicalId(root);
++        if ((await stat(root)).isDirectory()) status = "ready";
++      } catch {}
++      const sourceId = hash(`${getActiveProfile() ?? "default"}:${root}:${rootIdentity}`);
++      const existing = sources.find(source => source.sourceId === sourceId);
++      if (existing) { existing.aliases.push(path); continue; }
++      sources.push({sourceId, root, rootIdentity, kind:index === 0 ? "default":"custom", aliases:[path],status});
++    }
++    return new NativeCatalog(sources);
++  }
++  sourcesReport():CatalogSources {
++    const sources:CatalogSource[] = this.sources.map(({sourceId,kind,aliases,status}) => ({sourceId,kind,aliases,status}));
++    return {version:"readonly-catalog-v1",profile:getActiveProfile() ?? "default",sources,budgets:catalogBudgets};
++  }
++  private async closeSnapshot(snapshot:Snapshot):Promise<void> {
++    for (const directory of snapshot.directories) {
++      if (directory.handle) { await directory.handle.close().catch(() => {}); delete directory.handle; }
++      if (directory.anchor) { await directory.anchor.close(); delete directory.anchor; }
++    }
++  }
++  async close():Promise<void> {
++    for (const snapshot of this.snapshots.values()) await this.closeSnapshot(snapshot);
++    this.snapshots.clear();
++  }
++  private async expire():Promise<void> {
++    for (const [id,snapshot] of this.snapshots) if (Date.now() >= snapshot.expires) {
++      await this.closeSnapshot(snapshot); this.snapshots.delete(id);
++    }
++  }
++  private async start(pageSize:number):Promise<Snapshot> {
++    if (this.snapshots.size >= catalogBudgets.snapshots) {
++      const oldest=this.snapshots.values().next().value;
++      if(oldest) {await this.closeSnapshot(oldest);this.snapshots.delete(oldest.id);}
++    }
++    const created = Date.now();
++    const snapshot:Snapshot = {id:crypto.randomUUID(),created,expires:created+catalogBudgets.tokenTtlMs,
++      examined:0,scanMs:0,bytes:0,directories:[],pending:[],items:new Map(),failures:[],pageSize};
++    for (const source of this.sources) {
++      if (source.status === "invalid") { snapshot.failures.push({sourceId:source.sourceId,code:"INVALID_SOURCE"}); continue; }
++      const directory = {source,path:source.root,depth:0};
++      snapshot.pending.push(directory); snapshot.directories.push(directory);
++    }
++    this.snapshots.set(snapshot.id,snapshot);
++    setTimeout(() => { if (this.snapshots.delete(snapshot.id)) void this.closeSnapshot(snapshot); },catalogBudgets.tokenTtlMs).unref();
++    return snapshot;
++  }
++  private async validate(snapshot:Snapshot):Promise<void> {
++    for (const directory of snapshot.directories) {
++      if (!directory.identity) continue;
++      try {
++        const info = await stat(directory.path);
++        if (await physicalId(directory.path) !== directory.identity || info.mtimeMs !== directory.mtime)
++          throw new Error("changed");
++      } catch { await this.closeSnapshot(snapshot); this.snapshots.delete(snapshot.id); throw new Error("CATALOG_STALE"); }
++    }
++    for (const source of this.sources) if (source.status === "ready") {
++      if (await physicalId(source.root).catch(() => "missing") !== source.rootIdentity) throw new Error("CATALOG_STALE");
++    }
++  }
++  private addFailure(snapshot:Snapshot,source:Source,code:string,locator?:string):void {
++    if (snapshot.failures.length < 128) snapshot.failures.push({sourceId:source.sourceId,code,...(locator ? {locator}: {})});
++    else if (!snapshot.failures.some(item => item.code === "FAILURE_LIMIT"))
++      snapshot.failures[127] = {sourceId:source.sourceId,code:"FAILURE_LIMIT"};
++  }
++  private async entry(snapshot:Snapshot,directory:Directory,name:string):Promise<void> {
++    const path = join(directory.path,name), source = directory.source;
++    try {
++      const target = await realpath(path);
++      if (!inside(source.root,target)) throw new Error("OUTSIDE_SOURCE");
++      const info = await stat(target);
++      if (info.isDirectory()) {
++        // Native default layout is root/bucket/file; custom roots additionally allow direct files.
++        if (directory.depth >= 1) return;
++        if (snapshot.directories.length >= catalogBudgets.directoriesPerSnapshot) throw new Error("DIRECTORY_LIMIT");
++        if (snapshot.directories.some(item => item.path === target)) return;
++        const child = {source,path:target,depth:1}; snapshot.directories.push(child); snapshot.pending.push(child);
++      } else if (info.isFile() && name.endsWith(".jsonl")) {
++        const item = await readDescriptor(source,path);
++        const key = `${source.sourceId}:${item.instanceId}`;
++        const previous = snapshot.items.get(key);
++        if (previous) {
++          const added = Buffer.byteLength(JSON.stringify(item.aliases));
++          if (previous.aliases.length >= 16 || snapshot.bytes+added > catalogBudgets.snapshotBytes) throw new Error("ALIAS_LIMIT");
++          previous.aliases.push(...item.aliases); snapshot.bytes += added; return;
++        }
++        const bytes = Buffer.byteLength(JSON.stringify(item));
++        if (snapshot.items.size >= catalogBudgets.sessionsPerSnapshot || snapshot.bytes+bytes > catalogBudgets.snapshotBytes)
++          throw new Error("CATALOG_MEMORY_LIMIT");
++        snapshot.bytes += bytes; snapshot.items.set(key,item);
++      }
++    } catch (error) { this.addFailure(snapshot,source,failure(error),relative(source.root,path).slice(0,1024)); }
++  }
++  private async scan(snapshot:Snapshot):Promise<void> {
++    const started = performance.now();
++    let examined = 0;
++    while (snapshot.pending.length && examined < catalogBudgets.scanEntriesPerRequest
++      && performance.now()-started < catalogBudgets.scanWindowMs) {
++      if (snapshot.examined >= catalogBudgets.scanEntriesPerSnapshot || snapshot.scanMs+performance.now()-started >= catalogBudgets.scanTotalMs) {
++        this.addFailure(snapshot,snapshot.pending[0]!.source,"SCAN_LIMIT");
++        snapshot.pending.length = 0; await this.closeSnapshot(snapshot); break;
++      }
++      const directory = snapshot.pending[0]!;
++      try {
++        if (!directory.handle) {
++          if (await physicalId(directory.source.root) !== directory.source.rootIdentity) throw new Error("SOURCE_REPLACED");
++          directory.identity = await physicalId(directory.path); directory.mtime = (await stat(directory.path)).mtimeMs;
++          directory.anchor = await openWithin(directory.source.root,directory.source.rootIdentity,directory.path,true);
++          directory.handle = await opendir(`/proc/self/fd/${directory.anchor.fd}`,{bufferSize:1});
++        }
++        const next = await directory.handle.read();
++        if (next === null) { await directory.handle.close(); delete directory.handle; await directory.anchor?.close(); delete directory.anchor; snapshot.pending.shift(); continue; }
++        snapshot.examined++; examined++;
++        await this.entry(snapshot,directory,next.name);
++      } catch (error) {
++        this.addFailure(snapshot,directory.source,failure(error),relative(directory.source.root,directory.path));
++        if (directory.handle) { await directory.handle.close().catch(() => {}); delete directory.handle; }
++        if (directory.anchor) { await directory.anchor.close(); delete directory.anchor; }
++        snapshot.pending.shift();
++      }
++    }
++    snapshot.scanMs += performance.now()-started;
++    if (!snapshot.pending.length) {
++      snapshot.sorted = [...snapshot.items.values()].sort((a,b) => order(a.sourceId,b.sourceId)
++        || order(a.nativeSessionId,b.nativeSessionId) || order(a.instanceId,b.instanceId));
++      for (const item of snapshot.sorted) item.aliases.sort(order);
++    }
++  }
++  async page(cursor?:string,pageSize=32):Promise<CatalogPage> {
++    await this.expire();
++    if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > catalogBudgets.pageItems) throw new Error("CATALOG_PAGE_LIMIT");
++    let snapshot:Snapshot, offset = 0;
++    if (cursor) {
++      const [id,part,mode] = cursor.split(":");
++      const found = id ? this.snapshots.get(id):undefined;
++      if (!found || !/^\d+$/.test(part ?? "") || !["scan","page"].includes(mode ?? "")) throw new Error("CATALOG_CURSOR_INVALID_OR_EXPIRED");
++      snapshot = found; offset = Number(part);
++      if (snapshot.pageSize !== pageSize || offset > snapshot.items.size
++        || (mode === "scan" && snapshot.sorted !== undefined) || (mode === "page" && snapshot.sorted === undefined))
++        throw new Error("CATALOG_CURSOR_SCOPE");
++    } else snapshot = await this.start(pageSize);
++    await this.validate(snapshot);
++    if (!snapshot.sorted) await this.scan(snapshot);
++    const items:CatalogDescriptor[] = [];
++    for (const item of snapshot.sorted?.slice(offset,offset+pageSize) ?? []) {
++      if (Buffer.byteLength(JSON.stringify({items:[...items,item],failures:snapshot.failures}))+2048 > catalogBudgets.responseBytes) break;
++      items.push(item);
++    }
++    const nextCursor = !snapshot.sorted ? `${snapshot.id}:0:scan`
++      : offset+items.length < snapshot.sorted.length ? `${snapshot.id}:${offset+items.length}:page`:undefined;
++    const result:CatalogPage = {status:!snapshot.sorted ? "scanning" : snapshot.failures.length ? "partial":"complete",
++      snapshot:snapshot.id,observedAt:new Date(snapshot.created).toISOString(),expiresAt:new Date(snapshot.expires).toISOString(),
++      items,failures:snapshot.failures,examined:snapshot.examined,...(nextCursor ? {nextCursor}: {})};
++    if (Buffer.byteLength(JSON.stringify(result))+1024 > catalogBudgets.responseBytes) throw new Error("CATALOG_RESPONSE_LIMIT");
++    return result;
++  }
++  async describe(reference:string):Promise<CatalogDescription> {
++    const observedAt = new Date().toISOString();
++    if (reference.length > 4096) return {status:"invalid_reference",observedAt};
++    let ref:unknown;
++    try { ref = JSON.parse(Buffer.from(reference,"base64url").toString("utf8")); } catch { return {status:"invalid_reference",observedAt}; }
++    if (!isReference(ref)) return {status:"invalid_reference",observedAt};
++    const source = this.sources.find(source => source.sourceId === ref.sourceId && source.status === "ready");
++    if (!source) return {status:"source_unavailable",observedAt};
++    if (await physicalId(source.root).catch(() => "missing") !== source.rootIdentity) return {status:"source_unavailable",observedAt};
++    try {
++      const item = await readDescriptor(source,join(source.root,ref.locator));
++      return item.instanceId === ref.instanceId && item.nativeSessionId === ref.nativeSessionId
++        ? {status:"verified",observedAt,item}:{status:"replaced",observedAt};
++    } catch (error) { return {status:errorCode(error) === "ENOENT" ? "missing":"inaccessible",observedAt}; }
++  }
++}
++function isReference(value:unknown):value is {sourceId:string;instanceId:string;locator:string;nativeSessionId:string} {
++  return typeof value === "object" && value !== null && "sourceId" in value && typeof value.sourceId === "string"
++    && "instanceId" in value && typeof value.instanceId === "string" && "nativeSessionId" in value && typeof value.nativeSessionId === "string"
++    && "locator" in value && typeof value.locator === "string" && value.locator.length <= 1024 && !isAbsolute(value.locator)
++    && !value.locator.split(/[\\/]/).some(part => part === "..") && !value.locator.includes("\0");
++}
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-path.ts b/packages/coding-agent/src/modes/rpc/catalog-path.ts
+new file mode 100644
+index 0000000000..114fe9b682
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/catalog-path.ts
+@@ -0,0 +1,28 @@
++/** Linux directory-descriptor walk: ancestor/leaf symlink swaps cannot redirect native reads. */
++import { constants } from "node:fs";
++import { open, type FileHandle } from "node:fs/promises";
++import { relative } from "node:path";
++import { isAbsolute } from "node:path";
++const hash = (text:string):string => Bun.SHA256.hash(text,"hex");
++const inside = (root:string,target:string):boolean => {
++  const part = relative(root,target);
++  return part === "" || (!part.startsWith("..") && !isAbsolute(part));
++};
++
++export async function openWithin(root:string,rootIdentity:string,target:string,directory=false):Promise<FileHandle> {
++  if (process.platform !== "linux" || !inside(root,target)) throw new Error("UNSUPPORTED_SOURCE_PATH");
++  const parts = relative(root,target).split("/").filter(Boolean);
++  let current:FileHandle|undefined = await open(root,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);
++  try {
++    const info = await current.stat({bigint:true});
++    if (hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`) !== rootIdentity) throw new Error("SOURCE_REPLACED");
++    for (const [index,part] of parts.entries()) {
++      if (part === ".." || part.includes("\0")) throw new Error("INVALID_SOURCE_PATH");
++      const flags = constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK
++        | (index < parts.length-1 || directory ? constants.O_DIRECTORY:0);
++      const child = await open(`/proc/self/fd/${current.fd}/${part}`,flags);
++      await current.close(); current = child;
++    }
++    const result = current; current = undefined; return result;
++  } finally { if (current) await current.close(); }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/wire/catalog.ts b/packages/coding-agent/src/modes/rpc/wire/catalog.ts
+new file mode 100644
+index 0000000000..7b865ea592
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/catalog.ts
+@@ -0,0 +1,31 @@
++/** Read-only catalog v1. No history, authorization, open or lease reservation. */
++export const catalogDefs = {
++  CatalogCwd: { status: "'known' | 'unknown' | 'missing' | 'inaccessible' | 'invalid'", "recorded?": "string", "canonical?": "string" },
++  CatalogOwnership: { state: "'held' | 'free' | 'unknown'", observedAt: "string" },
++  CatalogDescriptor: {
++    sourceId: "string", instanceId: "string", reference: "string", nativeSessionId: "string",
++    aliases: "string[]", cwd: "CatalogCwd", "title?": "string", createdAt: "string",
++    modifiedAt: "string", observedAt: "string", ownership: "CatalogOwnership",
++    "parentSession?": "string", "continuationOf?": "string",
++  },
++  CatalogFailure: { sourceId: "string", code: "string", "locator?": "string" },
++  CatalogSource: { sourceId: "string", kind: "'default' | 'custom'", aliases: "string[]", status: "'ready' | 'invalid'" },
++  CatalogBudgets: { scanEntriesPerRequest: "number.integer", scanEntriesPerSnapshot: "number.integer",
++    directoriesPerSnapshot: "number.integer", sessionsPerSnapshot: "number.integer", headerBytes: "number.integer",
++    pageItems: "number.integer", responseBytes: "number.integer", snapshotBytes: "number.integer",
++    snapshots: "number.integer", scanWindowMs: "number.integer", scanTotalMs: "number.integer", tokenTtlMs: "number.integer" },
++  CatalogSources: { version: "'readonly-catalog-v1'", profile: "string", sources: "CatalogSource[]", budgets: "CatalogBudgets" },
++  CatalogPage: { status: "'scanning' | 'complete' | 'partial'", snapshot: "string", observedAt: "string",
++    expiresAt: "string", items: "CatalogDescriptor[]", failures: "CatalogFailure[]", examined: "number.integer",
++    "nextCursor?": "string" },
++  CatalogDescription: { status: "'verified' | 'missing' | 'replaced' | 'invalid_reference' | 'source_unavailable' | 'inaccessible'",
++    observedAt: "string", "item?": "CatalogDescriptor" },
++};
++
++export const catalogCommands = [
++  { name: "catalog_sources", doc: "Readonly catalog v1 startup-selected profile and explicitly configured sources.", result: "CatalogSources" },
++  { name: "catalog_page", doc: "Bounded scan window or stable snapshot page. Expired/stale cursors must restart.",
++    params: { "cursor?": "string", "pageSize?": "number.integer" }, result: "CatalogPage" },
++  { name: "describe_session", doc: "Revalidate an existing native reference without opening, repair or ownership acquisition.",
++    params: { reference: "string" }, result: "CatalogDescription" },
++] as const;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index 375a020e47..5da22a7c56 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -6,6 +6,7 @@
+  * `<Command>Params` / `<Command>Result`; a string names a shared definition.
+  */
+ import { doc } from "./dsl";
++import { catalogCommands } from "./catalog";
+ 
+ /** One RPC command as described to generators. */
+ export interface RpcCommandSpec {
+@@ -32,6 +33,7 @@ export interface RpcCommandSpec {
+ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
+ 
+ export const rpcCommands: readonly RpcCommandSpec[] = [
++  ...catalogCommands,
+   {
+     name: "get_compatibility",
+     doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+index 7fe301e661..f873117435 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -19,6 +19,7 @@ import { messageDefs, modelDefs } from "./content";
+ import { doc, type WireDefs } from "./dsl";
+ import { eventDefs } from "./events";
+ import { frameDefs } from "./frames";
++import { catalogDefs } from "./catalog";
+ import { stateDefs } from "./state";
+ 
+ export type { RpcCommandSpec } from "./commands";
+@@ -165,6 +166,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
+ 		...messageDefs,
+ 		...modelDefs,
+ 		...stateDefs,
++    ...catalogDefs,
+ 		...eventDefs,
+ 		...frameDefs,
+ 		...notificationDefs,
