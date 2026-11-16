@@ -1,0 +1,56 @@
+{
+  "kind": "ticket31-readonly-catalog-linux-candidate",
+  "ompBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "cumulativePatchSha256": "aebc1697a7f3321b5c0c06a7a0cc49925f500fde6be83261a25679e7516970c2",
+  "sourceSha256": "907148c7554ce20af8f32902e3de57fe08c4be67ccbc612a50d9e089070d70fb",
+  "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
+  "installationManifestSha256": "58d32601823ff66536171013f6f727ebaf5e61dec0ee5e5c5c67d70f7d09ef38",
+  "installationAssets": 77415,
+  "orderedPatches": [
+    {
+      "name": "0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "name": "0002-readonly-catalog.patch",
+      "sha256": "4de7700e29a1e4e66a8b63046633388b2184117c14d7dcca6615e78500fec27e"
+    }
+  ],
+  "catalogClient": {
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceInputs": 238,
+    "sourceSha256": "d5dfe0ef840fccc04f2d1a21fef334c24ec3239eeb60910715c2e5c18eace0f9",
+    "contractSha256": "4b090b5212eb791034600237c2805e451bed1b54482fe2f85309c8292cd54b96",
+    "assets": {
+      "client.js": "dc0bce2136e865a9b0837b4bb957b91933e1a08d2602ff0b65e22abc356eba75",
+      "index.html": "2e3f720f990ffddaa1b26feadfb7ab4e58545e39259aa6b6433b36560ae07b9a"
+    }
+  },
+  "hostBundle": {
+    "file": "catalog-fixture-main.js",
+    "sha256": "8a6b1da0e7a028f9a97da918b6fccad664989ae41544e0b5ba1cf2f3e54e7a32"
+  },
+  "runtime": {
+    "name": "bun",
+    "version": "1.4.4"
+  },
+  "screenshots": {
+    "catalog.png": "2ee5e617903c843df7ab178ba58b9e4d8ba6bd11d34ea2d971ce3f2085871e51"
+  },
+  "fixture": {
+    "kind": "synthetic-native-v3",
+    "seed": "catalog-v1-1000-cwd",
+    "sessions": 1002,
+    "distinctDefaultBuckets": 1000,
+    "additionalCases": [
+      "same-ID custom copy",
+      "verified leaf alias",
+      "unknown cwd",
+      "malformed header",
+      "invalid custom source"
+    ]
+  },
+  "upstreamReuse": "Owned OMP clone; frozen runtime copied then rechecked. Pinned clean DSH source read-only from ticket30; independently built catalog assets.",
+  "productSessionAdmission": "blocked",
+  "windowsChromeWsl2": "DEFERRED by owner"
+}
