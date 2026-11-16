@@ -213,7 +213,7 @@ index 0000000000..64fb13ddce
 +export type RpcInteractionPolicy = typeof rpcInteractionPolicy;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 new file mode 100644
-index 0000000000..c0ca7c41de
+index 0000000000..73bcb5c52f
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 @@ -0,0 +1,107 @@
@@ -231,7 +231,7 @@ index 0000000000..c0ca7c41de
 +}
 +export interface RpcUIReplyResult { status: RpcUIReplyStatus }
 +
-+import { Snowflake } from "@oh-my-pi/pi-utils";
++import { Snowflake } from "@oh-my-pi/pi-utils/snowflake";
 +import { EXPLICIT_INTERACTION_EXPIRY_REASON, type ExtensionUIDialogOptions } from "../../extensibility/extensions/types";
 +import type { RpcExtensionUIResponse } from "./rpc-types";
 +
@@ -325,7 +325,7 @@ index 0000000000..c0ca7c41de
 +	return pending.get(response.id)?.resolve(response) ?? { status: "stale" };
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 4408b13370..98fcb32191 100644
+index 4408b13370..bf34f7e435 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -11,6 +11,9 @@
@@ -365,7 +365,7 @@ index 4408b13370..98fcb32191 100644
  			if (!multi && (selected.length > 1 || (selected.length > 0 && custom !== undefined))) {
  				throw new Error(
  					`Ask dialog answer ${JSON.stringify(question.id)} is single-select but carries more than one answer`,
-@@ -1169,30 +1173,18 @@ function parseAskDialogResponse(
+@@ -1169,30 +1173,19 @@ function parseAskDialogResponse(
  	};
  }
  
@@ -390,17 +390,19 @@ index 4408b13370..98fcb32191 100644
 -		output,
 -		opts,
 -		undefined,
+-		{ method: "ask", questions, timeout: dialogOptions?.timeout },
+-		response => parseAskDialogResponse(response, questions, opts),
++	const originalQuestions = structuredClone(questions);
 +	return requestRpcDialog(
 +		pendingRequests, output, dialogOptions, undefined,
- 		{ method: "ask", questions, timeout: dialogOptions?.timeout },
--		response => parseAskDialogResponse(response, questions, opts),
-+		response => parseAskDialogResponse(response, questions, dialogOptions ?? {}),
++		{ method: "ask", questions: originalQuestions, timeout: dialogOptions?.timeout },
++		response => parseAskDialogResponse(response, originalQuestions, dialogOptions ?? {}),
  	);
 -	return timedOut ? timedOutAskDialogResult(questions) : result;
  }
  
  export function requestRpcEditor(
-@@ -1203,60 +1195,9 @@ export function requestRpcEditor(
+@@ -1203,60 +1196,9 @@ export function requestRpcEditor(
  	dialogOptions?: ExtensionUIDialogOptions,
  	editorOptions?: { promptStyle?: boolean },
  ): Promise<string | undefined> {
@@ -464,7 +466,7 @@ index 4408b13370..98fcb32191 100644
  }
  
  /** Sends an RPC extension dialog and cancels the remote presentation when its signal aborts. */
-@@ -1268,55 +1209,7 @@ export function requestRpcDialog<T>(
+@@ -1268,55 +1210,7 @@ export function requestRpcDialog<T>(
  	request: Record<string, unknown>,
  	parseResponse: (response: RpcExtensionUIResponse) => T,
  ): Promise<T> {
@@ -521,7 +523,7 @@ index 4408b13370..98fcb32191 100644
  }
  /**
   * Applies a queue-mode RPC command to the calling session only. Owns the
-@@ -1427,6 +1320,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1427,6 +1321,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
  			maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
  			supportsBashExcludeFromContext: true,
@@ -529,7 +531,7 @@ index 4408b13370..98fcb32191 100644
  		}),
  	);
  	const output = (obj: RpcResponse | RpcExtensionUIRequest | object) => {
-@@ -1520,6 +1414,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1520,6 +1415,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	 */
  	class RpcExtensionUIContext implements ExtensionUIContext {
  		readonly supportsEditor = true;
@@ -538,7 +540,7 @@ index 4408b13370..98fcb32191 100644
  		/** Set by `set_ask_dialog`; hosts that never opt in keep the select/editor ask fallback. */
  		askDialogEnabled = false;
  
-@@ -1728,6 +1624,30 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1728,6 +1625,30 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		rpcUiContext.askDialogEnabled = command.enabled === true;
  		return success(command.id, "set_ask_dialog", { enabled: rpcUiContext.askDialogEnabled });
  	};
@@ -569,7 +571,7 @@ index 4408b13370..98fcb32191 100644
  	const onPromptError = (id: string | undefined, command: string) => (promptError: Error) =>
  		output(error(id, command, promptError.message));
  
-@@ -1736,6 +1656,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1736,6 +1657,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// frame is held, in arrival order, for that loop.
  	let heldFrames: unknown[] | undefined = [];
  	const receiveFrame = (parsed: unknown): void => {
