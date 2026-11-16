@@ -1,0 +1,52 @@
+{
+  "kind": "actual-DSH-native-strict-continuation",
+  "cases": [
+    {
+      "name": "same-native-identity-and-registration-reuse-without-refresh-replay",
+      "result": "PASS",
+      "binding": {
+        "sourceId": "b196acedd611664f0c1616a8807aafb11011a129a18888245f566332070ef333",
+        "instanceId": "0311ef166e5039d51d23cae90b2e6486bd6745cfbb827ed2674d7b6dc6f7fe8f",
+        "nativeSessionId": "native-0000",
+        "reference": "eyJzb3VyY2VJZCI6ImIxOTZhY2VkZDYxMTY2NGYwYzE2MTZhODgwN2FhZmIxMTAxMWExMjlhMTg4ODgyNDVmNTY2MzMyMDcwZWYzMzMiLCJsb2NhdG9yIjoiYnVja2V0L25hdGl2ZS0wMDAwLmpzb25sIiwiaW5zdGFuY2VJZCI6IjAzMTFlZjE2NmU1MDM5ZDUxZDIzY2FlOTBiMmU2NDg2YmQ2NzQ1Y2ZiYjgyN2VkMjY3NGQ3YjZkYzZmN2ZlOGYiLCJuYXRpdmVTZXNzaW9uSWQiOiJuYXRpdmUtMDAwMCJ9",
+        "aliases": [
+          "bucket/native-0000.jsonl"
+        ],
+        "cwd": {
+          "recorded": "/workspace/work/omp-webui-ticket-32/vendor/continuation-profile/project",
+          "canonical": "/workspace/work/omp-webui-ticket-32/vendor/continuation-profile/project",
+          "status": "known"
+        },
+        "title": "Native Session 0",
+        "createdAt": "2026-01-01T00:00:00.000Z",
+        "modifiedAt": "2026-11-16T13:50:16.570Z",
+        "observedAt": "2026-11-16T13:52:24.686Z",
+        "ownership": {
+          "state": "held",
+          "observedAt": "2026-11-16T13:52:24.686Z"
+        }
+      }
+    },
+    {
+      "name": "actual-native-owner-contention-no-takeover",
+      "result": "PASS"
+    },
+    {
+      "name": "cancel-pending-native-start-no-replay",
+      "result": "PASS"
+    },
+    {
+      "name": "lost-result-readonly-state-recovery-without-replay",
+      "result": "PASS"
+    },
+    {
+      "name": "explicit-new-is-distinct-public-intent-and-native-identity",
+      "result": "PASS"
+    }
+  ],
+  "limits": "Linux synthetic fixture; private product admission blocked; no provider inference",
+  "browser": "156.0.8078.79",
+  "DSHRemoteCalls": 21,
+  "pageErrors": [],
+  "sessionAdmission": "blocked"
+}

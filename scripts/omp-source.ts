@@ -5,7 +5,7 @@ import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
 export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch"];
-export const authoredPaths = ["src/utils/file-xattr.ts", "src/session/session-generation.ts", "src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
+export const authoredPaths = ["src/debug/report-bundle.ts", "docs/rpc-strict-start.md", "src/modes/rpc/strict-start-policy.ts", "src/activity/index.ts", "src/memories/index.ts", "src/modes/rpc/rpc-subagents.ts", "src/cli/gc-cli.ts", "src/cli/gc-strip.ts", "src/session/session-header-id.ts", "src/session/session-transfer.ts", "src/cli/render-cli.ts", "src/modes/rpc/strict-client.ts", "src/session/session-drafts.ts", "src/session/session-loader.ts", "src/session/generation-storage-factory.ts", "src/utils/file-xattr.ts", "src/session/session-generation.ts", "src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
   "src/modes/rpc/wire/strict-start.ts", "src/modes/rpc/strict-mode.ts", "src/modes/rpc/strict-reservation.ts",
   "src/modes/rpc/strict-context.ts", "src/modes/rpc/strict-input.ts", "src/session/session-manager.ts", "src/modes/rpc/history-client.ts",
   "src/modes/rpc/rpc-history.ts", "src/modes/rpc/wire/history.ts", "src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",

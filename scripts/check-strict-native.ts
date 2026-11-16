@@ -2,8 +2,8 @@
 import ts from "typescript";
 import { resolve } from "node:path";
 const root = resolve("vendor/omp/packages/coding-agent/src");
-const files = ["modes/rpc/strict-context.ts", "modes/rpc/strict-reservation.ts", "modes/rpc/strict-mode.ts",
-  "session/strict-session-storage.ts"].map(file => resolve(root, file));
+const files = ["modes/rpc/catalog-native.ts", "modes/rpc/catalog-metadata.ts", "modes/rpc/strict-context.ts", "modes/rpc/strict-reservation.ts", "modes/rpc/strict-mode.ts",
+  "session/strict-session-storage.ts", "session/session-generation.ts", "session/generation-storage-factory.ts", "utils/file-xattr.ts"].map(file => resolve(root, file));
 const config = ts.readConfigFile("tsconfig.json", ts.sys.readFile);
 const parsed = ts.parseJsonConfigFileContent(config.config, ts.sys, process.cwd());
 const program = ts.createProgram(files, { ...parsed.options, allowJs: true, checkJs: false });

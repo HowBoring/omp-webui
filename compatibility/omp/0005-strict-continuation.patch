@@ -1,3 +1,87 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 610cb9cd74..7bf62df069 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -9,6 +9,8 @@
+ 
+ ### Added
+ 
++- Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
++
+ - Added atomic retained-tree, active-chain and running-message observations with bounded expiring pages and native image content reads ([WebUI #34](https://github.com/HowBoring/omp-webui/issues/34)).
+ 
+ - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
+diff --git a/packages/coding-agent/docs/rpc-strict-start.md b/packages/coding-agent/docs/rpc-strict-start.md
+new file mode 100644
+index 0000000000..3048e2860a
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-strict-start.md
+@@ -0,0 +1,33 @@
++# Deferred strict rpc-ui startup (isolated Linux prototype)
++
++Launch the normal interactive mode with `--mode rpc-ui --strict-start`. The first ready frame exposes
++`strictStartup: strict-start-v1`, the effective explicit-answer interaction policy, and strict startup
++platform/ownership/native-format/budget constraints. No ordinary Session/extensions/UI exist yet.
++Negotiate protocol v2, then send one explicit `strict_start` with `intent: continue`, an opaque catalog
++reference and authorized canonical `expectedCwd`; or `intent: new` without a reference. Repeated starts
++are refused. `get_strict_state` is readonly and never replays; `cancel_strict_start` preserves known
++cancelled/cancelling/unknown outcomes. An open result binds native Session ID and current catalog identity.
++
++Continue owns the native exclusive lease and pins source/parent/Session/cwd identities before ordinary
++runtime initialization. Unknown lease acquisition fails. Native persistence never retargets to a sibling,
++repairs/retries an uncertain operation automatically, truncates the Session body, or displaces a replacement.
++
++Whole rewrites retain the carrier inode. Exclusive immutable native JSONL generations and bounded authenticated
++metadata are prepared in `.<basename>.omp-generations`, an fd-bound `user.omp-generation-v1` xattr announces
++current/previous commit offsets, only the seven-byte header discriminator changes from `session` to `ompgen1`,
++and a checksummed commit is appended. Native readers resolve the winning generation plus carrier append suffix.
++Incomplete final commit retains old logical state and refuses further writes. Partial conversion is incompatible;
++complete committed missing/corrupt controls are errors. Prepared data remains for native-only investigation.
++This is software process-crash persistence, without fsync/power-loss or hostile same-UID guarantees.
++
++Budgets: logical body128MiB, carrier256MiB, retained generations512MiB/64 generations/128 entries;
++head/metadata/marker1KiB each. Catalog reads carrier prefix16KiB + bounded controls6144 bytes + winning
++prefix16KiB, authenticating prefix bytes without hashing history. Full loaders verify full body hashes.
++Unsupported platform/xattrs and budget limits fail closed; no unsafe GC fallback exists.
++
++Matched TUI/CLI continue reads/writes the logical native data. Explicit native New/fork/branch uses a fresh owned
++backend and genuine logical serialization; it is not conflict recovery. Generation-v1 generic delete/move/GC/
++strip/compress is explicitly unsupported or skipped. Hardlink aliases without controls are partial errors;
++multi-link full publication refuses. A raw carrier copy/restore is not a backup: even losing xattr AND sidecars
++retains `ompgen1`, making baseline TUI refuse stale history. Use native flattened pack/render export under ownership.
++Rollback requires a verified flattened export and exclusive access, not an older binary over extended data.
+diff --git a/packages/coding-agent/src/activity/index.ts b/packages/coding-agent/src/activity/index.ts
+index d729b075f6..eb159822bc 100644
+--- a/packages/coding-agent/src/activity/index.ts
++++ b/packages/coding-agent/src/activity/index.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "../session/session-generation";
+ import { activityOneLine, compareActivityRows } from "@oh-my-pi/pi-tui/overlays/agent-activity";
+ import type { Stats } from "node:fs";
+ import * as fs from "node:fs/promises";
+@@ -334,8 +335,12 @@ export class AgentActivityIndex {
+ 		} catch {
+ 			return;
+ 		}
+-		let state = this.#states.get(agentId);
++		let logical: Buffer | undefined;
++    try { if (isGenerationCarrier(sessionFile)) { logical = Buffer.from(readNativeGeneration(sessionFile).text); stat.size = logical.length; } }
++    catch { if (this.#states.delete(agentId)) this.#notify(); return; }
++    let state = this.#states.get(agentId);
+ 		if (
++      (logical !== undefined && state?.mtimeMs !== stat.mtimeMs) ||
+ 			!state ||
+ 			state.path !== sessionFile ||
+ 			stat.size < state.offset ||
+@@ -358,7 +363,7 @@ export class AgentActivityIndex {
+ 		const start = state.offset;
+ 		let text: string;
+ 		try {
+-			text = await Bun.file(sessionFile).slice(start, stat.size).text();
++			text = logical ? logical.subarray(start, stat.size).toString("utf8") : await Bun.file(sessionFile).slice(start, stat.size).text();
+ 		} catch {
+ 			return;
+ 		}
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
 index 9c607012e8..ff1bfe94d2 100755
 --- a/packages/coding-agent/src/cli.ts
@@ -44,8 +128,156 @@ index 9c607012e8..ff1bfe94d2 100755
      if (process.argv.length !== 3) process.exitCode = 2;
      else void runCli(["--rpc-catalog"]).catch(() => { process.exitCode = 1; });
    } else if (process.argv.slice(2).includes("--rpc-preflight")) {
+diff --git a/packages/coding-agent/src/cli/gc-cli.ts b/packages/coding-agent/src/cli/gc-cli.ts
+index e2781a1947..8c1f9faf42 100644
+--- a/packages/coding-agent/src/cli/gc-cli.ts
++++ b/packages/coding-agent/src/cli/gc-cli.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "../session/session-generation";
+ import { Database } from "bun:sqlite";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+@@ -428,7 +429,8 @@ async function scanSessionLinesIfPresent(file: string, onLine: (line: Uint8Array
+ 		for await (const line of readLines(stream)) onLine(line);
+ 	};
+ 	try {
+-		const stream = Bun.file(file).stream();
++		const stream = !file.endsWith(COMPRESSED_SESSION_SUFFIX) && isGenerationCarrier(file)
++      ? new Blob([readNativeGeneration(file).text]).stream() : Bun.file(file).stream();
+ 		if (file.endsWith(COMPRESSED_SESSION_SUFFIX)) {
+ 			const gunzip = createGunzip();
+ 			await pipeline(stream, gunzip, async (source: NodeJS.ReadableStream) => {
+@@ -1035,7 +1037,7 @@ class SessionLineageHeaderReader {
+ async function readSessionLineageHeader(file: string): Promise<SessionLineageHeader | undefined> {
+ 	const decoder = new TextDecoder();
+ 	const reader = new SessionLineageHeaderReader();
+-	for await (const line of readLines(Bun.file(file).stream())) {
++	for await (const line of readLines((isGenerationCarrier(file) ? new Blob([readNativeGeneration(file).text]) : Bun.file(file)).stream())) {
+ 		reader.read(decoder.decode(line));
+ 		if (reader.done) break;
+ 	}
+@@ -1092,6 +1094,14 @@ async function restoreGzipSessionFile(source: string, destination: string): Prom
+ }
+ 
+ async function moveSessionWithArtifacts(candidate: ArchiveCandidate): Promise<void> {
++  const files = await collectSessionFiles(candidate.session.path);
++  const tree = await tryAcquireSessionTreeLeases(candidate.session.path, files);
++  if (!tree) throw new Error("GENERATION_MAINTENANCE_OR_OWNER_UNAVAILABLE");
++  try { await moveLegacySessionWithArtifacts(candidate); }
++  finally { for (const lease of tree.leases) lease.release(); }
++}
++
++async function moveLegacySessionWithArtifacts(candidate: ArchiveCandidate): Promise<void> {
+ 	const sourceSession = candidate.session.path;
+ 	const destSession = candidate.destinationPath;
+ 	const legacyDestSession = destSession.endsWith(".gz") ? destSession.slice(0, -".gz".length) : `${destSession}.gz`;
+@@ -1525,7 +1535,7 @@ async function collectSessionStatsIdentities(
+ ): Promise<Record<StatsEntryTable, StatsEntryIdentity[]>> {
+ 	const identities = createStatsIdentities();
+ 	const decoder = new TextDecoder();
+-	for await (const line of readLines(Bun.file(sessionPath).stream())) {
++	for await (const line of readLines((isGenerationCarrier(sessionPath) ? new Blob([readNativeGeneration(sessionPath).text]) : Bun.file(sessionPath)).stream())) {
+ 		addSessionStatsIdentity(decoder.decode(line), identities);
+ 	}
+ 	return identities;
+@@ -1966,7 +1976,8 @@ async function tryAcquireSessionTreeLeases(
+ 	for (const file of files) {
+ 		let lease: FileLockHandle | null;
+ 		try {
+-			const sessionId = await readArtifactSessionId(file);
++			if (isGenerationCarrier(file)) throw new Error("GENERATION_MAINTENANCE_UNSUPPORTED");
++      const sessionId = await readArtifactSessionId(file);
+ 			if (sessionId === undefined) continue;
+ 			transcripts.add(file);
+ 			if (leasedIds.has(sessionId)) continue;
+@@ -2494,6 +2505,10 @@ function renderText(result: GcResult): string {
+ 
+ export async function runGcCommand(args: GcCommandArgs): Promise<GcResult> {
+ 	const options = await resolveOptions(args);
++  // Format-v1 retains immutable generations. Do not let legacy compression/blob/strip GC consume physical carriers.
++  const roots = [getSessionsDir(options.agentDir), getArchivedSessionsDir(options.agentDir)];
++  for (const root of roots) for (const file of await collectJsonlFiles(root))
++    if (isGenerationCarrier(file)) throw new Error("GENERATION_MAINTENANCE_UNSUPPORTED");
+ 	const archiveRoot = getArchivedSessionsDir(options.agentDir);
+ 	const result = await withGcLock(options.agentDir, async lockPath => {
+ 		const next: GcResult = { agentDir: options.agentDir, apply: options.apply, lockPath };
+diff --git a/packages/coding-agent/src/cli/gc-strip.ts b/packages/coding-agent/src/cli/gc-strip.ts
+index e6e327cb68..ff56ee47bc 100644
+--- a/packages/coding-agent/src/cli/gc-strip.ts
++++ b/packages/coding-agent/src/cli/gc-strip.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier } from "../session/session-generation";
+ /**
+  * Provider replay data stripping for idle session transcripts (`omp gc --strip`).
+  *
+@@ -227,6 +228,7 @@ async function* transcriptLines(file: string): AsyncGenerator<{ bytes: Uint8Arra
+  * or carries no replay data outside its latest replay turn.
+  */
+ export async function planStrip(file: string, idleBeforeMs: number): Promise<StripPlan | undefined> {
++  if (!file.endsWith(GZIP_SUFFIX) && isGenerationCarrier(file)) throw new Error("GENERATION_MAINTENANCE_UNSUPPORTED");
+ 	const stat = await fs.lstat(file, { bigint: true });
+ 	if (!stat.isFile() || stat.nlink !== 1n || Number(stat.mtimeMs) > idleBeforeMs) return undefined;
+ 	const fileEntries: FileEntry[] = [];
+@@ -305,6 +307,7 @@ function utimeSeconds(ns: bigint): number {
+  * @throws When the copy cannot be written or a writer holds the publish lock.
+  */
+ export async function applyStrip(plan: StripPlan, storage: FileSessionStorage): Promise<boolean> {
++  if (!plan.file.endsWith(GZIP_SUFFIX) && isGenerationCarrier(plan.file)) throw new Error("GENERATION_MAINTENANCE_UNSUPPORTED");
+ 	const staged = sessionStagingPath(plan.file);
+ 	const mode = Number(plan.stat.mode & FILE_PERMISSION_MASK);
+ 	try {
+diff --git a/packages/coding-agent/src/cli/render-cli.ts b/packages/coding-agent/src/cli/render-cli.ts
+index cc8737279f..5e6ac8fbca 100644
+--- a/packages/coding-agent/src/cli/render-cli.ts
++++ b/packages/coding-agent/src/cli/render-cli.ts
+@@ -1,3 +1,5 @@
++import { isGenerationCarrier } from "../session/session-generation";
++import { openNativeGenerationStorage } from "../session/generation-storage-factory";
+ /**
+  * `omp render` — draw a session's entire thread through the production
+  * transcript pipeline, headlessly.
+@@ -157,7 +159,11 @@ export async function runRenderCommand(args: RenderCommandArgs): Promise<number>
+ 	let session: AgentSession | undefined;
+ 	let mode: InteractiveMode | undefined;
+ 	try {
+-		await fs.copyFile(sourcePath, workingCopy);
++    if (isGenerationCarrier(sourcePath)) {
++      const storage = await openNativeGenerationStorage(sourcePath);
++      try { const logical = await storage.readText(sourcePath); storage.assertCurrent(); await fs.writeFile(workingCopy, logical, { flag: "wx" }); }
++      finally { await storage.releaseSessionOwnership(); }
++    } else await fs.copyFile(sourcePath, workingCopy);
+ 		const openStart = performance.now();
+ 		const sessionManager = await SessionManager.open(workingCopy, undefined, undefined, {
+ 			suppressBreadcrumb: true,
+diff --git a/packages/coding-agent/src/debug/report-bundle.ts b/packages/coding-agent/src/debug/report-bundle.ts
+index 126b71fff8..b20660a3c8 100644
+--- a/packages/coding-agent/src/debug/report-bundle.ts
++++ b/packages/coding-agent/src/debug/report-bundle.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "../session/session-generation";
+ /**
+  * Debug report bundle creation.
+  *
+@@ -122,7 +123,7 @@ export async function createReportBundle(options: ReportBundleOptions): Promise<
+ 	// Session file
+ 	if (options.sessionFile) {
+ 		try {
+-			const sessionContent = await Bun.file(options.sessionFile).text();
++			const sessionContent = isGenerationCarrier(options.sessionFile) ? readNativeGeneration(options.sessionFile).text : await Bun.file(options.sessionFile).text();
+ 			data["session.jsonl"] = sessionContent;
+ 			files.push("session.jsonl");
+ 		} catch {
+@@ -207,7 +208,7 @@ async function addDirectoryToArchive(
+ 		}
+ 		if (!entry.isFile()) continue;
+ 		try {
+-			data[archivePath] = await Bun.file(entryPath).text();
++			data[archivePath] = entryPath.endsWith(".jsonl") && isGenerationCarrier(entryPath) ? readNativeGeneration(entryPath).text : await Bun.file(entryPath).text();
+ 			files.push(archivePath);
+ 		} catch {
+ 			// Skip files we can't read
 diff --git a/packages/coding-agent/src/main.ts b/packages/coding-agent/src/main.ts
-index eb3870fbb6..1b227d7408 100644
+index eb3870fbb6..cf68ec5209 100644
 --- a/packages/coding-agent/src/main.ts
 +++ b/packages/coding-agent/src/main.ts
 @@ -1,3 +1,4 @@
@@ -71,14 +303,129 @@ index eb3870fbb6..1b227d7408 100644
  
  		// Kick off plugin-root preload in parallel with the remaining startup work.
  		// Awaited later (before extension/skill discovery in createAgentSession needs it).
+@@ -2461,6 +2464,7 @@ export async function runRootCommand(
+ 
+ 		const createAgentSessionImpl = deps.createAgentSession ?? createAgentSession;
+ 		const createSession = async (options: CreateAgentSessionOptions): Promise<CreateAgentSessionResult> => {
++      getStrictStartup()?.reservation.assertCurrent();
+ 			const result = await logger.time("createAgentSession", createAgentSessionImpl, options);
+ 			// Kick off background model discovery only after createAgentSession finishes its parallel
+ 			// discovery arms; running these concurrently contends for the event loop and stretches
+@@ -2529,6 +2533,7 @@ export async function runRootCommand(
+ 				parsedArgs.unrecognizedFlags.length === 0 &&
+ 				!parsedArgs.tools?.length &&
+ 				!(parsedArgs.continue || parsedArgs.resume || parsedArgs.fork || parsedArgs.restore || foreignSource);
++			getStrictStartup()?.beginExtensions();
+ 			const extensionsResult = parsedArgs.trustedExtensions?.length
+ 				? { ...(await loadTrustedSessionExtensions(sessionOptions, cwd, eventBus)), deferredPaths: [] }
+ 				: await loadSessionExtensions(sessionOptions, cwd, settingsInstance, eventBus, {
+diff --git a/packages/coding-agent/src/memories/index.ts b/packages/coding-agent/src/memories/index.ts
+index b77010881e..abe7125807 100644
+--- a/packages/coding-agent/src/memories/index.ts
++++ b/packages/coding-agent/src/memories/index.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "../session/session-generation";
+ import type { Database } from "bun:sqlite";
+ import type * as fsNode from "node:fs";
+ import * as fs from "node:fs/promises";
+@@ -708,10 +709,11 @@ export async function collectThreads(session: AgentSession, currentThreadId?: st
+ 			// allocations on startup for every past session. If the candidate line
+ 			// falls on the slice boundary, fall back to a full read.
+ 			const HEAD_CAP = 64 * 1024;
+-			let isLarge = stat.size > HEAD_CAP;
+-			let fileText = isLarge
++			const logical = isGenerationCarrier(fullPath) ? readNativeGeneration(fullPath).text : undefined;
++      let isLarge = logical === undefined && stat.size > HEAD_CAP;
++			let fileText = logical ?? (isLarge
+ 				? await peekFile(fullPath, HEAD_CAP, bytes => new TextDecoder().decode(bytes))
+-				: await Bun.file(fullPath).text();
++				: await Bun.file(fullPath).text());
+ 			let lines = fileText.split(/\r?\n/);
+ 			let sawTitleSlot = false;
+ 			for (let i = 0; i < lines.length; i++) {
+@@ -797,7 +799,7 @@ function extractPersistableMessages(payload: string): AgentMessage[] {
+ const STAGE1_ROLLOUT_WINDOW_BYTES = 1024 * 1024;
+ 
+ /** Persistable messages from the start of the rollout, in file order, read window by window. */
+-async function* persistableMessagesFromFront(file: Bun.BunFile, size: number): AsyncGenerator<AgentMessage> {
++async function* persistableMessagesFromFront(file: Blob, size: number): AsyncGenerator<AgentMessage> {
+ 	const decoder = new TextDecoder();
+ 	let carry: Uint8Array | undefined;
+ 	let offset = 0;
+@@ -813,7 +815,7 @@ async function* persistableMessagesFromFront(file: Bun.BunFile, size: number): A
+ }
+ 
+ /** Persistable messages from the end of the rollout, in reverse file order, read window by window. */
+-async function* persistableMessagesFromBack(file: Bun.BunFile, size: number): AsyncGenerator<AgentMessage> {
++async function* persistableMessagesFromBack(file: Blob, size: number): AsyncGenerator<AgentMessage> {
+ 	const decoder = new TextDecoder();
+ 	let carry: Uint8Array | undefined;
+ 	let end = size;
+@@ -843,9 +845,8 @@ async function* persistableMessagesFromBack(file: Bun.BunFile, size: number): As
+  * JSONL record (a record spanning windows is carried until its newline), not by rollout size.
+  */
+ export async function buildStage1RolloutItems(rolloutPath: string, tokenLimit: number): Promise<string> {
+-	const file = Bun.file(rolloutPath);
+-	// stat() throws for a missing rollout, matching the previous Bun.file().text() failure.
+-	const { size } = await file.stat();
++	const file = isGenerationCarrier(rolloutPath) ? new Blob([readNativeGeneration(rolloutPath).text]) : Bun.file(rolloutPath);
++	const size = file.size;
+ 	if (tokenLimit <= 0) return "";
+ 	const maxChars = tokenLimit * 4;
+ 	const headChars = Math.floor(maxChars * 0.6);
+diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+index fce1e66d0e..da698774f5 100644
+--- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
++++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
+@@ -3,6 +3,7 @@ import * as fs from "node:fs/promises";
+ import { openWithin } from "./catalog-path";
+ import * as nodePath from "node:path";
+ import { getSessionOwnersDir, relativePathWithinNormalizedRoot } from "@oh-my-pi/pi-utils/dirs";
++import { readHeldGenerationMetadata } from "../../session/session-generation";
+ import { parseTitleSlotLine } from "../../session/session-title-slot";
+ import { isFileLockHeld } from "@oh-my-pi/pi-utils/file-lock";
+ import type { CatalogDescriptor, CatalogCwd } from "./wire/rpc-wire.generated";
+@@ -50,7 +51,12 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+     if (!before.isFile()) throw new Error("NOT_REGULAR_FILE");
+     const bytes = Buffer.alloc(HEADER_BYTES);
+     const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
+-    const prefix = bytes.subarray(0, bytesRead);
++    let prefix: Buffer = bytes.subarray(0, bytesRead);
++    if (/"type"\s*:\s*"ompgen1"/.test(prefix.toString("utf8"))) {
++      const parent = await openWithin(source.root, source.rootIdentity, nodePath.dirname(target), true);
++      try { prefix = readHeldGenerationMetadata(file.fd, parent.fd, target, HEADER_BYTES, prefix); }
++      finally { await parent.close(); }
++    }
+     const firstEnd = prefix.indexOf(10);
+     if (firstEnd < 0) throw new Error("HEADER_LIMIT");
+     const decoder = new TextDecoder("utf-8", {fatal:true});
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-native.ts b/packages/coding-agent/src/modes/rpc/catalog-native.ts
-index ea374c391e..2451b0cfe4 100644
+index ea374c391e..9916b08a3c 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-native.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-native.ts
-@@ -192,6 +192,18 @@ export class NativeCatalog {
+@@ -10,7 +10,7 @@ import type { CatalogBudgets, CatalogDescriptor, CatalogFailure, CatalogPage, Ca
+   CatalogSource, CatalogDescription } from "./wire/rpc-wire.generated";
+ 
+ export const catalogBudgets: CatalogBudgets = { scanEntriesPerRequest:256, scanEntriesPerSnapshot:8192,
+-  directoriesPerSnapshot:2048, sessionsPerSnapshot:4096, headerBytes:16384, pageItems:32, responseBytes:262144,
++  directoriesPerSnapshot:2048, sessionsPerSnapshot:4096, headerBytes:16384, generationControlBytes:6144, generationHeaderBytes:16384, pageItems:32, responseBytes:262144,
+   snapshotBytes:16777216, snapshots:4, scanWindowMs:250, scanTotalMs:10000, tokenTtlMs:60000 };
+ interface Source extends NativeSource { kind:"default"|"custom"; aliases:string[]; rootIdentity:string; status:"ready"|"invalid" }
+ interface Directory { source:Source; path:string; depth:number; identity?:string; mtime?:number; handle?:Dir; anchor?:FileHandle }
+@@ -192,6 +192,28 @@ export class NativeCatalog {
      if (Buffer.byteLength(JSON.stringify(result))+1024 > catalogBudgets.responseBytes) throw new Error("CATALOG_RESPONSE_LIMIT");
      return result;
    }
++  /** Internal explicit-New setup. Only the startup-selected default source may be materialized. */
++  async strictNewSource(): Promise<NativeSource> {
++    const source = this.sources.find(item => item.kind === "default");
++    if (!source) throw new Error("STRICT_DEFAULT_SOURCE_UNAVAILABLE");
++    if (source.status === "ready") return source;
++    await fs.mkdir(source.root, { recursive: true });
++    const root = await fs.realpath(source.root), rootIdentity = await physicalId(root);
++    if (!(await fs.stat(root)).isDirectory()) throw new Error("STRICT_DEFAULT_SOURCE_UNAVAILABLE");
++    return { root, rootIdentity, sourceId: hash(`${getActiveProfile() ?? "default"}:${root}:${rootIdentity}`) };
++  }
 +  /** Internal strict-start seam: resolve only the exact configured source and physical instance. */
 +  async resolveStrictReference(reference: string): Promise<{ source: NativeSource; path: string; descriptor: CatalogDescriptor }> {
 +    const description = await this.describe(reference);
@@ -89,13 +436,31 @@ index ea374c391e..2451b0cfe4 100644
 +    if (!isReference(value)) throw new Error("STRICT_INVALID_REFERENCE");
 +    const source = this.sources.find(item => item.sourceId === value.sourceId && item.status === "ready");
 +    if (!source) throw new Error("STRICT_SOURCE_UNAVAILABLE");
-+    return { source, path: join(source.root, value.locator), descriptor: description.item };
++    return { source, path: nodePath.join(source.root, value.locator), descriptor: description.item };
 +  }
    async describe(reference:string):Promise<CatalogDescription> {
      const observedAt = new Date().toISOString();
      if (reference.length > 4096) return {status:"invalid_reference",observedAt};
+diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
+index b11fd51964..dca44f560b 100644
+--- a/packages/coding-agent/src/modes/rpc/preflight.ts
++++ b/packages/coding-agent/src/modes/rpc/preflight.ts
+@@ -1,3 +1,4 @@
++import { strictStartupPolicy } from "./strict-start-policy";
+ /** Public startup path: no Session, user configuration, extensions, native UI or model imports. */
+ import { rpcInteractionPolicy } from "./rpc-interaction-policy";
+ import { RpcFrameEncoder, MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "./rpc-frame";
+@@ -34,7 +35,7 @@ export async function runPreflight(): Promise<void> {
+         const report: CompatibilityReport = {
+           candidate: "omp-webui-s0", ...compatibilityBuild, safePreflight: true, sessionAdmission: "blocked",
+           capabilities: ["safe-preflight-v1", "rpc-framing-v2"],
+-          rpcUiInteractionPolicy: rpcInteractionPolicy,
++          rpcUiInteractionPolicy: rpcInteractionPolicy, rpcUiStrictStartupPolicy: strictStartupPolicy,
+           runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
+         };
+         await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index dc60e39d35..b1523ef9a3 100644
+index dc60e39d35..8e7f966743 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,5 +1,6 @@
@@ -123,7 +488,15 @@ index dc60e39d35..b1523ef9a3 100644
  		frameEncoder.encodeFrames({
  			type: "ready",
  			protocolVersion: 1,
-@@ -1732,6 +1735,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1687,6 +1690,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	inputRead.then(rejectStartupDialogs, rejectStartupDialogs);
+ 
+ 	// Set up extensions with RPC-based UI context
++  strictStartup?.reservation.assertCurrent();
+ 	await initializeExtensions(session, {
+ 		mode: "rpc",
+ 		// Extension-initiated session changes get the same goal quiesce/reattach as the commands below.
+@@ -1732,6 +1736,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		uiContext: headless ? undefined : rpcUiContext,
  	});
  
@@ -132,18 +505,44 @@ index dc60e39d35..b1523ef9a3 100644
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
  		historyObservation.observe(event);
-@@ -2190,6 +2195,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2190,6 +2196,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// State
  			// =================================================================
  
 +      case "get_strict_state":
-+        return success(id, "get_strict_state", observeStrictStartup());
++        return success(id, "get_strict_state", await observeStrictStartup());
 +      case "strict_start":
 +      case "cancel_strict_start":
 +        return error(id, command.type, "STRICT_START_ALREADY_ATTEMPTED", "STRICT_START_ALREADY_ATTEMPTED");
  			case "get_state": {
  				// A goal exit triggered by the last turn restores tools asynchronously; report after it.
  				await goalController.settled();
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-subagents.ts b/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
+index 518e871558..2814f47329 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "../../session/session-generation";
+ import * as fs from "node:fs/promises";
+ import { isEnoent } from "@oh-my-pi/pi-utils";
+ import { type AgentRef, AgentRegistry } from "../../registry/agent-registry";
+@@ -69,7 +70,7 @@ function addPruned(set: Set<string>, value: string, maxSize: number): void {
+ 
+ export async function readRpcSubagentTranscript(sessionFile: string, fromByte = 0): Promise<RpcSubagentMessagesResult> {
+ 	let startByte = Number.isFinite(fromByte) ? Math.max(0, Math.trunc(fromByte)) : 0;
+-	const file = Bun.file(sessionFile);
++	let file: Blob = Bun.file(sessionFile);
+ 	let size: number;
+ 	try {
+ 		({ size } = await fs.stat(sessionFile));
+@@ -84,6 +85,7 @@ export async function readRpcSubagentTranscript(sessionFile: string, fromByte =
+ 			messages: [],
+ 		};
+ 	}
++  if (isGenerationCarrier(sessionFile)) { file = new Blob([readNativeGeneration(sessionFile).text]); size = file.size; }
+ 	let reset = false;
+ 	if (startByte > size) {
+ 		startByte = 0;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 index a0c7055d75..efccf79be7 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
@@ -171,12 +570,40 @@ index a0c7055d75..efccf79be7 100644
  	| {
  			id?: string;
  			type: "response";
+diff --git a/packages/coding-agent/src/modes/rpc/strict-client.ts b/packages/coding-agent/src/modes/rpc/strict-client.ts
+new file mode 100644
+index 0000000000..0e85bbe024
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/strict-client.ts
+@@ -0,0 +1,22 @@
++/** Narrow public client for deferred rpc-ui identity and ownership startup; no arbitrary command tunnel. */
++import type { RpcWireCommands, StrictStartState } from "./wire/rpc-wire.generated";
++export type StrictCommandName = "strict_start" | "get_strict_state" | "cancel_strict_start";
++export type StrictClientCommand = { [K in StrictCommandName]: { id: string; type: K }
++  & (RpcWireCommands[K]["params"] extends undefined ? object : RpcWireCommands[K]["params"]) }[StrictCommandName];
++export class StrictStartClient {
++  constructor(private readonly send: (command: StrictClientCommand) => Promise<unknown>,
++    private readonly validate: (value: unknown) => value is StrictStartState) {}
++  async #request(command: StrictClientCommand): Promise<StrictStartState> {
++    const value = await this.send(command);
++    if (!this.validate(value)) throw new Error("STRICT_STATE_SCHEMA");
++    if (value.phase === "open" && (!value.binding || !value.nativeSessionId || !value.cwd || !value.intent
++      || value.binding.nativeSessionId !== value.nativeSessionId || value.binding.cwd.status !== "known"
++      || value.binding.cwd.canonical !== value.cwd)) throw new Error("STRICT_STATE_IDENTITY");
++    return value;
++  }
++  start(options: RpcWireCommands["strict_start"]["params"]): Promise<StrictStartState> {
++    return this.#request({ id: crypto.randomUUID(), type: "strict_start", ...options });
++  }
++  state(): Promise<StrictStartState> { return this.#request({ id: crypto.randomUUID(), type: "get_strict_state" }); }
++  cancel(): Promise<StrictStartState> { return this.#request({ id: crypto.randomUUID(), type: "cancel_strict_start" }); }
++}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-context.ts b/packages/coding-agent/src/modes/rpc/strict-context.ts
 new file mode 100644
-index 0000000000..bd1e1dfb17
+index 0000000000..1662034b5b
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-context.ts
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,30 @@
 +/** Process-local handoff from deferred startup to the normal public rpc-ui worker. */
 +import type { SessionManager } from "../../session/session-manager";
 +import type { StrictReservation } from "./strict-reservation";
@@ -186,6 +613,8 @@ index 0000000000..bd1e1dfb17
 +  reservation: StrictReservation;
 +  input: ReadableStream<Uint8Array>;
 +  state: StrictStartState;
++  effectsStarted: boolean;
++  beginExtensions(): void;
 +  complete(output: (frame: object) => void): Promise<void>;
 +}
 +let context: StrictStartupContext | undefined;
@@ -194,9 +623,14 @@ index 0000000000..bd1e1dfb17
 +  context = value;
 +}
 +export function getStrictStartup(): StrictStartupContext | undefined { return context; }
-+export function observeStrictStartup(): StrictStartState {
++export async function observeStrictStartup(): Promise<StrictStartState> {
 +  if (!context) return { version: "strict-start-v1", phase: "waiting" };
-+  try { context.reservation.assertCurrent(); }
++  if (context.state.phase === "cancelled") return { ...context.state };
++  try {
++    context.reservation.assertCurrent();
++    const binding = await context.reservation.currentDescriptor();
++    if (context.state.phase === "open") context.state = { ...context.state, binding };
++  }
 +  catch { context.state = { ...context.state, phase: "outcome_unknown", code: "STRICT_BINDING_LOST" }; }
 +  return { ...context.state };
 +}
@@ -238,10 +672,14 @@ index 0000000000..3b0f72c44c
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
 new file mode 100644
-index 0000000000..74ce4adf6c
+index 0000000000..4763326da8
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
-@@ -0,0 +1,118 @@
+@@ -0,0 +1,148 @@
++import { strictStartupPolicy } from "./strict-start-policy";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { relativePathWithinNormalizedRoot } from "@oh-my-pi/pi-utils/dirs";
 +/** Deferred rpc-ui startup. Intentional lazy-import exception: no ordinary Session/UI may precede ownership. */
 +import { RpcFrameEncoder, MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "./rpc-frame";
 +import { validateStrictCommand, type StrictCommand } from "./strict.generated";
@@ -260,29 +698,45 @@ index 0000000000..74ce4adf6c
 +  let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
 +  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
 +    maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
-+    strictStartup: "strict-start-v1", interactionPolicy: rpcInteractionPolicy });
++    strictStartup: "strict-start-v1", strictStartupPolicy, interactionPolicy: rpcInteractionPolicy });
 +  let negotiated = false, attempted = false;
 +  let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
++  let activeContext: StrictStartupContext | undefined;
 +  let handedOff = false, inputEnded = false;
 +  const abort = new AbortController();
 +  const handoff = new StrictInput();
 +  const input = handoff.stream;
 +  const fail = (command: StrictCommand, error: unknown): void => {
-+    const code = abort.signal.aborted ? reservation?.writeAttempted ? "STRICT_START_OUTCOME_UNKNOWN" : "STRICT_CANCELLED" : error instanceof Error && /^STRICT_[A-Z_]+$/.test(error.message)
-+      ? error.message : "STRICT_STARTUP_FAILED";
++    const explicitUnknown = error instanceof Error && error.message.includes("OUTCOME_UNKNOWN");
++    const code = explicitUnknown ? "STRICT_START_OUTCOME_UNKNOWN" : abort.signal.aborted
++      ? reservation?.writeAttempted || activeContext?.effectsStarted ? "STRICT_START_OUTCOME_UNKNOWN" : "STRICT_CANCELLED"
++      : error instanceof Error && /^(?:STRICT|GENERATION)_[A-Z_]+$/.test(error.message) ? error.message : "STRICT_STARTUP_FAILED";
 +    state = { ...state, phase: code.includes("OUTCOME_UNKNOWN") ? "outcome_unknown"
 +      : code === "STRICT_CANCELLED" ? "cancelled" : "failed", code };
++    if (activeContext) activeContext.state = state;
 +    output({ type: "response", id: command.id, command: command.type, success: false, code, error: code });
 +  };
 +  const start = async (command: StrictCommand & { type: "strict_start" }): Promise<void> => {
 +    state = { version: "strict-start-v1", phase: "opening", intent: command.intent, operationId: command.id };
 +    try {
-+      if (command.intent !== "continue") throw new Error("STRICT_NEW_NOT_IMPLEMENTED");
-+      if (!command.reference) throw new Error("STRICT_INVALID_REFERENCE");
 +      const catalog = await NativeCatalog.create();
 +      try {
-+        const resolved = await catalog.resolveStrictReference(command.reference);
-+        reservation = await StrictReservation.acquire(resolved.source, resolved.path, resolved.descriptor, command.expectedCwd, abort.signal);
++        if (command.intent === "continue") {
++          if (!command.reference) throw new Error("STRICT_INVALID_REFERENCE");
++          const resolved = await catalog.resolveStrictReference(command.reference);
++          reservation = await StrictReservation.acquire(resolved.source, resolved.path, resolved.descriptor, command.expectedCwd, abort.signal);
++        } else {
++          if (command.reference) throw new Error("STRICT_NEW_REFERENCE_FORBIDDEN");
++          if (await fs.realpath(command.expectedCwd) !== command.expectedCwd || !(await fs.stat(command.expectedCwd)).isDirectory())
++            throw new Error("STRICT_CWD_MISMATCH");
++          const source = await catalog.strictNewSource();
++          const { SessionManager } = await import("../../session/session-manager");
++          const directory = await fs.realpath(SessionManager.getDefaultSessionDir(command.expectedCwd));
++          if (relativePathWithinNormalizedRoot(source.root, directory) === null) throw new Error("STRICT_OUTSIDE_SOURCE");
++          const prepared = SessionManager.prepareNewFile(command.expectedCwd, directory);
++          reservation = await StrictReservation.create(source, path.resolve(prepared.filePath), prepared.nativeSessionId,
++            prepared.body, command.expectedCwd, abort.signal);
++        }
 +      } finally { await catalog.close(); }
 +      abort.signal.throwIfAborted();
 +      // The imports below are permitted only after the physical instance, real lease and cwd are verified.
@@ -297,27 +751,33 @@ index 0000000000..74ce4adf6c
 +      if (manager.getSessionId() !== reservation.descriptor.nativeSessionId || manager.getCwd() !== command.expectedCwd)
 +        throw new Error("STRICT_NATIVE_ID_OR_CWD_CHANGED");
 +      const owned = reservation;
-+      const context: StrictStartupContext = { manager, reservation: owned, input, state,
++      const context: StrictStartupContext = { manager, reservation: owned, input, state, effectsStarted: false,
++        beginExtensions() { owned.assertCurrent(); abort.signal.throwIfAborted(); context.effectsStarted = true; },
 +        async complete(write) {
 +          owned.assertCurrent(); abort.signal.throwIfAborted();
 +          await manager.flush(); owned.assertCurrent();
-+          state = { ...state, phase: "open", binding: owned.descriptor, nativeSessionId: manager.getSessionId(), cwd: manager.getCwd() };
++          state = { ...state, phase: "open", binding: await owned.currentDescriptor(), nativeSessionId: manager.getSessionId(), cwd: manager.getCwd() };
 +          context.state = state;
 +          write({ type: "response", id: command.id, command: "strict_start", success: true, data: state });
 +        },
 +      };
-+      setStrictStartup(context);
++      setStrictStartup(context); activeContext = context;
 +      handedOff = true;
 +      if (inputEnded) throw new Error("STRICT_CANCELLED");
 +      const runtime = await import("../../cli-runtime");
 +      await runtime.runCli(["--mode", "rpc-ui", "--cwd", command.expectedCwd, ...runtimeArgs]);
-+    } catch (error) { fail(command, error); }
++    } catch (error) { handedOff = false; fail(command, error); }
 +    finally { await reservation?.release(); }
 +  };
 +  const buffer = new Uint8Array(16_384);
 +  let used = 0;
 +  try {
-+    for await (const bytes of Bun.stdin.stream()) for (const byte of bytes) {
++    for await (const bytes of Bun.stdin.stream()) {
++      if (handedOff && state.phase === "open") {
++        if (used) { handoff.push(buffer.slice(0, used)); used = 0; }
++        handoff.push(bytes); continue;
++      }
++      for (const byte of bytes) {
 +      if (used === buffer.length) throw new Error("STRICT_INPUT_LIMIT");
 +      buffer[used++] = byte;
 +      if (byte !== 10) continue;
@@ -328,9 +788,10 @@ index 0000000000..74ce4adf6c
 +          output({ type: "response", id: value.id, command: value.type, success: true, data: state }); continue;
 +        }
 +        if (state.phase === "opening" && validateStrictCommand(value) && value.type === "cancel_strict_start") {
-+          abort.abort(); handoff.close();
-+          state = { ...state, phase: reservation?.writeAttempted ? "outcome_unknown" : "cancelled",
-+            code: reservation?.writeAttempted ? "STRICT_START_OUTCOME_UNKNOWN" : "STRICT_CANCELLED" };
++          abort.abort(); reservation?.cancel(); handoff.close();
++          const clean = state.intent === "continue" && !reservation?.writeAttempted && !activeContext?.effectsStarted;
++          state = { ...state, phase: clean ? "cancelled" : "cancelling", code: clean ? "STRICT_CANCELLED" : "STRICT_CANCEL_REQUESTED" };
++          if (activeContext) activeContext.state = state;
 +          output({ type: "response", id: value.id, command: value.type, success: true, data: state }); continue;
 +        }
 +        handoff.push(line); continue;
@@ -348,10 +809,13 @@ index 0000000000..74ce4adf6c
 +        attempted = true; startup = start(value); continue;
 +      }
 +      if (value.type === "cancel_strict_start") {
-+        abort.abort();
-+        state = { ...state, phase: "cancelled", code: "STRICT_CANCELLED" };
++        abort.abort(); reservation?.cancel();
++        const clean = !startup || state.intent === "continue" && !reservation?.writeAttempted && !activeContext?.effectsStarted;
++        state = { ...state, phase: clean ? "cancelled" : "cancelling", code: clean ? "STRICT_CANCELLED" : "STRICT_CANCEL_REQUESTED" };
++        attempted = true;
 +      }
 +      output({ type: "response", id: value.id, command: value.type, success: true, data: state });
++      }
 +    }
 +    if (used) throw new Error("STRICT_PARTIAL_EOF");
 +    inputEnded = true;
@@ -362,17 +826,18 @@ index 0000000000..74ce4adf6c
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..83bb51b057
+index 0000000000..6bd8965ce4
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,290 @@
++import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
 +import * as fs from "node:fs";
 +import * as path from "node:path";
 +import type { FileHandle } from "node:fs/promises";
 +import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
 +import { tryAcquireFileLock, type FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
-+import { resolveHeldGeneration, publishHeldGeneration } from "../../session/session-generation";
++import { resolveHeldGeneration, publishHeldGeneration, generationBudgets } from "../../session/session-generation";
 +import { openWithin } from "./catalog-path";
 +import { hash, readDescriptor, type NativeSource } from "./catalog-metadata";
 +import type { CatalogDescriptor } from "./wire/rpc-wire.generated";
@@ -381,7 +846,7 @@ index 0000000000..83bb51b057
 +  readonly descriptor: CatalogDescriptor;
 +  readonly filePath: string;
 +  readonly #source: NativeSource;
-+  readonly #anchor: FileHandle;
++  readonly #anchor: FileHandle | undefined;
 +  readonly #lease: FileLockHandle;
 +  readonly #fd: number;
 +  readonly #parentFd: number;
@@ -391,10 +856,11 @@ index 0000000000..83bb51b057
 +  readonly #cwdIdentity: string;
 +  #writeAttempted = false;
 +  #released = false;
++  #cancelled = false;
 +  #failure: Error | undefined;
 +
 +  constructor(source: NativeSource, filePath: string, descriptor: CatalogDescriptor,
-+    anchor: FileHandle, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string) {
++    anchor: FileHandle | undefined, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string) {
 +    this.#source = source; this.filePath = filePath; this.descriptor = descriptor;
 +    this.#anchor = anchor; this.#lease = lease; this.#fd = fd;
 +    this.#parentFd = fs.openSync(path.dirname(filePath), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
@@ -429,7 +895,7 @@ index 0000000000..83bb51b057
 +      fd = fs.openSync(`/proc/self/fd/${anchor.fd}`, fs.constants.O_RDWR);
 +      cwdFd = fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
 +      const reservation = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, cwdFd, expectedCwd);
-+      reservation.assertCurrent(); signal.throwIfAborted();
++      reservation.assertCurrent(); reservation.assertWritableTail(); signal.throwIfAborted();
 +      return reservation;
 +    } catch (error) {
 +      if (fd !== undefined) fs.closeSync(fd);
@@ -438,11 +904,92 @@ index 0000000000..83bb51b057
 +    }
 +  }
 +
++  /** Explicit New alone may exclusively create a native carrier. Failure never retries or deletes an uncertain creation. */
++  static async create(source: NativeSource, filePath: string, nativeSessionId: string, body: string,
++    expectedCwd: string, signal: AbortSignal): Promise<StrictReservation> {
++    if (process.platform !== "linux") throw new Error("STRICT_PLATFORM_UNVALIDATED");
++    if (await fs.promises.realpath(expectedCwd) !== expectedCwd) throw new Error("STRICT_CWD_MISMATCH");
++    signal.throwIfAborted();
++    let lease: FileLockHandle | null;
++    try { lease = tryAcquireFileLock(path.join(getSessionOwnersDir(), nativeSessionId)); }
++    catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
++    if (!lease) throw new Error("STRICT_OCCUPIED");
++    let anchor: FileHandle | undefined, fd: number | undefined, cwdFd: number | undefined;
++    let parent: FileHandle | undefined;
++    try {
++      parent = await openWithin(source.root, source.rootIdentity, path.dirname(filePath), true);
++      signal.throwIfAborted();
++      cwdFd = fs.openSync(expectedCwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++      fd = fs.openSync(`/proc/self/fd/${parent.fd}/${path.basename(filePath)}`,
++        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
++      const bytes = Buffer.from(body, "utf8"); let offset = 0;
++      while (offset < bytes.length) {
++        const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
++        if (!count) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN"); offset += count;
++      }
++      anchor = await openWithin(source.root, source.rootIdentity, filePath);
++      const descriptor = await readDescriptor(source, filePath);
++      if (descriptor.nativeSessionId !== nativeSessionId) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
++      const result = new StrictReservation(source, filePath, descriptor, anchor, lease, fd, cwdFd, expectedCwd);
++      result.#writeAttempted = true; result.assertCurrent(); signal.throwIfAborted();
++      return result;
++    } catch (error) {
++      if (fd !== undefined) fs.closeSync(fd);
++      if (cwdFd !== undefined) fs.closeSync(cwdFd);
++      await anchor?.close(); lease.release();
++      if (fd !== undefined) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
++      throw error;
++    } finally { await parent?.close(); }
++  }
++
++  /** Native explicit-transition factory. Source-owned logical serialization is exclusively materialized under a real lease. */
++  static createNativeFileSync(filePath: string, body: string, expectedCwd: string): StrictReservation {
++    const root = fs.realpathSync(path.dirname(filePath)), cwd = fs.realpathSync(expectedCwd);
++    if (cwd !== expectedCwd || path.resolve(filePath) !== path.join(root, path.basename(filePath))) throw new Error("STRICT_NEW_PATH_MISMATCH");
++    const rootInfo = fs.statSync(root, { bigint: true }), rootIdentity = hash(`${rootInfo.dev}:${rootInfo.ino}:${rootInfo.birthtimeNs}`);
++    const source: NativeSource = { root, rootIdentity, sourceId: hash(`native-explicit:${root}:${rootIdentity}`) };
++    let header: unknown;
++    for (const line of body.split("\n", 3).slice(0, 2)) {
++      const candidate: unknown = JSON.parse(line);
++      if (typeof candidate === "object" && candidate !== null && "type" in candidate && candidate.type === "session") header = candidate;
++    }
++    if (typeof header !== "object" || header === null || !("id" in header) || typeof header.id !== "string"
++      || !("timestamp" in header) || typeof header.timestamp !== "string") throw new Error("STRICT_NATIVE_HEADER_INVALID");
++    const nativeSessionId = header.id;
++    let lease: FileLockHandle | null;
++    try { lease = tryAcquireFileLock(path.join(getSessionOwnersDir(), nativeSessionId)); }
++    catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
++    if (!lease) throw new Error("STRICT_OCCUPIED");
++    const parentFd = fs.openSync(root, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++    let fd: number | undefined, cwdFd: number | undefined;
++    try {
++      cwdFd = fs.openSync(cwd, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++      fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(filePath)}`,
++        fs.constants.O_RDWR | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
++      const info = fs.fstatSync(fd, { bigint: true }), instanceId = hash(`${info.dev}:${info.ino}:${info.birthtimeNs}:${nativeSessionId}`);
++      const reference = Buffer.from(JSON.stringify({ sourceId: source.sourceId, locator: path.basename(filePath), instanceId, nativeSessionId })).toString("base64url");
++      const observedAt = new Date().toISOString();
++      const descriptor: CatalogDescriptor = { sourceId: source.sourceId, instanceId, nativeSessionId, reference,
++        aliases: [path.basename(filePath)], cwd: { status: "known", recorded: cwd, canonical: cwd },
++        createdAt: header.timestamp, modifiedAt: observedAt, observedAt, ownership: { state: "held", observedAt } };
++      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, cwdFd, cwd);
++      reservation.writeAt(body, 0); reservation.read(); return reservation;
++    } catch (error) {
++      if (fd !== undefined) fs.closeSync(fd);
++      if (cwdFd !== undefined) fs.closeSync(cwdFd);
++      lease.release();
++      if (fd !== undefined) throw new Error("STRICT_NEW_OUTCOME_UNKNOWN");
++      throw error;
++    } finally { fs.closeSync(parentFd); }
++  }
++
 +  /** Every data access is bound to the pinned inode; a new pathname is never adopted. */
 +  assertCurrent(filePath = this.filePath): void {
++    if (this.#cancelled) throw new Error("STRICT_CANCELLED");
++    if (path.resolve(filePath) !== this.filePath) throw new Error("STRICT_TARGET_CHANGED");
 +    if (this.#failure) throw this.#failure;
 +    try {
-+      if (this.#released || path.resolve(filePath) !== this.filePath) throw new Error("STRICT_TARGET_CHANGED");
++      if (this.#released) throw new Error("STRICT_RESERVATION_RELEASED");
 +      const root = fs.statSync(this.#source.root, { bigint: true });
 +      if (hash(`${root.dev}:${root.ino}:${root.birthtimeNs}`) !== this.#source.rootIdentity)
 +        throw new Error("STRICT_SOURCE_REPLACED");
@@ -461,6 +1008,61 @@ index 0000000000..83bb51b057
 +    }
 +  }
 +
++  /** Catalog-equivalent existence metadata remains usable for a terminal resume hint after releasing ownership. */
++  hasCurrentMetadata(file: string): boolean {
++    if (path.resolve(file) !== this.filePath) return false;
++    try {
++      const root = fs.statSync(this.#source.root, { bigint: true }), parent = fs.statSync(path.dirname(file), { bigint: true });
++      const named = fs.statSync(file, { bigint: true });
++      return hash(`${root.dev}:${root.ino}:${root.birthtimeNs}`) === this.#source.rootIdentity
++        && hash(`${parent.dev}:${parent.ino}:${parent.birthtimeNs}`) === this.#parentIdentity
++        && hash(`${named.dev}:${named.ino}:${named.birthtimeNs}:${this.descriptor.nativeSessionId}`) === this.descriptor.instanceId;
++    } catch { return false; }
++  }
++
++  auxiliaryName(file: string): string | undefined {
++    const root = this.filePath.slice(0, -".jsonl".length);
++    return [SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER].find(name => file === path.join(root, name));
++  }
++
++  auxiliary<T>(file: string, create: boolean, operation: (anchoredPath: string) => T): T {
++    this.assertCurrent();
++    const name = this.auxiliaryName(file);
++    if (!name) throw new Error("STRICT_AUXILIARY_TARGET_FORBIDDEN");
++    const directory = `/proc/self/fd/${this.#parentFd}/${path.basename(this.filePath, ".jsonl")}`;
++    if (create) {
++      try { fs.mkdirSync(directory, { mode: 0o700 }); }
++      catch (error) { if (!(error instanceof Error) || !("code" in error) || error.code !== "EEXIST") throw error; }
++    }
++    const fd = fs.openSync(directory, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++    try { const result = operation(`/proc/self/fd/${fd}/${name}`); this.assertCurrent(); return result; }
++    finally { fs.closeSync(fd); }
++  }
++
++  cancel(): void { this.#cancelled = true; }
++
++  async currentDescriptor(): Promise<CatalogDescriptor> {
++    this.assertCurrent();
++    this.read();
++    const current = await readDescriptor(this.#source, this.filePath);
++    this.assertCurrent();
++    if (current.instanceId !== this.descriptor.instanceId || current.nativeSessionId !== this.descriptor.nativeSessionId
++      || current.cwd.status !== "known" || current.cwd.canonical !== this.#cwdPath) throw new Error("STRICT_BINDING_CHANGED");
++    return current;
++  }
++
++  verifiedSourceBinding(): { sourceId: string; instanceId: string; nativeSessionId: string; reference: string } {
++    this.read(); this.assertCurrent();
++    const { sourceId, instanceId, nativeSessionId, reference } = this.descriptor;
++    return { sourceId, instanceId, nativeSessionId, reference };
++  }
++
++  assertWritableTail(): void {
++    this.assertCurrent(); const size = fs.fstatSync(this.#fd).size, last = Buffer.alloc(1);
++    if (size === 0 || fs.readSync(this.#fd, last, 0, 1, size - 1) !== 1 || last[0] !== 10)
++      throw new Error("STRICT_INCOMPLETE_NATIVE_TAIL");
++  }
++
 +  read(): string {
 +    this.assertCurrent();
 +    const result = resolveHeldGeneration(this.#fd, this.#parentFd, this.filePath);
@@ -470,34 +1072,81 @@ index 0000000000..83bb51b057
 +  publish(body: string, options?: { expectedSize?: number | null; commitGuard?: () => boolean }): boolean {
 +    this.assertCurrent();
 +    this.#writeAttempted = true;
-+    return publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options);
++    try { return publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options); }
++    catch (error) {
++      const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
++      if (clean && !this.#failure) throw error;
++      this.#failure = new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); throw this.#failure;
++    }
 +  }
 +
 +  get writeAttempted(): boolean { return this.#writeAttempted; }
 +
-+  append(line: string): void { this.writeAt(line, fs.fstatSync(this.#fd).size); }
++  append(line: string): void {
++    this.assertCurrent();
++    if (Buffer.byteLength(this.read()) + Buffer.byteLength(line) > generationBudgets.bodyBytes)
++      throw new Error("GENERATION_BODY_LIMIT");
++    const start = fs.fstatSync(this.#fd).size;
++    if (start + Buffer.byteLength(line) > generationBudgets.carrierBytes) throw new Error("GENERATION_CARRIER_LIMIT");
++    const last = Buffer.alloc(1);
++    if (start > 0 && (fs.readSync(this.#fd, last, 0, 1, start - 1) !== 1 || last[0] !== 10)) throw new Error("GENERATION_INCOMPLETE_TAIL");
++    this.writeAt(line, start);
++  }
 +
 +  /** Existing native title slots are fixed-width positional writes, never a new target or full rewrite. */
 +  writeAt(line: string, start: number): void {
 +    this.assertCurrent();
 +    const bytes = Buffer.from(line, "utf8");
 +    this.#writeAttempted = true;
-+    let offset = 0;
-+    while (offset < bytes.length) {
-+      const count = fs.writeSync(this.#fd, bytes, offset, bytes.length - offset, start + offset);
-+      if (count === 0) throw new Error("STRICT_WRITE_FAILED");
-+      offset += count;
++    try {
++      let offset = 0;
++      while (offset < bytes.length) {
++        const count = fs.writeSync(this.#fd, bytes, offset, bytes.length - offset, start + offset);
++        if (count === 0) throw new Error("STRICT_WRITE_FAILED");
++        offset += count;
++      }
++      this.assertCurrent();
++    } catch {
++      this.#failure = new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); throw this.#failure;
 +    }
-+    // A post-write replacement cannot redirect the descriptor. Its result is nevertheless unresolved.
-+    try { this.assertCurrent(); } catch { throw new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); }
 +  }
 +
 +  async release(): Promise<void> {
 +    if (this.#released) return;
 +    this.#released = true;
-+    fs.closeSync(this.#fd); fs.closeSync(this.#parentFd); fs.closeSync(this.#cwdFd); await this.#anchor.close(); this.#lease.release();
++    try { fs.closeSync(this.#fd); }
++    finally { try { fs.closeSync(this.#parentFd); }
++      finally { try { fs.closeSync(this.#cwdFd); }
++        finally { try { await this.#anchor?.close(); } finally { this.#lease.release(); } } } }
 +  }
 +}
+diff --git a/packages/coding-agent/src/modes/rpc/strict-start-policy.ts b/packages/coding-agent/src/modes/rpc/strict-start-policy.ts
+new file mode 100644
+index 0000000000..89717f0d37
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/strict-start-policy.ts
+@@ -0,0 +1,8 @@
++/** Pure public constraints for the isolated Linux native-generation continuation prototype. */
++export const strictStartupPolicy = Object.freeze({
++  version: "strict-start-v1", status: "prototype", platforms: ["linux"], ownership: "native-exclusive-lease",
++  selectedInstance: "anchored-carrier", publication: "native-generation-v1", carrierFormat: "ompgen1",
++  xattrs: "required-fd-user-xattr", durability: "process-crash-only", rollback: "flatten-export-required",
++  maxLogicalBytes: 128 * 1024 * 1024, maxCarrierBytes: 256 * 1024 * 1024, maxRetainedBytes: 512 * 1024 * 1024,
++  maxGenerations: 64, catalogCarrierPrefixBytes: 16_384, catalogControlBytes: 6144, catalogGenerationPrefixBytes: 16_384,
++});
+diff --git a/packages/coding-agent/src/modes/rpc/wire/catalog.ts b/packages/coding-agent/src/modes/rpc/wire/catalog.ts
+index 7b865ea592..5804857cd1 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/catalog.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/catalog.ts
+@@ -11,7 +11,7 @@ export const catalogDefs = {
+   CatalogFailure: { sourceId: "string", code: "string", "locator?": "string" },
+   CatalogSource: { sourceId: "string", kind: "'default' | 'custom'", aliases: "string[]", status: "'ready' | 'invalid'" },
+   CatalogBudgets: { scanEntriesPerRequest: "number.integer", scanEntriesPerSnapshot: "number.integer",
+-    directoriesPerSnapshot: "number.integer", sessionsPerSnapshot: "number.integer", headerBytes: "number.integer",
++    directoriesPerSnapshot: "number.integer", sessionsPerSnapshot: "number.integer", headerBytes: "number.integer", generationControlBytes: "number.integer", generationHeaderBytes: "number.integer",
+     pageItems: "number.integer", responseBytes: "number.integer", snapshotBytes: "number.integer",
+     snapshots: "number.integer", scanWindowMs: "number.integer", scanTotalMs: "number.integer", tokenTtlMs: "number.integer" },
+   CatalogSources: { version: "'readonly-catalog-v1'", profile: "string", sources: "CatalogSource[]", budgets: "CatalogBudgets" },
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 index bbf37dcf49..800328dd61 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
@@ -516,14 +1165,23 @@ index bbf37dcf49..800328dd61 100644
      name: "get_compatibility",
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index f7b37ecfe7..3ef20656e3 100644
+index f7b37ecfe7..5152c250bb 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-@@ -25,6 +25,7 @@ export const frameDefs = {
+@@ -17,6 +17,7 @@ export const frameDefs = {
+     schemaSha256: "string",
+     safePreflight: "true",
+     rpcUiInteractionPolicy: "InteractionPolicy",
++    "rpcUiStrictStartupPolicy?": "StrictStartupPolicy",
+     sessionAdmission: "'blocked'",
+     capabilities: "string[]",
+     runtime: "CompatibilityRuntime",
+@@ -25,6 +26,8 @@ export const frameDefs = {
  		{
  			type: "'ready'",
  			"interactionPolicy?": "InteractionPolicy",
 +      "strictStartup?": "'strict-start-v1'",
++      "strictStartupPolicy?": "StrictStartupPolicy",
  			"protocolVersion?": "number.integer",
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
@@ -549,14 +1207,21 @@ index 93c54db31d..1e7b675bc3 100644
  		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/strict-start.ts b/packages/coding-agent/src/modes/rpc/wire/strict-start.ts
 new file mode 100644
-index 0000000000..b7b1fbe98f
+index 0000000000..e4133efd3a
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/strict-start.ts
-@@ -0,0 +1,14 @@
+@@ -0,0 +1,21 @@
 +/** Deferred interactive startup. Continue never resolves another physical instance or creates a sibling. */
 +export const strictStartDefs = {
++  StrictStartupPolicy: {
++    version: "'strict-start-v1'", status: "'prototype'", platforms: "string[]", ownership: "'native-exclusive-lease'",
++    selectedInstance: "'anchored-carrier'", publication: "'native-generation-v1'", carrierFormat: "'ompgen1'",
++    xattrs: "'required-fd-user-xattr'", durability: "'process-crash-only'", rollback: "'flatten-export-required'",
++    maxLogicalBytes: "number.integer", maxCarrierBytes: "number.integer", maxRetainedBytes: "number.integer",
++    maxGenerations: "number.integer", catalogCarrierPrefixBytes: "number.integer", catalogControlBytes: "number.integer", catalogGenerationPrefixBytes: "number.integer",
++  },
 +  StrictStartState: {
-+    version: "'strict-start-v1'", phase: "'waiting' | 'opening' | 'open' | 'failed' | 'cancelled' | 'outcome_unknown'",
++    version: "'strict-start-v1'", phase: "'waiting' | 'opening' | 'open' | 'failed' | 'cancelling' | 'cancelled' | 'outcome_unknown'",
 +    "intent?": "'continue' | 'new'", "operationId?": "string", "code?": "string",
 +    "binding?": "CatalogDescriptor", "nativeSessionId?": "string", "cwd?": "string",
 +  },
@@ -567,20 +1232,57 @@ index 0000000000..b7b1fbe98f
 +  { name: "get_strict_state", doc: "Observe this worker's truthful startup outcome; never retries an operation.", result: "StrictStartState" },
 +  { name: "cancel_strict_start", doc: "Cancel pending startup; already published side effects remain explicit.", result: "StrictStartState" },
 +] as const;
+diff --git a/packages/coding-agent/src/session/generation-storage-factory.ts b/packages/coding-agent/src/session/generation-storage-factory.ts
+new file mode 100644
+index 0000000000..f1bfa72a94
+--- /dev/null
++++ b/packages/coding-agent/src/session/generation-storage-factory.ts
+@@ -0,0 +1,21 @@
++/** Matched native TUI/CLI continuations of generation carriers use the same real-lease, pinned storage. */
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { getActiveProfile } from "@oh-my-pi/pi-utils/dirs";
++import { hash, physicalId, readDescriptor, type NativeSource } from "../modes/rpc/catalog-metadata";
++import { StrictReservation } from "../modes/rpc/strict-reservation";
++import { StrictSessionStorage } from "./strict-session-storage";
++export async function openNativeGenerationStorage(file: string): Promise<StrictSessionStorage> {
++  const target = await fs.realpath(file), root = path.dirname(target), rootIdentity = await physicalId(root);
++  const source: NativeSource = { root, rootIdentity, sourceId: hash(`${getActiveProfile() ?? "default"}:${root}:${rootIdentity}`) };
++  const descriptor = await readDescriptor(source, target);
++  if (descriptor.cwd.status !== "known" || !descriptor.cwd.canonical) throw new Error("STRICT_CWD_UNAVAILABLE");
++  const reservation = await StrictReservation.acquire(source, target, descriptor, descriptor.cwd.canonical, new AbortController().signal);
++  try { return new StrictSessionStorage(reservation, true, false); }
++  catch (error) { await reservation.release(); throw error; }
++}
++
++/** Only explicit native New/fork/branch callers may create a fresh backend from their logical native serialization. */
++export function createExplicitNativeStorage(filePath: string, body: string, cwd: string): StrictSessionStorage {
++  return new StrictSessionStorage(StrictReservation.createNativeFileSync(filePath, body, cwd), true, false);
++}
+diff --git a/packages/coding-agent/src/session/session-drafts.ts b/packages/coding-agent/src/session/session-drafts.ts
+new file mode 100644
+index 0000000000..d3abb1cb3d
+--- /dev/null
++++ b/packages/coding-agent/src/session/session-drafts.ts
+@@ -0,0 +1,3 @@
++/** Native auxiliary names shared by the ordinary and pinned Session backends. */
++export const SESSION_DRAFT_FILE = "draft.txt";
++export const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
 new file mode 100644
-index 0000000000..5ae33e6cc5
+index 0000000000..b1c89d5402
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-generation.ts
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,309 @@
++import { strictStartupPolicy } from "../modes/rpc/strict-start-policy";
 +/** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
 +import * as fs from "node:fs";
 +import * as path from "node:path";
 +import { readFileXattr, writeFileXattr } from "../utils/file-xattr";
 +import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 +
-+export const generationBudgets = Object.freeze({ bodyBytes: 128 * 1024 * 1024, retainedBytes: 512 * 1024 * 1024,
-+  generations: 64, directoryEntries: 128, metadataBytes: 1024, markerBytes: 1024 });
++export const generationBudgets = Object.freeze({ bodyBytes: strictStartupPolicy.maxLogicalBytes, carrierBytes: strictStartupPolicy.maxCarrierBytes, retainedBytes: strictStartupPolicy.maxRetainedBytes,
++  generations: strictStartupPolicy.maxGenerations, directoryEntries: 128, metadataBytes: 1024, markerBytes: 1024 });
 +const HEAD_XATTR = "user.omp-generation-v1";
 +const CARRIER_TYPE = "ompgen1";
 +const COMMIT_TYPE = "omp_generation_commit";
@@ -588,7 +1290,7 @@ index 0000000000..5ae33e6cc5
 +const decoder = new TextDecoder("utf8", { fatal: true });
 +interface GenerationMetadata {
 +  format: "omp-native-generation"; version: 1; token: string; carrier: string; nativeSessionId: string;
-+  offset: number; bytes: number; sha256: string;
++  offset: number; bytes: number; sha256: string; prefixBytes: number; prefixSha256: string;
 +}
 +interface CommitHead { version: 1; carrier: string; current: CommitRecord; previous?: CommitRecord; checksum: string }
 +interface CommitRecord { type: typeof COMMIT_TYPE; version: 1; token: string; offset: number; metadataSha256: string; checksum: string }
@@ -598,11 +1300,20 @@ index 0000000000..5ae33e6cc5
 +  try { return fs.lstatSync(path.join(path.dirname(file), generationDirectory(file))).isDirectory(); }
 +  catch (error) { if (isRecord(error) && error.code === "ENOENT") return false; throw error; }
 +}
++/** A permanent seven-byte native discriminator survives ordinary copies even when xattrs/sidecars are lost. */
++export function isGenerationCarrier(file: string): boolean {
++  let fd: number | undefined;
++  try {
++    fd = fs.openSync(file, "r");
++    const bytes = Buffer.alloc(16_384), count = fs.readSync(fd, bytes, 0, bytes.length, 0);
++    return /"type"\s*:\s*"ompgen1"/.test(bytes.subarray(0, count).toString("utf8"));
++  } finally { if (fd !== undefined) fs.closeSync(fd); }
++}
 +export function carrierIdentity(fd: number): string {
 +  const info = fs.fstatSync(fd, { bigint: true });
 +  return hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`);
 +}
-+export function readHeldBytes(fd: number, max = generationBudgets.bodyBytes): Buffer {
++export function readHeldBytes(fd: number, max = generationBudgets.carrierBytes): Buffer {
 +  const size = fs.fstatSync(fd).size;
 +  if (size > max) throw new Error("GENERATION_BODY_LIMIT");
 +  const bytes = Buffer.alloc(size); let offset = 0;
@@ -627,7 +1338,9 @@ index 0000000000..5ae33e6cc5
 +    && typeof value.nativeSessionId === "string" && value.nativeSessionId.length <= 128
 +    && typeof value.offset === "number" && Number.isSafeInteger(value.offset) && value.offset >= 0
 +    && typeof value.bytes === "number" && Number.isSafeInteger(value.bytes) && value.bytes <= generationBudgets.bodyBytes && value.bytes > 0
-+    && typeof value.sha256 === "string" && /^[0-9a-f]{64}$/.test(value.sha256);
++    && typeof value.sha256 === "string" && /^[0-9a-f]{64}$/.test(value.sha256)
++    && typeof value.prefixBytes === "number" && Number.isSafeInteger(value.prefixBytes) && value.prefixBytes > 0 && value.prefixBytes <= 16_384
++    && typeof value.prefixSha256 === "string" && /^[0-9a-f]{64}$/.test(value.prefixSha256);
 +}
 +function marker(value: unknown): value is CommitRecord {
 +  if (!isRecord(value) || value.type !== COMMIT_TYPE) return false;
@@ -687,13 +1400,17 @@ index 0000000000..5ae33e6cc5
 +  return head.previous;
 +}
 +function openSidecar(parentFd: number, file: string): number {
-+  return fs.openSync(`/proc/self/fd/${parentFd}/${generationDirectory(file)}`,
-+    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++  try { return fs.openSync(`/proc/self/fd/${parentFd}/${generationDirectory(file)}`,
++    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW); }
++  catch { throw new Error("GENERATION_CONTROL_UNAVAILABLE"); }
 +}
 +function readSidecar(directoryFd: number, name: string, max: number): Buffer {
-+  const fd = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
-+  try { if (!fs.fstatSync(fd).isFile()) throw new Error("GENERATION_NOT_REGULAR"); return readHeldBytes(fd, max); }
-+  finally { fs.closeSync(fd); }
++  let fd: number | undefined;
++  try {
++    fd = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++    if (!fs.fstatSync(fd).isFile()) throw new Error("GENERATION_NOT_REGULAR"); return readHeldBytes(fd, max);
++  } catch (error) { throw error instanceof Error && error.message.startsWith("GENERATION_") ? error : new Error("GENERATION_CONTROL_UNAVAILABLE"); }
++  finally { if (fd !== undefined) fs.closeSync(fd); }
 +}
 +function resolveCommit(fd: number, parentFd: number, file: string, record: CommitRecord, expectedId: string): string {
 +  const directoryFd = openSidecar(parentFd, file);
@@ -710,6 +1427,39 @@ index 0000000000..5ae33e6cc5
 +    return text;
 +  } finally { fs.closeSync(directoryFd); }
 +}
++/** Catalog-only bounded resolution: carrier prefix + 1KiB head/marker/metadata + winning native prefix. No history hash/scan. */
++export function readHeldGenerationMetadata(fd: number, parentFd: number, file: string, maximum: number, knownPrefix?: Buffer): Buffer {
++  const prefix = knownPrefix ?? Buffer.alloc(maximum);
++  const count = knownPrefix ? knownPrefix.length : fs.readSync(fd, prefix, 0, prefix.length, 0);
++  const bytes = prefix.subarray(0, count), header = headerPosition(bytes);
++  if (header.type === "session") return bytes;
++  const head = readHead(fd);
++  if (!head) throw new Error("GENERATION_CONTROL_MISSING");
++  const committed = committedHead(fd, head);
++  if (!committed) {
++    const normalized = Buffer.from(bytes); normalized.write("session", header.valueOffset, "ascii"); return normalized;
++  }
++  const directoryFd = openSidecar(parentFd, file);
++  try {
++    const metadataBytes = readSidecar(directoryFd, `${committed.offset}-${committed.token}.meta`, generationBudgets.metadataBytes);
++    if (hash(metadataBytes) !== committed.metadataSha256) throw new Error("GENERATION_METADATA_CORRUPT");
++    const value: unknown = JSON.parse(decoder.decode(metadataBytes));
++    if (!metadata(value) || value.carrier !== carrierIdentity(fd) || value.nativeSessionId !== nativeId(decoder.decode(bytes))
++      || value.offset !== committed.offset || value.token !== committed.token) throw new Error("GENERATION_BINDING_MISMATCH");
++    let bodyFd: number;
++    try { bodyFd = fs.openSync(`/proc/self/fd/${directoryFd}/${value.token}.gen`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW); }
++    catch { throw new Error("GENERATION_CONTENT_UNAVAILABLE"); }
++    try {
++      const info = fs.fstatSync(bodyFd);
++      if (!info.isFile() || info.size !== value.bytes) throw new Error("GENERATION_CONTENT_UNAVAILABLE");
++      const result = Buffer.alloc(maximum), length = fs.readSync(bodyFd, result, 0, maximum, 0);
++      const logical = result.subarray(0, length);
++      if (length !== value.prefixBytes || hash(logical) !== value.prefixSha256) throw new Error("GENERATION_PREFIX_CORRUPT");
++      if (nativeId(decoder.decode(logical)) !== value.nativeSessionId) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++      return logical;
++    } finally { fs.closeSync(bodyFd); }
++  } finally { fs.closeSync(directoryFd); }
++}
 +/** Complete malformed/unsupported commits are errors. An incomplete last record is never a commit. */
 +export function resolveHeldGeneration(fd: number, parentFd: number, file: string): ResolvedGeneration {
 +  const bytes = readHeldBytes(fd), physicalBytes = bytes.length;
@@ -723,7 +1473,7 @@ index 0000000000..5ae33e6cc5
 +  const physical = decoder.decode(normalized);
 +  let latest: { record: CommitRecord; end: number } | undefined, offset = 0;
 +  for (const line of physical.split("\n")) {
-+    if (!line) continue;
++    if (!line) { offset += 1; continue; }
 +    let value: unknown;
 +    if (line.startsWith('{"type":"omp_generation')) {
 +      try { value = JSON.parse(line); } catch { throw new Error("GENERATION_COMMIT_CORRUPT"); }
@@ -742,11 +1492,20 @@ index 0000000000..5ae33e6cc5
 +  if (Buffer.byteLength(text) > generationBudgets.bodyBytes) throw new Error("GENERATION_BODY_LIMIT");
 +  return { text, physicalBytes, logicalBytes: Buffer.byteLength(text), committed: true };
 +}
++export function readNativeGenerationPrefix(file: string): Buffer {
++  const target = fs.realpathSync(file), parentFd = fs.openSync(path.dirname(target), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++  try {
++    const fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(target)}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++    try { return readHeldGenerationMetadata(fd, parentFd, target, 16_384); } finally { fs.closeSync(fd); }
++  } finally { fs.closeSync(parentFd); }
++}
 +export function readNativeGeneration(file: string): ResolvedGeneration {
-+  const parentFd = fs.openSync(path.dirname(file), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
-+  const fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(file)}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
-+  try { return resolveHeldGeneration(fd, parentFd, file); }
-+  finally { fs.closeSync(fd); fs.closeSync(parentFd); }
++  const target = fs.realpathSync(file);
++  const parentFd = fs.openSync(path.dirname(target), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++  try {
++    const fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(target)}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++    try { return resolveHeldGeneration(fd, parentFd, target); } finally { fs.closeSync(fd); }
++  } finally { fs.closeSync(parentFd); }
 +}
 +function writeComplete(fd: number, bytes: Buffer, start: number): void {
 +  let offset = 0;
@@ -776,6 +1535,7 @@ index 0000000000..5ae33e6cc5
 +export function publishHeldGeneration(fd: number, parentFd: number, file: string, body: string,
 +  assertCurrent: () => void, options?: { expectedSize?: number | null; commitGuard?: () => boolean }): boolean {
 +  assertCurrent();
++  if (fs.fstatSync(fd).nlink !== 1) throw new Error("GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED");
 +  const bytes = Buffer.from(body, "utf8");
 +  if (bytes.length > generationBudgets.bodyBytes) throw new Error("GENERATION_BODY_LIMIT");
 +  const before = resolveHeldGeneration(fd, parentFd, file);
@@ -794,7 +1554,8 @@ index 0000000000..5ae33e6cc5
 +    budget(directoryFd, bytes.length); assertCurrent();
 +    const token = crypto.randomUUID();
 +    const value: GenerationMetadata = { format: "omp-native-generation", version: 1, token, carrier: carrierIdentity(fd),
-+      nativeSessionId: id, offset: before.physicalBytes, bytes: bytes.length, sha256: hash(bytes) };
++      nativeSessionId: id, offset: before.physicalBytes, bytes: bytes.length, sha256: hash(bytes),
++      prefixBytes: Math.min(16_384, bytes.length), prefixSha256: hash(bytes.subarray(0, 16_384)) };
 +    const metadataBytes = Buffer.from(JSON.stringify(value), "utf8");
 +    for (const [name, contents] of [[`${token}.gen`, bytes], [`${value.offset}-${token}.meta`, metadataBytes]] as const) {
 +      const target = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`,
@@ -822,19 +1583,83 @@ index 0000000000..5ae33e6cc5
 +    return true;
 +  } finally { fs.closeSync(directoryFd); }
 +}
+diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
+index 53095a1562..5edcfcf2c7 100644
+--- a/packages/coding-agent/src/session/session-header-id.ts
++++ b/packages/coding-agent/src/session/session-header-id.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGenerationPrefix } from "./session-generation";
+ import { jsonContainerEnd, peekFileSync, tryParseJson } from "@oh-my-pi/pi-utils";
+ import type { FileEntry, SessionHeader } from "./session-entries";
+ import { parseTitleSlotLine } from "./session-title-slot";
+@@ -60,6 +61,7 @@ export function sessionIdFromContent(content: string): string | undefined {
+  */
+ export function readSessionHeaderIdSync(filePath: string): string | undefined {
+ 	try {
++    if (isGenerationCarrier(filePath)) return sessionHeaderIdFromPrefix(readNativeGenerationPrefix(filePath));
+ 		return peekFileSync(filePath, SESSION_HEADER_READ_LIMIT, sessionHeaderIdFromPrefix);
+ 	} catch {
+ 		return undefined;
+diff --git a/packages/coding-agent/src/session/session-loader.ts b/packages/coding-agent/src/session/session-loader.ts
+index 0cfdcfaa0e..219391d0e2 100644
+--- a/packages/coding-agent/src/session/session-loader.ts
++++ b/packages/coding-agent/src/session/session-loader.ts
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration, readNativeGenerationPrefix } from "./session-generation";
+ import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+@@ -195,6 +196,7 @@ const HEADER_INCOMPLETE = Symbol("header-incomplete");
+  */
+ export async function readSessionHeaderId(filePath: string): Promise<string | undefined> {
+ 	try {
++    if (isGenerationCarrier(filePath)) return sessionHeaderIdFromPrefix(readNativeGenerationPrefix(filePath));
+ 		const id = await peekFile(filePath, SESSION_HEADER_FIRST_READ, prefix =>
+ 			prefix.length < SESSION_HEADER_FIRST_READ
+ 				? sessionHeaderIdFromPrefix(prefix)
+@@ -363,7 +365,9 @@ export async function visitEntriesFromFileStream(
+ 		// delivering its bytes (macOS) or ignores the bound and streams the whole
+ 		// file (Windows).
+ 		let unread = maxBytes;
+-		for await (const streamed of Bun.file(filePath).stream()) {
++		const source = isGenerationCarrier(filePath)
++			? new Blob([readNativeGeneration(filePath).text]).stream() : Bun.file(filePath).stream();
++		for await (const streamed of source) {
+ 			if (stopped) break;
+ 			const chunk = streamed.byteLength > unread ? streamed.subarray(0, unread) : streamed;
+ 			unread -= chunk.byteLength;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index b8a0b167a3..2e9454e9c5 100644
+index b8a0b167a3..a1b87336e4 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -948,6 +948,7 @@ export class SessionManager {
+@@ -1,3 +1,7 @@
++import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
++import { isGenerationCarrier } from "./session-generation";
++import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
++import { StrictSessionStorage } from "./strict-session-storage";
+ export interface NativeHistoryChange {
+   kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
+ }
+@@ -139,7 +143,6 @@ import {
+ import { recordSessionRecap, recordSessionTitle } from "./session-index";
+ 
+ const JSONL_SUFFIX_LENGTH = ".jsonl".length;
+-const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
+ const DISCARDED_ENTRY_BRANCH_MARKER = "discarded-entry-branch";
+ /** `model_usage` purpose carrying the billed usage of an assistant turn removed by `discardEntryDurably`. */
+ const DISCARDED_TURN_USAGE_PURPOSE = "discarded-turn";
+@@ -947,7 +950,9 @@ export class SessionManager {
+ 	#fallbackRuntimeOnly = false;
  	#sessionDir: string;
  	readonly #persist: boolean;
- 	readonly #storage: SessionStorage;
+-	readonly #storage: SessionStorage;
++	#storage: SessionStorage;
++  #explicitNativePrevious: StrictSessionStorage | undefined;
 +	#strictContinuation: (() => void) | undefined;
  	readonly #blobs: BlobStore;
  
  	#sessionId = "";
-@@ -1163,6 +1164,7 @@ export class SessionManager {
+@@ -1163,6 +1168,7 @@ export class SessionManager {
  	 * once the owner closed the session or exited.
  	 */
  	#claimSession(): void {
@@ -842,7 +1667,23 @@ index b8a0b167a3..2e9454e9c5 100644
  		const sessionId = this.#sessionId;
  		const sessionFile = this.#sessionFile;
  		if (!this.#persist || !sessionFile || !this.#storage.claimSession) return;
-@@ -1327,6 +1329,7 @@ export class SessionManager {
+@@ -1267,6 +1273,7 @@ export class SessionManager {
+ 	 * Returns the path to retry, or `undefined` to report the conflict as before.
+ 	 */
+ 	#recoverFromWriteConflictSync(error: unknown, recoveries: number): string | undefined {
++    if (this.#strictContinuation) return undefined;
+ 		const contested = this.#conflictedSessionFile(error);
+ 		if (!contested) return undefined;
+ 		if (recoveries >= MAX_WRITE_CONFLICT_RECOVERIES) return this.#moveOffSessionFile("contested");
+@@ -1288,6 +1295,7 @@ export class SessionManager {
+ 
+ 	/** Asynchronous {@link #recoverFromWriteConflictSync}. */
+ 	async #recoverFromWriteConflict(error: unknown, recoveries: number): Promise<string | undefined> {
++    if (this.#strictContinuation) return undefined;
+ 		const contested = this.#conflictedSessionFile(error);
+ 		if (!contested) return undefined;
+ 		if (recoveries >= MAX_WRITE_CONFLICT_RECOVERIES) return this.#moveOffSessionFile("contested");
+@@ -1327,6 +1335,7 @@ export class SessionManager {
  	 * await it. Returns the sibling.
  	 */
  	#moveOffSessionFile(reason: SessionPersistenceNotice["reason"]): string {
@@ -850,7 +1691,62 @@ index b8a0b167a3..2e9454e9c5 100644
  		const from = this.#sessionFile as string;
  		const previousSessionId = this.#sessionId;
  		const timestamp = nowIso();
-@@ -2077,6 +2080,7 @@ export class SessionManager {
+@@ -1449,6 +1458,7 @@ export class SessionManager {
+ 	}
+ 
+ 	async #authoritativelyRewriteCurrentStateLocked(operationError: Error): Promise<void> {
++    if (this.#strictContinuation) throw this.#latchIndeterminate(operationError, [new Error("STRICT_AUTOMATIC_REPAIR_FORBIDDEN")]);
+ 		if (this.#released) {
+ 			// Terminal seal: repair would reset the disk tail (escaping the
+ 			// close() serialization) and atomically publish #serializeBody() — after
+@@ -1596,6 +1606,8 @@ export class SessionManager {
+ 	#recordFullRewrite(bytes: number): void {
+ 		this.#historySourceBinding = undefined;
+ 		this.#historyChanged("source_replaced", true);
++    const verifiedBinding = this.#storage.verifiedSourceBinding?.();
++    if (verifiedBinding) this.bindHistorySource(verifiedBinding);
+ 		this.#expectedDiskSize = bytes;
+ 	}
+ 
+@@ -1706,6 +1718,7 @@ export class SessionManager {
+ 	 * concurrent completed entries are durable without recreating a vacated source.
+ 	 */
+ 	#rewriteSynchronously(): void {
++    if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
+ 		if (this.#released) return;
+ 		if (!this.#persist || !this.#shouldHaveSessionFile()) return;
+ 		let targetPath = this.#liveRelocationWritePath() ?? this.#sessionFile;
+@@ -1906,6 +1919,7 @@ export class SessionManager {
+ 			return;
+ 		}
+ 		if (this.#diskFailure) {
++      if (this.#strictContinuation) return;
+ 			// The failed entry and any later entries remain in memory. A full
+ 			// replacement is the writability probe and restores all of them once
+ 			// transient storage pressure clears.
+@@ -2049,11 +2063,17 @@ export class SessionManager {
+ 				const sessionFile = this.#sessionFile;
+ 				if (!sessionFile) return;
+ 				try {
+-					await this.#appendWriter().append(line);
+-					this.#recordDurableAppend(line);
+-					await this.#storage.updateSessionTitle(sessionFile, update);
++          if (this.#storage.appendSessionTitleAtomically) {
++            await this.#storage.appendSessionTitleAtomically(sessionFile, line, update, this.#expectedDiskSize);
++            this.#recordDurableAppend(line);
++          } else {
++					  await this.#appendWriter().append(line);
++					  this.#recordDurableAppend(line);
++					  await this.#storage.updateSessionTitle(sessionFile, update);
++          }
+ 					if (this.#diskEpoch === epoch) this.#fileIsCurrent = true;
+-				} catch {
++				} catch (error) {
++          if (this.#strictContinuation) throw error;
+ 					if (!(await this.#runFencedAtomicRewrite(epoch))) return;
+ 					this.#clearDiskError();
+ 					this.#fileIsCurrent = true;
+@@ -2077,6 +2097,7 @@ export class SessionManager {
  	}
  
  	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
@@ -858,33 +1754,115 @@ index b8a0b167a3..2e9454e9c5 100644
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
  		this.#expectedDiskSize = null;
-@@ -2418,8 +2422,17 @@ export class SessionManager {
+@@ -2226,7 +2247,7 @@ export class SessionManager {
+ 
+ 	#draftPath(): string | null {
+ 		const artifactsDir = this.getArtifactsDir();
+-		return artifactsDir ? path.join(artifactsDir, "draft.txt") : null;
++		return artifactsDir ? path.join(artifactsDir, SESSION_DRAFT_FILE) : null;
+ 	}
+ 
+ 	#draftOnlySessionMarkerPath(): string | null {
+@@ -2418,9 +2439,66 @@ export class SessionManager {
  			await this.#rewriteAtomically();
  		}
  	}
++  #beginExplicitNativeTransition(): void {
++    if (!this.#strictContinuation) return;
++    if (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)
++      throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++    this.#storage.assertCurrent();
++    this.#explicitNativePrevious = this.#storage;
++    this.#strictContinuation = undefined;
++    this.#storage = new FileSessionStorage();
++    this.#sessionClaim = undefined;
++  }
++
++  #materializeExplicitNativeTransition(): void {
++    const previous = this.#explicitNativePrevious;
++    if (!previous) return;
++    if (!this.#sessionFile) throw new Error("STRICT_EXPLICIT_NEW_TARGET_MISSING");
++    const body = this.#serializeBody();
++    try {
++      const storage = createExplicitNativeStorage(this.#sessionFile, body.lines.join(""), this.#cwd);
++      this.#storage = storage;
++      this.#strictContinuation = () => storage.assertCurrent();
++      this.#expectedDiskSize = body.bytes;
++      this.#fileIsCurrent = true;
++      this.#explicitNativePrevious = undefined;
++      void previous.releaseSessionOwnership();
++    } catch (error) {
++      this.#storage = previous;
++      this.#strictContinuation = () => { throw new Error("STRICT_EXPLICIT_TRANSITION_OUTCOME_UNKNOWN"); };
++      throw error;
++    }
++  }
++
 +	/** Internal native startup guard; must be enabled before AgentSession or extensions receive this manager. */
 +	enableStrictContinuation(guard: () => void): void {
 +		guard();
-+		if (this.#rewriteRequired || this.#loadedMalformedRecords) throw new Error("STRICT_NATIVE_REWRITE_REQUIRED");
++		if (this.#loadedMalformedRecords) throw new Error("STRICT_NATIVE_MALFORMED_RECORDS");
 +		this.#strictContinuation = guard;
 +		this.#claimSession();
 +	}
 +
  	/** Switch to a different session file (resume / branch). */
  	async setSessionFile(sessionFile: string): Promise<void> {
-+		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
- 		await this.#setSessionFile(sessionFile);
+-		await this.#setSessionFile(sessionFile);
++    const pinned = this.#storage instanceof StrictSessionStorage;
++    if (this.#storage instanceof StrictSessionStorage && !this.#storage.allowExplicitNativeTransitions) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++    if (!pinned && !isGenerationCarrier(sessionFile)) { await this.#setSessionFile(sessionFile); return; }
++    const canonical = await fs.promises.realpath(sessionFile);
++    if (canonical === this.#sessionFile) { this.#strictContinuation?.(); return; }
++    const replacement = await openNativeGenerationStorage(canonical);
++    const previous = this.#storage, previousGuard = this.#strictContinuation;
++    await this.#drainAndCloseWriter();
++    const snapshot = this.captureState();
++    this.#storage = replacement; this.#strictContinuation = undefined;
++    try {
++      await this.#setSessionFile(canonical, undefined, { throwIfMissing: true });
++      this.enableStrictContinuation(() => replacement.assertCurrent());
++      await previous.releaseSessionOwnership?.();
++    } catch (error) {
++      this.#storage = previous; this.#strictContinuation = previousGuard;
++      this.restoreState(snapshot);
++      await replacement.releaseSessionOwnership(); throw error;
++    }
  	}
  
-@@ -2548,6 +2561,7 @@ export class SessionManager {
+ 	async #setSessionFile(
+@@ -2528,7 +2606,9 @@ export class SessionManager {
+ 	 */
+ 	async newSession(options?: NewSessionOptions): Promise<string | undefined> {
+ 		await this.#drainAndCloseWriter();
++    this.#beginExplicitNativeTransition();
+ 		const sessionFile = this.#resetToNewSession(options);
++    this.#materializeExplicitNativeTransition();
+ 		if (options?.drop !== true) await this.ensureOnDisk();
+ 		return sessionFile;
+ 	}
+@@ -2548,11 +2628,13 @@ export class SessionManager {
  	 * @returns the old and new session file paths, or undefined when not persisting.
  	 */
  	async fork(): Promise<{ oldSessionFile: string; newSessionFile: string } | undefined> {
-+		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++		if (this.#strictContinuation && (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
  		if (!this.#persist || !this.#sessionFile) return undefined;
  
  		const oldSessionFile = this.#sessionFile;
-@@ -2592,6 +2606,7 @@ export class SessionManager {
+ 		const parentSessionId = this.#sessionId;
+ 		await this.#drainAndCloseWriter();
++    this.#beginExplicitNativeTransition();
+ 		this.#clearDiskError();
+ 		this.#reconcileSessionDirForFallback();
+ 
+@@ -2586,12 +2668,14 @@ export class SessionManager {
+ 		this.#artifactManagerSessionFile = null;
+ 		this.#rememberBreadcrumb(this.#cwd, this.#sessionFile);
+ 
++		this.#materializeExplicitNativeTransition();
+ 		await this.#rewriteAtomically();
+ 		return { oldSessionFile, newSessionFile: this.#sessionFile };
+ 	}
  
  	/** Move the session to a new working directory. */
  	async moveTo(newCwd: string, targetSessionDir?: string): Promise<void> {
@@ -892,19 +1870,260 @@ index b8a0b167a3..2e9454e9c5 100644
  		const resolvedCwd = path.resolve(newCwd);
  		const resolvedTargetDir = targetSessionDir ? path.resolve(targetSessionDir) : undefined;
  		const managedRoot = resolveManagedSessionRoot(this.#sessionDir, this.#cwd);
-@@ -4250,6 +4265,7 @@ export class SessionManager {
+@@ -3066,6 +3150,7 @@ export class SessionManager {
+ 				{ ignorePriorError: true },
+ 			).catch(() => undefined);
+ 		}
++		await this.#storage.releaseSessionOwnership?.();
+ 		if (this.#diskFailure) throw this.#diskFailure;
+ 	}
+ 
+@@ -3126,6 +3211,7 @@ export class SessionManager {
+ 
+ 	setCwdWithoutRelocation(newCwd: string): void {
+ 		const resolvedCwd = path.resolve(newCwd);
++    if (this.#strictContinuation && resolvedCwd !== path.resolve(this.#cwd)) throw new Error("STRICT_CWD_CHANGED");
+ 		if (resolvedCwd === path.resolve(this.#cwd)) {
+ 			this.#fallbackRuntimeOnly = true;
+ 			return;
+@@ -3553,6 +3639,11 @@ export class SessionManager {
+ 		title: string,
+ 		options?: { cwd?: string },
+ 	): Promise<string | null> {
++    if (isGenerationCarrier(sessionPath)) {
++      const manager = await SessionManager.open(sessionPath, undefined, undefined, { throwIfMissing: true, suppressBreadcrumb: true });
++      try { return await manager.setSessionName(title, "user") ? manager.getSessionName() ?? null : null; }
++      finally { await manager.close(); }
++    }
+ 		const storage = new FileSessionStorage();
+ 		// The header id is what the lease is keyed on; a null claim means
+ 		// another live process owns the session, so leave it alone.
+@@ -4250,6 +4341,7 @@ export class SessionManager {
  	 * Returns the new file path, or undefined when not persisting.
  	 */
  	createBranchedSession(leafId: string, options?: { copyArtifacts?: boolean }): string | undefined {
-+		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++		if (this.#strictContinuation && (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
  		const sourceSessionFile = this.#sessionFile;
  		const branchPath = this.getBranch(leafId);
  		if (branchPath.length === 0) throw new Error(`Entry ${leafId} not found`);
+@@ -4300,6 +4392,8 @@ export class SessionManager {
+ 			parentId = labelEntry.id;
+ 		}
+ 
++		this.flushSync();
++    this.#beginExplicitNativeTransition();
+ 		this.#header = header;
+ 		this.#entries = [...entriesToKeep, ...labels];
+ 		this.#sessionId = newSessionId;
+@@ -4329,6 +4423,7 @@ export class SessionManager {
+ 			};
+ 		}
+ 		this.#expectedDiskSize = null;
++    this.#materializeExplicitNativeTransition();
+ 		this.#rewriteSynchronously();
+ 		this.#rememberBreadcrumb(this.#cwd, newSessionFile);
+ 		return newSessionFile;
+@@ -4361,20 +4456,19 @@ export class SessionManager {
+ 	 * `setSessionFile` / `AgentSession.switchSession` when a caller explicitly
+ 	 * needs a brand-new persisted session at a cwd-derived path.
+ 	 */
++	/** Internal explicit-New identity allocation; performs no create, lease, fallback, migration or UI work. */
++	static prepareNewFile(cwd: string, sessionDir: string): { filePath: string; nativeSessionId: string; body: string } {
++		const id = mintSessionId(), timestamp = nowIso();
++		const header: SessionHeader = { type: "session", version: CURRENT_SESSION_VERSION, id, timestamp, cwd: path.resolve(cwd) };
++		return { nativeSessionId: id, filePath: path.join(sessionDir, `${fileSafeTimestamp(timestamp)}_${id}.jsonl`),
++			body: `${serializeTitleSlot({ updatedAt: timestamp })}${JSON.stringify(header)}\n` };
++	}
++
+ 	static createEmptySessionFile(cwd: string, storage: SessionStorage = new FileSessionStorage()): string {
+ 		const sessionDir = SessionManager.getDefaultSessionDir(cwd, undefined, storage);
+-		const id = mintSessionId();
+-		const timestamp = nowIso();
+-		const header: SessionHeader = {
+-			type: "session",
+-			version: CURRENT_SESSION_VERSION,
+-			id,
+-			timestamp,
+-			cwd: path.resolve(cwd),
+-		};
+-		const file = path.join(sessionDir, `${fileSafeTimestamp(timestamp)}_${id}.jsonl`);
+-		storage.writeTextSync(file, `${serializeTitleSlot({ updatedAt: timestamp })}${JSON.stringify(header)}\n`);
+-		return file;
++		const prepared = SessionManager.prepareNewFile(cwd, sessionDir);
++		storage.writeTextSync(prepared.filePath, prepared.body);
++		return prepared.filePath;
+ 	}
+ 
+ 	/**
+@@ -4553,6 +4647,8 @@ export class SessionManager {
+ 		storage: SessionStorage = new FileSessionStorage(),
+ 		options?: { initialCwd?: string; parentSession?: string; suppressBreadcrumb?: boolean; throwIfMissing?: boolean },
+ 	): Promise<SessionManager> {
++		if (storage instanceof FileSessionStorage && storage.existsSync(filePath) && isGenerationCarrier(filePath))
++			storage = await openNativeGenerationStorage(filePath);
+ 		const probed = await loadSessionFile(filePath, storage, { throwIfMissing: options?.throwIfMissing });
+ 		const header = probed.entries.find(entry => entry.type === "session") as SessionHeader | undefined;
+ 		// Resume into the session's recorded cwd only when it is verifiably
+@@ -4583,6 +4679,10 @@ export class SessionManager {
+ 			throwIfMissing: options?.throwIfMissing,
+ 			newSession: { parentSession: options?.parentSession },
+ 		});
++		if (storage instanceof StrictSessionStorage) {
++      const strictStorage = storage;
++      manager.enableStrictContinuation(() => strictStorage.assertCurrent());
++    }
+ 		return manager;
+ 	}
+ 
 diff --git a/packages/coding-agent/src/session/session-storage.ts b/packages/coding-agent/src/session/session-storage.ts
-index 4750d350d0..c94a6681f0 100644
+index 4750d350d0..b1887e00fe 100644
 --- a/packages/coding-agent/src/session/session-storage.ts
 +++ b/packages/coding-agent/src/session/session-storage.ts
-@@ -1307,6 +1307,14 @@ export class FileSessionStorage implements SessionStorage {
+@@ -1,3 +1,4 @@
++import { isGenerationCarrier, readNativeGeneration } from "./session-generation";
+ import * as fs from "node:fs";
+ import * as fsp from "node:fs/promises";
+ import * as path from "node:path";
+@@ -160,6 +161,10 @@ export interface SessionStorage {
+ 	 * advances that size.
+ 	 */
+ 	readonly defersSyncPublish?: boolean;
++	/** Terminal native lease release after every pending writer/drain has completed. */
++	releaseSessionOwnership?(): Promise<void>;
++  /** Fresh physical/native source proof under an actual owned lease after logical publication. */
++  verifiedSourceBinding?(): { sourceId: string; instanceId: string; nativeSessionId: string; reference: string } | undefined;
+ 	/**
+ 	 * Resolve once every write this storage queued for `path` has been confirmed
+ 	 * by, or rejected by, the backing store. In-body backends never queue, so
+@@ -194,6 +199,8 @@ export interface SessionStorage {
+ 	 * reading.
+ 	 */
+ 	updateSessionTitle(path: string, update: SessionTitleUpdate): Promise<void>;
++  /** Native pinned backends can publish the entry and projected title as one generation. */
++  appendSessionTitleAtomically?(path: string, line: string, update: SessionTitleUpdate, expectedSize: number | null): Promise<void>;
+ 	statSync(path: string): SessionStorageStat;
+ 	listFilesSync(dir: string, pattern: string): string[];
+ 
+@@ -997,6 +1004,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	writeTextSync(fpath: string, content: string, options?: SessionStorageWriteOptions): void {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		this.#publishSync(fpath, tempPath => fs.writeFileSync(tempPath, content), options);
+ 	}
+ 
+@@ -1006,6 +1014,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	 * the lines are then joined and routed through it.
+ 	 */
+ 	writeLinesSync(fpath: string, lines: readonly string[], options?: SessionStorageWriteOptions): void {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		if (this.writeTextSync !== FileSessionStorage.prototype.writeTextSync) {
+ 			this.writeTextSync(fpath, lines.join(""), options);
+ 			return;
+@@ -1052,6 +1061,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	async updateSessionTitle(fpath: string, update: SessionTitleUpdate): Promise<void> {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		const fd = fs.openSync(fpath, "r+");
+ 		try {
+ 			const buf = Buffer.from(serializeTitleSlot(update), "utf-8");
+@@ -1072,7 +1082,8 @@ export class FileSessionStorage implements SessionStorage {
+ 
+ 	statSync(path: string): SessionStorageStat {
+ 		const stats = fs.statSync(path);
+-		return { size: stats.size, mtimeMs: stats.mtimeMs, mtime: stats.mtime };
++		const size = isGenerationCarrier(path) ? readNativeGeneration(path).logicalBytes : stats.size;
++		return { size, mtimeMs: stats.mtimeMs, mtime: stats.mtime };
+ 	}
+ 
+ 	listFilesSync(dir: string, pattern: string): string[] {
+@@ -1099,14 +1110,18 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	readText(path: string): Promise<string> {
+-		return Bun.file(path).text();
++		return isGenerationCarrier(path) ? Promise.resolve(readNativeGeneration(path).text) : Bun.file(path).text();
+ 	}
+ 
+ 	readTextSync(path: string): string {
+-		return fs.readFileSync(path, "utf8");
++		return isGenerationCarrier(path) ? readNativeGeneration(path).text : fs.readFileSync(path, "utf8");
+ 	}
+ 
+ 	async readTextSlices(path: string, prefixBytes: number, suffixBytes: number): Promise<[string, string]> {
++		if (isGenerationCarrier(path)) {
++			const bytes = Buffer.from(readNativeGeneration(path).text);
++			return [bytes.subarray(0, prefixBytes).toString("utf8"), suffixBytes ? bytes.subarray(Math.max(0, bytes.length - suffixBytes)).toString("utf8") : ""];
++		}
+ 		return peekFileEnds(path, prefixBytes, suffixBytes, (head, tail) => [
+ 			utf8Decoder.decode(head),
+ 			utf8Decoder.decode(tail),
+@@ -1114,6 +1129,10 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	async scanLines(path: string, visit: (line: string) => boolean): Promise<void> {
++		if (isGenerationCarrier(path)) {
++			for (const line of readNativeGeneration(path).text.split("\n")) if (line && visit(line)) return;
++			return;
++		}
+ 		const fileHandle = await fsp.open(path, "r");
+ 		try {
+ 			for await (const line of fileHandle.readLines()) {
+@@ -1125,10 +1144,12 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	async writeText(path: string, content: string): Promise<void> {
++		if (fs.existsSync(path) && isGenerationCarrier(path)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		await Bun.write(path, content, { createPath: true });
+ 	}
+ 
+ 	async writeTextAtomic(fpath: string, content: string, options?: WriteTextAtomicOptions): Promise<void> {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		await this.#publishAtomic(fpath, tempPath => fs.promises.writeFile(tempPath, content), options);
+ 	}
+ 
+@@ -1138,6 +1159,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	 * full rewrite: the lines are then joined and routed through it.
+ 	 */
+ 	async writeLinesAtomic(fpath: string, lines: readonly string[], options?: WriteTextAtomicOptions): Promise<void> {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		if (this.writeTextAtomic !== FileSessionStorage.prototype.writeTextAtomic) {
+ 			return this.writeTextAtomic(fpath, lines.join(""), options);
+ 		}
+@@ -1196,6 +1218,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	 * Windows-style EPERM at the sync layer used by the atomic path.
+ 	 */
+ 	renameSync(source: string, target: string): void {
++    if ((fs.existsSync(source) && isGenerationCarrier(source)) || (fs.existsSync(target) && isGenerationCarrier(target))) throw new Error("GENERATION_RELOCATION_UNSUPPORTED");
+ 		fs.renameSync(source, target);
+ 	}
+ 
+@@ -1281,6 +1304,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	async rename(path: string, nextPath: string): Promise<void> {
++    if ((fs.existsSync(path) && isGenerationCarrier(path)) || (fs.existsSync(nextPath) && isGenerationCarrier(nextPath))) throw new Error("GENERATION_RELOCATION_UNSUPPORTED");
+ 		try {
+ 			await fs.promises.rename(path, nextPath);
+ 		} catch (err) {
+@@ -1289,6 +1313,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	unlink(path: string): Promise<void> {
++    if (fs.existsSync(path) && isGenerationCarrier(path)) throw new Error("GENERATION_DELETE_UNSUPPORTED");
+ 		return fs.promises.unlink(path);
+ 	}
+ 
+@@ -1299,6 +1324,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	}
+ 
+ 	openWriter(fpath: string, options?: { flags?: "a" | "w"; onError?: (err: Error) => void }): SessionStorageWriter {
++		if (fs.existsSync(fpath) && isGenerationCarrier(fpath)) throw new Error("GENERATION_PINNED_ADAPTER_REQUIRED");
+ 		const lockPath = this.#publishLockPath(fpath);
+ 		const gatePath = this.#osGatePath(lockPath);
+ 		return new FileSessionStorageWriter(fpath, {
+@@ -1307,6 +1333,14 @@ export class FileSessionStorage implements SessionStorage {
  		});
  	}
  
@@ -919,12 +2138,65 @@ index 4750d350d0..c94a6681f0 100644
  	/** Run a synchronous session mutation under its cross-process lock. */
  	withSessionFileLockSync<T>(sessionPath: string, operation: () => T): T {
  		return withFileLockSync(sessionPath, operation);
+@@ -1367,6 +1401,7 @@ export class FileSessionStorage implements SessionStorage {
+ 	 * durable append to a draft-only session.
+ 	 */
+ 	deleteSessionWithArtifactsIf(sessionPath: string, shouldDelete: (content: string) => boolean): Promise<boolean> {
++    if (fs.existsSync(sessionPath) && isGenerationCarrier(sessionPath)) return Promise.resolve(false);
+ 		const deleted = this.withSessionFileLockSync(sessionPath, () => {
+ 			const content = fs.readFileSync(sessionPath, "utf-8");
+ 			if (!shouldDelete(content)) return false;
+@@ -1395,6 +1430,7 @@ export class FileSessionStorage implements SessionStorage {
+ 		sessionPath: string,
+ 		options?: { historyDbPath?: string; statsDbPath?: string },
+ 	): Promise<void> {
++    if (fs.existsSync(sessionPath) && isGenerationCarrier(sessionPath)) throw new Error("GENERATION_DELETE_UNSUPPORTED");
+ 		// Purge history/stats rows before the transcript is gone: the purge
+ 		// reads the session id from the live header (#18674). Best-effort, so
+ 		// a busy dashboard store never fails the delete itself.
+diff --git a/packages/coding-agent/src/session/session-transfer.ts b/packages/coding-agent/src/session/session-transfer.ts
+index fe0d01485b..4b0c690870 100644
+--- a/packages/coding-agent/src/session/session-transfer.ts
++++ b/packages/coding-agent/src/session/session-transfer.ts
+@@ -1,3 +1,5 @@
++import { isGenerationCarrier } from "./session-generation";
++import { openNativeGenerationStorage } from "./generation-storage-factory";
+ /**
+  * Moving a session between machines (`omp session pack|unpack|moved`).
+  *
+@@ -281,9 +283,10 @@ export async function packSession(sessionFile: string, outPath: string): Promise
+ 		if (!isEnoent(error)) throw error;
+ 	}
+ 
+-	const release = claimSessionOrRefuse(id, source, "pack");
++  const generationStorage = isGenerationCarrier(source) ? await openNativeGenerationStorage(source) : undefined;
++	const release = generationStorage ? () => {} : claimSessionOrRefuse(id, source, "pack");
+ 	try {
+-		const journal = await fs.promises.readFile(source);
++		const journal = generationStorage ? Buffer.from(await generationStorage.readText(source), "utf8") : await fs.promises.readFile(source);
+ 		const journalText = journal.toString("utf8");
+ 		const header = parseSessionContent(journalText).entries[0];
+ 		if (header?.type !== "session") {
+@@ -327,10 +330,12 @@ export async function packSession(sessionFile: string, outPath: string): Promise
+ 			logger.warn("Packing session without blobs missing from the local store", { id, missingBlobs });
+ 		}
+ 
+-		await writeArchiveAtomically(archivePath, members);
++		generationStorage?.assertCurrent();
++    await writeArchiveAtomically(archivePath, members);
+ 		return { archivePath, id, missingBlobs };
+ 	} finally {
+ 		release();
++    await generationStorage?.releaseSessionOwnership();
+ 	}
+ }
+ 
 diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
 new file mode 100644
-index 0000000000..9ae634de64
+index 0000000000..f62d357da0
 --- /dev/null
 +++ b/packages/coding-agent/src/session/strict-session-storage.ts
-@@ -0,0 +1,68 @@
+@@ -0,0 +1,106 @@
 +/** Native exact-instance storage. No pathname reopening, unknown lease success, sibling recovery or backup guessing. */
 +import * as fs from "node:fs";
 +import { FileSessionStorage, type SessionStorage, type SessionStorageStat, type SessionStorageWriter,
@@ -935,19 +2207,37 @@ index 0000000000..9ae634de64
 +export class StrictSessionStorage implements SessionStorage {
 +  readonly #reservation: StrictReservation;
 +  readonly #files = new FileSessionStorage();
-+  constructor(reservation: StrictReservation) { this.#reservation = reservation; }
++  #retired = false;
++  constructor(reservation: StrictReservation, readonly allowExplicitNativeTransitions = false, readonly catalogBinding = true) { this.#reservation = reservation; }
++  assertCurrent(): void { this.#reservation.assertCurrent(); }
++  verifiedSourceBinding() { return this.catalogBinding ? this.#reservation.verifiedSourceBinding() : undefined; }
++  async releaseSessionOwnership(): Promise<void> { this.#retired = true; await this.#reservation.release(); }
 +  #check(file: string): void { this.#reservation.assertCurrent(file); }
-+  #reject(file: string): never { this.#check(file); throw new Error("STRICT_ATOMIC_REWRITE_UNAVAILABLE"); }
++  #reject(file: string): never { this.#check(file); throw new Error("STRICT_WRITER_TRUNCATE_FORBIDDEN"); }
 +  ensureDirSync(_dir: string): void { this.#reservation.assertCurrent(); }
-+  existsSync(file: string): boolean { this.#check(file); return true; }
-+  exists(file: string): Promise<boolean> { this.#check(file); return Promise.resolve(true); }
++  existsSync(file: string): boolean {
++    if (this.#retired) return this.#reservation.hasCurrentMetadata(file);
++    if (this.#reservation.auxiliaryName(file)) {
++      try { return this.#reservation.auxiliary(file, false, target => fs.existsSync(target)); }
++      catch (error) { if (error instanceof Error && "code" in error && error.code === "ENOENT") return false; throw error; }
++    }
++    this.#check(file); return true;
++  }
++  exists(file: string): Promise<boolean> { return Promise.resolve(this.existsSync(file)); }
 +  statSync(file: string): SessionStorageStat {
 +    this.#check(file);
 +    const stat = fs.statSync(file), logicalSize = Buffer.byteLength(this.#reservation.read());
 +    this.#check(file); return { size: logicalSize, mtimeMs: stat.mtimeMs, mtime: stat.mtime };
 +  }
 +  readText(file: string): Promise<string> { return Promise.resolve(this.readTextSync(file)); }
-+  readTextSync(file: string): string { this.#check(file); return this.#reservation.read(); }
++  readTextSync(file: string): string {
++    if (this.#reservation.auxiliaryName(file)) return this.#reservation.auxiliary(file, false, target => {
++      const fd = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++      try { if (fs.fstatSync(fd).size > 5 * 1024 * 1024) throw new Error("STRICT_DRAFT_BYTES_LIMIT"); return fs.readFileSync(fd, "utf8"); }
++      finally { fs.closeSync(fd); }
++    });
++    this.#check(file); return this.#reservation.read();
++  }
 +  readTextSlices(file: string, head: number, tail: number): Promise<[string, string]> {
 +    const bytes = Buffer.from(this.readTextSync(file));
 +    return Promise.resolve([bytes.subarray(0, head).toString("utf8"), bytes.subarray(Math.max(0, bytes.length - tail)).toString("utf8")]);
@@ -957,15 +2247,35 @@ index 0000000000..9ae634de64
 +    this.#check(file); this.#files.withStrictMutationSync(file, () => this.#reservation.publish(body, options));
 +  }
 +  writeLinesSync(file: string, body: readonly string[], options?: SessionStorageWriteOptions): void { this.writeTextSync(file, body.join(""), options); }
-+  async writeText(file: string, body: string): Promise<void> { this.writeTextSync(file, body); }
++  async writeText(file: string, body: string): Promise<void> {
++    if (this.#reservation.auxiliaryName(file)) {
++      if (Buffer.byteLength(body) > 5 * 1024 * 1024) throw new Error("STRICT_DRAFT_BYTES_LIMIT");
++      this.#reservation.auxiliary(file, true, target => {
++        const fd = fs.openSync(target, fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_NOFOLLOW, 0o600);
++        try { fs.writeFileSync(fd, body, "utf8"); fs.ftruncateSync(fd, Buffer.byteLength(body)); }
++        finally { fs.closeSync(fd); }
++      }); return;
++    }
++    this.writeTextSync(file, body);
++  }
 +  async writeTextAtomic(file: string, body: string, options?: WriteTextAtomicOptions): Promise<void> { this.writeTextSync(file, body, options); }
 +  async writeLinesAtomic(file: string, body: readonly string[], options?: WriteTextAtomicOptions): Promise<void> { this.writeTextSync(file, body.join(""), options); }
++  async appendSessionTitleAtomically(file: string, line: string, update: SessionTitleUpdate, expectedSize: number | null): Promise<void> {
++    this.#check(file);
++    this.#files.withStrictMutationSync(file, () => {
++      const current = this.#reservation.read();
++      this.#reservation.publish(overlayTitleSlotContent(current + line, update), { expectedSize });
++    });
++  }
 +  async updateSessionTitle(file: string, update: SessionTitleUpdate): Promise<void> {
 +    this.#check(file); const current = this.#reservation.read();
 +    this.writeTextSync(file, overlayTitleSlotContent(current, update), { expectedSize: Buffer.byteLength(current) });
 +  }
 +  rename(file: string, _next: string): Promise<void> { this.#check(file); throw new Error("STRICT_RELOCATION_FORBIDDEN"); }
-+  unlink(file: string): Promise<void> { this.#check(file); throw new Error("STRICT_DELETE_FORBIDDEN"); }
++  async unlink(file: string): Promise<void> {
++    if (this.#reservation.auxiliaryName(file)) { this.#reservation.auxiliary(file, false, target => fs.unlinkSync(target)); return; }
++    this.#check(file); throw new Error("STRICT_DELETE_FORBIDDEN");
++  }
 +  deleteSessionWithArtifacts(file: string): Promise<void> { return this.unlink(file); }
 +  withSessionFileLockSync<T>(file: string, operation: () => T): T {
 +    this.#check(file);

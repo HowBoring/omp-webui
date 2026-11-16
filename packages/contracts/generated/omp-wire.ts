@@ -848,6 +848,8 @@ export interface CatalogBudgets {
 	directoriesPerSnapshot: number;
 	sessionsPerSnapshot: number;
 	headerBytes: number;
+	generationControlBytes: number;
+	generationHeaderBytes: number;
 	pageItems: number;
 	responseBytes: number;
 	snapshotBytes: number;
@@ -881,9 +883,29 @@ export interface CatalogDescription {
 	item?: CatalogDescriptor;
 }
 
+export interface StrictStartupPolicy {
+	version: "strict-start-v1";
+	status: "prototype";
+	platforms: string[];
+	ownership: "native-exclusive-lease";
+	selectedInstance: "anchored-carrier";
+	publication: "native-generation-v1";
+	carrierFormat: "ompgen1";
+	xattrs: "required-fd-user-xattr";
+	durability: "process-crash-only";
+	rollback: "flatten-export-required";
+	maxLogicalBytes: number;
+	maxCarrierBytes: number;
+	maxRetainedBytes: number;
+	maxGenerations: number;
+	catalogCarrierPrefixBytes: number;
+	catalogControlBytes: number;
+	catalogGenerationPrefixBytes: number;
+}
+
 export interface StrictStartState {
 	version: "strict-start-v1";
-	phase: "waiting" | "opening" | "open" | "failed" | "cancelled" | "outcome_unknown";
+	phase: "waiting" | "opening" | "open" | "failed" | "cancelling" | "cancelled" | "outcome_unknown";
 	intent?: "continue" | "new";
 	operationId?: string;
 	code?: string;
@@ -1168,6 +1190,7 @@ export interface CompatibilityReport {
 	sessionAdmission: "blocked";
 	capabilities: string[];
 	runtime: CompatibilityRuntime;
+	rpcUiStrictStartupPolicy?: StrictStartupPolicy;
 }
 
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
@@ -1175,6 +1198,7 @@ export interface ReadyEvent {
 	type: "ready";
 	interactionPolicy?: InteractionPolicy;
 	strictStartup?: "strict-start-v1";
+	strictStartupPolicy?: StrictStartupPolicy;
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;

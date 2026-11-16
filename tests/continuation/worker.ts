@@ -1,14 +1,20 @@
 /** Fixed isolated native launcher. No executable, argv, profile or raw path comes from a browser. */
 import { CatalogTransport } from "../../packages/compatibility/catalog-transport.ts";
+import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { z } from "zod";
 import { PhysicalFrames } from "../../packages/compatibility/framing.ts";
 const frameSchema = z.object({ type: z.string(), id: z.string().optional() }).catchall(z.unknown());
 export type StrictFrame = z.infer<typeof frameSchema>;
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = []) {
-  const child = Bun.spawn([process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/no-provider.ts"),
-    resolve("vendor/omp-candidate/cli.js"), "--mode", "rpc-ui", "--strict-start", ...runtimeArgs], {
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }) {
+  if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
+  const child = Bun.spawn([...(fault && fault.name !== "unknown-lease"
+    ? [Bun.which("python3") ?? "/usr/bin/python3", resolve("tests/continuation/syscall-faults.py")] : []),
+    process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/no-provider.ts"),
+    ...(fault ? ["--preload", resolve("tests/continuation/native-faults.ts")] : []),
+    resolve("vendor/omp-candidate/cli.js"), "--mode", "rpc-ui", ...(ordinaryFile ? ["--session", ordinaryFile] : ["--strict-start"]), ...runtimeArgs], {
     cwd, env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", TMPDIR: home,
+      ...(fault ? { OMP_STRICT_FIXTURE_HOME: home, OMP_STRICT_FAULT: fault.name, OMP_STRICT_FAULT_TARGET: fault.target, LD_PRELOAD: resolve("vendor/strict-fixture/native-faults.so") } : {}),
       PI_CODING_AGENT_DIR: resolve(home, ".omp/agent"), XDG_CONFIG_HOME: resolve(home, "config"),
       XDG_CACHE_HOME: resolve(home, "cache"), XDG_DATA_HOME: resolve(home, "data"),
       OPENAI_API_KEY: "synthetic-unused-no-provider-calls", NO_COLOR: "1", PI_NOTIFICATIONS: "off" },

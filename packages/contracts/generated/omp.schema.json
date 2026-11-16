@@ -3979,6 +3979,12 @@
         "headerBytes": {
           "type": "integer"
         },
+        "generationControlBytes": {
+          "type": "integer"
+        },
+        "generationHeaderBytes": {
+          "type": "integer"
+        },
         "pageItems": {
           "type": "integer"
         },
@@ -4007,6 +4013,8 @@
         "directoriesPerSnapshot",
         "sessionsPerSnapshot",
         "headerBytes",
+        "generationControlBytes",
+        "generationHeaderBytes",
         "pageItems",
         "responseBytes",
         "snapshotBytes",
@@ -4117,6 +4125,84 @@
         "observedAt"
       ]
     },
+    "StrictStartupPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "strict-start-v1"
+        },
+        "status": {
+          "const": "prototype"
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ownership": {
+          "const": "native-exclusive-lease"
+        },
+        "selectedInstance": {
+          "const": "anchored-carrier"
+        },
+        "publication": {
+          "const": "native-generation-v1"
+        },
+        "carrierFormat": {
+          "const": "ompgen1"
+        },
+        "xattrs": {
+          "const": "required-fd-user-xattr"
+        },
+        "durability": {
+          "const": "process-crash-only"
+        },
+        "rollback": {
+          "const": "flatten-export-required"
+        },
+        "maxLogicalBytes": {
+          "type": "integer"
+        },
+        "maxCarrierBytes": {
+          "type": "integer"
+        },
+        "maxRetainedBytes": {
+          "type": "integer"
+        },
+        "maxGenerations": {
+          "type": "integer"
+        },
+        "catalogCarrierPrefixBytes": {
+          "type": "integer"
+        },
+        "catalogControlBytes": {
+          "type": "integer"
+        },
+        "catalogGenerationPrefixBytes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "platforms",
+        "ownership",
+        "selectedInstance",
+        "publication",
+        "carrierFormat",
+        "xattrs",
+        "durability",
+        "rollback",
+        "maxLogicalBytes",
+        "maxCarrierBytes",
+        "maxRetainedBytes",
+        "maxGenerations",
+        "catalogCarrierPrefixBytes",
+        "catalogControlBytes",
+        "catalogGenerationPrefixBytes"
+      ]
+    },
     "StrictStartState": {
       "type": "object",
       "properties": {
@@ -4129,6 +4215,7 @@
             "opening",
             "open",
             "failed",
+            "cancelling",
             "cancelled",
             "outcome_unknown"
           ],
@@ -5093,6 +5180,9 @@
         },
         "runtime": {
           "$ref": "#/$defs/CompatibilityRuntime"
+        },
+        "rpcUiStrictStartupPolicy": {
+          "$ref": "#/$defs/StrictStartupPolicy"
         }
       },
       "required": [
@@ -5119,6 +5209,9 @@
         },
         "strictStartup": {
           "const": "strict-start-v1"
+        },
+        "strictStartupPolicy": {
+          "$ref": "#/$defs/StrictStartupPolicy"
         },
         "protocolVersion": {
           "type": "integer"
