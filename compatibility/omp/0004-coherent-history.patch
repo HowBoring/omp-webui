@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 2ad422b5e6..6ab9773c9b 100644
+index 202f4ee58c..b3153879e1 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
 @@ -9,6 +9,8 @@
@@ -10,7 +10,7 @@ index 2ad422b5e6..6ab9773c9b 100644
 +
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
  
- ## [18.20.2] - 2026-11-14
+ ### Fixed
 diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
 new file mode 100644
 index 0000000000..7476fcc2c8
@@ -401,7 +401,7 @@ index 0000000000..c00b54a916
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 98fcb32191..8285928593 100644
+index bf34f7e435..dc60e39d35 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,5 @@
@@ -410,7 +410,7 @@ index 98fcb32191..8285928593 100644
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1361,6 +1363,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1362,6 +1364,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		costCapRefusal: () => session.costCapRefusal,
  		settledWithoutRun: () => void settleWatcher.check(),
  	});
@@ -425,7 +425,7 @@ index 98fcb32191..8285928593 100644
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -1723,6 +1733,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1724,6 +1734,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
@@ -433,7 +433,7 @@ index 98fcb32191..8285928593 100644
  		sessionEvents.forward(event);
  		// Before the prompt-result and settle reports: a goal continuation decided at this
  		// agent_end is scheduled (and reported as pending) before either reads settlement.
-@@ -2263,6 +2274,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2264,6 +2275,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
  			}
  
