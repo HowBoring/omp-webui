@@ -3,7 +3,7 @@
 import ts from "typescript";
 import { resolve } from "node:path";
 const root=resolve("vendor/omp/packages/coding-agent/src");
-const files=["session/live-message-observation.ts","session/agent-session.ts","session/session-manager.ts",
+const files=["session/history-context.ts","session/live-message-observation.ts","session/agent-session.ts","session/session-manager.ts",
   "modes/rpc/rpc-history.ts","modes/rpc/history-client.ts","modes/rpc/rpc-session-events.ts","modes/rpc/wire/history.ts"].map(file=>resolve(root,file));
 const configFile=resolve("vendor/omp/packages/coding-agent/tsconfig.json");
 const config=ts.readConfigFile(configFile,ts.sys.readFile);

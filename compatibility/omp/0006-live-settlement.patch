@@ -108,10 +108,11 @@ index 7476fcc2c8..f65fb99249 100644
    }
    async page(cursor: string): Promise<HistoryPage> {
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-index c00b54a916..2a44367a1c 100644
+index c00b54a916..b7e4c368d9 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -1,29 +1,35 @@
+@@ -1,29 +1,36 @@
++import { nativeHistoryContextId } from "../../session/history-context";
 +import { nativeMessageIdentity, nativeMessageSettlement, nativeMessageEntry } from "../../session/live-message-observation";
 +import type { NativeMessageIdentity, NativeMessageObservation, NativeMessageSettlement } from "../../session/live-message-observation";
 +import type { NativeHistoryChange } from "../../session/session-manager";
@@ -152,7 +153,7 @@ index c00b54a916..2a44367a1c 100644
    cursors: Record<HistoryScope, string>; expiresAt: number; count: number; streaming: boolean; compacting: boolean;
    prefix: HistoryItem | null; scannedBytes: number; scanMs: number; snapshotMs: number;
    limits: Readonly<Record<keyof typeof HISTORY_LIMITS, number>>;
-@@ -36,11 +42,26 @@ export interface HistoryContentPage {
+@@ -36,11 +43,26 @@ export interface HistoryContentPage {
    snapshot: string; cut: HistoryCut; expiresAt: number; content: HistoryContent; encoding: "base64";
    partIndex: number; data: string; nextCursor?: string;
  }
@@ -181,7 +182,7 @@ index c00b54a916..2a44367a1c 100644
  function record(value: unknown): Record<string, unknown> {
    return asRecord(value) ?? {};
  }
-@@ -61,7 +82,7 @@ function textContent(value: unknown): string {
+@@ -61,7 +83,7 @@ function textContent(value: unknown): string {
      throw new Error("history_unknown_content");
    }).join("\n");
  }
@@ -190,7 +191,7 @@ index c00b54a916..2a44367a1c 100644
    const message = record(value);
    const role = typeof message.role === "string" ? message.role : "unknown";
    if (role === "developer") return { role, text: "[Native developer context record]" };
-@@ -76,7 +97,7 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+@@ -76,7 +98,7 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
    if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
    if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
      if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
@@ -199,7 +200,7 @@ index c00b54a916..2a44367a1c 100644
        (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
        (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
        ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
-@@ -91,9 +112,13 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+@@ -91,9 +113,13 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
      ...(content && Array.isArray(message.images) ? {contents:content(message.images)} : {}) };
    throw new Error("history_unknown_message");
  }
@@ -213,7 +214,7 @@ index c00b54a916..2a44367a1c 100644
    const id = String(entry.id);
    const item: HistoryItem = { id, parentId: typeof entry.parentId === "string" ? entry.parentId : null,
      kind: String(entry.type), active: active.has(id), text: "[Native structural record]" };
-@@ -101,6 +126,7 @@ function readableEntry(value: unknown, active: Set<string>, content: (value: unk
+@@ -101,6 +127,7 @@ function readableEntry(value: unknown, active: Set<string>, content: (value: unk
    if (entry.type === "message") Object.assign(item, readableMessage(entry.message, content));
    if (entry.type === "custom_message") {
      item.text = entry.display === true ? textContent(entry.content) : "[Internal custom message]";
@@ -221,7 +222,7 @@ index c00b54a916..2a44367a1c 100644
      if (entry.display === true) item.contents = content(entry.content);
    }
    if (entry.type === "compaction" || entry.type === "branch_summary") {
-@@ -121,14 +147,73 @@ export class RpcHistoryObservation {
+@@ -121,14 +148,73 @@ export class RpcHistoryObservation {
    #seq = 0;
    #liveBytes = 0;
    #lastRevision: string | undefined;
@@ -298,7 +299,7 @@ index c00b54a916..2a44367a1c 100644
      this.#events.push(change);
      this.#liveBytes += Buffer.byteLength(JSON.stringify(change));
      while (this.#events.length > HISTORY_LIMITS.liveEvents || this.#liveBytes > HISTORY_LIMITS.liveBytes) {
-@@ -136,7 +221,33 @@ export class RpcHistoryObservation {
+@@ -136,28 +222,52 @@ export class RpcHistoryObservation {
      }
    }
    #capture(materialize = true) {
@@ -333,7 +334,10 @@ index c00b54a916..2a44367a1c 100644
      if (value.contentRevision !== this.#lastRevision) {
        this.observe({ type: "native_content_changed" });
        this.#lastRevision = value.contentRevision;
-@@ -146,18 +257,17 @@ export class RpcHistoryObservation {
+     }
+-    const contextId = Bun.SHA256.hash(JSON.stringify({ source: value.sourceId,
+-      contextRevision: value.contextRevision, contextContentRevision: value.contextContentRevision }), "hex");
++    const contextId = nativeHistoryContextId(value.sourceId, value.contextRevision, value.contextContentRevision);
      const cut: HistoryCut = { durability: "not_attested", sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
        ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
        workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
@@ -838,6 +842,20 @@ index 4446c01159..a4fc26d8d8 100644
  		if (normalizedAppMessage.display === true) {
  			// Idle display append with no turn: notify session listeners so the interactive
  			// transcript paints it now instead of on the next rebuild. The entry is persisted
+diff --git a/packages/coding-agent/src/session/history-context.ts b/packages/coding-agent/src/session/history-context.ts
+new file mode 100644
+index 0000000000..d95939e466
+--- /dev/null
++++ b/packages/coding-agent/src/session/history-context.ts
+@@ -0,0 +1,8 @@
++/** Identify a native history context from inputs already captured by its caller. */
++export function nativeHistoryContextId(
++	sourceId: string,
++	contextRevision: number,
++	contextContentRevision: string,
++): string {
++	return Bun.SHA256.hash(JSON.stringify({ source: sourceId, contextRevision, contextContentRevision }), "hex");
++}
 diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
 new file mode 100644
 index 0000000000..907d538adc
@@ -952,15 +970,16 @@ index 0000000000..907d538adc
 +  }
 +}
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index b8a0b167a3..9c309adb94 100644
+index b8a0b167a3..a71e979450 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import { nativeHistoryContextId } from "./history-context";
 +import { associateMessageEntry } from "./live-message-observation";
  export interface NativeHistoryChange {
    kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
  }
-@@ -3623,6 +3624,7 @@ export class SessionManager {
+@@ -3623,6 +3625,7 @@ export class SessionManager {
  	): string {
  		const entry: SessionMessageEntry = { type: "message", ...this.#freshEntryFields(), message };
  		this.#recordEntry(entry);
@@ -968,7 +987,7 @@ index b8a0b167a3..9c309adb94 100644
  		return entry.id;
  	}
  
-@@ -3662,6 +3664,7 @@ export class SessionManager {
+@@ -3662,6 +3665,7 @@ export class SessionManager {
  		// the active branch, as the in-memory contract requires.
  		this.#index.detachBranchView();
  		this.#recordEntry(entry);
@@ -976,7 +995,7 @@ index b8a0b167a3..9c309adb94 100644
  		return entry.id;
  	}
  
-@@ -4076,6 +4079,16 @@ export class SessionManager {
+@@ -4076,6 +4080,15 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -985,8 +1004,7 @@ index b8a0b167a3..9c309adb94 100644
 +		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
 +			.update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
 +		const contextContentRevision = Bun.SHA256.hash(stringifyJson(context ?? null)!, "hex");
-+		const contextId = Bun.SHA256.hash(JSON.stringify({ source: sourceId,
-+			contextRevision: this.#historyContextRevision, contextContentRevision }), "hex");
++		const contextId = nativeHistoryContextId(sourceId, this.#historyContextRevision, contextContentRevision);
 +		return { sourceId, sessionId: this.#sessionId, contextId, branchLeafId: this.#index.leafId() };
 +	}
 +

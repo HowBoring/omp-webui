@@ -12,11 +12,12 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
       await fixture.transport.prompt();
       let invalidated=false;
       for(let attempt=0;attempt<160;attempt++){
-        try{journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));}
-        catch(error){if(scenario!=='empty-overflow')throw error;expect(journal.failure).toBe('live_projection_invalidated');invalidated=true;break;}
-        if((await fixture.transport.state()).isSettled){
-          journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));break;
-        }
+        try{
+          journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
+          if((await fixture.transport.state()).isSettled){
+            journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));break;
+          }
+        }catch(error){if(scenario!=='empty-overflow')throw error;expect(journal.failure).toBe('live_projection_invalidated');invalidated=true;break;}
         if(attempt===159)throw Error('fixture_settlement_timeout');await Bun.sleep(25);
       }
       if(invalidated){expect(()=>journal.snapshot()).toThrow('live_projection_invalidated');return;}

@@ -5,6 +5,40 @@ native source is 0001–0004 plus additive `0006-live-settlement.patch`; #32/000
 #33 and #34 source and the current integration branch are merged. Linux Chromium is exercised. Windows
 Chrome/WSL2 remains deferred by the owner. Independent coordinator review/acceptance is separate.
 
+## Review correction: shared native context identity
+
+The low Central Utilities finding is resolved by one pure `session/history-context.ts` helper, called by
+`SessionManager.getHistoryMessageContext` and `RpcHistoryObservation.#capture`. Each caller passes its already
+available source ID, context revision and context-content revision. The helper preserves the exact JSON envelope
+and property order (`source`, `contextRevision`, `contextContentRevision`) and performs no capture, mutable reads,
+or heavy imports. The helper is declared in `scripts/omp-source.ts` and covered by the narrow authored-native
+strict check. Patch 0006 was regenerated against the exact 0001–0004 tree; 0005 is excluded.
+
+Fresh evidence for this correction is [live-review-fix.json](evidence/live-review-fix.json). Native source is now
+`4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871`; schema remains
+`dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b`. Regeneration changes only the Host generated
+identity; all public schema/client/validator outputs and algorithms are unchanged. The original
+[live-checkpoint.json](evidence/live-checkpoint.json) remains evidence of its earlier source, including the prior
+full 194-test result; that result is not claimed for the new native hash.
+
+Clean ordered native build/generated verification, eight authored native modules, Host strict TypeScript and
+Host build pass. The focused 64-case run passed 63 cases and exposed one existing asynchronous overflow-test race:
+the final after-settled poll could receive the same allowed explicit invalidation as the initial poll, outside
+its specific catch. Both polls now use the existing `empty-overflow` / `live_projection_invalidated` handling;
+other failures still throw, and the final invalidated journal must still reject snapshots. The complete settlement
+suite then passes 6 cases / 21 assertions. All 19 native live, 19 coherent-history native and 9 actual public native
+RPC cases passed in the focused run. Failure and rerun logs are retained with digests. No helper-formula mirror
+test was added: existing lifecycle-to-cut equality, coherent capture, context-change fences and handoff tests
+exercise the real boundaries. The initial default-sandbox native OS file-lock EPERM is also retained; that case
+passes with the documented network-enabled execution permissions.
+
+All six Chromium scenarios were rerun against the new native source tuple, using the unchanged canonical DSH
+`c0b09e15c170a82894608c397a363a7a96e5d05c` source. The narrow live browser build reproduced all 667 input identities
+and both browser assets exactly; no full unchanged DSH package build was repeated. Every scenario passes, each
+guard reports 15 blocked / 0 dispatched, each syscall trace has zero INET connects/sends, and all owned workers
+exit 0 without force before profile removal. New trace/screenshot/log digests are in the new evidence file. The
+combined full suite remains the later merger gate; Windows and the component/product limits below are unchanged.
+
 ## Native public contract
 
 The existing `history_observation_poll` now returns native source metadata and safe readable payloads, plus scoped
