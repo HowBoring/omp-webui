@@ -28,15 +28,21 @@
     "workspaces:fixture-data": "bun scripts/create-workspace-fixture.ts",
     "workspaces:build": "bun apps/workspaces/build.ts && bun scripts/build-workspace-host.ts",
     "workspaces:component": "bun --no-env-file vendor/host-workspaces/workspace-component-main.js",
-    "test:workspaces:browser": "python3 tests/workspaces/browser.py"
+    "test:workspaces:browser": "python3 tests/workspaces/browser.py",
+    "interactions:build": "bun apps/interactions/build.ts && bun scripts/build-interactions-host.ts",
+    "interactions:fixture": "bun --no-env-file vendor/host-interactions/interactions-fixture-main.js"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7"
   },
   "dependencies": {
     "@oh-my-pi/pi-coding-agent": "18.20.2",
     "ajv": "8.17.1",
-    "zod": "4.6.6"
+    "zod": "4.6.6",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   }
 }

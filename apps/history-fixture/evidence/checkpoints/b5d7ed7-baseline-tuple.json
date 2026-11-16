@@ -1,0 +1,132 @@
+{
+  "kind": "isolated-synthetic-component-evidence",
+  "capturedAt": "2026-11-16T12:40:06.738333+00:00",
+  "privateSessionAdmission": "blocked",
+  "integration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
+  "sourceFreezes": {
+    "catalog": "54786156b9de07f425a7a26eb126e6ace971b3ae",
+    "interactions": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+    "historyAPI": "2f1c033"
+  },
+  "linux": {
+    "os": "Linux 6.18.57 x86_64 GNU/Linux",
+    "bun": "1.4.4",
+    "chromium": "156.0.8078.79"
+  },
+  "combination": {
+    "omp": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "8960c74b6c74dcadc585a0e68e2aba8687129107ddd449b85ae93d98f0d4c424",
+      "patchSha256": "bf08fb3c51d284169093a58164c161f4f8d5c0b24fad273db5b9817cea877a95",
+      "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b"
+    },
+    "dsh": {
+      "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceSha256": "5c7b967f276b813ac39b42c08d888b0f5c8b671d118283f32521182007ee3e42",
+      "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
+      "assets": {
+        "client.js": "b523755a538038d4fd04355cdb4155d8c85fcb43993bac84bd3ec138a7d1a542",
+        "index.html": "a3a1c218fc35ed6f5e7dbded6a26b95ad3f8c72d204dee4577c069e9e4be619f"
+      }
+    },
+    "historyPatchSha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3",
+    "bunLockSha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+    "fixtureSha256": {
+      "compatibility/omp/fixtures/history-rpc.js": "01f8070eecdc7780bb9a1735dc4db295373455f9dd2352ea52ba37a651d2e569",
+      "compatibility/omp/fixtures/history-network-guard.js": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9",
+      "compatibility/omp/fixtures/no-provider.ts": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+      "apps/history-fixture/server.ts": "8b64bcd855f7ecf2d8591edbbb08b3503bc73f1380b8a4f659f6ad96b86c06e8",
+      "packages/compatibility/history-transport.ts": "fe107c8bdcf7382df0ac88f8b11c26ce66156ab8e3ea7caf0ee43bcdcaaef572"
+    }
+  },
+  "checks": {
+    "rootCheck": {
+      "status": "PASS",
+      "passed": 141,
+      "failed": 0,
+      "assertions": 1370,
+      "tests": 141,
+      "files": 30,
+      "seconds": 149.87,
+      "logSha256": "c35aee8a65a89bf812c84ab4873bf95ef5ff3e8b21c0b21079079b5c920a6b4f",
+      "integration": "e65f0a8b16f8a13e227dd7da2ed1dbcd8564dd17"
+    },
+    "cleanOrderedBuildAndGeneratedCheck": "PASS: reset --source-only, build, then --check on exact final ordered0001\u20134",
+    "nativeScale": {
+      "kind": "native-reachability-only-not-formal-performance",
+      "nativeBytes": 107226874,
+      "entries": 10000,
+      "pages": 137,
+      "maxPageBytes": 781133,
+      "elapsedMs": 20995.871377000003,
+      "scanMs": 247.596126000004,
+      "scannedBytes": 107227278
+    },
+    "browser": {
+      "status": "PASS",
+      "actualNativeHistoryPageResponses": 8,
+      "reportSha256": "7493b95697587105687b1e128212a1375d6a04c663e93979fb8a74848a83e9a1",
+      "screenshotSha256": "223ea73f24fc1172344d0b25ce1a770d70fddce0597f59f4ec138a2958d1694a",
+      "logSha256": "790374d4b5932746532f3eb5a01851d3c1f5cdeb967a640e1a4e837bb82370fb",
+      "ownedWorkerProfileCleanup": "PASS: wrapper finally completed"
+    },
+    "fullUpstreamTypecheck": {
+      "status": "NOT PASS",
+      "reason": "160 diagnostic lines from pinned upstream/published-cache combination; zero errors in history, SessionManager or shared RPC files in final audit",
+      "logSha256": "8ee84d0a77b954ec01b22a5873a46b56b182639c6ca01127eed08fa913c62b74"
+    },
+    "catalogExpiryGuardRemoved": {
+      "status": "EXPECTED FAIL",
+      "reason": "suppressed received-reference count was0 after deliberate guard removal; production queue restored",
+      "logSha256": "85d4bf59e6c382cf5a586ec74a8d89c30537c686a412a834c230da0c8fa58273"
+    },
+    "afterCurrentIntegrationMerge": {
+      "integration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
+      "status": "PASS",
+      "reason": "#39 adds DSH source provenance/build wiring without changing consumed native/history fixture inputs; source/assets/browser tuple unchanged",
+      "strictAuthoredTypecheck": {
+        "status": "PASS",
+        "logSha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+      },
+      "newDshSourceTests": {
+        "status": "PASS",
+        "tests": 3,
+        "assertions": 5,
+        "logSha256": "085b05e51a8caec9eaf52d8585e19fa172246fe89be28eb8d0f26b9b90e7a4a8",
+        "source": "owned source-only baseline clone, no dependency copy; all deliberate faults restored"
+      },
+      "cleanOrderedSourceBuildAndSchemaCheck": {
+        "status": "PASS",
+        "logSha256": "f557f28041d4dab367f2f2140c5d0f8bbef24029bda49223124e2cdbb883a062"
+      },
+      "hostBuild": {
+        "status": "PASS",
+        "logSha256": "d468ee93f766b13b2ea7d1e377940bd5398d49725ed64229d3f2c718c98c0314"
+      }
+    }
+  },
+  "priorFinalRuns": {
+    "catalogFirstWindowAssumption": {
+      "status": "FAIL",
+      "passed": 140,
+      "failed": 1,
+      "assertions": 1260,
+      "tests": 141,
+      "files": 30,
+      "seconds": 148.1,
+      "logSha256": "a54e5ed5ee1faaa9f9eea4d36b62decd70d1c40df2f3387c387fefefdd5a748c"
+    },
+    "catalogMixedWaveAssumption": {
+      "status": "FAIL",
+      "passed": 140,
+      "failed": 1,
+      "assertions": 1240,
+      "tests": 141,
+      "files": 30,
+      "seconds": 147.9,
+      "logSha256": "a80d06aa90a09fe11fb69495f980c773cf995f65a6e22aa47f8fbbb3145daffa"
+    }
+  },
+  "windows": "DEFERRED by owner; no Windows/WSL2 PASS claim",
+  "formalPerformance": "NOT RUN; reachability only, formal30-sample matrix belongs to #60"
+}

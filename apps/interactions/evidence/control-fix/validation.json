@@ -1,0 +1,209 @@
+{
+  "scope": "S0 isolated Linux cancellation-waiter correction; no product/private Session admission",
+  "integration": "2118454e02ac1e5db40847fec62f812308698309",
+  "mergeCurrentIntegration": "Already up to date; rechecked after full suite",
+  "finding": "Cancellation promise coalescing failed to bound external HTTP/Remote waiters",
+  "status": "FIXED",
+  "bounds": {
+    "ordinaryAnswersPerInteraction": 1,
+    "ordinaryAnswersPerWorker": 8,
+    "externalControlWaitersPerInteraction": 1,
+    "externalControlWaitersPerWorker": 16,
+    "nativeCancellationCommandsPerWorker": 16,
+    "coalescedAbortPerWorker": 1,
+    "queuedAnswers": 0,
+    "queuedControls": 0,
+    "overload": {
+      "status": "overloaded",
+      "code": "INTERACTION_ANSWER_LIMIT",
+      "authority": "Host admission only; native reply schema remains unchanged"
+    }
+  },
+  "seam": "actual loopback HTTP \u2192 public DSH Connection/typed Remote/Gateway \u2192 actual InteractionsService \u2192 owned public InteractionPort",
+  "heldAcknowledgementScenarios": [
+    "explicit native cancellation pending",
+    "internal deadline native cancellation pending"
+  ],
+  "eachScenario": {
+    "admittedExternalWaiters": 1,
+    "explicitCancellationFlood": 512,
+    "postDeadlineOrdinaryAnswerFlood": 512,
+    "excessResult": "typed Host overload promptly before native release",
+    "nativeCancellationCommands": 1,
+    "nativeAbortCommands": 1,
+    "headRemainsPendingUntilNativeRelease": true,
+    "releasedNativeResult": {
+      "status": "cancelled"
+    },
+    "lateResult": {
+      "status": "stale"
+    },
+    "disposal": "carrier/Context/server disposed; later port frame does not publish pending UI"
+  },
+  "red": "remote-red.json",
+  "tests": [
+    {
+      "command": "bun test tests/interactions/bridge.test.ts tests/browser/interactions-remote.test.ts tests/browser/interactions-control.test.ts",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/control-green.log",
+      "rawLogSha256": "3af3c2ec03107946771b3ea6701581e489555214959f0653ff132bb8b4689861",
+      "testsPassed": 8,
+      "testsFailed": 0,
+      "assertions": 48,
+      "files": 3
+    },
+    {
+      "command": "bun run interactions:build",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/control-build.log",
+      "rawLogSha256": "efd28bab822667af203bedf27b1b3969c5167efb69c5f5dba9c693874e169729",
+      "HostInputs": 247,
+      "DSHInputs": 255,
+      "actualResolvedCandidateVerified": true
+    },
+    {
+      "command": "bun run check",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/control-full-check.log",
+      "rawLogSha256": "6559efc91a1e007564e6f503270850a6465a111cd2cdf4ca43df0032745451bb",
+      "testsPassed": 130,
+      "testsFailed": 0,
+      "assertions": 1031,
+      "files": 30,
+      "testSeconds": 135.84,
+      "rootStrictTypeScript": "PASS",
+      "HostBuild": "PASS"
+    },
+    {
+      "command": "python3 tests/browser/interactions-browser.py --bun /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/control-browser-default.log",
+      "rawLogSha256": "0467ff6293b35aacf6353431abca1624da92ddc9ff137a134c773155d6d20fb6",
+      "browserCasesPassed": 10,
+      "hostExitCode": 0,
+      "artifactsRenamedFrom": "vendor/interactions-browser",
+      "artifactsDirectory": "vendor/interactions-browser-final"
+    },
+    {
+      "command": "python3 tests/browser/interactions-browser.py --bun /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --port 3184 --wait-ms 4000 --evidence vendor/interactions-browser-configured-final",
+      "status": "PASS",
+      "exitCode": 0,
+      "rawLog": "vendor/control-browser-configured.log",
+      "rawLogSha256": "18c2d9293ecbf4cea56a03bedd4e09a6db6d914f4db04efcc879ae6e465bbcb3",
+      "browserCasesPassed": 11,
+      "hostExitCode": 0
+    }
+  ],
+  "failedIntermediateAttempts": [
+    {
+      "status": "FAIL",
+      "kind": "targeted check while correcting implementation",
+      "observed": "Monotonic-before-timer regression detected abort-before-cancel ordering",
+      "correction": "Restored cancellation dispatch before abort; final targeted and full suite pass"
+    },
+    {
+      "status": "FAIL",
+      "kind": "initial real browser run",
+      "observed": "two-page answers were ['answered', 'overloaded']; old assertion required ['answered', 'stale']",
+      "correction": "Require one answered and a second Host overloaded or native stale according to admission/ack order; both actual browser reruns pass"
+    },
+    {
+      "status": "FAIL",
+      "kind": "initial evidence retention invocation",
+      "observed": "Default browser output directory was vendor/interactions-browser, while retainer expects vendor/interactions-browser-final",
+      "correction": "Renamed owned artifact directory; retainer succeeded without rerunning or altering results"
+    }
+  ],
+  "nativeReuse": {
+    "nativeSourceFreeze": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+    "OMP": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "9387aee5beda5f2843e0558eed9a9ce1ebfe1251ff4286da2e2dc7d7cad7d6ae",
+      "patchSha256": "b69f38c5fd03046fb3dad417a84297a8f8292bbb1546bcd5be334c31219cf858",
+      "schemaSha256": "67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"
+    },
+    "orderedPatches": [
+      {
+        "file": "0001-safe-preflight.patch",
+        "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+      },
+      {
+        "file": "0002-readonly-catalog.patch",
+        "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+      },
+      {
+        "file": "0003-explicit-interactions.patch",
+        "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+      }
+    ],
+    "traceReused": true,
+    "identityVerification": "retain-interactions-evidence.py --reuse-native-trace verifies same native identity/patches and unchanged no-provider/extension/core-loop/public-client source hashes",
+    "actualNativeWorkerRaces": "PASS in full check; unchanged prior syscall trace is reused, not rerun"
+  },
+  "identities": {
+    "tuple": "../tuple.json",
+    "tupleSha256": "f8731679bbaefaeb215bca7f104f40e0f0afe33f08b55f9683b753b86ef3d27d",
+    "Host": {
+      "kind": "S0-isolated-interactions",
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4",
+        "executableSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+      },
+      "inputs": 247,
+      "bundle": {
+        "file": "interactions-fixture-main.js",
+        "sha256": "a187fab0e1ef9cd0d3cfb3ec6030d5920f04b6d4e07cba9bc1de8c8681ffddfe"
+      },
+      "inputSetSha256": "4e059520f6664e085fd637ea8ea795f682ed025670581423a9a636df37c33480"
+    },
+    "DSH": {
+      "kind": "S0-isolated-interactions",
+      "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "dshSource": {
+        "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+        "mode": "candidate",
+        "patches": [
+          {
+            "path": "patches/0001-navigation-policy.patch",
+            "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+            "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+          },
+          {
+            "path": "patches/0002-semantic-drafts.patch",
+            "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+            "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+          }
+        ],
+        "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+      },
+      "lockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4"
+      },
+      "sourceInputs": 255,
+      "inputs": 255,
+      "sourceSha256": "6b8f040e64fa45d91f189c9530db2626f6a4e7cb90366919867241db0ab1b79a",
+      "contractSha256": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
+      "assets": {
+        "client.js": "e70609e020d439ba2ff963880f278a67aabce1ca80beea5fb8c498a61c9f701d",
+        "index.html": "28c2c860702e135d3f3c48b9e9ee524676c039e32c462e74d929b1c3982e28af"
+      },
+      "inputSetSha256": "4acf94ee2251438fe082347315d657c187ef5252516e9f9204f1799d456d13e5"
+    }
+  },
+  "sourceIsolation": "Owned OMP and DSH source copies used for negative mutation tests. Per-package DSH links target immutable reviewed candidate c0b09e15. Native candidate/runtime reused read-only; shared sources, dependencies and symlink targets never modified.",
+  "limits": [
+    "Broker #47/product authority and admission remain outside this slice",
+    "Windows Chrome/WSL2 deferred; no Windows PASS",
+    "No global installation or real provider inference",
+    "Unchanged full DSH 1488-test rebuild and native 100-MiB stress were not rerun"
+  ]
+}

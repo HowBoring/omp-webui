@@ -1,0 +1,28 @@
+{
+  "command": "bun test tests/interactions/bridge.test.ts --timeout 1000",
+  "exitCode": 1,
+  "testsPassed": 0,
+  "testsFailed": 3,
+  "assertions": 2,
+  "failures": [
+    {
+      "case": "answer flood with head held",
+      "expected": "512 immediate Host overload replies and one admitted native attempt",
+      "observed": "test timed out at 1000 ms; calls queued behind held head"
+    },
+    {
+      "case": "cancellation bypass",
+      "expected": "answer and cancellation both sent before either acknowledgement",
+      "observed": "no command sent synchronously; cancellation queued behind answer"
+    },
+    {
+      "case": "expiry bypass",
+      "expected": "native timedOut cancellation and abort while answer head held",
+      "observed": "only original answer sent; no expiry cancellation"
+    }
+  ],
+  "status": "FAIL",
+  "phase": "retained original failure",
+  "rawLog": "vendor/review-bridge-red.log",
+  "rawLogSha256": "d80cf0d6d8633bb0e5a00a5e74337dc5758123bdf7b533500abc4ad5b11d0d5d"
+}

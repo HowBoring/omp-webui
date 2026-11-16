@@ -30,6 +30,7 @@ for await (const line of console) {
   }
   const report = {
     candidate: "omp-webui-s0", base: "fixture", sourceSha256: "fixture", patchSha256: "fixture",
+    rpcUiInteractionPolicy:{version:"1",explicitAnswersOnly:true,nativeExpiry:"cancel",toolExpiry:"cancel",invalidAnswer:"pending"},
     schemaSha256: "fixture", safePreflight: true, sessionAdmission: "blocked", capabilities: ["fixture"],
     runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
   };
@@ -51,7 +52,10 @@ for await (const line of console) {
     }
   } else if (mode === "wrong-id") write({ ...response, id: "wrong" });
   else if (mode === "wrong-command") write({ ...response, command: "prompt" });
-  else if (mode === "invalid-result") write({ ...response, data: { safePreflight: true } });
+  else if (mode === "missing-policy") {
+    const {rpcUiInteractionPolicy:_policy,...oldReport}=report;
+    write({...response,data:oldReport});
+  } else if (mode === "invalid-result") write({ ...response, data: { safePreflight: true } });
   else if (mode === "duplicate") { write(response); write(response); }
   else if (mode === "no-response") continue;
   else if (mode === "late") { await Bun.sleep(100); write(response); }

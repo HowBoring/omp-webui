@@ -153,7 +153,16 @@ test("native lease backend errors surface unknown rather than free (real syscall
     const client=await CatalogTransport.open({argv:["/usr/bin/strace","-f","-e","inject=socket:error=EMFILE","-o",join(home,"native-socket.trace"),
       process.execPath,"--no-env-file",resolve("vendor/omp-candidate/cli.js"),"--rpc-catalog"],
       env:{HOME:home,BUN_RUNTIME_TRANSPILER_CACHE_PATH:"0"}});
-    try { expect((await client.catalog.page()).items[0]?.ownership.state).toBe("unknown"); }
+    try {
+      let page = await client.catalog.page();
+      for (let window = 0; page.status === "scanning" && window < 16; window++) {
+        expect(page.nextCursor).toBeDefined();
+        page = await client.catalog.page({cursor:page.nextCursor!});
+      }
+      expect(page.status).toBe("complete");
+      expect(page.items).toHaveLength(1);
+      expect(page.items[0]?.ownership.state).toBe("unknown");
+    }
     finally {await client.close();}
   } finally {await rm(home,{recursive:true,force:true});}
 });
