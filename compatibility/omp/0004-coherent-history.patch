@@ -1,18 +1,56 @@
+diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
+new file mode 100644
+index 0000000000..40f254d14f
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/history-client.ts
+@@ -0,0 +1,29 @@
++/** Narrow public history client. Callback transport; no Session/configuration/Agent runtime imports. */
++import { validHistoryOpen, validHistoryPage, validHistoryPoll, validHistoryContent } from "./history.generated";
++import type { RpcWireCommands, HistoryScope, HistoryOpen, HistoryPage, HistoryPoll, HistoryContentPage } from "./wire/rpc-wire.generated";
++export type HistoryCommand = { [K in "history_snapshot_open" | "history_snapshot_page" | "history_snapshot_close"
++  | "history_observation_poll" | "history_content_page"]: { id: string; type: K } & RpcWireCommands[K]["params"]
++}["history_snapshot_open" | "history_snapshot_page" | "history_snapshot_close" | "history_observation_poll" | "history_content_page"];
++export class HistoryClient {
++  constructor(private readonly request: (command: HistoryCommand) => Promise<unknown>) {}
++  async open(scope: HistoryScope): Promise<HistoryOpen> {
++    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope });
++    if (!validHistoryOpen(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
++  }
++  async page(cursor: string): Promise<HistoryPage> {
++    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor });
++    if (!validHistoryPage(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
++  }
++  async content(cursor: string): Promise<HistoryContentPage> {
++    const result = await this.request({ id: crypto.randomUUID(), type: "history_content_page", cursor });
++    if (!validHistoryContent(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
++  }
++  async poll(workerId: string, after: number): Promise<HistoryPoll> {
++    const result = await this.request({ id: crypto.randomUUID(), type: "history_observation_poll", workerId, after });
++    if (!validHistoryPoll(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
++  }
++  async close(snapshot: string): Promise<void> {
++    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_close", snapshot });
++    if (typeof result !== "object" || result === null || !("closed" in result) || typeof result.closed !== "boolean") throw new Error("HISTORY_RESULT_SCHEMA");
++  }
++}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index cfcbbdeeb1..f058d63dc1 100644
+index cfcbbdeeb1..62fc4a79b6 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -1,3 +1,4 @@
-+import type { HistoryScope, HistoryOpen, HistoryPage, HistoryPoll } from "./rpc-history";
++import type { HistoryScope, HistoryOpen, HistoryPage, HistoryContentPage, HistoryPoll } from "./rpc-history";
  /**
   * RPC Client for programmatic access to the coding agent.
   *
-@@ -1041,6 +1042,19 @@ export class RpcClient {
+@@ -1041,6 +1042,22 @@ export class RpcClient {
  	 * `SessionManager` on the server: no `since` returns all entries in append
  	 * order, `since` returns entries strictly after the matching durable entry.
  	 */
 +	async historySnapshotOpen(scope: HistoryScope): Promise<HistoryOpen> {
 +		return this.#getData<HistoryOpen>(await this.#send({ type: "history_snapshot_open", scope }));
++	}
++	async historyContentPage(cursor: string): Promise<HistoryContentPage> {
++		return this.#getData<HistoryContentPage>(await this.#send({ type: "history_content_page", cursor }));
 +	}
 +	async historySnapshotPage(cursor: string): Promise<HistoryPage> {
 +		return this.#getData<HistoryPage>(await this.#send({ type: "history_snapshot_page", cursor }));
@@ -29,10 +67,10 @@ index cfcbbdeeb1..f058d63dc1 100644
  		return this.#getData<{ entries: SessionEntry[]; leafId: string | null }>(response);
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..960cf92b6a
+index 0000000000..a312adb0f1
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -0,0 +1,207 @@
+@@ -0,0 +1,300 @@
 +/** Coherent native history v1. In-memory observations are not persistence receipts. */
 +import { randomUUID, createHash } from "node:crypto";
 +import type { SessionManager } from "../../session/session-manager";
@@ -40,15 +78,19 @@ index 0000000000..960cf92b6a
 +export const HISTORY_LIMITS = Object.freeze({
 +  entries: 20_000, bytes: 320 * 1024 * 1024, nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 5_000,
 +  snapshotBytes: 256 * 1024 * 1024, cacheBytes: 512 * 1024 * 1024, snapshots: 2,
-+  pageItems: 128, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 60_000,
-+  liveEvents: 4096, liveBytes: 8 * 1024 * 1024, pollItems: 128,
++  pageItems: 128, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 600_000,
++  contentItems: 20_000, contentPageBytes: 256 * 1024, liveEvents: 4096, liveBytes: 8 * 1024 * 1024, pollItems: 128,
 +});
 +export type HistoryScope = "tree" | "active" | "running";
++export interface HistoryContent {
++  cursor: string; mimeType: string; bytes: number; sha256: string; origin: "retained_native"; originalAssociation: "unproven";
++}
 +export interface HistoryItem {
 +  id: string; parentId: string | null; kind: string; active: boolean; text: string;
-+  entryId?: string; partIndex?: number; partCount?: number; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
++  contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
 +}
 +export interface HistoryCut {
++  sourceBindingStatus: "worker" | "catalog"; catalogBinding?: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string };
 +  sourceId: string; sessionId: string; workerId: string; contextId: string;
 +  contentRevision: string; leafId: string | null; observationSeq: number;
 +}
@@ -62,10 +104,15 @@ index 0000000000..960cf92b6a
 +  snapshot: string; scope: HistoryScope; cut: HistoryCut; expiresAt: number; items: HistoryItem[];
 +  complete: true; nextCursor?: string;
 +}
++export interface HistoryContentPage {
++  snapshot: string; cut: HistoryCut; expiresAt: number; content: HistoryContent; encoding: "base64";
++  partIndex: number; data: string; nextCursor?: string;
++}
 +export interface HistoryChange { seq: number; kind: string }
 +export interface HistoryPoll { cut: HistoryCut; after: number; through: number; events: HistoryChange[]; hasMore: boolean }
 +interface Runtime { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }
-+interface Snapshot { open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
++interface ContentPosition { content: HistoryContent; data: string; offset: number }
++interface Snapshot { timer: ReturnType<typeof setTimeout>; contents: Map<string, ContentPosition>; open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
 +function record(value: unknown): Record<string, unknown> {
 +  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
 +}
@@ -77,30 +124,48 @@ index 0000000000..960cf92b6a
 +    if (block.type === "text" && typeof block.text === "string") return block.text;
 +    if (block.type === "thinking" && typeof block.thinking === "string") return `[Thinking] ${block.thinking}`;
 +    if (block.type === "toolCall") return `[Tool call: ${typeof block.name === "string" ? block.name : "unknown"}]`;
-+    if (block.type === "image") return "[Image: original association unavailable]";
++    if (block.type === "image") return "[Retained native image available; original association unproven]";
 +    return "[Unsupported content block]";
 +  }).join("\n");
 +}
-+function readableMessage(value: unknown): { role?: string; text: string } {
++function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
 +  const message = record(value);
 +  const role = typeof message.role === "string" ? message.role : "unknown";
-+  if (["user", "assistant", "toolResult", "fileMention", "custom"].includes(role)) {
-+    if (role === "custom" && message.display !== true) return { text: "[Internal custom message]" };
-+    return { role, text: textContent(message.content) || `[${role}]` };
++  if (role === "fileMention") {
++    const files = Array.isArray(message.files) ? message.files.map(record) : [];
++    return { role, text: files.map(file => `[File mention: ${typeof file.path === "string" ? file.path : "unknown"}]\n` +
++      (typeof file.content === "string" ? file.content : "") +
++      (typeof file.skippedReason === "string" ? `\n[Native unavailable: ${file.skippedReason}]` : "") +
++      (file.image ? "\n[Retained native image; original association unproven]" : "")).join("\n"),
++      ...(content ? { contents: content(files.flatMap(file => file.image ? [file.image] : [])) } : {}) };
 +  }
-+  if (role === "bashExecution") return { role, text: typeof message.output === "string" ? message.output : "[Shell execution]" };
++  if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
++  if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
++    if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
++    return { role, text: (textContent(message.content) || `[${role}]`) +
++      (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : ""),
++      ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
++      ...(typeof message.toolName === "string" ? {toolName:message.toolName} : {}),
++      ...(typeof message.isError === "boolean" ? {isError:message.isError} : {}),
++      ...(typeof message.stopReason === "string" ? {stopReason:message.stopReason} : {}),
++      ...(content ? { contents: content(message.content) } : {}) };
++  }
++  if (role === "bashExecution" || role === "pythonExecution") return { role,
++    text: typeof message.output === "string" ? message.output : "[Native execution]",
++    ...(content && Array.isArray(message.images) ? {contents:content(message.images)} : {}) };
 +  return { text: "[Native message: unsupported display type]" };
 +}
 +/** The whitelist deliberately never spreads native entries, custom state, provider metadata or config. */
-+function readableEntry(value: unknown, active: Set<string>): HistoryItem {
++function readableEntry(value: unknown, active: Set<string>, content: (value: unknown) => HistoryContent[]): HistoryItem {
 +  const entry = record(value);
 +  const id = String(entry.id);
 +  const item: HistoryItem = { id, parentId: typeof entry.parentId === "string" ? entry.parentId : null,
 +    kind: String(entry.type), active: active.has(id), text: "[Native structural record]" };
 +  if (typeof entry.timestamp === "string") item.timestamp = entry.timestamp;
-+  if (entry.type === "message") Object.assign(item, readableMessage(entry.message));
++  if (entry.type === "message") Object.assign(item, readableMessage(entry.message, content));
 +  if (entry.type === "custom_message") {
 +    item.text = entry.display === true ? textContent(entry.content) : "[Internal custom message]";
++    if (entry.display === true) item.contents = content(entry.content);
 +  }
 +  if (entry.type === "compaction" || entry.type === "branch_summary") {
 +    item.boundary = entry.type === "compaction" ? "compaction" : "branch";
@@ -134,26 +199,45 @@ index 0000000000..960cf92b6a
 +      this.#liveBytes -= Buffer.byteLength(JSON.stringify(this.#events.shift()));
 +    }
 +  }
-+  #capture() {
-+    const value = this.#manager.captureHistoryObservation(this.#runtime(), HISTORY_LIMITS);
++  #capture(materialize = true) {
++    const value = this.#manager.captureHistoryObservation(this.#runtime(), HISTORY_LIMITS, materialize);
 +    if (value.contentRevision !== this.#lastRevision) {
 +      this.observe({ type: "native_content_changed" });
 +      this.#lastRevision = value.contentRevision;
 +    }
 +    const contextId = createHash("sha256").update(JSON.stringify({ source: value.sourceId,
 +      contextRevision: value.contextRevision })).digest("hex");
-+    const cut: HistoryCut = { sourceId: value.sourceId, sessionId: value.sessionId,
++    const cut: HistoryCut = { sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
++      ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
 +      workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
 +      leafId: value.leafId, observationSeq: this.#seq };
 +    return { ...value, cut };
 +  }
 +  open(scope: HistoryScope): HistoryOpen {
++    const started = performance.now();
 +    if (!["tree", "active", "running"].includes(scope)) throw new Error("history_invalid_scope");
 +    const value = this.#capture();
++    const known = new Set(["message", "model_usage", "thinking_level_change", "model_change", "service_tier_change",
++      "compaction", "branch_summary", "custom", "custom_message", "label", "title_change", "ttsr_injection",
++      "session_init", "mode_change", "credential_pin", "reset_boundary"]);
++    for (const entry of value.entries) {
++      if (!known.has(entry.type)) throw new Error("history_unknown_entry");
++      if (typeof entry.id !== "string" || entry.id.length > 256 || entry.id.length === 0 ||
++        (entry.parentId !== null && typeof entry.parentId !== "string")) throw new Error("history_invalid_entry");
++    }
 +    const indexed = new Map(value.entries.map(entry => [entry.id, entry]));
 +    if (indexed.size !== value.entries.length) throw new Error("history_duplicate_entry");
 +    for (const entry of value.entries) {
 +      if (entry.parentId !== null && !indexed.has(entry.parentId)) throw new Error("history_missing_parent");
++    }
++    const completed = new Set<string>();
++    for (const entry of value.entries) {
++      const path = new Set<string>(); let cursor: string | null = entry.id;
++      while (cursor !== null && !completed.has(cursor)) {
++        if (path.has(cursor)) throw new Error("history_parent_cycle");
++        path.add(cursor); cursor = indexed.get(cursor)!.parentId;
++      }
++      for (const id of path) completed.add(id);
 +    }
 +    const active = new Set<string>();
 +    let next = value.leafId;
@@ -163,6 +247,30 @@ index 0000000000..960cf92b6a
 +      if (!entry) throw new Error("history_missing_leaf");
 +      active.add(next); next = entry.parentId;
 +    }
++    const contents = new Map<string, ContentPosition>();
++    const contentByDigest = new Map<string, HistoryContent>();
++    let contentBytes = 0;
++    const registerContent = (value: unknown): HistoryContent[] => {
++      if (!Array.isArray(value)) return [];
++      return value.flatMap(block => {
++        const image = record(block);
++        if (image.type !== "image") return [];
++        if (typeof image.data !== "string" || typeof image.mimeType !== "string") throw new Error("history_content_invalid");
++        if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(image.mimeType)) throw new Error("history_content_mime");
++        const decoded = Buffer.from(image.data, "base64");
++        if (decoded.toString("base64") !== image.data) throw new Error("history_content_invalid");
++        const sha256 = createHash("sha256").update(decoded).digest("hex");
++        const key = `${image.mimeType}:${sha256}`;
++        const existing = contentByDigest.get(key);
++        if (existing) return [existing];
++        if (contents.size >= HISTORY_LIMITS.contentItems) throw new Error("history_content_items");
++        const content: HistoryContent = { cursor: randomUUID(), mimeType: image.mimeType, bytes: decoded.byteLength,
++          sha256, origin: "retained_native", originalAssociation: "unproven" };
++        contents.set(content.cursor, { content, data: image.data, offset: 0 });
++        contentByDigest.set(key, content); contentBytes += Buffer.byteLength(image.data);
++        return [content];
++      });
++    };
 +    const split = (item: HistoryItem): string[] => {
 +      // Fixed UTF-16 slices preserve every code unit, including escaped text. No dropped tail.
 +      const width = 32 * 1024;
@@ -171,55 +279,58 @@ index 0000000000..960cf92b6a
 +        id: partIndex === 0 ? item.id : `${item.id}:part:${partIndex}`, entryId: item.id,
 +        partIndex, partCount: count, text: item.text.slice(partIndex * width, (partIndex + 1) * width) }));
 +    };
-+    const encodedById = new Map(value.entries.map(entry => [entry.id, split(readableEntry(entry, active))]));
++    const encodedById = new Map(value.entries.map(entry => [entry.id, split(readableEntry(entry, active, registerContent))]));
 +    const tree = value.entries.flatMap(entry => encodedById.get(entry.id)!);
 +    const activeRows = [...active].reverse().flatMap(id => encodedById.get(id)!);
 +    const running = value.runtime.messages.flatMap((message, index) => split({
-+      id: `running-${index}`, parentId: null, active: false, kind: "running", ...readableMessage(message),
++      id: `running-${index}`, parentId: null, active: false, kind: "running", ...readableMessage(message, registerContent),
 +    }));
 +    const prefixItem: HistoryItem | null = value.runtime.prefix === null ? null : { id: "running-prefix", parentId: null,
-+      kind: "running_prefix", active: false, ...readableMessage(value.runtime.prefix) };
++      kind: "running_prefix", active: false, ...readableMessage(value.runtime.prefix, registerContent) };
 +    if (prefixItem) running.push(...split(prefixItem));
 +    // Active rows share exactly the tree's encoded strings. Count retained storage once.
-+    const bytes = [...tree, ...running].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
++    const bytes = contentBytes + [...tree, ...running].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
 +    if (bytes > HISTORY_LIMITS.snapshotBytes) throw new Error("history_snapshot_bytes");
 +    if ([...tree, ...running].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
 +    const snapshot = randomUUID();
 +    const cursors = { tree: randomUUID(), active: randomUUID(), running: randomUUID() };
 +    const cursor = cursors[scope];
-+    const prefix = prefixItem && { ...prefixItem,
++    const prefix = prefixItem && { id: prefixItem.id, parentId: null, kind: "running_prefix", active: false,
 +      text: "[Running prefix content is available through this snapshot's running cursor]" };
 +    const rows = { tree, active: activeRows, running };
 +    const open: HistoryOpen = { version: "coherent-history-v1", snapshot, cursor, cursors, scope, cut: value.cut,
 +      expiresAt: Date.now() + HISTORY_LIMITS.ttlMs, count: rows[scope].length, streaming: value.runtime.streaming,
 +      compacting: value.runtime.compacting, prefix, scannedBytes: value.scannedBytes, scanMs: value.scanMs, limits: HISTORY_LIMITS };
++    if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
 +    this.#expire();
 +    let total = bytes;
 +    for (const prior of this.#snapshots.values()) total += prior.bytes;
 +    if (this.#snapshots.size >= HISTORY_LIMITS.snapshots || total > HISTORY_LIMITS.cacheBytes) throw new Error("history_cache_full");
-+    this.#snapshots.set(snapshot, { open: structuredClone(open), rows, bytes, cursors: new Map(Object.entries(cursors).map(([scope, cursor]) => [cursor, { scope: scope as HistoryScope, offset: 0 }])) });
++    const timer = setTimeout(() => { this.#snapshots.delete(snapshot); }, HISTORY_LIMITS.ttlMs);
++    timer.unref();
++    this.#snapshots.set(snapshot, { timer, contents, open: structuredClone(open), rows, bytes, cursors: new Map(Object.entries(cursors).map(([scope, cursor]) => [cursor, { scope: scope as HistoryScope, offset: 0 }])) });
 +    return structuredClone(open);
 +  }
 +  #expire(): void {
-+    for (const [id, snapshot] of this.#snapshots) if (Date.now() >= snapshot.open.expiresAt) this.#snapshots.delete(id);
++    for (const [id, snapshot] of this.#snapshots) if (Date.now() >= snapshot.open.expiresAt) { clearTimeout(snapshot.timer); this.#snapshots.delete(id); }
 +  }
 +  page(cursor: string): HistoryPage {
 +    this.#expire();
 +    const snapshot = [...this.#snapshots.values()].find(value => value.cursors.has(cursor));
 +    if (!snapshot) throw new Error("history_stale_cursor");
-+    if (this.#capture().cut.contentRevision !== snapshot.open.cut.contentRevision) throw new Error("history_changed");
++    if (this.#capture(false).cut.contentRevision !== snapshot.open.cut.contentRevision) throw new Error("history_changed");
 +    const position = snapshot.cursors.get(cursor)!;
 +    const start = position.offset;
 +    const rows = snapshot.rows[position.scope];
 +    const result: HistoryPage = { snapshot: snapshot.open.snapshot, scope: position.scope,
 +      cut: structuredClone(snapshot.open.cut), expiresAt: snapshot.open.expiresAt, items: [], complete: true };
 +    let index = start;
++    let used = Buffer.byteLength(JSON.stringify(result)) + 1024;
 +    while (index < rows.length && result.items.length < HISTORY_LIMITS.pageItems) {
-+      const row = JSON.parse(rows[index]);
-+      result.items.push(row);
-+      // Full encoded result, conservative envelope+opaque-next-cursor reserve.
-+      if (Buffer.byteLength(JSON.stringify(result)) + 1024 > HISTORY_LIMITS.pageBytes) { result.items.pop(); break; }
-+      index++;
++      const encoded = rows[index];
++      const size = Buffer.byteLength(encoded) + (result.items.length === 0 ? 0 : 1);
++      if (used + size > HISTORY_LIMITS.pageBytes) break;
++      result.items.push(JSON.parse(encoded)); used += size; index++;
 +    }
 +    if (index === start && index < rows.length) throw new Error("history_unpageable_item");
 +    if (index < rows.length) {
@@ -230,9 +341,29 @@ index 0000000000..960cf92b6a
 +    if (Buffer.byteLength(JSON.stringify(result)) + 1024 > HISTORY_LIMITS.responseBytes) throw new Error("history_response_bytes");
 +    return result;
 +  }
-+  close(snapshot: string): { closed: boolean } { return { closed: this.#snapshots.delete(snapshot) }; }
++  contentPage(cursor: string): HistoryContentPage {
++    this.#expire();
++    const snapshot = [...this.#snapshots.values()].find(value => value.contents.has(cursor));
++    if (!snapshot) throw new Error("history_stale_content_cursor");
++    if (this.#capture(false).cut.contentRevision !== snapshot.open.cut.contentRevision) throw new Error("history_changed");
++    const position = snapshot.contents.get(cursor)!;
++    const end = Math.min(position.data.length, position.offset + HISTORY_LIMITS.contentPageBytes);
++    const page: HistoryContentPage = { snapshot: snapshot.open.snapshot, cut: structuredClone(snapshot.open.cut),
++      expiresAt: snapshot.open.expiresAt, content: structuredClone(position.content), encoding: "base64",
++      partIndex: position.offset / HISTORY_LIMITS.contentPageBytes, data: position.data.slice(position.offset, end) };
++    if (end < position.data.length) {
++      const existing = [...snapshot.contents].find(([, value]) => value.content.cursor === position.content.cursor && value.offset === end);
++      const next = existing?.[0] ?? randomUUID();
++      snapshot.contents.set(next, { ...position, offset: end }); page.nextCursor = next;
++    }
++    return page;
++  }
++  close(snapshot: string): { closed: boolean } {
++    const value = this.#snapshots.get(snapshot); if (value) clearTimeout(value.timer);
++    return { closed: this.#snapshots.delete(snapshot) };
++  }
 +  poll(workerId: string, after: number): HistoryPoll {
-+    const { cut } = this.#capture();
++    const { cut } = this.#capture(false);
 +    if (workerId !== this.#workerId || !Number.isSafeInteger(after) || after < 0 || after > this.#seq) throw new Error("history_stale_observation");
 +    if (after < (this.#events[0]?.seq ?? this.#seq + 1) - 1) throw new Error("history_observation_gap");
 +    const events = this.#events.filter(event => event.seq > after).slice(0, HISTORY_LIMITS.pollItems);
@@ -241,15 +372,16 @@ index 0000000000..960cf92b6a
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 4408b13370..6bc919e7aa 100644
+index 4408b13370..a611b238c5 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import { validateHistoryCommand } from "./history.generated";
 +import { RpcHistoryObservation } from "./rpc-history";
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1467,6 +1468,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1467,6 +1469,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		costCapRefusal: () => session.costCapRefusal,
  		settledWithoutRun: () => void settleWatcher.check(),
  	});
@@ -260,7 +392,7 @@ index 4408b13370..6bc919e7aa 100644
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -1802,6 +1807,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1802,6 +1808,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
@@ -268,16 +400,19 @@ index 4408b13370..6bc919e7aa 100644
  		sessionEvents.forward(event);
  		// Before the prompt-result and settle reports: a goal continuation decided at this
  		// agent_end is scheduled (and reported as pending) before either reads settlement.
-@@ -2342,6 +2348,22 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2342,6 +2349,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
  			}
  
 +			case "history_snapshot_open":
++			case "history_content_page":
 +			case "history_snapshot_page":
 +			case "history_snapshot_close":
 +			case "history_observation_poll": {
 +				try {
++					if (!validateHistoryCommand(command)) return error(typeof id === "string" && id.length <= 96 ? id : undefined, command.type, "history_command_schema", "history_command_schema");
 +					const data = command.type === "history_snapshot_open" ? historyObservation.open(command.scope)
++						: command.type === "history_content_page" ? historyObservation.contentPage(command.cursor)
 +						: command.type === "history_snapshot_page" ? historyObservation.page(command.cursor)
 +						: command.type === "history_snapshot_close" ? historyObservation.close(command.snapshot)
 +						: historyObservation.poll(command.workerId, command.after);
@@ -292,33 +427,35 @@ index 4408b13370..6bc919e7aa 100644
  				try {
  					return success(
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..dbbc60770a 100644
+index 6d7b4f84cd..971340a753 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -30,6 +30,7 @@ import type { SubagentEventPayload, SubagentLifecyclePayload, SubagentProgressPa
  import type { TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
  import type { LogoutAccount } from "@oh-my-pi/pi-tui/overlays/logout-account-selector";
  import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
-+import type { HistoryScope, HistoryOpen, HistoryPage, HistoryPoll } from "./rpc-history";
++import type { HistoryScope, HistoryOpen, HistoryPage, HistoryContentPage, HistoryPoll } from "./rpc-history";
  import type { RpcMessagesPage } from "./rpc-messages";
  import type { GoalModeState } from "../../goals/state";
  import type { RpcGoalOp, RpcGoalResult } from "./rpc-goal";
-@@ -46,6 +47,10 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -46,6 +47,11 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
 +  | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
++  | { id?: string; type: "history_content_page"; cursor: string }
 +  | { id?: string; type: "history_snapshot_page"; cursor: string }
 +  | { id?: string; type: "history_snapshot_close"; snapshot: string }
 +  | { id?: string; type: "history_observation_poll"; workerId: string; after: number }
  	// Protocol
  	| { id?: string; type: "negotiate_protocol"; protocolVersion: number }
  
-@@ -428,6 +433,10 @@ export interface RpcSubagentMessagesResult {
+@@ -428,6 +434,11 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
 +  | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
++  | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
 +  | { id?: string; type: "response"; command: "history_snapshot_page"; success: true; data: HistoryPage }
 +  | { id?: string; type: "response"; command: "history_snapshot_close"; success: true; data: { closed: boolean } }
 +  | { id?: string; type: "response"; command: "history_observation_poll"; success: true; data: HistoryPoll }
@@ -326,44 +463,50 @@ index 6d7b4f84cd..dbbc60770a 100644
  	| {
  			id?: string;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 375a020e47..070d5cdf24 100644
+index 5da22a7c56..06df7c39ac 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-@@ -6,6 +6,7 @@
-  * `<Command>Params` / `<Command>Result`; a string names a shared definition.
+@@ -7,6 +7,7 @@
   */
  import { doc } from "./dsl";
+ import { catalogCommands } from "./catalog";
 +import { historyCommands } from "./history";
  
  /** One RPC command as described to generators. */
  export interface RpcCommandSpec {
-@@ -32,6 +33,7 @@ export interface RpcCommandSpec {
- const IMAGES = doc("ImageContent[]", "Images attached to the message.");
+@@ -34,6 +35,7 @@ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
  
  export const rpcCommands: readonly RpcCommandSpec[] = [
+   ...catalogCommands,
 +  ...historyCommands,
    {
      name: "get_compatibility",
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
 new file mode 100644
-index 0000000000..fcff075160
+index 0000000000..2593e96bc0
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,37 @@
 +/** Coherent native observation v1: safe readable history, never a provider-input or durability audit. */
 +export const historyDefs = {
 +  HistoryScope: "'tree' | 'active' | 'running'",
++  HistoryContent: { cursor: "string", mimeType: "string", bytes: "number.integer", sha256: "string",
++    origin: "'retained_native'", originalAssociation: "'unproven'" },
++  HistoryContentPage: { snapshot: "string", cut: "HistoryCut", expiresAt: "number.integer", content: "HistoryContent",
++    encoding: "'base64'", partIndex: "number.integer", data: "string", "nextCursor?": "string" },
 +  HistoryItem: { id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
-+    "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
-+  HistoryCut: { sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
++    "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
++  HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
++  HistoryCut: { sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
 +    contentRevision: "string", leafId: "string | null", observationSeq: "number.integer" },
 +  HistoryLimits: { entries: "number.integer", bytes: "number.integer", nativeItemBytes: "number.integer", itemBytes: "number.integer", ms: "number.integer",
 +    snapshotBytes: "number.integer", cacheBytes: "number.integer", snapshots: "number.integer", pageItems: "number.integer",
-+    pageBytes: "number.integer", responseBytes: "number.integer", ttlMs: "number.integer", liveEvents: "number.integer",
++    pageBytes: "number.integer", responseBytes: "number.integer", ttlMs: "number.integer", contentItems: "number.integer", contentPageBytes: "number.integer", liveEvents: "number.integer",
 +    liveBytes: "number.integer", pollItems: "number.integer" },
++  HistoryCursors: { tree: "string", active: "string", running: "string" },
 +  HistoryOpen: { version: "'coherent-history-v1'", snapshot: "string", cursor: "string", scope: "HistoryScope", cut: "HistoryCut",
-+    cursors: { tree: "string", active: "string", running: "string" }, expiresAt: "number.integer", count: "number.integer", streaming: "boolean", compacting: "boolean", prefix: "HistoryItem | null",
++    cursors: "HistoryCursors", expiresAt: "number.integer", count: "number.integer", streaming: "boolean", compacting: "boolean", prefix: "HistoryItem | null",
 +    scannedBytes: "number.integer", scanMs: "number", limits: "HistoryLimits" },
 +  HistoryPage: { snapshot: "string", scope: "HistoryScope", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
 +    complete: "true", "nextCursor?": "string" },
@@ -375,25 +518,27 @@ index 0000000000..fcff075160
 +    params: { scope: "HistoryScope" }, result: "HistoryOpen" },
 +  { name: "history_snapshot_page", doc: "Immutable, source/version/scope/expiry-bound native history page; any source change rejects old cursor.",
 +    params: { cursor: "string" }, result: "HistoryPage" },
++  { name: "history_content_page", doc: "Bounded retained native image bytes tied to immutable observation; never asserts exact original association.",
++    params: { cursor: "string" }, result: "HistoryContentPage" },
 +  { name: "history_snapshot_close", doc: "Release one native snapshot without changing history.",
 +    params: { snapshot: "string" }, result: { closed: "boolean" } },
 +  { name: "history_observation_poll", doc: "Bounded observation journal after a worker cut; explicit gaps require new snapshot.",
 +    params: { workerId: "string", after: "number.integer" }, result: "HistoryPoll" },
 +] as const;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index 7fe301e661..755d221df1 100644
+index f873117435..ac33a1bc78 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
-@@ -19,6 +19,7 @@ import { messageDefs, modelDefs } from "./content";
- import { doc, type WireDefs } from "./dsl";
+@@ -20,6 +20,7 @@ import { doc, type WireDefs } from "./dsl";
  import { eventDefs } from "./events";
  import { frameDefs } from "./frames";
+ import { catalogDefs } from "./catalog";
 +import { historyDefs } from "./history";
  import { stateDefs } from "./state";
  
  export type { RpcCommandSpec } from "./commands";
-@@ -167,6 +168,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
- 		...stateDefs,
+@@ -169,6 +170,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
+     ...catalogDefs,
  		...eventDefs,
  		...frameDefs,
 +		...historyDefs,
@@ -401,7 +546,7 @@ index 7fe301e661..755d221df1 100644
  	};
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..b96f3c1397 100644
+index 5835039797..45d4ae1fa6 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,4 +1,5 @@
@@ -410,17 +555,18 @@ index 5835039797..b96f3c1397 100644
  import * as path from "node:path";
  import type {
  	ImageContent,
-@@ -959,6 +960,9 @@ export class SessionManager {
+@@ -959,6 +960,10 @@ export class SessionManager {
  	#titleRevision = 0;
  	/** Bumped by in-place entry updates, which a {@link SessionBodyStamp} cannot otherwise see. */
  	#bodyRevision = 0;
 +	#historyRevision = 0;
 +	#historyContextRevision = 0;
++	#historySourceBinding: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string } | undefined;
 +	readonly #historyListeners = new Set<(change: { kind: string; revision: number; contextRevision: number }) => void>();
  	#sessionFile: string | undefined;
  	#header!: SessionHeader;
  	#titleUpdatedAt = "";
-@@ -2132,6 +2136,7 @@ export class SessionManager {
+@@ -2132,6 +2137,7 @@ export class SessionManager {
  	}
  
  	#applyEntries(header: SessionHeader, entries: SessionEntry[]): void {
@@ -428,7 +574,7 @@ index 5835039797..b96f3c1397 100644
  		this.#header = header;
  		this.#entries = entries;
  		this.#sessionId = header.id;
-@@ -2153,6 +2158,7 @@ export class SessionManager {
+@@ -2153,6 +2159,7 @@ export class SessionManager {
  	}
  
  	#setLeaf(id: string | null): void {
@@ -436,7 +582,7 @@ index 5835039797..b96f3c1397 100644
  		this.#index.setLeaf(id);
  		const batch = this.#atomicEntryBatch;
  		if (batch && !batch.collecting) {
-@@ -2162,6 +2168,8 @@ export class SessionManager {
+@@ -2162,6 +2169,8 @@ export class SessionManager {
  	}
  
  	#recordEntry(entry: SessionEntry): void {
@@ -445,7 +591,7 @@ index 5835039797..b96f3c1397 100644
  		if (this.#released) {
  			logger.warn("Dropped session entry appended after terminal release", { type: entry.type });
  			return;
-@@ -3796,6 +3804,7 @@ export class SessionManager {
+@@ -3796,6 +3805,7 @@ export class SessionManager {
  	 * outputs). Use sparingly.
  	 */
  	async rewriteEntries(): Promise<void> {
@@ -453,10 +599,17 @@ index 5835039797..b96f3c1397 100644
  		this.#bodyRevision++;
  		if (!this.#persist || !this.#sessionFile) return;
  		await this.#rewriteAtomically();
-@@ -4045,6 +4054,55 @@ export class SessionManager {
+@@ -4045,6 +4055,63 @@ export class SessionManager {
  	}
  
  	/** All session entries (excludes header). Returns a shallow copy. */
++	/** Set only by native strict-open after catalog revalidation under the real lease. Not a browser command. */
++	bindHistorySource(binding: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string }): void {
++		if (binding.nativeSessionId !== this.#sessionId) throw new Error("history_source_binding_mismatch");
++		this.#historySourceBinding = { ...binding };
++		this.#historyChanged("source_binding", true);
++	}
++
 +	/** Independent native observer; never replaces the collaboration append callback. */
 +	subscribeHistoryChanges(listener: (change: { kind: string; revision: number; contextRevision: number }) => void): () => void {
 +		this.#historyListeners.add(listener);
@@ -466,7 +619,7 @@ index 5835039797..b96f3c1397 100644
 +		this.#historyRevision++;
 +		if (context) this.#historyContextRevision++;
 +		for (const listener of this.#historyListeners) {
-+			try { listener({ kind, revision: this.#historyRevision, contextRevision: this.#historyContextRevision }); }
++			try { listener({ kind, sourceBinding, revision: this.#historyRevision, contextRevision: this.#historyContextRevision }); }
 +			catch { logger.warn("History observer failed"); }
 +		}
 +	}
@@ -476,12 +629,13 @@ index 5835039797..b96f3c1397 100644
 +	 * Includes full hidden entry payloads in the revision, but never returns those bytes on RPC.
 +	 * Runtime must be sampled by the RPC controller in this same synchronous JS turn.
 +	 */
-+	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; bytes: number; nativeItemBytes: number; ms: number }) {
++	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
 +		const started = performance.now();
 +		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
 +		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
 +		const hash = createHash("sha256");
-+		const sourceId = createHash("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
++		const sourceBinding = this.#historySourceBinding?.nativeSessionId === this.#sessionId ? this.#historySourceBinding : undefined;
++		const sourceId = sourceBinding?.sourceId ?? createHash("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
 +		let scannedBytes = 0;
 +		const copy = <T>(value: T): T => {
 +			const bytes = JSON.stringify(value);
@@ -491,17 +645,17 @@ index 5835039797..b96f3c1397 100644
 +			if (scannedBytes > limits.bytes) throw new Error("history_scan_bytes");
 +			if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
 +			hash.update(bytes).update("\n");
-+			return JSON.parse(bytes) as T;
++			return materialize ? JSON.parse(bytes) as T : value;
 +		};
 +		const identity = copy({ sourceId, sessionId: this.#sessionId, leafId: this.#index.leafId(),
-+			revision: this.#historyRevision, contextRevision: this.#historyContextRevision, header: this.#header });
++			sourceBinding, revision: this.#historyRevision, contextRevision: this.#historyContextRevision, header: this.#header });
 +		const entries = this.#entries.map(copy);
 +		// Bound each running message independently, rather than treating the full list as one item.
 +		const running = runtime;
 +		if (running.messages.length > limits.entries) throw new Error("history_scan_entries");
 +		const messages = running.messages.map(copy);
 +		const state = copy({ prefix: running.prefix ?? null, streaming: running.streaming, compacting: running.compacting });
-+		return { sourceId, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, entries,
++		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, entries,
 +			runtime: { messages, ...state }, contentRevision: hash.digest("hex"), scannedBytes,
 +			scanMs: performance.now() - started };
 +	}
