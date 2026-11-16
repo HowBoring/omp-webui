@@ -2,13 +2,33 @@
   "status": "INCOMPLETE_SOURCE_PREPARATION",
   "capabilityGranted": false,
   "scope": "stable-native-patches-1-through-6-plus-0010-only",
-  "pureModuleChecks": { "status": "PASS", "tests": 13, "assertions": 39, "files": 4, "milliseconds": 22 },
-  "schemaCorpus": { "status": "PASS", "requests": 8, "responses": 6 },
-  "focusedTypeCheck": { "status": "PASS", "files": 10, "errors": 0, "milliseconds": 88.31 },
+  "pureModuleChecks": {
+    "status": "PASS",
+    "tests": 17,
+    "assertions": 58,
+    "sourceFiles": 6,
+    "runnerFiles": 1,
+    "milliseconds": 86,
+    "osCaseSkipped": 1,
+    "guardBeforeImports": true,
+    "syntheticEnvironmentBeforeImports": true
+  },
+  "schemaCorpus": {
+    "status": "PASS",
+    "requests": 11,
+    "responses": 8,
+    "helpers": 5
+  },
+  "focusedTypeCheck": {
+    "status": "PASS",
+    "files": 13,
+    "errors": 0,
+    "milliseconds": 129.14
+  },
   "hostTypeCheck": "PASS",
   "orderedPatchApplication": "PASS",
-  "cBridgeCompile": "NOT_RUN",
-  "soPeerPidfdKernelProof": "NOT_RUN",
+  "cBridgeCompile": "PASS_STRICT_ZERO_DIAGNOSTICS",
+  "soPeerPidfdKernelProof": "PASS_SCOPED_SOCKET_PRIMITIVE_ONLY",
   "helperRuntime": "NOT_RUN",
   "actualNativeSemantics": "NOT_RUN",
   "actualGlobal": "BLOCKED",
@@ -26,5 +46,7 @@
     "priorPrivateConfigurationReads": "UNKNOWN_NO_TRACE",
     "networkOrProviderDispatch": "UNKNOWN_NO_TRACE",
     "correctedActualCliRerun": "NOT_RUN"
-  }
+  },
+  "positiveHostHelperParentage": "NOT_RUN",
+  "backendCapabilityGranted": false
 }

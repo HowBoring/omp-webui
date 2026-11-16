@@ -13,22 +13,27 @@ immutable-registration client, dispatcher decisions and helper durable-fence/pub
 `--execution-dispatcher` selector explicitly refuses with `ownership_backend_unavailable` before the normal runtime
 graph. The selected OS/storage/server transport does not yet exist. The same-source C/FFI bridge prepares direct
 socket ownership, actual SO_PEERPIDFD/credentials, retained/revalidated ancestry, generational opaque handles and
-aggregate descriptor limits. **It was not compiled, loaded or executed.** It grants no signal/wait authority.
+aggregate descriptor limits. Strict compilation and one bounded actual socket/pidfd fixture passed. It grants no
+signal/wait authority or backend capability; [the scoped primitive report](ticket-41-ownership-kernel-primitive.json)
+records the exact library/compiler/source/trace identities and remaining gaps.
 
 The accepted seams remain public Native module/schema behavior, then actual public CLI/RPC/TUI and real browser
 acceptance. Current tests use synthetic disk/kernel facts at the system seam and pure wire exchange; those fixtures
 prove decision behavior only. They do not establish actual ancestry, env-i classification, service preservation,
-maintenance protection, worker cleanup, actual provider/tool behavior or a production dispatcher.
+maintenance protection, worker cleanup, actual provider/tool behavior or a production dispatcher. The separate small
+OS fixture establishes only its recorded socket/pidfd primitives, including a self-peer direct-parent negative.
 
 | Check | Actual result | Scope |
 | --- | --- | --- |
-| Pure ownership module tests | PASS: 13 tests, 39 assertions, 4 files, 22 ms | No CLI/runtime/provider/kernel imports |
-| Public request/response schema corpus | PASS: 8 request + 6 response cases | AJV 8.17.1 and strict request decoder |
-| Focused source type check | PASS: `bun check --no-script`, 10 files, 0 errors, 88.31 ms | New ownership TS/test files only; C and CLI graph excluded |
+| Pure ownership module tests | PASS: 17 tests, 58 assertions, 6 source files / 1 wrapper, 86 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
+| Public request/response/helper schema corpus | PASS: 11 request + 8 response + 5 helper cases | AJV 8.17.1 and strict request/helper decoders |
+| Focused source type check | PASS: `bun check --no-script`, 13 files, 0 errors, 129.14 ms | New ownership TS/test files only; C and CLI graph excluded |
 | Host repository type check | PASS: `bun run typecheck`, exit 0 | Host source compile only |
 | Ordered patch application | PASS: private index, base + 1–6 + 0010 | Prepared tree recorded in identity JSON |
 | Whitespace check | PASS: owned Native diff and repository diff | Source only |
-| C/FFI compile/load, SO_PEERPIDFD, helper/ancestry/FD fixtures | NOT RUN | Runtime window held |
+| C bridge strict compilation | PASS: zero diagnostics; 21,608-byte ABI 1 library | Independent compiler/source/artifact identities recorded |
+| One actual Unix socket/pidfd primitive fixture | PASS: 1 test, 10 assertions, 50.25 ms; runner 140 ms, wrapper 155 ms | Three actual SO_PEERPIDFD successes, 0 traced INET socket/endpoint calls; no child/CLI/Agent |
+| Positive helper parentage, dead/foreign peer/resource faults, lifecycle | NOT RUN | No broader OS clearance or backend capability |
 | Corrected actual dispatcher CLI | NOT RUN | Requires pre-import guard + isolated environment before any Native import |
 | All-mode broker client no-auto-spawn and broker publication entry | NOT IMPLEMENTED | Baseline still auto-spawns; no claim from new module alone |
 | Consumer policy, private LSP/blob and mandatory attachment paths | NOT IMPLEMENTED / NOT RUN | Mandatory stories retained |
@@ -38,20 +43,46 @@ maintenance protection, worker cleanup, actual provider/tool behavior or a produ
 ## Reproduction
 
 Apply exactly the manifest's six base patches and `0010-execution-ownership.patch` to an owned checkout at the
-recorded Native base. Do not modify a running/canonical build. With the pinned Bun, run:
+recorded Native base. Do not modify a running/canonical build. From the Host repository with the pinned Bun, run:
 
 ```sh
-bun --no-env-file test ./packages/coding-agent/test/execution-ownership-cli.test.ts \
-  ./packages/coding-agent/test/execution-ownership-client.test.ts \
-  ./packages/coding-agent/test/execution-ownership-contract.test.ts \
-  ./packages/coding-agent/test/execution-ownership-dispatcher.test.ts
+bun --no-env-file scripts/check-ownership-preparation.ts <owned-native-checkout>
+bun --no-env-file scripts/validate-ownership-preparation.ts <owned-native-checkout>
 ```
 
 Despite its filename, `execution-ownership-cli.test.ts` imports only `launch/ownership/entry.ts`, which refuses
-before any runtime import; it is not actual CLI acceptance. From the Host repository run
-`bun --no-env-file scripts/validate-ownership-preparation.ts <owned-native-checkout>` for the public JSON schema.
-The focused type-check config includes only `src/launch/ownership/*.ts` and `test/execution-ownership*.ts`, strict
+before any runtime import; it is not actual CLI acceptance. The source checker creates a fresh synthetic HOME,
+profile, XDG and cwd, passes an allowlisted environment, preloads the guard before any Native module, imports the
+six test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
+only `src/launch/ownership/*.ts` and `test/execution-ownership*.ts`, with strict
 mode, Bun types, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noEmit` and bundler resolution.
+
+Compile only with `bun --no-env-file scripts/build-ownership-bridge-preparation.ts <owned-native-checkout>
+<absolute-owned-output-parent>`. It uses a unique output directory, fixed strict compiler/linker flags and an
+allowlisted compiler environment, records compiler/source/ABI/artifact/NEEDED identities, and does not load/probe
+the result. The dynamic `libc.so.6` dependency is not a complete platform-library stability proof.
+
+## Scoped actual socket/pidfd proof
+
+The coordinator cleared one bounded harmless OS fixture. It used synthetic HOME/profile/XDG/cwd and an allowlisted
+environment before imports, the pre-import egress guard, the exact independently identified library and strace network
+capture. The successful actual invocation ran `bun test` first, then `--no-env-file`, `--config=<reviewed bunfig>`,
+`--preload=<no-provider guard>`, and `./bridge.test.ts` in the synthetic cwd. That wrapper contains only a static import
+of the owned `execution-ownership-linux.test.ts`. An explicit build-manifest fixture input enables this normally skipped test.
+
+The test loaded ABI 1, ran the actual socketpair probe and local listener/connect/accept, retained actual peer pidfds,
+checked same/live self identity, refused a self-as-direct-child relationship, traversed verified external ancestry,
+transferred exact bounded bytes, released peer/socket handles, observed the bridge's owned descriptor counter return
+to zero, closed the library and removed its unique socket directory. The process exited 0 with no child process.
+Trace records three successful SO_PEERPIDFD calls and no AF_INET socket/endpoint activity. This proves neither
+positive Host/helper parentage nor private cleanup. Broader FD/fault/foreign-death evidence and independent OS FD
+census are still needed. The separate private-helper candidate backend/containment result is owned by its supporting
+component; this socket result supplies no `/proc/.../children` availability or helper lifecycle proof.
+
+Two earlier harness invocations never reached the fixture: preload-before-`test` made Bun treat `test` as a script
+(exit 1, 23 ms), then an absolute vendor test filter matched no files (exit 1, 114 ms). Both used the synthetic
+environment and are retained as harness failures, not Native/kernel failures or passes. The successful synthetic-cwd
+wrapper corrects both issues. No actual CLI was restarted in this kernel window.
 
 ## Failed pre-guard entry attempt, retained separately
 

@@ -27,10 +27,10 @@ index 0b34d8fc54c144e575dabb91854afdcfb1f26912..359bb4c7008cf651b900c3dfeb51deb9
  - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12ed913682c
+index 0000000000000000000000000000000000000000..f25f1a0386aeb8b2f5ea0b6e29d0b7b47e714733
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,115 @@
+@@ -0,0 +1,132 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -55,7 +55,8 @@ index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12e
 +
 +`launch/ownership/protocol` defines `omp-execution-ownership/1`, strict request/response decoders and typed errors.
 +`wire.schema.json` contains the matching public draft-07 request/response schemas. Use
-+`#/definitions/request` and `#/definitions/response`; framing byte limits and correlation are additional requirements.
++`#/definitions/request`, `#/definitions/response`, `#/definitions/helperRequest` and `#/definitions/helperResponse`;
++framing byte limits and correlation are additional requirements.
 +`framing` accepts one LF-terminated UTF-8 frame at a time, rejects malformed UTF-8/oversize/incomplete EOF and
 +forbids pipelining. `client` validates request correlation, release/schema, operation and immutable process registration.
 +Private registration refuses broker acquisition and publication before another wire request. It has no local spawn API.
@@ -67,12 +68,25 @@ index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12e
 +- `classify`: no PID, environment or process-name authority from a caller; return immutable private/external registration.
 +- `broker`: canonical project directory or fixed `browser-relay`/`text-predict` global scope; no executable/argv choice.
 +- `publish`: exact dispatcher-owned broker peer, scope and generation, validated before any broker socket publication.
++- `prepare_helper` / `helper_status`: bind a generation to the actual external Host before spawning; only that Host
++  may observe its pending/registered state. Neither prepare nor a pending status grants worker START.
 +
-+Only the trusted supervisor control seam may register/complete a private helper. `registerHelper` returns only after
++Helper registration uses the separate `omp-execution-helper/1` version at the same fixed endpoint, at most 512 bytes
++including LF. The helper actively connects with a retained socket before HELLO; inherited fd3 socketpair credentials
++cannot substitute for this actual helper peer. Requests carry installation, generation, operation and an independent
++random 64-hex request ID, distinct from generation and the previous operation. Canonical success is exactly
++`{"version":"omp-execution-helper/1","id":"<requestId>","ok":true,"operation":"register_helper|complete_helper","generation":"<generation>"}`
++plus LF. The C helper compares exact bytes. Late/duplicate REGISTER success cannot match COMPLETE. Retain this socket
++through completion; loss fences shared registration and preserves the helper's current private policy/lease/fence.
++Only explicit force, mandatory shutdown or Host fd3 loss triggers the corresponding private cleanup escalation.
++
++Only the trusted actual-helper seam may register/complete a private helper. `registerHelper` returns only after
 +the system adapter verifies the actual helper and supervisor, retains stable identities and durably fsyncs the
 +incomplete generation. Only then may Host release the helper's worker-start barrier. PID/starttime fields in control
 +receipts are audit/correlation hints. They are not authority; prefer the helper's own authenticated dispatcher connection
-+to obtain SO_PEERPIDFD. `helperUncertain` fences new shared registrations globally before awaited storage work.
++to obtain SO_PEERPIDFD. The accepted order is Host prepare before spawn, helper registration durable ACK before HELLO,
++Host status verification before START. COMPLETE is sent only after root reap + authoritative ECHILD; its durable ACK
++precedes the helper clearing its own fence/exiting. `helperUncertain` fences new shared registrations globally before awaited storage work.
 +There is no client recovery/reset operation. Completion requires the actual trusted helper's extinction proof.
 +
 +`OwnershipSystem` is an OS/durable-storage seam, not an existing production implementation. Its test adapter models
@@ -91,8 +105,10 @@ index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12e
 +The bridge is loaded only explicitly by a future execution-ownership backend. Its selection requires an independent
 +library SHA256, canonical direct file, ABI check and independently held/rechecked maintenance protection. The final
 +closure must include its source, compiler executable identity, exact arguments/target, resulting bytes and platform
-+libraries. This source has **not been compiled, loaded or tested**. The real-operation probe must run on the selected
-+kernel before backend availability; a kernel version string cannot establish support. Catalog/preflight must not import it.
++libraries. Strict compilation and one bounded socket/pidfd fixture are recorded separately. Actual SO_PEERPIDFD,
++self-peer identity, byte transfer and descriptor release passed; positive helper parentage, lifecycle and kernel-fault
++coverage remain unproven. This primitive result does not admit the dispatcher/backend. A kernel version string cannot
++establish support. Catalog/preflight must not import the bridge.
 +
 +## Fixed budgets
 +
@@ -103,6 +119,7 @@ index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12e
 +| Connections / pending requests | 64 total / 1 per connection; no pipelining |
 +| Global concurrent dispatcher operation / queue | 1 / 0; immediate typed refusal |
 +| Retained process registrations / private helpers | 512 / 64; refuse new admission on exhaustion |
++| Helper generations per dispatcher / pending + registered helpers | 512 / 64; no generation reuse or silent eviction |
 +| Ancestor depth | 256 retained identities per traversal; overflow unresolved |
 +| C table slots / aggregate owned descriptors | 1,024 / 2,048; overflow fails closed, release partial acquisitions |
 +| Broker scopes / independently protected external lifetimes | 64 / 256; refuse overflow |
@@ -180,12 +197,12 @@ index ff1bfe94d241d510f85007a47194263398951a7b..8705f78d102c53161b3af3230745344d
      else void runCli(args).catch(() => { process.exitCode = 1; });
 diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..0bae75659d1caf52b5128f4e7511215082caedfb
+index 0000000000000000000000000000000000000000..a1b10c5e9afa1586024a98d3d6ea18493a24785a
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/client.ts
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,97 @@
 +import {
-+	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipIdentity, ownershipScope,
++	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipGeneration, ownershipIdentity, ownershipScope,
 +	type OwnershipIdentity, type OwnershipOperation, type OwnershipRegistration, type OwnershipRequest, type OwnershipResult, type OwnershipScope,
 +} from "./protocol";
 +
@@ -233,6 +250,23 @@ index 0000000000000000000000000000000000000000..0bae75659d1caf52b5128f4e75112150
 +		return result;
 +	}
 +
++	/** Host must prepare before spawning the held helper; this never grants worker START. */
++	async prepareHelper(generation: string): Promise<void> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if ((await this.classify()).policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "prepare_helper", generation: ownershipGeneration(generation) });
++		if (result.op !== "prepare_helper") throw this.#fail("ownership_protocol");
++	}
++
++	/** Only the same actual Host peer can observe its prepared/registered helper generation before START. */
++	async helperStatus(generation: string): Promise<"pending" | "registered"> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if ((await this.classify()).policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "helper_status", generation: ownershipGeneration(generation) });
++		if (result.op !== "helper_status") throw this.#fail("ownership_protocol");
++		return result.status;
++	}
++
 +	/** Only the exact dispatcher-spawned broker peer can successfully use this public publication handshake. */
 +	async publish(scope: OwnershipScope, generation: string): Promise<void> {
 +		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
@@ -266,16 +300,17 @@ index 0000000000000000000000000000000000000000..0bae75659d1caf52b5128f4e75112150
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a532361aebf835
+index 0000000000000000000000000000000000000000..d9c6607f9bdf6089b8ca97ce02e695c547b8d400
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
-@@ -0,0 +1,170 @@
+@@ -0,0 +1,225 @@
 +import {
 +	decodeOwnershipRequest, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError,
-+	ownershipIdentity, ownershipToken, sameOwnershipScope,
++	ownershipGeneration, ownershipIdentity, ownershipToken, sameOwnershipScope,
 +	type OwnershipIdentity, type OwnershipRegistration, type OwnershipRequest, type OwnershipResponse,
 +	type OwnershipResult, type OwnershipScope,
 +} from "./protocol";
++import { HelperWireSession } from "./helper-protocol";
 +
 +/** Opaque retained OS peer identity, supplied only by the authenticated local transport, never decoded from wire. */
 +export type StablePeer = object;
@@ -317,7 +352,11 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +	readonly #identity: OwnershipIdentity;
 +	readonly #system: OwnershipSystem;
 +	readonly #helpers = new Map<StablePeer, string>();
++	readonly #helperControllers = new Map<string, StablePeer>();
++	readonly #pendingHelpers = new Map<string, StablePeer>();
++	readonly #helperGenerations = new Set<string>();
 +	readonly #registrations = new Map<StablePeer, OwnershipRegistration>();
++	readonly #helperSockets = new WeakMap<HelperWireSession, StablePeer>();
 +	#blocked = false;
 +	#busy = false;
 +	#ready = false;
@@ -338,7 +377,8 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +	/** Trusted supervisor control seam, separate from the ordinary client socket. Return releases no worker itself. */
 +	async registerHelper(control: StablePeer, helper: StablePeer, generation: string): Promise<void> {
 +		return this.#serial(async () => {
-+			this.#assertAvailable(); ownershipToken(generation);
++			this.#assertAvailable(); ownershipGeneration(generation);
++			if (this.#pendingHelpers.get(generation) !== control) throw new OwnershipError("ownership_unresolved");
 +			if (this.#helpers.has(helper) || [...this.#helpers.values()].includes(generation)) {
 +				throw new OwnershipError("ownership_protocol");
 +			}
@@ -347,7 +387,30 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +			catch (error) { this.#blocked = true; throw error; }
 +			this.#assertAvailable();
 +			this.#helpers.set(helper, generation);
++			this.#helperControllers.set(generation, control);
++			this.#pendingHelpers.delete(generation);
 +		});
++	}
++
++	/** Active helper socket supplies the actual helper peer; its Host is selected from the prior authenticated prepare. */
++	async registerHelperPeer(helper: StablePeer, generation: string): Promise<void> {
++		const control = this.#pendingHelpers.get(ownershipGeneration(generation));
++		if (!control) throw new OwnershipError("ownership_unresolved");
++		await this.registerHelper(control, helper, generation);
++	}
++
++	/** One actual helper socket, routed separately from ordinary Native operations; no claimed PID is decoded. */
++	async handleHelper(peer: StablePeer, session: HelperWireSession, frame: string): Promise<string> {
++		const bound = this.#helperSockets.get(session);
++		if (bound && bound !== peer) throw new OwnershipError("ownership_unresolved");
++		this.#helperSockets.set(session, peer);
++		const request = session.decode(frame);
++		if (request.operation.op === "register_helper") await this.registerHelperPeer(peer, request.operation.generation);
++		else {
++			if (this.#helpers.get(peer) !== request.operation.generation) throw new OwnershipError("ownership_unresolved");
++			await this.completeHelper(peer);
++		}
++		return session.acknowledge(request);
 +	}
 +
 +	/** Helper loss fences globally before storage I/O; no new shared registration may exploit orphan reparenting. */
@@ -366,6 +429,7 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +			try { await this.#system.completeHelper(helper, generation); }
 +			catch (error) { this.#blocked = true; throw error; }
 +			this.#helpers.delete(helper);
++			this.#helperControllers.delete(generation);
 +		});
 +	}
 +
@@ -390,6 +454,8 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +		this.#assertAvailable();
 +		if (request.operation.op === "classify") return { op: "classify", registration };
 +		if (registration.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if (request.operation.op === "prepare_helper") return this.#prepareHelper(peer, request.operation.generation);
++		if (request.operation.op === "helper_status") return this.#helperStatus(peer, request.operation.generation);
 +		const scope = await this.#system.canonicalScope(request.operation.scope);
 +		if (!sameOwnershipScope(scope, request.operation.scope)) throw new OwnershipError("ownership_unresolved");
 +		this.#assertAvailable();
@@ -408,6 +474,29 @@ index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a53236
 +			this.#blocked = true;
 +			throw error;
 +		}
++	}
++
++	#prepareHelper(control: StablePeer, generation: string): OwnershipResult {
++		if (this.#helperGenerations.has(generation)) throw new OwnershipError("ownership_protocol");
++		if (this.#pendingHelpers.size + this.#helpers.size >= OWNERSHIP_LIMITS.helpers
++			|| this.#helperGenerations.size >= OWNERSHIP_LIMITS.helperGenerations) throw new OwnershipError("ownership_limit");
++		this.#helperGenerations.add(generation);
++		this.#pendingHelpers.set(generation, control);
++		return { op: "prepare_helper", generation };
++	}
++
++	async #helperStatus(control: StablePeer, generation: string): Promise<OwnershipResult> {
++		if (this.#pendingHelpers.get(generation) === control) return { op: "helper_status", generation, status: "pending" };
++		if (this.#helperControllers.get(generation) !== control) throw new OwnershipError("ownership_unresolved");
++		const helper = [...this.#helpers].find(([, value]) => value === generation)?.[0];
++		if (!helper) throw new OwnershipError("ownership_unresolved");
++		const facts = await this.#system.classify(helper);
++		if (facts.kind !== "private" || facts.generation !== generation) {
++			await this.helperUncertain(helper);
++			throw new OwnershipError("ownership_unresolved");
++		}
++		this.#assertAvailable();
++		return { op: "helper_status", generation, status: "registered" };
 +	}
 +
 +	async #registration(peer: StablePeer): Promise<OwnershipRegistration> {
@@ -494,13 +583,95 @@ index 0000000000000000000000000000000000000000..2a1ca28fe7b2c00ddaf1593a5cb4359b
 +		if (this.#used !== 0) throw new OwnershipError("ownership_protocol");
 +	}
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/helper-protocol.ts b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..5f7910ccd6c2eed73706ddda7f919274ab7f7f6c
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
+@@ -0,0 +1,76 @@
++import { OwnershipError, ownershipGeneration } from "./protocol";
++
++/** Fixed canonical C-helper protocol, routed by version at the selected ownership endpoint. No closure hash cycle. */
++export const HELPER_OWNERSHIP_VERSION = "omp-execution-helper/1";
++export const HELPER_OWNERSHIP_FRAME_BYTES = 512;
++export interface HelperOwnershipRequest {
++	version: typeof HELPER_OWNERSHIP_VERSION;
++	id: string;
++	installation: string;
++	operation: { op: "register_helper" | "complete_helper"; generation: string };
++}
++
++function record(value: unknown, keys: readonly string[]): Record<string, unknown> {
++	if (typeof value !== "object" || value === null || Array.isArray(value)) throw new OwnershipError("ownership_protocol");
++	const result = value as Record<string, unknown>;
++	if (Object.keys(result).length !== keys.length || Object.keys(result).some(key => !keys.includes(key))) {
++		throw new OwnershipError("ownership_protocol");
++	}
++	return result;
++}
++export function helperOwnershipGeneration(value: unknown): string {
++	return ownershipGeneration(value);
++}
++
++/** Decode one frame excluding LF; the C protocol's 512-byte budget includes that LF. */
++export function decodeHelperRequest(frame: string, installation: string): HelperOwnershipRequest {
++	if (new TextEncoder().encode(frame).length >= HELPER_OWNERSHIP_FRAME_BYTES) throw new OwnershipError("ownership_limit");
++	let value: unknown;
++	try { value = JSON.parse(frame); } catch { throw new OwnershipError("ownership_protocol"); }
++	const source = record(value, ["version", "id", "installation", "operation"]);
++	if (source.version !== HELPER_OWNERSHIP_VERSION || source.installation !== helperOwnershipGeneration(installation)) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	const operation = record(source.operation, ["op", "generation"]);
++	if (operation.op !== "register_helper" && operation.op !== "complete_helper") throw new OwnershipError("ownership_protocol");
++	const generation = helperOwnershipGeneration(operation.generation);
++	const id = helperOwnershipGeneration(source.id);
++	if (id === generation) throw new OwnershipError("ownership_protocol");
++	return Object.freeze({ version: HELPER_OWNERSHIP_VERSION, id, installation,
++		operation: Object.freeze({ op: operation.op, generation }) });
++}
++
++/** Exact canonical success bytes; called only after authenticated peer verification and durable system action. */
++export function encodeHelperSuccess(request: HelperOwnershipRequest): string {
++	return JSON.stringify({ version: HELPER_OWNERSHIP_VERSION, id: request.id, ok: true,
++		operation: request.operation.op, generation: request.operation.generation }) + "\n";
++}
++
++/** A stale success, duplicate phase, wrong operation or wrong generation never grants START/extinction. */
++export function verifyHelperAcknowledgement(frame: string, expected: HelperOwnershipRequest): void {
++	if (frame !== encodeHelperSuccess(expected)) throw new OwnershipError("dispatcher_mismatch");
++}
++
++/** One authenticated helper socket, retained REGISTER through COMPLETE; acknowledge only after durable system work. */
++export class HelperWireSession {
++	readonly #installation: string;
++	#registered: HelperOwnershipRequest | undefined;
++	#pending: HelperOwnershipRequest | undefined;
++	#complete = false;
++	constructor(installation: string) { this.#installation = helperOwnershipGeneration(installation); }
++	decode(frame: string): HelperOwnershipRequest {
++		if (this.#pending || this.#complete) throw new OwnershipError("ownership_protocol");
++		const request = decodeHelperRequest(frame, this.#installation), old = this.#registered;
++		if (!old ? request.operation.op !== "register_helper"
++			: request.operation.op !== "complete_helper" || request.id === old.id
++				|| request.operation.generation !== old.operation.generation) throw new OwnershipError("ownership_protocol");
++		this.#pending = request;
++		return request;
++	}
++	acknowledge(request: HelperOwnershipRequest): string {
++		if (this.#pending !== request) throw new OwnershipError("ownership_protocol");
++		this.#pending = undefined;
++		if (request.operation.op === "register_helper") this.#registered = request; else this.#complete = true;
++		return encodeHelperSuccess(request);
++	}
++}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.c b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 new file mode 100644
-index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c44717e2ae
+index 0000000000000000000000000000000000000000..f2952b794f21802e38dda98aebc845d770936d51
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.c
-@@ -0,0 +1,314 @@
-+/* Native execution ownership ABI 1. SOURCE PREPARATION: not compiled or kernel-validated.
+@@ -0,0 +1,339 @@
++/* Native execution ownership ABI 1. COMPILE-ONLY PREPARATION: no kernel-validated capability.
 + * No Agent, Session, provider, arbitrary executable, environment or signal operation lives here.
 + * All descriptors stay inside this library. Callers receive checked table handles, never raw fds.
 + */
@@ -595,7 +766,6 @@ index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c4
 +static int read_task(pid_t pid, int pidfd, struct task *task) {
 +	char name[64], bytes[4096];
 +	if (alive(pidfd) < 0) return -ESTALE;
-+	if (same_pid_namespace(pid) < 0) return -EXDEV;
 +	if (snprintf(name, sizeof(name), "/proc/%ld/stat", (long)pid) >= (int)sizeof(name)) return -EOVERFLOW;
 +	int fd = own_fd(open(name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW));
 +	if (fd < 0) return fd;
@@ -635,6 +805,8 @@ index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c4
 +	socklen_t size = sizeof(credential);
 +	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &credential, &size)) return failure();
 +	if (size != sizeof(credential) || credential.uid != expected_uid || credential.pid <= 0) return -EACCES;
++	/* Validate namespace on authenticated peers. Ancestors may be root-owned with unreadable ns links. */
++	if (same_pid_namespace(credential.pid) < 0) return -EXDEV;
 +	int obtained = -1;
 +	size = sizeof(obtained);
 +	if (getsockopt(fd, SOL_SOCKET, SO_PEERPIDFD, &obtained, &size)) return failure();
@@ -741,10 +913,34 @@ index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c4
 +	struct handle *source = lookup(identity, IDENTITY);
 +	return source && alive(source->fd) > 0 ? source->start : 0;
 +}
++int omp_ownership_peer_alive(int identity) {
++	struct handle *source = lookup(identity, IDENTITY);
++	if (!source) return -EBADF;
++	struct pollfd descriptor = { .fd = source->fd, .events = POLLIN };
++	int result = poll(&descriptor, 1, 0);
++	if (result < 0) return failure();
++	if (result == 0) return 1;
++	if (descriptor.revents & (POLLERR | POLLNVAL)) return -EIO;
++	return descriptor.revents & (POLLIN | POLLHUP) ? 0 : -EPROTO;
++}
 +int omp_ownership_same_peer(int left, int right) {
 +	struct handle *a = lookup(left, IDENTITY), *b = lookup(right, IDENTITY);
 +	if (!a || !b || alive(a->fd) < 0 || alive(b->fd) < 0) return -ESTALE;
 +	return a->pid == b->pid && a->start == b->start;
++}
++
++/* Actual authenticated identities only; never a numeric-PID registration or signal authority. */
++int omp_ownership_direct_child(int child_key, int parent_key) {
++	struct handle *child = lookup(child_key, IDENTITY), *parent = lookup(parent_key, IDENTITY);
++	if (!child || !parent) return -EINVAL;
++	struct task first, parent_task, again;
++	int result = read_task(child->pid, child->fd, &first);
++	if (result < 0 || first.start != child->start) return -ESTALE;
++	result = read_task(parent->pid, parent->fd, &parent_task);
++	if (result < 0 || parent_task.start != parent->start) return -ESTALE;
++	result = read_task(child->pid, child->fd, &again);
++	if (result < 0 || again.start != first.start || again.parent != first.parent || alive(parent->fd) < 0) return -ESTALE;
++	return first.parent == parent->pid;
 +}
 +
 +/* Return helper index + 1, 0 for verified external ancestry, negative for every missing/changing/overflowed chain.
@@ -816,10 +1012,10 @@ index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c4
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a0365a756f2
+index 0000000000000000000000000000000000000000..878699c0f013b1f9cc02bd69283092c208d362a2
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
-@@ -0,0 +1,176 @@
+@@ -0,0 +1,209 @@
 +/** Loaded only by the explicit Linux execution-ownership backend, never catalog/preflight. */
 +import { dlopen, FFIType, ptr, type FFIFunction, type Library } from "bun:ffi";
 +import * as fs from "node:fs/promises";
@@ -838,7 +1034,9 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +	omp_ownership_peer: { args: [FFIType.i32], returns: FFIType.i32 },
 +	omp_ownership_peer_pid: { args: [FFIType.i32], returns: FFIType.i32 },
 +	omp_ownership_peer_start: { args: [FFIType.i32], returns: FFIType.u64 },
++	omp_ownership_peer_alive: { args: [FFIType.i32], returns: FFIType.i32 },
 +	omp_ownership_same_peer: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 },
++	omp_ownership_direct_child: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 },
 +	omp_ownership_classify: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
 +	omp_ownership_read: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
 +	omp_ownership_write: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
@@ -857,9 +1055,12 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +
 +/** Opaque connection/listener identities. The bridge validates object membership before its generational C handle. */
 +export type OwnershipSocket = object;
++const libraryAuthority = Symbol("ownership-library-authority");
++let activeBridge: LinuxOwnershipBridge | undefined;
++let loadingBridge = false;
 +
 +/**
-+ * Linux syscall adapter, ABI 1. Source preparation only: actual compiled artifact and OS fixtures are NOT RUN.
++ * Linux syscall adapter, ABI 1. Only bounded socket/pidfd primitives have fixture evidence; no lifecycle capability.
 + * It owns accept/read/write/connect and stable peer handles; no Bun socket private fields/casts are used.
 + * Call from the main Native thread only. It provides classification, never signal or wait authority.
 + */
@@ -870,9 +1071,22 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +	readonly #peers = new Map<StablePeer, number>();
 +	#closed = false;
 +
-+	constructor(library: Library<typeof nativeFunctions>) { this.#library = library; }
++	constructor(library: Library<typeof nativeFunctions>, authority: symbol) {
++		if (authority !== libraryAuthority) throw new OwnershipError("ownership_backend_unavailable");
++		this.#library = library;
++	}
 +
 +	static async open(selection: OwnershipBridgeSelection): Promise<LinuxOwnershipBridge> {
++		if (activeBridge || loadingBridge) throw new OwnershipError("ownership_limit");
++		loadingBridge = true;
++		try {
++			const bridge = await LinuxOwnershipBridge.#load(selection);
++			activeBridge = bridge;
++			return bridge;
++		} finally { loadingBridge = false; }
++	}
++
++	static async #load(selection: OwnershipBridgeSelection): Promise<LinuxOwnershipBridge> {
 +		if (process.platform !== "linux" || !Bun.isMainThread || !process.getuid || !process.geteuid
 +			|| process.getuid() !== process.geteuid()) throw new OwnershipError("ownership_backend_unavailable");
 +		if (!/^[a-f0-9]{64}$/.test(selection.sha256) || !path.isAbsolute(selection.file)
@@ -890,29 +1104,31 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +			throw new OwnershipError("dispatcher_mismatch");
 +		}
 +		const library = dlopen(selection.file, nativeFunctions);
-+		const bridge = new LinuxOwnershipBridge(library);
++		const bridge = new LinuxOwnershipBridge(library, libraryAuthority);
 +		try {
 +			await selection.verify();
-+			if (library.symbols.omp_ownership_abi() !== 1 || library.symbols.omp_ownership_probe() !== 0) {
-+				throw new OwnershipError("ownership_backend_unavailable");
-+			}
++			if (library.symbols.omp_ownership_abi() !== 1) throw new OwnershipError("ownership_backend_unavailable");
++			const probe = library.symbols.omp_ownership_probe();
++			if (probe !== 0) throw new OwnershipError("ownership_backend_unavailable", -probe);
 +			return bridge;
 +		} catch (error) { bridge.close(); throw error; }
 +	}
 +
 +	listen(endpoint: string): OwnershipSocket {
-+		return this.#store(this.#listeners, this.#library.symbols.omp_ownership_listen(ptr(this.#endpoint(endpoint))));
++		const bytes = this.#endpoint(endpoint);
++		return this.#store(this.#listeners, this.#library.symbols.omp_ownership_listen(ptr(bytes)));
 +	}
 +	accept(listener: OwnershipSocket, uid: number): OwnershipSocket | undefined {
 +		const value = this.#library.symbols.omp_ownership_accept(this.#handle(this.#listeners, listener), uid);
 +		return value === 0 ? undefined : this.#store(this.#sockets, value);
 +	}
 +	connect(endpoint: string): OwnershipSocket {
-+		return this.#store(this.#sockets, this.#library.symbols.omp_ownership_connect_begin(ptr(this.#endpoint(endpoint))));
++		const bytes = this.#endpoint(endpoint);
++		return this.#store(this.#sockets, this.#library.symbols.omp_ownership_connect_begin(ptr(bytes)));
 +	}
 +	connected(socket: OwnershipSocket, uid: number): boolean {
 +		const result = this.#library.symbols.omp_ownership_connect_ready(this.#handle(this.#sockets, socket), uid);
-+		if (result < 0) throw new OwnershipError("dispatcher_unavailable");
++		if (result < 0) throw new OwnershipError("dispatcher_unavailable", -result);
 +		return result === 1;
 +	}
 +
@@ -922,7 +1138,19 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +	}
 +	samePeer(left: StablePeer, right: StablePeer): boolean {
 +		const result = this.#library.symbols.omp_ownership_same_peer(this.#handle(this.#peers, left), this.#handle(this.#peers, right));
-+		if (result < 0) throw new OwnershipError("ownership_unresolved");
++		if (result < 0) throw new OwnershipError("ownership_unresolved", -result);
++		return result === 1;
++	}
++	/** False means the held kernel pidfd reports exit; fd/protocol failures remain unresolved. */
++	peerAlive(peer: StablePeer): boolean {
++		const result = this.#library.symbols.omp_ownership_peer_alive(this.#handle(this.#peers, peer));
++		if (result < 0) throw new OwnershipError("ownership_unresolved", -result);
++		return result === 1;
++	}
++	/** Verify parentage using retained actual peers and rechecked kernel edges, never control-frame PID hints. */
++	isDirectChild(child: StablePeer, parent: StablePeer): boolean {
++		const result = this.#library.symbols.omp_ownership_direct_child(this.#handle(this.#peers, child), this.#handle(this.#peers, parent));
++		if (result < 0) throw new OwnershipError("ownership_unresolved", -result);
 +		return result === 1;
 +	}
 +	/** Hints for audit/control correlation only; this result never grants classification or signal authority. */
@@ -939,7 +1167,7 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +		const keys = new Int32Array(Math.max(1, helpers.length));
 +		helpers.forEach((helper, index) => { keys[index] = this.#handle(this.#peers, helper); });
 +		const result = this.#library.symbols.omp_ownership_classify(this.#handle(this.#peers, peer), ptr(keys), helpers.length);
-+		if (result < 0 || result > helpers.length) throw new OwnershipError("ownership_unresolved");
++		if (result < 0 || result > helpers.length) throw new OwnershipError("ownership_unresolved", result < 0 ? -result : undefined);
 +		return result === 0 ? undefined : helpers[result - 1];
 +	}
 +
@@ -948,7 +1176,7 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +		const bytes = Buffer.alloc(OWNERSHIP_LIMITS.frameBytes);
 +		const count = this.#library.symbols.omp_ownership_read(this.#handle(this.#sockets, socket), ptr(bytes), bytes.length);
 +		if (count === -11) return undefined;
-+		if (count < 0 || count > bytes.length) throw new OwnershipError("dispatcher_unavailable");
++		if (count < 0 || count > bytes.length) throw new OwnershipError("dispatcher_unavailable", count < 0 ? -count : undefined);
 +		return bytes.subarray(0, count);
 +	}
 +	/** May write partially; the caller must retain at most the fixed queue budget and honor the request deadline. */
@@ -956,7 +1184,7 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +		if (!bytes.byteLength || bytes.byteLength > OWNERSHIP_LIMITS.frameBytes + 1) throw new OwnershipError("ownership_limit");
 +		const count = this.#library.symbols.omp_ownership_write(this.#handle(this.#sockets, socket), ptr(bytes), bytes.byteLength);
 +		if (count === -11) return 0;
-+		if (count < 0 || count > bytes.byteLength) throw new OwnershipError("dispatcher_unavailable");
++		if (count < 0 || count > bytes.byteLength) throw new OwnershipError("dispatcher_unavailable", count < 0 ? -count : undefined);
 +		return count;
 +	}
 +
@@ -969,6 +1197,7 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +		this.#closed = true;
 +		this.#library.symbols.omp_ownership_close_all();
 +		this.#library.close(); this.#sockets.clear(); this.#listeners.clear(); this.#peers.clear();
++		if (activeBridge === this) activeBridge = undefined;
 +	}
 +
 +	#endpoint(endpoint: string): Buffer {
@@ -987,7 +1216,7 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +	}
 +	#store(map: Map<object, number>, handle: number): object {
 +		this.#assertOpen();
-+		if (handle <= 0) throw new OwnershipError("ownership_unresolved");
++		if (handle <= 0) throw new OwnershipError("ownership_unresolved", handle < 0 ? -handle : undefined);
 +		const object = Object.freeze({}); map.set(object, handle); return object;
 +	}
 +	#release(map: Map<object, number>, value: object): void {
@@ -998,17 +1227,17 @@ index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a03
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa0a573701
+index 0000000000000000000000000000000000000000..2a4b0d0687b24eb00b9d0419f928ceb3c9f83c77
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/protocol.ts
-@@ -0,0 +1,153 @@
+@@ -0,0 +1,170 @@
 +/** Public Native lifecycle IPC. No request can name a PID, executable, argv, token path or environment. */
 +export const OWNERSHIP_VERSION = "omp-execution-ownership/1";
 +
 +/** Fixed resource limits; exceeding one fails closed and never falls back to a local broker. */
 +export const OWNERSHIP_LIMITS = Object.freeze({
 +	frameBytes: 16_384, connections: 64, pendingPerConnection: 1, queuedBytesPerConnection: 32_768,
-+	registrations: 512, helpers: 64, ancestryDepth: 256,
++	registrations: 512, helpers: 64, helperGenerations: 512, ancestryDepth: 256,
 +	bridgeHandles: 1024, bridgeDescriptors: 2048, brokerScopes: 64, externalLifetimes: 256,
 +	connectMs: 1_000, requestMs: 10_000, idleMs: 30_000,
 +});
@@ -1019,7 +1248,9 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +
 +/** Stable native error code; consumers must not translate a refusal into successful tool execution. */
 +export class OwnershipError extends Error {
-+	constructor(readonly code: OwnershipErrorCode) { super(code); this.name = "OwnershipError"; }
++	constructor(readonly code: OwnershipErrorCode, readonly nativeErrno?: number) {
++		super(code); this.name = "OwnershipError";
++	}
 +}
 +
 +/** Independently selected immutable release closure and effective RPC schema digests. */
@@ -1029,6 +1260,8 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +	| { kind: "global"; service: "browser-relay" | "text-predict" };
 +export type OwnershipOperation =
 +	| { op: "classify" }
++	| { op: "prepare_helper"; generation: string }
++	| { op: "helper_status"; generation: string }
 +	| { op: "broker"; scope: OwnershipScope }
 +	| { op: "publish"; scope: OwnershipScope; generation: string };
 +export interface OwnershipRequest {
@@ -1047,6 +1280,8 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +}
 +export type OwnershipResult =
 +	| { op: "classify"; registration: OwnershipRegistration }
++	| { op: "prepare_helper"; generation: string }
++	| { op: "helper_status"; generation: string; status: "pending" | "registered" }
 +	| { op: "broker"; scope: OwnershipScope; generation: string; runtimeDirectory: string; token: string }
 +	| { op: "publish"; generation: string };
 +export type OwnershipResponse =
@@ -1064,6 +1299,7 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +	return value;
 +}
 +export function ownershipToken(value: unknown): string { return text(value, /^[A-Za-z0-9_-]{16,128}$/); }
++export function ownershipGeneration(value: unknown): string { return text(value, /^[a-f0-9]{64}$/); }
 +export function ownershipIdentity(value: unknown): OwnershipIdentity {
 +	const source = record(value, ["closure", "schema"]);
 +	return { closure: text(source.closure, /^[a-f0-9]{64}$/), schema: text(source.schema, /^[a-f0-9]{64}$/) };
@@ -1097,6 +1333,9 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +	const operation = record(source.operation, ["op", "scope", "generation"]);
 +	let parsed: OwnershipOperation;
 +	if (operation.op === "classify" && Object.keys(operation).length === 1) parsed = { op: "classify" };
++	else if ((operation.op === "prepare_helper" || operation.op === "helper_status") && Object.keys(operation).length === 2) {
++		parsed = { op: operation.op, generation: ownershipGeneration(operation.generation) };
++	}
 +	else if (operation.op === "broker" && operation.generation === undefined) {
 +		parsed = { op: "broker", scope: ownershipScope(operation.scope) };
 +	} else if (operation.op === "publish") {
@@ -1118,8 +1357,15 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +}
 +
 +function result(value: unknown, expected: OwnershipOperation): OwnershipResult {
-+	const source = record(value, ["op", "registration", "scope", "generation", "runtimeDirectory", "token"]);
++	const source = record(value, ["op", "registration", "scope", "generation", "runtimeDirectory", "token", "status"]);
 +	if (source.op !== expected.op) throw new OwnershipError("ownership_protocol");
++	if (expected.op === "prepare_helper" && Object.keys(source).length === 2 && source.generation === expected.generation) {
++		return { op: "prepare_helper", generation: ownershipGeneration(source.generation) };
++	}
++	if (expected.op === "helper_status" && Object.keys(source).length === 3 && source.generation === expected.generation
++		&& (source.status === "pending" || source.status === "registered")) {
++		return { op: "helper_status", generation: ownershipGeneration(source.generation), status: source.status };
++	}
 +	if (source.op === "classify" && Object.keys(source).length === 2) {
 +		return { op: "classify", registration: registration(source.registration) };
 +	}
@@ -1157,10 +1403,10 @@ index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4652f7342
+index 0000000000000000000000000000000000000000..9e10a055e370125f9532219052df1f6f00e5efe9
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/wire.schema.json
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,466 @@
 +{
 +  "$schema": "http://json-schema.org/draft-07/schema#",
 +  "$id": "urn:omp:execution-ownership:1",
@@ -1313,6 +1559,38 @@ index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4
 +            "generation"
 +          ],
 +          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "prepare_helper"
++            },
++            "generation": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "generation"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "helper_status"
++            },
++            "generation": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "generation"
++          ],
++          "additionalProperties": false
 +        }
 +      ]
 +    },
@@ -1375,6 +1653,45 @@ index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4
 +          "required": [
 +            "op",
 +            "generation"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "prepare_helper"
++            },
++            "generation": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "generation"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "helper_status"
++            },
++            "generation": {
++              "$ref": "#/definitions/digest"
++            },
++            "status": {
++              "enum": [
++                "pending",
++                "registered"
++              ]
++            }
++          },
++          "required": [
++            "op",
++            "generation",
++            "status"
 +          ],
 +          "additionalProperties": false
 +        }
@@ -1468,6 +1785,77 @@ index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4
 +          "additionalProperties": false
 +        }
 +      ]
++    },
++    "helperRequest": {
++      "type": "object",
++      "properties": {
++        "version": {
++          "const": "omp-execution-helper/1"
++        },
++        "id": {
++          "$ref": "#/definitions/digest"
++        },
++        "installation": {
++          "$ref": "#/definitions/digest"
++        },
++        "operation": {
++          "type": "object",
++          "properties": {
++            "op": {
++              "enum": [
++                "register_helper",
++                "complete_helper"
++              ]
++            },
++            "generation": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "generation"
++          ],
++          "additionalProperties": false
++        }
++      },
++      "required": [
++        "version",
++        "id",
++        "installation",
++        "operation"
++      ],
++      "additionalProperties": false
++    },
++    "helperResponse": {
++      "type": "object",
++      "properties": {
++        "version": {
++          "const": "omp-execution-helper/1"
++        },
++        "id": {
++          "$ref": "#/definitions/digest"
++        },
++        "ok": {
++          "const": true
++        },
++        "operation": {
++          "enum": [
++            "register_helper",
++            "complete_helper"
++          ]
++        },
++        "generation": {
++          "$ref": "#/definitions/digest"
++        }
++      },
++      "required": [
++        "version",
++        "id",
++        "ok",
++        "operation",
++        "generation"
++      ],
++      "additionalProperties": false
 +    }
 +  },
 +  "oneOf": [
@@ -1476,6 +1864,12 @@ index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4
 +    },
 +    {
 +      "$ref": "#/definitions/response"
++    },
++    {
++      "$ref": "#/definitions/helperRequest"
++    },
++    {
++      "$ref": "#/definitions/helperResponse"
 +    }
 +  ]
 +}
@@ -1595,17 +1989,18 @@ index 0000000000000000000000000000000000000000..e530e52ed8f959470e27ef6af6ef7ae7
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89ca3d525e1
+index 0000000000000000000000000000000000000000..3ad8369208c595e7f44d4f012c4b4dc88200fd8b
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
-@@ -0,0 +1,127 @@
+@@ -0,0 +1,170 @@
 +import { expect, test } from "bun:test";
 +import { OwnershipClient } from "../src/launch/ownership/client";
++import { HelperWireSession, verifyHelperAcknowledgement, type HelperOwnershipRequest } from "../src/launch/ownership/helper-protocol";
 +import { OwnershipDispatcher, type OwnershipSystem, type PublicationPermit, type StablePeer } from "../src/launch/ownership/dispatcher";
 +import { OWNERSHIP_VERSION, type OwnershipIdentity, type OwnershipScope } from "../src/launch/ownership/protocol";
 +
 +const identity: OwnershipIdentity = { closure: "a".repeat(64), schema: "b".repeat(64) };
-+const generation = "helper-generation-0001";
++const generation = "e".repeat(64);
 +
 +/** Synthetic OS facts at the public native lifecycle seam; no kernel/process proof is claimed. */
 +class SyntheticSystem implements OwnershipSystem {
@@ -1622,6 +2017,7 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +	async protectHelper(_control: StablePeer, _helper: StablePeer, value: string): Promise<void> {
 +		if (this.failDurability) throw new Error("disk failure");
 +		this.durable.add(value);
++		this.policies.set(_helper, "private");
 +	}
 +	async markUnresolved(value: string): Promise<void> { this.durable.add(value); }
 +	async completeHelper(_helper: StablePeer, _value: string): Promise<void> { throw new Error("no extinction proof"); }
@@ -1637,12 +2033,53 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +function frame(op: unknown): string {
 +	return JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000001", identity, operation: op });
 +}
++async function register(dispatcher: OwnershipDispatcher, system: SyntheticSystem, helper: StablePeer): Promise<void> {
++	const control = {};
++	system.policies.set(control, "external");
++	const prepared = await dispatcher.handle(control, frame({ op: "prepare_helper", generation }));
++	if (!prepared.ok) throw new Error(prepared.error);
++	await dispatcher.registerHelper(control, helper, generation);
++}
++
++test("Host prepares before helper registration and another authenticated Host cannot claim its generation", async () => {
++	const system = new SyntheticSystem(), host = {}, foreign = {}, helper = {};
++	system.policies.set(host, "external"); system.policies.set(foreign, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) { return JSON.stringify(await dispatcher.handle(host, frame)); }, close() {},
++	});
++	await client.prepareHelper(generation);
++	expect(await client.helperStatus(generation)).toBe("pending");
++	await expect(dispatcher.registerHelper(foreign, helper, generation)).rejects.toThrow("ownership_unresolved");
++	await dispatcher.registerHelperPeer(helper, generation);
++	expect(await client.helperStatus(generation)).toBe("registered");
++	expect(await dispatcher.handle(foreign, frame({ op: "helper_status", generation })))
++		.toMatchObject({ ok: false, error: "ownership_unresolved" });
++});
++
++test("helper REGISTER is acknowledged after durable registration and COMPLETE stays fenced without extinction proof", async () => {
++	const system = new SyntheticSystem(), host = {}, helper = {}, installation = "f".repeat(64);
++	system.policies.set(host, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	await dispatcher.handle(host, frame({ op: "prepare_helper", generation }));
++	const session = new HelperWireSession(installation);
++	const request: HelperOwnershipRequest = { version: "omp-execution-helper/1", id: "a".repeat(64), installation,
++		operation: { op: "register_helper", generation } };
++	const ack = await dispatcher.handleHelper(helper, session, JSON.stringify(request));
++	verifyHelperAcknowledgement(ack, request);
++	expect(system.durable.has(generation)).toBe(true);
++	const completion: HelperOwnershipRequest = { ...request, id: "b".repeat(64), operation: { op: "complete_helper", generation } };
++	await expect(dispatcher.handleHelper(helper, session, JSON.stringify(completion))).rejects.toThrow("no extinction proof");
++	expect(system.durable.has(generation)).toBe(true);
++	expect(await dispatcher.handle(host, frame({ op: "helper_status", generation })))
++		.toMatchObject({ ok: false, error: "maintenance_fenced" });
++});
 +
 +test("peers classified private or unresolved by the OS adapter cannot publish shared execution", async () => {
 +	const system = new SyntheticSystem();
 +	const dispatcher = await OwnershipDispatcher.open(identity, system);
-+	const helper = {}, supervisor = {}, nested = {}, unresolved = {};
-+	await dispatcher.registerHelper(supervisor, helper, generation);
++	const helper = {}, nested = {}, unresolved = {};
++	await register(dispatcher, system, helper);
 +	system.policies.set(nested, "private");
 +	const scope = { kind: "project", directory: "/work" };
 +	expect(await dispatcher.handle(nested, frame({ op: "broker", scope }))).toMatchObject({
@@ -1680,7 +2117,7 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +	const system = new HeldSystem(), peer = {}, helper = {};
 +	system.policies.set(peer, "external");
 +	const dispatcher = await OwnershipDispatcher.open(identity, system);
-+	await dispatcher.registerHelper({}, helper, generation);
++	await register(dispatcher, system, helper);
 +	const response = dispatcher.handle(peer, frame({ op: "broker", scope: { kind: "project", directory: "/work" } }));
 +	await system.arrived.promise;
 +	await dispatcher.helperUncertain(helper);
@@ -1692,7 +2129,7 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +test("uncertain helper death globally blocks a new unrelated external registration and maintenance remains fenced", async () => {
 +	const system = new SyntheticSystem(), helper = {}, external = {};
 +	const dispatcher = await OwnershipDispatcher.open(identity, system);
-+	await dispatcher.registerHelper({}, helper, generation);
++	await register(dispatcher, system, helper);
 +	system.policies.set(external, "external");
 +	await dispatcher.helperUncertain(helper);
 +	expect(await dispatcher.handle(external, frame({ op: "broker", scope: { kind: "project", directory: "/work" } })))
@@ -1705,13 +2142,13 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +	const system = new SyntheticSystem(), helper = {}, external = {};
 +	const dispatcher = await OwnershipDispatcher.open(identity, system);
 +	system.failDurability = true;
-+	await expect(dispatcher.registerHelper({}, helper, generation)).rejects.toThrow("disk failure");
++	await expect(register(dispatcher, system, helper)).rejects.toThrow("disk failure");
 +	system.policies.set(external, "external");
 +	expect(await dispatcher.handle(external, frame({ op: "classify" })))
 +		.toMatchObject({ ok: false, error: "maintenance_fenced" });
 +	const other = new SyntheticSystem();
 +	const second = await OwnershipDispatcher.open(identity, other);
-+	await second.registerHelper({}, helper, generation);
++	await register(second, other, helper);
 +	await expect(second.completeHelper(helper)).rejects.toThrow("no extinction proof");
 +	expect(other.durable.has(generation)).toBe(true);
 +	expect(await second.handle(external, frame({ op: "classify" })))
@@ -1726,3 +2163,106 @@ index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89c
 +		.toMatchObject({ ok: false, error: "ownership_backend_unavailable" });
 +	expect(system.publications).toEqual([]);
 +});
+diff --git a/packages/coding-agent/test/execution-ownership-helper-wire.test.ts b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..6eca6ae5139b7bd9945a0eb61014c54cbca8b7c1
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
+@@ -0,0 +1,33 @@
++import { expect, test } from "bun:test";
++import { decodeHelperRequest, encodeHelperSuccess, verifyHelperAcknowledgement, HelperWireSession,
++	type HelperOwnershipRequest } from "../src/launch/ownership/helper-protocol";
++
++const generation = "a".repeat(64), installation = "b".repeat(64);
++const request = { version: "omp-execution-helper/1", id: "c".repeat(64), installation,
++	operation: { op: "register_helper", generation } } satisfies HelperOwnershipRequest;
++
++test("helper registration accepts only the pinned installation and generation-bound fixed operations", () => {
++	expect(decodeHelperRequest(JSON.stringify(request), installation)).toEqual(request);
++	for (const invalid of [
++		{ ...request, pid: 123 },
++		{ ...request, installation: "c".repeat(64) },
++		{ ...request, operation: { op: "register_helper", generation: "g".repeat(64) } },
++		{ ...request, operation: { op: "exec", generation, argv: ["sh"] } },
++	]) expect(() => decodeHelperRequest(JSON.stringify(invalid), installation)).toThrow();
++	// Exact bytes are consumed by the tiny C helper; property order and absence of whitespace are public wire semantics.
++	expect(encodeHelperSuccess(request)).toBe(`{"version":"omp-execution-helper/1","id":"${request.id}","ok":true,"operation":"register_helper","generation":"${generation}"}\n`);
++});
++
++test("late REGISTER acknowledgements cannot complete cleanup and duplicate helper requests cannot reopen a phase", () => {
++	const session = new HelperWireSession(installation);
++	const registration = session.decode(JSON.stringify(request));
++	const registered = session.acknowledge(registration);
++	expect(() => session.decode(JSON.stringify(request))).toThrow("ownership_protocol");
++	const complete: HelperOwnershipRequest = { ...request, id: "d".repeat(64), operation: { op: "complete_helper", generation } };
++	expect(() => verifyHelperAcknowledgement(registered, complete)).toThrow("dispatcher_mismatch");
++	expect(() => session.decode(JSON.stringify({ ...complete, id: request.id }))).toThrow("ownership_protocol");
++	const completing = session.decode(JSON.stringify(complete));
++	const completed = session.acknowledge(completing);
++	expect(verifyHelperAcknowledgement(completed, complete)).toBeUndefined();
++	expect(() => session.decode(JSON.stringify(complete))).toThrow("ownership_protocol");
++});
+diff --git a/packages/coding-agent/test/execution-ownership-linux.test.ts b/packages/coding-agent/test/execution-ownership-linux.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..489665ab42ba2ff1dde572b1e26a804730e6b4c2
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-linux.test.ts
+@@ -0,0 +1,58 @@
++import { expect, test } from "bun:test";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { LinuxOwnershipBridge } from "../src/launch/ownership/linux-bridge";
++import { OwnershipError } from "../src/launch/ownership/protocol";
++
++const manifestPath = process.env.OMP_OWNERSHIP_BRIDGE_FIXTURE_MANIFEST;
++
++/** Opt-in harmless OS seam; default skip is NOT RUN, never backend admission or actual Native/global evidence. */
++test.skipIf(!manifestPath)("Linux bridge authenticates actual local peers, transfers bounded bytes and releases its pidfds", async () => {
++	if (!manifestPath || !process.getuid) throw new Error("OWNERSHIP_FIXTURE_ENVIRONMENT_REQUIRED");
++	const manifest: unknown = await Bun.file(manifestPath).json();
++	if (typeof manifest !== "object" || manifest === null || !("artifact" in manifest)
++		|| typeof manifest.artifact !== "object" || manifest.artifact === null
++		|| !("file" in manifest.artifact) || !("sha256" in manifest.artifact)
++		|| typeof manifest.artifact.file !== "string" || typeof manifest.artifact.sha256 !== "string") {
++		throw new Error("OWNERSHIP_FIXTURE_ARTIFACT_REQUIRED");
++	}
++	const directory = await fs.mkdtemp("/tmp/ownership-bridge-fixture-");
++	await fs.chmod(directory, 0o700);
++	const endpoint = path.join(directory, "socket");
++	const selection = { file: manifest.artifact.file, sha256: manifest.artifact.sha256,
++		async verify() { /* Isolated test-owned compiler output only; no production trust/admission. */ } };
++	let bridge: LinuxOwnershipBridge | undefined;
++	try {
++		bridge = await LinuxOwnershipBridge.open(selection);
++		expect(bridge.ownedDescriptorCount()).toBe(0);
++		await expect(LinuxOwnershipBridge.open(selection)).rejects.toThrow("ownership_limit");
++		const listener = bridge.listen(endpoint), client = bridge.connect(endpoint);
++		const uid = process.getuid();
++		const deadline = performance.now() + 1_000;
++		let accepted = bridge.accept(listener, uid);
++		while (!accepted && performance.now() < deadline) { await Bun.sleep(5); accepted = bridge.accept(listener, uid); }
++		if (!accepted) throw new Error("OWNERSHIP_FIXTURE_ACCEPT_TIMEOUT");
++		while (!bridge.connected(client, uid)) {
++			if (performance.now() >= deadline) throw new Error("OWNERSHIP_FIXTURE_CONNECT_TIMEOUT");
++			await Bun.sleep(5);
++		}
++		const serverPeer = bridge.capturePeer(accepted), clientPeer = bridge.capturePeer(client);
++		expect(bridge.samePeer(serverPeer, clientPeer)).toBe(true);
++		expect(bridge.peerAlive(serverPeer)).toBe(true);
++		expect(bridge.peerHints(serverPeer).pid).toBe(process.pid);
++		expect(bridge.isDirectChild(serverPeer, clientPeer)).toBe(false);
++		expect(bridge.classify(serverPeer, [])).toBeUndefined();
++		const bytes = new TextEncoder().encode("owned-bytes\n");
++		expect(bridge.write(client, bytes)).toBe(bytes.length);
++		let received = bridge.read(accepted);
++		while (received === undefined && performance.now() < deadline) { await Bun.sleep(5); received = bridge.read(accepted); }
++		expect(received && new TextDecoder().decode(received)).toBe("owned-bytes\n");
++		bridge.releasePeer(serverPeer); bridge.releasePeer(clientPeer);
++		bridge.releaseSocket(client); bridge.releaseSocket(accepted); bridge.releaseSocket(listener);
++		expect(bridge.ownedDescriptorCount()).toBe(0);
++	} catch (error) {
++		if (error instanceof OwnershipError) console.error(JSON.stringify({ fixture: "ownership-linux-bridge",
++			code: error.code, nativeErrno: error.nativeErrno ?? null }));
++		throw error;
++	} finally { bridge?.close(); await fs.rm(directory, { recursive: true, force: true }); }
++}, 5_000);

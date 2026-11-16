@@ -41,7 +41,8 @@ refcount protocol is needed for this first policy because private registrations 
 
 Native patch `0010-execution-ownership.patch` is reserved for the matched public contract, CLI/wire/schema/client/
 server, no-auto-spawn integration, consumer guards, Linux dispatcher bridge and external lifetime policy. The current
-preparation contains only public decision/protocol modules and an uncompiled C/FFI syscall bridge; the dispatcher
+preparation contains only public decision/protocol modules and a C/FFI syscall bridge with strict compile and bounded
+socket/pidfd primitive evidence; the dispatcher
 entry explicitly reports backend unavailable. It is composed after stable patches 1–6 for source work only, absent
 from the active patch list. Helper/Host control work is a separate supporting component. Neither component grants
 lifecycle capability independently. Concrete budgets and stage status are in the Native patch's public documentation

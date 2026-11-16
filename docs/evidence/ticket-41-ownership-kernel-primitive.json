@@ -1,0 +1,110 @@
+{
+  "status": "PASS_SCOPED_PRIMITIVE_ONLY",
+  "capabilityGranted": false,
+  "platform": {
+    "kernel": "Linux 6.18.57",
+    "arch": "x86_64",
+    "bun": "1.4.4",
+    "strace": "6.13"
+  },
+  "build": {
+    "format": "omp-execution-ownership-bridge-preparation-v1",
+    "status": "unaccepted-compile-only",
+    "abi": 1,
+    "sourceSha256": "e6e71c13cd5144c9bac2636fad16ef9a9449c9229a7184d4480c163f5e8e1b49",
+    "compiler": {
+      "file": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "sha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "version": "x86_64-linux-gnu-gcc-14 (Debian 14.2.0-19) 14.2.0",
+      "target": "x86_64-linux-gnu"
+    },
+    "args": [
+      "-std=c11",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-Wpedantic",
+      "-Wconversion",
+      "-Wshadow",
+      "-Wformat=2",
+      "-O2",
+      "-fPIC",
+      "-fstack-protector-strong",
+      "-D_FORTIFY_SOURCE=2",
+      "-shared",
+      "-Wl,-z,relro,-z,now",
+      "-Wl,--no-undefined",
+      "-ffile-prefix-map=/workspace/work/omp-webui-ticket-41/vendor/omp-ownership=.",
+      "-o",
+      "/workspace/work/omp-webui-ticket-41/vendor/ownership-bridge-build/ownership-bridge-Fg0lK1/libomp-execution-ownership.so",
+      "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.c"
+    ],
+    "artifact": {
+      "file": "/workspace/work/omp-webui-ticket-41/vendor/ownership-bridge-build/ownership-bridge-Fg0lK1/libomp-execution-ownership.so",
+      "sha256": "127353f7ccb35605e56f9fbbaf6d28fab3050404bccadef0699f7091a9e428e3",
+      "bytes": 21608,
+      "needed": [
+        "libc.so.6"
+      ]
+    },
+    "libraryLoaded": false,
+    "kernelProbe": "NOT RUN",
+    "nativeRuntime": "NOT RUN",
+    "actualGlobal": "BLOCKED",
+    "capabilityGranted": false
+  },
+  "fixture": {
+    "testsPassed": 1,
+    "assertions": 10,
+    "testMilliseconds": 50.25,
+    "runnerMilliseconds": 140,
+    "wrapperMilliseconds": 155,
+    "exitCode": 0,
+    "syntheticEnvironmentBeforeImports": true,
+    "preImportGuard": true,
+    "childProcesses": 0,
+    "nativeCliOrAgent": false,
+    "selfPeerDirectParentNegative": true,
+    "positiveHostHelperParentage": "NOT_RUN",
+    "helperLifecycle": "NOT_RUN",
+    "independentOsFdCensus": "NOT_RUN",
+    "bridgeOwnedFdCounterAfterRelease": 0,
+    "libraryClosed": true,
+    "socketDirectoryRemoved": true,
+    "libraryLoaded": true
+  },
+  "trace": {
+    "path": "/tmp/ownership-kernel-proof-ncmlptc2/network.trace",
+    "sha256": "9cfec8edc7b06ff3ed0aafa27561132dbdf867e168e4296f62fba4087d5d5a6a",
+    "bytes": 1459,
+    "soPeerPidfdReturns": [
+      0,
+      0,
+      0
+    ],
+    "inetSocketCalls": 0,
+    "inetEndpointCalls": 0,
+    "syscalls": [
+      "444643 getsockopt(7, SOL_SOCKET, SO_PEERPIDFD, [9], [4]) = 0",
+      "444643 getsockopt(9, SOL_SOCKET, SO_PEERPIDFD, [10], [4]) = 0",
+      "444643 getsockopt(8, SOL_SOCKET, SO_PEERPIDFD, [11], [4]) = 0"
+    ]
+  },
+  "harnessFailures": [
+    {
+      "stage": "preload-before-builtin-test",
+      "exitCode": 1,
+      "milliseconds": 23,
+      "actualFixtureRan": false
+    },
+    {
+      "stage": "absolute-vendor-filter",
+      "exitCode": 1,
+      "milliseconds": 114,
+      "actualFixtureRan": false
+    }
+  ],
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "buildManifestSha256": "17285429323771393470e9747977ce66e01bffbf04f693e7cc19d8c0cff049c0"
+}

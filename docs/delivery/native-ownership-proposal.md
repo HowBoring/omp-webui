@@ -18,6 +18,7 @@ protected lifetime outside private domains; external EOF preservation and privat
 
 Current concrete artifacts and honest evidence are in [the preparation report](../evidence/ticket-41-ownership-preparation.md).
 The public Native source patch includes strict protocol/schema, framing, client/dispatcher decision modules and an
-uncompiled Linux C/FFI socket/pidfd bridge. Its CLI explicitly reports backend unavailable. Actual backend storage,
+Linux C/FFI socket/pidfd bridge with strict compilation and one bounded actual socket/pidfd fixture. Its CLI explicitly
+reports backend unavailable. Actual backend storage,
 all-mode broker integration, consumer policy and external protectors remain unfinished. The patch is preparatory
 after stable 1–6, not the final 1–10 tuple. No production/global installation was created or changed.

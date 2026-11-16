@@ -30,15 +30,17 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "8ec0c4ad19a758181200e7c7d1e61c5fb38b41df0ac50fec99b1684166fc56b7"
+    "sha256": "5dead6896176ffa03abc48ae6bc3b4daace84474e48296631434d3c725d8ffe1"
   },
-  "preparedTree": "8a2e0fd9a0a2a28ea97e2753018511339c043f14",
-  "preparedSourceSha256": "b9b9cdf64875252e65d1ad509493144cb3bad6acce8155401ad06b24401d1b0e",
-  "ownershipWireSchemaSha256": "369edc65fdb9a603f87dceade09b5f3d352b9d1328bcfc883518d888994f7f8f",
+  "preparedTree": "67391c33ab73f91c07a14882ecd553cc1c01a29e",
+  "preparedSourceSha256": "4e96c1364e508014a0bd885f21b90641a54d1c63bdcf514553af8124f02d76e5",
+  "ownershipWireSchemaSha256": "edc849e959791fa7116be5668d6fffee45b0f8f642b3d3f872fb22510aca9135",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
   "nativeBackend": "NOT IMPLEMENTED",
-  "cBridgeCompile": "NOT RUN",
+  "cBridgeCompile": "PASS_STRICT_ZERO_DIAGNOSTICS",
+  "socketPidfdPrimitive": "PASS_SCOPED_ONLY",
+  "backendCapabilityGranted": false,
   "actualGlobal": "BLOCKED",
   "privateAdmission": "BLOCKED"
 }
