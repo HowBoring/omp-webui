@@ -1,3 +1,18 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 80ed4937a5..de8f379980 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
++
+ ## [18.20.2] - 2026-11-14
+ 
+ ### Added
 diff --git a/packages/coding-agent/src/cli-runtime.ts b/packages/coding-agent/src/cli-runtime.ts
 new file mode 100644
 index 0000000000..9cd9c7b133
@@ -650,10 +665,10 @@ index 0000000000..9cd9c7b133
 +}
 +
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
-index 69e09151f2..a41abd5421 100755
+index 69e09151f2..2ca3a5cd59 100755
 --- a/packages/coding-agent/src/cli.ts
 +++ b/packages/coding-agent/src/cli.ts
-@@ -1,643 +1,24 @@
+@@ -1,643 +1,28 @@
  #!/usr/bin/env bun
 -// Strip macOS malloc-stack-logging vars in the parent entrypoint, before any
 -// subprocess/worker spawn. libmalloc reads MallocStackLogging /
@@ -792,7 +807,7 @@ index 69e09151f2..a41abd5421 100755
 -		process.stdout.write(`\n${extra}\n`);
 -	}
 -}
--/**
+ /**
 - * Smoke-test entry. Spawns bundled workers, serves the stats dashboard once,
 - * pings everything, then exits.
 - *
@@ -802,7 +817,10 @@ index 69e09151f2..a41abd5421 100755
 - * the minimal end-to-end test that proves those distribution-only paths work.
 - * Wired into `scripts/install-tests/run-ci.sh` so binary / source-link /
 - * tarball installs all exercise it on every CI run.
-- */
++ * Public compatibility launcher. Preflight precedes the ordinary CLI closure.
++ * Intentional dynamic-import exception: the accepted RPC delivery contract requires
++ * avoiding eager configuration/native/Session initialization on this public path.
+  */
 -async function runSmokeTest(): Promise<void> {
 -	const { smokeTestSpotlightWorker, smokeTestSyncWorker, startServer } = await import("@oh-my-pi/omp-stats");
 -	const { smokeTestTinyTitleWorker } = await import("./tiny/title-client");
@@ -1127,7 +1145,6 @@ index 69e09151f2..a41abd5421 100755
 -let runningCommand: string | undefined;
 -
 -/** Run the CLI with the given argv (no `process.argv` prefix). */
-+/** Public compatibility launcher. Preflight must run before importing the ordinary CLI closure. */
  export async function runCli(argv: string[]): Promise<void> {
 -	// `omp zsh|bash|sh [args...]`: the whole argv belongs to the shell (`--help`,
 -	// `--profile`, `-c` included), so it dispatches before profile bootstrap,

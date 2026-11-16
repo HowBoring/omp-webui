@@ -1,48 +1,71 @@
-import { cp, mkdir, readFile, readdir, readlink, rm, symlink, writeFile } from "node:fs/promises";
-import { resolve, relative, join } from "node:path";
+import { mkdir, rm, symlink } from "node:fs/promises";
+import { resolve, join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
+import { z } from "zod";
 import { digest } from "../packages/compatibility/installation.ts";
 
-const root = process.cwd();
-const base = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
+import type { RpcWireBundle } from "@oh-my-pi/pi-coding-agent/modes/rpc/wire/index";
+import { verifySource, ompBase as base } from "./omp-source.ts";
+
+const checkGenerated = process.argv.includes("--check");
+async function emit(path: string, text: string): Promise<void> {
+  if (checkGenerated) {
+    if (await Bun.file(path).text() !== text) throw new Error("OMP_GENERATED_ARTIFACT_STALE");
+  } else await Bun.write(path, text);
+}
 const omp = resolve("vendor/omp");
 const output = resolve("vendor/omp-candidate");
 const source = join(omp, "packages/coding-agent/src");
-const git = (...argv: string[]) => {
-  const result = Bun.spawnSync(["git", "-C", omp, ...argv]);
-  if (result.exitCode !== 0) throw new Error(result.stderr.toString());
-  return result.stdout.toString();
-};
-if (git("rev-parse", "HEAD").trim() !== base) throw new Error("Wrong OMP source base");
-await mkdir(output, { recursive: true });
-const { buildRpcWireBundle } = await import(join(source, "modes/rpc/wire/index.ts"));
-const { generateRpcArtifacts } = await import(join(omp, "packages/coding-agent/scripts/gen-rpc/index.ts"));
+const { patchText, sourceSha256 } = await verifySource(omp);
+if (!checkGenerated) {
+  await rm(output, { recursive: true, force: true });
+  await mkdir(output, { recursive: true });
+}
+const { buildRpcWireBundle }: { buildRpcWireBundle(): RpcWireBundle } =
+  await import(join(source, "modes/rpc/wire/index.ts"));
+const { generateRpcArtifacts }: { generateRpcArtifacts(): Map<string, string> } =
+  await import(join(omp, "packages/coding-agent/scripts/gen-rpc/index.ts"));
+const publicDecoder = await Bun.file(new URL(import.meta.resolve("@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame"))).text();
+if (publicDecoder !== await Bun.file(join(source, "modes/rpc/rpc-frame.ts")).text()) {
+  throw new Error("OMP_PUBLIC_DECODER_SOURCE_MISMATCH");
+}
 const bundle = buildRpcWireBundle();
 for (const [path, text] of generateRpcArtifacts()) await Bun.write(path, text);
 const schemaText = JSON.stringify(bundle, null, 2) + "\n";
-await Bun.write(join(output, "rpc-wire.schema.json"), schemaText);
+if (!checkGenerated) await Bun.write(join(output, "rpc-wire.schema.json"), schemaText);
 const schema = digest(schemaText);
-// Only authored files belong in the patch; generated artifacts are reproduced above.
-const authored = ["src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
-  "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts"];
-git("add", "-N", ...authored.map(path => `packages/coding-agent/${path}`));
-const patchText = git("diff", "--", ...authored.map(path => `packages/coding-agent/${path}`));
-await Bun.write("compatibility/omp/0001-safe-preflight.patch", patchText);
 const patchSha256 = digest(patchText);
-const sourceSha256 = digest(base + "\n" + patchText);
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true }, allErrors: false });
 ajv.addSchema(bundle);
 const definition = (name: string) => ({ $ref: `${bundle.$id}#/$defs/${name}` });
-const commandSchemas = bundle["x-rpc"].commands.filter((command: { name: string }) =>
-  command.name === "get_compatibility" || command.name === "negotiate_protocol").map((command: {
-    name: string; params: string | null;
-  }) => ({
-    type: "object", additionalProperties: false, required: ["id", "type"],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name },
-      ...(command.params === null ? {} : bundle.$defs[command.params]?.properties) },
-    ...(command.params === null ? {} : { required: ["id", "type", ...bundle.$defs[command.params]?.required ?? []] }),
-  }));
+const parameterDefinition = z.object({ properties: z.record(z.string(), z.unknown()),
+  required: z.array(z.string()).default([]) });
+const commandSchemas = bundle["x-rpc"].commands.filter(command =>
+  command.name === "get_compatibility" || command.name === "negotiate_protocol").map(command => {
+  const params = command.params === null ? { properties: {}, required: [] }
+    : parameterDefinition.parse(bundle.$defs[command.params]);
+  return {
+    type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
+    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties },
+  };
+});
+// This S0 client deliberately validates only marker-free preflight definitions. Later
+// Session unions require a separately implemented policy for the upstream leniency markers.
+const audited = new Set<string>();
+function audit(node: unknown): void {
+  if (Array.isArray(node)) { for (const child of node) audit(child); return; }
+  if (typeof node !== "object" || node === null) return;
+  for (const [key, child] of Object.entries(node)) {
+    if (key.startsWith("x-")) throw new Error("OMP_UNSUPPORTED_VALIDATION_MARKER");
+    if (key === "$ref" && typeof child === "string" && child.startsWith("#/$defs/")) {
+      const name = child.slice(8);
+      if (!audited.has(name)) { audited.add(name); audit(bundle.$defs[name]); }
+    } else audit(child);
+  }
+}
+for (const name of ["ReadyEvent", "RpcResponse", "CompatibilityReport", "NegotiateProtocolResult"]) audit(bundle.$defs[name]);
+for (const commandSchema of commandSchemas) audit(commandSchema);
 const commandValidator = ajv.compile({ anyOf: commandSchemas });
 await Bun.write(join(source, "modes/rpc/preflight-validator.generated.js"), standaloneCode(ajv, commandValidator));
 const build = { base, sourceSha256, patchSha256, schemaSha256: schema };
@@ -53,6 +76,7 @@ await Bun.write(join(source, "modes/rpc/preflight.generated.ts"), `// Generated 
   `({id:string;type:'negotiate_protocol'} & RpcWireCommands['negotiate_protocol']['params']);\n` +
   `export function validateCommand(value:unknown):value is Command { return validate(value); }\n` +
   `export const compatibilityBuild = ${JSON.stringify(build)};\n`);
+if (!checkGenerated) {
 const built = await Bun.build({
   entrypoints: [join(source, "cli.ts")], target: "bun", outdir: output, splitting: true,
   plugins: [{ name: "deferred-ordinary-cli", setup(build) {
@@ -66,21 +90,26 @@ try { await rm(join(output, "omp")); } catch {}
 await symlink("cli.js", join(output, "omp"));
 console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.outputs.length }));
 
+}
+
 // Host contracts/validators are emitted from exactly the schema used by the public candidate.
 await mkdir("packages/contracts/generated", { recursive: true });
-await cp(join(source, "modes/rpc/wire/rpc-wire.generated.ts"), "packages/contracts/generated/omp-wire.ts");
-await Bun.write("packages/contracts/generated/omp.schema.json", schemaText);
+await emit("packages/contracts/generated/omp-wire.ts",
+  await Bun.file(join(source, "modes/rpc/wire/rpc-wire.generated.ts")).text());
+await emit("packages/contracts/generated/omp.schema.json", schemaText);
 const outputs: Record<string, string> = {};
 for (const [name, definitionName] of Object.entries({
   ready: "ReadyEvent", response: "RpcResponse", report: "CompatibilityReport", negotiated: "NegotiateProtocolResult",
 })) {
   const validate = ajv.compile(definition(definitionName));
   const path = `packages/contracts/generated/${name}.js`;
-  await Bun.write(path, standaloneCode(ajv, validate));
+  await emit(path, standaloneCode(ajv, validate));
   outputs[name] = path;
 }
-await Bun.write("packages/contracts/generated/command.js", standaloneCode(ajv, commandValidator));
+await emit("packages/contracts/generated/command.js", standaloneCode(ajv, commandValidator));
 for (const name of [...Object.keys(outputs), "command"]) {
-  await Bun.write(`packages/contracts/generated/${name}.d.ts`,
+  await emit(`packages/contracts/generated/${name}.d.ts`,
     "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
+await emit("packages/contracts/generated/identity.ts",
+  `// Generated from the same authored source patch and schema.\nexport const compatibilityBuild = ${JSON.stringify(build)};\n`);

@@ -11,10 +11,11 @@ export const manifestSchema = z.strictObject({
   format: z.literal("omp-webui-s0-v1"), base: z.literal("7c49c11aa5bbaf3f418406583096168ad5b8c6dc"),
   patch: hash, schema: hash, launcher: z.string(), target: z.string(), runtime: assetSchema,
   platform: z.string(), arch: z.string(), assets: z.array(assetSchema).min(1),
+  runtimeDependencies: z.array(assetSchema),
 });
 export type InstallationManifest = z.infer<typeof manifestSchema>;
 export type AssetIdentity = z.infer<typeof assetSchema>;
-export interface InstallationSelection { manifest: string; launcher: string }
+export interface InstallationSelection { manifest: string; launcher: string; expectedIdentity?: string }
 export interface VerifiedInstallation {
   manifest: InstallationManifest; identity: string; runtime: string; target: string;
   verify(): Promise<void>;
@@ -45,6 +46,9 @@ export async function identifyAsset(root: string, path: string, excluded: string
 export async function inspectInstallation(selection: InstallationSelection): Promise<VerifiedInstallation> {
   try {
     const bytes = await readFile(selection.manifest);
+    if (selection.expectedIdentity !== undefined && selection.expectedIdentity !== digest(bytes)) {
+      throw new Error("trust changed");
+    }
     const manifest = manifestSchema.parse(JSON.parse(bytes.toString("utf8")));
     const root = resolve(dirname(selection.manifest), "../..");
     const target = resolve(root, manifest.target);
@@ -54,7 +58,7 @@ export async function inspectInstallation(selection: InstallationSelection): Pro
       if (manifest.platform !== process.platform || manifest.arch !== process.arch) throw new Error("platform");
       if (resolve(selection.launcher) !== resolve(root, manifest.launcher)) throw new Error("launcher selection");
       if (await realpath(selection.launcher) !== target) throw new Error("launcher target");
-      for (const entry of [manifest.runtime, ...manifest.assets]) {
+      for (const entry of [manifest.runtime, ...manifest.runtimeDependencies, ...manifest.assets]) {
         const actual = await identifyAsset(root, entry.path, resolve(selection.manifest));
         if (JSON.stringify(actual) !== JSON.stringify(entry)) throw new Error("closure changed");
       }

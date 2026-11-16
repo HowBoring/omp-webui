@@ -13,6 +13,7 @@ for await (const line of console) {
   }
   if (command.type === "negotiate_protocol") {
     write({ type: "response", id: command.id, command: command.type, success: true, data: { protocolVersion: 2 } });
+    if (mode === "never-read") await Bun.sleep(60_000);
     continue;
   }
   const report = {
@@ -21,7 +22,8 @@ for await (const line of console) {
     runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
   };
   const response = { type: "response", id: command.id, command: command.type, success: true, data: report };
-  if (mode === "out-of-order") {
+  if (mode === "eof-response") { requests.push(response); }
+  else if (mode === "out-of-order") {
     requests.push(response);
     if (requests.length === 2) {
       write({ ...response, data: { ...report, capabilities: ["second"] } });
@@ -36,6 +38,7 @@ for await (const line of console) {
   else if (mode === "late") { await Bun.sleep(100); write(response); }
   else write(response);
 }
+if (mode === "eof-response") for (const response of requests) write(response);
 if (mode === "tail") process.stdout.write('{"type":');
 if (mode === "invalid-utf8") process.stdout.write(new Uint8Array([255, 10]));
 if (mode === "stderr-secret") process.stderr.write("token=secret-fixture-prompt-and-home\n");

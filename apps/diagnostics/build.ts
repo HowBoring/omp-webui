@@ -3,12 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { dirname, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
+import { z } from "zod";
 
 const root = resolve(import.meta.dir, "../..");
 const outdir = resolve(root, "vendor/dsh-diagnostics");
 const require = createRequire(import.meta.url);
 const lockBytes = await readFile(resolve(root, "upstreams.lock.json"));
-const lock = JSON.parse(lockBytes.toString()) as { dsh: { commit: string } };
+const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })
+  .parse(JSON.parse(lockBytes.toString()));
 const dshRoot = resolve(dirname(require.resolve("@deepseek-ai/dsh-api-gateway/package.json")), "../../..");
 const actualBase = execFileSync("git", ["-C", dshRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
 if (actualBase !== lock.dsh.commit) throw new Error("Diagnostic DSH pin mismatch");
@@ -22,14 +24,13 @@ const entries = new Map([
 ]);
 interface InputIdentity { package: string; version: string; file: string; sha256: string }
 const inputs = new Map<string, InputIdentity>();
+const packageMetadata = z.object({ name: z.string().optional(), version: z.string().optional() });
 const packageRoots = new Map<string, { root: string; name: string; version: string }>();
 async function inputIdentity(path: string, contents: string): Promise<InputIdentity> {
   let cursor = dirname(path);
   while (!packageRoots.has(cursor)) {
     try {
-      const manifest = JSON.parse(await readFile(resolve(cursor, "package.json"), "utf8")) as {
-        name: string; version: string;
-      };
+      const manifest = packageMetadata.parse(JSON.parse(await readFile(resolve(cursor, "package.json"), "utf8")));
       if (typeof manifest.name === "string" && typeof manifest.version === "string") {
         packageRoots.set(cursor, { root: cursor, name: manifest.name, version: manifest.version });
         continue;

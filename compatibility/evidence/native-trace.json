@@ -1,0 +1,20 @@
+{
+  "kind": "actual-candidate-preflight-file-process-trace",
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "frames": [
+    "ready",
+    "response",
+    "response"
+  ],
+  "profileEntries": [],
+  "traceLines": 68,
+  "unsafeFileOrOrdinaryRuntimeImportObservations": [],
+  "syntheticCwdHousekeeping": [
+    "getcwd",
+    "absent bunfig.toml probe",
+    "directory read"
+  ],
+  "execveCount": 1,
+  "rawTraceSha256": "2ad33d3bf65f190c646f260a9f6ac5495d30f7ce9633a68dc670785c6f32b12b"
+}

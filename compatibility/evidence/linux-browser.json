@@ -1,0 +1,74 @@
+{
+  "url": "http://127.0.0.1:38575",
+  "kind": "actual-host-plus-labelled-carrier-faults",
+  "cases": [
+    {
+      "name": "actual-native-preflight",
+      "result": "PASS",
+      "report": {
+        "status": "verified-blocked",
+        "sessionAdmission": "blocked",
+        "code": "S0_DIAGNOSTICS_ONLY",
+        "identity": {
+          "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+          "patchSha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550",
+          "sourceSha256": "033536e540a0681755e4543e5990d3c40360d5747bf94482a94668869468604e",
+          "schemaSha256": "fde59ea50240a6c9e7450d838883f335c1bf52af67d21e8a982a6c2a9a6b67d9",
+          "installationSha256": "68494ac2de8aa62f029bae218c7c543e526f07fd2d9f9aeebceb3b033cc8133b",
+          "runtime": {
+            "name": "bun",
+            "version": "1.4.4",
+            "platform": "linux",
+            "arch": "x64"
+          }
+        },
+        "missingCapabilities": [
+          "catalog.readonly.v1",
+          "continuation.strict.v1",
+          "interaction.explicit-answer.v1",
+          "attachments.prepare.v1",
+          "submission.durable-receipt.v1",
+          "history.coherent-cut.v1",
+          "history.position-durable.v1",
+          "client.conversation-rebuild.v1",
+          "security.private-session-admission.v1",
+          "installation.immutable-global.v1"
+        ]
+      }
+    },
+    {
+      "name": "simulated-persisted-page-restore-fresh-preflight",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-wrong-rpc-id",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-malformed-report",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-unsupported-remote",
+      "result": "PASS"
+    },
+    {
+      "name": "intercepted-failed-asset",
+      "result": "PASS"
+    },
+    {
+      "name": "actual-two-browser-preflight-bounded-busy",
+      "result": "PASS",
+      "outcomes": [
+        "blocked",
+        "verified-blocked"
+      ]
+    },
+    {
+      "name": "intercepted-late-report-after-generation-loss",
+      "result": "PASS"
+    }
+  ],
+  "browser": "156.0.8078.79",
+  "screenshotSha256": "2503fb6680a7d4d8e2c3e487f6e2e09b7461b9b10ca2feed299075144db0fa55"
+}

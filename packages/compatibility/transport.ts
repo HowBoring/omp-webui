@@ -15,6 +15,8 @@ export interface DrainResult { code: number; forced: boolean; stderrBytes: numbe
 /** Diagnostic-only external process client. It cannot admit Session commands or arbitrary RPC. */
 export class PreflightTransport {
   private readonly child;
+  private readonly stdoutReader;
+  private readonly stderrReader;
   private readonly frames = new PhysicalFrames();
   private readonly ready = Promise.withResolvers<void>();
   private readonly pending = new Map<string, Pending>();
@@ -38,6 +40,8 @@ export class PreflightTransport {
       env: selection.env, ...(selection.cwd === undefined ? {} : { cwd: selection.cwd }),
       stdin: "pipe", stdout: "pipe", stderr: "pipe",
     });
+    this.stdoutReader = this.child.stdout.getReader();
+    this.stderrReader = this.child.stderr.getReader();
     // Observe rejection immediately; open awaits the same promise after readers are attached.
     void this.ready.promise.catch(() => {});
     this.stdout = this.readStdout().catch(() => { this.fail("RPC_PROTOCOL"); });
@@ -60,6 +64,8 @@ export class PreflightTransport {
       throw error;
     } finally { clearTimeout(timer); }
   }
+
+  get processId(): number { return this.child.pid; }
 
   async inspect(): Promise<CompatibilityReport> {
     const result = await this.send({ id: crypto.randomUUID(), type: "get_compatibility" });
@@ -88,8 +94,10 @@ export class PreflightTransport {
   }
 
   private async readStdout(): Promise<void> {
-    for await (const bytes of this.child.stdout) {
-      for (const frame of this.frames.push(bytes)) this.accept(frame);
+    while (true) {
+      const next = await this.stdoutReader.read();
+      if (next.done) break;
+      for (const frame of this.frames.push(next.value)) this.accept(frame);
     }
     this.frames.finish();
     if (!this.readySeen || this.pending.size !== 0) this.fail("RPC_UNEXPECTED_EOF");
@@ -129,8 +137,10 @@ export class PreflightTransport {
   }
 
   private async readStderr(): Promise<void> {
-    for await (const bytes of this.child.stderr) {
-      this.stderrBytes += bytes.byteLength;
+    while (true) {
+      const next = await this.stderrReader.read();
+      if (next.done) break;
+      this.stderrBytes += next.value.byteLength;
       if (this.stderrBytes > 65_536) throw new Error("RPC_STDERR_LIMIT");
       // Never retain or return stderr content. Only the bounded byte count is diagnostic data.
     }
@@ -158,6 +168,11 @@ export class PreflightTransport {
     let forced = false;
     const terminate = setTimeout(() => { forced = true; this.child.kill("SIGTERM"); }, this.timeout);
     const kill = setTimeout(() => { forced = true; this.child.kill("SIGKILL"); }, this.timeout + 500);
+    const stopReaders = setTimeout(() => {
+      this.fail("RPC_DRAIN_TIMEOUT");
+      void this.stdoutReader.cancel();
+      void this.stderrReader.cancel();
+    }, this.timeout + 1000);
     try {
       await this.writeQueue;
       try { this.child.stdin.end(); } catch {}
@@ -166,7 +181,7 @@ export class PreflightTransport {
       return { code, forced, stderrBytes: this.stderrBytes,
         ...(this.fault === undefined ? {} : { protocolFailure: this.fault.message }) };
     } finally {
-      clearTimeout(terminate); clearTimeout(kill);
+      clearTimeout(terminate); clearTimeout(kill); clearTimeout(stopReaders);
       this.signal?.removeEventListener("abort", this.cancelled);
     }
   }

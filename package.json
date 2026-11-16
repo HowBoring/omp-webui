@@ -15,7 +15,12 @@
     "check": "bun run typecheck && bun test && bun run build",
     "build": "bun build apps/host/src/main.ts --target=bun --outdir=dist",
     "compat:build": "bun scripts/build-compatibility.ts",
-    "diagnostics": "bun apps/host/src/diagnostics-main.ts"
+    "diagnostics": "bun --no-env-file vendor/host-diagnostics/diagnostics-main.js",
+    "compat:prepare": "bun --no-env-file scripts/prepare-compatibility.ts",
+    "dsh:prepare": "bash scripts/prepare-dsh.sh",
+    "dsh:link": "bun scripts/link-dsh.ts",
+    "diagnostics:build": "bun apps/diagnostics/build.ts && bun scripts/build-diagnostics-host.ts",
+    "diagnostics:enroll": "bun scripts/enroll-candidate.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",

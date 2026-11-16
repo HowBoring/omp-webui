@@ -82,3 +82,24 @@ test("cancellation rejects pending work and reaps without replay", async () => {
   await expect(pending).rejects.toThrow("RPC_CANCELLED");
   expect((await client.close()).protocolFailure).toBe("RPC_CANCELLED");
 });
+
+test("blocked stdin flush cannot prevent EOF shutdown deadlines and process reaping", async () => {
+  const client = await fixture("never-read", 50);
+  // Enough bounded rounds to fill a real Linux pipe after the child stops reading.
+  for (let round = 0; round < 8; round++) {
+    await Promise.allSettled(Array.from({ length: 32 }, () => client.inspect()));
+  }
+  const start = performance.now();
+  const result = await client.close();
+  expect(result.forced).toBe(true);
+  expect(result.code).not.toBe(0);
+  expect(performance.now() - start).toBeLessThan(1200);
+});
+
+test("stdin EOF still drains a valid pending response before observing actual exit", async () => {
+  const client = await fixture("eof-response");
+  const report = client.inspect();
+  const closing = client.close();
+  expect((await report).candidate).toBe("omp-webui-s0");
+  expect(await closing).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+});
