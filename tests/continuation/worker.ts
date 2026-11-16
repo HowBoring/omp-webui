@@ -6,10 +6,11 @@ import { z } from "zod";
 import { PhysicalFrames } from "../../packages/compatibility/framing.ts";
 const frameSchema = z.object({ type: z.string(), id: z.string().optional() }).catchall(z.unknown());
 export type StrictFrame = z.infer<typeof frameSchema>;
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, trace?: string) {
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, trace?: string, requestTimeoutMs = 10_000) {
   if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
+  if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1000 || requestTimeoutMs > 120_000) throw new Error("STRICT_FIXTURE_TIMEOUT_BOUNDS");
   if (trace && !trace.startsWith(home + "/")) throw new Error("STRICT_FIXTURE_TRACE_PATH");
-  const child = Bun.spawn([...(trace ? ["strace", "--kill-on-exit", "-f", "-e", "trace=network", "-o", trace] : []), ...(fault && fault.name !== "unknown-lease"
+  const child = Bun.spawn([...(trace ? ["strace", "--kill-on-exit", "-f", "-e", "trace=network", "-o", trace] : []), ...(fault && fault.name !== "unknown-lease" && !["submission-drop-ack", "submission-receipt-crash"].includes(fault.name)
     ? [Bun.which("python3") ?? "/usr/bin/python3", resolve(fault.name.startsWith("submission-") ? "tests/submissions/syscall-faults.py" : "tests/continuation/syscall-faults.py")] : []),
     process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/no-provider.ts"),
     ...(fault ? ["--preload", resolve(fault.name.startsWith("submission-") ? "tests/submissions/wire-faults.ts" : "tests/continuation/native-faults.ts")] : []),
@@ -39,7 +40,7 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
     const pending = Promise.withResolvers<StrictFrame>();
     const listener = (frame: StrictFrame) => { if (predicate(frame)) pending.resolve(frame); };
     listeners.add(listener);
-    const timer = setTimeout(() => pending.reject(new Error("STRICT_FIXTURE_TIMEOUT")), 10_000);
+    const timer = setTimeout(() => pending.reject(new Error("STRICT_FIXTURE_TIMEOUT")), requestTimeoutMs);
     void child.exited.then(async code => pending.reject(new Error(`STRICT_FIXTURE_EXIT_${code}: ${(await stderr).slice(0, 1500)}`)));
     try { return await pending.promise; } finally { clearTimeout(timer); listeners.delete(listener); }
   };

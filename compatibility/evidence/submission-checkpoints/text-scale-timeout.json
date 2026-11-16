@@ -1,0 +1,10 @@
+[
+  {
+    "profile": "submission-text-scale-i8FprU",
+    "controlledProgress": {
+      "calls": 705,
+      "realInference": false
+    },
+    "status": "FAIL fixture deadline240s before 1000 turns"
+  }
+]

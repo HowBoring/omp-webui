@@ -43,7 +43,7 @@ export default function(pi) {
           cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } } };
       void (async () => {
         stream.push({ type: "start", partial: message });
-        await Bun.sleep(100);
+        await Bun.sleep(userText === "slow-input" ? 1000 : 100);
         if (userText === "tool" && context.messages.at(-1)?.role !== "toolResult") {
           const toolCall = {type:"toolCall", id:"literal-tool-id", name:"submission_fixture_tool", arguments:{}};
           message.content = [toolCall]; message.stopReason = "toolUse";

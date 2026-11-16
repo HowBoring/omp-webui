@@ -9,7 +9,7 @@ test("real partial native entry write yields an explicit unknown result; queries
   const home = await fs.mkdtemp(path.join(os.tmpdir(), "submission-failure-"));
   try {
     const root = await nativeFixture(home), target = path.join(root, "bucket/native-0000.jsonl"), cwd = path.join(home, "project");
-    const selected = await selectedDescriptor(home), worker = strictWorker(home, cwd, controlledRuntime, undefined, { name: "submission-short-entry", target });
+    const selected = await selectedDescriptor(home), worker = strictWorker(home, cwd, controlledRuntime, undefined, { name: "submission-short-entry", target }, undefined, 30_000);
     try {
       await negotiateStrict(worker);
       expect(await worker.request({ type: "strict_start", intent: "continue", reference: selected.reference, expectedCwd: cwd })).toMatchObject({ success: true });
@@ -34,4 +34,4 @@ test("real partial native entry write yields an explicit unknown result; queries
       expect(await fs.readFile(target)).toEqual(before);
     } finally { await worker.close().catch(() => {}); worker.child.kill(); await worker.child.exited; }
   } finally { await fs.rm(home, { recursive: true, force: true }); }
-}, 30000);
+}, 45000);

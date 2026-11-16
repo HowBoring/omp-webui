@@ -220,7 +220,7 @@ index 3a336fa764..66fff2dfdb 100644
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..8e354143c2
+index 0000000000..345c18f6b9
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -0,0 +1,126 @@
@@ -345,7 +345,7 @@ index 0000000000..8e354143c2
 +    return { version: "durable-submission-v1", clientSubmissionId, target, found: true, duplicate,
 +      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
 +        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
-+      reservation: "committed", inputOutcome: value.inputOutcome, terminal: value.terminal,
++      reservation: "committed", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
 +      persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
 +      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
 +  }
@@ -901,7 +901,7 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 9ce3e51889..7133c28143 100644
+index 9ce3e51889..dbbeff4c40 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
@@ -1118,7 +1118,7 @@ index 9ce3e51889..7133c28143 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -4193,6 +4248,106 @@ export class SessionManager {
+@@ -4193,6 +4248,108 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1154,8 +1154,10 @@ index 9ce3e51889..7133c28143 100644
 +			const value = this.#nativeSubmissions.find(item => sameSubmission(item.origin, origin));
 +			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
 +			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
-+			const entryFacts = [...this.#verifiedSubmissionEntries].flatMap(([entryId, submission]) => sameSubmission(submission.origin, origin)
-+				? [{ entryId, role: submission.role }] : []);
++			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
++			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
++				facts.set(entryId,{entryId,role:submission.role});
++			const entryFacts = [...facts.values()];
 +			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
 +			await this.flush();
 +			const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
@@ -1225,7 +1227,7 @@ index 9ce3e51889..7133c28143 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4440,6 +4595,7 @@ export class SessionManager {
+@@ -4440,6 +4597,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -1233,7 +1235,7 @@ index 9ce3e51889..7133c28143 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4731,8 @@ export class SessionManager {
+@@ -4575,6 +4733,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -1242,7 +1244,7 @@ index 9ce3e51889..7133c28143 100644
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4748,8 @@ export class SessionManager {
+@@ -4590,8 +4750,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -1253,7 +1255,7 @@ index 9ce3e51889..7133c28143 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4758,7 @@ export class SessionManager {
+@@ -4600,6 +4760,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
