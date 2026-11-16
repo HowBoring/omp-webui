@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, mkdir, rm, symlink, link, copyFile, rename } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, symlink, link, copyFile, rename, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { CatalogTransport } from "../../packages/compatibility/catalog-transport.ts";
@@ -181,3 +181,36 @@ test("response-byte packing preserves every large descriptor through continuatio
     } finally{await client.close();}
   } finally{await rm(home,{recursive:true,force:true});}
 },10000);
+
+
+test("unreadable native buckets preserve successful custom results and report partial permission failure",async()=>{
+  const home=await mkdtemp(join(tmpdir(),"catalog-permission-"));
+  let locked:string|undefined;
+  try{
+    const root=await nativeFixture(home);locked=join(root,"bucket");await chmod(locked,0);
+    const custom=join(home,"custom");await mkdir(custom);
+    await Bun.write(join(custom,"readable.jsonl"),'{"type":"session","id":"readable","timestamp":"2026-01-01T00:00:00Z"}\n');
+    const client=await open(home,{OMP_CATALOG_SOURCES:JSON.stringify([custom])});
+    try{
+      const page=await client.catalog.page();expect(page.status).toBe("partial");
+      expect(page.items.map(item=>item.nativeSessionId)).toEqual(["readable"]);
+      expect(page.failures.map(item=>item.code)).toEqual(["EACCES"]);
+    }finally{await client.close();}
+  }finally{if(locked)await chmod(locked,0o700);await rm(home,{recursive:true,force:true});}
+});
+
+test("catalog leaves legacy directories, malformed primary Sessions and valid backups unchanged",async()=>{
+  const home=await mkdtemp(join(tmpdir(),"catalog-backup-"));
+  try{
+    const root=await nativeFixture(home);
+    await rename(join(root,"bucket"),join(root,"--legacy-native-bucket--"));
+    const moved=join(root,"--legacy-native-bucket--/native-0000.jsonl");
+    await copyFile(moved,`${moved}.bak`);await Bun.write(moved,"malformed primary header\n");
+    const before=await filesystemManifest(home),client=await open(home);
+    try{
+      const page=await client.catalog.page();expect(page.status).toBe("partial");expect(page.items).toEqual([]);
+      expect(page.failures.map(item=>item.code)).toEqual(["INVALID_METADATA"]);
+      expect(await filesystemManifest(home)).toEqual(before);
+    }finally{await client.close();}
+  }finally{await rm(home,{recursive:true,force:true});}
+});

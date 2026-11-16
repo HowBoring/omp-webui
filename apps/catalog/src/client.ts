@@ -25,10 +25,10 @@ function render(page:CatalogPage):void {
   const rows:HTMLElement[] = [summary];
   for (const issue of page.failures) rows.push(text("p",`Partial source failure: ${issue.code}`));
   for (const item of page.items) {
-    const row = document.createElement("article"); row.dataset.nativeId=item.nativeSessionId;
+    const row = document.createElement("article"); row.dataset.nativeId=item.nativeSessionId;row.dataset.sourceId=item.sourceId;
     row.append(text("h2",item.title ?? item.nativeSessionId),text("p",`cwd: ${item.cwd.canonical ?? item.cwd.recorded ?? "unknown"} (${item.cwd.status})`),
       text("p",`Ownership ${item.ownership.state}; observed ${item.ownership.observedAt}`),
-      text("p",`Native ID ${item.nativeSessionId}; instance ${item.instanceId.slice(0,12)}; aliases ${item.aliases.length}`));
+      text("p",`Source ${item.sourceId.slice(0,12)}; Native ID ${item.nativeSessionId}; instance ${item.instanceId.slice(0,12)}; aliases ${item.aliases.length}`));
     const button = text("button","Recheck description"); button.addEventListener("click",()=>void describe(item)); row.append(button); rows.push(row);
   }
   root.replaceChildren(...rows); cursor=page.nextCursor; next.disabled=!cursor;
@@ -53,6 +53,11 @@ async function load(restart=false):Promise<void> {
 next.addEventListener("click",()=>void load()); refresh.addEventListener("click",()=>void load(true));
 async function boot():Promise<void> {
   connection(ctx); registry(ctx); gateway(ctx); await ctx.remote.$mount(catalogContribution);
+  const scope=await ctx.remote.ompCatalogFixture.sources();
+  if (!scope.ok) {blocked("source_report_failed");return;}
+  const sources=document.querySelector<HTMLElement>("#sources")!;
+  sources.append(text("h2",`Selected native profile: ${scope.value.profile}`));
+  for (const source of scope.value.sources) sources.append(text("p",`${source.kind} source ${source.sourceId.slice(0,12)}: ${source.status}; aliases ${source.aliases.join(", ")}`));
   const unsubscribe=ctx.connection.generation.subscribe(()=>{
     if (ctx.connection.generation.getSnapshot() === undefined) {++generation; blocked("connection_unavailable");}
     else void load(true);
