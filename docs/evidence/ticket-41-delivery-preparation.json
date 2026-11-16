@@ -20,10 +20,18 @@
       "passed": 34,
       "failed": 0,
       "assertions": 83,
-      "files": 11
+      "files": 11,
+      "scope": "combined affected suite before final manifest-publication safety fix; reran after integration merge"
     },
     "typecheck": "PASS",
-    "gitDiffCheck": "PASS"
+    "gitDiffCheck": "PASS",
+    "manifestPublicationSafetyFix": {
+      "seam": "real filesystem",
+      "passed": 10,
+      "failed": 0,
+      "assertions": 12,
+      "combinedRerun": "PENDING coordinator runtime clearance"
+    }
   },
   "actualGlobal": "BLOCKED: no owner-selected actual global entry or installation policy",
   "finalCombination": "NOT FROZEN; no final artifact/schema/client identity asserted",
@@ -40,7 +48,7 @@
     "apps/host/src/diagnostics-server.ts": "cd66d3f0748bab288acd2a0eb985f5ccfc4844bd8a423000333b7bd53c4b13ba",
     "compatibility/launcher/omp-entry.c": "581a2259d80505c2ff301073c3558a05b1f79502bfec67b7ceb179c03aebfb22",
     "packages/compatibility/assets.ts": "f3e0cc282d1eb42da2f321bc2f3e6f03f75d76b10c5c1c4b9c1cfbac3b16da71",
-    "packages/delivery/artifact.ts": "640beaa49283745cb64a467a64818df6fcaa57913a70a413f24848f7602e4651",
+    "packages/delivery/artifact.ts": "c147ab6f8944fe16d78ee805a704b6ff16fd64835cf81dbc6e5963a212cdef8b",
     "packages/delivery/coordinator.ts": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae",
     "packages/delivery/gate.ts": "37f31ca2850344db23300cb7ab9c163bfc9aa6a4a811c82c101a5e39c879cd26",
     "packages/delivery/maintenance.ts": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba",
@@ -48,7 +56,7 @@
     "scripts/build-controlled-launcher.ts": "4571c2ed9d5feed9af81831178a5a06dc25a48fbd8ca09700c12aff6fac6f907",
     "scripts/inspect-delivery.ts": "e98fca187ea92a2964bd59a0002827856e6c20ab304ee2be13663ea8a92d12fb",
     "tests/compatibility/assets.test.ts": "e6f82bc1d6e5b97c47ce6fec1caf14556ca7cbb556a68e7290d1176a43ca1751",
-    "tests/delivery/artifact.test.ts": "e405f444129d8a294bacb270ad395d4f3c45936760d1a93de95c0be977c1934a",
+    "tests/delivery/artifact.test.ts": "2e7b43ee6787c26fd46b3858c26094ce1a7f2ffc75afab6a1070f1605591f95c",
     "tests/delivery/coordinator.test.ts": "c998a0492fed272547ed45729bf9ff0529fc6a13364c6b3bf8f535f8cb1dd68f",
     "tests/delivery/fixtures.ts": "a7064bc3e8f7043b407f9dd4bb9333622b815e40d18c1a8bf51054cd594cf2a3",
     "tests/delivery/gate.test.ts": "125b3e13408f3baea0b0f02494a4d3661496e624b8a75b4de8b8d2ace612cd3f",
@@ -57,5 +65,7 @@
     "tests/delivery/maintenance.test.ts": "5d01b83909f74141fb3dc6b0a0ae0fd584da673ec523406216ca1c195ca6fa9c",
     "tests/delivery/resolver.test.ts": "507fd03078c0977f7153f858c4b4bbe9972306723d77ac027530db2fa9d56495",
     "tests/host/diagnostics-trust.test.ts": "94502c29bf1424938386eb41c1d27f4b6f48537f4c5340b1f6935dd67bec9496"
-  }
+  },
+  "currentIntegrationMerged": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "validatedIntegrationMerge": "91227eeac29f6c4ad7b2a90f6cf98f20adb97243"
 }

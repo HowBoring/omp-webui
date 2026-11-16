@@ -93,3 +93,73 @@ or private descendant, failure-before-broker-spawn/reconnect, generation mismatc
 owner's service. Independently clean failed tests through an owned containment boundary. Bind final Native PID,
 selected global delivery bytes and effective schema to actual runtime mappings. Repeat on actual Linux and later
 owner-deferred WSL2. All such native/helper lifecycle results remain **NOT RUN** in this delivery slice.
+
+## Bounded first policy alternative (also PROPOSED, not implemented)
+
+A startup-enforced **private execution only** mode can avoid adding shared service ownership/refcount semantics
+for the first Host-supported build. Ordinary global TUI outside that mode keeps its existing behavior. The mode
+must be effective and publicly reported before Session/UI/import side effects, immutable for that process, and
+inherited/revalidated by every native-owned helper/subagent worker. It must reject shared daemon creation,
+replacement, restart, mode change, stop, send/signal and shutdown **before** effects. It cannot merely guard the
+bash `service` option: shared daemon consumers also include browser/relay, IDA, image blob backend, text prediction
+and LSP mux. New unsupported actions need a stable typed public reason; no success/deferred fallback may hide them.
+
+The strongest minimal implementation denies shared broker access at the native client factory before directory/
+token creation, then guards every operation/connect/reconnect path as defense in depth. A later optional read-only
+existing-broker path must use an existing token only, never mkdir/create/read-or-create or auto-spawn. Current
+`request()` envelopes publish owners/completion subscriptions even for ping; they are not a read-only protocol and
+must not be reused unchanged. All mutation operations above must be denied, plus any direct daemon control socket
+shutdown/replacement logic outside that broker client. Unknown/external services are never signaled.
+
+Actual source makes a bounded policy plausible, with important checks:
+
+| Surface | Actual source behavior and required policy treatment | Mandatory spec impact |
+| --- | --- | --- |
+| Generic native bash/background/subagents | Native shell/private descendants remain in helper domain; do not disable them with `--no-tools` | Preserve stories 23–25, 28, 34–39 and parent-owned subagents |
+| Named bash services | `startService()` uses shared project client; service mode/stop paths may affect shared named resources | No explicit named shared service administration story; typed refusal is compatible with tool failure rendering, subject to coordinator scope decision |
+| LSP | `lsp/client.ts` prefers shared path but explicitly falls back to private `ptree.spawn`; a separate external lspmux wrapper may already route to a shared server | Preserve private LSP fallback; bypass/deny implicit external multiplexed creation in this mode rather than silently managing unknown services |
+| Image blob daemon | `connectDaemonBlobBackend()` catches failure and returns null; `LiveImageUrlService` builds local backends as fallback, potentially prewarming them | Shared-to-private backend can preserve image input semantics, but attachment/model budgets, bytes and degradation guarantees in stories 57–64 must be rerun; no blanket image PASS from source alone |
+| Native browser/relay and IDA | Project/global broker users may create/replace shared services; browser health code may stop an existing named daemon | Deny before requests/effects and render actual native error; full native tool/TUI feature parity is out of scope, but product tool failure rendering remains mandatory |
+| Text prediction | Existing connect logic can send shutdown to an older daemon directly before starting its replacement | Disable this optional shared prewarm/control path before connection; do not rely only on central start guard |
+
+This alternative preserves core browser coding/streaming/tools **only if** real Native tests confirm private bash,
+background/descendant execution, subagents and any required attachment conversion/input path still work, while
+explicit unsupported errors are visible. The spec promises readable actual tool failures, not every native TUI
+feature. It still requires all mandatory attachment formats and ordinary Stop/revocation/owned-process behavior;
+none of those may be removed merely to make the policy pass. The coordinator must record the supported policy
+and decide whether any affected optional native action is actually required before reserving a patch.
+
+An inherited environment flag alone does not prove all nested ordinary OMP entry paths are classified: a generic
+tool can launch another ordinary OMP with a cleared environment. Before granting cleanup, the contract must define
+whether all such descendants are unconditionally private (including nested broker publication), or provide an
+entry/backend enforcement that prevents a nested native process publishing a shared broker from the private domain.
+The global ordinary TUI path outside supervision cannot be classified from a guessed command name/PID. This is a
+specific remaining policy/enforcement question, not a same-UID sandbox promise or permission to kill a shared broker.
+
+## Helper/control/provenance/maintenance invariants for either policy
+
+- Host starts one reviewed helper, which enables/verifies subreaper before fork. Only that helper forks the native
+  root, records its child identity and owns its wait status. The actual selected ordinary global C entry execs
+  packaged Bun without changing the child PID. Native lease stays native; Host runtime maps use that Native PID.
+- Use an inherited private control socket separate from native stdin/stdout/stderr. Pinned Bun public types expose
+  POSIX `stdio[3] = "socket-fd"` and caller-owned `subprocess.stdio[3]`, suitable for a future real socketpair fixture.
+  This is source feasibility only, not a tested transport. Frame/control byte/member/queue limits and ownership of
+  both fd ends must be fixed. No endpoint/credential or raw executable choice is exposed to a browser.
+- Handshake binds Host nonce/generation, approved helper digest, expected delivery identity, actual helper PID and
+  helper-forked Native PID before native stdio admission. Only the owned inherited channel grants authority;
+  stdout frames, self-reported arbitrary PIDs, `/proc` guesses and stale control generations cannot substitute.
+  Host verifies actual Native runtime mappings against the same release before risky Session operations.
+- Cooperative Stop/EOF/TERM/force and Native root exit are distinct from adopted-private-child drain. The helper
+  retains its shared installation lease until authoritative no-private-children completion; a root-only fd or
+  helper exit notification is insufficient. Descendants may continue loading the release after root exit.
+- The helper must handle Host control EOF autonomously, remain alive while cleaning, and report explicit unresolved
+  status on resource/deadline/protocol failure. Host must not terminate the cleanup controller to satisfy an elapsed
+  deadline. New worker admission remains fenced while unresolved. A helper crash is not a successful drain.
+- The supported maintenance workflow also needs a durable incomplete-generation fence before launch, cleared only
+  by proven completion. Otherwise a Host/helper crash could release their flocks while descendants survive and a
+  later installer could falsely infer safety from exclusive acquisition. Recovery may remain manual/BLOCKED; it
+  must not signal unknown PIDs or silently delete the fence. Exact crash/fence guarantees need separate design
+  and fault evidence before lifetime capability approval.
+- Any admitted shared/persistent exemption must exist before creation/publication, have public durable owner/
+  generation/lifetime semantics, retain its own maintenance protection, and preserve external owners. The bounded
+  policy avoids adding exemptions by refusing shared mutation; it cannot publish unqualified external cleanup.

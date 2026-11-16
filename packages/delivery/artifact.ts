@@ -1,4 +1,4 @@
-import { lstat, readFile, readdir, realpath, writeFile } from "node:fs/promises";
+import { lstat, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
 import { assetSchema, digest, identifyAsset, type AssetIdentity } from "../compatibility/installation.ts";
@@ -72,6 +72,14 @@ function assertComponents(assets: AssetIdentity[]): void {
 /** Explicit operator build action. This inventories bytes; it cannot authenticate a publisher or approve a tuple. */
 export async function writeReleaseManifest(input: { root: string; platformDependencies: string[] }): Promise<string> {
   const root = await checkedRoot(input.root);
+  const destination = join(root, manifestName);
+  const existing = await lstat(destination).catch(error => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return undefined;
+    throw error;
+  });
+  if (existing !== undefined && (!existing.isFile() || existing.nlink !== 1)) {
+    throw new Error("RELEASE_MANIFEST_PATH_UNSUPPORTED");
+  }
   const assets = await inventory(root);
   assertComponents(assets);
   const platformDependencies: AssetIdentity[] = [];
@@ -85,7 +93,11 @@ export async function writeReleaseManifest(input: { root: string; platformDepend
     platform: process.platform, arch: process.arch, assets, platformDependencies });
   const bytes = JSON.stringify(manifest, null, 2) + "\n";
   if (Buffer.byteLength(bytes) > maxManifestBytes) throw new Error("RELEASE_INVENTORY_LIMIT");
-  await writeFile(join(root, manifestName), bytes);
+  const temporary = join(root, `.release-${crypto.randomUUID()}.tmp`);
+  try {
+    await writeFile(temporary, bytes, { flag: "wx", mode: 0o600 });
+    await rename(temporary, destination);
+  } finally { await rm(temporary, { force: true }); }
   return digest(bytes);
 }
 

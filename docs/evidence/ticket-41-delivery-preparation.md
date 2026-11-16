@@ -48,13 +48,18 @@ git diff --check
 ```
 
 Actual affected suite: **34 PASS, 0 FAIL, 83 assertions, 11 files**. TypeScript strict check and whitespace check
-passed. `tests/browser/*` above are explicit public contract/Remote fixtures, not browser UI runs. Loopback HTTP
+passed. After merging integration `4024c4084173c102764e0c1e42efa183ba8810d4` (own merge `91227ee`),
+the same 34/83 affected suite and strict checks passed again. A later explicit-enrollment manifest-link safety fix
+was independently red→green through the real filesystem: the revised artifact suite passed **10/10 with 12
+assertions**; a combined rerun is pending coordinator runtime clearance. `tests/browser/*` above are explicit public contract/Remote fixtures, not browser UI runs. Loopback HTTP
 checks ran with network permission; no Native runtime/build suite was started. The full shared Native/DSH build
 matrix is not rerun by this slice, and no earlier component evidence is relabelled as final combination evidence.
 
 Vertical red→green evidence included missing public modules/command, externally hardlinked artifact acceptance,
 absolute link acceptance, same-byte symlinked manifest acceptance, inside-release control acceptance, stale
-independent asset trust returning 200, and injection options reaching Bun. Each failure was corrected before
+independent asset trust returning 200, injection options reaching Bun, and explicit enrollment following a linked
+manifest destination. Enrollment now refuses linked/hardlinked manifest destinations and atomically replaces the
+manifest pathname through a unique temporary file; the outside fixture bytes remain untouched. Each failure was corrected before
 proceeding. Additional negative/contract cases were then exercised at the same approved seams.
 
 ## Material remaining gates

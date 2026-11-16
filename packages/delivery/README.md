@@ -14,6 +14,8 @@ excluded. Required nonempty directories are `bin`, `runtime`, `worker`, `native`
 `provenance`. Required files are `bin/omp`, `runtime/bun`, `runtime/bunfig.toml` and `worker/cli.js`; launcher/runtime
 must be executable. Hardlinked members, external/absolute dependency links, indirect links and symlinked ancestors
 are unsupported. Internal relative direct links are inventoried together with the target's ordinary membership.
+Existing linked/hardlinked manifest destinations are refused; publication uses a unique temporary file and rename
+so enrollment does not write through an external manifest link. This is not a power-loss durability promise.
 Platform library files are explicit absolute identities and do not become stable merely because they are hashed.
 
 `inspectRelease({ root, expectedIdentity })` requires a SHA256 supplied from independent reviewed operator

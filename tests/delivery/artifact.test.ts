@@ -84,3 +84,15 @@ for (const mutation of ["same-version-bytes", "unlisted-dependency", "mode", "om
     } finally { await rm(parent, { recursive: true, force: true }); }
   });
 }
+
+test("explicit enrollment refuses an existing linked manifest without overwriting its outside target", async () => {
+  const parent = await mkdtemp(join(tmpdir(), "delivery-enroll-path-"));
+  try {
+    const root = await fixtureRelease(parent);
+    const outside = join(parent, "outside-manifest");
+    await writeFile(outside, "preserve outside bytes");
+    await symlink(outside, join(root, "release.json"));
+    await expect(enroll(root)).rejects.toThrow("RELEASE_MANIFEST_PATH_UNSUPPORTED");
+    expect(await readFile(outside, "utf8")).toBe("preserve outside bytes");
+  } finally { await rm(parent, { recursive: true, force: true }); }
+});
