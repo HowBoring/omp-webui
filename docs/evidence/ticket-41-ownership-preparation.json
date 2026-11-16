@@ -1,0 +1,30 @@
+{
+  "status": "INCOMPLETE_SOURCE_PREPARATION",
+  "capabilityGranted": false,
+  "scope": "stable-native-patches-1-through-6-plus-0010-only",
+  "pureModuleChecks": { "status": "PASS", "tests": 13, "assertions": 39, "files": 4, "milliseconds": 22 },
+  "schemaCorpus": { "status": "PASS", "requests": 8, "responses": 6 },
+  "focusedTypeCheck": { "status": "PASS", "files": 10, "errors": 0, "milliseconds": 88.31 },
+  "hostTypeCheck": "PASS",
+  "orderedPatchApplication": "PASS",
+  "cBridgeCompile": "NOT_RUN",
+  "soPeerPidfdKernelProof": "NOT_RUN",
+  "helperRuntime": "NOT_RUN",
+  "actualNativeSemantics": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "accidentalEntrypointAttempt": {
+    "status": "FAIL",
+    "testRemoved": true,
+    "guardPresent": false,
+    "isolatedEnvironmentPresent": false,
+    "observed": "EROFS mkdir /home/agent/.omp",
+    "testsPassed": 0,
+    "testsFailed": 1,
+    "assertions": 1,
+    "milliseconds": 1460,
+    "priorPrivateConfigurationReads": "UNKNOWN_NO_TRACE",
+    "networkOrProviderDispatch": "UNKNOWN_NO_TRACE",
+    "correctedActualCliRerun": "NOT_RUN"
+  }
+}

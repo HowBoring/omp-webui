@@ -1,0 +1,1728 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index a4b6abe4e7378f84c82d7a55b255f60a9bd1039f..502fb2cdd86dfbbe5240a9a961a33b7a7ea2c1dc 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Prepared a public execution-ownership protocol and explicit unavailable dispatcher entry; no lifecycle or shared-service capability is enabled ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
++
+ ### Fixed
+ 
+ - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index 0b34d8fc54c144e575dabb91854afdcfb1f26912..359bb4c7008cf651b900c3dfeb51deb944940186 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -10,6 +10,7 @@ For installation, setup, provider configuration, model roles, slash commands, an
+ Package-specific references:
+ 
+ - [CHANGELOG](./CHANGELOG.md)
++- [Execution ownership preparation](./docs/execution-ownership.md) (public contract source; Linux backend and ordinary-client integration unavailable)
+ - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
+ - [MCP configuration guide](../../docs/mcp-config.md)
+ - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
+diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..527534f3001d9f57d1985ef6e349f12ed913682c
+--- /dev/null
++++ b/packages/coding-agent/docs/execution-ownership.md
+@@ -0,0 +1,115 @@
++# Execution ownership — source preparation
++
++The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
++1–6 only, not a final 1–10 combination. No OS bridge artifact, dispatcher backend, shared-service policy, cleanup
++capability or ordinary global installation is admitted. `omp --execution-dispatcher` currently rejects with
++`ownership_backend_unavailable` before the ordinary runtime import. That refusal is intentional, not a working server.
++
++## Chosen installation contract
++
++The supported compatible Native installation will use an independently running public dispatcher for **all**
++shared-broker creation, including ordinary TUI and nested `env -i ... omp`. Ordinary clients will never start a
++dispatcher or broker locally. Host may bootstrap the dispatcher before starting any private helper; operators may
++start it independently. Missing, legacy, mismatched and failed peers fail closed. This startup dependency changes
++ordinary TUI deployment and must be accepted as part of the selected installation, never inferred from a profile flag.
++
++The rendezvous will derive from an immutable selected installation identity and actual UID, independent of HOME,
++XDG, cwd, profile and inherited environment. Its canonical private directory/socket and maintenance control are
++outside replaceable release files. Generation/closure/schema validation precedes broker publication. The backend
++that establishes that rendezvous and protection is **not implemented** in this preparation.
++
++## Authored public modules
++
++`launch/ownership/protocol` defines `omp-execution-ownership/1`, strict request/response decoders and typed errors.
++`wire.schema.json` contains the matching public draft-07 request/response schemas. Use
++`#/definitions/request` and `#/definitions/response`; framing byte limits and correlation are additional requirements.
++`framing` accepts one LF-terminated UTF-8 frame at a time, rejects malformed UTF-8/oversize/incomplete EOF and
++forbids pipelining. `client` validates request correlation, release/schema, operation and immutable process registration.
++Private registration refuses broker acquisition and publication before another wire request. It has no local spawn API.
++
++`dispatcher` is the decision module behind the authenticated OS/storage seam. It classifies each actual peer again
++on every request, including reconnect/publication. A retained process identity must continue to classify identically.
++Its public wire operations are fixed:
++
++- `classify`: no PID, environment or process-name authority from a caller; return immutable private/external registration.
++- `broker`: canonical project directory or fixed `browser-relay`/`text-predict` global scope; no executable/argv choice.
++- `publish`: exact dispatcher-owned broker peer, scope and generation, validated before any broker socket publication.
++
++Only the trusted supervisor control seam may register/complete a private helper. `registerHelper` returns only after
++the system adapter verifies the actual helper and supervisor, retains stable identities and durably fsyncs the
++incomplete generation. Only then may Host release the helper's worker-start barrier. PID/starttime fields in control
++receipts are audit/correlation hints. They are not authority; prefer the helper's own authenticated dispatcher connection
++to obtain SO_PEERPIDFD. `helperUncertain` fences new shared registrations globally before awaited storage work.
++There is no client recovery/reset operation. Completion requires the actual trusted helper's extinction proof.
++
++`OwnershipSystem` is an OS/durable-storage seam, not an existing production implementation. Its test adapter models
++kernel and disk facts; it proves decision behavior only. It does not prove ancestry, environment clearing, maintenance
++protection, actual service preservation or process extinction. A backend must check the synchronous publication permit
++after every awaited prepare and at each spawn/publication barrier; aborted/unknown backend outcomes retain fences.
++
++## Linux syscall bridge source
++
++`linux-bridge.c` and `linux-bridge.ts` prepare ABI 1. The C library owns listener/client sockets, peer pidfds and
++temporary ancestor pidfds; FFI uses generational table handles and opaque object identities, not private Bun socket
++fields. It requires actual SO_PEERPIDFD plus SO_PEERCRED, retains peer identity, walks `/proc` with retained parent
++pidfds, then rechecks every identity and parent edge. Missing, changed, namespace-mismatched or over-limit chains
++are unresolved. Classification grants no signal/wait authority. No fallback to SO_PEERCRED numeric PID alone exists.
++
++The bridge is loaded only explicitly by a future execution-ownership backend. Its selection requires an independent
++library SHA256, canonical direct file, ABI check and independently held/rechecked maintenance protection. The final
++closure must include its source, compiler executable identity, exact arguments/target, resulting bytes and platform
++libraries. This source has **not been compiled, loaded or tested**. The real-operation probe must run on the selected
++kernel before backend availability; a kernel version string cannot establish support. Catalog/preflight must not import it.
++
++## Fixed budgets
++
++| Resource | Limit / outcome |
++| --- | --- |
++| Physical UTF-8 frame | 16,384 bytes excluding LF; reject and close |
++| Connection receive/output queue | 32,768 bytes each; reject/close, no unbounded retries |
++| Connections / pending requests | 64 total / 1 per connection; no pipelining |
++| Global concurrent dispatcher operation / queue | 1 / 0; immediate typed refusal |
++| Retained process registrations / private helpers | 512 / 64; refuse new admission on exhaustion |
++| Ancestor depth | 256 retained identities per traversal; overflow unresolved |
++| C table slots / aggregate owned descriptors | 1,024 / 2,048; overflow fails closed, release partial acquisitions |
++| Broker scopes / independently protected external lifetimes | 64 / 256; refuse overflow |
++| Connect / request / idle deadline | 1,000 ms / 10,000 ms / 30,000 ms |
++| Bridge artifact | At most 1 MiB, canonical regular single-link file, independently selected SHA256 |
++
++The concrete transport/backend must enforce connection/output/deadline and lifetime limits; pure decoders do not
++implement an OS server. Do not evict an unresolved helper/lifetime or close its protector to make a resource test pass.
++Timeout is an unanswered operation, never proof that no broker/service was created. Persist uncertainty and block reuse.
++
++## Required consumer policy and supervision (not yet integrated)
++
++Hosted Native and nested compatible Native below the registered private helper will receive immutable private-only
++policy before Session/UI/import/factory effects. Generic bash, private background jobs and native parent-owned subagents
++remain supported. Named shared service administration, browser/relay, IDA and text-prediction old-daemon control fail
++with `shared_service_unsupported` before token/mkdir/request/completion effects. Private LSP bypasses external lspmux;
++image blobs use the actual local fallback. Every mandatory attachment format/budget/consumption path still needs evidence.
++
++All broker factory/connect/reconnect paths must lose automatic spawn, and the legacy broker public entry must reject
++without the dispatcher-owned generation handshake before publication. The current baseline client still auto-spawns;
++those edits and policy enforcement are pending. Do not infer them from the new client module having no spawn method.
++
++The dedicated C private subreaper is the sole wait owner of Native and adopted descendants; Bun waits only for it.
++Native stdio stays direct. A separate authenticated bounded control channel reports actual Native PID/generation,
++with a pre-exec/start barrier and lifetime identity. Native leases/runtime mapping checks use that actual Native PID.
++Private control EOF initiates fail-safe cleanup; unresolved children retain helper/lease/fence. Root reap, empty proc
++children and process groups do not prove completion: root reaped + closed admission + authoritative P_ALL/ECHILD do.
++
++External brokers and every surviving service need independent protectors outside private helper domains. An explicit
++external policy must preserve services on dispatcher/broker/control EOF while keeping lease and durable incomplete
++fence until actual extinction. Private EOF cleanup cannot be reused for that purpose. Broker-only leases are insufficient.
++
++## Validation gate
++
++Pure public module/schema tests are source evidence only. Next required results are bounded harmless OS bridge and
++helper fixtures, including peerpidfd failure, stale/foreign identities, descriptor exhaustion/leaks, changing ancestry,
++setsid/double-fork/nested subreaper, helper EOF/crash and unresolved fences. Then use actual synthetic Native bash,
++background/subagents, nested env-i creation/reconnect denial with zero publication, independent external TUI/service
++preservation, missing/legacy dispatcher negatives, private LSP and all mandatory attachment paths. Rebuild final same-source
++schema/client/server and repeat the matched actual-global combination. Linux first; actual WSL2 remains owner-deferred.
++
++Arbitrary downloaded old OMP, malicious same-UID/ptrace/namespace/reparent manipulation and externally delegated
++irreversible effects are outside this supported lifecycle guarantee. Generic bash is not an OS sandbox or external-effects rollback.
+diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
+index ff1bfe94d241d510f85007a47194263398951a7b..8705f78d102c53161b3af3230745344d61d728da 100755
+--- a/packages/coding-agent/src/cli.ts
++++ b/packages/coding-agent/src/cli.ts
+@@ -17,6 +17,12 @@ function validStrictArgs(args: string[]): boolean {
+ }
+ 
+ export async function runCli(argv: string[]): Promise<void> {
++	if (argv.includes("--execution-dispatcher")) {
++		const { OwnershipError } = await import("./launch/ownership/protocol");
++		if (argv.length !== 1) throw new OwnershipError("ownership_protocol");
++		const { startOwnershipDispatcher } = await import("./launch/ownership/entry");
++		await startOwnershipDispatcher();
++	}
+   if (argv.length === 1 && argv[0] === "--rpc-preflight") {
+     const { runPreflight } = await import("./modes/rpc/preflight");
+     await runPreflight();
+@@ -36,7 +42,13 @@ export async function runCli(argv: string[]): Promise<void> {
+ }
+ 
+ if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
+-  if (process.argv.slice(2).includes("--strict-start")) {
++  if (process.argv.slice(2).includes("--execution-dispatcher")) {
++	void runCli(process.argv.slice(2)).catch(error => {
++		process.stderr.write(JSON.stringify({ version: "omp-execution-ownership/1", type: "dispatcher_error",
++			code: error instanceof Error ? error.message : "ownership_backend_unavailable" }) + "\n");
++		process.exitCode = 2;
++	});
++  } else if (process.argv.slice(2).includes("--strict-start")) {
+     const args = process.argv.slice(2);
+     if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
+     else void runCli(args).catch(() => { process.exitCode = 1; });
+diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..0bae75659d1caf52b5128f4e7511215082caedfb
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/client.ts
+@@ -0,0 +1,80 @@
++import {
++	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipIdentity, ownershipScope,
++	type OwnershipIdentity, type OwnershipOperation, type OwnershipRegistration, type OwnershipRequest, type OwnershipResult, type OwnershipScope,
++} from "./protocol";
++
++/**
++ * Authenticated Native-only local transport. The concrete backend must verify the dispatcher's retained peer
++ * pidfd/installation identity, enforce connect/frame/queue/idle limits, and close on signal/protocol failure.
++ * A missing endpoint or legacy peer is an error; this interface has no spawn, shell or reconnect fallback.
++ */
++export interface OwnershipTransport {
++	exchange(frame: string, signal: AbortSignal): Promise<string>;
++	close(): void;
++}
++
++/** Immutable process registration plus typed, fixed Native dispatcher operations. Never exposed as a browser tunnel. */
++export class OwnershipClient {
++	readonly #identity: OwnershipIdentity;
++	readonly #transport: OwnershipTransport;
++	#registration: OwnershipRegistration | undefined;
++	#busy = false;
++	#failed = false;
++
++	constructor(identity: OwnershipIdentity, transport: OwnershipTransport) {
++		this.#identity = Object.freeze(ownershipIdentity(identity));
++		this.#transport = transport;
++	}
++
++	async classify(): Promise<OwnershipRegistration> {
++		const result = await this.#request({ op: "classify" });
++		if (result.op !== "classify") throw this.#fail("ownership_protocol");
++		const registration = result.registration, old = this.#registration;
++		if (old && (old.dispatcher !== registration.dispatcher || old.registration !== registration.registration
++			|| old.generation !== registration.generation || old.policy !== registration.policy)) {
++			throw this.#fail("dispatcher_mismatch");
++		}
++		this.#registration = Object.freeze(registration);
++		return this.#registration;
++	}
++
++	async broker(scope: OwnershipScope): Promise<OwnershipResult & { op: "broker" }> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const registration = await this.classify();
++		if (registration.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "broker", scope: ownershipScope(scope) });
++		if (result.op !== "broker") throw this.#fail("ownership_protocol");
++		return result;
++	}
++
++	/** Only the exact dispatcher-spawned broker peer can successfully use this public publication handshake. */
++	async publish(scope: OwnershipScope, generation: string): Promise<void> {
++		if (this.#registration?.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		if ((await this.classify()).policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const result = await this.#request({ op: "publish", scope: ownershipScope(scope), generation });
++		if (result.op !== "publish") throw this.#fail("ownership_protocol");
++	}
++
++	close(): void { this.#failed = true; this.#transport.close(); }
++
++	async #request(operation: OwnershipOperation): Promise<OwnershipResult> {
++		if (this.#failed) throw new OwnershipError("dispatcher_unavailable");
++		if (this.#busy) throw new OwnershipError("ownership_limit");
++		this.#busy = true;
++		const request: OwnershipRequest = { version: OWNERSHIP_VERSION, id: crypto.randomUUID(), identity: this.#identity, operation };
++		try {
++			const response = decodeOwnershipResponse(await this.#transport.exchange(JSON.stringify(request),
++				AbortSignal.timeout(OWNERSHIP_LIMITS.requestMs)), request);
++			if (!response.ok) throw new OwnershipError(response.error);
++			return response.result;
++		} catch (error) {
++			this.close();
++			if (error instanceof OwnershipError) throw error;
++			throw new OwnershipError("dispatcher_unavailable");
++		} finally { this.#busy = false; }
++	}
++
++	#fail(code: "ownership_protocol" | "dispatcher_mismatch"): OwnershipError {
++		this.close(); return new OwnershipError(code);
++	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..487188ddeab226862720a99472a532361aebf835
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
+@@ -0,0 +1,170 @@
++import {
++	decodeOwnershipRequest, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError,
++	ownershipIdentity, ownershipToken, sameOwnershipScope,
++	type OwnershipIdentity, type OwnershipRegistration, type OwnershipRequest, type OwnershipResponse,
++	type OwnershipResult, type OwnershipScope,
++} from "./protocol";
++
++/** Opaque retained OS peer identity, supplied only by the authenticated local transport, never decoded from wire. */
++export type StablePeer = object;
++export type PeerClassification =
++	| { kind: "external" } | { kind: "private"; generation: string } | { kind: "unresolved" };
++/** Backend must check synchronously at every spawn/publication barrier, after all awaited work. */
++export interface PublicationPermit { assertCurrent(): void }
++
++/**
++ * OS/durable-storage seam. The Linux adapter MUST obtain SO_PEERPIDFD, retain peer/ancestor pidfds,
++ * and recheck ancestry without trusting environment, numeric PID claims or command names.
++ * No implementation is admitted by this interface alone; a missing backend fails before serving.
++ */
++export interface OwnershipSystem {
++	readonly dispatcher: string;
++	/** Probe actual kernel operations and load durable fences. Any unresolved generation rejects startup. */
++	ready(): Promise<void>;
++	classify(peer: StablePeer): Promise<PeerClassification>;
++	/** Verify trusted supervisor/helper identities, retain pidfds and durably fsync an incomplete fence before return. */
++	protectHelper(control: StablePeer, helper: StablePeer, generation: string): Promise<void>;
++	/** Persist uncertainty. Failure must retain the existing incomplete fence; never erase it as recovery. */
++	markUnresolved(generation: string): Promise<void>;
++	/** Only authenticated helper root-reaped + closed-admission + P_ALL/ECHILD proof may clear/fsync the fence. */
++	completeHelper(helper: StablePeer, generation: string): Promise<void>;
++	/** Canonicalize and pin a real directory; no create-on-read or missing-path lexical fallback. */
++	canonicalScope(scope: OwnershipScope): Promise<OwnershipScope>;
++	/**
++	 * Fixed Native broker operation only. Before any spawn, protect the broker AND every permitted surviving
++	 * service lifetime with independent maintenance leases/durable fences outside all private helper domains.
++	 * Unknown start outcome retains its fence. Never accept arbitrary argv from this interface.
++	 */
++	broker(scope: OwnershipScope, permit: PublicationPermit): Promise<{ generation: string; runtimeDirectory: string; token: string }>;
++	/** Verify exact owned broker pidfd, scope, release/schema and independent protector before publication. */
++	publish(peer: StablePeer, scope: OwnershipScope, generation: string, permit: PublicationPermit): Promise<void>;
++}
++
++/** Public Native dispatcher decision module. No process launch or signaling authority is granted to Host/browser. */
++export class OwnershipDispatcher {
++	readonly #identity: OwnershipIdentity;
++	readonly #system: OwnershipSystem;
++	readonly #helpers = new Map<StablePeer, string>();
++	readonly #registrations = new Map<StablePeer, OwnershipRegistration>();
++	#blocked = false;
++	#busy = false;
++	#ready = false;
++
++	constructor(identity: OwnershipIdentity, system: OwnershipSystem) {
++		this.#identity = Object.freeze(ownershipIdentity(identity));
++		this.#system = system;
++		ownershipToken(system.dispatcher);
++	}
++
++	static async open(identity: OwnershipIdentity, system: OwnershipSystem): Promise<OwnershipDispatcher> {
++		const dispatcher = new OwnershipDispatcher(identity, system);
++		await system.ready();
++		dispatcher.#ready = true;
++		return dispatcher;
++	}
++
++	/** Trusted supervisor control seam, separate from the ordinary client socket. Return releases no worker itself. */
++	async registerHelper(control: StablePeer, helper: StablePeer, generation: string): Promise<void> {
++		return this.#serial(async () => {
++			this.#assertAvailable(); ownershipToken(generation);
++			if (this.#helpers.has(helper) || [...this.#helpers.values()].includes(generation)) {
++				throw new OwnershipError("ownership_protocol");
++			}
++			if (this.#helpers.size >= OWNERSHIP_LIMITS.helpers) throw new OwnershipError("ownership_limit");
++			try { await this.#system.protectHelper(control, helper, generation); }
++			catch (error) { this.#blocked = true; throw error; }
++			this.#assertAvailable();
++			this.#helpers.set(helper, generation);
++		});
++	}
++
++	/** Helper loss fences globally before storage I/O; no new shared registration may exploit orphan reparenting. */
++	async helperUncertain(helper: StablePeer): Promise<void> {
++		this.#blocked = true;
++		const generation = this.#helpers.get(helper);
++		if (!generation) throw new OwnershipError("ownership_unresolved");
++		await this.#system.markUnresolved(generation);
++	}
++
++	/** Failed/unavailable extinction proof remains incomplete and cannot be reset through the client protocol. */
++	async completeHelper(helper: StablePeer): Promise<void> {
++		return this.#serial(async () => {
++			const generation = this.#helpers.get(helper);
++			if (!generation) throw new OwnershipError("ownership_unresolved");
++			try { await this.#system.completeHelper(helper, generation); }
++			catch (error) { this.#blocked = true; throw error; }
++			this.#helpers.delete(helper);
++		});
++	}
++
++	/** Each request, including reconnect/publish, is classified from the actual authenticated peer again. */
++	async handle(peer: StablePeer, frame: string): Promise<OwnershipResponse> {
++		const request = decodeOwnershipRequest(frame);
++		try {
++			const result = await this.#serial(() => this.#dispatch(peer, request));
++			return { version: OWNERSHIP_VERSION, id: request.id, ok: true, identity: this.#identity, result };
++		} catch (error) {
++			return { version: OWNERSHIP_VERSION, id: request.id, ok: false,
++				error: error instanceof OwnershipError ? error.code : "ownership_unresolved" };
++		}
++	}
++
++	async #dispatch(peer: StablePeer, request: OwnershipRequest): Promise<OwnershipResult> {
++		this.#assertAvailable();
++		if (request.identity.closure !== this.#identity.closure || request.identity.schema !== this.#identity.schema) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		const registration = await this.#registration(peer);
++		this.#assertAvailable();
++		if (request.operation.op === "classify") return { op: "classify", registration };
++		if (registration.policy === "private") throw new OwnershipError("shared_service_unsupported");
++		const scope = await this.#system.canonicalScope(request.operation.scope);
++		if (!sameOwnershipScope(scope, request.operation.scope)) throw new OwnershipError("ownership_unresolved");
++		this.#assertAvailable();
++		const permit: PublicationPermit = { assertCurrent: () => this.#assertAvailable() };
++		try {
++			if (request.operation.op === "publish") {
++				await this.#system.publish(peer, scope, request.operation.generation, permit);
++				this.#assertAvailable();
++				return { op: "publish", generation: request.operation.generation };
++			}
++			const broker = await this.#system.broker(scope, permit);
++			this.#assertAvailable();
++			return { op: "broker", scope, ...broker };
++		} catch (error) {
++			// A lost backend answer can follow an irreversible spawn. Only durable operator recovery can reopen.
++			this.#blocked = true;
++			throw error;
++		}
++	}
++
++	async #registration(peer: StablePeer): Promise<OwnershipRegistration> {
++		const facts = await this.#system.classify(peer);
++		if (facts.kind === "unresolved" || (facts.kind === "private" && ![...this.#helpers.values()].includes(facts.generation))) {
++			throw new OwnershipError("ownership_unresolved");
++		}
++		const existing = this.#registrations.get(peer);
++		if (existing) {
++			if (existing.policy !== facts.kind || (facts.kind === "private" && existing.generation !== facts.generation)) {
++				this.#blocked = true;
++				throw new OwnershipError("ownership_unresolved");
++			}
++			return existing;
++		}
++		if (this.#registrations.size >= OWNERSHIP_LIMITS.registrations) throw new OwnershipError("ownership_limit");
++		const registration = Object.freeze({ registration: crypto.randomUUID(), dispatcher: this.#system.dispatcher,
++			policy: facts.kind, generation: facts.kind === "private" ? facts.generation : crypto.randomUUID() });
++		this.#registrations.set(peer, registration);
++		return registration;
++	}
++
++	#assertAvailable(): void {
++		if (!this.#ready) throw new OwnershipError("ownership_backend_unavailable");
++		if (this.#blocked) throw new OwnershipError("maintenance_fenced");
++	}
++	async #serial<T>(operation: () => Promise<T>): Promise<T> {
++		if (this.#busy) throw new OwnershipError("ownership_limit");
++		this.#busy = true;
++		try { return await operation(); } finally { this.#busy = false; }
++	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/entry.ts b/packages/coding-agent/src/launch/ownership/entry.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b00b709cc81b989757a89b04eed68cb03cb75455
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/entry.ts
+@@ -0,0 +1,10 @@
++import { OwnershipError } from "./protocol";
++
++/**
++ * Public independent dispatcher entry. Source preparation deliberately admits no OS backend yet.
++ * A backend must prove SO_PEERPIDFD, durable fences and external lifetime protectors before replacing this refusal.
++ * This entry must never load the Session/UI/provider graph or silently become a client-side broker spawner.
++ */
++export async function startOwnershipDispatcher(): Promise<never> {
++	throw new OwnershipError("ownership_backend_unavailable");
++}
+diff --git a/packages/coding-agent/src/launch/ownership/framing.ts b/packages/coding-agent/src/launch/ownership/framing.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..2a1ca28fe7b2c00ddaf1593a5cb4359b2d3653fd
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/framing.ts
+@@ -0,0 +1,32 @@
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++
++/** Bounded LF framing. A transport must also bound its receive queue and close on any thrown error. */
++export class OwnershipFrames {
++	readonly #bytes = new Uint8Array(OWNERSHIP_LIMITS.frameBytes);
++	#used = 0;
++	#ended = false;
++
++	push(chunk: Uint8Array): string[] {
++		if (this.#ended) throw new OwnershipError("ownership_protocol");
++		// More than one maximum-sized frame is never an admitted per-connection queue.
++		if (chunk.byteLength + this.#used > OWNERSHIP_LIMITS.queuedBytesPerConnection) throw new OwnershipError("ownership_limit");
++		const frames: string[] = [];
++		for (const byte of chunk) {
++			if (byte !== 10) {
++				if (this.#used === this.#bytes.length) throw new OwnershipError("ownership_limit");
++				this.#bytes[this.#used++] = byte;
++				continue;
++			}
++			if (frames.length === OWNERSHIP_LIMITS.pendingPerConnection) throw new OwnershipError("ownership_limit");
++			try { frames.push(new TextDecoder("utf-8", { fatal: true }).decode(this.#bytes.subarray(0, this.#used))); }
++			catch { throw new OwnershipError("ownership_protocol"); }
++			this.#used = 0;
++		}
++		return frames;
++	}
++
++	end(): void {
++		this.#ended = true;
++		if (this.#used !== 0) throw new OwnershipError("ownership_protocol");
++	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.c b/packages/coding-agent/src/launch/ownership/linux-bridge.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..fdc04ab656338017299148ef2b5892c44717e2ae
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/linux-bridge.c
+@@ -0,0 +1,314 @@
++/* Native execution ownership ABI 1. SOURCE PREPARATION: not compiled or kernel-validated.
++ * No Agent, Session, provider, arbitrary executable, environment or signal operation lives here.
++ * All descriptors stay inside this library. Callers receive checked table handles, never raw fds.
++ */
++#define _GNU_SOURCE
++#include <errno.h>
++#include <fcntl.h>
++#include <limits.h>
++#include <poll.h>
++#include <stdint.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/socket.h>
++#include <sys/stat.h>
++#include <sys/syscall.h>
++#include <sys/types.h>
++#include <sys/un.h>
++#include <unistd.h>
++
++#ifndef SO_PEERPIDFD
++#define SO_PEERPIDFD 77
++#endif
++
++#define OWNERSHIP_HANDLES 1024
++#define OWNERSHIP_FDS 2048
++#define OWNERSHIP_CONNECTIONS 64
++#define OWNERSHIP_ANCESTORS 256
++#define OWNERSHIP_HELPERS 64
++#define OWNERSHIP_FRAME 16384
++
++enum handle_kind { UNUSED = 0, LISTENER = 1, CONNECTION = 2, IDENTITY = 3, CONNECTING = 4 };
++struct handle { enum handle_kind kind; int fd; int peerfd; pid_t pid; uint64_t start; int key; };
++struct task { int fd; pid_t pid; pid_t parent; uint64_t start; };
++static struct handle handles[OWNERSHIP_HANDLES];
++static unsigned descriptor_count;
++static unsigned connection_count;
++static unsigned handle_serial;
++
++static int failure(void) { return -(errno ? errno : EIO); }
++static void drop_fd(int fd) {
++	if (fd < 0) return;
++	/* Retrying close after EINTR can close a reused Linux fd. Ownership ends after this close. */
++	(void)close(fd);
++	if (descriptor_count) descriptor_count--;
++}
++static int own_fd(int fd) {
++	if (fd < 0) return failure();
++	if (descriptor_count >= OWNERSHIP_FDS) { (void)close(fd); return -EMFILE; }
++	descriptor_count++;
++	return fd;
++}
++static int pidfd_open_owned(pid_t pid) {
++#ifdef SYS_pidfd_open
++	return own_fd((int)syscall(SYS_pidfd_open, pid, 0));
++#else
++	(void)pid; return -ENOSYS;
++#endif
++}
++static struct handle *lookup(int key, enum handle_kind kind) {
++	if (key <= 0) return NULL;
++	struct handle *value = &handles[(key - 1) % OWNERSHIP_HANDLES];
++	return value->key == key && value->kind == kind ? value : NULL;
++}
++static int keep(enum handle_kind kind, int fd, int peerfd, pid_t pid, uint64_t start) {
++	if (handle_serial >= (unsigned)(INT_MAX / OWNERSHIP_HANDLES) - 1) {
++		drop_fd(fd); drop_fd(peerfd); return -EOVERFLOW;
++	}
++	for (unsigned i = 0; i < OWNERSHIP_HANDLES; i++) {
++		if (handles[i].kind != UNUSED) continue;
++		int key = (int)(++handle_serial * OWNERSHIP_HANDLES + i + 1);
++		handles[i] = (struct handle){ kind, fd, peerfd, pid, start, key };
++		if (kind == CONNECTION || kind == CONNECTING) connection_count++;
++		return key;
++	}
++	drop_fd(fd); drop_fd(peerfd);
++	return -EMFILE;
++}
++static int alive(int fd) {
++	struct pollfd pollfd = { .fd = fd, .events = POLLIN };
++	int result = poll(&pollfd, 1, 0);
++	if (result < 0) return failure();
++	/* pidfds become readable at exit. HUP/ERR/NVAL never grant classification authority. */
++	return result == 0 ? 1 : -ESTALE;
++}
++static int same_pid_namespace(pid_t pid) {
++	char name[64];
++	struct stat self, other;
++	if (snprintf(name, sizeof(name), "/proc/%ld/ns/pid", (long)pid) >= (int)sizeof(name)) return -EOVERFLOW;
++	if (stat("/proc/self/ns/pid", &self) || stat(name, &other)) return failure();
++	return self.st_dev == other.st_dev && self.st_ino == other.st_ino ? 0 : -EXDEV;
++}
++static int read_task(pid_t pid, int pidfd, struct task *task) {
++	char name[64], bytes[4096];
++	if (alive(pidfd) < 0) return -ESTALE;
++	if (same_pid_namespace(pid) < 0) return -EXDEV;
++	if (snprintf(name, sizeof(name), "/proc/%ld/stat", (long)pid) >= (int)sizeof(name)) return -EOVERFLOW;
++	int fd = own_fd(open(name, O_RDONLY | O_CLOEXEC | O_NOFOLLOW));
++	if (fd < 0) return fd;
++	ssize_t size = read(fd, bytes, sizeof(bytes) - 1);
++	int saved = errno;
++	drop_fd(fd); errno = saved;
++	if (size < 0) return failure();
++	if (size == 0 || size >= (ssize_t)sizeof(bytes) - 1) return -EPROTO;
++	bytes[size] = '\0';
++	/* comm can contain spaces, newlines and ')'; stat fields begin after its final ')'. */
++	char *cursor = strrchr(bytes, ')');
++	if (!cursor || cursor + 3 >= bytes + size || cursor[1] != ' ' || cursor[2] == '\0' || cursor[3] != ' ') return -EPROTO;
++	cursor += 4; /* field 4 (ppid), after field 3 (state) */
++	uint64_t parent = 0, start = 0;
++	for (unsigned field = 4; field <= 22; field++) {
++		if (*cursor == '\0' || *cursor == '\n') return -EPROTO;
++		char *end;
++		if (field == 4 || field == 22) {
++			errno = 0;
++			if (*cursor < '0' || *cursor > '9') return -EPROTO;
++			unsigned long long value = strtoull(cursor, &end, 10);
++			if (errno || end == cursor || (*end != ' ' && *end != '\n' && *end != '\0')) return -EPROTO;
++			if (field == 4) parent = value; else start = value;
++		} else {
++			end = strchr(cursor, ' ');
++			if (!end) return -EPROTO;
++		}
++		cursor = end;
++		while (*cursor == ' ') cursor++;
++	}
++	if (parent > INT_MAX || start == 0 || alive(pidfd) < 0) return -ESTALE;
++	*task = (struct task){ .fd = pidfd, .pid = pid, .parent = (pid_t)parent, .start = start };
++	return 0;
++}
++static int peer_identity(int fd, uid_t expected_uid, int *peerfd, pid_t *pid, uint64_t *start) {
++	struct ucred credential;
++	socklen_t size = sizeof(credential);
++	if (getsockopt(fd, SOL_SOCKET, SO_PEERCRED, &credential, &size)) return failure();
++	if (size != sizeof(credential) || credential.uid != expected_uid || credential.pid <= 0) return -EACCES;
++	int obtained = -1;
++	size = sizeof(obtained);
++	if (getsockopt(fd, SOL_SOCKET, SO_PEERPIDFD, &obtained, &size)) return failure();
++	int owned = own_fd(obtained);
++	if (owned < 0) return owned;
++	if (size != sizeof(obtained)) { drop_fd(owned); return -EPROTO; }
++	int flags = fcntl(owned, F_GETFD);
++	if (flags < 0 || fcntl(owned, F_SETFD, flags | FD_CLOEXEC) < 0) { int error = failure(); drop_fd(owned); return error; }
++	struct task task;
++	int result = read_task(credential.pid, owned, &task);
++	if (result < 0) { drop_fd(owned); return result; }
++	*peerfd = owned; *pid = credential.pid; *start = task.start;
++	return 0;
++}
++
++int omp_ownership_abi(void) { return 1; }
++unsigned omp_ownership_fd_count(void) { return descriptor_count; }
++
++/* Real operation probe, never inferred from a version string. The caller still needs lifecycle fixtures. */
++int omp_ownership_probe(void) {
++	int pair[2];
++	if (socketpair(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0, pair)) return failure();
++	int left = own_fd(pair[0]);
++	int right = own_fd(pair[1]);
++	if (left < 0 || right < 0) { if (left >= 0) drop_fd(left); if (right >= 0) drop_fd(right); return -EMFILE; }
++	int identity = -1; pid_t pid; uint64_t start;
++	int result = peer_identity(left, getuid(), &identity, &pid, &start);
++	drop_fd(identity); drop_fd(left); drop_fd(right);
++	return result;
++}
++
++/* Parent directories/ownership/mode and maintenance fencing MUST be verified by the selected Native adapter first.
++ * Existing endpoint is never unlinked or replaced; operator recovery handles stale/unknown listeners. */
++int omp_ownership_listen(const char *endpoint) {
++	if (!endpoint || endpoint[0] != '/' || strlen(endpoint) >= sizeof(((struct sockaddr_un *)0)->sun_path)) return -EINVAL;
++	int fd = own_fd(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0));
++	if (fd < 0) return fd;
++	struct sockaddr_un address = { .sun_family = AF_UNIX };
++	memcpy(address.sun_path, endpoint, strlen(endpoint) + 1);
++	if (bind(fd, (struct sockaddr *)&address, sizeof(address)) || chmod(endpoint, 0600) || listen(fd, OWNERSHIP_CONNECTIONS)) {
++		int error = failure(); drop_fd(fd); return error;
++	}
++	return keep(LISTENER, fd, -1, 0, 0);
++}
++
++int omp_ownership_accept(int listener, unsigned expected_uid) {
++	struct handle *source = lookup(listener, LISTENER);
++	if (!source) return -EBADF;
++	if (connection_count >= OWNERSHIP_CONNECTIONS) return -EMFILE;
++	int raw = accept4(source->fd, NULL, NULL, SOCK_CLOEXEC | SOCK_NONBLOCK);
++	if (raw < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return 0;
++	int fd = own_fd(raw);
++	if (fd < 0) return fd;
++	int peerfd = -1; pid_t pid; uint64_t start;
++	int result = peer_identity(fd, (uid_t)expected_uid, &peerfd, &pid, &start);
++	if (result < 0) { drop_fd(fd); return result; }
++	return keep(CONNECTION, fd, peerfd, pid, start);
++}
++
++/* Nonblocking client connection; the Native caller enforces the fixed one-second total connect deadline. */
++int omp_ownership_connect_begin(const char *endpoint) {
++	if (!endpoint || endpoint[0] != '/' || strlen(endpoint) >= sizeof(((struct sockaddr_un *)0)->sun_path)) return -EINVAL;
++	if (connection_count >= OWNERSHIP_CONNECTIONS) return -EMFILE;
++	int fd = own_fd(socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC | SOCK_NONBLOCK, 0));
++	if (fd < 0) return fd;
++	struct sockaddr_un address = { .sun_family = AF_UNIX };
++	memcpy(address.sun_path, endpoint, strlen(endpoint) + 1);
++	if (connect(fd, (struct sockaddr *)&address, sizeof(address)) && errno != EINPROGRESS) {
++		int error = failure(); drop_fd(fd); return error;
++	}
++	return keep(CONNECTING, fd, -1, 0, 0);
++}
++int omp_ownership_connect_ready(int connection, unsigned expected_uid) {
++	struct handle *source = lookup(connection, CONNECTING);
++	if (!source) return -EBADF;
++	struct pollfd descriptor = { .fd = source->fd, .events = POLLOUT };
++	int polled = poll(&descriptor, 1, 0);
++	if (polled < 0) return failure();
++	if (polled == 0) return 0;
++	int error = 0;
++	socklen_t size = sizeof(error);
++	if (getsockopt(source->fd, SOL_SOCKET, SO_ERROR, &error, &size)) return failure();
++	if (error || size != sizeof(error)) return -(error ? error : EPROTO);
++	int peerfd = -1; pid_t pid; uint64_t start;
++	int result = peer_identity(source->fd, (uid_t)expected_uid, &peerfd, &pid, &start);
++	if (result < 0) return result;
++	source->kind = CONNECTION; source->peerfd = peerfd; source->pid = pid; source->start = start;
++	return 1;
++}
++
++int omp_ownership_peer(int connection) {
++	struct handle *source = lookup(connection, CONNECTION);
++	if (!source || alive(source->peerfd) < 0) return -ESTALE;
++	int fd = own_fd(fcntl(source->peerfd, F_DUPFD_CLOEXEC, 0));
++	if (fd < 0) return fd;
++	return keep(IDENTITY, fd, -1, source->pid, source->start);
++}
++
++int omp_ownership_peer_pid(int identity) {
++	struct handle *source = lookup(identity, IDENTITY);
++	return source && alive(source->fd) > 0 ? source->pid : -ESTALE;
++}
++uint64_t omp_ownership_peer_start(int identity) {
++	struct handle *source = lookup(identity, IDENTITY);
++	return source && alive(source->fd) > 0 ? source->start : 0;
++}
++int omp_ownership_same_peer(int left, int right) {
++	struct handle *a = lookup(left, IDENTITY), *b = lookup(right, IDENTITY);
++	if (!a || !b || alive(a->fd) < 0 || alive(b->fd) < 0) return -ESTALE;
++	return a->pid == b->pid && a->start == b->start;
++}
++
++/* Return helper index + 1, 0 for verified external ancestry, negative for every missing/changing/overflowed chain.
++ * This grants classification only. It contains no signal/wait operation and cannot grant cleanup authority. */
++int omp_ownership_classify(int identity, const int *helper_keys, unsigned helper_count) {
++	struct handle *peer = lookup(identity, IDENTITY);
++	if (!peer || helper_count > OWNERSHIP_HELPERS || (helper_count && !helper_keys)) return -EINVAL;
++	struct task chain[OWNERSHIP_ANCESTORS];
++	unsigned count = 0;
++	int result = -ESTALE, nextfd = peer->fd;
++	pid_t nextpid = peer->pid;
++	int found = 0;
++	while (count < OWNERSHIP_ANCESTORS) {
++		struct task current;
++		result = read_task(nextpid, nextfd, &current);
++		if (result < 0) { if (count) drop_fd(nextfd); goto finished; }
++		if (count == 0 && current.start != peer->start) { result = -ESTALE; goto finished; }
++		for (unsigned previous = 0; previous < count; previous++) {
++			if (chain[previous].pid == current.pid) { if (count) drop_fd(nextfd); result = -ELOOP; goto finished; }
++		}
++		chain[count++] = current;
++		for (unsigned i = 0; i < helper_count; i++) {
++			struct handle *helper = lookup(helper_keys[i], IDENTITY);
++			if (!helper || alive(helper->fd) < 0) { result = -ESTALE; goto finished; }
++			if (helper->pid == current.pid && helper->start == current.start) found = (int)i + 1;
++		}
++		if (found || current.parent == 0) break;
++		if (count == OWNERSHIP_ANCESTORS) { result = -EOVERFLOW; goto finished; }
++		nextpid = current.parent;
++		nextfd = pidfd_open_owned(nextpid);
++		if (nextfd < 0) { result = nextfd; goto finished; }
++	}
++	/* Revalidate all held task identities and parent edges after acquisition; a changed chain is never external. */
++	for (unsigned i = 0; i < count; i++) {
++		struct task again;
++		result = read_task(chain[i].pid, chain[i].fd, &again);
++		if (result < 0 || again.start != chain[i].start || again.parent != chain[i].parent) { result = -ESTALE; goto finished; }
++	}
++	result = found;
++finished:
++	for (unsigned i = 1; i < count; i++) drop_fd(chain[i].fd);
++	return result;
++}
++
++int omp_ownership_read(int connection, void *bytes, unsigned size) {
++	struct handle *source = lookup(connection, CONNECTION);
++	if (!source || !bytes || size == 0 || size > OWNERSHIP_FRAME) return -EINVAL;
++	ssize_t result = recv(source->fd, bytes, size, MSG_DONTWAIT);
++	return result < 0 ? failure() : (int)result;
++}
++int omp_ownership_write(int connection, const void *bytes, unsigned size) {
++	struct handle *source = lookup(connection, CONNECTION);
++	if (!source || !bytes || size == 0 || size > OWNERSHIP_FRAME + 1) return -EINVAL;
++	ssize_t result = send(source->fd, bytes, size, MSG_DONTWAIT | MSG_NOSIGNAL);
++	return result < 0 ? failure() : (int)result;
++}
++int omp_ownership_close(int key) {
++	if (key <= 0) return -EBADF;
++	struct handle *source = &handles[(key - 1) % OWNERSHIP_HANDLES];
++	if (source->key != key || source->kind == UNUSED) return -EBADF;
++	struct handle value = *source;
++	*source = (struct handle){0};
++	if ((value.kind == CONNECTION || value.kind == CONNECTING) && connection_count) connection_count--;
++	drop_fd(value.fd); drop_fd(value.peerfd);
++	return 0;
++}
++void omp_ownership_close_all(void) {
++	for (unsigned i = 0; i < OWNERSHIP_HANDLES; i++) if (handles[i].kind != UNUSED) (void)omp_ownership_close(handles[i].key);
++}
+diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b61aeb8ed1f32943a6795bb047a29a0365a756f2
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
+@@ -0,0 +1,176 @@
++/** Loaded only by the explicit Linux execution-ownership backend, never catalog/preflight. */
++import { dlopen, FFIType, ptr, type FFIFunction, type Library } from "bun:ffi";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++import type { StablePeer } from "./dispatcher";
++
++const nativeFunctions = {
++	omp_ownership_abi: { args: [], returns: FFIType.i32 },
++	omp_ownership_fd_count: { args: [], returns: FFIType.u32 },
++	omp_ownership_probe: { args: [], returns: FFIType.i32 },
++	omp_ownership_listen: { args: [FFIType.ptr], returns: FFIType.i32 },
++	omp_ownership_accept: { args: [FFIType.i32, FFIType.u32], returns: FFIType.i32 },
++	omp_ownership_connect_begin: { args: [FFIType.ptr], returns: FFIType.i32 },
++	omp_ownership_connect_ready: { args: [FFIType.i32, FFIType.u32], returns: FFIType.i32 },
++	omp_ownership_peer: { args: [FFIType.i32], returns: FFIType.i32 },
++	omp_ownership_peer_pid: { args: [FFIType.i32], returns: FFIType.i32 },
++	omp_ownership_peer_start: { args: [FFIType.i32], returns: FFIType.u64 },
++	omp_ownership_same_peer: { args: [FFIType.i32, FFIType.i32], returns: FFIType.i32 },
++	omp_ownership_classify: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
++	omp_ownership_read: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
++	omp_ownership_write: { args: [FFIType.i32, FFIType.ptr, FFIType.u32], returns: FFIType.i32 },
++	omp_ownership_close: { args: [FFIType.i32], returns: FFIType.i32 },
++	omp_ownership_close_all: { args: [], returns: FFIType.void },
++} as const satisfies Record<string, FFIFunction>;
++
++export interface OwnershipBridgeSelection {
++	/** Approved canonical direct library within the selected maintained Native release, never a browser choice. */
++	file: string;
++	/** Independent operator/build trust input, not obtained by hashing the selected file itself. */
++	sha256: string;
++	/** Revalidate independently held installation maintenance protection before/after loading. */
++	verify(): Promise<void>;
++}
++
++/** Opaque connection/listener identities. The bridge validates object membership before its generational C handle. */
++export type OwnershipSocket = object;
++
++/**
++ * Linux syscall adapter, ABI 1. Source preparation only: actual compiled artifact and OS fixtures are NOT RUN.
++ * It owns accept/read/write/connect and stable peer handles; no Bun socket private fields/casts are used.
++ * Call from the main Native thread only. It provides classification, never signal or wait authority.
++ */
++export class LinuxOwnershipBridge {
++	readonly #library: Library<typeof nativeFunctions>;
++	readonly #sockets = new Map<OwnershipSocket, number>();
++	readonly #listeners = new Map<OwnershipSocket, number>();
++	readonly #peers = new Map<StablePeer, number>();
++	#closed = false;
++
++	constructor(library: Library<typeof nativeFunctions>) { this.#library = library; }
++
++	static async open(selection: OwnershipBridgeSelection): Promise<LinuxOwnershipBridge> {
++		if (process.platform !== "linux" || !Bun.isMainThread || !process.getuid || !process.geteuid
++			|| process.getuid() !== process.geteuid()) throw new OwnershipError("ownership_backend_unavailable");
++		if (!/^[a-f0-9]{64}$/.test(selection.sha256) || !path.isAbsolute(selection.file)
++			|| path.resolve(selection.file) !== selection.file || await fs.realpath(selection.file) !== selection.file) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		await selection.verify();
++		const before = await fs.lstat(selection.file, { bigint: true });
++		if (!before.isFile() || before.nlink !== 1n || before.size > 1_048_576n) throw new OwnershipError("dispatcher_mismatch");
++		const bytes = await Bun.file(selection.file).arrayBuffer();
++		const digest = Buffer.from(await crypto.subtle.digest("SHA-256", bytes)).toString("hex");
++		const after = await fs.lstat(selection.file, { bigint: true });
++		if (digest !== selection.sha256 || before.dev !== after.dev || before.ino !== after.ino
++			|| before.size !== after.size || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		const library = dlopen(selection.file, nativeFunctions);
++		const bridge = new LinuxOwnershipBridge(library);
++		try {
++			await selection.verify();
++			if (library.symbols.omp_ownership_abi() !== 1 || library.symbols.omp_ownership_probe() !== 0) {
++				throw new OwnershipError("ownership_backend_unavailable");
++			}
++			return bridge;
++		} catch (error) { bridge.close(); throw error; }
++	}
++
++	listen(endpoint: string): OwnershipSocket {
++		return this.#store(this.#listeners, this.#library.symbols.omp_ownership_listen(ptr(this.#endpoint(endpoint))));
++	}
++	accept(listener: OwnershipSocket, uid: number): OwnershipSocket | undefined {
++		const value = this.#library.symbols.omp_ownership_accept(this.#handle(this.#listeners, listener), uid);
++		return value === 0 ? undefined : this.#store(this.#sockets, value);
++	}
++	connect(endpoint: string): OwnershipSocket {
++		return this.#store(this.#sockets, this.#library.symbols.omp_ownership_connect_begin(ptr(this.#endpoint(endpoint))));
++	}
++	connected(socket: OwnershipSocket, uid: number): boolean {
++		const result = this.#library.symbols.omp_ownership_connect_ready(this.#handle(this.#sockets, socket), uid);
++		if (result < 0) throw new OwnershipError("dispatcher_unavailable");
++		return result === 1;
++	}
++
++	capturePeer(socket: OwnershipSocket): StablePeer {
++		if (this.#peers.size >= OWNERSHIP_LIMITS.registrations) throw new OwnershipError("ownership_limit");
++		return this.#store(this.#peers, this.#library.symbols.omp_ownership_peer(this.#handle(this.#sockets, socket)));
++	}
++	samePeer(left: StablePeer, right: StablePeer): boolean {
++		const result = this.#library.symbols.omp_ownership_same_peer(this.#handle(this.#peers, left), this.#handle(this.#peers, right));
++		if (result < 0) throw new OwnershipError("ownership_unresolved");
++		return result === 1;
++	}
++	/** Hints for audit/control correlation only; this result never grants classification or signal authority. */
++	peerHints(peer: StablePeer): { pid: number; startTime: string } {
++		const handle = this.#handle(this.#peers, peer);
++		const pid = this.#library.symbols.omp_ownership_peer_pid(handle);
++		const start = this.#library.symbols.omp_ownership_peer_start(handle);
++		if (pid <= 0 || start === 0n) throw new OwnershipError("ownership_unresolved");
++		return { pid, startTime: String(start) };
++	}
++	/** Returns a verified registered helper, or undefined only for a complete stable external chain. */
++	classify(peer: StablePeer, helpers: readonly StablePeer[]): StablePeer | undefined {
++		if (helpers.length > OWNERSHIP_LIMITS.helpers) throw new OwnershipError("ownership_limit");
++		const keys = new Int32Array(Math.max(1, helpers.length));
++		helpers.forEach((helper, index) => { keys[index] = this.#handle(this.#peers, helper); });
++		const result = this.#library.symbols.omp_ownership_classify(this.#handle(this.#peers, peer), ptr(keys), helpers.length);
++		if (result < 0 || result > helpers.length) throw new OwnershipError("ownership_unresolved");
++		return result === 0 ? undefined : helpers[result - 1];
++	}
++
++	/** Undefined is Linux EAGAIN; an empty array is EOF. Caller owns total queue/idle/deadline enforcement. */
++	read(socket: OwnershipSocket): Uint8Array | undefined {
++		const bytes = Buffer.alloc(OWNERSHIP_LIMITS.frameBytes);
++		const count = this.#library.symbols.omp_ownership_read(this.#handle(this.#sockets, socket), ptr(bytes), bytes.length);
++		if (count === -11) return undefined;
++		if (count < 0 || count > bytes.length) throw new OwnershipError("dispatcher_unavailable");
++		return bytes.subarray(0, count);
++	}
++	/** May write partially; the caller must retain at most the fixed queue budget and honor the request deadline. */
++	write(socket: OwnershipSocket, bytes: Uint8Array): number {
++		if (!bytes.byteLength || bytes.byteLength > OWNERSHIP_LIMITS.frameBytes + 1) throw new OwnershipError("ownership_limit");
++		const count = this.#library.symbols.omp_ownership_write(this.#handle(this.#sockets, socket), ptr(bytes), bytes.byteLength);
++		if (count === -11) return 0;
++		if (count < 0 || count > bytes.byteLength) throw new OwnershipError("dispatcher_unavailable");
++		return count;
++	}
++
++	releaseSocket(socket: OwnershipSocket): void { this.#release(this.#sockets.has(socket) ? this.#sockets : this.#listeners, socket); }
++	releasePeer(peer: StablePeer): void { this.#release(this.#peers, peer); }
++	ownedDescriptorCount(): number { this.#assertOpen(); return this.#library.symbols.omp_ownership_fd_count(); }
++	/** Close is an error/shutdown primitive, never an extinction receipt. Durable generation fences must remain. */
++	close(): void {
++		if (this.#closed) return;
++		this.#closed = true;
++		this.#library.symbols.omp_ownership_close_all();
++		this.#library.close(); this.#sockets.clear(); this.#listeners.clear(); this.#peers.clear();
++	}
++
++	#endpoint(endpoint: string): Buffer {
++		this.#assertOpen();
++		if (!endpoint.startsWith("/") || endpoint.includes("\0") || Buffer.byteLength(endpoint) >= 108) {
++			throw new OwnershipError("ownership_protocol");
++		}
++		return Buffer.from(`${endpoint}\0`);
++	}
++	#assertOpen(): void { if (this.#closed) throw new OwnershipError("dispatcher_unavailable"); }
++	#handle(map: Map<object, number>, value: object): number {
++		this.#assertOpen();
++		const handle = map.get(value);
++		if (handle === undefined) throw new OwnershipError("ownership_unresolved");
++		return handle;
++	}
++	#store(map: Map<object, number>, handle: number): object {
++		this.#assertOpen();
++		if (handle <= 0) throw new OwnershipError("ownership_unresolved");
++		const object = Object.freeze({}); map.set(object, handle); return object;
++	}
++	#release(map: Map<object, number>, value: object): void {
++		const handle = this.#handle(map, value);
++		map.delete(value);
++		if (this.#library.symbols.omp_ownership_close(handle) !== 0) throw new OwnershipError("ownership_unresolved");
++	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7a77faa098b662674e4c14bae39dcafa0a573701
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/protocol.ts
+@@ -0,0 +1,153 @@
++/** Public Native lifecycle IPC. No request can name a PID, executable, argv, token path or environment. */
++export const OWNERSHIP_VERSION = "omp-execution-ownership/1";
++
++/** Fixed resource limits; exceeding one fails closed and never falls back to a local broker. */
++export const OWNERSHIP_LIMITS = Object.freeze({
++	frameBytes: 16_384, connections: 64, pendingPerConnection: 1, queuedBytesPerConnection: 32_768,
++	registrations: 512, helpers: 64, ancestryDepth: 256,
++	bridgeHandles: 1024, bridgeDescriptors: 2048, brokerScopes: 64, externalLifetimes: 256,
++	connectMs: 1_000, requestMs: 10_000, idleMs: 30_000,
++});
++
++const errorCodes = ["ownership_protocol", "ownership_limit", "dispatcher_unavailable", "dispatcher_mismatch",
++	"ownership_unresolved", "maintenance_fenced", "shared_service_unsupported", "ownership_backend_unavailable"] as const;
++export type OwnershipErrorCode = (typeof errorCodes)[number];
++
++/** Stable native error code; consumers must not translate a refusal into successful tool execution. */
++export class OwnershipError extends Error {
++	constructor(readonly code: OwnershipErrorCode) { super(code); this.name = "OwnershipError"; }
++}
++
++/** Independently selected immutable release closure and effective RPC schema digests. */
++export interface OwnershipIdentity { closure: string; schema: string }
++export type OwnershipScope =
++	| { kind: "project"; directory: string }
++	| { kind: "global"; service: "browser-relay" | "text-predict" };
++export type OwnershipOperation =
++	| { op: "classify" }
++	| { op: "broker"; scope: OwnershipScope }
++	| { op: "publish"; scope: OwnershipScope; generation: string };
++export interface OwnershipRequest {
++	version: typeof OWNERSHIP_VERSION;
++	id: string;
++	identity: OwnershipIdentity;
++	operation: OwnershipOperation;
++}
++
++export interface OwnershipRegistration {
++	/** A connection is always authenticated again; this identifier grants no bearer authority. */
++	registration: string;
++	dispatcher: string;
++	policy: "private" | "external";
++	generation: string;
++}
++export type OwnershipResult =
++	| { op: "classify"; registration: OwnershipRegistration }
++	| { op: "broker"; scope: OwnershipScope; generation: string; runtimeDirectory: string; token: string }
++	| { op: "publish"; generation: string };
++export type OwnershipResponse =
++	| { version: typeof OWNERSHIP_VERSION; id: string; ok: true; identity: OwnershipIdentity; result: OwnershipResult }
++	| { version: typeof OWNERSHIP_VERSION; id: string; ok: false; error: OwnershipErrorCode };
++
++function record(value: unknown, keys: readonly string[]): Record<string, unknown> {
++	if (value === null || typeof value !== "object" || Array.isArray(value)) throw new OwnershipError("ownership_protocol");
++	const result = value as Record<string, unknown>;
++	if (Object.keys(result).some(key => !keys.includes(key))) throw new OwnershipError("ownership_protocol");
++	return result;
++}
++function text(value: unknown, pattern: RegExp): string {
++	if (typeof value !== "string" || !pattern.test(value)) throw new OwnershipError("ownership_protocol");
++	return value;
++}
++export function ownershipToken(value: unknown): string { return text(value, /^[A-Za-z0-9_-]{16,128}$/); }
++export function ownershipIdentity(value: unknown): OwnershipIdentity {
++	const source = record(value, ["closure", "schema"]);
++	return { closure: text(source.closure, /^[a-f0-9]{64}$/), schema: text(source.schema, /^[a-f0-9]{64}$/) };
++}
++
++/** Lexical validation only. The authenticated server must realpath and pin the directory before use. */
++export function ownershipScope(value: unknown): OwnershipScope {
++	const source = record(value, ["kind", "directory", "service"]);
++	if (source.kind === "global" && source.directory === undefined
++		&& (source.service === "browser-relay" || source.service === "text-predict")) {
++		return { kind: "global", service: source.service };
++	}
++	if (source.kind !== "project" || source.service !== undefined || typeof source.directory !== "string") {
++		throw new OwnershipError("ownership_protocol");
++	}
++	const directory = source.directory;
++	if (directory.length > 4096 || !directory.startsWith("/") || directory.includes("\0")
++		|| (directory !== "/" && directory.split("/").slice(1).some(part => !part || part === "." || part === ".."))) {
++		throw new OwnershipError("ownership_protocol");
++	}
++	return { kind: "project", directory };
++}
++
++/** A single UTF-8 JSON frame, without its LF delimiter. Strict decoder rejects extra authority fields. */
++export function decodeOwnershipRequest(frame: string): OwnershipRequest {
++	if (new TextEncoder().encode(frame).length > OWNERSHIP_LIMITS.frameBytes) throw new OwnershipError("ownership_limit");
++	let decoded: unknown;
++	try { decoded = JSON.parse(frame); } catch { throw new OwnershipError("ownership_protocol"); }
++	const source = record(decoded, ["version", "id", "identity", "operation"]);
++	if (source.version !== OWNERSHIP_VERSION) throw new OwnershipError("dispatcher_mismatch");
++	const operation = record(source.operation, ["op", "scope", "generation"]);
++	let parsed: OwnershipOperation;
++	if (operation.op === "classify" && Object.keys(operation).length === 1) parsed = { op: "classify" };
++	else if (operation.op === "broker" && operation.generation === undefined) {
++		parsed = { op: "broker", scope: ownershipScope(operation.scope) };
++	} else if (operation.op === "publish") {
++		parsed = { op: "publish", scope: ownershipScope(operation.scope), generation: ownershipToken(operation.generation) };
++	} else throw new OwnershipError("ownership_protocol");
++	return { version: OWNERSHIP_VERSION, id: ownershipToken(source.id), identity: ownershipIdentity(source.identity), operation: parsed };
++}
++
++export function sameOwnershipScope(left: OwnershipScope, right: OwnershipScope): boolean {
++	return left.kind === "project" ? right.kind === "project" && left.directory === right.directory
++		: right.kind === "global" && left.service === right.service;
++}
++
++function registration(value: unknown): OwnershipRegistration {
++	const source = record(value, ["registration", "dispatcher", "policy", "generation"]);
++	if (source.policy !== "private" && source.policy !== "external") throw new OwnershipError("ownership_protocol");
++	return { registration: ownershipToken(source.registration), dispatcher: ownershipToken(source.dispatcher),
++		policy: source.policy, generation: ownershipToken(source.generation) };
++}
++
++function result(value: unknown, expected: OwnershipOperation): OwnershipResult {
++	const source = record(value, ["op", "registration", "scope", "generation", "runtimeDirectory", "token"]);
++	if (source.op !== expected.op) throw new OwnershipError("ownership_protocol");
++	if (source.op === "classify" && Object.keys(source).length === 2) {
++		return { op: "classify", registration: registration(source.registration) };
++	}
++	if (source.op === "publish" && expected.op === "publish" && Object.keys(source).length === 2
++		&& source.generation === expected.generation) return { op: "publish", generation: expected.generation };
++	if (source.op !== "broker" || expected.op !== "broker" || Object.keys(source).length !== 5) {
++		throw new OwnershipError("ownership_protocol");
++	}
++	const scope = ownershipScope(source.scope);
++	if (!sameOwnershipScope(scope, expected.scope)) throw new OwnershipError("ownership_protocol");
++	const directory = ownershipScope({ kind: "project", directory: source.runtimeDirectory });
++	if (directory.kind !== "project") throw new OwnershipError("ownership_protocol");
++	return { op: "broker", scope, generation: ownershipToken(source.generation), runtimeDirectory: directory.directory,
++		token: text(source.token, /^[a-f0-9]{64}$/) };
++}
++
++/** Validate correlation, matched release/schema and operation before any endpoint/token reaches a Native client. */
++export function decodeOwnershipResponse(frame: string, expected: OwnershipRequest): OwnershipResponse {
++	if (new TextEncoder().encode(frame).length > OWNERSHIP_LIMITS.frameBytes) throw new OwnershipError("ownership_limit");
++	let decoded: unknown;
++	try { decoded = JSON.parse(frame); } catch { throw new OwnershipError("ownership_protocol"); }
++	const source = record(decoded, ["version", "id", "ok", "identity", "result", "error"]);
++	if (source.version !== OWNERSHIP_VERSION || source.id !== expected.id) throw new OwnershipError("dispatcher_mismatch");
++	if (source.ok === false && Object.keys(source).length === 4) {
++		const code = errorCodes.find(code => code === source.error);
++		if (!code) throw new OwnershipError("ownership_protocol");
++		return { version: OWNERSHIP_VERSION, id: expected.id, ok: false, error: code };
++	}
++	if (source.ok !== true || Object.keys(source).length !== 5) throw new OwnershipError("ownership_protocol");
++	const identity = ownershipIdentity(source.identity);
++	if (identity.closure !== expected.identity.closure || identity.schema !== expected.identity.schema) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	return { version: OWNERSHIP_VERSION, id: expected.id, ok: true, identity, result: result(source.result, expected.operation) };
++}
+diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..9343a7ac764ebb6bf5c03f9e693463e4652f7342
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/wire.schema.json
+@@ -0,0 +1,318 @@
++{
++  "$schema": "http://json-schema.org/draft-07/schema#",
++  "$id": "urn:omp:execution-ownership:1",
++  "title": "Native execution ownership IPC (source preparation; no admitted OS backend)",
++  "definitions": {
++    "token": {
++      "type": "string",
++      "pattern": "^[A-Za-z0-9_-]{16,128}$"
++    },
++    "digest": {
++      "type": "string",
++      "pattern": "^[a-f0-9]{64}$"
++    },
++    "directory": {
++      "type": "string",
++      "maxLength": 4096,
++      "pattern": "^/(?:[^/\\u0000]+(?:/[^/\\u0000]+)*)?$",
++      "not": {
++        "pattern": "(?:^|/)\\.\\.?(?:/|$)"
++      }
++    },
++    "identity": {
++      "type": "object",
++      "properties": {
++        "closure": {
++          "$ref": "#/definitions/digest"
++        },
++        "schema": {
++          "$ref": "#/definitions/digest"
++        }
++      },
++      "required": [
++        "closure",
++        "schema"
++      ],
++      "additionalProperties": false
++    },
++    "scope": {
++      "oneOf": [
++        {
++          "type": "object",
++          "properties": {
++            "kind": {
++              "const": "project"
++            },
++            "directory": {
++              "$ref": "#/definitions/directory"
++            }
++          },
++          "required": [
++            "kind",
++            "directory"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "kind": {
++              "const": "global"
++            },
++            "service": {
++              "enum": [
++                "browser-relay",
++                "text-predict"
++              ]
++            }
++          },
++          "required": [
++            "kind",
++            "service"
++          ],
++          "additionalProperties": false
++        }
++      ]
++    },
++    "registration": {
++      "type": "object",
++      "properties": {
++        "registration": {
++          "$ref": "#/definitions/token"
++        },
++        "dispatcher": {
++          "$ref": "#/definitions/token"
++        },
++        "policy": {
++          "enum": [
++            "private",
++            "external"
++          ]
++        },
++        "generation": {
++          "$ref": "#/definitions/token"
++        }
++      },
++      "required": [
++        "registration",
++        "dispatcher",
++        "policy",
++        "generation"
++      ],
++      "additionalProperties": false
++    },
++    "operation": {
++      "oneOf": [
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "classify"
++            }
++          },
++          "required": [
++            "op"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "broker"
++            },
++            "scope": {
++              "$ref": "#/definitions/scope"
++            }
++          },
++          "required": [
++            "op",
++            "scope"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "publish"
++            },
++            "scope": {
++              "$ref": "#/definitions/scope"
++            },
++            "generation": {
++              "$ref": "#/definitions/token"
++            }
++          },
++          "required": [
++            "op",
++            "scope",
++            "generation"
++          ],
++          "additionalProperties": false
++        }
++      ]
++    },
++    "result": {
++      "oneOf": [
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "classify"
++            },
++            "registration": {
++              "$ref": "#/definitions/registration"
++            }
++          },
++          "required": [
++            "op",
++            "registration"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "broker"
++            },
++            "scope": {
++              "$ref": "#/definitions/scope"
++            },
++            "generation": {
++              "$ref": "#/definitions/token"
++            },
++            "runtimeDirectory": {
++              "$ref": "#/definitions/directory"
++            },
++            "token": {
++              "$ref": "#/definitions/digest"
++            }
++          },
++          "required": [
++            "op",
++            "scope",
++            "generation",
++            "runtimeDirectory",
++            "token"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "op": {
++              "const": "publish"
++            },
++            "generation": {
++              "$ref": "#/definitions/token"
++            }
++          },
++          "required": [
++            "op",
++            "generation"
++          ],
++          "additionalProperties": false
++        }
++      ]
++    },
++    "request": {
++      "type": "object",
++      "properties": {
++        "version": {
++          "const": "omp-execution-ownership/1"
++        },
++        "id": {
++          "$ref": "#/definitions/token"
++        },
++        "identity": {
++          "$ref": "#/definitions/identity"
++        },
++        "operation": {
++          "$ref": "#/definitions/operation"
++        }
++      },
++      "required": [
++        "version",
++        "id",
++        "identity",
++        "operation"
++      ],
++      "additionalProperties": false
++    },
++    "response": {
++      "oneOf": [
++        {
++          "type": "object",
++          "properties": {
++            "version": {
++              "const": "omp-execution-ownership/1"
++            },
++            "id": {
++              "$ref": "#/definitions/token"
++            },
++            "ok": {
++              "const": true
++            },
++            "identity": {
++              "$ref": "#/definitions/identity"
++            },
++            "result": {
++              "$ref": "#/definitions/result"
++            }
++          },
++          "required": [
++            "version",
++            "id",
++            "ok",
++            "identity",
++            "result"
++          ],
++          "additionalProperties": false
++        },
++        {
++          "type": "object",
++          "properties": {
++            "version": {
++              "const": "omp-execution-ownership/1"
++            },
++            "id": {
++              "$ref": "#/definitions/token"
++            },
++            "ok": {
++              "const": false
++            },
++            "error": {
++              "enum": [
++                "ownership_protocol",
++                "ownership_limit",
++                "dispatcher_unavailable",
++                "dispatcher_mismatch",
++                "ownership_unresolved",
++                "maintenance_fenced",
++                "shared_service_unsupported",
++                "ownership_backend_unavailable"
++              ]
++            }
++          },
++          "required": [
++            "version",
++            "id",
++            "ok",
++            "error"
++          ],
++          "additionalProperties": false
++        }
++      ]
++    }
++  },
++  "oneOf": [
++    {
++      "$ref": "#/definitions/request"
++    },
++    {
++      "$ref": "#/definitions/response"
++    }
++  ]
++}
+diff --git a/packages/coding-agent/test/execution-ownership-cli.test.ts b/packages/coding-agent/test/execution-ownership-cli.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..b070e70461ed93f7a251c77a95cfb0da42efd517
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-cli.test.ts
+@@ -0,0 +1,6 @@
++import { expect, test } from "bun:test";
++import { startOwnershipDispatcher } from "../src/launch/ownership/entry";
++
++test("public dispatcher module refuses admission while the authenticated Linux backend is unimplemented", async () => {
++	await expect(startOwnershipDispatcher()).rejects.toMatchObject({ code: "ownership_backend_unavailable" });
++});
+diff --git a/packages/coding-agent/test/execution-ownership-client.test.ts b/packages/coding-agent/test/execution-ownership-client.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..ec857092d039f5ccae5bc09db6b25431e730e7e5
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-client.test.ts
+@@ -0,0 +1,44 @@
++import { expect, test } from "bun:test";
++import { OwnershipClient, type OwnershipTransport } from "../src/launch/ownership/client";
++import { decodeOwnershipRequest, type OwnershipRegistration } from "../src/launch/ownership/protocol";
++
++const identity = { closure: "a".repeat(64), schema: "b".repeat(64) };
++
++/** Dispatcher wire fixture, not actual SO_PEERPIDFD or local socket evidence. */
++class WireFixture implements OwnershipTransport {
++	readonly effects: string[] = [];
++	registration: OwnershipRegistration = { registration: "registration-0001", dispatcher: "dispatcher-000001",
++		policy: "private", generation: "generation-000001" };
++	async exchange(frame: string, _signal: AbortSignal): Promise<string> {
++		const request = decodeOwnershipRequest(frame);
++		this.effects.push(request.operation.op);
++		return JSON.stringify({ version: request.version, id: request.id, identity, ok: true,
++			result: { op: "classify", registration: this.registration } });
++	}
++	close(): void {}
++}
++
++test("private Native registration rejects shared broker use before another wire request", async () => {
++	const wire = new WireFixture(), client = new OwnershipClient(identity, wire);
++	await client.classify();
++	await expect(client.broker({ kind: "project", directory: "/work" })).rejects.toThrow("shared_service_unsupported");
++	expect(wire.effects).toEqual(["classify"]);
++});
++
++test("private Native registration rejects the publication handshake without any completion or control request", async () => {
++	const wire = new WireFixture(), client = new OwnershipClient(identity, wire);
++	await client.classify();
++	await expect(client.publish({ kind: "project", directory: "/work" }, "broker-generation-0001"))
++		.rejects.toThrow("shared_service_unsupported");
++	expect(wire.effects).toEqual(["classify"]);
++});
++
++test("a replacement dispatcher registration permanently refuses further operations without spawning a fallback", async () => {
++	const wire = new WireFixture(), client = new OwnershipClient(identity, wire);
++	wire.registration.policy = "external";
++	await client.classify();
++	wire.registration = { ...wire.registration, dispatcher: "replacement-00001" };
++	await expect(client.broker({ kind: "project", directory: "/work" })).rejects.toThrow("dispatcher_mismatch");
++	await expect(client.broker({ kind: "project", directory: "/work" })).rejects.toThrow("dispatcher_unavailable");
++	expect(wire.effects).toEqual(["classify", "classify"]);
++});
+diff --git a/packages/coding-agent/test/execution-ownership-contract.test.ts b/packages/coding-agent/test/execution-ownership-contract.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..e530e52ed8f959470e27ef6af6ef7ae72e85a3e4
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-contract.test.ts
+@@ -0,0 +1,46 @@
++import { expect, test } from "bun:test";
++import { decodeOwnershipRequest, decodeOwnershipResponse, OwnershipError, type OwnershipResponse } from "../src/launch/ownership/protocol";
++import { OwnershipFrames } from "../src/launch/ownership/framing";
++
++const identity = { closure: "a".repeat(64), schema: "b".repeat(64) };
++const request = (operation: unknown): string => JSON.stringify({
++	version: "omp-execution-ownership/1", id: "request-00000001", identity, operation,
++});
++
++test("Native client rejects a valid-looking reply for a different request, release or operation", () => {
++	const expected = decodeOwnershipRequest(request({ op: "classify" }));
++	const response = { version: expected.version, id: expected.id, identity, ok: true,
++		result: { op: "classify", registration: { registration: "registration-0001", dispatcher: "dispatcher-000001",
++			policy: "private", generation: "generation-000001" } } } satisfies OwnershipResponse;
++	for (const invalid of [
++		{ ...response, id: "different-request-001" },
++		{ ...response, identity: { ...identity, schema: "c".repeat(64) } },
++		{ ...response, result: { op: "publish", generation: "generation-000001" } },
++		{ ...response, result: { ...response.result, executable: "/bin/sh" } },
++	]) expect(() => decodeOwnershipResponse(JSON.stringify(invalid), expected)).toThrow(OwnershipError);
++	expect(decodeOwnershipResponse(JSON.stringify(response), expected)).toEqual(response);
++});
++
++test("dispatcher framing rejects invalid UTF-8, oversized partial frames and incomplete EOF", () => {
++	const frames = new OwnershipFrames();
++	const frame = new TextEncoder().encode(`${request({ op: "classify" })}\n`);
++	expect(frames.push(frame.slice(0, 17))).toEqual([]);
++	expect(frames.push(frame.slice(17))).toEqual([request({ op: "classify" })]);
++	frames.end();
++	expect(() => new OwnershipFrames().push(new Uint8Array([0xff, 10]))).toThrow("ownership_protocol");
++	expect(() => new OwnershipFrames().push(new Uint8Array(16_385).fill(65))).toThrow("ownership_limit");
++	const partial = new OwnershipFrames();
++	partial.push(new TextEncoder().encode("{}"));
++	expect(() => partial.end()).toThrow("ownership_protocol");
++});
++
++test("dispatcher rejects claimed process identity and executable choices before admission", () => {
++	for (const operation of [
++		{ op: "classify", pid: 123 },
++		{ op: "broker", scope: { kind: "project", directory: "/work" }, argv: ["sh"] },
++		{ op: "broker", scope: { kind: "global", service: "arbitrary-command" } },
++	]) {
++		expect(() => decodeOwnershipRequest(request(operation))).toThrow(OwnershipError);
++	}
++	expect(decodeOwnershipRequest(request({ op: "classify" })).operation).toEqual({ op: "classify" });
++});
+diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..fe3336daae7ca803e6774e672a91a89ca3d525e1
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
+@@ -0,0 +1,127 @@
++import { expect, test } from "bun:test";
++import { OwnershipClient } from "../src/launch/ownership/client";
++import { OwnershipDispatcher, type OwnershipSystem, type PublicationPermit, type StablePeer } from "../src/launch/ownership/dispatcher";
++import { OWNERSHIP_VERSION, type OwnershipIdentity, type OwnershipScope } from "../src/launch/ownership/protocol";
++
++const identity: OwnershipIdentity = { closure: "a".repeat(64), schema: "b".repeat(64) };
++const generation = "helper-generation-0001";
++
++/** Synthetic OS facts at the public native lifecycle seam; no kernel/process proof is claimed. */
++class SyntheticSystem implements OwnershipSystem {
++	readonly dispatcher = "dispatcher-generation-0001";
++	readonly policies = new Map<StablePeer, "external" | "private" | "unresolved">();
++	readonly durable = new Set<string>();
++	readonly publications: OwnershipScope[] = [];
++	failDurability = false;
++	async ready(): Promise<void> {}
++	async classify(peer: StablePeer) {
++		const kind = this.policies.get(peer) ?? "unresolved";
++		return kind === "private" ? { kind, generation } as const : { kind };
++	}
++	async protectHelper(_control: StablePeer, _helper: StablePeer, value: string): Promise<void> {
++		if (this.failDurability) throw new Error("disk failure");
++		this.durable.add(value);
++	}
++	async markUnresolved(value: string): Promise<void> { this.durable.add(value); }
++	async completeHelper(_helper: StablePeer, _value: string): Promise<void> { throw new Error("no extinction proof"); }
++	async canonicalScope(scope: OwnershipScope): Promise<OwnershipScope> { return scope; }
++	async broker(scope: OwnershipScope, permit: PublicationPermit) {
++		permit.assertCurrent();
++		this.publications.push(scope);
++		return { generation: "broker-generation-0001", runtimeDirectory: "/run/native/project", token: "d".repeat(64) };
++	}
++	async publish(): Promise<void> { throw new Error("not an authenticated owned broker"); }
++}
++
++function frame(op: unknown): string {
++	return JSON.stringify({ version: OWNERSHIP_VERSION, id: "request-00000001", identity, operation: op });
++}
++
++test("peers classified private or unresolved by the OS adapter cannot publish shared execution", async () => {
++	const system = new SyntheticSystem();
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const helper = {}, supervisor = {}, nested = {}, unresolved = {};
++	await dispatcher.registerHelper(supervisor, helper, generation);
++	system.policies.set(nested, "private");
++	const scope = { kind: "project", directory: "/work" };
++	expect(await dispatcher.handle(nested, frame({ op: "broker", scope }))).toMatchObject({
++		ok: false, error: "shared_service_unsupported",
++	});
++	expect(await dispatcher.handle(unresolved, frame({ op: "broker", scope }))).toMatchObject({
++		ok: false, error: "ownership_unresolved",
++	});
++	expect(system.publications).toEqual([]);
++});
++
++test("matched external client and server negotiate a fixed canonical broker scope through the public wire", async () => {
++	const system = new SyntheticSystem(), peer = {};
++	system.policies.set(peer, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) { return JSON.stringify(await dispatcher.handle(peer, frame)); }, close() {},
++	});
++	const result = await client.broker({ kind: "project", directory: "/work" });
++	expect(result).toEqual({ op: "broker", scope: { kind: "project", directory: "/work" },
++		generation: "broker-generation-0001", runtimeDirectory: "/run/native/project", token: "d".repeat(64) });
++	expect(system.publications).toEqual([{ kind: "project", directory: "/work" }]);
++});
++
++test("helper uncertainty during an awaited broker prepare invalidates its publication barrier", async () => {
++	class HeldSystem extends SyntheticSystem {
++		readonly arrived = Promise.withResolvers<void>();
++		readonly release = Promise.withResolvers<void>();
++		override async broker(scope: OwnershipScope, permit: PublicationPermit) {
++			this.arrived.resolve();
++			await this.release.promise;
++			return super.broker(scope, permit);
++		}
++	}
++	const system = new HeldSystem(), peer = {}, helper = {};
++	system.policies.set(peer, "external");
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	await dispatcher.registerHelper({}, helper, generation);
++	const response = dispatcher.handle(peer, frame({ op: "broker", scope: { kind: "project", directory: "/work" } }));
++	await system.arrived.promise;
++	await dispatcher.helperUncertain(helper);
++	system.release.resolve();
++	expect(await response).toMatchObject({ ok: false, error: "maintenance_fenced" });
++	expect(system.publications).toEqual([]);
++});
++
++test("uncertain helper death globally blocks a new unrelated external registration and maintenance remains fenced", async () => {
++	const system = new SyntheticSystem(), helper = {}, external = {};
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	await dispatcher.registerHelper({}, helper, generation);
++	system.policies.set(external, "external");
++	await dispatcher.helperUncertain(helper);
++	expect(await dispatcher.handle(external, frame({ op: "broker", scope: { kind: "project", directory: "/work" } })))
++		.toMatchObject({ ok: false, error: "maintenance_fenced" });
++	expect(system.durable.has(generation)).toBe(true);
++	expect(system.publications).toEqual([]);
++});
++
++test("durability failure never releases worker admission and failed extinction cannot retire its fence", async () => {
++	const system = new SyntheticSystem(), helper = {}, external = {};
++	const dispatcher = await OwnershipDispatcher.open(identity, system);
++	system.failDurability = true;
++	await expect(dispatcher.registerHelper({}, helper, generation)).rejects.toThrow("disk failure");
++	system.policies.set(external, "external");
++	expect(await dispatcher.handle(external, frame({ op: "classify" })))
++		.toMatchObject({ ok: false, error: "maintenance_fenced" });
++	const other = new SyntheticSystem();
++	const second = await OwnershipDispatcher.open(identity, other);
++	await second.registerHelper({}, helper, generation);
++	await expect(second.completeHelper(helper)).rejects.toThrow("no extinction proof");
++	expect(other.durable.has(generation)).toBe(true);
++	expect(await second.handle(external, frame({ op: "classify" })))
++		.toMatchObject({ ok: false, error: "maintenance_fenced" });
++});
++
++test("no client can bypass actual backend readiness by constructing an uninitialized dispatcher", async () => {
++	const system = new SyntheticSystem(), peer = {};
++	system.policies.set(peer, "external");
++	const dispatcher = new OwnershipDispatcher(identity, system);
++	expect(await dispatcher.handle(peer, frame({ op: "broker", scope: { kind: "project", directory: "/work" } })))
++		.toMatchObject({ ok: false, error: "ownership_backend_unavailable" });
++	expect(system.publications).toEqual([]);
++});

@@ -1,0 +1,44 @@
+{
+  "format": "omp-execution-ownership-preparation-v1",
+  "status": "unaccepted-source-preparation",
+  "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "afterPatches": [
+    {
+      "file": "0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "file": "0002-readonly-catalog.patch",
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+    },
+    {
+      "file": "0003-explicit-interactions.patch",
+      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+    },
+    {
+      "file": "0004-coherent-history.patch",
+      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+    },
+    {
+      "file": "0005-strict-continuation.patch",
+      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+    },
+    {
+      "file": "0006-live-settlement.patch",
+      "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+    }
+  ],
+  "patch": {
+    "file": "0010-execution-ownership.patch",
+    "sha256": "8ec0c4ad19a758181200e7c7d1e61c5fb38b41df0ac50fec99b1684166fc56b7"
+  },
+  "preparedTree": "8a2e0fd9a0a2a28ea97e2753018511339c043f14",
+  "preparedSourceSha256": "b9b9cdf64875252e65d1ad509493144cb3bad6acce8155401ad06b24401d1b0e",
+  "ownershipWireSchemaSha256": "369edc65fdb9a603f87dceade09b5f3d352b9d1328bcfc883518d888994f7f8f",
+  "activePatchListChanged": false,
+  "finalPatches1Through10Composed": false,
+  "nativeBackend": "NOT IMPLEMENTED",
+  "cBridgeCompile": "NOT RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}
