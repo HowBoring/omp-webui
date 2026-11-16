@@ -15,7 +15,7 @@ export const authoredPaths = ["src/session/session-lease.ts", "src/session/submi
   "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
   "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "test/rpc-extension-ui.test.ts", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
   .map(path => `packages/coding-agent/${path}`).concat([
-    "packages/coding-agent/src/attachments/limits.ts", "packages/coding-agent/src/attachments/prepare.ts",
+    "packages/coding-agent/src/attachments/limits.ts", "packages/coding-agent/src/attachments/input-policy.ts", "packages/coding-agent/src/slash-commands/acp-builtins.ts", "packages/coding-agent/src/attachments/prepare.ts",
     "packages/coding-agent/src/attachments/document.ts", "packages/coding-agent/src/attachments/package.ts", "packages/coding-agent/src/attachments/isolated.ts",
     "packages/coding-agent/src/attachments/worker.ts", "packages/coding-agent/src/attachments/deny-network.ts",
     "packages/coding-agent/src/attachments/receipts.ts", "packages/coding-agent/src/markit/types.ts",

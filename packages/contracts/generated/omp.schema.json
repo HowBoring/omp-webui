@@ -1026,6 +1026,33 @@
     ]
   },
   "$defs": {
+    "AttachmentInputPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "attachment-input-policy-v1"
+        },
+        "supportedInputKinds": {
+          "type": "array",
+          "items": {
+            "const": "prompt"
+          }
+        },
+        "requiresIdle": {
+          "const": true
+        },
+        "supportsStreamingBehavior": {
+          "const": false
+        }
+      },
+      "required": [
+        "version",
+        "supportedInputKinds",
+        "requiresIdle",
+        "supportsStreamingBehavior"
+      ],
+      "additionalProperties": false
+    },
     "RpcInputPolicy": {
       "type": "object",
       "properties": {
@@ -5991,6 +6018,9 @@
         },
         "rpcInputPolicy": {
           "$ref": "#/$defs/RpcInputPolicy"
+        },
+        "attachmentInputPolicy": {
+          "$ref": "#/$defs/AttachmentInputPolicy"
         },
         "protocolVersion": {
           "type": "integer"

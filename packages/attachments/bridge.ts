@@ -20,6 +20,7 @@ export interface AttachmentNativePort {
 }
 interface Prepared {
   selection: AttachmentSelection; authorityFingerprint: string; receipt: AttachmentReceipt;
+  target: SubmissionTarget; message: string; nativeStarted: boolean;
   consent?: { id: string; value: AttachmentConsent }; bound?: { submissionId: string; requestId: string };
 }
 const fingerprint = (draft: AuthorizedAttachmentDraft): string => Bun.SHA256.hash(JSON.stringify(draft), "hex");
@@ -28,10 +29,10 @@ const fingerprint = (draft: AuthorizedAttachmentDraft): string => Bun.SHA256.has
 export class AttachmentBridge {
   readonly #prepared = new Map<string, Prepared>();
   readonly #requests = new Map<string, Prepared>();
-  readonly #pending = new Map<string, { selection: AttachmentSelection; authorityFingerprint: string }>();
+  readonly #pending = new Map<string, { selection: AttachmentSelection; authorityFingerprint: string; target: SubmissionTarget }>();
   constructor(readonly authority: AttachmentAuthority, readonly native: (target: SubmissionTarget) => AttachmentNativePort) {}
 
-  async prepare(selection: AttachmentSelection, preparationId: string = crypto.randomUUID()): Promise<AttachmentReceipt> {
+  async prepare(selection: AttachmentSelection, preparationId: string = crypto.randomUUID(), exactMessage?: string): Promise<AttachmentReceipt> {
     attachmentPrepareRequestSchema.parse({ selection, preparationId });
     if (this.#pending.has(preparationId) || [...this.#prepared.values()].some(value => value.receipt.preparationId === preparationId)) {
       throw Error("ATTACHMENT_PREPARATION_CONFLICT");
@@ -40,21 +41,26 @@ export class AttachmentBridge {
     if (this.#prepared.size + this.#pending.size >= 2) throw Error("ATTACHMENT_HOST_PREPARATION_LIMIT");
     const draft = await this.#authorize(selection), authorityFingerprint = fingerprint(draft);
     const { target, ...input } = draft;
-    this.#pending.set(preparationId, { selection: structuredClone(selection), authorityFingerprint });
-    let receipt: AttachmentReceipt;
+    this.#pending.set(preparationId, { selection: structuredClone(selection), authorityFingerprint, target });
+    let receipt: AttachmentReceipt | undefined;
+    const message = exactMessage ?? input.message;
     try {
-      receipt = await this.native(target).prepare({ ...input, preparationId });
+      receipt = await this.native(target).prepare({ ...input, message, preparationId });
       if (!this.#pending.has(preparationId)) throw Error("ATTACHMENT_CANCELLED");
       if (fingerprint(await this.#authorize(selection)) !== authorityFingerprint) {
         await this.native(target).cancel(receipt.preparationId); throw Error("ATTACHMENT_AUTHORITY_CHANGED");
       }
+    } catch (error) {
+      if (receipt) await this.native(target).cancel(receipt.preparationId).catch(() => {});
+      throw error;
     } finally { this.#pending.delete(preparationId); }
     if (Buffer.byteLength(JSON.stringify(receipt)) > 8 * 1024 * 1024) {
       await this.native(target).cancel(receipt.preparationId); throw Error("ATTACHMENT_HOST_PREPARED_BUDGET");
     }
     if (receipt.binding.sourceId !== target.sourceId || receipt.binding.instanceId !== target.instanceId ||
       receipt.binding.nativeSessionId !== target.nativeSessionId) throw Error("ATTACHMENT_TARGET_CHANGED");
-    this.#prepared.set(receipt.receiptId, { selection: structuredClone(selection), authorityFingerprint, receipt: structuredClone(receipt) });
+    this.#prepared.set(receipt.receiptId, { selection: structuredClone(selection), authorityFingerprint, receipt: structuredClone(receipt),
+      target, message, nativeStarted: false });
     return structuredClone(receipt);
   }
 
@@ -91,12 +97,13 @@ export class AttachmentBridge {
   }
 
   /** Called by the trusted DSH prompt adapter for this actual request, immediately before native reserve. */
-  async submitForRequest(requestId: string): Promise<unknown> {
+  async submitForRequest(requestId: string, beforeNativeCall?: () => void): Promise<unknown> {
     const prepared = this.#requests.get(requestId);
     if (!prepared?.bound || !prepared.consent) throw Error("ATTACHMENT_DISPATCH_UNBOUND");
     const draft = await this.#current(prepared, prepared.selection);
+    prepared.nativeStarted = true; beforeNativeCall?.();
     const result = await this.native(draft.target).submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
-      preparationId: prepared.receipt.preparationId, inputType: "prompt", message: draft.message,
+      preparationId: prepared.receipt.preparationId, inputType: "prompt", message: prepared.message,
       preparationConsent: structuredClone(prepared.consent.value) });
     this.observeNativeResult(requestId, result);
     return result;
@@ -115,6 +122,20 @@ export class AttachmentBridge {
       value.preparation?.receiptId !== prepared.receipt.receiptId) return;
     // Native owns the verified reserved bundle now. Discard large ephemeral browser receipt bytes, not the draft checkpoint.
     this.#prepared.delete(prepared.receipt.receiptId); this.#requests.delete(requestId);
+  }
+
+  /** Trusted operation cleanup only: seals an owned pre-Native flow even after its draft/grant became stale. */
+  async discardUnsubmitted(selection: AttachmentSelection, preparationId: string): Promise<void> {
+    const prepared = [...this.#prepared.values()].find(value => value.receipt.preparationId === preparationId);
+    const pending = this.#pending.get(preparationId);
+    const owned = prepared ?? pending;
+    if (!owned || JSON.stringify(owned.selection) !== JSON.stringify(selection) || prepared?.nativeStarted) return;
+    this.#pending.delete(preparationId);
+    if (prepared) {
+      this.#prepared.delete(prepared.receipt.receiptId);
+      if (prepared.bound) this.#requests.delete(prepared.bound.requestId);
+    }
+    await this.native(owned.target).cancel(preparationId);
   }
 
   async cancel(request: { selection: AttachmentSelection; preparationId: string }): Promise<{ cancelled: boolean }> {

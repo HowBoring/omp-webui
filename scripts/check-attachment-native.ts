@@ -2,7 +2,7 @@
 import ts from "typescript";
 import * as path from "node:path";
 const root = path.resolve("vendor/omp/packages/coding-agent");
-const files = ["src/attachments/limits.ts", "src/attachments/prepare.ts", "src/attachments/document.ts", "src/attachments/package.ts",
+const files = ["src/attachments/limits.ts", "src/attachments/input-policy.ts", "src/slash-commands/acp-builtins.ts", "src/attachments/prepare.ts", "src/attachments/document.ts", "src/attachments/package.ts",
   "src/attachments/isolated.ts", "src/attachments/worker.ts", "src/attachments/deny-network.ts", "src/attachments/receipts.ts", "src/attachments/rpc-budget.ts",
   "src/modes/rpc/rpc-attachments.ts", "src/modes/rpc/attachment-client.ts", "src/modes/rpc/wire/attachments.ts",
   "src/modes/rpc/rpc-input.ts", "src/modes/rpc/rpc-input-policy.ts",

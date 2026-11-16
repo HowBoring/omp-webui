@@ -4,6 +4,8 @@ import { BoundedStdioTransport } from "./stdio-transport.ts";
 import type { ProcessSelection } from "./stdio-transport.ts";
 import { AttachmentClient, isAttachmentReceipt } from "../contracts/attachments.ts";
 import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
+import { HistoryClient } from "../contracts/generated/history-client.ts";
+import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import attachmentCommand from "../contracts/generated/attachment-command.js";
 import submissionCommand from "../contracts/generated/submission-command.js";
@@ -22,24 +24,34 @@ export function acceptsAttachmentInputPolicy(frame: ReadyEvent): boolean {
     && input.maxPendingBytes === 64 * 1024 * 1024 && input.maxPendingFrames === 32
     && input.maxStartupBytes === 48 * 1024 * 1024 && input.maxStartupFrames === 8;
 }
+/** Prepared admission is limited to the explicitly advertised idle prompt path. */
+export function acceptsPreparedInputPolicy(frame: ReadyEvent): boolean {
+  const policy: unknown = Reflect.get(frame, "attachmentInputPolicy");
+  if (!policy || typeof policy !== "object") return false;
+  return Reflect.get(policy, "version") === "attachment-input-policy-v1" && Reflect.get(policy, "requiresIdle") === true
+    && Reflect.get(policy, "supportsStreamingBehavior") === false
+    && JSON.stringify(Reflect.get(policy, "supportedInputKinds")) === '["prompt"]';
+}
 export class AttachmentTransport {
   #opened = false;
   readonly attachments: AttachmentClient;
   readonly submissions: SubmissionClient;
+  readonly history: HistoryClient;
   readonly #startup: StrictStartClient;
   private constructor(private readonly core: BoundedStdioTransport) {
     this.attachments = new AttachmentClient(command => {
       this.#assertOpen(); return this.core.request({ ...command, id: command.id ?? crypto.randomUUID() }, 65_000);
     }, isAttachmentReceipt);
     this.submissions = new SubmissionClient(command => { this.#assertOpen(); return this.core.request(command); }, isSubmissionResult);
+    this.history = new HistoryClient(command => { this.#assertOpen(); return this.core.request(command); });
     this.#startup = new StrictStartClient(command => this.core.request(command, 30_000),
       (value): value is StrictStartState => strictState(value));
   }
   static async open(selection: ProcessSelection): Promise<AttachmentTransport> {
     return new AttachmentTransport(await BoundedStdioTransport.open(selection, {
-      validateCommand: value => attachmentCommand(value) || submissionCommand(value) || strictCommand(value),
+      validateCommand: value => attachmentCommand(value) || submissionCommand(value) || strictCommand(value) || validateHistoryCommand(value),
       acceptReady: frame => frame.strictStartup === "strict-start-v1" && strictPolicy(frame.strictStartupPolicy)
-        && interactionPolicy(frame.interactionPolicy) && acceptsAttachmentInputPolicy(frame)
+        && interactionPolicy(frame.interactionPolicy) && acceptsAttachmentInputPolicy(frame) && acceptsPreparedInputPolicy(frame)
         && frame.supportedProtocolVersions?.includes(2) === true && frame.maxFrameBytes === MAX_RPC_FRAME_BYTES
         && frame.maxReassembledFrameBytes === MAX_RPC_REASSEMBLED_BYTES,
       remoteError: error => error && /^(?:ATTACHMENT|SUBMISSION|STRICT|GENERATION)_[A-Z_]+$/.test(error)
