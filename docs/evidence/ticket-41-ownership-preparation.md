@@ -25,10 +25,11 @@ OS fixture establishes only its recorded socket/pidfd primitives, including a se
 
 | Check | Actual result | Scope |
 | --- | --- | --- |
-| Pure ownership module and owned filesystem tests | PASS: 34 tests, 120 assertions, 10 source files / 1 wrapper, 130 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
+| Pure ownership module and owned filesystem tests | PASS: 34 tests, 120 assertions, 10 source files / 1 wrapper, 115 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
 | Public request/response/helper/authentication schema corpus | PASS: 11 request + 8 response + 5 helper + 9 authentication cases | AJV 8.17.1, strict request/helper/challenge decoders; reply signature evidence separately in pure tests |
-| Focused source type check | PASS: `bun check --no-script`, 22 files, 0 errors, 116.76 ms | New ownership TS/test files only; C and CLI graph excluded |
+| Focused source type check | PASS: `bun check --no-script`, 22 files, 0 errors, 64.30 ms | New ownership TS/test files only; C and CLI graph excluded |
 | CLI/runtime/main syntax parse | PASS: 3 owned TS sources | Bun transpiler only; no entry import/execution or full graph type claim |
+| Consumer source composition | PASS: 18 exact source/document files; 16 TS files syntax parsed | Separate audited delta against df21; cumulative README/CHANGELOG preserved |
 | Host repository type check | PASS: `bun run typecheck`, exit 0 | Host source compile only |
 | Ordered patch application | PASS: private index, base + 1–6 + 0010 | Prepared tree recorded in identity JSON |
 | Whitespace check | PASS: owned Native diff and repository diff | Source only |
@@ -36,8 +37,8 @@ OS fixture establishes only its recorded socket/pidfd primitives, including a se
 | One actual Unix socket/pidfd primitive fixture | PASS: 1 test, 10 assertions, 50.25 ms; runner 140 ms, wrapper 155 ms | Three actual SO_PEERPIDFD successes, 0 traced INET socket/endpoint calls; no child/CLI/Agent |
 | Positive helper parentage, dead/foreign peer/resource faults, lifecycle | NOT RUN | No broader OS clearance or backend capability |
 | Corrected actual dispatcher CLI | NOT RUN | Requires pre-import guard + isolated environment before any Native import |
-| All-mode broker client no-auto-spawn and broker publication entry | NOT IMPLEMENTED | Baseline still auto-spawns; no claim from new module alone |
-| Consumer policy, private LSP/blob and mandatory attachment paths | NOT IMPLEMENTED / NOT RUN | Mandatory stories retained |
+| All-mode broker client no-auto-spawn and broker publication entry | CLIENT SOURCE COMPOSED / ENTRY PENDING | Consumer delta has no local spawn/token creation; no actual runtime proof |
+| Consumer policy, private LSP/blob and mandatory attachment paths | SOURCE COMPOSED / NOT RUN | Mandatory stories retained; no attachment/LSP capability claim |
 | External broker/service lifetime protectors | NOT IMPLEMENTED / NOT RUN | Private helper EOF policy cannot preserve external services |
 | Final actual-global tuple, TUI/data/rollback and private admission | BLOCKED | Operator entry missing; final Native/DSH composition unfinished |
 
@@ -117,6 +118,21 @@ queues or total worker heap. No Worker/MessageChannel/subprocess/socket is const
 The updated current result is 34 PASS / 1 OS SKIP / 120 assertions, 22 focused type-checked files and 3 syntax-parsed
 entrypoints. Actual Bun early-message delivery, shared-buffer/MessagePort transfer, parent-owned subagents, source/bundle
 behavior and no-provider proof remain required in the later supervised runtime window.
+
+## Consumer source composition
+
+Host merge `4831fb6` preserves the independently prepared consumer delta and its manifest against exact df21 tree
+`a2d6f32d2978d31be1c859d6c3c2183dc50b379a`. The lead applies its 18 noncumulative files byte-for-byte and merges
+README/CHANGELOG while retaining both source descriptions. The cumulative `0010-execution-ownership.patch` now
+contains those edits; the separate `0010-execution-ownership-consumers.delta.patch` remains audit evidence and must
+not be applied a second time. The source checker verifies the 18 identities and syntax parses all 16 consumer TS files.
+This still composes only stable 1–6 plus 0010, with no final Native build or runtime proof.
+
+The future final 1–10 composition has a known `sdk.ts` overlap with patch 0007's cross-Session causal-owner wrapper.
+Preserve asynchronous ownership initialization as the first factory action outside that wrapper, then preserve the
+actual owner-scoped original factory body. Do not drop either guard or apply the source factory twice. Native ps/admin,
+stream lifetime protection, broker publication, actual all-mode consumers, mandatory attachment/private LSP behavior
+and the final shared-source compiler/runtime gates remain unfinished.
 
 Compile only with `bun --no-env-file scripts/build-ownership-bridge-preparation.ts <owned-native-checkout>
 <absolute-owned-output-parent>`. It uses a unique output directory, fixed strict compiler/linker flags and an

@@ -42,8 +42,19 @@ try {
   const parser = new Bun.Transpiler({ loader: "ts", target: "bun" });
   const parsedEntrypoints = ["cli.ts", "cli-runtime.ts", "main.ts"];
   for (const file of parsedEntrypoints) parser.transformSync(await Bun.file(join(source, "packages/coding-agent/src", file)).text());
+  const consumerManifest: { files: { path: string; sha256: string }[] } = await Bun.file(
+    join(repository, "compatibility/omp/execution-ownership-consumers.preparation.json")).json();
+  let consumerSourceFiles = 0, parsedConsumerFiles = 0;
+  for (const file of consumerManifest.files) {
+    if (file.path.endsWith("/README.md") || file.path.endsWith("/CHANGELOG.md")) continue;
+    const bytes = await Bun.file(join(source, file.path)).bytes();
+    if (new Bun.CryptoHasher("sha256").update(bytes).digest("hex") !== file.sha256) throw new Error("CONSUMER_COMPOSITION_MISMATCH");
+    consumerSourceFiles++;
+    if (file.path.endsWith(".ts")) { parser.transformSync(bytes); parsedConsumerFiles++; }
+  }
   process.stdout.write(JSON.stringify({ scope: "owned-source-only", sourceFiles: files.length, runnerFiles: 1,
     typeCheckedFiles: modules.length + tests.length, guardBeforeImports: true,
     parsedEntrypoints: parsedEntrypoints.length, actualEntrypointsExecuted: false,
+    consumerSourceFiles, parsedConsumerFiles,
     kernelFixtureEnabled: false, actualGlobal: "BLOCKED", capabilityGranted: false }) + "\n");
 } finally { await rm(temporary, { recursive: true, force: true }); }

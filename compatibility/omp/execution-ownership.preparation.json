@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "53c9e94b4de335b9c63f760d30c78880a144edca74f2e5549d54373a9c0b4d46"
+    "sha256": "67e0635118f7acc04813ead6b73f5511059452067cc82d0da956e5dd37cb224a"
   },
-  "preparedTree": "990fe686d80711accc3c1601b3a8d1fb65e44048",
-  "preparedSourceSha256": "3abe2722e0060f91754b5b4dc6ea0ab3416d81621e68b612edb190186e627bcc",
+  "preparedTree": "68d5918cacb7a09b07d13670dbf0fcea530c835b",
+  "preparedSourceSha256": "171322154ed1636c64b2d6fd9f557a33eec82e54ce950c985f999aadaf392fd8",
   "ownershipWireSchemaSha256": "8eb802c1c5f040364549d8f7fc398bd4e62f21d0867188f2d45e0f4826f13d38",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -49,5 +49,11 @@
   "contextBrokerQueue": {
     "outstanding": 64,
     "totalDeadlineMs": 10000
+  },
+  "consumerDeltaComposed": {
+    "file": "0010-execution-ownership-consumers.delta.patch",
+    "sha256": "08b24d8aa006da8afb8edd25785bc4c057ada451e8637c5400b59cc55dced164",
+    "exactFiles": 18,
+    "cumulativeDocuments": 2
   }
 }

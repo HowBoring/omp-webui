@@ -1,12 +1,14 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..18d7f7a4bf 100644
+index a4b6abe4e7..b98c1f5bcb 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,13 @@
+@@ -2,6 +2,15 @@
  
  ## [Unreleased]
  
 +### Added
++
++- Prepared dispatcher-only broker consumers and private execution guards; actual shared services, private LSP and attachment fallback remain unvalidated ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
 +- Prepared a public execution-ownership protocol and explicit unavailable dispatcher entry; no lifecycle or shared-service capability is enabled ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +- Added the fail-closed public process-context interface and owned durable incomplete-fence source adapter; Native consumer/bootstrap integration remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
@@ -17,23 +19,116 @@ index a4b6abe4e7..18d7f7a4bf 100644
  
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..29aef9c23e 100644
+index 0b34d8fc54..fe76ea91ef 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
-@@ -10,6 +10,7 @@ For installation, setup, provider configuration, model roles, slash commands, an
+@@ -10,6 +10,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
  Package-specific references:
  
  - [CHANGELOG](./CHANGELOG.md)
 +- [Execution ownership preparation](./docs/execution-ownership.md) (process context, durable fence and public contract source; Linux backend and ordinary-client integration unavailable)
++- [Ownership consumer preparation](./docs/execution-ownership-consumers.md) / [执行归属消费端准备](./docs/execution-ownership-consumers.zh-CN.md) (dispatcher-only broker clients, private feature guards and unproven fallbacks)
  - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
  - [MCP configuration guide](../../docs/mcp-config.md)
  - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
+diff --git a/packages/coding-agent/docs/execution-ownership-consumers.md b/packages/coding-agent/docs/execution-ownership-consumers.md
+new file mode 100644
+index 0000000000..b73ba4ceaf
+--- /dev/null
++++ b/packages/coding-agent/docs/execution-ownership-consumers.md
+@@ -0,0 +1,46 @@
++# Execution ownership consumers — source preparation
++
++[中文](./execution-ownership-consumers.zh-CN.md)
++
++This consumer delta is prepared after the stable patches 1–6 plus the `df21a34` ownership checkpoint. It is not
++an activated patch or a final 1–10 composition. The dispatcher bootstrap still refuses registration; no Native,
++CLI, service, LSP, browser, attachment or cleanup runtime capability has been demonstrated by this delta.
++
++`createAgentSession` and the legacy factory await `initializeExecutionOwnership()` as their first body action,
++before inference registration or resource-loader access. SDK eager imports are not claimed to be pure. Every Bun
++worker realm still needs independently authenticated process registration through the public context.
++
++All ordinary project/global daemon clients acquire the fixed public dispatcher grant before construction. They no
++longer create/read a broker token, create its runtime directory, invoke private broker worker argv, or locally spawn
++on initial connection/reconnect. Cached factories, requests, cancel requests and completion acknowledgements obtain
++fresh grants. A changed scope generation, runtime directory, token, dispatcher or release/schema closes that client
++and throws a typed ownership failure. There is no automatic attach to a replacement or legacy broker. The broker
++smoke function now probes the independently selected broker; it does not claim to exercise a client-owned spawn.
++
++`DaemonBrokerClient.runtimeDir` is authoritative for service logs, IDA/blob/LSP child sockets, text-prediction
++endpoints, shared Chromium profiles and durable target registries. Consumers do not derive those paths from the
++profile or project directory. Legacy `runtimeDir` overrides must equal the grant; `idleGraceMs` overrides are refused.
++The only global selectors accepted here are Native's `browser-relay` and `text-predict`; this is not a browser argv API.
++
++Named shared bash service operations, browser tool invocation/acquisition/release/health replacement, relay probes
++and replacement, IDA acquisition/socket requests, and prediction factories/requests/sync fail before shared effects
++when `requireSharedExecution()` refuses. Prediction refuses before SmolLM weight prefetch and old-daemon shutdown.
++The native error code remains an error; no synthetic tool-success or unsupported capability flag is returned.
++Generic builtin bash, private background execution and native parent-owned subagents are not changed here.
++
++A **registered private** LSP client bypasses both automatic external lspmux wrapping and the shared transport before
++spawning the existing private process transport. An unavailable context throws before choosing that fallback. A
++registered private blob consumer returns `null` before shared-daemon factories and uses the existing in-process
++`LocalBlobBackend`; unavailable context is not interpreted as private or external. No image/document conversion,
++attachment limit or consumption guarantee is changed or proven by these edits.
++
++Validation in this preparation is limited to the existing public ownership decision/wire tests under a synthetic
++allowlisted environment with the egress guard preloaded, source compiler comparison, and patch/source identities.
++No new consumer behavior has runtime red/green evidence yet. Required later evidence includes private and nested
++`env -i` creation/reconnect denial, external TUI/service survival, first-action SDK refusal, actual private LSP,
++every mandatory image/text/document format and budget, cancellation, background/subagent behavior, and owned cleanup.
++Existing broker and browser tests that bootstrap local brokers or fabricate old scope objects need migration to the
++same authenticated public dispatcher fixture before they can validate this changed installation contract.
++
++Linux is the current delivery target; actual Windows Chrome/WSL2 remains owner-deferred. This policy does not sandbox
++same-UID code, arbitrary downloaded old Native, or irreversible external tool effects.
+diff --git a/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md b/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md
+new file mode 100644
+index 0000000000..749ace4466
+--- /dev/null
++++ b/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md
+@@ -0,0 +1,34 @@
++# 执行归属消费端——源码准备
++
++[English](./execution-ownership-consumers.md)
++
++本消费端增量基于稳定补丁 1–6 与 `df21a34` 归属检查点；未加入活动补丁列表，也不是最终 1–10 组合。
++分发器引导仍拒绝注册。本增量没有证明 Native、CLI、共享服务、LSP、浏览器、附件或清理的运行时能力。
++
++`createAgentSession` 与旧版工厂的函数体第一步均等待 `initializeExecutionOwnership()`，先于推理注册和
++资源加载器访问。不声称 SDK 的静态导入纯净。每个 Bun worker realm 仍须经公开上下文独立验证实际进程归属。
++
++普通项目/全局 daemon 客户端在构造前取得固定公开分发器授权。不再创建/读取 broker token、创建运行目录、
++调用私有 broker worker 参数，或在首次连接/重连时本地派生 broker。缓存工厂、请求、取消和完成确认重新取得授权。
++作用域代次、运行目录、token、分发器或发布/schema 身份改变即关闭该客户端并抛出类型化错误；不会自动接入替代或
++旧版 broker。broker smoke 函数现在探测独立选择的 broker，不声称验证客户端自行派生路径。
++
++服务日志、IDA/blob/LSP 子端点、文字预测端点、共享 Chromium 配置和持久 target 登记使用
++`DaemonBrokerClient.runtimeDir`，不再从 profile 或项目目录推导。旧 `runtimeDir` 覆盖必须与授权相同，
++`idleGraceMs` 覆盖被拒绝。只接受 Native 的 `browser-relay`、`text-predict` 全局选择器，不提供浏览器 argv 接口。
++
++命名 bash 共享服务、浏览器调用/取得/释放/健康替换、relay 探测/替换、IDA 取得/套接字请求及预测工厂/请求/同步，
++在 `requireSharedExecution()` 拒绝时均于共享效果前失败。预测在 SmolLM 权重预取和旧 daemon 关闭前拒绝。
++原生错误码保持为错误，不返回伪造工具成功或缺能力旗标。本增量不改变普通 builtin bash、私有后台执行或原生父进程子代理。
++
++**已注册私有** LSP 在采用现有私有进程 transport 前绕过自动外部 lspmux 包装和共享 transport。
++上下文不可用时在选择回退前抛错。已注册私有 blob 消费端在共享 daemon 工厂前返回 `null`，使用已有进程内
++`LocalBlobBackend`；不可用上下文不被当作私有或外部。图片/文档转换、附件预算和消费保证均未改变，也未由本增量证明。
++
++本阶段只运行了预加载出站防护、合成 HOME/profile/cwd 和白名单环境下的现有公开归属决策/协议测试、源码编译对照和
++补丁/源码身份检查。消费端新行为尚无运行时红绿证据。后续必须验证私有及嵌套 `env -i` 的创建/重连拒绝、外部 TUI/服务
++保留、SDK 首步拒绝、真实私有 LSP、全部必需图片/文字/文档格式和预算、取消、后台/子代理行为及归属清理。
++旧测试自行引导本地 broker 或构造旧 scope 对象，须迁移至同一认证公开分发器夹具后才能验证新安装契约。
++
++当前交付目标为 Linux，真实 Windows Chrome/WSL2 由所有者明确延期。本策略不是 same-UID 沙箱，也不保证任意下载的
++旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..36a4d9ad06
+index 0000000000..b12eb7e023
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,203 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -202,7 +297,7 @@ index 0000000000..36a4d9ad06
 +protection until its directory fsync and verification complete. That proof and maintenance protection are not supplied
 +by this adapter. A synthetic filesystem retirement test does not establish actual helper completion.
 +
-+## Required consumer policy and supervision (not yet integrated)
++## Consumer source and remaining supervision gates
 +
 +Hosted Native and nested compatible Native below the registered private helper will receive immutable private-only
 +policy before Session/UI/import/factory effects. Generic bash, private background jobs and native parent-owned subagents
@@ -210,9 +305,11 @@ index 0000000000..36a4d9ad06
 +with `shared_service_unsupported` before token/mkdir/request/completion effects. Private LSP bypasses external lspmux;
 +image blobs use the actual local fallback. Every mandatory attachment format/budget/consumption path still needs evidence.
 +
-+All broker factory/connect/reconnect paths must lose automatic spawn, and the legacy broker public entry must reject
-+without the dispatcher-owned generation handshake before publication. The current baseline client still auto-spawns;
-+those edits and policy enforcement are pending. Do not infer them from the new client module having no spawn method.
++The consumer source removes local client spawn/token creation in all modes and includes feature guards and private
++LSP/blob choices. Its paired preparation documents record the exact source delta and its unproven runtime gates.
++The lead composition contains that delta plus cumulative README/CHANGELOG updates. The legacy broker public entry
++must still reject without the dispatcher-owned generation handshake before publication. Actual broker protection and
++end-to-end consumer behavior remain pending; a new no-spawn method alone does not prove them.
 +
 +The dedicated C private subreaper is the sole wait owner of Native and adopted descendants; Bun waits only for it.
 +Native stdio stays direct. A separate authenticated bounded control channel reports actual Native PID/generation,
@@ -235,6 +332,83 @@ index 0000000000..36a4d9ad06
 +
 +Arbitrary downloaded old OMP, malicious same-UID/ptrace/namespace/reparent manipulation and externally delegated
 +irreversible effects are outside this supported lifecycle guarantee. Generic bash is not an OS sandbox or external-effects rollback.
+diff --git a/packages/coding-agent/src/blob-broker/daemon.ts b/packages/coding-agent/src/blob-broker/daemon.ts
+index 94d8bd457e..582426e750 100644
+--- a/packages/coding-agent/src/blob-broker/daemon.ts
++++ b/packages/coding-agent/src/blob-broker/daemon.ts
+@@ -1,3 +1,4 @@
++import { requireExecutionOwnership, requireSharedExecution } from "../launch/ownership/context";
+ /**
+  * Client half of the project-shared blob daemon.
+  *
+@@ -13,7 +14,6 @@ import * as path from "node:path";
+ import { logger, ptree } from "@oh-my-pi/pi-utils";
+ import { daemonClientForProject } from "../launch/client";
+ import { describeQuietly, stopQuietly, waitReady } from "../launch/ensure";
+-import { daemonRuntimeDir } from "../launch/paths";
+ import { resolveWorkerSpawnCmd, SMOKE_TEST_TIMEOUT_MS, workerEnvFromParent } from "../subprocess/worker-client";
+ import type { BlobBackend } from "./broker";
+ import {
+@@ -73,11 +73,12 @@ async function probeDaemon(socket: string): Promise<DaemonInfo | null> {
+ }
+ 
+ async function liveBlobBrokerSocket(projectDir: string): Promise<string | null> {
++	requireSharedExecution();
+ 	if (process.platform === "win32") return null;
+ 	try {
+ 		const client = await daemonClientForProject(projectDir);
+ 		await client.request({ op: "ping" });
+-		const socket = blobBrokerEndpoint(daemonRuntimeDir(client.projectDir));
++		const socket = blobBrokerEndpoint(client.runtimeDir);
+ 		return (await probeDaemon(socket)) ? socket : null;
+ 	} catch {
+ 		return null;
+@@ -141,8 +142,9 @@ export async function queryBlobBrokerPurge(
+  * A live daemon with a different config is replaced (settings changed).
+  */
+ async function ensureBlobDaemon(projectDir: string, config: BlobBrokerWorkerConfig): Promise<DaemonInfo | null> {
++	requireSharedExecution();
+ 	const client = await daemonClientForProject(projectDir);
+-	const socket = blobBrokerEndpoint(daemonRuntimeDir(client.projectDir));
++	const socket = blobBrokerEndpoint(client.runtimeDir);
+ 	// The broker connection doubles as the presence lease keeping the daemon alive.
+ 	await client.request({ op: "ping" });
+ 	const wantKey = blobBrokerConfigKey(config);
+@@ -278,10 +280,11 @@ export async function connectDaemonBlobBackend(
+ 	config: BlobBrokerWorkerConfig,
+ 	callbacks: RenderCallbackHost,
+ ): Promise<BlobBackend | null> {
++	if (requireExecutionOwnership().policy === "private") return null;
+ 	if (process.platform === "win32") return null;
+ 	try {
+ 		const client = await daemonClientForProject(projectDir);
+-		const socket = blobBrokerEndpoint(daemonRuntimeDir(client.projectDir));
++		const socket = blobBrokerEndpoint(client.runtimeDir);
+ 		const info = await ensureBlobDaemon(projectDir, config);
+ 		if (!info) return null;
+ 		return new DaemonBlobBackend(socket, info, callbacks);
+diff --git a/packages/coding-agent/src/blob-broker/service.ts b/packages/coding-agent/src/blob-broker/service.ts
+index b3d7414ab1..4d940277c5 100644
+--- a/packages/coding-agent/src/blob-broker/service.ts
++++ b/packages/coding-agent/src/blob-broker/service.ts
+@@ -1,3 +1,4 @@
++import { requireExecutionOwnership } from "../launch/ownership/context";
+ /**
+  * Session-facing image URL service.
+  *
+@@ -198,10 +199,11 @@ export class ImageUrlService {
+ 	}
+ 
+ 	async #resolveBackend(configs: readonly BlobBrokerWorkerConfig[]): Promise<BlobBackend | null> {
++		const ownership = requireExecutionOwnership();
+ 		const backends: BlobBackend[] = [];
+ 		const daemonConfig = configs[0];
+ 		const daemon =
+-			this.#daemonEnabled && daemonConfig === this.#configs[0]
++			ownership.policy === "external" && this.#daemonEnabled && daemonConfig === this.#configs[0]
+ 				? await connectDaemonBlobBackend(this.#projectDir, daemonConfig, this.#callbackHost())
+ 				: null;
+ 		if (daemon) backends.push(daemon);
 diff --git a/packages/coding-agent/src/cli-runtime.ts b/packages/coding-agent/src/cli-runtime.ts
 index 9cd9c7b133..5191cc4dbd 100644
 --- a/packages/coding-agent/src/cli-runtime.ts
@@ -375,6 +549,527 @@ index ff1bfe94d2..a4eaff9c0a 100755
 +      process.exitCode = 2;
 +    });
    }
+ }
+diff --git a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts b/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
+index 0fde65a3ab..6de48998c2 100644
+--- a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
++++ b/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
+@@ -1,3 +1,4 @@
++import { initializeExecutionOwnership } from "../launch/ownership/context";
+ /**
+  * Compatibility shim for legacy extensions importing the package root of
+  * `@oh-my-pi/pi-coding-agent` (or one of its aliased scopes like
+@@ -1410,6 +1411,7 @@ export type LegacyPiCreateAgentSessionOptions = CreateAgentSessionOptions & {
+ export async function createAgentSession(
+ 	options: LegacyPiCreateAgentSessionOptions = {},
+ ): Promise<CreateAgentSessionResult> {
++	await initializeExecutionOwnership();
+ 	const loader = options.resourceLoader;
+ 	if (!loader) {
+ 		return ompCreateAgentSession(options);
+diff --git a/packages/coding-agent/src/ida/client.ts b/packages/coding-agent/src/ida/client.ts
+index 73216b616f..d0f4dbe8cb 100644
+--- a/packages/coding-agent/src/ida/client.ts
++++ b/packages/coding-agent/src/ida/client.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../launch/ownership/context";
+ /**
+  * omp-side access to IDA databases hosted by broker-supervised daemons (`host.ts`).
+  *
+@@ -16,7 +17,6 @@ import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
+ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+ import { type DaemonBrokerClient, daemonClientForProject } from "../launch/client";
+ import { describeQuietly, stopQuietly, waitReady } from "../launch/ensure";
+-import { daemonRuntimeDir } from "../launch/paths";
+ import { resolveWorkerSpawnCmd, SMOKE_TEST_TIMEOUT_MS, workerEnvFromParent } from "../subprocess/worker-client";
+ import type { ToolSession } from "../tools";
+ import {
+@@ -61,6 +61,7 @@ class IdaHostGoneError extends ToolError {}
+ 
+ /** Connect to `endpoint`; undefined when nothing listens there. */
+ function connectSocket(endpoint: string): Promise<IpcConnection | undefined> {
++	requireSharedExecution();
+ 	return IpcConnection.connect(endpoint, { framing: "lines", timeoutMs: CONNECT_TIMEOUT_MS }).catch(() => undefined);
+ }
+ 
+@@ -98,6 +99,7 @@ class HostConnection {
+ 
+ 	/** Send `request` and wait for its answer; host-side failures reject with a {@link ToolError}. */
+ 	call(request: IdaHostRequest): Promise<unknown> {
++		requireSharedExecution();
+ 		if (!this.#open) {
+ 			return Promise.reject(
+ 				new IdaHostGoneError(`IDA host ${this.#name} exited; see \`omp ps logs ${this.#name}\``),
+@@ -111,6 +113,7 @@ class HostConnection {
+ 
+ 	/** Send a request that has no answer (`cancel`). */
+ 	notify(request: IdaHostRequest): void {
++		requireSharedExecution();
+ 		this.#conn.send(JSON.stringify(request));
+ 	}
+ 
+@@ -254,7 +257,7 @@ const pending = new Map<string, Promise<IdaDatabase>>();
+ let cleanupRegistered = false;
+ 
+ function hostEndpoint(broker: DaemonBrokerClient, name: string): string {
+-	return idaHostEndpoint(daemonRuntimeDir(broker.projectDir), name);
++	return idaHostEndpoint(broker.runtimeDir, name);
+ }
+ 
+ /** Attach to the host `name`, reusing this process's live connection; undefined when none listens. */
+@@ -411,6 +414,7 @@ export async function acquireIdaDatabase(
+ 	sourcePath: string,
+ 	options: AcquireIdaDatabaseOptions = {},
+ ): Promise<IdaDatabase> {
++	requireSharedExecution();
+ 	const { signal, arch } = options;
+ 	const loc = await locateIdb(sourcePath, { arch });
+ 	const cached = handles.get(idaDaemonName(loc.id));
+@@ -452,6 +456,7 @@ async function openingSince(session: ToolSession, name: string): Promise<number
+ 
+ /** The open database with `locateIdb` id (or daemon name) `ref` in this project, if any. */
+ export async function findOpenIdaDatabase(session: ToolSession, ref: string): Promise<IdaDatabase | undefined> {
++	requireSharedExecution();
+ 	const broker = await daemonClientForProject(session.cwd);
+ 	const name = ref.startsWith(IDA_DAEMON_PREFIX) ? ref : idaDaemonName(ref);
+ 	const db = await attachHost(broker, name, "status").catch(() => undefined);
+@@ -460,6 +465,7 @@ export async function findOpenIdaDatabase(session: ToolSession, ref: string): Pr
+ 
+ /** Every database hosted in this project, including ones other omp processes opened. */
+ export async function listIdaDatabases(session: ToolSession): Promise<IdaDatabase[]> {
++	requireSharedExecution();
+ 	const broker = await daemonClientForProject(session.cwd);
+ 	return attachAll(broker, await liveHostNames(broker));
+ }
+@@ -469,6 +475,8 @@ export async function listIdaDatabases(session: ToolSession): Promise<IdaDatabas
+  * keep running for other omp processes and exit with the project's broker. Failures are logged.
+  */
+ export async function releaseIdaDatabases(): Promise<void> {
++	if (handles.size === 0) return;
++	requireSharedExecution();
+ 	const dbs = [...handles.values()];
+ 	handles.clear();
+ 	await Promise.all(
+diff --git a/packages/coding-agent/src/launch/client.ts b/packages/coding-agent/src/launch/client.ts
+index be6b55bca1..817f1c4bab 100644
+--- a/packages/coding-agent/src/launch/client.ts
++++ b/packages/coding-agent/src/launch/client.ts
+@@ -1,15 +1,9 @@
+-import * as fs from "node:fs/promises";
+-import * as os from "node:os";
+-import * as path from "node:path";
+ import { IpcConnection } from "@oh-my-pi/pi-natives";
+-import { getGlobalDaemonRuntimeDir, isEexist, isEnoent, logger, postmortem, toError } from "@oh-my-pi/pi-utils";
+-import { resolveWorkerSpawnCmd, workerEnvFromParent } from "../subprocess/worker-client";
+-import { canonicalProjectDir, daemonBrokerEndpoint, daemonRuntimeDir } from "./paths";
++import { logger, postmortem, toError } from "@oh-my-pi/pi-utils";
++import { canonicalProjectDir, daemonBrokerEndpoint } from "./paths";
++import { acquireExecutionBroker, type ExecutionBrokerSelection, requireSharedExecution } from "./ownership/context";
++import { OwnershipError, type OwnershipScope } from "./ownership/protocol";
+ import {
+-	DAEMON_BROKER_WORKER_ARG,
+-	DAEMON_IDLE_GRACE_ENV,
+-	DAEMON_PROJECT_DIR_ENV,
+-	DAEMON_RUNTIME_DIR_ENV,
+ 	type DaemonCompletionNotification,
+ 	type DaemonOperation,
+ 	type DaemonRpcResult,
+@@ -20,16 +14,6 @@ import {
+ 
+ const CONNECT_TIMEOUT_MS = 10_000;
+ const CONNECT_RETRY_MS = 50;
+-const TOKEN_FILE = "broker.token";
+-/**
+- * The broker must outlive whichever omp process happened to spawn it: other
+- * clients (and persistent daemons) still hold its lease. Bun on Windows puts
+- * every non-detached child in a kill-on-close job object owned by the parent,
+- * so an undetached broker died with its spawner and took the scope's daemons
+- * with it. Detached, it has no console; its daemons then spawn hidden.
+- */
+-const BROKER_SPAWN_OPTIONS = { detached: true, windowsHide: true } as const;
+-
+ interface PendingRequest {
+ 	operation: DaemonOperation;
+ 	resolve: (result: DaemonRpcResult) => void;
+@@ -38,11 +22,11 @@ interface PendingRequest {
+ 	removeAbort?: () => void;
+ }
+ 
+-/** Broker location and lifecycle overrides used by smoke tests and isolated consumers. */
++/** Legacy overrides cannot select an unverified broker; mismatches fail before connection. */
+ export interface DaemonBrokerClientOptions {
+-	/** Runtime directory override; defaults to the project-scoped config path. */
++	/** Deprecated: only the exact dispatcher-selected directory is accepted. */
+ 	runtimeDir?: string;
+-	/** Last-client shutdown grace override in milliseconds. */
++	/** Deprecated: lifecycle policy belongs to the dispatcher; any override is refused. */
+ 	idleGraceMs?: number;
+ }
+ 
+@@ -59,6 +43,8 @@ export interface DaemonBrokerClient {
+ 	): (options?: DaemonCompletionUnregisterOptions) => void;
+ 	/** Canonical project directory or synthetic directory identifying a global scope. */
+ 	readonly projectDir: string;
++	/** Dispatcher-selected directory; consumers must not derive a profile-local endpoint. */
++	readonly runtimeDir: string;
+ 	request(operation: DaemonOperation, signal?: AbortSignal): Promise<DaemonRpcResult>;
+ 	close(): void;
+ }
+@@ -66,38 +52,6 @@ export interface DaemonBrokerClient {
+ /** A request reached the broker and the broker rejected the operation. */
+ export class DaemonBrokerRejectedError extends Error {}
+ 
+-async function readOrCreateToken(runtimeDir: string): Promise<string> {
+-	await fs.mkdir(runtimeDir, { recursive: true, mode: 0o700 });
+-	const tokenPath = path.join(runtimeDir, TOKEN_FILE);
+-	for (let attempt = 0; attempt < 100; attempt++) {
+-		try {
+-			// node:fs, not Bun.file().text(): on Windows (Bun 1.4.2) a Bun.file
+-			// read that rejects with ENOENT holds no event-loop ref, so the loop
+-			// drains mid-await — `omp --smoke-test` exited 1 via the unsettled-entry
+-			// guard, and a bare script silently stops at that await.
+-			const token = (await fs.readFile(tokenPath, "utf8")).trim();
+-			if (token.length > 0) return token;
+-		} catch (error) {
+-			if (!isEnoent(error)) throw error;
+-		}
+-
+-		try {
+-			const handle = await fs.open(tokenPath, "wx", 0o600);
+-			try {
+-				const token = crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "");
+-				await handle.writeFile(token, "utf8");
+-				return token;
+-			} finally {
+-				await handle.close();
+-			}
+-		} catch (error) {
+-			if (!isEexist(error)) throw error;
+-		}
+-		await Bun.sleep(10);
+-	}
+-	throw new Error(`Timed out initializing daemon broker token in ${runtimeDir}`);
+-}
+-
+ function requestTimeoutMs(operation: DaemonOperation): number {
+ 	switch (operation.op) {
+ 		case "start":
+@@ -113,11 +67,10 @@ function requestTimeoutMs(operation: DaemonOperation): number {
+ 
+ class SocketDaemonClient implements DaemonBrokerClient {
+ 	readonly projectDir: string;
+-	readonly #runtimeDir: string;
+-	readonly #endpoint: string;
+-	#token: string;
++	readonly #scope: OwnershipScope;
++	readonly #selection: ExecutionBrokerSelection;
++	readonly #token: string;
+ 	readonly #seenCompletionIds = new Set<string>();
+-	readonly #idleGraceMs: number | undefined;
+ 	readonly #pending = new Map<string, PendingRequest>();
+ 	readonly #completionSinks = new Map<string, (notification: DaemonCompletionNotification) => Promise<void> | void>();
+ 	readonly #completionUnsubscribes = new Set<string>();
+@@ -130,18 +83,22 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 	#closed = false;
+ 	#completionReconnectTimer: NodeJS.Timeout | undefined;
+ 
+-	constructor(projectDir: string, runtimeDir: string, token: string, options: DaemonBrokerClientOptions) {
++	constructor(projectDir: string, selection: ExecutionBrokerSelection) {
++		requireSharedExecution();
+ 		this.projectDir = projectDir;
+-		this.#runtimeDir = runtimeDir;
+-		this.#endpoint = daemonBrokerEndpoint(runtimeDir);
+-		this.#token = token;
+-		this.#idleGraceMs = options.idleGraceMs;
++		this.#scope = selection.scope;
++		this.#selection = selection;
++		this.#token = selection.token;
+ 	}
+ 
++	get runtimeDir(): string { return this.#selection.runtimeDirectory; }
++
+ 	async request(operation: DaemonOperation, signal?: AbortSignal): Promise<DaemonRpcResult> {
++		requireSharedExecution();
+ 		if (this.#closed) throw new Error("Daemon broker client is closed");
+ 		if (signal?.aborted) throw new Error("Daemon broker request aborted");
+ 		await this.#connect();
++		requireSharedExecution();
+ 		const socket = this.#socket;
+ 		if (!socket || socket.closed) throw new Error("Daemon broker socket is unavailable");
+ 
+@@ -165,13 +122,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 				// Dropping the local entry alone leaves the broker polling a wait or
+ 				// follow until its own timeout; ask it to stop. The answer is unread.
+ 				if ((operation.op === "wait" || operation.op === "logs") && !socket.closed) {
+-					socket.send(
+-						JSON.stringify({
+-							id: crypto.randomUUID(),
+-							token: this.#token,
+-							operation: { op: "cancel", requestId: id } satisfies DaemonOperation,
+-						}),
+-					);
++					void this.request({ op: "cancel", requestId: id }).catch(() => undefined);
+ 				}
+ 			};
+ 			signal.addEventListener("abort", abort, { once: true });
+@@ -218,11 +169,13 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 		owner: string,
+ 		sink: (notification: DaemonCompletionNotification) => Promise<void> | void,
+ 	): (options?: DaemonCompletionUnregisterOptions) => void {
++		requireSharedExecution();
+ 		this.#completionUnsubscribes.delete(owner);
+ 		if (this.#preservedCompletionOwners.delete(owner)) this.#completionReplays.add(owner);
+ 		this.#completionSinks.set(owner, sink);
+ 		this.#publishCompletionOwners();
+ 		return options => {
++			requireSharedExecution();
+ 			if (this.#completionSinks.get(owner) !== sink) return;
+ 			this.#completionSinks.delete(owner);
+ 			if (options?.preservePending) {
+@@ -241,10 +194,15 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 
+ 	#publishCompletionOwners(): void {
+ 		if (this.#closed) return;
+-		void this.request({ op: "ping" }).catch(() => this.#scheduleCompletionReconnect());
++		requireSharedExecution();
++		void this.request({ op: "ping" }).catch(error => {
++			if (error instanceof OwnershipError) { this.close(); return; }
++			this.#scheduleCompletionReconnect();
++		});
+ 	}
+ 
+ 	#scheduleCompletionReconnect(): void {
++		try { requireSharedExecution(); } catch { this.close(); return; }
+ 		if (
+ 			this.#closed ||
+ 			this.#completionSinks.size === 0 ||
+@@ -261,7 +219,8 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 	}
+ 
+ 	async #connect(): Promise<void> {
+-		if (this.#socket && !this.#socket.closed) return;
++		requireSharedExecution();
++		if (this.#closed) throw new OwnershipError("dispatcher_unavailable");
+ 		if (this.#connectPromise) return this.#connectPromise;
+ 		this.#connectPromise = this.#connectOnce();
+ 		try {
+@@ -272,53 +231,29 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 	}
+ 
+ 	async #connectOnce(): Promise<void> {
+-		// The broker authenticates against the token file it read at startup. A
+-		// replacement broker may have started from a different file, or a deleted
+-		// runtime dir may need a fresh one before any broker can start.
+-		this.#token = await readOrCreateToken(this.#runtimeDir);
+-		try {
+-			this.#bindSocket(await IpcConnection.connect(this.#endpoint, { framing: "lines", timeoutMs: 250 }));
+-			return;
+-		} catch {
+-			// No live broker. Multiple clients may race to spawn; the broker's
+-			// process-owned lease selects one winner before any candidate touches
+-			// the socket.
+-		}
+-		this.#spawnBroker();
+-		const deadline = Date.now() + CONNECT_TIMEOUT_MS;
+-		let lastError: Error | undefined;
+-		while (Date.now() < deadline) {
+-			try {
+-				this.#bindSocket(await IpcConnection.connect(this.#endpoint, { framing: "lines", timeoutMs: 250 }));
+-				return;
+-			} catch (error) {
+-				lastError = toError(error);
+-				await Bun.sleep(CONNECT_RETRY_MS);
+-			}
+-		}
+-		throw new Error(
+-			`Failed to start daemon broker at ${this.#endpoint} after ${CONNECT_TIMEOUT_MS / 1000}s: ` +
+-				`${lastError?.message ?? "socket unavailable"}. Scope: ${this.#runtimeDir}. ` +
+-				"Run `omp --smoke-test` to verify broker startup, or `omp ps` to inspect supervised processes.",
+-		);
++		// Revalidate every request/reconnect; a cached socket never grants authority.
++		const selection = await acquireExecutionBroker(this.#scope);
++		this.validateSelection(selection);
++		requireSharedExecution();
++		if (this.#socket && !this.#socket.closed) return;
++		const socket = await IpcConnection.connect(daemonBrokerEndpoint(selection.runtimeDirectory), {
++			framing: "lines", timeoutMs: CONNECT_TIMEOUT_MS,
++		});
++		try { this.validateSelection(selection); } catch (error) { socket.destroy(); throw error; }
++		this.#bindSocket(socket);
+ 	}
+ 
+-	#spawnBroker(): void {
+-		const spawn = resolveWorkerSpawnCmd(DAEMON_BROKER_WORKER_ARG);
+-		const overlay: Record<string, string> = {
+-			[DAEMON_PROJECT_DIR_ENV]: this.projectDir,
+-			[DAEMON_RUNTIME_DIR_ENV]: this.#runtimeDir,
+-		};
+-		if (this.#idleGraceMs !== undefined) overlay[DAEMON_IDLE_GRACE_ENV] = String(this.#idleGraceMs);
+-		const child = Bun.spawn(spawn.cmd, {
+-			cwd: spawn.cwd,
+-			env: workerEnvFromParent(overlay),
+-			stdin: "ignore",
+-			stdout: "ignore",
+-			stderr: "ignore",
+-			...BROKER_SPAWN_OPTIONS,
+-		});
+-		child.unref();
++	/** Compare a fresh dispatcher grant before cached endpoint or completion-owner use. */
++	validateSelection(selection: ExecutionBrokerSelection): void {
++		requireSharedExecution();
++		if (this.#closed) throw new OwnershipError("dispatcher_unavailable");
++		const previous = this.#selection;
++		if (selection.generation !== previous.generation || selection.runtimeDirectory !== previous.runtimeDirectory
++			|| selection.token !== previous.token || selection.dispatcher !== previous.dispatcher
++			|| selection.identity.closure !== previous.identity.closure || selection.identity.schema !== previous.identity.schema) {
++			this.close();
++			throw new OwnershipError("dispatcher_mismatch");
++		}
+ 	}
+ 
+ 	#bindSocket(socket: IpcConnection): void {
+@@ -360,7 +295,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 			return;
+ 		}
+ 		if ("event" in message) {
+-			void this.#deliverCompletion(message);
++			void this.#deliverCompletion(message).catch(() => this.close());
+ 			return;
+ 		}
+ 		const response = message;
+@@ -381,8 +316,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 	}
+ 
+ 	async #deliverCompletion(message: DaemonCompletionNotification): Promise<void> {
++		try { await this.#connect(); } catch { this.close(); return; }
+ 		if (this.#seenCompletionIds.has(message.completionId)) {
+-			this.#ackCompletion(message.completionId);
++			await this.#ackCompletion(message.completionId);
+ 			return;
+ 		}
+ 		if (this.#inFlightCompletionIds.has(message.completionId)) return;
+@@ -396,7 +332,7 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 				if (oldest !== undefined) this.#seenCompletionIds.delete(oldest);
+ 			}
+ 			this.#seenCompletionIds.add(message.completionId);
+-			this.#ackCompletion(message.completionId);
++			await this.#ackCompletion(message.completionId);
+ 		} catch (error) {
+ 			logger.warn("Daemon completion sink failed", {
+ 				owner: message.owner,
+@@ -409,7 +345,9 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 		}
+ 	}
+ 
+-	#ackCompletion(completionId: string): void {
++	async #ackCompletion(completionId: string): Promise<void> {
++		await this.#connect();
++		requireSharedExecution();
+ 		const socket = this.#socket;
+ 		if (!socket || socket.closed) return;
+ 		socket.send(
+@@ -437,50 +375,52 @@ class SocketDaemonClient implements DaemonBrokerClient {
+ 	}
+ }
+ 
+-const sharedClients = new Map<string, Promise<DaemonBrokerClient>>();
++const sharedClients = new Map<string, Promise<SocketDaemonClient>>();
+ let cancelExitCleanup: (() => void) | undefined;
+ 
+-function sharedDaemonClient(key: string, create: () => Promise<DaemonBrokerClient>): Promise<DaemonBrokerClient> {
++async function sharedDaemonClient(
++	key: string, projectDir: string, selection: ExecutionBrokerSelection,
++): Promise<DaemonBrokerClient> {
+ 	let pending = sharedClients.get(key);
+ 	if (!pending) {
+-		pending = create();
++		pending = Promise.resolve(new SocketDaemonClient(projectDir, selection));
+ 		sharedClients.set(key, pending);
+ 		if (!cancelExitCleanup) {
+ 			cancelExitCleanup = postmortem.register("daemon-broker-clients", () => closeDaemonClients());
+ 		}
+ 	}
+-	return pending;
++	const client = await pending;
++	client.validateSelection(selection);
++	return client;
+ }
+ 
+-/** Create an independent socket connection to one daemon broker scope. */
++/** Acquire a dispatcher grant before constructing any project broker client. Never spawns a broker. */
+ export async function createDaemonBrokerClient(
+ 	projectDir: string,
+ 	options: DaemonBrokerClientOptions = {},
+ ): Promise<DaemonBrokerClient> {
++	requireSharedExecution();
+ 	const canonical = await canonicalProjectDir(projectDir);
+-	const runtimeDir = options.runtimeDir ?? daemonRuntimeDir(canonical);
+-	const token = await readOrCreateToken(runtimeDir);
+-	return new SocketDaemonClient(canonical, runtimeDir, token, options);
++	const selection = await acquireExecutionBroker({ kind: "project", directory: canonical });
++	if ((options.runtimeDir !== undefined && options.runtimeDir !== selection.runtimeDirectory)
++		|| options.idleGraceMs !== undefined) throw new OwnershipError("dispatcher_mismatch");
++	return new SocketDaemonClient(canonical, selection);
+ }
+ 
+-/** Get the process-shared daemon broker client for one canonical project directory. */
++/** Get the process-shared client; cached clients still reacquire grants before every request. */
+ export async function daemonClientForProject(projectDir: string): Promise<DaemonBrokerClient> {
++	requireSharedExecution();
+ 	const canonical = await canonicalProjectDir(projectDir);
+-	return sharedDaemonClient(`project:${canonical}`, () => createDaemonBrokerClient(canonical));
++	const selection = await acquireExecutionBroker({ kind: "project", directory: canonical });
++	return sharedDaemonClient(`project:${canonical}`, canonical, selection);
+ }
+ 
+-/** Get the process-shared client that leases one profile-independent, machine-global daemon broker. */
++/** Fixed global service scopes are selected by Native, never by browser executable/argv input. */
+ export async function daemonClientForGlobal(service: string): Promise<DaemonBrokerClient> {
+-	const runtimeDir = getGlobalDaemonRuntimeDir(service);
+-	// Canonicalize only after creation so the first caller and later callers
+-	// derive the same Windows pipe key even when an ancestor is a symlink.
+-	await fs.mkdir(runtimeDir, { recursive: true, mode: 0o700 });
+-	const canonical = await fs.realpath(runtimeDir);
+-	return sharedDaemonClient(`global:${canonical}`, () =>
+-		createDaemonBrokerClient(canonical, {
+-			runtimeDir: canonical,
+-		}),
+-	);
++	requireSharedExecution();
++	if (service !== "browser-relay" && service !== "text-predict") throw new OwnershipError("ownership_protocol");
++	const selection = await acquireExecutionBroker({ kind: "global", service });
++	return sharedDaemonClient(`global:${service}`, selection.runtimeDirectory, selection);
+ }
+ 
+ /** Close every project and machine-global broker connection held by this omp process. */
+@@ -492,23 +432,10 @@ export async function closeDaemonClients(): Promise<void> {
+ 	cancelExitCleanup = undefined;
+ }
+ 
+-/** Exercise worker-host broker startup and authenticated RPC for distribution smoke tests. */
++/** Probe the independently supervised dispatcher-selected broker; clients never test a local spawn fallback. */
+ export async function smokeTestDaemonBroker(): Promise<void> {
+-	// Keep the broker's runtime dir under a private parent this process owns, so
+-	// the broker's dead-scope sweep (pruneDeadDaemonRuntimeDirs, fired on startup)
+-	// can only ever reclaim siblings inside it — never unrelated neighbours in
+-	// os.tmpdir() such as tmux/ssh sockets or build trees (issue #8721).
+-	const smokeRoot = await fs.mkdtemp(path.join(os.tmpdir(), "omp-daemon-smoke-"));
+-	const projectDir = path.join(smokeRoot, "project");
+-	const runtimeDir = path.join(smokeRoot, "run");
+-	await fs.mkdir(projectDir, { recursive: true });
+-	const client = await createDaemonBrokerClient(projectDir, { runtimeDir, idleGraceMs: 5_000 });
+-	try {
+-		const ping = await client.request({ op: "ping" });
+-		if (ping.op !== "ping" || ping.projectDir !== client.projectDir) throw new Error("daemon broker ping mismatch");
+-		await client.request({ op: "shutdown" });
+-	} finally {
+-		client.close();
+-		await fs.rm(smokeRoot, { recursive: true, force: true });
+-	}
++	requireSharedExecution();
++	const client = await daemonClientForProject(process.cwd());
++	const ping = await client.request({ op: "ping" });
++	if (ping.op !== "ping" || ping.projectDir !== client.projectDir) throw new Error("daemon broker ping mismatch");
  }
 diff --git a/packages/coding-agent/src/launch/ownership/authentication.ts b/packages/coding-agent/src/launch/ownership/authentication.ts
 new file mode 100644
@@ -2797,6 +3492,155 @@ index 0000000000..db94e7cd31
 +/** Invoke only after cli-runtime's synchronous worker prefix has installed its actual buffering handlers. */
 +export function finishOwnershipWorkerBootstrap(): void { bootstrap?.finish(); bootstrap = undefined; }
 +export function cancelOwnershipWorkerBootstrap(): void { bootstrap?.close(); bootstrap = undefined; }
+diff --git a/packages/coding-agent/src/launch/services.ts b/packages/coding-agent/src/launch/services.ts
+index 53fe06a4ee..847ed9ddb2 100644
+--- a/packages/coding-agent/src/launch/services.ts
++++ b/packages/coding-agent/src/launch/services.ts
+@@ -1,12 +1,12 @@
++import { requireSharedExecution } from "./ownership/context";
+ /** Session-scoped service supervision through the shared project broker. */
+ import * as path from "node:path";
+ import { TERMINAL_STATES } from "@oh-my-pi/pi-tui/apps/ps-data";
+ import type { DaemonSnapshot, DaemonSpec } from "@oh-my-pi/pi-tui/tools/daemon";
+ import { formatDuration, replaceTabs } from "@oh-my-pi/pi-tui/render/render-utils";
+ import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
+-import { getDaemonRuntimeDir, logger, sanitizeText } from "@oh-my-pi/pi-utils";
++import { logger, sanitizeText } from "@oh-my-pi/pi-utils";
+ import { type DaemonBrokerClient, daemonClientForProject } from "./client";
+-import { canonicalProjectDir } from "./paths";
+ import type { DaemonOperation, DaemonRpcResult } from "./protocol";
+ import { renderTerminalOutputIsolated } from "./terminal-output-worker-client";
+ import type { ToolSession } from "../tools";
+@@ -112,6 +112,7 @@ async function request(
+ 	operation: DaemonOperation,
+ 	signal?: AbortSignal,
+ ): Promise<DaemonRpcResult> {
++	requireSharedExecution();
+ 	const client = await daemonClientForProject(session.cwd);
+ 	subscribe(session, client);
+ 	const result = await client.request(operation, signal);
+@@ -158,8 +159,9 @@ export async function findService(
+ }
+ 
+ export async function serviceLogPath(session: ToolSession, name: string): Promise<string> {
+-	const canonical = await canonicalProjectDir(session.cwd);
+-	return path.join(getDaemonRuntimeDir(canonical), "daemons", name, "output.log");
++	requireSharedExecution();
++	const client = await daemonClientForProject(session.cwd);
++	return path.join(client.runtimeDir, "daemons", name, "output.log");
+ }
+ 
+ /** Render legacy broker PTY bytes outside the client process. */
+@@ -229,6 +231,7 @@ export async function startService(
+ 	readyTimedOut: boolean;
+ 	readyInterrupted: boolean;
+ }> {
++	requireSharedExecution();
+ 	if (!cfgLaunchEnabled.get(session.settings)) throw new ToolError("Service launch is disabled in this session.");
+ 	if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$/.test(params.name))
+ 		throw new ToolError("Service name must be 1-48 letters, numbers, dots, underscores, or hyphens");
+diff --git a/packages/coding-agent/src/lsp/client.ts b/packages/coding-agent/src/lsp/client.ts
+index 9152cc68ed..5c9de11b1b 100644
+--- a/packages/coding-agent/src/lsp/client.ts
++++ b/packages/coding-agent/src/lsp/client.ts
+@@ -1,3 +1,4 @@
++import { requireExecutionOwnership } from "../launch/ownership/context";
+ import * as fs from "node:fs/promises";
+ import * as os from "node:os";
+ import * as path from "node:path";
+@@ -1387,6 +1388,7 @@ export async function getOrCreateClient(
+ 	initTimeoutMs?: number,
+ 	signal?: AbortSignal,
+ ): Promise<LspClient> {
++	const ownership = requireExecutionOwnership();
+ 	const key = clientKey(config, cwd);
+ 	// Check if client already exists
+ 	const existingClient = clients.get(key);
+@@ -1451,7 +1453,7 @@ export async function getOrCreateClient(
+ 			: (config.initOptions ?? {});
+ 
+ 		// Wrap with lspmux if available and supported
+-		const { command, args, env } = isLspmuxSupported(baseCommand)
++		const { command, args, env } = ownership.policy === "external" && isLspmuxSupported(baseCommand)
+ 			? await getLspmuxCommand(baseCommand, baseArgs)
+ 			: { command: baseCommand, args: baseArgs };
+ 
+@@ -1459,7 +1461,7 @@ export async function getOrCreateClient(
+ 		// already multiplexing this command. Any shared-path failure falls back
+ 		// to a private spawn so LSP never regresses on broker trouble.
+ 		let proc: LspTransport | null = null;
+-		if (isSharedLspEnabled() && command === baseCommand) {
++		if (ownership.policy === "external" && isSharedLspEnabled() && command === baseCommand) {
+ 			proc = await connectSharedLspTransport({ command, args, cwd, env, initializationOptions, signal });
+ 		}
+ 		proc ??= ptree.spawn([command, ...args], {
+diff --git a/packages/coding-agent/src/lsp/lspmux.ts b/packages/coding-agent/src/lsp/lspmux.ts
+index d51d400293..6d47922a4f 100644
+--- a/packages/coding-agent/src/lsp/lspmux.ts
++++ b/packages/coding-agent/src/lsp/lspmux.ts
+@@ -1,3 +1,4 @@
++import { requireExecutionOwnership, requireSharedExecution } from "../launch/ownership/context";
+ import * as os from "node:os";
+ import * as path from "node:path";
+ import { $flag, $which, logger } from "@oh-my-pi/pi-utils";
+@@ -130,6 +131,7 @@ async function checkServerRunning(binaryPath: string): Promise<boolean> {
+  * Set PI_DISABLE_LSPMUX=1 to disable.
+  */
+ export async function detectLspmux(): Promise<LspmuxState> {
++	requireSharedExecution();
+ 	const now = Date.now();
+ 	if (cachedState && now - cacheTimestamp < STATE_CACHE_TTL_MS) {
+ 		return cachedState;
+@@ -191,6 +193,7 @@ export function wrapWithLspmux(
+ 	originalArgs: string[] | undefined,
+ 	state: LspmuxState,
+ ): LspmuxWrappedCommand {
++	if (requireExecutionOwnership().policy === "private") return { command: originalCommand, args: originalArgs ?? [] };
+ 	if (!state.available || !state.running || !state.binaryPath) {
+ 		return { command: originalCommand, args: originalArgs ?? [] };
+ 	}
+@@ -226,6 +229,7 @@ export function wrapWithLspmux(
+  * @returns Command and args to use (possibly wrapped with lspmux)
+  */
+ export async function getLspmuxCommand(command: string, args?: string[]): Promise<LspmuxWrappedCommand> {
++	if (requireExecutionOwnership().policy === "private") return { command, args: args ?? [] };
+ 	const state = await detectLspmux();
+ 	return wrapWithLspmux(command, args, state);
+ }
+diff --git a/packages/coding-agent/src/lsp/mux/daemon.ts b/packages/coding-agent/src/lsp/mux/daemon.ts
+index 1357647aea..02d17d93ae 100644
+--- a/packages/coding-agent/src/lsp/mux/daemon.ts
++++ b/packages/coding-agent/src/lsp/mux/daemon.ts
+@@ -1,3 +1,4 @@
++import { requireExecutionOwnership } from "../../launch/ownership/context";
+ /**
+  * Client half of the broker-shared LSP mux.
+  *
+@@ -15,7 +16,6 @@ import { logger, ptree, toError } from "@oh-my-pi/pi-utils";
+ import { encodeMessageFrame, MessageFramer } from "../../jsonrpc/message-framing";
+ import { daemonClientForProject } from "../../launch/client";
+ import { describeQuietly, stopQuietly, waitReady } from "../../launch/ensure";
+-import { daemonRuntimeDir } from "../../launch/paths";
+ import { resolveWorkerSpawnCmd, SMOKE_TEST_TIMEOUT_MS, workerEnvFromParent } from "../../subprocess/worker-client";
+ import type { LspJsonRpcRequest, LspJsonRpcResponse, LspTransport, LspWriteSink } from "../types";
+ import {
+@@ -235,7 +235,7 @@ async function probeMux(endpoint: string): Promise<boolean> {
+  */
+ async function ensureLspMuxDaemon(projectDir: string, signal?: AbortSignal): Promise<string | null> {
+ 	const client = await daemonClientForProject(projectDir);
+-	const endpoint = ipcEndpoint(daemonRuntimeDir(client.projectDir), "lsp-mux");
++	const endpoint = ipcEndpoint(client.runtimeDir, "lsp-mux");
+ 	// The broker connection doubles as the presence lease keeping the daemon alive.
+ 	await client.request({ op: "ping" }, signal);
+ 	if (await probeMux(endpoint)) return endpoint;
+@@ -304,6 +304,7 @@ export async function connectSharedLspTransport(opts: {
+ 	initializationOptions: unknown;
+ 	signal?: AbortSignal;
+ }): Promise<LspTransport | null> {
++	if (requireExecutionOwnership().policy === "private") return null;
+ 	try {
+ 		const endpoint = await ensureLspMuxDaemon(opts.cwd, opts.signal);
+ 		if (!endpoint) return null;
 diff --git a/packages/coding-agent/src/main.ts b/packages/coding-agent/src/main.ts
 index cf68ec5209..0b8fc6af8f 100644
 --- a/packages/coding-agent/src/main.ts
@@ -2815,6 +3659,440 @@ index cf68ec5209..0b8fc6af8f 100644
  	registerLocalInferenceApi();
  	const { runCli } = await import("./cli");
  	await runCli(args.length === 0 ? ["launch"] : args);
+diff --git a/packages/coding-agent/src/predict/client.ts b/packages/coding-agent/src/predict/client.ts
+index 9d410bcfda..ced477ca1b 100644
+--- a/packages/coding-agent/src/predict/client.ts
++++ b/packages/coding-agent/src/predict/client.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../launch/ownership/context";
+ /**
+  * Client half of the machine-global text-prediction daemon.
+  *
+@@ -98,6 +99,7 @@ class DaemonConnection {
+ 	}
+ 
+ 	request(build: (id: number) => TextPredictRequest, timeoutMs: number): Promise<TextPredictResponse> {
++		requireSharedExecution();
+ 		if (this.closed) return Promise.reject(new Error("text-predict daemon connection closed"));
+ 		const request = build(this.#nextId++);
+ 		const { promise, resolve, reject } = Promise.withResolvers<TextPredictResponse>();
+@@ -120,6 +122,7 @@ class DaemonConnection {
+  * `undefined` when nothing usable listens.
+  */
+ async function connectDaemon(endpoint: string): Promise<DaemonConnection | undefined> {
++	requireSharedExecution();
+ 	let ipc: IpcConnection;
+ 	try {
+ 		ipc = await IpcConnection.connect(endpoint, { framing: "lines", timeoutMs: CONNECT_TIMEOUT_MS });
+@@ -145,9 +148,10 @@ async function connectDaemon(endpoint: string): Promise<DaemonConnection | undef
+ 
+ /** Find or start the daemon serving `agentDir` under the global broker. */
+ async function ensureDaemon(agentDir: string): Promise<DaemonConnection> {
++	requireSharedExecution();
+ 	const broker = await daemonClientForGlobal(TEXT_PREDICT_BROKER_SCOPE);
+ 	await broker.request({ op: "ping" });
+-	const { name, endpoint } = textPredictDaemon(broker.projectDir, agentDir);
++	const { name, endpoint } = textPredictDaemon(broker.runtimeDir, agentDir);
+ 	const spawn = resolveWorkerSpawnCmd(TEXT_PREDICT_WORKER_ARG);
+ 	for (let attempt = 0; attempt < ENSURE_ATTEMPTS; attempt++) {
+ 		const live = await connectDaemon(endpoint);
+@@ -232,8 +236,10 @@ class TextPredictionClient {
+ 	 * (e.g. it failed to load).
+ 	 */
+ 	async complete(engine: TextPredictMethod, before: string, prefix: string): Promise<TextPrediction> {
++		requireSharedExecution();
+ 		// SmolLM's weights download here, in the interactive process (shown in the
+ 		// download HUD), only once the user has chosen SmolLM.
++		await daemonClientForGlobal(TEXT_PREDICT_BROKER_SCOPE);
+ 		if (engine === "smollm") prefetchSmolLmWeights();
+ 		const response = await this.#request(
+ 			id => ({ id, op: "complete", method: engine, before, prefix }),
+@@ -249,10 +255,10 @@ class TextPredictionClient {
+ 	 * nothing needs telling: the daemon ingests everything new when it starts.
+ 	 */
+ 	sync(): void {
++		requireSharedExecution();
+ 		const connection = this.#connection;
+ 		if (!connection || connection.closed) return;
+-		connection
+-			.request(id => ({ id, op: "sync" }), REQUEST_TIMEOUT_MS)
++		this.#request(id => ({ id, op: "sync" }), REQUEST_TIMEOUT_MS)
+ 			.catch(error => logger.debug("text-predict: sync dropped", { error: String(error) }));
+ 	}
+ 
+@@ -261,7 +267,9 @@ class TextPredictionClient {
+ 		return connection.request(build, timeoutMs);
+ 	}
+ 
+-	#connect(): Promise<DaemonConnection> {
++	async #connect(): Promise<DaemonConnection> {
++		requireSharedExecution();
++		await daemonClientForGlobal(TEXT_PREDICT_BROKER_SCOPE);
+ 		const current = this.#connection;
+ 		if (current && !current.closed) return Promise.resolve(current);
+ 		if (this.#connecting) return this.#connecting;
+@@ -288,6 +296,7 @@ let sharedClient: TextPredictionClient | undefined;
+ 
+ /** Word-prediction backend for a configured engine, served by the daemon. */
+ export function textPredictionBackend(method: WordCompletionEngine): WordPredictionBackend {
++	requireSharedExecution();
+ 	sharedClient ??= new TextPredictionClient();
+ 	return sharedClient.backend(method);
+ }
+@@ -302,6 +311,7 @@ export function requestTextPrediction(
+ 	before: string,
+ 	prefix: string,
+ ): Promise<TextPrediction> {
++	requireSharedExecution();
+ 	sharedClient ??= new TextPredictionClient();
+ 	return sharedClient.complete(resolveTextPredictMethod(method), before, prefix);
+ }
+@@ -318,7 +328,9 @@ export function closeTextPrediction(): void {
+ 
+ /** Ask a running daemon to ingest newly written history rows. */
+ export function syncTextPrediction(): void {
+-	sharedClient?.sync();
++	if (!sharedClient) return;
++	requireSharedExecution();
++	sharedClient.sync();
+ }
+ 
+ /**
+diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
+index 5bddc84cfe..dbaba65511 100644
+--- a/packages/coding-agent/src/sdk.ts
++++ b/packages/coding-agent/src/sdk.ts
+@@ -1,3 +1,4 @@
++import { initializeExecutionOwnership } from "./launch/ownership/context";
+ import * as path from "node:path";
+ import { type CallRecord, ChangeJournal, callLabel } from "./commit/selective/journal";
+ import { createCommitPrelude } from "./commit/selective/prelude-definition";
+@@ -1970,6 +1971,7 @@ export function createAutoLearnCaptureRunner(
+  * ```
+  */
+ export async function createAgentSession(options: CreateAgentSessionOptions = {}): Promise<CreateAgentSessionResult> {
++	await initializeExecutionOwnership();
+ 	registerLocalInferenceApi();
+ 	const extensionRoots = options.extensionRoots?.();
+ 	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
+diff --git a/packages/coding-agent/src/tools/browser.ts b/packages/coding-agent/src/tools/browser.ts
+index 18f78c1b24..5d4539d238 100644
+--- a/packages/coding-agent/src/tools/browser.ts
++++ b/packages/coding-agent/src/tools/browser.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../launch/ownership/context";
+ import { type } from "@oh-my-pi/omptype";
+ import type { AgentToolResult } from "@oh-my-pi/pi-agent-core";
+ import { getWebKitHostPath, isRecord, logger, untilAborted } from "@oh-my-pi/pi-utils";
+@@ -376,6 +377,7 @@ function browserTextStart(method: string, previous: string | undefined): number
+  * tabs are dropped and the next open launches it in the new mode.
+  */
+ export async function applyBrowserModeChange(headless: boolean): Promise<void> {
++	requireSharedExecution();
+ 	try {
+ 		await setWebKitTabsShown(!headless);
+ 	} finally {
+@@ -419,6 +421,7 @@ async function invokeBrowser(
+ 	parameters: unknown,
+ 	context: EvalPreludeContext,
+ ): Promise<AgentToolResult<unknown>> {
++	requireSharedExecution();
+ 	const parsed = browserSchema(parameters);
+ 	if (parsed instanceof type.errors) {
+ 		throw new ToolError(`browser received invalid arguments: ${parsed.summary}`);
+diff --git a/packages/coding-agent/src/tools/browser/orphan-registry.ts b/packages/coding-agent/src/tools/browser/orphan-registry.ts
+index 7e7b4e7411..c9663e6a5a 100644
+--- a/packages/coding-agent/src/tools/browser/orphan-registry.ts
++++ b/packages/coding-agent/src/tools/browser/orphan-registry.ts
+@@ -24,13 +24,17 @@ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+ import { isEnoent, isPidAlive, logger, untilAborted } from "@oh-my-pi/pi-utils";
+ import type { Browser, CDPSession, Connection } from "puppeteer-core";
+-import { daemonRuntimeDir } from "../../launch/paths";
++import { requireSharedExecution } from "../../launch/ownership/context";
++import { daemonClientForProject } from "../../launch/client";
++import { OwnershipError } from "../../launch/ownership/protocol";
+ import { browserConnection } from "./launch";
+ 
+ /** Identifies one shared-browser daemon's target registry. */
+ export interface SharedTargetScope {
+ 	/** Canonical project directory owning the broker (as stamped on the handle). */
+ 	projectDir: string;
++	/** Exact directory returned by the dispatcher-selected broker client. */
++	runtimeDir: string;
+ 	/** Broker daemon name, e.g. `omp.browser.headless`. */
+ 	daemonName: string;
+ }
+@@ -66,7 +70,15 @@ const unclosedRetries = new Map<string, Promise<number>>();
+ const writeChains = new Map<string, Promise<void>>();
+ 
+ function registryDir(scope: SharedTargetScope): string {
+-	return path.join(daemonRuntimeDir(scope.projectDir), `${scope.daemonName}.targets`);
++	requireSharedExecution();
++	return path.join(scope.runtimeDir, `${scope.daemonName}.targets`);
++}
++
++/** A stale handle cannot move ownership records into another broker generation. */
++async function validateScope(scope: SharedTargetScope): Promise<void> {
++	requireSharedExecution();
++	const client = await daemonClientForProject(scope.projectDir);
++	if (client.runtimeDir !== scope.runtimeDir) throw new OwnershipError("dispatcher_mismatch");
+ }
+ 
+ /** Serialize a write against others for the same registry dir. */
+@@ -97,6 +109,7 @@ async function flush(dir: string): Promise<void> {
+ 
+ /** Record that this process created `targetId` in the given shared browser. */
+ export async function recordSharedTarget(scope: SharedTargetScope, targetId: string): Promise<void> {
++	await validateScope(scope);
+ 	const dir = registryDir(scope);
+ 	let owned = ownedByDir.get(dir);
+ 	if (!owned) {
+@@ -113,6 +126,7 @@ export async function recordSharedTarget(scope: SharedTargetScope, targetId: str
+ 
+ /** Drop `targetId` from this process's ownership file (closed the normal way). */
+ export async function forgetSharedTarget(scope: SharedTargetScope, targetId: string): Promise<void> {
++	await validateScope(scope);
+ 	const dir = registryDir(scope);
+ 	unclosedByDir.get(dir)?.delete(targetId);
+ 	const owned = ownedByDir.get(dir);
+@@ -134,6 +148,7 @@ export async function forgetSharedTarget(scope: SharedTargetScope, targetId: str
+  * a later reap has on its orphaned targets.
+  */
+ export async function forgetSharedTargets(scope: SharedTargetScope): Promise<void> {
++	await validateScope(scope);
+ 	const dir = registryDir(scope);
+ 	unclosedByDir.delete(dir);
+ 	const owned = ownedByDir.get(dir);
+@@ -179,6 +194,7 @@ export async function collectOrphanTargets(
+ 	scope: SharedTargetScope,
+ 	opts: CollectOrphanOptions = {},
+ ): Promise<OrphanScan> {
++	await validateScope(scope);
+ 	const now = opts.now ?? Date.now;
+ 	const isAlive = opts.isAlive ?? isPidAlive;
+ 	const graceMs = opts.graceMs ?? DEFAULT_GRACE_MS;
+@@ -245,6 +261,7 @@ export async function closeCdpTarget(
+ 	targetId: string,
+ 	confirmTimeoutMs = CLOSE_CONFIRM_TIMEOUT_MS,
+ ): Promise<boolean> {
++	requireSharedExecution();
+ 	let connection: Connection;
+ 	try {
+ 		connection = browserConnection(browser);
+@@ -288,6 +305,7 @@ export async function closeCdpTarget(
+  * browser target.
+  */
+ export async function closeRelayTarget(channel: Pick<CDPSession, "send">, targetId: string): Promise<boolean> {
++	requireSharedExecution();
+ 	try {
+ 		const result = await channel.send("Target.closeTarget", { targetId });
+ 		if (result.success) return true;
+@@ -320,6 +338,7 @@ export async function closeSharedTargetUntilGone(
+ 	targetId: string,
+ 	opts: CloseUntilGoneOptions = {},
+ ): Promise<boolean> {
++	requireSharedExecution();
+ 	const intervalMs = opts.intervalMs ?? RECLOSE_INTERVAL_MS;
+ 	const stop = AbortSignal.timeout(opts.budgetMs ?? RECLOSE_BUDGET_MS);
+ 	let connection: Connection;
+@@ -368,7 +387,8 @@ export function markSharedTargetUnclosed(scope: SharedTargetScope, targetId: str
+  * Retry the closes marked for `scope`, forgetting confirmed ones.
+  * Returns the count closed; never throws. Concurrent calls for a scope share one run.
+  */
+-export function retryUnclosedSharedTargets(browser: Browser, scope: SharedTargetScope): Promise<number> {
++export async function retryUnclosedSharedTargets(browser: Browser, scope: SharedTargetScope): Promise<number> {
++	await validateScope(scope);
+ 	const dir = registryDir(scope);
+ 	const inFlight = unclosedRetries.get(dir);
+ 	if (inFlight) return inFlight;
+@@ -423,6 +443,7 @@ async function updateOwnershipFile(owner: OrphanOwner, targetIds: string[]): Pro
+  * Failures are logged, never thrown, so cleanup cannot block browser open.
+  */
+ export async function reapOrphanSharedTargets(browser: Browser, scope: SharedTargetScope): Promise<number> {
++	await validateScope(scope);
+ 	let scan: OrphanScan;
+ 	try {
+ 		scan = await collectOrphanTargets(scope);
+diff --git a/packages/coding-agent/src/tools/browser/registry.ts b/packages/coding-agent/src/tools/browser/registry.ts
+index fc25872317..fe675b8d74 100644
+--- a/packages/coding-agent/src/tools/browser/registry.ts
++++ b/packages/coding-agent/src/tools/browser/registry.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../../launch/ownership/context";
+ import * as path from "node:path";
+ import { getLogsDir, isCompiledBinary, logger, untilAborted, workerHostEntry } from "@oh-my-pi/pi-utils";
+ import type { Subprocess } from "bun";
+@@ -58,7 +59,7 @@ export interface PuppeteerBrowserHandle extends BrowserHandleCommon {
+ 	/** OMP-owned temp Chromium profile directory removed on dispose (process-local headless launches). */
+ 	userDataDir?: string;
+ 	/** Broker daemon backing this handle; dispose disconnects instead of closing, kill routes to the broker. */
+-	sharedDaemon?: { name: string; projectDir: string };
++	sharedDaemon?: { name: string; projectDir: string; runtimeDir: string };
+ 	subprocess?: Subprocess;
+ 	stealth: { browserSession: CDPSession | null; override: UserAgentOverride | null };
+ }
+@@ -93,7 +94,8 @@ export type BrowserHandle = PuppeteerBrowserHandle | CmuxBrowserHandle | TernBro
+ export function sharedTargetScopeOf(handle: BrowserHandle): SharedTargetScope | undefined {
+ 	if (!("browser" in handle)) return undefined;
+ 	if (handle.kind.kind !== "headless" || !handle.sharedDaemon) return undefined;
+-	return { projectDir: handle.sharedDaemon.projectDir, daemonName: handle.sharedDaemon.name };
++	return { projectDir: handle.sharedDaemon.projectDir, runtimeDir: handle.sharedDaemon.runtimeDir,
++		daemonName: handle.sharedDaemon.name };
+ }
+ 
+ /** Controls bounded browser-handle teardown and identifies the owning resource in timeout diagnostics. */
+@@ -138,6 +140,7 @@ export interface AcquireBrowserOptions {
+ }
+ 
+ export async function acquireBrowser(kind: BrowserKind, opts: AcquireBrowserOptions): Promise<BrowserHandle> {
++	requireSharedExecution();
+ 	if (kind.kind === "spawned") kind = { ...kind, args: resolveSpawnArgs(kind.path, kind.args, opts.cwd) };
+ 	const key = browserKey(kind);
+ 	for (;;) {
+@@ -424,6 +427,7 @@ export function holdBrowser(handle: BrowserHandle): void {
+ }
+ 
+ export async function releaseBrowser(handle: BrowserHandle, opts: ReleaseBrowserOptions): Promise<void> {
++	requireSharedExecution();
+ 	handle.refCount = Math.max(0, handle.refCount - 1);
+ 	if (handle.refCount === 0) {
+ 		// Only evict if the registry still points at THIS handle. After a disconnect,
+@@ -536,13 +540,13 @@ async function openSharedHeadlessHandle(
+ 		// left behind by omp processes that died without teardown — bounds
+ 		// accumulation without a background timer. Best-effort and detached so a
+ 		// slow reap never delays the open (issue #10022).
+-		void reapOrphanSharedTargets(browser, { projectDir: shared.projectDir, daemonName: shared.daemonName });
++		void reapOrphanSharedTargets(browser, { projectDir: shared.projectDir, runtimeDir: shared.runtimeDir, daemonName: shared.daemonName });
+ 		return {
+ 			key: browserKey(kind),
+ 			kind,
+ 			browser,
+ 			wsEndpoint: shared.wsEndpoint,
+-			sharedDaemon: { name: shared.daemonName, projectDir: shared.projectDir },
++			sharedDaemon: { name: shared.daemonName, projectDir: shared.projectDir, runtimeDir: shared.runtimeDir },
+ 			refCount: 0,
+ 			stealth: { browserSession: null, override: null },
+ 		};
+diff --git a/packages/coding-agent/src/tools/browser/relay/daemon.ts b/packages/coding-agent/src/tools/browser/relay/daemon.ts
+index 860837405e..bd1089ca5c 100644
+--- a/packages/coding-agent/src/tools/browser/relay/daemon.ts
++++ b/packages/coding-agent/src/tools/browser/relay/daemon.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../../../launch/ownership/context";
+ /**
+  * Broker-owned browser relay daemon.
+  *
+@@ -48,6 +49,7 @@ const ENSURE_ATTEMPTS = 3;
+ 
+ /** True when the relay HTTP server answers /json/version at all (200 = extension connected, 503 = waiting for it). */
+ export async function probeRelayServer(cdpUrl: string): Promise<boolean> {
++	requireSharedExecution();
+ 	const status = await probeCdpStatus(`${cdpUrl}/json/version`, { timeoutMs: PROBE_TIMEOUT_MS });
+ 	return status === 503 || (status !== null && status >= 200 && status < 300);
+ }
+@@ -69,6 +71,7 @@ export function isLoopbackRelayUrl(cdpUrl: string): boolean {
+  * could not be started (broker unavailable or start rounds exhausted).
+  */
+ export async function ensureRelayDaemon(opts: { cdpUrl: string; signal?: AbortSignal }): Promise<boolean> {
++	requireSharedExecution();
+ 	const port = relayPort(opts.cdpUrl);
+ 	if (port === null) return false;
+ 	const name = relayDaemonName(port);
+@@ -141,6 +144,7 @@ export async function restartRelayDaemon(opts: {
+ 	signal?: AbortSignal;
+ 	idleOnly?: boolean;
+ }): Promise<boolean> {
++	requireSharedExecution();
+ 	const port = relayPort(opts.cdpUrl);
+ 	if (port === null) return false;
+ 	const name = relayDaemonName(port);
+diff --git a/packages/coding-agent/src/tools/browser/shared-daemon.ts b/packages/coding-agent/src/tools/browser/shared-daemon.ts
+index 0fe343ff21..600abd9d92 100644
+--- a/packages/coding-agent/src/tools/browser/shared-daemon.ts
++++ b/packages/coding-agent/src/tools/browser/shared-daemon.ts
+@@ -1,3 +1,4 @@
++import { requireSharedExecution } from "../../launch/ownership/context";
+ /**
+  * Shared automation Chromium owned by the per-project daemon broker.
+  *
+@@ -13,7 +14,6 @@ import * as path from "node:path";
+ import { acquireFileLock, type FileLockHandle, logger, withTimeout } from "@oh-my-pi/pi-utils";
+ import { type DaemonBrokerClient, daemonClientForProject } from "../../launch/client";
+ import { describeDaemon, describeQuietly, stopQuietly, waitReady } from "../../launch/ensure";
+-import { daemonRuntimeDir } from "../../launch/paths";
+ import type { DaemonSnapshot } from "@oh-my-pi/pi-tui/tools/daemon";
+ import { throwIfAborted } from "../tool-errors";
+ import { probeCdpStatus } from "./attach";
+@@ -62,6 +62,8 @@ export interface SharedBrowserEndpoint {
+ 	daemonName: string;
+ 	/** Canonical project directory owning the broker (used to address later stop requests). */
+ 	projectDir: string;
++	/** Dispatcher-selected runtime directory for profiles and durable target ownership. */
++	runtimeDir: string;
+ }
+ 
+ /** Stable broker daemon name for the shared automation browser. */
+@@ -78,8 +80,8 @@ export function isSharedBrowserDaemonName(name: string): boolean {
+  * Stable profile under the broker's runtime dir: reused across launches, and
+  * never contended by pre-daemon Chromiums that used throwaway temp profiles.
+  */
+-function sharedBrowserProfileDir(projectDir: string, name: string): string {
+-	return path.join(daemonRuntimeDir(projectDir), `${name}.profile`);
++function sharedBrowserProfileDir(runtimeDir: string, name: string): string {
++	return path.join(runtimeDir, `${name}.profile`);
+ }
+ 
+ function wsEndpointOf(snapshot: DaemonSnapshot | undefined): string | undefined {
+@@ -118,9 +120,10 @@ export async function ensureSharedBrowser(opts: {
+ 	viewport?: { width: number; height: number };
+ 	signal?: AbortSignal;
+ }): Promise<SharedBrowserEndpoint | null> {
++	requireSharedExecution();
+ 	const client = await daemonClientForProject(opts.projectDir);
+ 	const name = sharedBrowserDaemonName(opts.headless);
+-	const userDataDir = sharedBrowserProfileDir(client.projectDir, name);
++	const userDataDir = sharedBrowserProfileDir(client.runtimeDir, name);
+ 	const launch = await resolveSharedBrowserLaunchSpec({
+ 		headless: opts.headless,
+ 		userDataDir,
+@@ -179,7 +182,9 @@ export async function restartSharedBrowser(
+ 	name: string,
+ 	signal?: AbortSignal,
+ ): Promise<DaemonSnapshot> {
+-	const userDataDir = sharedBrowserProfileDir(client.projectDir, name);
++	requireSharedExecution();
++	await client.request({ op: "ping" }, signal);
++	const userDataDir = sharedBrowserProfileDir(client.runtimeDir, name);
+ 	const claim = await claimProfile(userDataDir, signal);
+ 	if (!claim) throw new Error(`${name} is being started by another omp process; try again shortly`);
+ 	try {
+@@ -225,7 +230,7 @@ async function adoptOrStart(
+ 			existing.readyAt !== undefined ? existing : await waitReady(client, name, "Shared browser", signal);
+ 		const wsEndpoint = wsEndpointOf(settled);
+ 		if (wsEndpoint && (await probeEndpoint(wsEndpoint))) {
+-			return { wsEndpoint, daemonName: name, projectDir: client.projectDir };
++			return { wsEndpoint, daemonName: name, projectDir: client.projectDir, runtimeDir: client.runtimeDir };
+ 		}
+ 		// Live record but unreachable Chrome (wedged, or readiness never
+ 		// matched): replace it rather than handing out a dead endpoint.
+@@ -259,7 +264,7 @@ async function adoptOrStart(
+ 		if (started.op !== "start") return undefined;
+ 		const wsEndpoint = started.readyTimedOut ? undefined : wsEndpointOf(started.daemon);
+ 		if (wsEndpoint && (await probeEndpoint(wsEndpoint))) {
+-			return { wsEndpoint, daemonName: name, projectDir: client.projectDir };
++			return { wsEndpoint, daemonName: name, projectDir: client.projectDir, runtimeDir: client.runtimeDir };
+ 		}
+ 		await stopQuietly(client, name, "Shared browser", signal);
+ 	} catch (error) {
+@@ -309,6 +314,7 @@ export function stopSharedBrowserIfUnreachable(
+ 	scope: SharedTargetScope,
+ 	deps: SharedBrowserHealthDeps = {},
+ ): Promise<boolean> {
++	requireSharedExecution();
+ 	const key = `${scope.projectDir}\u0000${scope.daemonName}`;
+ 	const inFlight = reachabilityChecks.get(key);
+ 	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644
 index 0000000000..8f6fc997fa
