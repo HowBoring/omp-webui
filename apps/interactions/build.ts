@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { dirname, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { z } from "zod";
+import { verifyDshSource } from "../../scripts/dsh-source.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const outdir = resolve(root, "vendor/dsh-interactions");
@@ -12,9 +12,9 @@ const lockBytes = await readFile(resolve(root, "upstreams.lock.json"));
 const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })
   .parse(JSON.parse(lockBytes.toString()));
 const dshRoot = resolve(dirname(require.resolve("@deepseek-ai/dsh-api-gateway/package.json")), "../../..");
-const actualBase = execFileSync("git", ["-C", dshRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
+const dshSource=await verifyDshSource(dshRoot,"candidate");
+const actualBase=dshSource.baseCommit;
 if (actualBase !== lock.dsh.commit) throw new Error("Diagnostic DSH pin mismatch");
-execFileSync("git", ["-C", dshRoot, "diff", "--exit-code", "HEAD", "--"], { stdio: "pipe" });
 // Published browser bundles use DSH's module-loader wrapper. For this standalone
 // shell compile the explicitly exported source entrypoints into one Cordis realm.
 const entries = new Map([
@@ -86,7 +86,7 @@ for (const input of inputDigests) {
   }
 }
 const manifest = {
-  kind: "S0-isolated-interactions", dshBase: actualBase,
+  kind: "S0-isolated-interactions", dshBase: actualBase,dshSource,
   lockSha256: createHash("sha256").update(lockBytes).digest("hex"), runtime: { name: "bun", version: Bun.version },
   sourceInputs: inputs.size,
   inputs: inputDigests,

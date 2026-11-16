@@ -6,6 +6,7 @@ export type { Frame } from "./fixture-transport.ts";
 import { z } from "zod";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import validPolicy from "../../packages/contracts/generated/interaction-policy.js";
+import { compatibilityBuild } from "../../packages/contracts/generated/identity.ts";
 
 /** Native fixture launcher. Paths and argv are fixed by source, never accepted from Remote/browser input. */
 export async function prepareNativeInteractionFixture(options:{root?:string;scripted?:boolean}={}) {
@@ -19,6 +20,11 @@ export async function prepareNativeInteractionFixture(options:{root?:string;scri
       XDG_CONFIG_HOME:join(home,"config"),XDG_CACHE_HOME:join(home,"cache")}});
   try {
     const report=await probe.inspect();if(!validPolicy(report.rpcUiInteractionPolicy))throw new Error("S0_EXPLICIT_POLICY_REQUIRED");
+    if(report.base !== compatibilityBuild.base || report.sourceSha256 !== compatibilityBuild.sourceSha256 ||
+      report.patchSha256 !== compatibilityBuild.patchSha256 || report.schemaSha256 !== compatibilityBuild.schemaSha256 ||
+      report.runtime.version !== Bun.version || report.runtime.platform !== process.platform || report.runtime.arch !== process.arch) {
+      throw new Error("S0_PREFLIGHT_IDENTITY_MISMATCH");
+    }
   } finally {
     const drained=await probe.close();
     if(drained.code !== 0 || drained.forced || drained.protocolFailure)throw new Error("S0_POLICY_PREFLIGHT_UNCLEAN");
