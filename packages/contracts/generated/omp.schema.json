@@ -10,6 +10,39 @@
     "inbound": "RpcInbound",
     "commands": [
       {
+        "name": "catalog_sources",
+        "doc": "Readonly catalog v1 startup-selected profile and explicitly configured sources.",
+        "params": null,
+        "result": "CatalogSources",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "catalog_page",
+        "doc": "Bounded scan window or stable snapshot page. Expired/stale cursors must restart.",
+        "params": "CatalogPageParams",
+        "result": "CatalogPage",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "describe_session",
+        "doc": "Revalidate an existing native reference without opening, repair or ownership acquisition.",
+        "params": "DescribeSessionParams",
+        "result": "CatalogDescription",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_compatibility",
         "doc": "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
         "params": null,
@@ -3663,6 +3696,317 @@
       },
       "description": "`agentInvoked: false` means the prompt completed locally and no `prompt_result` follows."
     },
+    "CatalogCwd": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "known",
+            "unknown",
+            "missing",
+            "inaccessible",
+            "invalid"
+          ],
+          "type": "string"
+        },
+        "recorded": {
+          "type": "string"
+        },
+        "canonical": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "CatalogOwnership": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "enum": [
+            "held",
+            "free",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "state",
+        "observedAt"
+      ]
+    },
+    "CatalogDescriptor": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cwd": {
+          "$ref": "#/$defs/CatalogCwd"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "modifiedAt": {
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "ownership": {
+          "$ref": "#/$defs/CatalogOwnership"
+        },
+        "title": {
+          "type": "string"
+        },
+        "parentSession": {
+          "type": "string"
+        },
+        "continuationOf": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "reference",
+        "nativeSessionId",
+        "aliases",
+        "cwd",
+        "createdAt",
+        "modifiedAt",
+        "observedAt",
+        "ownership"
+      ]
+    },
+    "CatalogFailure": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "locator": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "code"
+      ]
+    },
+    "CatalogSource": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "default",
+            "custom"
+          ],
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "invalid"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "kind",
+        "aliases",
+        "status"
+      ]
+    },
+    "CatalogBudgets": {
+      "type": "object",
+      "properties": {
+        "scanEntriesPerRequest": {
+          "type": "integer"
+        },
+        "scanEntriesPerSnapshot": {
+          "type": "integer"
+        },
+        "directoriesPerSnapshot": {
+          "type": "integer"
+        },
+        "sessionsPerSnapshot": {
+          "type": "integer"
+        },
+        "headerBytes": {
+          "type": "integer"
+        },
+        "pageItems": {
+          "type": "integer"
+        },
+        "responseBytes": {
+          "type": "integer"
+        },
+        "snapshotBytes": {
+          "type": "integer"
+        },
+        "snapshots": {
+          "type": "integer"
+        },
+        "scanWindowMs": {
+          "type": "integer"
+        },
+        "scanTotalMs": {
+          "type": "integer"
+        },
+        "tokenTtlMs": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "scanEntriesPerRequest",
+        "scanEntriesPerSnapshot",
+        "directoriesPerSnapshot",
+        "sessionsPerSnapshot",
+        "headerBytes",
+        "pageItems",
+        "responseBytes",
+        "snapshotBytes",
+        "snapshots",
+        "scanWindowMs",
+        "scanTotalMs",
+        "tokenTtlMs"
+      ]
+    },
+    "CatalogSources": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "readonly-catalog-v1"
+        },
+        "profile": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogSource"
+          }
+        },
+        "budgets": {
+          "$ref": "#/$defs/CatalogBudgets"
+        }
+      },
+      "required": [
+        "version",
+        "profile",
+        "sources",
+        "budgets"
+      ]
+    },
+    "CatalogPage": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "scanning",
+            "complete",
+            "partial"
+          ],
+          "type": "string"
+        },
+        "snapshot": {
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogDescriptor"
+          }
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogFailure"
+          }
+        },
+        "examined": {
+          "type": "integer"
+        },
+        "nextCursor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "snapshot",
+        "observedAt",
+        "expiresAt",
+        "items",
+        "failures",
+        "examined"
+      ]
+    },
+    "CatalogDescription": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "verified",
+            "missing",
+            "replaced",
+            "invalid_reference",
+            "source_unavailable",
+            "inaccessible"
+          ],
+          "type": "string"
+        },
+        "observedAt": {
+          "type": "string"
+        },
+        "item": {
+          "$ref": "#/$defs/CatalogDescriptor"
+        }
+      },
+      "required": [
+        "status",
+        "observedAt"
+      ]
+    },
     "AutoCompactionReason": {
       "enum": [
         "threshold",
@@ -6217,6 +6561,28 @@
         }
       ],
       "description": "Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`."
+    },
+    "CatalogPageParams": {
+      "type": "object",
+      "properties": {
+        "cursor": {
+          "type": "string"
+        },
+        "pageSize": {
+          "type": "integer"
+        }
+      }
+    },
+    "DescribeSessionParams": {
+      "type": "object",
+      "properties": {
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference"
+      ]
     },
     "NegotiateProtocolParams": {
       "type": "object",
