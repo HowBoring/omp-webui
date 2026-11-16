@@ -14,6 +14,21 @@ function element<T extends HTMLElement>(selector: string): T {
 const state = element("#state"), list = element("#history");
 const more = element<HTMLButtonElement>("#more"), scope = element<HTMLSelectElement>("#scope");
 let opened: HistoryOpen | undefined, cursor: string | undefined, revision = 0, disposed = false, busyRevision: number | undefined;
+// Allocation and release share one queue; even stale successful opens remain owned until closed.
+let lifecycle = Promise.resolve();
+const snapshots = new Set<string>();
+let unsubscribe = () => {};
+function enqueue(work: () => Promise<void>): Promise<void> {
+  lifecycle = lifecycle.catch(() => {}).then(work);
+  return lifecycle;
+}
+async function closeSnapshots(): Promise<void> {
+  for (const snapshot of snapshots) {
+    const result = await read({ operation: "close", snapshot });
+    if (result.status !== "closed") throw new Error("history_close_failed");
+    snapshots.delete(snapshot);
+  }
+}
 const rows = new Map<string, HTMLElement>();
 const urls = new Set<string>();
 function status(value: string): void { state.textContent = value; state.dataset.status = value.startsWith("history_") ? "error" : "ready"; }
@@ -76,29 +91,48 @@ async function page(current: number): Promise<void> {
   } catch { if (current === revision) fail(); }
   finally { if (current === revision) { busyRevision = undefined; more.disabled = cursor === undefined; } }
 }
-async function refresh(): Promise<void> {
+function selectedScope(): HistoryScope {
+  const value = scope.value;
+  if (value !== "tree" && value !== "active" && value !== "running") throw new Error("history_invalid_scope");
+  return value;
+}
+function refresh(): Promise<void> {
+  if (disposed) return lifecycle;
   const current = ++revision; busyRevision = undefined; clear(); more.disabled = true; cursor = undefined;
-  const prior = opened; opened = undefined;
-  try {
-    if (prior) await read({operation:"close", snapshot:prior.snapshot});
-    const result = await read({operation:"open", scope:scope.value as HistoryScope});
-    if (disposed || current !== revision) return;
+  opened = undefined;
+  return enqueue(async () => {
+    if (current !== revision) return;
+    await closeSnapshots();
+    if (disposed || current !== revision || ctx.connection.generation.getSnapshot() === undefined) return;
+    const result = await read({operation:"open", scope:selectedScope()});
+    if (result.status === "opened") snapshots.add(result.value.snapshot);
+    if (disposed || current !== revision) { await closeSnapshots(); return; }
     if (result.status !== "opened") { status(result.status === "error" ? result.code : "history_invalid_open"); return; }
     opened = result.value; cursor = opened.cursor; await page(current);
-  } catch { if (current === revision) fail(); }
+  }).catch(() => { if (!disposed && current === revision) fail(); });
+}
+function invalidate(): void {
+  ++revision; opened = undefined; cursor = undefined; busyRevision = undefined; more.disabled = true; clear();
 }
 more.onclick = () => { void page(revision); };
 element<HTMLButtonElement>("#refresh").onclick = () => { void refresh(); };
 scope.onchange = () => {
-  if (!opened) return; ++revision; busyRevision = undefined; clear(); cursor = opened.cursors[scope.value as HistoryScope]; void page(revision);
+  if (disposed) return;
+  if (!opened) { void refresh(); return; } ++revision; busyRevision = undefined; clear(); cursor = opened.cursors[selectedScope()]; void page(revision);
 };
 async function boot(): Promise<void> {
   connection(ctx); registry(ctx); gateway(ctx); await ctx.remote.$mount(historyContribution);
-  ctx.connection.generation.subscribe(() => {
-    if (ctx.connection.generation.getSnapshot() === undefined) { ++revision; cursor=undefined; more.disabled=true; status("history_connection_unavailable"); }
+  if (disposed) return;
+  unsubscribe = ctx.connection.generation.subscribe(() => {
+    if (disposed) return;
+    if (ctx.connection.generation.getSnapshot() === undefined) { invalidate(); status("history_connection_unavailable");
+      void enqueue(closeSnapshots).catch(() => {}); }
     else void refresh();
   });
   if (ctx.connection.generation.getSnapshot() !== undefined) await refresh();
 }
-window.addEventListener("pagehide", () => { disposed=true; ++revision; clear(); void ctx.fiber.dispose(); }, {once:true});
-void boot().catch(fail);
+window.addEventListener("pagehide", () => {
+  disposed = true; unsubscribe(); invalidate();
+  void enqueue(closeSnapshots).finally(() => ctx.fiber.dispose()).catch(() => {});
+}, {once:true});
+void boot().catch(() => { if (!disposed) fail(); });

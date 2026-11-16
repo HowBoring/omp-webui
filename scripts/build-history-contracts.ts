@@ -1,4 +1,5 @@
 /** Same-source history client and validators; called by canonical candidate generation. */
+import { makeCommandSchemas } from "./command-schemas.ts";
 import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
 const native = "vendor/omp/packages/coding-agent/src/modes/rpc/";
@@ -19,12 +20,7 @@ for (const [name, definition] of Object.entries(outputs)) {
   await emit(`packages/contracts/generated/history-${name.toLowerCase()}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
 const names = ["history_snapshot_open", "history_snapshot_page", "history_snapshot_close", "history_observation_poll", "history_content_page", "negotiate_protocol"];
-const commands = schema["x-rpc"].commands.filter((command: { name: string }) => names.includes(command.name));
-const commandSchema = { $defs: schema.$defs, anyOf: commands.map((command: { name: string; params: string }) => {
-  const params = schema.$defs[command.params];
-  return { type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
-    properties: { id: { type: "string", minLength: 1, maxLength: 96 }, type: { const: command.name }, ...params.properties } };
-}) };
+const commandSchema = { $defs: schema.$defs, anyOf: makeCommandSchemas(schema, names, { maxIdLength: 96 }) };
 const commandCode = standaloneCode(ajv, ajv.compile(commandSchema));
 await Bun.write(native + "history-command.generated.js", commandCode);
 await Bun.write(native + "history-command.generated.d.ts", "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");

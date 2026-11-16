@@ -22,6 +22,48 @@ credential/provider state participates in versioning but is absent from browser 
 runtime and parses no Session files. Retained native image availability is distinct from exact Attachment Original
 association, which remains unproven. Memory observation is distinct from durable commit and #35 settlement.
 
+## Review correction: refresh ownership and shared builders
+
+The review's refresh race is fixed by serializing native snapshot allocation/release and coalescing obsolete
+refresh requests before opening. A successful open is owned before checking its browser revision. Superseded
+responses, scope changes during opening, connection-generation loss and disposal close every known successful
+snapshot; failed closes remain owned for retry before any further open. Established observations still reuse the
+same cut across active/tree/running scope changes. The refresh control remains callable during an in-flight open.
+
+The agreed test seams remain the real Linux browser → DSH typed Remote → Bun → public native RPC, plus public
+same-source native/schema boundaries. The browser carrier delays actual native successful responses; it does not
+replace successful native allocations or mutate private DSH/controller state. The original client fails the current
+regression with two abandoned successful opens followed by `history_cache_full`. The corrected client immediately
+rereads and pages the full tree. Additional controlled scope/generation/pagehide cases close 2/2, 2/2 and 1/1 native
+snapshots respectively. Both native cache slots can then be opened and paged without waiting for TTL.
+
+The actual browser proof now also runs against a separately bundled History Host. The report still includes the
+original eight same-cut native pages, folded boundaries, native image preview and the explicitly intercepted stale
+Remote error. Network/disposal faults use standard browser events while the page remains alive to deliver the
+late response; they do not claim delivery of an HTTP result to a browser process that has already exited.
+
+History build identities now reuse #33's `BuildIdentities`/`assetIdentities`; candidate admission remains the
+history callsite's `verifyDshSource(actualResolvedRoot, "candidate")`. The full before/after manifest is byte
+identical. An undeclared edit in an owned resolved DSH clone still blocks the actual history builder before output.
+Strict command-envelope generation is shared by preflight, catalog, interactions and History while each keeps its
+explicit whitelist and ID policy (History's maximum is 96). Parameterless commands and native wire parameters
+remain supported. Canonical `--check` proves every generated artifact is byte-identical.
+
+Current focused results and exact log/artifact/source digests are in
+[review-fix.json](../../apps/history-fixture/evidence/review-fix.json): five Host/schema tests (31 assertions),
+five DSH source/build tests (37 assertions), twenty native tests (281 assertions), strict authored TypeScript,
+product scaffold Host build, bundled History Host build, generated checks and actual browser proof pass. Native
+source `8960c74b…`, schema `8345aa42…` and native0004 are unchanged. Prior native 10k/100 MiB and retained-content
+stress are hash-bound and reused; they are not presented as new runs. Original review-baseline artifacts remain
+in `checkpoints/26aa8b4-review-baseline-*`. Initial command-environment and overlapping-port failures are retained
+with their successful corrected runs in the review report.
+
+The final branch includes accepted #33 `90d66826` and current integration `385b972d`. After the accepted merge,
+the owned native checkout was reset through ordered0001–0004 and rebuilt; generated `--check`, strict TypeScript,
+five affected tests (31 assertions), browser/product Host/History Host builds and the complete bundled Host browser
+proof all pass again. The subsequent integration merge changes ancestry only. Native source/schema, DSH candidate
+and consumed History assets retain the exact identities recorded in the refreshed tuple.
+
 ## Reproduction and provenance
 
 Use Bun 1.4.4 and the fixed source pins. The workspace reuses the verified #30 native dependency cache and reviewed #39 DSH candidate read-only
@@ -37,7 +79,8 @@ bun scripts/build-compatibility.ts
 bun scripts/build-compatibility.ts --check
 bun run check
 bun apps/history-fixture/build.ts
-bun scripts/prove-history-browser.ts
+bun build apps/history-fixture/main.ts --target=bun --outdir=vendor/host-history
+bun scripts/prove-history-browser.ts --built
 # Optional full native diagnostic gate (known upstream errors, not a green gate):
 bun --no-env-file check --no-script -p vendor/omp/packages/coding-agent/tsconfig.json
 ```

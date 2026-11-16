@@ -277,7 +277,7 @@
       "package": "omp-webui",
       "version": "0.1.0",
       "file": "apps/history-fixture/src/client.ts",
-      "sha256": "d4bd72003b456fff4c93a3c9c4ee3dd3a306614b174fe5930da074fdd86359dd"
+      "sha256": "3551601d70244eef731e7bd80dfbb3ec6e45dd6ddd4cf5aff4350710d09ed88b"
     },
     {
       "package": "omp-webui",
@@ -1468,10 +1468,10 @@
       "sha256": "01d9b119e318d8b9f1a8fa720d06424457429425a61d0730984b750e6a5edf7d"
     }
   ],
-  "sourceSha256": "5c7b967f276b813ac39b42c08d888b0f5c8b671d118283f32521182007ee3e42",
+  "sourceSha256": "34f5035951511a0965251108222134aa0b070a2f3f76401531e58662ba3c8a0d",
   "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
   "assets": {
-    "client.js": "b523755a538038d4fd04355cdb4155d8c85fcb43993bac84bd3ec138a7d1a542",
+    "client.js": "98ea489f577355e155340352f93b04ef933d26fab4841e414af34d95c56b1903",
     "index.html": "a3a1c218fc35ed6f5e7dbded6a26b95ad3f8c72d204dee4577c069e9e4be619f"
   }
 }
