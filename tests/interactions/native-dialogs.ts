@@ -1,0 +1,23 @@
+import { expect } from "bun:test";
+// This child is launched with a private HOME/profile and no inherited credentials.
+const { requestRpcAskDialog, requestRpcSelect, requestRpcEditor } = await import(process.env.OMP_NATIVE_SOURCE!);
+const questions = [{ id: "q", question: "Proceed?", options: [{label: "Yes", recommended: true}, {label: "No"}] }];
+const pending = new Map();
+const frames: Record<string, unknown>[] = [];
+const output = (frame: Record<string, unknown>) => { frames.push(frame); };
+const promise = requestRpcAskDialog(pending, output, questions, {timeout: 20});
+const id = frames[0]!.id as string;
+pending.get(id)!.resolve({type: "extension_ui_response", id, answers: [{id:"q", selectedOptions:["unknown"]}]});
+expect(pending.has(id)).toBe(true);
+expect(await promise).toBeUndefined();
+expect(frames.find(frame => frame.method === "cancel")?.reason).toBe("expired");
+expect(pending.has(id)).toBe(false);
+const explicit = requestRpcSelect(pending, output, "Choose", ["yes", "no"]);
+const selectId = frames.at(-1)!.id as string;
+pending.get(selectId)!.resolve({type: "extension_ui_response", id:selectId, value:"bogus"});
+expect(pending.has(selectId)).toBe(true);
+pending.get(selectId)!.resolve({type: "extension_ui_response", id:selectId, value:"no"});
+expect(await explicit).toBe("no");
+const editor = requestRpcEditor(pending, output, "Edit", "default", {timeout: 5});
+expect(await editor).toBeUndefined();
+console.log("native-dialogs: PASS");

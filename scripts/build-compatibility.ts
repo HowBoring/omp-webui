@@ -123,6 +123,33 @@ console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.
 
 }
 
+// The runtime startup-fast interaction dispatcher validates the same authored public command schema.
+const interactionSchemas = bundle["x-rpc"].commands.filter(command =>
+  ["get_interaction_policy", "respond_ui"].includes(command.name)).map(command => {
+  const params = command.params === null ? { properties: {}, required: [] }
+    : parameterDefinition.parse(bundle.$defs[command.params]);
+  return { type: "object", additionalProperties: false, required: ["type", ...params.required],
+    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
+});
+for (const schema of interactionSchemas) audit(schema);
+for (const name of ["InteractionPolicy", "UIReplyResult"]) audit(bundle.$defs[name]);
+const interactionValidator = ajv.compile({ $defs: bundle.$defs, anyOf: interactionSchemas });
+const interactionValidatorCode = standaloneCode(ajv, interactionValidator);
+await Bun.write(join(source, "modes/rpc/interactions-command.generated.js"), interactionValidatorCode);
+await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
+  `// Generated from authored wire/interactions.ts.\n` +
+  `import validate from './interactions-command.generated.js';\n` +
+  `import type { RpcUIAnswer } from './rpc-interactions';\n` +
+  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer};\n` +
+  `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n`);
+await emit("packages/contracts/generated/interaction-command.js", interactionValidatorCode);
+await emit("packages/contracts/generated/interaction-command.d.ts",
+  "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+for (const [name, definitionName] of Object.entries({"interaction-policy":"InteractionPolicy", "interaction-result":"UIReplyResult"})) {
+  await emit(`packages/contracts/generated/${name}.js`, standaloneCode(ajv, ajv.compile(definition(definitionName))));
+  await emit(`packages/contracts/generated/${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+}
+
 // Host contracts/validators are emitted from exactly the schema used by the public candidate.
 await mkdir("packages/contracts/generated", { recursive: true });
 await emit("packages/contracts/generated/omp-wire.ts",
