@@ -6,9 +6,8 @@ import { z } from "zod";
 import type { CatalogDescriptor } from "../contracts/generated/omp-wire.ts";
 
 const text = z.string().min(1).max(4096);
-export const sessionAttempt = z.strictObject({ state: z.enum(["registered", "opening", "open", "failed", "outcome_unknown", "closed"]),
-  code: z.string().regex(/^[A-Z][A-Z0-9_]+$/).max(96).optional() });
-export type SessionAttempt = z.infer<typeof sessionAttempt>;
+import { sessionAttempt, type SessionAttempt } from "../contracts/session-index.ts";
+export type { SessionAttempt } from "../contracts/session-index.ts";
 const recordSchema = z.strictObject({ id: z.string().uuid(), reference: text, nativeSessionId: text,
   sourceId: text, instanceId: text, cwd: text.optional(), title: z.string().max(8192).optional(),
   registeredAt: z.string().datetime(), observedAt: z.string().datetime(), attempt: sessionAttempt });
@@ -41,6 +40,9 @@ export class SessionIndex {
     this.#db.exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;
       CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, source TEXT NOT NULL, instance TEXT NOT NULL,
         native TEXT NOT NULL, body TEXT NOT NULL, UNIQUE(source, instance, native));`);
+    const stored = this.#db.query<{ bytes: number; count: number }, []>(
+      "SELECT coalesce(sum(length(CAST(body AS BLOB))),0) AS bytes, count(*) AS count FROM sessions").get()!;
+    if (stored.bytes > 16 * 1024 * 1024 || stored.count > 10_000) throw new Error("INDEX_STORAGE_LIMIT");
     for (const record of this.#records()) {
       if (["opening", "open"].includes(record.attempt.state)) {
         record.attempt = { state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" };
@@ -63,9 +65,12 @@ export class SessionIndex {
     return this.#db.query<Row, []>("SELECT body FROM sessions ORDER BY id").all().map(row => this.#decode(row));
   }
   #write(record: RegisteredSession): void {
-    const checked = recordSchema.parse(record);
+    const checked = recordSchema.parse(record), body = JSON.stringify(checked);
+    const bytes = this.#db.query<{ bytes: number }, [string]>(
+      "SELECT coalesce(sum(length(CAST(body AS BLOB))),0) AS bytes FROM sessions WHERE id<>?").get(record.id)!.bytes;
+    if (bytes + Buffer.byteLength(body) > 16 * 1024 * 1024) throw new Error("INDEX_STORAGE_LIMIT");
     this.#db.query(`INSERT INTO sessions VALUES (?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET body=excluded.body`)
-      .run(checked.id, checked.sourceId, checked.instanceId, checked.nativeSessionId, JSON.stringify(checked));
+      .run(checked.id, checked.sourceId, checked.instanceId, checked.nativeSessionId, body);
   }
   /** Invoke only for explicit Open or a native-confirmed explicit New. No discovery path calls this operation. */
   register(descriptor: CatalogDescriptor): RegisteredSession {

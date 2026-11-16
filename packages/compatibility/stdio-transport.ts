@@ -77,7 +77,7 @@ export class BoundedStdioTransport {
       env: selection.env, ...(selection.cwd === undefined ? {} : { cwd: selection.cwd }),
       stdin: "pipe", stdout: "pipe", stderr: "pipe",
     });
-    void this.child.exited.then(() => { this.processExited = true; });
+    void this.child.exited.then(() => { this.processExited = true; this.admitting = false; });
     this.writes = new StdioWriteQueue(this.child.stdin, policy.pendingLimit ?? 32,
       policy.queuedBytes ?? (policy.pendingLimit ?? 32) * policy.commandBytes);
     this.stdoutReader = this.child.stdout.getReader();
@@ -209,7 +209,7 @@ export class BoundedStdioTransport {
   }
 
   close(policy?: DrainPolicy): Promise<DrainResult> {
-    if (policy && (!Object.values(policy).every(value => Number.isFinite(value) && value >= 0)
+    if (policy && (![policy.cooperativeMs, policy.terminationGraceMs, policy.readerGraceMs].every(value => Number.isFinite(value) && value >= 0)
       || policy.cooperativeMs > 30_000 || policy.terminationGraceMs > 5_000 || policy.readerGraceMs > 5_000)) {
       return Promise.reject(new Error("RPC_DRAIN_POLICY"));
     }
