@@ -1449,6 +1449,28 @@
       ],
       "additionalProperties": false
     },
+    "PreparedEntryPart": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "content",
+            "files"
+          ],
+          "type": "string"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "kind",
+        "index"
+      ],
+      "additionalProperties": false
+    },
     "PreparedAttachmentLink": {
       "type": "object",
       "properties": {
@@ -1468,6 +1490,17 @@
           "enum": [
             "text",
             "image"
+          ],
+          "type": "string"
+        },
+        "entryPart": {
+          "$ref": "#/$defs/PreparedEntryPart"
+        },
+        "entryPartUnavailable": {
+          "enum": [
+            "missing",
+            "changed",
+            "ambiguous"
           ],
           "type": "string"
         }
@@ -4856,6 +4889,33 @@
         "maxPendingTasks"
       ]
     },
+    "SubmissionCausality": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/SubmissionOrigin"
+        },
+        "role": {
+          "enum": [
+            "input",
+            "prepared",
+            "additional",
+            "execution"
+          ],
+          "type": "string"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
+        }
+      },
+      "required": [
+        "origin",
+        "role"
+      ]
+    },
     "SubmissionTarget": {
       "type": "object",
       "properties": {
@@ -4970,6 +5030,15 @@
           ],
           "type": "string"
         },
+        "operationOutcome": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled",
+            "unknown"
+          ],
+          "type": "string"
+        },
         "persistence": {
           "enum": [
             "committed",
@@ -5017,6 +5086,7 @@
         "admission",
         "reservation",
         "inputOutcome",
+        "operationOutcome",
         "persistence",
         "terminal",
         "relations",
@@ -7889,6 +7959,9 @@
         "text": {
           "type": "string"
         },
+        "submission": {
+          "$ref": "#/$defs/SubmissionCausality"
+        },
         "provider": {
           "type": "string"
         },
@@ -8633,6 +8706,9 @@
         },
         "message": {
           "type": "string"
+        },
+        "idleOnly": {
+          "type": "boolean"
         },
         "images": {
           "type": "array",

@@ -12,6 +12,13 @@ export default function(pi) {
     denied: guard.denied(), actualNetworkDispatches: guard.dispatched(), guard: "preimport-no-provider-v1" })));
   let calls = 0;
   pi.on("input", async event => {
+    if (event.text === "reserved-control") {
+      let decision = "accepted";
+      try { pi.appendEntry("omp.native-control/submission-v1", { forged: true }); }
+      catch (error) { decision = error instanceof Error ? error.message : "unexpected_failure"; }
+      fs.writeFileSync(path.join(home, "submission-control-attempt.json"), JSON.stringify({ decision }));
+      return { handled: true };
+    }
     if (event.text === "hold-queued-ingress" || event.text === "hold-submission-ingress") {
       fs.writeFileSync(path.join(home, "submission-ingress-held.json"), JSON.stringify({ entered: true }));
       const deadline = Date.now() + 10000;

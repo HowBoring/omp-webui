@@ -1,10 +1,11 @@
 /** Exact-content gate inside the existing typed DSH Session prompt Remote, before native admission. */
 import type { AttachmentBridge } from "./bridge.ts";
-import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
+import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentFinishOutcome, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 export type { AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 import type { AttachmentReceipt } from "../contracts/attachments.ts";
 import { isSubmissionResult } from "../contracts/submissions.ts";
 import type { SubmissionResult } from "../contracts/submissions.ts";
+import type { AttachmentReadyItem, PreparedAttachmentLink } from "../contracts/generated/omp-wire.ts";
 
 interface Flow {
   attempt: AttachmentAttempt; preparationId: string; abort: AbortController; phase: AttachmentGatePhase;
@@ -13,6 +14,12 @@ interface Flow {
 }
 const codeOf = (error: unknown): string => error instanceof Error && /^(?:ATTACHMENT|SUBMISSION|STRICT)_[A-Z_]+$/.test(error.message)
   ? error.message : "ATTACHMENT_SEND_FAILED";
+const savedAttachmentMatches = (link: PreparedAttachmentLink, item: AttachmentReadyItem): boolean =>
+  link.entryPart !== undefined && link.entryPartUnavailable === undefined
+  && link.originalId === item.originalId && link.preparedId === item.preparedId
+  && link.originalSha256 === item.originalSha256 && link.preparedSha256 === item.preparedSha256
+  && link.representationKind === item.representation.kind
+  && link.entryPart.kind === (item.representation.kind === "text" ? "files" : "content");
 
 /** Authorizes an existing attempt independently of a newer editable draft; never grants bytes or a new submission. */
 export type AuthorizeAttachmentAttempt = (attempt: AttachmentAttempt) => Promise<void>;
@@ -87,7 +94,7 @@ export class AttachmentSubmissionGate {
   }
 
   /** Call after the provider durably resolves this exact DSH checkpoint; no Native work is retried. */
-  async finish(requestId: string, outcome: "accepted" | "not-submitted"): Promise<{ finished: true }> {
+  async finish(requestId: string, outcome: AttachmentFinishOutcome): Promise<{ finished: true }> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     if (this.#recovery(flow) !== outcome) throw Error("ATTACHMENT_OUTCOME_UNRESOLVED");
     this.#flows.delete(requestId); return { finished: true };
@@ -102,15 +109,21 @@ export class AttachmentSubmissionGate {
       && origin.instanceId === receipt.binding.instanceId && origin.nativeSessionId === receipt.binding.nativeSessionId
       && value.preparation?.receiptId === receipt.receiptId && value.preparation.resultDigest === receipt.resultDigest;
   }
-  #recovery(flow: Flow): "accepted" | "not-submitted" | "unresolved" {
+  #recovery(flow: Flow): AttachmentGateStatus["recovery"] {
     if (!flow.nativeStarted && ["failed", "cancelled"].includes(flow.phase)) return "not-submitted";
     const result = flow.result;
     if (!result || !this.#matchesReservation(flow, result) || result.persistence !== "committed") return "unresolved";
+    if (result.inputOutcome === "no_input" && result.terminal && result.operationOutcome === "succeeded"
+      && !result.relations.some(relation => relation.role === "input" && relation.status === "observed")) {
+      return "completed-without-input";
+    }
     // inputOutcome describes input generation, never whether hooks/commands executed or a replay is safe.
-    const committed = new Set(result.relations.filter(relation => relation.status === "observed" && relation.persistence === "committed")
-      .flatMap(relation => relation.attachments?.map(link => link.preparedId) ?? []));
-    return result.inputOutcome === "generated" && result.relations.some(relation => relation.role === "input" && relation.persistence === "committed")
-      && flow.receipt!.items.every(item => item.status === "ready" && committed.has(item.preparedId)) ? "accepted" : "unresolved";
+    const committed = result.relations.filter(relation => relation.status === "observed" && relation.persistence === "committed"
+      && relation.entryId !== undefined && (relation.role === "input" || relation.role === "prepared"));
+    const links = committed.flatMap(relation => relation.attachments ?? []);
+    return result.inputOutcome === "generated" && committed.some(relation => relation.role === "input")
+      && flow.receipt!.items.every(item => item.status === "ready" && links.some(link => savedAttachmentMatches(link, item)))
+      ? "accepted" : "unresolved";
   }
 
   async #run(flow: Flow): Promise<SubmissionResult> {

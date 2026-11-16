@@ -21,10 +21,15 @@ trusted actor, projection, frozen draft, objects and authority; Native checks mo
 
 Native reservation precedes consumption and input/extension/model/tool effects. Lost or aborted transport after Native
 submission starts stays unresolved; absence from query does not prove safe replay. Native query supplies exact-source
-identity and committed causal relations. Only authoritative generated/committed input (including every prepared object)
+identity and committed causal relations. Only authoritative generated/committed input, including a saved native
+`entryPart` for every exact original/prepared identity, digest and representation kind,
 can settle that checkpoint as accepted. A locally sealed failure before Native submit can restore the unsent input.
 Terminal committed no-input alone cannot prove that a command or hook never executed; it remains unresolved until
-explicit correlated execution facts settle the operation, and never permits automatic replay. The provider durably resolves the exact DSH attempt first,
+explicit correlated execution facts settle the operation, and never permits automatic replay. An exact terminal
+`operationOutcome: succeeded` with `no_input` yields the separate `completed-without-input` disposition. That
+can retire the exact old DSH echo and runtime gate after checkpoint resolution; it never marks an Attachment
+Original as sent or deletes it. Original ownership/retention is independent of DSH checkpoint cleanup.
+The provider durably resolves the exact DSH attempt first,
 then calls `finish`; the controller does not automatically retry or replace a newer draft. Reconnect polls status only.
 
 The Host holds at most two pending/ready preparations. Native byte/time/decode/archive/output/RPC budgets apply

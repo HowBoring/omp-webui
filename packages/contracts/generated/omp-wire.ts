@@ -113,12 +113,19 @@ export interface AttachmentConsent {
 	acceptedDegradations: string[];
 }
 
+export interface PreparedEntryPart {
+	kind: "content" | "files";
+	index: number;
+}
+
 export interface PreparedAttachmentLink {
 	originalId: string;
 	preparedId: string;
 	originalSha256: string;
 	preparedSha256: string;
 	representationKind: "text" | "image";
+	entryPart?: PreparedEntryPart;
+	entryPartUnavailable?: "missing" | "changed" | "ambiguous";
 }
 
 export interface SubmissionPreparation {
@@ -1063,6 +1070,12 @@ export interface SubmissionPolicy {
 	maxPendingTasks: number;
 }
 
+export interface SubmissionCausality {
+	origin: SubmissionOrigin;
+	role: "input" | "prepared" | "additional" | "execution";
+	attachments?: PreparedAttachmentLink[];
+}
+
 export interface SubmissionTarget {
 	sourceId: string;
 	instanceId: string;
@@ -1089,6 +1102,7 @@ export interface SubmissionResult {
 	admission: "local" | "inherited" | "absent";
 	reservation: "committed" | "unknown" | "absent";
 	inputOutcome: "unresolved" | "generated" | "no_input";
+	operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown";
 	persistence: "committed" | "failed" | "unknown" | "unresolved";
 	terminal: boolean;
 	relations: SubmissionRelation[];
@@ -1967,6 +1981,7 @@ export interface HistoryItem {
 	kind: string;
 	active: boolean;
 	text: string;
+	submission?: SubmissionCausality;
 	provider?: string;
 	model?: string;
 	live?: HistoryLiveIdentity;
@@ -2159,6 +2174,7 @@ export interface SubmissionSubmitParams {
 	preparationId: string;
 	inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt";
 	message: string;
+	idleOnly?: boolean;
 	images?: ImageContent[];
 	streamingBehavior?: StreamingBehavior;
 	preparationConsent?: AttachmentConsent;

@@ -28,16 +28,19 @@ const phaseSchema = z.enum(["registered", "preparing", "awaiting-consent", "subm
 export type AttachmentGatePhase = z.infer<typeof phaseSchema>;
 const receiptSchema = z.custom<AttachmentReceipt>(isAttachmentReceipt);
 const resultSchema = z.custom<SubmissionResult>(isSubmissionResult);
+const finishOutcomeSchema = z.enum(["accepted", "not-submitted", "completed-without-input"]);
+/** Successful execution without native input is distinct from attachment acceptance or pre-dispatch refusal. */
+export type AttachmentFinishOutcome = z.infer<typeof finishOutcomeSchema>;
 const statusSchema = z.strictObject({ phase: phaseSchema, requestId: token, submissionId: token,
   nativeState: z.enum(["not-dispatched", "in-flight", "reserved", "unresolved"]),
-  recovery: z.enum(["accepted", "not-submitted", "unresolved"]), receipt: receiptSchema.optional(),
+  recovery: z.enum(["accepted", "not-submitted", "completed-without-input", "unresolved"]), receipt: receiptSchema.optional(),
   prompt: z.string().max(128 * 1024).optional(), code: z.string().max(96).optional(), result: resultSchema.optional() });
 export type AttachmentGateStatus = z.infer<typeof statusSchema>;
 const statusRequest = z.strictObject({ requestId: token, knownDigest: digest.optional() });
 const consentRequest = attachmentConsentRequestSchema.extend({ requestId: token });
 export type AttachmentContinueRequest = z.infer<typeof consentRequest>;
 const requestKey = z.strictObject({ requestId: token });
-const finishRequest = z.strictObject({ requestId: token, outcome: z.enum(["accepted", "not-submitted"]) });
+const finishRequest = z.strictObject({ requestId: token, outcome: finishOutcomeSchema });
 const codec = <T>(schema: z.ZodType<T>, typeSymbol: string) => ({ mode: "strict" as const, typeSymbol,
   create: () => schema, decode: (value: unknown) => schema.parse(value) });
 const parameter = <T>(schema: z.ZodType<T>, symbol: string) => ({ name: "request", source: "json" as const,

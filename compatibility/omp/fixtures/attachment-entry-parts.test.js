@@ -3,6 +3,7 @@ import { type } from "../../../vendor/omp/packages/omptype/src/index";
 import { locatePreparedEntryParts, stagePreparedEntryPart } from "../../../vendor/omp/packages/coding-agent/src/attachments/entry-parts";
 import { attachmentDefs } from "../../../vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments";
 import { validPreparedLinks, validNativePreparation } from "../../../vendor/omp/packages/coding-agent/src/attachments/validation";
+import { publicSubmissionCausality } from "../../../vendor/omp/packages/coding-agent/src/session/submission-provenance";
 
 const origin = { sourceId: "a".repeat(64), instanceId: "b".repeat(64), nativeSessionId: "synthetic", clientSubmissionId: "attempt" };
 const link = { originalId: "image", preparedId: "prepared-image", originalSha256: "c".repeat(64),
@@ -61,4 +62,15 @@ test("the authored public wire rejects locator indices outside the native persis
 test("malformed persisted omission markers fail validation without coercing attacker-controlled fields", () => {
   expect(validPreparedLinks([{ ...link, entryPartUnavailable: { toString: "missing" } }])).toBe(false);
   expect(validPreparedLinks([{ ...link, entryPartUnavailable: { toString() { return "missing"; } } }])).toBe(false);
+});
+
+test("public native history causality includes only validated saved attachment links", () => {
+  const located = { ...link, entryPart: { kind: "content", index: 2 } };
+  const value = { origin, role: "input", attachments: [located], nativePrivateState: "must not cross RPC" };
+  const projected = publicSubmissionCausality(value);
+  expect(projected).toEqual({ origin, role: "input", attachments: [located] });
+  located.entryPart.index = 8;
+  expect(projected.attachments[0].entryPart.index).toBe(2);
+  expect(() => publicSubmissionCausality({ ...value, attachments: [{ ...link, entryPart: { kind: "content", index: -1 } }] }))
+    .toThrow("SUBMISSION_CAUSALITY_CORRUPT");
 });

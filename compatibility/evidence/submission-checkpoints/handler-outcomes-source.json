@@ -1,0 +1,26 @@
+{
+  "status": "NOT_BUILT",
+  "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "sourceSha256": "1f0539d17cb64bf3f38d6f2890528988ae13a8142fd6c8980b469619051422e7",
+  "patchSha256": "b61c0024f2d4c837f2ed0782c13a3ad0925d3a73f31296873f89eab6daf2c579",
+  "schemaSha256": "0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501",
+  "reason": "Wire-only generation does not rebuild or verify the existing native launcher.",
+  "scope": "source-only exact handler outcome follow-up; no Native launcher/runtime acceptance",
+  "changes": [
+    "Explicit builtin failed:true maps failed for protected submissions",
+    "Background builtin dispatch acknowledgements retain unknown primary outcome",
+    "Actual extension/custom handler exceptions report failed through exact ticket; ordinary behavior unchanged",
+    "Discard exact prompt ticket when setup throws",
+    "Native extension/custom handler work carries extension phase, separating its additional user messages from initiating input",
+    "Opt-in idle guard includes overlapping prompt setup; ordinary calls unchanged"
+  ],
+  "checks": [
+    "ordered1\u20137 source exact",
+    "wire-only generation and --check PASS",
+    "authored Native strict TypeScript PASS",
+    "Host TypeScript PASS",
+    "git diff --check PASS"
+  ],
+  "runtime": "NOT RUN; coordinator held while45 DSH build",
+  "api": "Unchanged from4512919. Shared private native control helper unchanged. Public enum/schema remains0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501."
+}

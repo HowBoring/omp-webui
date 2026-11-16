@@ -10,7 +10,9 @@ const attempt = { selection, submissionId: "attempt", requestId: "request" };
 function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
-  let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false;
+  let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
+  let terminal = true;
+  let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
   const bridge = new AttachmentBridge({ async authorize(request) {
     if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
     if (request.revision !== revision) throw Error("ATTACHMENT_DRAFT_CHANGED");
@@ -28,17 +30,21 @@ function fixture() {
     submits++; submittedMessage = input.message; if (failSubmit) throw Error("RPC_LOST_RESPONSE");
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId,
       target: mismatchTarget ? { ...target, nativeSessionId: "another-session" } : target, found: true, duplicate: false,
-      admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", persistence: "committed", terminal: true, nextOffset: null,
+      admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", operationOutcome,
+      persistence: "committed", terminal, nextOffset: null,
       origin: { ...target, clientSubmissionId: mismatchOrigin ? "another-attempt" : input.clientSubmissionId },
-      relations: [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" },
+      relations: [...(noInput ? [] : [{ relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" }]),
         { relationId: "entry:prepared", role: "prepared", status: "observed", persistence: "committed", entryId: "prepared", attachments: [{
-          originalId: "original", preparedId: "prepared", originalSha256: "c".repeat(64), preparedSha256: "e".repeat(64), representationKind: "text" }] }],
+          originalId: "original", preparedId: "prepared", originalSha256: "c".repeat(64), preparedSha256: "e".repeat(64), representationKind: "text",
+          ...(unavailablePart ? { entryPartUnavailable: "missing" } : !missingPart ? { entryPart: { kind: "files", index: 0 } } : {}) }] }],
       preparation: { ...input.preparationConsent, attachments: [] } };
   } }));
   const gate = new AttachmentSubmissionGate(bridge, async () => { if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED"); });
   return { gate, counts: () => ({ prepares, submits }), messages: () => ({ preparedMessage, submittedMessage }),
-    edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; }, handledWithoutInput: () => { noInput = true; },
-    mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; } };
+    edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; },
+    handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
+    mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
+    unavailablePart: () => { unavailablePart = true; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
   for (let i = 0; i < 40; i++) { const state = await gate.status("request"); if (state.phase === "awaiting-consent") return state; await Promise.resolve(); }
@@ -104,6 +110,38 @@ test("a result with another native origin key or target cannot settle the attach
     const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
     expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
     await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    expect(f.counts().submits).toBe(1);
+  }
+});
+
+test("a committed prepared identity without an actual saved part cannot accept an original", async () => {
+  for (const omission of ["missingPart", "unavailablePart"] as const) {
+    const f = fixture(); await f.gate.begin(attempt); f[omission]();
+    const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+    const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+    expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
+    await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+  }
+});
+
+test("a successful no-input acknowledgement cannot complete before native terminal publication", async () => {
+  const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput("succeeded", false);
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+  expect(await f.gate.status("request")).toMatchObject({ recovery: "unresolved" });
+  await expect(f.gate.finish("request", "completed-without-input")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+});
+
+test("only a correlated successful terminal no-input result completes without accepting any original", async () => {
+  for (const outcome of ["unknown", "failed", "cancelled", "succeeded"] as const) {
+    const f = fixture(); await f.gate.begin(attempt); f.handledWithoutInput(outcome);
+    const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+    const state = await awaiting(f.gate); await f.gate.consent(accept(state)); await pending;
+    expect(await f.gate.status("request")).toMatchObject({ recovery: outcome === "succeeded" ? "completed-without-input" : "unresolved" });
+    await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    await expect(f.gate.finish("request", "not-submitted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
+    if (outcome === "succeeded") await f.gate.finish("request", "completed-without-input");
+    else await expect(f.gate.finish("request", "completed-without-input")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
     expect(f.counts().submits).toBe(1);
   }
 });

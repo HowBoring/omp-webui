@@ -1,7 +1,7 @@
 /** Runtime-only post-Enter consent UI; the semantic provider retains the unresolved whole-input checkpoint. */
 import type { ConversationDraftProvider } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import type { TypertRemoteNamespaceMap } from "@deepseek-ai/dsh-typert-protocol";
-import type { AttachmentSelection, AttachmentAttempt, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
+import type { AttachmentSelection, AttachmentAttempt, AttachmentFinishOutcome, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 
 type Remote = TypertRemoteNamespaceMap["ompAttachments"];
 export type AttachmentPreparationView = { phase: "idle"; error?: string } | AttachmentGateStatus & { error?: string };
@@ -11,10 +11,10 @@ export interface AttachmentDraftSelection { current(): AttachmentSelection }
 export class AttachmentPreparationController {
   readonly #listeners = new Set<() => void>();
   #view: AttachmentPreparationView = { phase: "idle" };
-  #attempt?: AttachmentAttempt;
-  #timer?: Timer;
+  #attempt: AttachmentAttempt | undefined;
+  #timer: Timer | undefined;
   #generation = 0;
-  #removeAbort?: () => void;
+  #removeAbort: (() => void) | undefined;
   constructor(readonly remote: Remote, readonly draft: AttachmentDraftSelection) {}
   getSnapshot = (): AttachmentPreparationView => this.#view;
   subscribe = (listener: () => void): (() => void) => { this.#listeners.add(listener); return () => this.#listeners.delete(listener); };
@@ -77,7 +77,7 @@ export class AttachmentPreparationController {
   }
 
   /** Invoke only after the provider has durably resolved this exact checkpoint without overwriting a newer draft. */
-  async finishAfterRecovery(outcome: "accepted" | "not-submitted"): Promise<void> {
+  async finishAfterRecovery(outcome: AttachmentFinishOutcome): Promise<void> {
     const attempt = this.#attempt; if (!attempt) throw Error("ATTACHMENT_ATTEMPT_UNKNOWN");
     const result = await this.remote.finish({ requestId: attempt.requestId, outcome });
     if (!result.ok) throw Error(result.error.message);

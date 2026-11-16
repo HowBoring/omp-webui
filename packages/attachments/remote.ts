@@ -2,7 +2,7 @@
 import type { Context } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import { attachmentsHostContribution } from "../contracts/attachment-remote.ts";
-import type { AttachmentAttempt, AttachmentContinueRequest } from "../contracts/attachment-remote.ts";
+import type { AttachmentAttempt, AttachmentContinueRequest, AttachmentFinishOutcome } from "../contracts/attachment-remote.ts";
 import type { AttachmentSubmissionGate } from "./submission-gate.ts";
 
 export class AttachmentRemoteService extends TypertRemoteService {
@@ -13,7 +13,7 @@ export class AttachmentRemoteService extends TypertRemoteService {
   }
   @Remote("consent") consent(request: AttachmentContinueRequest) { return this.gate.consent(request); }
   @Remote("cancel") cancel(request: { requestId: string }) { return this.gate.cancel(request.requestId); }
-  @Remote("finish") finish(request: { requestId: string; outcome: "accepted" | "not-submitted" }) {
+  @Remote("finish") finish(request: { requestId: string; outcome: AttachmentFinishOutcome }) {
     return this.gate.finish(request.requestId, request.outcome);
   }
 }

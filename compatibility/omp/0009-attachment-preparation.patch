@@ -12,7 +12,7 @@ index 2d1a13fcc1..8565c61065 100644
  
  - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index ba1689e681..48dc4291ef 100644
+index 35ccdb4b3f..eea40b919d 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -9,6 +9,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
@@ -923,10 +923,10 @@ index 0000000000..a1774d215d
 +}
 diff --git a/packages/coding-agent/src/attachments/validation.ts b/packages/coding-agent/src/attachments/validation.ts
 new file mode 100644
-index 0000000000..9efcdc0790
+index 0000000000..cfdd941f9e
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/validation.ts
-@@ -0,0 +1,30 @@
+@@ -0,0 +1,43 @@
 +import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 +import { MAX_PREPARED_ENTRY_PART_INDEX } from "./entry-parts";
 +import type { PreparedAttachmentLink } from "./receipts";
@@ -956,6 +956,19 @@ index 0000000000..9efcdc0790
 +		identity(value.authorityGeneration) && Array.isArray(value.acceptedDegradations) && value.acceptedDegradations.length <= 16 &&
 +		value.acceptedDegradations.every(code => typeof code === "string" && /^[a-z_]{1,64}$/.test(code)) &&
 +		validPreparedLinks(value.attachments) && value.attachments.every(link => link.entryPart === undefined && link.entryPartUnavailable === undefined);
++}
++
++/** Permanent native facts retain exact ordered attachment identities and any earned persisted locator. */
++export function samePreparedLinks(left: readonly PreparedAttachmentLink[] | undefined,
++	right: readonly PreparedAttachmentLink[] | undefined): boolean {
++	if (left === undefined || right === undefined) return left === right;
++	return left.length === right.length && left.every((link, index) => {
++		const next = right[index];
++		return link.originalId === next.originalId && link.preparedId === next.preparedId
++			&& link.originalSha256 === next.originalSha256 && link.preparedSha256 === next.preparedSha256
++			&& link.representationKind === next.representationKind && link.entryPart?.kind === next.entryPart?.kind
++			&& link.entryPart?.index === next.entryPart?.index && link.entryPartUnavailable === next.entryPartUnavailable;
++	});
 +}
 diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
 new file mode 100644
@@ -1293,22 +1306,23 @@ index ea64e54560..63a031ecb1 100644
 +	onFrame(parsed, encodedBytes);
  }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index e71a0ac1e3..d24702b9f7 100644
+index 7e8e62fdb9..1650a0702d 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,6 +1,10 @@
+@@ -1,7 +1,11 @@
 +import { attachmentInputPolicy, assertPreparedInputPolicy } from "../../attachments/input-policy";
  import { nativeSubmissionPolicy } from "../../session/submission-policy";
  import { RpcSubmissions } from "./rpc-submissions";
--import { runSubmission, submissionScope } from "../../session/submission-provenance";
 +import type { CustomMessage } from "../../session/messages";
 +import { createAttachmentPreparations, validateAttachmentCommand } from "./rpc-attachments";
 +import { rpcInputPolicy } from "./rpc-input-policy";
 +import { runSubmission, submissionScope, stageInputAttachmentMessage, captureSubmission } from "../../session/submission-provenance";
+ import type { SubmissionOperationOutcome } from "../../session/submission-provenance";
+-import { runSubmission, submissionScope } from "../../session/submission-provenance";
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
  import { getStrictStartup, observeStrictStartup } from "./strict-context";
-@@ -66,7 +70,7 @@ import { CACHE_WARMING_MODES } from "../../session/cache-warmer";
+@@ -67,7 +71,7 @@ import { CACHE_WARMING_MODES } from "../../session/cache-warmer";
  import { findMostRecentNonEmptySession, findRecentSessionContinuation } from "../../session/session-listing";
  import { probeSessionLeases } from "../../session/session-storage";
  import { SKILL_PROMPT_MESSAGE_TYPE, USER_INTERRUPT_LABEL } from "../../session/messages";
@@ -1317,7 +1331,7 @@ index e71a0ac1e3..d24702b9f7 100644
  import { buildAvailableSlashCommands } from "../../slash-commands/available-commands";
  import { listLogoutAccounts, logoutCredential } from "../../slash-commands/helpers/logout";
  import { cfgSttEnabled } from "../../stt/settings";
-@@ -303,16 +307,16 @@ export async function runRpcSkillCommand(
+@@ -304,16 +308,16 @@ export async function runRpcSkillCommand(
  	images?: ImageContent[],
  ): Promise<boolean> {
  	const built = prebuilt ?? (await session.buildUserSkillPrompt(invocation.skill, invocation));
@@ -1342,7 +1356,7 @@ index e71a0ac1e3..d24702b9f7 100644
  }
  
  /**
-@@ -386,7 +390,7 @@ export async function tryRunRpcSkillCommand(
+@@ -387,7 +391,7 @@ export async function tryRunRpcSkillCommand(
  export interface RpcInputFrameDeps {
  	handleCommand: (command: RpcCommand) => Promise<RpcResponse>;
  	output: RpcOutput;
@@ -1351,7 +1365,7 @@ index e71a0ac1e3..d24702b9f7 100644
  	trackBackgroundTask?: (task: Promise<void>) => void;
  	pendingExtensionRequests: Map<string, PendingExtensionRequest>;
  	onHostToolResult: (frame: RpcHostToolResult) => void;
-@@ -440,6 +444,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
+@@ -441,6 +445,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
   * A Set, not a Record: `type` is untrusted input and must not hit prototype keys.
   */
  const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
@@ -1359,7 +1373,7 @@ index e71a0ac1e3..d24702b9f7 100644
  	"bash",
  	"predict_word",
  	"live_start",
-@@ -605,22 +610,36 @@ export class RpcInputDispatcher {
+@@ -606,22 +611,36 @@ export class RpcInputDispatcher {
  	readonly #deps: RpcInputFrameDeps;
  	readonly #afterSerialCommand: (() => Promise<void>) | undefined;
  	readonly #acceptInput: ((command: RpcCommand) => void) | undefined;
@@ -1398,7 +1412,7 @@ index e71a0ac1e3..d24702b9f7 100644
  			this.#acceptInput?.(command);
  			// Bash and predict_word retain their immediate side channel. Prompts,
  			// steers, follow-ups and steer_subagent start through the serial tail, but
-@@ -640,11 +659,18 @@ export class RpcInputDispatcher {
+@@ -641,11 +660,18 @@ export class RpcInputDispatcher {
  				this.#tasks.delete(task);
  			});
  		} catch (err: unknown) {
@@ -1417,7 +1431,7 @@ index e71a0ac1e3..d24702b9f7 100644
  	/** Await every accepted serial command, including commands queued before EOF. */
  	async drain(): Promise<void> {
  		while (this.#tasks.size > 0) {
-@@ -1332,7 +1358,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1333,7 +1359,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -1426,7 +1440,7 @@ index e71a0ac1e3..d24702b9f7 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1685,22 +1711,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1686,22 +1712,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// Read stdin from now on: `session_start` may be waiting on a dialog only the client can answer. Until the
  	// command loop below exists, negotiation, interaction control and the ask-dialog opt-in are handled at once; every other
  	// frame is held, in arrival order, for that loop.
@@ -1458,22 +1472,22 @@ index e71a0ac1e3..d24702b9f7 100644
  	const rejectStartupDialogs = (): void => {
  		if (heldFrames) pendingExtensionRequests.rejectAll("RPC client disconnected during startup");
  	};
-@@ -1846,7 +1876,13 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1847,7 +1877,13 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
--	const submissions = new RpcSubmissions(session);
+-	const submissions = new RpcSubmissions(session, task => shutdownCoordinator.track(task));
 +	const attachments = createAttachmentPreparations(session);
 +	const assertPreparedRoute = (text: string): void => {
 +		if (resolveRpcSkillInvocation(session, text)) return;
 +		if (resolveAcpBuiltinSlashCommand(text)) throw new Error("ATTACHMENT_BUILTIN_INPUT_UNSUPPORTED");
 +		if (session.classifyPromptCommand(text) !== "ordinary-prompt") throw new Error("ATTACHMENT_COMMAND_INPUT_UNSUPPORTED");
 +	};
-+	const submissions = new RpcSubmissions(session, attachments, assertPreparedRoute);
++	const submissions = new RpcSubmissions(session, attachments, assertPreparedRoute, task => shutdownCoordinator.track(task));
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
- 	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
-@@ -1867,6 +1903,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
+@@ -1871,6 +1907,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  					if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
  						|| target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
  				}
@@ -1483,7 +1497,7 @@ index e71a0ac1e3..d24702b9f7 100644
  				return true;
  			};
  			if (!isCurrent()) return "cancelled";
-@@ -1878,10 +1917,15 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1882,10 +1921,15 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				if (!isCurrent()) return "cancelled";
  				if (result.handled) return "local";
  				if (result.text !== undefined) text = result.text;
@@ -1500,7 +1514,7 @@ index e71a0ac1e3..d24702b9f7 100644
  			if (command.type === "steer") {
  				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
  				return "admitted";
-@@ -1999,6 +2043,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2005,6 +2049,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -1517,17 +1531,17 @@ index e71a0ac1e3..d24702b9f7 100644
  			case "submission_query": {
  				try { submissions.validate(command); return success(id, command.type,
  					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
-@@ -2011,7 +2065,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
- 					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
- 					const { scope } = reservation;
- 					try {
+@@ -2020,7 +2074,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+           try {
+             if (command.idleOnly && (command.inputType !== "prompt" || command.streamingBehavior !== undefined))
+               throw new Error("SUBMISSION_IDLE_PROMPT_REQUIRED");
 -						const input = { ...command, type: command.inputType };
 +						const input = { ...command, type: command.inputType,
-+							...(scope.prepared ? { images: scope.prepared.images } : {}) };
++              ...(scope.prepared ? { images: scope.prepared.images } : {}) };
  						inputGate.alias(command, input);
  						if (input.type === "abort_and_prompt") {
  							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
-@@ -2974,7 +3029,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2990,7 +3045,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// the reader and killing the whole process (issue #5194).
  	const held = heldFrames;
  	heldFrames = undefined;
@@ -1538,16 +1552,16 @@ index e71a0ac1e3..d24702b9f7 100644
  
  	// stdin closed — RPC client is gone. Fail pending side-channel requests
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-index 618b561af7..46e81de773 100644
+index 9622e99a9e..863c26ba41 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -1,3 +1,4 @@
 +import { assertPreparedInputPolicy } from "../../attachments/input-policy";
+ import { assertSubmissionEntries } from "../../session/submission-records";
  import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
  /** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
- import type { AgentSession } from "../../session/agent-session";
-@@ -6,11 +7,13 @@ import { messageSubmission, runSubmission, sameSubmission } from "../../session/
- import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget } from "../../session/submission-provenance";
+@@ -7,11 +8,13 @@ import { messageSubmission, runSubmission, sameSubmission } from "../../session/
+ import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget, SubmissionOperationOutcome } from "../../session/submission-provenance";
  import { validSubmissionCommand } from "./submissions.generated";
  import type { SubmissionResult } from "./wire/rpc-wire.generated";
 +import type { AttachmentConsent, AttachmentPreparations, PreparedSubmission } from "../../attachments/receipts";
@@ -1555,38 +1569,39 @@ index 618b561af7..46e81de773 100644
  export interface SubmissionSubmit {
    id?: string; type: "submission_submit"; clientSubmissionId: string; sourceId: string; instanceId: string; nativeSessionId: string; preparationId: string;
    inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt"; message: string; images?: ImageContent[];
-   streamingBehavior?: "steer" | "followUp";
+   streamingBehavior?: "steer" | "followUp"; idleOnly?: boolean;
 +  preparationConsent?: AttachmentConsent;
  }
  export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
- interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>> }
-@@ -18,7 +21,8 @@ export class RpcSubmissions {
+ interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>>; revision: number; settled: boolean;
+@@ -20,7 +23,8 @@ export class RpcSubmissions {
    readonly #pending = new Map<string, PendingSubmission>();
    #target: SubmissionTarget | undefined;
    readonly #failures = new Map<string, "failed" | "unknown">();
--  constructor(readonly session: AgentSession) {
+-  constructor(readonly session: AgentSession, readonly track: (task: Promise<void>) => void = () => {}) {
 +  constructor(readonly session: AgentSession, readonly attachments?: AttachmentPreparations,
-+    readonly assertPreparedRoute?: (text: string) => void) {
++    readonly assertPreparedRoute?: (text: string) => void, readonly track: (task: Promise<void>) => void = () => {}) {
      try { this.#target = session.sessionManager.getSubmissionTarget(); } catch { /* Ordinary unprotected sessions refuse this API. */ }
      session.subscribeMessageObservations(observation => {
        if (observation.kind !== "message_settlement" || !observation.settlement) return;
-@@ -30,7 +34,8 @@ export class RpcSubmissions {
+@@ -32,7 +36,8 @@ export class RpcSubmissions {
        if (decision.status === "observed") return;
-       if (pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
+       if (!pending.noEntries.has(observation.live.messageId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
        pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
 -        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
 +        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry",
 +        ...(cause.attachments ? { attachments: cause.attachments } : {}) });
+       pending.revision++;
+       if (pending.settled) this.track(this.complete(pending.origin, pending.operationOutcome));
      });
-   }
-   validate(command: unknown): void {
-@@ -54,10 +59,34 @@ export class RpcSubmissions {
+@@ -58,10 +63,35 @@ export class RpcSubmissions {
      if (target.sourceId !== command.sourceId || target.instanceId !== command.instanceId
          || target.nativeSessionId !== command.nativeSessionId) throw new Error("SUBMISSION_TARGET_MISMATCH");
      const origin = { ...target, clientSubmissionId: command.clientSubmissionId };
 +    const originalRequestFingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
 +      type: command.inputType, message: command.message, images: command.images ?? [],
-+      streamingBehavior: command.streamingBehavior ?? null, preparationConsent: command.preparationConsent ?? null }), "hex");
++      streamingBehavior: command.streamingBehavior ?? null, preparationConsent: command.preparationConsent ?? null,
++      ...(command.idleOnly ? { idleOnly: true } : {}) }), "hex");
 +    let prepared: PreparedSubmission | undefined;
 +    if (command.preparationConsent) {
 +      const existing = this.session.sessionManager.getExistingSubmission(command.clientSubmissionId);
@@ -1606,9 +1621,9 @@ index 618b561af7..46e81de773 100644
 +      if (prepared.message !== command.message) throw new Error("ATTACHMENT_DRAFT_CHANGED");
 +    }
      const fingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
--      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null }), "hex");
+-      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null, ...(command.idleOnly ? { idleOnly: true } : {}) }), "hex");
 +      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null,
-+      ...(prepared ? { prepared } : {}) }), "hex");
++      ...(command.idleOnly ? { idleOnly: true } : {}), ...(prepared ? { prepared } : {}) }), "hex");
      const reservation: NativeSubmission = { origin, fingerprint, preparationId: command.preparationId,
 -      terminal: false, inputOutcome: "unresolved", noEntries: [] };
 +      terminal: false, inputOutcome: "unresolved", noEntries: [],
@@ -1617,18 +1632,18 @@ index 618b561af7..46e81de773 100644
      let admitted: boolean;
      try { admitted = await this.session.sessionManager.reserveSubmission(reservation); }
      catch (failure) {
-@@ -65,8 +94,9 @@ export class RpcSubmissions {
+@@ -69,8 +99,9 @@ export class RpcSubmissions {
        throw failure;
      }
      const tasks = new Set<Promise<unknown>>();
 +    if (admitted && prepared && command.preparationConsent) this.attachments!.markReserved(command.preparationConsent.receiptId, command.clientSubmissionId);
-     if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks });
--    return { admitted, scope: { origin, phase: "extension", tasks, onTaskOverflow: () => {
-+    return { admitted, scope: { origin, phase: "extension", ...(prepared ? { prepared, attachmentDelivery: { delivered: false } } : {}), tasks, onTaskOverflow: () => {
+     if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, settled: false, operationOutcome: "unknown" });
+-    return { admitted, scope: { origin, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
++    return { admitted, scope: { origin, phase: "extension", ...(prepared ? { prepared, attachmentDelivery: { delivered: false } } : {}), tasks, idleOnly: prepared ? true : command.idleOnly, onTaskOverflow: () => {
        const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
      } } };
    }
-@@ -108,13 +138,15 @@ export class RpcSubmissions {
+@@ -141,13 +172,15 @@ export class RpcSubmissions {
      const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
      const retained = new Set(durableEntries.map(entry => entry.id));
      const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
@@ -1639,7 +1654,7 @@ index 618b561af7..46e81de773 100644
        role: fact.role, status: "observed", persistence: "committed", entryId: fact.entryId,
 -      availability: retained.has(fact.entryId) ? "retained" : "removed" }));
 +      availability: retained.has(fact.entryId) ? "retained" : "removed", ...(fact.attachments ? { attachments: fact.attachments } : {}) }));
-     for (const entry of this.session.sessionManager.getEntries()) {
+     for (const entry of observedEntries) {
        if (facts.has(entry.id) || !entry.submission || !sameSubmission(entry.submission.origin, value.origin)) continue;
 -      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id });
 +      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id,
@@ -1647,9 +1662,9 @@ index 618b561af7..46e81de773 100644
      }
      relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
      const end = Math.min(offset + limit, relations.length);
-@@ -123,6 +155,7 @@ export class RpcSubmissions {
+@@ -156,6 +189,7 @@ export class RpcSubmissions {
          && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
-       reservation: "committed", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
+       reservation: "committed", operationOutcome: value.operationOutcome ?? "unknown", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
        persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
 -      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
 +      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null,
@@ -1817,18 +1832,23 @@ index afeae50dfa..23defe2aca 100644
  		...modelDefs,
  		...stateDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
-index 6679486e23..933e047e8a 100644
+index bb80bd4fd4..cf9d40d7d4 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
-@@ -7,17 +7,17 @@ export const submissionDefs = {
+@@ -5,21 +5,21 @@ export const submissionDefs = {
+     logicalHeader:"'ompsub1'",carrier:"'ompgen2'",maxSubmissions:"number.integer",maxMetadataBytes:"number.integer",
+     maxEntryFacts:"number.integer",maxNoEntryFacts:"number.integer",maxQueryRelations:"number.integer",
      maxMessageBytes:"number.integer",maxImagesBytes:"number.integer",maxPendingTasks:"number.integer"},
+-  SubmissionCausality: { origin: "SubmissionOrigin", role: "'input' | 'prepared' | 'additional' | 'execution'" },
++  SubmissionCausality: { origin: "SubmissionOrigin", role: "'input' | 'prepared' | 'additional' | 'execution'", "attachments?": "PreparedAttachmentLink[]" },
    SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
    SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
 -    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
 +    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string", "attachments?": "PreparedAttachmentLink[]" },
    SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", target: "SubmissionTarget", found: "boolean", duplicate: "boolean",
      admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
-     inputOutcome: "'unresolved' | 'generated' | 'no_input'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
+     inputOutcome: "'unresolved' | 'generated' | 'no_input'",
+     operationOutcome: "'succeeded' | 'failed' | 'cancelled' | 'unknown'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
 -    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
 +    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string", "preparation?": "SubmissionPreparation" },
    SubmissionOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", clientSubmissionId: "string" },
@@ -1836,34 +1856,41 @@ index 6679486e23..933e047e8a 100644
  export const submissionCommands = [
    { name: "submission_submit", doc: "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
      params: { clientSubmissionId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", preparationId: "string", inputType: "'prompt' | 'steer' | 'follow_up' | 'abort_and_prompt'",
--      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
-+      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior", "preparationConsent?": "AttachmentConsent" }, result: "SubmissionResult" },
+-      "idleOnly?": "boolean", message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
++      "idleOnly?": "boolean", message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior", "preparationConsent?": "AttachmentConsent" }, result: "SubmissionResult" },
    { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
      params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
  ] as const;
 diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
-index 5bddc84cfe..7c87357930 100644
+index 5bddc84cfe..1124515e53 100644
 --- a/packages/coding-agent/src/sdk.ts
 +++ b/packages/coding-agent/src/sdk.ts
-@@ -35,6 +35,9 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
+@@ -35,6 +35,10 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
  import { isOpenAICodexWebSocketPreferred } from "@oh-my-pi/pi-ai/providers/openai-codex-transport";
  import { withCredentialRedaction } from "@oh-my-pi/pi-ai/providers/transform-messages";
  import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
 +import { attachmentModelFingerprint } from "./attachments/model-binding";
++import { assertSubmissionCurrent } from "./session/submission-provenance";
 +import { assertPreparedDeliveries, capturePreparedDeliveries, guardPreparedPayload, type PreparedDelivery } from "./attachments/provider-guard";
 +import { cfgImagesUrlsEnabled } from "./blob-broker/settings";
  import { syncOpenAIResponsesHistoryTexts } from "@oh-my-pi/pi-ai/utils";
  import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
  import type { Component } from "@oh-my-pi/pi-tui";
-@@ -4798,7 +4801,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -4798,38 +4802,61 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  		// One transform per conversation: the date/cwd reminder remembers what each
  		// conversation was sent, so the main loop and every advisor get their own.
  		// Only the main loop journals its reminders in the session.
 -		const createTransformProviderContext = (journal?: DateCwdReminderJournal) => {
 +		let mainPreparedDeliveries: PreparedDelivery[] = [];
 +		const providerPreparedDeliveries = new WeakMap<Context, PreparedDelivery[]>();
++		const assertPreparedAuthority = (deliveries: readonly PreparedDelivery[]): void => {
++			for (const delivery of deliveries) {
++				assertSubmissionCurrent(() => sessionManager.getSubmissionTarget(), delivery.target);
++			}
++		};
 +		const checkPreparedDeliveries = (context: Context, model: Model, deliveries: readonly PreparedDelivery[]): void => {
 +			if (!deliveries.length) return;
++			assertPreparedAuthority(deliveries);
 +			assertPreparedDeliveries(context, attachmentModelFingerprint(model, {
 +				blocked: cfgImagesBlockImages.get(settings), urls: cfgImagesUrlsEnabled.get(settings),
 +			}), deliveries, sessionManager.getSubmissionTarget());
@@ -1872,14 +1899,23 @@ index 5bddc84cfe..7c87357930 100644
 +			expectations?: () => PreparedDelivery[]) => {
  			const dateCwdReminder = new DateCwdReminderInjector(journal);
  			return async (context: Context, transformModel: Model): Promise<Context> => {
++				const deliveries = expectations?.() ?? capturePreparedDeliveries(context.messages);
++				assertPreparedAuthority(deliveries);
  				let transformed = obfuscator ? obfuscateProviderContext(obfuscator, context) : context;
-@@ -4811,25 +4823,29 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 				// The archive was sized for the model active at the last context build; a model switch may have lowered the budget.
+ 				transformed = capArchiveFrameBytes(transformed, transformModel);
+ 				transformed = await snapcompactInline.transform(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
+ 				transformed = clampProviderContextImages(transformed, transformModel);
+ 				transformed = await normalizeProviderContextImagesForModel(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
+ 				// After the model-specific normalizers: they carry better wording for the
  				// cases they own (STB WebP), so this stays the backstop for everything
  				// else, and it runs before the blob broker uploads any of these bytes.
  				transformed = await dropUnreadableContextImages(transformed, transformModel);
-+				const deliveries = expectations?.() ?? capturePreparedDeliveries(context.messages);
 +				checkPreparedDeliveries(transformed, transformModel, deliveries);
  				transformed = await blobBroker.decorateContext(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
  				// Byte budget after decoration: URL/file-referenced images carry no inline bytes.
  				transformed = clampProviderContextImageBytes(transformed, transformModel);
  				// Keep per-request volatility out of the system prompt: the date/cwd
@@ -1908,7 +1944,7 @@ index 5bddc84cfe..7c87357930 100644
  		const onResponse: SimpleStreamOptions["onResponse"] = async (response, model, signal) => {
  			await extensionRunner.emitAfterProviderResponse(response, model, signal);
  		};
-@@ -4899,8 +4915,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -4899,8 +4926,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  			if (cfgOffline.get(settings) && streamModel.provider !== session?.model?.provider) {
  				return Promise.reject(new Error("Offline mode restricts model calls to the active session provider."));
  			}
@@ -1925,7 +1961,7 @@ index 5bddc84cfe..7c87357930 100644
  			);
  		};
  		// Primary-agent (and its auto-learn capture twin) provider options read per
-@@ -4975,6 +4998,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -4975,6 +5009,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  			getToolContext: tc => toolContextStore.getContext(tc),
  			getApiKey: effectiveGetApiKey,
  			streamFn: (streamModel, context, streamOptions) => {
@@ -1936,7 +1972,7 @@ index 5bddc84cfe..7c87357930 100644
  				mainRequestProvider = undefined;
  				options.assertDispatchModel?.(streamModel);
  				// The loop checks the cap before each request, but a side request can finish
-@@ -5028,7 +5055,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5028,7 +5066,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  				// loop (side-channel, advisor, and maintenance requests use
  				// dedicated wrappers), so it owns the warmer. The replay omits the
  				// one-shot fallback-credit redemption.
@@ -1945,7 +1981,7 @@ index 5bddc84cfe..7c87357930 100644
  				return stream;
  			},
  			cursorExecHandlers,
-@@ -5083,6 +5110,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5083,6 +5121,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  					: undefined
  				: undefined,
  		});
@@ -1963,27 +1999,19 @@ index 5bddc84cfe..7c87357930 100644
  		// for the finalized message, including errors synthesized after a stream throws.
  		agent.subscribe(event => {
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index b6c52add3d..b7fa633479 100644
+index 361777cee8..c41ead0ffb 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,4 +1,7 @@
--import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
-+import { captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask, stageInputAttachmentMessage, takePreparedAttachmentMessages } from "./submission-provenance";
+-import { assertSubmissionCurrent, captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { assertSubmissionCurrent, captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask, stageInputAttachmentMessage, takePreparedAttachmentMessages } from "./submission-provenance";
 +import { attachmentModelFingerprint, attachmentImageCapable } from "../attachments/model-binding";
 +import { cfgImagesBlockImages } from "../modes/settings";
 +import { cfgImagesUrlsEnabled } from "../blob-broker/settings";
  import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
  import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
  /**
-@@ -4570,6 +4573,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 					// otherwise records emission time, which on rebuild excludes
- 					// provider preparation / hook time from the prompt→yield anchor.
- 					message.timestamp,
-+					message,
- 				);
- 			}
- 			if (message.role === "custom" && message.customType === "ttsr-injection") {
-@@ -8505,6 +8509,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8537,6 +8540,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		return this.#slashCommands;
  	}
  
@@ -1999,7 +2027,7 @@ index b6c52add3d..b7fa633479 100644
  	/** Custom commands (TypeScript slash commands and MCP prompts) */
  	get customCommands(): ReadonlyArray<LoadedCustomCommand> {
  		if (this.#mcpPromptCommands.length === 0) return this.#customCommands;
-@@ -8670,6 +8683,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8702,6 +8714,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
@@ -2017,7 +2045,7 @@ index b6c52add3d..b7fa633479 100644
  		return normalizeModelContextImages(images, { model: this.model });
  	}
  
-@@ -8730,6 +8754,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8762,6 +8785,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#normalizeAgentMessageImages<T extends AgentMessage>(message: T): Promise<T> {
@@ -2030,7 +2058,7 @@ index b6c52add3d..b7fa633479 100644
  		return this.#providerBoundary.normalizeAgentMessageImages(message);
  	}
  
-@@ -9117,6 +9147,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9160,6 +9189,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					userInitiated: options?.userInitiated === true ? true : undefined,
  				}
  			: { role: "user" as const, content: userContent, attribution: promptAttribution, timestamp: submittedAt };
@@ -2038,24 +2066,21 @@ index b6c52add3d..b7fa633479 100644
  
  		const preludeMessages: AgentMessage[] = [];
  		if (eagerTodoPrelude) {
-@@ -9330,12 +9361,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			attribution: message.attribution ?? "agent",
- 			timestamp: Date.now(),
- 		};
-+		copySubmission(message, customMessage);
- 		const hasSkillImages =
- 			isUserInvokedSkillPrompt(customMessage) &&
+@@ -9381,9 +9411,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			Array.isArray(customMessage.content) &&
  			customMessage.content.some(part => part.type === "image");
  		const preparationGeneration = this.#promptGeneration;
 -		const preparedMessage = hasSkillImages ? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
+-    copySubmission(customMessage, preparedMessage);
+-    this.#assertSubmissionIdle();
 +		const preparedMessage = hasSkillImages || (submissionScope()?.prepared && messageSubmission(customMessage)?.role === "input")
 +			? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
 +		copySubmission(customMessage, preparedMessage);
++		this.#assertSubmissionIdle();
  		const descriptionNotice = hasSkillImages
  			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
  			: undefined;
-@@ -9701,6 +9735,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9750,6 +9781,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			if (options?.prependMessages) {
  				messages.push(...options.prependMessages);
  			}
@@ -2063,7 +2088,7 @@ index b6c52add3d..b7fa633479 100644
  
  			// Early bail-out: if a newer abort/prompt cycle started during setup,
  			// return before mutating shared state (nextTurn messages, system prompt).
-@@ -10316,7 +10351,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10370,7 +10402,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
@@ -2073,7 +2098,7 @@ index b6c52add3d..b7fa633479 100644
  		// Captured before any await below so the aside branch can detect a
  		// newSession()/switchSession() that completed while normalization/vision
  		// description was in flight and drop a record that would otherwise land in a
-@@ -10370,6 +10406,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10424,6 +10457,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const records: AgentMessage[] = [...prependMessages, ...attachmentSourceNotices];
  			if (imageDescriptionNotice) records.push(imageDescriptionNotice);
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
@@ -2081,7 +2106,7 @@ index b6c52add3d..b7fa633479 100644
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
  			for (const message of records) captureSubmission(message, message.role);
-@@ -10422,6 +10459,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10476,6 +10510,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -2089,13 +2114,17 @@ index b6c52add3d..b7fa633479 100644
  		for (const message of group) captureSubmission(message, message.role);
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
-@@ -10912,13 +10950,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			attribution: message.attribution ?? "agent",
+@@ -10967,16 +11002,18 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			timestamp: Date.now(),
  		};
-+		copySubmission(message, appMessage);
- 		const preprocessed = options?.preprocessed;
+ 		copySubmission(message, appMessage);
+-    captureSubmission(appMessage, isUserInvokedSkillPrompt(appMessage) ? "user" : appMessage.role);
+-    this.#assertSubmissionCurrent();
+-    const preprocessed = options?.preprocessed;
 -		const prependMessages = options?.prependMessages ?? [];
++		captureSubmission(appMessage, isUserInvokedSkillPrompt(appMessage) ? "user" : appMessage.role);
++		this.#assertSubmissionCurrent();
++		const preprocessed = options?.preprocessed;
 +		const prependMessages: readonly AgentMessage[] = [...(options?.prependMessages ?? []),
 +			...(messageSubmission(appMessage)?.role === "input" ? takePreparedAttachmentMessages() : [])];
  		const onPromptAdmitted = options?.onPromptAdmitted;
@@ -2103,11 +2132,11 @@ index b6c52add3d..b7fa633479 100644
  		const normalizedAppMessage = preprocessed
  			? { ...appMessage, content: preprocessed.content }
  			: await this.#normalizeAgentMessageImages(appMessage);
-+		copySubmission(appMessage, normalizedAppMessage);
+ 		copySubmission(appMessage, normalizedAppMessage);
 +		for (const queued of prependMessages) captureSubmission(queued, queued.role);
- 		const descriptionNotice = preprocessed
+     this.#assertSubmissionCurrent();
+     const descriptionNotice = preprocessed
  			? preprocessed.descriptionNotice
- 			: await this.#buildSkillImageDescriptionNotice(normalizedAppMessage);
 diff --git a/packages/coding-agent/src/session/messages.ts b/packages/coding-agent/src/session/messages.ts
 index 46a04f5715..d03956a4f7 100644
 --- a/packages/coding-agent/src/session/messages.ts
@@ -2130,29 +2159,27 @@ index 46a04f5715..d03956a4f7 100644
  	if (len === 0) prefixOutputLen = 0;
  
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 645d21851f..352be7b308 100644
+index 7c07369dd7..9b74a8a646 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,7 +1,9 @@
- import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./submission-records";
+@@ -1,6 +1,7 @@
+ import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
  import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
 +import { locatePreparedEntryParts } from "../attachments/entry-parts";
- import { causalSubmission, sameSubmission } from "./submission-provenance";
-+import { validPreparedLinks } from "../attachments/validation";
+ import { causalSubmission, sameSubmission, validSubmissionCausality } from "./submission-provenance";
  import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
  import { nativeHistoryContextId } from "./history-context";
- import { associateMessageEntry } from "./live-message-observation";
-@@ -2252,6 +2254,8 @@ export class SessionManager {
- 			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
+@@ -2260,6 +2261,8 @@ export class SessionManager {
+ 			if (!this.#verifiedSubmissions.some(value => sameSubmission(value.origin, origin)))
+ 				throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
  		}
- 		entry.submission ??= causalSubmission(entry.type === "message" ? entry.message : undefined);
 +		entry.submission = locatePreparedEntryParts(entry.submission, entry.type === "message" ? entry.message
 +			: entry.type === "custom_message" ? entry : undefined);
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2445,7 +2449,8 @@ export class SessionManager {
+@@ -2453,7 +2456,8 @@ export class SessionManager {
  			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
  			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
  			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
@@ -2162,23 +2189,7 @@ index 645d21851f..352be7b308 100644
  		}
  		this.#applyEntries(restoredHeader, [...snapshot.entries]);
  		this.#nativeSubmissions = structuredClone(snapshot.nativeSubmissions ?? []);
-@@ -4010,6 +4015,7 @@ export class SessionManager {
- 		details?: T,
- 		attribution: MessageAttribution | undefined = "agent",
- 		timestamp?: number,
-+		originalMessage?: object,
- 	): string {
- 		const normalized = normalizeCustomMessagePayload<T>({ customType, content, display, details, attribution });
- 		const fresh = this.#freshEntryFields();
-@@ -4018,6 +4024,7 @@ export class SessionManager {
- 			customType: normalized.customType,
- 			content: normalized.content,
- 			display: normalized.display,
-+			...(originalMessage ? { submission: causalSubmission(originalMessage) } : {}),
- 			// Drop AgentSession-internal transient fields before disk persistence.
- 			details: stripInternalDetailsFields(normalized.details),
- 			attribution: normalized.attribution,
-@@ -4258,6 +4265,14 @@ export class SessionManager {
+@@ -4269,6 +4273,14 @@ export class SessionManager {
  		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
  	}
  	/** Permanent append-only native reservation. No execution may precede its verified publication. */
@@ -2193,7 +2204,7 @@ index 645d21851f..352be7b308 100644
  	reserveSubmission(value: NativeSubmission): Promise<boolean> {
  		return this.#withAtomicPersistenceLock(async () => {
  			this.getSubmissionTarget();
-@@ -4268,6 +4283,13 @@ export class SessionManager {
+@@ -4279,6 +4291,13 @@ export class SessionManager {
  			}
  			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
  			await this.#ensureSubmissionFormat();
@@ -2207,7 +2218,7 @@ index 645d21851f..352be7b308 100644
  			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
  			this.#nativeSubmissions.push(reserved);
  			await this.#appendSubmissionControl(reserved);
-@@ -4282,7 +4304,8 @@ export class SessionManager {
+@@ -4294,7 +4313,8 @@ export class SessionManager {
  			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
  			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
@@ -2217,7 +2228,7 @@ index 645d21851f..352be7b308 100644
  			const entryFacts = [...facts.values()];
  			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			await this.flush();
-@@ -4332,11 +4355,17 @@ export class SessionManager {
+@@ -4352,7 +4372,8 @@ export class SessionManager {
  			const value = byKey.get(submission.origin.clientSubmissionId);
  			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
  			value.entryFacts ??= [];
@@ -2227,15 +2238,6 @@ index 645d21851f..352be7b308 100644
  			if (value.entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  		}
  	}
- 	#captureSubmissionProof(): void {
-+		for (const entry of this.#entries) {
-+			if (entry.submission?.attachments !== undefined && !validPreparedLinks(entry.submission.attachments)) {
-+				throw new Error("SUBMISSION_METADATA_CORRUPT");
-+			}
-+		}
- 		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
- 		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
- 			? [[entry.id, structuredClone(entry.submission)] as const] : []));
 diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
 index 85ef1dd61e..c076479eae 100644
 --- a/packages/coding-agent/src/session/session-required-features.ts
@@ -2261,28 +2263,53 @@ index 95661b2e45..bf56a12d23 100644
 +  maxImagesBytes: 8 * 1024 * 1024, maxPendingTasks: 4096,
  } as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
-index a2a89c55b7..1e99eeae1d 100644
+index bb515c05d1..ce2739017d 100644
 --- a/packages/coding-agent/src/session/submission-provenance.ts
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
-@@ -1,26 +1,60 @@
+@@ -1,19 +1,23 @@
  import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  /** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
  import * as asyncHooks from "node:async_hooks";
 +import type { PreparedAttachmentLink, PreparedSubmission, AttachmentConsent } from "../attachments/receipts";
 +import type { FileMentionMessage } from "./messages";
+ import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import { validPreparedLinks } from "../attachments/validation";
  export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
  export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
--export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution" }
--export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void }
+ export type SubmissionRole = "input" | "prepared" | "additional" | "execution";
+-export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole }
+-export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; idleOnly?: boolean }
 -export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
-+export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution"; attachments?: PreparedAttachmentLink[] }
-+export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; prepared?: PreparedSubmission; attachmentDelivery?: { delivered: boolean } }
++export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole; attachments?: PreparedAttachmentLink[] }
++export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; idleOnly?: boolean; prepared?: PreparedSubmission; attachmentDelivery?: { delivered: boolean } }
 +export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string; attachments?: PreparedAttachmentLink[] }
+ /** Primary native operation result; distinct from input creation, persistence and quiescence. */
+ export type SubmissionOperationOutcome = "succeeded" | "failed" | "cancelled" | "unknown";
  export interface NativeSubmission {
+   operationOutcome?: SubmissionOperationOutcome;
 +  originalRequestFingerprint?: string; preparation?: AttachmentConsent & { attachments: PreparedAttachmentLink[] };
    reservedAt?: string; completedAt?: string; origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
 -  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
 +  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string; attachments?: PreparedAttachmentLink[] }[]; noEntries: SubmissionNoEntry[];
+ }
+ /** Persisted causal carriers are untrusted native data until their complete base shape is checked. */
+ export function validSubmissionOrigin(value: unknown): value is SubmissionOrigin {
+@@ -27,31 +31,59 @@ export function validSubmissionRole(value: unknown): value is SubmissionRole {
+   return value === "input" || value === "prepared" || value === "additional" || value === "execution";
+ }
+ export function validSubmissionCausality(value: unknown): value is SubmissionCausality {
+-  return isRecord(value) && validSubmissionOrigin(value.origin) && validSubmissionRole(value.role);
++  return isRecord(value) && validSubmissionOrigin(value.origin) && validSubmissionRole(value.role)
++    && (value.attachments === undefined || validPreparedLinks(value.attachments));
+ }
+ /** Safe public identity projection. Unknown native fields never become public history payloads. */
+ export function publicSubmissionCausality(value: unknown): SubmissionCausality | undefined {
+   if (value === undefined) return;
+   if (!validSubmissionCausality(value)) throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
+   return { origin: { sourceId: value.origin.sourceId, instanceId: value.origin.instanceId,
+-    nativeSessionId: value.origin.nativeSessionId, clientSubmissionId: value.origin.clientSubmissionId }, role: value.role };
++    nativeSessionId: value.origin.nativeSessionId, clientSubmissionId: value.origin.clientSubmissionId }, role: value.role,
++    ...(value.attachments ? { attachments: structuredClone(value.attachments) } : {}) };
  }
  const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
  const originals = new WeakMap<object, SubmissionCausality>();
@@ -2302,14 +2329,16 @@ index a2a89c55b7..1e99eeae1d 100644
  }
  export function submissionScope(): SubmissionScope | undefined { return scope.getStore(); }
  export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
+-/** Carry an explicit native construction origin into its actual message. */
 +/** Carry an explicit native construction origin into its actual message; never infer from content or custom type. */
-+export function copySubmission(source: object, target: object): void {
-+  const cause = originals.get(source);
+ export function copySubmission(source: object, target: object): void {
+   const cause = originals.get(source);
+-  if (cause && !originals.has(target)) originals.set(target, structuredClone(cause));
 +  if (!cause || originals.has(target)) return;
 +  originals.set(target, structuredClone(cause));
 +  const attachments = attachmentMessages.get(source);
 +  if (attachments) attachmentMessages.set(target, attachments);
-+}
+ }
  export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
    if (!value || originals.has(message)) return;
 +  const attachments = attachmentMessages.get(message);
@@ -2331,33 +2360,50 @@ index a2a89c55b7..1e99eeae1d 100644
  export function causalSubmission(message?: object): SubmissionCausality | undefined {
    const explicit = message && originals.get(message);
 diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
-index 8af5938efb..b04b4dac6a 100644
+index 147392a0f1..71ffcf1ebc 100644
 --- a/packages/coding-agent/src/session/submission-records.ts
 +++ b/packages/coding-agent/src/session/submission-records.ts
 @@ -4,6 +4,7 @@ import type { CustomEntry, SessionEntry } from "./session-entries";
  import type { NativeSubmission } from "./submission-provenance";
- import { sameSubmission } from "./submission-provenance";
+ import { sameSubmission, validSubmissionCausality, validSubmissionRole, validSubmissionOrigin } from "./submission-provenance";
  import { nativeSubmissionPolicy as policy } from "./submission-policy";
-+import { validNativePreparation, validPreparedLinks } from "../attachments/validation";
++import { samePreparedLinks, validNativePreparation, validPreparedLinks } from "../attachments/validation";
+ export const nativeControlRecordBytes = 8 * 1024 * 1024;
  export const SUBMISSION_CONTROL = "omp.native-control/submission-v1";
- export function isSubmissionControl(entry: SessionEntry): entry is CustomEntry {
-   return entry.type === "custom" && entry.customType === SUBMISSION_CONTROL;
-@@ -37,8 +38,14 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
-       throw new Error("SUBMISSION_METADATA_CORRUPT");
-     for (const fact of value.entryFacts ?? []) if (!isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")
+ function boundedString(value: unknown, maximum: number): value is string {
+@@ -44,6 +45,13 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
+     for (const fact of value.noEntries) if (!isRecord(fact) || !boundedString(fact.relationId, 256)
+       || !validSubmissionRole(fact.role) || !["no_entry", "failed"].includes(String(fact.status)) || !boundedString(fact.reason, 512))
        throw new Error("SUBMISSION_METADATA_CORRUPT");
 +    if ((value.originalRequestFingerprint !== undefined && (typeof value.originalRequestFingerprint !== "string" ||
 +      !/^[a-f0-9]{64}$/.test(value.originalRequestFingerprint))) ||
 +      (value.preparation !== undefined && (!validNativePreparation(value.preparation) || value.originalRequestFingerprint === undefined)) ||
 +      (value.entryFacts ?? []).some(fact => isRecord(fact) && fact.attachments !== undefined && !validPreparedLinks(fact.attachments)))
 +      throw new Error("SUBMISSION_METADATA_CORRUPT");
-     for (const fact of value.noEntries) if (!isRecord(fact) || typeof fact.relationId !== "string"
--      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string")
-+      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string"
-+      || (fact.attachments !== undefined && !validPreparedLinks(fact.attachments)))
++    for (const fact of value.noEntries) if (isRecord(fact) && fact.attachments !== undefined && !validPreparedLinks(fact.attachments))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
+     if (new Set((value.entryFacts ?? []).map(fact => fact.entryId)).size !== (value.entryFacts?.length ?? 0)
+       || new Set(value.noEntries.map(fact => fact.relationId)).size !== value.noEntries.length)
        throw new Error("SUBMISSION_METADATA_CORRUPT");
-     const record = value as unknown as NativeSubmission, prior = values.get(record.origin.clientSubmissionId);
-     if (prior && (!sameSubmission(prior.origin, record.origin) || prior.fingerprint !== record.fingerprint
+@@ -55,10 +63,16 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
+       || (prior.operationOutcome !== undefined && prior.operationOutcome !== "unknown" && prior.operationOutcome !== record.operationOutcome)
+       || (prior.inputOutcome !== "unresolved" && prior.inputOutcome !== record.inputOutcome)
+       || prior.preparationId !== record.preparationId
+-      || prior.entryFacts?.some(fact => entryFacts.get(fact.entryId)?.role !== fact.role)
++      || prior.originalRequestFingerprint !== record.originalRequestFingerprint
++      || JSON.stringify(prior.preparation) !== JSON.stringify(record.preparation)
++      || prior.entryFacts?.some(fact => {
++        const next = entryFacts.get(fact.entryId);
++        return !next || next.role !== fact.role || !samePreparedLinks(fact.attachments, next.attachments);
++      })
+       || prior.noEntries.some(fact => {
+         const next = noEntries.get(fact.relationId);
+-        return !next || next.role !== fact.role || next.status !== fact.status || next.reason !== fact.reason;
++        return !next || next.role !== fact.role || next.status !== fact.status || next.reason !== fact.reason
++          || !samePreparedLinks(fact.attachments, next.attachments);
+       })))
+       throw new Error("SUBMISSION_METADATA_CONFLICT");
+     values.set(record.origin.clientSubmissionId, record);
 diff --git a/packages/coding-agent/src/slash-commands/acp-builtins.ts b/packages/coding-agent/src/slash-commands/acp-builtins.ts
 index c059f7f4c0..5ed0600009 100644
 --- a/packages/coding-agent/src/slash-commands/acp-builtins.ts

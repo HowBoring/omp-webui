@@ -23,7 +23,7 @@ function fixture() {
   }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
     submitted++; lastSubmitted = input;
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId, target,
-      found: true, duplicate: false, admission: "local", reservation: "committed", inputOutcome: "unresolved",
+      found: true, duplicate: false, admission: "local", reservation: "committed", inputOutcome: "unresolved", operationOutcome: "unknown",
       persistence: "unresolved", terminal: false, relations: [], nextOffset: null,
       origin: { ...target, clientSubmissionId: input.clientSubmissionId },
       preparation: { ...input.preparationConsent, attachments: [] } };

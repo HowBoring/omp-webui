@@ -17,7 +17,7 @@ index a4b6abe4e7..2d1a13fcc1 100644
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..ba1689e681 100644
+index 0b34d8fc54..35ccdb4b3f 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -44,3 +44,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
@@ -25,13 +25,13 @@ index 0b34d8fc54..ba1689e681 100644
  
  Switching backends mid-session immediately replaces the live backend, memory tools, listeners, and system-prompt context. Existing users with `memories.enabled = true|false` are migrated to `memory.backend = "local"|"off"` exactly once on first launch; afterward, `memory.backend` is the sole runtime selector.
 +
-+Durable submission prototype: see [public reservation and recovery semantics](docs/rpc-submissions.md).
++Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
 diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
 new file mode 100644
-index 0000000000..28295d807c
+index 0000000000..6e11c73539
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-submissions.md
-@@ -0,0 +1,7 @@
+@@ -0,0 +1,21 @@
 +# Durable native submission prototype
 +
 +`submission_submit` binds a permanent client identity to the exact protected native target, immutable preparation identity and input bytes. A reservation is published before extension, builtin, abort, model or tool dispatch. Duplicate keys return existing facts without executing. Conflicting bytes or targets are refused. This does not promise exactly-once external effects: a crashed reserved input remains unresolved and never resumes automatically.
@@ -39,6 +39,20 @@ index 0000000000..28295d807c
 +`submission_query` reads the protected logical native bytes without executing, flushing, repairing or retrying. A reservation differs from completion; individual committed entry relations differ from memory observations, explicit no-entry decisions and unresolved outcomes. Durable means recoverability after a software process crash, not fsync or power-loss durability. The native control ledger admits at most 10,000 permanent keys / 32 MiB; full ledgers refuse new admission, never evict tombstones. Query pages have at most 128 relations. The ledger stays outside the 16 KiB catalog prefix and outside the native tree/model index. After one protected feature upgrade, reservation and completion append verified control records instead of rewriting the full history. Native entries hold minimal causal origin fields; metadata contains no prompt copy. Reservation/completion preserve the active leaf and do not enter model context.
 +
 +The `ompgen2` discriminator prevents unsupported generation readers from opening submission-bearing data. Matched native copies retain origin facts and tombstones; a copied fact is inherited, never an admission into the destination. An unsupported required feature is refused. Product private admission remains blocked pending combined native/TUI/browser/fault acceptance.
++
++Public `HistoryItem.submission` carries only a validated original native origin and causal role. Retained entries are
++checked against their permanent reservation; running/live values come from the actual original object carrier. Copies
++retain the source origin. This is exact causal identity, while history remains observational and never substitutes for
++a committed submission receipt. Unknown native fields are omitted. Existing item/page/snapshot budgets and immutable
++cut checks include the new identity bytes. Native control rows are limited to8MiB each; later rows cannot forget earlier
++committed entry/no-entry facts, change causal roles or replace a known input outcome. Extension custom state cannot write
++the reserved `omp.native-control/` namespace. A refused native New operation preserves the current permanent ledger.
++
++`operationOutcome` is `succeeded`, `failed`, `cancelled` or `unknown`. It reports the primary native operation, separately from `inputOutcome`, relation persistence and terminal settlement. Only an actual local handler return or the exact native prompt ticket result supplies a known outcome. An acknowledgement, `agent_end`, `waitForIdle` or committed user entry alone cannot establish success; tool side effects may fail even when the primary operation succeeds. A restarted incomplete reservation and older records without this field report `unknown` unless a protected publication retained a known result. `no_input` means no initiating native input entry was generated: a successful handled operation can still append additional messages or perform effects.
++
++`submission_submit` accepts optional `idleOnly: true` for prompt input without a streaming hint. Native guards refuse busy or queued admission before input hooks, recheck protected authority after preprocessing awaits, and refuse a busy agent claim instead of waiting for an autonomous run. Ordinary callers retain their native queue and command behavior. Permanent duplicates are resolved before this new-admission check. A refused operation can retain a reservation and failed operation outcome; it must never be inferred to have succeeded from a no-input receipt.
++
++History item `submission` projects exact native origin and causal role for its entry identity, including running observations and copied origins. It never associates a local echo with a native row by text, order, or timestamps. Reserved `omp.native-control/` custom types are unavailable to extension appends. Persisted causal entries require a matching permanent reservation; later records cannot discard committed entry or no-entry facts.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 index e189b420d9..c255209d03 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
@@ -84,18 +98,157 @@ index dca44f560b..facf7847a7 100644
            runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+index b7e4c368d9..4eeffe1c5d 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -1,3 +1,5 @@
++import { messageSubmission, publicSubmissionCausality } from "../../session/submission-provenance";
++import type { SubmissionCausality } from "../../session/submission-provenance";
+ import { nativeHistoryContextId } from "../../session/history-context";
+ import { nativeMessageIdentity, nativeMessageSettlement, nativeMessageEntry } from "../../session/live-message-observation";
+ import type { NativeMessageIdentity, NativeMessageObservation, NativeMessageSettlement } from "../../session/live-message-observation";
+@@ -19,6 +21,8 @@ export interface HistoryContent {
+ }
+ export interface HistoryLiveIdentity extends NativeMessageIdentity { workerId: string }
+ export interface HistoryItem {
++  /** Exact native origin; observational history is not a durable submission receipt. */
++  submission?: SubmissionCausality;
+   live?: HistoryLiveIdentity; settlement?: NativeMessageSettlement; livePhase?: "streaming" | "ended";
+   id: string; parentId: string | null; kind: string; active: boolean; text: string;
+   provider?: string; model?: string; contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
+@@ -50,13 +54,13 @@ export interface HistoryChange {
+ export interface HistoryPoll { cut: HistoryCut; after: number; through: number; events: HistoryChange[]; hasMore: boolean }
+ interface Runtime { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }
+ interface ContentPosition { content: HistoryContent; data: string; offset: number }
+-interface RuntimeFingerprint { revision: string; live: string | undefined; entry: string | undefined; settled: boolean }
++interface RuntimeFingerprint { revision: string; live: string | undefined; submission: string | undefined; entry: string | undefined; settled: boolean }
+ function runtimeProgress(prior: RuntimeFingerprint[], current: RuntimeFingerprint[]): boolean {
+   if (current.length < prior.length) return false;
+   return current.every((value, index) => {
+     const old = prior[index];
+     if (!old) return value.live !== undefined || value.entry !== undefined;
+-    if (old.live !== value.live) return false;
++    if (old.live !== value.live || old.submission !== value.submission) return false;
+     if (old.revision === value.revision) return true;
+     // Native end/recovery may materialize final accounting before publishing the same original object.
+     return old.live !== undefined && !old.settled && value.settled;
+@@ -123,6 +127,8 @@ function readableEntry(value: unknown, active: Set<string>, content: (value: unk
+   const id = String(entry.id);
+   const item: HistoryItem = { id, parentId: typeof entry.parentId === "string" ? entry.parentId : null,
+     kind: String(entry.type), active: active.has(id), text: "[Native structural record]" };
++  const submission = publicSubmissionCausality(entry.submission);
++  if (submission) item.submission = submission;
+   if (typeof entry.timestamp === "string") item.timestamp = entry.timestamp;
+   if (entry.type === "message") Object.assign(item, readableMessage(entry.message, content));
+   if (entry.type === "custom_message") {
+@@ -196,7 +202,8 @@ export class RpcHistoryObservation {
+     const live = { ...event.live, workerId: this.#workerId };
+     try {
+       const item: HistoryItem = { id: live.messageId, parentId: live.branchLeafId, kind: event.kind,
+-        active: false, live, ...readableMessage(event.message) };
++        active: false, live, submission: publicSubmissionCausality(messageSubmission(event.message)),
++        ...readableMessage(event.message) };
+       const change = { kind: event.kind, live, item,
+         ...(event.settlement ? { settlement: { ...event.settlement } } : {}) };
+       if (Buffer.byteLength(JSON.stringify(change)) > HISTORY_LIMITS.itemBytes) throw new Error("history_live_item_bytes");
+@@ -223,12 +230,18 @@ export class RpcHistoryObservation {
+   }
+   #capture(materialize = true) {
+     const runtime = this.#runtime();
++    if (runtime.messages.length > HISTORY_LIMITS.runningMessages) throw new Error("history_scan_entries");
+     const prefixLive = nativeMessageIdentity(runtime.prefix);
++    const prefixSubmission = typeof runtime.prefix === "object" && runtime.prefix !== null
++      ? publicSubmissionCausality(messageSubmission(runtime.prefix)) : undefined;
++    const runningSubmissions = runtime.messages.map(message => typeof message === "object" && message !== null
++      ? publicSubmissionCausality(messageSubmission(message)) : undefined);
+     const runningLive = runtime.messages.map(message => nativeMessageIdentity(message));
+     const runningSettlements = runtime.messages.map(message => typeof message === "object" && message !== null ? nativeMessageSettlement(message) : undefined);
+     const value = this.#manager.captureHistoryObservation(runtime, HISTORY_LIMITS, materialize, true);
+     const runtimeFingerprints = value.handoffRuntimeRevisions.map((revision, index) => ({ revision,
+       live: runningLive[index] ? JSON.stringify(runningLive[index]) : undefined,
++      submission: runningSubmissions[index] ? JSON.stringify(runningSubmissions[index]) : undefined,
+       entry: typeof runtime.messages[index] === "object" && runtime.messages[index] !== null
+         ? nativeMessageEntry(runtime.messages[index] as object, this.#manager) : undefined,
+       settled: runningSettlements[index] !== undefined,
+@@ -249,17 +262,21 @@ export class RpcHistoryObservation {
+       this.#lastRetainedRevision !== value.retainedRevision)) this.observe({ type: "native_untracked_rewrite" });
+     this.#lastEntryRevisions = value.handoffEntryRevisions; this.#lastHeaderRevision = value.handoffHeaderRevision;
+     this.#lastNativeRevision = value.revision; this.#lastRetainedRevision = value.retainedRevision;
+-    if (value.contentRevision !== this.#lastRevision) {
++    // Runtime causal metadata comes from the original objects, outside JSON message
++    // payloads. Include it in the same opaque cut so immutable-page checks cover it.
++    const contentRevision = Bun.SHA256.hash(value.contentRevision + "\n"
++      + JSON.stringify([prefixSubmission, runningSubmissions]), "hex");
++    if (contentRevision !== this.#lastRevision) {
+       this.observe({ type: "native_content_changed" });
+-      this.#lastRevision = value.contentRevision;
++      this.#lastRevision = contentRevision;
+     }
+     const contextId = nativeHistoryContextId(value.sourceId, value.contextRevision, value.contextContentRevision);
+     const cut: HistoryCut = { durability: "not_attested", sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
+       ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
+-      workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
++      workerId: this.#workerId, contextId, contentRevision,
+       nativeRevision: value.revision, retainedRevision: value.retainedRevision,
+       leafId: value.leafId, observationSeq: this.#seq };
+-    return { ...value, cut, runtimeFingerprints, prefixLive, runningLive, runningSettlements };
++    return { ...value, cut, runtimeFingerprints, prefixLive, prefixSubmission, runningLive, runningSubmissions, runningSettlements };
+   }
+   open(scope: HistoryScope, handoff?: "current" | "live"): HistoryOpen {
+     const started = performance.now();
+@@ -331,6 +348,7 @@ export class RpcHistoryObservation {
+     const tree = value.entries.flatMap(entry => encodedById.get(entry.id)!);
+     const activeRows = [...active].reverse().flatMap(id => encodedById.get(id)!);
+     const runningItems = value.runtime.messages.map((message, index): HistoryItem => ({
++      ...(value.runningSubmissions[index] ? { submission: value.runningSubmissions[index] } : {}),
+       ...(value.runningLive[index] ? { live: { ...value.runningLive[index]!, workerId: this.#workerId }, livePhase: "ended" as const } : {}),
+       ...(value.runningSettlements[index] ? { settlement: { ...value.runningSettlements[index]! } } : {}),
+       id: `running-${index}`, parentId: null, active: false, kind: "running", ...readableMessage(message, registerContent),
+@@ -339,10 +357,12 @@ export class RpcHistoryObservation {
+     const live = runningItems.filter(item => item.live && !item.settlement).flatMap(split);
+     const prefixItem: HistoryItem | null = value.runtime.prefix === null ? null : { id: "running-prefix", parentId: null,
+       kind: "running_prefix", active: false, livePhase: "streaming",
++      ...(value.prefixSubmission ? { submission: value.prefixSubmission } : {}),
+       ...(value.prefixLive ? { live: { ...value.prefixLive, workerId: this.#workerId } } : {}), ...readableMessage(value.runtime.prefix, registerContent) };
+     if (prefixItem) { const prefixRows = split(prefixItem); running.push(...prefixRows); live.push(...prefixRows); }
+     // Active rows share exactly the tree's encoded strings. Count retained storage once.
+-    const bytes = contentBytes + Buffer.byteLength(JSON.stringify(value.runtimeFingerprints)) + value.handoffEntryRevisions.length * 64 + (value.handoffHeaderRevision?.length ?? 0) + [...tree, ...running, ...live].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
++    const bytes = contentBytes + Buffer.byteLength(JSON.stringify(value.runtimeFingerprints))
++      + Buffer.byteLength(JSON.stringify(value.prefixSubmission ?? null)) + value.handoffEntryRevisions.length * 64 + (value.handoffHeaderRevision?.length ?? 0) + [...tree, ...running, ...live].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
+     if (bytes > HISTORY_LIMITS.snapshotBytes) throw new Error("history_snapshot_bytes");
+     if ([...tree, ...running, ...live].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
+     const snapshot = crypto.randomUUID();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..e71a0ac1e3 100644
+index 3a336fa764..7e8e62fdb9 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,3 +1,6 @@
+@@ -1,3 +1,7 @@
 +import { nativeSubmissionPolicy } from "../../session/submission-policy";
 +import { RpcSubmissions } from "./rpc-submissions";
++import type { SubmissionOperationOutcome } from "../../session/submission-provenance";
 +import { runSubmission, submissionScope } from "../../session/submission-provenance";
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
  import { getStrictStartup, observeStrictStartup } from "./strict-context";
-@@ -448,8 +451,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+@@ -349,14 +353,14 @@ export async function dispatchRpcSkillPrompt(input: {
+ 	await watchAndReportPromptResult({
+ 		ticket: input.ticket,
+ 		startPrompt: onPromptAdmitted =>
+-			runRpcSkillCommand(
++      runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => runRpcSkillCommand(
+ 				input.session,
+ 				invocation,
+ 				input.streamingBehavior ?? "steer",
+ 				built,
+ 				onPromptAdmitted,
+ 				input.images,
+-			),
++			)),
+ 		results: input.results,
+ 		onError: input.onError,
+ 		extensionUserMessageTracker: input.extensionUserMessageTracker,
+@@ -448,8 +452,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
  /**
   * Dispatch a single parsed frame from the RPC input stream.
   *
@@ -106,7 +259,7 @@ index 3a336fa764..e71a0ac1e3 100644
   * still settling: a `bash` command can run for a long time, and a `prompt`
   * command's response is held until the message is admitted, which can span
   * real wall-clock time (image normalization, a vision-model description call).
-@@ -466,7 +469,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+@@ -466,7 +470,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
   *
   * @returns `undefined` when the frame was routed to a side-channel handler
   *   (extension UI response, host tool/URI frames) or dispatched in the
@@ -116,7 +269,7 @@ index 3a336fa764..e71a0ac1e3 100644
   *   resolves once the response for the command has been emitted via `output`.
   *   Errors from `handleCommand` on a command dispatched inline propagate; the
   *   caller is expected to wrap them.
-@@ -492,6 +496,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -492,6 +497,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  	if (
  		BACKGROUND_COMMANDS.has(command.type) ||
  		command.type === "prompt" ||
@@ -124,7 +277,7 @@ index 3a336fa764..e71a0ac1e3 100644
  		command.type === "steer" ||
  		command.type === "dictation_start" ||
  		command.type === "follow_up" ||
-@@ -515,6 +520,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -515,6 +521,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  }
  
  const USER_INPUT_TYPES: Record<string, true> = {
@@ -132,7 +285,7 @@ index 3a336fa764..e71a0ac1e3 100644
  	prompt: true,
  	steer: true,
  	follow_up: true,
-@@ -560,6 +566,12 @@ export class RpcUserInputGate {
+@@ -560,6 +567,12 @@ export class RpcUserInputGate {
  		if (isAbort) this.#validFrom = sequence;
  	}
  
@@ -145,7 +298,7 @@ index 3a336fa764..e71a0ac1e3 100644
  	/** A session change succeeded: invalidate input accepted before its frame. */
  	commitSessionChange(command: RpcCommand): void {
  		const sequence = this.#acceptedAt.get(command);
-@@ -1320,7 +1332,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1320,7 +1333,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -154,14 +307,15 @@ index 3a336fa764..e71a0ac1e3 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1834,17 +1846,29 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1834,17 +1847,32 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
-+	const submissions = new RpcSubmissions(session);
++	const submissions = new RpcSubmissions(session, task => shutdownCoordinator.track(task));
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
- 	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
+-	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
++	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
  	const dispatchOrderedUserInput = (
  		command: OrderedUserInput,
  		ticket: RpcPromptTicket | undefined,
@@ -175,7 +329,10 @@ index 3a336fa764..e71a0ac1e3 100644
 -				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
 +			const isCurrent = () => {
 +				if (!inputGate.isCurrent(command) || shutdownState.requested || session.sessionId !== sessionId) return false;
-+				if (initiatingSubmission) {
++				if (initiatingSubmission?.idleOnly && (session.isStreaming || session.hasAdmittedSubmission
++          || session.queuedMessageCount > 0 || session.isCompacting || session.isSessionTransitioning
++          || session.hasPendingAsyncWork() || goalTurnScheduled())) throw new Error("SUBMISSION_BUSY");
++        if (initiatingSubmission) {
 +					// Admission can wait behind an awaited input hook. Recheck the held native
 +					// namespace, lease and cwd before each subsequent ingress side effect.
 +					const target = session.sessionManager.getSubmissionTarget();
@@ -188,7 +345,7 @@ index 3a336fa764..e71a0ac1e3 100644
  			if (!isCurrent()) return "cancelled";
  			let text = command.message;
  			let images = command.images;
-@@ -1859,11 +1883,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1859,11 +1887,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			if (!isCurrent()) return "cancelled";
  			if (!text.trim() && !images?.length) return "local";
  			if (command.type === "steer") {
@@ -202,7 +359,23 @@ index 3a336fa764..e71a0ac1e3 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1941,17 +1965,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1921,6 +1949,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				if (!isCurrent()) return "cancelled";
+ 				if (builtinResult !== false) {
+ 					if (!("prompt" in builtinResult)) {
++            if (initiatingSubmission && builtinResult.failed) return "local-failed";
+ 						if (builtinResult.agentInvoked === true && ticket) {
+ 							void session.waitForIdle().then(
+ 								() => promptResults.settle(ticket),
+@@ -1932,6 +1961,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 							);
+ 							return "builtin-agent";
+ 						}
++            if (initiatingSubmission && backgroundedBuiltin) return "local-unknown";
+ 						return "local";
+ 					}
+ 					text = builtinResult.prompt;
+@@ -1941,17 +1971,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -224,7 +397,7 @@ index 3a336fa764..e71a0ac1e3 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +1999,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1974,6 +2005,47 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -239,22 +412,32 @@ index 3a336fa764..e71a0ac1e3 100644
 +					const reservation = await submissions.reserve(command);
 +					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
 +					const { scope } = reservation;
-+					try {
++          let ticket: RpcPromptTicket | undefined;
++          try {
++            if (command.idleOnly && (command.inputType !== "prompt" || command.streamingBehavior !== undefined))
++              throw new Error("SUBMISSION_IDLE_PROMPT_REQUIRED");
 +						const input = { ...command, type: command.inputType };
 +						inputGate.alias(command, input);
 +						if (input.type === "abort_and_prompt") {
 +							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
 +							await session.abort({ reason: USER_INTERRUPT_LABEL });
 +						}
-+						const ticket = input.type === "prompt" || input.type === "abort_and_prompt" ? promptResults.begin(id) : undefined;
++						const result = Promise.withResolvers<SubmissionOperationOutcome>();
++            ticket = input.type === "prompt" || input.type === "abort_and_prompt" ? promptResults.begin(id, status => {
++              result.resolve(status === "completed" ? "succeeded" : status === "aborted" ? "cancelled" : "failed");
++            }) : undefined;
 +						const outcome = await submissions.run(scope, () => dispatchOrderedUserInput(input, ticket));
-+						if (ticket && outcome === "local") promptResults.discard(ticket);
++						if (ticket && (outcome === "local" || outcome === "local-failed" || outcome === "local-unknown")) promptResults.discard(ticket);
 +						if (ticket && outcome === "cancelled") promptResults.settle(ticket);
-+						const completion = submissions.complete(scope.origin, outcome === "local");
++						const completion = submissions.complete(scope.origin, outcome === "local" ? "succeeded"
++              : outcome === "local-failed" ? "failed" : outcome === "local-unknown" ? "unknown" : outcome === "cancelled" ? "cancelled" : ticket ? result.promise : "unknown");
 +						shutdownCoordinator.track(completion);
-+						if (outcome === "local") await completion;
++						if (outcome === "local" || outcome === "local-failed" || outcome === "local-unknown") await completion;
 +						return success(id, command.type, submissions.query(command.clientSubmissionId));
-+					} catch (failure) { submissions.fail(scope.origin, failure); throw failure; }
++					} catch (failure) {
++            if (ticket) promptResults.discard(ticket);
++            await submissions.reject(scope.origin, failure); throw failure;
++          }
 +				} catch (failure) { const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
 +					return error(id, command.type, code, code); }
 +			}
@@ -262,33 +445,71 @@ index 3a336fa764..e71a0ac1e3 100644
  			case "prompt": {
  				// Taken before any dispatch so a builtin that schedules a turn (e.g. `/retry`)
  				// cannot start its run ahead of the prompt's event-stream position.
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts b/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
+index eaef54f541..9dac259e5b 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
+@@ -30,6 +30,8 @@ interface RunOutcome {
+ }
+ 
+ interface OpenPrompt {
++  /** Exact ticket callback; never associates by a possibly reused RPC request id. */
++  onResult?: (status: RpcPromptStatus) => void;
+ 	/** `agent_start` count at acceptance; a later start begins a run this prompt may own. */
+ 	startsAtBegin: number;
+ 	/** Outcome of the first run started after acceptance, once the agent yielded it. */
+@@ -85,9 +87,10 @@ export class RpcPromptResults {
+ 	}
+ 
+ 	/** Open a ticket before the prompt starts any work. Close it with exactly one report or {@link discard}. */
+-	begin(id: string | undefined): RpcPromptTicket {
++	begin(id: string | undefined, onResult?: (status: RpcPromptStatus) => void): RpcPromptTicket {
+ 		const ticket: RpcPromptTicket = { id };
+ 		this.#open.set(ticket, {
++      onResult,
+ 			startsAtBegin: this.#agentStarts,
+ 			refusalAtBegin: this.#costCapRefusal?.(),
+ 			waiting: false,
+@@ -176,7 +179,9 @@ export class RpcPromptResults {
+ 	}
+ 
+ 	#report(ticket: RpcPromptTicket, agentInvoked: boolean, outcome: RunOutcome): void {
+-		if (!this.#open.delete(ticket)) return;
++		const open = this.#open.get(ticket);
++    if (!open || !this.#open.delete(ticket)) return;
++    open.onResult?.(outcome.status);
+ 		// A prompt command's response is written after the handler's remaining
+ 		// microtasks; deferring to the next macrotask keeps every prompt_result
+ 		// behind the response for the same id and lets queue drains land before
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..618b561af7
+index 0000000000..9622e99a9e
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,128 @@
+@@ -0,0 +1,161 @@
++import { assertSubmissionEntries } from "../../session/submission-records";
 +import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
 +import type { AgentSession } from "../../session/agent-session";
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
 +import { messageSubmission, runSubmission, sameSubmission } from "../../session/submission-provenance";
-+import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget } from "../../session/submission-provenance";
++import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget, SubmissionOperationOutcome } from "../../session/submission-provenance";
 +import { validSubmissionCommand } from "./submissions.generated";
 +import type { SubmissionResult } from "./wire/rpc-wire.generated";
 +export type { SubmissionResult } from "./wire/rpc-wire.generated";
 +export interface SubmissionSubmit {
 +  id?: string; type: "submission_submit"; clientSubmissionId: string; sourceId: string; instanceId: string; nativeSessionId: string; preparationId: string;
 +  inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt"; message: string; images?: ImageContent[];
-+  streamingBehavior?: "steer" | "followUp";
++  streamingBehavior?: "steer" | "followUp"; idleOnly?: boolean;
 +}
 +export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
-+interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>> }
++interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>>; revision: number; settled: boolean;
++  operationOutcome: SubmissionOperationOutcome; publication?: Promise<void> }
 +export class RpcSubmissions {
 +  readonly #pending = new Map<string, PendingSubmission>();
 +  #target: SubmissionTarget | undefined;
 +  readonly #failures = new Map<string, "failed" | "unknown">();
-+  constructor(readonly session: AgentSession) {
++  constructor(readonly session: AgentSession, readonly track: (task: Promise<void>) => void = () => {}) {
 +    try { this.#target = session.sessionManager.getSubmissionTarget(); } catch { /* Ordinary unprotected sessions refuse this API. */ }
 +    session.subscribeMessageObservations(observation => {
 +      if (observation.kind !== "message_settlement" || !observation.settlement) return;
@@ -298,9 +519,11 @@ index 0000000000..618b561af7
 +      if (!pending || !sameSubmission(pending.origin, cause.origin)) return;
 +      const decision = observation.settlement;
 +      if (decision.status === "observed") return;
-+      if (pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
++      if (!pending.noEntries.has(observation.live.messageId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
 +      pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
 +        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++      pending.revision++;
++      if (pending.settled) this.track(this.complete(pending.origin, pending.operationOutcome));
 +    });
 +  }
 +  validate(command: unknown): void {
@@ -325,7 +548,7 @@ index 0000000000..618b561af7
 +        || target.nativeSessionId !== command.nativeSessionId) throw new Error("SUBMISSION_TARGET_MISMATCH");
 +    const origin = { ...target, clientSubmissionId: command.clientSubmissionId };
 +    const fingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
-+      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null }), "hex");
++      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null, ...(command.idleOnly ? { idleOnly: true } : {}) }), "hex");
 +    const reservation: NativeSubmission = { origin, fingerprint, preparationId: command.preparationId,
 +      terminal: false, inputOutcome: "unresolved", noEntries: [] };
 +    let admitted: boolean;
@@ -335,46 +558,75 @@ index 0000000000..618b561af7
 +      throw failure;
 +    }
 +    const tasks = new Set<Promise<unknown>>();
-+    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks });
-+    return { admitted, scope: { origin, phase: "extension", tasks, onTaskOverflow: () => {
++    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, settled: false, operationOutcome: "unknown" });
++    return { admitted, scope: { origin, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
 +      const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
 +    } } };
 +  }
 +  run<T>(scope: SubmissionScope, run: () => T): T { return runSubmission(scope, run); }
-+  async complete(origin: SubmissionOrigin, local: boolean): Promise<void> {
++  complete(origin: SubmissionOrigin, operation: SubmissionOperationOutcome | Promise<SubmissionOperationOutcome>): Promise<void> {
++    const pending = this.#pending.get(origin.clientSubmissionId);
++    if (!pending) return Promise.resolve();
++    const publication = (pending.publication ?? Promise.resolve()).then(() => this.#complete(origin, operation));
++    pending.publication = publication;
++    return publication;
++  }
++  async #complete(origin: SubmissionOrigin, operation: SubmissionOperationOutcome | Promise<SubmissionOperationOutcome>): Promise<void> {
 +    const pending = this.#pending.get(origin.clientSubmissionId);
 +    if (!pending) return;
 +    try {
++      const operationOutcome = await operation;
++      pending.operationOutcome = operationOutcome;
++      pending.settled = false;
 +      while (pending.tasks.size) await Promise.allSettled([...pending.tasks]);
 +      await this.session.waitForAdmittedSubmissions();
 +      await this.session.waitForIdle();
 +      if (pending.overflow) throw new Error("SUBMISSION_RELATION_LIMIT");
++      let revision: number;
++      do {
++      revision = pending.revision;
 +      const state = this.session.sessionManager.readSubmissionState();
 +      const generated = state.entries.some(entry => entry.submission && sameSubmission(entry.submission.origin, origin)
 +        && entry.submission.role === "input");
-+      await this.session.sessionManager.completeSubmission(origin, generated ? "generated" : local ? "no_input" : "unresolved",
-+        [...pending.noEntries.values()]);
++      await this.session.sessionManager.completeSubmission(origin, generated ? "generated" : "no_input",
++        [...pending.noEntries.values()], operationOutcome);
++      } while (revision !== pending.revision);
++      pending.settled = true;
 +    } catch (failure) { this.fail(origin, failure); }
-+    finally { this.#pending.delete(origin.clientSubmissionId); }
++
++  }
++  /** A thrown local operation can still have committed effects. Publish its failure only under current authority. */
++  async reject(origin: SubmissionOrigin, failure: unknown): Promise<void> {
++    const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
++    if (this.#unknownAuthority(code)) this.fail(origin, failure);
++    else await this.complete(origin, "failed");
++  }
++  #unknownAuthority(code: string): boolean {
++    return /^STRICT_|UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY/.test(code)
++      || /^SUBMISSION_(TARGET_|PROTECTED_STORAGE_REQUIRED$|CAUSALITY_|METADATA_(CORRUPT|CONFLICT))/.test(code);
 +  }
 +  fail(origin: SubmissionOrigin, failure: unknown): void {
 +    const code = failure instanceof Error ? failure.message : "SUBMISSION_FAILURE";
 +    // Loss of protected authority cannot prove a terminal no-entry publication.
-+    const unknown = /^STRICT_|UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY|^SUBMISSION_TARGET_|^SUBMISSION_PROTECTED_STORAGE_REQUIRED$/.test(code);
++    const unknown = this.#unknownAuthority(code);
 +    this.#failures.set(origin.clientSubmissionId, unknown ? "unknown" : "failed");
 +  }
 +  query(clientSubmissionId: string, offset = 0, limit = 64, duplicate = false): SubmissionResult {
 +    this.validate({ type: "submission_query", clientSubmissionId, offset, limit });
 +    let target = this.#target;
 +    let state;
++    let observedEntries;
 +    try { target = this.session.sessionManager.getSubmissionTarget(); this.#target = target;
-+      state = this.session.sessionManager.readSubmissionState(); }
++      state = this.session.sessionManager.readSubmissionState();
++      observedEntries = this.session.sessionManager.getEntries();
++      assertSubmissionEntries(observedEntries, state.submissions);
++    }
 +    catch (failure) { if (!target) throw failure; return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
-+      reservation: "unknown", inputOutcome: "unresolved", persistence: "unknown", terminal: false, relations: [], nextOffset: null,
++      reservation: "unknown", operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unknown", terminal: false, relations: [], nextOffset: null,
 +      code: "SUBMISSION_SOURCE_UNREADABLE" }; }
 +    const value = state.submissions.find(item => item.origin.clientSubmissionId === clientSubmissionId);
 +    if (!value) return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
-+      reservation: "absent", inputOutcome: "unresolved", persistence: this.#failures.get(clientSubmissionId) ?? "unresolved", terminal: false, relations: [], nextOffset: null };
++      reservation: "absent", operationOutcome: "unknown", inputOutcome: "unresolved", persistence: this.#failures.get(clientSubmissionId) ?? "unresolved", terminal: false, relations: [], nextOffset: null };
 +    const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
 +    const retained = new Set(durableEntries.map(entry => entry.id));
 +    const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
@@ -382,7 +634,7 @@ index 0000000000..618b561af7
 +    const relations: SubmissionResult["relations"] = [...facts.values()].map(fact => ({ relationId: `entry:${fact.entryId}`,
 +      role: fact.role, status: "observed", persistence: "committed", entryId: fact.entryId,
 +      availability: retained.has(fact.entryId) ? "retained" : "removed" }));
-+    for (const entry of this.session.sessionManager.getEntries()) {
++    for (const entry of observedEntries) {
 +      if (facts.has(entry.id) || !entry.submission || !sameSubmission(entry.submission.origin, value.origin)) continue;
 +      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id });
 +    }
@@ -391,7 +643,7 @@ index 0000000000..618b561af7
 +    return { version: "durable-submission-v1", clientSubmissionId, target, found: true, duplicate,
 +      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
 +        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
-+      reservation: "committed", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
++      reservation: "committed", operationOutcome: value.operationOutcome ?? "unknown", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
 +      persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
 +      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
 +  }
@@ -642,6 +894,19 @@ index 5152c250bb..7dbe653b1a 100644
  			"protocolVersion?": "number.integer",
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
+index 167ff4f8ff..0b28662fc7 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/history.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
+@@ -10,7 +10,7 @@ export const historyDefs = {
+     contextId: "string", branchLeafId: "string | null", "toolOwnerMessageId?": "string" },
+   HistorySettlement: { status: "'observed' | 'no_entry' | 'failed'", durability: "'not_attested'", "entryId?": "string", "reason?": "string" },
+   HistoryNativeChange: { kind: "string", revision: "number.integer", contextRevision: "number.integer", sessionId: "string", leafId: "string | null", "entryId?": "string" },
+-  HistoryItem: { "provider?": "string", "model?": "string", "live?": "HistoryLiveIdentity", "settlement?": "HistorySettlement", "livePhase?": "'streaming' | 'ended'", id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
++  HistoryItem: { "submission?": "SubmissionCausality", "provider?": "string", "model?": "string", "live?": "HistoryLiveIdentity", "settlement?": "HistorySettlement", "livePhase?": "'streaming' | 'ended'", id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
+     "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
+   HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
+   HistoryCut: { durability: "'not_attested'", sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
 index 1e7b675bc3..afeae50dfa 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
@@ -661,10 +926,10 @@ index 1e7b675bc3..afeae50dfa 100644
  		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 new file mode 100644
-index 0000000000..6679486e23
+index 0000000000..bb80bd4fd4
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,25 @@
 +/** Recoverable ingress identity. Only protected native storage may admit input. Query never executes. */
 +export const submissionDefs = {
 +  SubmissionPolicy: {version:"'durable-submission-v1'",status:"'prototype'",ownership:"'native-exclusive-pinned-storage'",
@@ -672,43 +937,88 @@ index 0000000000..6679486e23
 +    logicalHeader:"'ompsub1'",carrier:"'ompgen2'",maxSubmissions:"number.integer",maxMetadataBytes:"number.integer",
 +    maxEntryFacts:"number.integer",maxNoEntryFacts:"number.integer",maxQueryRelations:"number.integer",
 +    maxMessageBytes:"number.integer",maxImagesBytes:"number.integer",maxPendingTasks:"number.integer"},
++  SubmissionCausality: { origin: "SubmissionOrigin", role: "'input' | 'prepared' | 'additional' | 'execution'" },
 +  SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
 +  SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
 +    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
 +  SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", target: "SubmissionTarget", found: "boolean", duplicate: "boolean",
 +    admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
-+    inputOutcome: "'unresolved' | 'generated' | 'no_input'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
++    inputOutcome: "'unresolved' | 'generated' | 'no_input'",
++    operationOutcome: "'succeeded' | 'failed' | 'cancelled' | 'unknown'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
 +    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
 +  SubmissionOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", clientSubmissionId: "string" },
 +};
 +export const submissionCommands = [
 +  { name: "submission_submit", doc: "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
 +    params: { clientSubmissionId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", preparationId: "string", inputType: "'prompt' | 'steer' | 'follow_up' | 'abort_and_prompt'",
-+      message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
++      "idleOnly?": "boolean", message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
 +  { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 68a1154008..b6c52add3d 100644
+index 68a1154008..361777cee8 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
-+import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { assertSubmissionCurrent, captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
  import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
  import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
  /**
-@@ -3752,7 +3753,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -2177,6 +2178,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				isHiddenUserCompanion(previous) && (isHiddenUserCompanion(next) || isUserQueuedMessage(next)),
+ 		);
+ 		this.sessionManager = config.sessionManager;
++    const nativeStream = this.agent.streamFn;
++    this.agent.streamFn = (model, context, options) => {
++      const origin = submissionScope()?.origin;
++      if (!origin) return nativeStream(model, context, options);
++      const check = () => assertSubmissionCurrent(() => this.sessionManager.getSubmissionTarget(), origin);
++      check();
++      return nativeStream(model, context, { ...options, onPayload: async (payload, payloadModel, signal) => {
++        check();
++        const result = await options?.onPayload?.(payload, payloadModel, signal);
++        check();
++        return result;
++      } });
++    };
+ 		// Only a recorded approval may turn a draft file into an execution reference.
+ 		for (const entry of this.sessionManager.getBranch().reverse()) {
+ 			if (entry.type !== "mode_change") continue;
+@@ -3748,11 +3762,31 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		return this.agent.logContext ? logger.withContext(this.agent.logContext, work) : work();
+ 	}
+ 
+-	async #admitSubmission<T>(work: () => Promise<T>): Promise<T> {
++	#withMessageSubmission<T>(message: object | undefined, work: () => T): T {
++		const cause = message && messageSubmission(message), current = submissionScope();
++		if (!cause || (current && sameSubmission(current.origin, cause.origin))) return work();
++		return runSubmission({ origin: cause.origin, phase: "extension" }, work);
++	}
++
++	#assertSubmissionCurrent(): void {
++    assertSubmissionCurrent(() => this.sessionManager.getSubmissionTarget());
++  }
++
++  #assertSubmissionIdle(): void {
++    this.#assertSubmissionCurrent();
++    if (submissionScope()?.idleOnly && (this.isStreaming || this.queuedMessageCount > 0
++      || this.isCompacting || this.isSessionTransitioning)) throw new Error("SUBMISSION_BUSY");
++  }
++
++  async #admitSubmission<T>(work: () => Promise<T>): Promise<T> {
++    this.#assertSubmissionCurrent();
  		this.#admittedSubmissionCount++;
  		try {
  			if (this.hasPendingDeferredExtensions) await this.loadDeferredExtensions();
 -			return await this.#inLogContext(work);
++      this.#assertSubmissionCurrent();
 +			const admittedWork = this.#inLogContext(work);
 +			trackSubmissionTask(admittedWork);
 +			return await admittedWork;
  		} finally {
  			if (--this.#admittedSubmissionCount === 0 && this.#admittedSubmissionsSettled) {
  				const settled = this.#admittedSubmissionsSettled;
-@@ -4283,8 +4286,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4283,8 +4317,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	#queueMessageEndPersistence(message: AgentMessage, promptGeneration: number): Promise<void> {
  		const key = sessionMessagePersistenceKey(message);
  		const live = nativeMessageIdentity(message);
@@ -720,7 +1030,7 @@ index 68a1154008..b6c52add3d 100644
  				try {
  					const settlement = this.#persistMessageEnd(message, promptGeneration);
  					if (settlement.status === "no_entry" && settlement.reason === "empty_error") {
-@@ -4294,7 +4299,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4294,7 +4330,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					this.#messageObservations.settle(message, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
  					throw error;
  				}
@@ -729,7 +1039,15 @@ index 68a1154008..b6c52add3d 100644
  			.finally(() => {
  				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
  					this.#pendingMessageEndPersistence.delete(key);
-@@ -4717,6 +4722,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4565,6 +4601,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 					// otherwise records emission time, which on rebuild excludes
+ 					// provider preparation / hook time from the prompt→yield anchor.
+ 					message.timestamp,
++					message,
+ 				);
+ 			}
+ 			if (message.role === "custom" && message.customType === "ttsr-injection") {
+@@ -4717,6 +4754,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
@@ -737,15 +1055,174 @@ index 68a1154008..b6c52add3d 100644
  		this.#messageObservations.observe(event);
  		const eventPromptGeneration = this.#promptGeneration;
  		if (event.type === "agent_end" && this.#activeAgentContinue) {
-@@ -9743,6 +9749,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			const preparedMessages = preparation.commit();
+@@ -8785,6 +8823,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * {@link PromptDroppedError} instead.
+ 	 */
+ 	async prompt(text: string, options?: PromptOptions): Promise<boolean> {
++    this.#assertSubmissionIdle();
+ 		return this.#admitSubmission(() => this.#prompt(text, options));
+ 	}
+ 
+@@ -8869,6 +8908,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	async #prompt(text: string, options?: PromptOptions): Promise<boolean> {
++    this.#assertSubmissionIdle();
+ 		// Stamp the operator's submission instant before ANY async preprocessing —
+ 		// command execution, image normalization, vision-model description — so the
+ 		// prompt→yield delta includes the whole wait, whatever path the prompt takes.
+@@ -8894,6 +8934,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			// pass supersedes its interrupted-turn resume only if it claims the session.
+ 			// Locally handled commands and failed dispatches release that claim.
+ 			const release = await this.#maintenance.waitForMaintenanceCleanup();
++      this.#assertSubmissionIdle();
+ 			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
+ 			if (!release) return await this.#dispatchPrompt(text, options, submittedAt, outcome, followUps);
+ 			try {
+@@ -8927,7 +8968,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		outcome: PromptDispatchOutcome,
+ 		followUps: PromptFollowUps | undefined,
+ 	): Promise<boolean> {
+-		const expandPromptTemplates = options?.expandPromptTemplates ?? true;
++		this.#assertSubmissionIdle();
++    const expandPromptTemplates = options?.expandPromptTemplates ?? true;
+ 		// Slash/custom-command handling below rewrites `text`; keep the original
+ 		// so a dropped prompt is handed back exactly as the user typed it.
+ 		const typedText = text;
+@@ -8941,8 +8983,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// Handle extension commands first (execute immediately, even during streaming)
+ 		if (expandPromptTemplates && text.startsWith("/")) {
+ 			if (options?.runCommands !== false) {
+-				const command = await this.#tryExecuteExtensionCommand(text, options?.onPromptAdmitted);
++				this.#assertSubmissionIdle();
++        const command = await this.#tryExecuteExtensionCommand(text, options?.onPromptAdmitted);
++        this.#assertSubmissionCurrent();
+ 				if (command) {
++          if (command === "failed" && submissionScope()) throw new Error("SUBMISSION_EXTENSION_COMMAND_FAILED");
+ 					// Queued only now, so whatever the command sent runs before them. A failed
+ 					// command hands them back with itself instead of letting them run without it.
+ 					if (command === "ran") followUps?.release();
+@@ -8951,7 +8996,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				}
+ 
+ 				// Try custom commands (TypeScript slash commands)
+-				const customResult = await this.#tryExecuteCustomCommand(text);
++				this.#assertSubmissionIdle();
++        const customResult = await this.#tryExecuteCustomCommand(text);
++        this.#assertSubmissionIdle();
+ 				if (customResult !== null) {
+ 					if (customResult === "") {
+ 						followUps?.release();
+@@ -9038,7 +9085,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const eagerTaskPrelude =
+ 			!options?.synthetic && !hasPendingUserDirective ? this.#todo.createEagerTaskPrelude(expandedText) : undefined;
+ 		const attachmentSourceNotices = this.#createAttachmentSourceNotices(options?.images, submittedAt);
+-		const normalizedImages = await this.#normalizeImagesForModel(options?.images);
++		this.#assertSubmissionIdle();
++    const normalizedImages = await this.#normalizeImagesForModel(options?.images);
++    this.#assertSubmissionIdle();
+ 
+ 		const userContent: (TextContent | ImageContent)[] = [{ type: "text", text: expandedText }];
+ 		if (normalizedImages?.length) {
+@@ -9197,7 +9246,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			onPromptQueued?: PromptOptions["onPromptQueued"];
+ 		},
+ 	): Promise<boolean> {
+-		return this.#admitSubmission(() => this.#promptCustomMessage(message, options));
++		return this.#withMessageSubmission(message, () => this.#admitSubmission(() => this.#promptCustomMessage(message, options)));
+ 	}
+ 
+ 	async #promptCustomMessage<T = unknown>(
+@@ -9215,6 +9264,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			// prompts and the CLI initial message must not start during idle/manual
+ 			// compaction or before a handoff commits its history.
+ 			const release = await this.#maintenance.waitForMaintenanceCleanup();
++      this.#assertSubmissionIdle();
+ 			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
+ 			if (!release) return await this.#dispatchCustomPrompt(message, options, outcome, followUps);
+ 			try {
+@@ -9324,12 +9374,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
+ 			timestamp: Date.now(),
+ 		};
+-		const hasSkillImages =
++		copySubmission(message, customMessage);
++    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
++    const hasSkillImages =
+ 			isUserInvokedSkillPrompt(customMessage) &&
+ 			Array.isArray(customMessage.content) &&
+ 			customMessage.content.some(part => part.type === "image");
+ 		const preparationGeneration = this.#promptGeneration;
+ 		const preparedMessage = hasSkillImages ? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
++    copySubmission(customMessage, preparedMessage);
++    this.#assertSubmissionIdle();
+ 		const descriptionNotice = hasSkillImages
+ 			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
+ 			: undefined;
+@@ -9604,7 +9658,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// every pre-dispatch bail (generation bump from abort, disposal, usage
+ 		// preflight denial) exits silently, and prompt() uses the outcome to hand
+ 		// the typed text back to the host instead of losing it.
+-		const inFlightEpoch = this.#beginInFlight();
++		this.#assertSubmissionIdle();
++    const inFlightEpoch = this.#beginInFlight();
+ 		// Client ownership is reserved by #prompt before dispatch preprocessing
+ 		// and released when its bracket settles; callers that reach this
+ 		// directly (auto-continue, queued-hidden drain) are autonomous and
+@@ -9740,9 +9795,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const preparation = await logger.time("prompt:prepareAgentStart", () =>
+ 				this.#prepareAgentStart(message, expandedText, options?.images, generation, setupAbort.signal, "direct"),
+ 			);
+-			const preparedMessages = preparation.commit();
++			this.#assertSubmissionCurrent();
++      const preparedMessages = preparation.commit();
  			if (!preparedMessages) return false;
  			messages.push(...preparedMessages);
 +			for (const prepared of messages) captureSubmission(prepared, prepared.role);
  			const baseXdevCatalogDelivered = preparation.baseXdevCatalogDelivered;
  
  			// Auto thinking: classify this real user turn and set the effective level
-@@ -10365,6 +10372,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9913,7 +9970,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const ctx = this.#extensionRunner.createCommandContext();
+ 
+ 		try {
+-			await this.#extensionRunner.runScoped(() => command.handler(args, ctx));
++			await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "extension" } : undefined,
++        () => this.#extensionRunner!.runScoped(() => command.handler(args, ctx)));
+ 			return "ran";
+ 		} catch (err) {
+ 			// Emit error via extension runner
+@@ -10042,7 +10100,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const args = parseCommandArgs(argsString);
+ 			// Commands that consult findScopedSettings, including /review, must see this
+ 			// session's cache kill switch instead of the default enabled cache.
+-			const result = await withActiveSettings(this.settings, () => loaded.command.execute(args, ctx, argsString));
++			const result = await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "extension" } : undefined,
++        () => withActiveSettings(this.settings, () => loaded.command.execute(args, ctx, argsString)));
+ 			// If result is a string, it's a prompt to send to LLM
+ 			// If void/undefined, command handled everything
+ 			return result ?? "";
+@@ -10058,7 +10117,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				const message = err instanceof Error ? err.message : String(err);
+ 				logger.error("Custom command failed", { commandName, error: message });
+ 			}
+-			return ""; // Command was handled (with error)
++			if (submissionScope()) throw new Error("SUBMISSION_CUSTOM_COMMAND_FAILED");
++      return ""; // Command was handled (with error)
+ 		}
+ 	}
+ 
+@@ -10305,7 +10365,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			promptGeneration?: number;
+ 		},
+ 	): Promise<boolean> {
+-		const attribution = options?.attribution ?? "user";
++		this.#assertSubmissionCurrent();
++    const attribution = options?.attribution ?? "user";
+ 		const timestamp = options?.timestamp;
+ 		const rawText = options?.rawText ?? text;
+ 		const preprocessed = options?.preprocessed;
+@@ -10365,6 +10426,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
@@ -753,7 +1230,7 @@ index 68a1154008..b6c52add3d 100644
  			this.#irc.queueAside(records);
  			options?.onPromptAdmitted?.();
  			// The awaits above (image normalization / vision description) can span the run's
-@@ -10414,6 +10422,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10414,6 +10476,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -761,10 +1238,51 @@ index 68a1154008..b6c52add3d 100644
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
  			return group;
-@@ -11059,6 +11068,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10903,16 +10966,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
- 		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
+-		const preprocessed = options?.preprocessed;
++		copySubmission(message, appMessage);
++    captureSubmission(appMessage, isUserInvokedSkillPrompt(appMessage) ? "user" : appMessage.role);
++    this.#assertSubmissionCurrent();
++    const preprocessed = options?.preprocessed;
+ 		const prependMessages = options?.prependMessages ?? [];
+ 		const onPromptAdmitted = options?.onPromptAdmitted;
+ 		const onPromptQueued = options?.onPromptQueued;
+ 		const normalizedAppMessage = preprocessed
+ 			? { ...appMessage, content: preprocessed.content }
+ 			: await this.#normalizeAgentMessageImages(appMessage);
+-		const descriptionNotice = preprocessed
++		copySubmission(appMessage, normalizedAppMessage);
++    this.#assertSubmissionCurrent();
++    const descriptionNotice = preprocessed
+ 			? preprocessed.descriptionNotice
+ 			: await this.#buildSkillImageDescriptionNotice(normalizedAppMessage);
++    this.#assertSubmissionCurrent();
+ 		if (deliverAs === "aside") {
+ 			if (await this.#sessionGenerationChanged(sessionGeneration)) return;
+ 			// Non-interrupting: rides the same step-boundary aside poll as
+@@ -10972,7 +11041,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			acceptTerminalEmptyStop?: boolean;
+ 		},
+ 	): Promise<boolean> {
+-		return this.#admitSubmission(() => this.#sendCustomMessage(message, options));
++		return this.#withMessageSubmission(typeof message === "object" && message !== null ? message : undefined,
++      () => this.#admitSubmission(() => this.#sendCustomMessage(message, options)));
+ 	}
+ 
+ 	async #sendCustomMessage<T = unknown>(
+@@ -11058,7 +11128,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: normalizedPayload.attribution,
+ 			timestamp: Date.now(),
+ 		};
+-		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
++		this.#assertSubmissionCurrent();
++    if (typeof message === "object" && message !== null) copySubmission(message, appMessage);
++    const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
++    copySubmission(appMessage, normalizedAppMessage);
++    this.#assertSubmissionCurrent();
 +		captureSubmission(normalizedAppMessage, normalizedAppMessage.role);
  		if (this.isStreaming) {
  			// Queued into a turn the agent owns: that turn holds the session. Busy only
@@ -968,14 +1486,14 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index af1edf0fdc..645d21851f 100644
+index af1edf0fdc..7c07369dd7 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
-+import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./submission-records";
++import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
 +import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
-+import { causalSubmission, sameSubmission } from "./submission-provenance";
++import { causalSubmission, sameSubmission, validSubmissionCausality } from "./submission-provenance";
 +import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
 +import { nativeHistoryContextId } from "./history-context";
 +import { associateMessageEntry } from "./live-message-observation";
@@ -1047,14 +1565,14 @@ index af1edf0fdc..645d21851f 100644
  		withLoopPhase("session.rewrite", () => {
  			for (const entry of entries) {
  				const line = this.#lineFor(entry);
-@@ -2117,6 +2136,7 @@ export class SessionManager {
- 	}
+@@ -2118,6 +2137,7 @@ export class SessionManager {
  
  	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
-+		this.#nativeSubmissions = []; this.#verifiedSubmissions = []; this.#verifiedSubmissionEntries.clear(); this.#submissionBytes = 0; this.#submissionFormatReady = false;
  		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++		this.#nativeSubmissions = []; this.#verifiedSubmissions = []; this.#verifiedSubmissionEntries.clear(); this.#submissionBytes = 0; this.#submissionFormatReady = false;
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
+ 		this.#expectedDiskSize = null;
 @@ -2184,9 +2204,14 @@ export class SessionManager {
  		return this.#sessionFile;
  	}
@@ -1065,7 +1583,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#header = header;
 +		this.#nativeSubmissions = readSubmissionRecords([...(header.nativeSubmissions ?? []).map(submissionRecord), ...entries]);
 +		delete this.#header.nativeSubmissions;
-+		this.#submissionBytes = entries.filter(isSubmissionControl).reduce((sum, entry) => sum + Buffer.byteLength(JSON.stringify(entry)), 0);
++		this.#submissionBytes = entries.filter(isSubmissionControl).reduce((sum, entry) => sum + Buffer.byteLength(JSON.stringify(entry)) + 1, 0);
 +		this.#submissionFormatReady = header.requiredFeatures?.includes("durable-submission-v1") === true;
 +		entries = entries.filter(entry => !isSubmissionControl(entry));
  		this.#entries = entries;
@@ -1079,15 +1597,23 @@ index af1edf0fdc..645d21851f 100644
  		this.#historyChanged("rebuild", true);
  	}
  
-@@ -2225,6 +2251,7 @@ export class SessionManager {
+@@ -2225,6 +2251,15 @@ export class SessionManager {
  		if (entry.type === "message" && entry.message.role === "assistant" && normalizeAssistantUsage(entry.message)) {
  			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
  		}
 +		entry.submission ??= causalSubmission(entry.type === "message" ? entry.message : undefined);
++		if (entry.submission !== undefined) {
++			if (!validSubmissionCausality(entry.submission)) throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
++			const origin = entry.submission.origin, target = this.getSubmissionTarget();
++			if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
++				|| target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
++			if (!this.#verifiedSubmissions.some(value => sameSubmission(value.origin, origin)))
++				throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
++		}
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2236,6 +2263,8 @@ export class SessionManager {
+@@ -2236,6 +2271,8 @@ export class SessionManager {
  			batch.externalLeafId = sessionEntryLeafId(entry);
  		}
  		this.#appendToSessionFile(entry);
@@ -1096,7 +1622,7 @@ index af1edf0fdc..645d21851f 100644
  		if (batch) batch.deferredNotifications.push(entry);
  		else this.#notifyEntryAppended(entry);
  	}
-@@ -2366,6 +2395,7 @@ export class SessionManager {
+@@ -2366,6 +2403,7 @@ export class SessionManager {
  			// (cwd, additionalDirectories), so a by-reference capture would let
  			// a rollback observe the move it is undoing.
  			header: structuredClone(this.#header),
@@ -1104,7 +1630,7 @@ index af1edf0fdc..645d21851f 100644
  			entries: [...this.#entries],
  		};
  	}
-@@ -2392,6 +2422,9 @@ export class SessionManager {
+@@ -2392,6 +2430,9 @@ export class SessionManager {
  	}
  
  	restoreState(snapshot: SessionManagerStateSnapshot): void {
@@ -1114,7 +1640,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#closeWriterEventually();
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
-@@ -2399,7 +2432,7 @@ export class SessionManager {
+@@ -2399,7 +2440,7 @@ export class SessionManager {
  		this.#cwd = snapshot.cwd;
  		this.#sessionDir = snapshot.sessionDir;
  		this.#sessionFile = snapshot.sessionFile;
@@ -1123,7 +1649,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#fileIsCurrent = snapshot.onDisk;
  		this.#rewriteRequired = snapshot.needsRewrite;
  		this.#forceFileCreation = snapshot.onDisk;
-@@ -2407,7 +2440,15 @@ export class SessionManager {
+@@ -2407,7 +2448,15 @@ export class SessionManager {
  		this.#fallbackRuntimeOnly = snapshot.fallbackRuntimeOnly;
  		// A completed moveTo drops the stash, so a rollback restores it here.
  		this.#taskSiblingCandidate = snapshot.taskSiblingCandidate;
@@ -1140,7 +1666,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
  		this.#sessionName = snapshot.sessionName;
  
-@@ -2596,7 +2637,7 @@ export class SessionManager {
+@@ -2596,7 +2645,7 @@ export class SessionManager {
  			this.#fallbackRuntimeOnly = false;
  		}
  
@@ -1149,7 +1675,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#expectedDiskSize = sourceSize;
  		this.#additionalDirectories = header.additionalDirectories ?? [];
  		this.#titleUpdatedAt = titleSlot?.updatedAt ?? header.timestamp;
-@@ -2677,6 +2718,7 @@ export class SessionManager {
+@@ -2677,6 +2726,7 @@ export class SessionManager {
  			parentSession: parentSessionId,
  			providerPromptCacheKey: SessionManager.getInheritedProviderPromptCacheKey(this.#header),
  			taskPromptCacheKey: this.#header.taskPromptCacheKey,
@@ -1157,7 +1683,7 @@ index af1edf0fdc..645d21851f 100644
  		};
  		this.#sessionName = this.#header.title;
  		this.#titleSource = this.#header.titleSource;
-@@ -2941,14 +2983,27 @@ export class SessionManager {
+@@ -2941,14 +2991,27 @@ export class SessionManager {
  		manager.#additionalDirectories = [...this.#additionalDirectories];
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
@@ -1185,7 +1711,31 @@ index af1edf0fdc..645d21851f 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -4193,6 +4248,108 @@ export class SessionManager {
+@@ -3924,6 +3987,7 @@ export class SessionManager {
+ 	}
+ 
+ 	appendCustomEntry(customType: string, data?: unknown): string {
++		if (customType.startsWith("omp.native-control/")) throw new Error("NATIVE_CONTROL_NAMESPACE_RESERVED");
+ 		const entry: CustomEntry = { type: "custom", customType, data, ...this.#freshEntryFields() };
+ 		this.#recordEntry(entry);
+ 		return entry.id;
+@@ -3955,6 +4019,7 @@ export class SessionManager {
+ 		details?: T,
+ 		attribution: MessageAttribution | undefined = "agent",
+ 		timestamp?: number,
++		originalMessage?: object,
+ 	): string {
+ 		const normalized = normalizeCustomMessagePayload<T>({ customType, content, display, details, attribution });
+ 		const fresh = this.#freshEntryFields();
+@@ -3963,6 +4028,7 @@ export class SessionManager {
+ 			customType: normalized.customType,
+ 			content: normalized.content,
+ 			display: normalized.display,
++			...(originalMessage ? { submission: causalSubmission(originalMessage) } : {}),
+ 			// Drop AgentSession-internal transient fields before disk persistence.
+ 			details: stripInternalDetailsFields(normalized.details),
+ 			attribution: normalized.attribution,
+@@ -4193,6 +4259,118 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1215,7 +1765,8 @@ index af1edf0fdc..645d21851f 100644
 +			return true;
 +		});
 +	}
-+	completeSubmission(origin: SubmissionOrigin, outcome: NativeSubmission["inputOutcome"], noEntries: NativeSubmission["noEntries"]): Promise<void> {
++	completeSubmission(origin: SubmissionOrigin, outcome: NativeSubmission["inputOutcome"], noEntries: NativeSubmission["noEntries"],
++    operationOutcome: NativeSubmission["operationOutcome"] = "unknown"): Promise<void> {
 +		return this.#withAtomicPersistenceLock(async () => {
 +			this.getSubmissionTarget();
 +			const value = this.#nativeSubmissions.find(item => sameSubmission(item.origin, origin));
@@ -1227,7 +1778,15 @@ index af1edf0fdc..645d21851f 100644
 +			const entryFacts = [...facts.values()];
 +			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
 +			await this.flush();
-+			const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
++			const decisions = new Map(value.noEntries.map(fact => [fact.relationId, fact]));
++      for (const fact of noEntries) decisions.set(fact.relationId, fact);
++      if (decisions.size > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
++      if (value.operationOutcome !== undefined && value.operationOutcome !== "unknown" && operationOutcome !== "unknown"
++        && operationOutcome !== value.operationOutcome) throw new Error("SUBMISSION_METADATA_CONFLICT");
++      const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone([...decisions.values()]),
++        inputOutcome: value.inputOutcome === "generated" ? "generated" : outcome,
++        operationOutcome: value.operationOutcome !== undefined && value.operationOutcome !== "unknown"
++          ? value.operationOutcome : operationOutcome, terminal: true };
 +			this.#nativeSubmissions = this.#nativeSubmissions.map(item => item === value ? completed : item);
 +			await this.#appendSubmissionControl(completed);
 +		});
@@ -1258,7 +1817,7 @@ index af1edf0fdc..645d21851f 100644
 +		// A raw native reader sees the same active path: control records do not become the conversation leaf.
 +		const leaf = this.#index.leafId();
 +		const line = this.#lineFor({...record,parentId:leaf,activeLeafId:leaf}), bytes = Buffer.byteLength(line);
-+		if (bytes > 8 * 1024 * 1024 || this.#submissionBytes + bytes > submissionPolicy.maxMetadataBytes)
++		if (bytes > nativeControlRecordBytes || this.#submissionBytes + bytes > submissionPolicy.maxMetadataBytes)
 +			throw new Error("SUBMISSION_METADATA_LIMIT");
 +		await this.#scheduleDiskWork(async () => {
 +			const writer = this.#appendWriter();
@@ -1278,6 +1837,7 @@ index af1edf0fdc..645d21851f 100644
 +		}
 +	}
 +	#captureSubmissionProof(): void {
++		assertSubmissionEntries(this.#entries, this.#nativeSubmissions);
 +		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
 +		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
 +			? [[entry.id, structuredClone(entry.submission)] as const] : []));
@@ -1294,7 +1854,16 @@ index af1edf0fdc..645d21851f 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4440,6 +4597,7 @@ export class SessionManager {
+@@ -4225,6 +4403,8 @@ export class SessionManager {
+ 	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true, handoff = false) {
+ 		const started = performance.now();
+ 		const observedRevision = this.#historyRevision;
++		assertSubmissionEntries(this.#entries, this.#storage instanceof StrictSessionStorage
++			? this.#verifiedSubmissions : this.#nativeSubmissions);
+ 		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
+ 		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
+ 		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
+@@ -4440,6 +4620,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -1302,7 +1871,7 @@ index af1edf0fdc..645d21851f 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4733,8 @@ export class SessionManager {
+@@ -4575,6 +4756,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -1311,7 +1880,7 @@ index af1edf0fdc..645d21851f 100644
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4750,8 @@ export class SessionManager {
+@@ -4590,8 +4773,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -1322,7 +1891,7 @@ index af1edf0fdc..645d21851f 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4760,7 @@ export class SessionManager {
+@@ -4600,6 +4783,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
@@ -1330,6 +1899,47 @@ index af1edf0fdc..645d21851f 100644
  		await manager.#rewriteAtomically();
  		if (!options?.seance && options?.copyArtifacts !== false) {
  			await copySessionArtifacts(sourcePath, manager.#sessionFile!);
+diff --git a/packages/coding-agent/src/session/session-provider-boundary.ts b/packages/coding-agent/src/session/session-provider-boundary.ts
+index ed90bee2d1..3124202ad9 100644
+--- a/packages/coding-agent/src/session/session-provider-boundary.ts
++++ b/packages/coding-agent/src/session/session-provider-boundary.ts
+@@ -1,3 +1,4 @@
++import { assertSubmissionCurrent, submissionScope } from "./submission-provenance";
+ /** Provider-facing message, image, secret, and stream normalization for a session. */
+ 
+ import type { Agent, AgentMessage } from "@oh-my-pi/pi-agent-core";
+@@ -221,8 +222,14 @@ export class SessionProviderBoundary {
+ 
+ 	/** Converts session messages using the configured pre-LLM pipeline. */
+ 	async convertMessagesToLlm(messages: AgentMessage[], signal?: AbortSignal): Promise<Message[]> {
+-		const transformedMessages = await this.#host.transformContext(messages, signal);
+-		return await this.#host.convertToLlm(transformedMessages);
++		const origin = submissionScope()?.origin;
++    const check = () => assertSubmissionCurrent(() => this.#host.sessionManager.getSubmissionTarget(), origin);
++    check();
++    const transformedMessages = await this.#host.transformContext(messages, signal);
++    check();
++    const converted = await this.#host.convertToLlm(transformedMessages);
++    check();
++    return converted;
+ 	}
+ 
+ 	/** Applies session-level stream hooks and provider defaults to a side request. */
+@@ -303,8 +310,12 @@ export class SessionProviderBoundary {
+ 	}
+ 
+ 	/** Normalizes image payloads for the active model. */
+-	normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
+-		return normalizeModelContextImages(images, { model: this.#host.model() });
++	async normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
++    const origin = submissionScope()?.origin;
++    assertSubmissionCurrent(() => this.#host.sessionManager.getSubmissionTarget(), origin);
++    const normalized = await normalizeModelContextImages(images, { model: this.#host.model() });
++    assertSubmissionCurrent(() => this.#host.sessionManager.getSubmissionTarget(), origin);
++    return normalized;
+ 	}
+ 
+ 	/** Builds a hidden vision-model description for attachments sent to a text-only model. */
 diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
 new file mode 100644
 index 0000000000..85ef1dd61e
@@ -1388,21 +1998,47 @@ index 0000000000..95661b2e45
 +} as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
 new file mode 100644
-index 0000000000..a2a89c55b7
+index 0000000000..bb515c05d1
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
-@@ -0,0 +1,43 @@
+@@ -0,0 +1,82 @@
 +import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
 +/** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
 +import * as asyncHooks from "node:async_hooks";
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 +export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
 +export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
-+export interface SubmissionCausality { origin: SubmissionOrigin; role: "input" | "prepared" | "additional" | "execution" }
-+export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void }
++export type SubmissionRole = "input" | "prepared" | "additional" | "execution";
++export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole }
++export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; idleOnly?: boolean }
 +export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
++/** Primary native operation result; distinct from input creation, persistence and quiescence. */
++export type SubmissionOperationOutcome = "succeeded" | "failed" | "cancelled" | "unknown";
 +export interface NativeSubmission {
++  operationOutcome?: SubmissionOperationOutcome;
 +  reservedAt?: string; completedAt?: string; origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
 +  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
++}
++/** Persisted causal carriers are untrusted native data until their complete base shape is checked. */
++export function validSubmissionOrigin(value: unknown): value is SubmissionOrigin {
++  return isRecord(value) && typeof value.clientSubmissionId === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(value.clientSubmissionId)
++    && typeof value.sourceId === "string" && /^[a-f0-9]{64}$/.test(value.sourceId)
++    && typeof value.instanceId === "string" && /^[a-f0-9]{64}$/.test(value.instanceId)
++    && typeof value.nativeSessionId === "string" && value.nativeSessionId.length > 0
++    && value.nativeSessionId.length <= 128 && !value.nativeSessionId.includes("\0");
++}
++export function validSubmissionRole(value: unknown): value is SubmissionRole {
++  return value === "input" || value === "prepared" || value === "additional" || value === "execution";
++}
++export function validSubmissionCausality(value: unknown): value is SubmissionCausality {
++  return isRecord(value) && validSubmissionOrigin(value.origin) && validSubmissionRole(value.role);
++}
++/** Safe public identity projection. Unknown native fields never become public history payloads. */
++export function publicSubmissionCausality(value: unknown): SubmissionCausality | undefined {
++  if (value === undefined) return;
++  if (!validSubmissionCausality(value)) throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
++  return { origin: { sourceId: value.origin.sourceId, instanceId: value.origin.instanceId,
++    nativeSessionId: value.origin.nativeSessionId, clientSubmissionId: value.origin.clientSubmissionId }, role: value.role };
 +}
 +const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
 +const originals = new WeakMap<object, SubmissionCausality>();
@@ -1411,6 +2047,11 @@ index 0000000000..a2a89c55b7
 +}
 +export function submissionScope(): SubmissionScope | undefined { return scope.getStore(); }
 +export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
++/** Carry an explicit native construction origin into its actual message. */
++export function copySubmission(source: object, target: object): void {
++  const cause = originals.get(source);
++  if (cause && !originals.has(target)) originals.set(target, structuredClone(cause));
++}
 +export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
 +  if (!value || originals.has(message)) return;
 +  originals.set(message, { origin: value.origin, role: role === "user" && value.phase === "input" ? "input"
@@ -1435,19 +2076,31 @@ index 0000000000..a2a89c55b7
 +  tasks.add(task);
 +  void task.then(() => tasks.delete(task), () => tasks.delete(task));
 +}
++
++/** Revalidate protected native authority at an actual scoped effect boundary. Ordinary callers stay unchanged. */
++export function assertSubmissionCurrent(readTarget: () => SubmissionTarget, origin: SubmissionTarget | undefined = scope.getStore()?.origin): void {
++  if (!origin) return;
++  const target = readTarget();
++  if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
++    || target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
++}
 diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
 new file mode 100644
-index 0000000000..8af5938efb
+index 0000000000..147392a0f1
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-records.ts
-@@ -0,0 +1,50 @@
+@@ -0,0 +1,81 @@
 +/** Native control records are serialized in the journal but excluded from its conversation/tree index. */
 +import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 +import type { CustomEntry, SessionEntry } from "./session-entries";
 +import type { NativeSubmission } from "./submission-provenance";
-+import { sameSubmission } from "./submission-provenance";
++import { sameSubmission, validSubmissionCausality, validSubmissionRole, validSubmissionOrigin } from "./submission-provenance";
 +import { nativeSubmissionPolicy as policy } from "./submission-policy";
++export const nativeControlRecordBytes = 8 * 1024 * 1024;
 +export const SUBMISSION_CONTROL = "omp.native-control/submission-v1";
++function boundedString(value: unknown, maximum: number): value is string {
++  return typeof value === "string" && value.length > 0 && value.length <= maximum;
++}
 +export function isSubmissionControl(entry: SessionEntry): entry is CustomEntry {
 +  return entry.type === "custom" && entry.customType === SUBMISSION_CONTROL;
 +}
@@ -1461,33 +2114,89 @@ index 0000000000..8af5938efb
 +  const values = new Map<string, NativeSubmission>();
 +  let bytes = 0;
 +  for (const entry of entries) {
++    if (entry.submission !== undefined && !validSubmissionCausality(entry.submission))
++      throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
 +    if (!isSubmissionControl(entry)) continue;
-+    bytes += Buffer.byteLength(JSON.stringify(entry));
-+    if (bytes > policy.maxMetadataBytes || !isRecord(entry.data) || entry.data.version !== 1
++    const recordBytes = Buffer.byteLength(JSON.stringify(entry)) + 1;
++    bytes += recordBytes;
++    if (recordBytes > nativeControlRecordBytes || bytes > policy.maxMetadataBytes || !isRecord(entry.data) || entry.data.version !== 1
 +      || !isRecord(entry.data.submission) || typeof entry.data.checksum !== "string"
 +      || Bun.SHA256.hash(JSON.stringify(entry.data.submission), "hex") !== entry.data.checksum)
 +      throw new Error("SUBMISSION_METADATA_CORRUPT");
 +    const value = entry.data.submission;
-+    if (!isRecord(value.origin) || typeof value.origin.clientSubmissionId !== "string"
-+      || !/^[A-Za-z0-9_-]{1,96}$/.test(value.origin.clientSubmissionId)
-+      || typeof value.origin.sourceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.sourceId)
-+      || typeof value.origin.instanceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.instanceId)
-+      || typeof value.origin.nativeSessionId !== "string" || typeof value.fingerprint !== "string"
-+      || !/^[a-f0-9]{64}$/.test(value.fingerprint) || typeof value.preparationId !== "string"
++    if (!validSubmissionOrigin(value.origin) || typeof value.fingerprint !== "string"
++      || !/^[a-f0-9]{64}$/.test(value.fingerprint) || !boundedString(value.preparationId, 96)
++      || (value.operationOutcome !== undefined && !["succeeded", "failed", "cancelled", "unknown"].includes(String(value.operationOutcome)))
 +      || typeof value.terminal !== "boolean" || !["generated", "no_input", "unresolved"].includes(String(value.inputOutcome))
 +      || !Array.isArray(value.noEntries) || value.noEntries.length > policy.maxNoEntryFacts
 +      || (value.entryFacts !== undefined && (!Array.isArray(value.entryFacts) || value.entryFacts.length > policy.maxEntryFacts)))
 +      throw new Error("SUBMISSION_METADATA_CORRUPT");
-+    for (const fact of value.entryFacts ?? []) if (!isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")
++    for (const fact of value.entryFacts ?? []) if (!isRecord(fact) || !boundedString(fact.entryId, 256) || !validSubmissionRole(fact.role))
 +      throw new Error("SUBMISSION_METADATA_CORRUPT");
-+    for (const fact of value.noEntries) if (!isRecord(fact) || typeof fact.relationId !== "string"
-+      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string")
++    for (const fact of value.noEntries) if (!isRecord(fact) || !boundedString(fact.relationId, 256)
++      || !validSubmissionRole(fact.role) || !["no_entry", "failed"].includes(String(fact.status)) || !boundedString(fact.reason, 512))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    if (new Set((value.entryFacts ?? []).map(fact => fact.entryId)).size !== (value.entryFacts?.length ?? 0)
++      || new Set(value.noEntries.map(fact => fact.relationId)).size !== value.noEntries.length)
 +      throw new Error("SUBMISSION_METADATA_CORRUPT");
 +    const record = value as unknown as NativeSubmission, prior = values.get(record.origin.clientSubmissionId);
++    const entryFacts = new Map((record.entryFacts ?? []).map(fact => [fact.entryId, fact]));
++    const noEntries = new Map(record.noEntries.map(fact => [fact.relationId, fact]));
 +    if (prior && (!sameSubmission(prior.origin, record.origin) || prior.fingerprint !== record.fingerprint
-+      || (prior.terminal && !record.terminal))) throw new Error("SUBMISSION_METADATA_CONFLICT");
++      || (prior.terminal && !record.terminal)
++      || (prior.operationOutcome !== undefined && prior.operationOutcome !== "unknown" && prior.operationOutcome !== record.operationOutcome)
++      || (prior.inputOutcome !== "unresolved" && prior.inputOutcome !== record.inputOutcome)
++      || prior.preparationId !== record.preparationId
++      || prior.entryFacts?.some(fact => entryFacts.get(fact.entryId)?.role !== fact.role)
++      || prior.noEntries.some(fact => {
++        const next = noEntries.get(fact.relationId);
++        return !next || next.role !== fact.role || next.status !== fact.status || next.reason !== fact.reason;
++      })))
++      throw new Error("SUBMISSION_METADATA_CONFLICT");
 +    values.set(record.origin.clientSubmissionId, record);
 +    if (values.size > policy.maxSubmissions) throw new Error("SUBMISSION_METADATA_LIMIT");
 +  }
-+  return [...values.values()];
++  const submissions = [...values.values()];
++  assertSubmissionEntries(entries, submissions);
++  return submissions;
 +}
++/** A causal carrier is authenticated only together with its permanent native reservation. */
++export function assertSubmissionEntries(entries: SessionEntry[], submissions: NativeSubmission[]): void {
++  const reservations = new Map(submissions.map(value => [value.origin.clientSubmissionId, value]));
++  for (const entry of entries) {
++    if (entry.submission === undefined) continue;
++    if (!validSubmissionCausality(entry.submission)) throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
++    const reservation = reservations.get(entry.submission.origin.clientSubmissionId);
++    if (!reservation || !sameSubmission(reservation.origin, entry.submission.origin))
++      throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
++  }
++}
+diff --git a/packages/coding-agent/src/session/turn-recovery.ts b/packages/coding-agent/src/session/turn-recovery.ts
+index 5c31423639..2b55b55d60 100644
+--- a/packages/coding-agent/src/session/turn-recovery.ts
++++ b/packages/coding-agent/src/session/turn-recovery.ts
+@@ -1,3 +1,4 @@
++import { assertSubmissionCurrent, submissionScope } from "./submission-provenance";
+ import {
+ 	type Agent,
+ 	AgentBusyError,
+@@ -3408,7 +3409,9 @@ export class TurnRecovery {
+ 			// still surfaces at the await below.
+ 			let claimFailed = false;
+ 			try {
+-				const claim = this.#host.agent.prompt(messages, options).then(undefined, error => {
++				assertSubmissionCurrent(() => this.#host.sessionManager.getSubmissionTarget());
++        if (submissionScope()?.idleOnly && this.#host.agent.state.isStreaming) throw new Error("SUBMISSION_BUSY");
++        const claim = this.#host.agent.prompt(messages, options).then(undefined, error => {
+ 					claimFailed = true;
+ 					throw error;
+ 				});
+@@ -3420,7 +3423,7 @@ export class TurnRecovery {
+ 				await claim;
+ 				return;
+ 			} catch (err) {
+-				if (!(err instanceof AgentBusyError)) {
++				if (submissionScope()?.idleOnly || !(err instanceof AgentBusyError)) {
+ 					throw err;
+ 				}
+ 				if (Date.now() >= deadline) {

@@ -40,3 +40,26 @@ test("reserved empty input survives lost acknowledgement and restart without rep
     } finally { worker.child.kill(); await worker.child.exited; }
   } finally { await fs.rm(home, { recursive: true, force: true }); }
 }, 30000);
+
+/** Refused Native operations must never erase permanent receipts already admitted in this worker. */
+test("a refused new Session leaves the current permanent submission reservation intact", async () => {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), "submission-refused-new-"));
+  try {
+    await nativeFixture(home);
+    const selected = await selectedDescriptor(home), cwd = path.join(home, "project");
+    const worker = strictWorker(home, cwd, isolatedRuntimeArgs);
+    try {
+      await negotiateStrict(worker);
+      expect(await worker.request({ type: "strict_start", intent: "continue", reference: selected.reference, expectedCwd: cwd }))
+        .toMatchObject({ success: true });
+      const command = { type: "submission_submit", clientSubmissionId: "permanent-after-refused-new", preparationId: "literal",
+        inputType: "prompt", message: "", sourceId: selected.sourceId, instanceId: selected.instanceId, nativeSessionId: selected.nativeSessionId };
+      expect(await worker.request(command)).toMatchObject({ success: true, data: { terminal: true, reservation: "committed" } });
+      expect(await worker.request({ type: "new_session" })).toMatchObject({ success: false });
+      expect(await worker.request(command)).toMatchObject({ success: true, data: { duplicate: true, terminal: true,
+        inputOutcome: "no_input", reservation: "committed", persistence: "committed" } });
+      expect(await worker.request({ ...command, message: "changed" })).toMatchObject({ success: false, code: "SUBMISSION_CONFLICT" });
+      expect((await worker.close()).code).toBe(0);
+    } finally { worker.child.kill(); await worker.child.exited; }
+  } finally { await fs.rm(home, { recursive: true, force: true }); }
+}, 30000);

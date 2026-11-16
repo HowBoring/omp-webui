@@ -47,3 +47,11 @@ actual native workers and Linux syscall/process faults. The browser seam uses th
 pre-dispatch marker/request identity, Bun and public native RPC; its host/store and UI are explicitly fixtures.
 It does not implement the product original store, private Session admission, a global installation, Windows/WSL2
 acceptance or real provider inference. Maintainer acceptance and final combined gates remain separate.
+
+Primary `operationOutcome` (`succeeded`, `failed`, `cancelled`, `unknown`) is independent of input creation,
+persistence and terminal quiescence. Known results originate at an actual local handler return or the exact native
+prompt ticket callback. Ack, `agent_end`, idle and committed user input do not supply success. A successful primary
+operation does not promise success of every tool side effect. Incomplete restart reservations default to unknown.
+`no_input` means absence of an initiating native input entry, while additional entries and effects may exist.
+Opt-in `idleOnly` admits prompt/no-streaming-hint operations only, rechecks native busy/queue/source fences after
+awaits and refuses an autonomous busy claim instead of silently waiting. Ordinary native admission remains unchanged.

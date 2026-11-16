@@ -103,7 +103,7 @@ export class AttachmentBridge {
     const draft = await this.#current(prepared, prepared.selection);
     prepared.nativeStarted = true; beforeNativeCall?.();
     const result = await this.native(draft.target).submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
-      preparationId: prepared.receipt.preparationId, inputType: "prompt", message: prepared.message,
+      preparationId: prepared.receipt.preparationId, inputType: "prompt", idleOnly: true, message: prepared.message,
       preparationConsent: structuredClone(prepared.consent.value) });
     this.observeNativeResult(requestId, result);
     return result;

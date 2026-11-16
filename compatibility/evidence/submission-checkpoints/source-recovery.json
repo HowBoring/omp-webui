@@ -1,0 +1,39 @@
+{
+  "status": "NOT_BUILT",
+  "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "sourceSha256": "22e2c7a45324902d2decff3c0397dc3be3b31f676b2a96fdfe2683ea77adf7a3",
+  "patchSha256": "6ffe81db74be41282edfec5b557a9d47751a3146935150251ce9634280304d97",
+  "schemaSha256": "0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501",
+  "reason": "Wire-only generation does not rebuild or verify the existing native launcher.",
+  "issue": 36,
+  "scope": "source and pure wire generation only; not runtime acceptance",
+  "recoverySnapshot": "ignored vendor/recovery-36/20261116T184015Z",
+  "checks": {
+    "orderedSourceVerification": "PASS",
+    "wireOnlyGeneration": "PASS",
+    "wireOnlyGeneratedCheck": "PASS",
+    "authoredNativeStrictTypeScript": "PASS",
+    "hostTypeScript": "PASS",
+    "pureTests": {
+      "passed": 18,
+      "failed": 0,
+      "assertions": 23,
+      "files": [
+        "tests/submissions/records.test.js",
+        "tests/submissions/contracts.test.ts"
+      ]
+    }
+  },
+  "redGreen": "Two operationOutcome persisted validation tests genuinely failed before implementation, then passed. Initial syntax error was corrected before semantic RED.",
+  "failedChecks": "First Host TypeScript pass expanded the imported Native internal type graph through records.test.ts and also caught history expectation role typing; moved pure codec test to JS, corrected expectations, final Host check passed.",
+  "runtime": "NOT RUN: coordinator holds Native launcher/build/worker, browser, OS faults and whole suite. Historical 23/225 on1bc/schema68da do not cover this tuple.",
+  "remaining": [
+    "Clean ordered1\u20137 Native build and schema/client checks",
+    "Actual new history/outcome/reservednamespace/persistedcausality/resetrefusal cases",
+    "Late detached/reemission/held queues/cancellation races",
+    "Known clean write failure vs partial unknown and publication cuts",
+    "Logical copies/large native reader/TUI/baseline rollback refusal",
+    "Matched DSH/Bun/browser and complete check"
+  ],
+  "webAdministrationScope": "Coordinator clarified exclusion concerns Web provider/key/plugin management UI, not a ban on owner explicit Native public prompt commands. Preserve Native authorization/approval; do not expose raw credential/config state or automatically administer profiles."
+}

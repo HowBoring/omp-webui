@@ -50,6 +50,7 @@ export function AttachmentPreparationPanel({ controller }: { controller: Attachm
     {view.phase === "unresolved" && <p role="status">Native outcome is unresolved. This attempt cannot be resent.</p>}
     {status?.recovery === "accepted" && <p role="status">Native input is committed. The local checkpoint can be resolved.</p>}
     {status?.recovery === "not-submitted" && <p role="status">Native input was not submitted. Keep the valid originals and unsent draft.</p>}
+    {status?.recovery === "completed-without-input" && <p role="status">Native operation completed without a committed user input. Originals remain available.</p>}
     {(error ?? view.error) && <p role="alert">{error ?? view.error}</p>}
   </section>;
 }
