@@ -1,6 +1,6 @@
 {
   "ticket": 38,
-  "status": "SOURCE_TRANSFORM_CONSENT_READINESS_ONLY_ACTUAL_NOT_RERUN",
+  "status": "SOURCE_NORMALIZED_PROVIDER_TEXT_READINESS_ONLY_ACTUAL_NOT_RERUN",
   "parentHostHead": "9b22a4a8379f052f25347ddf40b86dfa0354510c",
   "native": {
     "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
@@ -66,14 +66,14 @@
   ],
   "test": {
     "path": "tests/attachments/public-rpc.test.ts",
-    "bytes": 14349,
-    "sha256": "28184a924639e62e63d63620507f761866f39c14181facb2dbd2b69d2eba9cea"
+    "bytes": 14530,
+    "sha256": "599567e4fc29589ed746090dcc0745b254ddb6a91dfefe71f9f531750351e731"
   },
   "fixtures": [
     {
       "path": "compatibility/omp/fixtures/attachment-provider.ts",
-      "bytes": 6277,
-      "sha256": "5332bf508eab8ac1c31dfaaea24e2d0675a8df66d2bf2c52345db620b04e0b3f"
+      "bytes": 6983,
+      "sha256": "a92b0b5b6450b72815f0f3d0aed4e06040041ae3c8adfdb72810ab570a448994"
     },
     {
       "path": "compatibility/omp/fixtures/no-provider.ts",
@@ -150,8 +150,8 @@
       "result": "PASS; Host strict types, no runtime execution"
     },
     {
-      "command": "pinned-bun build --no-env-file tests/attachments/public-rpc.test.ts tests/catalog/fixture.ts --target=bun --packages=external --external='*' --outdir=/tmp/ticket-38-transform-contract-source-amendment/syntax",
-      "result": "PASS; emitted both files external-only, no evaluation"
+      "command": "pinned-bun build --no-env-file tests/attachments/public-rpc.test.ts tests/catalog/fixture.ts compatibility/omp/fixtures/attachment-provider.ts --target=bun --packages=external --external='*' --outdir=/tmp/ticket-38-provider-text-source-amendment/syntax",
+      "result": "PASS; emitted three files external-only, no evaluation"
     },
     {
       "command": "git diff --check",
@@ -167,7 +167,7 @@
     }
   ],
   "plannedRuntime": {
-    "status": "NOT RERUN after source amendment. Historical first attempt failed at wrong receipt expectation before no-effects/submission/consent/provider/saved/history assertions. Root released its actual window.",
+    "status": "NOT RERUN after provider-text source amendment. Second attempt failed only final normalized-provider-text expectation; prior earned facts remain scoped to14c2e640 and its old provider fixture.",
     "argv": [
       "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
       "test",
@@ -187,15 +187,15 @@
       "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
     },
     "perCaseDeadlineMs": 45000,
-    "scope": "Next proposed fresh window: ONLY first named success case selected with anchored -t pattern, including deliberate missing-consent refusal then explicit image_transformed consent. Negative case needs separate Root GO. Guarded synthetic authoring/catalog/worker path unchanged. No Host/browser/socket probe/fault shim/C/private Session imports or session-file parsing.",
+    "scope": "Next proposed fresh Root window: ONLY first named success case with anchored -t, same no-consent refusal and explicit image_transformed consent, plus bounded exact prepared text presence/digest in actual normalized developer text. Negative case remains separately gated. No Host/browser/socket probe/fault shim/C/private Session imports or session-file parsing.",
     "cleanup": "Each case closes and awaits its owned strictWorker, removes its synthetic child home; top launcher must inspect network audit and clean only its fresh top profile."
   },
   "limitations": [
-    "Amended success case and negative case NOT RUN. First historical actual attempt is recorded FAIL; no pass transfers from types/syntax.",
-    "Only runtime test source/common expected prepared-image digest and readiness evidence changed after the failure-proof commit. Native/build/guards/dependencies/other worktrees/global/product data unchanged.",
+    "Provider-text amendment and negative case NOT RUN. Both historical actual attempts are recorded FAIL; no whole-case PASS transfers from prior partial facts or types/syntax.",
+    "Only controlled-provider capture, public runtime tracer assertion/schema and readiness evidence changed after second failure-proof commit. Native/build/guards/dependencies/other worktrees/global/product data unchanged.",
     "All remaining selected image/document formats, saved-history restart/copy/branch, transforms, budgets, fault/persistence, actual browser/DSH consent and final matched1-10 evidence remain mandatory and open."
   ],
-  "previousReadinessSha256": "8ff3607522fcc0106ee28147841095714dd1acf22978018d1cc1ead160b987c2",
+  "previousReadinessSha256": "a0999d15ec1a6ffd88efe6ae940bd81160c028597b60fbd6f7c3bc0aeb49789e",
   "guardAmendment": {
     "status": "SOURCE ONLY; no authoring child or runtime executed",
     "sourceHostCheckpoint": "c19d2db77bc6183aab6316e796bbe949da5b1004",
@@ -217,7 +217,7 @@
       "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
     }
   },
-  "sourceAmendmentParent": "c619e183f7a774e14a32838f6d9b7999b50acd9c",
+  "sourceAmendmentParent": "5c08bf21fd9811162214e7f9bf6b05b85f1322f7",
   "firstActualRuntime": {
     "path": "compatibility/evidence/attachment-de7c-first-runtime-failure.json",
     "bytes": 6939,
@@ -233,5 +233,35 @@
       "Exact saved parts and controlled-provider hashes compare prepared bytes from the explicit matching public receipt; public relation.entryId + indexed entryPart associations retained."
     ],
     "publicContractConfirmed": "AttachmentConsent accepts receiptId/resultDigest/draftRevision/authorityGeneration/acceptedDegradations. Native validateAndFreeze checks exact receipt binding and required degradation set before marking reserved; missing acceptance returns ATTACHMENT_DEGRADATION_CONSENT_REQUIRED."
+  },
+  "secondActualRuntime": {
+    "path": "compatibility/evidence/attachment-de7c-transform-runtime-failure.json",
+    "bytes": 7806,
+    "sha256": "38fe2bee042802285e27ad8491286038277a57b3f7049cbd594682884a2d57a9"
+  },
+  "providerTextAmendment": {
+    "status": "SOURCE ONLY; no runtime after second failure",
+    "snapshot": "/tmp/ticket-38-provider-text-source-amendment",
+    "publicNormalizationSource": [
+      {
+        "path": "vendor/omp/packages/coding-agent/src/session/messages.ts",
+        "bytes": 54995,
+        "sha256": "66796d3af7456c5cb03705ce693ade1be976f3a5dea05bb8e02e5d96d54ff9cb"
+      },
+      {
+        "path": "vendor/omp/packages/coding-agent/src/session/session-provider-boundary.ts",
+        "bytes": 17773,
+        "sha256": "0ff0c1f66122331b54a974dee631d87934a1ed87f606e798b6154d9bbb17b399"
+      }
+    ],
+    "contract": "convertOne(fileMention) sends text-only files as developer content text wrapped in <file path=...> with newline-delimited exact file.content. SessionProviderBoundary transforms context and converts through the owning convertToLlm before actual provider dispatch. Raw fileMention role and whole wrapped-message digest are not the raw prepared-text digest.",
+    "fixtureCapture": "Existing actual controlled provider now captures attachmentText facts for the exact known Controlled prepared document literal inside actual provider string/text parts. No normalized message reconstruction, Native/private parser, prompt-body logging or response behavior change. Facts retain actual provider role and independently hash only the matched known span. Both matched parts and repeated occurrence count saturate at2; the single-case assertion requires exactly one developer match of28bytes with independent fixture SHA fd4d6186....",
+    "failureSensitivity": "Absent, modified or duplicated prepared text fails the expected single developer/28byte/raw-text-SHA/one-occurrence fact. Saved-part causality association remains exact public entryId/indexed locators; text matches supply only provider byte-presence evidence.",
+    "providerFixture": {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 6983,
+      "sha256": "a92b0b5b6450b72815f0f3d0aed4e06040041ae3c8adfdb72810ab570a448994"
+    },
+    "negativeCase": "Flow/name unchanged, NOT RUN. No monolithic provider loop executed."
   }
 }

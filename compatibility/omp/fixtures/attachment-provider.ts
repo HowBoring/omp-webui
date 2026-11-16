@@ -8,22 +8,32 @@ import type { ExtensionAPI } from "@oh-my-pi/pi-coding-agent";
 interface Capture {
   images: { mimeType: string; sha256: string; bytes: number }[];
   text: { role: string; sha256: string }[];
+  attachmentText: { role: string; sha256: string; bytes: number; occurrences: number }[];
 }
 interface Effects {
   inputCalls: number; modelAttempts: number; modelDispatches: number; toolCalls: number; blockedPayloads: number;
   scenario: string; additionalSent: boolean; requests: Capture[];
 }
 function capture(context: Context): Capture {
-  const images: Capture["images"] = [], text: Capture["text"] = [];
+  const images: Capture["images"] = [], text: Capture["text"] = [], attachmentText: Capture["attachmentText"] = [];
+  const captureText = (role: string, value: string): void => {
+    text.push({ role, sha256: Bun.SHA256.hash(value, "hex") });
+    // Native wraps text-only file mentions in developer text. Capture only this known fixture's exact span.
+    const literal = "Controlled prepared document", offset = value.indexOf(literal);
+    if (offset < 0 || attachmentText.length >= 2) return;
+    const span = value.slice(offset, offset + literal.length);
+    attachmentText.push({ role, sha256: Bun.SHA256.hash(span, "hex"), bytes: Buffer.byteLength(span),
+      occurrences: value.indexOf(literal, offset + literal.length) < 0 ? 1 : 2 });
+  };
   for (const message of context.messages) {
-    if (typeof message.content === "string") text.push({ role: message.role, sha256: Bun.SHA256.hash(message.content, "hex") });
+    if (typeof message.content === "string") captureText(message.role, message.content);
     else for (const part of message.content) {
       if (part.type === "image") images.push({ mimeType: part.mimeType,
         sha256: Bun.SHA256.hash(Buffer.from(part.data, "base64"), "hex"), bytes: Buffer.byteLength(part.data, "base64") });
-      if (part.type === "text") text.push({ role: message.role, sha256: Bun.SHA256.hash(part.text, "hex") });
+      if (part.type === "text") captureText(message.role, part.text);
     }
   }
-  return { images, text };
+  return { images, text, attachmentText };
 }
 function write(home: string, state: Effects): void {
   const { scenario: _scenario, additionalSent: _additionalSent, ...effects } = state;

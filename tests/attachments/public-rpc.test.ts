@@ -29,6 +29,8 @@ const effectsSchema = z.object({ inputCalls: z.number(), modelAttempts: z.number
   toolCalls: z.number(), blockedPayloads: z.number(), requests: z.array(z.object({
     images: z.array(z.object({ sha256: z.string(), mimeType: z.string(), bytes: z.number() })),
     text: z.array(z.object({ role: z.string(), sha256: z.string() })),
+    attachmentText: z.array(z.object({ role: z.string(), sha256: z.string(), bytes: z.number(),
+      occurrences: z.number().int().min(1).max(2) })),
   })) });
 type Worker = ReturnType<typeof strictWorker>;
 
@@ -196,7 +198,7 @@ test("actual public PNG and text commit exact indexed parts with matching query 
     const request = (await fixture.effects()).requests.at(-1);
     expect(request?.images).toEqual([{ mimeType: prepared.mimeType, bytes: preparedBytes.byteLength,
       sha256: Bun.SHA256.hash(preparedBytes, "hex") }]);
-    expect(request?.text).toContainEqual({ role: "fileMention", sha256: textSha256 });
+    expect(request?.attachmentText).toEqual([{ role: "developer", sha256: textSha256, bytes: 28, occurrences: 1 }]);
   });
 }, 45_000);
 
