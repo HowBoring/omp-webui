@@ -41,7 +41,9 @@ No global installation is changed, no provider/model/tool is configured or invok
 
 The enrollment includes this acceptance Host/client and the complete native source/dependency closure. Stop the
 fixture before rebuilding or changing its enrolled tuple. Browser calls use genuine DSH envelopes and typed results;
-there is no parallel REST Session protocol. Native errors become bounded typed fixture outcomes, including stale/
+there is no parallel REST Session protocol. The readonly transport independently bounds pending requests and queued/inflight writes at 32; expired queued
+commands never start later. One startup budget covers ready plus negotiation separately from requests/drain.
+Native errors become bounded typed fixture outcomes, including stale/
 expired/scope cursors. Wrong correlation is tested as a separately labelled intercepted carrier fault. This isolated
 anonymous loopback fixture is not the product's authorization implementation.
 
