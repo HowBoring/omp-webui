@@ -11,6 +11,7 @@
     "dev": "bun --watch apps/host/src/main.ts",
     "start": "bun apps/host/src/main.ts",
     "test": "bun test",
+    "test:access:browser": "python3 tests/access/browser.py",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "check": "bun run typecheck && bun test && bun run build",
     "build": "bun build apps/host/src/main.ts --target=bun --outdir=dist"
