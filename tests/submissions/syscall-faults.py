@@ -98,14 +98,17 @@ try:
                 armed = (home / "submission-fault-armed").exists()
                 if marker and armed:
                     markers += 1
-                provenance_append = append and b'"submission":' in text
+                control = append and b'"customType":"omp.native-control/submission-v1"' in text
+                reserved_control = control and b'"terminal":false' in text
+                completed_control = control and b'"terminal":true' in text
+                provenance_append = append and not control and b'"submission":' in text and b'"role":"user"' in text
                 if not fired and armed and fault == "submission-before-entry-crash" and provenance_append:
                     fired = True
                     audit(fault, boundary="before_pwrite64", tracee=pid)
                     os.kill(child, signal.SIGKILL)
                     exit_code = 91
-                if not fired and armed and ((fault == "submission-reservation-crash" and marker and markers == 1)
-                    or (fault == "submission-completion-crash" and marker and markers == 2)
+                if not fired and armed and ((fault == "submission-reservation-crash" and reserved_control)
+                    or (fault == "submission-completion-crash" and completed_control)
                     or (fault == "submission-entry-crash" and provenance_append)):
                     fired = True
                     pending[pid]["fault"] = fault

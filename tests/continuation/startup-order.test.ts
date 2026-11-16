@@ -1,5 +1,5 @@
 import {expect,test} from "bun:test";
-import {mkdtemp,rm,rename,mkdir,copyFile} from "node:fs/promises";
+import {mkdtemp,rm,rename,mkdir,copyFile,stat,writeFile} from "node:fs/promises";
 import {join,resolve} from "node:path";
 import {tmpdir} from "node:os";
 import {nativeFixture,filesystemManifest} from "../catalog/fixture.ts";
@@ -39,6 +39,19 @@ for(const area of ["cwd","source","bucket"] as const)test(`owned ${area} namespa
    if(replacement){await mkdir(join(replacement,".."),{recursive:true});await copyFile(area==="source"?join(target+".held","bucket/native-0000.jsonl"):join(target+".held","native-0000.jsonl"),replacement);}
    const before=await filesystemManifest(target);
    expect(await worker.request({type:"set_session_name",name:"Must not redirect"})).toMatchObject({success:false});expect(await worker.request({type:"get_strict_state"})).toMatchObject({data:{phase:"outcome_unknown"}});expect(await filesystemManifest(target)).toEqual(before);
+  }finally{await worker.close();worker.child.kill();await worker.child.exited;}
+ }finally{await rm(home,{recursive:true,force:true});}
+},20_000);
+
+test("an in-place native header ID replacement is a different instance and cannot receive a later native write",async()=>{
+ const home=await mkdtemp(join(tmpdir(),"strict-inplace-id-"));
+ try{const root=await nativeFixture(home),selected=await selectedDescriptor(home),cwd=join(home,"project"),file=join(root,"bucket/native-0000.jsonl"),worker=strictWorker(home,cwd,isolatedRuntimeArgs);
+  try{await negotiateStrict(worker);expect(await worker.request({type:"strict_start",intent:"continue",reference:selected.reference,expectedCwd:cwd})).toMatchObject({success:true});
+   const physical=await stat(file,{bigint:true}),replacement=(await Bun.file(file).text()).replaceAll('"id":"native-0000"','"id":"native-9999"');await writeFile(file,replacement);
+   const after=await stat(file,{bigint:true});expect([after.dev,after.ino,after.birthtimeNs]).toEqual([physical.dev,physical.ino,physical.birthtimeNs]);
+   expect(await worker.request({type:"history_snapshot_open",scope:"tree"})).toMatchObject({success:false});
+   expect(await worker.request({type:"set_session_name",name:"Must not change replacement ID"})).toMatchObject({success:false});expect(await Bun.file(file).text()).toBe(replacement);
+   expect(await worker.request({type:"get_strict_state"})).toMatchObject({data:{phase:"outcome_unknown"}});
   }finally{await worker.close();worker.child.kill();await worker.child.exited;}
  }finally{await rm(home,{recursive:true,force:true});}
 },20_000);

@@ -31,7 +31,7 @@ test("concurrent duplicate/conflicting submissions dispatch once and a queued st
   } finally { await fs.rm(home, { recursive: true, force: true }); }
 }, 30000);
 
-test("bounded admission never evicts a durable tombstone into an executable identity", async () => {
+test("admission beyond the former header cap retains its earliest permanent tombstone", async () => {
   const home = await fs.mkdtemp(path.join(os.tmpdir(), "submission-capacity-"));
   try {
     await nativeFixture(home);
@@ -41,8 +41,8 @@ test("bounded admission never evicts a durable tombstone into an executable iden
       await worker.request({ type: "strict_start", intent: "continue", reference: target.reference, expectedCwd: cwd });
       const command = { type: "submission_submit", inputType: "prompt", message: "", preparationId: "fixed-preparation", clientSubmissionId: "permanent-0",
         sourceId: target.sourceId, instanceId: target.instanceId, nativeSessionId: target.nativeSessionId };
-      for (let index = 0; index < 16; index++) expect(await worker.request({ ...command, clientSubmissionId: `permanent-${index}` })).toMatchObject({ success: true });
-      expect(await worker.request({ ...command, clientSubmissionId: "permanent-overflow" })).toMatchObject({ success: false, code: "SUBMISSION_CAPACITY" });
+      for (let index = 0; index < 32; index++) expect(await worker.request({ ...command, clientSubmissionId: `permanent-${index}` })).toMatchObject({ success: true });
+      expect(await worker.request({ ...command, clientSubmissionId: "permanent-overflow" })).toMatchObject({ success: true });
       expect(await worker.request(command)).toMatchObject({ success: true, data: { duplicate: true, terminal: true } });
       expect(await worker.request({ type: "submission_query", clientSubmissionId: command.clientSubmissionId, limit: 129 }))
         .toMatchObject({ success: false, code: "SUBMISSION_QUERY_BOUNDS" });

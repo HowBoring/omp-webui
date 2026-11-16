@@ -1,16 +1,21 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 768fc266cc..3eb72c3efc 100644
+index 50c9fed23a..3eb72c3efc 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -9,6 +9,8 @@
+@@ -9,9 +9,12 @@
  
  ### Added
  
+-- Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
 +- Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
 +
  - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
  
- - Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
++- Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
++
+ - Added atomic retained-tree, active-chain and running-message observations with bounded expiring pages and native image content reads ([WebUI #34](https://github.com/HowBoring/omp-webui/issues/34)).
+ 
+ - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
 index 0b34d8fc54..ba1689e681 100644
 --- a/packages/coding-agent/README.md
@@ -23,7 +28,7 @@ index 0b34d8fc54..ba1689e681 100644
 +Durable submission prototype: see [public reservation and recovery semantics](docs/rpc-submissions.md).
 diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
 new file mode 100644
-index 0000000000..383f9f8c70
+index 0000000000..28295d807c
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-submissions.md
 @@ -0,0 +1,7 @@
@@ -31,7 +36,7 @@ index 0000000000..383f9f8c70
 +
 +`submission_submit` binds a permanent client identity to the exact protected native target, immutable preparation identity and input bytes. A reservation is published before extension, builtin, abort, model or tool dispatch. Duplicate keys return existing facts without executing. Conflicting bytes or targets are refused. This does not promise exactly-once external effects: a crashed reserved input remains unresolved and never resumes automatically.
 +
-+`submission_query` reads the protected logical native bytes without executing, flushing, repairing or retrying. A reservation differs from completion; individual committed entry relations differ from memory observations, explicit no-entry decisions and unresolved outcomes. Durable means recoverability after a software process crash, not fsync or power-loss durability. The ledger admits at most 16 permanent keys / 12,000 bytes; full ledgers refuse new admission, never evict tombstones. Query pages have at most 128 relations. Native entries hold minimal causal origin fields; metadata contains no prompt copy. Reservation/completion preserve the active leaf and do not enter model context.
++`submission_query` reads the protected logical native bytes without executing, flushing, repairing or retrying. A reservation differs from completion; individual committed entry relations differ from memory observations, explicit no-entry decisions and unresolved outcomes. Durable means recoverability after a software process crash, not fsync or power-loss durability. The native control ledger admits at most 10,000 permanent keys / 32 MiB; full ledgers refuse new admission, never evict tombstones. Query pages have at most 128 relations. The ledger stays outside the 16 KiB catalog prefix and outside the native tree/model index. After one protected feature upgrade, reservation and completion append verified control records instead of rewriting the full history. Native entries hold minimal causal origin fields; metadata contains no prompt copy. Reservation/completion preserve the active leaf and do not enter model context.
 +
 +The `ompgen2` discriminator prevents unsupported generation readers from opening submission-bearing data. Matched native copies retain origin facts and tombstones; a copied fact is inherited, never an admission into the destination. An unsupported required feature is refused. Product private admission remains blocked pending combined native/TUI/browser/fault acceptance.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
@@ -61,17 +66,36 @@ index da698774f5..9a9a41d2df 100644
      if (!isRecord(value) || value.type !== "session"
        || !("id" in value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128
        || !("timestamp" in value) || typeof value.timestamp !== "string" || !Number.isFinite(Date.parse(value.timestamp))) {
+diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
+index dca44f560b..facf7847a7 100644
+--- a/packages/coding-agent/src/modes/rpc/preflight.ts
++++ b/packages/coding-agent/src/modes/rpc/preflight.ts
+@@ -1,3 +1,4 @@
++import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ /** Public startup path: no Session, user configuration, extensions, native UI or model imports. */
+ import { rpcInteractionPolicy } from "./rpc-interaction-policy";
+@@ -35,7 +36,7 @@ export async function runPreflight(): Promise<void> {
+         const report: CompatibilityReport = {
+           candidate: "omp-webui-s0", ...compatibilityBuild, safePreflight: true, sessionAdmission: "blocked",
+           capabilities: ["safe-preflight-v1", "rpc-framing-v2"],
+-          rpcUiInteractionPolicy: rpcInteractionPolicy, rpcUiStrictStartupPolicy: strictStartupPolicy,
++          rpcUiInteractionPolicy: rpcInteractionPolicy, rpcUiStrictStartupPolicy: strictStartupPolicy, rpcUiSubmissionPolicy: nativeSubmissionPolicy,
+           runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
+         };
+         await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..c7c988cddf 100644
+index 3a336fa764..66fff2dfdb 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,3 +1,5 @@
+@@ -1,3 +1,6 @@
++import { nativeSubmissionPolicy } from "../../session/submission-policy";
 +import { RpcSubmissions } from "./rpc-submissions";
 +import { runSubmission, submissionScope } from "../../session/submission-provenance";
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
  import { getStrictStartup, observeStrictStartup } from "./strict-context";
-@@ -515,6 +517,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -515,6 +518,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  }
  
  const USER_INPUT_TYPES: Record<string, true> = {
@@ -79,7 +103,7 @@ index 3a336fa764..c7c988cddf 100644
  	prompt: true,
  	steer: true,
  	follow_up: true,
-@@ -560,6 +563,12 @@ export class RpcUserInputGate {
+@@ -560,6 +564,12 @@ export class RpcUserInputGate {
  		if (isAbort) this.#validFrom = sequence;
  	}
  
@@ -92,7 +116,16 @@ index 3a336fa764..c7c988cddf 100644
  	/** A session change succeeded: invalidate input accepted before its frame. */
  	commitSessionChange(command: RpcCommand): void {
  		const sequence = this.#acceptedAt.get(command);
-@@ -1834,14 +1843,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1320,7 +1330,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	if (!strictStartup) outputWriter.write(
+ 		frameEncoder.encodeFrames({
+-			type: "ready",
++			type: "ready", submissionPolicy: nativeSubmissionPolicy,
+ 			protocolVersion: 1,
+ 			supportedProtocolVersions: [1, 2],
+ 			maxFrameBytes: MAX_RPC_FRAME_BYTES,
+@@ -1834,14 +1844,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -111,7 +144,7 @@ index 3a336fa764..c7c988cddf 100644
  			const sessionId = session.sessionId;
  			const isCurrent = () =>
  				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
-@@ -1859,11 +1870,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1859,11 +1871,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			if (!isCurrent()) return "cancelled";
  			if (!text.trim() && !images?.length) return "local";
  			if (command.type === "steer") {
@@ -125,7 +158,7 @@ index 3a336fa764..c7c988cddf 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1941,17 +1952,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1941,17 +1953,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -147,7 +180,7 @@ index 3a336fa764..c7c988cddf 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +1986,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1974,6 +1987,37 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -187,10 +220,11 @@ index 3a336fa764..c7c988cddf 100644
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..480e2149f9
+index 0000000000..8e354143c2
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,126 @@
++import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
 +import type { AgentSession } from "../../session/agent-session";
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
@@ -220,7 +254,7 @@ index 0000000000..480e2149f9
 +      if (!pending || !sameSubmission(pending.origin, cause.origin)) return;
 +      const decision = observation.settlement;
 +      if (decision.status === "observed") return;
-+      if (pending.noEntries.size >= 32) { pending.overflow = true; return; }
++      if (pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
 +      pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
 +        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
 +    });
@@ -231,14 +265,14 @@ index 0000000000..480e2149f9
 +    if (!/^[A-Za-z0-9_-]{1,96}$/.test(value.clientSubmissionId) || (value.id !== undefined && value.id.length > 96))
 +      throw new Error("SUBMISSION_COMMAND_SCHEMA");
 +    if (value.type === "submission_query") {
-+      if ((value.offset ?? 0) < 0 || (value.limit ?? 64) < 1 || (value.limit ?? 64) > 128)
++      if ((value.offset ?? 0) < 0 || (value.limit ?? 64) < 1 || (value.limit ?? 64) > submissionPolicy.maxQueryRelations)
 +        throw new Error("SUBMISSION_QUERY_BOUNDS");
 +      return;
 +    }
-+    if (value.preparationId.length < 1 || value.preparationId.length > 96 || Buffer.byteLength(value.message) > 262_144
++    if (value.preparationId.length < 1 || value.preparationId.length > 96 || Buffer.byteLength(value.message) > submissionPolicy.maxMessageBytes
 +      || !/^[a-f0-9]{64}$/.test(value.sourceId) || !/^[a-f0-9]{64}$/.test(value.instanceId)
 +      || value.nativeSessionId.length < 1 || value.nativeSessionId.length > 128
-+      || Buffer.byteLength(JSON.stringify(value.images ?? [])) > 524_288) throw new Error("SUBMISSION_COMMAND_SCHEMA");
++      || Buffer.byteLength(JSON.stringify(value.images ?? [])) > submissionPolicy.maxImagesBytes) throw new Error("SUBMISSION_COMMAND_SCHEMA");
 +  }
 +  async reserve(command: SubmissionSubmit): Promise<{ admitted: boolean; scope: SubmissionScope }> {
 +    this.validate(command);
@@ -292,7 +326,7 @@ index 0000000000..480e2149f9
 +    catch (failure) { if (!target) throw failure; return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
 +      reservation: "unknown", inputOutcome: "unresolved", persistence: "unknown", terminal: false, relations: [], nextOffset: null,
 +      code: "SUBMISSION_SOURCE_UNREADABLE" }; }
-+    const value = state.header.nativeSubmissions?.find(item => item.origin.clientSubmissionId === clientSubmissionId);
++    const value = state.submissions.find(item => item.origin.clientSubmissionId === clientSubmissionId);
 +    if (!value) return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
 +      reservation: "absent", inputOutcome: "unresolved", persistence: this.#failures.get(clientSubmissionId) ?? "unresolved", terminal: false, relations: [], nextOffset: null };
 +    const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
@@ -317,15 +351,16 @@ index 0000000000..480e2149f9
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index efccf79be7..1e974cbbf6 100644
+index efccf79be7..b2ea42a01b 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-@@ -1,3 +1,4 @@
+@@ -1,3 +1,5 @@
++import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
 +import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
  import type { StrictStartState } from "./wire/rpc-wire.generated";
  /**
   * RPC protocol types for headless operation.
-@@ -49,6 +50,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -49,6 +51,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
@@ -333,7 +368,15 @@ index efccf79be7..1e974cbbf6 100644
    | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
    | { id?: string; type: "history_content_page"; cursor: string }
    | { id?: string; type: "history_snapshot_page"; cursor: string }
-@@ -443,6 +445,7 @@ export interface RpcSubagentMessagesResult {
+@@ -387,6 +390,7 @@ export interface RpcAbortAndRestoreQueueResult {
+ }
+ 
+ export interface RpcReadyFrame {
++  submissionPolicy?: SubmissionPolicy;
+ 	/** Effective before extension initialization and timers; immutable for this worker. */
+ 	interactionPolicy?: RpcInteractionPolicy;
+ 	type: "ready";
+@@ -443,6 +447,7 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -341,16 +384,77 @@ index efccf79be7..1e974cbbf6 100644
    | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
    | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
    | { id?: string; type: "response"; command: "history_snapshot_page"; success: true; data: HistoryPage }
+diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+index 4763326da8..2acbd31b6d 100644
+--- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+@@ -1,3 +1,4 @@
++import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+@@ -20,7 +21,7 @@ export async function runStrictMode(runtimeArgs: string[] = []): Promise<void> {
+   let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
+   output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
+     maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
+-    strictStartup: "strict-start-v1", strictStartupPolicy, interactionPolicy: rpcInteractionPolicy });
++    strictStartup: "strict-start-v1", strictStartupPolicy, submissionPolicy: nativeSubmissionPolicy, interactionPolicy: rpcInteractionPolicy });
+   let negotiated = false, attempted = false;
+   let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
+   let activeContext: StrictStartupContext | undefined;
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-index 85ec6f16b7..805e4f382b 100644
+index 46604a52a4..c7ca996047 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -1,3 +1,4 @@
+@@ -1,4 +1,6 @@
++import { readFileXattr } from "../../utils/file-xattr";
+ import { sessionHeaderIdFromPrefix } from "../../session/session-header-id";
 +import { nativeSessionHeader } from "../../session/session-required-features";
  import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
  /** Exact-instance ownership acquired before ordinary Session or extension initialization. */
  import * as fs from "node:fs";
-@@ -118,7 +119,7 @@ export class StrictReservation {
+@@ -11,7 +13,40 @@ import { openWithin } from "./catalog-path";
+ import { hash, readDescriptor, type NativeSource } from "./catalog-metadata";
+ import type { CatalogDescriptor } from "./wire/rpc-wire.generated";
+ 
++interface OwnedReadProof { physical: number; logical: number; ctime: bigint; mtime: bigint; head: string; generations: string }
+ export class StrictReservation {
++  #readProof: OwnedReadProof | undefined;
++  #proofState(logical: number): OwnedReadProof {
++    const info = fs.fstatSync(this.#fd, {bigint:true});
++    const head = readFileXattr(this.#fd, "user.omp-generation-v1", 1024);
++    const directory = `/proc/self/fd/${this.#parentFd}/.${path.basename(this.filePath)}.omp-generations`;
++    let generations = "";
++    let directoryFd: number | undefined;
++    try {
++      directoryFd = fs.openSync(directory, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++      const anchor = `/proc/self/fd/${directoryFd}`, names = fs.readdirSync(anchor).sort(), own = fs.fstatSync(directoryFd,{bigint:true});
++      if (names.length > 128) throw new Error("STRICT_GENERATION_PROOF_LIMIT");
++      generations = `${own.dev}:${own.ino}:` + names.map(name => { const stat = fs.lstatSync(`${anchor}/${name}`,{bigint:true});
++        if (!stat.isFile()) throw new Error("STRICT_GENERATION_PROOF_TYPE");
++        return `${name}:${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
++      }).join("\n");
++    } catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error; }
++    finally { if (directoryFd !== undefined) fs.closeSync(directoryFd); }
++    return {physical:Number(info.size),logical,ctime:info.ctimeNs,mtime:info.mtimeNs,head:head ? hash(head) : "",generations};
++  }
++  /** The cached proof is earned only by full validated native read or owned verified publication. Drift is never adopted. */
++  assertReadableState(): void {
++    this.assertCurrent();
++    if (!this.#readProof) { this.read(); return; }
++    const next = this.#proofState(this.#readProof.logical), prior = this.#readProof;
++    if (next.physical !== prior.physical || next.ctime !== prior.ctime || next.mtime !== prior.mtime
++      || next.head !== prior.head || next.generations !== prior.generations) {
++      this.#failure = new Error("STRICT_SOURCE_DRIFT_OUTCOME_UNKNOWN"); throw this.#failure;
++    }
++  }
++  logicalSize(): number { this.assertReadableState(); return this.#readProof!.logical; }
++  submissionTarget() { this.assertReadableState(); return this.descriptor; }
++
+   readonly descriptor: CatalogDescriptor;
+   readonly filePath: string;
+   readonly #source: NativeSource;
+@@ -121,7 +156,7 @@ export class StrictReservation {
      const source: NativeSource = { root, rootIdentity, sourceId: hash(`native-explicit:${root}:${rootIdentity}`) };
      let header: unknown;
      for (const line of body.split("\n", 3).slice(0, 2)) {
@@ -359,6 +463,67 @@ index 85ec6f16b7..805e4f382b 100644
        if (typeof candidate === "object" && candidate !== null && "type" in candidate && candidate.type === "session") header = candidate;
      }
      if (typeof header !== "object" || header === null || !("id" in header) || typeof header.id !== "string"
+@@ -239,15 +274,25 @@ export class StrictReservation {
+   }
+ 
+   read(): string {
++    if (this.#readProof) this.assertReadableState(); else this.assertCurrent();
++    const before = this.#proofState(0), result = resolveHeldGeneration(this.#fd, this.#parentFd, this.filePath);
+     this.assertCurrent();
+-    const result = resolveHeldGeneration(this.#fd, this.#parentFd, this.filePath);
+-    this.assertCurrent(); return result.text;
++    const after = this.#proofState(result.logicalBytes);
++    if (before.physical !== after.physical || before.ctime !== after.ctime || before.mtime !== after.mtime
++      || before.head !== after.head || before.generations !== after.generations) {
++      this.#failure = new Error("STRICT_SOURCE_DRIFT_OUTCOME_UNKNOWN"); throw this.#failure;
++    }
++    this.#readProof = after; return result.text;
+   }
+ 
+   publish(body: string, options?: { expectedSize?: number | null; commitGuard?: () => boolean }): boolean {
+-    this.assertCurrent();
++    this.assertReadableState();
+     this.#writeAttempted = true;
+-    try { return publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options); }
++    try {
++      const published = publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options);
++      if (published) { this.#readProof = undefined; this.read(); }
++      return published;
++    }
+     catch (error) {
+       const clean = error instanceof Error && ["GENERATION_HARDLINK_PUBLICATION_UNSUPPORTED", "GENERATION_BODY_LIMIT", "GENERATION_COUNT_LIMIT", "GENERATION_RETAINED_BYTES_LIMIT", "STRICT_WRITE_CONFLICT"].includes(error.message);
+       if (clean && !this.#failure) throw error;
+@@ -258,14 +303,25 @@ export class StrictReservation {
+   get writeAttempted(): boolean { return this.#writeAttempted; }
+ 
+   append(line: string): void {
+-    this.assertCurrent();
+-    if (Buffer.byteLength(this.read()) + Buffer.byteLength(line) > generationBudgets.bodyBytes)
+-      throw new Error("GENERATION_BODY_LIMIT");
+-    const start = fs.fstatSync(this.#fd).size;
+-    if (start + Buffer.byteLength(line) > generationBudgets.carrierBytes) throw new Error("GENERATION_CARRIER_LIMIT");
++    this.assertReadableState();
++    const proof = this.#readProof!, bytes = Buffer.from(line, "utf8");
++    if (proof.logical + bytes.length > generationBudgets.bodyBytes) throw new Error("GENERATION_BODY_LIMIT");
++    const start = proof.physical;
++    if (start + bytes.length > generationBudgets.carrierBytes) throw new Error("GENERATION_CARRIER_LIMIT");
+     const last = Buffer.alloc(1);
+     if (start > 0 && (fs.readSync(this.#fd, last, 0, 1, start - 1) !== 1 || last[0] !== 10)) throw new Error("GENERATION_INCOMPLETE_TAIL");
+     this.#writeAt(line, start);
++    try {
++      const readable = Buffer.alloc(bytes.length); let offset = 0;
++      while (offset < readable.length) {
++        const count = fs.readSync(this.#fd, readable, offset, readable.length-offset, start+offset);
++        if (!count) throw new Error("STRICT_APPEND_READBACK_FAILED"); offset += count;
++      }
++      const after = this.#proofState(proof.logical + bytes.length);
++      if (!readable.equals(bytes) || after.physical !== start + bytes.length || after.head !== proof.head
++        || after.generations !== proof.generations) throw new Error("STRICT_APPEND_READBACK_FAILED");
++      this.assertCurrent(); this.#readProof = after;
++    } catch { this.#failure = new Error("STRICT_WRITE_OUTCOME_UNKNOWN"); throw this.#failure; }
+   }
+ 
+   /** Append or initialize an exclusively created carrier; existing body bytes are never overwritten here. */
 diff --git a/packages/coding-agent/src/modes/rpc/submission-client.ts b/packages/coding-agent/src/modes/rpc/submission-client.ts
 new file mode 100644
 index 0000000000..6f087cad80
@@ -401,6 +566,26 @@ index 800328dd61..97966b2eee 100644
    {
      name: "get_compatibility",
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+index 5152c250bb..7dbe653b1a 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+@@ -18,6 +18,7 @@ export const frameDefs = {
+     safePreflight: "true",
+     rpcUiInteractionPolicy: "InteractionPolicy",
+     "rpcUiStrictStartupPolicy?": "StrictStartupPolicy",
++    "rpcUiSubmissionPolicy?": "SubmissionPolicy",
+     sessionAdmission: "'blocked'",
+     capabilities: "string[]",
+     runtime: "CompatibilityRuntime",
+@@ -28,6 +29,7 @@ export const frameDefs = {
+ 			"interactionPolicy?": "InteractionPolicy",
+       "strictStartup?": "'strict-start-v1'",
+       "strictStartupPolicy?": "StrictStartupPolicy",
++      "submissionPolicy?": "SubmissionPolicy",
+ 			"protocolVersion?": "number.integer",
+ 			"supportedProtocolVersions?": "number.integer[]",
+ 			"maxFrameBytes?": "number.integer",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
 index 1e7b675bc3..afeae50dfa 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
@@ -420,12 +605,17 @@ index 1e7b675bc3..afeae50dfa 100644
  		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 new file mode 100644
-index 0000000000..aee437dbda
+index 0000000000..6679486e23
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
-@@ -0,0 +1,18 @@
+@@ -0,0 +1,23 @@
 +/** Recoverable ingress identity. Only protected native storage may admit input. Query never executes. */
 +export const submissionDefs = {
++  SubmissionPolicy: {version:"'durable-submission-v1'",status:"'prototype'",ownership:"'native-exclusive-pinned-storage'",
++    durability:"'process-crash-only'",dedup:"'permanent-refuse-at-capacity'",query:"'read-only-no-execution'",
++    logicalHeader:"'ompsub1'",carrier:"'ompgen2'",maxSubmissions:"number.integer",maxMetadataBytes:"number.integer",
++    maxEntryFacts:"number.integer",maxNoEntryFacts:"number.integer",maxQueryRelations:"number.integer",
++    maxMessageBytes:"number.integer",maxImagesBytes:"number.integer",maxPendingTasks:"number.integer"},
 +  SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
 +  SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
 +    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
@@ -443,7 +633,7 @@ index 0000000000..aee437dbda
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 4d95cfdb33..f1ea7e4ca7 100644
+index 68a1154008..b6c52add3d 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
@@ -524,10 +714,10 @@ index 4d95cfdb33..f1ea7e4ca7 100644
  			// Queued into a turn the agent owns: that turn holds the session. Busy only
  			// from another prompt's setup claims nothing (that prompt decides).
 diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
-index a96b149784..8ee431f9de 100644
+index 0db8962316..d79c0bd86a 100644
 --- a/packages/coding-agent/src/session/session-artifact-copy.ts
 +++ b/packages/coding-agent/src/session/session-artifact-copy.ts
-@@ -54,7 +54,7 @@ export function prepareGenerationArtifactTree(source: string): PreparedGeneratio
+@@ -57,7 +57,7 @@ export function prepareGenerationArtifactTree(source: string): PreparedGeneratio
              if (item.name.endsWith(".jsonl")) {
                const prefix = Buffer.alloc(16_384), count = fs.readSync(fd, prefix, 0, prefix.length, 0);
                const leading = prefix.subarray(0, count);
@@ -565,10 +755,15 @@ index 6b96d2abb9..61e02dcd7b 100644
  	id: string;
  	parentId: string | null;
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
-index d55b3aaa04..74d4eb69f8 100644
+index d55b3aaa04..dd21e0ad45 100644
 --- a/packages/coding-agent/src/session/session-generation.ts
 +++ b/packages/coding-agent/src/session/session-generation.ts
-@@ -9,6 +9,8 @@ export const generationBudgets = Object.freeze({ bodyBytes: strictStartupPolicy.
+@@ -1,3 +1,4 @@
++import { nativeSessionHeader } from "./session-required-features";
+ import { strictStartupPolicy } from "../modes/rpc/strict-start-policy";
+ /** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
+ import * as fs from "node:fs";
+@@ -9,6 +10,8 @@ export const generationBudgets = Object.freeze({ bodyBytes: strictStartupPolicy.
    generations: strictStartupPolicy.maxGenerations, directoryEntries: 128, metadataBytes: 1024, markerBytes: 1024 });
  const HEAD_XATTR = "user.omp-generation-v1";
  const CARRIER_TYPE = "ompgen1";
@@ -577,7 +772,7 @@ index d55b3aaa04..74d4eb69f8 100644
  const COMMIT_TYPE = "omp_generation_commit";
  const hash = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
  const decoder = new TextDecoder("utf8", { fatal: true });
-@@ -30,7 +32,7 @@ export function isGenerationCarrier(file: string): boolean {
+@@ -30,7 +33,7 @@ export function isGenerationCarrier(file: string): boolean {
    try {
      fd = fs.openSync(file, "r");
      const bytes = Buffer.alloc(16_384), count = fs.readSync(fd, bytes, 0, bytes.length, 0);
@@ -586,7 +781,7 @@ index d55b3aaa04..74d4eb69f8 100644
    } finally { if (fd !== undefined) fs.closeSync(fd); }
  }
  export function carrierIdentity(fd: number): string {
-@@ -51,7 +53,7 @@ export function readHeldBytes(fd: number, max = generationBudgets.carrierBytes):
+@@ -51,7 +54,7 @@ export function readHeldBytes(fd: number, max = generationBudgets.carrierBytes):
  function nativeId(text: string): string {
    for (const line of text.split("\n", 3).slice(0, 2)) {
      let value: unknown; try { value = JSON.parse(line); } catch { continue; }
@@ -595,7 +790,7 @@ index d55b3aaa04..74d4eb69f8 100644
    }
    throw new Error("GENERATION_NATIVE_HEADER_INVALID");
  }
-@@ -77,7 +79,7 @@ function marker(value: unknown): value is CommitRecord {
+@@ -77,7 +80,7 @@ function marker(value: unknown): value is CommitRecord {
    if (hash(JSON.stringify(payload)) !== value.checksum) throw new Error("GENERATION_COMMIT_CORRUPT");
    return true;
  }
@@ -604,7 +799,7 @@ index d55b3aaa04..74d4eb69f8 100644
  function headerPosition(bytes: Buffer): HeaderPosition {
    let start = 0;
    for (let index = 0; index < 2; index++) {
-@@ -85,8 +87,8 @@ function headerPosition(bytes: Buffer): HeaderPosition {
+@@ -85,8 +88,8 @@ function headerPosition(bytes: Buffer): HeaderPosition {
      if (end < 0 || end > 16_384) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
      const line = decoder.decode(bytes.subarray(start, end));
      const value: unknown = JSON.parse(line);
@@ -615,7 +810,7 @@ index d55b3aaa04..74d4eb69f8 100644
        if (!match) throw new Error("GENERATION_HEADER_ENCODING_UNSUPPORTED");
        const textOffset = match.index + match[0].lastIndexOf(value.type);
        return { type: value.type, valueOffset: start + Buffer.byteLength(line.slice(0, textOffset)) };
-@@ -156,7 +158,7 @@ export function readHeldGenerationMetadata(fd: number, parentFd: number, file: s
+@@ -156,7 +159,7 @@ export function readHeldGenerationMetadata(fd: number, parentFd: number, file: s
    const prefix = knownPrefix ?? Buffer.alloc(maximum);
    const count = knownPrefix ? knownPrefix.length : fs.readSync(fd, prefix, 0, prefix.length, 0);
    const bytes = prefix.subarray(0, count), header = headerPosition(bytes);
@@ -624,7 +819,7 @@ index d55b3aaa04..74d4eb69f8 100644
    const head = readHead(fd);
    if (!head) throw new Error("GENERATION_CONTROL_MISSING");
    const committed = committedHead(fd, head);
-@@ -190,10 +192,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
+@@ -190,10 +193,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
    const complete = bytes.lastIndexOf(10) + 1;
    const header = headerPosition(bytes);
    const head = readHead(fd);
@@ -637,14 +832,18 @@ index d55b3aaa04..74d4eb69f8 100644
    const physical = decoder.decode(normalized);
    let latest: { record: CommitRecord; end: number } | undefined, offset = 0;
    for (const line of physical.split("\n")) {
-@@ -296,10 +298,13 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
+@@ -296,10 +299,17 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
      writeFileXattr(fd, HEAD_XATTR, Buffer.from(JSON.stringify({ ...headPayload, checksum: hash(JSON.stringify(headPayload)) })));
      assertCurrent();
      const header = headerPosition(readHeldBytes(fd));
 -    if (header.type === "session") {
 -      writeComplete(fd, Buffer.from(CARRIER_TYPE, "ascii"), header.valueOffset);
 +    // The new discriminator makes unsupported native rollback refuse this data before opening it.
-+    const carrierType = body.includes('"durable-submission-v1"') || header.type === SUBMISSION_CARRIER_TYPE
++    const requiresSubmissions = body.split("\n", 3).slice(0, 2).some(line => {
++      let value: unknown; try { value = JSON.parse(line); } catch { return false; }
++      return nativeSessionHeader(value)?.requiredFeatures?.includes("durable-submission-v1") === true;
++    });
++    const carrierType = requiresSubmissions || header.type === SUBMISSION_CARRIER_TYPE
 +      ? SUBMISSION_CARRIER_TYPE : CARRIER_TYPE;
 +    if (header.type !== carrierType) {
 +      writeComplete(fd, Buffer.from(carrierType, "ascii"), header.valueOffset);
@@ -654,7 +853,7 @@ index d55b3aaa04..74d4eb69f8 100644
      }
      writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
      const confirmed = resolveHeldGeneration(fd, parentFd, file);
-@@ -326,7 +331,7 @@ export function assertPlainArtifactTree(directory: string): void {
+@@ -326,7 +336,7 @@ export function assertPlainArtifactTree(directory: string): void {
            const child = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
            try {
              const prefix = Buffer.alloc(16_384), count = fs.readSync(child, prefix, 0, prefix.length, 0);
@@ -702,30 +901,118 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 920af33554..36ccbbd7d9 100644
+index 9ce3e51889..0718be184f 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,6 +1,8 @@
-+import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
+@@ -1,10 +1,14 @@
++import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./submission-records";
++import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
 +import { causalSubmission, sameSubmission } from "./submission-provenance";
-+import type { NativeSubmission, SubmissionOrigin, SubmissionTarget } from "./submission-provenance";
- import { nativeHistoryContextId } from "./history-context";
- import { associateMessageEntry } from "./live-message-observation";
--import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
++import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
++import { nativeHistoryContextId } from "./history-context";
++import { associateMessageEntry } from "./live-message-observation";
  import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
  import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
  import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
-@@ -1617,7 +1619,8 @@ export class SessionManager {
+ import { StrictSessionStorage } from "./strict-session-storage";
+-import { nativeHistoryContextId } from "./history-context";
+-import { associateMessageEntry } from "./live-message-observation";
+ export interface NativeHistoryChange {
+   kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
+ }
+@@ -834,6 +838,7 @@ interface SessionManagerStateSnapshot {
+ 	/** Stashed sibling family candidate; moveTo drops it, so a rollback must restore it. */
+ 	taskSiblingCandidate: string | undefined;
+ 	header: SessionHeader;
++	nativeSubmissions?: NativeSubmission[];
+ 	entries: SessionEntry[];
+ }
+ 
+@@ -964,6 +969,11 @@ export class ForkSourceNotFoundError extends Error {
+  * repointed.
+  */
+ export class SessionManager {
++	#nativeSubmissions: NativeSubmission[] = [];
++	#verifiedSubmissions: NativeSubmission[] = [];
++	#verifiedSubmissionEntries = new Map<string, SubmissionCausality>();
++	#submissionBytes = 0;
++	#submissionFormatReady = false;
+ 	#cwd: string;
+ 	/** Additional workspace directories beyond cwd (multi-root). Normalized absolute, deduped, excludes cwd. */
+ 	#additionalDirectories: string[] = [];
+@@ -1617,7 +1627,8 @@ export class SessionManager {
  	}
  
  	#lineFor(entry: FileEntry): string {
 -		return `${stringifyJson(prepareEntryForPersistence(entry, this.#blobs)) ?? "null"}\n`;
-+		const durable = entry.type === "session" && entry.nativeSubmissions ? { ...entry, type: "ompsub1" } : entry;
++		const durable = entry.type === "session" && entry.requiredFeatures?.includes("durable-submission-v1") ? { ...entry, type: "ompsub1" } : entry;
 +		return `${stringifyJson(prepareEntryForPersistence(durable as FileEntry, this.#blobs)) ?? "null"}\n`;
  	}
  	#recordDurableAppend(line: string): void {
  		this.#expectedDiskSize = (this.#expectedDiskSize ?? 0) + Buffer.byteLength(line, "utf8");
-@@ -2225,6 +2228,7 @@ export class SessionManager {
+@@ -1629,6 +1640,8 @@ export class SessionManager {
+     const verifiedBinding = this.#storage.verifiedSourceBinding?.();
+     if (verifiedBinding) this.bindHistorySource(verifiedBinding);
+ 		this.#expectedDiskSize = bytes;
++		this.#submissionBytes = this.#nativeSubmissions.reduce((total, item) => total + Buffer.byteLength(this.#lineFor(submissionRecord(item))), 0);
++		if (this.#storage instanceof StrictSessionStorage && !this.#diskFailure) this.#captureSubmissionProof();
+ 	}
+ 
+ 	/**
+@@ -1682,11 +1695,17 @@ export class SessionManager {
+ 	 * Runs as the `session.rewrite` loop phase: a long transcript takes hundreds of milliseconds to stringify.
+ 	 */
+ 	#serializeBody(): SessionFileBody {
++		this.#retainSubmissionEntryFacts();
+ 		const titleLine = this.#titleSlotLine();
+ 		const headerLine = this.#lineFor(this.#header);
+ 		const entries = this.#entries;
+-		const lines = [titleLine, headerLine];
+-		let bytes = Buffer.byteLength(titleLine, "utf8") + Buffer.byteLength(headerLine, "utf8");
++		const controls = this.#nativeSubmissions.map(submissionRecord).map(record => this.#lineFor(record));
++		if (controls.some(line => Buffer.byteLength(line) > 8 * 1024 * 1024)
++      || controls.reduce((sum,line) => sum + Buffer.byteLength(line), 0) > submissionPolicy.maxMetadataBytes)
++      throw new Error("SUBMISSION_METADATA_LIMIT");
++		const lines = [titleLine, headerLine, ...controls];
++		let bytes = Buffer.byteLength(titleLine, "utf8") + Buffer.byteLength(headerLine, "utf8")
++			+ controls.reduce((total, line) => total + Buffer.byteLength(line), 0);
+ 		withLoopPhase("session.rewrite", () => {
+ 			for (const entry of entries) {
+ 				const line = this.#lineFor(entry);
+@@ -2117,6 +2136,7 @@ export class SessionManager {
+ 	}
+ 
+ 	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
++		this.#nativeSubmissions = []; this.#verifiedSubmissions = []; this.#verifiedSubmissionEntries.clear(); this.#submissionBytes = 0; this.#submissionFormatReady = false;
+ 		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
+ 		this.#diskTail = Promise.resolve();
+ 		this.#clearDiskError();
+@@ -2184,9 +2204,14 @@ export class SessionManager {
+ 		return this.#sessionFile;
+ 	}
+ 
+-	#applyEntries(header: SessionHeader, entries: SessionEntry[]): void {
++	#applyEntries(header: SessionHeader, entries: SessionEntry[], loaded = false): void {
+ 		this.#historySourceBinding = undefined;
+ 		this.#header = header;
++		this.#nativeSubmissions = readSubmissionRecords([...(header.nativeSubmissions ?? []).map(submissionRecord), ...entries]);
++		delete this.#header.nativeSubmissions;
++		this.#submissionBytes = entries.filter(isSubmissionControl).reduce((sum, entry) => sum + Buffer.byteLength(JSON.stringify(entry)), 0);
++		this.#submissionFormatReady = header.requiredFeatures?.includes("durable-submission-v1") === true;
++		entries = entries.filter(entry => !isSubmissionControl(entry));
+ 		this.#entries = entries;
+ 		this.#sessionId = header.id;
+ 		this.#sessionName = header.title;
+@@ -2195,6 +2220,7 @@ export class SessionManager {
+ 		const repairedUsage = normalizeLoadedUsage(entries);
+ 		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
+ 		this.#index.rebuild(entries);
++		if (loaded && this.#storage instanceof StrictSessionStorage) this.#captureSubmissionProof();
+ 		this.#historyChanged("rebuild", true);
+ 	}
+ 
+@@ -2225,6 +2251,7 @@ export class SessionManager {
  		if (entry.type === "message" && entry.message.role === "assistant" && normalizeAssistantUsage(entry.message)) {
  			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
  		}
@@ -733,17 +1020,34 @@ index 920af33554..36ccbbd7d9 100644
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2392,6 +2396,9 @@ export class SessionManager {
+@@ -2236,6 +2263,8 @@ export class SessionManager {
+ 			batch.externalLeafId = sessionEntryLeafId(entry);
+ 		}
+ 		this.#appendToSessionFile(entry);
++		if (entry.submission && this.#storage instanceof StrictSessionStorage && !this.#diskFailure && this.#fileIsCurrent)
++			this.#verifiedSubmissionEntries.set(entry.id, structuredClone(entry.submission));
+ 		if (batch) batch.deferredNotifications.push(entry);
+ 		else this.#notifyEntryAppended(entry);
+ 	}
+@@ -2366,6 +2395,7 @@ export class SessionManager {
+ 			// (cwd, additionalDirectories), so a by-reference capture would let
+ 			// a rollback observe the move it is undoing.
+ 			header: structuredClone(this.#header),
++			nativeSubmissions: structuredClone(this.#nativeSubmissions),
+ 			entries: [...this.#entries],
+ 		};
+ 	}
+@@ -2392,6 +2422,9 @@ export class SessionManager {
  	}
  
  	restoreState(snapshot: SessionManagerStateSnapshot): void {
-+		const tombstones = this.#header?.id === snapshot.header.id ? this.#header.nativeSubmissions : undefined;
++		const tombstones = this.#header?.id === snapshot.header.id ? this.#nativeSubmissions : undefined;
 +		const monotonicDiskSize = tombstones?.length && this.#sessionFile === snapshot.sessionFile ? this.#expectedDiskSize : undefined;
 +		if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
  		this.#closeWriterEventually();
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
-@@ -2399,7 +2406,7 @@ export class SessionManager {
+@@ -2399,7 +2432,7 @@ export class SessionManager {
  		this.#cwd = snapshot.cwd;
  		this.#sessionDir = snapshot.sessionDir;
  		this.#sessionFile = snapshot.sessionFile;
@@ -752,36 +1056,45 @@ index 920af33554..36ccbbd7d9 100644
  		this.#fileIsCurrent = snapshot.onDisk;
  		this.#rewriteRequired = snapshot.needsRewrite;
  		this.#forceFileCreation = snapshot.onDisk;
-@@ -2407,7 +2414,14 @@ export class SessionManager {
+@@ -2407,7 +2440,15 @@ export class SessionManager {
  		this.#fallbackRuntimeOnly = snapshot.fallbackRuntimeOnly;
  		// A completed moveTo drops the stash, so a rollback restores it here.
  		this.#taskSiblingCandidate = snapshot.taskSiblingCandidate;
 -		this.#applyEntries(snapshot.header, [...snapshot.entries]);
 +		const restoredHeader = structuredClone(snapshot.header);
 +		if (tombstones?.length) {
-+			const records = new Map((restoredHeader.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
++			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
 +			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
-+			restoredHeader.nativeSubmissions = [...records.values()];
++			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
 +			restoredHeader.requiredFeatures = ["durable-submission-v1"];
 +		}
 +		this.#applyEntries(restoredHeader, [...snapshot.entries]);
++		this.#nativeSubmissions = structuredClone(snapshot.nativeSubmissions ?? []);
  		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
  		this.#sessionName = snapshot.sessionName;
  
-@@ -2677,6 +2691,8 @@ export class SessionManager {
+@@ -2596,7 +2637,7 @@ export class SessionManager {
+ 			this.#fallbackRuntimeOnly = false;
+ 		}
+ 
+-		this.#applyEntries(header, fileEntries.slice(1) as SessionEntry[]);
++		this.#applyEntries(header, fileEntries.slice(1) as SessionEntry[], true);
+ 		this.#expectedDiskSize = sourceSize;
+ 		this.#additionalDirectories = header.additionalDirectories ?? [];
+ 		this.#titleUpdatedAt = titleSlot?.updatedAt ?? header.timestamp;
+@@ -2677,6 +2718,7 @@ export class SessionManager {
  			parentSession: parentSessionId,
  			providerPromptCacheKey: SessionManager.getInheritedProviderPromptCacheKey(this.#header),
  			taskPromptCacheKey: this.#header.taskPromptCacheKey,
-+			nativeSubmissions: structuredClone(this.#header.nativeSubmissions),
 +			requiredFeatures: structuredClone(this.#header.requiredFeatures),
  		};
  		this.#sessionName = this.#header.title;
  		this.#titleSource = this.#header.titleSource;
-@@ -2941,14 +2957,27 @@ export class SessionManager {
+@@ -2941,14 +2983,27 @@ export class SessionManager {
  		manager.#additionalDirectories = [...this.#additionalDirectories];
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
-+		manager.#header.nativeSubmissions = structuredClone(this.#header.nativeSubmissions);
++		manager.#nativeSubmissions = structuredClone(this.#nativeSubmissions);
 +		manager.#header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
  		manager.#entries = structuredClone(this.#entries);
  		manager.#index.rebuild(manager.#entries);
@@ -794,7 +1107,7 @@ index 920af33554..36ccbbd7d9 100644
  
 +	/** Native ledger copies require a fresh protected target rather than a pathname-based atomic rename. */
 +	#materializeSubmissionCopy(): void {
-+		if (!this.#header.nativeSubmissions || this.#storage instanceof StrictSessionStorage) return;
++		if ((!this.#nativeSubmissions.length && !this.#header.requiredFeatures?.includes("durable-submission-v1")) || this.#storage instanceof StrictSessionStorage) return;
 +		if (!this.#sessionFile) throw new Error("SUBMISSION_COPY_TARGET_MISSING");
 +		const body = this.#serializeBody();
 +		const storage = createExplicitNativeStorage(this.#sessionFile, body.lines.join(""), this.#cwd);
@@ -805,7 +1118,7 @@ index 920af33554..36ccbbd7d9 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -4193,6 +4222,79 @@ export class SessionManager {
+@@ -4193,6 +4248,98 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -818,92 +1131,121 @@ index 920af33554..36ccbbd7d9 100644
 +		if (!binding || binding.nativeSessionId !== this.#sessionId) throw new Error("SUBMISSION_TARGET_UNAVAILABLE");
 +		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
 +	}
-+	/** Permanent bounded native reservation; failures never authorize dispatch or an automatic retry. */
++	/** Permanent append-only native reservation. No execution may precede its verified publication. */
 +	reserveSubmission(value: NativeSubmission): Promise<boolean> {
 +		return this.#withAtomicPersistenceLock(async () => {
 +			this.getSubmissionTarget();
-+			const prior = this.#header.nativeSubmissions?.find(item => item.origin.clientSubmissionId === value.origin.clientSubmissionId);
++			const prior = this.#nativeSubmissions.find(item => item.origin.clientSubmissionId === value.origin.clientSubmissionId);
 +			if (prior) {
-+				if (!sameSubmission(prior.origin, value.origin) || prior.fingerprint !== value.fingerprint)
-+					throw new Error("SUBMISSION_CONFLICT");
++				if (!sameSubmission(prior.origin, value.origin) || prior.fingerprint !== value.fingerprint) throw new Error("SUBMISSION_CONFLICT");
 +				return false;
 +			}
-+			if ((this.#header.nativeSubmissions?.length ?? 0) >= 16) throw new Error("SUBMISSION_CAPACITY");
-+			const next = [...(this.#header.nativeSubmissions ?? []), structuredClone(value)];
-+			if (Buffer.byteLength(JSON.stringify(next)) > 12_000) throw new Error("SUBMISSION_METADATA_LIMIT");
-+			this.#header.nativeSubmissions = next;
-+			this.#header.requiredFeatures = [...new Set([...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
-+			await this.#publishSubmissionState();
++			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
++			await this.#ensureSubmissionFormat();
++			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
++			this.#nativeSubmissions.push(reserved);
++			await this.#appendSubmissionControl(reserved);
 +			return true;
 +		});
 +	}
 +	completeSubmission(origin: SubmissionOrigin, outcome: NativeSubmission["inputOutcome"], noEntries: NativeSubmission["noEntries"]): Promise<void> {
 +		return this.#withAtomicPersistenceLock(async () => {
 +			this.getSubmissionTarget();
-+			const value = this.#header.nativeSubmissions?.find(item => sameSubmission(item.origin, origin));
++			const value = this.#nativeSubmissions.find(item => sameSubmission(item.origin, origin));
 +			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
-+			if (noEntries.length > 32 || Buffer.byteLength(JSON.stringify(noEntries)) > 4096)
-+				throw new Error("SUBMISSION_RELATION_LIMIT");
-+			const entryFacts = this.#entries.flatMap(entry => entry.submission && sameSubmission(entry.submission.origin, origin)
-+				? [{ entryId: entry.id, role: entry.submission.role }] : []);
-+			if (entryFacts.length > 64) throw new Error("SUBMISSION_RELATION_LIMIT");
-+			const completed = { ...value, entryFacts, noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
-+			const next = this.#header.nativeSubmissions!.map(item => item === value ? completed : item);
-+			if (Buffer.byteLength(JSON.stringify(next)) > 12_000)
-+				throw new Error("SUBMISSION_METADATA_LIMIT");
-+			this.#header.nativeSubmissions = next;
-+			await this.#publishSubmissionState();
++			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
++			const entryFacts = [...this.#verifiedSubmissionEntries].flatMap(([entryId, submission]) => sameSubmission(submission.origin, origin)
++				? [{ entryId, role: submission.role }] : []);
++			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
++			await this.flush();
++			const completed = { ...value, entryFacts, completedAt: nowIso(), noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
++			this.#nativeSubmissions = this.#nativeSubmissions.map(item => item === value ? completed : item);
++			await this.#appendSubmissionControl(completed);
 +		});
 +	}
-+	async #publishSubmissionState(): Promise<void> {
-+		// No ordinary append notification, memory entry or successful flush supplies the proof.
-+		// Publication includes the native metadata and every corresponding retained entry.
++	async #ensureSubmissionFormat(): Promise<void> {
++		if (this.#submissionFormatReady) return;
 +		this.getSubmissionTarget();
 +		if (this.#diskFailure) throw this.#diskFailure;
 +		await this.flush();
++		this.#header.requiredFeatures = [...new Set([...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
 +		this.#forceFileCreation = true;
 +		await this.#rewriteAtomically();
-+		this.getSubmissionTarget();
-+		if (this.#diskFailure || !this.#fileIsCurrent || this.#rewriteRequired)
-+			throw this.#diskFailure ?? new Error("SUBMISSION_PUBLICATION_UNKNOWN");
-+		const persisted = this.readSubmissionState();
-+		if (JSON.stringify(persisted.header.nativeSubmissions) !== JSON.stringify(this.#header.nativeSubmissions))
-+			throw new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++		const verified = this.readSubmissionState();
++		if (!verified.header.requiredFeatures?.includes("durable-submission-v1")) throw new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++		this.#submissionFormatReady = true;
 +	}
-+	/** Read the actual protected logical bytes without migration, execution, flush, repair or replay. */
-+	readSubmissionState(): { header: SessionHeader; entries: SessionEntry[] } {
++	async #appendSubmissionControl(value: NativeSubmission): Promise<void> {
++		this.getSubmissionTarget();
++		if (this.#diskFailure) throw this.#diskFailure;
++		const line = this.#lineFor(submissionRecord(value)), bytes = Buffer.byteLength(line);
++		if (bytes > 8 * 1024 * 1024 || this.#submissionBytes + bytes > submissionPolicy.maxMetadataBytes)
++			throw new Error("SUBMISSION_METADATA_LIMIT");
++		await this.#scheduleDiskWork(async () => {
++			const writer = this.#appendWriter();
++			await writer.append(line); await writer.flush();
++			this.#recordDurableAppend(line); this.#submissionBytes += bytes;
++		});
++		// StrictReservation appended and read back the exact bytes on the pinned descriptor, under its unchanged source proof.
++		this.#verifiedSubmissions = this.#verifiedSubmissions.filter(item => !sameSubmission(item.origin, value.origin));
++		this.#verifiedSubmissions.push(structuredClone(value));
++	}
++	#retainSubmissionEntryFacts(): void {
++		const byKey = new Map(this.#nativeSubmissions.map(value => [value.origin.clientSubmissionId, value]));
++		for (const [entryId, submission] of this.#verifiedSubmissionEntries) {
++			const value = byKey.get(submission.origin.clientSubmissionId);
++			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
++			value.entryFacts ??= [];
++			if (!value.entryFacts.some(fact => fact.entryId === entryId)) value.entryFacts.push({entryId,role:submission.role});
++			if (value.entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
++		}
++	}
++	#captureSubmissionProof(): void {
++		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
++		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
++			? [[entry.id, structuredClone(entry.submission)] as const] : []));
++	}
++	/** Only protected source-read/publication/readback receipts populate this native metadata index. Queries validate its source proof. */
++	readSubmissionState(): { header: SessionHeader; entries: { id: string; submission: SubmissionCausality }[]; submissions: NativeSubmission[] } {
 +		this.getSubmissionTarget();
 +		if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
-+		const loaded = parseSessionContent(this.#storage.readTextSync(this.#sessionFile!));
-+		if (loaded.invalidHeader || loaded.malformedRecords) throw new Error("SUBMISSION_SOURCE_UNREADABLE");
-+		const [header, ...entries] = loaded.entries;
-+		if (!header || header.type !== "session" || header.id !== this.#sessionId) throw new Error("SUBMISSION_SOURCE_UNREADABLE");
-+		this.getSubmissionTarget();
-+		return { header, entries: entries as SessionEntry[] };
++		this.#storage.assertReadableState();
++		return { header: structuredClone(this.#header), submissions: structuredClone(this.#verifiedSubmissions),
++			entries: [...this.#verifiedSubmissionEntries].map(([id, submission]) => ({id, submission:structuredClone(submission)})) };
 +	}
 +
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4439,6 +4541,8 @@ export class SessionManager {
+@@ -4440,6 +4587,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
-+		header.nativeSubmissions = structuredClone(this.#header.nativeSubmissions);
 +		header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4574,6 +4678,8 @@ export class SessionManager {
+@@ -4575,6 +4723,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
-+		manager.#header.nativeSubmissions = structuredClone(sourceHeader?.nativeSubmissions);
++		manager.#nativeSubmissions = readSubmissionRecords([...(sourceHeader?.nativeSubmissions ?? []).map(submissionRecord), ...history]);
 +		manager.#header.requiredFeatures = structuredClone(sourceHeader?.requiredFeatures);
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4599,6 +4705,7 @@ export class SessionManager {
+@@ -4590,8 +4740,8 @@ export class SessionManager {
+ 		manager.#titleSource = manager.#header.titleSource;
+ 		manager.#titleUpdatedAt = nowIso();
+ 		manager.#hasTitleSlot = true;
+-		manager.#entries = history;
+-		manager.#index.rebuild(history);
++		manager.#entries = history.filter(entry => !isSubmissionControl(entry));
++		manager.#index.rebuild(manager.#entries);
+ 		manager.#historyChanged("rebuild", true);
+ 		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
+ 		if (options?.repairInterruptedTail) {
+@@ -4600,6 +4750,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
@@ -913,10 +1255,10 @@ index 920af33554..36ccbbd7d9 100644
  			await copySessionArtifacts(sourcePath, manager.#sessionFile!);
 diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
 new file mode 100644
-index 0000000000..372eecb1ad
+index 0000000000..85ef1dd61e
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-required-features.ts
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,14 @@
 +/** Shared pure header decoder. Unsupported rollback sees ompsub1 instead of a usable session header. */
 +import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
 +import type { SessionHeader } from "./session-entries";
@@ -925,50 +1267,55 @@ index 0000000000..372eecb1ad
 +  if (value.requiredFeatures !== undefined && (!Array.isArray(value.requiredFeatures)
 +    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
 +  if (value.type === "ompsub1" && (!Array.isArray(value.requiredFeatures)
-+    || !value.requiredFeatures.includes("durable-submission-v1") || !Array.isArray(value.nativeSubmissions)))
++    || !value.requiredFeatures.includes("durable-submission-v1")))
 +    throw new Error("SUBMISSION_METADATA_CORRUPT");
-+  if (value.nativeSubmissions !== undefined) {
-+    if (!Array.isArray(value.nativeSubmissions) || value.nativeSubmissions.length > 16
-+      || Buffer.byteLength(JSON.stringify(value.nativeSubmissions)) > 12_000) throw new Error("SUBMISSION_METADATA_CORRUPT");
-+    const ids = new Set<string>();
-+    for (const item of value.nativeSubmissions) {
-+      if (!isRecord(item) || !isRecord(item.origin) || typeof item.origin.clientSubmissionId !== "string"
-+        || !/^[A-Za-z0-9_-]{1,96}$/.test(item.origin.clientSubmissionId) || ids.has(item.origin.clientSubmissionId)
-+        || typeof item.origin.sourceId !== "string" || !/^[a-f0-9]{64}$/.test(item.origin.sourceId)
-+        || typeof item.origin.instanceId !== "string" || !/^[a-f0-9]{64}$/.test(item.origin.instanceId)
-+        || typeof item.origin.nativeSessionId !== "string" || typeof item.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(item.fingerprint)
-+        || typeof item.preparationId !== "string" || typeof item.terminal !== "boolean"
-+        || !["generated", "no_input", "unresolved"].includes(String(item.inputOutcome))
-+        || !Array.isArray(item.noEntries) || item.noEntries.length > 32) throw new Error("SUBMISSION_METADATA_CORRUPT");
-+      if (item.entryFacts !== undefined && (!Array.isArray(item.entryFacts) || item.entryFacts.length > 64
-+        || item.entryFacts.some(fact => !isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")))
-+        throw new Error("SUBMISSION_METADATA_CORRUPT");
-+      ids.add(item.origin.clientSubmissionId);
-+      for (const relation of item.noEntries) if (!isRecord(relation) || typeof relation.relationId !== "string"
-+        || typeof relation.role !== "string" || !["no_entry", "failed"].includes(String(relation.status)) || typeof relation.reason !== "string")
-+        throw new Error("SUBMISSION_METADATA_CORRUPT");
-+    }
-+  }
++  if (value.nativeSubmissions !== undefined && (!Array.isArray(value.nativeSubmissions) || value.nativeSubmissions.length > 16
++    || Buffer.byteLength(JSON.stringify(value.nativeSubmissions)) > 12_000)) throw new Error("SUBMISSION_METADATA_CORRUPT");
 +  return { ...value, type: "session" } as SessionHeader;
 +}
 diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
-index f62d357da0..850248acf1 100644
+index f62d357da0..cd6840a308 100644
 --- a/packages/coding-agent/src/session/strict-session-storage.ts
 +++ b/packages/coding-agent/src/session/strict-session-storage.ts
-@@ -11,6 +11,7 @@ export class StrictSessionStorage implements SessionStorage {
+@@ -11,6 +11,8 @@ export class StrictSessionStorage implements SessionStorage {
    #retired = false;
    constructor(reservation: StrictReservation, readonly allowExplicitNativeTransitions = false, readonly catalogBinding = true) { this.#reservation = reservation; }
    assertCurrent(): void { this.#reservation.assertCurrent(); }
-+  submissionTarget() { return this.#reservation.verifiedSourceBinding(); }
++  submissionTarget() { return this.#reservation.submissionTarget(); }
++  assertReadableState(): void { this.#reservation.assertReadableState(); }
    verifiedSourceBinding() { return this.catalogBinding ? this.#reservation.verifiedSourceBinding() : undefined; }
    async releaseSessionOwnership(): Promise<void> { this.#retired = true; await this.#reservation.release(); }
    #check(file: string): void { this.#reservation.assertCurrent(file); }
+@@ -27,7 +29,7 @@ export class StrictSessionStorage implements SessionStorage {
+   exists(file: string): Promise<boolean> { return Promise.resolve(this.existsSync(file)); }
+   statSync(file: string): SessionStorageStat {
+     this.#check(file);
+-    const stat = fs.statSync(file), logicalSize = Buffer.byteLength(this.#reservation.read());
++    const stat = fs.statSync(file), logicalSize = this.#reservation.logicalSize();
+     this.#check(file); return { size: logicalSize, mtimeMs: stat.mtimeMs, mtime: stat.mtime };
+   }
+   readText(file: string): Promise<string> { return Promise.resolve(this.readTextSync(file)); }
+diff --git a/packages/coding-agent/src/session/submission-policy.ts b/packages/coding-agent/src/session/submission-policy.ts
+new file mode 100644
+index 0000000000..95661b2e45
+--- /dev/null
++++ b/packages/coding-agent/src/session/submission-policy.ts
+@@ -0,0 +1,8 @@
++/** Pure native feature/budget declaration. It is safe in preflight and catalog import closures. */
++export const nativeSubmissionPolicy = Object.freeze({
++  version: "durable-submission-v1", status: "prototype", ownership: "native-exclusive-pinned-storage",
++  durability: "process-crash-only", dedup: "permanent-refuse-at-capacity", query: "read-only-no-execution",
++  logicalHeader: "ompsub1", carrier: "ompgen2", maxSubmissions: 10_000, maxMetadataBytes: 32 * 1024 * 1024,
++  maxEntryFacts: 100_000, maxNoEntryFacts: 4096, maxQueryRelations: 128, maxMessageBytes: 262_144,
++  maxImagesBytes: 524_288, maxPendingTasks: 4096,
++} as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
 new file mode 100644
-index 0000000000..f5ee9515a6
+index 0000000000..a2a89c55b7
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
-@@ -0,0 +1,42 @@
+@@ -0,0 +1,43 @@
++import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
 +/** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
 +import * as asyncHooks from "node:async_hooks";
 +export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
@@ -977,7 +1324,7 @@ index 0000000000..f5ee9515a6
 +export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void }
 +export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
 +export interface NativeSubmission {
-+  origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
++  reservedAt?: string; completedAt?: string; origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
 +  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
 +}
 +const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
@@ -1007,7 +1354,63 @@ index 0000000000..f5ee9515a6
 +export function trackSubmissionTask<T>(task: Promise<T>): void {
 +  const tasks = scope.getStore()?.tasks;
 +  if (!tasks) return;
-+  if (tasks.size >= 4096) { scope.getStore()?.onTaskOverflow?.(); return; }
++  if (tasks.size >= submissionPolicy.maxPendingTasks) { scope.getStore()?.onTaskOverflow?.(); return; }
 +  tasks.add(task);
 +  void task.then(() => tasks.delete(task), () => tasks.delete(task));
++}
+diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
+new file mode 100644
+index 0000000000..8af5938efb
+--- /dev/null
++++ b/packages/coding-agent/src/session/submission-records.ts
+@@ -0,0 +1,50 @@
++/** Native control records are serialized in the journal but excluded from its conversation/tree index. */
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import type { CustomEntry, SessionEntry } from "./session-entries";
++import type { NativeSubmission } from "./submission-provenance";
++import { sameSubmission } from "./submission-provenance";
++import { nativeSubmissionPolicy as policy } from "./submission-policy";
++export const SUBMISSION_CONTROL = "omp.native-control/submission-v1";
++export function isSubmissionControl(entry: SessionEntry): entry is CustomEntry {
++  return entry.type === "custom" && entry.customType === SUBMISSION_CONTROL;
++}
++export function submissionRecord(value: NativeSubmission): CustomEntry {
++  const payload = structuredClone(value), checksum = Bun.SHA256.hash(JSON.stringify(payload), "hex");
++  return { type: "custom", customType: SUBMISSION_CONTROL, id: `control-${checksum.slice(0, 32)}`,
++    parentId: null, activeLeafId: null, timestamp: value.completedAt ?? value.reservedAt ?? "1970-01-01T00:00:00.000Z",
++    data: { version: 1, submission: payload, checksum } };
++}
++export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission[] {
++  const values = new Map<string, NativeSubmission>();
++  let bytes = 0;
++  for (const entry of entries) {
++    if (!isSubmissionControl(entry)) continue;
++    bytes += Buffer.byteLength(JSON.stringify(entry));
++    if (bytes > policy.maxMetadataBytes || !isRecord(entry.data) || entry.data.version !== 1
++      || !isRecord(entry.data.submission) || typeof entry.data.checksum !== "string"
++      || Bun.SHA256.hash(JSON.stringify(entry.data.submission), "hex") !== entry.data.checksum)
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    const value = entry.data.submission;
++    if (!isRecord(value.origin) || typeof value.origin.clientSubmissionId !== "string"
++      || !/^[A-Za-z0-9_-]{1,96}$/.test(value.origin.clientSubmissionId)
++      || typeof value.origin.sourceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.sourceId)
++      || typeof value.origin.instanceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.instanceId)
++      || typeof value.origin.nativeSessionId !== "string" || typeof value.fingerprint !== "string"
++      || !/^[a-f0-9]{64}$/.test(value.fingerprint) || typeof value.preparationId !== "string"
++      || typeof value.terminal !== "boolean" || !["generated", "no_input", "unresolved"].includes(String(value.inputOutcome))
++      || !Array.isArray(value.noEntries) || value.noEntries.length > policy.maxNoEntryFacts
++      || (value.entryFacts !== undefined && (!Array.isArray(value.entryFacts) || value.entryFacts.length > policy.maxEntryFacts)))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    for (const fact of value.entryFacts ?? []) if (!isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    for (const fact of value.noEntries) if (!isRecord(fact) || typeof fact.relationId !== "string"
++      || typeof fact.role !== "string" || !["no_entry", "failed"].includes(String(fact.status)) || typeof fact.reason !== "string")
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    const record = value as unknown as NativeSubmission, prior = values.get(record.origin.clientSubmissionId);
++    if (prior && (!sameSubmission(prior.origin, record.origin) || prior.fingerprint !== record.fingerprint
++      || (prior.terminal && !record.terminal))) throw new Error("SUBMISSION_METADATA_CONFLICT");
++    values.set(record.origin.clientSubmissionId, record);
++    if (values.size > policy.maxSubmissions) throw new Error("SUBMISSION_METADATA_LIMIT");
++  }
++  return [...values.values()];
 +}

@@ -914,6 +914,25 @@ export interface StrictStartState {
 	cwd?: string;
 }
 
+export interface SubmissionPolicy {
+	version: "durable-submission-v1";
+	status: "prototype";
+	ownership: "native-exclusive-pinned-storage";
+	durability: "process-crash-only";
+	dedup: "permanent-refuse-at-capacity";
+	query: "read-only-no-execution";
+	logicalHeader: "ompsub1";
+	carrier: "ompgen2";
+	maxSubmissions: number;
+	maxMetadataBytes: number;
+	maxEntryFacts: number;
+	maxNoEntryFacts: number;
+	maxQueryRelations: number;
+	maxMessageBytes: number;
+	maxImagesBytes: number;
+	maxPendingTasks: number;
+}
+
 export interface SubmissionTarget {
 	sourceId: string;
 	instanceId: string;
@@ -1231,6 +1250,7 @@ export interface CompatibilityReport {
 	capabilities: string[];
 	runtime: CompatibilityRuntime;
 	rpcUiStrictStartupPolicy?: StrictStartupPolicy;
+	rpcUiSubmissionPolicy?: SubmissionPolicy;
 }
 
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
@@ -1239,6 +1259,7 @@ export interface ReadyEvent {
 	interactionPolicy?: InteractionPolicy;
 	strictStartup?: "strict-start-v1";
 	strictStartupPolicy?: StrictStartupPolicy;
+	submissionPolicy?: SubmissionPolicy;
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;

@@ -4271,6 +4271,77 @@
         "phase"
       ]
     },
+    "SubmissionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-submission-v1"
+        },
+        "status": {
+          "const": "prototype"
+        },
+        "ownership": {
+          "const": "native-exclusive-pinned-storage"
+        },
+        "durability": {
+          "const": "process-crash-only"
+        },
+        "dedup": {
+          "const": "permanent-refuse-at-capacity"
+        },
+        "query": {
+          "const": "read-only-no-execution"
+        },
+        "logicalHeader": {
+          "const": "ompsub1"
+        },
+        "carrier": {
+          "const": "ompgen2"
+        },
+        "maxSubmissions": {
+          "type": "integer"
+        },
+        "maxMetadataBytes": {
+          "type": "integer"
+        },
+        "maxEntryFacts": {
+          "type": "integer"
+        },
+        "maxNoEntryFacts": {
+          "type": "integer"
+        },
+        "maxQueryRelations": {
+          "type": "integer"
+        },
+        "maxMessageBytes": {
+          "type": "integer"
+        },
+        "maxImagesBytes": {
+          "type": "integer"
+        },
+        "maxPendingTasks": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "ownership",
+        "durability",
+        "dedup",
+        "query",
+        "logicalHeader",
+        "carrier",
+        "maxSubmissions",
+        "maxMetadataBytes",
+        "maxEntryFacts",
+        "maxNoEntryFacts",
+        "maxQueryRelations",
+        "maxMessageBytes",
+        "maxImagesBytes",
+        "maxPendingTasks"
+      ]
+    },
     "SubmissionTarget": {
       "type": "object",
       "properties": {
@@ -5386,6 +5457,9 @@
         },
         "rpcUiStrictStartupPolicy": {
           "$ref": "#/$defs/StrictStartupPolicy"
+        },
+        "rpcUiSubmissionPolicy": {
+          "$ref": "#/$defs/SubmissionPolicy"
         }
       },
       "required": [
@@ -5415,6 +5489,9 @@
         },
         "strictStartupPolicy": {
           "$ref": "#/$defs/StrictStartupPolicy"
+        },
+        "submissionPolicy": {
+          "$ref": "#/$defs/SubmissionPolicy"
         },
         "protocolVersion": {
           "type": "integer"
