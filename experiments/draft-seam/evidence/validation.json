@@ -1,0 +1,301 @@
+{
+  "ticket": "https://github.com/HowBoring/omp-webui/issues/39",
+  "reviewedHead": "56988ee779138c38a2d290d6b7ca0df79552fcc5",
+  "integrationBase": "e65f0a8b16f8a13e227dd7da2ed1dbcd8564dd17",
+  "integration": "CURRENT mvp/spec-29 merged at 9eabf66545f10191e701c8d14fda270817dd066e, incorporating e65f0a8b readonly catalog/native-identity fixes; affected full gates rerun",
+  "scope": "actual DSH Client/public provider/Remote fixture on Linux; synthetic originals only",
+  "productSessionAdmission": "blocked pending later native/original-store/product gates",
+  "source": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+    "mode": "candidate",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      }
+    ],
+    "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+  },
+  "toolchain": {
+    "bun": "1.4.4",
+    "node": "24.22.1",
+    "pnpm": "11.28.5",
+    "chromium": "156.0.8078.79"
+  },
+  "reviewFindings": [
+    {
+      "id": "standards-identities",
+      "status": "PASS",
+      "disposition": "Eight distinct Branded<B> identity types use actual dsh-brand brandString API. Nonempty opaque constructors validate provider scope identities without OMP-specific grammar; strict record decoder validates and brands original/submission identities at persistence boundaries."
+    },
+    {
+      "id": "standards-upstream-docs",
+      "status": "PASS",
+      "disposition": "Reproducible source patch includes ui-conversation README.md/README.zh.md/pairing record and JSDoc: provider opt-in, stock default, scopes, CAS, durable checkpoint, exact request correlation, atomic explicit recovery and withdrawal."
+    },
+    {
+      "id": "spec-refresh-unresolved",
+      "status": "PASS",
+      "disposition": "Durable unresolved snapshot precedes any provider-mode execution; failed/cancelled publication blocks execution. Refresh quarantines text/originals without receipts/uploads or a new logical attempt. Explicit ownsDraft metadata preserves newer input without text matching. Authoritative recovery persists and publishes atomically; acceptance/lost replies do not auto-clear. beforeDispatch associates exact public DSH request identity; no Native receipt is fabricated."
+    },
+    {
+      "id": "spec-atomic-quarantine-entry",
+      "status": "PASS",
+      "disposition": "Public shell hydration now commits semantic document, ordered originals, unresolved marker and frozen phase in one transaction before synchronous notifications. Subscriber regression fails on reviewed source (plain/no marker), then passes with a reentrant public setDraft refused before accepted recovery. Actual Chromium refresh records both sending phases, marker, original order and editBlocked=true; existing independent newer-draft recovery cases pass."
+    },
+    {
+      "id": "standards-common-authority",
+      "status": "PASS",
+      "disposition": "One authority helper checks provider identity, exact retained binding and all scope fields for persistence/checkpoint/dispatch/hydration/recovery. Revision, marker identity, signal and frozen-state policies remain specific to each operation. No Connection retry or native reconciliation policy change."
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-final DSH_STORE_DIR=/workspace/work/dsh-tooling/pnpm-store bun run dsh:prepare",
+      "result": "frozen install; 8 artifact gates and 2 aggregate gates; 371 artifacts; complete final source verification",
+      "evidence": "build.log"
+    },
+    {
+      "status": "PASS",
+      "command": "node node_modules/vitest/vitest.mjs run packages/client/ui-conversation/tests packages/api/session-controller/tests/session-policy.client.spec.ts packages/client/ui-workspace/tests --maxWorkers=2",
+      "cwd": "vendor/dsh-final",
+      "result": "74 files; 1488 tests, including 39 public provider tests and stock regressions",
+      "evidence": "dsh-tests.log"
+    },
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-reconstruction bun run check",
+      "result": "typecheck; 109 tests/918 assertions across 22 files; Host build; current catalog/native ownership regressions included; source mutation tests use a separate owned reconstruction",
+      "evidence": "repository-check.log"
+    },
+    {
+      "status": "PASS",
+      "command": "bun node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json",
+      "result": "build-script typecheck",
+      "evidence": "build-script-typecheck.log"
+    },
+    {
+      "status": "PASS",
+      "command": "node --import tsx/esm scripts/run-oxlint.ts packages/client/ui-conversation/src/client/contract/semantic-draft.ts packages/client/ui-conversation/src/client/semantic-draft.ts packages/client/ui-conversation/src/client/input/semantic-drafts.ts packages/client/ui-conversation/src/client/input/facade.ts packages/client/ui-conversation/src/client/input/hub.ts packages/client/ui-conversation/src/client/service.ts packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts",
+      "cwd": "vendor/dsh-final",
+      "result": "targeted draft source/tests lint clean; exact files listed in README",
+      "evidence": "draft-lint.log"
+    },
+    {
+      "status": "PASS",
+      "command": "node --import tsx/esm scripts/verify-translation-pairing.ts packages/client/ui-conversation/README.md",
+      "cwd": "vendor/dsh-final",
+      "result": "English/Chinese upstream package README pair consistent",
+      "evidence": "docs-pairing.log"
+    },
+    {
+      "status": "PASS",
+      "command": "bun scripts/dsh-source.ts vendor/dsh-reconstruction --apply",
+      "result": "fresh fixed baseline reconstructed through the complete ordered patch set to the final authored tree",
+      "evidence": "reconstructed-source.json"
+    },
+    {
+      "status": "PASS",
+      "command": "bun apps/diagnostics/build.ts (while linked to the separate unpatched baseline)",
+      "result": "expected rejection: DSH_AUTHORED_SOURCE_MISMATCH; owned unpatched fixed baseline verifies separately; exact declared candidate required",
+      "evidence": "rejected-baseline-diagnostic.log"
+    },
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-final experiments/draft-seam/run.sh",
+      "result": "actual Linux Chromium; 12 scenarios; 0 page errors; 0 shared legacy reads/writes; atomic refresh subscriber sees protected text/originals/marker and both frozen phases, reentrant setDraft refused; 6 physical HTTP prompt requests / 2 outer RPC IDs / 2 DSH SessionRequestIds / 2 dispatched local markers; third explicit attempt checkpoint-failed without dispatch",
+      "evidence": "browser.json"
+    },
+    {
+      "status": "PASS",
+      "command": "bun experiments/draft-seam/record-evidence.mjs vendor/dsh-final experiments/draft-seam/evidence",
+      "result": "371 actual artifacts verified against final DSH build record; actual served response, graph, diagnostic and Host input digests retained",
+      "evidence": "assets.json"
+    },
+    {
+      "status": "FAIL",
+      "command": "node --import tsx/esm scripts/verify-export-jsdoc.ts",
+      "cwd": "vendor/dsh-final",
+      "result": "1 unchanged navigation-prerequisite violation: sessionActionAvailable lacks description prose. All ui-conversation draft API declarations pass; audited navigation patch preserved byte-for-byte. This optional global check is not claimed green.",
+      "evidence": "jsdoc-global.log"
+    },
+    {
+      "status": "PASS",
+      "command": "node node_modules/vitest/vitest.mjs run packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts --maxWorkers=2",
+      "cwd": "vendor/dsh-final",
+      "result": "39 public provider tests including synchronous subscriber quarantine-entry regression; red retained separately",
+      "evidence": "green-atomic-quarantine.log"
+    }
+  ],
+  "tdd": [
+    {
+      "red": "public provider registration absent",
+      "green": "exclusive effect-owned provider mode and semantic restore"
+    },
+    {
+      "red": "command token omitted from atomically restored snapshot",
+      "green": "retain semantic command metadata while claim resolution is pending"
+    },
+    {
+      "red": "restore began before a failed submission and later wrongly applied",
+      "green": "monotonic submission-entry epoch fences the older restore after failure"
+    },
+    {
+      "red": "provider withdrawal left ready runtime handles/readiness alive",
+      "green": "release handles, retain text/originals as invalid, preserve observable identity on provider replacement"
+    },
+    {
+      "regression": "stock command rollback permits a later programmatic edit; an initial broad guard changed it",
+      "fixed": "frozen guard applies to hydration; stock setDraft behavior retained and full regression passes"
+    },
+    {
+      "aggregate": "2 fixture overrides had never-return method typings",
+      "fixed": "declare overrides through the public Session fixture at construction; both aggregate gates pass"
+    },
+    {
+      "red": "actual browser Storage-boundary counter observed legacy-key read for View preference in provider mode",
+      "green": "provider mode also bypasses shared View preference reads; actual browser counters now record zero shared reads and writes"
+    },
+    {
+      "integratedFailure": "pre-existing short request/drain fixture also used 50ms for process startup; integrated run reported RPC_READY_TIMEOUT",
+      "resolution": "coordinator-owned reviewed transport startup/queue fix merged at3643be43; original failure retained; fresh integrated74-test gate passes and diagnostic Hostbundle/inputs regenerated"
+    },
+    {
+      "red": "fresh public Client binding restored pending input as an ordinary editable draft",
+      "green": "durable unresolved snapshot and fresh-binding quarantine; initial-failures/red-refresh.log"
+    },
+    {
+      "red": "an edit before restore overwrote an unread unresolved marker",
+      "green": "preserve unread marker plus a separately owned newer draft; initial-failures/red-unread-marker.log"
+    },
+    {
+      "red": "provider could not associate the exact upcoming public prompt request",
+      "green": "awaited beforeDispatch correlation hook; initial-failures/red-correlation.log"
+    },
+    {
+      "red": "accepted recovery briefly published old attempted text as editable",
+      "green": "atomic marker/document publication; initial-failures/red-atomic-recovery.log"
+    },
+    {
+      "initialFailure": "aggregate fixture writer returned Array.push number; compiler rejected unchecked ordered-reference indexing",
+      "resolution": "void writer and explicit indexed reference validation; initial aggregate/compile logs retained"
+    },
+    {
+      "initialBrowserHarnessFailure": "correlation assertion used the wrong typed Remote payload nesting",
+      "resolution": "actual public payload is args.request.requestId; initial browser report/screenshot retained"
+    },
+    {
+      "initialBrowserObservation": "physical dropped-response attempts exceeded two while both outer RPC and DSH request identities were identical",
+      "resolution": "retain real fault, assert identical retransmissions and exactly two logical attempts; report physical and logical identities separately; no Connection retry-policy change"
+    },
+    {
+      "red": "Quarantine hydration synchronously published phase plain, no marker and input phase plain; observer admitted a newer setDraft before ownsDraft=true marker was installed.",
+      "green": "Document/originals/marker/frozen phases commit under one shell transaction; reentrant setDraft refused, protected input unchanged through accepted recovery; existing independently newer draft preserved.",
+      "evidence": "initial-failures/red-atomic-quarantine.log"
+    },
+    {
+      "initialSetupFailure": "Host typecheck ran before DSH Client declarations were generated.",
+      "resolution": "Retained initial-failures/host-before-dsh-artifacts.log; complete artifact build and final integrated Host check pass."
+    },
+    {
+      "initialSetupFailure": "First integrated Host run had 108/109 passes; native ownership test required canonical vendor/omp-runtime/node_modules path, while only vendor/omp/node_modules had been linked.",
+      "resolution": "Added owned canonical directory with read-only dependency symlink; retained initial-failures/host-missing-canonical-runtime-link.log; full 109-test/918-assertion gate passes."
+    }
+  ],
+  "browser": {
+    "scenarios": 12,
+    "physicalPromptRequests": 6,
+    "distinctOuterRpcIds": 2,
+    "distinctDshSessionRequestIds": 2,
+    "dispatchedLocalDraftSubmissionIds": 2,
+    "allExplicitLocalDraftSubmissionIds": 3,
+    "carrierRetransmissions": 4,
+    "refreshCreatedLogicalAttempts": 0,
+    "nativeExactlyOnce": "NOT PROVEN; #36 durable idempotency/outcome reconciliation required",
+    "atomicQuarantineObservation": {
+      "phase": "sending",
+      "unresolved": {
+        "id": "57672757-16e7-4cf5-aad7-1441e0476e16",
+        "ownsDraft": true,
+        "draft": {
+          "text": "Unresolved attached input",
+          "references": []
+        },
+        "originals": [
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-a",
+            "name": "first.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          }
+        ]
+      },
+      "originals": [
+        {
+          "id": "original-b",
+          "name": "second.txt",
+          "mediaType": "text/plain"
+        },
+        {
+          "id": "original-a",
+          "name": "first.txt",
+          "mediaType": "text/plain"
+        },
+        {
+          "id": "original-b",
+          "name": "second.txt",
+          "mediaType": "text/plain"
+        }
+      ],
+      "inputPhase": "sending",
+      "editBlocked": true
+    }
+  },
+  "dependencies": {
+    "dshSource": "owned lightweight shared-object Git clone vendor/dsh-final; source files/dependencies/build outputs owned locally; fixed base + ordered patches reconstructed separately in vendor/dsh-reconstruction; separate owned vendor/dsh-baseline for rejection proof",
+    "dshDependencies": "own frozen workspace installation links immutable pnpm store; no full dependency copy or shared source changes",
+    "hostDependencies": "own node_modules links immutable external dependencies; DSH workspace links point only to owned dsh-final",
+    "omp": "owned lightweight fixed-base Git clone + current ordered 0001/0002 patches; own candidate regenerated/checked for integrated regressions; source and canonical runtime dependency symlinks read the immutable reviewed #31 runtime; no provider or global installation used"
+  },
+  "acceptance": {
+    "AC1": "PASS \u2014 exported semantic record/decoder, provider ownership and key, scoped observable read/subscribe, exact retained binding + complete scope + hydration revision CAS",
+    "AC2": "PASS \u2014 provider Config disables all legacy Conversation-key reads (draft and View preference) and all writes; stock default retained; browser Storage boundary records zero reads/writes",
+    "AC3": "PASS \u2014 text/quotes/commands/repeated refs/ordered stock file cards; two tabs/one Session; two Sessions/one tab; refresh and actual window.open storage copy independence",
+    "AC4": "PASS \u2014 durable pre-execution unresolved marker; subscriber-level and actual-browser refresh quarantine atomically publish text/originals/marker/frozen phase; synchronous edit refused; no receipt persistence; atomic explicit outcome/recovery; existing newer draft preserved; complete scope/revision CAS, cancellation/failure/disposal/rebind fences",
+    "AC5": "PASS \u2014 actual built DSH Client and controlled public provider/Remote fixture; no Host original-store proof claimed"
+  },
+  "notProven": [
+    "actual durable Host Attachment Original store, authorization, retention/GC or native preparation/consumption/commit guarantees",
+    "product Session/browser integration or final product plugin roster",
+    "Windows Chrome/WSL2 \u2014 NOT RUN, explicitly deferred by the user; executable override retains the browser scenarios",
+    "Native durable idempotency, original association and authoritative outcome lookup (#36); transport retransmission is neither duplicate-native-execution proof nor an exactly-once guarantee",
+    "Host durable draft/original storage, authorization and publication CAS (#57); client cannot undo a provider write that violates its cancellation/publication contract",
+    "Explicit not-submitted recovery refuses to replace a separate newer draft; the owner must preserve both snapshots for a later explicit recovery choice"
+  ],
+  "validationState": "PASS for final #39 atomic-quarantine and authority-check findings plus earlier corrections within public Client/provider/Remote fixture scope; optional unchanged global JSDoc failure and later native/Host/platform gates remain explicitly recorded",
+  "fixtureGraph": {
+    "totalModules": 32,
+    "upstreamModules": 30,
+    "fixtureModules": 2,
+    "isFinalProductRoster": false
+  },
+  "priorReviewedHead": "1b59d40654f44168f40ecb726e102026d0977afb"
+}
