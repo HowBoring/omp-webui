@@ -22,6 +22,15 @@ text and still-valid original references across same-tab reload or Host restart 
 without automatic submission; closing the page/browser has no recovery guarantee. This accepts extra
 public draft-hydration work instead of browser-wide shared drafts or a durable draft library.
 
+Provider persistence in the public DSH draft extension is opt-in. It durably checkpoints an unresolved
+semantic snapshot before execution and restores that snapshot in quarantine after refresh. Distinct branded
+scope/original/submission identities and revision CAS fence recovery. A pre-dispatch hook associates the local
+marker with the exact public DSH request identity; neither is a Native receipt or proof of durable entry
+commitment. Only an explicit authoritative outcome can durably resolve the marker, and editor publication
+is atomic at quarantine entry and resolution, so unresolved or accepted input never briefly appears editable.
+Native idempotency/outcome reconciliation and Host storage authority remain integration gates; the synthetic
+Client/provider fixture does not supply them.
+
 The selected formats and initial raw-input targets are recorded in the [attachment contract](../attachment-contract.md).
 Numbers are acceptance targets, not evidence that the current native/browser combination can meet them.
 Public RPC needs recoverable native submission/entry and persistence evidence; a process-local message ID,
