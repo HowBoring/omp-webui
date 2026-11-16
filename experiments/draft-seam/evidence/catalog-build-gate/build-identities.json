@@ -1,0 +1,36 @@
+{
+  "diagnosticClient": {
+    "manifestSha256": "81dbf345fa6228d94c0bc88f84a181386268e8aae4c0df03ad2726d32f0a6d28",
+    "sourceInputs": 232,
+    "sourceSha256": "68f2ebc7048a7014ed5ce9cd530f8b8443a448a0572f4697a314c2d9c94cfc95",
+    "assets": {
+      "client.js": "693e42659effe1dae4d9885804c738782c3e9d742500a3134321a3a5859fc04e",
+      "index.html": "3b9d07c6cde9d8acb7783324ed459c9ed8fadbad97a82c35308169b7d2f30ac1"
+    }
+  },
+  "catalogClient": {
+    "manifestSha256": "bf1cc8806482e3ec6529a35ace57fc37ffc7cd0b0c07f5711e91cb958a7269c7",
+    "sourceInputs": 238,
+    "sourceSha256": "d5dfe0ef840fccc04f2d1a21fef334c24ec3239eeb60910715c2e5c18eace0f9",
+    "assets": {
+      "client.js": "dc0bce2136e865a9b0837b4bb957b91933e1a08d2602ff0b65e22abc356eba75",
+      "index.html": "2e3f720f990ffddaa1b26feadfb7ab4e58545e39259aa6b6433b36560ae07b9a"
+    }
+  },
+  "diagnosticHost": {
+    "manifestSha256": "63d002871d7f80081656b9729c304540a30891ae574d2c6b42f92fbb0e974056",
+    "sourceInputs": 241,
+    "bundle": {
+      "file": "diagnostics-main.js",
+      "sha256": "966d744f748f76443282980b4d3e2e2e7415880d9c80596df409627b2067a51c"
+    }
+  },
+  "catalogHost": {
+    "manifestSha256": "6afefbb45a35f93eab821d638a5fb12c8ce46d147b009f32806ff4e10cb3a8b2",
+    "sourceInputs": 248,
+    "bundle": {
+      "file": "catalog-fixture-main.js",
+      "sha256": "df2b8239f0ec25720f1c848ed8abc502aaf240980c7235c38724ecd585fabfab"
+    }
+  }
+}
