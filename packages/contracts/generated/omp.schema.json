@@ -120,6 +120,39 @@
         "clientOmit": []
       },
       {
+        "name": "strict_start",
+        "doc": "Explicitly create or continue after exact-instance ownership and cwd validation. Never replay.",
+        "params": "StrictStartParams",
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "get_strict_state",
+        "doc": "Observe this worker's truthful startup outcome; never retries an operation.",
+        "params": null,
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "cancel_strict_start",
+        "doc": "Cancel pending startup; already published side effects remain explicit.",
+        "params": null,
+        "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_compatibility",
         "doc": "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
         "params": null,
@@ -3946,6 +3979,12 @@
         "headerBytes": {
           "type": "integer"
         },
+        "generationControlBytes": {
+          "type": "integer"
+        },
+        "generationHeaderBytes": {
+          "type": "integer"
+        },
         "pageItems": {
           "type": "integer"
         },
@@ -3974,6 +4013,8 @@
         "directoriesPerSnapshot",
         "sessionsPerSnapshot",
         "headerBytes",
+        "generationControlBytes",
+        "generationHeaderBytes",
         "pageItems",
         "responseBytes",
         "snapshotBytes",
@@ -4082,6 +4123,130 @@
       "required": [
         "status",
         "observedAt"
+      ]
+    },
+    "StrictStartupPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "strict-start-v1"
+        },
+        "status": {
+          "const": "prototype"
+        },
+        "platforms": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ownership": {
+          "const": "native-exclusive-lease"
+        },
+        "selectedInstance": {
+          "const": "anchored-carrier"
+        },
+        "publication": {
+          "const": "native-generation-v1"
+        },
+        "carrierFormat": {
+          "const": "ompgen1"
+        },
+        "xattrs": {
+          "const": "required-fd-user-xattr"
+        },
+        "durability": {
+          "const": "process-crash-only"
+        },
+        "rollback": {
+          "const": "flatten-export-required"
+        },
+        "maxLogicalBytes": {
+          "type": "integer"
+        },
+        "maxCarrierBytes": {
+          "type": "integer"
+        },
+        "maxRetainedBytes": {
+          "type": "integer"
+        },
+        "maxGenerations": {
+          "type": "integer"
+        },
+        "catalogCarrierPrefixBytes": {
+          "type": "integer"
+        },
+        "catalogControlBytes": {
+          "type": "integer"
+        },
+        "catalogGenerationPrefixBytes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "platforms",
+        "ownership",
+        "selectedInstance",
+        "publication",
+        "carrierFormat",
+        "xattrs",
+        "durability",
+        "rollback",
+        "maxLogicalBytes",
+        "maxCarrierBytes",
+        "maxRetainedBytes",
+        "maxGenerations",
+        "catalogCarrierPrefixBytes",
+        "catalogControlBytes",
+        "catalogGenerationPrefixBytes"
+      ]
+    },
+    "StrictStartState": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "strict-start-v1"
+        },
+        "phase": {
+          "enum": [
+            "waiting",
+            "opening",
+            "open",
+            "failed",
+            "cancelling",
+            "cancelled",
+            "outcome_unknown"
+          ],
+          "type": "string"
+        },
+        "intent": {
+          "enum": [
+            "continue",
+            "new"
+          ],
+          "type": "string"
+        },
+        "operationId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/$defs/CatalogDescriptor"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "cwd": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "phase"
       ]
     },
     "AutoCompactionReason": {
@@ -5015,6 +5180,9 @@
         },
         "runtime": {
           "$ref": "#/$defs/CompatibilityRuntime"
+        },
+        "rpcUiStrictStartupPolicy": {
+          "$ref": "#/$defs/StrictStartupPolicy"
         }
       },
       "required": [
@@ -5038,6 +5206,12 @@
         },
         "interactionPolicy": {
           "$ref": "#/$defs/InteractionPolicy"
+        },
+        "strictStartup": {
+          "const": "strict-start-v1"
+        },
+        "strictStartupPolicy": {
+          "$ref": "#/$defs/StrictStartupPolicy"
         },
         "protocolVersion": {
           "type": "integer"
@@ -7541,6 +7715,28 @@
       "required": [
         "workerId",
         "after"
+      ]
+    },
+    "StrictStartParams": {
+      "type": "object",
+      "properties": {
+        "intent": {
+          "enum": [
+            "continue",
+            "new"
+          ],
+          "type": "string"
+        },
+        "expectedCwd": {
+          "type": "string"
+        },
+        "reference": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "intent",
+        "expectedCwd"
       ]
     },
     "NegotiateProtocolParams": {
