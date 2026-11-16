@@ -25,9 +25,10 @@ OS fixture establishes only its recorded socket/pidfd primitives, including a se
 
 | Check | Actual result | Scope |
 | --- | --- | --- |
-| Pure ownership module and owned filesystem tests | PASS: 31 tests, 114 assertions, 9 source files / 1 wrapper, 96 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
+| Pure ownership module and owned filesystem tests | PASS: 34 tests, 120 assertions, 10 source files / 1 wrapper, 130 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
 | Public request/response/helper/authentication schema corpus | PASS: 11 request + 8 response + 5 helper + 9 authentication cases | AJV 8.17.1, strict request/helper/challenge decoders; reply signature evidence separately in pure tests |
-| Focused source type check | PASS: `bun check --no-script`, 20 files, 0 errors, 119.43 ms | New ownership TS/test files only; C and CLI graph excluded |
+| Focused source type check | PASS: `bun check --no-script`, 22 files, 0 errors, 116.76 ms | New ownership TS/test files only; C and CLI graph excluded |
+| CLI/runtime/main syntax parse | PASS: 3 owned TS sources | Bun transpiler only; no entry import/execution or full graph type claim |
 | Host repository type check | PASS: `bun run typecheck`, exit 0 | Host source compile only |
 | Ordered patch application | PASS: private index, base + 1–6 + 0010 | Prepared tree recorded in identity JSON |
 | Whitespace check | PASS: owned Native diff and repository diff | Source only |
@@ -53,7 +54,7 @@ bun --no-env-file scripts/validate-ownership-preparation.ts <owned-native-checko
 Despite its filename, `execution-ownership-cli.test.ts` imports only `launch/ownership/entry.ts`, which refuses
 before any runtime import; it is not actual CLI acceptance. The source checker creates a fresh synthetic HOME,
 profile, XDG and cwd, passes an allowlisted environment, preloads the guard before any Native module, imports the
-nine test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
+ten test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
 only `src/launch/ownership/*.ts` and `test/execution-ownership*.ts`, with strict
 mode, Bun types, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noEmit` and bundler resolution.
 
@@ -97,6 +98,25 @@ signed fresh request; close during verification resolved an authentic reply→ty
 `ownership_limit`→their independent matched grants; close before queued transport dispatch recorded one request→zero.
 The final current 31/114 result includes the 64-admitted/65th-refused queue case and synthetic filesystem reopening after
 storage-only retirement. These results make no actual socket, helper extinction, CLI, Native Agent or global claim.
+
+## Early worker and CLI source gate
+
+Normal and strict CLI source now await ownership initialization before importing their normal runtime graph; the
+public `main` function does so before inference registration. Catalog and safe preflight skip initialization. Because
+the selected-installation bootstrap is still unavailable, normal entry remains blocked rather than loading a fallback
+graph. These entrypoints are only syntax parsed here: actual CLI/provider/network behavior is NOT RUN.
+
+The pure entry installs a worker delivery buffer synchronously, before registration's first await. Its parent-port
+adapter hands pending events to the upstream central WorkerInbox exactly once, and stats global events replay into
+the runtime's synchronous early handler. Source tests create synthetic delivery ports and exercise before/after
+handoff, stats replay, cancellation and budget refusal. The limits are per channel (parent-port/global, two channels):
+64 messages and 64 MiB logical payload, plus 65,536 visited values/depth 64 per payload. Backing buffers, SharedArrayBuffer
+and public transferred MessagePorts have explicit accounting; this is not a claim to bound Bun's internal transferred-port
+queues or total worker heap. No Worker/MessageChannel/subprocess/socket is constructed in these tests.
+
+The updated current result is 34 PASS / 1 OS SKIP / 120 assertions, 22 focused type-checked files and 3 syntax-parsed
+entrypoints. Actual Bun early-message delivery, shared-buffer/MessagePort transfer, parent-owned subagents, source/bundle
+behavior and no-provider proof remain required in the later supervised runtime window.
 
 Compile only with `bun --no-env-file scripts/build-ownership-bridge-preparation.ts <owned-native-checkout>
 <absolute-owned-output-parent>`. It uses a unique output directory, fixed strict compiler/linker flags and an

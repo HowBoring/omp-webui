@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..db2fd8e3a1 100644
+index a4b6abe4e7..18d7f7a4bf 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,12 @@
+@@ -2,6 +2,13 @@
  
  ## [Unreleased]
  
@@ -11,6 +11,7 @@ index a4b6abe4e7..db2fd8e3a1 100644
 +- Prepared a public execution-ownership protocol and explicit unavailable dispatcher entry; no lifecycle or shared-service capability is enabled ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +- Added the fail-closed public process-context interface and owned durable incomplete-fence source adapter; Native consumer/bootstrap integration remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +- Added operator-pinned signed-reply wire source and bounded process broker serialization; actual transport/global admission remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
++- Gated normal/strict CLI startup in source and preserved early worker messages through bounded registration buffering; actual worker/CLI acceptance remains pending ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
  ### Fixed
  
@@ -29,10 +30,10 @@ index 0b34d8fc54..29aef9c23e 100644
  - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..5d50a5c52c
+index 0000000000..36a4d9ad06
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,189 @@
+@@ -0,0 +1,201 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -120,6 +121,7 @@ index 0000000000..5d50a5c52c
 +| Connection receive/output queue | 32,768 bytes each; reject/close, no unbounded retries |
 +| Connections / pending requests | 64 total / 1 per connection; no pipelining |
 +| Process-context broker acquisitions | 64 outstanding including active; serialize, snapshot scope before enqueue, 10,000 ms total queue/dispatch deadline |
++| Early worker registration buffering | 64 messages / 64 MiB logical payload per parent-port/global channel (two channels); 65,536 visited values / depth 64 |
 +| Global concurrent dispatcher operation / queue | 1 / 0; immediate typed refusal |
 +| Retained process registrations / private helpers | 512 / 64; refuse new admission on exhaustion |
 +| Helper generations per dispatcher / pending + registered helpers | 512 / 64; no generation reuse or silent eviction |
@@ -168,13 +170,24 @@ index 0000000000..5d50a5c52c
 +| `requireSharedExecution()` | Synchronous external-only guard; private policy throws typed `shared_service_unsupported` before shared effects |
 +| `acquireExecutionBroker(scope)` | Asynchronous fixed dispatcher grant matching the canonical project/global scope, generation, runtime directory and token; no executable/argv input |
 +
-+Initialize before the normal CLI/strict runtime graph and as the first action in SDK `createAgentSession` and the
-+legacy session factory, before inference registration or resource reload. A Bun worker realm must register through
++The normal CLI/strict source initializes before importing its runtime graph, and `main` initializes before local
++inference registration. Preflight/catalog paths skip initialization and keep their pure source graph. The bootstrap
++still rejects unavailable, so this is source integration rather than an accepted runnable normal CLI. Initialize as
++the first action in SDK `createAgentSession` and the legacy session factory, before inference registration or resource
++reload. A Bun worker realm must register through
 +the public Bun UDS transport using its actual OS peer; environment inheritance is not authority. Only the dispatcher
 +main thread may load FFI. SDK module eager-import purity is not claimed. Shared clients must use the grant and guard
 +before token/directory/factory/connect/ping/reconnect/request effects. A protocol/transport mismatch revokes the
-+context and closes its client; subsequent synchronous guards fail closed. Context initialization/consumer integration
-+and actual worker/Native evidence remain unfinished.
++context and closes its client; subsequent synchronous guards fail closed. Consumer integration and actual worker/Native
++evidence remain unfinished.
++
++The pure CLI entry installs bounded worker buffering synchronously before registration can await. Parent-port events
++are handed to upstream's existing central `installWorkerInbox` adapter exactly once; stats global `onmessage` events
++are replayed to the runtime's early handler. It counts backing buffers, shared data and transferred public MessagePorts
++without trying to serialize ports. Budget failure closes the bootstrap and refuses runtime entry. Cancellation removes
++only its own listeners; it never closes the parent port or kills a process. Source tests use synthetic delivery ports,
++not actual Bun workers; shared-buffer/port transfer, early-message/subagent and no-provider behavior require actual
++isolated runtime proof later. CLI/runtime/main source is syntax parsed, not executed by the source checker.
 +
 +Concurrent broker consumers are serialized behind the bounded process context. Queue overflow rejects only excess
 +unstarted work. A dispatched timeout or wire/authentication failure revokes the context and drains queued work;
@@ -222,16 +235,103 @@ index 0000000000..5d50a5c52c
 +
 +Arbitrary downloaded old OMP, malicious same-UID/ptrace/namespace/reparent manipulation and externally delegated
 +irreversible effects are outside this supported lifecycle guarantee. Generic bash is not an OS sandbox or external-effects rollback.
+diff --git a/packages/coding-agent/src/cli-runtime.ts b/packages/coding-agent/src/cli-runtime.ts
+index 9cd9c7b133..5191cc4dbd 100644
+--- a/packages/coding-agent/src/cli-runtime.ts
++++ b/packages/coding-agent/src/cli-runtime.ts
+@@ -28,6 +28,7 @@ import {
+ } from "@oh-my-pi/pi-utils/dirs";
+ 
+ import { declareWorkerHostEntry, installWorkerInbox, isWorkerHostSelector } from "@oh-my-pi/pi-utils/worker-host";
++import { ownershipWorkerPort } from "./launch/ownership/worker-bootstrap";
+ import { installSqliteLockShim } from "@oh-my-pi/pi-natives/sqlite-locks";
+ import { isNativeShell, runNativeShell } from "./cli/native-shell";
+ import { extractProfileFlags } from "./cli/profile-bootstrap";
+@@ -241,26 +242,26 @@ async function runWorkerEntrypoint(arg: string | undefined): Promise<boolean> {
+ 	// consume the same inbox after their module evaluation begins.
+ 	if (arg === TAB_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		await import("./tools/browser/tab-worker-entry");
+ 		return true;
+ 	}
+ 	if (arg === COMPUTER_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		const { startComputerWorker } = await import("./tools/computer/worker-entry");
+ 		startComputerWorker();
+ 		return true;
+ 	}
+ 	if (arg === JS_EVAL_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		await import("./eval/js/worker-entry");
+ 		return true;
+ 	}
+ 	if (arg === SUBAGENT_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		await import("./thread/subagent-worker-entry");
+ 		return true;
+ 	}
+@@ -307,14 +308,14 @@ async function runWorkerEntrypoint(arg: string | undefined): Promise<boolean> {
+ 	}
+ 	if (arg === TERMINAL_OUTPUT_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		// This selector is the isolation boundary; a static import would evaluate xterm in normal CLI startup.
+ 		await import("./launch/terminal-output-worker");
+ 		return true;
+ 	}
+ 	if (arg === PARENT_WATCHDOG_WORKER_ARG) {
+ 		const parentPort = getWorkerParentPort();
+-		if (parentPort) installWorkerInbox(parentPort);
++		if (parentPort) installWorkerInbox(ownershipWorkerPort(parentPort) ?? parentPort);
+ 		await import("./subprocess/parent-watchdog-worker");
+ 		return true;
+ 	}
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
-index ff1bfe94d2..8705f78d10 100755
+index ff1bfe94d2..a4eaff9c0a 100755
 --- a/packages/coding-agent/src/cli.ts
 +++ b/packages/coding-agent/src/cli.ts
-@@ -17,6 +17,12 @@ function validStrictArgs(args: string[]): boolean {
+@@ -4,6 +4,27 @@
+  * Intentional dynamic-import exception: the accepted RPC delivery contract requires
+  * avoiding eager configuration/native/Session initialization on this public path.
+  */
++import { initializeExecutionOwnership } from "./launch/ownership/context";
++import { OwnershipError } from "./launch/ownership/protocol";
++import {
++	assertOwnershipWorkerBootstrap, cancelOwnershipWorkerBootstrap, finishOwnershipWorkerBootstrap, prepareOwnershipWorkerBootstrap,
++} from "./launch/ownership/worker-bootstrap";
++
++prepareOwnershipWorkerBootstrap();
++
++/** Preserve worker's synchronous early inbox while normal runtime registration precedes the Native graph. */
++async function runOwnedRuntime(argv: string[], processEntry: boolean): Promise<void> {
++	try {
++		await initializeExecutionOwnership();
++		assertOwnershipWorkerBootstrap();
++		const runtime = await import("./cli-runtime");
++		const pending = processEntry ? undefined : runtime.runCli(argv);
++		if (processEntry) runtime.launchCliEntry();
++		finishOwnershipWorkerBootstrap();
++		await pending;
++	} catch (error) { cancelOwnershipWorkerBootstrap(); throw error; }
++}
++
+ function validStrictArgs(args: string[]): boolean {
+   const flags = new Set(["--offline", "--no-extensions", "--no-skills", "--no-rules", "--no-tools", "--no-context-files",
+     "--no-judge", "--no-spotlight", "--no-lsp", "--no-title"]);
+@@ -17,6 +38,11 @@ function validStrictArgs(args: string[]): boolean {
  }
  
  export async function runCli(argv: string[]): Promise<void> {
 +	if (argv.includes("--execution-dispatcher")) {
-+		const { OwnershipError } = await import("./launch/ownership/protocol");
 +		if (argv.length !== 1) throw new OwnershipError("ownership_protocol");
 +		const { startOwnershipDispatcher } = await import("./launch/ownership/entry");
 +		await startOwnershipDispatcher();
@@ -239,7 +339,17 @@ index ff1bfe94d2..8705f78d10 100755
    if (argv.length === 1 && argv[0] === "--rpc-preflight") {
      const { runPreflight } = await import("./modes/rpc/preflight");
      await runPreflight();
-@@ -36,7 +42,13 @@ export async function runCli(argv: string[]): Promise<void> {
+@@ -28,15 +54,21 @@ export async function runCli(argv: string[]): Promise<void> {
+   }
+   if (argv.length >= 3 && argv[0] === "--mode" && argv[1] === "rpc-ui" && argv[2] === "--strict-start") {
+     if (!validStrictArgs(argv.slice(3))) throw new Error("STRICT_CLI_ARGUMENTS");
++    await initializeExecutionOwnership();
+     const { runStrictMode } = await import("./modes/rpc/strict-mode");
+     await runStrictMode(argv.slice(3)); return;
+   }
+-  const runtime = await import("./cli-runtime");
+-  await runtime.runCli(argv);
++  await runOwnedRuntime(argv, false);
  }
  
  if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
@@ -254,6 +364,18 @@ index ff1bfe94d2..8705f78d10 100755
      const args = process.argv.slice(2);
      if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
      else void runCli(args).catch(() => { process.exitCode = 1; });
+@@ -51,6 +83,10 @@ if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread)
+       void runCli(["--rpc-preflight"]).catch(() => { process.exitCode = 1; });
+     }
+   } else {
+-    void import("./cli-runtime").then(runtime => runtime.launchCliEntry());
++    void runOwnedRuntime(process.argv.slice(2), true).catch(error => {
++      process.stderr.write(JSON.stringify({ version: "omp-execution-ownership/1", type: "ownership_error",
++        code: error instanceof OwnershipError ? error.code : "ownership_backend_unavailable" }) + "\n");
++      process.exitCode = 2;
++    });
+   }
+ }
 diff --git a/packages/coding-agent/src/launch/ownership/authentication.ts b/packages/coding-agent/src/launch/ownership/authentication.ts
 new file mode 100644
 index 0000000000..d2c9b68911
@@ -1788,10 +1910,10 @@ index 0000000000..878699c0f0
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
-index 0000000000..52284b6a63
+index 0000000000..e6186c0b2f
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/protocol.ts
-@@ -0,0 +1,171 @@
+@@ -0,0 +1,172 @@
 +/** Public Native lifecycle IPC. No request can name a PID, executable, argv, token path or environment. */
 +export const OWNERSHIP_VERSION = "omp-execution-ownership/1";
 +
@@ -1802,6 +1924,7 @@ index 0000000000..52284b6a63
 +	bridgeHandles: 1024, bridgeDescriptors: 2048, brokerScopes: 64, externalLifetimes: 256,
 +	connectMs: 1_000, requestMs: 10_000, idleMs: 30_000,
 +	contextRequests: 64,
++	workerBootstrapMessages: 64, workerBootstrapBytes: 67_108_864, workerBootstrapValues: 65_536,
 +});
 +
 +const errorCodes = ["ownership_protocol", "ownership_limit", "dispatcher_unavailable", "dispatcher_mismatch",
@@ -2518,6 +2641,180 @@ index 0000000000..c6b5599033
 +    }
 +  ]
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts b/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts
+new file mode 100644
+index 0000000000..db94e7cd31
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts
+@@ -0,0 +1,150 @@
++import * as workerThreads from "node:worker_threads";
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++
++export interface OwnershipWorkerPort {
++	on(event: "message", listener: (value: unknown) => void): unknown;
++	off(event: "message", listener: (value: unknown) => void): unknown;
++}
++export interface OwnershipWorkerScope { onmessage: ((event: MessageEvent) => void) | null }
++interface BufferLimits { messages: number; bytes: number }
++
++/** Conservative logical payload accounting, including backing buffers, cycles and transferred public MessagePorts. */
++function payloadBytes(root: unknown, limit: number): number {
++	const pending = [{ value: root, depth: 0 }], seen = new Set<object>();
++	let bytes = 0, values = 0;
++	const add = (value: unknown, depth: number): void => {
++		if (pending.length >= OWNERSHIP_LIMITS.workerBootstrapValues) throw new OwnershipError("ownership_limit");
++		pending.push({ value, depth });
++	};
++	while (pending.length) {
++		const next = pending.pop();
++		if (!next) break;
++		const { value, depth } = next;
++		if (++values > OWNERSHIP_LIMITS.workerBootstrapValues || depth > 64 || bytes > limit) throw new OwnershipError("ownership_limit");
++		if (typeof value === "string" || typeof value === "bigint") {
++			const text = String(value);
++			if (text.length > limit - bytes) throw new OwnershipError("ownership_limit");
++			bytes += new TextEncoder().encode(text).byteLength; continue;
++		}
++		if (value === null || value === undefined || typeof value === "boolean" || typeof value === "number") { bytes += 8; continue; }
++		if (typeof value !== "object") throw new OwnershipError("ownership_protocol");
++		if (seen.has(value)) continue;
++		seen.add(value); bytes += 64;
++		if (value instanceof ArrayBuffer || value instanceof SharedArrayBuffer) bytes += value.byteLength;
++		else if (ArrayBuffer.isView(value)) add(value.buffer, depth + 1);
++		else if (value instanceof Blob) bytes += value.size;
++		else if (value instanceof workerThreads.MessagePort || value instanceof Date) continue;
++		else if (value instanceof Map) for (const [key, item] of value) { add(key, depth + 1); add(item, depth + 1); }
++		else if (value instanceof Set) for (const item of value) add(item, depth + 1);
++		else if (value instanceof Error) { add(value.message, depth + 1); add(value.stack, depth + 1); }
++		else for (const key in value) {
++			if (!Object.hasOwn(value, key)) continue;
++			const descriptor = Object.getOwnPropertyDescriptor(value, key);
++			if (!descriptor || !("value" in descriptor)) throw new OwnershipError("ownership_protocol");
++			add(key, depth + 1); add(descriptor.value, depth + 1);
++		}
++	}
++	if (bytes > limit) throw new OwnershipError("ownership_limit");
++	return bytes;
++}
++
++class BufferedMessages<T> {
++	readonly #limits: BufferLimits;
++	readonly #messages: T[] = [];
++	#bytes = 0;
++	#handler: ((value: T) => void) | undefined;
++	constructor(limits: BufferLimits) { this.#limits = limits; }
++	push(value: T, payload: unknown): void {
++		if (this.#handler) { this.#handler(value); return; }
++		if (this.#messages.length >= this.#limits.messages) throw new OwnershipError("ownership_limit");
++		this.#bytes += payloadBytes(payload, this.#limits.bytes - this.#bytes);
++		this.#messages.push(value);
++	}
++	bind(handler: (value: T) => void): void {
++		if (this.#handler) throw new OwnershipError("ownership_protocol");
++		this.#handler = handler;
++		for (const message of this.#messages) handler(message);
++		this.clear();
++	}
++	clear(): void { this.#messages.length = 0; this.#bytes = 0; }
++}
++
++/**
++ * Synchronous worker registration prefix. This buffers public event delivery only; it grants no policy itself.
++ * The existing central WorkerInbox receives its port adapter after async ownership initialization, exactly once.
++ */
++export class OwnershipWorkerBootstrap {
++	readonly #port: OwnershipWorkerPort | null;
++	readonly #scope: OwnershipWorkerScope;
++	readonly #previous: OwnershipWorkerScope["onmessage"];
++	readonly #portMessages: BufferedMessages<unknown>;
++	readonly #globalMessages: BufferedMessages<MessageEvent>;
++	readonly #portListener: (value: unknown) => void;
++	readonly #globalListener: (event: MessageEvent) => void;
++	#portAdopted = false;
++	#closed = false;
++	constructor(port: OwnershipWorkerPort | null, scope: OwnershipWorkerScope, limits: BufferLimits = {
++		messages: OWNERSHIP_LIMITS.workerBootstrapMessages, bytes: OWNERSHIP_LIMITS.workerBootstrapBytes,
++	}) {
++		if (!Number.isSafeInteger(limits.messages) || limits.messages < 1 || limits.messages > OWNERSHIP_LIMITS.workerBootstrapMessages
++			|| !Number.isSafeInteger(limits.bytes) || limits.bytes < 1 || limits.bytes > OWNERSHIP_LIMITS.workerBootstrapBytes) {
++			throw new OwnershipError("ownership_limit");
++		}
++		this.#port = port; this.#scope = scope; this.#previous = scope.onmessage;
++		const fixed = Object.freeze({ ...limits });
++		this.#portMessages = new BufferedMessages(fixed); this.#globalMessages = new BufferedMessages(fixed);
++		this.#portListener = value => this.#receive(() => this.#portMessages.push(value, value));
++		this.#globalListener = event => this.#receive(() => this.#globalMessages.push(event, event.data));
++		port?.on("message", this.#portListener); scope.onmessage = this.#globalListener;
++	}
++
++	adoptPort(port: OwnershipWorkerPort): Pick<OwnershipWorkerPort, "on"> | undefined {
++		this.assertCurrent();
++		if (port !== this.#port) return undefined;
++		return { on: (_event, listener) => {
++			if (this.#portAdopted) throw new OwnershipError("ownership_protocol");
++			this.#portAdopted = true; this.#portMessages.bind(listener);
++		} };
++	}
++
++	finish(): void {
++		this.assertCurrent();
++		if (this.#portAdopted) {
++			this.#globalMessages.clear();
++			if (this.#scope.onmessage === this.#globalListener) this.#scope.onmessage = this.#previous;
++		} else {
++			const handler = this.#scope.onmessage;
++			if (handler && handler !== this.#globalListener) this.#globalMessages.bind(handler);
++			else this.#globalMessages.clear();
++			this.#port?.off("message", this.#portListener); this.#portMessages.clear();
++			if (this.#scope.onmessage === this.#globalListener) this.#scope.onmessage = this.#previous;
++		}
++	}
++
++	close(): void {
++		if (this.#closed) return;
++		this.#closed = true; this.#port?.off("message", this.#portListener);
++		if (this.#scope.onmessage === this.#globalListener) this.#scope.onmessage = this.#previous;
++		this.#portMessages.clear(); this.#globalMessages.clear();
++	}
++	assertCurrent(): void { if (this.#closed) throw new OwnershipError("dispatcher_unavailable"); }
++	#receive(action: () => void): void {
++		if (this.#closed) return;
++		try { action(); } catch (error) { this.close(); throw error; }
++	}
++}
++
++let bootstrap: OwnershipWorkerBootstrap | undefined;
++/** Call synchronously in the pure CLI entry, before its first await. Main-thread/catalog/preflight reads do nothing. */
++export function prepareOwnershipWorkerBootstrap(): void {
++	if (Bun.isMainThread || bootstrap) return;
++	bootstrap = new OwnershipWorkerBootstrap(workerThreads.parentPort, globalThis as unknown as OwnershipWorkerScope);
++}
++/** Adapter for the upstream central installWorkerInbox; never replaces/duplicates its pending inbox. */
++export function ownershipWorkerPort(port: OwnershipWorkerPort): Pick<OwnershipWorkerPort, "on"> | undefined {
++	return bootstrap?.adoptPort(port);
++}
++export function assertOwnershipWorkerBootstrap(): void { bootstrap?.assertCurrent(); }
++/** Invoke only after cli-runtime's synchronous worker prefix has installed its actual buffering handlers. */
++export function finishOwnershipWorkerBootstrap(): void { bootstrap?.finish(); bootstrap = undefined; }
++export function cancelOwnershipWorkerBootstrap(): void { bootstrap?.close(); bootstrap = undefined; }
+diff --git a/packages/coding-agent/src/main.ts b/packages/coding-agent/src/main.ts
+index cf68ec5209..0b8fc6af8f 100644
+--- a/packages/coding-agent/src/main.ts
++++ b/packages/coding-agent/src/main.ts
+@@ -1,4 +1,5 @@
+ import { getStrictStartup } from "./modes/rpc/strict-context";
++import { initializeExecutionOwnership } from "./launch/ownership/context";
+ /**
+  * Main entry point for the coding agent CLI.
+  *
+@@ -2954,6 +2955,7 @@ export async function runRootCommand(
+ }
+ 
+ export async function main(args: string[]): Promise<void> {
++	await initializeExecutionOwnership();
+ 	registerLocalInferenceApi();
+ 	const { runCli } = await import("./cli");
+ 	await runCli(args.length === 0 ? ["launch"] : args);
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644
 index 0000000000..8f6fc997fa
@@ -3224,3 +3521,57 @@ index 0000000000..489665ab42
 +		throw error;
 +	} finally { bridge?.close(); await fs.rm(directory, { recursive: true, force: true }); }
 +}, 5_000);
+diff --git a/packages/coding-agent/test/execution-ownership-worker.test.ts b/packages/coding-agent/test/execution-ownership-worker.test.ts
+new file mode 100644
+index 0000000000..0d20432183
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-worker.test.ts
+@@ -0,0 +1,48 @@
++import { expect, test } from "bun:test";
++import { OwnershipWorkerBootstrap, type OwnershipWorkerScope } from "../src/launch/ownership/worker-bootstrap";
++
++/** Synthetic worker delivery seam; no Worker, MessageChannel, subprocess or socket is created. */
++class WorkerPort {
++	readonly #listeners = new Set<(value: unknown) => void>();
++	on(_event: "message", listener: (value: unknown) => void): void { this.#listeners.add(listener); }
++	off(_event: "message", listener: (value: unknown) => void): void { this.#listeners.delete(listener); }
++	deliver(value: unknown): void { for (const listener of this.#listeners) listener(value); }
++}
++
++test("early parent-port messages survive ownership registration and hand off once to the central inbox", () => {
++	const port = new WorkerPort(), scope: OwnershipWorkerScope = { onmessage: null };
++	const bootstrap = new OwnershipWorkerBootstrap(port, scope);
++	port.deliver({ type: "init", counter: new SharedArrayBuffer(4) });
++	const received: unknown[] = [];
++	bootstrap.adoptPort(port)?.on("message", value => received.push(value));
++	bootstrap.finish();
++	port.deliver({ type: "after-registration" });
++	expect(received).toMatchObject([{ type: "init" }, { type: "after-registration" }]);
++	bootstrap.close();
++});
++
++test("early stats messages replay to the installed global handler and a cancelled bootstrap retains no handler", () => {
++	const port = new WorkerPort(), scope: OwnershipWorkerScope = { onmessage: null };
++	const bootstrap = new OwnershipWorkerBootstrap(port, scope), received: unknown[] = [];
++	scope.onmessage?.(new MessageEvent("message", { data: { type: "ping" } }));
++	scope.onmessage = event => received.push(event.data);
++	bootstrap.finish();
++	expect(received).toEqual([{ type: "ping" }]);
++	const cancelledScope: OwnershipWorkerScope = { onmessage: null };
++	const cancelled = new OwnershipWorkerBootstrap(new WorkerPort(), cancelledScope);
++	cancelled.close();
++	expect(cancelledScope.onmessage).toBe(null);
++});
++
++test("message-count and payload budgets refuse startup before unbounded early work can accumulate", () => {
++	const port = new WorkerPort(), scope: OwnershipWorkerScope = { onmessage: null };
++	const bootstrap = new OwnershipWorkerBootstrap(port, scope, { messages: 2, bytes: 128 });
++	port.deliver("first"); port.deliver("second");
++	expect(() => port.deliver("third")).toThrow("ownership_limit");
++	expect(() => bootstrap.assertCurrent()).toThrow("dispatcher_unavailable");
++	bootstrap.close();
++	const oversized = new WorkerPort(), other = new OwnershipWorkerBootstrap(oversized, { onmessage: null },
++		{ messages: 2, bytes: 128 });
++	expect(() => oversized.deliver(new Uint8Array(129))).toThrow("ownership_limit");
++	other.close();
++});

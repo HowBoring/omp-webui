@@ -7,6 +7,7 @@ if (!argument || process.argv.length !== 3) throw new Error("USAGE: check-owners
 const source = await realpath(resolve(argument)), repository = resolve(import.meta.dir, "..");
 const files = ["execution-ownership-cli.test.ts", "execution-ownership-client.test.ts", "execution-ownership-context.test.ts",
   "execution-ownership-authentication.test.ts",
+  "execution-ownership-worker.test.ts",
   "execution-ownership-contract.test.ts",
   "execution-ownership-dispatcher.test.ts", "execution-ownership-helper-wire.test.ts", "execution-ownership-fences.test.ts",
   "execution-ownership-linux.test.ts"];
@@ -38,7 +39,11 @@ try {
     process.stdout.write(result.stdout); process.stderr.write(result.stderr);
     if (result.exitCode !== 0) throw new Error("OWNERSHIP_SOURCE_CHECK_FAILED");
   }
+  const parser = new Bun.Transpiler({ loader: "ts", target: "bun" });
+  const parsedEntrypoints = ["cli.ts", "cli-runtime.ts", "main.ts"];
+  for (const file of parsedEntrypoints) parser.transformSync(await Bun.file(join(source, "packages/coding-agent/src", file)).text());
   process.stdout.write(JSON.stringify({ scope: "owned-source-only", sourceFiles: files.length, runnerFiles: 1,
     typeCheckedFiles: modules.length + tests.length, guardBeforeImports: true,
+    parsedEntrypoints: parsedEntrypoints.length, actualEntrypointsExecuted: false,
     kernelFixtureEnabled: false, actualGlobal: "BLOCKED", capabilityGranted: false }) + "\n");
 } finally { await rm(temporary, { recursive: true, force: true }); }
