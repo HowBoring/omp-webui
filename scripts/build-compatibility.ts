@@ -152,6 +152,14 @@ for (const [name, definitionName] of Object.entries({"interaction-policy":"Inter
   await emit(`packages/contracts/generated/${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
 
+const interactionNotices=["AvailableCommandsUpdateEvent","PromptResultEvent","SessionSettledEvent",
+  "ExtensionError","SessionInfoUpdateEvent","ConfigUpdateEvent"];
+for(const name of interactionNotices)audit(bundle.$defs[name]);
+await emit("packages/contracts/generated/interaction-notification.js",
+  standaloneCode(ajv,ajv.compile({anyOf:interactionNotices.map(definition)})));
+await emit("packages/contracts/generated/interaction-notification.d.ts",
+  "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+
 // Host contracts/validators are emitted from exactly the schema used by the public candidate.
 await mkdir("packages/contracts/generated", { recursive: true });
 await emit("packages/contracts/generated/omp-wire.ts",

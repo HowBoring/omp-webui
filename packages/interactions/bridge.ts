@@ -10,7 +10,7 @@ export interface InteractionPort {
   readonly frames:readonly NativeFrame[];
   readonly exited?:Promise<number>;
   subscribe(listener:(frame:NativeFrame)=>void):()=>void;
-  command(command:object):Promise<NativeFrame>;
+  command(command:object):Promise<unknown>;
 }
 interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; tail:Promise<void>; retired:boolean }
 const interactive=new Set(["ask","select","input","editor","confirm"]);
@@ -59,7 +59,7 @@ export class InteractionBridge {
       try {
         const effectiveAnswer=performance.now()>=entry.deadlineMono ? {type:"cancel" as const,timedOut:true} : answer;
         const reply=await this.port.command({type:"respond_ui",targetId:id,answer:effectiveAnswer});
-        const result=interactionReplySchema.parse(reply.data);
+        const result=interactionReplySchema.parse(reply);
         if(result.status !== "invalid") this.#retire(id,result.status,"explicit-native-acknowledgement");
         if(result.status === "expired") this.#stop();
         settled.resolve(result);

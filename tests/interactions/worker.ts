@@ -1,14 +1,15 @@
 import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve, join } from "node:path";
-import { FixtureTransport } from "./fixture-transport.ts";
+import { openInteractionPort } from "./fixture-transport.ts";
+import { observeClientProcess } from "./raw-client-process.ts";
 export type { Frame } from "./fixture-transport.ts";
 import { z } from "zod";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import validPolicy from "../../packages/contracts/generated/interaction-policy.js";
 
 /** Native fixture launcher. Paths and argv are fixed by source, never accepted from Remote/browser input. */
-export async function startNativeInteractionFixture(options:{root?:string;readProtocol?:boolean}={}) {
+async function prepareFixture(options:{root?:string;scripted?:boolean}={}) {
   const root=options.root ?? process.cwd();
   const home = await mkdtemp(join(tmpdir(), "omp-native-interactions-"));
   // Verify the immutable effective policy through safe public preflight BEFORE
@@ -37,17 +38,25 @@ export async function startNativeInteractionFixture(options:{root?:string;readPr
   }
   const extensionPath=join(home,"extension.ts");
   await Bun.write(extensionPath,extension);
-  const child=Bun.spawn([process.execPath,"--no-env-file","--preload",resolve(root,"tests/interactions/no-provider.ts"),resolve(root,"vendor/omp-candidate/omp"),
-    "--mode","rpc-ui","--offline","--provider","openai","--model","gpt-4o","--no-skills","--no-rules","--no-tools","--no-extensions","--extension",extensionPath], {
-    cwd:home,env:{HOME:home,PATH:process.env.PATH ?? "/usr/bin:/bin",TMPDIR:home,
-      PI_CODING_AGENT_DIR:join(home,"profile"),XDG_CONFIG_HOME:join(home,"config"),
-      XDG_CACHE_HOME:join(home,"cache"),XDG_DATA_HOME:join(home,"data"),NO_COLOR:"1",PI_NOTIFICATIONS:"off",OPENAI_API_KEY:"synthetic-unused-no-provider-calls"},
-    stdin:"pipe",stdout:"pipe",stderr:"pipe",
-  });
-  const transport=new FixtureTransport(child,options.readProtocol !== false);
-  return {child,exited:transport.exited,frames:transport.frames,
-    send:(frame:object)=>transport.send(frame),wait:(predicate:Parameters<FixtureTransport["wait"]>[0],after=0)=>transport.wait(predicate,after),
-    command:(fields:object)=>transport.command(fields),subscribe:(listener:Parameters<FixtureTransport["subscribe"]>[0])=>transport.subscribe(listener),
-    async close() {try{return await transport.close();}finally{await rm(home,{recursive:true,force:true});}},
-  };
+  const argv=[process.execPath,"--no-env-file","--preload",resolve(root,"tests/interactions/no-provider.ts"),resolve(root,"vendor/omp-candidate/omp"),
+    "--mode","rpc-ui","--offline","--provider","openai","--model","gpt-4o","--no-skills","--no-rules","--no-tools","--no-extensions","--extension",extensionPath];
+  const env={HOME:home,PATH:process.env.PATH ?? "/usr/bin:/bin",TMPDIR:home,
+    PI_CODING_AGENT_DIR:join(home,"profile"),XDG_CONFIG_HOME:join(home,"config"),XDG_CACHE_HOME:join(home,"cache"),
+    XDG_DATA_HOME:join(home,"data"),NO_COLOR:"1",PI_NOTIFICATIONS:"off",OPENAI_API_KEY:"synthetic-unused-no-provider-calls"};
+  return {home,argv,env,cwd:home};
+}
+
+export async function startNativeInteractionFixture(options:{root?:string}={}) {
+  const selection=await prepareFixture(options);
+  try {
+    const port=await openInteractionPort(selection);
+    return {...port,async close(){try{return await port.close();}finally{await rm(selection.home,{recursive:true,force:true});}}};
+  } catch(error){await rm(selection.home,{recursive:true,force:true});throw error;}
+}
+
+export async function startRawNativeInteractionProcess(options:{root?:string;scripted?:boolean}={}) {
+  const selection=await prepareFixture(options);
+  const process=observeClientProcess(Bun.spawn(selection.argv,{env:selection.env,cwd:selection.cwd,
+    stdin:"pipe",stdout:"pipe",stderr:"pipe"}));
+  return {...process,async close(){try{return await process.close();}finally{await rm(selection.home,{recursive:true,force:true});}}};
 }

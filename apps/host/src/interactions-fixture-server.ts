@@ -24,7 +24,7 @@ class InteractionsService extends TypertRemoteService {
     const result=await this.bridge.answer(generation,interactionId,answer);
     if(root && result.status !== "invalid" && result.status !== "stale" && !this.state.initialized) {
       const state=await this.bridge.port.command({type:"get_state"});
-      const identity=z.object({sessionId:z.string().min(1),model:z.object({provider:z.literal("openai"),id:z.literal("gpt-4o")})}).parse(state.data);
+      const identity=z.object({sessionId:z.string().min(1),model:z.object({provider:z.literal("openai"),id:z.literal("gpt-4o")})}).parse(state);
       this.bridge.bindSession(identity.sessionId);
       await this.bridge.port.command({type:"set_ask_dialog",enabled:true});this.state.initialized=true;
     }

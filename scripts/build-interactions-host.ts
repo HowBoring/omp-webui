@@ -6,7 +6,7 @@ const built=await Bun.build({entrypoints:["apps/host/src/interactions-fixture-ma
   plugins:[{name:"audited-S0-host-inputs",setup(build){build.onLoad({filter:/\.[cm]?[jt]s$/},async args=>{
     const contents=await readFile(args.path,"utf8");
     // No heavy native public client/SDK/runtime closure may enter the Host.
-    if(args.path.includes("/pi-coding-agent/") && !args.path.endsWith("/modes/rpc/rpc-frame.ts")) {
+    if((args.path.includes("/pi-coding-agent/") || args.path.includes("/packages/coding-agent/")) && !args.path.endsWith("/modes/rpc/rpc-frame.ts")) {
       throw new Error("S0_HOST_OMP_IMPORT_BOUNDARY");
     }
     inputs.push({path:relative(process.cwd(),args.path),sha256:digest(contents)});
