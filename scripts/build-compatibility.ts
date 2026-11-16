@@ -176,3 +176,5 @@ await emit("packages/contracts/generated/identity.ts",
 
 // Generate the narrow history public client and validators from this exact matched schema.
 await import("./build-history-contracts.ts");
+
+await import("./build-live-contracts.ts");

@@ -1,0 +1,129 @@
+{
+  "status": "CHECKPOINT_NOT_FINAL_ACCEPTANCE",
+  "issue": 35,
+  "platform": "Linux Chromium",
+  "provider": "controlled in-process; never real AI",
+  "build": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "e7ef14750f0a3d33600c8021fe80d11508c66dd3173cc321b8ddcafd91c13532",
+    "patchSha256": "2a0cd83554b97264806cecaa3a1aeae84b3f366e677d3036fcccffca94070af0",
+    "schemaSha256": "eeb94fffa8a8730aa5ec6265ca365615818cd5c56f953530e606fb4b92b76dc1"
+  },
+  "browserAssets": {
+    "sourceSha256": "7abbeaa51204c3b68e256c072e420b9f19e0216c82a6b23e622673d512121212",
+    "contractSha256": "57c042eb0ca9535294c98ebbadb07cca3a39274ab6759879948d9464fdfa7602",
+    "assets": {
+      "client.js": "a0ecbc92ce34354b1ebc6781e6fa2091387f135af8f229ec3dcd69205635a20b",
+      "index.html": "67eefc16316f9cb6c3399a7ead11b516fdeb3e1d2c8a4d32071d1d1d125e6bf1"
+    }
+  },
+  "browser": [
+    {
+      "status": "PASS",
+      "mode": "stable",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 14,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "stable",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "1f83048ffff7691d358cc234d923f5ccaa3915a44eba495a828901e640d7eff4",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "first-materialization",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 11,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "first-materialization",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 1,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "296f69cbef4c9580992f348d187ab7597fd9ddd3372cd00e95a6dfcefa49a354",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    }
+  ],
+  "pending": [
+    "final preceding source tuple/integration merge",
+    "active-prefix opening baseline",
+    "dedicated native failed/no-entry branch evidence",
+    "independent review"
+  ],
+  "windows": "DEFERRED",
+  "productSessionAdmission": "blocked",
+  "checks": {
+    "orderedNativeBuild": "PASS",
+    "generatedCheck": "PASS",
+    "hostTypecheck": "PASS",
+    "fullCheck": {
+      "status": "PASS",
+      "tests": 151,
+      "assertions": 1279,
+      "files": 32,
+      "seconds": 161.53
+    },
+    "browser": "2 PASS scenarios"
+  },
+  "ownedSources": {
+    "apps/live-fixture/server.ts": "0d4fead099ad3be565e0addfae6255c1cccf2474fc1f985323ec4805b527f44e",
+    "apps/live-fixture/service.ts": "df3c6a277dfc52559e6f785b0ec02b1567c837081ccf725b982130044bee80e8",
+    "apps/live-fixture/src/client.ts": "dd747b791c5644185135f4ebd358382f054e1d2e483cd011b7eb290a41fe7d90",
+    "packages/projection/live-journal.ts": "cf45a2b1cd8b5c8f2aaefcd7aa3965c986251024112507ceaf8863390eb06d57",
+    "packages/compatibility/live-transport.ts": "d53df38cacaf9c80914c690ca090d3b2efc90b416fd1ac28509e2992db6e1a45",
+    "compatibility/omp/fixtures/live-worker.ts": "58c522d788516aeb9af3e6f77d892dbb0e45463a195c6ced2594479c1ad5e7d7",
+    "compatibility/omp/fixtures/live-provider.ts": "33fd78f5b6779275f1d36107b7e12c255beb43db0ff0401c25061cc19cd4df2a",
+    "compatibility/omp/0006-live-settlement.patch": "59faf872103c568cdc6c6ba218e39673274309c7fc1e65e56aa195a440b2d48d"
+  },
+  "retainedNetworkTraces": [
+    {
+      "file": "vendor/live-evidence/omp-live-cli-8318p3.network.strace",
+      "sha256": "296f69cbef4c9580992f348d187ab7597fd9ddd3372cd00e95a6dfcefa49a354"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-dND6Tn.network.strace",
+      "sha256": "1f83048ffff7691d358cc234d923f5ccaa3915a44eba495a828901e640d7eff4"
+    }
+  ]
+}

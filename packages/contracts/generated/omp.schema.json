@@ -6769,6 +6769,110 @@
         "data"
       ]
     },
+    "HistoryLiveIdentity": {
+      "type": "object",
+      "properties": {
+        "workerId": {
+          "type": "string"
+        },
+        "messageId": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "branchLeafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "toolOwnerMessageId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "workerId",
+        "messageId",
+        "sourceId",
+        "sessionId",
+        "contextId",
+        "branchLeafId"
+      ]
+    },
+    "HistorySettlement": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "observed",
+            "no_entry",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "durability": {
+          "const": "not_attested"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "durability"
+      ]
+    },
+    "HistoryNativeChange": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "revision": {
+          "type": "integer"
+        },
+        "contextRevision": {
+          "type": "integer"
+        },
+        "sessionId": {
+          "type": "string"
+        },
+        "leafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "entryId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "revision",
+        "contextRevision",
+        "sessionId",
+        "leafId"
+      ]
+    },
     "HistoryItem": {
       "type": "object",
       "properties": {
@@ -6793,6 +6897,15 @@
         },
         "text": {
           "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "live": {
+          "$ref": "#/$defs/HistoryLiveIdentity"
         },
         "toolCallId": {
           "type": "string"
@@ -6895,6 +7008,12 @@
         "contentRevision": {
           "type": "string"
         },
+        "nativeRevision": {
+          "type": "integer"
+        },
+        "retainedRevision": {
+          "type": "string"
+        },
         "leafId": {
           "anyOf": [
             {
@@ -6920,6 +7039,8 @@
         "workerId",
         "contextId",
         "contentRevision",
+        "nativeRevision",
+        "retainedRevision",
         "leafId",
         "observationSeq"
       ]
@@ -7145,6 +7266,18 @@
         },
         "kind": {
           "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/HistoryNativeChange"
+        },
+        "live": {
+          "$ref": "#/$defs/HistoryLiveIdentity"
+        },
+        "item": {
+          "$ref": "#/$defs/HistoryItem"
+        },
+        "settlement": {
+          "$ref": "#/$defs/HistorySettlement"
         }
       },
       "required": [

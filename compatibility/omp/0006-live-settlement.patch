@@ -1,0 +1,638 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index b3153879e1..54a442143f 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -9,6 +9,8 @@
+ 
+ ### Added
+ 
++- Added exact native live-message/entry observation settlement and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
++
+ - Added atomic retained-tree, active-chain and running-message observations with bounded expiring pages and native image content reads ([WebUI #34](https://github.com/HowBoring/omp-webui/issues/34)).
+ 
+ - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index 85182936c0..c4dcc17ec8 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -10,6 +10,7 @@ For installation, setup, provider configuration, model roles, slash commands, an
+ Package-specific references:
+ 
+ - [CHANGELOG](./CHANGELOG.md)
++- [Exact live observation and native settlement](./docs/rpc-live-observation.md) (memory observations, not durable receipts)
+ - [MCP configuration guide](../../docs/mcp-config.md)
+ - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
+ - [MCP server/tool authoring](../../docs/mcp-server-tool-authoring.md)
+diff --git a/packages/coding-agent/docs/rpc-live-observation.md b/packages/coding-agent/docs/rpc-live-observation.md
+new file mode 100644
+index 0000000000..94feed52f7
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-live-observation.md
+@@ -0,0 +1,29 @@
++# Live observation and exact native settlement
++
++`history_observation_poll` shares the immutable history snapshot cut and a bounded, contiguous worker observation
++sequence. Native source records carry mutation/context counters and actual native entry/leaf IDs. Source append,
++rewrite, deletion/reparent (rebuild), leaf and context changes remain observable. A lost/evicted journal cursor fails
++`history_observation_gap`. Direct mutable retained-payload rewrites discovered by coherent capture emit
++`native_untracked_rewrite`. Stop the affected projection and reopen after any incompatible source change or gap.
++
++`message_start`, `message_update`, `message_final` and `message_settlement` carry a native lifecycle identity scoped by
++worker, source, native Session, native context and initiating branch leaf. The identity is stamped before asynchronous
++display delivery; filtered or reordered stdout cannot change it. Tool results additionally carry the initiating
++assistant message identity when that exact native context has retained the call. An absent owner requires explicit
++failure/reopen, never pairing a reusable raw tool ID across contexts. Tool-owner associations are bounded to 4096.
++Final readable content supersedes partial reconstructions. Internal custom/configuration/provider state is not exposed.
++
++Settlement happens at AgentSession's actual append/no-append decision. An original object append association and
++the existing assistant entry Symbol provide authoritative IDs; no text, timestamp, hash or append adjacency joins
++are used. A native duplicate without an original-object association explicitly reports `no_entry` with
++`native_deduplicated_without_link`; this lifecycle appended no new entry and does not claim an old entry association.
++One-run contexts, classifier refusals, empty errors, consumed rewind results and replaced prompt generations report
++explicit no-entry reasons. A throwing native decision reports `failed`. Entries observed in memory report `observed`
++and **durability `not_attested`**. Ordinary append may be lazy or latch write failures; this API never promises durable
++recovery. Recoverable submission/commit receipts require a separate capability.
++
++Snapshot items include retained lifecycle associations so snapshot/live overlap can be excluded by exact identity.
++Those associations are process-local and bounded to 4096; eviction emits `native_settlement_evicted` and invalidates
++an existing derived projection. Old cold entries remain readable, with no invented historical live identity.
++Oversized or unrepresentable live data emits `native_live_gap`; no successful truncated live message is returned.
++Native observation does not cancel or recreate Interactions or execution, and does not alter collaboration callbacks.
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+index c00b54a916..6d7b65c698 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -1,3 +1,6 @@
++import { nativeMessageIdentity } from "../../session/live-message-observation";
++import type { NativeMessageIdentity, NativeMessageObservation, NativeMessageSettlement } from "../../session/live-message-observation";
++import type { NativeHistoryChange } from "../../session/session-manager";
+ /** Coherent native history v1. In-memory observations are not persistence receipts. */
+ import { asRecord } from "@oh-my-pi/pi-utils/type-guards";
+ import type { SessionManager } from "../../session/session-manager";
+@@ -12,15 +15,17 @@ export type HistoryScope = "tree" | "active" | "running";
+ export interface HistoryContent {
+   cursor: string; mimeType: string; bytes: number; sha256: string; origin: "retained_native"; originalAssociation: "unproven";
+ }
++export interface HistoryLiveIdentity extends NativeMessageIdentity { workerId: string }
+ export interface HistoryItem {
++  live?: HistoryLiveIdentity;
+   id: string; parentId: string | null; kind: string; active: boolean; text: string;
+-  contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
++  provider?: string; model?: string; contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
+ }
+ export interface HistoryCut {
+   durability: "not_attested";
+   sourceBindingStatus: "worker" | "catalog"; catalogBinding?: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string };
+   sourceId: string; sessionId: string; workerId: string; contextId: string;
+-  contentRevision: string; leafId: string | null; observationSeq: number;
++  contentRevision: string; nativeRevision: number; retainedRevision: string; leafId: string | null; observationSeq: number;
+ }
+ export interface HistoryOpen {
+   version: "coherent-history-v1"; snapshot: string; cursor: string; scope: HistoryScope; cut: HistoryCut;
+@@ -36,7 +41,10 @@ export interface HistoryContentPage {
+   snapshot: string; cut: HistoryCut; expiresAt: number; content: HistoryContent; encoding: "base64";
+   partIndex: number; data: string; nextCursor?: string;
+ }
+-export interface HistoryChange { seq: number; kind: string }
++export interface HistoryChange {
++  seq: number; kind: string; source?: NativeHistoryChange; live?: HistoryLiveIdentity;
++  item?: HistoryItem; settlement?: NativeMessageSettlement;
++}
+ export interface HistoryPoll { cut: HistoryCut; after: number; through: number; events: HistoryChange[]; hasMore: boolean }
+ interface Runtime { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }
+ interface ContentPosition { content: HistoryContent; data: string; offset: number }
+@@ -61,7 +69,7 @@ function textContent(value: unknown): string {
+     throw new Error("history_unknown_content");
+   }).join("\n");
+ }
+-function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
++function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "provider" | "model" | "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
+   const message = record(value);
+   const role = typeof message.role === "string" ? message.role : "unknown";
+   if (role === "developer") return { role, text: "[Native developer context record]" };
+@@ -76,7 +84,7 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+   if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
+   if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
+     if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
+-    return { role, text: (textContent(message.content) || `[${role}]`) +
++    return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: (textContent(message.content) || `[${role}]`) +
+       (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
+       (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
+       ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
+@@ -101,6 +109,7 @@ function readableEntry(value: unknown, active: Set<string>, content: (value: unk
+   if (entry.type === "message") Object.assign(item, readableMessage(entry.message, content));
+   if (entry.type === "custom_message") {
+     item.text = entry.display === true ? textContent(entry.content) : "[Internal custom message]";
++    if (entry.display === true) item.role = "custom";
+     if (entry.display === true) item.contents = content(entry.content);
+   }
+   if (entry.type === "compaction" || entry.type === "branch_summary") {
+@@ -121,14 +130,49 @@ export class RpcHistoryObservation {
+   #seq = 0;
+   #liveBytes = 0;
+   #lastRevision: string | undefined;
++  #lastNativeRevision: number | undefined;
++  #lastRetainedRevision: string | undefined;
++  readonly #entryLive = new Map<string, HistoryLiveIdentity>();
+   constructor(manager: SessionManager, runtime: () => Runtime) {
+     this.#manager = manager; this.#runtime = runtime;
+-    manager.subscribeHistoryChanges(change => this.observe({ type: `native_${change.kind}` }));
++    manager.subscribeHistoryChanges(source => {
++      const entry = source.entryId ? manager.getEntry(source.entryId) : undefined;
++      try {
++        const item = entry ? readableEntry(entry, new Set(source.leafId ? [source.leafId] : []), () => []) : undefined;
++        this.#append({ kind: `native_${source.kind}`, source: { ...source }, ...(item ? { item } : {}) });
++      } catch { this.#append({ kind: "native_live_gap" }); }
++    });
+   }
+ 
+   /** Observe before any output filter. Bounded journal gaps are observable, never synthesized as empty success. */
+-  observe(event: { type: string }): void {
+-    const change = { seq: ++this.#seq, kind: event.type };
++  observe(event: { type: string; message?: unknown }): void {
++    if (["message_start", "message_update", "message_end"].includes(event.type) && event.message !== undefined &&
++      !nativeMessageIdentity(event.message)) this.#append({ kind: "native_live_gap" });
++    this.#append({ kind: event.type });
++  }
++  /** Native decision hook, before output filters; final readable messages supersede every partial. */
++  observeMessage(event: NativeMessageObservation): void {
++    const live = { ...event.live, workerId: this.#workerId };
++    try {
++      const item: HistoryItem = { id: live.messageId, parentId: live.branchLeafId, kind: event.kind,
++        active: false, live, ...readableMessage(event.message) };
++      const change = { kind: event.kind, live, item,
++        ...(event.settlement ? { settlement: { ...event.settlement } } : {}) };
++      if (Buffer.byteLength(JSON.stringify(change)) > HISTORY_LIMITS.itemBytes) throw new Error("history_live_item_bytes");
++      if (event.settlement?.entryId) {
++        this.#entryLive.set(`${live.sourceId}:${live.sessionId}:${event.settlement.entryId}`, live);
++        if (this.#entryLive.size > HISTORY_LIMITS.liveEvents) {
++          this.#entryLive.delete(this.#entryLive.keys().next().value!);
++          this.#append({ kind: "native_settlement_evicted" });
++        }
++      }
++      this.#append(change);
++    } catch {
++      this.#append({ kind: "native_live_gap" });
++    }
++  }
++  #append(event: Omit<HistoryChange, "seq">): void {
++    const change = { ...event, seq: ++this.#seq };
+     this.#events.push(change);
+     this.#liveBytes += Buffer.byteLength(JSON.stringify(change));
+     while (this.#events.length > HISTORY_LIMITS.liveEvents || this.#liveBytes > HISTORY_LIMITS.liveBytes) {
+@@ -136,7 +180,13 @@ export class RpcHistoryObservation {
+     }
+   }
+   #capture(materialize = true) {
+-    const value = this.#manager.captureHistoryObservation(this.#runtime(), HISTORY_LIMITS, materialize);
++    const runtime = this.#runtime();
++    const prefixLive = nativeMessageIdentity(runtime.prefix);
++    const runningLive = runtime.messages.map(message => nativeMessageIdentity(message));
++    const value = this.#manager.captureHistoryObservation(runtime, HISTORY_LIMITS, materialize);
++    if (this.#lastNativeRevision === value.revision && this.#lastRetainedRevision !== undefined &&
++      this.#lastRetainedRevision !== value.retainedRevision) this.observe({ type: "native_untracked_rewrite" });
++    this.#lastNativeRevision = value.revision; this.#lastRetainedRevision = value.retainedRevision;
+     if (value.contentRevision !== this.#lastRevision) {
+       this.observe({ type: "native_content_changed" });
+       this.#lastRevision = value.contentRevision;
+@@ -146,8 +196,9 @@ export class RpcHistoryObservation {
+     const cut: HistoryCut = { durability: "not_attested", sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
+       ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
+       workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
++      nativeRevision: value.revision, retainedRevision: value.retainedRevision,
+       leafId: value.leafId, observationSeq: this.#seq };
+-    return { ...value, cut };
++    return { ...value, cut, prefixLive, runningLive };
+   }
+   open(scope: HistoryScope): HistoryOpen {
+     const started = performance.now();
+@@ -216,14 +267,16 @@ export class RpcHistoryObservation {
+         id: partIndex === 0 ? item.id : `${item.id}:part:${partIndex}`, entryId: item.id,
+         partIndex, partCount: count, text: item.text.slice(partIndex * width, (partIndex + 1) * width) }));
+     };
+-    const encodedById = new Map(value.entries.map(entry => [entry.id, split(readableEntry(entry, active, registerContent))]));
++    const encodedById = new Map(value.entries.map(entry => [entry.id, split({ ...readableEntry(entry, active, registerContent),
++      ...(this.#entryLive.has(`${value.sourceId}:${value.sessionId}:${entry.id}`) ? { live: this.#entryLive.get(`${value.sourceId}:${value.sessionId}:${entry.id}`) } : {}) })]));
+     const tree = value.entries.flatMap(entry => encodedById.get(entry.id)!);
+     const activeRows = [...active].reverse().flatMap(id => encodedById.get(id)!);
+     const running = value.runtime.messages.flatMap((message, index) => split({
++      ...(value.runningLive[index] ? { live: { ...value.runningLive[index]!, workerId: this.#workerId } } : {}),
+       id: `running-${index}`, parentId: null, active: false, kind: "running", ...readableMessage(message, registerContent),
+     }));
+     const prefixItem: HistoryItem | null = value.runtime.prefix === null ? null : { id: "running-prefix", parentId: null,
+-      kind: "running_prefix", active: false, ...readableMessage(value.runtime.prefix, registerContent) };
++      kind: "running_prefix", active: false, ...(value.prefixLive ? { live: { ...value.prefixLive, workerId: this.#workerId } } : {}), ...readableMessage(value.runtime.prefix, registerContent) };
+     if (prefixItem) running.push(...split(prefixItem));
+     // Active rows share exactly the tree's encoded strings. Count retained storage once.
+     const bytes = contentBytes + [...tree, ...running].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index dc60e39d35..d6b6f3cfdc 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1366,12 +1366,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	const historyObservation = new RpcHistoryObservation(session.sessionManager, () => ({
+ 		messages: session.messages, prefix: session.agent.state.streamMessage,
+-		context: { systemPrompt: session.agent.state.systemPrompt, model: session.model,
+-			thinkingLevel: session.thinkingLevel, tools: session.agent.state.tools.map(tool => ({
+-				name: tool.name, description: tool.description, parameters: tool.parameters,
+-			})) },
++		context: session.getHistoryRuntimeContext(),
+ 		streaming: session.isStreaming, compacting: session.isCompacting,
+ 	}));
++	session.subscribeMessageObservations(observation => historyObservation.observeMessage(observation));
+ 	const sessionEvents = new RpcSessionEventForwarder(output);
+ 
+ 	const pendingExtensionRequests = new RpcPendingExtensionRequests();
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-session-events.ts b/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
+index 71fbce6372..86a728e960 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
+@@ -1,3 +1,4 @@
++import { nativeMessageIdentity } from "../../session/live-message-observation";
+ /**
+  * Session-event forwarding for RPC mode: stamps message lifecycle frames with a
+  * `messageId` and applies the host's `set_event_filter` selection.
+@@ -115,20 +116,22 @@ export class RpcSessionEventForwarder {
+ 	#stamp(event: AgentSessionEvent): RpcAgentSessionEventFrame {
+ 		switch (event.type) {
+ 			case "message_start": {
+-				const messageId = this.#mintMessageId();
++				const messageId = nativeMessageIdentity(event.message)?.messageId ?? this.#mintMessageId();
+ 				this.#openMessageIds.push(messageId);
+ 				return { ...event, messageId };
+ 			}
+ 			case "message_update": {
+-				let messageId = this.#openMessageIds.at(-1);
++				let messageId = nativeMessageIdentity(event.message)?.messageId ?? this.#openMessageIds.at(-1);
+ 				if (messageId === undefined) {
+ 					messageId = this.#mintMessageId();
+ 					this.#openMessageIds.push(messageId);
+ 				}
+ 				return { ...event, messageId };
+ 			}
+-			case "message_end":
+-				return { ...event, messageId: this.#openMessageIds.pop() ?? this.#mintMessageId() };
++			case "message_end": {
++				const opened = this.#openMessageIds.pop();
++				return { ...event, messageId: nativeMessageIdentity(event.message)?.messageId ?? opened ?? this.#mintMessageId() };
++			}
+ 			case "agent_end":
+ 				// A run never leaves a message open; drop anything a dropped frame stranded.
+ 				this.#openMessageIds.length = 0;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
+index 8376a53b86..a2c98db89e 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/history.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
+@@ -5,11 +5,15 @@ export const historyDefs = {
+     origin: "'retained_native'", originalAssociation: "'unproven'" },
+   HistoryContentPage: { snapshot: "string", cut: "HistoryCut", expiresAt: "number.integer", content: "HistoryContent",
+     encoding: "'base64'", partIndex: "number.integer", data: "string", "nextCursor?": "string" },
+-  HistoryItem: { id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
++  HistoryLiveIdentity: { workerId: "string", messageId: "string", sourceId: "string", sessionId: "string",
++    contextId: "string", branchLeafId: "string | null", "toolOwnerMessageId?": "string" },
++  HistorySettlement: { status: "'observed' | 'no_entry' | 'failed'", durability: "'not_attested'", "entryId?": "string", "reason?": "string" },
++  HistoryNativeChange: { kind: "string", revision: "number.integer", contextRevision: "number.integer", sessionId: "string", leafId: "string | null", "entryId?": "string" },
++  HistoryItem: { "provider?": "string", "model?": "string", "live?": "HistoryLiveIdentity", id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
+     "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
+   HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
+   HistoryCut: { durability: "'not_attested'", sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
+-    contentRevision: "string", leafId: "string | null", observationSeq: "number.integer" },
++    contentRevision: "string", nativeRevision: "number.integer", retainedRevision: "string", leafId: "string | null", observationSeq: "number.integer" },
+   HistoryLimits: { entries: "number.integer", runningMessages: "number.integer", scanItems: "number.integer", bytes: "number.integer", nativeItemBytes: "number.integer", itemBytes: "number.integer", ms: "number.integer",
+     snapshotBytes: "number.integer", cacheBytes: "number.integer", snapshots: "number.integer", pageItems: "number.integer",
+     pageBytes: "number.integer", responseBytes: "number.integer", ttlMs: "number.integer", contentItems: "number.integer", contentPageBytes: "number.integer", liveEvents: "number.integer",
+@@ -20,7 +24,7 @@ export const historyDefs = {
+     scannedBytes: "number.integer", scanMs: "number", snapshotMs: "number", limits: "HistoryLimits" },
+   HistoryPage: { snapshot: "string", scope: "HistoryScope", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
+     complete: "true", "nextCursor?": "string" },
+-  HistoryChange: { seq: "number.integer", kind: "string" },
++  HistoryChange: { seq: "number.integer", kind: "string", "source?": "HistoryNativeChange", "live?": "HistoryLiveIdentity", "item?": "HistoryItem", "settlement?": "HistorySettlement" },
+   HistoryPoll: { cut: "HistoryCut", after: "number.integer", through: "number.integer", events: "HistoryChange[]", hasMore: "boolean" },
+ };
+ export const historyCommands = [
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index 4446c01159..1e6365da80 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -1,3 +1,5 @@
++import { NativeMessageObservations, nativeMessageEntry } from "./live-message-observation";
++import type { NativeMessageObservation, NativeMessageSettlement } from "./live-message-observation";
+ /**
+  * AgentSession - Core abstraction for agent lifecycle and session management.
+  *
+@@ -4238,11 +4240,30 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		}
+ 	};
+ 
++	readonly #messageObservations = new NativeMessageObservations(() => this.sessionManager.getHistoryMessageContext(this.getHistoryRuntimeContext()));
++	/** Native-only context observation; never exposed as a raw RPC payload. */
++	getHistoryRuntimeContext() {
++		return { systemPrompt: this.agent.state.systemPrompt, model: this.model, thinkingLevel: this.thinkingLevel,
++			tools: this.agent.state.tools.map(tool => ({ name: tool.name, description: tool.description, parameters: tool.parameters })) };
++	}
++	/** Observe exact native lifecycle and persistence decisions; observed is never a durable receipt. */
++	subscribeMessageObservations(listener: (observation: NativeMessageObservation) => void): () => void {
++		return this.#messageObservations.subscribe(listener);
++	}
++
+ 	/** Commit messages in emission order without waiting for notification listeners. */
+ 	#queueMessageEndPersistence(message: AgentMessage, promptGeneration: number): Promise<void> {
+ 		const key = sessionMessagePersistenceKey(message);
+ 		const pending = this.#messageEndPersistenceTail
+-			.then(() => this.#persistMessageEnd(message, promptGeneration))
++			.then(() => {
++				try {
++					const settlement = this.#persistMessageEnd(message, promptGeneration);
++					this.#messageObservations.settle(message, settlement);
++				} catch (error) {
++					this.#messageObservations.settle(message, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
++					throw error;
++				}
++			})
+ 			.finally(() => {
+ 				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
+ 					this.#pendingMessageEndPersistence.delete(key);
+@@ -4374,7 +4395,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		return entryId;
+ 	}
+ 
+-	#persistSessionMessageIfMissing(message: AgentMessage): void {
++	#persistSessionMessageIfMissing(message: AgentMessage): NativeMessageSettlement {
++		const noEntry = (reason: string): NativeMessageSettlement => ({ status: "no_entry", durability: "not_attested", reason });
++		const assistantEntry = message.role === "assistant" ? (message as PersistedAssistantMessage)[kPersistedSessionEntryId] : undefined;
++		const entry = assistantEntry ? this.sessionManager.getEntry(assistantEntry) : undefined;
++		const originalId = nativeMessageEntry(message, this.sessionManager);
++		const original = originalId ? this.sessionManager.getEntry(originalId) : undefined;
++		const linked = original?.type === "message" && original.message === message ? originalId :
++			(entry?.type === "message" && entry.message === message ? assistantEntry : undefined);
++		const alreadyObserved = (): NativeMessageSettlement => linked
++			? { status: "observed", durability: "not_attested", entryId: linked }
++			: noEntry("native_deduplicated_without_link");
+ 		if (
+ 			message.role !== "user" &&
+ 			message.role !== "developer" &&
+@@ -4382,13 +4413,13 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			message.role !== "toolResult" &&
+ 			message.role !== "fileMention"
+ 		) {
+-			return;
++			return linked ? alreadyObserved() : noEntry("persisted_elsewhere_without_link");
+ 		}
+-		if (this.#sessionMessageAlreadyPersisted(message)) return;
++		if (this.#sessionMessageAlreadyPersisted(message)) return alreadyObserved();
+ 		if (message.role === "assistant") {
+ 			const assistantMsg = message as AssistantMessage;
+-			if (this.#recovery.isClassifierRefusal(assistantMsg)) return;
+-			if (isEmptyErrorTurn(assistantMsg)) return;
++			if (this.#recovery.isClassifierRefusal(assistantMsg)) return noEntry("classifier_refusal");
++			if (isEmptyErrorTurn(assistantMsg)) return noEntry("empty_error");
+ 			if (assistantMsg.stopReason !== "aborted" && assistantMsg.stopReason !== "error" && assistantMsg.usage) {
+ 				assistantMsg.contextSnapshot = {
+ 					promptTokens: calculatePromptTokens(assistantMsg.usage),
+@@ -4402,8 +4433,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			semanticToolResult(message.toolName, message)?.toolName === "rewind" &&
+ 			this.#rewoundToolResultIds.delete(message.toolCallId);
+ 		if (!skipPersistedRewindResult) {
+-			this.#appendSessionMessage(message);
++			return { status: "observed", durability: "not_attested", entryId: this.#appendSessionMessage(message) };
+ 		}
++		return noEntry("rewind_result_consumed");
+ 	}
+ 
+ 	/**
+@@ -4466,7 +4498,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		};
+ 	}
+ 
+-	#persistMessageEnd(message: AgentMessage, promptGeneration: number): void {
++	#persistMessageEnd(message: AgentMessage, promptGeneration: number): NativeMessageSettlement {
+ 		// Session transitions may replace the transcript before a queued commit
+ 		// runs. Never append the previous conversation to the replacement session.
+ 		if (this.#promptGeneration !== promptGeneration) {
+@@ -4475,13 +4507,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			if (message.role === "custom" && message.customType === "ttsr-injection") {
+ 				this.#ttsr.releaseDeferredReservationFromDetails(message.details);
+ 			}
+-			return;
++			return { status: "no_entry", durability: "not_attested", reason: "native_context_replaced" };
+ 		}
+ 		if (message.role === "hookMessage" || message.role === "custom") {
++			let entryId: string | undefined;
+ 			// One-run instructions must not return from persisted history: prewalk
+ 			// nudges are consumed once, and Vibe context is rebuilt only while active.
+ 			if (!isPrewalkPlanNudge(message) && message.customType !== VIBE_MODE_CONTEXT_MESSAGE_TYPE) {
+-				this.sessionManager.appendCustomMessageEntry(
++				entryId = this.sessionManager.appendCustomMessageEntry(
+ 					message.customType,
+ 					message.content,
+ 					message.display,
+@@ -4496,9 +4529,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			if (message.role === "custom" && message.customType === "ttsr-injection") {
+ 				this.#ttsr.markInjectedFromDetails(message.details);
+ 			}
+-			return;
++			return entryId ? { status: "observed", durability: "not_attested", entryId }
++				: { status: "no_entry", durability: "not_attested", reason: "one_run_context" };
+ 		}
+-		this.#persistSessionMessageIfMissing(message);
++		return this.#persistSessionMessageIfMissing(message);
+ 	}
+ 
+ 	/**
+@@ -4642,6 +4676,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
++		this.#messageObservations.observe(event);
+ 		const eventPromptGeneration = this.#promptGeneration;
+ 		if (event.type === "agent_end" && this.#activeAgentContinue) {
+ 			this.#activeAgentContinue.turnEnded = true;
+@@ -11081,17 +11116,31 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			return outcome.sessionClaimed;
+ 		}
+ 
++		const observeIdle = normalizedAppMessage.display === true;
++		if (observeIdle) this.#messageObservations.observe({ type: "message_start", message: normalizedAppMessage });
+ 		this.agent.appendMessage(normalizedAppMessage);
+-		this.sessionManager.appendCustomMessageEntry(
+-			normalizedAppMessage.customType,
+-			normalizedAppMessage.content,
+-			normalizedAppMessage.display,
+-			normalizedAppMessage.details,
+-			normalizedAppMessage.attribution,
+-			// Its own timestamp, as `#persistMessageEnd` keeps one: a view rebuilt while its events are
+-			// queued matches the entry to them by it.
+-			normalizedAppMessage.timestamp,
+-		);
++		try {	
++			const entryId = this.sessionManager.appendCustomMessageEntry(
++				normalizedAppMessage.customType,
++				normalizedAppMessage.content,
++				normalizedAppMessage.display,
++				normalizedAppMessage.details,
++				normalizedAppMessage.attribution,
++				// Its own timestamp, as `#persistMessageEnd` keeps one: a view rebuilt while its events are
++				// queued retains the native message timestamp (not an identity join).
++				normalizedAppMessage.timestamp,
++			);
++			if (observeIdle) {
++				this.#messageObservations.observe({ type: "message_end", message: normalizedAppMessage });
++				this.#messageObservations.settle(normalizedAppMessage, { status: "observed", durability: "not_attested", entryId });
++			}
++		} catch (error) {
++			if (observeIdle) {
++				this.#messageObservations.observe({ type: "message_end", message: normalizedAppMessage });
++				this.#messageObservations.settle(normalizedAppMessage, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
++			}
++			throw error;
++		}
+ 		if (normalizedAppMessage.display === true) {
+ 			// Idle display append with no turn: notify session listeners so the interactive
+ 			// transcript paints it now instead of on the next rebuild. The entry is persisted
+diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
+new file mode 100644
+index 0000000000..9229c9f947
+--- /dev/null
++++ b/packages/coding-agent/src/session/live-message-observation.ts
+@@ -0,0 +1,81 @@
++import * as logger from "@oh-my-pi/pi-utils/logger";
++/** Exact in-process lifecycle/entry associations. Symbols never become persisted or wire identities. */
++import type { AgentEvent, AgentMessage } from "@oh-my-pi/pi-agent-core";
++
++export interface NativeMessageIdentity {
++  messageId: string; sourceId: string; sessionId: string; contextId: string; branchLeafId: string | null; toolOwnerMessageId?: string;
++}
++export interface NativeMessageSettlement {
++  status: "observed" | "no_entry" | "failed";
++  durability: "not_attested";
++  entryId?: string;
++  reason?: string;
++}
++export interface NativeMessageObservation {
++  kind: "message_start" | "message_update" | "message_final" | "message_settlement";
++  live: NativeMessageIdentity;
++  message: AgentMessage;
++  settlement?: NativeMessageSettlement;
++}
++const kLive = Symbol("nativeLiveMessage");
++const entries = new WeakMap<object, { owner: object; entryId: string }>();
++type ObservedMessage = AgentMessage & { [kLive]?: NativeMessageIdentity };
++/** Only a native append call with the original object may establish this association. */
++export function associateMessageEntry(message: object, owner: object, entryId: string): void { entries.set(message, { owner, entryId }); }
++export function nativeMessageEntry(message: object, owner: object): string | undefined {
++  const value = entries.get(message); return value?.owner === owner ? value.entryId : undefined;
++}
++export function nativeMessageIdentity(message: unknown): NativeMessageIdentity | undefined {
++  return typeof message === "object" && message !== null ? (message as ObservedMessage)[kLive] : undefined;
++}
++
++/** Stamps the native lifecycle before asynchronous display listeners can delay or reorder it. */
++export class NativeMessageObservations {
++  #count = 0;
++  readonly #open: NativeMessageIdentity[] = [];
++  readonly #toolOwners = new Map<string, string>();
++  readonly #listeners = new Set<(observation: NativeMessageObservation) => void>();
++  constructor(readonly context: () => Omit<NativeMessageIdentity, "messageId">) {}
++  subscribe(listener: (observation: NativeMessageObservation) => void): () => void {
++    this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
++  }
++  observe(event: AgentEvent): void {
++    try { this.#observe(event); } catch { logger.warn("Native message observation unavailable"); }
++  }
++  #observe(event: AgentEvent): void {
++    if (event.type === "agent_end") { this.#open.length = 0; return; }
++    if (event.type !== "message_start" && event.type !== "message_update" && event.type !== "message_end") return;
++    let live = event.type === "message_start" ? undefined : this.#open.at(-1);
++    if (!live) {
++      live = { ...this.context(), messageId: `msg-${++this.#count}` };
++      if (event.message.role === "toolResult") live.toolOwnerMessageId = this.#toolOwners.get(
++        JSON.stringify([live.sourceId, live.sessionId, live.contextId, event.message.toolCallId]));
++      this.#open.push(live);
++    }
++    if (event.type === "message_end") {
++      this.#open.pop();
++      if (event.message.role === "assistant") for (const block of event.message.content) {
++        if (block.type !== "toolCall") continue;
++        const key = JSON.stringify([live.sourceId, live.sessionId, live.contextId, block.id]);
++        // Reused unresolved IDs are ambiguous; absence is safer than assigning a late result to a new call.
++        this.#toolOwners.set(key, this.#toolOwners.has(key) ? "" : live.messageId);
++        if (this.#toolOwners.size > 4096) this.#toolOwners.delete(this.#toolOwners.keys().next().value!);
++      }
++    }
++    if (event.type === "message_end" && event.message.role === "toolResult") {
++      this.#toolOwners.delete(JSON.stringify([live.sourceId, live.sessionId, live.contextId, event.message.toolCallId]));
++    }
++    if (live.toolOwnerMessageId === "") delete live.toolOwnerMessageId;
++    (event.message as ObservedMessage)[kLive] = live;
++    this.#emit({ kind: event.type === "message_end" ? "message_final" : event.type, live, message: event.message });
++  }
++  settle(message: AgentMessage, settlement: NativeMessageSettlement): void {
++    const live = nativeMessageIdentity(message);
++    if (live) this.#emit({ kind: "message_settlement", live, message, settlement });
++  }
++  #emit(observation: NativeMessageObservation): void {
++    for (const listener of this.#listeners) {
++      try { listener(observation); } catch { logger.warn("Native message observer failed"); }
++    }
++  }
++}
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index b8a0b167a3..155b57f360 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -1,3 +1,4 @@
++import { associateMessageEntry } from "./live-message-observation";
+ export interface NativeHistoryChange {
+   kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
+ }
+@@ -3623,6 +3624,7 @@ export class SessionManager {
+ 	): string {
+ 		const entry: SessionMessageEntry = { type: "message", ...this.#freshEntryFields(), message };
+ 		this.#recordEntry(entry);
++		associateMessageEntry(message, this, entry.id);
+ 		return entry.id;
+ 	}
+ 
+@@ -3662,6 +3664,7 @@ export class SessionManager {
+ 		// the active branch, as the in-memory contract requires.
+ 		this.#index.detachBranchView();
+ 		this.#recordEntry(entry);
++		associateMessageEntry(message, this, entry.id);
+ 		return entry.id;
+ 	}
+ 
+@@ -4076,6 +4079,16 @@ export class SessionManager {
+ 		this.#historyChanged("source_binding", true);
+ 	}
+ 
++	/** Native live origins use the same source/context identity as coherent observation cuts. */
++	getHistoryMessageContext(context?: unknown) {
++		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
++			.update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
++		const contextContentRevision = Bun.SHA256.hash(stringifyJson(context ?? null)!, "hex");
++		const contextId = Bun.SHA256.hash(JSON.stringify({ source: sourceId,
++			contextRevision: this.#historyContextRevision, contextContentRevision }), "hex");
++		return { sourceId, sessionId: this.#sessionId, contextId, branchLeafId: this.#index.leafId() };
++	}
++
+ 	/** Independent native observer; never replaces the collaboration append callback. */
+ 	subscribeHistoryChanges(listener: (change: NativeHistoryChange) => void): () => void {
+ 		this.#historyListeners.add(listener);
+@@ -4121,6 +4134,7 @@ export class SessionManager {
+ 		const identity = copy({ sourceId, sessionId: this.#sessionId, leafId: this.#index.leafId(),
+ 			sourceBinding, revision: this.#historyRevision, contextRevision: this.#historyContextRevision, header: this.#header });
+ 		const entries = this.#entries.map(entry => copy(entry));
++		const retainedRevision = hash.copy().digest("hex");
+ 		// Bound each running message independently, rather than treating the full list as one item.
+ 		const running = runtime;
+ 		if (running.messages.length > limits.runningMessages || this.#entries.length + running.messages.length + 3 > limits.scanItems) throw new Error("history_scan_entries");
+@@ -4130,7 +4144,7 @@ export class SessionManager {
+ 		const state = copy({ prefix: running.prefix ?? null, streaming: running.streaming, compacting: running.compacting });
+ 		if (observedRevision !== this.#historyRevision) throw new Error("history_changed_during_capture");
+ 		if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
+-		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, contextContentRevision, entries,
++		return { sourceId, sourceBinding, retainedRevision, revision: identity.revision, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, contextContentRevision, entries,
+ 			runtime: { messages, context, ...state }, contentRevision: hash.digest("hex"), scannedBytes,
+ 			scanMs: performance.now() - started };
+ 	}
