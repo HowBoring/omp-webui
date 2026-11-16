@@ -127,3 +127,9 @@ data/
 # Local environment files; keep the example template
 .env.*
 !.env.example
+
+# Local projection acceptance process state and raw execution captures.
+/experiments/projection-seam/**/server.json
+/experiments/projection-seam/**/calls.json
+/experiments/projection-seam/**/*.strace*
+/experiments/projection-seam/evidence/checks/

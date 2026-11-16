@@ -1,0 +1,3926 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "scope": "Synthetic public Client/Remote/provider + real Gateway Agent invocation; native worker pending",
+  "base": "http://127.0.0.1:42847",
+  "checks": [
+    "two tabs share synthetic Session identity; independent drafts and multiple holders retain exact execution binding",
+    "negative controls: physical follow restart and Connection ready keep the same generation and original rows",
+    "negative control: surface replacement leaves original human rows",
+    "old page held across invalidation cannot populate the successor journal",
+    "lower cut rebuild reaches both tabs; old branch withdrawn; real Gateway invocation and absolute fixture deadline preserved",
+    "retired assistant frames are rejected before revision checks; a reused attempt ID in the new generation stays independently dense",
+    "same shape rewritten content gets a new generation; delayed old control cannot regress current rows",
+    "the original real Gateway Agent invocation remains answerable after rebuilding and settles all tabs",
+    "baseline failure keeps old branch withdrawn; explicit retry uses the same new authority",
+    "both tabs preserve in-memory text, repeated ordered originals and stable keys; fresh receipts do not renew retention",
+    "double invalidation retires a pending opening; late old opening cannot publish",
+    "delayed old provider preparation loses publication authority; newer in-memory edit survives the next generation",
+    "an in-flight unresolved submission remains protected in memory and provider storage across rebuild, with one actual prompt and no automatic replay"
+  ],
+  "pageErrors": [],
+  "consoleErrors": [],
+  "chromium": "156.0.8078.79",
+  "gateway": {
+    "requests": [
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "b664de25-0133-4c2b-9fed-0a36477ce86a",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "5cc3d48a-25fc-422f-a710-6c9c314e5db2",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "3312fb12-ee33-42d4-ac95-ef06078a09bf",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "ea14bcdf-bdc3-45c0-87ad-fec1bd66e2e4",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "a5f323fb-603a-43af-ba48-1cb95ed4d82a",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "d8e58820-abfb-4915-bf3d-45e78b26534f",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "0a5859ef-f9d0-45dd-be5c-e35796d40993",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "69243796-a266-40a7-afe8-c8702a15d317",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "9c88cd5c-5c9e-4cd1-b986-16728672f5e1",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "368ebe20-1059-4172-9178-b8024512338d",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/list",
+        "payload": {
+          "args": {
+            "_request": {}
+          }
+        },
+        "rpcId": "e7d1c304-c19a-4824-9995-be0e17cb8d2d",
+        "result": {
+          "ok": true,
+          "value": {
+            "items": [
+              {
+                "sessionId": "fixture-existing",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              },
+              {
+                "sessionId": "fixture-second",
+                "updatedAt": 1767225600000,
+                "running": false,
+                "blank": false,
+                "cwd": "/fixture/project",
+                "agentAvailable": true
+              }
+            ]
+          }
+        }
+      },
+      {
+        "endpoint": "settings/describe",
+        "payload": {
+          "args": {}
+        },
+        "rpcId": "4de810da-76ef-46a8-a19c-5ff25444c75b",
+        "result": {
+          "ok": true,
+          "value": {
+            "namespaces": [],
+            "writable": false,
+            "hasDocument": false
+          }
+        }
+      },
+      {
+        "endpoint": "session/page",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "throughSeq": 6,
+              "beforeSeq": 5,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              },
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              }
+            }
+          }
+        },
+        "rpcId": "7fa66e0e-96b0-413a-9f8e-9428d2336e88"
+      },
+      {
+        "endpoint": "$events/result",
+        "payload": {
+          "args": {
+            "clientId": "6b8e8883-284b-45a4-9340-2c6ec89a1c5e",
+            "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+            "outcome": {
+              "kind": "result",
+              "value": "allowed-once"
+            }
+          }
+        },
+        "rpcId": "9c42109c-0dc7-4ac7-8bbc-41c66d14d258",
+        "result": {
+          "ok": true
+        }
+      },
+      {
+        "endpoint": "session/prompt",
+        "payload": {
+          "args": {
+            "request": {
+              "requestId": "2669619c-e942-4315-95ed-72e8637526ec",
+              "sessionId": "fixture-existing",
+              "mode": "queue",
+              "content": [
+                {
+                  "type": "file",
+                  "receiptId": "fixture-receipt-22"
+                },
+                {
+                  "type": "file",
+                  "receiptId": "fixture-receipt-23"
+                },
+                {
+                  "type": "file",
+                  "receiptId": "fixture-receipt-24"
+                },
+                {
+                  "type": "text",
+                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb"
+                }
+              ],
+              "clientTimeZone": "Asia/Singapore",
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-8"
+              }
+            }
+          }
+        },
+        "rpcId": "e4dab3c4-6cdf-4b4a-8e18-6ee2bec21bf4",
+        "result": {
+          "ok": true,
+          "value": {
+            "accepted": true
+          }
+        }
+      }
+    ],
+    "frames": [
+      {
+        "type": "open",
+        "streamId": "6d565b9b-1f85-4dc7-a1a2-1202eeaab7fa",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "6d565b9b-1f85-4dc7-a1a2-1202eeaab7fa",
+        "value": {
+          "type": "baseline",
+          "owner": true
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "8d60c683-89ea-4236-ac29-9e36d12a914e",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "8d60c683-89ea-4236-ac29-9e36d12a914e",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "items": [
+              {
+                "workspaceId": "fixture-ws",
+                "path": "/fixture/project",
+                "title": "Fixture project",
+                "sessionIds": [
+                  "fixture-existing",
+                  "fixture-second"
+                ],
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            ],
+            "archivedSessionIds": [],
+            "pinnedSessionIds": []
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d133e973-2719-43c0-be83-69aab11880c6",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "d133e973-2719-43c0-be83-69aab11880c6",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "4a19043e-6c4a-4316-a739-918cf27dc674",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "4a19043e-6c4a-4316-a739-918cf27dc674",
+        "value": {
+          "type": "ready",
+          "clientId": "05331083-32d5-4224-93a0-78cb82ddb99c",
+          "host": {
+            "home": "/synthetic-projection-only"
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "a7a8efd2-520f-4846-a72f-fc98c9db0196",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "a7a8efd2-520f-4846-a72f-fc98c9db0196",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "3f2e39b7-e7eb-4620-aa51-7aa2d4a186da",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "3f2e39b7-e7eb-4620-aa51-7aa2d4a186da",
+        "value": {
+          "type": "baseline",
+          "owner": true
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "b04f1de2-c3e4-4d65-a8c8-e11a9245a4a1",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "b04f1de2-c3e4-4d65-a8c8-e11a9245a4a1",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "items": [
+              {
+                "workspaceId": "fixture-ws",
+                "path": "/fixture/project",
+                "title": "Fixture project",
+                "sessionIds": [
+                  "fixture-existing",
+                  "fixture-second"
+                ],
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            ],
+            "archivedSessionIds": [],
+            "pinnedSessionIds": []
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d7425b30-d333-4041-b90e-772f1d5be326",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "d7425b30-d333-4041-b90e-772f1d5be326",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "c3ae8c07-354e-4905-a2c9-4c93f3e51e00",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "c3ae8c07-354e-4905-a2c9-4c93f3e51e00",
+        "value": {
+          "type": "ready",
+          "clientId": "a18fd302-b3e4-4346-8478-4befe4b65340",
+          "host": {
+            "home": "/synthetic-projection-only"
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "0c2cd932-126a-4784-9e87-3540725ac170",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "0c2cd932-126a-4784-9e87-3540725ac170",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "9e380949-c4a7-41b6-8206-82d0a0b1949c",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "9e380949-c4a7-41b6-8206-82d0a0b1949c",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "02256a98-e1db-4d77-933b-dd00c54c1aad",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "02256a98-e1db-4d77-933b-dd00c54c1aad",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "e9f3c566-670d-46ac-a717-d7f3379635d2",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "e9f3c566-670d-46ac-a717-d7f3379635d2",
+        "value": {
+          "type": "baseline",
+          "owner": true
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "538bf792-f611-4ad7-a874-49e20bc4c588",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "538bf792-f611-4ad7-a874-49e20bc4c588",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "items": [
+              {
+                "workspaceId": "fixture-ws",
+                "path": "/fixture/project",
+                "title": "Fixture project",
+                "sessionIds": [
+                  "fixture-existing",
+                  "fixture-second"
+                ],
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            ],
+            "archivedSessionIds": [],
+            "pinnedSessionIds": []
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "value": {
+          "type": "ready",
+          "clientId": "acfe019f-54b7-4e96-9ede-e82e70e0bc9f",
+          "host": {
+            "home": "/synthetic-projection-only"
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "444322cc-c4ba-48d8-a963-ba4bc6e9d87c"
+      },
+      {
+        "type": "open",
+        "streamId": "79add5ca-5b14-4ffd-afac-f4717f041885",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "79add5ca-5b14-4ffd-afac-f4717f041885",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d1aad77b-83b4-4632-8190-b51eafc8b4df",
+        "endpoint": "remoteAccess/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "d1aad77b-83b4-4632-8190-b51eafc8b4df",
+        "value": {
+          "type": "baseline",
+          "owner": true
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "fa0ef69e-9dde-4f3e-bb17-e28853ff0565",
+        "endpoint": "workspace/follow",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "fa0ef69e-9dde-4f3e-bb17-e28853ff0565",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "items": [
+              {
+                "workspaceId": "fixture-ws",
+                "path": "/fixture/project",
+                "title": "Fixture project",
+                "sessionIds": [
+                  "fixture-existing",
+                  "fixture-second"
+                ],
+                "createdAt": "2026-01-01T00:00:00.000Z",
+                "updatedAt": "2026-01-01T00:00:00.000Z"
+              }
+            ],
+            "archivedSessionIds": [],
+            "pinnedSessionIds": []
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-1"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-1"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 6,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 5,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 6,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "OFF BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": true,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-1"
+            },
+            "asOfSeq": 6,
+            "values": {
+              "title": "OFF BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
+        "endpoint": "$events",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
+        "value": {
+          "type": "ready",
+          "clientId": "6b8e8883-284b-45a4-9340-2c6ec89a1c5e",
+          "host": {
+            "home": "/synthetic-projection-only"
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "1841d92e-f956-4a16-b8d7-a15ed140ce34"
+      },
+      {
+        "type": "open",
+        "streamId": "532d36bb-b303-44e5-be31-894706f170b0",
+        "endpoint": "session/control",
+        "payload": {
+          "args": {}
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "532d36bb-b303-44e5-be31-894706f170b0",
+        "value": {
+          "type": "baseline",
+          "value": {
+            "projections": {
+              "fixture-existing": {
+                "projection": {
+                  "source": "verified-synthetic-source-session",
+                  "generation": "projection-1"
+                },
+                "asOfSeq": 6,
+                "values": {
+                  "title": "OFF BRANCH ORIGINAL"
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "value": {
+          "type": "waterfall",
+          "event": "approval/request",
+          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+          "agentId": "fixture-existing",
+          "request": {
+            "toolName": "synthetic projection fixture",
+            "reason": "Keep this pending across projection rebuild"
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "aefcee4d-8990-4a6e-9114-8e94754e0418",
+        "value": {
+          "type": "waterfall",
+          "event": "approval/request",
+          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac",
+          "agentId": "fixture-existing",
+          "request": {
+            "toolName": "synthetic projection fixture",
+            "reason": "Keep this pending across projection rebuild"
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-2"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-2"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-2"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "53d3195b-e934-477a-b488-f6bcd3f23861"
+      },
+      {
+        "type": "open",
+        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-2"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-2"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-2"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "2bdb3372-4b68-4c38-a09c-6db9523c3784"
+      },
+      {
+        "type": "open",
+        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-3"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-3"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "REWRITTEN SAME SHAPE ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-3"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "REWRITTEN SAME SHAPE ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "d00061d4-2874-4f5b-a8ed-8e8110fed218"
+      },
+      {
+        "type": "open",
+        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-3"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-3"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "REWRITTEN SAME SHAPE ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-3"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "REWRITTEN SAME SHAPE ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "ce20e6b5-e0a6-4c4f-b88d-1976beca6d2f"
+      },
+      {
+        "direction": "server",
+        "streamId": "476483ba-bd3b-4f12-9ed4-105fbea700e6",
+        "value": {
+          "type": "cancel",
+          "eventId": "cfab32ac-533e-4316-9d1e-d336eafcb7ac"
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "7abb02c6-7855-454d-9b07-bd6f4eeb371b",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-4"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "bf34933e-272e-4c53-8c56-398474294dfe"
+      },
+      {
+        "type": "open",
+        "streamId": "013381db-e480-4e4d-aacf-a8086a4041fa",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-4"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "b69a41bc-4aee-49f7-972e-bb4230d5ef17"
+      },
+      {
+        "type": "open",
+        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-4"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-4"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "FAILED BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-4"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "FAILED BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-4"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-4"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "FAILED BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-4"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "FAILED BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-5"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-5"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-5"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "d4249ec8-e729-466f-971b-fef6dfa81162"
+      },
+      {
+        "type": "open",
+        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-5"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-5"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-5"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "fb01df40-9e6a-4dd1-96b5-ab7f76488df1"
+      },
+      {
+        "type": "open",
+        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-6"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "5e2534a8-603b-4891-8252-3dd5dc2e2a93"
+      },
+      {
+        "type": "open",
+        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-6"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "bacd4c57-13e9-4215-86d0-54c253c516f6"
+      },
+      {
+        "type": "open",
+        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-7"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc"
+      },
+      {
+        "type": "open",
+        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-7"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529"
+      },
+      {
+        "direction": "server",
+        "streamId": "e424bbbf-7287-43cf-bffa-35dfd1ce0afc",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-6"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-6"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "7d47643f-4870-492a-9223-d74c15f2c529",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-6"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-6"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-7"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "REWRITTEN SAME SHAPE ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-7"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "REWRITTEN SAME SHAPE ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-7"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "REWRITTEN SAME SHAPE ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-7"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "REWRITTEN SAME SHAPE ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "open",
+        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-8"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-8"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-8"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "ad8983be-c872-4288-bc88-bd21f2828b74"
+      },
+      {
+        "type": "open",
+        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-8"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-8"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-8"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "5167ca94-8185-42ca-bb77-9085d3fe53fa"
+      },
+      {
+        "type": "open",
+        "streamId": "6850a9ae-3411-4ef9-9b32-d7b69aa5c623",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-9"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "6850a9ae-3411-4ef9-9b32-d7b69aa5c623",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-9"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-9"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "467472bd-5ecf-4c81-8e17-a96baa2d6527"
+      },
+      {
+        "type": "open",
+        "streamId": "904c0c8c-d026-4d2e-9dd0-59704c20635d",
+        "endpoint": "session/follow",
+        "payload": {
+          "args": {
+            "request": {
+              "address": {
+                "kind": "session",
+                "sessionId": "fixture-existing"
+              },
+              "activate": true,
+              "assistantStream": true,
+              "projectionRebuild": true,
+              "projection": {
+                "source": "verified-synthetic-source-session",
+                "generation": "projection-9"
+              },
+              "maxMessages": 500,
+              "turnWindow": {
+                "minMessages": 50,
+                "minTurns": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "direction": "server",
+        "streamId": "904c0c8c-d026-4d2e-9dd0-59704c20635d",
+        "value": {
+          "type": "snapshot",
+          "projection": {
+            "source": "verified-synthetic-source-session",
+            "generation": "projection-9"
+          },
+          "header": {
+            "version": 4,
+            "id": "fixture-existing",
+            "createdAt": 1767225600000,
+            "isSeeded": false
+          },
+          "cursor": 1,
+          "records": [
+            {
+              "type": "event",
+              "event": {
+                "type": "turn/start",
+                "seq": 0,
+                "time": 1700000000000,
+                "data": {
+                  "turn": 0
+                }
+              }
+            },
+            {
+              "type": "event",
+              "event": {
+                "seq": 1,
+                "time": 1700000000000,
+                "type": "user/message",
+                "surfaceOp": "append",
+                "data": {
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "NEW BRANCH ORIGINAL"
+                    }
+                  ],
+                  "source": {
+                    "kind": "user"
+                  },
+                  "role": "user",
+                  "id": "deed20e6-1a5a-4acf-a657-64c35421e3b8"
+                }
+              }
+            }
+          ],
+          "hasMore": false,
+          "projections": {
+            "projection": {
+              "source": "verified-synthetic-source-session",
+              "generation": "projection-9"
+            },
+            "asOfSeq": 1,
+            "values": {
+              "title": "NEW BRANCH ORIGINAL"
+            }
+          },
+          "assistantStream": {
+            "revision": 0
+          }
+        }
+      },
+      {
+        "type": "cancel",
+        "streamId": "0b6cd81a-0f19-4a18-8e92-f6a8fe3610b6"
+      }
+    ],
+    "uploads": [
+      {
+        "receiptId": "fixture-receipt-1",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-2",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-3",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-4",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-5",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-6",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-7",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-8",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-9",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-10",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-11",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-12",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-13",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-14",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-15",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-16",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-17",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-18",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-19",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-20",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-21",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-22",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-23",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-24",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-25",
+        "file": {
+          "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+          "name": "first.txt",
+          "bytes": 22
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-26",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      },
+      {
+        "receiptId": "fixture-receipt-27",
+        "file": {
+          "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+          "name": "second.txt",
+          "bytes": 23
+        },
+        "sessionId": "fixture-existing"
+      }
+    ],
+    "selected": [
+      "@deepseek-ai/dsh-client-modules",
+      "@deepseek-ai/dsh-api-session-controller",
+      "@deepseek-ai/dsh-api-gateway",
+      "@deepseek-ai/dsh-typert-registry",
+      "@deepseek-ai/dsh-client-connection",
+      "@deepseek-ai/dsh-client-file-upload",
+      "@deepseek-ai/dsh-api-remotes",
+      "@deepseek-ai/dsh-client-ui-renderer",
+      "@deepseek-ai/dsh-client-ui-layout",
+      "@deepseek-ai/dsh-client-locale",
+      "@deepseek-ai/dsh-client-ui-settings",
+      "@deepseek-ai/dsh-client-ui-session",
+      "@deepseek-ai/dsh-api-remote-access",
+      "@deepseek-ai/dsh-client-ui-theme",
+      "@deepseek-ai/dsh-client-shortcuts",
+      "@deepseek-ai/dsh-client-ui-chat",
+      "@deepseek-ai/dsh-api-workspace-controller",
+      "@deepseek-ai/dsh-client-ui-conversation",
+      "@deepseek-ai/dsh-client-ui-workspace",
+      "@deepseek-ai/dsh-client-ui-sidebar",
+      "@deepseek-ai/dsh-client-ui-context-menu",
+      "@deepseek-ai/dsh-client-ui-input-trigger",
+      "@deepseek-ai/dsh-client-ui-sidebar-right",
+      "@deepseek-ai/dsh-client-resources",
+      "@deepseek-ai/dsh-client-ui-file-drag",
+      "@deepseek-ai/dsh-client-ui-tool",
+      "@deepseek-ai/dsh-client-ui-approval",
+      "@deepseek-ai/dsh-client-ui-user-questions",
+      "@deepseek-ai/dsh-client-ui-attachment",
+      "@deepseek-ai/dsh-client-ui-trajectory",
+      "@omp-webui/projection-navigation",
+      "@omp-webui/projection-fixture"
+    ],
+    "creates": 0,
+    "projection": {
+      "source": "verified-synthetic-source-session",
+      "generation": "projection-9"
+    },
+    "interaction": {
+      "phase": "answered",
+      "deadline": 1794840851389,
+      "outcome": {
+        "kind": "result",
+        "value": "allowed-once"
+      }
+    },
+    "pendingGateway": []
+  },
+  "states": [
+    {
+      "ready": true,
+      "id": "fixture-existing",
+      "projection": {
+        "phase": "ready",
+        "binding": {
+          "source": "verified-synthetic-source-session",
+          "generation": "projection-9"
+        },
+        "aborted": false
+      },
+      "semantic": {
+        "scope": {
+          "tabOwner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+          "hostContext": "persistent-projection-fixture",
+          "sourceContext": "verified-synthetic-source-session",
+          "nativeSessionId": "fixture-existing",
+          "projectionGeneration": "projection-9",
+          "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]"
+        },
+        "revision": 13,
+        "phase": "sending",
+        "draft": {
+          "text": "",
+          "references": []
+        },
+        "originals": [
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-a",
+            "name": "first.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          }
+        ],
+        "readiness": [
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          },
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          },
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          }
+        ],
+        "unresolved": {
+          "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+          "ownsDraft": true,
+          "draft": {
+            "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+            "references": []
+          },
+          "originals": [
+            {
+              "id": "original-b",
+              "name": "second.txt",
+              "mediaType": "text/plain"
+            },
+            {
+              "id": "original-a",
+              "name": "first.txt",
+              "mediaType": "text/plain"
+            },
+            {
+              "id": "original-b",
+              "name": "second.txt",
+              "mediaType": "text/plain"
+            }
+          ]
+        }
+      },
+      "saved": {
+        "records": {
+          "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
+            "record": {
+              "draft": {
+                "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                "references": []
+              },
+              "originals": [
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-a",
+                  "name": "first.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                }
+              ],
+              "unresolved": {
+                "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+                "ownsDraft": true,
+                "draft": {
+                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                  "references": []
+                },
+                "originals": [
+                  {
+                    "id": "original-b",
+                    "name": "second.txt",
+                    "mediaType": "text/plain"
+                  },
+                  {
+                    "id": "original-a",
+                    "name": "first.txt",
+                    "mediaType": "text/plain"
+                  },
+                  {
+                    "id": "original-b",
+                    "name": "second.txt",
+                    "mediaType": "text/plain"
+                  }
+                ]
+              }
+            },
+            "editedAt": 1794840744059
+          }
+        },
+        "owner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+        "dispatches": {
+          "c4e0c340-d4ae-4a91-9863-3b4f69469e31": {
+            "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]",
+            "requestId": "2669619c-e942-4315-95ed-72e8637526ec"
+          }
+        }
+      },
+      "bindingStable": true,
+      "scopeStable": true,
+      "retains": {
+        "referenceCount": 3,
+        "retainedBy": {
+          "mainView": 1,
+          "sidebarView": 1,
+          "controllerOperation": 1
+        }
+      },
+      "pending": null,
+      "journal": [
+        {
+          "type": "turn/start",
+          "seq": 0
+        },
+        {
+          "type": "user/message",
+          "seq": 1
+        }
+      ],
+      "result": {
+        "status": "done"
+      },
+      "preparationHeld": false
+    },
+    {
+      "ready": true,
+      "id": "fixture-existing",
+      "projection": {
+        "phase": "ready",
+        "binding": {
+          "source": "verified-synthetic-source-session",
+          "generation": "projection-9"
+        },
+        "aborted": false
+      },
+      "semantic": {
+        "scope": {
+          "tabOwner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973",
+          "hostContext": "persistent-projection-fixture",
+          "sourceContext": "verified-synthetic-source-session",
+          "nativeSessionId": "fixture-existing",
+          "projectionGeneration": "projection-9",
+          "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]"
+        },
+        "revision": 8,
+        "phase": "plain",
+        "draft": {
+          "text": "Tab B with ordered originals",
+          "references": []
+        },
+        "originals": [
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-a",
+            "name": "first.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          }
+        ],
+        "readiness": [
+          {
+            "status": "ready",
+            "attachmentId": "76681a10-2830-44fd-b0da-11bd14e9e828"
+          },
+          {
+            "status": "ready",
+            "attachmentId": "00a61a6d-033b-49c5-be7f-9fbd2d18aae8"
+          },
+          {
+            "status": "ready",
+            "attachmentId": "22d4b49a-062a-4641-9d94-b7bf2c94aaa9"
+          }
+        ]
+      },
+      "saved": {
+        "records": {
+          "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
+            "record": {
+              "draft": {
+                "text": "Tab B with ordered originals",
+                "references": []
+              },
+              "originals": [
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-a",
+                  "name": "first.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                }
+              ]
+            },
+            "editedAt": 1794840739032
+          }
+        },
+        "owner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973"
+      },
+      "bindingStable": true,
+      "scopeStable": true,
+      "retains": {
+        "referenceCount": 3,
+        "retainedBy": {
+          "controllerOperation": 1,
+          "mainView": 1,
+          "sidebarView": 1
+        }
+      },
+      "pending": null,
+      "journal": [
+        {
+          "type": "turn/start",
+          "seq": 0
+        },
+        {
+          "type": "user/message",
+          "seq": 1
+        }
+      ],
+      "result": {
+        "status": "applied"
+      }
+    }
+  ],
+  "finalStates": [
+    {
+      "ready": true,
+      "id": "fixture-existing",
+      "projection": {
+        "phase": "ready",
+        "binding": {
+          "source": "verified-synthetic-source-session",
+          "generation": "projection-9"
+        },
+        "aborted": false
+      },
+      "semantic": {
+        "scope": {
+          "tabOwner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+          "hostContext": "persistent-projection-fixture",
+          "sourceContext": "verified-synthetic-source-session",
+          "nativeSessionId": "fixture-existing",
+          "projectionGeneration": "projection-9",
+          "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]"
+        },
+        "revision": 13,
+        "phase": "sending",
+        "draft": {
+          "text": "",
+          "references": []
+        },
+        "originals": [
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-a",
+            "name": "first.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          }
+        ],
+        "readiness": [
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          },
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          },
+          {
+            "status": "invalid",
+            "reason": "Restore the original after synchronization."
+          }
+        ],
+        "unresolved": {
+          "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+          "ownsDraft": true,
+          "draft": {
+            "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+            "references": []
+          },
+          "originals": [
+            {
+              "id": "original-b",
+              "name": "second.txt",
+              "mediaType": "text/plain"
+            },
+            {
+              "id": "original-a",
+              "name": "first.txt",
+              "mediaType": "text/plain"
+            },
+            {
+              "id": "original-b",
+              "name": "second.txt",
+              "mediaType": "text/plain"
+            }
+          ]
+        }
+      },
+      "saved": {
+        "records": {
+          "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
+            "record": {
+              "draft": {
+                "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                "references": []
+              },
+              "originals": [
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-a",
+                  "name": "first.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                }
+              ],
+              "unresolved": {
+                "id": "c4e0c340-d4ae-4a91-9863-3b4f69469e31",
+                "ownsDraft": true,
+                "draft": {
+                  "text": "Newer edit in 87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+                  "references": []
+                },
+                "originals": [
+                  {
+                    "id": "original-b",
+                    "name": "second.txt",
+                    "mediaType": "text/plain"
+                  },
+                  {
+                    "id": "original-a",
+                    "name": "first.txt",
+                    "mediaType": "text/plain"
+                  },
+                  {
+                    "id": "original-b",
+                    "name": "second.txt",
+                    "mediaType": "text/plain"
+                  }
+                ]
+              }
+            },
+            "editedAt": 1794840744059
+          }
+        },
+        "owner": "87fb228d-33c8-409c-bde5-c1dd02ff5bbb",
+        "dispatches": {
+          "c4e0c340-d4ae-4a91-9863-3b4f69469e31": {
+            "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]",
+            "requestId": "2669619c-e942-4315-95ed-72e8637526ec"
+          }
+        }
+      },
+      "bindingStable": true,
+      "scopeStable": true,
+      "retains": {
+        "referenceCount": 3,
+        "retainedBy": {
+          "mainView": 1,
+          "sidebarView": 1,
+          "controllerOperation": 1
+        }
+      },
+      "pending": null,
+      "journal": [
+        {
+          "type": "turn/start",
+          "seq": 0
+        },
+        {
+          "type": "user/message",
+          "seq": 1
+        }
+      ],
+      "result": {
+        "status": "done"
+      },
+      "preparationHeld": false
+    },
+    {
+      "ready": true,
+      "id": "fixture-existing",
+      "projection": {
+        "phase": "ready",
+        "binding": {
+          "source": "verified-synthetic-source-session",
+          "generation": "projection-9"
+        },
+        "aborted": false
+      },
+      "semantic": {
+        "scope": {
+          "tabOwner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973",
+          "hostContext": "persistent-projection-fixture",
+          "sourceContext": "verified-synthetic-source-session",
+          "nativeSessionId": "fixture-existing",
+          "projectionGeneration": "projection-9",
+          "storageKey": "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]"
+        },
+        "revision": 8,
+        "phase": "plain",
+        "draft": {
+          "text": "Tab B with ordered originals",
+          "references": []
+        },
+        "originals": [
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-a",
+            "name": "first.txt",
+            "mediaType": "text/plain"
+          },
+          {
+            "id": "original-b",
+            "name": "second.txt",
+            "mediaType": "text/plain"
+          }
+        ],
+        "readiness": [
+          {
+            "status": "ready",
+            "attachmentId": "76681a10-2830-44fd-b0da-11bd14e9e828"
+          },
+          {
+            "status": "ready",
+            "attachmentId": "00a61a6d-033b-49c5-be7f-9fbd2d18aae8"
+          },
+          {
+            "status": "ready",
+            "attachmentId": "22d4b49a-062a-4641-9d94-b7bf2c94aaa9"
+          }
+        ]
+      },
+      "saved": {
+        "records": {
+          "[\"persistent-projection-fixture\",\"verified-synthetic-source-session\",\"fixture-existing\"]": {
+            "record": {
+              "draft": {
+                "text": "Tab B with ordered originals",
+                "references": []
+              },
+              "originals": [
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-a",
+                  "name": "first.txt",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "id": "original-b",
+                  "name": "second.txt",
+                  "mediaType": "text/plain"
+                }
+              ]
+            },
+            "editedAt": 1794840739032
+          }
+        },
+        "owner": "99ac256c-2d35-4282-a1e9-7d1bafe1d973"
+      },
+      "bindingStable": true,
+      "scopeStable": true,
+      "retains": {
+        "referenceCount": 3,
+        "retainedBy": {
+          "controllerOperation": 1,
+          "mainView": 1,
+          "sidebarView": 1
+        }
+      },
+      "pending": null,
+      "journal": [
+        {
+          "type": "turn/start",
+          "seq": 0
+        },
+        {
+          "type": "user/message",
+          "seq": 1
+        }
+      ],
+      "result": {
+        "status": "applied"
+      }
+    }
+  ]
+}

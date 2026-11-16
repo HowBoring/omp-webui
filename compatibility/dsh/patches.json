@@ -12,6 +12,11 @@
       "path": "patches/0002-semantic-drafts.patch",
       "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
       "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+    },
+    {
+      "path": "patches/0003-projection-rebuild.patch",
+      "sha256": "9ed0bdddc9175484c9dc3e310d27c189d86b96e6fb2bf6afaba42d520f584459",
+      "treeAfter": "89f725caab557041ab8ad5fb97ce4d296c1f6c92"
     }
   ]
 }
