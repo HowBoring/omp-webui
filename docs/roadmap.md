@@ -2,10 +2,16 @@
 
 The roadmap is ordered around protocol correctness. UI feature parity comes after the Host can reliably open, stream, replay, and recover a Session.
 
-[OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14) governs open questions;
+[OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14) records the planning decisions;
 [ADR 0002](adr/0002-native-session-mvp.md) records the confirmed expanded MVP scope. Milestones below
 are implementation stages, not permission to omit native discovery/import or core history controls
 from the usable MVP. The runtime is still a health-only scaffold.
+
+The accepted [handoff contract](mvp-acceptance-and-handoff.md) defines implementation order and evidence:
+S0 public compatibility/native/DSH seam gates → S1 secure catalog/open → S2 chat/interactions/Stop/refresh
+→ S3 core history → S4 complete attachments/recovery → S5 fault, platform and performance acceptance.
+Components can develop in parallel; dependent product admission still requires the public and security
+guarantees first. The M0–M4 sections group work; they do not postpone required MVP evidence to later extensions.
 
 ## M0 — compatibility proof and architecture baseline
 
@@ -37,6 +43,8 @@ Status: scaffold created; implementation not complete.
   expiry/deletion and complete preparation before admission with explicit degradation consent.
 - [x] Confirm the [projection contract](projection-contract.md): folded older native history, explicit
   generation rebuild from persisted facts and recoverable navigation positions, as recorded in ADR 0010.
+- [x] Confirm [acceptance and handoff](mvp-acceptance-and-handoff.md): staged dependency gates,
+  real Linux Chromium/Windows Chrome–WSL2 matrix and initial scale/performance measurement targets.
 - [ ] Specify and validate public OMP catalog/description, protected continuation and explicit-answer-only
   UI expiry/cancellation guarantees in an actual compatibility build and matched schema.
 - [ ] Deliver and verify public attachment preparation/consumption and recoverable native submission/commit
@@ -84,6 +92,8 @@ Exit criterion: one Session can be used through DSH WebUI with streaming and too
 Exit criterion: the expanded MVP can discover/import native Sessions, retain their registered list,
 chat with streaming/tools and image/file input, recover manually, and navigate or branch history without mixing conversations.
 Authentication, path authorization and protocol correctness are prerequisites to opening private history.
+The full usable-MVP claim additionally requires S5 acceptance from the handoff contract; a functional
+intermediate slice does not imply supported-platform, performance or delivery validation has passed.
 
 ## M3 — OMP feature extensions
 
@@ -97,6 +107,9 @@ Authentication, path authorization and protocol correctness are prerequisites to
 Exit criterion: the supported OMP feature matrix is documented and each exposed feature has an end-to-end test.
 
 ## M4 — performance and distribution
+
+Initial MVP benchmarks, reproducible artifacts and Linux/WSL2 delivery are already required by S0–S5.
+This later milestone covers broader optimization/distribution work beyond those acceptance gates.
 
 - Long-session virtualization and history window policies.
 - Streaming render benchmarks and slow-browser backpressure.

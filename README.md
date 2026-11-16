@@ -6,8 +6,11 @@ OMP remains the only Agent Runtime. This repository owns the Web Host, OMP RPC p
 
 > **Project status: scaffold / M0.** The initial commit establishes the architecture and development baseline. The health endpoint works; the DSH Gateway, OMP RPC transport, Session projection, and browser UI are not implemented yet.
 
-MVP planning lives in [OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14).
-Its child issues and dependencies are the canonical record of open decisions.
+The accepted MVP plan is recorded in [OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14)
+and the [acceptance and implementation handoff](docs/mvp-acceptance-and-handoff.md).
+The handoff fixes compatibility gates before successive real integration slices, Linux Chromium and
+Windows Chrome/WSL2 acceptance, and initial scale/performance targets. These targets remain unvalidated;
+planning completion does not certify the health-only runtime as a usable MVP.
 The agreed MVP includes existing TUI Session discovery/import, a persistent reference index grouped by working
 directory, manual recovery after the previous process exits, tree viewing, same-Session history navigation,
 and branching from a historical user message into a new Session. These capabilities remain unimplemented.

@@ -49,6 +49,11 @@ the tested shortcut profile and Linux Web limitations are explicit in that repor
 
 ## Outstanding M0 verification
 
+The [accepted handoff](mvp-acceptance-and-handoff.md) defines S0–S5 dependencies, real Linux Chromium and
+Windows Chrome/WSL2 acceptance, and the initial corpus/latency/RSS targets. It records existing evidence
+separately from required future tests. No complete compatibility build/global installation, final Client
+roster or full product-browser/performance matrix has been validated by closing the planning map.
+
 | Area | Required evidence before exposing the capability |
 | --- | --- |
 | OMP public dependencies | Install pinned CLI/client artifacts; compile and runtime-import the public exports; verify Bun/native dependency closure on supported platforms |
@@ -61,6 +66,7 @@ the tested shortcut profile and Linux Web limitations are explicit in that repor
 | Attachments and drafts | [Accepted attachment policy](attachment-contract.md); exact originals, limits/quota, fresh receipts, per-tab reload/restart recovery, expiry/deletion, complete preparation and degradation consent, recoverable native-entry/commit association and real browser/OMP evidence |
 | Session ownership/catalog | Stable Host/OMP identity, leases, concurrent viewers and crash recovery; additive RPC catalog extension before a complete workspace/session sidebar |
 | Security | Authentication, Host/Origin/CSRF and WebSocket admission, per-session/workspace authorization, resource limits, output sanitization and redacted logs before privileged routes or remote binding |
+| Platform, scale and handoff | [Accepted target and measurement procedure](mvp-acceptance-and-handoff.md); real platform/keybinding matrix, reproducible corpus and performance samples, bounded-resource negative paths and same-combination evidence before a usable-MVP claim |
 
 All rows above are pending, not passing or silently skipped tests. RPC gaps must be resolved through
 public wire/schema/client extensions rather than SDK embedding or session-file access.

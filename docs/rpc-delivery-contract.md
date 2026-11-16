@@ -58,9 +58,9 @@ Q10 已确认全部附件准备完成后才准入，失败保留草稿，截断�
 journal/Conversation/projections/assistant 统一失效重建，并保全独立草稿。当前官方基线与现有
 导航策略实验均不满足这些完整保证，不能用 append since、msg-N 或 surface.replace 补成假成功。
 
-后续确认的新缺口仍通过公共增量补充；最终
-MVP 能力矩阵由[扩展 MVP 的验收证据与实施交接顺序](https://github.com/HowBoring/omp-webui/issues/24)冻结，
-不能以本票定案冒充全部 wire 设计或产品实现已完成。
+后续确认的新缺口仍通过公共增量补充。[验收交接合同](mvp-acceptance-and-handoff.md)已固定
+MVP 覆盖范围、S0–S5 顺序、正式平台和初始性能目标；每个实际组合仍须交付具体 public
+wire/schema、能力/预算清单和整套证据，不能以规划定案冒充接口设计或产品实现已完成。
 
 ## 可追溯交付清单
 

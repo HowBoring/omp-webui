@@ -80,7 +80,7 @@ Host 只持有可丢弃的投影、版本/代次映射和有界缓存。必要�
 - 已确认的 native 导航、branch、改写/删除、worker 重启以及不可修复的 gap，分别检查是否需要新投影代次。重建时显示同步状态，协调所有页面的 journal、Conversation、projections 和 assistant baseline，拒绝旧页面/page/attempt/异步回复。
 - 同原生 Session 的重建保持其身份；branch 后确认的是新原生 Session。不能通过伪造新 Session、调私有 `resync`、仅触发 Connection ready、发第二个 snapshot 或发送 `surface.replace` 假装完成统一失效。
 - 公共 DSH 接缝须保全独立草稿/附件引用，允许同 ID 的 journal 代次重建，并协调所有现有持有者；补丁固定来源、schema/资产和兼容实验。若变成大范围核心 Conversation 重写，返回客户端组合决策。
-- 本票不凭空填写历史大小、快照、缓冲、树节点数或时延预算。验收交接冻结可测试的支持规模；通过原生有界快照/分页与按需树读取保证可达性。超出预算明确拒绝/提示，不静默截断或将局部树称为完整历史。
+- [验收交接合同](mvp-acceptance-and-handoff.md)已确认初始目录/历史规模、时延及 Host RSS 目标，均待实测；具体快照/分页/缓冲等工程预算须在对应实现规格与组合中定值并验证。通过原生有界读取保证可达性，超出预算明确拒绝/提示，不静默截断或将局部树称为完整历史。
 
 ## 导航位置成功条件
 

@@ -34,7 +34,7 @@ Git tree 与验证源码一致：`be590b5411230c215158bb6359635d409a653523`。
 未运行 DSH Agent Host、模型、真实 OMP、用户配置或原生历史，也未运行上游完整发布 CI。
 
 快捷键证据来自 Linux Chromium 中明确模拟的 Win32 Web profile、公开快捷键偏好和 Playwright 键盘投递。
-固定上游 Linux Web 没有这些 Workspace 默认键位，且仅允许三组有限组合；首版浏览器矩阵与 Linux 键位支持须在验收交接中明确，不能宣称已通过 Linux 快捷键或 Windows 硬件测试。
+固定上游 Linux Web 没有这些 Workspace 默认键位，且仅允许三组有限组合；后续[验收交接](mvp-acceptance-and-handoff.md)已选 Linux Chromium＋Windows Chrome/WSL2，真实平台键位仍须补齐并验证。本实验不能宣称已通过 Linux 快捷键或 Windows 硬件测试。
 两页面测试覆盖首个答复及后续旧答复拒绝，不是同时竞争回答的压力测试。根交互、目录授权和登记均是 fixture，
 不代表完整 Broker、持久授权或原生 RPC 准入。`probe/*` 仅为实验端点，不是产品 Remote/RPC 契约。
 
