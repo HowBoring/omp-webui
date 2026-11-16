@@ -96,7 +96,9 @@ export class AttachmentSubmissionGate {
   #matchesReservation(flow: Flow, value: SubmissionResult): boolean {
     const receipt = flow.receipt, origin = value.origin;
     return !!receipt && !!origin && value.found && value.reservation === "committed"
-      && value.clientSubmissionId === flow.attempt.submissionId && origin.sourceId === receipt.binding.sourceId
+      && value.clientSubmissionId === flow.attempt.submissionId && origin.clientSubmissionId === flow.attempt.submissionId
+      && value.target.sourceId === receipt.binding.sourceId && value.target.instanceId === receipt.binding.instanceId
+      && value.target.nativeSessionId === receipt.binding.nativeSessionId && origin.sourceId === receipt.binding.sourceId
       && origin.instanceId === receipt.binding.instanceId && origin.nativeSessionId === receipt.binding.nativeSessionId
       && value.preparation?.receiptId === receipt.receiptId && value.preparation.resultDigest === receipt.resultDigest;
   }
