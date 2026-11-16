@@ -94,15 +94,16 @@ MVP 继续是 Linux/WSL2、loopback、单用户。这里不开放公网绑定、
   图片/base64 也必须满足协议与 admission 限额。Host URI 文本接口不是任意二进制上传捷径。
 - 未受信 HTML/SVG/脚本不得成为同源可执行页面；预览/下载的 MIME、Disposition 和 renderer
   边界需验证。模型/工具/历史内容、名称和链接始终按不可信数据呈现，不自动执行外部动作。
-- 原始 byte 生命周期、格式、限额、清理、重启及历史读取由
-  [图片与文件输入：格式范围、RPC 链路与存储边界](https://github.com/HowBoring/omp-webui/issues/28)决定。
-  本政策不批准永久 Host 附件库、任意文件浏览或直接保存到项目的额外操作。
+- 原始 byte 生命周期、格式、限额、清理、重启及历史读取遵守[附件合同](attachment-contract.md)
+  和后续 [ADR 0009](adr/0009-original-attachments-and-drafts.md)：已确认原生提交的原件不按时间
+  淘汰，未发送暂存按明确编辑/主动恢复的 24 小时时钟处理，执行/未决引用受保护；预算与主动
+  删除仍生效。这不授予任意文件浏览或直接保存到项目的额外操作，相关功能尚未实现。
 
 ## 资源、日志与执行边界
 
 - 对普通 RPC body、streaming upload、附件总量、并发、连接/逻辑流、输出队列、缓存和 worker
   分别设置显式预算；鉴权前不落盘，失败/取消有界清理。不能照搬上游大 body 默认值当已验证预算。
-- Base64 膨胀、OMP stdin unchunked 物理上限及 v2 stdout 重组上限都纳入附件/传输实验；
+- Base64 膨胀、OMP stdin 未分块 JSONL 的文档建议长度，以及 stdout 物理行和 v2 逻辑重组限制，均纳入附件/传输实验；
   大 HTTP 请求被接受不代表能发给 OMP。限额数值在对应实验/实施规格冻结前不宣称可用。
 - 默认只记录必要的请求/worker ID、类型、时长、字节数与结构化失败码；不记 Cookie/token、
   完整 query、prompt、transcript、文件内容、provider 密钥或原始 stderr。诊断也要有界脱敏。

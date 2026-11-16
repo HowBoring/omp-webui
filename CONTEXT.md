@@ -61,3 +61,15 @@ _Avoid_: History Navigation, copy of the whole conversation
 **Interaction**:
 A pending request for an explicit user answer, such as approval or an ask dialog.
 _Avoid_: Notification, automatic consent
+
+**Attachment Original**:
+The exact image or file content the user supplied, distinct from a representation prepared for a model.
+_Avoid_: Model input, upload receipt
+
+**Attachment Model Input**:
+The representation of an attachment OMP includes in a model request, which may differ from its original.
+_Avoid_: Original file, complete-file ingestion
+
+**Sent Attachment**:
+An Attachment Original confirmed as associated with a committed user input in an OMP Session.
+_Avoid_: Uploaded attachment, prompt acknowledgement

@@ -57,6 +57,7 @@ the tested shortcut profile and Linux Web limitations are explicit in that repor
 | Interaction Broker | Tool and extension dialogs, ask opt-in, approvals, cancellation/deadlines, disconnects, authorized answerer and stale-generation rejection; `--no-ui` fail-closed behavior |
 | DSH client delivery | Matched external build and dependency/asset closure, loader/module composition, license/third-party notice preservation; no vendored source or old SDK Driver |
 | DSH Remote mapping | Descriptor-based capability matrix, unary envelopes/codec/errors, mux/uplink/cancel, `$events` generation and `$events/result`; explicit unsupported capability behavior |
+| Attachments and drafts | [Accepted policy and remaining preparation decision](attachment-contract.md); exact originals, limits/quota, fresh receipts, per-tab reload/restart recovery, expiry/deletion, recoverable native-entry/commit association and real browser/OMP evidence |
 | Session ownership/catalog | Stable Host/OMP identity, leases, concurrent viewers and crash recovery; additive RPC catalog extension before a complete workspace/session sidebar |
 | Security | Authentication, Host/Origin/CSRF and WebSocket admission, per-session/workspace authorization, resource limits, output sanitization and redacted logs before privileged routes or remote binding |
 

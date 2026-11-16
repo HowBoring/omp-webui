@@ -61,7 +61,9 @@ does not validate the modified composition. See the [client contract](client-com
 
 New image/file input is part of the usable MVP. Session-local model/thinking selection and WebUI-only
 appearance/language preferences are included; provider, credential and plugin administration is deferred.
-Attachment lifetime, byte ownership and history retrieval require their own contract before implementation.
+The [attachment contract](attachment-contract.md) records original retention, byte ownership and history
+retrieval targets. Native submission/persistence evidence and public draft recovery need additional
+interfaces; the preparation/admission policy is still pending and attachment integration is unimplemented.
 
 Select the latest official published DSH release, including prereleases, then lock its exact tag and commit
 in `upstreams.lock.json`. The current pin is `dsh-v0.2.2-rc.3` at
@@ -78,6 +80,8 @@ The Host is a single-user local application initially. It owns:
 - OMP worker lifecycle, process supervision, and resource limits.
 - OMP RPC framing, command correlation, event ingestion, and UI interaction responses.
 - The projection from OMP's native history/events into the DSH Session contract.
+- Exact attachment originals, minimal native-entry associations, quotas and deletion, as specified in the
+  [attachment contract](attachment-contract.md); these do not duplicate native conversation history.
 
 The Host does not execute model calls or tools itself.
 
@@ -104,7 +108,11 @@ OMP remains the source of truth for:
 - Subagent lifecycle and transcripts.
 - OMP settings and provider credentials.
 
-Host memory may hold worker handles, pending requests, stream subscribers, and derived projections. Any persistent Host-owned data must be explicitly limited to WebUI preferences or metadata; it must not become a second transcript store.
+Host memory may hold worker handles, pending requests, stream subscribers and derived projections.
+Approved persistent Host data is limited to WebUI preferences, browser authorization, directory grants,
+the Session reference index, and attachment originals with necessary associations. Browser draft recovery
+uses the per-tab policy in the [attachment contract](attachment-contract.md). These stores do not copy
+native messages, tool history or the Session Tree; OMP remains their durable authority.
 
 ## 4. Runtime and process topology
 
