@@ -213,10 +213,10 @@ index 0000000000..64fb13ddce
 +export type RpcInteractionPolicy = typeof rpcInteractionPolicy;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 new file mode 100644
-index 0000000000..73bcb5c52f
+index 0000000000..9775c20da2
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,112 @@
 +export * from "./rpc-interaction-policy";
 +export type RpcUIReplyStatus = "answered" | "cancelled" | "expired" | "invalid" | "stale";
 +export type RpcUIAnswer =
@@ -225,9 +225,14 @@ index 0000000000..73bcb5c52f
 +	| { type: "cancel"; timedOut?: boolean }
 +	| { type: "ask"; answers: Array<{ id: string; selectedOptions: string[]; customInput?: string }> };
 +export function rpcUIAnswerFrame(targetId: string, answer: RpcUIAnswer): RpcExtensionUIResponse {
-+	const { type, ...payload } = answer;
-+	return { type: "extension_ui_response", id: targetId, ...payload,
-+		...(type === "cancel" ? { cancelled: true } : {}) } as RpcExtensionUIResponse;
++	const base = { type: "extension_ui_response" as const, id: targetId };
++	switch (answer.type) {
++		case "value": return { ...base, value: answer.value };
++		case "confirm": return { ...base, confirmed: answer.confirmed };
++		case "ask": return { ...base, answers: answer.answers };
++		case "cancel": return { ...base, cancelled: true,
++			...(answer.timedOut === undefined ? {} : { timedOut: answer.timedOut }) };
++	}
 +}
 +export interface RpcUIReplyResult { status: RpcUIReplyStatus }
 +
@@ -243,7 +248,7 @@ index 0000000000..73bcb5c52f
 +
 +/** Validate the discriminated response before parsing or releasing a pending request. */
 +function validResponse(response: RpcExtensionUIResponse, request: Record<string, unknown>): boolean {
-+	const payload = response as unknown as Record<string, unknown>;
++	const payload: Record<string, unknown> = { ...response };
 +	const keys = Object.keys(payload).filter(key => key !== "type" && key !== "id");
 +	if (payload.cancelled === true) {
 +		return keys.every(key => ["cancelled", "timedOut"].includes(key)) &&
