@@ -7,6 +7,7 @@ import json
 import os
 import pathlib
 import platform
+import resource
 import shutil
 import signal
 import sys
@@ -45,6 +46,15 @@ def audit(event, **extra):
     with (home / "strict-syscalls.log").open("a") as stream:
         stream.write(json.dumps({"event": event, **extra}, separators=(",", ":")) + "\n")
 
+def string_memory(pid, address):
+    output = bytearray()
+    for offset in range(0, 4096, 8):
+        chunk = memory(pid, address + offset, 8)
+        if b"\0" in chunk:
+            return bytes(output) + chunk.split(b"\0", 1)[0]
+        output.extend(chunk)
+    raise ValueError("fixture pathname limit")
+
 child = os.fork()
 if child == 0:
     ptrace(0, 0)
@@ -55,6 +65,7 @@ assert os.WIFSTOPPED(status)
 ptrace(0x4200, child, 0, 1 | 2 | 4 | 8 | 16 | 0x100000)
 ptrace(24, child)
 tracees, pending = {child}, {}
+open_pending, parent_opens, cwd_pinned, carrier_writable = {}, 0, False, False
 fired = False
 exit_code = None
 try:
@@ -74,11 +85,46 @@ try:
             tracees.add(spawned.value)
         if stopped == (signal.SIGTRAP | 0x80):
             info = c.create_string_buffer(128)
-            ptrace(0x420e, pid, 128, c.addressof(info))
+            try:
+                ptrace(0x420e, pid, 128, c.addressof(info))
+            except ProcessLookupError:
+                continue
             operation = info.raw[0]
             regs = Registers()
             ptrace(12, pid, 0, c.addressof(regs))
-            if operation == 1 and regs.orig_rax == 18:
+            if operation == 1 and regs.orig_rax in (2, 257) and fault in ("native-parent-emfile", "swap-after-reservation-parent"):
+                address, flags = (regs.rdi, regs.rsi) if regs.orig_rax == 2 else (regs.rsi, regs.rdx)
+                name = os.fsdecode(string_memory(pid, address))
+                resolved_name = name
+                if name.startswith("/proc/self/fd/"):
+                    try:
+                        resolved_name = os.readlink(name.replace("/proc/self/", f"/proc/{pid}/", 1))
+                    except OSError:
+                        pass
+                if resolved_name == str(target) and flags & os.O_RDWR:
+                    carrier_writable = True
+                if carrier_writable and name == str(home / "project") and flags & os.O_DIRECTORY:
+                    cwd_pinned = True
+                if name == str(target.parent) and flags & os.O_DIRECTORY:
+                    parent_opens += 1
+                    if not fired and (fault == "native-parent-emfile" or cwd_pinned):
+                        fired = True
+                        previous = resource.prlimit(pid, resource.RLIMIT_NOFILE) if fault == "native-parent-emfile" else None
+                        if previous:
+                            resource.prlimit(pid, resource.RLIMIT_NOFILE, (3, previous[1]))
+                        open_pending[pid] = previous
+            elif operation == 2 and pid in open_pending:
+                previous = open_pending.pop(pid)
+                result = c.c_longlong(regs.rax).value
+                if previous:
+                    resource.prlimit(pid, resource.RLIMIT_NOFILE, previous)
+                    assert result == -errno.EMFILE, result
+                else:
+                    assert result >= 0, result
+                    target.rename(str(target) + ".moved")
+                    shutil.copyfile(str(target) + ".replacement", target)
+                audit(fault, boundary="open-directory-return", returned=result, parent_opens=parent_opens)
+            elif operation == 1 and regs.orig_rax == 18:
                 try:
                     file = os.readlink(f"/proc/{pid}/fd/{regs.rdi}")
                 except OSError:

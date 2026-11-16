@@ -65,7 +65,7 @@ test("a retained 100 MiB history supports 1,000 actual text turns and recoverabl
       await handle.write(JSON.stringify({type:"reset_boundary",id:"scale-reset",parentId:"scale-9999",timestamp:"2026-01-01T00:00:01.000Z"})+"\n");
     }finally{await handle.close();}
     const initialBytes=(await fs.stat(file)).size,selected=await selectedDescriptor(home),samples:number[]=[];
-    let worker=strictWorker(home,cwd,controlledRuntime,undefined,undefined,undefined,60_000),generations=0;
+    let worker=strictWorker(home,cwd,controlledRuntime,undefined,undefined,undefined,undefined,60_000),generations=0;
     const command={type:"submission_submit",inputType:"prompt",message:"literal",preparationId:"literal-text-scale",clientSubmissionId:"text-scale-0",
       sourceId:selected.sourceId,instanceId:selected.instanceId,nativeSessionId:selected.nativeSessionId};
     try{
@@ -88,7 +88,7 @@ test("a retained 100 MiB history supports 1,000 actual text turns and recoverabl
     }finally{worker.child.kill();await worker.child.exited;}
     const effects=JSON.parse(await fs.readFile(path.join(home,"submission-provider-effects.json"),"utf8"));
     expect(effects).toEqual({calls:1000,realInference:false});
-    worker=strictWorker(home,cwd,controlledRuntime,undefined,undefined,undefined,60_000);
+    worker=strictWorker(home,cwd,controlledRuntime,undefined,undefined,undefined,undefined,60_000);
     try{
       await negotiateStrict(worker);expect(await worker.request({type:"strict_start",intent:"continue",reference:selected.reference,expectedCwd:cwd})).toMatchObject({success:true});
       expect(decodeSubmission(await worker.request(command))).toMatchObject({duplicate:true,terminal:true,inputOutcome:"generated",persistence:"committed"});

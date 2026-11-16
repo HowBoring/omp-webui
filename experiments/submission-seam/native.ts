@@ -27,7 +27,7 @@ export class NativeSubmissionFixture {
   static async open(evidence: string) {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), "submission-browser-"));
     await nativeFixture(home);
-    const selected = await selectedDescriptor(home), worker = strictWorker(home, path.join(home, "project"), controlledRuntime, undefined, undefined, path.join(home, "network-initial.strace"));
+    const selected = await selectedDescriptor(home), worker = strictWorker(home, path.join(home, "project"), controlledRuntime, undefined, undefined, undefined, path.join(home, "network-initial.strace"));
     const value = new NativeSubmissionFixture(home, evidence, selected, worker);
     await value.#open(); return value;
   }
@@ -54,7 +54,7 @@ export class NativeSubmissionFixture {
     const drain = await this.#worker.close();
     await fs.copyFile(path.join(this.home, "submission-network-audit.json"), path.join(this.evidence, "initial-network-audit.json"));
     if (drain.code !== 0) throw Error("SUBMISSION_BROWSER_DRAIN_FAILED");
-    this.#worker = strictWorker(this.home, path.join(this.home, "project"), controlledRuntime, undefined, undefined, path.join(this.home, "network-restart.strace")); await this.#open();
+    this.#worker = strictWorker(this.home, path.join(this.home, "project"), controlledRuntime, undefined, undefined, undefined, path.join(this.home, "network-restart.strace")); await this.#open();
     return { restarted: true };
   }
   async close() {

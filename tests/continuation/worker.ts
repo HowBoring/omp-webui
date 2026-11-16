@@ -6,7 +6,7 @@ import { z } from "zod";
 import { PhysicalFrames } from "../../packages/compatibility/framing.ts";
 const frameSchema = z.object({ type: z.string(), id: z.string().optional() }).catchall(z.unknown());
 export type StrictFrame = z.infer<typeof frameSchema>;
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, trace?: string, requestTimeoutMs = 10_000) {
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, leaseDirectory?: string, trace?: string, requestTimeoutMs = 10_000) {
   if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
   if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1000 || requestTimeoutMs > 120_000) throw new Error("STRICT_FIXTURE_TIMEOUT_BOUNDS");
   if (trace && !trace.startsWith(home + "/")) throw new Error("STRICT_FIXTURE_TRACE_PATH");
@@ -16,6 +16,7 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
     ...(fault ? ["--preload", resolve(fault.name.startsWith("submission-") ? "tests/submissions/wire-faults.ts" : "tests/continuation/native-faults.ts")] : []),
     resolve("vendor/omp-candidate/cli.js"), "--mode", "rpc-ui", ...(ordinaryFile ? ["--session", ordinaryFile] : ["--strict-start"]), ...runtimeArgs], {
     cwd, env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", TMPDIR: home,
+      ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}),
       ...(fault ? { OMP_STRICT_FIXTURE_HOME: home, OMP_STRICT_FAULT: fault.name, OMP_STRICT_FAULT_TARGET: fault.target, LD_PRELOAD: resolve("vendor/strict-fixture/native-faults.so") } : {}),
       PI_CODING_AGENT_DIR: resolve(home, ".omp/agent"), XDG_CONFIG_HOME: resolve(home, "config"),
       XDG_CACHE_HOME: resolve(home, "cache"), XDG_DATA_HOME: resolve(home, "data"),
@@ -57,10 +58,11 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
   };
 }
 
-export async function selectedDescriptor(home: string) {
+export async function selectedDescriptor(home: string, leaseDirectory?: string) {
   const client = await CatalogTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
     resolve("compatibility/omp/fixtures/no-provider.ts"), resolve("vendor/omp-candidate/cli.js"), "--rpc-catalog"],
-    env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" }, timeoutMs: 3000 });
+    env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
+      ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}) }, timeoutMs: 3000 });
   try {
     const page = await client.catalog.page();
     const item = page.items[0]; if (!item) throw new Error("STRICT_FIXTURE_DESCRIPTOR_MISSING"); return item;
