@@ -66,7 +66,7 @@ async def main():
         dsh_build=json.loads(Path('vendor/dsh-history/manifest.json').read_text())
         fixture_files=['compatibility/omp/fixtures/history-rpc.js','compatibility/omp/fixtures/history-network-guard.js','compatibility/omp/fixtures/no-provider.ts','apps/history-fixture/server.ts','packages/compatibility/history-transport.ts']
         fixture_hashes={name:hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in fixture_files}
-        result={'fixtureSha256':fixture_hashes,'bunLockSha256':hashlib.sha256(Path('bun.lock').read_bytes()).hexdigest(),'ompBuild':omp_build,'dshBuild':{key:dsh_build[key] for key in ['dshBase','sourceSha256','contractSha256','assets']},'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
+        result={'fixtureSha256':fixture_hashes,'bunLockSha256':hashlib.sha256(Path('bun.lock').read_bytes()).hexdigest(),'ompBuild':omp_build,'dshBuild':{key:dsh_build[key] for key in ['dshBase','dshSource','sourceSha256','contractSha256','assets']},'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
             'privateSessionAdmission':'blocked','cases':{'sameCutPagedActiveFullTreeAndRunning':'PASS',
             'retainedBoundariesFoldedAndExpandable':'PASS','nativeRetainedImagePreview':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS'},
             'nativePageResponses':len(pages),'windows':'DEFERRED'}

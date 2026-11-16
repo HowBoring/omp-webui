@@ -1,6 +1,6 @@
 {
   "kind": "isolated-synthetic-component-evidence",
-  "capturedAt": "2026-11-16T12:40:06.738333+00:00",
+  "capturedAt": "2026-11-16T12:46:14.417700+00:00",
   "privateSessionAdmission": "blocked",
   "integration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
   "sourceFreezes": {
@@ -22,6 +22,25 @@
     },
     "dsh": {
       "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "dshSource": {
+        "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+        "mode": "candidate",
+        "patches": [
+          {
+            "path": "patches/0001-navigation-policy.patch",
+            "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+            "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+          },
+          {
+            "path": "patches/0002-semantic-drafts.patch",
+            "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+            "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+          }
+        ],
+        "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+      },
       "sourceSha256": "5c7b967f276b813ac39b42c08d888b0f5c8b671d118283f32521182007ee3e42",
       "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
       "assets": {
@@ -37,7 +56,9 @@
       "compatibility/omp/fixtures/no-provider.ts": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
       "apps/history-fixture/server.ts": "8b64bcd855f7ecf2d8591edbbb08b3503bc73f1380b8a4f659f6ad96b86c06e8",
       "packages/compatibility/history-transport.ts": "fe107c8bdcf7382df0ac88f8b11c26ce66156ab8e3ea7caf0ee43bcdcaaef572"
-    }
+    },
+    "historyBuildScriptSha256": "a0c9b7f6cc2f085150f496816df8afca55609951a25db9798a7e70ef8fe3985c",
+    "dshSourceGateScriptSha256": "b49629716d216c9c22c4d7eed5bafd55b1f27174facb219311a74745d3987cfa"
   },
   "checks": {
     "rootCheck": {
@@ -49,7 +70,8 @@
       "files": 30,
       "seconds": 149.87,
       "logSha256": "c35aee8a65a89bf812c84ab4873bf95ef5ff3e8b21c0b21079079b5c920a6b4f",
-      "integration": "e65f0a8b16f8a13e227dd7da2ed1dbcd8564dd17"
+      "integration": "e65f0a8b16f8a13e227dd7da2ed1dbcd8564dd17",
+      "scope": "Prior baseline DSH combination; native source/schema unchanged. Candidate gate follow-up runs affected checks below, not the full suite."
     },
     "cleanOrderedBuildAndGeneratedCheck": "PASS: reset --source-only, build, then --check on exact final ordered0001\u20134",
     "nativeScale": {
@@ -64,10 +86,11 @@
     },
     "browser": {
       "status": "PASS",
+      "dshSourceMode": "candidate",
       "actualNativeHistoryPageResponses": 8,
-      "reportSha256": "7493b95697587105687b1e128212a1375d6a04c663e93979fb8a74848a83e9a1",
-      "screenshotSha256": "223ea73f24fc1172344d0b25ce1a770d70fddce0597f59f4ec138a2958d1694a",
-      "logSha256": "790374d4b5932746532f3eb5a01851d3c1f5cdeb967a640e1a4e837bb82370fb",
+      "reportSha256": "ec2856452c048442b3c48d9b1fd37eb83f7dde9ca9a2a2c7535d36d55a65d2f2",
+      "screenshotSha256": "cd7a85e3a7753afd1bd34287ec52ce98c2731d561bd6409037313db31529e0e7",
+      "logSha256": "58df4130803fcec59050d99387825ff55256733f210342c626edbdcababca442",
       "ownedWorkerProfileCleanup": "PASS: wrapper finally completed"
     },
     "fullUpstreamTypecheck": {
@@ -102,7 +125,61 @@
       "hostBuild": {
         "status": "PASS",
         "logSha256": "d468ee93f766b13b2ea7d1e377940bd5398d49725ed64229d3f2c718c98c0314"
-      }
+      },
+      "scope": "Prior baseline DSH reader combination, preserved in b5d7ed7-baseline-tuple.json."
+    },
+    "dshCandidateFollowup": {
+      "status": "PASS",
+      "dshSource": {
+        "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+        "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+        "mode": "candidate",
+        "patches": [
+          {
+            "path": "patches/0001-navigation-policy.patch",
+            "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+            "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+          },
+          {
+            "path": "patches/0002-semantic-drafts.patch",
+            "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+            "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+          }
+        ],
+        "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+      },
+      "readonlyRuntimeSource": "/workspace/work/omp-webui-ticket-39-final-fix/vendor/dsh-final",
+      "sourceManifestSha256": "562380e7671a5ac932d0d689014d71d303ed2418d664199e8202b7322f1cb6ba",
+      "builder": {
+        "status": "PASS",
+        "logSha256": "789fcd9b6432a66c59c45fcde082bb1eb2eccc47e5529872ce17e30e811b3a18"
+      },
+      "priorLegacyGate": {
+        "status": "EXPECTED FAIL",
+        "reason": "Clean-HEAD check rejected the exact declared candidate before fix",
+        "logSha256": "1e486b8d8e396ee96ae8823916542a8df8095c6fbc8ec86f04bb5e771919d41d"
+      },
+      "actualBuilderUndeclaredSource": {
+        "status": "EXPECTED FAIL",
+        "reason": "Actual history builder rejected an isolated owned candidate clone with an undeclared consumed-source edit; file and own package link restored, shared source never mutated",
+        "logSha256": "4a7233e653edd8d82e84ae2e1b77d7d83bc88cd73b1369f2a3421dc3411f2d9c"
+      },
+      "ownedCandidateProvenanceTests": {
+        "status": "PASS",
+        "tests": 3,
+        "assertions": 5,
+        "logSha256": "faf2ca790a2c9f828faf4719808c8d23ef835fe579a5996e63a054d8726822f8"
+      },
+      "strictAuthoredTypecheck": {
+        "status": "PASS",
+        "logSha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+      },
+      "hostBuild": {
+        "status": "PASS",
+        "logSha256": "467954ddb2fb1cf2c6527756730bb0f33dbb2548b0ed67c4fa6aa37257eeaf32"
+      },
+      "nativeScope": "Native0004/source/schema unchanged; 10k/stress/full suite not repeated for this DSH gate-only change"
     }
   },
   "priorFinalRuns": {

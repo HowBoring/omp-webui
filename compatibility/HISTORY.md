@@ -135,8 +135,13 @@ runtime dependencies. This workspace used the verified #30 dependency cache read
 `vendor/omp/node_modules` and `vendor/omp-runtime` point to that pinned cache. Host dependencies use the read-only #33 cache after verifying its `bun.lock` equals this branch
 (the updated lock adds the shared interaction fixture dependencies). No global installation is modified.
 For this cache-reuse path, `compat:prepare --reset --source-only` resets only the owned ignored native checkout and
-applies every declared patch without touching dependencies. DSH public modules/build inputs use the verified clean
-#30 DSH checkout read-only. Bundles and screenshots stay ignored.
+applies every declared patch without touching dependencies. DSH public modules/build inputs now use the reviewed
+#39 complete candidate checkout read-only, through owned package links. `apps/history-fixture/build.ts` requires
+`verifyDshSource(resolvedRoot, "candidate")`; the persisted manifest records the full declared source identity as
+well as consumed inputs and asset hashes. A clean baseline or arbitrary dirty tree cannot satisfy that gate.
+The source-gate fault tests use a separate owned source-only reconstruction, never the shared runtime checkout.
+Build the declared DSH candidate with `scripts/prepare-dsh.sh`, or link an already verified/built read-only candidate,
+before building the history fixture. Bundles and screenshots stay ignored; the final manifest is retained as evidence.
 
 ```sh
 bun scripts/prepare-compatibility.ts --reset --source-only

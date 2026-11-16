@@ -24,10 +24,10 @@ association, which remains unproven. Memory observation is distinct from durable
 
 ## Reproduction and provenance
 
-Use Bun 1.4.4 and the fixed source pins. The workspace reuses verified #30 native/DSH dependency caches read-only
+Use Bun 1.4.4 and the fixed source pins. The workspace reuses the verified #30 native dependency cache and reviewed #39 DSH candidate read-only
 and a matching-lock #33 Host dependency cache; owned checkout/assets stay under ignored `vendor/`.
 The final integration merge also includes #39's DSH provenance tests. Those mutation tests use a separate owned
-source-only DSH baseline clone at `vendor/dsh` (no dependency copy); they never modify the shared build cache.
+source-only DSH candidate clone at `vendor/dsh` (no dependency copy); they never modify the shared build cache.
 Provide such an owned baseline/candidate clone, or set `DSH_SOURCE` to an owned clone, before running the complete
 repository suite.
 
@@ -44,8 +44,18 @@ bun --no-env-file check --no-script -p vendor/omp/packages/coding-agent/tsconfig
 
 The 141-test full suite (1,370 assertions) passed on integration `e65f0a8b`. The final current-integration
 `9d5e5eb1` merge adds #39's DSH source gate. Its three new tests (five assertions), strict authored typecheck,
-Host build, and another clean ordered native reset/build/schema check pass after that merge. Native/history fixture
-inputs, source/schema and browser asset identities remain identical; the final browser report attests that same tuple.
+Host build, and another clean ordered native reset/build/schema check pass after that merge. Native source/schema and consumed history browser asset identities remain unchanged.
+
+A subsequent source-gate audit found the history builder still required clean HEAD, which rejected the exact declared
+DSH candidate. It now requires canonical `verifyDshSource(actualResolvedRoot, "candidate")` and persists its full
+identity. Current reader proof uses candidate tree `c0b09e15c170a82894608c397a363a7a96e5d05c`, canonical identity
+`d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538`. The actual eight-page browser proof,
+three provenance tests on an owned candidate reconstruction, strict typecheck and Host build pass again. An
+undeclared consumed-source edit in that reconstruction makes the actual builder fail; the edit and own temporary
+package link were restored. Shared runtime source was never mutated. Per-package links are owned by this worktree.
+Native10k/stress/full-suite runs were not repeated for this gate-only change. The prior baseline reports are retained
+as `checkpoints/b5d7ed7-baseline-*`; they do not attest the current candidate source. Current full per-input build
+manifest is [dsh-build-manifest.json](../../apps/history-fixture/evidence/dsh-build-manifest.json).
 
 Actual browser/native commands require this environment's local network allowance for loopback, Bun stdio
 socketpairs and native Unix lock sockets. Fresh synthetic HOME/profile and allowlisted environment are established
