@@ -66,3 +66,20 @@ for (const operation of ["fork", "branch", "new_session"] as const) test(`native
     } finally { native.child.kill(); await native.child.exited; }
   } finally { await rm(home, { recursive: true, force: true }); }
 }, 20000);
+
+test("matched native tree navigation keeps the same identity and renders a logical export",async()=>{
+ const home=await mkdtemp(join(tmpdir(),"strict-native-tree-"));
+ try{const root=await nativeFixture(home),file=join(root,"bucket/native-0000.jsonl"),cwd=join(home,"project"),selected=await selectedDescriptor(home),setup=strictWorker(home,cwd,isolatedRuntimeArgs);
+  try{await negotiateStrict(setup);expect(await setup.request({type:"strict_start",intent:"continue",reference:selected.reference,expectedCwd:cwd})).toMatchObject({success:true});expect(await setup.request({type:"set_session_name",name:"Native navigation generation"})).toMatchObject({success:true});await setup.close();}finally{setup.child.kill();await setup.child.exited;}
+  const native=strictWorker(home,cwd,isolatedRuntimeArgs,file);
+  try{await negotiateStrict(native);expect(await native.request({type:"get_tree"})).toMatchObject({success:true});
+   expect(await native.request({type:"navigate_tree",entryId:"entry-0",summarize:false})).toMatchObject({success:true,data:{cancelled:false}});
+   expect(await native.request({type:"get_state"})).toMatchObject({success:true,data:{sessionId:"native-0000",sessionFile:file}});
+   expect(await native.request({type:"get_entries"})).toMatchObject({data:{entries:expect.arrayContaining([expect.objectContaining({id:"entry-0"})])}});
+   expect((await native.close()).code).toBe(0);
+  }finally{native.child.kill();await native.child.exited;}
+  const rendered=Bun.spawn([process.execPath,"--no-env-file","--preload",new URL("../../compatibility/omp/fixtures/no-provider.ts",import.meta.url).pathname,new URL("../../vendor/omp-candidate/cli.js",import.meta.url).pathname,"render",file,"--plain"],{cwd,env:{HOME:home,TMPDIR:home,PATH:"/usr/bin:/bin",BUN_RUNTIME_TRANSPILER_CACHE_PATH:"0"},stdin:"ignore",stdout:"pipe",stderr:"pipe"});
+  const [output,errors,code]=await Promise.all([new Response(rendered.stdout).text(),new Response(rendered.stderr).text(),rendered.exited]);if(code)throw new Error(errors);expect(output).toContain("Synthetic fixture input");expect(output).not.toContain("omp_generation_commit");
+  expect((await selectedDescriptor(home)).instanceId).toBe(selected.instanceId);
+ }finally{await rm(home,{recursive:true,force:true});}
+},30_000);

@@ -35,10 +35,15 @@ index 0000000000..383f9f8c70
 +
 +The `ompgen2` discriminator prevents unsupported generation readers from opening submission-bearing data. Matched native copies retain origin facts and tombstones; a copied fact is inherited, never an admission into the destination. An unsupported required feature is refused. Product private admission remains blocked pending combined native/TUI/browser/fault acceptance.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-index da698774f5..6722130805 100644
+index da698774f5..9a9a41d2df 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-@@ -52,7 +52,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+@@ -1,3 +1,4 @@
++import { nativeSessionHeader } from "../../session/session-required-features";
+ /** Native readonly descriptor implementation. Never calls SessionManager/load/migrate/repair. */
+ import * as fs from "node:fs/promises";
+ import { openWithin } from "./catalog-path";
+@@ -52,7 +53,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
      const bytes = Buffer.alloc(HEADER_BYTES);
      const { bytesRead } = await file.read(bytes, 0, bytes.length, 0);
      let prefix: Buffer = bytes.subarray(0, bytesRead);
@@ -47,6 +52,15 @@ index da698774f5..6722130805 100644
        const parent = await openWithin(source.root, source.rootIdentity, nodePath.dirname(target), true);
        try { prefix = readHeldGenerationMetadata(file.fd, parent.fd, target, HEADER_BYTES, prefix); }
        finally { await parent.close(); }
+@@ -65,7 +66,7 @@ export async function readDescriptor(source: NativeSource, path: string): Promis
+     const start = slot ? firstEnd+1 : 0;
+     const end = slot ? prefix.indexOf(10, start) : firstEnd;
+     if (end < 0) throw new Error("HEADER_LIMIT");
+-    const value: unknown = JSON.parse(slot ? decoder.decode(prefix.subarray(start, end)) : firstLine);
++    const value: unknown = nativeSessionHeader(JSON.parse(slot ? decoder.decode(prefix.subarray(start, end)) : firstLine));
+     if (!isRecord(value) || value.type !== "session"
+       || !("id" in value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128
+       || !("timestamp" in value) || typeof value.timestamp !== "string" || !Number.isFinite(Date.parse(value.timestamp))) {
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 index 3a336fa764..c7c988cddf 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
@@ -173,10 +187,10 @@ index 3a336fa764..c7c988cddf 100644
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..ad295b6910
+index 0000000000..df3e222593
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,115 @@
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
 +import type { AgentSession } from "../../session/agent-session";
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
@@ -265,18 +279,26 @@ index 0000000000..ad295b6910
 +    const target = this.session.sessionManager.getSubmissionTarget();
 +    let state;
 +    try { state = this.session.sessionManager.readSubmissionState(); }
-+    catch { return { version: "durable-submission-v1", clientSubmissionId, found: false, duplicate, admission: "absent",
++    catch { return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
 +      reservation: "unknown", inputOutcome: "unresolved", persistence: "unknown", terminal: false, relations: [], nextOffset: null,
 +      code: "SUBMISSION_SOURCE_UNREADABLE" }; }
 +    const value = state.header.nativeSubmissions?.find(item => item.origin.clientSubmissionId === clientSubmissionId);
-+    if (!value) return { version: "durable-submission-v1", clientSubmissionId, found: false, duplicate, admission: "absent",
++    if (!value) return { version: "durable-submission-v1", clientSubmissionId, target, found: false, duplicate, admission: "absent",
 +      reservation: "absent", inputOutcome: "unresolved", persistence: "unresolved", terminal: false, relations: [], nextOffset: null };
-+    const relations: SubmissionResult["relations"] = state.entries.flatMap(entry => entry.submission
-+      && sameSubmission(entry.submission.origin, value.origin) ? [{ relationId: `entry:${entry.id}`, role: entry.submission.role,
-+        status: "observed" as const, persistence: "committed" as const, entryId: entry.id }] : []);
++    const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
++    const retained = new Set(durableEntries.map(entry => entry.id));
++    const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
++    for (const entry of durableEntries) facts.set(entry.id, { entryId: entry.id, role: entry.submission!.role });
++    const relations: SubmissionResult["relations"] = [...facts.values()].map(fact => ({ relationId: `entry:${fact.entryId}`,
++      role: fact.role, status: "observed", persistence: "committed", entryId: fact.entryId,
++      availability: retained.has(fact.entryId) ? "retained" : "removed" }));
++    for (const entry of this.session.sessionManager.getEntries()) {
++      if (facts.has(entry.id) || !entry.submission || !sameSubmission(entry.submission.origin, value.origin)) continue;
++      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id });
++    }
 +    relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
 +    const end = Math.min(offset + limit, relations.length);
-+    return { version: "durable-submission-v1", clientSubmissionId, found: true, duplicate,
++    return { version: "durable-submission-v1", clientSubmissionId, target, found: true, duplicate,
 +      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
 +        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
 +      reservation: "committed", inputOutcome: value.inputOutcome, terminal: value.terminal,
@@ -309,6 +331,24 @@ index efccf79be7..1e974cbbf6 100644
    | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
    | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
    | { id?: string; type: "response"; command: "history_snapshot_page"; success: true; data: HistoryPage }
+diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
+index 85ec6f16b7..805e4f382b 100644
+--- a/packages/coding-agent/src/modes/rpc/strict-reservation.ts
++++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
+@@ -1,3 +1,4 @@
++import { nativeSessionHeader } from "../../session/session-required-features";
+ import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
+ /** Exact-instance ownership acquired before ordinary Session or extension initialization. */
+ import * as fs from "node:fs";
+@@ -118,7 +119,7 @@ export class StrictReservation {
+     const source: NativeSource = { root, rootIdentity, sourceId: hash(`native-explicit:${root}:${rootIdentity}`) };
+     let header: unknown;
+     for (const line of body.split("\n", 3).slice(0, 2)) {
+-      const candidate: unknown = JSON.parse(line);
++      const candidate: unknown = nativeSessionHeader(JSON.parse(line));
+       if (typeof candidate === "object" && candidate !== null && "type" in candidate && candidate.type === "session") header = candidate;
+     }
+     if (typeof header !== "object" || header === null || !("id" in header) || typeof header.id !== "string"
 diff --git a/packages/coding-agent/src/modes/rpc/submission-client.ts b/packages/coding-agent/src/modes/rpc/submission-client.ts
 new file mode 100644
 index 0000000000..6f087cad80
@@ -370,7 +410,7 @@ index 1e7b675bc3..afeae50dfa 100644
  		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 new file mode 100644
-index 0000000000..daac1e1ba3
+index 0000000000..aee437dbda
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 @@ -0,0 +1,18 @@
@@ -378,8 +418,8 @@ index 0000000000..daac1e1ba3
 +export const submissionDefs = {
 +  SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
 +  SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
-+    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "reason?": "string" },
-+  SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", found: "boolean", duplicate: "boolean",
++    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
++  SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", target: "SubmissionTarget", found: "boolean", duplicate: "boolean",
 +    admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
 +    inputOutcome: "'unresolved' | 'generated' | 'no_input'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
 +    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
@@ -393,7 +433,7 @@ index 0000000000..daac1e1ba3
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index a4fc26d8d8..85b1cedb56 100644
+index 4d95cfdb33..f1ea7e4ca7 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
@@ -473,6 +513,19 @@ index a4fc26d8d8..85b1cedb56 100644
  		if (this.isStreaming) {
  			// Queued into a turn the agent owns: that turn holds the session. Busy only
  			// from another prompt's setup claims nothing (that prompt decides).
+diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
+index a96b149784..8ee431f9de 100644
+--- a/packages/coding-agent/src/session/session-artifact-copy.ts
++++ b/packages/coding-agent/src/session/session-artifact-copy.ts
+@@ -54,7 +54,7 @@ export function prepareGenerationArtifactTree(source: string): PreparedGeneratio
+             if (item.name.endsWith(".jsonl")) {
+               const prefix = Buffer.alloc(16_384), count = fs.readSync(fd, prefix, 0, prefix.length, 0);
+               const leading = prefix.subarray(0, count);
+-              const nativePrefix = /"type"\s*:\s*"ompgen1"/.test(leading.toString("utf8"))
++              const nativePrefix = /"type"\s*:\s*"ompgen[12]"/.test(leading.toString("utf8"))
+                 ? readHeldGenerationMetadata(fd, parent.fd, path.join(source, childRelative), 16_384, leading) : leading;
+               const nativeId = sessionHeaderIdFromPrefix(nativePrefix); if (nativeId) { entry.nativeId = nativeId; entry.fd = fd; }
+             }
 diff --git a/packages/coding-agent/src/session/session-entries.ts b/packages/coding-agent/src/session/session-entries.ts
 index 6b96d2abb9..61e02dcd7b 100644
 --- a/packages/coding-agent/src/session/session-entries.ts
@@ -502,7 +555,7 @@ index 6b96d2abb9..61e02dcd7b 100644
  	id: string;
  	parentId: string | null;
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
-index b1c89d5402..331d972752 100644
+index d55b3aaa04..74d4eb69f8 100644
 --- a/packages/coding-agent/src/session/session-generation.ts
 +++ b/packages/coding-agent/src/session/session-generation.ts
 @@ -9,6 +9,8 @@ export const generationBudgets = Object.freeze({ bodyBytes: strictStartupPolicy.
@@ -519,7 +572,7 @@ index b1c89d5402..331d972752 100644
      fd = fs.openSync(file, "r");
      const bytes = Buffer.alloc(16_384), count = fs.readSync(fd, bytes, 0, bytes.length, 0);
 -    return /"type"\s*:\s*"ompgen1"/.test(bytes.subarray(0, count).toString("utf8"));
-+    return /"type"\s*:\s*"ompgen[12]"/.test(bytes.subarray(0, count).toString("utf8"));
++    return /"type"\s*:\s*"(?:ompgen[12]|ompsub1)"/.test(bytes.subarray(0, count).toString("utf8"));
    } finally { if (fd !== undefined) fs.closeSync(fd); }
  }
  export function carrierIdentity(fd: number): string {
@@ -528,7 +581,7 @@ index b1c89d5402..331d972752 100644
    for (const line of text.split("\n", 3).slice(0, 2)) {
      let value: unknown; try { value = JSON.parse(line); } catch { continue; }
 -    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE) && typeof value.id === "string") return value.id;
-+    if (isRecord(value) && (value.type === "session" || isCarrierType(value.type)) && typeof value.id === "string") return value.id;
++    if (isRecord(value) && (value.type === "session" || value.type === "ompsub1" || isCarrierType(value.type)) && typeof value.id === "string") return value.id;
    }
    throw new Error("GENERATION_NATIVE_HEADER_INVALID");
  }
@@ -537,7 +590,7 @@ index b1c89d5402..331d972752 100644
    return true;
  }
 -interface HeaderPosition { type: "session" | "ompgen1"; valueOffset: number }
-+interface HeaderPosition { type: "session" | "ompgen1" | "ompgen2"; valueOffset: number }
++interface HeaderPosition { type: "session" | "ompsub1" | "ompgen1" | "ompgen2"; valueOffset: number }
  function headerPosition(bytes: Buffer): HeaderPosition {
    let start = 0;
    for (let index = 0; index < 2; index++) {
@@ -547,11 +600,20 @@ index b1c89d5402..331d972752 100644
      const value: unknown = JSON.parse(line);
 -    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE)) {
 -      const match = /"type"\s*:\s*"(session|ompgen1)"/.exec(line);
-+    if (isRecord(value) && (value.type === "session" || isCarrierType(value.type))) {
-+      const match = /"type"\s*:\s*"(session|ompgen[12])"/.exec(line);
++    if (isRecord(value) && (value.type === "session" || value.type === "ompsub1" || isCarrierType(value.type))) {
++      const match = /"type"\s*:\s*"(session|ompsub1|ompgen[12])"/.exec(line);
        if (!match) throw new Error("GENERATION_HEADER_ENCODING_UNSUPPORTED");
        const textOffset = match.index + match[0].lastIndexOf(value.type);
        return { type: value.type, valueOffset: start + Buffer.byteLength(line.slice(0, textOffset)) };
+@@ -156,7 +158,7 @@ export function readHeldGenerationMetadata(fd: number, parentFd: number, file: s
+   const prefix = knownPrefix ?? Buffer.alloc(maximum);
+   const count = knownPrefix ? knownPrefix.length : fs.readSync(fd, prefix, 0, prefix.length, 0);
+   const bytes = prefix.subarray(0, count), header = headerPosition(bytes);
+-  if (header.type === "session") return bytes;
++  if (header.type === "session" || header.type === "ompsub1") return bytes;
+   const head = readHead(fd);
+   if (!head) throw new Error("GENERATION_CONTROL_MISSING");
+   const committed = committedHead(fd, head);
 @@ -190,10 +192,10 @@ export function resolveHeldGeneration(fd: number, parentFd: number, file: string
    const complete = bytes.lastIndexOf(10) + 1;
    const header = headerPosition(bytes);
@@ -582,32 +644,78 @@ index b1c89d5402..331d972752 100644
      }
      writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
      const confirmed = resolveHeldGeneration(fd, parentFd, file);
+@@ -326,7 +331,7 @@ export function assertPlainArtifactTree(directory: string): void {
+           const child = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
+           try {
+             const prefix = Buffer.alloc(16_384), count = fs.readSync(child, prefix, 0, prefix.length, 0);
+-            if (/"type"\s*:\s*"ompgen1"/.test(prefix.subarray(0, count).toString("utf8")))
++            if (/"type"\s*:\s*"(?:ompgen[12]|ompsub1)"/.test(prefix.subarray(0, count).toString("utf8")))
+               throw new Error("GENERATION_NESTED_ARTIFACTS_UNSUPPORTED");
+           } finally { fs.closeSync(child); }
+         }
+diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
+index 5edcfcf2c7..cde2a95af8 100644
+--- a/packages/coding-agent/src/session/session-header-id.ts
++++ b/packages/coding-agent/src/session/session-header-id.ts
+@@ -1,3 +1,4 @@
++import { nativeSessionHeader } from "./session-required-features";
+ import { isGenerationCarrier, readNativeGenerationPrefix } from "./session-generation";
+ import { jsonContainerEnd, peekFileSync, tryParseJson } from "@oh-my-pi/pi-utils";
+ import type { FileEntry, SessionHeader } from "./session-entries";
+@@ -7,7 +8,7 @@ import { parseTitleSlotLine } from "./session-title-slot";
+ export const SESSION_HEADER_READ_LIMIT = 1024 * 1024;
+ 
+ function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
+-	return entry?.type === "session" && typeof entry.id === "string";
++	return nativeSessionHeader(entry) !== undefined;
+ }
+ 
+ /**
 diff --git a/packages/coding-agent/src/session/session-loader.ts b/packages/coding-agent/src/session/session-loader.ts
-index 219391d0e2..4cb2657702 100644
+index 219391d0e2..8172323d5d 100644
 --- a/packages/coding-agent/src/session/session-loader.ts
 +++ b/packages/coding-agent/src/session/session-loader.ts
-@@ -146,7 +146,9 @@ function splitTitleSlot(content: string): { body: string; slot: SessionTitleUpda
+@@ -1,3 +1,4 @@
++import { nativeSessionHeader } from "./session-required-features";
+ import { isGenerationCarrier, readNativeGeneration, readNativeGenerationPrefix } from "./session-generation";
+ import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
+ import * as fs from "node:fs/promises";
+@@ -146,7 +147,9 @@ function splitTitleSlot(content: string): { body: string; slot: SessionTitleUpda
  }
  
  function isValidSessionHeader(entry: FileEntry | undefined): entry is SessionHeader {
 -	return entry?.type === "session" && typeof entry.id === "string";
-+	if (entry?.type === "session" && entry.requiredFeatures?.some(feature => feature !== "durable-submission-v1"))
-+    throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
-+  return entry?.type === "session" && typeof entry.id === "string";
++  const header = nativeSessionHeader(entry);
++  if (!header || !entry) return false;
++  Object.assign(entry, header); return true;
  }
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index e78111ac3c..2aff25bde6 100644
+index 920af33554..8401de4dd8 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,3 +1,5 @@
+@@ -1,6 +1,8 @@
++import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
 +import { causalSubmission, sameSubmission } from "./submission-provenance";
 +import type { NativeSubmission, SubmissionOrigin, SubmissionTarget } from "./submission-provenance";
  import { nativeHistoryContextId } from "./history-context";
  import { associateMessageEntry } from "./live-message-observation";
+-import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
  import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
-@@ -2207,6 +2209,7 @@ export class SessionManager {
+ import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
+ import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
+@@ -1617,7 +1619,8 @@ export class SessionManager {
+ 	}
+ 
+ 	#lineFor(entry: FileEntry): string {
+-		return `${stringifyJson(prepareEntryForPersistence(entry, this.#blobs)) ?? "null"}\n`;
++		const durable = entry.type === "session" && entry.nativeSubmissions ? { ...entry, type: "ompsub1" } : entry;
++		return `${stringifyJson(prepareEntryForPersistence(durable as FileEntry, this.#blobs)) ?? "null"}\n`;
+ 	}
+ 	#recordDurableAppend(line: string): void {
+ 		this.#expectedDiskSize = (this.#expectedDiskSize ?? 0) + Buffer.byteLength(line, "utf8");
+@@ -2225,6 +2228,7 @@ export class SessionManager {
  		if (entry.type === "message" && entry.message.role === "assistant" && normalizeAssistantUsage(entry.message)) {
  			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
  		}
@@ -615,7 +723,41 @@ index e78111ac3c..2aff25bde6 100644
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2919,6 +2922,8 @@ export class SessionManager {
+@@ -2392,6 +2396,8 @@ export class SessionManager {
+ 	}
+ 
+ 	restoreState(snapshot: SessionManagerStateSnapshot): void {
++		const tombstones = this.#header?.id === snapshot.header.id ? this.#header.nativeSubmissions : undefined;
++		if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
+ 		this.#closeWriterEventually();
+ 		this.#diskTail = Promise.resolve();
+ 		this.#clearDiskError();
+@@ -2407,7 +2413,14 @@ export class SessionManager {
+ 		this.#fallbackRuntimeOnly = snapshot.fallbackRuntimeOnly;
+ 		// A completed moveTo drops the stash, so a rollback restores it here.
+ 		this.#taskSiblingCandidate = snapshot.taskSiblingCandidate;
+-		this.#applyEntries(snapshot.header, [...snapshot.entries]);
++		const restoredHeader = structuredClone(snapshot.header);
++		if (tombstones?.length) {
++			const records = new Map((restoredHeader.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
++			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
++			restoredHeader.nativeSubmissions = [...records.values()];
++			restoredHeader.requiredFeatures = ["durable-submission-v1"];
++		}
++		this.#applyEntries(restoredHeader, [...snapshot.entries]);
+ 		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
+ 		this.#sessionName = snapshot.sessionName;
+ 
+@@ -2677,6 +2690,8 @@ export class SessionManager {
+ 			parentSession: parentSessionId,
+ 			providerPromptCacheKey: SessionManager.getInheritedProviderPromptCacheKey(this.#header),
+ 			taskPromptCacheKey: this.#header.taskPromptCacheKey,
++			nativeSubmissions: structuredClone(this.#header.nativeSubmissions),
++			requiredFeatures: structuredClone(this.#header.requiredFeatures),
+ 		};
+ 		this.#sessionName = this.#header.title;
+ 		this.#titleSource = this.#header.titleSource;
+@@ -2941,14 +2956,27 @@ export class SessionManager {
  		manager.#additionalDirectories = [...this.#additionalDirectories];
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
@@ -624,7 +766,26 @@ index e78111ac3c..2aff25bde6 100644
  		manager.#entries = structuredClone(this.#entries);
  		manager.#index.rebuild(manager.#entries);
  		manager.#historyChanged("rebuild", true);
-@@ -4171,6 +4176,74 @@ export class SessionManager {
+ 		manager.#forceFileCreation = true;
++		manager.#materializeSubmissionCopy();
+ 		await manager.#rewriteAtomically();
+ 		return manager;
+ 	}
+ 
++	/** Native ledger copies require a fresh protected target rather than a pathname-based atomic rename. */
++	#materializeSubmissionCopy(): void {
++		if (!this.#header.nativeSubmissions || this.#storage instanceof StrictSessionStorage) return;
++		if (!this.#sessionFile) throw new Error("SUBMISSION_COPY_TARGET_MISSING");
++		const body = this.#serializeBody();
++		const storage = createExplicitNativeStorage(this.#sessionFile, body.lines.join(""), this.#cwd);
++		this.#storage = storage; this.#strictContinuation = () => storage.assertCurrent();
++		this.#expectedDiskSize = body.bytes; this.#fileIsCurrent = true;
++	}
++
+ 	/**
+ 	 * Stage a synchronous group of entry appends and publish the resulting full
+ 	 * journal with one atomic replace. A failed publish removes only the staged
+@@ -4193,6 +4221,79 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -633,7 +794,7 @@ index e78111ac3c..2aff25bde6 100644
 +		if (!(this.#storage instanceof StrictSessionStorage) || !this.#persist || !this.#sessionFile)
 +			throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
 +		this.#storage.assertCurrent();
-+		const binding = this.#historySourceBinding;
++		const binding = this.#historySourceBinding ?? this.#storage.submissionTarget();
 +		if (!binding || binding.nativeSessionId !== this.#sessionId) throw new Error("SUBMISSION_TARGET_UNAVAILABLE");
 +		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
 +	}
@@ -663,9 +824,14 @@ index e78111ac3c..2aff25bde6 100644
 +			if (!value) throw new Error("SUBMISSION_RESERVATION_MISSING");
 +			if (noEntries.length > 32 || Buffer.byteLength(JSON.stringify(noEntries)) > 4096)
 +				throw new Error("SUBMISSION_RELATION_LIMIT");
-+			value.noEntries = structuredClone(noEntries); value.inputOutcome = outcome; value.terminal = true;
-+			if (Buffer.byteLength(JSON.stringify(this.#header.nativeSubmissions)) > 12_000)
++			const entryFacts = this.#entries.flatMap(entry => entry.submission && sameSubmission(entry.submission.origin, origin)
++				? [{ entryId: entry.id, role: entry.submission.role }] : []);
++			if (entryFacts.length > 64) throw new Error("SUBMISSION_RELATION_LIMIT");
++			const completed = { ...value, entryFacts, noEntries: structuredClone(noEntries), inputOutcome: outcome, terminal: true };
++			const next = this.#header.nativeSubmissions!.map(item => item === value ? completed : item);
++			if (Buffer.byteLength(JSON.stringify(next)) > 12_000)
 +				throw new Error("SUBMISSION_METADATA_LIMIT");
++			this.#header.nativeSubmissions = next;
 +			await this.#publishSubmissionState();
 +		});
 +	}
@@ -699,7 +865,7 @@ index e78111ac3c..2aff25bde6 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4415,6 +4488,8 @@ export class SessionManager {
+@@ -4439,6 +4540,8 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -708,9 +874,78 @@ index e78111ac3c..2aff25bde6 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
+@@ -4574,6 +4677,8 @@ export class SessionManager {
+ 			},
+ 			options?.sessionFile,
+ 		);
++		manager.#header.nativeSubmissions = structuredClone(sourceHeader?.nativeSubmissions);
++		manager.#header.requiredFeatures = structuredClone(sourceHeader?.requiredFeatures);
+ 		manager.#header.title = sourceHeader?.title;
+ 		manager.#header.titleSource = sourceHeader?.titleSource;
+ 		manager.#additionalDirectories = options?.seance
+@@ -4599,6 +4704,7 @@ export class SessionManager {
+ 			manager.#historyChanged("rebuild", true);
+ 		}
+ 		manager.#forceFileCreation = true;
++		manager.#materializeSubmissionCopy();
+ 		await manager.#rewriteAtomically();
+ 		if (!options?.seance && options?.copyArtifacts !== false) {
+ 			await copySessionArtifacts(sourcePath, manager.#sessionFile!);
+diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
+new file mode 100644
+index 0000000000..372eecb1ad
+--- /dev/null
++++ b/packages/coding-agent/src/session/session-required-features.ts
+@@ -0,0 +1,34 @@
++/** Shared pure header decoder. Unsupported rollback sees ompsub1 instead of a usable session header. */
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import type { SessionHeader } from "./session-entries";
++export function nativeSessionHeader(value: unknown): SessionHeader | undefined {
++  if (!isRecord(value) || (value.type !== "session" && value.type !== "ompsub1") || typeof value.id !== "string") return;
++  if (value.requiredFeatures !== undefined && (!Array.isArray(value.requiredFeatures)
++    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
++  if (value.type === "ompsub1" && (!Array.isArray(value.requiredFeatures)
++    || !value.requiredFeatures.includes("durable-submission-v1") || !Array.isArray(value.nativeSubmissions)))
++    throw new Error("SUBMISSION_METADATA_CORRUPT");
++  if (value.nativeSubmissions !== undefined) {
++    if (!Array.isArray(value.nativeSubmissions) || value.nativeSubmissions.length > 16
++      || Buffer.byteLength(JSON.stringify(value.nativeSubmissions)) > 12_000) throw new Error("SUBMISSION_METADATA_CORRUPT");
++    const ids = new Set<string>();
++    for (const item of value.nativeSubmissions) {
++      if (!isRecord(item) || !isRecord(item.origin) || typeof item.origin.clientSubmissionId !== "string"
++        || !/^[A-Za-z0-9_-]{1,96}$/.test(item.origin.clientSubmissionId) || ids.has(item.origin.clientSubmissionId)
++        || typeof item.origin.sourceId !== "string" || !/^[a-f0-9]{64}$/.test(item.origin.sourceId)
++        || typeof item.origin.instanceId !== "string" || !/^[a-f0-9]{64}$/.test(item.origin.instanceId)
++        || typeof item.origin.nativeSessionId !== "string" || typeof item.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(item.fingerprint)
++        || typeof item.preparationId !== "string" || typeof item.terminal !== "boolean"
++        || !["generated", "no_input", "unresolved"].includes(String(item.inputOutcome))
++        || !Array.isArray(item.noEntries) || item.noEntries.length > 32) throw new Error("SUBMISSION_METADATA_CORRUPT");
++      if (item.entryFacts !== undefined && (!Array.isArray(item.entryFacts) || item.entryFacts.length > 64
++        || item.entryFacts.some(fact => !isRecord(fact) || typeof fact.entryId !== "string" || typeof fact.role !== "string")))
++        throw new Error("SUBMISSION_METADATA_CORRUPT");
++      ids.add(item.origin.clientSubmissionId);
++      for (const relation of item.noEntries) if (!isRecord(relation) || typeof relation.relationId !== "string"
++        || typeof relation.role !== "string" || !["no_entry", "failed"].includes(String(relation.status)) || typeof relation.reason !== "string")
++        throw new Error("SUBMISSION_METADATA_CORRUPT");
++    }
++  }
++  return { ...value, type: "session" } as SessionHeader;
++}
+diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
+index f62d357da0..850248acf1 100644
+--- a/packages/coding-agent/src/session/strict-session-storage.ts
++++ b/packages/coding-agent/src/session/strict-session-storage.ts
+@@ -11,6 +11,7 @@ export class StrictSessionStorage implements SessionStorage {
+   #retired = false;
+   constructor(reservation: StrictReservation, readonly allowExplicitNativeTransitions = false, readonly catalogBinding = true) { this.#reservation = reservation; }
+   assertCurrent(): void { this.#reservation.assertCurrent(); }
++  submissionTarget() { return this.#reservation.verifiedSourceBinding(); }
+   verifiedSourceBinding() { return this.catalogBinding ? this.#reservation.verifiedSourceBinding() : undefined; }
+   async releaseSessionOwnership(): Promise<void> { this.#retired = true; await this.#reservation.release(); }
+   #check(file: string): void { this.#reservation.assertCurrent(file); }
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
 new file mode 100644
-index 0000000000..13352883bc
+index 0000000000..f206dfba1e
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
 @@ -0,0 +1,41 @@
@@ -723,7 +958,7 @@ index 0000000000..13352883bc
 +export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
 +export interface NativeSubmission {
 +  origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
-+  inputOutcome: "unresolved" | "generated" | "no_input"; noEntries: SubmissionNoEntry[];
++  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
 +}
 +const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
 +const originals = new WeakMap<object, SubmissionCausality>();

@@ -4319,6 +4319,13 @@
         "entryId": {
           "type": "string"
         },
+        "availability": {
+          "enum": [
+            "retained",
+            "removed"
+          ],
+          "type": "string"
+        },
         "reason": {
           "type": "string"
         }
@@ -4338,6 +4345,9 @@
         },
         "clientSubmissionId": {
           "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/SubmissionTarget"
         },
         "found": {
           "type": "boolean"
@@ -4407,6 +4417,7 @@
       "required": [
         "version",
         "clientSubmissionId",
+        "target",
         "found",
         "duplicate",
         "admission",

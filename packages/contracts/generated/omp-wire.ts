@@ -926,12 +926,14 @@ export interface SubmissionRelation {
 	status: "observed" | "no_entry" | "failed";
 	persistence: "committed" | "observed" | "failed" | "unknown";
 	entryId?: string;
+	availability?: "retained" | "removed";
 	reason?: string;
 }
 
 export interface SubmissionResult {
 	version: "durable-submission-v1";
 	clientSubmissionId: string;
+	target: SubmissionTarget;
 	found: boolean;
 	duplicate: boolean;
 	admission: "local" | "inherited" | "absent";

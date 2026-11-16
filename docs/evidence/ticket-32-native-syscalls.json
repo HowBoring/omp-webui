@@ -1,0 +1,21 @@
+{
+  "kind": "actual-owned-native-syscall-observation",
+  "source": "https://omp.sh/schemas/rpc-wire.json",
+  "INETCalls": 0,
+  "xattrCalls": 19,
+  "nativeControlWrites": 2,
+  "traceFiles": 101,
+  "tracesSha256": "66a61270ce201bff982479eba46e8fa3e57767b74cba004d1b75f6e9e6f91ec9",
+  "samples": {
+    "xattrs": [
+      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d06400, 1024) = -1 ENODATA (No data available)",
+      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d08400, 1024) = -1 ENODATA (No data available)",
+      "fgetxattr(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"user.omp-generation-v1\", 0x41e13d09800, 1024) = -1 ENODATA (No data available)"
+    ],
+    "controlWrites": [
+      "pwrite64(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"ompgen1\", 7, 265) = 7",
+      "pwrite64(14</tmp/strict-generation-6GTOBB/.omp/agent/sessions/bucket/native-0000.jsonl>, \"{\\\"type\\\":\\\"omp_generation_commit\\\",\\\"version\\\":1,\\\"token\\\":\\\"832de544-274e-4e24-9d75-d499988dd35a\\\",\\\"offset\\\":620,\\\"metadataSha256\\\":\\\"6855baf37d768b37192bfb17d8da53ed28c14c\"..., 267, 620) = 267"
+    ]
+  },
+  "scope": "one successful strict generation publication/reopen test; Linux synthetic HOME/cwd, pre-import provider guard; no power-loss claim"
+}

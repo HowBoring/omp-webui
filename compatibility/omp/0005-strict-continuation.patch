@@ -13,10 +13,10 @@ index 610cb9cd74..7bf62df069 100644
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/docs/rpc-strict-start.md b/packages/coding-agent/docs/rpc-strict-start.md
 new file mode 100644
-index 0000000000..3048e2860a
+index 0000000000..379d840aeb
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-strict-start.md
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,35 @@
 +# Deferred strict rpc-ui startup (isolated Linux prototype)
 +
 +Launch the normal interactive mode with `--mode rpc-ui --strict-start`. The first ready frame exposes
@@ -50,6 +50,8 @@ index 0000000000..3048e2860a
 +multi-link full publication refuses. A raw carrier copy/restore is not a backup: even losing xattr AND sidecars
 +retains `ompgen1`, making baseline TUI refuse stale history. Use native flattened pack/render export under ownership.
 +Rollback requires a verified flattened export and exclusive access, not an older binary over extended data.
++
++Nested extended artifact Sessions are logically flattened for explicit native copy/fork/branch-copy operations. Real child leases and complete shared-reader cuts are prepared before destination publication; occupied/unknown/corrupt/budget cases refuse. Fresh files use Linux O_TMPFILE plus fd-bound linkat with no-clobber names; there is no rename/unlink/truncate fallback. Copy is bounded to8192 entries/256 directories/32 levels/64 native children/128MiB total body. Generic archive pack of nested extended artifacts currently refuses; parent-only flattened pack is supported. Native branch without copyArtifacts retains its ordinary no-copy semantics.
 diff --git a/packages/coding-agent/src/activity/index.ts b/packages/coding-agent/src/activity/index.ts
 index d729b075f6..eb159822bc 100644
 --- a/packages/coding-agent/src/activity/index.ts
@@ -826,10 +828,10 @@ index 0000000000..4763326da8
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..6bd8965ce4
+index 0000000000..85ec6f16b7
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,290 @@
+@@ -0,0 +1,291 @@
 +import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
 +import * as fs from "node:fs";
@@ -973,7 +975,7 @@ index 0000000000..6bd8965ce4
 +        aliases: [path.basename(filePath)], cwd: { status: "known", recorded: cwd, canonical: cwd },
 +        createdAt: header.timestamp, modifiedAt: observedAt, observedAt, ownership: { state: "held", observedAt } };
 +      const reservation = new StrictReservation(source, filePath, descriptor, undefined, lease, fd, cwdFd, cwd);
-+      reservation.writeAt(body, 0); reservation.read(); return reservation;
++      reservation.#writeAt(body, 0); reservation.read(); return reservation;
 +    } catch (error) {
 +      if (fd !== undefined) fs.closeSync(fd);
 +      if (cwdFd !== undefined) fs.closeSync(cwdFd);
@@ -1090,12 +1092,13 @@ index 0000000000..6bd8965ce4
 +    if (start + Buffer.byteLength(line) > generationBudgets.carrierBytes) throw new Error("GENERATION_CARRIER_LIMIT");
 +    const last = Buffer.alloc(1);
 +    if (start > 0 && (fs.readSync(this.#fd, last, 0, 1, start - 1) !== 1 || last[0] !== 10)) throw new Error("GENERATION_INCOMPLETE_TAIL");
-+    this.writeAt(line, start);
++    this.#writeAt(line, start);
 +  }
 +
-+  /** Existing native title slots are fixed-width positional writes, never a new target or full rewrite. */
-+  writeAt(line: string, start: number): void {
++  /** Append or initialize an exclusively created carrier; existing body bytes are never overwritten here. */
++  #writeAt(line: string, start: number): void {
 +    this.assertCurrent();
++    if (start !== fs.fstatSync(this.#fd).size) throw new Error("STRICT_NON_APPEND_WRITE_FORBIDDEN");
 +    const bytes = Buffer.from(line, "utf8");
 +    this.#writeAttempted = true;
 +    try {
@@ -1232,6 +1235,19 @@ index 0000000000..e4133efd3a
 +  { name: "get_strict_state", doc: "Observe this worker's truthful startup outcome; never retries an operation.", result: "StrictStartState" },
 +  { name: "cancel_strict_start", doc: "Cancel pending startup; already published side effects remain explicit.", result: "StrictStartState" },
 +] as const;
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index 4446c01159..42445be79c 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -12545,7 +12545,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			// under a fresh id, so the work already produced is still this session's.
+ 			this.#recovery.reanchorServedAttribution(previousSessionId);
+ 
+-			await copySessionArtifacts(forkResult.oldSessionFile, forkResult.newSessionFile);
++			if (!forkResult.artifactsCopied) await copySessionArtifacts(forkResult.oldSessionFile, forkResult.newSessionFile);
+ 
+ 			// Update agent session ID
+ 			this.#freshProviderSessionId = undefined;
 diff --git a/packages/coding-agent/src/session/generation-storage-factory.ts b/packages/coding-agent/src/session/generation-storage-factory.ts
 new file mode 100644
 index 0000000000..f1bfa72a94
@@ -1259,6 +1275,152 @@ index 0000000000..f1bfa72a94
 +export function createExplicitNativeStorage(filePath: string, body: string, cwd: string): StrictSessionStorage {
 +  return new StrictSessionStorage(StrictReservation.createNativeFileSync(filePath, body, cwd), true, false);
 +}
+diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
+new file mode 100644
+index 0000000000..a96b149784
+--- /dev/null
++++ b/packages/coding-agent/src/session/session-artifact-copy.ts
+@@ -0,0 +1,140 @@
++/** Bounded native logical copy for artifact trees containing generation Sessions; source leases survive every publication. */
++import * as fs from "node:fs";
++import * as path from "node:path";
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import { publishNewFile } from "../utils/file-new-publication";
++import { tryAcquireSessionLease } from "./session-storage";
++import type { FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
++import { parseSessionContent } from "./session-loader";
++import { readHeldBytes, readHeldGenerationMetadata, resolveHeldGeneration } from "./session-generation";
++import { sessionHeaderIdFromPrefix } from "./session-header-id";
++
++const identity = (info: fs.BigIntStats): string => `${info.dev}:${info.ino}:${info.birthtimeNs}`;
++interface Directory { fd: number; file: string; identity: string }
++interface Entry { parent: Directory; name: string; relative: string; identity: string; mode: number; fd?: number; nativeId?: string; bytes?: Buffer; link?: string }
++const budgets = Object.freeze({ entries: 8192, directories: 256, depth: 32, nativeSessions: 64, bodyBytes: 128 * 1024 * 1024 });
++
++export interface PreparedGenerationArtifactCopy { publish(destination: string): void; close(): void }
++export function prepareGenerationArtifactTree(source: string): PreparedGenerationArtifactCopy {
++  const sources: Directory[] = [], targets: Directory[] = [], entries: Entry[] = [], leases: FileLockHandle[] = [];
++  let examined = 0, bytes = 0, attempted = false, closed = false;
++  const directory = (file: string, fd: number): Directory => ({ file, fd, identity: identity(fs.fstatSync(fd, { bigint: true })) });
++  const assertDirectories = (items: Directory[]): void => {
++    for (const item of items) if (identity(fs.statSync(item.file, { bigint: true })) !== item.identity)
++      throw new Error("GENERATION_ARTIFACT_DIRECTORY_CHANGED");
++  };
++  const assertSources = (): void => {
++    assertDirectories(sources);
++    if (closed) throw new Error("GENERATION_ARTIFACT_COPY_CLOSED");
++    for (const entry of entries) if (identity(fs.lstatSync(`/proc/self/fd/${entry.parent.fd}/${entry.name}`, { bigint: true })) !== entry.identity)
++      throw new Error("GENERATION_ARTIFACT_CHANGED");
++  };
++  const inventory = (parent: Directory, relative: string, depth: number): void => {
++    if (depth > budgets.depth) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
++    const listing = fs.opendirSync(`/proc/self/fd/${parent.fd}`), controls: string[] = [], names = new Set<string>();
++    try {
++      for (let item = listing.readSync(); item; item = listing.readSync()) {
++        if (++examined > budgets.entries) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
++        const control = /^\.(.+)\.omp-generations$/.exec(item.name);
++        if (control) { if (!control[1]) throw new Error("GENERATION_ARTIFACT_CONTROL_INVALID"); controls.push(control[1]); continue; }
++        names.add(item.name);
++        const file = `/proc/self/fd/${parent.fd}/${item.name}`, childRelative = path.join(relative, item.name);
++        if (item.isDirectory()) {
++          if (sources.length >= budgets.directories) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
++          const child = directory(path.join(source, childRelative), fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW));
++          sources.push(child); inventory(child, childRelative, depth + 1); continue;
++        }
++        const info = fs.lstatSync(file, { bigint: true });
++        const entry: Entry = { parent, name: item.name, relative: childRelative, identity: identity(info), mode: Number(info.mode & 0o777n) };
++        if (info.isSymbolicLink()) entry.link = fs.readlinkSync(file);
++        else if (info.isFile()) {
++          const fd = fs.openSync(file, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++          try {
++            if (identity(fs.fstatSync(fd, { bigint: true })) !== entry.identity) throw new Error("GENERATION_ARTIFACT_CHANGED");
++            if (item.name.endsWith(".jsonl")) {
++              const prefix = Buffer.alloc(16_384), count = fs.readSync(fd, prefix, 0, prefix.length, 0);
++              const leading = prefix.subarray(0, count);
++              const nativePrefix = /"type"\s*:\s*"ompgen1"/.test(leading.toString("utf8"))
++                ? readHeldGenerationMetadata(fd, parent.fd, path.join(source, childRelative), 16_384, leading) : leading;
++              const nativeId = sessionHeaderIdFromPrefix(nativePrefix); if (nativeId) { entry.nativeId = nativeId; entry.fd = fd; }
++            }
++            if (!entry.nativeId) {
++              entry.bytes = readHeldBytes(fd, budgets.bodyBytes - bytes); bytes += entry.bytes.length;
++              if (fs.fstatSync(fd, { bigint: true }).size !== BigInt(entry.bytes.length)) throw new Error("GENERATION_ARTIFACT_CHANGED");
++            }
++          } finally { if (entry.fd !== fd) fs.closeSync(fd); }
++        } else throw new Error("GENERATION_ARTIFACT_TYPE_UNSUPPORTED");
++        entries.push(entry);
++      }
++      if (controls.some(name => !names.has(name))) throw new Error("GENERATION_ARTIFACT_CONTROL_ORPHANED");
++    } finally { listing.closeSync(); }
++  };
++  try {
++    if (fs.realpathSync(source) !== source) throw new Error("GENERATION_ARTIFACT_SOURCE_ALIAS_UNSUPPORTED");
++    sources.push(directory(source, fs.openSync(source, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW)));
++    inventory(sources[0]!, "", 0); assertSources();
++    // Real leases and complete shared-reader cuts precede ALL destination mutation.
++    for (const entry of entries) if (entry.nativeId) {
++      if (leases.length >= budgets.nativeSessions) throw new Error("GENERATION_ARTIFACT_SESSION_LIMIT");
++      let lease: FileLockHandle | null;
++      try { lease = tryAcquireSessionLease(entry.nativeId); } catch { throw new Error("STRICT_OWNERSHIP_UNKNOWN"); }
++      if (!lease) throw new Error("STRICT_OCCUPIED"); leases.push(lease); assertSources();
++      if (entry.fd === undefined) throw new Error("GENERATION_ARTIFACT_BODY_UNAVAILABLE");
++      const length = fs.fstatSync(entry.fd).size, last = Buffer.alloc(1);
++      if (!length || fs.readSync(entry.fd, last, 0, 1, length - 1) !== 1 || last[0] !== 10) throw new Error("GENERATION_ARTIFACT_INCOMPLETE_TAIL");
++      const text = resolveHeldGeneration(entry.fd, entry.parent.fd, path.join(source, entry.relative)).text;
++      const parsed = parseSessionContent(text);
++      if (parsed.invalidHeader || parsed.malformedRecords) throw new Error("GENERATION_ARTIFACT_NATIVE_INVALID");
++      entry.bytes = Buffer.from(text);
++      if (sessionHeaderIdFromPrefix(entry.bytes.subarray(0, 16_384)) !== entry.nativeId) throw new Error("GENERATION_ARTIFACT_NATIVE_ID_CHANGED");
++      bytes += entry.bytes.length;
++      if (bytes > budgets.bodyBytes) throw new Error("GENERATION_ARTIFACT_BODY_LIMIT");
++    }
++    assertSources();
++  } catch (error) { close(); throw error; }
++  function close(): void {
++    if (closed) return; closed = true;
++    let failure: unknown;
++    for (const release of [
++      ...leases.map(lease => () => lease.release()),
++      ...entries.filter(entry => entry.fd !== undefined).map(entry => () => fs.closeSync(entry.fd!)),
++      ...[...targets, ...sources].reverse().map(item => () => fs.closeSync(item.fd)),
++    ]) { try { release(); } catch (error) { failure ??= error; } }
++    if (failure) throw failure;
++  }
++  return { close, publish(destination: string): void {
++    if (attempted) throw new Error("GENERATION_ARTIFACT_COPY_ALREADY_ATTEMPTED"); attempted = true; assertSources();
++    fs.mkdirSync(destination, { recursive: true, mode: 0o700 });
++    const root = directory(destination, fs.openSync(destination, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW)); targets.push(root);
++    const byRelative = new Map<string, Directory>([["", root]]);
++    const targetParent = (relative: string): Directory => {
++      const existing = byRelative.get(relative); if (existing) return existing;
++      const parent = targetParent(path.dirname(relative) === "." ? "" : path.dirname(relative)), name = path.basename(relative);
++      const target = `/proc/self/fd/${parent.fd}/${name}`;
++      try { fs.mkdirSync(target, { mode: 0o700 }); } catch (error) { if (!isRecord(error) || error.code !== "EEXIST") throw error; }
++      const child = directory(path.join(destination, relative), fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW));
++      targets.push(child); byRelative.set(relative, child); return child;
++    };
++    const publications = entries.map(entry => ({ entry, parent: targetParent(path.dirname(entry.relative) === "." ? "" : path.dirname(entry.relative)) }));
++    for (const { entry, parent } of publications) {
++      try { fs.lstatSync(`/proc/self/fd/${parent.fd}/${entry.name}`); throw new Error("GENERATION_ARTIFACT_DESTINATION_OCCUPIED"); }
++      catch (error) { if (!isRecord(error) || error.code !== "ENOENT") throw error; }
++    }
++    const assertCurrent = (): void => { assertSources(); assertDirectories(targets); };
++    for (const { entry, parent } of publications) {
++      assertCurrent();
++      if (entry.link !== undefined) {
++        const target = `/proc/self/fd/${parent.fd}/${entry.name}`; fs.symlinkSync(entry.link, target);
++        if (fs.readlinkSync(target) !== entry.link) throw new Error("GENERATION_ARTIFACT_PUBLICATION_UNKNOWN");
++      }
++      else if (entry.bytes) publishNewFile(parent.fd, entry.name, entry.bytes, entry.mode, assertCurrent);
++      else throw new Error("GENERATION_ARTIFACT_BODY_UNAVAILABLE");
++      assertCurrent();
++    }
++  } };
++}
++
++export function copyGenerationArtifactTree(source: string, destination: string): void {
++  const prepared = prepareGenerationArtifactTree(source);
++  try { prepared.publish(destination); } finally { prepared.close(); }
++}
 diff --git a/packages/coding-agent/src/session/session-drafts.ts b/packages/coding-agent/src/session/session-drafts.ts
 new file mode 100644
 index 0000000000..d3abb1cb3d
@@ -1270,10 +1432,10 @@ index 0000000000..d3abb1cb3d
 +export const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
 new file mode 100644
-index 0000000000..b1c89d5402
+index 0000000000..d55b3aaa04
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-generation.ts
-@@ -0,0 +1,309 @@
+@@ -0,0 +1,340 @@
 +import { strictStartupPolicy } from "../modes/rpc/strict-start-policy";
 +/** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
 +import * as fs from "node:fs";
@@ -1583,6 +1745,37 @@ index 0000000000..b1c89d5402
 +    return true;
 +  } finally { fs.closeSync(directoryFd); }
 +}
++
++/** Refuse legacy artifact copying of nested extended carriers/controls; never produce an incomplete logical export. */
++export function assertPlainArtifactTree(directory: string): void {
++  let examined = 0;
++  const visit = (fd: number, depth: number): void => {
++    if (depth > 32) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
++    const entries = fs.opendirSync(`/proc/self/fd/${fd}`);
++    try {
++      for (let entry = entries.readSync(); entry; entry = entries.readSync()) {
++        if (++examined > 8192) throw new Error("GENERATION_ARTIFACT_SCAN_LIMIT");
++        if (/^\..+\.omp-generations$/.test(entry.name)) throw new Error("GENERATION_NESTED_ARTIFACTS_UNSUPPORTED");
++        const target = `/proc/self/fd/${fd}/${entry.name}`;
++        if (entry.isDirectory()) {
++          const child = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++          try { visit(child, depth + 1); } finally { fs.closeSync(child); }
++        } else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
++          const child = fs.openSync(target, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++          try {
++            const prefix = Buffer.alloc(16_384), count = fs.readSync(child, prefix, 0, prefix.length, 0);
++            if (/"type"\s*:\s*"ompgen1"/.test(prefix.subarray(0, count).toString("utf8")))
++              throw new Error("GENERATION_NESTED_ARTIFACTS_UNSUPPORTED");
++          } finally { fs.closeSync(child); }
++        }
++      }
++    } finally { entries.closeSync(); }
++  };
++  let fd: number;
++  try { fd = fs.openSync(directory, fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW); }
++  catch (error) { if (isRecord(error) && error.code === "ENOENT") return; throw error; }
++  try { visit(fd, 0); } finally { fs.closeSync(fd); }
++}
 diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
 index 53095a1562..5edcfcf2c7 100644
 --- a/packages/coding-agent/src/session/session-header-id.ts
@@ -1629,18 +1822,19 @@ index 0cfdcfaa0e..219391d0e2 100644
  			const chunk = streamed.byteLength > unread ? streamed.subarray(0, unread) : streamed;
  			unread -= chunk.byteLength;
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index b8a0b167a3..a1b87336e4 100644
+index b8a0b167a3..8506005ff0 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,3 +1,7 @@
+@@ -1,3 +1,8 @@
++import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
 +import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
-+import { isGenerationCarrier } from "./session-generation";
++import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
 +import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
 +import { StrictSessionStorage } from "./strict-session-storage";
  export interface NativeHistoryChange {
    kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
  }
-@@ -139,7 +143,6 @@ import {
+@@ -139,7 +144,6 @@ import {
  import { recordSessionRecap, recordSessionTitle } from "./session-index";
  
  const JSONL_SUFFIX_LENGTH = ".jsonl".length;
@@ -1648,7 +1842,47 @@ index b8a0b167a3..a1b87336e4 100644
  const DISCARDED_ENTRY_BRANCH_MARKER = "discarded-entry-branch";
  /** `model_usage` purpose carrying the billed usage of an assistant turn removed by `discardEntryDurably`. */
  const DISCARDED_TURN_USAGE_PURPOSE = "discarded-turn";
-@@ -947,7 +950,9 @@ export class SessionManager {
+@@ -196,6 +200,11 @@ export async function copySessionArtifacts(sourceSessionFile: string, destinatio
+ 	const destinationArtifactsDir = artifactsDirectoryFor(destinationSessionFile);
+ 	if (!sourceArtifactsDir || !destinationArtifactsDir) return;
+ 	if (path.resolve(sourceArtifactsDir) === path.resolve(destinationArtifactsDir)) return;
++  try { assertPlainArtifactTree(sourceArtifactsDir); }
++  catch (error) {
++    if (!(error instanceof Error) || error.message !== "GENERATION_NESTED_ARTIFACTS_UNSUPPORTED") throw error;
++    await copyGenerationArtifactTree(sourceArtifactsDir, destinationArtifactsDir); return;
++  }
+ 	try {
+ 		if ((await fs.promises.stat(sourceArtifactsDir)).isDirectory()) {
+ 			// Create the destination first and merge into it: Bun's `cp` fails with
+@@ -207,8 +216,10 @@ export async function copySessionArtifacts(sourceSessionFile: string, destinatio
+ 				force: false,
+ 				errorOnExist: false,
+ 			});
++      assertPlainArtifactTree(destinationArtifactsDir);
+ 		}
+ 	} catch (error) {
++    if (error instanceof Error && error.message.startsWith("GENERATION_")) throw error;
+ 		if (!isEnoent(error)) {
+ 			logger.warn("Failed to copy session artifacts", {
+ 				sourceArtifactsDir,
+@@ -219,6 +230,16 @@ export async function copySessionArtifacts(sourceSessionFile: string, destinatio
+ 	}
+ }
+ 
++/** Prepare coherent nested native child copies before an explicit parent transition creates its new file. */
++function prepareNestedArtifactCopy(sessionFile: string): PreparedGenerationArtifactCopy | undefined {
++  const directory = artifactsDirectoryFor(sessionFile); if (!directory) return undefined;
++  try { assertPlainArtifactTree(directory); return undefined; }
++  catch (error) {
++    if (!(error instanceof Error) || error.message !== "GENERATION_NESTED_ARTIFACTS_UNSUPPORTED") throw error;
++    return prepareGenerationArtifactTree(directory);
++  }
++}
++
+ /** The numeric id an artifact file name (`<id>.<tool>.log`) carries, if any. */
+ function artifactIdOf(name: string): string | undefined {
+ 	return /^(\d+)\./.exec(name)?.[1];
+@@ -947,7 +968,9 @@ export class SessionManager {
  	#fallbackRuntimeOnly = false;
  	#sessionDir: string;
  	readonly #persist: boolean;
@@ -1659,7 +1893,7 @@ index b8a0b167a3..a1b87336e4 100644
  	readonly #blobs: BlobStore;
  
  	#sessionId = "";
-@@ -1163,6 +1168,7 @@ export class SessionManager {
+@@ -1163,6 +1186,7 @@ export class SessionManager {
  	 * once the owner closed the session or exited.
  	 */
  	#claimSession(): void {
@@ -1667,7 +1901,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const sessionId = this.#sessionId;
  		const sessionFile = this.#sessionFile;
  		if (!this.#persist || !sessionFile || !this.#storage.claimSession) return;
-@@ -1267,6 +1273,7 @@ export class SessionManager {
+@@ -1267,6 +1291,7 @@ export class SessionManager {
  	 * Returns the path to retry, or `undefined` to report the conflict as before.
  	 */
  	#recoverFromWriteConflictSync(error: unknown, recoveries: number): string | undefined {
@@ -1675,7 +1909,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const contested = this.#conflictedSessionFile(error);
  		if (!contested) return undefined;
  		if (recoveries >= MAX_WRITE_CONFLICT_RECOVERIES) return this.#moveOffSessionFile("contested");
-@@ -1288,6 +1295,7 @@ export class SessionManager {
+@@ -1288,6 +1313,7 @@ export class SessionManager {
  
  	/** Asynchronous {@link #recoverFromWriteConflictSync}. */
  	async #recoverFromWriteConflict(error: unknown, recoveries: number): Promise<string | undefined> {
@@ -1683,7 +1917,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const contested = this.#conflictedSessionFile(error);
  		if (!contested) return undefined;
  		if (recoveries >= MAX_WRITE_CONFLICT_RECOVERIES) return this.#moveOffSessionFile("contested");
-@@ -1327,6 +1335,7 @@ export class SessionManager {
+@@ -1327,6 +1353,7 @@ export class SessionManager {
  	 * await it. Returns the sibling.
  	 */
  	#moveOffSessionFile(reason: SessionPersistenceNotice["reason"]): string {
@@ -1691,7 +1925,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const from = this.#sessionFile as string;
  		const previousSessionId = this.#sessionId;
  		const timestamp = nowIso();
-@@ -1449,6 +1458,7 @@ export class SessionManager {
+@@ -1449,6 +1476,7 @@ export class SessionManager {
  	}
  
  	async #authoritativelyRewriteCurrentStateLocked(operationError: Error): Promise<void> {
@@ -1699,7 +1933,7 @@ index b8a0b167a3..a1b87336e4 100644
  		if (this.#released) {
  			// Terminal seal: repair would reset the disk tail (escaping the
  			// close() serialization) and atomically publish #serializeBody() — after
-@@ -1596,6 +1606,8 @@ export class SessionManager {
+@@ -1596,6 +1624,8 @@ export class SessionManager {
  	#recordFullRewrite(bytes: number): void {
  		this.#historySourceBinding = undefined;
  		this.#historyChanged("source_replaced", true);
@@ -1708,7 +1942,7 @@ index b8a0b167a3..a1b87336e4 100644
  		this.#expectedDiskSize = bytes;
  	}
  
-@@ -1706,6 +1718,7 @@ export class SessionManager {
+@@ -1706,6 +1736,7 @@ export class SessionManager {
  	 * concurrent completed entries are durable without recreating a vacated source.
  	 */
  	#rewriteSynchronously(): void {
@@ -1716,7 +1950,7 @@ index b8a0b167a3..a1b87336e4 100644
  		if (this.#released) return;
  		if (!this.#persist || !this.#shouldHaveSessionFile()) return;
  		let targetPath = this.#liveRelocationWritePath() ?? this.#sessionFile;
-@@ -1906,6 +1919,7 @@ export class SessionManager {
+@@ -1906,6 +1937,7 @@ export class SessionManager {
  			return;
  		}
  		if (this.#diskFailure) {
@@ -1724,7 +1958,7 @@ index b8a0b167a3..a1b87336e4 100644
  			// The failed entry and any later entries remain in memory. A full
  			// replacement is the writability probe and restores all of them once
  			// transient storage pressure clears.
-@@ -2049,11 +2063,17 @@ export class SessionManager {
+@@ -2049,11 +2081,17 @@ export class SessionManager {
  				const sessionFile = this.#sessionFile;
  				if (!sessionFile) return;
  				try {
@@ -1746,7 +1980,7 @@ index b8a0b167a3..a1b87336e4 100644
  					if (!(await this.#runFencedAtomicRewrite(epoch))) return;
  					this.#clearDiskError();
  					this.#fileIsCurrent = true;
-@@ -2077,6 +2097,7 @@ export class SessionManager {
+@@ -2077,6 +2115,7 @@ export class SessionManager {
  	}
  
  	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
@@ -1754,7 +1988,7 @@ index b8a0b167a3..a1b87336e4 100644
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
  		this.#expectedDiskSize = null;
-@@ -2226,7 +2247,7 @@ export class SessionManager {
+@@ -2226,7 +2265,7 @@ export class SessionManager {
  
  	#draftPath(): string | null {
  		const artifactsDir = this.getArtifactsDir();
@@ -1763,7 +1997,7 @@ index b8a0b167a3..a1b87336e4 100644
  	}
  
  	#draftOnlySessionMarkerPath(): string | null {
-@@ -2418,9 +2439,66 @@ export class SessionManager {
+@@ -2418,9 +2457,66 @@ export class SessionManager {
  			await this.#rewriteAtomically();
  		}
  	}
@@ -1831,7 +2065,7 @@ index b8a0b167a3..a1b87336e4 100644
  	}
  
  	async #setSessionFile(
-@@ -2528,7 +2606,9 @@ export class SessionManager {
+@@ -2528,7 +2624,9 @@ export class SessionManager {
  	 */
  	async newSession(options?: NewSessionOptions): Promise<string | undefined> {
  		await this.#drainAndCloseWriter();
@@ -1841,27 +2075,34 @@ index b8a0b167a3..a1b87336e4 100644
  		if (options?.drop !== true) await this.ensureOnDisk();
  		return sessionFile;
  	}
-@@ -2548,11 +2628,13 @@ export class SessionManager {
+@@ -2547,12 +2645,16 @@ export class SessionManager {
+ 	 * Fork the current session into a new file with the same entries.
  	 * @returns the old and new session file paths, or undefined when not persisting.
  	 */
- 	async fork(): Promise<{ oldSessionFile: string; newSessionFile: string } | undefined> {
+-	async fork(): Promise<{ oldSessionFile: string; newSessionFile: string } | undefined> {
++	async fork(): Promise<{ oldSessionFile: string; newSessionFile: string; artifactsCopied?: boolean } | undefined> {
 +		if (this.#strictContinuation && (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
  		if (!this.#persist || !this.#sessionFile) return undefined;
  
  		const oldSessionFile = this.#sessionFile;
++    const artifactCopy = prepareNestedArtifactCopy(oldSessionFile);
++    try {
  		const parentSessionId = this.#sessionId;
  		await this.#drainAndCloseWriter();
 +    this.#beginExplicitNativeTransition();
  		this.#clearDiskError();
  		this.#reconcileSessionDirForFallback();
  
-@@ -2586,12 +2668,14 @@ export class SessionManager {
+@@ -2586,12 +2688,16 @@ export class SessionManager {
  		this.#artifactManagerSessionFile = null;
  		this.#rememberBreadcrumb(this.#cwd, this.#sessionFile);
  
 +		this.#materializeExplicitNativeTransition();
  		await this.#rewriteAtomically();
- 		return { oldSessionFile, newSessionFile: this.#sessionFile };
+-		return { oldSessionFile, newSessionFile: this.#sessionFile };
++    if (artifactCopy) artifactCopy.publish(artifactsDirectoryFor(this.#sessionFile)!);
++		return { oldSessionFile, newSessionFile: this.#sessionFile, ...(artifactCopy ? { artifactsCopied: true } : {}) };
++    } finally { artifactCopy?.close(); }
  	}
  
  	/** Move the session to a new working directory. */
@@ -1870,7 +2111,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const resolvedCwd = path.resolve(newCwd);
  		const resolvedTargetDir = targetSessionDir ? path.resolve(targetSessionDir) : undefined;
  		const managedRoot = resolveManagedSessionRoot(this.#sessionDir, this.#cwd);
-@@ -3066,6 +3150,7 @@ export class SessionManager {
+@@ -3066,6 +3172,7 @@ export class SessionManager {
  				{ ignorePriorError: true },
  			).catch(() => undefined);
  		}
@@ -1878,7 +2119,7 @@ index b8a0b167a3..a1b87336e4 100644
  		if (this.#diskFailure) throw this.#diskFailure;
  	}
  
-@@ -3126,6 +3211,7 @@ export class SessionManager {
+@@ -3126,6 +3233,7 @@ export class SessionManager {
  
  	setCwdWithoutRelocation(newCwd: string): void {
  		const resolvedCwd = path.resolve(newCwd);
@@ -1886,7 +2127,7 @@ index b8a0b167a3..a1b87336e4 100644
  		if (resolvedCwd === path.resolve(this.#cwd)) {
  			this.#fallbackRuntimeOnly = true;
  			return;
-@@ -3553,6 +3639,11 @@ export class SessionManager {
+@@ -3553,6 +3661,11 @@ export class SessionManager {
  		title: string,
  		options?: { cwd?: string },
  	): Promise<string | null> {
@@ -1898,15 +2139,18 @@ index b8a0b167a3..a1b87336e4 100644
  		const storage = new FileSessionStorage();
  		// The header id is what the lease is keyed on; a null claim means
  		// another live process owns the session, so leave it alone.
-@@ -4250,6 +4341,7 @@ export class SessionManager {
+@@ -4250,7 +4363,10 @@ export class SessionManager {
  	 * Returns the new file path, or undefined when not persisting.
  	 */
  	createBranchedSession(leafId: string, options?: { copyArtifacts?: boolean }): string | undefined {
 +		if (this.#strictContinuation && (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
  		const sourceSessionFile = this.#sessionFile;
++    const artifactCopy = sourceSessionFile && options?.copyArtifacts === true ? prepareNestedArtifactCopy(sourceSessionFile) : undefined;
++    try {
  		const branchPath = this.getBranch(leafId);
  		if (branchPath.length === 0) throw new Error(`Entry ${leafId} not found`);
-@@ -4300,6 +4392,8 @@ export class SessionManager {
+ 
+@@ -4300,6 +4416,8 @@ export class SessionManager {
  			parentId = labelEntry.id;
  		}
  
@@ -1915,7 +2159,12 @@ index b8a0b167a3..a1b87336e4 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4329,6 +4423,7 @@ export class SessionManager {
+@@ -4325,13 +4443,15 @@ export class SessionManager {
+ 		if (options?.copyArtifacts && sourceSessionFile) {
+ 			this.#pendingArtifactCopy = {
+ 				sessionFile: newSessionFile,
+-				done: copySessionArtifacts(sourceSessionFile, newSessionFile),
++				done: artifactCopy ? Promise.resolve(artifactCopy.publish(artifactsDirectoryFor(newSessionFile)!)) : copySessionArtifacts(sourceSessionFile, newSessionFile),
  			};
  		}
  		this.#expectedDiskSize = null;
@@ -1923,7 +2172,11 @@ index b8a0b167a3..a1b87336e4 100644
  		this.#rewriteSynchronously();
  		this.#rememberBreadcrumb(this.#cwd, newSessionFile);
  		return newSessionFile;
-@@ -4361,20 +4456,19 @@ export class SessionManager {
++    } finally { artifactCopy?.close(); }
+ 	}
+ 
+ 	/** Resolve the canonical default session directory for a cwd. */
+@@ -4361,20 +4481,19 @@ export class SessionManager {
  	 * `setSessionFile` / `AgentSession.switchSession` when a caller explicitly
  	 * needs a brand-new persisted session at a cwd-derived path.
  	 */
@@ -1955,7 +2208,7 @@ index b8a0b167a3..a1b87336e4 100644
  	}
  
  	/**
-@@ -4553,6 +4647,8 @@ export class SessionManager {
+@@ -4553,6 +4672,8 @@ export class SessionManager {
  		storage: SessionStorage = new FileSessionStorage(),
  		options?: { initialCwd?: string; parentSession?: string; suppressBreadcrumb?: boolean; throwIfMissing?: boolean },
  	): Promise<SessionManager> {
@@ -1964,7 +2217,7 @@ index b8a0b167a3..a1b87336e4 100644
  		const probed = await loadSessionFile(filePath, storage, { throwIfMissing: options?.throwIfMissing });
  		const header = probed.entries.find(entry => entry.type === "session") as SessionHeader | undefined;
  		// Resume into the session's recorded cwd only when it is verifiably
-@@ -4583,6 +4679,10 @@ export class SessionManager {
+@@ -4583,6 +4704,10 @@ export class SessionManager {
  			throwIfMissing: options?.throwIfMissing,
  			newSession: { parentSession: options?.parentSession },
  		});
@@ -2155,11 +2408,11 @@ index 4750d350d0..b1887e00fe 100644
  		// reads the session id from the live header (#18674). Best-effort, so
  		// a busy dashboard store never fails the delete itself.
 diff --git a/packages/coding-agent/src/session/session-transfer.ts b/packages/coding-agent/src/session/session-transfer.ts
-index fe0d01485b..4b0c690870 100644
+index fe0d01485b..d9e9964b42 100644
 --- a/packages/coding-agent/src/session/session-transfer.ts
 +++ b/packages/coding-agent/src/session/session-transfer.ts
 @@ -1,3 +1,5 @@
-+import { isGenerationCarrier } from "./session-generation";
++import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
 +import { openNativeGenerationStorage } from "./generation-storage-factory";
  /**
   * Moving a session between machines (`omp session pack|unpack|moved`).
@@ -2177,11 +2430,20 @@ index fe0d01485b..4b0c690870 100644
  		const journalText = journal.toString("utf8");
  		const header = parseSessionContent(journalText).entries[0];
  		if (header?.type !== "session") {
-@@ -327,10 +330,12 @@ export async function packSession(sessionFile: string, outPath: string): Promise
+@@ -309,6 +312,7 @@ export async function packSession(sessionFile: string, outPath: string): Promise
+ 		} catch {}
+ 		const artifactsDir = realSource.slice(0, -".jsonl".length);
+ 		if (realSource.endsWith(".jsonl")) {
++      assertPlainArtifactTree(artifactsDir);
+ 			for (const relative of await listFilesRecursive(artifactsDir)) {
+ 				const bytes = await fs.promises.readFile(path.join(artifactsDir, ...relative.split("/")));
+ 				members.push([`${ARTIFACTS_PREFIX}${relative}`, bytes]);
+@@ -327,10 +331,13 @@ export async function packSession(sessionFile: string, outPath: string): Promise
  			logger.warn("Packing session without blobs missing from the local store", { id, missingBlobs });
  		}
  
 -		await writeArchiveAtomically(archivePath, members);
++    assertPlainArtifactTree(artifactsDir);
 +		generationStorage?.assertCurrent();
 +    await writeArchiveAtomically(archivePath, members);
  		return { archivePath, id, missingBlobs };
@@ -2302,6 +2564,38 @@ index 0000000000..f62d357da0
 +      close: async () => { closed = true; if (failure) throw failure; }, isOpen: () => !closed, getError: () => failure };
 +  }
 +  drain(): Promise<void> { this.#reservation.assertCurrent(); return Promise.resolve(); }
++}
+diff --git a/packages/coding-agent/src/utils/file-new-publication.ts b/packages/coding-agent/src/utils/file-new-publication.ts
+new file mode 100644
+index 0000000000..574de0bde5
+--- /dev/null
++++ b/packages/coding-agent/src/utils/file-new-publication.ts
+@@ -0,0 +1,26 @@
++/** Linux publication of a complete NEW file. Anonymous preparation and fd-bound linkat never clobber a destination. */
++import * as fs from "node:fs";
++import { dlopen, FFIType, ptr } from "bun:ffi";
++export function publishNewFile(directoryFd: number, name: string, bytes: Buffer, mode: number, assertCurrent: () => void): void {
++  if (process.platform !== "linux" || !name || name.includes("/") || name.includes("\0")) throw new Error("GENERATION_NEW_PUBLICATION_UNSUPPORTED");
++  assertCurrent();
++  let fd: number;
++  try { fd = fs.openSync(`/proc/self/fd/${directoryFd}`, 0x410002, mode); } // Linux O_TMPFILE | O_RDWR; no named staging cleanup.
++  catch { throw new Error("GENERATION_NEW_PUBLICATION_UNSUPPORTED"); }
++  try {
++    let offset = 0;
++    while (offset < bytes.length) {
++      const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
++      if (!count) throw new Error("GENERATION_NEW_SHORT_WRITE"); offset += count;
++    }
++    fs.fchmodSync(fd, mode); assertCurrent();
++    const libc = dlopen("libc.so.6", { linkat: { args: [FFIType.i32, FFIType.ptr, FFIType.i32, FFIType.ptr, FFIType.i32], returns: FFIType.i32 } });
++    try {
++      const source = Buffer.from(`/proc/self/fd/${fd}\0`), target = Buffer.from(`${name}\0`);
++      if (libc.symbols.linkat(-100, ptr(source), directoryFd, ptr(target), 0x400) !== 0) throw new Error("GENERATION_NEW_PUBLICATION_REFUSED");
++    } finally { libc.close(); }
++    const held = fs.fstatSync(fd, { bigint: true }), named = fs.statSync(`/proc/self/fd/${directoryFd}/${name}`, { bigint: true });
++    if (held.dev !== named.dev || held.ino !== named.ino || held.birthtimeNs !== named.birthtimeNs) throw new Error("GENERATION_NEW_PUBLICATION_UNKNOWN");
++    assertCurrent();
++  } finally { fs.closeSync(fd); }
 +}
 diff --git a/packages/coding-agent/src/utils/file-xattr.ts b/packages/coding-agent/src/utils/file-xattr.ts
 new file mode 100644
