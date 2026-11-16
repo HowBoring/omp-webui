@@ -5,6 +5,10 @@ This explicit executable uses real Linux Chromium, fixed DSH Connection/ClientRe
 Only the fixed synthetic HOME `vendor/workspace-fixture` and locally fixed sources are available. Browser directory
 grants cannot select a profile, native source, executable, argv, environment or arbitrary RPC method.
 
+The browser builder uses shared `BuildIdentities`, `assetIdentities` and `sha256`, while independently verifying the
+actual resolved DSH root against the complete c0 candidate. The authenticated event carrier remains local because
+the shared carrier has no credential attachment/per-message revalidation hooks.
+
 The public DSH `installConnection` fetch hook adds only the Host CSRF header; stock envelopes, schema validation,
 correlation, HTTP, native browser Cookie/WebSocket and mux logic are unchanged. There is no private instance override.
 The page presents canonical preview + explicit confirmation + revoke, durable grant status, native pages grouped by

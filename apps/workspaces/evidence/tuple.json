@@ -1,14 +1,14 @@
 {
   "kind": "isolated-authenticated-workspace-component",
-  "testedIntegration": "2118454e02ac1e5db40847fec62f812308698309",
+  "testedIntegration": "2842168abe27d733c353c6fe14153f0e660f1d8a",
   "omp": {
     "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "12c72dc14e30975ab0f90df49cfcf3fc1eb50f300366088dc04053ab1c6f437b",
-    "patchSha256": "0c5a4fc201bc3b28b07a65158fbe26fb76668b926557380093e082e4c4634a39",
-    "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
-    "candidateCliSha256": "94917181587477ab27db968530b314ba5d3b703e2d7fccd8257546e9a2f7d475",
-    "installationSha256": "25de9cf1bda7119bd3636e39d1cddf2acc2dd1ab222f664a7da91bc932f7192d",
-    "installationAssets": 77431
+    "sourceSha256": "8960c74b6c74dcadc585a0e68e2aba8687129107ddd449b85ae93d98f0d4c424",
+    "patchSha256": "bf08fb3c51d284169093a58164c161f4f8d5c0b24fad273db5b9817cea877a95",
+    "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b",
+    "candidateCliSha256": "cff72fd7fbe7047600531407e5bf5f6a44eeef1a0e905fb82fcb090c8a431a94",
+    "installationSha256": "11e9779fe1532e7ce4414dae9abbb984a2d0b52b2f8b8b5aee1cc272f7baf661",
+    "installationAssets": 55901
   },
   "dsh": {
     "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
@@ -51,18 +51,29 @@
     "inputs": 256,
     "bundle": {
       "file": "workspace-component-main.js",
-      "sha256": "1da6ad97583171d9cfd75fc38a7f063473970c12da1e060d274f8d5943615d58"
+      "sha256": "e1849216945d624ba2df5ec4ca7c08f2ae6ffa8f210f501a2b3a11b2d618ac4d"
     },
-    "manifestSha256": "08d2794108985ba1f8a06da023e1f825d0410ea4ef578ffd5182f3c0c9eb009b"
+    "manifestSha256": "6d8afa0859abfde068f2e9f32e894b102e76fb6a57f1e33beaffff8768a87139"
   },
+  "previousEvidence": "before-rebase-2842168/tuple.json (original 12c72dc/f2066f6 native proof; preserved, not current-source evidence)",
   "closureReuse": {
-    "OMP": "Owned clean fixed-base clone + accepted two patches; readonly #31 frozen dependency cache",
-    "DSH": "Owned package links to immutable #39-final-fix/vendor/dsh-final compiled closure; full candidate source verification; no shared source or symlink target edits",
-    "unusedOwnedDSH": "Exact c0 source preserved solely for local mutation tests; 331 unused generated lib/build directories removed after checking no final package link/build input/process depended on them"
+    "OMP": "Owned clean fixed-base clone with declared 0001\u20130004 applied --source-only; readonly current accepted dependency cache; no install",
+    "DSH": "Owned package links to immutable #39-final-fix/vendor/dsh-final c0 compiled closure; actual resolved-root candidate verification; no upstream rebuild/install or shared source edits",
+    "negativeSource": "Owned c0 source-only clone retained for mutation tests; no shared source target mutations"
   },
+  "buildRefactor": "Shared BuildIdentities/assetIdentities/sha256; browser source identities and assets unchanged byte-for-byte",
   "productAdmission": "BLOCKED pending #41 combined/global gate and #44 protected open/worker revocation",
   "windowsWSL2": "DEFERRED by user",
-  "builtOnIntegration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
-  "integrationRefresh": "Latest merge changes catalog build/provenance tests only; all enrolled Workspace/Host/OMP/client inputs unchanged.",
-  "browserEvidenceSha256": "aae63af4a8b96855a2f12d39e68cdbe3ebf32d45a89434d1128c113adf683d82"
+  "browserEvidenceSha256": "2e633481d72a9a80cf463db19f148ab0741f5f092fe1044027db583e9804190d",
+  "currentChecks": {
+    "strictTypecheck": "PASS",
+    "affectedTests": {
+      "tests": 62,
+      "assertions": 906,
+      "files": 17
+    },
+    "nativeReadonlyTrace": "PASS; 240 lines; no writes/non-Unix connects",
+    "browser": "PASS; 12 scenarios; 47 native rows; 35 synthetic index references; 36 Remote calls; zero page errors",
+    "fullSuite": "NOT RERUN on this native combination; prior 116/944 is historical"
+  }
 }
