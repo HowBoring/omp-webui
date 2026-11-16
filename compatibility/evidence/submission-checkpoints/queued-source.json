@@ -1,0 +1,15 @@
+{
+  "status": "SOURCE_ONLY_NOT_EXECUTED_NOT_FINAL_ACCEPTANCE",
+  "integration": "530225f",
+  "fixed32": "6f5d0db905b6bb291fa342b427b16c109ceb7979",
+  "sourceSha256": "1bc2075519ed7765db74defba156a1f387897d436d3ace83187cc6673b98f674",
+  "aggregatePatchSha256": "c02b975ea6b5fb857818c952cabb8b0eb53aa9d6102cd00b4b29e5659318e611",
+  "patch7Sha256": "58cdd9ed0bffaee2dd472da44fb53ab46f76c9094ea51f6bdb419d27add6fcbd",
+  "wireChange": false,
+  "previousBuiltSchemaSha256": "68da71277f27dc72385e01101f4fc18d2197f129b0de3745d6b6727caecb68be",
+  "sourceCheck": "PASS: ordered1-7 private-index application exactly matches authored native checkout",
+  "runtimeChecks": "HELD by coordinator during fixed32 complete gate; candidate and generated identity files still describe prior built1fea tuple",
+  "regression": "tests/submissions/queued-source.test.ts; actual public RPC, controlled awaited input hook, committed reservation query, synthetic selected-file rename/copy, before-first-hook and after-awaited-hook cases; authored, not executed",
+  "failureSemantics": "Protected authority failures remain unknown without a verified terminal publication; no no-entry cancellation inferred",
+  "privateSessionAdmission": "blocked"
+}
