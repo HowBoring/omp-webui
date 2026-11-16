@@ -250,3 +250,23 @@ are byte-identical to the first attempt; no production client/server/C repair wa
 marker is added to the now32-member frozen manifest. The retaining wrapper checks that marker and the corrected
 state path. All32 members and record pins rehash successfully; endpoint absent, helper unauthorized, fences empty.
 The corrected fixture and wrapper are **NOT RUN** and need a separate coordinator clearance.
+
+## Corrected actual independent server attempt: scoped PASS, drained
+
+One separately cleared network-enabled attempt on frozen `fb8314f` and its marked corrected-HOME fixture produced
+**1 pass / 0 fail / 8 assertions / 445 ms** (case355.60 ms). Client474615 made the actual AF_UNIX connection;
+independent server474625 accepted fd8, obtained SO_PEERCRED for client474615/uid1000 and actual SO_PEERPIDFD fd9.
+That is distinct from the server's additional self-socketpair ABI probe. Public client assertions verify signed
+external classification, stable repeated registration, empty dispatcher-owned listing and missing-generation
+no-create refusal under the independently pinned synthetic operator key. No wire payload or key record was logged.
+
+The test sent public stdin EOF and awaited server exit0/signalnull. Strace474612 exited0; retaining Python474609
+reported actual `P_ALL/ECHILD`, observerFailedfalse/interruptedfalse and zero signals, then exited0. Post-checks rehash
+all32 declared source/tool/wrapper/marker members and protected operator pins unchanged. Own socket is absent,
+fences empty and all four exact own PIDs absent. The narrow selected-syscall trace has zero AF_INET/AF_INET6 socket
+calls and there are zero guard-denial markers. Raw guard counters were not emitted; this limitation is retained.
+
+This proves the first actual independent public UDS/kernel-peer/signed-reply spine on synthetic records. It does not
+prove actual global provenance, maintenance retention, private helper lifecycle, protected broker/services, worker
+realms, Native consumer semantics or private admission. The initial guard-refusal RED remains separate historical
+evidence. Exact identities, raw hashes and scope limits are in `ticket-41-public-uds-server-green.json`.

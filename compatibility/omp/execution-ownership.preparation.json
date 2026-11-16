@@ -64,6 +64,6 @@
       "reason": "Independent global admin client and generation-bound no-create request/reconnect mode"
     }
   ],
-  "independentServerTracer": "FIRST_ATTEMPT_FAIL_FIXTURE_GUARD_CORRECTED_FIXTURE_NOT_RUN",
+  "independentServerTracer": "PASS_SCOPED_PUBLIC_UDS_PEER_SIGNATURE_DRAINED",
   "actualLauncherMaintenanceRetention": "NOT_RUN"
 }

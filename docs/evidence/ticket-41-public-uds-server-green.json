@@ -1,0 +1,144 @@
+{
+  "status": "PASS_SCOPED_PUBLIC_UDS_PEER_SIGNATURE_DRAINED",
+  "date": "2026-11-16T21:55:55Z",
+  "sourceHead": "fb8314fb0ba78514ce57faf8b5bb69683202ce47",
+  "scope": "ONE independent guarded server/public Bun UDS identity tracer; no Native/Agent/helper/service",
+  "fixture": "/tmp/ownership-server-tracer-XKSI1y/fixture.json",
+  "fixtureSha256": "0ed61ad701f153b0908c1192f1f0bf66dedd6bf69b1e2540698705a8d7719ab8",
+  "nativeSource": {
+    "orderedScope": "stable1-through6-plus-inactive0010-only",
+    "preparedTree": "6ae35039afa6700ffc1eeff8907cf9c4708e7859",
+    "preparedSourceSha256": "60d9ba5e9a3ea017e92feeb703190fd067d546684bc352a1163e86b91b5c1d92",
+    "patchSha256": "d23bf883edd35afe12fef970bd7cb16bc3e234ef3b3de18a6a277fc6a3231e23",
+    "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
+    "changedAfterFirstRed": false
+  },
+  "actualTool": {
+    "networkEnabled": true,
+    "pythonExitCode": 0,
+    "straceExitCode": 0,
+    "chunkId": "60dca3",
+    "retainingParentPid": 474609,
+    "stracePid": 474612
+  },
+  "test": {
+    "passed": 1,
+    "failed": 0,
+    "assertions": 8,
+    "milliseconds": 445,
+    "caseMilliseconds": 355.6,
+    "serverEvent": {
+      "fixture": "ownership-server-public-uds",
+      "serverPid": 474625,
+      "clientPid": 474615,
+      "serverExit": 0,
+      "signal": null,
+      "stdinEofSent": true,
+      "serverAwaited": true
+    },
+    "observed": [
+      "public READY from independent guarded server",
+      "external policy with signed dispatcher generation",
+      "repeat classify returns identical registration",
+      "dispatcher-owned list_scopes is empty",
+      "missing-generation inspect_broker returns dispatcher_unavailable",
+      "public stdin EOF and awaited actual server exit0/signalnull"
+    ]
+  },
+  "authentication": {
+    "actualPublicBunClient": true,
+    "actualIndependentServer": true,
+    "actualPeerPidfd": {
+      "serverPid": 474625,
+      "clientPid": 474615,
+      "acceptedSocketFd": 8,
+      "retainedKernelPidfd": 9,
+      "peerCredentialUid": 1000,
+      "peerCredentialGid": 1000
+    },
+    "successfulPeerPidfdCalls": 2,
+    "abiSelfProbeCalls": 1,
+    "actualClientPeerCalls": 1,
+    "nonceAndSignatureVerification": "PASS_VIA_FROZEN_PUBLIC_CLIENT_AND_OPERATOR_PINNED_KEY",
+    "rawRequestsOrSignedPayloadsLogged": false
+  },
+  "guard": {
+    "deniedMarkers": 0,
+    "dispatchedCounter": "NOT_CAPTURED",
+    "note": "No denial markers; raw runtime counters were not emitted by this frozen fixture. Separate narrow socket trace records no INET socket activity."
+  },
+  "networkTrace": {
+    "actualClientAccepts": 1,
+    "inetOrInet6SocketCalls": 0,
+    "scope": "Only selected socket/bind/listen/accept4/connect/getsockopt syscalls for this strace-owned tree; no whole-machine claim"
+  },
+  "containment": {
+    "stage": "DRAINED",
+    "parentPid": 474609,
+    "rootPid": 474612,
+    "kernelEndpoint": "P_ALL/ECHILD",
+    "rootStatus": {
+      "pid": 474612,
+      "code": 1,
+      "status": 0
+    },
+    "reaped": [
+      {
+        "pid": 474612,
+        "code": 1,
+        "status": 0
+      }
+    ],
+    "reapedCount": 1,
+    "signalsSent": 0,
+    "observerFailed": false,
+    "interrupted": false,
+    "status": "PASS"
+  },
+  "postflight": {
+    "sourceInputsVerified": 32,
+    "operatorPinsUnchanged": true,
+    "homeMarkerUnchanged": true,
+    "endpointAbsent": true,
+    "fencesEmpty": true,
+    "knownOwnPidsAbsent": {
+      "474609": true,
+      "474612": true,
+      "474615": true,
+      "474625": true
+    }
+  },
+  "artifacts": {
+    "stdout.log": {
+      "bytes": 178,
+      "sha256": "8a0173f528aebe5e7e1f65e749cb6e591fc7afdece523851f2203dee5d6a9974"
+    },
+    "stderr.log": {
+      "bytes": 200,
+      "sha256": "f979a629c01b40b176804bb7d4b1cbdb68653bb85ae72452f7de4c7678f77f66"
+    },
+    "network.trace": {
+      "bytes": 4917,
+      "sha256": "2373568e1158f3f0bef3f405907df66f05d4545671c090b63ca1ba7e3013af67"
+    },
+    "containment.json": {
+      "bytes": 376,
+      "sha256": "083b94bba267bf31011a7b2f26ec8b588f1b981188118ff5767ed4d051dd4316"
+    },
+    "preflight.json": {
+      "bytes": 309,
+      "sha256": "4551a686ddbf94510d052a29661aa47b3f394ba2ced7efafa75438081d92af58"
+    }
+  },
+  "notEstablished": [
+    "actual global selection/full release closure",
+    "actual C launcher maintenance lock retention",
+    "private helper registration/START/extinction",
+    "external broker/protector/service lifetimes",
+    "Native CLI/SDK/worker-realm/TUI/browser behavior",
+    "mandatory attachment/private LSP paths"
+  ],
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "backendCapabilityGranted": false
+}
