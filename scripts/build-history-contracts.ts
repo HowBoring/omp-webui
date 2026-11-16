@@ -10,7 +10,7 @@ async function emit(path: string, text: string): Promise<void> {
 }
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true } });
 ajv.addSchema(schema);
-const outputs = { Open: "HistoryOpen", Page: "HistoryPage", Poll: "HistoryPoll", Content: "HistoryContentPage" };
+const outputs = { Open: "HistoryOpen", Page: "HistoryPage", Poll: "HistoryPoll", Content: "HistoryContentPage", Notification: "AvailableCommandsUpdateEvent" };
 for (const [name, definition] of Object.entries(outputs)) {
   const code = standaloneCode(ajv, ajv.compile({ $ref: `${schema.$id}#/$defs/${definition}` }));
   await Bun.write(native + `history-${name.toLowerCase()}.generated.js`, code);
@@ -32,7 +32,7 @@ await emit("packages/contracts/generated/history-command.js", commandCode);
 await emit("packages/contracts/generated/history-command.d.ts", "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 let shared = '// Generated from same-source native history wire.\nimport command from "./history-command.generated.js";\n' +
   'import type { HistoryCommand } from "./history-client";\n' +
-  'import type { HistoryOpen,HistoryPage,HistoryPoll,HistoryContentPage,RpcWireCommands } from "./wire/rpc-wire.generated";\n' +
+  'import type { HistoryOpen,HistoryPage,HistoryPoll,HistoryContentPage,AvailableCommandsUpdateEvent,RpcWireCommands } from "./wire/rpc-wire.generated";\n' +
   'export const validateHistoryCommand = (value:unknown):value is HistoryCommand | ({id:string;type:"negotiate_protocol"}&RpcWireCommands["negotiate_protocol"]["params"]) => command(value);\n';
 for (const [name, definition] of Object.entries(outputs)) {
   shared += `import ${name.toLowerCase()} from "./history-${name.toLowerCase()}.generated.js";\n` +

@@ -257,3 +257,39 @@ test('reentrant native mutation during serialization cannot be published as an a
   expect(()=>history.open('tree')).toThrow('history_changed_during_capture');
   expect(history.open('tree').count).toBe(2);
 });
+
+test('native loader unavailable image representation keeps readable text without inventing an Original association or content handle', () => {
+  const manager=SessionManager.inMemory(profile);
+  manager.appendMessage({role:'user',content:[{type:'text',text:'Readable imported message'},
+    {type:'image',mimeType:'image/png',data:''}],timestamp:1});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  const opened=history.open('tree'),row=history.page(opened.cursor).items[0];
+  expect(row.text).toContain('Readable imported message');
+  expect(row.text).toContain('Native image representation unavailable; original association unproven');
+  expect(row.contents).toEqual([]);
+});
+
+test('native bigint extension state uses native lossless JSON semantics without exposing hidden data', () => {
+  const manager=SessionManager.inMemory(profile);
+  manager.appendCustomEntry('synthetic-bigint',{version:9223372036854775807n});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  const opened=history.open('tree'),page=history.page(opened.cursor);
+  expect(page.items[0].text).toBe('[Native structural record]');
+  expect(JSON.stringify(page)).not.toContain('9223372036854775807');
+  manager.getEntries()[0].data.version=9223372036854775808n;
+  expect(()=>history.page(opened.cursor)).toThrow('history_changed');
+});
+
+test('runtime context-only changes advance scope/version at identical leaf/count without exposing internal prompts', () => {
+  const manager=SessionManager.inMemory(profile);
+  manager.appendMessage({role:'user',content:'visible',timestamp:1});
+  const runtime={messages:[],streaming:false,compacting:false,context:{systemPrompt:['SYNTHETIC_INTERNAL_A'],tools:[]}};
+  const history=new RpcHistoryObservation(manager,()=>runtime),before=history.open('tree');
+  runtime.context.systemPrompt[0]='SYNTHETIC_INTERNAL_B';
+  expect(()=>history.page(before.cursor)).toThrow('history_changed');history.close(before.snapshot);
+  const after=history.open('tree');
+  expect(after.cut.leafId).toBe(before.cut.leafId);expect(after.count).toBe(before.count);
+  expect(after.cut.contextId).not.toBe(before.cut.contextId);
+  expect(after.cut.contentRevision).not.toBe(before.cut.contentRevision);
+  expect(JSON.stringify(history.page(after.cursor))).not.toContain('SYNTHETIC_INTERNAL');
+});

@@ -34,7 +34,7 @@ any generator. Generated Host validators and the narrow public `HistoryClient` a
 A cut identifies source, native Session, worker, native context epoch, full content revision, actual leaf and
 observation sequence. Every cut explicitly reports `durability: not_attested`; successful reads never prove a
 message or navigation was committed. SHA-256 covers every serialized retained entry payload (including hidden state), parent
-relationship, header, mutation/context counters, running message and prefix, independently of leaf/count/mtime.
+relationship, header, mutation/context counters, running message, prefix and opaque runtime context (system prompt, model, thinking and tool definitions), independently of leaf/count/mtime.
 Capture runs synchronously without an await; a reentrant native mutation during serialization rejects the cut; no successive public reads or arrival-order stitching is involved.
 Normal native insert/rebuild/clear/leaf/rewrite/physical-rewrite paths advance native counters. Full serialization
 also catches same-shape mutations through mutable native entry payloads. Captured pages hold serialized strings
@@ -69,6 +69,12 @@ hash-only mode in the same synchronous turn; it never publishes mutable manager 
 and includes the shared live watermark/prefix in each cut. #35 can add actual persistence/no-entry decisions to
 this registry without replacing native collaboration listeners or guessing message/entry adjacency.
 
+The runtime context is serialized once inside the native cut, hashed as `contextContentRevision`, and never
+included in Browser DTOs. `contextId` includes source, native context counter and that opaque digest, so runtime-only
+context changes at identical leaf/count also invalidate pages. The native serializer uses the existing public
+`stringifyJson` lossless-bigint semantics. Known unavailable native image representations retain their readable
+message and an unavailable marker, without inventing a content handle or Attachment Original association.
+
 ## Readable mapping
 
 No native record is silently removed from the tree. Known internal/custom/configuration/credential records become
@@ -90,9 +96,9 @@ Compaction/reset boundaries preserve older retained active history; the fixture 
 | Resource | Bound |
 | --- | ---: |
 | Retained native entries / running messages per observation | 20,000 / 20,000 |
-| Total scanned records including header/prefix | 40,002 |
+| Total scanned records including header/prefix/context | 40,003 |
 | Full serialized scan bytes | 320 MiB |
-| Single serialized native entry/message/prefix | 64 MiB |
+| Single serialized native entry/message/prefix/context | 64 MiB |
 | Cooperative scan / complete snapshot construction deadline | 5,000 ms / 5,000 ms |
 | Serialized retained storage per snapshot / aggregate cache | 256 MiB / 512 MiB |
 | Concurrent snapshots | 2; refuse new snapshots rather than evict readable old pages |
@@ -118,14 +124,16 @@ Checks occur between bounded serialization/scan operations; synchronous native w
 through JSON serialization. A native limit/deadline rejects the whole observation; no partial success/truncation.
 A raw native item over 64 MiB fails `history_native_item_bytes`. Large valid text is continued; large native image
 bytes are separately paged. Snapshot/cache/scan/item/content/response overlimits and invalid/expired cursors use
-stable `history_*` errors. Live eviction produces `history_observation_gap`; reopening is required. Host cancellation
+stable `history_*` errors. Live eviction produces `history_observation_gap`; reopening is required. The history adapter now uses the shared bounded stdio core and write queue with its own strict generated
+command/result/notification policy; only validated command-catalog notifications are ignorable. Host cancellation
 rejects pending work, stops and drains/reaps its owned fixture worker, and never replays a request.
 
 ## Reproduction
 
 Use Bun 1.4.4, the fixed OMP/DSH pins and an isolated profile. Default `compat:prepare --reset` installs its own frozen
 runtime dependencies. This workspace used the verified #30 dependency cache read-only through ignored symlinks:
-`vendor/omp/node_modules` and `vendor/omp-runtime` point to that pinned cache. No global installation is modified.
+`vendor/omp/node_modules` and `vendor/omp-runtime` point to that pinned cache. Host dependencies use the read-only #33 cache after verifying its `bun.lock` equals this branch
+(the updated lock adds the shared interaction fixture dependencies). No global installation is modified.
 For this cache-reuse path, `compat:prepare --reset --source-only` resets only the owned ignored native checkout and
 applies every declared patch without touching dependencies. DSH public modules/build inputs use the verified clean
 #30 DSH checkout read-only. Bundles and screenshots stay ignored.

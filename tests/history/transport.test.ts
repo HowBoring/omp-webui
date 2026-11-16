@@ -54,3 +54,12 @@ test("labelled public protocol fault keeps blocked queued writes bounded after r
     expect(performance.now() - started).toBeLessThan(1500);
   } finally { await transport.close(); }
 }, 10_000);
+
+test("labelled malformed command-catalog notification fails closed rather than being ignored by its type", async () => {
+  const transport = await HistoryTransport.open({ argv: [process.execPath, "tests/fixtures/history-notification-peer.ts"],
+    env: {}, timeoutMs: 500, readyTimeoutMs: 3000 });
+  try {
+    await expect(transport.history.page("opaque")).rejects.toThrow("RPC_PROTOCOL");
+    expect((await transport.close()).protocolFailure).toBe("RPC_PROTOCOL");
+  } finally { await transport.close(); }
+});

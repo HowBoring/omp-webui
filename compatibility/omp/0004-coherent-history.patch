@@ -1,9 +1,22 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 2ad422b5e6..6ab9773c9b 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -9,6 +9,8 @@
+ 
+ ### Added
+ 
++- Added atomic retained-tree, active-chain and running-message observations with bounded expiring pages and native image content reads ([WebUI #34](https://github.com/HowBoring/omp-webui/issues/34)).
++
+ - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
+ 
+ ## [18.20.2] - 2026-11-14
 diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
 new file mode 100644
-index 0000000000..40f254d14f
+index 0000000000..7476fcc2c8
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/history-client.ts
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,30 @@
 +/** Narrow public history client. Callback transport; no Session/configuration/Agent runtime imports. */
 +import { validHistoryOpen, validHistoryPage, validHistoryPoll, validHistoryContent } from "./history.generated";
 +import type { RpcWireCommands, HistoryScope, HistoryOpen, HistoryPage, HistoryPoll, HistoryContentPage } from "./wire/rpc-wire.generated";
@@ -11,25 +24,26 @@ index 0000000000..40f254d14f
 +  | "history_observation_poll" | "history_content_page"]: { id: string; type: K } & RpcWireCommands[K]["params"]
 +}["history_snapshot_open" | "history_snapshot_page" | "history_snapshot_close" | "history_observation_poll" | "history_content_page"];
 +export class HistoryClient {
-+  constructor(private readonly request: (command: HistoryCommand) => Promise<unknown>) {}
++  readonly #request: (command: HistoryCommand) => Promise<unknown>;
++  constructor(request: (command: HistoryCommand) => Promise<unknown>) { this.#request = request; }
 +  async open(scope: HistoryScope): Promise<HistoryOpen> {
-+    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope });
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope });
 +    if (!validHistoryOpen(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
 +  }
 +  async page(cursor: string): Promise<HistoryPage> {
-+    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor });
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor });
 +    if (!validHistoryPage(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
 +  }
 +  async content(cursor: string): Promise<HistoryContentPage> {
-+    const result = await this.request({ id: crypto.randomUUID(), type: "history_content_page", cursor });
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_content_page", cursor });
 +    if (!validHistoryContent(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
 +  }
 +  async poll(workerId: string, after: number): Promise<HistoryPoll> {
-+    const result = await this.request({ id: crypto.randomUUID(), type: "history_observation_poll", workerId, after });
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_observation_poll", workerId, after });
 +    if (!validHistoryPoll(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
 +  }
 +  async close(snapshot: string): Promise<void> {
-+    const result = await this.request({ id: crypto.randomUUID(), type: "history_snapshot_close", snapshot });
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_close", snapshot });
 +    if (typeof result !== "object" || result === null || !("closed" in result) || typeof result.closed !== "boolean") throw new Error("HISTORY_RESULT_SCHEMA");
 +  }
 +}
@@ -68,16 +82,16 @@ index 943e3c262f..c4eaa18fd7 100644
  	 * `SessionManager` on the server: no `since` returns all entries in append
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..2b3ac51882
+index 0000000000..c00b54a916
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,314 @@
 +/** Coherent native history v1. In-memory observations are not persistence receipts. */
-+import { randomUUID, createHash } from "node:crypto";
++import { asRecord } from "@oh-my-pi/pi-utils/type-guards";
 +import type { SessionManager } from "../../session/session-manager";
 +
 +export const HISTORY_LIMITS = Object.freeze({
-+  entries: 20_000, runningMessages: 20_000, scanItems: 40_002, bytes: 320 * 1024 * 1024, nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 5_000,
++  entries: 20_000, runningMessages: 20_000, scanItems: 40_003, bytes: 320 * 1024 * 1024, nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 5_000,
 +  snapshotBytes: 256 * 1024 * 1024, cacheBytes: 512 * 1024 * 1024, snapshots: 2,
 +  pageItems: 128, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 600_000,
 +  contentItems: 20_000, contentPageBytes: 256 * 1024, liveEvents: 4096, liveBytes: 8 * 1024 * 1024, pollItems: 128,
@@ -112,11 +126,11 @@ index 0000000000..2b3ac51882
 +}
 +export interface HistoryChange { seq: number; kind: string }
 +export interface HistoryPoll { cut: HistoryCut; after: number; through: number; events: HistoryChange[]; hasMore: boolean }
-+interface Runtime { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }
++interface Runtime { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }
 +interface ContentPosition { content: HistoryContent; data: string; offset: number }
-+interface Snapshot { timer: ReturnType<typeof setTimeout>; contents: Map<string, ContentPosition>; open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
++interface Snapshot { timer: Timer; contents: Map<string, ContentPosition>; open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
 +function record(value: unknown): Record<string, unknown> {
-+  return typeof value === "object" && value !== null ? value as Record<string, unknown> : {};
++  return asRecord(value) ?? {};
 +}
 +function textContent(value: unknown): string {
 +  if (typeof value === "string") return value;
@@ -126,7 +140,9 @@ index 0000000000..2b3ac51882
 +    if (block.type === "text" && typeof block.text === "string") return block.text;
 +    if (block.type === "thinking" && typeof block.thinking === "string") return `[Thinking] ${block.thinking}`;
 +    if (block.type === "toolCall") return `[Tool call: ${typeof block.name === "string" ? block.name : "unknown"}]`;
-+    if (block.type === "image") return "[Retained native image available; original association unproven]";
++    if (block.type === "image") return block.data === ""
++      ? "[Native image representation unavailable; original association unproven]"
++      : "[Retained native image available; original association unproven]";
 +    if (block.type === "redactedThinking") return "[Native redacted thinking]";
 +    if (block.type === "fallback") return "[Native provider fallback boundary]";
 +    if (block.type === "anthropicServerTool") return "[Native provider-managed tool record]";
@@ -185,7 +201,7 @@ index 0000000000..2b3ac51882
 +
 +/** One registry per worker, installed before live forwarding; later settlement can extend observe(). */
 +export class RpcHistoryObservation {
-+  readonly #workerId = randomUUID();
++  readonly #workerId = crypto.randomUUID();
 +  readonly #manager: SessionManager;
 +  readonly #runtime: () => Runtime;
 +  readonly #snapshots = new Map<string, Snapshot>();
@@ -213,8 +229,8 @@ index 0000000000..2b3ac51882
 +      this.observe({ type: "native_content_changed" });
 +      this.#lastRevision = value.contentRevision;
 +    }
-+    const contextId = createHash("sha256").update(JSON.stringify({ source: value.sourceId,
-+      contextRevision: value.contextRevision })).digest("hex");
++    const contextId = Bun.SHA256.hash(JSON.stringify({ source: value.sourceId,
++      contextRevision: value.contextRevision, contextContentRevision: value.contextContentRevision }), "hex");
 +    const cut: HistoryCut = { durability: "not_attested", sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
 +      ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
 +      workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
@@ -265,14 +281,15 @@ index 0000000000..2b3ac51882
 +        if (image.type !== "image") return [];
 +        if (typeof image.data !== "string" || typeof image.mimeType !== "string") throw new Error("history_content_invalid");
 +        if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(image.mimeType)) throw new Error("history_content_mime");
++        if (image.data.length === 0) return [];
 +        const decoded = Buffer.from(image.data, "base64");
 +        if (decoded.toString("base64") !== image.data) throw new Error("history_content_invalid");
-+        const sha256 = createHash("sha256").update(decoded).digest("hex");
++        const sha256 = Bun.SHA256.hash(decoded, "hex");
 +        const key = `${image.mimeType}:${sha256}`;
 +        const existing = contentByDigest.get(key);
 +        if (existing) return [existing];
 +        if (contents.size >= HISTORY_LIMITS.contentItems) throw new Error("history_content_items");
-+        const content: HistoryContent = { cursor: randomUUID(), mimeType: image.mimeType, bytes: decoded.byteLength,
++        const content: HistoryContent = { cursor: crypto.randomUUID(), mimeType: image.mimeType, bytes: decoded.byteLength,
 +          sha256, origin: "retained_native", originalAssociation: "unproven" };
 +        contents.set(content.cursor, { content, data: image.data, offset: 0 });
 +        contentByDigest.set(key, content); contentBytes += Buffer.byteLength(image.data);
@@ -300,8 +317,8 @@ index 0000000000..2b3ac51882
 +    const bytes = contentBytes + [...tree, ...running].reduce((sum, row) => sum + Buffer.byteLength(row), 0);
 +    if (bytes > HISTORY_LIMITS.snapshotBytes) throw new Error("history_snapshot_bytes");
 +    if ([...tree, ...running].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
-+    const snapshot = randomUUID();
-+    const cursors = { tree: randomUUID(), active: randomUUID(), running: randomUUID() };
++    const snapshot = crypto.randomUUID();
++    const cursors = { tree: crypto.randomUUID(), active: crypto.randomUUID(), running: crypto.randomUUID() };
 +    const cursor = cursors[scope];
 +    const prefix = prefixItem && { id: prefixItem.id, parentId: null, kind: "running_prefix", active: false,
 +      text: "[Running prefix content is available through this snapshot's running cursor]" };
@@ -316,7 +333,11 @@ index 0000000000..2b3ac51882
 +    if (this.#snapshots.size >= HISTORY_LIMITS.snapshots || total > HISTORY_LIMITS.cacheBytes) throw new Error("history_cache_full");
 +    const timer = setTimeout(() => { this.#snapshots.delete(snapshot); }, HISTORY_LIMITS.ttlMs);
 +    timer.unref();
-+    this.#snapshots.set(snapshot, { timer, contents, open: structuredClone(open), rows, bytes, cursors: new Map(Object.entries(cursors).map(([scope, cursor]) => [cursor, { scope: scope as HistoryScope, offset: 0 }])) });
++    const positions = new Map<string, {scope: HistoryScope; offset: number}>([
++      [cursors.tree, {scope:"tree",offset:0}], [cursors.active, {scope:"active",offset:0}],
++      [cursors.running, {scope:"running",offset:0}],
++    ]);
++    this.#snapshots.set(snapshot, { timer, contents, open: structuredClone(open), rows, bytes, cursors: positions });
 +    return structuredClone(open);
 +  }
 +  #expire(): void {
@@ -343,7 +364,7 @@ index 0000000000..2b3ac51882
 +    if (index === start && index < rows.length) throw new Error("history_unpageable_item");
 +    if (index < rows.length) {
 +      const existing = [...snapshot.cursors].find(([, value]) => value.scope === position.scope && value.offset === index);
-+      const next = existing?.[0] ?? randomUUID();
++      const next = existing?.[0] ?? crypto.randomUUID();
 +      snapshot.cursors.set(next, { scope: position.scope, offset: index }); result.nextCursor = next;
 +    }
 +    if (Buffer.byteLength(JSON.stringify(result)) + 1024 > HISTORY_LIMITS.responseBytes) throw new Error("history_response_bytes");
@@ -361,7 +382,7 @@ index 0000000000..2b3ac51882
 +      partIndex: position.offset / HISTORY_LIMITS.contentPageBytes, data: position.data.slice(position.offset, end) };
 +    if (end < position.data.length) {
 +      const existing = [...snapshot.contents].find(([, value]) => value.content.cursor === position.content.cursor && value.offset === end);
-+      const next = existing?.[0] ?? randomUUID();
++      const next = existing?.[0] ?? crypto.randomUUID();
 +      snapshot.contents.set(next, { ...position, offset: end }); page.nextCursor = next;
 +    }
 +    return page;
@@ -380,7 +401,7 @@ index 0000000000..2b3ac51882
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 98fcb32191..daa82e7bb8 100644
+index 98fcb32191..8285928593 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,5 @@
@@ -389,18 +410,22 @@ index 98fcb32191..daa82e7bb8 100644
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1361,6 +1363,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1361,6 +1363,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		costCapRefusal: () => session.costCapRefusal,
  		settledWithoutRun: () => void settleWatcher.check(),
  	});
 +	const historyObservation = new RpcHistoryObservation(session.sessionManager, () => ({
 +		messages: session.messages, prefix: session.agent.state.streamMessage,
++		context: { systemPrompt: session.agent.state.systemPrompt, model: session.model,
++			thinkingLevel: session.thinkingLevel, tools: session.agent.state.tools.map(tool => ({
++				name: tool.name, description: tool.description, parameters: tool.parameters,
++			})) },
 +		streaming: session.isStreaming, compacting: session.isCompacting,
 +	}));
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -1723,6 +1729,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1723,6 +1733,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
@@ -408,7 +433,7 @@ index 98fcb32191..daa82e7bb8 100644
  		sessionEvents.forward(event);
  		// Before the prompt-result and settle reports: a goal continuation decided at this
  		// agent_end is scheduled (and reported as pending) before either reads settlement.
-@@ -2263,6 +2270,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2263,6 +2274,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
  			}
  
@@ -554,19 +579,28 @@ index 9f8449ecb3..93c54db31d 100644
  	};
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..08fd01e4c1 100644
+index 5835039797..b8a0b167a3 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,4 +1,8 @@
+@@ -1,5 +1,9 @@
 +export interface NativeHistoryChange {
 +  kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
 +}
  import * as fs from "node:fs";
-+import { createHash } from "node:crypto";
  import * as path from "node:path";
++import { stringifyJson } from "@oh-my-pi/pi-utils/json";
  import type {
  	ImageContent,
-@@ -959,6 +963,10 @@ export class SessionManager {
+ 	Message,
+@@ -21,7 +25,6 @@ import {
+ 	isFsError,
+ 	logger,
+ 	pathIsWithin,
+-	stringifyJson,
+ 	toError,
+ 	withLoopPhase,
+ } from "@oh-my-pi/pi-utils";
+@@ -959,6 +962,10 @@ export class SessionManager {
  	#titleRevision = 0;
  	/** Bumped by in-place entry updates, which a {@link SessionBodyStamp} cannot otherwise see. */
  	#bodyRevision = 0;
@@ -577,7 +611,7 @@ index 5835039797..08fd01e4c1 100644
  	#sessionFile: string | undefined;
  	#header!: SessionHeader;
  	#titleUpdatedAt = "";
-@@ -1234,9 +1242,11 @@ export class SessionManager {
+@@ -1234,9 +1241,11 @@ export class SessionManager {
  			if (this.#index.has(entry.id)) continue;
  			this.#entries.push(entry);
  			this.#index.insert(entry);
@@ -589,7 +623,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#expectedDiskSize = diskSize;
  		if (adopted > 0)
  			logger.warn("Kept session entries another writer added", { sessionFile: this.#sessionFile, adopted });
-@@ -1585,6 +1595,8 @@ export class SessionManager {
+@@ -1585,6 +1594,8 @@ export class SessionManager {
  	}
  
  	#recordFullRewrite(bytes: number): void {
@@ -598,7 +632,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#expectedDiskSize = bytes;
  	}
  
-@@ -2104,6 +2116,7 @@ export class SessionManager {
+@@ -2104,6 +2115,7 @@ export class SessionManager {
  
  		this.#entries = [];
  		this.#index.clear();
@@ -606,7 +640,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#fileIsCurrent = false;
  		this.#rewriteRequired = false;
  		this.#loadedMalformedRecords = 0;
-@@ -2132,6 +2145,7 @@ export class SessionManager {
+@@ -2132,6 +2144,7 @@ export class SessionManager {
  	}
  
  	#applyEntries(header: SessionHeader, entries: SessionEntry[]): void {
@@ -614,7 +648,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#header = header;
  		this.#entries = entries;
  		this.#sessionId = header.id;
-@@ -2141,6 +2155,7 @@ export class SessionManager {
+@@ -2141,6 +2154,7 @@ export class SessionManager {
  		const repairedUsage = normalizeLoadedUsage(entries);
  		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
  		this.#index.rebuild(entries);
@@ -622,7 +656,7 @@ index 5835039797..08fd01e4c1 100644
  	}
  
  	#freshEntryFields(): { id: string; parentId: string | null; timestamp: string; runtime: RuntimeIdentity } {
-@@ -2154,6 +2169,7 @@ export class SessionManager {
+@@ -2154,6 +2168,7 @@ export class SessionManager {
  
  	#setLeaf(id: string | null): void {
  		this.#index.setLeaf(id);
@@ -630,7 +664,7 @@ index 5835039797..08fd01e4c1 100644
  		const batch = this.#atomicEntryBatch;
  		if (batch && !batch.collecting) {
  			batch.externalLeafChanged = true;
-@@ -2171,6 +2187,7 @@ export class SessionManager {
+@@ -2171,6 +2186,7 @@ export class SessionManager {
  		}
  		this.#entries.push(entry);
  		this.#index.insert(entry);
@@ -638,7 +672,7 @@ index 5835039797..08fd01e4c1 100644
  		const batch = this.#atomicEntryBatch;
  		if (batch?.collecting) batch.entryIds.add(entry.id);
  		if (batch && !batch.collecting) {
-@@ -2203,7 +2220,9 @@ export class SessionManager {
+@@ -2203,7 +2219,9 @@ export class SessionManager {
  		const restoredLeaf = retainedAncestor(batch.externalLeafChanged ? batch.externalLeafId : batch.preBatchLeafId);
  		this.#entries = retained;
  		this.#index.rebuild(retained);
@@ -648,7 +682,7 @@ index 5835039797..08fd01e4c1 100644
  	}
  
  	#draftPath(): string | null {
-@@ -2817,6 +2836,7 @@ export class SessionManager {
+@@ -2817,6 +2835,7 @@ export class SessionManager {
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
  		manager.#entries = structuredClone(this.#entries);
  		manager.#index.rebuild(manager.#entries);
@@ -656,7 +690,7 @@ index 5835039797..08fd01e4c1 100644
  		manager.#forceFileCreation = true;
  		await manager.#rewriteAtomically();
  		return manager;
-@@ -3090,6 +3110,7 @@ export class SessionManager {
+@@ -3090,6 +3109,7 @@ export class SessionManager {
  		this.seal();
  		this.#entries = [];
  		this.#index.clear();
@@ -664,7 +698,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#inMemoryArtifacts = null;
  		this.#closeWriterEventually();
  		this.#entriesReleased = true;
-@@ -3502,6 +3523,7 @@ export class SessionManager {
+@@ -3502,6 +3522,7 @@ export class SessionManager {
  		if (trigger) entry.trigger = trigger;
  		this.#entries.push(entry);
  		this.#index.insert(entry);
@@ -672,7 +706,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#notifyEntryAppended(entry);
  		await this.#persistTitleChangeEntry(entry, { title, source, updatedAt: timestamp });
  		// Keep the recent-sessions title index current so welcome-screen lookups
-@@ -3796,6 +3818,7 @@ export class SessionManager {
+@@ -3796,6 +3817,7 @@ export class SessionManager {
  	 * outputs). Use sparingly.
  	 */
  	async rewriteEntries(): Promise<void> {
@@ -680,7 +714,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#bodyRevision++;
  		if (!this.#persist || !this.#sessionFile) return;
  		await this.#rewriteAtomically();
-@@ -4045,6 +4068,70 @@ export class SessionManager {
+@@ -4045,6 +4067,74 @@ export class SessionManager {
  	}
  
  	/** All session entries (excludes header). Returns a shallow copy. */
@@ -713,45 +747,49 @@ index 5835039797..08fd01e4c1 100644
 +	 * Includes full hidden entry payloads in the revision, but never returns those bytes on RPC.
 +	 * Runtime must be sampled by the RPC controller in this same synchronous JS turn.
 +	 */
-+	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
++	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
 +		const started = performance.now();
 +		const observedRevision = this.#historyRevision;
 +		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
 +		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
 +		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
-+		const hash = createHash("sha256");
++		const hash = new Bun.CryptoHasher("sha256");
 +		const sourceBinding = this.#historySourceBinding?.nativeSessionId === this.#sessionId ? this.#historySourceBinding : undefined;
-+		const sourceId = sourceBinding?.sourceId ?? createHash("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
++		const sourceId = sourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
 +		let scannedBytes = 0;
-+		const copy = <T>(value: T): T => {
-+			const bytes = JSON.stringify(value);
++		const copy = <T>(value: T, encoded?: (bytes: string) => void): T => {
++			const bytes = stringifyJson(value);
++			if (bytes === undefined) throw new Error("history_non_json_state");
 +			const size = Buffer.byteLength(bytes);
 +			scannedBytes += size;
 +			if (size > limits.nativeItemBytes) throw new Error("history_native_item_bytes");
 +			if (scannedBytes > limits.bytes) throw new Error("history_scan_bytes");
 +			if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
 +			hash.update(bytes).update("\n");
++			encoded?.(bytes);
 +			return materialize ? JSON.parse(bytes) as T : value;
 +		};
 +		const identity = copy({ sourceId, sessionId: this.#sessionId, leafId: this.#index.leafId(),
 +			sourceBinding, revision: this.#historyRevision, contextRevision: this.#historyContextRevision, header: this.#header });
-+		const entries = this.#entries.map(copy);
++		const entries = this.#entries.map(entry => copy(entry));
 +		// Bound each running message independently, rather than treating the full list as one item.
 +		const running = runtime;
-+		if (running.messages.length > limits.runningMessages || this.#entries.length + running.messages.length + 2 > limits.scanItems) throw new Error("history_scan_entries");
-+		const messages = running.messages.map(copy);
++		if (running.messages.length > limits.runningMessages || this.#entries.length + running.messages.length + 3 > limits.scanItems) throw new Error("history_scan_entries");
++		const messages = running.messages.map(message => copy(message));
++		let contextContentRevision = "";
++		const context = copy(running.context ?? null, bytes => { contextContentRevision = Bun.SHA256.hash(bytes, "hex"); });
 +		const state = copy({ prefix: running.prefix ?? null, streaming: running.streaming, compacting: running.compacting });
 +		if (observedRevision !== this.#historyRevision) throw new Error("history_changed_during_capture");
 +		if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
-+		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, entries,
-+			runtime: { messages, ...state }, contentRevision: hash.digest("hex"), scannedBytes,
++		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, contextContentRevision, entries,
++			runtime: { messages, context, ...state }, contentRevision: hash.digest("hex"), scannedBytes,
 +			scanMs: performance.now() - started };
 +	}
 +
  	getEntries(): SessionEntry[] {
  		return [...this.#entries];
  	}
-@@ -4103,6 +4190,7 @@ export class SessionManager {
+@@ -4103,6 +4193,7 @@ export class SessionManager {
  			}
  			this.#entries = this.#entries.filter(candidate => candidate.id !== entryId);
  			this.#index.rebuild(this.#entries);
@@ -759,7 +797,7 @@ index 5835039797..08fd01e4c1 100644
  			if (entry.type === "message" && entry.message.role === "assistant") {
  				const { api, provider, model, usage, stopReason, errorMessage } = entry.message;
  				// Off-branch like late usage: totals count every entry, and the kept
-@@ -4218,6 +4306,7 @@ export class SessionManager {
+@@ -4218,6 +4309,7 @@ export class SessionManager {
  		this.#titleUpdatedAt = timestamp;
  		this.#hasTitleSlot = true;
  		this.#index.rebuild(this.#entries);
@@ -767,7 +805,7 @@ index 5835039797..08fd01e4c1 100644
  		this.#artifactManager = null;
  		this.#artifactManagerSessionFile = null;
  		this.#forceFileCreation = this.#persist;
-@@ -4359,10 +4448,12 @@ export class SessionManager {
+@@ -4359,10 +4451,12 @@ export class SessionManager {
  		manager.#hasTitleSlot = true;
  		manager.#entries = history;
  		manager.#index.rebuild(history);
