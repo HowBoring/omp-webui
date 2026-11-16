@@ -50,7 +50,7 @@ index 5a9731a9c2..b11fd51964 100644
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index cfcbbdeeb1..104df95a8e 100644
+index cfcbbdeeb1..943e3c262f 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -4,6 +4,8 @@
@@ -62,28 +62,30 @@ index cfcbbdeeb1..104df95a8e 100644
  import { isPromise } from "node:util/types";
  import type { AgentEvent, AgentMessage, AgentToolResult, ThinkingLevel } from "@oh-my-pi/pi-agent-core";
  import type { CompactionResult } from "@oh-my-pi/pi-agent-core/compaction";
-@@ -338,6 +340,20 @@ function isPageFallbackError(error: unknown): boolean {
+@@ -338,6 +340,22 @@ function isPageFallbackError(error: unknown): boolean {
  // ============================================================================
  
  export class RpcClient {
 +	/** Available before extension startup completes; require explicitAnswersOnly before presenting UI. */
 +	async getInteractionPolicy(): Promise<RpcInteractionPolicy> {
 +		const response = await this.#send({ type: "get_interaction_policy" });
-+		if (!validInteractionPolicy(response.data)) throw new Error("Invalid effective interaction policy");
-+		return Object.freeze(response.data);
++		const data = this.#getData<unknown>(response);
++		if (!validInteractionPolicy(data)) throw new Error("Invalid effective interaction policy");
++		return Object.freeze(data);
 +	}
 +
 +	/** Acknowledged business settlement; sending bytes alone is not acceptance. */
 +	async respondUI(targetId: string, answer: RpcUIAnswer): Promise<RpcUIReplyResult> {
 +		const result = await this.#send({ type: "respond_ui", targetId, answer });
-+		if (!validInteractionResult(result.data)) throw new Error("Invalid interaction settlement");
-+		return result.data;
++		const data = this.#getData<unknown>(result);
++		if (!validInteractionResult(data)) throw new Error("Invalid interaction settlement");
++		return data;
 +	}
 +
  	#process: RpcAgentProcess | null = null;
  	#reaping: Promise<void> | null = null;
  	#eventListeners: RpcEventListener[] = [];
-@@ -364,6 +380,17 @@ export class RpcClient {
+@@ -364,6 +382,17 @@ export class RpcClient {
  	#protocolVersion: RpcProtocolVersion = 1;
  	#supportsBashExcludeFromContext = false;
  	#extensionUiListeners: Set<(req: RpcExtensionUIRequest) => void> = new Set();
@@ -101,7 +103,7 @@ index cfcbbdeeb1..104df95a8e 100644
  	#abortController = new AbortController();
  
  	constructor(private options: RpcClientOptions = {}) {
-@@ -389,6 +416,7 @@ export class RpcClient {
+@@ -389,6 +418,7 @@ export class RpcClient {
  		this.#abortController = new AbortController();
  		this.#protocolVersion = 1;
  		this.#supportsBashExcludeFromContext = false;
@@ -109,7 +111,7 @@ index cfcbbdeeb1..104df95a8e 100644
  
  		const cliPath = this.options.cliPath ?? "dist/cli.js";
  		const args = ["--mode", "rpc"];
-@@ -451,6 +479,10 @@ export class RpcClient {
+@@ -451,6 +481,10 @@ export class RpcClient {
  		void (async () => {
  			for await (const line of lines) {
  				if (!readySettled && isRecord(line) && line.type === "ready") {
@@ -498,7 +500,7 @@ index 4408b13370..98fcb32191 100644
  			inputDispatcher.dispatch(parsed);
  		} else if (isRpcExtensionUIResponse(parsed)) {
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..02835977a1 100644
+index 6d7b4f84cd..2fe43f30be 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -33,6 +33,7 @@ import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
@@ -536,7 +538,15 @@ index 6d7b4f84cd..02835977a1 100644
  	| { id?: string; type: "response"; command: "set_ask_dialog"; success: true; data: { enabled: boolean } }
  	| {
  			id?: string;
-@@ -833,7 +840,7 @@ export type RpcExtensionUIRequest =
+@@ -822,6 +829,7 @@ export type RpcExtensionUIRequest =
+ 			id: string;
+ 			method: "editor";
+ 			title: string;
++			timeout?: number;
+ 			prefill?: string;
+ 			promptStyle?: boolean;
+ 	  }
+@@ -833,7 +841,7 @@ export type RpcExtensionUIRequest =
  			questions: RpcAskDialogQuestion[];
  			timeout?: number;
  	  }

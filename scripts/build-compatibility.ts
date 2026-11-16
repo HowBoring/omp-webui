@@ -148,6 +148,10 @@ await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
   `export function validInteractionResult(value:unknown):value is RpcUIReplyResult { return result(value); }\n`);
 await Bun.write(join(source,"modes/rpc/interactions-policy.generated.js"),standaloneCode(ajv,ajv.compile(definition("InteractionPolicy"))));
 await Bun.write(join(source,"modes/rpc/interactions-result.generated.js"),standaloneCode(ajv,ajv.compile(definition("UIReplyResult"))));
+for (const name of ["command","policy","result"]) {
+  await Bun.write(join(source,`modes/rpc/interactions-${name}.generated.d.ts`),
+    "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+}
 await emit("packages/contracts/generated/interaction-command.js", interactionValidatorCode);
 await emit("packages/contracts/generated/interaction-command.d.ts",
   "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");

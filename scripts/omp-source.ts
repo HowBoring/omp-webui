@@ -18,7 +18,10 @@ const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.gener
 export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/interactions.generated.ts",
   "packages/coding-agent/src/modes/rpc/interactions-command.generated.js",
   "packages/coding-agent/src/modes/rpc/interactions-policy.generated.js",
-  "packages/coding-agent/src/modes/rpc/interactions-result.generated.js","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.js",
+  "packages/coding-agent/src/modes/rpc/interactions-command.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-policy.generated.d.ts",
+  "packages/coding-agent/src/modes/rpc/interactions-result.generated.d.ts","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
   "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
   "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",
   "packages/coding-agent/src/modes/rpc/catalog-sources.generated.js", "packages/coding-agent/src/modes/rpc/catalog-description.generated.js"];
