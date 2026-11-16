@@ -89,7 +89,8 @@ try:
                 marker = carrier and text.startswith(b'{"type":"omp_generation_commit"')
                 conversion = carrier and regs.rdx == 7 and text == b"ompgen1"
                 append = carrier and text.startswith(b'{"type":') and not marker
-                selected = carrier or file.startswith(str(target.parent / ("." + target.name + ".omp-generations")) + "/")
+                anonymous_copy = owned and file.startswith(str(target.parent) + "/") and "/#" in file and file.endswith(" (deleted)")
+                selected = carrier or anonymous_copy or file.startswith(str(target.parent / ("." + target.name + ".omp-generations")) + "/")
                 if selected:
                     pending[pid] = {"file": "carrier" if carrier else "generation", "count": regs.rdx,
                                     "fault": None, "short": False}
@@ -99,7 +100,7 @@ try:
                     with open(str(target) + ".replacement", "rb") as source, open(target, "xb") as destination:
                         shutil.copyfileobj(source, destination)
                     audit(fault, boundary="before_pwrite64", tracee=pid)
-                if not fired and ((fault == "short-marker" and marker) or (fault == "short-conversion" and conversion)):
+                if not fired and ((fault == "short-marker" and marker) or (fault == "short-conversion" and conversion) or (fault == "short-new-copy" and anonymous_copy)):
                     fired = True
                     regs.rdx = 3 if conversion else 20
                     ptrace(13, pid, 0, c.addressof(regs))

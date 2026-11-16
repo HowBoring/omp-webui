@@ -1,4 +1,4 @@
-# ADR 0012: Retain the selected inode for strict native continuation
+# ADR 0013: Retain the selected inode for strict native continuation
 
 Status: isolated prototype; acceptance/review and platform gates remain explicit. Related: #29, #31, #32,
 ADR 0002/0003/0007/0008/0010/0011 and [format contract](../../compatibility/STRICT-CONTINUATION.md).

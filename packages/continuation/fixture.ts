@@ -129,7 +129,9 @@ export class ContinuationFixture {
       }
       void client.exited.then(() => {
         if (!current.retired && current.record.attempt !== "cancelled") {
-          current.record.attempt = "outcome_unknown"; current.record.code = "STRICT_WORKER_EXITED"; void this.#save();
+          current.record.attempt = "outcome_unknown"; current.record.code = "STRICT_WORKER_EXITED";
+          if (this.#active === current && this.#state) this.#state = { ...this.#state, phase: "outcome_unknown", code: "STRICT_WORKER_EXITED" };
+          void this.#save();
         }
       });
       current.started = true;
@@ -167,7 +169,9 @@ export class ContinuationFixture {
     const active = this.#active;
     if (!active || active.retired || ["cancelled", "failed"].includes(active.record.attempt)) return;
     try { this.#accept(active, await (await active.client).startup.state()); }
-    catch { active.record.attempt = "outcome_unknown"; active.record.code = "STRICT_OUTCOME_UNAVAILABLE"; }
+    catch { active.record.attempt = "outcome_unknown"; active.record.code = "STRICT_OUTCOME_UNAVAILABLE";
+      if (this.#state) this.#state = { ...this.#state, phase: "outcome_unknown", code: "STRICT_OUTCOME_UNAVAILABLE" };
+    }
     await this.#save();
   }
   async act(action: ContinuationAction): Promise<ContinuationSnapshot> {
@@ -176,14 +180,22 @@ export class ContinuationFixture {
     else if (action.type === "recheck") await this.#recheck();
     else if (action.type === "cancel") {
       this.#cancelRequested = true;
-      if (this.#openingRecord) { this.#openingRecord.attempt = "cancelling"; this.#openingRecord.code = "STRICT_CANCEL_REQUESTED"; }
+      if (this.#openingRecord && this.#openingRecord.attempt !== "open") { this.#openingRecord.attempt = "cancelling"; this.#openingRecord.code = "STRICT_CANCEL_REQUESTED"; }
       const active = this.#active;
       if (active && !active.retired) {
         try {
           const client = await active.client;
-          if (!active.retired && active.started) this.#accept(active, await client.startup.cancel());
+          if (!active.retired && active.started && active.record.attempt !== "open") {
+            try { this.#accept(active, await client.startup.cancel()); }
+            catch (error) {
+              if (!(error instanceof Error) || error.message !== "STRICT_START_ALREADY_ATTEMPTED") throw error;
+              this.#accept(active, await client.startup.state());
+            }
+          }
         }
-        catch { active.record.attempt = "outcome_unknown"; active.record.code = "STRICT_CANCEL_OUTCOME_UNKNOWN"; }
+        catch { active.record.attempt = "outcome_unknown"; active.record.code = "STRICT_CANCEL_OUTCOME_UNKNOWN";
+          if (this.#state) this.#state = { ...this.#state, phase: "outcome_unknown", code: "STRICT_CANCEL_OUTCOME_UNKNOWN" };
+        }
         await this.#save();
       }
     } else if (action.type === "close") await this.close();
