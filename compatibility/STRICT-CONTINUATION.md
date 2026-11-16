@@ -91,3 +91,9 @@ startup result. These seams are not production behavior; product launch environm
 or LD_PRELOAD. Provider pre-import guards and independently observed zero INET traces are distinct evidence.
 
 Nested extended artifact Sessions are logically flattened for explicit native copy/fork/branch-copy operations. Real child leases and complete shared-reader cuts are prepared before destination publication; occupied/unknown/corrupt/budget cases refuse. Fresh files use Linux O_TMPFILE plus fd-bound linkat with no-clobber names; there is no rename/unlink/truncate fallback. Copy is bounded to8192 entries/256 directories/32 levels/64 native children/128MiB total body. Generic archive pack of nested extended artifacts currently refuses; parent-only flattened pack is supported. Native branch without copyArtifacts retains its ordinary no-copy semantics.
+
+The final isolated matrix and exact same-source build identities are recorded in
+`docs/evidence/ticket-32-strict-continuation.md` and `ticket-32-checkpoint.json`; independent review and full
+#41/#43/#44 admission remain pending. Version 0005 still performs a complete validated logical read/hash per
+append. It makes no broad large-history append-throughput claim; #36 owns the additive protected-control codec
+and validated accounting optimization in 0007, with affected faults/scale to be rerun in #41.
