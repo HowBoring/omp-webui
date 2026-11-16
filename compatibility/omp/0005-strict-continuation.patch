@@ -460,7 +460,7 @@ index b11fd51964..dca44f560b 100644
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index dc60e39d35..8e7f966743 100644
+index 796d87c814..dc96dd1e98 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,5 +1,6 @@
@@ -488,7 +488,7 @@ index dc60e39d35..8e7f966743 100644
  		frameEncoder.encodeFrames({
  			type: "ready",
  			protocolVersion: 1,
-@@ -1687,6 +1690,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1694,6 +1697,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	inputRead.then(rejectStartupDialogs, rejectStartupDialogs);
  
  	// Set up extensions with RPC-based UI context
@@ -496,7 +496,7 @@ index dc60e39d35..8e7f966743 100644
  	await initializeExtensions(session, {
  		mode: "rpc",
  		// Extension-initiated session changes get the same goal quiesce/reattach as the commands below.
-@@ -1732,6 +1736,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1739,6 +1743,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		uiContext: headless ? undefined : rpcUiContext,
  	});
  
@@ -505,7 +505,7 @@ index dc60e39d35..8e7f966743 100644
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
  		historyObservation.observe(event);
-@@ -2190,6 +2196,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2193,6 +2199,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// State
  			// =================================================================
  

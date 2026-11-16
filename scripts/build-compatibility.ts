@@ -2,7 +2,7 @@ import { mkdir, rm, symlink } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
-import { z } from "zod";
+import { makeCommandSchemas } from "./command-schemas.ts";
 import { digest } from "../packages/compatibility/installation.ts";
 
 import type { RpcWireBundle } from "@oh-my-pi/pi-coding-agent/modes/rpc/wire/index";
@@ -39,16 +39,8 @@ const patchSha256 = digest(patchText);
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true }, allErrors: false });
 ajv.addSchema(bundle);
 const definition = (name: string) => ({ $ref: `${bundle.$id}#/$defs/${name}` });
-const parameterDefinition = z.object({ properties: z.record(z.string(), z.unknown()),
-  required: z.array(z.string()).default([]) });
-const makeCommandSchemas = (names: string[]) => bundle["x-rpc"].commands.filter(command => names.includes(command.name)).map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return { type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
-});
-const catalogSchemas = makeCommandSchemas(["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
-const commandSchemas = makeCommandSchemas(["get_compatibility", "negotiate_protocol"]);
+const catalogSchemas = makeCommandSchemas(bundle, ["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
+const commandSchemas = makeCommandSchemas(bundle, ["get_compatibility", "negotiate_protocol"]);
 // This S0 client deliberately validates only marker-free preflight definitions. Later
 // Session unions require a separately implemented policy for the upstream leniency markers.
 const audited = new Set<string>();
@@ -88,7 +80,7 @@ await Bun.write(join(source,"modes/rpc/catalog.generated.ts"),`// Generated from
   `export const validCatalogPage = (v:unknown):v is CatalogPage => page(v);\nexport const validCatalogSources = (v:unknown):v is CatalogSources => sources(v);\nexport const validCatalogDescription = (v:unknown):v is CatalogDescription => description(v);\n`);
 await emit("packages/contracts/generated/catalog-client.ts",(await Bun.file(join(source,"modes/rpc/catalog-client.ts")).text()).replace("./wire/rpc-wire.generated","./omp-wire"));
 await emit("packages/contracts/generated/catalog.generated.ts",(await Bun.file(join(source,"modes/rpc/catalog.generated.ts")).text()).replaceAll("./catalog-command.generated.js","./catalog-command.js").replaceAll("./catalog-page.generated.js","./catalog-page.js").replaceAll("./catalog-sources.generated.js","./catalog-sources.js").replaceAll("./catalog-description.generated.js","./catalog-description.js").replaceAll("./wire/rpc-wire.generated","./omp-wire"));
-const strictSchemas = makeCommandSchemas(["strict_start", "get_strict_state", "cancel_strict_start", "negotiate_protocol"]);
+const strictSchemas = makeCommandSchemas(bundle, ["strict_start", "get_strict_state", "cancel_strict_start", "negotiate_protocol"]);
 for (const strictSchema of strictSchemas) audit(strictSchema);
 audit(bundle.$defs.StrictStartState);
 await emit("packages/contracts/generated/catalog-descriptor.js", standaloneCode(ajv, ajv.compile(definition("CatalogDescriptor"))));
@@ -146,13 +138,8 @@ console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.
 }
 
 // The runtime startup-fast interaction dispatcher validates the same authored public command schema.
-const interactionSchemas = bundle["x-rpc"].commands.filter(command =>
-  ["get_interaction_policy", "respond_ui"].includes(command.name)).map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return { type: "object", additionalProperties: false, required: ["type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
-});
+const interactionSchemas = makeCommandSchemas(bundle,
+  ["get_interaction_policy", "respond_ui", "negotiate_protocol"], { requireId: false });
 for (const schema of interactionSchemas) audit(schema);
 for (const name of ["InteractionPolicy", "UIReplyResult"]) audit(bundle.$defs[name]);
 const interactionValidator = ajv.compile({ $defs: bundle.$defs, anyOf: interactionSchemas });
@@ -164,7 +151,7 @@ await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
   `import policy from './interactions-policy.generated.js';\n` +
   `import result from './interactions-result.generated.js';\n` +
   `import type { RpcUIAnswer, RpcInteractionPolicy, RpcUIReplyResult } from './rpc-interactions';\n` +
-  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer};\n` +
+  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer} | {id?:string;type:'negotiate_protocol';protocolVersion:number};\n` +
   `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n` +
   `export function validInteractionPolicy(value:unknown):value is RpcInteractionPolicy { return policy(value); }\n` +
   `export function validInteractionResult(value:unknown):value is RpcUIReplyResult { return result(value); }\n`);
@@ -181,6 +168,14 @@ for (const [name, definitionName] of Object.entries({"interaction-policy":"Inter
   await emit(`packages/contracts/generated/${name}.js`, standaloneCode(ajv, ajv.compile(definition(definitionName))));
   await emit(`packages/contracts/generated/${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
+
+const interactionNotices=["AvailableCommandsUpdateEvent","PromptResultEvent","SessionSettledEvent",
+  "ExtensionError","SessionInfoUpdateEvent","ConfigUpdateEvent"];
+for(const name of interactionNotices)audit(bundle.$defs[name]);
+await emit("packages/contracts/generated/interaction-notification.js",
+  standaloneCode(ajv,ajv.compile({anyOf:interactionNotices.map(definition)})));
+await emit("packages/contracts/generated/interaction-notification.d.ts",
+  "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 
 // Host contracts/validators are emitted from exactly the schema used by the public candidate.
 await mkdir("packages/contracts/generated", { recursive: true });

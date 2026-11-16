@@ -135,8 +135,13 @@ runtime dependencies. This workspace used the verified #30 dependency cache read
 `vendor/omp/node_modules` and `vendor/omp-runtime` point to that pinned cache. Host dependencies use the read-only #33 cache after verifying its `bun.lock` equals this branch
 (the updated lock adds the shared interaction fixture dependencies). No global installation is modified.
 For this cache-reuse path, `compat:prepare --reset --source-only` resets only the owned ignored native checkout and
-applies every declared patch without touching dependencies. DSH public modules/build inputs use the verified clean
-#30 DSH checkout read-only. Bundles and screenshots stay ignored.
+applies every declared patch without touching dependencies. DSH public modules/build inputs now use the reviewed
+#39 complete candidate checkout read-only, through owned package links. `apps/history-fixture/build.ts` requires
+`verifyDshSource(resolvedRoot, "candidate")`; the persisted manifest records the full declared source identity as
+well as consumed inputs and asset hashes. A clean baseline or arbitrary dirty tree cannot satisfy that gate.
+The source-gate fault tests use a separate owned source-only reconstruction, never the shared runtime checkout.
+Build the declared DSH candidate with `scripts/prepare-dsh.sh`, or link an already verified/built read-only candidate,
+before building the history fixture. Bundles and screenshots stay ignored; the final manifest is retained as evidence.
 
 ```sh
 bun scripts/prepare-compatibility.ts --reset --source-only
@@ -148,17 +153,15 @@ bun test compatibility/omp/fixtures/history-native.test.js
 bun test compatibility/omp/fixtures/history-public-rpc.test.js
 bun test compatibility/omp/fixtures/history-scale.test.js
 bun apps/history-fixture/build.ts
-bun apps/history-fixture/main.ts
-# In another terminal, while the preceding isolated fixture server runs:
-python3 tests/browser/history-browser.py
+bun scripts/prove-history-browser.ts
 ```
 
 The fixture server chooses a fresh synthetic HOME/profile **before any ordinary native imports**, writes native
 synthetic data through the real SessionManager, and communicates exclusively over actual stdio RPC. All child env
 is allowlisted. The no-provider preload denies fetch/preconnect, socket/TLS/HTTP/HTTP2/WebSocket/UDP and Bun.connect
 network dispatch; synthetic OpenAI metadata and hard-failing model hooks prevent inference. Loopback/stdout Bun socketpairs and native Unix publish locks require the execution environment's local network allowance. This is not permission for provider calls.
-`network-audit.json` in the synthetic profile records zero actual dispatches. Stopping the fixture drains its worker
-and removes that profile. The main product Host remains private-Session blocked throughout.
+`network-audit.json` in the synthetic profile records zero actual dispatches. The browser proof wrapper always stops the fixture in a `finally` block, drains its worker
+and removes that profile. The manual `bun apps/history-fixture/main.ts` entry is also available for inspection. The main product Host remains private-Session blocked throughout.
 
 Evidence is scoped separately: native manager/data fault tests; actual public native client/schema/server with
 public rename mutation; actual Bun history transport with cancellation; labelled DSH Remote contract faults; actual

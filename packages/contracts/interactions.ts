@@ -17,7 +17,7 @@ export const pendingInteractionSchema=z.strictObject({
   id,generation:id,family:z.literal("extension-ui"),scope:z.discriminatedUnion("kind",[
     z.strictObject({kind:z.literal("startup")}),z.strictObject({kind:z.literal("session"),sessionId:id}),
   ]),method:z.enum(["ask","select","input","editor","confirm"]),title:z.string(),
-  options:z.array(z.string()).optional(),questions:z.array(question).optional(),
+  message:z.string().optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().optional(),options:z.array(z.string()).optional(),questions:z.array(question).optional(),
   createdAt:z.number(),deadline:z.number(),reason:z.literal("explicit-answer-required"),
 });
 export type PendingInteraction=z.infer<typeof pendingInteractionSchema>;
@@ -29,7 +29,11 @@ export const interactionSnapshotSchema=z.strictObject({
 export type InteractionSnapshot=z.infer<typeof interactionSnapshotSchema>;
 export const interactionReplySchema=z.strictObject({status:z.enum(["answered","cancelled","expired","invalid","stale"])});
 export type InteractionReply=z.infer<typeof interactionReplySchema>;
-const scenario=z.enum(["ask","timed-ask","select","tool","timed-tool"]);
+/** Host admission failure; never a native respond_ui acknowledgement. */
+export const interactionAnswerResultSchema=z.union([interactionReplySchema,
+  z.strictObject({status:z.literal("overloaded"),code:z.literal("INTERACTION_ANSWER_LIMIT")})]);
+export type InteractionAnswerResult=z.infer<typeof interactionAnswerResultSchema>;
+const scenario=z.enum(["ask","multi-ask","timed-ask","select","confirm","tool","timed-tool"]);
 export type InteractionScenario=z.infer<typeof scenario>;
 
 const codec=<T>(schema:z.ZodType<T>,typeSymbol:string)=>({mode:"strict" as const,typeSymbol,
@@ -44,20 +48,20 @@ export const interactionsContribution=createTypertRemoteInfo({package:"@omp-webu
     parameter("generation",id,"string"),
     parameter("interactionId",id,"string"),
     parameter("answer",uiAnswerSchema,"UIAnswer"),
-  ],result:{mode:"strict",typeSymbol:"InteractionReply",create:()=>interactionReplySchema,
-    decode:(value:unknown)=>interactionReplySchema.parse(value)}},
+  ],result:{mode:"strict",typeSymbol:"InteractionAnswerResult",create:()=>interactionAnswerResultSchema,
+    decode:(value:unknown)=>interactionAnswerResultSchema.parse(value)}},
   "ompInteractions/start":{service:"ompInteractions",invocation:{kind:"direct"},parameters:[
     parameter("scenario",scenario,"InteractionScenario"),
   ],result:{mode:"strict",typeSymbol:"InteractionSnapshot",create:()=>interactionSnapshotSchema,
     decode:(value:unknown)=>interactionSnapshotSchema.parse(value)}},
 }},z);
 export const interactionsHostContribution:TypertContribution={package:interactionsContribution.package,face:"host",
-  schemas:[{name:"InteractionSnapshot",create:()=>interactionSnapshotSchema},{name:"InteractionReply",create:()=>interactionReplySchema}],
+  schemas:[{name:"InteractionSnapshot",create:()=>interactionSnapshotSchema},{name:"InteractionAnswerResult",create:()=>interactionAnswerResultSchema}],
   model:{services:[],events:[],objects:[]},invocations:interactionsContribution.descriptors};
 declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompInteractions:{snapshot():Promise<RemoteResult<InteractionSnapshot>>;
-      answer(generation:string,interactionId:string,answer:UIAnswer):Promise<RemoteResult<InteractionReply>>;
+      answer(generation:string,interactionId:string,answer:UIAnswer):Promise<RemoteResult<InteractionAnswerResult>>;
       start(scenario:InteractionScenario):Promise<RemoteResult<InteractionSnapshot>>;};
   }
 }
