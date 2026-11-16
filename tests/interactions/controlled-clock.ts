@@ -44,6 +44,14 @@ for (const timedOut of [false, true]) {
     .toEqual({status: timedOut ? "expired" : "cancelled"});
   expect(await result).toBeUndefined();
 }
+const mutable=[{id:"original",question:"Original question",options:[{label:"Original"},{label:"Other"}]}];
+const immutable=requestRpcAskDialog(pending,output,mutable);
+const immutableId=frames.at(-1)!.id as string;
+mutable[0]!.id="replaced";mutable[0]!.options[0]!.label="replaced";
+expect(replyRpcInteraction(pending,{type:"extension_ui_response",id:immutableId,answers:[
+  {id:"original",selectedOptions:["Original"]}]})).toEqual({status:"answered"});
+expect(await immutable).toMatchObject({kind:"submit",results:[{id:"original",options:["Original","Other"],selectedOptions:["Original"]}]});
+
 const controller = new AbortController();
 const aborted = requestRpcAskDialog(pending, output, questions, {signal:controller.signal,timeout:100});
 const abortId = frames.at(-1)!.id as string;
@@ -89,11 +97,17 @@ for (const kind of ["fallback", "formDialog"]) {
     expect(replyRpcInteraction(pending,{type:"extension_ui_response",id:first,value:"explicit"})).toEqual({status:"answered"});
     // Allow the real fallback to move to its second field; the form deadline remains original.
     for (let n=0;n<10;n++) await Promise.resolve();
-    advance(250);
+    const second=frames.at(-1)!;
+    expect(second.timeout).toBe(250);
+    advance(250,false); // Reply races before either the form timer or field timer callback.
+    expect(replyRpcInteraction(pending,{type:"extension_ui_response",id:second.id,value:"too late"})).toEqual({status:"expired"});
+    advance(0);
   }
   expect(await result).toBe("cancelled");
   expect(stopped).toBe(true);
 }
+const failed=requestRpcAskDialog(pending,()=>{throw new Error("fixture output failed");},questions,{timeout:3000});
+await expect(failed).rejects.toThrow("fixture output failed");
 expect(pending.size).toBe(0);
 expect(timers.size).toBe(0);
 console.log("controlled-clock: PASS");

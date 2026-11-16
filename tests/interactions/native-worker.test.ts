@@ -8,6 +8,9 @@ test("actual rpc-ui verifies policy during root startup and atomically answers n
     const ready=await worker.wait(f=>f.type === "ready");
     expect(validPolicy(ready.interactionPolicy)).toBe(true);
     const startup=await worker.wait(f=>f.type === "extension_ui_request" && f.method === "input");
+    expect((await worker.command({type:"negotiate_protocol",protocolVersion:2})).data).toEqual({protocolVersion:2});
+    expect(worker.frames.some(f=>f.type === "extension_ui_request" && f.method === "cancel" && f.targetId === startup.id)).toBe(false);
+    expect(worker.frames.some(f=>f.type === "extension_ui_request" && f.method === "notify" && f.message === "startup:cancelled")).toBe(false);
     expect((await worker.command({type:"get_interaction_policy"})).data).toEqual(ready.interactionPolicy);
     expect((await worker.command({type:"respond_ui",targetId:startup.id,answer:{type:"confirm",confirmed:true}})).data)
       .toEqual({status:"invalid"});

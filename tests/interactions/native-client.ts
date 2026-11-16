@@ -7,20 +7,23 @@ const client=new RpcClient({spawn:()=>({stdin:fixture.child.stdin,stdout:fixture
   peekStderr:()=>"",kill:(signal?:Parameters<typeof fixture.child.kill>[0])=>fixture.child.kill(signal ?? "SIGTERM")})});
 const startup=Promise.withResolvers<void>();
 let readyVerified=false;
+const mayAnswer=Promise.withResolvers<void>();
+let answered=false;
 const detach=client.onExtensionUIRequest((request:{method:string;id:string})=>{
   if(request.method !== "input")return;
   void(async()=>{
     expect(client.interactionPolicy).toMatchObject({explicitAnswersOnly:true,version:"1"});
     expect(Object.isFrozen(client.interactionPolicy)).toBe(true);readyVerified=true;
     const policy=await client.getInteractionPolicy();expect(policy).toEqual(client.interactionPolicy);
+    await mayAnswer.promise;
     expect(await client.respondUI(request.id,{type:"confirm",confirmed:true})).toEqual({status:"invalid"});
     expect(await client.respondUI(request.id,{type:"value",value:"public client"})).toEqual({status:"answered"});
     expect(await client.respondUI(request.id,{type:"cancel"})).toEqual({status:"stale"});
-    startup.resolve();
+    answered=true;startup.resolve();
   })().catch(startup.reject);
 });
 try {
-  await client.start();await startup.promise;
+  await client.start();expect(answered).toBe(false);mayAnswer.resolve();await startup.promise;
   expect(readyVerified).toBe(true);
   expect(await client.getState()).toMatchObject({model:{provider:"openai",id:"gpt-4o"}});
   const outcome=await fixture.close();expect(outcome.code).toBe(0);

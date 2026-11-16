@@ -10,7 +10,7 @@ export const authoredPaths = ["src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc
   "src/modes/rpc/wire/catalog.ts", "src/modes/rpc/catalog-mode.ts", "src/modes/rpc/catalog-native.ts",
   "src/modes/rpc/rpc-interaction-policy.ts", "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
   "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
-  "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
+  "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "test/rpc-extension-ui.test.ts", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
   .map(path => `packages/coding-agent/${path}`);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",

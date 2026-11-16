@@ -11,7 +11,7 @@ async def run(args):
     env={"PATH":os.environ.get("PATH","/usr/bin:/bin"),"S0_INTERACTION_PORT":str(args.port)}
     if args.wait_ms is not None:env["S0_INTERACTION_WAIT_MS"]=str(args.wait_ms)
     log=(evidence/"host.log").open("w")
-    host=subprocess.Popen([args.bun,"--no-env-file","apps/host/src/interactions-fixture-main.ts"],cwd=root,
+    host=subprocess.Popen([args.bun,"--no-env-file","vendor/host-interactions/interactions-fixture-main.js"],cwd=root,
       env=env,stdout=log,stderr=log,start_new_session=True)
     cases=[];errors=[]
     def passed(name,**facts):cases.append({"case":name,"status":"PASS",**facts})
@@ -44,9 +44,10 @@ async def run(args):
         assert int(await first.locator('[data-deadline]').get_attribute('data-deadline'))==deadline
         passed("refresh-and-all-viewers-disconnect-never-renew",originalDeadline=deadline)
         await first.get_by_label('Explicit answer').fill('explicit startup')
-        await first.get_by_role('button',name='Submit explicit answer',exact=True).click()
+        await first.get_by_role('button',name='Submit explicit answer',exact=True).press('Enter')
         await expect(first.locator('[data-answer-result]')).to_have_text('answered')
         await expect(first.locator('[data-interaction-id]')).to_have_count(0)
+        passed('real-Linux-keyboard-explicit-root-answer')
         await first.get_by_role('button',name='Start ask',exact=True).click()
         await expect(first.locator('[data-interaction-id]')).to_have_count(1)
         await expect(first.locator('[data-interaction-id]')).to_have_attribute('data-scope','session')
@@ -67,6 +68,20 @@ async def run(args):
         await expect(first.locator('[data-answer-result]')).to_have_text('cancelled')
         await expect(first.locator('[data-interaction-id]')).to_have_count(0)
         passed('explicit-cancel-is-not-a-default-answer')
+        await first.get_by_role('button',name='Start confirm',exact=True).click()
+        await expect(first.get_by_text('Explicit confirmation message must be visible',exact=True)).to_be_visible()
+        await first.get_by_role('button',name='Deny',exact=True).click()
+        await expect(first.locator('[data-answer-result]')).to_have_text('answered')
+        await expect(first.locator('[data-interaction-id]')).to_have_count(0)
+        passed('native-confirm-false-is-an-explicit-answer')
+        await first.get_by_role('button',name='Start multi-ask',exact=True).click()
+        await first.get_by_label('North',exact=True).check()
+        await first.get_by_label('Red',exact=True).check()
+        await first.get_by_label('Blue',exact=True).check()
+        await first.get_by_role('button',name='Submit answers',exact=True).click()
+        await expect(first.locator('[data-answer-result]')).to_have_text('answered')
+        await expect(first.locator('[data-interaction-id]')).to_have_count(0)
+        passed('native-ask-distinct-question-order-and-multiselect')
         await first.get_by_role('button',name='Start timed-ask',exact=True).click()
         await expect(first.locator('[data-interaction-id]')).to_have_count(1)
         native_id=await first.locator('[data-interaction-id]').get_attribute('data-interaction-id')
@@ -110,6 +125,7 @@ async def run(args):
     summary={"status":"PASS","scope":"S0 isolated; not product admission","platform":platform.platform(),
       "browser":version,"cases":cases,"browserErrors":errors,"hostExitCode":host.returncode,
       "OMP":json.loads((root/'packages/contracts/generated/identity.ts').read_text().split(' = ',1)[1].strip().rstrip(';')),
+      "Host":json.loads((root/'vendor/host-interactions/manifest.json').read_text()),
       "DSH":json.loads((root/'vendor/dsh-interactions/manifest.json').read_text())}
     (evidence/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
     print(json.dumps({"status":"PASS","cases":len(cases),"browser":version,"hostExitCode":host.returncode}))

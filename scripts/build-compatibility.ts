@@ -125,7 +125,7 @@ console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.
 
 // The runtime startup-fast interaction dispatcher validates the same authored public command schema.
 const interactionSchemas = bundle["x-rpc"].commands.filter(command =>
-  ["get_interaction_policy", "respond_ui"].includes(command.name)).map(command => {
+  ["get_interaction_policy", "respond_ui", "negotiate_protocol"].includes(command.name)).map(command => {
   const params = command.params === null ? { properties: {}, required: [] }
     : parameterDefinition.parse(bundle.$defs[command.params]);
   return { type: "object", additionalProperties: false, required: ["type", ...params.required],
@@ -142,7 +142,7 @@ await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
   `import policy from './interactions-policy.generated.js';\n` +
   `import result from './interactions-result.generated.js';\n` +
   `import type { RpcUIAnswer, RpcInteractionPolicy, RpcUIReplyResult } from './rpc-interactions';\n` +
-  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer};\n` +
+  `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer} | {id?:string;type:'negotiate_protocol';protocolVersion:number};\n` +
   `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n` +
   `export function validInteractionPolicy(value:unknown):value is RpcInteractionPolicy { return policy(value); }\n` +
   `export function validInteractionResult(value:unknown):value is RpcUIReplyResult { return result(value); }\n`);

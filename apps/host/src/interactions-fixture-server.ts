@@ -32,7 +32,7 @@ class InteractionsService extends TypertRemoteService {
   }
   @Remote("start") async start(scenario:InteractionScenario) {
     if(!this.state.initialized || this.state.busy || this.bridge.snapshot().pending.length) throw new Error("S0_NATIVE_BUSY");
-    const commands:Record<InteractionScenario,string>={ask:"/s0-ask", "timed-ask":"/s0-ask 700",select:"/s0-select",
+    const commands:Record<InteractionScenario,string>={ask:"/s0-ask","multi-ask":"/s0-multi-ask", "timed-ask":"/s0-ask 700",select:"/s0-select",confirm:"/s0-confirm",
       tool:"/s0-tool", "timed-tool":"/s0-tool 0.7"};
     this.state.busy=true;
     void this.bridge.port.command({type:"prompt",message:commands[scenario]}).catch(()=>{}).finally(()=>{this.state.busy=false;});
