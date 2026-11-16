@@ -1,0 +1,1238 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 2d1a13fcc1..0c8a57f019 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -13,6 +13,8 @@
+ 
+ ### Added
+ 
++- Added protected navigation reservations, final native position receipts and read-only recovery queries ([WebUI #37](https://github.com/HowBoring/omp-webui/issues/37)).
++
+ - Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
+ 
+ - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index 48f8d9f5ac..909b41619c 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -46,3 +46,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
+ Switching backends mid-session immediately replaces the live backend, memory tools, listeners, and system-prompt context. Existing users with `memories.enabled = true|false` are migrated to `memory.backend = "local"|"off"` exactly once on first launch; afterward, `memory.backend` is the sole runtime selector.
+ 
+ Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
++
++Candidate protected durable navigation is documented in [rpc-navigation.md](docs/rpc-navigation.md).
+diff --git a/packages/coding-agent/docs/rpc-navigation.md b/packages/coding-agent/docs/rpc-navigation.md
+new file mode 100644
+index 0000000000..5ce54aabd7
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-navigation.md
+@@ -0,0 +1,41 @@
++# Recoverable tree navigation (candidate)
++
++`ready.navigationPolicy.version` and `get_compatibility.rpcUiNavigationPolicy.version` advertise
++`durable-navigation-v1`. The guarantee is software process-crash recovery under native exclusive protected ownership;
++ordinary/unprotected Sessions cannot admit this operation. Request IDs correlate transport only.
++
++`navigate_tree_committed` accepts a stable `navigationId`, native `sourceId`, `instanceId`, `nativeSessionId`, target
++`entryId`, optional expected context/target revisions, and native summary options. The native worker reserves the
++operation durably before hooks or summary effects, and persists the actual final selected leaf with its terminal
++receipt before success. Identical duplicate keys return facts; conflicting bindings/options fail. A reserved key is
++unresolved after process loss and never resumes automatically.
++
++`navigation_query` accepts only `navigationId`. It returns existing native facts without navigation, input, summary,
++repair or provider calls. A terminal receipt's `actualLeafId` describes its historical commit, which can differ from
++the current leaf after later legitimate native appends. An absent receipt does not authorize automatic retry.
++Native readers reject a later record that changes the reserved target, source or confirmation identity. Once terminal,
++the receipt's final outcome, commit identity, position, summary and hook facts are immutable. Identical receipts can
++be retained by a rewrite without applying their old position again.
++
++Control metadata is excluded from tree/model entries. Required-feature headers make unsupported rollback fail
++closed. Explicitly committed empty positions reopen as existing Sessions without first-turn initialization appends.
++This candidate is not an accepted product capability; additional fault and compatibility evidence remains pending.
++
++The result separates `reservation` from `persistence` and `outcome`. A reserved operation with no terminal receipt
++is unresolved and never replayed. `outcome: failed` can be durably committed together with actual native hook effects;
++failed/unknown publication remains unresolved, stops goal continuation and requires manual reopen. An unreadable
++source returns `reservation: unknown`, `persistence: unknown` and `NAVIGATION_SOURCE_UNREADABLE`, without treating
++missing readable facts as proof of absence.
++
++Hook facts report which public phases were invoked/completed and whether the awaited post-navigation hook changed
++the selected leaf. `actualLeafId` is sampled after that hook and persistence drainage, while the native transition
++still excludes execution. Goal continuation waits for the committed reply's stdout delivery, including spooled output.
++Draft text is never sent automatically. Up to 64 KiB is returned inline; a larger draft returns its original native
++entry/content revision with `draftStatus: reference_only` and an explicit explanation.
++
++Before confirmation, `navigation_inspect(entryId)` returns only native target/parent identity, target content revision
++and a small worker-local context generation. It does not build another tree or run hooks. Send its revisions as
++`expectedTargetRevision`/`expectedContextRevision` on the explicit commit action; stale previews are refused, including
++after worker reopen. The permanently reserved operation's immutable fingerprint retains those original parameters.
++An identical duplicate resolves its existing receipt before checking today's position or preview generation, so a
++lost reply can be recovered without replay even if the native tree later changed or the worker restarted.
+diff --git a/packages/coding-agent/src/modes/rpc/navigation-client.ts b/packages/coding-agent/src/modes/rpc/navigation-client.ts
+new file mode 100644
+index 0000000000..79b1a1c1eb
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/navigation-client.ts
+@@ -0,0 +1,24 @@
++/** Public callback client: no native runtime, filesystem, provider, or generic RPC exposure. */
++import type { NavigationResult, NavigationPreview, RpcWireCommands } from "./wire/rpc-wire.generated";
++export type NavigationClientCommand = { [K in "navigate_tree_committed" | "navigation_query" | "navigation_inspect"]:
++  { id: string; type: K } & RpcWireCommands[K]["params"] }["navigate_tree_committed" | "navigation_query" | "navigation_inspect"];
++export class NavigationClient {
++  constructor(readonly request: (command: NavigationClientCommand) => Promise<unknown>,
++    readonly validate: (value: unknown) => value is NavigationResult,
++    readonly validatePreview: (value: unknown) => value is NavigationPreview) {}
++  async inspect(entryId: string): Promise<NavigationPreview> {
++    const value = await this.request({ id: crypto.randomUUID(), type: "navigation_inspect", entryId });
++    if (!this.validatePreview(value) || value.entryId !== entryId) throw new Error("NAVIGATION_PREVIEW_SCHEMA");
++    return value;
++  }
++  async navigate(params: RpcWireCommands["navigate_tree_committed"]["params"]): Promise<NavigationResult> {
++    const value = await this.request({ id: crypto.randomUUID(), type: "navigate_tree_committed", ...params });
++    if (!this.validate(value) || value.navigationId !== params.navigationId) throw new Error("NAVIGATION_RESULT_SCHEMA");
++    return value;
++  }
++  async query(navigationId: string): Promise<NavigationResult> {
++    const value = await this.request({ id: crypto.randomUUID(), type: "navigation_query", navigationId });
++    if (!this.validate(value) || value.navigationId !== navigationId) throw new Error("NAVIGATION_RESULT_SCHEMA");
++    return value;
++  }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
+index facf7847a7..0bc48b7239 100644
+--- a/packages/coding-agent/src/modes/rpc/preflight.ts
++++ b/packages/coding-agent/src/modes/rpc/preflight.ts
+@@ -1,3 +1,4 @@
++import { nativeNavigationPolicy } from "../../session/navigation-policy";
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ /** Public startup path: no Session, user configuration, extensions, native UI or model imports. */
+@@ -36,7 +37,7 @@ export async function runPreflight(): Promise<void> {
+         const report: CompatibilityReport = {
+           candidate: "omp-webui-s0", ...compatibilityBuild, safePreflight: true, sessionAdmission: "blocked",
+           capabilities: ["safe-preflight-v1", "rpc-framing-v2"],
+-          rpcUiInteractionPolicy: rpcInteractionPolicy, rpcUiStrictStartupPolicy: strictStartupPolicy, rpcUiSubmissionPolicy: nativeSubmissionPolicy,
++          rpcUiInteractionPolicy: rpcInteractionPolicy, rpcUiStrictStartupPolicy: strictStartupPolicy, rpcUiSubmissionPolicy: nativeSubmissionPolicy, rpcUiNavigationPolicy: nativeNavigationPolicy,
+           runtime: { name: "bun", version: Bun.version, platform: process.platform, arch: process.arch },
+         };
+         await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 3aaef8ed11..a07646edfa 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1,3 +1,6 @@
++import type { NavigationResult } from "./wire/rpc-wire.generated";
++import { RpcNavigation } from "./rpc-navigation";
++import { nativeNavigationPolicy } from "../../session/navigation-policy";
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { RpcSubmissions } from "./rpc-submissions";
+ import type { SubmissionOperationOutcome } from "../../session/submission-provenance";
+@@ -497,6 +500,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+ 	if (
+ 		BACKGROUND_COMMANDS.has(command.type) ||
+ 		command.type === "prompt" ||
++    command.type === "navigate_tree_committed" ||
+ 		command.type === "submission_submit" ||
+ 		command.type === "steer" ||
+ 		command.type === "dictation_start" ||
+@@ -1333,7 +1337,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	if (!strictStartup) outputWriter.write(
+ 		frameEncoder.encodeFrames({
+-			type: "ready", submissionPolicy: nativeSubmissionPolicy,
++			type: "ready", submissionPolicy: nativeSubmissionPolicy, navigationPolicy: nativeNavigationPolicy,
+ 			protocolVersion: 1,
+ 			supportedProtocolVersions: [1, 2],
+ 			maxFrameBytes: MAX_RPC_FRAME_BYTES,
+@@ -1342,8 +1346,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			interactionPolicy: rpcInteractionPolicy,
+ 		}),
+ 	);
++	const afterNavigationOutput = new WeakMap<object, () => Promise<void>>();
+ 	const output = (obj: RpcResponse | RpcExtensionUIRequest | object) => {
+ 		outputWriter.write(frameEncoder.encodeFrames(obj));
++    const delivered = afterNavigationOutput.get(obj);
++    if (delivered) {
++      afterNavigationOutput.delete(obj);
++      void outputWriter.flush().then(delivered).catch(() => { goalController.stopForHostAbort(); });
++    }
+ 		if (isRecord(obj) && obj.type === "response" && obj.command === "negotiate_protocol" && obj.success === true)
+ 			frameEncoder.setProtocolVersion(2);
+ 	};
+@@ -1848,6 +1858,12 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	await emitAvailableCommandsUpdate();
+ 
++	const navigation = new RpcNavigation(session);
++  let navigationActive = false;
++  const refusedDuringNavigation = new WeakSet<object>();
++  const pendingUserInputs = new Set<object>();
++  const allowedDuringNavigation = (type: string): boolean => ["navigation_query", "navigation_inspect", "submission_query", "abort",
++    "abort_branch_summary", "get_state", "get_tree", "get_entries", "history_observation_poll"].includes(type);
+ 	const submissions = new RpcSubmissions(session, task => shutdownCoordinator.track(task));
+ 	const inputGate = new RpcUserInputGate();
+ 	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
+@@ -1998,6 +2014,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	// Handle a single command
+ 	const handleCommandImpl = async (command: RpcCommand): Promise<RpcResponse> => {
+ 		const id = command.id;
++    // A fresh action is required after navigation. Nothing is queued to execute when its fence opens.
++    if (refusedDuringNavigation.has(command) || (navigationActive && !allowedDuringNavigation(command.type)))
++      return error(id, command.type, "Navigation publication in progress", "NAVIGATION_BUSY");
+ 
+ 		switch (command.type) {
+ 			case "negotiate_protocol": return negotiateProtocol(id, command.protocolVersion);
+@@ -2006,6 +2025,76 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			// Prompting
+ 			// =================================================================
+ 
++      case "navigation_inspect": {
++        try { navigation.validate(command); return success(id, command.type, navigation.inspect(command.entryId)); }
++        catch (failure) { const code = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
++          return error(id, command.type, code, code); }
++      }
++      case "navigation_query": {
++        try { navigation.validate(command); return success(id, command.type, navigation.query(command.navigationId)); }
++        catch (failure) { const code = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
++          return error(id, command.type, code, code); }
++      }
++      case "navigate_tree_committed": {
++        try { navigation.validate(command); }
++        catch (failure) { const code = failure instanceof Error ? failure.message : "NAVIGATION_COMMAND_SCHEMA";
++          return error(id, command.type, code, code); }
++        if (session.isBusyForSnapshot || pendingUserInputs.size > 0)
++          return error(id, command.type, "Session is busy", "session_busy");
++        navigationActive = true;
++        let releaseGoal = false, awaitingOutput = false;
++        try {
++          // Its synchronous prefix fences a pending continuation before the reservation's first await.
++          const heldGoal = goalController.beginSessionChange(); releaseGoal = true;
++          const reserved = await navigation.reserve(command);
++          await heldGoal;
++          if (!reserved.admitted) return success(id, command.type, navigation.query(command.navigationId, true));
++          // Reservation precedes all hook/summary effects; hold native transition through its protected receipt.
++          let receipt: NavigationResult | undefined, publicationStarted = false;
++          try {
++            navigation.validateReservedContext(reserved.value, reserved.executionContextRevision);
++            await btw.close();
++            await session.navigateTree(command.entryId, { summarize: command.summarize === true,
++              customInstructions: command.customInstructions, allowAskReopen: true, requireIdle: true,
++              validatePosition: () => navigation.validateCurrent(reserved.value),
++              commitPosition: async result => {
++                publicationStarted = true;
++                receipt = await navigation.complete(reserved.value, result);
++              },
++            });
++          } catch (failure) { receipt = await navigation.failed(reserved.value, failure, publicationStarted); }
++          if (!receipt) throw new Error("NAVIGATION_RECEIPT_MISSING");
++          const unresolved = receipt.persistence !== "committed";
++          if (unresolved) goalController.stopForHostAbort();
++          const reply = success(id, command.type, receipt);
++          // A spooled success must reach stdout before goal continuation or fresh work is admitted.
++          awaitingOutput = true;
++          afterNavigationOutput.set(reply, async () => {
++            await goalController.endSessionChange(); navigationActive = unresolved;
++          });
++          releaseGoal = false;
++          return reply;
++        } catch (failure) {
++          const message = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
++          const code = /^[A-Z][A-Z0-9_]+$/.test(message) ? message : "NAVIGATION_RESERVATION_FAILED";
++          let unknown = /UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY|HEADER|CWD/.test(code);
++          try { unknown ||= navigation.query(command.navigationId).persistence === "unknown"; } catch { unknown = true; }
++          if (unknown) {
++            goalController.stopForHostAbort();
++            const reply = error(id, command.type, code, code), held = releaseGoal;
++            awaitingOutput = true; releaseGoal = false;
++            afterNavigationOutput.set(reply, async () => {
++              if (held) await goalController.endSessionChange(); navigationActive = true;
++            });
++            return reply;
++          }
++          return error(id, command.type, code, code);
++        } finally {
++          if (releaseGoal) await goalController.endSessionChange();
++          if (!awaitingOutput) navigationActive = false;
++        }
++      }
++
+ 			case "submission_query": {
+ 				try { submissions.validate(command); return success(id, command.type,
+ 					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
+@@ -2948,8 +3037,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	};
+ 
+ 	const handleCommand = async (command: RpcCommand): Promise<RpcResponse> => {
+-		if (!Object.hasOwn(SESSION_CHANGE_TYPES, command.type)) return handleCommandImpl(command);
+-		return withSessionChange(() => handleCommandImpl(command));
++    try {
++      if (!Object.hasOwn(SESSION_CHANGE_TYPES, command.type)) return await handleCommandImpl(command);
++      return await withSessionChange(() => handleCommandImpl(command));
++    } finally { pendingUserInputs.delete(command); }
+ 	};
+ 
+ 	// Deferred shutdown (pi.shutdown() from an extension) must not kill the
+@@ -2982,7 +3073,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	const inputDispatcher = new RpcInputDispatcher({
+ 		deps: dispatchFrameDeps,
+ 		afterSerialCommand: () => shutdownCoordinator.checkShutdownRequested(),
+-		acceptInput: command => inputGate.accept(command),
++		acceptInput: command => {
++      inputGate.accept(command);
++      if (Object.hasOwn(USER_INPUT_TYPES, command.type)) pendingUserInputs.add(command);
++      if (navigationActive && !allowedDuringNavigation(command.type)) refusedDuringNavigation.add(command);
++    },
+ 	});
+ 
+ 	// Startup is over: run the frames held back meanwhile, then every later frame, through the dispatcher.
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-navigation.ts b/packages/coding-agent/src/modes/rpc/rpc-navigation.ts
+new file mode 100644
+index 0000000000..38496e6545
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-navigation.ts
+@@ -0,0 +1,141 @@
++/** Narrow recoverable navigation coordinator; OMP owns all conversation and tree state. */
++import type { AgentSession, NavigateTreeResult } from "../../session/agent-session";
++import type { NativeNavigation } from "../../session/navigation-records";
++import { validNavigationCommand } from "./navigation.generated";
++import type { NavigationResult, NavigationPreview, RpcWireCommands, SubmissionTarget } from "./wire/rpc-wire.generated";
++export type NavigationCommand = { [K in "navigate_tree_committed" | "navigation_query" | "navigation_inspect"]:
++  { id?: string; type: K } & RpcWireCommands[K]["params"] }["navigate_tree_committed" | "navigation_query" | "navigation_inspect"];
++export type NavigationSubmit = Extract<NavigationCommand, { type: "navigate_tree_committed" }>;
++interface NavigationFailure { persistence: "failed" | "unknown"; code: string }
++export class RpcNavigation {
++  #target: SubmissionTarget | undefined;
++  readonly #failures = new Map<string, NavigationFailure>();
++  constructor(readonly session: AgentSession) {
++    try { this.#target = session.sessionManager.getSubmissionTarget(); } catch { /* Protected capability unavailable. */ }
++  }
++  validate(value: unknown): void {
++    if (!validNavigationCommand(value)) throw new Error("NAVIGATION_COMMAND_SCHEMA");
++    if (value.type === "navigation_inspect") {
++      if (value.entryId.length < 1 || value.entryId.length > 128) throw new Error("NAVIGATION_COMMAND_SCHEMA");
++      return;
++    }
++    if (!/^[A-Za-z0-9_-]{1,96}$/.test(value.navigationId) || (value.id !== undefined && value.id.length > 96))
++      throw new Error("NAVIGATION_COMMAND_SCHEMA");
++    if (value.type === "navigation_query") return;
++    if (!/^[a-f0-9]{64}$/.test(value.sourceId) || !/^[a-f0-9]{64}$/.test(value.instanceId)
++      || value.entryId.length < 1 || value.entryId.length > 128 || value.nativeSessionId.length < 1
++      || value.nativeSessionId.length > 128 || Buffer.byteLength(value.customInstructions ?? "") > 16384)
++      throw new Error("NAVIGATION_COMMAND_SCHEMA");
++  }
++  /** Rechecked under the native transition before hooks and again after every awaited hook/summary. */
++  validateCurrent(value: NativeNavigation): void {
++    const manager = this.session.sessionManager, target = manager.getSubmissionTarget();
++    // The read verifies the held current header/cwd and namespace without executing or repairing.
++    manager.assertNavigationSource();
++    if (target.sourceId !== value.origin.sourceId || target.instanceId !== value.origin.instanceId
++      || target.nativeSessionId !== value.origin.nativeSessionId) throw new Error("NAVIGATION_TARGET_CHANGED");
++    const entry = manager.navigationTarget(value.result.requestedTargetId!);
++    if (entry.targetRevision !== value.result.targetRevision)
++      throw new Error("NAVIGATION_STALE_TARGET");
++  }
++  inspect(entryId: string): NavigationPreview {
++    this.validate({ type: "navigation_inspect", entryId });
++    const manager = this.session.sessionManager, target = manager.getSubmissionTarget();
++    const entry = manager.navigationTarget(entryId);
++    return { version: "durable-navigation-v1", target, entryId, targetParentId: entry.parentId,
++      targetRevision: entry.targetRevision, contextRevision: manager.navigationContextRevision() };
++  }
++  async reserve(command: NavigationSubmit): Promise<{ admitted: boolean; value: NativeNavigation; executionContextRevision?: string }> {
++    this.validate(command);
++    const manager = this.session.sessionManager, target = manager.getSubmissionTarget();
++    this.#target = target;
++    manager.assertNavigationSource();
++    if (target.sourceId !== command.sourceId || target.instanceId !== command.instanceId
++      || target.nativeSessionId !== command.nativeSessionId) throw new Error("NAVIGATION_TARGET_MISMATCH");
++    const origin = { ...target, navigationId: command.navigationId }, prior = manager.readNavigation(command.navigationId);
++    // A lost reply or an inherited fact is resolved before looking at today's target/context. Never replay it.
++    const preview = prior ? undefined : this.inspect(command.entryId);
++    const targetRevision = prior?.result.targetRevision ?? preview!.targetRevision;
++    const fingerprint = Bun.SHA256.hash(JSON.stringify({ origin, entryId: command.entryId, targetRevision,
++      expectedTargetRevision: command.expectedTargetRevision ?? null,
++      expectedContextRevision: command.expectedContextRevision ?? null, summarize: command.summarize === true,
++      customInstructions: command.customInstructions ?? null }), "hex");
++    if (prior) {
++      if (JSON.stringify(prior.origin) !== JSON.stringify(origin) || prior.fingerprint !== fingerprint)
++        throw new Error("NAVIGATION_CONFLICT");
++      return { admitted: false, value: prior };
++    }
++    if (!preview) throw new Error("NAVIGATION_PREVIEW_UNAVAILABLE");
++    if (command.expectedTargetRevision !== undefined && command.expectedTargetRevision !== preview.targetRevision)
++      throw new Error("NAVIGATION_STALE_TARGET");
++    if (command.expectedContextRevision !== undefined && command.expectedContextRevision !== preview.contextRevision)
++      throw new Error("NAVIGATION_STALE_CONTEXT");
++    const value: NativeNavigation = { origin, fingerprint, result: { version: "durable-navigation-v1",
++      navigationId: command.navigationId, target, found: true, duplicate: false, admission: "local", origin,
++      outcome: "reserved", reservation: "committed", persistence: "unresolved", terminal: false,
++      requestedTargetId: preview.entryId, targetParentId: preview.targetParentId,
++      targetRevision: preview.targetRevision, contextRevision: preview.contextRevision } };
++    const admitted = await manager.reserveNavigation(value);
++    return { admitted, value, executionContextRevision: manager.navigationContextRevision() };
++  }
++  validateReservedContext(value: NativeNavigation, revision: string | undefined): void {
++    this.validateCurrent(value);
++    if (!revision || this.session.sessionManager.navigationContextRevision() !== revision)
++      throw new Error("NAVIGATION_STALE_CONTEXT");
++  }
++  async complete(value: NativeNavigation, result: NavigateTreeResult): Promise<NavigationResult> {
++    this.validateCurrent(value);
++    return this.#publish(value, {
++      outcome: result.reopenAsk ? "unsupported" : result.aborted ? "aborted" : result.cancelled ? "cancelled" : "committed",
++      ...(result.reopenAsk ? { code: "ask_reanswer_unsupported" } : {}),
++      ...(result.summaryEntry ? { summaryEntryId: result.summaryEntry.id,
++        summaryOrigin: result.summaryEntry.fromExtension ? "extension" : "native" } : {}),
++      ...(result.editorText === undefined ? {} : { draftOriginEntryId: value.result.requestedTargetId,
++        draftContentRevision: value.result.targetRevision,
++        ...(Buffer.byteLength(result.editorText) <= 65536 ? { editorText: result.editorText, draftStatus: "inline" as const }
++          : { draftStatus: "reference_only" as const, draftUnavailableReason: "draft_exceeds_inline_limit" }) }),
++      hookCompleted: result.navigationHooks?.treeHookCompleted ?? false,
++      beforeHookInvoked: result.navigationHooks?.beforeHookInvoked ?? false,
++      beforeHookCompleted: result.navigationHooks?.beforeHookCompleted ?? false,
++      treeHookInvoked: result.navigationHooks?.treeHookInvoked ?? false,
++      hookChangedLeaf: result.navigationHooks?.changedLeaf ?? false,
++    });
++  }
++  async #publish(value: NativeNavigation, facts: Partial<NavigationResult>): Promise<NavigationResult> {
++    await this.session.sessionManager.completeNavigation({ ...value, result: { ...value.result, ...facts,
++      persistence: "committed", terminal: true } });
++    return this.query(value.origin.navigationId);
++  }
++  /** Execution failure can coexist with durable hook effects; publication failures never trigger repair/retry. */
++  async failed(value: NativeNavigation, failure: unknown, publicationStarted: boolean): Promise<NavigationResult> {
++    const message = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
++    const code = /^[A-Z][A-Z0-9_]+$/.test(message) ? message : "NAVIGATION_EXECUTION_FAILED";
++    if (!publicationStarted) {
++      try { return await this.#publish(value, { outcome: "failed", code, hookCompleted: false }); }
++      catch (publicationFailure) { failure = publicationFailure; }
++    }
++    const publicationCode = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
++    this.#failures.set(value.origin.navigationId, { persistence: /UNKNOWN|INDETERMINATE|BINDING|SOURCE|IDENTITY|HEADER|CWD/.test(publicationCode)
++      ? "unknown" : "failed", code: publicationCode });
++    return this.query(value.origin.navigationId);
++  }
++  query(navigationId: string, duplicate = false): NavigationResult {
++    this.validate({ type: "navigation_query", navigationId });
++    const manager = this.session.sessionManager;
++    let target = this.#target, value: NativeNavigation | undefined;
++    try { target = manager.getSubmissionTarget(); this.#target = target; value = manager.readNavigation(navigationId); }
++    catch (failure) {
++      if (!target) throw failure;
++      return { version: "durable-navigation-v1", navigationId, target, found: false, duplicate, admission: "absent",
++        reservation: "unknown", outcome: "unknown", persistence: "unknown", terminal: false, code: "NAVIGATION_SOURCE_UNREADABLE" };
++    }
++    const failure = this.#failures.get(navigationId);
++    if (!value) return { version: "durable-navigation-v1", navigationId, target, found: false, duplicate,
++      admission: "absent", reservation: failure ? "unknown" : "absent", outcome: failure ? "unknown" : "absent",
++      persistence: failure?.persistence ?? "unresolved", terminal: false, ...(failure ? { code: failure.code } : {}) };
++    return { ...structuredClone(value.result), target, duplicate,
++      ...(failure ? { persistence: failure.persistence, code: failure.code, terminal: false } : {}),
++      admission: value.origin.sourceId === target.sourceId && value.origin.instanceId === target.instanceId
++        && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited" };
++  }
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-output.ts b/packages/coding-agent/src/modes/rpc/rpc-output.ts
+index 506f3d0640..bce012d2b3 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-output.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-output.ts
+@@ -5,6 +5,8 @@ import type { BunFile } from "bun";
+ 
+ const READ_BYTES = 64 * 1024;
+ 
++interface OutputDrain { promise: Promise<void>; resolve: () => void; reject: (error: Error) => void }
++
+ interface Spool {
+ 	dir: TempDir;
+ 	file: BunFile;
+@@ -21,6 +23,7 @@ export class RpcOutputWriter {
+ 	#pendingWrites = 0;
+ 	#failure: Error | undefined;
+ 	#closing = false;
++  readonly #drains = new Set<OutputDrain>();
+ 	#completion: { promise: Promise<void>; resolve: () => void; reject: (error: Error) => void } | undefined;
+ 
+ 	constructor(
+@@ -45,6 +48,15 @@ export class RpcOutputWriter {
+ 		}
+ 	}
+ 
++  /** Delivery barrier for a committed response before native continuation can resume. */
++  async flush(): Promise<void> {
++    if (this.#failure) throw this.#failure;
++    if (!this.#pendingWrites && !this.#spool && !this.#pumping) return;
++    const pending = Promise.withResolvers<void>();
++    this.#drains.add(pending);
++    try { await pending.promise; } finally { this.#drains.delete(pending); }
++  }
++
+ 	async close(): Promise<void> {
+ 		this.#closing = true;
+ 		if (this.#failure) throw this.#failure;
+@@ -141,7 +153,10 @@ export class RpcOutputWriter {
+ 	}
+ 
+ 	#settle(): void {
+-		if (!this.#pendingWrites && !this.#spool && !this.#pumping && !this.#failure) this.#completion?.resolve();
++		if (!this.#pendingWrites && !this.#spool && !this.#pumping && !this.#failure) {
++      this.#completion?.resolve();
++      for (const pending of this.#drains) pending.resolve();
++    }
+ 	}
+ 
+ 	#fail(error: unknown): void {
+@@ -156,6 +171,7 @@ export class RpcOutputWriter {
+ 			);
+ 		}
+ 		this.#completion?.reject(this.#failure);
++    for (const pending of this.#drains) pending.reject(this.#failure);
+ 		process.off("exit", this.#onExit);
+ 		this.onFailure(this.#failure);
+ 	}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index b2ea42a01b..64eb083e2f 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -1,3 +1,5 @@
++import type { NavigationCommand } from "./rpc-navigation";
++import type { NavigationResult, NavigationPreview, NavigationPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
+ import type { StrictStartState } from "./wire/rpc-wire.generated";
+@@ -52,6 +54,7 @@ export type RpcMessageUpdates = "full" | "delta";
+ 
+ export type RpcCommand =
+   | SubmissionCommand
++  | NavigationCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+   | { id?: string; type: "history_snapshot_page"; cursor: string }
+@@ -391,6 +394,7 @@ export interface RpcAbortAndRestoreQueueResult {
+ 
+ export interface RpcReadyFrame {
+   submissionPolicy?: SubmissionPolicy;
++  navigationPolicy?: NavigationPolicy;
+ 	/** Effective before extension initialization and timers; immutable for this worker. */
+ 	interactionPolicy?: RpcInteractionPolicy;
+ 	type: "ready";
+@@ -447,6 +451,8 @@ export interface RpcSubagentMessagesResult {
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | { id?: string; type: "response"; command: "navigation_inspect"; success: true; data: NavigationPreview }
++  | { id?: string; type: "response"; command: "navigate_tree_committed" | "navigation_query"; success: true; data: NavigationResult }
+   | { id?: string; type: "response"; command: "submission_submit" | "submission_query"; success: true; data: SubmissionResult }
+   | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
+   | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
+diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+index 2acbd31b6d..1cd8205a71 100644
+--- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+@@ -1,3 +1,4 @@
++import { nativeNavigationPolicy } from "../../session/navigation-policy";
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ import * as fs from "node:fs/promises";
+@@ -21,7 +22,7 @@ export async function runStrictMode(runtimeArgs: string[] = []): Promise<void> {
+   let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
+   output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
+     maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
+-    strictStartup: "strict-start-v1", strictStartupPolicy, submissionPolicy: nativeSubmissionPolicy, interactionPolicy: rpcInteractionPolicy });
++    strictStartup: "strict-start-v1", strictStartupPolicy, submissionPolicy: nativeSubmissionPolicy, navigationPolicy: nativeNavigationPolicy, interactionPolicy: rpcInteractionPolicy });
+   let negotiated = false, attempted = false;
+   let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
+   let activeContext: StrictStartupContext | undefined;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index 97966b2eee..eae68aa80b 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -1,3 +1,4 @@
++import { navigationCommands } from "./navigation";
+ import { submissionCommands } from "./submissions";
+ import { strictStartCommands } from "./strict-start";
+ /**
+@@ -42,6 +43,7 @@ export const rpcCommands: readonly RpcCommandSpec[] = [
+   ...historyCommands,
+   ...strictStartCommands,
+   ...submissionCommands,
++  ...navigationCommands,
+   {
+     name: "get_compatibility",
+     doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+index 7dbe653b1a..6cff59ce90 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+@@ -19,6 +19,7 @@ export const frameDefs = {
+     rpcUiInteractionPolicy: "InteractionPolicy",
+     "rpcUiStrictStartupPolicy?": "StrictStartupPolicy",
+     "rpcUiSubmissionPolicy?": "SubmissionPolicy",
++    "rpcUiNavigationPolicy?": "NavigationPolicy",
+     sessionAdmission: "'blocked'",
+     capabilities: "string[]",
+     runtime: "CompatibilityRuntime",
+@@ -30,6 +31,7 @@ export const frameDefs = {
+       "strictStartup?": "'strict-start-v1'",
+       "strictStartupPolicy?": "StrictStartupPolicy",
+       "submissionPolicy?": "SubmissionPolicy",
++      "navigationPolicy?": "NavigationPolicy",
+ 			"protocolVersion?": "number.integer",
+ 			"supportedProtocolVersions?": "number.integer[]",
+ 			"maxFrameBytes?": "number.integer",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+index afeae50dfa..1d50bed32f 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -1,3 +1,4 @@
++import { navigationDefs } from "./navigation";
+ import { submissionDefs } from "./submissions";
+ /**
+  * RPC wire schema: the single source the client libraries are generated from.
+@@ -173,6 +174,7 @@ export function buildRpcWireBundle(): RpcWireBundle {
+     ...catalogDefs,
+     ...strictStartDefs,
+     ...submissionDefs,
++    ...navigationDefs,
+ 		...eventDefs,
+ 		...frameDefs,
+ 		...interactionDefs,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/navigation.ts b/packages/coding-agent/src/modes/rpc/wire/navigation.ts
+new file mode 100644
+index 0000000000..e115eee37f
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/navigation.ts
+@@ -0,0 +1,29 @@
++/** Durable same-Session navigation. Transport IDs never substitute for a permanent operation key. */
++export const navigationDefs = {
++  NavigationPolicy: { version: "'durable-navigation-v1'", status: "'prototype'",
++    durability: "'process-crash-only'", query: "'read-only-no-execution'", maxOperations: "number.integer" },
++  NavigationPreview: { version: "'durable-navigation-v1'", target: "SubmissionTarget", entryId: "string",
++    targetParentId: "string | null", targetRevision: "string", contextRevision: "string" },
++  NavigationOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", navigationId: "string" },
++  NavigationResult: { version: "'durable-navigation-v1'", navigationId: "string", target: "SubmissionTarget",
++    found: "boolean", duplicate: "boolean", admission: "'local' | 'inherited' | 'absent'", "origin?": "NavigationOrigin",
++    outcome: "'reserved' | 'committed' | 'cancelled' | 'aborted' | 'unsupported' | 'failed' | 'absent' | 'unknown'",
++    reservation: "'committed' | 'absent' | 'unknown'",
++    persistence: "'committed' | 'unresolved' | 'failed' | 'unknown'", terminal: "boolean",
++    "requestedTargetId?": "string", "targetParentId?": "string | null", "actualLeafId?": "string | null",
++    "summaryEntryId?": "string", "summaryOrigin?": "'extension' | 'native'", "hookCompleted?": "boolean",
++    "hookChangedLeaf?": "boolean", "beforeHookInvoked?": "boolean", "beforeHookCompleted?": "boolean",
++    "treeHookInvoked?": "boolean", "targetRevision?": "string", "contextRevision?": "string", "draftOriginEntryId?": "string", "editorText?": "string",
++    "draftContentRevision?": "string", "draftStatus?": "'inline' | 'reference_only'", "draftUnavailableReason?": "string",
++    "commitId?": "string", "code?": "string" },
++};
++export const navigationCommands = [
++  { name: "navigation_inspect", doc: "Read native target identity and confirmation generation without navigation or execution.",
++    params: { entryId: "string" }, result: "NavigationPreview" },
++  { name: "navigate_tree_committed", doc: "Reserve before hooks; commit the final native position before success. Duplicate keys never navigate again.",
++    params: { navigationId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", entryId: "string",
++      "expectedContextRevision?": "string", "expectedTargetRevision?": "string", "summarize?": "boolean", "customInstructions?": "string" },
++    result: "NavigationResult" },
++  { name: "navigation_query", doc: "Read an existing navigation receipt without replay, repair, summary or execution.",
++    params: { navigationId: "string" }, result: "NavigationResult" },
++] as const;
+diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
+index 380a100d81..b7a801ef86 100644
+--- a/packages/coding-agent/src/sdk.ts
++++ b/packages/coding-agent/src/sdk.ts
+@@ -2260,7 +2260,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 	let existingSession = logger.time("loadSessionContext", () =>
+ 		deobfuscateSessionContext(sessionManager.buildSessionContext(), obfuscator),
+ 	);
+-	const hasExistingSession = existingBranch.length > 0;
++	const hasExistingSession = existingBranch.length > 0 || sessionManager.hasPersistedNavigationPosition();
+ 	const hasThinkingEntry = existingBranch.some(entry => entry.type === "thinking_level_change");
+ 	const hasServiceTierEntry = existingBranch.some(entry => entry.type === "service_tier_change");
+ 
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index 79547098f4..bee76cd468 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -689,6 +689,9 @@ export class SessionBusyError extends Error {
+ 
+ /** Result of {@link AgentSession.navigateTree}. */
+ export interface NavigateTreeResult {
++  /** Observed native hook phases; no extension-private payload is exposed. */
++  navigationHooks?: { beforeHookInvoked: boolean; beforeHookCompleted: boolean;
++    treeHookInvoked: boolean; treeHookCompleted: boolean; changedLeaf: boolean };
+ 	editorText?: string;
+ 	/** Image attachments of the target user message, parallel to the positional `[Image #N]` markers in {@link editorText}. */
+ 	editorImages?: ImageContent[];
+@@ -15032,6 +15035,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			 * or the branch summary were awaited, before any tree change is made.
+ 			 */
+ 			requireIdle?: boolean;
++      /** Native coordinator: revalidate protected target before hooks and mutation. Never provided by wire input. */
++      validatePosition?: () => void;
++      /** Native coordinator: publish the final position while this transition still excludes new execution. */
++      commitPosition?: (result: NavigateTreeResult) => Promise<void>;
+ 		} = {},
+ 	): Promise<NavigateTreeResult> {
+ 		const queued = this.#enterSessionTransition(() => this.navigateTree(targetId, options));
+@@ -15039,6 +15046,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		using _transition = this.#beginSessionTransition();
+ 		await this.#bash.flushPending();
+ 		const oldLeafId = this.sessionManager.getLeafId();
++    let beforeHookInvoked = false, beforeHookCompleted = false, treeHookInvoked = false, treeHookCompleted = false;
++    let selectedBeforeTreeHook: string | null = oldLeafId;
++    const finish = async (result: NavigateTreeResult): Promise<NavigateTreeResult> => {
++      const observed: NavigateTreeResult = { ...result, navigationHooks: { beforeHookInvoked, beforeHookCompleted,
++        treeHookInvoked, treeHookCompleted, changedLeaf: treeHookCompleted
++          && this.sessionManager.getLeafId() !== selectedBeforeTreeHook } };
++      this.#branchSummaryAbortController = undefined;
++      await options.commitPosition?.(observed);
++      return observed;
++    };
++    options.validatePosition?.();
+ 
+ 		const targetEntry = this.sessionManager.getEntry(targetId);
+ 		if (!targetEntry) {
+@@ -15061,7 +15079,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// `reopenAsk` / branch the new answer instead of silently reporting a
+ 		// no-op (chatgpt-codex review on #5895).
+ 		if (targetId === oldLeafId && !targetIsUserMessage && !(options.allowAskReopen && targetIsAskResult)) {
+-			return { cancelled: false };
++			return await finish({ cancelled: false });
+ 		}
+ 
+ 		// Model required for summarization
+@@ -15086,7 +15104,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const toolCallId = targetEntry.message.toolCallId;
+ 			const html = this.#recoverAskReanswerHtml(targetEntry.parentId, toolCallId);
+ 			if (html !== undefined) {
+-				return { cancelled: false, reopenAsk: { toolCallId, html } };
++				return await finish({ cancelled: false, reopenAsk: { toolCallId, html } });
+ 			}
+ 			// Original arguments couldn't be recovered (corrupted/legacy session
+ 			// data) — fall through to a plain leaf move so navigation still works.
+@@ -15128,14 +15146,18 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 
+ 		// Emit session_before_tree event
+ 		if (this.#extensionRunner?.hasHandlers("session_before_tree")) {
++      beforeHookInvoked = true;
+ 			const result = (await this.#extensionRunner.emit({
+ 				type: "session_before_tree",
+ 				preparation,
+ 				signal: this.#branchSummaryAbortController.signal,
+ 			})) as SessionBeforeTreeResult | undefined;
+ 
++			beforeHookCompleted = true;
++      options.validatePosition?.();
++      if (this.#branchSummaryAbortController.signal.aborted) return await finish({ cancelled: true, aborted: true });
+ 			if (result?.cancel) {
+-				return { cancelled: true };
++				return await finish({ cancelled: true });
+ 			}
+ 
+ 			if (result?.summary && options.summarize) {
+@@ -15171,7 +15193,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			});
+ 			this.#branchSummaryAbortController = undefined;
+ 			if (result.aborted) {
+-				return { cancelled: true, aborted: true };
++				return await finish({ cancelled: true, aborted: true });
+ 			}
+ 			if (result.error) {
+ 				throw new Error(result.error);
+@@ -15186,6 +15208,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			summaryDetails = hookSummary.details;
+ 		}
+ 
++		options.validatePosition?.();
++
+ 		// A run admitted during the hook or summary awaits would keep writing into the branch the leaf leaves.
+ 		if (options.requireIdle) this.#assertIdleForSnapshot("navigate the session tree");
+ 
+@@ -15310,7 +15334,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// Emit session_tree event; only handlers can mutate session entries, so skip
+ 		// the emit and the context rebuild when no handlers are registered (mirrors
+ 		// the session_before_tree guard above).
++		selectedBeforeTreeHook = this.sessionManager.getLeafId();
+ 		if (this.#extensionRunner?.hasHandlers("session_tree")) {
++      treeHookInvoked = true;
+ 			await this.#extensionRunner.emit({
+ 				type: "session_tree",
+ 				newLeafId: this.sessionManager.getLeafId(),
+@@ -15318,27 +15344,29 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				summaryEntry,
+ 				fromExtension: summaryText ? fromExtension : undefined,
+ 			});
++treeHookCompleted = true;
++      options.validatePosition?.();
+ 			const rawContext = this.sessionManager.buildSessionContext({
+ 				maxFrameDataBytes: frameDataBytesBudget(this.model),
+ 				model: this.model,
+ 			});
+-			return {
++			return await finish({
+ 				editorText,
+ 				editorImages,
+ 				cancelled: false,
+ 				summaryEntry,
+ 				sessionContext: rawContext,
+ 				askReanswerCommitted: isAskReanswerCompletion,
+-			};
++			});
+ 		}
+-		return {
++		return await finish({
+ 			editorText,
+ 			editorImages,
+ 			cancelled: false,
+ 			summaryEntry,
+ 			sessionContext: stateContext,
+ 			askReanswerCommitted: isAskReanswerCompletion,
+-		};
++		});
+ 	}
+ 
+ 	/**
+diff --git a/packages/coding-agent/src/session/navigation-policy.ts b/packages/coding-agent/src/session/navigation-policy.ts
+new file mode 100644
+index 0000000000..34e56454dc
+--- /dev/null
++++ b/packages/coding-agent/src/session/navigation-policy.ts
+@@ -0,0 +1,3 @@
++/** Pure effective policy; safe to import before native Session initialization. */
++export const nativeNavigationPolicy = { version: "durable-navigation-v1", status: "prototype",
++  durability: "process-crash-only", query: "read-only-no-execution", maxOperations: 16384 } as const;
+diff --git a/packages/coding-agent/src/session/navigation-records.ts b/packages/coding-agent/src/session/navigation-records.ts
+new file mode 100644
+index 0000000000..81f5bd853d
+--- /dev/null
++++ b/packages/coding-agent/src/session/navigation-records.ts
+@@ -0,0 +1,99 @@
++import { nativeNavigationPolicy } from "./navigation-policy";
++import { validNavigationResult } from "../modes/rpc/navigation.generated";
++/** Navigation metadata is native control state, never a conversation entry or model message. */
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import * as util from "node:util";
++import { sessionEntryLeafId } from "./session-entries";
++import { isSubmissionControl } from "./submission-records";
++import type { CustomEntry, SessionEntry } from "./session-entries";
++import type { NavigationResult } from "../modes/rpc/wire/rpc-wire.generated";
++
++export const NAVIGATION_CONTROL = "omp.native-control/navigation-v1";
++export interface NativeNavigation {
++  origin: { sourceId: string; instanceId: string; nativeSessionId: string; navigationId: string };
++  fingerprint: string;
++  result: NavigationResult;
++}
++export function isNavigationControl(entry: SessionEntry): entry is CustomEntry {
++  return entry.type === "custom" && entry.customType === NAVIGATION_CONTROL;
++}
++function control(data: object): CustomEntry {
++  const checksum = Bun.SHA256.hash(JSON.stringify(data), "hex");
++  return { type: "custom", customType: NAVIGATION_CONTROL, id: `navigation-${checksum.slice(0, 32)}`,
++    parentId: null, activeLeafId: null, timestamp: "1970-01-01T00:00:00.000Z", data: { version: 1, payload: data, checksum } };
++}
++export function navigationRecord(value: NativeNavigation, applyPosition = false): CustomEntry {
++  return control({ kind: "receipt", value: structuredClone(value), applyPosition });
++}
++export function navigationPosition(leafId: string | null): CustomEntry {
++  return { ...control({ kind: "position", leafId }), parentId: leafId, activeLeafId: leafId };
++}
++function payload(entry: CustomEntry): Record<string, unknown> {
++  if (!isRecord(entry.data) || entry.data.version !== 1 || !isRecord(entry.data.payload)
++    || typeof entry.data.checksum !== "string"
++    || Bun.SHA256.hash(JSON.stringify(entry.data.payload), "hex") !== entry.data.checksum)
++    throw new Error("NAVIGATION_METADATA_CORRUPT");
++  return entry.data.payload;
++}
++/** Source, requested point and confirmation identities cannot change after reservation. */
++function sameBinding(left: NavigationResult, right: NavigationResult): boolean {
++  return util.isDeepStrictEqual(
++    [left.target, left.requestedTargetId, left.targetParentId, left.targetRevision, left.contextRevision],
++    [right.target, right.requestedTargetId, right.targetParentId, right.targetRevision, right.contextRevision],
++  );
++}
++/** Decode permanent facts; neither completion nor a later rewrite may replace their reserved target or final result. */
++export function readNavigationRecords(entries: SessionEntry[]): NativeNavigation[] {
++  const records = new Map<string, NativeNavigation>();
++  let bytes = 0;
++  for (const entry of entries) {
++    if (!isNavigationControl(entry)) continue;
++    const data = payload(entry);
++    bytes += Buffer.byteLength(JSON.stringify(entry));
++    if (bytes > 32 * 1024 * 1024) throw new Error("NAVIGATION_METADATA_LIMIT");
++    if (data.kind === "position") {
++      if (data.leafId !== null && typeof data.leafId !== "string") throw new Error("NAVIGATION_METADATA_CORRUPT");
++      continue;
++    }
++    const value = data.value;
++    if (data.kind !== "receipt" || typeof data.applyPosition !== "boolean" || !isRecord(value)
++      || !isRecord(value.origin) || typeof value.origin.navigationId !== "string"
++      || !/^[A-Za-z0-9_-]{1,96}$/.test(value.origin.navigationId)
++      || typeof value.origin.sourceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.sourceId)
++      || typeof value.origin.instanceId !== "string" || !/^[a-f0-9]{64}$/.test(value.origin.instanceId)
++      || typeof value.origin.nativeSessionId !== "string" || typeof value.fingerprint !== "string"
++      || !/^[a-f0-9]{64}$/.test(value.fingerprint) || !validNavigationResult(value.result))
++      throw new Error("NAVIGATION_METADATA_CORRUPT");
++    const record = value as unknown as NativeNavigation;
++    if (record.result.navigationId !== record.origin.navigationId || !record.result.origin
++      || !util.isDeepStrictEqual(record.result.origin, record.origin)
++      || (data.applyPosition && (!record.result.terminal || record.result.actualLeafId === undefined)))
++      throw new Error("NAVIGATION_METADATA_CORRUPT");
++    const prior = records.get(record.origin.navigationId);
++    if (prior && (!util.isDeepStrictEqual(prior.origin, record.origin) || prior.fingerprint !== record.fingerprint
++      || !sameBinding(prior.result, record.result)
++      || (prior.result.terminal && !util.isDeepStrictEqual(prior.result, record.result))))
++      throw new Error("NAVIGATION_METADATA_CONFLICT");
++    records.set(record.origin.navigationId, record);
++    if (records.size > nativeNavigationPolicy.maxOperations) throw new Error("NAVIGATION_CAPACITY");
++  }
++  return [...records.values()];
++}
++
++/** Replays position records in native publication order. Later ordinary entries supersede a selection. */
++export function navigationReplayLeaf(entries: SessionEntry[]): string | null | undefined {
++  let selected: string | null | undefined;
++  for (const entry of entries) {
++    if (isSubmissionControl(entry)) continue;
++    if (!isNavigationControl(entry)) {
++      if (selected !== undefined) selected = sessionEntryLeafId(entry);
++      continue;
++    }
++    const data = payload(entry);
++    if (data.kind === "position") selected = data.leafId as string | null;
++    if (data.kind === "receipt" && data.applyPosition === true && isRecord(data.value)
++      && isRecord(data.value.result) && data.value.result.actualLeafId !== undefined)
++      selected = data.value.result.actualLeafId as string | null;
++  }
++  return selected;
++}
+diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
+index 8efdf7cb7e..58e634fe88 100644
+--- a/packages/coding-agent/src/session/session-generation.ts
++++ b/packages/coding-agent/src/session/session-generation.ts
+@@ -307,7 +307,7 @@ export function publishHeldGeneration(fd: number, parentFd: number, file: string
+     // The new discriminator makes unsupported native rollback refuse this data before opening it.
+     const requiresSubmissions = body.split("\n", 3).slice(0, 2).some(line => {
+       let value: unknown; try { value = JSON.parse(line); } catch { return false; }
+-      return nativeSessionHeader(value)?.requiredFeatures?.includes("durable-submission-v1") === true;
++      return (nativeSessionHeader(value)?.requiredFeatures?.length ?? 0) > 0;
+     });
+     const carrierType = requiresSubmissions || header.type === SUBMISSION_CARRIER_TYPE
+       ? SUBMISSION_CARRIER_TYPE : CARRIER_TYPE;
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index a75ed42527..a672c55e53 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -1,3 +1,6 @@
++import { nativeNavigationPolicy } from "./navigation-policy";
++import { isNavigationControl, navigationRecord, navigationPosition, readNavigationRecords, navigationReplayLeaf } from "./navigation-records";
++import type { NativeNavigation } from "./navigation-records";
+ import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
+ import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
+@@ -839,6 +842,8 @@ interface SessionManagerStateSnapshot {
+ 	taskSiblingCandidate: string | undefined;
+ 	header: SessionHeader;
+ 	nativeSubmissions?: NativeSubmission[];
++	nativeNavigations?: NativeNavigation[];
++  selectedLeafId?: string | null;
+ 	entries: SessionEntry[];
+ }
+ 
+@@ -970,6 +975,9 @@ export class ForkSourceNotFoundError extends Error {
+  */
+ export class SessionManager {
+ 	#nativeSubmissions: NativeSubmission[] = [];
++	#nativeNavigations: NativeNavigation[] = [];
++  readonly #navigationEpoch = crypto.randomUUID();
++	#verifiedNavigations: NativeNavigation[] = [];
+ 	#verifiedSubmissions: NativeSubmission[] = [];
+ 	#verifiedSubmissionEntries = new Map<string, SubmissionCausality>();
+ 	#submissionBytes = 0;
+@@ -1627,7 +1635,7 @@ export class SessionManager {
+ 	}
+ 
+ 	#lineFor(entry: FileEntry): string {
+-		const durable = entry.type === "session" && entry.requiredFeatures?.includes("durable-submission-v1") ? { ...entry, type: "ompsub1" } : entry;
++		const durable = entry.type === "session" && entry.requiredFeatures?.length ? { ...entry, type: "ompsub1" } : entry;
+ 		return `${stringifyJson(prepareEntryForPersistence(durable as FileEntry, this.#blobs)) ?? "null"}\n`;
+ 	}
+ 	#recordDurableAppend(line: string): void {
+@@ -1640,7 +1648,7 @@ export class SessionManager {
+     const verifiedBinding = this.#storage.verifiedSourceBinding?.();
+     if (verifiedBinding) this.bindHistorySource(verifiedBinding);
+ 		this.#expectedDiskSize = bytes;
+-		this.#submissionBytes = this.#nativeSubmissions.reduce((total, item) => total + Buffer.byteLength(this.#lineFor(submissionRecord(item))), 0);
++		this.#submissionBytes = [...this.#nativeSubmissions.map(submissionRecord), ...this.#nativeNavigations.map(value => navigationRecord(value)), ...(this.#nativeNavigations.length ? [navigationPosition(this.#index.leafId())] : [])].reduce((total, item) => total + Buffer.byteLength(this.#lineFor(item)), 0);
+ 		if (this.#storage instanceof StrictSessionStorage && !this.#diskFailure) this.#captureSubmissionProof();
+ 	}
+ 
+@@ -1699,7 +1707,7 @@ export class SessionManager {
+ 		const titleLine = this.#titleSlotLine();
+ 		const headerLine = this.#lineFor(this.#header);
+ 		const entries = this.#entries;
+-		const controls = this.#nativeSubmissions.map(submissionRecord).map(record => this.#lineFor(record));
++		const controls = [...this.#nativeSubmissions.map(submissionRecord), ...this.#nativeNavigations.map(value => navigationRecord(value))].map(record => this.#lineFor(record));
+ 		if (controls.some(line => Buffer.byteLength(line) > 8 * 1024 * 1024)
+       || controls.reduce((sum,line) => sum + Buffer.byteLength(line), 0) > submissionPolicy.maxMetadataBytes)
+       throw new Error("SUBMISSION_METADATA_LIMIT");
+@@ -1713,6 +1721,10 @@ export class SessionManager {
+ 				lines.push(line);
+ 			}
+ 		});
++    if (this.#nativeNavigations.length) {
++      const position = this.#lineFor(navigationPosition(this.#index.leafId()));
++      lines.push(position); bytes += Buffer.byteLength(position);
++    }
+ 		const stamp: SessionBodyStamp = {
+ 			entries,
+ 			entryCount: entries.length,
+@@ -2137,6 +2149,7 @@ export class SessionManager {
+ 
+ 	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
+ 		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++		this.#nativeNavigations = []; this.#verifiedNavigations = [];
+ 		this.#nativeSubmissions = []; this.#verifiedSubmissions = []; this.#verifiedSubmissionEntries.clear(); this.#submissionBytes = 0; this.#submissionFormatReady = false;
+ 		this.#diskTail = Promise.resolve();
+ 		this.#clearDiskError();
+@@ -2207,11 +2220,16 @@ export class SessionManager {
+ 	#applyEntries(header: SessionHeader, entries: SessionEntry[], loaded = false): void {
+ 		this.#historySourceBinding = undefined;
+ 		this.#header = header;
++    this.#nativeNavigations = readNavigationRecords(entries);
++    const selectedLeaf = navigationReplayLeaf(entries);
++    for (const entry of entries) if (entry.type === "custom" && entry.customType.startsWith("omp.native-control/")
++      && !isSubmissionControl(entry) && !isNavigationControl(entry)) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
+ 		this.#nativeSubmissions = readSubmissionRecords([...(header.nativeSubmissions ?? []).map(submissionRecord), ...entries]);
+ 		delete this.#header.nativeSubmissions;
+-		this.#submissionBytes = entries.filter(isSubmissionControl).reduce((sum, entry) => sum + Buffer.byteLength(JSON.stringify(entry)) + 1, 0);
++		this.#submissionBytes = entries.filter(entry => isSubmissionControl(entry) || isNavigationControl(entry))
++      .reduce((sum, entry) => sum + Buffer.byteLength(JSON.stringify(entry)) + 1, 0);
+ 		this.#submissionFormatReady = header.requiredFeatures?.includes("durable-submission-v1") === true;
+-		entries = entries.filter(entry => !isSubmissionControl(entry));
++		entries = entries.filter(entry => !isSubmissionControl(entry) && !isNavigationControl(entry));
+ 		this.#entries = entries;
+ 		this.#sessionId = header.id;
+ 		this.#sessionName = header.title;
+@@ -2220,6 +2238,10 @@ export class SessionManager {
+ 		const repairedUsage = normalizeLoadedUsage(entries);
+ 		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
+ 		this.#index.rebuild(entries);
++    if (selectedLeaf !== undefined) {
++      if (selectedLeaf !== null && !this.#index.has(selectedLeaf)) throw new Error("NAVIGATION_POSITION_UNAVAILABLE");
++      this.#index.setLeaf(selectedLeaf);
++    }
+ 		if (loaded && this.#storage instanceof StrictSessionStorage) this.#captureSubmissionProof();
+ 		this.#historyChanged("rebuild", true);
+ 	}
+@@ -2404,6 +2426,8 @@ export class SessionManager {
+ 			// a rollback observe the move it is undoing.
+ 			header: structuredClone(this.#header),
+ 			nativeSubmissions: structuredClone(this.#nativeSubmissions),
++			nativeNavigations: structuredClone(this.#nativeNavigations),
++      selectedLeafId: this.#index.leafId(),
+ 			entries: [...this.#entries],
+ 		};
+ 	}
+@@ -2438,9 +2462,11 @@ export class SessionManager {
+ 	}
+ 
+ 	restoreState(snapshot: SessionManagerStateSnapshot): void {
++		const navigationTombstones = this.#header?.id === snapshot.header.id ? this.#nativeNavigations : undefined;
+ 		const tombstones = this.#header?.id === snapshot.header.id ? this.#nativeSubmissions : undefined;
+-    const priorSubmissionBytes = tombstones?.length && this.#sessionFile === snapshot.sessionFile ? this.#submissionBytes : undefined;
+-		const monotonicDiskSize = tombstones?.length && this.#sessionFile === snapshot.sessionFile ? this.#expectedDiskSize : undefined;
++    const hasTombstones = tombstones?.length || navigationTombstones?.length;
++    const priorSubmissionBytes = hasTombstones && this.#sessionFile === snapshot.sessionFile ? this.#submissionBytes : undefined;
++    const monotonicDiskSize = hasTombstones && this.#sessionFile === snapshot.sessionFile ? this.#expectedDiskSize : undefined;
+ 		if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
+ 		this.#closeWriterEventually();
+ 		this.#diskTail = Promise.resolve();
+@@ -2462,12 +2488,25 @@ export class SessionManager {
+ 			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
+ 			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
+ 			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
+-	      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
++      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
+         ...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
+-		}
+-    // captureState deliberately excludes control rows from its tree. Validate entries together with the permanent ledger.
+-    this.#applyEntries(restoredHeader, [...(snapshot.nativeSubmissions ?? []).map(submissionRecord), ...snapshot.entries]);
++    }
++    if (navigationTombstones?.length) {
++      const records = new Map((snapshot.nativeNavigations ?? []).map(item => [item.origin.navigationId, item]));
++      for (const item of navigationTombstones) records.set(item.origin.navigationId, structuredClone(item));
++      snapshot = { ...snapshot, nativeNavigations: [...records.values()] };
++      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
++        ...(this.#header.requiredFeatures ?? []), "durable-navigation-v1"])];
++    }
++    // Validate permanent ledgers together with entries; historical receipts do not select snapshot position.
++    this.#applyEntries(restoredHeader, [...(snapshot.nativeSubmissions ?? []).map(submissionRecord),
++      ...(snapshot.nativeNavigations ?? []).map(value => navigationRecord(value)), ...snapshot.entries]);
+     if (priorSubmissionBytes !== undefined) this.#submissionBytes = priorSubmissionBytes;
++    if (snapshot.selectedLeafId !== undefined) {
++      if (snapshot.selectedLeafId !== null && !this.#index.has(snapshot.selectedLeafId))
++        throw new Error("NAVIGATION_POSITION_UNAVAILABLE");
++      this.#index.setLeaf(snapshot.selectedLeafId);
++    }
+ 		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
+ 		this.#sessionName = snapshot.sessionName;
+ 
+@@ -3003,9 +3042,11 @@ export class SessionManager {
+ 		manager.#header.additionalDirectories =
+ 			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
+ 		manager.#nativeSubmissions = structuredClone(this.#nativeSubmissions);
++		manager.#nativeNavigations = structuredClone(this.#nativeNavigations);
+ 		manager.#header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
+ 		manager.#entries = structuredClone(this.#entries);
+ 		manager.#index.rebuild(manager.#entries);
++    manager.#index.setLeaf(this.#index.leafId());
+ 		manager.#historyChanged("rebuild", true);
+ 		manager.#forceFileCreation = true;
+ 		manager.#materializeSubmissionCopy();
+@@ -3015,7 +3056,7 @@ export class SessionManager {
+ 
+ 	/** Native ledger copies require a fresh protected target rather than a pathname-based atomic rename. */
+ 	#materializeSubmissionCopy(): void {
+-		if ((!this.#nativeSubmissions.length && !this.#header.requiredFeatures?.includes("durable-submission-v1")) || this.#storage instanceof StrictSessionStorage) return;
++		if ((!this.#nativeSubmissions.length && !this.#nativeNavigations.length && !this.#header.requiredFeatures?.length) || this.#storage instanceof StrictSessionStorage) return;
+ 		if (!this.#sessionFile) throw new Error("SUBMISSION_COPY_TARGET_MISSING");
+ 		const body = this.#serializeBody();
+ 		const storage = createExplicitNativeStorage(this.#sessionFile, body.lines.join(""), this.#cwd);
+@@ -4270,6 +4311,85 @@ export class SessionManager {
+ 		this.#historyChanged("source_binding", true);
+ 	}
+ 
++  /** An explicitly saved empty position is an existing Session, not an uninitialized first turn. */
++  hasPersistedNavigationPosition(): boolean {
++    return this.#nativeNavigations.some(value => value.result.actualLeafId !== undefined);
++  }
++  /** Permanent reservation, protected before any navigation hook, summary or entry mutation. */
++  reserveNavigation(value: NativeNavigation): Promise<boolean> {
++    return this.#withAtomicPersistenceLock(async () => {
++      this.getSubmissionTarget();
++      if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("NAVIGATION_PROTECTED_STORAGE_REQUIRED");
++      this.#storage.assertReadableState();
++      const prior = this.#nativeNavigations.find(item => item.origin.navigationId === value.origin.navigationId);
++      if (prior) {
++        if (JSON.stringify(prior.origin) !== JSON.stringify(value.origin) || prior.fingerprint !== value.fingerprint)
++          throw new Error("NAVIGATION_CONFLICT");
++        return false;
++      }
++      if (this.navigationContextRevision() !== value.result.contextRevision) throw new Error("NAVIGATION_STALE_CONTEXT");
++      if (this.#nativeNavigations.length >= nativeNavigationPolicy.maxOperations) throw new Error("NAVIGATION_CAPACITY");
++      if (!this.#header.requiredFeatures?.includes("durable-navigation-v1")) {
++        await this.flush();
++        this.#header.requiredFeatures = [...new Set([...(this.#header.requiredFeatures ?? []), "durable-navigation-v1"])];
++        this.#forceFileCreation = true;
++        await this.#rewriteAtomically();
++      }
++      await this.#appendNativeControlRecord(navigationRecord(value));
++      this.#nativeNavigations.push(structuredClone(value));
++      this.#verifiedNavigations.push(structuredClone(value));
++      return true;
++    });
++  }
++  /** Final leaf is sampled after awaited native hooks and published with the terminal receipt. */
++  completeNavigation(value: NativeNavigation): Promise<void> {
++    return this.#withAtomicPersistenceLock(async () => {
++      this.getSubmissionTarget();
++      if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("NAVIGATION_PROTECTED_STORAGE_REQUIRED");
++      this.#storage.assertReadableState();
++      const prior = this.#nativeNavigations.find(item => item.origin.navigationId === value.origin.navigationId);
++      if (!prior || prior.fingerprint !== value.fingerprint || JSON.stringify(prior.origin) !== JSON.stringify(value.origin))
++        throw new Error("NAVIGATION_RESERVATION_MISSING");
++      if (prior.result.terminal) throw new Error("NAVIGATION_ALREADY_TERMINAL");
++      await this.flush();
++      const completed = structuredClone(value);
++      completed.result.actualLeafId = this.#index.leafId();
++      completed.result.commitId = crypto.randomUUID();
++      await this.#appendNativeControlRecord(navigationRecord(completed, true));
++      this.#nativeNavigations = this.#nativeNavigations.map(item => item === prior ? completed : item);
++      this.#verifiedNavigations = this.#verifiedNavigations.filter(item => item.origin.navigationId !== value.origin.navigationId);
++      this.#verifiedNavigations.push(structuredClone(completed));
++    });
++  }
++  /** Confirmation generation is worker-local; an old browser preview cannot authorize work after reopen. */
++  navigationContextRevision(): string {
++    this.assertNavigationSource();
++    return Bun.SHA256.hash(JSON.stringify({ epoch: this.#navigationEpoch, source: this.getSubmissionTarget(),
++      revision: this.#historyRevision, bodyRevision: this.#bodyRevision, leaf: this.#index.leafId() }), "hex");
++  }
++  /** Content identity of one native target, independent of projected/browser presentation. */
++  navigationTarget(entryId: string): { entryId: string; parentId: string | null; targetRevision: string } {
++    this.assertNavigationSource();
++    const entry = this.getEntry(entryId);
++    if (!entry) throw new Error("NAVIGATION_ENTRY_NOT_FOUND");
++    const encoded = stringifyJson(entry);
++    if (encoded === undefined || Buffer.byteLength(encoded) > 64 * 1024 * 1024)
++      throw new Error("NAVIGATION_TARGET_TOO_LARGE");
++    return { entryId, parentId: entry.parentId, targetRevision: Bun.SHA256.hash(encoded, "hex") };
++  }
++  /** Validate the current native namespace/header/cwd before any navigation effect. */
++  assertNavigationSource(): void {
++    this.getSubmissionTarget();
++    if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("NAVIGATION_PROTECTED_STORAGE_REQUIRED");
++    this.#storage.assertReadableState();
++  }
++  /** Return one proven receipt without cloning or decoding the entire ledger/history. */
++  readNavigation(navigationId: string): NativeNavigation | undefined {
++    this.assertNavigationSource();
++    const value = this.#verifiedNavigations.find(item => item.origin.navigationId === navigationId);
++    return value ? structuredClone(value) : undefined;
++  }
++
+ 	/** A durable submission requires the genuine lease and pinned native publication backend. */
+ 	getSubmissionTarget(): SubmissionTarget {
+ 		if (!(this.#storage instanceof StrictSessionStorage) || !this.#persist || !this.#sessionFile)
+@@ -4370,6 +4490,7 @@ export class SessionManager {
+ 	#captureSubmissionProof(): void {
+ 		assertSubmissionEntries(this.#entries, this.#nativeSubmissions);
+ 		this.#verifiedSubmissions = structuredClone(this.#nativeSubmissions);
++		this.#verifiedNavigations = structuredClone(this.#nativeNavigations);
+ 		this.#verifiedSubmissionEntries = new Map(this.#entries.flatMap(entry => entry.submission
+ 			? [[entry.id, structuredClone(entry.submission)] as const] : []));
+ 	}
+@@ -4768,6 +4889,8 @@ export class SessionManager {
+ 			options?.sessionFile,
+ 		);
+ 		manager.#nativeSubmissions = readSubmissionRecords([...(sourceHeader?.nativeSubmissions ?? []).map(submissionRecord), ...history]);
++    manager.#nativeNavigations = readNavigationRecords(history);
++    const inheritedLeaf = navigationReplayLeaf(history);
+ 		manager.#header.requiredFeatures = structuredClone(sourceHeader?.requiredFeatures);
+ 		manager.#header.title = sourceHeader?.title;
+ 		manager.#header.titleSource = sourceHeader?.titleSource;
+@@ -4784,15 +4907,19 @@ export class SessionManager {
+ 		manager.#titleSource = manager.#header.titleSource;
+ 		manager.#titleUpdatedAt = nowIso();
+ 		manager.#hasTitleSlot = true;
+-		manager.#entries = history.filter(entry => !isSubmissionControl(entry));
++		manager.#entries = history.filter(entry => !isSubmissionControl(entry) && !isNavigationControl(entry));
+ 		manager.#index.rebuild(manager.#entries);
+ 		manager.#historyChanged("rebuild", true);
+ 		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
+ 		if (options?.repairInterruptedTail) {
+-			SessionManager.#repairForkedInterruptedTail(history, manager.#index.pathTo());
+-			manager.#index.rebuild(history);
++			SessionManager.#repairForkedInterruptedTail(manager.#entries, manager.#index.pathTo());
++			manager.#index.rebuild(manager.#entries);
+ 			manager.#historyChanged("rebuild", true);
+ 		}
++    if (inheritedLeaf !== undefined) {
++      if (inheritedLeaf !== null && !manager.#index.has(inheritedLeaf)) throw new Error("NAVIGATION_POSITION_UNAVAILABLE");
++      manager.#index.setLeaf(inheritedLeaf);
++    }
+ 		manager.#forceFileCreation = true;
+ 		manager.#materializeSubmissionCopy();
+ 		await manager.#rewriteAtomically();
+diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
+index 85ef1dd61e..a20e978413 100644
+--- a/packages/coding-agent/src/session/session-required-features.ts
++++ b/packages/coding-agent/src/session/session-required-features.ts
+@@ -4,9 +4,9 @@ import type { SessionHeader } from "./session-entries";
+ export function nativeSessionHeader(value: unknown): SessionHeader | undefined {
+   if (!isRecord(value) || (value.type !== "session" && value.type !== "ompsub1") || typeof value.id !== "string") return;
+   if (value.requiredFeatures !== undefined && (!Array.isArray(value.requiredFeatures)
+-    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
++    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1" && feature !== "durable-navigation-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
+   if (value.type === "ompsub1" && (!Array.isArray(value.requiredFeatures)
+-    || !value.requiredFeatures.includes("durable-submission-v1")))
++    || !value.requiredFeatures.some(feature => feature === "durable-submission-v1" || feature === "durable-navigation-v1")))
+     throw new Error("SUBMISSION_METADATA_CORRUPT");
+   if (value.nativeSubmissions !== undefined && (!Array.isArray(value.nativeSubmissions) || value.nativeSubmissions.length > 16
+     || Buffer.byteLength(JSON.stringify(value.nativeSubmissions)) > 12_000)) throw new Error("SUBMISSION_METADATA_CORRUPT");

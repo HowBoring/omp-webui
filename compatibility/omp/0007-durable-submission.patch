@@ -17,7 +17,7 @@ index a4b6abe4e7..2d1a13fcc1 100644
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..35ccdb4b3f 100644
+index 0b34d8fc54..48f8d9f5ac 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -44,3 +44,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
@@ -25,13 +25,13 @@ index 0b34d8fc54..35ccdb4b3f 100644
  
  Switching backends mid-session immediately replaces the live backend, memory tools, listeners, and system-prompt context. Existing users with `memories.enabled = true|false` are migrated to `memory.backend = "local"|"off"` exactly once on first launch; afterward, `memory.backend` is the sole runtime selector.
 +
-+Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
++Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
 diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
 new file mode 100644
-index 0000000000..6e11c73539
+index 0000000000..58aed9acd9
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-submissions.md
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,29 @@
 +# Durable native submission prototype
 +
 +`submission_submit` binds a permanent client identity to the exact protected native target, immutable preparation identity and input bytes. A reservation is published before extension, builtin, abort, model or tool dispatch. Duplicate keys return existing facts without executing. Conflicting bytes or targets are refused. This does not promise exactly-once external effects: a crashed reserved input remains unresolved and never resumes automatically.
@@ -53,6 +53,14 @@ index 0000000000..6e11c73539
 +`submission_submit` accepts optional `idleOnly: true` for prompt input without a streaming hint. Native guards refuse busy or queued admission before input hooks, recheck protected authority after preprocessing awaits, and refuse a busy agent claim instead of waiting for an autonomous run. Ordinary callers retain their native queue and command behavior. Permanent duplicates are resolved before this new-admission check. A refused operation can retain a reservation and failed operation outcome; it must never be inferred to have succeeded from a no-input receipt.
 +
 +History item `submission` projects exact native origin and causal role for its entry identity, including running observations and copied origins. It never associates a local echo with a native row by text, order, or timestamps. Reserved `omp.native-control/` custom types are unavailable to extension appends. Persisted causal entries require a matching permanent reservation; later records cannot discard committed entry or no-entry facts.
++
++Native SDK message objects may be reused under explicit submission scopes: each normalized invocation receives that call's current origin and phase. A detached reuse retains an origin only when the raw SDK object has one unambiguous captured scope. Reuse under different origins or phases makes a later detached call fail with `SUBMISSION_CAUSALITY_AMBIGUOUS` before preprocessing or append. Ordinary unbound SDK calls remain unchanged; content, hashes and entry order never choose an origin.
++
++Native snapshots retain their permanent reservation ledger alongside causal entries. Restoring a snapshot validates both together and preserves current tombstones and required features. A manager clone shares only protected receipts already earned by the same held source, after checking that source again. Snapshot data alone never supplies durable proof; pending in-memory entries cannot become committed by cloning or restoring.
++
++An agent-invoking builtin whose actual ordered dispatch returns `builtin-agent` consumed the initiating request instead of forwarding it as a new Native user input. Its protected completion includes an `input` / `no_entry` relation with reason `native_builtin_consumed`. The bounded `request-input:<clientSubmissionId>` relation ID identifies that reserved request's initiating-input slot; it is **not** a `msg-N`, live message identity or Native entry, and consumers treat relation IDs as opaque. It creates no lifecycle event or inbox row. Other additional/execution entries can still be committed, and the primary operation outcome still comes only from its exact Native prompt ticket. This does not claim that the builtin was effect-free or that every internal side effect succeeded.
++
++Submission scopes carry the exact in-process SessionManager owner identity separately from serialized origin. A public SDK factory creating a distinct manager (including its default-created manager), and public prompt/message ingress into a distinct AgentSession, clear inherited submission scope for the whole call. Awaiting that child restores its parent scope. Same-owner calls retain the original scope and all source guards: mismatched, replaced or stale protected targets fail closed. Detached raw SDK objects, normalized copies and queued message persistence retain the captured owner. Target strings never decide whether a scope is cleared; owner identity is transient and does not create a public child submission or a durability claim.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 index e189b420d9..c255209d03 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
@@ -220,7 +228,7 @@ index b7e4c368d9..4eeffe1c5d 100644
      if ([...tree, ...running, ...live].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
      const snapshot = crypto.randomUUID();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..7e8e62fdb9 100644
+index 3a336fa764..3aaef8ed11 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,7 @@
@@ -307,7 +315,17 @@ index 3a336fa764..7e8e62fdb9 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1834,17 +1847,32 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1725,7 +1738,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				}
+ 			}),
+ 		reportSendError: (action, err) => {
+-			output(error(undefined, action, err.message));
++      const code = /^SUBMISSION_[A-Z_]+$/.test(err.message) ? err.message : undefined;
++			output(error(undefined, action, err.message, code));
+ 		},
+ 		reportRuntimeError: err => {
+ 			output({ type: "extension_error", extensionPath: err.extensionPath, event: err.event, error: err.error });
+@@ -1834,17 +1848,32 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -345,7 +363,7 @@ index 3a336fa764..7e8e62fdb9 100644
  			if (!isCurrent()) return "cancelled";
  			let text = command.message;
  			let images = command.images;
-@@ -1859,11 +1887,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1859,11 +1888,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			if (!isCurrent()) return "cancelled";
  			if (!text.trim() && !images?.length) return "local";
  			if (command.type === "steer") {
@@ -359,7 +377,7 @@ index 3a336fa764..7e8e62fdb9 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1921,6 +1949,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1921,6 +1950,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				if (!isCurrent()) return "cancelled";
  				if (builtinResult !== false) {
  					if (!("prompt" in builtinResult)) {
@@ -367,7 +385,7 @@ index 3a336fa764..7e8e62fdb9 100644
  						if (builtinResult.agentInvoked === true && ticket) {
  							void session.waitForIdle().then(
  								() => promptResults.settle(ticket),
-@@ -1932,6 +1961,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1932,6 +1962,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  							);
  							return "builtin-agent";
  						}
@@ -375,7 +393,7 @@ index 3a336fa764..7e8e62fdb9 100644
  						return "local";
  					}
  					text = builtinResult.prompt;
-@@ -1941,17 +1971,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1941,17 +1972,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -397,7 +415,7 @@ index 3a336fa764..7e8e62fdb9 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +2005,47 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1974,6 +2006,48 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -427,6 +445,7 @@ index 3a336fa764..7e8e62fdb9 100644
 +              result.resolve(status === "completed" ? "succeeded" : status === "aborted" ? "cancelled" : "failed");
 +            }) : undefined;
 +						const outcome = await submissions.run(scope, () => dispatchOrderedUserInput(input, ticket));
++            if (outcome === "builtin-agent") submissions.recordConsumedInput(scope.origin);
 +						if (ticket && (outcome === "local" || outcome === "local-failed" || outcome === "local-unknown")) promptResults.discard(ticket);
 +						if (ticket && outcome === "cancelled") promptResults.settle(ticket);
 +						const completion = submissions.complete(scope.origin, outcome === "local" ? "succeeded"
@@ -483,10 +502,10 @@ index eaef54f541..9dac259e5b 100644
  		// behind the response for the same id and lets queue drains land before
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..9622e99a9e
+index 0000000000..e7cf4efe6c
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,161 @@
+@@ -0,0 +1,173 @@
 +import { assertSubmissionEntries } from "../../session/submission-records";
 +import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
@@ -559,11 +578,23 @@ index 0000000000..9622e99a9e
 +    }
 +    const tasks = new Set<Promise<unknown>>();
 +    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, settled: false, operationOutcome: "unknown" });
-+    return { admitted, scope: { origin, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
++    return { admitted, scope: { origin, owner: this.session.sessionManager, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
 +      const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
 +    } } };
 +  }
 +  run<T>(scope: SubmissionScope, run: () => T): T { return runSubmission(scope, run); }
++  /** The actual builtin consumed its initiating request. This ID names a request slot, never a Native message or entry. */
++  recordConsumedInput(origin: SubmissionOrigin): void {
++    const pending = this.#pending.get(origin.clientSubmissionId);
++    if (!pending || !sameSubmission(pending.origin, origin)) throw new Error("SUBMISSION_RESERVATION_MISSING");
++    const relationId = `request-input:${origin.clientSubmissionId}`;
++    if (!pending.noEntries.has(relationId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) {
++      pending.overflow = true;
++      return;
++    }
++    pending.noEntries.set(relationId, { relationId, role: "input", status: "no_entry", reason: "native_builtin_consumed" });
++    pending.revision++;
++  }
 +  complete(origin: SubmissionOrigin, operation: SubmissionOperationOutcome | Promise<SubmissionOperationOutcome>): Promise<void> {
 +    const pending = this.#pending.get(origin.clientSubmissionId);
 +    if (!pending) return Promise.resolve();
@@ -955,12 +986,33 @@ index 0000000000..bb80bd4fd4
 +  { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
+diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
+index 5bddc84cfe..380a100d81 100644
+--- a/packages/coding-agent/src/sdk.ts
++++ b/packages/coding-agent/src/sdk.ts
+@@ -1,4 +1,5 @@
+ import * as path from "node:path";
++import { runSubmissionForOwner } from "./session/submission-provenance";
+ import { type CallRecord, ChangeJournal, callLabel } from "./commit/selective/journal";
+ import { createCommitPrelude } from "./commit/selective/prelude-definition";
+ import {
+@@ -1970,6 +1971,10 @@ export function createAutoLearnCaptureRunner(
+  * ```
+  */
+ export async function createAgentSession(options: CreateAgentSessionOptions = {}): Promise<CreateAgentSessionResult> {
++  return runSubmissionForOwner(options.sessionManager, () => createAgentSessionForOwner(options));
++}
++
++async function createAgentSessionForOwner(options: CreateAgentSessionOptions): Promise<CreateAgentSessionResult> {
+ 	registerLocalInferenceApi();
+ 	const extensionRoots = options.extensionRoots?.();
+ 	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 68a1154008..361777cee8 100644
+index 68a1154008..79547098f4 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
-+import { assertSubmissionCurrent, captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { assertSubmissionCurrent, capturedSubmissionScope, captureSubmission, copySubmission, messageSubmission, sdkMessageSubmission, runSubmission, runSubmissionForOwner, submissionScope, trackSubmissionTask } from "./submission-provenance";
  import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
  import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
  /**
@@ -984,15 +1036,14 @@ index 68a1154008..361777cee8 100644
  		// Only a recorded approval may turn a draft file into an execution reference.
  		for (const entry of this.sessionManager.getBranch().reverse()) {
  			if (entry.type !== "mode_change") continue;
-@@ -3748,11 +3762,31 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -3748,11 +3762,30 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		return this.agent.logContext ? logger.withContext(this.agent.logContext, work) : work();
  	}
  
 -	async #admitSubmission<T>(work: () => Promise<T>): Promise<T> {
 +	#withMessageSubmission<T>(message: object | undefined, work: () => T): T {
-+		const cause = message && messageSubmission(message), current = submissionScope();
-+		if (!cause || (current && sameSubmission(current.origin, cause.origin))) return work();
-+		return runSubmission({ origin: cause.origin, phase: "extension" }, work);
++    return runSubmissionForOwner(this.sessionManager,
++      () => runSubmissionForOwner(this.sessionManager, work, sdkMessageSubmission(message)));
 +	}
 +
 +	#assertSubmissionCurrent(): void {
@@ -1018,19 +1069,19 @@ index 68a1154008..361777cee8 100644
  		} finally {
  			if (--this.#admittedSubmissionCount === 0 && this.#admittedSubmissionsSettled) {
  				const settled = this.#admittedSubmissionsSettled;
-@@ -4283,8 +4317,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4283,8 +4316,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	#queueMessageEndPersistence(message: AgentMessage, promptGeneration: number): Promise<void> {
  		const key = sessionMessagePersistenceKey(message);
  		const live = nativeMessageIdentity(message);
-+		const causality = messageSubmission(message);
-+		const initiatingSubmission = causality ? { origin: causality.origin, phase: "extension" as const } : submissionScope();
++		const captured = capturedSubmissionScope(message);
++		const initiatingSubmission = captured ? { ...captured, phase: "extension" as const } : submissionScope();
  		const pending = this.#messageEndPersistenceTail
 -			.then(() => this.#messageObservations.withIdentity(message, live, () => {
 +			.then(() => runSubmission(initiatingSubmission, () => this.#messageObservations.withIdentity(message, live, () => {
  				try {
  					const settlement = this.#persistMessageEnd(message, promptGeneration);
  					if (settlement.status === "no_entry" && settlement.reason === "empty_error") {
-@@ -4294,7 +4330,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4294,7 +4329,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					this.#messageObservations.settle(message, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
  					throw error;
  				}
@@ -1039,7 +1090,7 @@ index 68a1154008..361777cee8 100644
  			.finally(() => {
  				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
  					this.#pendingMessageEndPersistence.delete(key);
-@@ -4565,6 +4601,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4565,6 +4600,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					// otherwise records emission time, which on rebuild excludes
  					// provider preparation / hook time from the prompt→yield anchor.
  					message.timestamp,
@@ -1047,7 +1098,7 @@ index 68a1154008..361777cee8 100644
  				);
  			}
  			if (message.role === "custom" && message.customType === "ttsr-injection") {
-@@ -4717,6 +4754,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4717,6 +4753,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
@@ -1055,15 +1106,30 @@ index 68a1154008..361777cee8 100644
  		this.#messageObservations.observe(event);
  		const eventPromptGeneration = this.#promptGeneration;
  		if (event.type === "agent_end" && this.#activeAgentContinue) {
-@@ -8785,6 +8823,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8785,7 +8822,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * {@link PromptDroppedError} instead.
  	 */
  	async prompt(text: string, options?: PromptOptions): Promise<boolean> {
-+    this.#assertSubmissionIdle();
- 		return this.#admitSubmission(() => this.#prompt(text, options));
+-		return this.#admitSubmission(() => this.#prompt(text, options));
++    return runSubmissionForOwner(this.sessionManager, () => {
++      this.#assertSubmissionIdle();
++      return this.#admitSubmission(() => this.#prompt(text, options));
++    });
  	}
  
-@@ -8869,6 +8908,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	/**
+@@ -8802,6 +8842,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * @throws {Error} when there is no conversation to resume.
+ 	 */
+ 	async resume(): Promise<void> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#resume());
++  }
++
++  async #resume(): Promise<void> {
+ 		if (!this.isStreaming) return this.#resumeIdle();
+ 		// waitForIdle() reads a pending unwind as busy. Hold one from the interrupt
+ 		// until the continuation is live, so a host driving this session to a result
+@@ -8869,6 +8913,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	async #prompt(text: string, options?: PromptOptions): Promise<boolean> {
@@ -1071,7 +1137,7 @@ index 68a1154008..361777cee8 100644
  		// Stamp the operator's submission instant before ANY async preprocessing —
  		// command execution, image normalization, vision-model description — so the
  		// prompt→yield delta includes the whole wait, whatever path the prompt takes.
-@@ -8894,6 +8934,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8894,6 +8939,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			// pass supersedes its interrupted-turn resume only if it claims the session.
  			// Locally handled commands and failed dispatches release that claim.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
@@ -1079,7 +1145,7 @@ index 68a1154008..361777cee8 100644
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchPrompt(text, options, submittedAt, outcome, followUps);
  			try {
-@@ -8927,7 +8968,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8927,7 +8973,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		outcome: PromptDispatchOutcome,
  		followUps: PromptFollowUps | undefined,
  	): Promise<boolean> {
@@ -1089,7 +1155,7 @@ index 68a1154008..361777cee8 100644
  		// Slash/custom-command handling below rewrites `text`; keep the original
  		// so a dropped prompt is handed back exactly as the user typed it.
  		const typedText = text;
-@@ -8941,8 +8983,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8941,8 +8988,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// Handle extension commands first (execute immediately, even during streaming)
  		if (expandPromptTemplates && text.startsWith("/")) {
  			if (options?.runCommands !== false) {
@@ -1102,7 +1168,7 @@ index 68a1154008..361777cee8 100644
  					// Queued only now, so whatever the command sent runs before them. A failed
  					// command hands them back with itself instead of letting them run without it.
  					if (command === "ran") followUps?.release();
-@@ -8951,7 +8996,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8951,7 +9001,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				}
  
  				// Try custom commands (TypeScript slash commands)
@@ -1113,7 +1179,7 @@ index 68a1154008..361777cee8 100644
  				if (customResult !== null) {
  					if (customResult === "") {
  						followUps?.release();
-@@ -9038,7 +9085,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9038,7 +9090,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const eagerTaskPrelude =
  			!options?.synthetic && !hasPendingUserDirective ? this.#todo.createEagerTaskPrelude(expandedText) : undefined;
  		const attachmentSourceNotices = this.#createAttachmentSourceNotices(options?.images, submittedAt);
@@ -1124,7 +1190,7 @@ index 68a1154008..361777cee8 100644
  
  		const userContent: (TextContent | ImageContent)[] = [{ type: "text", text: expandedText }];
  		if (normalizedImages?.length) {
-@@ -9197,7 +9246,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9197,7 +9251,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			onPromptQueued?: PromptOptions["onPromptQueued"];
  		},
  	): Promise<boolean> {
@@ -1133,7 +1199,7 @@ index 68a1154008..361777cee8 100644
  	}
  
  	async #promptCustomMessage<T = unknown>(
-@@ -9215,6 +9264,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9215,6 +9269,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			// prompts and the CLI initial message must not start during idle/manual
  			// compaction or before a handoff commits its history.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
@@ -1141,13 +1207,13 @@ index 68a1154008..361777cee8 100644
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchCustomPrompt(message, options, outcome, followUps);
  			try {
-@@ -9324,12 +9374,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9324,12 +9379,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
 -		const hasSkillImages =
-+		copySubmission(message, customMessage);
 +    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
++    copySubmission(message, customMessage);
 +    const hasSkillImages =
  			isUserInvokedSkillPrompt(customMessage) &&
  			Array.isArray(customMessage.content) &&
@@ -1159,7 +1225,7 @@ index 68a1154008..361777cee8 100644
  		const descriptionNotice = hasSkillImages
  			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
  			: undefined;
-@@ -9604,7 +9658,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9604,7 +9663,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// every pre-dispatch bail (generation bump from abort, disposal, usage
  		// preflight denial) exits silently, and prompt() uses the outcome to hand
  		// the typed text back to the host instead of losing it.
@@ -1169,7 +1235,7 @@ index 68a1154008..361777cee8 100644
  		// Client ownership is reserved by #prompt before dispatch preprocessing
  		// and released when its bracket settles; callers that reach this
  		// directly (auto-continue, queued-hidden drain) are autonomous and
-@@ -9740,9 +9795,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9740,9 +9800,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const preparation = await logger.time("prompt:prepareAgentStart", () =>
  				this.#prepareAgentStart(message, expandedText, options?.images, generation, setupAbort.signal, "direct"),
  			);
@@ -1182,7 +1248,7 @@ index 68a1154008..361777cee8 100644
  			const baseXdevCatalogDelivered = preparation.baseXdevCatalogDelivered;
  
  			// Auto thinking: classify this real user turn and set the effective level
-@@ -9913,7 +9970,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9913,7 +9975,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const ctx = this.#extensionRunner.createCommandContext();
  
  		try {
@@ -1192,7 +1258,7 @@ index 68a1154008..361777cee8 100644
  			return "ran";
  		} catch (err) {
  			// Emit error via extension runner
-@@ -10042,7 +10100,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10042,7 +10105,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const args = parseCommandArgs(argsString);
  			// Commands that consult findScopedSettings, including /review, must see this
  			// session's cache kill switch instead of the default enabled cache.
@@ -1202,7 +1268,7 @@ index 68a1154008..361777cee8 100644
  			// If result is a string, it's a prompt to send to LLM
  			// If void/undefined, command handled everything
  			return result ?? "";
-@@ -10058,7 +10117,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10058,7 +10122,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				const message = err instanceof Error ? err.message : String(err);
  				logger.error("Custom command failed", { commandName, error: message });
  			}
@@ -1212,7 +1278,29 @@ index 68a1154008..361777cee8 100644
  		}
  	}
  
-@@ -10305,7 +10365,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10066,6 +10131,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * Queue a steering message to interrupt the agent mid-run.
+ 	 */
+ 	async steer(text: string, images?: ImageContent[], options?: SteerOptions): Promise<void> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#steer(text, images, options));
++  }
++
++  async #steer(text: string, images?: ImageContent[], options?: SteerOptions): Promise<void> {
+ 		if (text.startsWith("/")) {
+ 			this.#throwIfExtensionCommand(text);
+ 		}
+@@ -10090,6 +10159,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * flipping advisor auto-resume.
+ 	 */
+ 	async followUp(text: string, images?: ImageContent[], options?: FollowUpOptions): Promise<void> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#followUp(text, images, options));
++  }
++
++  async #followUp(text: string, images?: ImageContent[], options?: FollowUpOptions): Promise<void> {
+ 		if (text.startsWith("/")) {
+ 			this.#throwIfExtensionCommand(text);
+ 		}
+@@ -10305,7 +10378,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			promptGeneration?: number;
  		},
  	): Promise<boolean> {
@@ -1222,7 +1310,7 @@ index 68a1154008..361777cee8 100644
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
-@@ -10365,6 +10426,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10365,6 +10439,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
@@ -1230,7 +1318,7 @@ index 68a1154008..361777cee8 100644
  			this.#irc.queueAside(records);
  			options?.onPromptAdmitted?.();
  			// The awaits above (image normalization / vision description) can span the run's
-@@ -10414,6 +10476,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10414,6 +10489,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -1238,13 +1326,13 @@ index 68a1154008..361777cee8 100644
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
  			return group;
-@@ -10903,16 +10966,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10903,16 +10979,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
 -		const preprocessed = options?.preprocessed;
-+		copySubmission(message, appMessage);
 +    captureSubmission(appMessage, isUserInvokedSkillPrompt(appMessage) ? "user" : appMessage.role);
++    copySubmission(message, appMessage);
 +    this.#assertSubmissionCurrent();
 +    const preprocessed = options?.preprocessed;
  		const prependMessages = options?.prependMessages ?? [];
@@ -1263,7 +1351,7 @@ index 68a1154008..361777cee8 100644
  		if (deliverAs === "aside") {
  			if (await this.#sessionGenerationChanged(sessionGeneration)) return;
  			// Non-interrupting: rides the same step-boundary aside poll as
-@@ -10972,7 +11041,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10972,7 +11054,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			acceptTerminalEmptyStop?: boolean;
  		},
  	): Promise<boolean> {
@@ -1273,12 +1361,13 @@ index 68a1154008..361777cee8 100644
  	}
  
  	async #sendCustomMessage<T = unknown>(
-@@ -11058,7 +11128,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11058,7 +11141,13 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: normalizedPayload.attribution,
  			timestamp: Date.now(),
  		};
 -		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
 +		this.#assertSubmissionCurrent();
++    captureSubmission(appMessage, appMessage.role);
 +    if (typeof message === "object" && message !== null) copySubmission(message, appMessage);
 +    const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
 +    copySubmission(appMessage, normalizedAppMessage);
@@ -1287,6 +1376,39 @@ index 68a1154008..361777cee8 100644
  		if (this.isStreaming) {
  			// Queued into a turn the agent owns: that turn holds the session. Busy only
  			// from another prompt's setup claims nothing (that prompt decides).
+@@ -11211,6 +11300,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		content: string | (TextContent | ImageContent)[],
+ 		options?: SendUserMessageOptions,
+ 	): Promise<void> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#sendUserMessage(content, options));
++  }
++
++  async #sendUserMessage(content: string | (TextContent | ImageContent)[], options?: SendUserMessageOptions): Promise<void> {
+ 		// Normalize content to text string + optional images
+ 		let text: string;
+ 		let images: ImageContent[] | undefined;
+@@ -13561,6 +13654,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 
+ 	/** Retry the last failed assistant turn when the session is idle. */
+ 	async retry(): Promise<boolean> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#retry());
++  }
++
++  async #retry(): Promise<boolean> {
+ 		const didRetry = await this.#recovery.retry(this.#prunedTerminalFailure);
+ 		// A manual retry is the user resuming the run they interrupted, so it lifts the
+ 		// interrupt's auto-resume suppression the same way a typed prompt does.
+@@ -13583,6 +13680,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	 * a model, or with nothing left unfinished.
+ 	 */
+ 	async restoreInterruptedTurn(): Promise<boolean> {
++    return runSubmissionForOwner(this.sessionManager, () => this.#restoreInterruptedTurn());
++  }
++
++  async #restoreInterruptedTurn(): Promise<boolean> {
+ 		const branch = this.sessionManager.getBranch();
+ 		if (this.isStreaming || !hasRestorableTurn(branch)) return false;
+ 		const model = this.model;
 diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
 index 0db8962316..d79c0bd86a 100644
 --- a/packages/coding-agent/src/session/session-artifact-copy.ts
@@ -1486,7 +1608,7 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index af1edf0fdc..7c07369dd7 100644
+index af1edf0fdc..a75ed42527 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
@@ -1630,17 +1752,34 @@ index af1edf0fdc..7c07369dd7 100644
  			entries: [...this.#entries],
  		};
  	}
-@@ -2392,6 +2430,9 @@ export class SessionManager {
+@@ -2380,7 +2418,15 @@ export class SessionManager {
+ 		const persist = options?.persist ?? this.#persist;
+ 		const clone = new SessionManager(this.#cwd, this.#sessionDir, persist, this.#storage);
+ 		clone.#suppressBreadcrumb = true;
++    const proof = this.#persist && this.#storage instanceof StrictSessionStorage ? this.readSubmissionState() : undefined;
+ 		clone.restoreState(this.captureState());
++    if (proof) {
++      // Only receipts earned by this exact held source are shared. Arbitrary snapshots are never commit proof.
++      if (this.#storage instanceof StrictSessionStorage) this.#storage.assertReadableState();
++      clone.#submissionBytes = this.#submissionBytes;
++      clone.#verifiedSubmissions = structuredClone(proof.submissions);
++      clone.#verifiedSubmissionEntries = new Map(proof.entries.map(entry => [entry.id, structuredClone(entry.submission)]));
++    }
+ 		if (!persist) {
+ 			clone.#sessionFile = undefined;
+ 			clone.#expectedDiskSize = null;
+@@ -2392,6 +2438,10 @@ export class SessionManager {
  	}
  
  	restoreState(snapshot: SessionManagerStateSnapshot): void {
 +		const tombstones = this.#header?.id === snapshot.header.id ? this.#nativeSubmissions : undefined;
++    const priorSubmissionBytes = tombstones?.length && this.#sessionFile === snapshot.sessionFile ? this.#submissionBytes : undefined;
 +		const monotonicDiskSize = tombstones?.length && this.#sessionFile === snapshot.sessionFile ? this.#expectedDiskSize : undefined;
 +		if (this.#strictContinuation && this.#diskFailure) throw this.#diskFailure;
  		this.#closeWriterEventually();
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
-@@ -2399,7 +2440,7 @@ export class SessionManager {
+@@ -2399,7 +2449,7 @@ export class SessionManager {
  		this.#cwd = snapshot.cwd;
  		this.#sessionDir = snapshot.sessionDir;
  		this.#sessionFile = snapshot.sessionFile;
@@ -1649,7 +1788,7 @@ index af1edf0fdc..7c07369dd7 100644
  		this.#fileIsCurrent = snapshot.onDisk;
  		this.#rewriteRequired = snapshot.needsRewrite;
  		this.#forceFileCreation = snapshot.onDisk;
-@@ -2407,7 +2448,15 @@ export class SessionManager {
+@@ -2407,7 +2457,17 @@ export class SessionManager {
  		this.#fallbackRuntimeOnly = snapshot.fallbackRuntimeOnly;
  		// A completed moveTo drops the stash, so a rollback restores it here.
  		this.#taskSiblingCandidate = snapshot.taskSiblingCandidate;
@@ -1659,14 +1798,16 @@ index af1edf0fdc..7c07369dd7 100644
 +			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
 +			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
 +			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
-+			restoredHeader.requiredFeatures = ["durable-submission-v1"];
++	      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
++        ...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
 +		}
-+		this.#applyEntries(restoredHeader, [...snapshot.entries]);
-+		this.#nativeSubmissions = structuredClone(snapshot.nativeSubmissions ?? []);
++    // captureState deliberately excludes control rows from its tree. Validate entries together with the permanent ledger.
++    this.#applyEntries(restoredHeader, [...(snapshot.nativeSubmissions ?? []).map(submissionRecord), ...snapshot.entries]);
++    if (priorSubmissionBytes !== undefined) this.#submissionBytes = priorSubmissionBytes;
  		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
  		this.#sessionName = snapshot.sessionName;
  
-@@ -2596,7 +2645,7 @@ export class SessionManager {
+@@ -2596,7 +2656,7 @@ export class SessionManager {
  			this.#fallbackRuntimeOnly = false;
  		}
  
@@ -1675,7 +1816,7 @@ index af1edf0fdc..7c07369dd7 100644
  		this.#expectedDiskSize = sourceSize;
  		this.#additionalDirectories = header.additionalDirectories ?? [];
  		this.#titleUpdatedAt = titleSlot?.updatedAt ?? header.timestamp;
-@@ -2677,6 +2726,7 @@ export class SessionManager {
+@@ -2677,6 +2737,7 @@ export class SessionManager {
  			parentSession: parentSessionId,
  			providerPromptCacheKey: SessionManager.getInheritedProviderPromptCacheKey(this.#header),
  			taskPromptCacheKey: this.#header.taskPromptCacheKey,
@@ -1683,7 +1824,7 @@ index af1edf0fdc..7c07369dd7 100644
  		};
  		this.#sessionName = this.#header.title;
  		this.#titleSource = this.#header.titleSource;
-@@ -2941,14 +2991,27 @@ export class SessionManager {
+@@ -2941,14 +3002,27 @@ export class SessionManager {
  		manager.#additionalDirectories = [...this.#additionalDirectories];
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
@@ -1711,7 +1852,7 @@ index af1edf0fdc..7c07369dd7 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -3924,6 +3987,7 @@ export class SessionManager {
+@@ -3924,6 +3998,7 @@ export class SessionManager {
  	}
  
  	appendCustomEntry(customType: string, data?: unknown): string {
@@ -1719,7 +1860,7 @@ index af1edf0fdc..7c07369dd7 100644
  		const entry: CustomEntry = { type: "custom", customType, data, ...this.#freshEntryFields() };
  		this.#recordEntry(entry);
  		return entry.id;
-@@ -3955,6 +4019,7 @@ export class SessionManager {
+@@ -3955,6 +4030,7 @@ export class SessionManager {
  		details?: T,
  		attribution: MessageAttribution | undefined = "agent",
  		timestamp?: number,
@@ -1727,7 +1868,7 @@ index af1edf0fdc..7c07369dd7 100644
  	): string {
  		const normalized = normalizeCustomMessagePayload<T>({ customType, content, display, details, attribution });
  		const fresh = this.#freshEntryFields();
-@@ -3963,6 +4028,7 @@ export class SessionManager {
+@@ -3963,6 +4039,7 @@ export class SessionManager {
  			customType: normalized.customType,
  			content: normalized.content,
  			display: normalized.display,
@@ -1735,7 +1876,7 @@ index af1edf0fdc..7c07369dd7 100644
  			// Drop AgentSession-internal transient fields before disk persistence.
  			details: stripInternalDetailsFields(normalized.details),
  			attribution: normalized.attribution,
-@@ -4193,6 +4259,118 @@ export class SessionManager {
+@@ -4193,6 +4270,118 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1854,7 +1995,7 @@ index af1edf0fdc..7c07369dd7 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4225,6 +4403,8 @@ export class SessionManager {
+@@ -4225,6 +4414,8 @@ export class SessionManager {
  	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true, handoff = false) {
  		const started = performance.now();
  		const observedRevision = this.#historyRevision;
@@ -1863,7 +2004,7 @@ index af1edf0fdc..7c07369dd7 100644
  		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
  		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
  		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
-@@ -4440,6 +4620,7 @@ export class SessionManager {
+@@ -4440,6 +4631,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -1871,7 +2012,7 @@ index af1edf0fdc..7c07369dd7 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4756,8 @@ export class SessionManager {
+@@ -4575,6 +4767,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -1880,7 +2021,7 @@ index af1edf0fdc..7c07369dd7 100644
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4773,8 @@ export class SessionManager {
+@@ -4590,8 +4784,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -1891,7 +2032,7 @@ index af1edf0fdc..7c07369dd7 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4783,7 @@ export class SessionManager {
+@@ -4600,6 +4794,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
@@ -1998,10 +2139,10 @@ index 0000000000..95661b2e45
 +} as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
 new file mode 100644
-index 0000000000..bb515c05d1
+index 0000000000..ad5fbebb55
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
-@@ -0,0 +1,82 @@
+@@ -0,0 +1,121 @@
 +import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
 +/** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
 +import * as asyncHooks from "node:async_hooks";
@@ -2010,7 +2151,12 @@ index 0000000000..bb515c05d1
 +export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
 +export type SubmissionRole = "input" | "prepared" | "additional" | "execution";
 +export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole }
-+export interface SubmissionScope { origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>; onTaskOverflow?: () => void; idleOnly?: boolean }
++export interface SubmissionScope {
++  origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>;
++  onTaskOverflow?: () => void; idleOnly?: boolean;
++  /** Exact in-process SessionManager identity. Transient only; never a serialized target or authority substitute. */
++  owner?: object;
++}
 +export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
 +/** Primary native operation result; distinct from input creation, persistence and quiescence. */
 +export type SubmissionOperationOutcome = "succeeded" | "failed" | "cancelled" | "unknown";
@@ -2042,18 +2188,52 @@ index 0000000000..bb515c05d1
 +}
 +const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
 +const originals = new WeakMap<object, SubmissionCausality>();
++const originalOwners = new WeakMap<object, object>();
++const sdkMessages = new WeakMap<object, { scope: SubmissionScope; ambiguous: boolean }>();
++/** Raw SDK inputs are reusable per-call values. Only a unique captured scope can authorize detached reuse. */
++export function sdkMessageSubmission(message?: object): SubmissionScope | undefined {
++  const current = scope.getStore();
++  if (!message) return current;
++  const binding = sdkMessages.get(message);
++  if (current) {
++    if (!binding) sdkMessages.set(message, { scope: current, ambiguous: false });
++    else if (!sameSubmission(binding.scope.origin, current.origin) || binding.scope.phase !== current.phase
++      || binding.scope.owner !== current.owner) binding.ambiguous = true;
++    return current;
++  }
++  if (binding?.ambiguous) throw new Error("SUBMISSION_CAUSALITY_AMBIGUOUS");
++  if (binding) return binding.scope;
++  return capturedSubmissionScope(message);
++}
 +export function runSubmission<T>(value: SubmissionScope | undefined, run: () => T): T {
 +  return scope.run(value, run);
 +}
++/** Enter one Native owner for the whole call. Same-owner stale targets retain all fail-closed source checks. */
++export function runSubmissionForOwner<T>(owner: object | undefined, run: () => T, value = scope.getStore()): T {
++  return runSubmission(value?.owner && value.owner !== owner ? undefined : value, run);
++}
 +export function submissionScope(): SubmissionScope | undefined { return scope.getStore(); }
 +export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
++/** Restore only an original object's captured origin and owner, independently of the task currently draining it. */
++export function capturedSubmissionScope(message: object): SubmissionScope | undefined {
++  const cause = originals.get(message);
++  if (!cause) return;
++  const owner = originalOwners.get(message);
++  return { origin: cause.origin, phase: cause.role === "input" || cause.role === "prepared" ? "input" : "extension",
++    ...(owner ? { owner } : {}) };
++}
 +/** Carry an explicit native construction origin into its actual message. */
 +export function copySubmission(source: object, target: object): void {
 +  const cause = originals.get(source);
-+  if (cause && !originals.has(target)) originals.set(target, structuredClone(cause));
++  if (cause && !originals.has(target)) {
++    originals.set(target, structuredClone(cause));
++    const owner = originalOwners.get(source);
++    if (owner) originalOwners.set(target, owner);
++  }
 +}
 +export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
 +  if (!value || originals.has(message)) return;
++  if (value.owner) originalOwners.set(message, value.owner);
 +  originals.set(message, { origin: value.origin, role: role === "user" && value.phase === "input" ? "input"
 +    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional" });
 +}
