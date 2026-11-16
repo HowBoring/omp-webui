@@ -32,9 +32,10 @@ any generator. Generated Host validators and the narrow public `HistoryClient` a
   cursors then fail. No read renews expiry, mutates the Session, sends input or runs a model.
 
 A cut identifies source, native Session, worker, native context epoch, full content revision, actual leaf and
-observation sequence. SHA-256 covers every serialized retained entry payload (including hidden state), parent
+observation sequence. Every cut explicitly reports `durability: not_attested`; successful reads never prove a
+message or navigation was committed. SHA-256 covers every serialized retained entry payload (including hidden state), parent
 relationship, header, mutation/context counters, running message and prefix, independently of leaf/count/mtime.
-Capture runs synchronously without an await; no successive public reads or arrival-order stitching is involved.
+Capture runs synchronously without an await; a reentrant native mutation during serialization rejects the cut; no successive public reads or arrival-order stitching is involved.
 Normal native insert/rebuild/clear/leaf/rewrite/physical-rewrite paths advance native counters. Full serialization
 also catches same-shape mutations through mutable native entry payloads. Captured pages hold serialized strings
 and return fresh parses; later source mutation or a caller editing a returned DTO cannot rewrite those strings.
@@ -105,7 +106,9 @@ Compaction/reset boundaries preserve older retained active history; the fixture 
 | Host pending calls / input line / physical response buffer | 32 / 16 KiB / 1 MiB |
 | Host request deadline / stderr drain limit | 10,000 ms / 64 KiB |
 
-Counts and serialized byte budgets exclude bounded JS object/array overhead and native source memory. Active
+Counts and serialized byte budgets exclude bounded JS object/array overhead and native source memory. One
+synchronous staging snapshot (at most 256 MiB serialized) may coexist with the retained cache, and observation
+materialization is bounded by the separate 320 MiB scan budget. Active
 scope rows share encoded tree strings; duplicate native image representations share snapshot content storage.
 Expiry timers release snapshots even while idle. Closing/expiry clears owned timers. Page checks hash the full
 native state (budgeted scan work); this is deliberately stronger than leaf/count or polling since an append ID.
@@ -145,12 +148,12 @@ python3 tests/browser/history-browser.py
 The fixture server chooses a fresh synthetic HOME/profile **before any ordinary native imports**, writes native
 synthetic data through the real SessionManager, and communicates exclusively over actual stdio RPC. All child env
 is allowlisted. The no-provider preload denies fetch/preconnect, socket/TLS/HTTP/HTTP2/WebSocket/UDP and Bun.connect
-network dispatch; synthetic OpenAI metadata and hard-failing model hooks prevent inference. Loopback/stdout Bun
-socketpairs require the execution environment's local network allowance. This is not permission for provider calls.
+network dispatch; synthetic OpenAI metadata and hard-failing model hooks prevent inference. Loopback/stdout Bun socketpairs and native Unix publish locks require the execution environment's local network allowance. This is not permission for provider calls.
 `network-audit.json` in the synthetic profile records zero actual dispatches. Stopping the fixture drains its worker
 and removes that profile. The main product Host remains private-Session blocked throughout.
 
 Evidence is scoped separately: native manager/data fault tests; actual public native client/schema/server with
 public rename mutation; actual Bun history transport with cancellation; labelled DSH Remote contract faults; actual
 Linux Chromium→DSH→Bun→native fixture pages. `history-browser.py` explicitly labels its intercepted stale Remote
-case. The 10,000-entry/100 MiB reachability corpus is not the formal 30-sample performance matrix.
+case. The real native restart case reopens the same persisted synthetic Session and rejects all old-worker cursors.
+The 10,000-entry/100 MiB reachability corpus is not the formal 30-sample performance matrix.

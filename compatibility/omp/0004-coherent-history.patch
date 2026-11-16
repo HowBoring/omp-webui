@@ -34,7 +34,7 @@ index 0000000000..40f254d14f
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index 3d8c711548..884aac611c 100644
+index 943e3c262f..c4eaa18fd7 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -1,3 +1,4 @@
@@ -42,7 +42,7 @@ index 3d8c711548..884aac611c 100644
  /**
   * RPC Client for programmatic access to the coding agent.
   *
-@@ -1049,6 +1050,23 @@ export class RpcClient {
+@@ -1070,6 +1071,23 @@ export class RpcClient {
  		return this.#getData<{ commands: RpcAvailableSlashCommand[] }>(response).commands;
  	}
  
@@ -68,10 +68,10 @@ index 3d8c711548..884aac611c 100644
  	 * `SessionManager` on the server: no `since` returns all entries in append
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..592465d734
+index 0000000000..2b3ac51882
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -0,0 +1,306 @@
+@@ -0,0 +1,307 @@
 +/** Coherent native history v1. In-memory observations are not persistence receipts. */
 +import { randomUUID, createHash } from "node:crypto";
 +import type { SessionManager } from "../../session/session-manager";
@@ -91,6 +91,7 @@ index 0000000000..592465d734
 +  contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
 +}
 +export interface HistoryCut {
++  durability: "not_attested";
 +  sourceBindingStatus: "worker" | "catalog"; catalogBinding?: { sourceId: string; instanceId: string; nativeSessionId: string; reference: string };
 +  sourceId: string; sessionId: string; workerId: string; contextId: string;
 +  contentRevision: string; leafId: string | null; observationSeq: number;
@@ -214,7 +215,7 @@ index 0000000000..592465d734
 +    }
 +    const contextId = createHash("sha256").update(JSON.stringify({ source: value.sourceId,
 +      contextRevision: value.contextRevision })).digest("hex");
-+    const cut: HistoryCut = { sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
++    const cut: HistoryCut = { durability: "not_attested", sourceBindingStatus: value.sourceBinding ? "catalog" : "worker",
 +      ...(value.sourceBinding ? { catalogBinding: { ...value.sourceBinding } } : {}), sourceId: value.sourceId, sessionId: value.sessionId,
 +      workerId: this.#workerId, contextId, contentRevision: value.contentRevision,
 +      leafId: value.leafId, observationSeq: this.#seq };
@@ -434,7 +435,7 @@ index 98fcb32191..daa82e7bb8 100644
  				try {
  					return success(
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 02835977a1..eeeac46706 100644
+index 2fe43f30be..a0c7055d75 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -30,6 +30,7 @@ import type { SubagentEventPayload, SubagentLifecyclePayload, SubagentProgressPa
@@ -491,7 +492,7 @@ index 666b2e6d59..bbf37dcf49 100644
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
 new file mode 100644
-index 0000000000..9f862a7e9f
+index 0000000000..8376a53b86
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
 @@ -0,0 +1,37 @@
@@ -505,7 +506,7 @@ index 0000000000..9f862a7e9f
 +  HistoryItem: { id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
 +    "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
 +  HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
-+  HistoryCut: { sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
++  HistoryCut: { durability: "'not_attested'", sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
 +    contentRevision: "string", leafId: "string | null", observationSeq: "number.integer" },
 +  HistoryLimits: { entries: "number.integer", runningMessages: "number.integer", scanItems: "number.integer", bytes: "number.integer", nativeItemBytes: "number.integer", itemBytes: "number.integer", ms: "number.integer",
 +    snapshotBytes: "number.integer", cacheBytes: "number.integer", snapshots: "number.integer", pageItems: "number.integer",

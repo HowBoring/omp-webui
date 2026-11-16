@@ -1729,6 +1729,7 @@ export interface HistorySourceBinding {
 }
 
 export interface HistoryCut {
+	durability: "not_attested";
 	sourceBindingStatus: "worker" | "catalog";
 	sourceId: string;
 	sessionId: string;

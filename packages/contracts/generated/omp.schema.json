@@ -6870,6 +6870,9 @@
     "HistoryCut": {
       "type": "object",
       "properties": {
+        "durability": {
+          "const": "not_attested"
+        },
         "sourceBindingStatus": {
           "enum": [
             "worker",
@@ -6910,6 +6913,7 @@
         }
       },
       "required": [
+        "durability",
         "sourceBindingStatus",
         "sourceId",
         "sessionId",

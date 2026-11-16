@@ -41,7 +41,7 @@ async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   finally { signal.removeEventListener("abort", abort); }
 }
 
-/** Loopback diagnostics carrier. No private Session or general Remote routes are mounted. */
+/** Isolated loopback history fixture. The product Session admission gate stays closed. */
 export async function startHistoryFixture(options: Options) {
   const ctx = new Context();
   const lifetime = new AbortController();
@@ -50,7 +50,10 @@ export async function startHistoryFixture(options: Options) {
   const transport = await HistoryTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
     resolve("compatibility/omp/fixtures/history-network-guard.js"), resolve("compatibility/omp/fixtures/history-rpc.js")],
     env: { HOME: profile, PI_CODING_AGENT_DIR: profile, OMP_HISTORY_FIXTURE_PROFILE: profile,
-      PATH: process.env.PATH ?? "/usr/bin:/bin" }, signal: lifetime.signal });
+      PATH: process.env.PATH ?? "/usr/bin:/bin" }, signal: lifetime.signal }).catch(async error => {
+      await rm(profile, {recursive:true,force:true}); throw error;
+    });
+  try {
   await ctx.plugin(TypertRegistry); await ctx.plugin(RemoteAccessService); await ctx.plugin(TypertGatewayService, {});
   ctx.typert.register(historyHostContribution);
   new HistoryFixtureService(ctx, transport);
@@ -101,7 +104,7 @@ export async function startHistoryFixture(options: Options) {
           const frame = parseRemoteStreamClientMessage(text);
           if (frame.type === "cancel") { socket.data.streams.get(frame.streamId)?.abort(); return; }
           if (frame.type !== "open" || frame.endpoint !== "$events" || socket.data.streams.size >= 1) {
-            socket.close(1008, "diagnostics streams only"); return;
+            socket.close(1008, "history fixture streams only"); return;
           }
           const control = new AbortController();
           socket.data.streams.set(frame.streamId, control);
@@ -124,10 +127,16 @@ export async function startHistoryFixture(options: Options) {
       await rm(profile, {recursive:true,force:true});
       for (const socket of sockets) socket.close(1001, "Host shutdown");
       await unregister();
+      await owner.dispose();
+      await Promise.all([...peers].map(peer => peer.dispose()));
       await ctx.fiber.dispose();
       await server.stop(true);
     },
   };
+  } catch (error) {
+    lifetime.abort(); await transport.close(); await ctx.fiber.dispose();
+    await rm(profile, {recursive:true,force:true}); throw error;
+  }
 }
 
 async function dispatch(request: Request, ctx: Context, peer: Peer): Promise<Response> {
