@@ -1,37 +1,55 @@
 import { resolve } from "node:path";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
+export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch"];
 export const authoredPaths = ["src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
-  "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts", "CHANGELOG.md"]
+  "src/modes/rpc/wire/commands.ts", "src/modes/rpc/wire/frames.ts", "src/modes/rpc/wire/index.ts",
+  "src/modes/rpc/wire/catalog.ts", "src/modes/rpc/catalog-mode.ts", "src/modes/rpc/catalog-native.ts",
+  "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
   .map(path => `packages/coding-agent/${path}`);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
-const temporaryPaths = ["node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
-  "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js"];
+export const temporaryPaths = ["node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+  "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
+  "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",
+  "packages/coding-agent/src/modes/rpc/catalog-sources.generated.js", "packages/coding-agent/src/modes/rpc/catalog-description.generated.js"];
 
-export function sourceGit(omp: string, ...argv: string[]): string {
-  const result = Bun.spawnSync(["git", "-C", omp, ...argv], { env: { PATH: process.env.PATH ?? "/usr/bin:/bin" } });
+export function sourceGit(omp:string,...argv:string[]):string {
+  const result = Bun.spawnSync(["git","-C",omp,...argv], {env:{PATH:process.env.PATH ?? "/usr/bin:/bin"}});
   if (result.exitCode !== 0) throw new Error("OMP_SOURCE_GIT_FAILED");
   return result.stdout.toString();
 }
-
+/** Build the exact ordered patch tree using a private index, leaving the checkout/index untouched. */
+export async function patchedTree(omp:string,patches=ompPatches):Promise<string> {
+  const temp = await mkdtemp(resolve(tmpdir(),"omp-patch-index-"));
+  const git = (...args:string[]):string => {
+    const result = Bun.spawnSync(["git","-C",omp,...args], {env:{PATH:process.env.PATH ?? "/usr/bin:/bin",GIT_INDEX_FILE:resolve(temp,"index")}});
+    if (result.exitCode !== 0) throw new Error("OMP_ORDERED_PATCH_FAILED");
+    return result.stdout.toString().trim();
+  };
+  try {
+    git("read-tree",ompBase);
+    for (const patch of patches) git("apply","--cached",resolve("compatibility/omp",patch));
+    return git("write-tree");
+  } finally { await rm(temp,{recursive:true,force:true}); }
+}
 /** Refuse undeclared consumed source before importing or executing any upstream generator. */
-export async function verifySource(omp: string): Promise<{ patchText: string; sourceSha256: string }> {
-  if (sourceGit(omp, "rev-parse", "HEAD").trim() !== ompBase) throw new Error("OMP_SOURCE_BASE_MISMATCH");
-  const expected = await readFile(resolve("compatibility/omp/0001-safe-preflight.patch"), "utf8");
-  const allowed = new Set([...authoredPaths, ...generatedPaths]);
-  for (const file of sourceGit(omp, "diff", "HEAD", "--name-only").trim().split("\n").filter(Boolean)) {
+export async function verifySource(omp:string):Promise<{patchText:string;sourceSha256:string}> {
+  if (sourceGit(omp,"rev-parse","HEAD").trim() !== ompBase) throw new Error("OMP_SOURCE_BASE_MISMATCH");
+  const allowed = new Set([...authoredPaths,...generatedPaths]);
+  for (const file of sourceGit(omp,"diff","HEAD","--name-only").trim().split("\n").filter(Boolean))
     if (!allowed.has(file)) throw new Error("OMP_UNRECORDED_SOURCE_CHANGE");
-  }
-  for (const file of sourceGit(omp, "ls-files", "--others").trim().split("\n").filter(Boolean)) {
+  for (const file of sourceGit(omp,"ls-files","--others").trim().split("\n").filter(Boolean))
     if (!temporaryPaths.includes(file) && !authoredPaths.includes(file)) throw new Error("OMP_UNRECORDED_SOURCE_FILE");
-  }
-  // Intent-to-add exposes authored new files to the ordinary diff without staging their contents.
-  sourceGit(omp, "add", "-N", ...authoredPaths);
-  const actual = sourceGit(omp, "diff", "HEAD", "--", ...authoredPaths);
+  sourceGit(omp,"add","-N",...authoredPaths);
+  const tree = await patchedTree(omp);
+  const expected = sourceGit(omp,"diff",ompBase,tree,"--",...authoredPaths);
+  const actual = sourceGit(omp,"diff","HEAD","--",...authoredPaths);
   if (actual !== expected) throw new Error("OMP_AUTHORED_PATCH_MISMATCH");
-  return { patchText: expected, sourceSha256: digest(ompBase + "\n" + expected) };
+  const patchText = (await Promise.all(ompPatches.map(patch => readFile(resolve("compatibility/omp",patch),"utf8")))).join("");
+  return {patchText,sourceSha256:digest(ompBase+"\n"+patchText)};
 }

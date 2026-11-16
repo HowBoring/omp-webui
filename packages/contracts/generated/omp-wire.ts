@@ -802,6 +802,85 @@ export interface PromptAck {
 	agentInvoked?: boolean;
 }
 
+export interface CatalogCwd {
+	status: "known" | "unknown" | "missing" | "inaccessible" | "invalid";
+	recorded?: string;
+	canonical?: string;
+}
+
+export interface CatalogOwnership {
+	state: "held" | "free" | "unknown";
+	observedAt: string;
+}
+
+export interface CatalogDescriptor {
+	sourceId: string;
+	instanceId: string;
+	reference: string;
+	nativeSessionId: string;
+	aliases: string[];
+	cwd: CatalogCwd;
+	createdAt: string;
+	modifiedAt: string;
+	observedAt: string;
+	ownership: CatalogOwnership;
+	title?: string;
+	parentSession?: string;
+	continuationOf?: string;
+}
+
+export interface CatalogFailure {
+	sourceId: string;
+	code: string;
+	locator?: string;
+}
+
+export interface CatalogSource {
+	sourceId: string;
+	kind: "default" | "custom";
+	aliases: string[];
+	status: "ready" | "invalid";
+}
+
+export interface CatalogBudgets {
+	scanEntriesPerRequest: number;
+	scanEntriesPerSnapshot: number;
+	directoriesPerSnapshot: number;
+	sessionsPerSnapshot: number;
+	headerBytes: number;
+	pageItems: number;
+	responseBytes: number;
+	snapshotBytes: number;
+	snapshots: number;
+	scanWindowMs: number;
+	scanTotalMs: number;
+	tokenTtlMs: number;
+}
+
+export interface CatalogSources {
+	version: "readonly-catalog-v1";
+	profile: string;
+	sources: CatalogSource[];
+	budgets: CatalogBudgets;
+}
+
+export interface CatalogPage {
+	status: "scanning" | "complete" | "partial";
+	snapshot: string;
+	observedAt: string;
+	expiresAt: string;
+	items: CatalogDescriptor[];
+	failures: CatalogFailure[];
+	examined: number;
+	nextCursor?: string;
+}
+
+export interface CatalogDescription {
+	status: "verified" | "missing" | "replaced" | "invalid_reference" | "source_unavailable" | "inaccessible";
+	observedAt: string;
+	item?: CatalogDescriptor;
+}
+
 export type AutoCompactionReason = "threshold" | "overflow" | "idle" | "incomplete";
 
 export type AutoCompactionAction = "context-full" | "remote" | "handoff" | "shake" | "snapcompact";
@@ -1569,6 +1648,15 @@ export type RpcNotification = ReadyEvent | PromptResultEvent | SessionSettledEve
 /** Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`. */
 export type RpcServerFrame = RpcResponse | RpcHostRequest | RpcNotification;
 
+export interface CatalogPageParams {
+	cursor?: string;
+	pageSize?: number;
+}
+
+export interface DescribeSessionParams {
+	reference: string;
+}
+
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
 }
@@ -1947,6 +2035,9 @@ export interface GetBtwHistoryResult {
 
 /** Every RPC command's parameters and successful response `data`. */
 export interface RpcWireCommands {
+	catalog_sources: { params: undefined; result: CatalogSources };
+	catalog_page: { params: CatalogPageParams; result: CatalogPage };
+	describe_session: { params: DescribeSessionParams; result: CatalogDescription };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };

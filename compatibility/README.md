@@ -45,8 +45,9 @@ identity is SHA-256 of `base + newline + exact patch bytes`, not an invented ups
 files and generated artifacts additionally have individual content identities in the installation manifest.
 `--check` verifies the tracked Host generated outputs without refreshing trust or replacing the candidate.
 
-Only `0001-safe-preflight.patch` is currently applied, directly after OMP base
-`7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. Future tickets must add ordered public deltas and extend the
+The ordered stack now applies `0001-safe-preflight.patch` then `0002-readonly-catalog.patch`, directly after OMP base
+`7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. The catalog is an isolated synthetic acceptance slice; see
+[its contract and fixed budgets](CATALOG.md) and [typed DSH fixture](../apps/catalog/README.md). Future tickets must add ordered public deltas and extend the
 cumulative source gate/build schema deliberately; they must not overwrite this patch with an unrelated clone
 or claim planned capability names are implemented. `scripts/export-omp-patch.ts` is an explicit authoring tool,
 not something startup/build silently calls. Read upstream `vendor/omp/AGENTS.md` when changing its source.
