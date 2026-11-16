@@ -1,0 +1,87 @@
+{
+  "status": "READY_SOURCE_STATIC_FILE_PREPARATION_ONLY_NOT_RUN",
+  "scope": "mechanical-existing-C-launcher-to-real-Bun-lock-retention-only",
+  "fixture": "/tmp/launcher-lock-tracer-CarLw9/fixture.json",
+  "fixtureSha256": "76bc93ab5d1a360b3a783dc87e8c4e0a72e514d327b35139d27d3eb60cb1b46f",
+  "inputsVerified": 20,
+  "wrapper": {
+    "file": "/workspace/work/omp-webui-ticket-41/scripts/retain-launcher-lock-tracer.py",
+    "bytes": 14364,
+    "sha256": "f905573d5bc6df46373c7fd3c5abf1ebbac5a66708836dad7a43e95fcebc7d8a",
+    "mode": 384,
+    "device": "27",
+    "inode": "336749",
+    "links": 1
+  },
+  "launcher": {
+    "file": "/tmp/launcher-lock-tracer-CarLw9/release/bin/omp",
+    "bytes": 759560,
+    "sha256": "1962e83a4fa6196637dbb4d8eff0c25f9d752110e62083fb0070e11dfee7427a",
+    "mode": 448,
+    "device": "27",
+    "inode": "337569",
+    "links": 1
+  },
+  "runtime": {
+    "file": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+    "bytes": 107308936,
+    "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+    "mode": 493,
+    "device": "27",
+    "inode": "337519",
+    "links": 1
+  },
+  "runtimeSource": {
+    "file": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "bytes": 107308936,
+    "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+    "mode": 493,
+    "device": "27",
+    "inode": "162910",
+    "links": 1
+  },
+  "probe": {
+    "file": "/tmp/launcher-lock-tracer-CarLw9/tools/exclusive-probe",
+    "bytes": 759552,
+    "sha256": "caa4d2b00112a20fc9a2b3ec7ad3a00d42e1e9798a76b439bd47d7b17c639184",
+    "mode": 448,
+    "device": "27",
+    "inode": "337574",
+    "links": 1
+  },
+  "runtimeMaterialization": {
+    "method": "SINGLE_REAL_COPY_EXCL",
+    "cloneFailure": "ENOTSUP",
+    "source": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "target": "/tmp/launcher-lock-tracer-CarLw9/release/runtime/bun",
+    "bytes": 107308936,
+    "sourceSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+    "targetSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+    "mode": 493,
+    "links": 1,
+    "postFreeBytes": "1007341568",
+    "maximumBytes": 121634816,
+    "minimumFreeBytes": 805306368,
+    "postPreparationFreeBytes": "1005789184"
+  },
+  "focusedTypes": {
+    "files": 4,
+    "errors": 0
+  },
+  "hostTypes": {
+    "files": 160,
+    "errors": 0
+  },
+  "wrapperSyntax": "PASS_AST_ONLY",
+  "publicLauncherCompile": "PASS_EXISTING_UNCHANGED_BUILDER_STATIC_ONLY",
+  "exclusiveProbeCompile": {
+    "status": "PASS_STRICT_STATIC_ONLY",
+    "stderrBytes": 0
+  },
+  "bunChildStaticBuild": "PASS_NO_MODULE_EXECUTION",
+  "executed": false,
+  "locksProbed": false,
+  "ffiLoaded": false,
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}
