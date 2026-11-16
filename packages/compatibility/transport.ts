@@ -3,7 +3,11 @@ import { validCommand, validNegotiated, validReady, validReport, validResponse,
   type CompatibilityReport, type PreflightCommand } from "../contracts/preflight.ts";
 import { PhysicalFrames } from "./framing.ts";
 
-interface ProcessSelection { argv: string[]; env: Record<string, string>; cwd?: string; timeoutMs?: number; signal?: AbortSignal }
+interface ProcessSelection {
+  argv: string[]; env: Record<string, string>; cwd?: string; timeoutMs?: number; signal?: AbortSignal;
+  /** Bound ready plus negotiation independently; defaults to the existing request/drain timeout. */
+  readyTimeoutMs?: number;
+}
 interface Pending {
   command: PreflightCommand["type"];
   resolve(value: unknown): void;
@@ -28,6 +32,7 @@ export class PreflightTransport {
   private admitting = true;
   private fault: Error | undefined;
   private stderrBytes = 0;
+  private queuedWrites = 0;
   private writeQueue = Promise.resolve();
   private closing: Promise<DrainResult> | undefined;
   private readonly signal: AbortSignal | undefined;
@@ -52,10 +57,12 @@ export class PreflightTransport {
 
   static async open(selection: ProcessSelection): Promise<PreflightTransport> {
     const client = new PreflightTransport(selection);
-    const timer = setTimeout(() => { client.fail("RPC_READY_TIMEOUT"); }, client.timeout);
+    const startupTimeout = selection.readyTimeoutMs ?? client.timeout;
+    const timer = setTimeout(() => { client.fail("RPC_READY_TIMEOUT"); }, startupTimeout);
     try {
       await client.ready.promise;
-      const result = await client.send({ id: crypto.randomUUID(), type: "negotiate_protocol", protocolVersion: 2 });
+      const result = await client.send(
+        { id: crypto.randomUUID(), type: "negotiate_protocol", protocolVersion: 2 }, startupTimeout);
       if (!validNegotiated(result) || result.protocolVersion !== 2) throw new Error("RPC_NEGOTIATION");
       client.frames.negotiate(2);
       return client;
@@ -73,10 +80,10 @@ export class PreflightTransport {
     return result;
   }
 
-  private send(command: PreflightCommand): Promise<unknown> {
+  private send(command: PreflightCommand, timeoutMs = this.timeout): Promise<unknown> {
     if (!this.admitting || this.fault !== undefined) return Promise.reject(this.fault ?? new Error("RPC_CLOSED"));
     if (!validCommand(command)) return Promise.reject(new Error("RPC_COMMAND_SCHEMA"));
-    if (this.pending.size >= 32) return Promise.reject(new Error("RPC_PENDING_LIMIT"));
+    if (this.pending.size >= 32 || this.queuedWrites >= 32) return Promise.reject(new Error("RPC_PENDING_LIMIT"));
     const line = JSON.stringify(command) + "\n";
     if (Buffer.byteLength(line) > MAX_RPC_FRAME_BYTES) return Promise.reject(new Error("RPC_COMMAND_LIMIT"));
     const result = Promise.withResolvers<unknown>();
@@ -84,11 +91,16 @@ export class PreflightTransport {
       this.pending.delete(command.id);
       this.remember(command.id, command.type, true);
       result.reject(new Error("RPC_REQUEST_TIMEOUT"));
-    }, this.timeout);
+    }, timeoutMs);
     this.pending.set(command.id, { command: command.type, resolve: result.resolve, reject: result.reject, timer });
+    this.queuedWrites++;
     this.writeQueue = this.writeQueue.then(async () => {
-      this.child.stdin.write(line);
-      await this.child.stdin.flush();
+      try {
+        // A timed-out request must not be sent later when a blocked predecessor finally flushes.
+        if (!this.pending.has(command.id)) return;
+        this.child.stdin.write(line);
+        await this.child.stdin.flush();
+      } finally { this.queuedWrites--; }
     }).catch(() => { this.fail("RPC_STDIN"); });
     return result.promise;
   }
