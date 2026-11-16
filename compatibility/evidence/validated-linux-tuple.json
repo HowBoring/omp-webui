@@ -1,0 +1,82 @@
+{
+  "kind": "s0-linux-diagnostic-candidate",
+  "productSessionAdmission": "blocked",
+  "platform": {
+    "system": "Linux",
+    "machine": "x86_64",
+    "kernel": "6.18.57"
+  },
+  "ompBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "patchSha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550",
+  "schemaSha256": "fde59ea50240a6c9e7450d838883f335c1bf52af67d21e8a982a6c2a9a6b67d9",
+  "installation": {
+    "sha256": "68494ac2de8aa62f029bae218c7c543e526f07fd2d9f9aeebceb3b033cc8133b",
+    "gzipSha256": "8efbccc2220b3ea6697dcf8a9f18cd28f38ea111b1a0f4a053593f4f348c84ef",
+    "assets": 55513,
+    "runtime": {
+      "path": "../rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "kind": "file",
+      "identity": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "mode": 493
+    },
+    "runtimeDependencies": [
+      {
+        "path": "../../../usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "kind": "file",
+        "identity": "c8438e4fde1934e61c88311633f00949ff645d5c04cdb8671fa3d78164d2f307",
+        "mode": 493
+      },
+      {
+        "path": "../../../usr/lib/x86_64-linux-gnu/libc.so.6",
+        "kind": "file",
+        "identity": "9792e3cbb541c8f44c7acf5f14f4022ea62998ecc787d326bed4d8b6547dfd92",
+        "mode": 493
+      },
+      {
+        "path": "../../../usr/lib/x86_64-linux-gnu/libdl.so.2",
+        "kind": "file",
+        "identity": "295fa521a03cd2faa99974f378c9e23dd622021ec7d32bcad4f8ea61aec8a872",
+        "mode": 420
+      },
+      {
+        "path": "../../../usr/lib/x86_64-linux-gnu/libm.so.6",
+        "kind": "file",
+        "identity": "6d567d53e895273ca14a1f9dc164fc6c8d39aed2f60aa46a733c2784228915f3",
+        "mode": 420
+      },
+      {
+        "path": "../../../usr/lib/x86_64-linux-gnu/libpthread.so.0",
+        "kind": "file",
+        "identity": "85e21f7dba0394411d00959176fd18b470e575b0b05f1f4f41e5636802ce0500",
+        "mode": 420
+      }
+    ]
+  },
+  "dsh": {
+    "base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "freshSourceArtifactGates": {
+      "passed": 8,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 154.62
+    },
+    "freshSourceAggregateChecks": {
+      "passed": 2,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 130.86
+    }
+  },
+  "artifacts": {
+    "linux-browser.json": "4a1b6db2911f26edffbb191afbb6024013c726ffb04dd2036ab3f2292d0eefdb",
+    "native-trace.json": "2123734b1f6183dead7631fce5381bbaf35f2fa1b0f5358ba51f9c4a8c33562d",
+    "dsh-build.json": "5fc3eaad06de64779118e87be576f080975589d88ece971ee4070ed541f8fa0a",
+    "host-build.json": "c653dea470a614c2a389137a2fe8e5a609c456bc022db17560e41cd595601ede"
+  },
+  "limits": [
+    "No real global OMP installed or changed",
+    "No private Session admission",
+    "Windows/WSL2 explicitly deferred by owner until after development",
+    "Fresh Git source and artifact rebuild used existing Git/package/native caches; no uncached-native-toolchain claim"
+  ]
+}
