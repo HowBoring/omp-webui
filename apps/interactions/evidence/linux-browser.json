@@ -1,0 +1,128 @@
+{
+  "status": "PASS",
+  "scope": "S0 isolated; not product admission",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "browser": "156.0.8078.79",
+  "cases": [
+    {
+      "case": "root-startup-public-Slot-no-Session",
+      "status": "PASS",
+      "defaultWaitMs": 1800000,
+      "interactionId": "15d065bd28bfa2e6"
+    },
+    {
+      "case": "refresh-and-all-viewers-disconnect-never-renew",
+      "status": "PASS",
+      "originalDeadline": 1794834766834
+    },
+    {
+      "case": "real-Linux-keyboard-explicit-root-answer",
+      "status": "PASS"
+    },
+    {
+      "case": "Session-native-ask-two-page-first-valid",
+      "status": "PASS",
+      "results": [
+        "stale",
+        "answered"
+      ]
+    },
+    {
+      "case": "explicit-cancel-is-not-a-default-answer",
+      "status": "PASS"
+    },
+    {
+      "case": "native-confirm-false-is-an-explicit-answer",
+      "status": "PASS"
+    },
+    {
+      "case": "native-ask-distinct-question-order-and-multiselect",
+      "status": "PASS"
+    },
+    {
+      "case": "real-native-ask-expiry-cancels",
+      "status": "PASS",
+      "interactionId": "15d065c2327fa2f2"
+    },
+    {
+      "case": "real-native-HTML-form-partial-expiry-no-defaults",
+      "status": "PASS"
+    },
+    {
+      "case": "product-Session-admission-remains-blocked",
+      "status": "PASS"
+    }
+  ],
+  "browserErrors": [],
+  "hostExitCode": 0,
+  "OMP": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9387aee5beda5f2843e0558eed9a9ce1ebfe1251ff4286da2e2dc7d7cad7d6ae",
+    "patchSha256": "b69f38c5fd03046fb3dad417a84297a8f8292bbb1546bcd5be334c31219cf858",
+    "schemaSha256": "67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"
+  },
+  "Host": {
+    "kind": "S0-isolated-interactions",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4",
+      "executableSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "inputs": 246,
+    "bundle": {
+      "file": "interactions-fixture-main.js",
+      "sha256": "93b54fb25f7776dc064af88c97a54c69dd0de00d54584b0352908e4b38cdfd6f"
+    },
+    "inputSetSha256": "8ef71cce3a92192123ad62e920cab655d6b6095dbd2db776871bbe7b9611a642"
+  },
+  "DSH": {
+    "kind": "S0-isolated-interactions",
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "dshSource": {
+      "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+      "mode": "candidate",
+      "patches": [
+        {
+          "path": "patches/0001-navigation-policy.patch",
+          "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+          "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+        },
+        {
+          "path": "patches/0002-semantic-drafts.patch",
+          "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+          "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+        }
+      ],
+      "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+    },
+    "lockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4"
+    },
+    "sourceInputs": 255,
+    "inputs": 255,
+    "sourceSha256": "aba4299345a0a4a86458edfc4b8c8544dd7ad215c563d39737a21a96853c63c1",
+    "contractSha256": "520266598312853b77c0ac3d8994c26c97b1f1de2900b1b06abfbf63f4c09e87",
+    "assets": {
+      "client.js": "21865bab6e410a515acbe6068e467c65550e5863b85785c5b6c20120721d55f6",
+      "index.html": "28c2c860702e135d3f3c48b9e9ee524676c039e32c462e74d929b1c3982e28af"
+    },
+    "inputSetSha256": "19c73961498a71371ae1fafd98a789d2d6e2c09988572f96b72dab459310920a"
+  },
+  "nativeWorker": {
+    "code": 0,
+    "forced": false,
+    "stdoutDrained": true,
+    "stderrBytes": 96,
+    "acknowledgedAbortCommands": 5
+  },
+  "rawArtifacts": {
+    "summary.json": "12c606185e8f38c4055f89d967e4446445f70d91311aed7072367b1e793eca09",
+    "host.log": "5dd37ccd76c3cf027cdab628d5dab2f0a9df1268eb1a504006e9d7b89cc3189b",
+    "trace.zip": "fff419e72e65acae14c159f6a773fcfe6676323d22ca88abe92fc9b58a804dd2",
+    "root-Slot.png": "ea4d4ab9d55949651b8451e957d1010bd891b4e0b0930a092714dd6120a304c3"
+  }
+}

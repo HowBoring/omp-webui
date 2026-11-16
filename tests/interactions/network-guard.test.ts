@@ -10,7 +10,7 @@ test("native child preload rejects every audited provider network entry before d
     stdout:"pipe",stderr:"pipe"});
   try {
     const [code,stdout,stderr]=await Promise.all([child.exited,new Response(child.stdout).text(),new Response(child.stderr).text()]);
-    expect({code,stderr}).toMatchObject({code:0});expect(stdout).toBe("network-guard: 15 denied, 0 dispatched\n");
+    expect({code,stderr}).toMatchObject({code:0});expect(stdout).toBe("network-guard: 15 denied before dispatch\n");
     expect(stderr.trim().split("\n")).toHaveLength(15);
     expect(stderr.trim().split("\n").every(line=>line.startsWith("S0_FIXTURE_NETWORK_DENIED:"))).toBe(true);
   } finally {child.kill();await rm(home,{recursive:true,force:true});}
