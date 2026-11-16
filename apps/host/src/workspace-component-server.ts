@@ -9,6 +9,7 @@ import type { ServerWebSocket } from "bun";
 import { resolve } from "node:path";
 import { z } from "zod";
 import { workspaceContribution, workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
+import { workspaceFailure } from "../../../packages/workspaces/errors.ts";
 import type { CatalogPageInput } from "../../../packages/contracts/catalog.ts";
 import type { CatalogClient } from "../../../packages/contracts/generated/catalog-client.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
@@ -150,19 +151,30 @@ export async function startWorkspaceComponentServer(options: Options) {
 }
 
 async function dispatch(request: Request, ctx: Context, peer: Peer, current: () => boolean): Promise<Response> {
+  if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
+    return new Response("JSON required", { status: 415 });
+  }
+  let decoded;
   try {
-    if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") return new Response("JSON required", { status: 415 });
     const envelope = clientRequestSchema.parse(await request.json());
     const method = workspaceContribution.methods[envelope.method];
     if (!method || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({args:z.record(z.string(),z.unknown())}).parse(envelope.payload);
     const args = z.record(z.string(),z.unknown()).parse(method.input({strict:true}).create().parse(payload.args));
+    decoded = { envelope, method, args };
+  } catch { return new Response("Invalid workspace request", { status: 400 }); }
+  const { envelope, method, args } = decoded;
+  if (!current()) return new Response("Access invalidated", { status: 401 });
+  try {
     request.signal.throwIfAborted();
     if (!current()) return new Response("Access invalidated", { status: 401 });
     const value = await ctx.typertGateway.invoke({namespace:method.namespace,method:method.method,
       args,peer,signal:request.signal});
     return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
-  } catch { return new Response("Invalid workspace request", { status: 400 }); }
+  } catch (error) {
+    return Response.json({ type: "server-response", rpcId: envelope.rpcId,
+      result: { ok: false, error: ctx.typertGateway.wireStream.failure(workspaceFailure(error)) } });
+  }
 }
 
 async function pump(socket: ServerWebSocket<SocketData>, streamId: string, payload: unknown,

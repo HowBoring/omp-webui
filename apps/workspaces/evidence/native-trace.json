@@ -11,11 +11,11 @@
   ],
   "exitCode": 0,
   "stderrBytes": 0,
-  "traceLines": 240,
+  "traceLines": 231,
   "unsafeWriteOrOrdinarySessionImportObservations": [],
   "bindSyscalls": 0,
   "nonUnixConnectSyscalls": 0,
   "nativeLeaseObservationConnects": 2,
   "execveCount": 1,
-  "traceSha256": "9afcf154b1face0a16770c9913042436cb21bc7fa4500763178db99abac1fccd"
+  "traceSha256": "afaf524aec4b55e92c2c3b83bf9211b0f5b4f92ed65cfd70a04351d6e58a7715"
 }

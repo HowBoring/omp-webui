@@ -1,14 +1,14 @@
 {
   "kind": "isolated-authenticated-workspace-component",
-  "testedIntegration": "2842168abe27d733c353c6fe14153f0e660f1d8a",
+  "testedIntegration": "d22a908b2b6b8a53093af70c347b92cc5e69869b",
   "omp": {
     "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "8960c74b6c74dcadc585a0e68e2aba8687129107ddd449b85ae93d98f0d4c424",
-    "patchSha256": "bf08fb3c51d284169093a58164c161f4f8d5c0b24fad273db5b9817cea877a95",
-    "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b",
-    "candidateCliSha256": "cff72fd7fbe7047600531407e5bf5f6a44eeef1a0e905fb82fcb090c8a431a94",
-    "installationSha256": "11e9779fe1532e7ce4414dae9abbb984a2d0b52b2f8b8b5aee1cc272f7baf661",
-    "installationAssets": 55901
+    "sourceSha256": "4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871",
+    "patchSha256": "fac7c05f152284344e0aab2946a96a897e1766b74a62352d3a2c1b09846f8cb8",
+    "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b",
+    "candidateCliSha256": "978361a157f7d69728b909a8b7379a460c3cfdf7cd9ce64233a41c20dd931f3a",
+    "installationSha256": "be84ebd49dfb7c71e4c40d446d99b26d7542c4c35576b0adef8b49327e08e39d",
+    "installationAssets": 55632
   },
   "dsh": {
     "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
@@ -35,45 +35,49 @@
       "version": "1.4.4"
     },
     "sourceInputs": 239,
-    "sourceSha256": "042c7f9afdb374cf100c8fb075ae328ee7550dd5b0aa395e4031f759178911ab",
-    "contractSha256": "1d96d19beaa87dadaa4f02ee7303b1d5af25dca517ca6e4b2490c341e59e464f",
+    "sourceSha256": "5113f99a933bb7e94c08762841d2e91a8f4431f91489932b3756d535db61eb1d",
+    "contractSha256": "5807c727627a34ae827b03bc156bf8baf8c93237d9bcdfe7644b93dc6074ca16",
     "assets": {
       "client.js": "920c0f4285a901d49443bd3769cc99533af4aca4f523def6d5f1481d16a17c4e",
       "index.html": "cfffdd049f27cc803ae2eac651e30fd6248ee9f5785a9e7e78b20adb9e3b6bd3"
     }
   },
-  "browserBuildManifestSha256": "ba2f790db9541f9771d8020bab49d957d941d80da9286632583015312de02cdd",
+  "browserBuildManifestSha256": "f24f41f9445911d90854fa0a0cd9f9fff2184e26bd2513011cc3ccd3ee19c57a",
   "hostBuild": {
     "runtime": {
       "name": "bun",
       "version": "1.4.4"
     },
-    "inputs": 256,
+    "inputs": 258,
     "bundle": {
       "file": "workspace-component-main.js",
-      "sha256": "e1849216945d624ba2df5ec4ca7c08f2ae6ffa8f210f501a2b3a11b2d618ac4d"
+      "sha256": "ef9a1088ed864605e6ff35f2522978cbdb081a5fd9d5a7656882bb67185b3f81"
     },
-    "manifestSha256": "6d8afa0859abfde068f2e9f32e894b102e76fb6a57f1e33beaffff8768a87139"
+    "manifestSha256": "467b0f12a57b145c0c0cbf99502416790203c3de849d76c8b0cfc524b6663bf2"
   },
-  "previousEvidence": "before-rebase-2842168/tuple.json (original 12c72dc/f2066f6 native proof; preserved, not current-source evidence)",
+  "previousEvidence": "before-review-fix-8157865/tuple.json (prior0001\u20134 native8960/schema8345; preserved historical evidence)",
   "closureReuse": {
-    "OMP": "Owned clean fixed-base clone with declared 0001\u20130004 applied --source-only; readonly current accepted dependency cache; no install",
-    "DSH": "Owned package links to immutable #39-final-fix/vendor/dsh-final c0 compiled closure; actual resolved-root candidate verification; no upstream rebuild/install or shared source edits",
-    "negativeSource": "Owned c0 source-only clone retained for mutation tests; no shared source target mutations"
+    "OMP": "Owned shared-object fixed-base clone +declared0001\u20134+0006; direct resolved readonly dependency links; no installs.",
+    "DSH": "Owned per-package links to immutable39final c0 compiled closure; independent owned source-only negative clone; no shared writes or upstream rebuilds."
   },
-  "buildRefactor": "Shared BuildIdentities/assetIdentities/sha256; browser source identities and assets unchanged byte-for-byte",
+  "buildRefactor": "Public typed failure vocabulary import changes source/contract identity; browser JS/HTML byte-identical to prior component.",
   "productAdmission": "BLOCKED pending #41 combined/global gate and #44 protected open/worker revocation",
   "windowsWSL2": "DEFERRED by user",
-  "browserEvidenceSha256": "2e633481d72a9a80cf463db19f148ab0741f5f092fe1044027db583e9804190d",
+  "browserEvidenceSha256": "7e0109301de12a58c39ca53425f6299946fd1ea58c027a2dd1e2521ea34d47e8",
   "currentChecks": {
-    "strictTypecheck": "PASS",
+    "strictTypecheck": "PASS; app plus authored native catalog/live-history scoped checks",
     "affectedTests": {
-      "tests": 62,
-      "assertions": 906,
-      "files": 17
+      "tests": 67,
+      "assertions": 1014,
+      "files": 19
     },
-    "nativeReadonlyTrace": "PASS; 240 lines; no writes/non-Unix connects",
-    "browser": "PASS; 12 scenarios; 47 native rows; 35 synthetic index references; 36 Remote calls; zero page errors",
-    "fullSuite": "NOT RERUN on this native combination; prior 116/944 is historical"
+    "finalWireTests": {
+      "tests": 5,
+      "assertions": 55,
+      "files": 2
+    },
+    "nativeReadonlyTrace": "PASS;231lines;0writes/0nonUnixConnects;2ownership observations",
+    "browser": "PASS; 12 scenarios;47native rows;35synthetic index references;40Remote calls;0page errors",
+    "fullSuite": "NOT RUN on latest combination; prior116/944 historical"
   }
 }

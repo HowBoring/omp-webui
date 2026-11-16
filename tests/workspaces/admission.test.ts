@@ -50,7 +50,10 @@ test("credential revocation during a pending confirmation body prevents mutation
     const listed = await (await call("grants", {}, other)).json() as { result: { value: unknown[] } };
     expect(listed.result.value).toEqual([]);
     expect((await call("preview", { path: root, sources: ["/"] }, other)).status).toBe(400);
-    expect((await call("preview", { path: join(home, "missing") }, other)).status).toBe(400);
+    const missing = await call("preview", { path: join(home, "missing") }, other);
+    expect(missing.status).toBe(200);
+    expect(await missing.json()).toMatchObject({ rpcId: "admission-fixture",
+      result: { ok: false, error: { code: "ENOENT", details: {} } } });
     expect((await fetch(`${origin}/api/session/open`, { headers: { cookie: other.cookie } })).status).toBe(501);
   } finally { await host.stop(); await rm(home, { recursive: true, force: true }); }
 });

@@ -1,0 +1,9 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/workspaces/remote-errors.test.ts:
+(pass) a consumed confirmation returns a correlated domain failure through typed DSH Remote [57.68ms]
+
+ 1 pass
+ 0 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [189.00ms]

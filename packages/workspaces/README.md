@@ -30,3 +30,12 @@ No protected Session/history/attachment/execution admission exists here. Every v
 even after a valid grant. Normal Host admission remains closed. #44 must compose this current-rights policy with
 source/reference identity, final ownership checks, registration persistence and supervised worker stop/revoke
 cleanup. This component has a readonly catalog child, and never reports a Session worker stopped.
+
+Authenticated, decoded unary calls retain the DSH `rpcId` on both success and failure. Known grant,
+filesystem/storage, index, catalog and transport codes use the public typed Remote failure vocabulary in
+`packages/contracts/workspace-errors.ts`, with fixed sanitized messages and empty details. The carrier uses the
+public DSH `RemoteError` and Gateway failure serializer; thrown messages, stacks, native output, paths and details
+never cross that boundary. Unclassified failures return `gateway/internal` / `Workspace request failed.`.
+Malformed envelopes, endpoint/argument mismatch and non-JSON bodies remain HTTP 400/415; auth, Origin and CSRF
+rejections retain HTTP 401/403 and never derive correlation from an untrusted body. Credential revalidation still
+precedes invocation and response publication. Catalog page business error values retain their existing schema.

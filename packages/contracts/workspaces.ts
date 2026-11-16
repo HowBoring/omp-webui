@@ -1,3 +1,4 @@
+import type {} from "./workspace-errors.ts";
 import { z } from "zod";
 import { createTypertRemoteInfo } from "@deepseek-ai/dsh-typert-protocol/remote-info";
 import type { RemoteResult } from "@deepseek-ai/dsh-typert-protocol";
