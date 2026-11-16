@@ -362,16 +362,17 @@ index 0000000000..74ce4adf6c
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..1fb90422d7
+index 0000000000..83bb51b057
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,126 @@
+@@ -0,0 +1,132 @@
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
 +import * as fs from "node:fs";
 +import * as path from "node:path";
 +import type { FileHandle } from "node:fs/promises";
 +import { getSessionOwnersDir } from "@oh-my-pi/pi-utils/dirs";
 +import { tryAcquireFileLock, type FileLockHandle } from "@oh-my-pi/pi-utils/file-lock";
++import { resolveHeldGeneration, publishHeldGeneration } from "../../session/session-generation";
 +import { openWithin } from "./catalog-path";
 +import { hash, readDescriptor, type NativeSource } from "./catalog-metadata";
 +import type { CatalogDescriptor } from "./wire/rpc-wire.generated";
@@ -383,6 +384,8 @@ index 0000000000..1fb90422d7
 +  readonly #anchor: FileHandle;
 +  readonly #lease: FileLockHandle;
 +  readonly #fd: number;
++  readonly #parentFd: number;
++  readonly #parentIdentity: string;
 +  readonly #cwdFd: number;
 +  readonly #cwdPath: string;
 +  readonly #cwdIdentity: string;
@@ -394,6 +397,9 @@ index 0000000000..1fb90422d7
 +    anchor: FileHandle, lease: FileLockHandle, fd: number, cwdFd: number, cwdPath: string) {
 +    this.#source = source; this.filePath = filePath; this.descriptor = descriptor;
 +    this.#anchor = anchor; this.#lease = lease; this.#fd = fd;
++    this.#parentFd = fs.openSync(path.dirname(filePath), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++    const parent = fs.fstatSync(this.#parentFd, { bigint: true });
++    this.#parentIdentity = hash(`${parent.dev}:${parent.ino}:${parent.birthtimeNs}`);
 +    this.#cwdFd = cwdFd; this.#cwdPath = cwdPath;
 +    const info = fs.fstatSync(cwdFd, { bigint: true });
 +    this.#cwdIdentity = hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`);
@@ -440,6 +446,8 @@ index 0000000000..1fb90422d7
 +      const root = fs.statSync(this.#source.root, { bigint: true });
 +      if (hash(`${root.dev}:${root.ino}:${root.birthtimeNs}`) !== this.#source.rootIdentity)
 +        throw new Error("STRICT_SOURCE_REPLACED");
++      const parent = fs.statSync(path.dirname(this.filePath), { bigint: true });
++      if (hash(`${parent.dev}:${parent.ino}:${parent.birthtimeNs}`) !== this.#parentIdentity) throw new Error("STRICT_DIRECTORY_REPLACED");
 +      const cwd = fs.statSync(this.#cwdPath, { bigint: true });
 +      if (!cwd.isDirectory() || hash(`${cwd.dev}:${cwd.ino}:${cwd.birthtimeNs}`) !== this.#cwdIdentity)
 +        throw new Error("STRICT_CWD_REPLACED");
@@ -455,16 +463,14 @@ index 0000000000..1fb90422d7
 +
 +  read(): string {
 +    this.assertCurrent();
-+    const size = fs.fstatSync(this.#fd).size;
-+    if (size > 128 * 1024 * 1024) throw new Error("STRICT_HISTORY_BYTES_LIMIT");
-+    const bytes = Buffer.alloc(size);
-+    let offset = 0;
-+    while (offset < size) {
-+      const count = fs.readSync(this.#fd, bytes, offset, size - offset, offset);
-+      if (!count) throw new Error("STRICT_CHANGED_DURING_READ");
-+      offset += count;
-+    }
-+    this.assertCurrent(); return new TextDecoder("utf8", { fatal: true }).decode(bytes);
++    const result = resolveHeldGeneration(this.#fd, this.#parentFd, this.filePath);
++    this.assertCurrent(); return result.text;
++  }
++
++  publish(body: string, options?: { expectedSize?: number | null; commitGuard?: () => boolean }): boolean {
++    this.assertCurrent();
++    this.#writeAttempted = true;
++    return publishHeldGeneration(this.#fd, this.#parentFd, this.filePath, body, () => this.assertCurrent(), options);
 +  }
 +
 +  get writeAttempted(): boolean { return this.#writeAttempted; }
@@ -489,7 +495,7 @@ index 0000000000..1fb90422d7
 +  async release(): Promise<void> {
 +    if (this.#released) return;
 +    this.#released = true;
-+    fs.closeSync(this.#fd); fs.closeSync(this.#cwdFd); await this.#anchor.close(); this.#lease.release();
++    fs.closeSync(this.#fd); fs.closeSync(this.#parentFd); fs.closeSync(this.#cwdFd); await this.#anchor.close(); this.#lease.release();
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
@@ -561,6 +567,261 @@ index 0000000000..b7b1fbe98f
 +  { name: "get_strict_state", doc: "Observe this worker's truthful startup outcome; never retries an operation.", result: "StrictStartState" },
 +  { name: "cancel_strict_start", doc: "Cancel pending startup; already published side effects remain explicit.", result: "StrictStartState" },
 +] as const;
+diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
+new file mode 100644
+index 0000000000..5ae33e6cc5
+--- /dev/null
++++ b/packages/coding-agent/src/session/session-generation.ts
+@@ -0,0 +1,249 @@
++/** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
++import * as fs from "node:fs";
++import * as path from "node:path";
++import { readFileXattr, writeFileXattr } from "../utils/file-xattr";
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++
++export const generationBudgets = Object.freeze({ bodyBytes: 128 * 1024 * 1024, retainedBytes: 512 * 1024 * 1024,
++  generations: 64, directoryEntries: 128, metadataBytes: 1024, markerBytes: 1024 });
++const HEAD_XATTR = "user.omp-generation-v1";
++const CARRIER_TYPE = "ompgen1";
++const COMMIT_TYPE = "omp_generation_commit";
++const hash = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
++const decoder = new TextDecoder("utf8", { fatal: true });
++interface GenerationMetadata {
++  format: "omp-native-generation"; version: 1; token: string; carrier: string; nativeSessionId: string;
++  offset: number; bytes: number; sha256: string;
++}
++interface CommitHead { version: 1; carrier: string; current: CommitRecord; previous?: CommitRecord; checksum: string }
++interface CommitRecord { type: typeof COMMIT_TYPE; version: 1; token: string; offset: number; metadataSha256: string; checksum: string }
++export interface ResolvedGeneration { text: string; physicalBytes: number; logicalBytes: number; committed: boolean }
++export function generationDirectory(file: string): string { return `.${path.basename(file)}.omp-generations`; }
++export function hasGenerationDirectory(file: string): boolean {
++  try { return fs.lstatSync(path.join(path.dirname(file), generationDirectory(file))).isDirectory(); }
++  catch (error) { if (isRecord(error) && error.code === "ENOENT") return false; throw error; }
++}
++export function carrierIdentity(fd: number): string {
++  const info = fs.fstatSync(fd, { bigint: true });
++  return hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`);
++}
++export function readHeldBytes(fd: number, max = generationBudgets.bodyBytes): Buffer {
++  const size = fs.fstatSync(fd).size;
++  if (size > max) throw new Error("GENERATION_BODY_LIMIT");
++  const bytes = Buffer.alloc(size); let offset = 0;
++  while (offset < size) {
++    const count = fs.readSync(fd, bytes, offset, size - offset, offset);
++    if (!count) throw new Error("GENERATION_CHANGED_DURING_READ");
++    offset += count;
++  }
++  return bytes;
++}
++function nativeId(text: string): string {
++  for (const line of text.split("\n", 3).slice(0, 2)) {
++    let value: unknown; try { value = JSON.parse(line); } catch { continue; }
++    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE) && typeof value.id === "string") return value.id;
++  }
++  throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++}
++function metadata(value: unknown): value is GenerationMetadata {
++  return isRecord(value) && value.format === "omp-native-generation" && value.version === 1
++    && typeof value.token === "string" && /^[0-9a-f-]{36}$/.test(value.token)
++    && typeof value.carrier === "string" && /^[0-9a-f]{64}$/.test(value.carrier)
++    && typeof value.nativeSessionId === "string" && value.nativeSessionId.length <= 128
++    && typeof value.offset === "number" && Number.isSafeInteger(value.offset) && value.offset >= 0
++    && typeof value.bytes === "number" && Number.isSafeInteger(value.bytes) && value.bytes <= generationBudgets.bodyBytes && value.bytes > 0
++    && typeof value.sha256 === "string" && /^[0-9a-f]{64}$/.test(value.sha256);
++}
++function marker(value: unknown): value is CommitRecord {
++  if (!isRecord(value) || value.type !== COMMIT_TYPE) return false;
++  if (value.version !== 1) throw new Error("GENERATION_FORMAT_UNSUPPORTED");
++  if (typeof value.token !== "string" || !/^[0-9a-f-]{36}$/.test(value.token)
++    || typeof value.offset !== "number" || !Number.isSafeInteger(value.offset) || value.offset < 0
++    || typeof value.metadataSha256 !== "string" || !/^[0-9a-f]{64}$/.test(value.metadataSha256)
++    || typeof value.checksum !== "string") throw new Error("GENERATION_COMMIT_CORRUPT");
++  const payload = { type: COMMIT_TYPE, version: 1, token: value.token, offset: value.offset, metadataSha256: value.metadataSha256 };
++  if (hash(JSON.stringify(payload)) !== value.checksum) throw new Error("GENERATION_COMMIT_CORRUPT");
++  return true;
++}
++interface HeaderPosition { type: "session" | "ompgen1"; valueOffset: number }
++function headerPosition(bytes: Buffer): HeaderPosition {
++  let start = 0;
++  for (let index = 0; index < 2; index++) {
++    const end = bytes.indexOf(10, start);
++    if (end < 0 || end > 16_384) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++    const line = decoder.decode(bytes.subarray(start, end));
++    const value: unknown = JSON.parse(line);
++    if (isRecord(value) && (value.type === "session" || value.type === CARRIER_TYPE)) {
++      const match = /"type"\s*:\s*"(session|ompgen1)"/.exec(line);
++      if (!match) throw new Error("GENERATION_HEADER_ENCODING_UNSUPPORTED");
++      const textOffset = match.index + match[0].lastIndexOf(value.type);
++      return { type: value.type, valueOffset: start + Buffer.byteLength(line.slice(0, textOffset)) };
++    }
++    start = end + 1;
++  }
++  throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++}
++function readCommitAt(fd: number, record: CommitRecord): CommitRecord | undefined {
++  const bytes = Buffer.alloc(generationBudgets.markerBytes + 1);
++  const count = fs.readSync(fd, bytes, 0, bytes.length, record.offset), end = bytes.subarray(0, count).indexOf(10);
++  if (end < 0) return undefined;
++  const line = decoder.decode(bytes.subarray(0, end));
++  if (!line.startsWith('{"type":"omp_generation')) return undefined;
++  let value: unknown; try { value = JSON.parse(line); } catch { throw new Error("GENERATION_COMMIT_CORRUPT"); }
++  if (!marker(value) || JSON.stringify(value) !== JSON.stringify(record)) throw new Error("GENERATION_HEAD_MISMATCH");
++  return value;
++}
++function readHead(fd: number): CommitHead | undefined {
++  const bytes = readFileXattr(fd, HEAD_XATTR, 1024);
++  if (!bytes) return undefined;
++  let value: unknown; try { value = JSON.parse(decoder.decode(bytes)); } catch { throw new Error("GENERATION_HEAD_CORRUPT"); }
++  if (!isRecord(value) || value.version !== 1 || value.carrier !== carrierIdentity(fd)
++    || !marker(value.current) || (value.previous !== undefined && !marker(value.previous)) || typeof value.checksum !== "string")
++    throw new Error("GENERATION_HEAD_CORRUPT");
++  const payload = { version: 1, carrier: value.carrier, current: value.current,
++    ...(value.previous === undefined ? {} : { previous: value.previous }) };
++  if (hash(JSON.stringify(payload)) !== value.checksum) throw new Error("GENERATION_HEAD_CORRUPT");
++  return { ...payload, version: 1, checksum: value.checksum };
++}
++function committedHead(fd: number, head: CommitHead): CommitRecord | undefined {
++  if (readCommitAt(fd, head.current)) return head.current;
++  if (!head.previous) return undefined;
++  if (!readCommitAt(fd, head.previous)) throw new Error("GENERATION_PREDECESSOR_MISSING");
++  return head.previous;
++}
++function openSidecar(parentFd: number, file: string): number {
++  return fs.openSync(`/proc/self/fd/${parentFd}/${generationDirectory(file)}`,
++    fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++}
++function readSidecar(directoryFd: number, name: string, max: number): Buffer {
++  const fd = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++  try { if (!fs.fstatSync(fd).isFile()) throw new Error("GENERATION_NOT_REGULAR"); return readHeldBytes(fd, max); }
++  finally { fs.closeSync(fd); }
++}
++function resolveCommit(fd: number, parentFd: number, file: string, record: CommitRecord, expectedId: string): string {
++  const directoryFd = openSidecar(parentFd, file);
++  try {
++    const bytes = readSidecar(directoryFd, `${record.offset}-${record.token}.meta`, generationBudgets.metadataBytes);
++    if (hash(bytes) !== record.metadataSha256) throw new Error("GENERATION_METADATA_CORRUPT");
++    const value: unknown = JSON.parse(decoder.decode(bytes));
++    if (!metadata(value) || value.token !== record.token || value.offset !== record.offset
++      || value.carrier !== carrierIdentity(fd) || value.nativeSessionId !== expectedId) throw new Error("GENERATION_BINDING_MISMATCH");
++    const body = readSidecar(directoryFd, `${record.token}.gen`, generationBudgets.bodyBytes);
++    if (body.length !== value.bytes || hash(body) !== value.sha256) throw new Error("GENERATION_CONTENT_CORRUPT");
++    const text = decoder.decode(body);
++    if (!text.endsWith("\n") || nativeId(text) !== expectedId) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++    return text;
++  } finally { fs.closeSync(directoryFd); }
++}
++/** Complete malformed/unsupported commits are errors. An incomplete last record is never a commit. */
++export function resolveHeldGeneration(fd: number, parentFd: number, file: string): ResolvedGeneration {
++  const bytes = readHeldBytes(fd), physicalBytes = bytes.length;
++  const complete = bytes.lastIndexOf(10) + 1;
++  const header = headerPosition(bytes);
++  const head = readHead(fd);
++  if (header.type === CARRIER_TYPE && !head) throw new Error("GENERATION_CONTROL_MISSING");
++  const committed = head ? committedHead(fd, head) : undefined;
++  const normalized = Buffer.from(bytes.subarray(0, complete));
++  if (header.type === CARRIER_TYPE) normalized.write("session", header.valueOffset, "ascii");
++  const physical = decoder.decode(normalized);
++  let latest: { record: CommitRecord; end: number } | undefined, offset = 0;
++  for (const line of physical.split("\n")) {
++    if (!line) continue;
++    let value: unknown;
++    if (line.startsWith('{"type":"omp_generation')) {
++      try { value = JSON.parse(line); } catch { throw new Error("GENERATION_COMMIT_CORRUPT"); }
++      if (isRecord(value) && value.type !== COMMIT_TYPE) throw new Error("GENERATION_FORMAT_UNSUPPORTED");
++      if (marker(value)) {
++        if (Buffer.byteLength(line) > generationBudgets.markerBytes || value.offset !== offset) throw new Error("GENERATION_COMMIT_CORRUPT");
++        latest = { record: value, end: offset + Buffer.byteLength(line) + 1 };
++      }
++    }
++    offset += Buffer.byteLength(line) + 1;
++  }
++  if ((latest?.record.token ?? undefined) !== committed?.token) throw new Error("GENERATION_HEAD_STALE_OR_MISSING");
++  if (!latest) return { text: physical, physicalBytes, logicalBytes: Buffer.byteLength(physical), committed: false };
++  const prefix = resolveCommit(fd, parentFd, file, latest.record, nativeId(physical));
++  const text = prefix + decoder.decode(bytes.subarray(latest.end, complete));
++  if (Buffer.byteLength(text) > generationBudgets.bodyBytes) throw new Error("GENERATION_BODY_LIMIT");
++  return { text, physicalBytes, logicalBytes: Buffer.byteLength(text), committed: true };
++}
++export function readNativeGeneration(file: string): ResolvedGeneration {
++  const parentFd = fs.openSync(path.dirname(file), fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++  const fd = fs.openSync(`/proc/self/fd/${parentFd}/${path.basename(file)}`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++  try { return resolveHeldGeneration(fd, parentFd, file); }
++  finally { fs.closeSync(fd); fs.closeSync(parentFd); }
++}
++function writeComplete(fd: number, bytes: Buffer, start: number): void {
++  let offset = 0;
++  while (offset < bytes.length) {
++    const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, start + offset);
++    if (!count) throw new Error("GENERATION_SHORT_WRITE"); offset += count;
++  }
++}
++function budget(directoryFd: number, needed: number): void {
++  const directory = fs.opendirSync(`/proc/self/fd/${directoryFd}`);
++  let entries = 0, generations = 0, retained = 0;
++  try {
++    for (let entry = directory.readSync(); entry; entry = directory.readSync()) {
++      if (++entries > generationBudgets.directoryEntries) throw new Error("GENERATION_COUNT_LIMIT");
++      if (!/^(?:[0-9a-f-]{36}\.gen|\d+-[0-9a-f-]{36}\.meta)$/.test(entry.name)) throw new Error("GENERATION_DIRECTORY_INVALID");
++      const stat = fs.lstatSync(`/proc/self/fd/${directoryFd}/${entry.name}`);
++      if (!stat.isFile()) throw new Error("GENERATION_DIRECTORY_INVALID");
++      retained += stat.size; if (entry.name.endsWith(".gen")) generations++;
++    }
++  } finally { directory.closeSync(); }
++  if (generations >= generationBudgets.generations || entries + 2 > generationBudgets.directoryEntries)
++    throw new Error("GENERATION_COUNT_LIMIT");
++  if (retained + needed + generationBudgets.metadataBytes > generationBudgets.retainedBytes)
++    throw new Error("GENERATION_RETAINED_BYTES_LIMIT");
++}
++/** Called inside the existing native mutation lock while the real lease remains held. Software-crash durability only. */
++export function publishHeldGeneration(fd: number, parentFd: number, file: string, body: string,
++  assertCurrent: () => void, options?: { expectedSize?: number | null; commitGuard?: () => boolean }): boolean {
++  assertCurrent();
++  const bytes = Buffer.from(body, "utf8");
++  if (bytes.length > generationBudgets.bodyBytes) throw new Error("GENERATION_BODY_LIMIT");
++  const before = resolveHeldGeneration(fd, parentFd, file);
++  if (before.physicalBytes && fs.readSync(fd, Buffer.alloc(1), 0, 1, before.physicalBytes - 1) !== 1)
++    throw new Error("GENERATION_CARRIER_UNREADABLE");
++  const last = Buffer.alloc(1); fs.readSync(fd, last, 0, 1, before.physicalBytes - 1);
++  if (last[0] !== 10) throw new Error("GENERATION_INCOMPLETE_TAIL");
++  if (options?.expectedSize !== undefined && options.expectedSize !== before.logicalBytes) throw new Error("STRICT_WRITE_CONFLICT");
++  const id = nativeId(before.text);
++  if (!body.endsWith("\n") || nativeId(body) !== id) throw new Error("GENERATION_NATIVE_HEADER_INVALID");
++  if (options?.commitGuard && !options.commitGuard()) return false;
++  try { fs.mkdirSync(`/proc/self/fd/${parentFd}/${generationDirectory(file)}`, { mode: 0o700 }); }
++  catch (error) { if (!isRecord(error) || error.code !== "EEXIST") throw error; }
++  const directoryFd = openSidecar(parentFd, file);
++  try {
++    budget(directoryFd, bytes.length); assertCurrent();
++    const token = crypto.randomUUID();
++    const value: GenerationMetadata = { format: "omp-native-generation", version: 1, token, carrier: carrierIdentity(fd),
++      nativeSessionId: id, offset: before.physicalBytes, bytes: bytes.length, sha256: hash(bytes) };
++    const metadataBytes = Buffer.from(JSON.stringify(value), "utf8");
++    for (const [name, contents] of [[`${token}.gen`, bytes], [`${value.offset}-${token}.meta`, metadataBytes]] as const) {
++      const target = fs.openSync(`/proc/self/fd/${directoryFd}/${name}`,
++        fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o400);
++      try { writeComplete(target, contents, 0); } finally { fs.closeSync(target); }
++    }
++    assertCurrent();
++    if (options?.commitGuard && !options.commitGuard()) return false;
++    if (fs.fstatSync(fd).size !== before.physicalBytes) throw new Error("STRICT_WRITE_CONFLICT");
++    const payload = { type: COMMIT_TYPE, version: 1, token, offset: value.offset, metadataSha256: hash(metadataBytes) };
++    const record: CommitRecord = { ...payload, type: COMMIT_TYPE, version: 1, checksum: hash(JSON.stringify(payload)) };
++    const previousHead = readHead(fd), previous = previousHead ? committedHead(fd, previousHead) : undefined;
++    const headPayload = { version: 1, carrier: carrierIdentity(fd), current: record, ...(previous ? { previous } : {}) };
++    writeFileXattr(fd, HEAD_XATTR, Buffer.from(JSON.stringify({ ...headPayload, checksum: hash(JSON.stringify(headPayload)) })));
++    assertCurrent();
++    const header = headerPosition(readHeldBytes(fd));
++    if (header.type === "session") {
++      writeComplete(fd, Buffer.from(CARRIER_TYPE, "ascii"), header.valueOffset);
++      assertCurrent();
++      if (headerPosition(readHeldBytes(fd)).type !== CARRIER_TYPE) throw new Error("GENERATION_MARKER_OUTCOME_UNKNOWN");
++    }
++    writeComplete(fd, Buffer.from(JSON.stringify(record) + "\n", "utf8"), value.offset); assertCurrent();
++    const confirmed = resolveHeldGeneration(fd, parentFd, file);
++    if (confirmed.text !== body) throw new Error("GENERATION_COMMIT_OUTCOME_UNKNOWN");
++    return true;
++  } finally { fs.closeSync(directoryFd); }
++}
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
 index b8a0b167a3..2e9454e9c5 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
@@ -660,15 +921,15 @@ index 4750d350d0..c94a6681f0 100644
  		return withFileLockSync(sessionPath, operation);
 diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
 new file mode 100644
-index 0000000000..03b8b4aba6
+index 0000000000..9ae634de64
 --- /dev/null
 +++ b/packages/coding-agent/src/session/strict-session-storage.ts
-@@ -0,0 +1,65 @@
+@@ -0,0 +1,68 @@
 +/** Native exact-instance storage. No pathname reopening, unknown lease success, sibling recovery or backup guessing. */
 +import * as fs from "node:fs";
 +import { FileSessionStorage, type SessionStorage, type SessionStorageStat, type SessionStorageWriter,
 +  type SessionStorageWriteOptions, type WriteTextAtomicOptions } from "./session-storage";
-+import { serializeTitleSlot, type SessionTitleUpdate } from "./session-title-slot";
++import { overlayTitleSlotContent, type SessionTitleUpdate } from "./session-title-slot";
 +import type { StrictReservation } from "../modes/rpc/strict-reservation";
 +
 +export class StrictSessionStorage implements SessionStorage {
@@ -682,8 +943,8 @@ index 0000000000..03b8b4aba6
 +  exists(file: string): Promise<boolean> { this.#check(file); return Promise.resolve(true); }
 +  statSync(file: string): SessionStorageStat {
 +    this.#check(file);
-+    const stat = fs.statSync(file);
-+    this.#check(file); return { size: stat.size, mtimeMs: stat.mtimeMs, mtime: stat.mtime };
++    const stat = fs.statSync(file), logicalSize = Buffer.byteLength(this.#reservation.read());
++    this.#check(file); return { size: logicalSize, mtimeMs: stat.mtimeMs, mtime: stat.mtime };
 +  }
 +  readText(file: string): Promise<string> { return Promise.resolve(this.readTextSync(file)); }
 +  readTextSync(file: string): string { this.#check(file); return this.#reservation.read(); }
@@ -692,13 +953,16 @@ index 0000000000..03b8b4aba6
 +    return Promise.resolve([bytes.subarray(0, head).toString("utf8"), bytes.subarray(Math.max(0, bytes.length - tail)).toString("utf8")]);
 +  }
 +  listFilesSync(_dir: string, _pattern: string): string[] { throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN"); }
-+  writeTextSync(file: string, _body: string, _options?: SessionStorageWriteOptions): void { this.#reject(file); }
-+  writeLinesSync(file: string, _body: readonly string[], _options?: SessionStorageWriteOptions): void { this.#reject(file); }
-+  writeText(file: string, _body: string): Promise<void> { return Promise.reject(this.#reject(file)); }
-+  writeTextAtomic(file: string, _body: string, _options?: WriteTextAtomicOptions): Promise<void> { return Promise.reject(this.#reject(file)); }
-+  writeLinesAtomic(file: string, _body: readonly string[], _options?: WriteTextAtomicOptions): Promise<void> { return Promise.reject(this.#reject(file)); }
++  writeTextSync(file: string, body: string, options?: WriteTextAtomicOptions): void {
++    this.#check(file); this.#files.withStrictMutationSync(file, () => this.#reservation.publish(body, options));
++  }
++  writeLinesSync(file: string, body: readonly string[], options?: SessionStorageWriteOptions): void { this.writeTextSync(file, body.join(""), options); }
++  async writeText(file: string, body: string): Promise<void> { this.writeTextSync(file, body); }
++  async writeTextAtomic(file: string, body: string, options?: WriteTextAtomicOptions): Promise<void> { this.writeTextSync(file, body, options); }
++  async writeLinesAtomic(file: string, body: readonly string[], options?: WriteTextAtomicOptions): Promise<void> { this.writeTextSync(file, body.join(""), options); }
 +  async updateSessionTitle(file: string, update: SessionTitleUpdate): Promise<void> {
-+    this.#check(file); this.#files.withStrictMutationSync(file, () => this.#reservation.writeAt(serializeTitleSlot(update), 0));
++    this.#check(file); const current = this.#reservation.read();
++    this.writeTextSync(file, overlayTitleSlotContent(current, update), { expectedSize: Buffer.byteLength(current) });
 +  }
 +  rename(file: string, _next: string): Promise<void> { this.#check(file); throw new Error("STRICT_RELOCATION_FORBIDDEN"); }
 +  unlink(file: string): Promise<void> { this.#check(file); throw new Error("STRICT_DELETE_FORBIDDEN"); }
@@ -728,4 +992,43 @@ index 0000000000..03b8b4aba6
 +      close: async () => { closed = true; if (failure) throw failure; }, isOpen: () => !closed, getError: () => failure };
 +  }
 +  drain(): Promise<void> { this.#reservation.assertCurrent(); return Promise.resolve(); }
++}
+diff --git a/packages/coding-agent/src/utils/file-xattr.ts b/packages/coding-agent/src/utils/file-xattr.ts
+new file mode 100644
+index 0000000000..29071affcf
+--- /dev/null
++++ b/packages/coding-agent/src/utils/file-xattr.ts
+@@ -0,0 +1,33 @@
++/** Linux fd-bound extended attributes. Unsupported filesystems/platforms fail closed; never fall back to paths. */
++import { dlopen, FFIType, ptr, read } from "bun:ffi";
++function library() {
++  if (process.platform !== "linux") throw new Error("GENERATION_XATTR_PLATFORM_UNSUPPORTED");
++  for (const soname of ["libc.so.6", "libc.so"]) {
++    try { return dlopen(soname, {
++      fgetxattr: { args: [FFIType.i32, FFIType.ptr, FFIType.ptr, FFIType.u64], returns: FFIType.i64 },
++      fsetxattr: { args: [FFIType.i32, FFIType.ptr, FFIType.ptr, FFIType.u64, FFIType.i32], returns: FFIType.i32 },
++      __errno_location: { args: [], returns: FFIType.ptr },
++    }); } catch {}
++  }
++  throw new Error("GENERATION_XATTR_UNAVAILABLE");
++}
++/** Absence is distinct from ENOTSUP, permission errors and over-limit values. */
++export function readFileXattr(fd: number, name: string, maximum: number): Buffer | undefined {
++  const libc = library(), key = Buffer.from(`${name}\0`, "utf8"), bytes = Buffer.alloc(maximum);
++  try {
++    const count = Number(libc.symbols.fgetxattr(fd, ptr(key), ptr(bytes), BigInt(bytes.length)));
++    if (count >= 0) return bytes.subarray(0, count);
++    const errno = libc.symbols.__errno_location();
++    if (errno && read.i32(errno) === 61) return undefined; // Linux ENODATA only.
++    throw new Error("GENERATION_XATTR_READ_FAILED");
++  } finally { libc.close(); }
++}
++/** The kernel publishes the complete bounded attribute on this exact inode atomically. No fsync/power-loss claim. */
++export function writeFileXattr(fd: number, name: string, value: Uint8Array): void {
++  if (value.length > 1024) throw new Error("GENERATION_XATTR_LIMIT");
++  const libc = library(), key = Buffer.from(`${name}\0`, "utf8");
++  try {
++    if (libc.symbols.fsetxattr(fd, ptr(key), ptr(value), BigInt(value.length), 0) !== 0)
++      throw new Error("GENERATION_XATTR_WRITE_FAILED");
++  } finally { libc.close(); }
 +}
