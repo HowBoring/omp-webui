@@ -6,18 +6,24 @@ the authenticated owner, current trusted projection, original retention/authoriz
 it returns the native target and verified inline bytes. Paths and content hashes never grant browser read authority.
 There is no default authority or product listener. Normal product Session admission remains blocked.
 
-`attachmentsContribution` and `AttachmentRemoteService` mount the OMP workflow on the public DSH Connection/Gateway.
-`AttachmentPreparationController` composes with the public semantic provider's `beforeDispatch` hook. Providers own
-semantic edit revisions; DSH's submission-entry revision is a separate fence. Render its actual ordered receipt and
-all degradation codes, then call `consent` only from the user's explicit acceptance. Failed, stale, cancelled or
-unconsented results reject the entire input. Persist only the semantic document/original references, never this
-controller, a receipt, prepared bytes or a consent handle.
+`attachmentsContribution` and `AttachmentRemoteService` mount the OMP workflow on public DSH Connection/Gateway.
+The semantic provider's `beforeDispatch` hook registers the frozen Send attempt without preparing prose. The trusted
+typed Session prompt Remote then passes its actual serialized text (including quote and reference codec expansion)
+to `AttachmentSubmissionGate.submit`. The gate prepares every object and the exact text, waits for explicit acceptance
+of the displayed ordered receipt and all actual degradations, then makes one native submission for that same attempt.
+The DSH local checkpoint/echo is pending preparation/consent, never evidence of Native commitment. There is no public
+browser prepare, bind or native-submit method. Pre-Enter UI may validate original readiness only.
 
-The trusted DSH prompt adapter calls `submitForRequest` for the exact request bound by `beforeDispatch`. This invokes
-the same-source public native submission client; it does not create an alternate prompt or ingestion path. Native
-reservation precedes consumption and every input/extension/model/tool effect. Native query reconciles an unresolved
-DSH checkpoint by stable attempt identity. The integrating provider must explicitly resolve accepted or not-submitted
-outcomes; this bridge does not infer acceptance from HTTP or automatically resend.
+Failed, stale, cancelled or unconsented preparation blocks the whole input. Providers own semantic revisions and must
+retain valid originals and the unsent draft without replacing a newer edit. Runtime receipts, prepared bytes and
+consent handles never enter persisted semantic records. Every browser workflow entry and Native consumption rechecks
+trusted actor, projection, frozen draft, objects and authority; Native checks model, context and ownership as well.
+
+Native reservation precedes consumption and input/extension/model/tool effects. Lost or aborted transport after Native
+submission starts stays unresolved; absence from query does not prove safe replay. Native query supplies exact-source
+identity and committed causal relations. Only authoritative generated/committed input (including every prepared object)
+or terminal committed no-input can settle that checkpoint. The provider durably resolves the exact DSH attempt first,
+then calls `finish`; the controller does not automatically retry or replace a newer draft. Reconnect polls status only.
 
 The Host holds at most two pending/ready preparations. Native byte/time/decode/archive/output/RPC budgets apply
 independently. The native transport must advertise `bounded-jsonl-input-v1` and use a 48 MiB command cap, an explicit

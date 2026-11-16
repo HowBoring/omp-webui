@@ -12,15 +12,15 @@ test("public attachment Remote accepts only scoped controlled original identitie
   const ctx = new Context();
   installConnection(ctx, { interactions: "none", transport: {
     async fetch(url, init) {
-      expect(url).toBe("api/ompAttachments/bind");
+      expect(url).toBe("api/ompAttachments/begin");
       const envelope = zEnvelope(JSON.parse(String(init.body)));
-      expect(envelope.payload.args).toEqual({ request: { selection, consentId: "consent", submissionId: "attempt", requestId: "dsh-request" } });
-      return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { bound: true } } });
+      expect(envelope.payload.args).toEqual({ request: { selection, submissionId: "attempt", requestId: "dsh-request" } });
+      return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value: { registered: true } } });
     }, openStream: async function* () {},
   } });
   registry(ctx); gateway(ctx); await ctx.remote.$mount(attachmentsContribution);
-  try { expect(await ctx.remote.ompAttachments.bind({ selection, consentId: "consent", submissionId: "attempt", requestId: "dsh-request" }))
-    .toEqual({ ok: true, value: { bound: true } }); }
+  try { expect(await ctx.remote.ompAttachments.begin({ selection, submissionId: "attempt", requestId: "dsh-request" }))
+    .toEqual({ ok: true, value: { registered: true } }); }
   finally { await ctx.fiber.dispose(); }
 });
 function zEnvelope(value: unknown): { rpcId: string; payload: { args: unknown } } {

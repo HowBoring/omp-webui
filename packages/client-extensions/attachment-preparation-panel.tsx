@@ -19,13 +19,16 @@ export function AttachmentPreparationPanel({ controller }: { controller: Attachm
   const view = React.useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [error, setError] = React.useState<string>();
   const action = (run: () => Promise<void>) => { setError(undefined); void run().catch(value => setError(String(value))); };
-  const codes = [...new Set(view.receipt?.items.flatMap(item => item.status === "ready" ? item.degradations : []) ?? [])];
+  const status = view.phase === "idle" ? undefined : view;
+  const codes = [...new Set(status?.receipt?.items.flatMap(item => item.status === "ready" ? item.degradations : []) ?? [])];
   return <section aria-label="Prepared attachments" data-attachment-phase={view.phase}>
     <h2>Prepared attachments</h2>
-    <button onClick={() => action(() => controller.prepare())} disabled={view.phase === "preparing"}>Prepare attachments</button>
-    <button onClick={() => action(() => controller.cancel())} disabled={view.phase === "idle"}>Cancel preparation</button>
+    <button onClick={() => action(() => controller.cancel())} disabled={view.phase === "idle"}>Cancel this Send attempt</button>
+    {view.phase === "idle" && <p>Send to prepare the exact input. Native admission waits for your review.</p>}
+    {view.phase === "registered" && <p role="status">Send is pending preparation. This is not a committed Native message.</p>}
     {view.phase === "preparing" && <p role="status">Preparing every attachment…</p>}
-    {view.receipt?.items.map((item, index) => <article key={item.preparedId} data-original-id={item.originalId}>
+    {status?.prompt !== undefined && <details><summary>Exact serialized prompt</summary><pre>{status.prompt}</pre></details>}
+    {status?.receipt?.items.map((item, index) => <article key={item.preparedId} data-original-id={item.originalId}>
       <h3>Attachment {index + 1}</h3>
       {item.status === "failed" ? <p role="alert">Could not prepare this attachment: {item.code}</p> : <>
         {item.representation.kind === "image" ? <>
@@ -36,14 +39,17 @@ export function AttachmentPreparationPanel({ controller }: { controller: Attachm
         <ul>{item.degradations.map(code => <li key={code}>{labels[code] ?? code}</li>)}</ul>
         {item.facts?.pagesNeedingOcr?.length ? <p>Pages needing OCR: {item.facts.pagesNeedingOcr.join(", ")}</p> : null}
         {item.facts?.omittedImages ? <p>Embedded images omitted: {item.facts.omittedImages}</p> : null}
-        {item.facts?.frames && item.facts.frames > 1 ? <p>Original animation frames: {item.facts.frames}</p> : null}
+        {item.facts?.frames && item.facts.frames > 1 ? <p>Images in original container: {item.facts.frames}</p> : null}
       </>}
     </article>)}
     {view.phase === "failed" && <p role="alert">This input cannot be sent. Keep the draft and correct the attachments.</p>}
-    {view.phase === "ready" && <button onClick={() => action(() => controller.consent(codes))}>
-      {codes.length ? "Accept listed changes" : "Use prepared attachments"}
+    {view.phase === "awaiting-consent" && <button onClick={() => action(() => controller.consent(codes))}>
+      {codes.length ? "Accept listed changes and continue Send" : "Continue this Send attempt"}
     </button>}
-    {view.phase === "consented" && <p role="status">Prepared attachments accepted for this draft. Send when ready.</p>}
+    {view.phase === "submitting" && <p role="status">This Send attempt is awaiting Native admission.</p>}
+    {view.phase === "unresolved" && <p role="status">Native outcome is unresolved. This attempt cannot be resent.</p>}
+    {status?.recovery === "accepted" && <p role="status">Native input is committed. The local checkpoint can be resolved.</p>}
+    {status?.recovery === "not-submitted" && <p role="status">Native input was not submitted. Keep the valid originals and unsent draft.</p>}
     {(error ?? view.error) && <p role="alert">{error ?? view.error}</p>}
   </section>;
 }

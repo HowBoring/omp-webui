@@ -1,18 +1,11 @@
 /** Exact-content gate inside the existing typed DSH Session prompt Remote, before native admission. */
 import type { AttachmentBridge } from "./bridge.ts";
-import type { AttachmentSelection, AttachmentConsentRequest } from "../contracts/attachment-remote.ts";
+import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
+export type { AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 import type { AttachmentReceipt } from "../contracts/attachments.ts";
 import { isSubmissionResult } from "../contracts/submissions.ts";
 import type { SubmissionResult } from "../contracts/submissions.ts";
 
-export interface AttachmentAttempt { selection: AttachmentSelection; submissionId: string; requestId: string }
-export type AttachmentGatePhase = "registered" | "preparing" | "awaiting-consent" | "submitting" | "submitted" | "failed" | "cancelled" | "unresolved";
-export interface AttachmentGateStatus {
-  phase: AttachmentGatePhase; requestId: string; submissionId: string;
-  nativeState: "not-dispatched" | "in-flight" | "reserved" | "unresolved";
-  recovery: "accepted" | "not-submitted" | "unresolved";
-  receipt?: AttachmentReceipt; prompt?: string; code?: string; result?: SubmissionResult;
-}
 interface Flow {
   attempt: AttachmentAttempt; preparationId: string; abort: AbortController; phase: AttachmentGatePhase;
   nativeStarted: boolean; message?: string; receipt?: AttachmentReceipt; code?: string; result?: SubmissionResult;
@@ -58,7 +51,7 @@ export class AttachmentSubmissionGate {
   async status(requestId: string, knownDigest?: string): Promise<AttachmentGateStatus> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     return { phase: flow.phase, requestId, submissionId: flow.attempt.submissionId,
-      nativeState: flow.result?.reservation === "committed" ? "reserved" : flow.phase === "unresolved" ? "unresolved"
+      nativeState: flow.result && this.#matchesReservation(flow, flow.result) ? "reserved" : flow.phase === "unresolved" ? "unresolved"
         : flow.nativeStarted ? "in-flight" : "not-dispatched",
       recovery: this.#recovery(flow),
       ...(flow.receipt && flow.receipt.resultDigest !== knownDigest ? { receipt: structuredClone(flow.receipt),
