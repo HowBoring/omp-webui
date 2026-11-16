@@ -17,7 +17,8 @@ const text = "Controlled prepared document";
 const pngSha256 = "6b1048f8a6d40bac0b2954c18fefa40c4ea7a96120fc2e54b7317c0e43c2bbec";
 const textSha256 = "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419";
 const invalidSha256 = "eddf68639913a3cb8331cdfe7f87559e0beccf2c289c0d90ac4d89b3204004f8";
-const preparedImageSha256 = "b9c50aa231fe688a56f0808874659608cdf2db9ba4c8b64aa0252a775c961fe4";
+// Actual public OMP preparation discloses this 1x1 original's transformation to a 200x200 model image.
+const preparedImageSha256 = "d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff";
 const preparedTextSha256 = "e603d01747bf11e95e94972008c3befe7d041b60b064fa8134add64c18019b0e";
 const runtime = ["--offline", "--model", "attachment-controlled/literal", "--no-lsp", "--no-skills", "--no-rules",
   "--no-spotlight", "--no-judge", "--no-context-files", "--trusted-extension",
@@ -72,16 +73,37 @@ async function entries(worker: Worker) {
   return entriesSchema.parse(response.data);
 }
 
-function consent(receipt: AttachmentReceipt) {
+function consent(receipt: AttachmentReceipt, acceptedDegradations: string[] = []) {
   return { receiptId: receipt.receiptId, resultDigest: receipt.resultDigest, draftRevision: receipt.draftRevision,
-    authorityGeneration: receipt.authorityGeneration, acceptedDegradations: [] };
+    authorityGeneration: receipt.authorityGeneration, acceptedDegradations };
 }
 
-function submission(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt, key: string) {
+function submission(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt, key: string,
+  acceptedDegradations: string[] = []) {
   const { sourceId, instanceId, nativeSessionId } = fixture.selected;
   return { type: "submission_submit", clientSubmissionId: key, inputType: "prompt", sourceId, instanceId,
     nativeSessionId, preparationId: receipt.preparationId, message: "ordinary @missing-path prose",
-    preparationConsent: consent(receipt) };
+    preparationConsent: consent(receipt, acceptedDegradations) };
+}
+
+function preparedImage(receipt: AttachmentReceipt) {
+  const item = receipt.items.find(item => item.originalId === "image");
+  if (!item || item.status !== "ready" || item.representation.kind !== "image") {
+    throw Error("ATTACHMENT_PUBLIC_READY_IMAGE_MISSING");
+  }
+  return item.representation;
+}
+
+async function refuseUnaccepted(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt) {
+  const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+  expect(await worker.request(submission(fixture, receipt, "mixed-success")))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await worker.request({ type: "submission_query",
+    clientSubmissionId: "mixed-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    inputOutcome: "unresolved", persistence: "unresolved", relations: [] });
+  expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
 }
 
 function savedLink(result: SubmissionResult, originalId: string, role: "input" | "prepared") {
@@ -107,6 +129,7 @@ function expectedLink(receipt: AttachmentReceipt, originalId: string,
 }
 
 async function verifySavedParts(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult) {
+  const prepared = preparedImage(receipt);
   const image = savedLink(result, "image", "input"), document = savedLink(result, "document", "prepared");
   expect(image.link).toMatchObject(expectedLink(receipt, "image", "image"));
   expect(document.link).toMatchObject(expectedLink(receipt, "document", "text"));
@@ -120,8 +143,9 @@ async function verifySavedParts(worker: Worker, receipt: AttachmentReceipt, resu
     .parse(documentEntry[0]?.message);
   const part = z.object({ type: z.literal("image"), data: z.string(), mimeType: z.string() })
     .parse(input.content[image.locator.index]);
-  expect(part).toEqual({ type: "image", data: png, mimeType: "image/png" });
-  expect(Bun.SHA256.hash(Buffer.from(part.data, "base64"), "hex")).toBe(pngSha256);
+  expect(part).toEqual({ type: "image", data: prepared.data, mimeType: prepared.mimeType });
+  expect(Bun.SHA256.hash(Buffer.from(part.data, "base64"), "hex"))
+    .toBe(Bun.SHA256.hash(Buffer.from(prepared.data, "base64"), "hex"));
   const file = z.object({ content: z.string() }).parse(companion.files[document.locator.index]);
   expect(file.content).toBe(text); expect(Bun.SHA256.hash(file.content, "hex")).toBe(textSha256);
   const history = await submissionHistory(worker);
@@ -146,24 +170,32 @@ test("actual public PNG and text commit exact indexed parts with matching query 
     expect(receipt).toMatchObject({ status: "ready", binding: { sourceId: fixture.selected.sourceId,
       instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId }, items: [
       { status: "ready", originalId: "image", originalSha256: pngSha256, preparedSha256: preparedImageSha256,
-        representation: { kind: "image", mimeType: "image/png", data: png, width: 1, height: 1 }, degradations: [] },
+        representation: { kind: "image", mimeType: "image/png", width: 200, height: 200 },
+        degradations: ["image_transformed"], facts: { originalBytes: 68, preparedBytes: 590,
+          sourceWidth: 1, sourceHeight: 1 } },
       { status: "ready", originalId: "document", originalSha256: textSha256, preparedSha256: preparedTextSha256,
         representation: { kind: "text", text }, degradations: [] },
     ] });
+    const prepared = preparedImage(receipt), preparedBytes = Buffer.from(prepared.data, "base64");
+    expect(preparedBytes.byteLength).toBe(590);
+    expect(Bun.SHA256.hash(preparedBytes, "hex")).not.toBe(pngSha256);
     expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
-    expect(await worker.request(submission(fixture, receipt, "mixed-success"))).toMatchObject({ success: true });
+    await refuseUnaccepted(fixture, receipt);
+    expect(await worker.request(submission(fixture, receipt, "mixed-success", ["image_transformed"])))
+      .toMatchObject({ success: true });
     const result = await terminalSubmission(worker, "mixed-success");
     const { sourceId, instanceId, nativeSessionId } = fixture.selected;
     expect(result).toMatchObject({ terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
       persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
       origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "mixed-success" },
-      preparation: consent(receipt) });
+      preparation: consent(receipt, ["image_transformed"]) });
     await verifySavedParts(worker, receipt, result);
     expect(await fixture.effects()).toMatchObject({ inputCalls: effects.inputCalls + 1,
       modelAttempts: effects.modelAttempts + 1, modelDispatches: effects.modelDispatches + 1,
       toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
     const request = (await fixture.effects()).requests.at(-1);
-    expect(request?.images).toEqual([{ mimeType: "image/png", bytes: 68, sha256: pngSha256 }]);
+    expect(request?.images).toEqual([{ mimeType: prepared.mimeType, bytes: preparedBytes.byteLength,
+      sha256: Bun.SHA256.hash(preparedBytes, "hex") }]);
     expect(request?.text).toContainEqual({ role: "fileMention", sha256: textSha256 });
   });
 }, 45_000);
