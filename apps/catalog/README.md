@@ -25,9 +25,9 @@ python3 tests/browser/catalog-browser.py
 ```
 
 `catalog:fixture-data` is an explicit **test fixture authoring** tool, not a Host service. It replaces only the owned
-ignored `vendor/catalog-fixture` with 1000 native Sessions in 1000 buckets, a custom same-ID copy and unknown-cwd
-Session, a nested authorized bucket source, verified aliases, malformed metadata and an invalid custom source.
-The 1002 physical Sessions produce 1003 source-scoped rows; all three `native-0000` records have separately
+ignored `vendor/catalog-fixture` with 1000 native Sessions in 1000 buckets, a custom same-ID copy, unknown-cwd
+Session, two actual SessionManager-created empty/titled Sessions, a nested authorized bucket source, verified aliases, malformed metadata and an invalid custom source.
+The 1004 physical Sessions produce 1005 source-scoped rows; all three `native-0000` records have separately
 verified references. Never point this fixture at real data.
 The acceptance Host is fixed at `http://127.0.0.1:3181`; the synthetic HOME/source paths are fixed in its local entry.
 The source-mode native child receives only this isolated HOME/cwd/TMPDIR and explicit source configuration, with
@@ -57,3 +57,6 @@ remains in later tickets; this page proves the readonly slice only.
 
 The [review-fix evidence](../../docs/evidence/ticket-31-review-fixes.md) records the current tuple, native overlap regression,
 shared stdio checks and explicit reuse of the unchanged pinned DSH browser artifacts.
+
+The [native-layout correction](../../docs/evidence/ticket-31-native-layout.md) adds actual SessionManager-written
+files and canonical title-slot serialization to discovery, readonly trace and browser evidence.

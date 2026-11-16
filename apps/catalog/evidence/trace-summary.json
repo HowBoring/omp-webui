@@ -1,7 +1,8 @@
 {
   "kind": "actual-native-readonly-catalog-file-process-and-socket-trace",
   "result": "PASS",
-  "fixture": "synthetic header in isolated temporary HOME/cwd; no actual user profile",
+  "fixture": "two actual pinned SessionManager-authored files in isolated temporary HOME/cwd; deliberate fixture writes precede the traced readonly child; no user profile",
+  "actualNativeFiles": 2,
   "frames": [
     "ready",
     "response",
@@ -10,11 +11,11 @@
   ],
   "exitCode": 0,
   "stderrBytes": 0,
-  "traceLines": 210,
+  "traceLines": 229,
   "unsafeWriteOrOrdinarySessionImportObservations": [],
   "bindSyscalls": 0,
   "nonUnixConnectSyscalls": 0,
-  "nativeLeaseObservationConnects": 1,
+  "nativeLeaseObservationConnects": 2,
   "execveCount": 1,
-  "traceSha256": "8c19e9a89341d4dcb4ef336a88bfa52939a89985e24d13d2e722fbeda669188e"
+  "traceSha256": "f24fcf894c531fb0691c6826d0f97b39f773532c698f04d63824b59c8db65f9a"
 }
