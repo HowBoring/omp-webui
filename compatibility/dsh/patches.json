@@ -10,8 +10,8 @@
     },
     {
       "path": "patches/0002-semantic-drafts.patch",
-      "sha256": "735732027c21527a6e6f4aba9b04f12f94be71a3303a7cffefa8b0acd8f00d53",
-      "treeAfter": "e9e9eb6607dc8796d9dbcfdbcd3cdec142759a27"
+      "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+      "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
     }
   ]
 }

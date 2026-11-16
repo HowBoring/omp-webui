@@ -18,7 +18,7 @@ Public APIs exported by `@deepseek-ai/dsh-client-ui-conversation/client`:
 - `input.restoreDraft(binding, signal?)` reads through the provider; `input.hydrateDraft({binding, scope,
   expectedRevision, record, signal?})` restores a supplied record. Both prepare current original bytes and new
   DSH runtime uploads/receipts for editable records. Neither submits. `parseSemanticDraftRecord(unknown)` validates persisted records, including distinct branded original/submission identities. Public constructors validate the other opaque scope identities without imposing OMP-specific formats.
-- A provider-mode attempt durably writes its `unresolved` semantic snapshot before command adjudication or Remote execution. Publication failures/cancellation block execution. Refresh restores quarantine without preparing receipts. Transport failure, acceptance and withdrawal never automatically clear it.
+- A provider-mode attempt durably writes its `unresolved` semantic snapshot before command adjudication or Remote execution. Publication failures/cancellation block execution. Refresh publishes the document, originals, unresolved marker and frozen phase together before notifying synchronous public observers; it prepares no receipts. Transport failure, acceptance and withdrawal never automatically clear it.
 - Optional `provider.beforeDispatch(scope, {submissionId, requestId}, signal)` durably associates the local marker with the exact public DSH prompt request before dispatch. Neither ID is a Native receipt or proof of durable native entry commitment.
 - `input.resolveDraftSubmission({binding, scope, expectedRevision, submissionId, outcome, signal?})` accepts an explicit authoritative `accepted`/`not-submitted` decision, persists it before unlocking, and never sends. Explicit editor ownership protects a newer draft without text matching.
 
@@ -83,3 +83,10 @@ The provider must check its storage CAS authority and the supplied signal at pub
 The dropped-response browser case records physical HTTP attempts, distinct outer RPC IDs, DSH SessionRequestIds and local DraftSubmissionIds separately. A browser/carrier may retransmit the identical POST after socket loss; the public Connection unary source calls fetch once. Quarantine survives that loss and same-tab reload without creating a new logical attempt. Identical retransmission is neither evidence of duplicate native execution nor an exactly-once guarantee. Native durable idempotency/reconciliation remains the #36 gate.
 
 Targeted upstream lint covers `src/client/{contract/semantic-draft.ts,semantic-draft.ts,input/semantic-drafts.ts,input/facade.ts,input/hub.ts,service.ts}` and `tests/semantic-drafts.client.spec.ts` under `packages/client/ui-conversation`. The global export-JSDoc checker still reports one pre-existing navigation-prerequisite declaration (`sessionActionAvailable`); every changed draft declaration passes. The navigation patch is preserved exactly, and this optional global check is recorded as failed rather than hidden.
+
+Final review correction tests quarantine entry through the public semantic subscription and SessionInput state.
+A reentrant observer attempts `setDraft` on the first restored document; the document is already protected,
+so the edit is refused and later accepted recovery cannot erase a newly admitted edit. The actual Chromium
+refresh case records the same synchronous observer result in `browser.json`. Existing independent newer-draft
+recovery cases remain covered. Provider, retained-binding and complete-scope authority checks share one helper;
+revision, unresolved-marker identity and frozen-state policies remain specific to each operation.

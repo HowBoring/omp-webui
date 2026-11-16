@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-conversation/README.i18n.yaml b/packages/client/ui-conversation/README.i18n.yaml
-index 52e160a1..29292c86 100644
+index 52e160a1..dc91fe16 100644
 --- a/packages/client/ui-conversation/README.i18n.yaml
 +++ b/packages/client/ui-conversation/README.i18n.yaml
 @@ -21,8 +21,11 @@
@@ -11,13 +11,13 @@ index 52e160a1..29292c86 100644
 +  en: 1b41cb4a292940ba
 +  zh: deff7bcd37652039
 +/deepseek-ai-dsh-client-ui-conversation/provider-owned-semantic-drafts:
-+  en: 958825ad8628c6f5
-+  zh: cc92d585d2d9cb4b
++  en: 14f561abe2ba03ba
++  zh: 4854db21d7fdfc3a
  /deepseek-ai-dsh-client-ui-conversation/temporary-composer-entries:
    en: 59cd63057dfb6eeb
    zh: b2e2c86e810b7bb8
 diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
-index 32c07eca..677f5fdb 100644
+index 32c07eca..b66363bd 100644
 --- a/packages/client/ui-conversation/README.md
 +++ b/packages/client/ui-conversation/README.md
 @@ -144,6 +144,23 @@ When another writer owns the Session, the send-error toast asks the user to quit
@@ -37,7 +37,7 @@ index 32c07eca..677f5fdb 100644
 +
 +`beforeDispatch(scope, { submissionId, requestId }, signal)` optionally durably associates the protected marker with the exact public DSH prompt request ID immediately before dispatch, including empty continuation prompts. The hook is awaited and its failure or cancellation blocks dispatch. The IDs do not establish native acceptance or durable entry commitment; authoritative reconciliation belongs to the native integration. Providers must check the supplied cancellation signal and their storage compare-and-swap authority at publication, so delayed writes cannot replace a newer owner or scope.
 +
-+Refresh restores an unresolved record in a read-only sending phase without uploading originals or submitting anything. Transport failure, acceptance, provider withdrawal and refresh do not clear its marker. The integrating provider obtains an authoritative native outcome and explicitly calls `resolveDraftSubmission` with the current binding, full scope, revision, marker ID and `accepted` or `not-submitted`. Resolution persists before unlocking; stale, cancelled or failed resolution stays frozen. Accepted recovery removes only the attempted input and preserves a newer draft using explicit `ownsDraft` metadata, without matching text. Not-submitted recovery refuses to replace a separate newer draft; its owner must retain both snapshots for an explicit recovery choice. Not-submitted recovery returns the protected input for a later explicit send; original readiness remains invalid until an explicit restore obtains fresh bytes. No recovery decision automatically sends.
++Refresh publishes the semantic document, ordered originals, unresolved marker and read-only sending phase in one transaction, before synchronous observers can edit. It neither uploads originals nor submits anything. Transport failure, acceptance, provider withdrawal and refresh do not clear its marker. The integrating provider obtains an authoritative native outcome and explicitly calls `resolveDraftSubmission` with the current binding, full scope, revision, marker ID and `accepted` or `not-submitted`. Resolution persists before unlocking; stale, cancelled or failed resolution stays frozen. Accepted recovery removes only the attempted input and preserves a newer draft using explicit `ownsDraft` metadata, without matching text. Not-submitted recovery refuses to replace a separate newer draft; its owner must retain both snapshots for an explicit recovery choice. Not-submitted recovery returns the protected input for a later explicit send; original readiness remains invalid until an explicit restore obtains fresh bytes. No recovery decision automatically sends.
 +
 +Withdrawal aborts provider work, releases its runtime attachment handles, preserves text and original references, and invalidates readiness. A replacement registration retains observable identity. Consumers must provide recovery UI and an authoritative outcome lookup; neither a lost reply nor an absent native receipt establishes that an attempt was not submitted.
 +
@@ -45,7 +45,7 @@ index 32c07eca..677f5fdb 100644
  ## Temporary composer entries
  
 diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
-index f7e349e8..517f7f6d 100644
+index f7e349e8..8454c624 100644
 --- a/packages/client/ui-conversation/README.zh.md
 +++ b/packages/client/ui-conversation/README.zh.md
 @@ -144,6 +144,23 @@ Send 和 Stop 按钮禁用时不显示提示气泡，轮次结束后由 Stop 切
@@ -65,7 +65,7 @@ index f7e349e8..517f7f6d 100644
 +
 +`beforeDispatch(scope, { submissionId, requestId }, signal)` 可在实际发送前持久关联受保护标记与准确的公开 DSH 提示请求 ID，包括空的继续请求。调用方等待钩子完成，失败或取消将阻止发送。ID 不表示原生接收或持久条目提交；权威对账由原生集成负责。提供方必须在发布时检查取消信号及存储 compare-and-swap 权限，防止延迟写入覆盖更新的所有者或作用域。
 +
-+刷新将未决记录恢复为只读发送状态，不上传原件或提交任何内容。传输失败、接收成功、提供方撤销和刷新均不会清除标记。集成方取得权威原生结果后，显式调用 `resolveDraftSubmission`，传入当前 binding、完整作用域、修订、标记 ID 及 `accepted` 或 `not-submitted`。持久化完成后才解锁；过时、取消或失败的恢复保持冻结。已接收恢复通过显式 `ownsDraft` 元数据仅移除已尝试输入，保留更新草稿，不按文本匹配。未提交恢复拒绝替换独立的更新草稿；所有者必须保留两份快照，等待显式恢复选择。未提交恢复将受保护输入恢复为可编辑状态，供以后显式发送；原件就绪状态保持无效，直到显式恢复取得新字节。恢复决定不会自动发送。
++刷新在同一事务中发布语义文档、有序原件、未决标记和只读发送状态，同步观察者无法在保护生效前编辑。该过程不上传原件或提交任何内容。传输失败、接收成功、提供方撤销和刷新均不会清除标记。集成方取得权威原生结果后，显式调用 `resolveDraftSubmission`，传入当前 binding、完整作用域、修订、标记 ID 及 `accepted` 或 `not-submitted`。持久化完成后才解锁；过时、取消或失败的恢复保持冻结。已接收恢复通过显式 `ownsDraft` 元数据仅移除已尝试输入，保留更新草稿，不按文本匹配。未提交恢复拒绝替换独立的更新草稿；所有者必须保留两份快照，等待显式恢复选择。未提交恢复将受保护输入恢复为可编辑状态，供以后显式发送；原件就绪状态保持无效，直到显式恢复取得新字节。恢复决定不会自动发送。
 +
 +撤销提供方会中止其工作、释放运行时附件句柄、保留文本和原件引用，并使就绪状态失效。替换注册保留可观察对象身份。消费者必须提供恢复界面和权威结果查询；回复丢失或缺少原生回执均不能证明输入未提交。
 +
@@ -334,7 +334,7 @@ index 8a1b95e9..7595fc12 100644
 +
 +export { parseSemanticDraftRecord, DraftTabOwner, DraftHostContext, DraftSourceContext, DraftNativeSessionId, DraftProjectionGeneration, DraftStorageKey, DraftOriginalId, DraftSubmissionId } from './semantic-draft.ts'
 diff --git a/packages/client/ui-conversation/src/client/input/facade.ts b/packages/client/ui-conversation/src/client/input/facade.ts
-index 1fd208b6..b387e9da 100644
+index 1fd208b6..8c683385 100644
 --- a/packages/client/ui-conversation/src/client/input/facade.ts
 +++ b/packages/client/ui-conversation/src/client/input/facade.ts
 @@ -23,6 +23,7 @@ import type {
@@ -396,7 +396,7 @@ index 1fd208b6..b387e9da 100644
    private pendingCommand: { readonly token: string; readonly rev: number } | undefined
    /** The in-flight claim resolution for a restored command chip. */
    private commandRestore: AbortController | undefined
-@@ -227,15 +256,64 @@ export class SessionInputShell implements SessionInput {
+@@ -227,15 +256,69 @@ export class SessionInputShell implements SessionInput {
     * @param text - plain text or the complete semantic document.
     */
    setDraft(text: DraftInput): void {
@@ -413,16 +413,17 @@ index 1fd208b6..b387e9da 100644
    }
  
 +  /**
-+   * Publish semantic document and ordered originals in a single editor/store transaction.
++   * Publish semantic document, ordered originals and optional quarantine in one editor/store transaction.
 +   * @param revision - expected hydration revision.
 +   * @param draft - semantic editor document.
 +   * @param originals - ordered stable references.
 +   * @param readiness - current runtime readiness for each reference.
++   * @param unresolved - durable attempted input to freeze before any observer can edit the restored document.
 +   * @returns whether the whole draft applied while editable at the expected revision.
 +   */
 +  hydrateSemanticDraft(
 +    revision: number, draft: DraftSnapshot, originals: readonly DraftOriginalRef[],
-+    readiness: readonly DraftOriginalReadiness[],
++    readiness: readonly DraftOriginalReadiness[], unresolved?: UnresolvedDraftSubmission,
 +  ): boolean {
 +    if (this.draftInitializationBlocked() || revision !== this.restorationRevision) return false
 +    this.atomicDraft = true
@@ -432,6 +433,10 @@ index 1fd208b6..b387e9da 100644
 +      this.attachmentIds = readiness.flatMap(item => item.status === 'ready' ? [item.attachmentId] : [])
 +      this.rev += 1
 +      this.setDraft(draft)
++      if (unresolved !== undefined) {
++        this.unresolved = unresolved
++        this.submissionEpoch += 1
++      }
 +    } finally { this.atomicDraft = false }
 +    this.publish(true)
 +    return true
@@ -461,7 +466,7 @@ index 1fd208b6..b387e9da 100644
    /**
     * @param text - selected transcript text.
     * @param summary - readable composer display of the quote.
-@@ -293,7 +371,8 @@ export class SessionInputShell implements SessionInput {
+@@ -293,7 +376,8 @@ export class SessionInputShell implements SessionInput {
    get draftSnapshot(): DraftSnapshot {
      if (this.draftSnapshotCache?.revision === this.rev) return this.draftSnapshotCache.value
      const value = snapshotDraft(
@@ -471,7 +476,7 @@ index 1fd208b6..b387e9da 100644
      )
      this.draftSnapshotCache = { revision: this.rev, value }
      return value
-@@ -328,7 +407,7 @@ export class SessionInputShell implements SessionInput {
+@@ -328,7 +412,7 @@ export class SessionInputShell implements SessionInput {
    }
  
    private draftInitializationBlocked(): boolean {
@@ -480,7 +485,7 @@ index 1fd208b6..b387e9da 100644
    }
  
    /** Append ordered attachment ids unless an admission transaction is locked. */
-@@ -374,6 +453,9 @@ export class SessionInputShell implements SessionInput {
+@@ -374,6 +458,9 @@ export class SessionInputShell implements SessionInput {
     */
    pruneAttachments(available: readonly DraftAttachmentId[]): void {
      const keep = new Set(available)
@@ -490,7 +495,7 @@ index 1fd208b6..b387e9da 100644
      const next = this.attachmentIds.filter(id => keep.has(id))
      if (next.length === this.attachmentIds.length) return
      this.attachmentIds = next
-@@ -388,6 +470,7 @@ export class SessionInputShell implements SessionInput {
+@@ -388,6 +475,7 @@ export class SessionInputShell implements SessionInput {
     * @param text - pasted plain text.
     */
    paste(text: string): void {
@@ -498,7 +503,7 @@ index 1fd208b6..b387e9da 100644
      this.draftEditor.paste(text)
    }
  
-@@ -400,7 +483,11 @@ export class SessionInputShell implements SessionInput {
+@@ -400,7 +488,11 @@ export class SessionInputShell implements SessionInput {
     * @param allowEmpty - explicitly admit empty continuation input through the default sink.
     */
    submit(mode: InputSubmitMode = 'queue', source?: 'click' | 'enter', allowEmpty = false): void {
@@ -511,7 +516,7 @@ index 1fd208b6..b387e9da 100644
      const timestamp = Date.now()
      let state: MessageSubmissionState | undefined
      if (this.snapshot.phase === 'plain' && (this.snapshot.draft.trim() !== '' || this.attachmentIds.length > 0)) {
-@@ -512,6 +599,7 @@ export class SessionInputShell implements SessionInput {
+@@ -512,6 +604,7 @@ export class SessionInputShell implements SessionInput {
     * @returns whether the edit applied.
     */
    private applyClaim(claim: CommandClaim, span: TokenSpan, mergeHistory: boolean): boolean {
@@ -519,7 +524,7 @@ index 1fd208b6..b387e9da 100644
      const phase = this.core.state.phase
      if (phase !== 'plain' && phase !== 'claimed') return false
      if (span.draftRev !== this.rev) return false
-@@ -549,6 +637,7 @@ export class SessionInputShell implements SessionInput {
+@@ -549,6 +642,7 @@ export class SessionInputShell implements SessionInput {
     * @returns whether the token was consumed.
     */
    consumeToken(guard: ConsumeTokenRequest['guard']): boolean {
@@ -527,7 +532,7 @@ index 1fd208b6..b387e9da 100644
      if (guard.kind === 'span') {
        if (guard.span.draftRev !== this.rev || guard.span.start === guard.span.end) return false
        return this.draftEditor.replaceText(guard.span, '')
-@@ -573,6 +662,7 @@ export class SessionInputShell implements SessionInput {
+@@ -573,6 +667,7 @@ export class SessionInputShell implements SessionInput {
     */
    insertText(text: string, span: TokenSpan, keepCompleting = false): boolean {
      void keepCompleting
@@ -535,7 +540,7 @@ index 1fd208b6..b387e9da 100644
      if (span.draftRev !== this.rev) return false
      return this.draftEditor.replaceText(span, text)
    }
-@@ -683,15 +773,15 @@ export class SessionInputShell implements SessionInput {
+@@ -683,15 +778,15 @@ export class SessionInputShell implements SessionInput {
          return
        }
        case 'adjudicate': {
@@ -554,7 +559,7 @@ index 1fd208b6..b387e9da 100644
          return
        }
        case 'commit-draft': {
-@@ -701,6 +791,25 @@ export class SessionInputShell implements SessionInput {
+@@ -701,6 +796,25 @@ export class SessionInputShell implements SessionInput {
      }
    }
  
@@ -580,7 +585,7 @@ index 1fd208b6..b387e9da 100644
    /**
     * Execute the commit-draft effect: clear the committed content (retaining
     * a pure typed-during-flight suffix when the snapshot allows) and cut the
-@@ -864,15 +973,30 @@ export class SessionInputShell implements SessionInput {
+@@ -864,15 +978,30 @@ export class SessionInputShell implements SessionInput {
        draft: this.projection.clipboardText,
        attachmentIds: this.attachmentIds,
        draftRev: this.rev,
@@ -712,10 +717,10 @@ index f6e9ce41..01c6020b 100644
    /**
 diff --git a/packages/client/ui-conversation/src/client/input/semantic-drafts.ts b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
 new file mode 100644
-index 00000000..579bbf09
+index 00000000..5641eed9
 --- /dev/null
 +++ b/packages/client/ui-conversation/src/client/input/semantic-drafts.ts
-@@ -0,0 +1,491 @@
+@@ -0,0 +1,494 @@
 +/** Provider persistence and atomic hydration coordinated at the retained Session input boundary. */
 +import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 +import type { Context } from '@deepseek-ai/cordis'
@@ -873,10 +878,17 @@ index 00000000..579bbf09
 +    return controller
 +  }
 +
++  private authority(binding: SessionBinding, provider: ConversationDraftProvider,
++    scope: DraftScope): DraftHydrationResult | undefined {
++    if (this.provider !== provider) return blocked('provider')
++    if (this.sessions().binding(binding.sessionId) !== binding) return blocked('binding')
++    if (!sameScope(scope, provider.scope(binding))) return blocked('scope')
++    return undefined
++  }
++
 +  private assertAuthority(entry: Entry, provider: ConversationDraftProvider, scope: DraftScope, signal: AbortSignal): void {
 +    signal.throwIfAborted()
-+    if (this.provider !== provider || this.sessions().binding(entry.binding.sessionId) !== entry.binding
-+      || !sameScope(scope, provider.scope(entry.binding))) throw new Error('draft persistence authority changed')
++    if (this.authority(entry.binding, provider, scope) !== undefined) throw new Error('draft persistence authority changed')
 +  }
 +
 +  private record(state: SemanticDraftState): SemanticDraftRecord {
@@ -933,8 +945,8 @@ index 00000000..579bbf09
 +    entry.submissionScope = scope
 +    const op = this.begin(binding, signal)
 +    const current = (): void => {
-+      if (op.signal.aborted || this.provider !== provider || this.sessions().binding(binding.sessionId) !== binding
-+        || !sameScope(scope, provider.scope(binding)) || shell.restorationRevision !== revision) {
++      if (op.signal.aborted || this.authority(binding, provider, scope) !== undefined
++        || shell.restorationRevision !== revision) {
 +        throw new Error('draft submission checkpoint superseded')
 +      }
 +    }
@@ -969,8 +981,7 @@ index 00000000..579bbf09
 +    const scope = entry.submissionScope
 +    if (provider === undefined || marker === undefined || scope === undefined) throw new Error('submission checkpoint unavailable')
 +    const current = (): void => {
-+      if (this.provider !== provider || this.sessions().binding(binding.sessionId) !== binding
-+        || !sameScope(scope, provider.scope(binding)) || entry.shell.unresolved !== marker) {
++      if (this.authority(binding, provider, scope) !== undefined || entry.shell.unresolved !== marker) {
 +        throw new Error('submission dispatch superseded')
 +      }
 +    }
@@ -1023,9 +1034,8 @@ index 00000000..579bbf09
 +
 +  private recoveryGuard(request: DraftSubmissionRecoveryRequest, provider: ConversationDraftProvider,
 +    shell: SessionInputShell, marker: UnresolvedDraftSubmission | undefined): DraftHydrationResult | undefined {
-+    if (this.provider !== provider) return blocked('provider')
-+    if (this.sessions().binding(request.binding.sessionId) !== request.binding) return blocked('binding')
-+    if (!sameScope(request.scope, provider.scope(request.binding))) return blocked('scope')
++    const authority = this.authority(request.binding, provider, request.scope)
++    if (authority !== undefined) return authority
 +    if (shell.restorationRevision !== request.expectedRevision || marker?.id !== request.submissionId
 +        || shell.unresolved !== marker) return blocked('revision')
 +    if (shell.executing) return blocked('frozen')
@@ -1059,9 +1069,8 @@ index 00000000..579bbf09
 +  }
 +
 +  private guard(request: DraftHydrationRequest, provider: ConversationDraftProvider): DraftHydrationResult | undefined {
-+    if (this.provider !== provider) return blocked('provider')
-+    if (this.sessions().binding(request.binding.sessionId) !== request.binding) return blocked('binding')
-+    if (!sameScope(request.scope, provider.scope(request.binding))) return blocked('scope')
++    const authority = this.authority(request.binding, provider, request.scope)
++    if (authority !== undefined) return authority
 +    const shell = this.shellFor(request.binding)
 +    if (frozen(shell)) return blocked('frozen')
 +    if (shell.restorationRevision !== request.expectedRevision) return blocked('revision')
@@ -1146,8 +1155,7 @@ index 00000000..579bbf09
 +    entry.suppressPersistence = true
 +    try {
 +      if (!entry.shell.hydrateSemanticDraft(request.expectedRevision, record.draft, record.originals,
-+        record.originals.map(() => ({ status: 'invalid', reason: 'Submission outcome unresolved.' })))) return blocked('revision')
-+      entry.shell.protectSubmission(marker)
++        record.originals.map(() => ({ status: 'invalid', reason: 'Submission outcome unresolved.' })), marker)) return blocked('revision')
 +    } finally { entry.suppressPersistence = false }
 +    return { status: 'applied' }
 +  }
@@ -1380,10 +1388,10 @@ index 34e4261a..b20b129c 100644
        setView: (d, view: string) => { d.view = view },
 diff --git a/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
 new file mode 100644
-index 00000000..238bdbbc
+index 00000000..d08b5718
 --- /dev/null
 +++ b/packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts
-@@ -0,0 +1,630 @@
+@@ -0,0 +1,660 @@
 +// @vitest-environment jsdom
 +/** Public Conversation/provider boundary. Synthetic Session and original-provider fixture only. */
 +import { expect, it, onTestFinished, vi } from 'vitest'
@@ -2013,4 +2021,34 @@ index 00000000..238bdbbc
 +    expectedRevision: state.revision, submissionId: marker.id, outcome: 'accepted' })).toEqual({ status: 'applied' })
 +  expect(unsafe).toEqual([])
 +  expect(source.getSnapshot().draft.text).toBe('')
++})
++
++
++it('enters refresh quarantine atomically and refuses a synchronous observer edit before accepted recovery', async () => {
++  const b = await fixture()
++  const originals = [{ id: DraftOriginalId('quarantined-original'), name: 'held.txt', mediaType: 'text/plain' }]
++  const marker = { ownsDraft: true, id: DraftSubmissionId('atomic-quarantine'),
++    draft: { text: 'unresolved attempted input', references: [] }, originals }
++  b.input.registerDraftProvider(b.runtime.ctx, providerFor(b.id, {
++    read: async () => ({ draft: marker.draft, originals, unresolved: marker }),
++  }))
++  const source = b.input.draft(b.binding)
++  const input = b.input.for(b.binding.ctx)
++  const observations: unknown[] = []
++  let attemptedEdit = false
++  source.subscribe(() => {
++    const next = source.getSnapshot()
++    if (attemptedEdit || next.draft.text !== marker.draft.text) return
++    attemptedEdit = true
++    observations.push({ phase: next.phase, unresolved: next.unresolved, originals: next.originals,
++      inputPhase: input.state.getSnapshot().phase })
++    input.setDraft('newer synchronous observer edit')
++  })
++  expect(await b.input.restoreDraft(b.binding)).toEqual({ status: 'applied' })
++  expect(observations).toEqual([{ phase: 'sending', unresolved: marker, originals, inputPhase: 'sending' }])
++  expect(source.getSnapshot().draft).toEqual(marker.draft)
++  const state = source.getSnapshot()
++  expect(await b.input.resolveDraftSubmission({ binding: b.binding, scope: state.scope,
++    expectedRevision: state.revision, submissionId: marker.id, outcome: 'accepted' })).toEqual({ status: 'applied' })
++  expect(source.getSnapshot()).toMatchObject({ phase: 'plain', draft: { text: '', references: [] }, originals: [] })
 +})

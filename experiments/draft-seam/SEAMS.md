@@ -21,3 +21,8 @@ actual fixed-source Git trees and controlled authored/ignored/untracked source m
 existing diagnostic trust boundary; it does not enable product Sessions.
 
 Review correction uses the same accepted seams: public Client binding replacement/refresh quarantine, durable marker and exact public prompt-request correlation, failed/unknown outcome, explicit authoritative recovery, newer draft ownership, provider replacement/disposal and cancellation/storage failures. The actual Chromium case holds a real public Remote acceptance across same-tab reload and requires zero extra send/upload calls. Initial failing observations remain under `evidence/initial-failures/`; final evidence records the corrected source tuple.
+
+Final review adds a public subscriber-level quarantine-entry regression (red: editable text without marker;
+green: document/originals/marker/frozen phases published together), including a synchronous programmatic edit
+attempt and explicit accepted recovery. The real Chromium refresh scenario records the same observation and
+verifies that no edit is admitted during quarantine.

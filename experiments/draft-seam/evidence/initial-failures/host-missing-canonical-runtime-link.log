@@ -1,0 +1,178 @@
+$ bun run typecheck && bun test && bun run build
+$ tsc --noEmit -p tsconfig.json
+bun test v1.4.4 (38afee6c8)
+
+tests/access/browser-access.test.ts:
+(pass) root bootstrap exchanges once, cleans URL, and preserves absolute browser access across reopening [17.96ms]
+(pass) writes reject hostile authority, origin, proxy, metadata and CSRF before any body is consumed [7.96ms]
+(pass) logout durably invalidates all pages of that credential, leaves another browser valid [19.30ms]
+(pass) changing origin or data directory and losing private material require fresh bootstrap [23.37ms]
+(pass) bootstrap is root GET only and never authenticates an API, upload or websocket [8.31ms]
+(pass) loss or replacement of private state invalidates a live Host's cached credential authority [7.14ms]
+
+tests/access/peers.test.ts:
+(pass) real WebSocket admission, each logical open, logout and expiry use current credential authority [1024.35ms]
+
+tests/access/host.test.ts:
+(pass) Host serves login but private API stays closed independently of browser authorization [26.23ms]
+
+tests/access/admission.test.ts:
+(pass) actual HTTP rejects large declared bodies before upload, Remote and history processing [34.74ms]
+
+tests/compatibility/candidate.test.ts:
+(pass) actual candidate launcher preflight uses isolated protocol without touching a user profile [29.44ms]
+(pass) preflight mixed with Session/UI arguments is rejected before ordinary CLI startup [21.40ms]
+
+tests/compatibility/preflight.test.ts:
+(pass) unknown startup installation blocks diagnostics before executing a launcher [0.52ms]
+(pass) verified install rejects same-version launcher, symlink, runtime and native closure replacements [1179.23ms]
+(pass) enrolled launcher-content drift blocks the same-version candidate before launch [4.99ms]
+(pass) enrolled launcher-symlink drift blocks the same-version candidate before launch [3.83ms]
+(pass) enrolled runtime-content drift blocks the same-version candidate before launch [6.83ms]
+(pass) enrolled dependency-content drift blocks the same-version candidate before launch [13.39ms]
+(pass) enrolled new-dependency drift blocks the same-version candidate before launch [21.88ms]
+(pass) untracked intermediate dependency symlinks cannot be enrolled as a complete closure [2.26ms]
+
+tests/compatibility/dsh-source.test.ts:
+(pass) the declared complete source is accepted through the public DSH build gate [2327.93ms]
+(pass) an undeclared edit to a consumed DSH module blocks the build gate [1686.57ms]
+(pass) ignored startup environment files and undeclared untracked source cannot evade the gate [2206.94ms]
+
+tests/compatibility/assets.test.ts:
+(pass) changed served JavaScript or startup trust manifest cannot publish verified diagnostic UI [3.69ms]
+
+tests/compatibility/source.test.ts:
+(pass) a consumed public decoder changed outside the recorded patch blocks the candidate build [25.60ms]
+(pass) even an ignored extra startup environment file is rejected before importing generators [54.23ms]
+
+tests/compatibility/framing.test.ts:
+(pass) public OMP decoder reassembles chunked UTF-8 frames across arbitrary byte boundaries [12.82ms]
+(pass) physical byte ceiling includes newline and rejects a line before unbounded buffering [1.91ms]
+(pass) invalid physical UTF-8 and partial JSON EOF are explicit protocol failures [2.53ms]
+(pass) chunked frames are refused until public v2 negotiation completes [0.10ms]
+(pass) public OMP decoder rejects logical byte ceiling [0.10ms]
+(pass) public OMP decoder rejects count ceiling [0.04ms]
+(pass) public OMP decoder rejects nonintegral metadata [0.04ms]
+(pass) public OMP decoder rejects sequence must begin at zero [0.25ms]
+(pass) public OMP decoder rejects canonical base64 [0.04ms]
+(pass) chunk interleaving and incomplete chunk EOF are never silently ignored [2.87ms]
+(pass) chunk metadata remains bound to one ordered logical frame [0.31ms]
+(pass) public decoder refuses declared length mismatches after the final chunk [0.09ms]
+(pass) logical UTF-8 is validated after public chunk reassembly [9.61ms]
+
+tests/compatibility/transport.test.ts:
+(pass) real candidate transport negotiates public v2 then drains and reaps after the report [14.46ms]
+(pass) slow ready and negotiation do not consume the short late-response request budget [416.83ms]
+(pass) ready and negotiation share one independently bounded startup deadline [203.02ms]
+(pass) omitting the startup override preserves the selected timeout for ready [51.69ms]
+(pass) public request IDs correlate concurrent responses completed in reverse order [15.75ms]
+(pass) a valid report followed by partial EOF is a failed drain, never successful diagnostics [14.96ms]
+(pass) public transport rejects wrong-id without treating acknowledgement as compatibility [13.70ms]
+(pass) public transport rejects wrong-command without treating acknowledgement as compatibility [14.30ms]
+(pass) public transport rejects invalid-result without treating acknowledgement as compatibility [15.41ms]
+(pass) a duplicate terminal frame cannot turn into a successful diagnostic drain [16.08ms]
+(pass) a invalid-utf8 terminal frame cannot turn into a successful diagnostic drain [15.54ms]
+(pass) late response after timeout cannot revive a request, but its bytes are drained [122.24ms]
+(pass) stderr stays separate and its sensitive fixture contents are never returned [66.27ms]
+(pass) EOF drain reaps a non-exiting process within the diagnostic termination budget [269.06ms]
+(pass) cancellation rejects pending work and reaps without replay [71.53ms]
+(pass) blocked stdin keeps queued work bounded while shutdown still reaps the process [551.08ms]
+(pass) stdin EOF still drains a valid pending response before observing actual exit [32.48ms]
+(pass) preflight rejects a duplicate generated ID without replacing its pending waiter [128.23ms]
+(pass) v2 negotiation applies before an adjacent chunk in the same pipe packet [67.76ms]
+(pass) chunk-before-ack cannot enable v2 chunks [35.35ms]
+(pass) wrong-ack-then-chunk cannot enable v2 chunks [58.88ms]
+
+tests/compatibility/runtime.test.ts:
+(pass) a real candidate with omitted runtime/native mappings is blocked despite a matched ready/schema/build [657.90ms]
+
+tests/host/diagnostics.test.ts:
+(pass) real Bun Gateway exposes only sanitized diagnostics and rejects browser launch controls [35.03ms]
+
+tests/host/http.test.ts:
+(pass) Host scaffold HTTP handler > exposes a health endpoint [0.12ms]
+(pass) Host scaffold HTTP handler > does not pretend the DSH API is implemented [0.05ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/remote.mux unavailable [0.08ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/unknown unavailable
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path / [0.04ms]
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /api
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /missing
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /healthz/
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /.env
+(pass) Host scaffold HTTP handler > does not expose health through a mutation request [0.03ms]
+(pass) Host scaffold HTTP handler > serves a real loopback request and releases its listener [2.59ms]
+
+tests/browser/diagnostics-contract.test.ts:
+(pass) public diagnostic report > accepts bounded blocked reports and rejects browser execution controls or private data [0.44ms]
+(pass) public diagnostic report > verified reports require complete identity while session admission remains blocked [0.44ms]
+(pass) public diagnostic report > generated Remote descriptor has no business inputs and a strict result codec [0.03ms]
+
+tests/browser/diagnostics-remote.test.ts:
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > uses the Connection envelope and returns a typed RemoteResult [8.24ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > rejects mismatched correlation and malformed reports [6.11ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > withdrawal aborts the in-flight request and rejects stale captured calls [4.68ms]
+
+tests/catalog/native-layout.test.ts:
+(pass) actual native empty and serialized titled Sessions are discovered and described without mutation [523.60ms]
+(pass) canonical title slots share the fixed header budget, override legacy titles and never hide corrupt leading metadata [76.20ms]
+
+tests/catalog/expiry.test.ts:
+(pass) catalog cursors have an absolute real-time TTL and cannot cross child generations or page scope [60768.76ms]
+
+tests/catalog/transport.test.ts:
+(pass) catalog startup can be slower than its unchanged short request budget [419.53ms]
+(pass) catalog ready and negotiation share the independently selected startup deadline [201.87ms]
+(pass) catalog startup without an override retains the selected default deadline [52.59ms]
+(pass) catalog blocked stdin bounds queued and inflight writes independently of expired pending requests [240.71ms]
+(pass) catalog requests that expire while queued are not published when a real blocked reader resumes [1481.23ms]
+(pass) catalog correlates concurrent readonly responses completed in reverse order [14.00ms]
+(pass) catalog rejects wrong-id through its readonly policy [14.21ms]
+(pass) catalog rejects wrong-command through its readonly policy [13.97ms]
+(pass) catalog rejects unknown-notification through its readonly policy [17.75ms]
+(pass) catalog partial EOF fails terminal drain after a valid description [20.85ms]
+(pass) catalog cancellation rejects pending readonly work and reaps the child [16.94ms]
+(pass) catalog rejects a duplicate generated ID without replacing its pending waiter [114.38ms]
+(pass) catalog still rejects chunks adjacent to a valid negotiation ack [20.42ms]
+
+tests/catalog/protocol.test.ts:
+(pass) catalog-only mode refuses ordinary Session commands, oversize input and partial EOF without native effects [158.84ms]
+(pass) cancelled readonly catalog child is drained and reaped, and no prior cursor is replayed after restart [278.36ms]
+
+tests/catalog/catalog.test.ts:
+(pass) all 1000 native Sessions remain reachable in bounded stable pages and readonly filesystem [3361.95ms]
+(pass) profile and explicit custom sources exclude other profiles, merge verified aliases, retain same-ID copies and unknown cwd [106.12ms]
+(pass) missing and replaced references fail explicitly, outside-source symlinks are partial failures and directory changes stale pages [114.09ms]
+90 |     const lockModule = resolve("vendor/omp-runtime/node_modules/@oh-my-pi/pi-utils/src/file-lock.ts");
+91 |     const holder = Bun.spawn([process.execPath,"--no-env-file","-e",`import {tryAcquireFileLock} from ${JSON.stringify(lockModule)};
+92 |       const lock=tryAcquireFileLock(${JSON.stringify(join(home,".omp/run/session-owners/native-0000"))});
+93 |       if(!lock)process.exit(4);console.log("held");for await(const _ of Bun.stdin.stream()){};lock.release();`],
+94 |       {env:{HOME:home,BUN_RUNTIME_TRANSPILER_CACHE_PATH:"0"},stdin:"pipe",stdout:"pipe",stderr:"pipe"});
+95 |     const reader = holder.stdout.getReader(); expect(new TextDecoder().decode((await reader.read()).value)).toContain("held");
+                                                                                                                 ^
+error: expect(received).toContain(expected)
+
+Expected to contain: "held"
+Received: ""
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-39-final-fix/tests/catalog/catalog.test.ts:95:109)
+(fail) native ownership observations see another process without acquiring or writing a lease [34.64ms]
+(pass) native scan cost limit is explicit and oversized/corrupt headers stay partial [1666.38ms]
+(pass) source root replacement never redirects a durable reference into a different tree [79.05ms]
+(pass) native lease backend errors surface unknown rather than free (real syscall fault) [123.99ms]
+(pass) response-byte packing preserves every large descriptor through continuation rather than exceeding the native wire budget [396.34ms]
+(pass) unreadable native buckets preserve successful custom results and report partial permission failure [61.77ms]
+(pass) catalog leaves legacy directories, malformed primary Sessions and valid backups unchanged [55.73ms]
+(pass) nested authorized sources preserve both scoped descriptors through every complete page [197.30ms]
+(pass) nested authorized sources preserve both scoped descriptors through every partial page [152.85ms]
+
+tests/catalog/native.test.ts:
+(pass) native read-only catalog discovers actual header cwd without ordinary Session startup [45.24ms]
+
+1 tests failed:
+(fail) native ownership observations see another process without acquiring or writing a lease [34.64ms]
+
+ 108 pass
+ 1 fail
+ 896 expect() calls
+Ran 109 tests across 22 files. [82.70s]
+error: script "check" exited with code 1

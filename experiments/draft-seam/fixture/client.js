@@ -66,7 +66,20 @@ window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require 
         binding = ref.binding;
         stop?.();
         const draft = input.draft(binding);
-        stop = draft.subscribe(() => publish({ semantic: draft.getSnapshot(), saved: tab.inspect() }));
+        const stored = tab.inspect().records[provider.scope(binding).storageKey]?.record;
+        let quarantineObserved = false;
+        stop = draft.subscribe(() => {
+          const next = draft.getSnapshot();
+          if (!quarantineObserved && stored?.unresolved && next.draft.text === stored.draft.text) {
+            quarantineObserved = true;
+            const observation = { phase: next.phase, unresolved: next.unresolved ?? null,
+              originals: next.originals, inputPhase: input.for(binding.ctx).state.getSnapshot().phase };
+            input.for(binding.ctx).setDraft('Synchronous refresh observer edit');
+            observation.editBlocked = draft.getSnapshot().draft.text === stored.draft.text;
+            publish({ quarantineObservation: observation });
+          }
+          publish({ semantic: draft.getSnapshot(), saved: tab.inspect() });
+        });
         publish({ active: id, semantic: draft.getSnapshot() });
         ctx.uiWorkspace.openSession(id);
         return input.restoreDraft(binding);

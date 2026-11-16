@@ -186,6 +186,12 @@ with sync_playwright() as p:
         page.reload()
         ready(page)
         open_a(page)
+        assert state(page)['quarantineObservation'] == {
+            'phase': 'sending', 'inputPhase': 'sending', 'unresolved': protected,
+            'originals': protected['originals'], 'editBlocked': True,
+        }
+        report['atomicQuarantineObservation'] = state(page)['quarantineObservation']
+        report['checks'].append('refresh public subscriber sees one protected document/originals/marker publication; synchronous setDraft cannot enter quarantine')
         assert state(page)['semantic']['unresolved'] == protected
         assert state(page)['semantic']['phase'] == 'sending'
         assert state(page)['semantic']['draft']['text'] == 'Unresolved attached input'

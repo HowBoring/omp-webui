@@ -2,7 +2,7 @@
   "source": {
     "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
-    "sourceTree": "e9e9eb6607dc8796d9dbcfdbcd3cdec142759a27",
+    "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
     "mode": "candidate",
     "patches": [
       {
@@ -12,11 +12,11 @@
       },
       {
         "path": "patches/0002-semantic-drafts.patch",
-        "sha256": "735732027c21527a6e6f4aba9b04f12f94be71a3303a7cffefa8b0acd8f00d53",
-        "treeAfter": "e9e9eb6607dc8796d9dbcfdbcd3cdec142759a27"
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
       }
     ],
-    "sourceSha256": "4fe3c64be5684aedf730a24bfae437f07cba1b78cb6fd26ab222dabb5ea3e9d4"
+    "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
   },
   "upstreamBuildRecord": {
     "formatVersion": 1,
@@ -27,7 +27,7 @@
     },
     "artifacts": {
       "fileCount": 371,
-      "sha256": "16ea772f70e628431231880a6279fb6fde9746be5e459474b2b14003b1100caf"
+      "sha256": "1f7848987424b48a877fbeb03484f8253e712cdf2e3e355d2627a959016d8d35"
     }
   },
   "files": [
@@ -944,7 +944,7 @@
     {
       "path": "packages/client/locale/lib/client.js",
       "bytes": 50866,
-      "sha256": "8cc0e17b0d88f82ecab465869bad8e7c86a1c41d4eded02036a9028a52e65b9f"
+      "sha256": "d95aa6c9f90382d3ea8308198e5f84fc13c867e84de2a4bdb1e179637f24ff8d"
     },
     {
       "path": "packages/client/locale/lib/client.js.map",
@@ -993,28 +993,28 @@
     },
     {
       "path": "packages/client/ui-account-notifications/lib/client.js",
-      "bytes": 42839,
-      "sha256": "121408e014ccfaaf2cb47c1d90720762bc968f332f68d07f9780c0db57143104"
+      "bytes": 42859,
+      "sha256": "7a28a469d28940cfc955723d5f95094b46e42e4ae39adc3aadee122bff3cb5e9"
     },
     {
       "path": "packages/client/ui-account-notifications/lib/client.js.map",
       "bytes": 118961,
-      "sha256": "f1b9a8f99f2623cb524dcb04c1cd0bb248c85cd7fd819fe9413c5b6b5b47d2c8"
+      "sha256": "f3da4e9be1436b606074268806a1cd5cfa83f13eb6dada1661c50edf2c699bca"
     },
     {
       "path": "packages/client/ui-agent-preset/lib/client.js",
-      "bytes": 147722,
-      "sha256": "93c2aafb3ba2cd0b4d7da4271703908b11714073361201f8be35b2d88bca5c5a"
+      "bytes": 147680,
+      "sha256": "e523b2271f55a812ae6d71b537a8ec1d06a940a9fdbce38887b24a304b55de41"
     },
     {
       "path": "packages/client/ui-agent-preset/lib/client.js.map",
       "bytes": 254422,
-      "sha256": "c1c5522f9ef39321bf00f90528b5243708f861d48f7ec31f700c5128aa1d7788"
+      "sha256": "387175dcc61ebb25e1662a72348ba886b439620548368cc795b1f85029d31971"
     },
     {
       "path": "packages/client/ui-agent-team/lib/client.js",
       "bytes": 45476,
-      "sha256": "ec73f885e30f858a823ab9be47ba39f9140b361f354224ff587758e8e7dbacdc"
+      "sha256": "288bb1a928200902d9bbf032645e309355158c4e98f150275ce1f352979617a9"
     },
     {
       "path": "packages/client/ui-agent-team/lib/client.js.map",
@@ -1023,23 +1023,23 @@
     },
     {
       "path": "packages/client/ui-approval/lib/client.js",
-      "bytes": 19680,
-      "sha256": "c59a08387b7d5c3864ee50481969f11f7d7c7495567c734f7220731ce3c95e5e"
+      "bytes": 19634,
+      "sha256": "1e1131122c90983218dc96ee5a39e3cc90273d45e0a249cd72c919cb7b9be2ee"
     },
     {
       "path": "packages/client/ui-approval/lib/client.js.map",
       "bytes": 37646,
-      "sha256": "23d5ad091b0edc4d3c35ba0595956753adcf7ec54f14187f376a0b389eda738d"
+      "sha256": "8fb609fa7d99f9c5b2862147d2dfae741e294a780adfa35c89d0185eb81907d9"
     },
     {
       "path": "packages/client/ui-attachment/lib/client.js",
-      "bytes": 77602,
-      "sha256": "c54ff89c69f0d411313f7def41539b5f3ba35e41e2973c2dc4d714771994a631"
+      "bytes": 77597,
+      "sha256": "abad016b7f8c65c318388bd6e7335ff404090d46015cda43520e3fa4e0a88101"
     },
     {
       "path": "packages/client/ui-attachment/lib/client.js.map",
       "bytes": 144059,
-      "sha256": "9f6b998013e91454b28183fbb872717171607f05227df1515af73abedb95597f"
+      "sha256": "6ed029c29f780978bf49b3201f367fdc145ccb45f34790a4d8faeed4b690fd15"
     },
     {
       "path": "packages/client/ui-brand-official/lib/assets/breach-atlas-43c5305a3d4d.webp",
@@ -1049,7 +1049,7 @@
     {
       "path": "packages/client/ui-brand-official/lib/client.js",
       "bytes": 10779,
-      "sha256": "c4d3e616a7a57f3eb7b6e375acd9ba6d231b4ebb8a13f65809e65038924b2e92"
+      "sha256": "52fed32393d3fc6181ee6f009495767197e4f493ca435b4be60d0f5577683c07"
     },
     {
       "path": "packages/client/ui-brand-official/lib/client.js.map",
@@ -1063,18 +1063,18 @@
     },
     {
       "path": "packages/client/ui-chat/lib/client.js",
-      "bytes": 509438,
-      "sha256": "f65529c773cea68f320940cddbee98116d83d64ffc3724f8e1179e300cb75fd9"
+      "bytes": 509229,
+      "sha256": "90f4a7b01aa816fdfd529683bd7e2816cbe133c4c233569439e8f1321d2b64ed"
     },
     {
       "path": "packages/client/ui-chat/lib/client.js.map",
       "bytes": 920123,
-      "sha256": "519bee2e2145513cb77b92761fcd6a721db0af1e6a7d3468b751256f82f088ef"
+      "sha256": "e52ae1ad0442ef67539dc479e5fc41c21bd34174fdaf2a2951fc9b41542e0bab"
     },
     {
       "path": "packages/client/ui-commands/lib/client.js",
       "bytes": 53397,
-      "sha256": "f6bd0b66a97a2b722380264c0f3516f89e0d073fd05477a8e78eafe826a7ca74"
+      "sha256": "247f633d222307be82a7f1e460d9e290f2b7170c1e9afaf732fe9be237f38e11"
     },
     {
       "path": "packages/client/ui-commands/lib/client.js.map",
@@ -1093,28 +1093,28 @@
     },
     {
       "path": "packages/client/ui-conversation/lib/client.js",
-      "bytes": 728834,
-      "sha256": "6b53e7332df7640dd4c1f239a4439ea2aff77ce850b6f131c4045ab7573184ca"
+      "bytes": 728640,
+      "sha256": "42abe6f90763614ae125b044b1189726e99e52987233c2c90523f040fb396e47"
     },
     {
       "path": "packages/client/ui-conversation/lib/client.js.map",
-      "bytes": 1749218,
-      "sha256": "e795fb5a517acc08a8aef5eb1a044dbabeea40c0bdf534a9f156ad1b3b9a132c"
+      "bytes": 1749188,
+      "sha256": "e8de5d6607548779c61b8289462075cc4b071ee7710c48c553c61dec352065b4"
     },
     {
       "path": "packages/client/ui-deliverables/lib/client.js",
-      "bytes": 92948,
-      "sha256": "7b2853d52cdb4e9f7820ab3b83940cea14596a2aa4af1437b9ff00d81105f35d"
+      "bytes": 92888,
+      "sha256": "e4e4e1ede5303b6d5f6f5053adad1ff30040bac9a142613748a3f8253aa1781b"
     },
     {
       "path": "packages/client/ui-deliverables/lib/client.js.map",
       "bytes": 214237,
-      "sha256": "6b7a9d465a201ee391b9823b3035a99972d00fdccd356aa1f42867713dbd46f7"
+      "sha256": "041ecd66177bb0e421eaa8304faa6d1bf271df5a37baa64cabe97695a8cdfd71"
     },
     {
       "path": "packages/client/ui-directory-picker-browse/lib/client.js",
       "bytes": 33041,
-      "sha256": "fdcc2ce2868989ed433125fe0c1fa80acf7a481c756153ad18720c2b896bd6e6"
+      "sha256": "4ca7e47df3dda39d1a502b9cd23f3b4ae90e51f3122281b996c65f61bc72a911"
     },
     {
       "path": "packages/client/ui-directory-picker-browse/lib/client.js.map",
@@ -1134,7 +1134,7 @@
     {
       "path": "packages/client/ui-entry-customization/lib/client.js",
       "bytes": 10252,
-      "sha256": "5037544a0c9e91947c72c8e731d26c484e1eca41b766b9a6a01586684669f23b"
+      "sha256": "7fd5b90b399794a0fe472670584ed00f01c2d1888af666faac01afaa6bed0920"
     },
     {
       "path": "packages/client/ui-entry-customization/lib/client.js.map",
@@ -1164,7 +1164,7 @@
     {
       "path": "packages/client/ui-goal/lib/client.js",
       "bytes": 21112,
-      "sha256": "47b20da0e16710cc35e7065da7e587d64ee0c2c548606de9df23dd340184ff40"
+      "sha256": "3ab30bf968b6583ad974727418d7294437ad7bfcb6df23bc96efb2a45a038129"
     },
     {
       "path": "packages/client/ui-goal/lib/client.js.map",
@@ -1174,7 +1174,7 @@
     {
       "path": "packages/client/ui-input-trigger/lib/client.js",
       "bytes": 44769,
-      "sha256": "c3f89b8e5aa90c66085f534022881fb39a430dc986bcfaf7505f1af7a8ad3b18"
+      "sha256": "292c03921a8c0f7fe1472859f1734762d9bf9315d1532be85ab95f5457937bc2"
     },
     {
       "path": "packages/client/ui-input-trigger/lib/client.js.map",
@@ -1184,7 +1184,7 @@
     {
       "path": "packages/client/ui-jobs/lib/client.js",
       "bytes": 39153,
-      "sha256": "a6fc4801b3eb40a923a350937893f9191aea66f804b4eb293ab6f7b7165d4fcf"
+      "sha256": "ab9ac8eac08294ec4f0ac34ff961537c51e4830f380dd6ba64293fbf5fd71d9a"
     },
     {
       "path": "packages/client/ui-jobs/lib/client.js.map",
@@ -1194,7 +1194,7 @@
     {
       "path": "packages/client/ui-layout/lib/client.js",
       "bytes": 25907,
-      "sha256": "b8d1475474031ceb8e31fe917be34f2a360448029286d56d148f4d3276b8a23a"
+      "sha256": "b40c828f5f3bee7be79286980de3eb95865cd6b4f948155787411ae4071c42b1"
     },
     {
       "path": "packages/client/ui-layout/lib/client.js.map",
@@ -1204,7 +1204,7 @@
     {
       "path": "packages/client/ui-message-feedback/lib/client.js",
       "bytes": 28413,
-      "sha256": "24e955d312ef03e5c84be59fae388c52b93c103019a410c9def699cb0f2d4a33"
+      "sha256": "3adc2bf917397ce2b9ccc3a65f1fc8a327578f603512073d8d75537cf63b600f"
     },
     {
       "path": "packages/client/ui-message-feedback/lib/client.js.map",
@@ -1214,7 +1214,7 @@
     {
       "path": "packages/client/ui-model-selection/lib/client.js",
       "bytes": 61894,
-      "sha256": "4e04d4e3af860900171d1bf456434676add6fcb009e36c99486b2a1e04a95603"
+      "sha256": "7bc467b5081f38e86a45fd577d5239c3d5c95911da57fc4b95dbbd9036d1e27f"
     },
     {
       "path": "packages/client/ui-model-selection/lib/client.js.map",
@@ -1224,7 +1224,7 @@
     {
       "path": "packages/client/ui-open-in-app/lib/client.js",
       "bytes": 43776,
-      "sha256": "ba2eee22905de124e46a2694ff2748746ba6adb936391a52d34cb0af058680fd"
+      "sha256": "6f565af3dc173d53b29a96c134e6e4c74caf745211c71009536df6bf9971fbf7"
     },
     {
       "path": "packages/client/ui-open-in-app/lib/client.js.map",
@@ -1233,38 +1233,38 @@
     },
     {
       "path": "packages/client/ui-permission-presets/lib/client.js",
-      "bytes": 40884,
-      "sha256": "142cded0964cb58e94e565d8bce267bca46993618b5b10b22622491d0f5e32e7"
+      "bytes": 40861,
+      "sha256": "00e39f406e1a6212b6cc1e1ec410b55bd23cfc4aa6ef15a71f037cbf5ff3b20f"
     },
     {
       "path": "packages/client/ui-permission-presets/lib/client.js.map",
       "bytes": 78742,
-      "sha256": "31934163e98b06eea47f6193809d03863f01afa3cc6ac63412261f7fbee9081f"
+      "sha256": "8b906351eaee8f1e1d8a936ce5de50ea1ed525820dd308040926a246121d236b"
     },
     {
       "path": "packages/client/ui-plan/lib/client.js",
-      "bytes": 25901,
-      "sha256": "a558a8cb16bad52ff5caf817d562d0b74df37d1879280450f25cb9488ef58edb"
+      "bytes": 25923,
+      "sha256": "bc523f15e1d90f36597639a122fc1f5fb3d5da45c7cc179744c4f90a4710d750"
     },
     {
       "path": "packages/client/ui-plan/lib/client.js.map",
       "bytes": 75318,
-      "sha256": "89a427cbbf54e47f2d244207ae0ad6d398dffc55e68df2294a4fe20be5fff2a8"
+      "sha256": "5a35a224352b0a1cc354952469139a19a87fbe1326848957787d8fad5ffa1b95"
     },
     {
       "path": "packages/client/ui-plugin-manager/lib/client.js",
-      "bytes": 357239,
-      "sha256": "0a3d4cc8e9154ff83372cf34874852c204d4f9a7b7e0d06efa34182e6f31a98e"
+      "bytes": 357806,
+      "sha256": "c7c9eafcb35866c8ffaddb445171dcf3a3bc6559c7fbcb94d48998ef1c1efa80"
     },
     {
       "path": "packages/client/ui-plugin-manager/lib/client.js.map",
       "bytes": 584211,
-      "sha256": "94bf2bc2e4c484e9c6229ad0d96f3cb4afba3298262c089f900b7f8795c6b6c8"
+      "sha256": "92c3a89252799d762c1dfedfd9399cd3a39d2230d80fabfe7101709992ca0bcf"
     },
     {
       "path": "packages/client/ui-plugin-market/lib/client.js",
       "bytes": 85542,
-      "sha256": "6ae0397fad70853d435455220531da92ca558be7dc0ebdb13bb1c48f4ac620b7"
+      "sha256": "eaae68c3e96fd1f7bb1fe133b90961e9adfad7da86b5d10e206f02b654965492"
     },
     {
       "path": "packages/client/ui-plugin-market/lib/client.js.map",
@@ -1293,23 +1293,23 @@
     },
     {
       "path": "packages/client/ui-schedule/lib/client.js",
-      "bytes": 550234,
-      "sha256": "fd71cc0a7f3e48b1f9db1b27a715755391a4935a929f41cdeadf272b89c443a0"
+      "bytes": 550258,
+      "sha256": "0089e8efd01cf0d59018e4c9d553f61a73c8f2cd8fe2bcc3f4bcd9a89b397089"
     },
     {
       "path": "packages/client/ui-schedule/lib/client.js.map",
       "bytes": 1270125,
-      "sha256": "4f5a8b0373f7e49d0d1e349a20e03c42298c29983eb5050ce49aa3f534ff40da"
+      "sha256": "5fcc7aa86e4cf4b91e3c1ec21209a57a0cc7fd53be0e2f84c1fe5d2b18feadbe"
     },
     {
       "path": "packages/client/ui-secret-mask/lib/client.js",
-      "bytes": 18326,
-      "sha256": "c8a1aabd52c0c4d8215d789b1297f0de82528402fe86019cc0c5767f85a66434"
+      "bytes": 18340,
+      "sha256": "59d8720dd327d41ddbf1e2f529f29d2dba1da98595bbce58a12201618ba6f81c"
     },
     {
       "path": "packages/client/ui-secret-mask/lib/client.js.map",
       "bytes": 54031,
-      "sha256": "cde10fa250cf86530a52240b49dc74a551590d3e4fa7e22b492512bf503cd38c"
+      "sha256": "aa4f508722c1645c6c3df28388fac223968dc37b7bfa2b777101633fff77a417"
     },
     {
       "path": "packages/client/ui-session/lib/client.js",
@@ -1394,7 +1394,7 @@
     {
       "path": "packages/client/ui-settings-account/lib/client.js",
       "bytes": 187276,
-      "sha256": "f2973fd9188f78e40400f6b59c9281d101eac7da89990a80f97b0c8d151c1bcb"
+      "sha256": "2c79febae7f42dfeacb7f84d63c35bd5324fe2848b9bbc4a9470a86f773057bd"
     },
     {
       "path": "packages/client/ui-settings-account/lib/client.js.map",
@@ -1413,28 +1413,28 @@
     },
     {
       "path": "packages/client/ui-settings-general/lib/client.js",
-      "bytes": 89954,
-      "sha256": "dc124632f821f65e12d277ae47dfd769aa18ad6596ae43e6ff258e3efc80b1b5"
+      "bytes": 89945,
+      "sha256": "16e5bcda9d890d782d533073d226734d9da2e73a998355de55e8a566ea0420b8"
     },
     {
       "path": "packages/client/ui-settings-general/lib/client.js.map",
       "bytes": 140041,
-      "sha256": "cab53dfff94cde04a9de14d8298962832fb8f5ac933f647eda06acfaaad5ce50"
+      "sha256": "01c7c8f1df00b1ae2c3a5d93e82b683b52198539779ad45248c0725abe345613"
     },
     {
       "path": "packages/client/ui-settings-models/lib/client.js",
-      "bytes": 245270,
-      "sha256": "04a92c88470dba25e00ed8b07aec4f82a31a9f560afbfde1422c556c07a33407"
+      "bytes": 245529,
+      "sha256": "6837338307ba756bd99ebb57c4286d85cab006a609538ad3f16df479aa26d86b"
     },
     {
       "path": "packages/client/ui-settings-models/lib/client.js.map",
       "bytes": 509373,
-      "sha256": "0fbb73f508d1f9ddb7a87b348790f4102451780a8953866c0233aa3dac3af07a"
+      "sha256": "30681eb330612b8982d34e9925187c9b7f8e42ef374c5c346f087c5b7b8fa3cb"
     },
     {
       "path": "packages/client/ui-settings-plugin-inventory/lib/client.js",
       "bytes": 42738,
-      "sha256": "cad262dba349ca6b54089001d158c74df96c538842e49e90cce332af3577cb8f"
+      "sha256": "0edae622f2086a38e083c687e481b303c839b5d081575727c04926e48efb617a"
     },
     {
       "path": "packages/client/ui-settings-plugin-inventory/lib/client.js.map",
@@ -1444,7 +1444,7 @@
     {
       "path": "packages/client/ui-settings-plugins/lib/client.js",
       "bytes": 8499,
-      "sha256": "fe0b4b194c498da3934256a6af1c10a76b032d7216a34b0a4f7f826f3351bebc"
+      "sha256": "7941ede64e50ddde334f87cdccc43a9c1770e359810eaddd0ad8f437bf7f0840"
     },
     {
       "path": "packages/client/ui-settings-plugins/lib/client.js.map",
@@ -1454,7 +1454,7 @@
     {
       "path": "packages/client/ui-settings-session-log/lib/client.js",
       "bytes": 5629,
-      "sha256": "1fc8e9d9fb170bf14b79d175f7c6472599e9043f592ef65f036dc87ce6e84ccb"
+      "sha256": "5966b0f580e022ef82d97c4b14943117554c90ff6a50c755e5c66ed5d3d28a96"
     },
     {
       "path": "packages/client/ui-settings-session-log/lib/client.js.map",
@@ -1473,18 +1473,18 @@
     },
     {
       "path": "packages/client/ui-settings-subagent/lib/client.js",
-      "bytes": 46758,
-      "sha256": "9ca9c3569651409aab98ed61b19fac65c7d22162e987d2e9a9843aa7164a2d09"
+      "bytes": 46801,
+      "sha256": "bad06c69c397a4fb43da0df09791a6a3e26957be7c98520b893d7f05eee61145"
     },
     {
       "path": "packages/client/ui-settings-subagent/lib/client.js.map",
       "bytes": 80023,
-      "sha256": "59b50669b83d6e7692fa2e9684ffd69fef4f4a4697a9275301600d82306419ce"
+      "sha256": "2793a5e720d65303926eafde09f4fa066d75e09bab91ef279320ed2de7fc08eb"
     },
     {
       "path": "packages/client/ui-settings-web-search/lib/client.js",
       "bytes": 44763,
-      "sha256": "e696243557089670341d8378d23d5f04f77f83cb79926018b08e947864b3bfca"
+      "sha256": "f6c000301f656297e17ed9f6832b17908ff277a864ede6aaab41a412d514a579"
     },
     {
       "path": "packages/client/ui-settings-web-search/lib/client.js.map",
@@ -1504,7 +1504,7 @@
     {
       "path": "packages/client/ui-shortcuts/lib/client.js",
       "bytes": 69356,
-      "sha256": "5f33c89f78d2adb2d1e25730d18905bd158750535a0e8b64e9d5725a2abdcf5e"
+      "sha256": "db32817cbd9a4146f46113fe0688d4198c655baa67181e468b144f55046c9034"
     },
     {
       "path": "packages/client/ui-shortcuts/lib/client.js.map",
@@ -1514,7 +1514,7 @@
     {
       "path": "packages/client/ui-sidebar-browser/lib/client.js",
       "bytes": 50540,
-      "sha256": "ae16cbfaf4c04307248d27685a6f3bb2fcc72c1afad00423311660ad124ed3f8"
+      "sha256": "03e596afac9e4d0f35ad4a5db69fba0a8ae50f402112e0f5901ecb4e98fd36b0"
     },
     {
       "path": "packages/client/ui-sidebar-browser/lib/client.js.map",
@@ -1524,7 +1524,7 @@
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.excel.js",
       "bytes": 5606975,
-      "sha256": "ec92e95183b2583394da2d8426a03735388efbc10a252a7cd99d7000b67451b0"
+      "sha256": "f9fb8be8ddfa6a3e20e4d069ceb11941a8a279bc9512c1dc3854823d8eb6a3fb"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.excel.js.map",
@@ -1534,7 +1534,7 @@
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.frontmatter-fields.js",
       "bytes": 136604,
-      "sha256": "33c4b32ecaca062cd4e5da6c35a362c4ac5e17f41caf193d7176f72f26958e40"
+      "sha256": "2707dafa3c88ed3af040026497e6fc83aa7b154373a40ca99cfebf500c2e5a94"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.frontmatter-fields.js.map",
@@ -1543,18 +1543,18 @@
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.js",
-      "bytes": 217952,
-      "sha256": "c514965e7df7d726ca30bd510b8eb4b10314d81e8f825a4ff2f930eded3f5026"
+      "bytes": 217953,
+      "sha256": "fa71b672a2442c7ec3be0d10cba1604e11cba7d67c91fd84453c3170bfc9cafd"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.js.map",
       "bytes": 401407,
-      "sha256": "905748a2ff3d3c3de1e62b1159feb090d6f82f7f71ea17a806d6c4128beaf013"
+      "sha256": "7ea2aff44d9fb62d61382b1c51050a71bd8720387f1dbedcc10c8aead6ee0104"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.pdf.js",
       "bytes": 6846890,
-      "sha256": "1027f7085a6681917430c7e1b5efd394febadfdd8678f833d390b242a48a391a"
+      "sha256": "fa8e12bd3e710e9523e9ea8cff89adc54d6c86d115129952990c150bfe104b05"
     },
     {
       "path": "packages/client/ui-sidebar-documentpreview/lib/client.pdf.js.map",
@@ -1563,38 +1563,38 @@
     },
     {
       "path": "packages/client/ui-sidebar-files/lib/client.js",
-      "bytes": 109611,
-      "sha256": "9480d68ba7337426c4f1dfbb6e2d95cd0f95865fb4702588589a1a7f589615b6"
+      "bytes": 109578,
+      "sha256": "390785d5850df560ea167ee875fa8c0270dfce0be9a90a4e6fd6307a4dbccc9b"
     },
     {
       "path": "packages/client/ui-sidebar-files/lib/client.js.map",
       "bytes": 301263,
-      "sha256": "b3c987070d0309d70a3630df191029960930f0eb991977889c2d83e150667561"
+      "sha256": "9fc9b23afba022a5f33b4f2ffe90206bbe06a610c668b43eb10d99d10a0c5b04"
     },
     {
       "path": "packages/client/ui-sidebar-right/lib/client.js",
-      "bytes": 141033,
-      "sha256": "f5315366cb961a347bb8d6231a7de9a31216947c719df839527e755203847dc3"
+      "bytes": 140973,
+      "sha256": "533f6f64bcabf3d88b05e10fbdea46ddc0ffb9cefe0a95727401b84b2be61021"
     },
     {
       "path": "packages/client/ui-sidebar-right/lib/client.js.map",
       "bytes": 387403,
-      "sha256": "944b73759f888364f724e2e09e7831fd003f4acfbc9e43cf78b30049ffb9e63a"
+      "sha256": "48263c3cf38b7958409196b53a2a48825fb4ec50980b6487cec567d5daed6502"
     },
     {
       "path": "packages/client/ui-sidebar-terminal/lib/client.js",
-      "bytes": 30726,
-      "sha256": "8dd149855b7ddbb5620b58e6f34871d5b62c979a80d517bef86a24409ff4c2bf"
+      "bytes": 30748,
+      "sha256": "b3d0339dfc0caa6327599d72fe457cc30639dc8ab243fb9dfb1eb7fc4e5b4ec7"
     },
     {
       "path": "packages/client/ui-sidebar-terminal/lib/client.js.map",
       "bytes": 40528,
-      "sha256": "a0f348be83be6470ee0df109476128db9d40e46045957017cb9b94d07d23f957"
+      "sha256": "89911fb518e1916758e6b1c1d8792d2a7e0d84bc17fb64dfd077d69769fb07d7"
     },
     {
       "path": "packages/client/ui-sidebar-terminal/lib/client.terminal.js",
       "bytes": 509395,
-      "sha256": "5c9a544d1b317d23a6ed07940b3a5e9b3e120822c4fe9af13f0d8868a4d7172f"
+      "sha256": "b13ee2563c0f32e63a209a9fdec07b6796146153474701ad3364b4a096aaf41e"
     },
     {
       "path": "packages/client/ui-sidebar-terminal/lib/client.terminal.js.map",
@@ -1603,18 +1603,18 @@
     },
     {
       "path": "packages/client/ui-sidebar/lib/client.js",
-      "bytes": 41846,
-      "sha256": "803195a3886c1c007884e1c889a869b00563839c3b8d05a11815a83cc953eb90"
+      "bytes": 42119,
+      "sha256": "532b443e411ef132b2da9e15383f60f3561b599411056d19e0ccfb35f62ad23b"
     },
     {
       "path": "packages/client/ui-sidebar/lib/client.js.map",
       "bytes": 61192,
-      "sha256": "63ffcb15416bf21e61ec428c34fc74c1e542991fa6bda9e0cfc0e83c42901a5e"
+      "sha256": "c77a402104af5136c151f6017020fbf49f8650213e9769dd21e1006ec3a2505f"
     },
     {
       "path": "packages/client/ui-skill/lib/client.js",
       "bytes": 19203,
-      "sha256": "57d90e86227a520c0340761a9831639eda0fb0fb2c06a6dc269395386e9e7478"
+      "sha256": "28270276a1ba0f1b593d9576a9167f9d2fd40ccb441f6e3b864c72f415513b8a"
     },
     {
       "path": "packages/client/ui-skill/lib/client.js.map",
@@ -1623,38 +1623,38 @@
     },
     {
       "path": "packages/client/ui-subagent/lib/client.js",
-      "bytes": 60293,
-      "sha256": "bc579a56659a0d6c467768e9fdf420c44ef2d374ebfa9e213b2bb3efb91d9850"
+      "bytes": 60295,
+      "sha256": "9c076323139fcdde25f54f31ceced6fa8edb164f91afa1f531c60e19ccf35646"
     },
     {
       "path": "packages/client/ui-subagent/lib/client.js.map",
       "bytes": 101541,
-      "sha256": "a6a2620f970d051fef674181facdbb726355f1e3001bc7189db57044b8bf02bc"
+      "sha256": "70298f054ffd850c293f44be07951e71496afae1ddfd25949fee19f2a6787225"
     },
     {
       "path": "packages/client/ui-theme/lib/client.js",
-      "bytes": 113310,
-      "sha256": "7e62ab3c85f9e7d6f6fc45bf892224d9a22ef4d6c73723b934a6b477929e9c18"
+      "bytes": 113297,
+      "sha256": "75bce9b3c52295cb625a4d571297af46aa13db3a1321a19d9dfdceb4f135e1ae"
     },
     {
       "path": "packages/client/ui-theme/lib/client.js.map",
       "bytes": 167632,
-      "sha256": "ec486e94c7fe8cc98ae3d3850ed2d1e5cc663c928c7e979ac107ae0fea9cf72d"
+      "sha256": "bdf0d9460400d435dd48e34962783d063e4cece3419a54b9f5967f0635e3ffd6"
     },
     {
       "path": "packages/client/ui-tool/lib/client.js",
-      "bytes": 151254,
-      "sha256": "4df0b2403f2bdc359671181a68da3b8344b1d21a9eb22da193eea0f49c2e1a8a"
+      "bytes": 151308,
+      "sha256": "1b7fbd3d1dacb1cb0e5ab8a95cece93f246ebd14b4fd9208577da83149b46bd5"
     },
     {
       "path": "packages/client/ui-tool/lib/client.js.map",
       "bytes": 379989,
-      "sha256": "67a75cd55f376cd6f543d70105996543bc6aa1f29b3348f98b3eee3ed928f910"
+      "sha256": "670c1f56bee67e0b0f02b4b64c01b93b5a3014ce46f723796936a370f2a09b1e"
     },
     {
       "path": "packages/client/ui-trajectory/lib/client.js",
       "bytes": 370526,
-      "sha256": "e071fb91df936df5db220a307d865e24a42e547f262064d7e8b7e984a1838b97"
+      "sha256": "52b8ebf269a0a3f28227164ed4ce76e65831d3b77b56d70c8160d2f478a996a4"
     },
     {
       "path": "packages/client/ui-trajectory/lib/client.js.map",
@@ -1663,18 +1663,18 @@
     },
     {
       "path": "packages/client/ui-user-questions/lib/client.js",
-      "bytes": 75732,
-      "sha256": "76f108cb1249ff3f5c7008ba82fb7a6b09a38c7f7b61f705c176378025f9bb8a"
+      "bytes": 75611,
+      "sha256": "3d00dc3eed09e98fcf224f7dd08bed944b7a531cb846b7c5c371b405ee08bcef"
     },
     {
       "path": "packages/client/ui-user-questions/lib/client.js.map",
       "bytes": 187217,
-      "sha256": "39bc85cb19a75a160287c0d800b4f4cc6d6dd6b8bc38a5e76cf899970f6fb676"
+      "sha256": "ed4032aeafc5bac0945e7b1f4dade645e86d8e64de1e6638fc7e616ea8c19e02"
     },
     {
       "path": "packages/client/ui-workflow-run/lib/client.js",
       "bytes": 28130,
-      "sha256": "d29195f971f2232350b998668a4da4fdb5e7fc2f34288f092c7429c587cdbbba"
+      "sha256": "52439aef6dd44ceb334507794b5fe0a7f610fe70cd1b80c825ef464b12e4d4dc"
     },
     {
       "path": "packages/client/ui-workflow-run/lib/client.js.map",
@@ -1684,7 +1684,7 @@
     {
       "path": "packages/client/ui-workspace/lib/client.js",
       "bytes": 236232,
-      "sha256": "e7d6d806c83739f05bbb281ba8ad9e0b826e1e50275f636962592c6d7f5798b3"
+      "sha256": "c77d009c611c30c7ca17f4ae736631354df5bcde08f55de0fb9a666432eaee05"
     },
     {
       "path": "packages/client/ui-workspace/lib/client.js.map",
@@ -1694,7 +1694,7 @@
     {
       "path": "packages/experimental/client-ui-action-cards/lib/client.js",
       "bytes": 25368,
-      "sha256": "7c5d8f4799c183221f59b28309e9b39b57fa9b0a62366525b7e43f63720ebc06"
+      "sha256": "173a7db280a51b87c2f6997dc898774eb97e7a0666ac8aa1ed720951ab89edb8"
     },
     {
       "path": "packages/experimental/client-ui-action-cards/lib/client.js.map",
@@ -1703,18 +1703,18 @@
     },
     {
       "path": "packages/experimental/client-ui-claude-code-mods/lib/client.js",
-      "bytes": 23775,
-      "sha256": "b25ac48b95fbdae5cd9067a519edf7c5ae0e866c32aa1f7b8156fbc06492f79e"
+      "bytes": 23803,
+      "sha256": "b6e690ff50f9e6f269df6944ca61ebc113170e589d35575e1fd8f97491c59d38"
     },
     {
       "path": "packages/experimental/client-ui-claude-code-mods/lib/client.js.map",
       "bytes": 47195,
-      "sha256": "bd49c16989e75edcf7d02d1e8a4ad064f3f62dfcddf858909ac9f0ff9fe55d5e"
+      "sha256": "c8125ad6ff592512f6804c3d17ad0eb46ff0f36d0b2949195abf2ab2964b5b9e"
     },
     {
       "path": "packages/experimental/client-ui-cot-translation/lib/client.js",
       "bytes": 44204,
-      "sha256": "3168137d3f2f5e42e3312d04c1e56466e5bb5c33c174fa9761b37220d92bf591"
+      "sha256": "75b3031431fbc98ca83c2be6e02f1443eaa6730f08218bee77ad5bd4e79f01fe"
     },
     {
       "path": "packages/experimental/client-ui-cot-translation/lib/client.js.map",
@@ -1724,7 +1724,7 @@
     {
       "path": "packages/experimental/client-ui-creation-recommendations/lib/client.js",
       "bytes": 36806,
-      "sha256": "807a16105f7e58803f297bd2cc758547cf88dafd469147efee227338061e11f8"
+      "sha256": "d47df782d01a87091dd013f48f123ebc4bfbbe99ca9747491f057b9d4c4a1cab"
     },
     {
       "path": "packages/experimental/client-ui-creation-recommendations/lib/client.js.map",
@@ -1733,18 +1733,18 @@
     },
     {
       "path": "packages/experimental/client-ui-forge/lib/client.js",
-      "bytes": 767967,
-      "sha256": "3d019ce320f67da5b8bf0c4c9fd5aad187727e1438f213c95c8bf91c5da5bd68"
+      "bytes": 768045,
+      "sha256": "63925ee1193def7af9cff263ac2f303cbb415f0929b7a4ebb643c230063177d3"
     },
     {
       "path": "packages/experimental/client-ui-forge/lib/client.js.map",
       "bytes": 1335931,
-      "sha256": "bce4e12389c6fc6398a16966ed3ffb70f3ce92de782e225fc81fe7a0e43542e1"
+      "sha256": "ed4df4c6112daeca4c1ceaa4e718cf8abbc324e0066e267f4e93b31b73235abc"
     },
     {
       "path": "packages/experimental/client-ui-plugin-recommendations/lib/client.js",
       "bytes": 29829,
-      "sha256": "e35730bd61be09b480fefcd82a49ef63d0be31845e7ae0edab18401d3bfe3f9e"
+      "sha256": "9bafee8d97ba604b49a32787ace80e47d3c0389f4e1f4577466743f4865f1176"
     },
     {
       "path": "packages/experimental/client-ui-plugin-recommendations/lib/client.js.map",
@@ -1754,7 +1754,7 @@
     {
       "path": "packages/experimental/client-ui-stats/lib/client.js",
       "bytes": 208478,
-      "sha256": "1ce1a302615bbf4cd4b00be275f750ab891685c3c68b99d322509a583c5273f6"
+      "sha256": "767db3770bdb4dcadcd66216484174df385c89d3897ee7b0d70af74bbc4306c1"
     },
     {
       "path": "packages/experimental/client-ui-stats/lib/client.js.map",
@@ -1764,7 +1764,7 @@
     {
       "path": "packages/experimental/client-ui-voice-input/lib/client.js",
       "bytes": 137993,
-      "sha256": "3d3e2cd615f66a79c173c95596c5fdff89a82bd2eb568c617fc26cec2789deab"
+      "sha256": "0ffad5f98f57c60514020f63b7b53e282a1275e7a8eeaaf7b0badad18ca04b25"
     },
     {
       "path": "packages/experimental/client-ui-voice-input/lib/client.js.map",
@@ -1774,7 +1774,7 @@
     {
       "path": "packages/experimental/cua/lib/client.js",
       "bytes": 103242,
-      "sha256": "adf89c683dc342fe8f4c3fa66da44967a9a598867c1d6bca5e37eace58300dc7"
+      "sha256": "775c1acdf712b6062aaa7fba87e2e4380dcb6aadff5156e5427b6c01cf48e13a"
     },
     {
       "path": "packages/experimental/cua/lib/client.js.map",
@@ -1784,7 +1784,7 @@
     {
       "path": "packages/experimental/deepseek-chat-import/lib/client.js",
       "bytes": 41422,
-      "sha256": "de9bd1d6505e427b736c252f4f0d079fed9bb1169c4c34b40056f403ca14cd02"
+      "sha256": "a502ba53cd3d027d2c04b8cb77f843cb1c4263c5ebfe395e90b4852585f849f6"
     },
     {
       "path": "packages/experimental/deepseek-chat-import/lib/client.js.map",
@@ -1804,7 +1804,7 @@
     {
       "path": "packages/experimental/inspector/lib/client.page.js",
       "bytes": 8865,
-      "sha256": "af07ef239fe4ec605200b6b25d35e07f8cea3f0ce6c2e7c1db998310dc400363"
+      "sha256": "c62fe4bf685e134bac6e12f55c38485abe128f4b19f5ae5d4727c5e83e7e7091"
     },
     {
       "path": "packages/experimental/inspector/lib/client.page.js.map",
@@ -1813,18 +1813,18 @@
     },
     {
       "path": "packages/experimental/liveshare/lib/client.js",
-      "bytes": 294983,
-      "sha256": "7ad5156bd838c685c0f623503c3bbbeb7832e1e1d4de57775a13691a95de774f"
+      "bytes": 294985,
+      "sha256": "82ffd3fdaad7c4fd9a9ce7e0cfc4c9dbff8adf2dfe957c48fdaf7feb60f4ac64"
     },
     {
       "path": "packages/experimental/liveshare/lib/client.js.map",
       "bytes": 614378,
-      "sha256": "3aaf25fcd6545373d42b98a92755cae532bce5386edb362d514efef3f22e6bb0"
+      "sha256": "85d5b9d374616d04699748557ae2dd3d387d6bbd8af94db5b0f22152933ad5b2"
     },
     {
       "path": "packages/experimental/session-inspector/lib/client.js",
       "bytes": 129131,
-      "sha256": "c34ad7e5f02bd60d321af4d106db8799c990f97e0be6cf6c8871025bc53ebe2a"
+      "sha256": "a20f9c2a725056f315f425f30227578dc0fbdbe05d2d8f5e280c25762a856cd6"
     },
     {
       "path": "packages/experimental/session-inspector/lib/client.js.map",
@@ -1848,13 +1848,13 @@
     },
     {
       "path": "packages/extensions/ui-cordis/lib/client.js",
-      "bytes": 72416,
-      "sha256": "435747beacd4bd7e80f80ff0faaf8d0a191c52e0cb5610ca754b82d539a889e5"
+      "bytes": 72456,
+      "sha256": "04cd524afc01b702a40f360c3a5ae1b8a768c5c5adab24cd4443ff2d7ddb0d63"
     },
     {
       "path": "packages/extensions/ui-cordis/lib/client.js.map",
       "bytes": 117240,
-      "sha256": "b6014eb3cfb28a64f1b55911513d4dcabfaf4188162f246c08bbb4c30dc90af0"
+      "sha256": "bfdd0134daa4a72c734a889f11ee73b587b87fb56b64229d71cdfd35433da0f9"
     },
     {
       "path": "packages/session-query/session-log-export/lib/client.js",
@@ -1869,7 +1869,7 @@
     {
       "path": "packages/session/message-quotes/lib/client.js",
       "bytes": 4336,
-      "sha256": "e0948df49b4eabb55b54c54b5c11e205a24ded4909f27f3cdfde748a653dbee1"
+      "sha256": "2c0faee97d226a6e21cd548a4cdfabf9fbf3f89f24eded5702ef2ef5896a8f5f"
     },
     {
       "path": "packages/session/message-quotes/lib/client.js.map",
@@ -1890,7 +1890,7 @@
   "fixtureFiles": [
     {
       "path": "vendor/draft-fixture/controls/client.js",
-      "sha256": "05537476adcff7c78dc16833ffde92d5508db28a734163153594e7b4a3540a20"
+      "sha256": "09fa6e4df5cf24650c1e71bee5b23188baeaa0947cb0237d3e96d20631c44b53"
     },
     {
       "path": "vendor/draft-fixture/controls/index.js",
@@ -1913,6 +1913,6 @@
       "sha256": "6dbf69c5d8eb3ed07d24fb107af9f8120f450a849cf7eb4606d78236536b5506"
     }
   ],
-  "graphSha256": "32b63711d2ff3ea547ddbddd6da104a29f566c57d48ef29df73403855f3aee03",
-  "servedResponsesSha256": "c11b25bb22a86dc2f7f88586373d6c7cbdb43965b5227760be01d6f280487e6a"
+  "graphSha256": "7e547d1ed8c1e5e8a50e30912727bedd82a3acc6a6b18844d1790efd25a43756",
+  "servedResponsesSha256": "f511064fabddd44573a0ae2d749651a060ce47ffdfd5f2754d18346575bebc71"
 }
