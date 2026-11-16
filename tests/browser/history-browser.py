@@ -4,6 +4,7 @@ import json
 import hashlib
 from pathlib import Path
 from playwright.async_api import async_playwright
+from history_lifecycle import prove_history_lifecycle
 
 async def main():
     evidence=Path('vendor/history-browser-evidence'); evidence.mkdir(parents=True,exist_ok=True)
@@ -55,12 +56,40 @@ async def main():
         assert all(value['cut']==opened[-1]['cut'] for value in pages)
         assert any(value['nextCursor'] for value in pages if 'nextCursor' in value)
         await page.screenshot(path=str(evidence/'history.png'),full_page=True)
+        # Public browser controls + delayed actual native response reproduce abandoned opens.
+        held=asyncio.Event(); release=asyncio.Event(); delayed=False
+        async def delay_open(route):
+            nonlocal delayed
+            options=route.request.post_data_json['payload']['args']['options']
+            response=await route.fetch()
+            if options['operation']=='open' and not delayed:
+                delayed=True; held.set(); await release.wait()
+            await route.fulfill(response=response)
+        await page.route('**/api/ompHistoryFixture/read',delay_open)
+        await page.locator('#refresh').click()
+        await asyncio.wait_for(held.wait(),3)
+        await page.evaluate("for(let i=0;i<3;i++) document.querySelector('#refresh').click()")
+        # A controlled 100 ms delivery delay lets concurrent requests reach the real native two-cut limit.
+        await page.wait_for_timeout(100)
+        release.set()
+        await page.wait_for_function("document.querySelector('#state').textContent.includes('readable records')",timeout=3000)
+        await page.locator('#scope').select_option('tree')
+        await page.wait_for_function("document.querySelector('#state').textContent.includes('128 readable records')")
+        while not await page.locator('#more').is_disabled():
+            await page.locator('#more').click()
+            await page.wait_for_function("!document.querySelector('#more').disabled || document.querySelector('#state').textContent.includes('complete')")
+        assert 'Background branch' in await page.locator('#history').inner_text()
+        await page.unroute('**/api/ompHistoryFixture/read',delay_open)
         # Labelled public Remote fault: a disposed or foreign cursor never yields an empty successful history.
-        await page.route('**/api/ompHistoryFixture/read',lambda route: route.fulfill(json={
-            'type':'server-response','rpcId':route.request.post_data_json['rpcId'],
-            'result':{'ok':True,'value':{'status':'error','code':'history_stale_cursor'}}}))
+        async def stale_open(route):
+            if route.request.post_data_json['payload']['args']['options']['operation']!='open':
+                await route.continue_(); return
+            await route.fulfill(json={'type':'server-response','rpcId':route.request.post_data_json['rpcId'],
+                'result':{'ok':True,'value':{'status':'error','code':'history_stale_cursor'}}})
+        await page.route('**/api/ompHistoryFixture/read',stale_open)
         await page.locator('#refresh').click()
         await page.get_by_text('history_stale_cursor',exact=True).wait_for()
+        lifecycle=await prove_history_lifecycle(browser)
         build_text=Path('packages/contracts/generated/identity.ts').read_text()
         omp_build=json.loads(build_text.split(' = ',1)[1].strip().removesuffix(';'))
         dsh_build=json.loads(Path('vendor/dsh-history/manifest.json').read_text())
@@ -68,8 +97,8 @@ async def main():
         fixture_hashes={name:hashlib.sha256(Path(name).read_bytes()).hexdigest() for name in fixture_files}
         result={'fixtureSha256':fixture_hashes,'bunLockSha256':hashlib.sha256(Path('bun.lock').read_bytes()).hexdigest(),'ompBuild':omp_build,'dshBuild':{key:dsh_build[key] for key in ['dshBase','dshSource','sourceSha256','contractSha256','assets']},'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
             'privateSessionAdmission':'blocked','cases':{'sameCutPagedActiveFullTreeAndRunning':'PASS',
-            'retainedBoundariesFoldedAndExpandable':'PASS','nativeRetainedImagePreview':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS'},
-            'nativePageResponses':len(pages),'windows':'DEFERRED'}
+            'retainedBoundariesFoldedAndExpandable':'PASS','nativeRetainedImagePreview':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS','overlappingRefreshRereadsAndPagesImmediately':'PASS'},
+            'lifecycle':lifecycle,'nativePageResponses':len(pages),'windows':'DEFERRED'}
         (evidence/'browser.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
         await browser.close()
 

@@ -2,7 +2,7 @@
 import { startHistoryFixture } from "../apps/history-fixture/server.ts";
 const fixture = await startHistoryFixture({ port: 3184 });
 try {
-  const browser = Bun.spawn(["python3", "tests/browser/history-browser.py"], {
+  const browser = Bun.spawn(["python3", "-B", "tests/browser/history-browser.py"], {
     env: { PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin", HOME: fixture.profile },
     stdout: "inherit", stderr: "inherit",
   });
