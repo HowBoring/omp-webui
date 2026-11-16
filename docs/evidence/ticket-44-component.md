@@ -44,13 +44,26 @@ idle retirement retains the exact handle/generation and blocks replacement pendi
 #48. Same-Session warm views remain allowed while busy. Startup revocation records
 the actual cancellation/EOF/nonzero-or-zero exit and unpublished outcome honestly.
 
-The first broad `bun run check` attempt is being retained as FAIL; missing own DSH
-fault checkout and native fixture timeout failures must not become a whole-suite
-PASS. The DSH source fault tests now use an owned lightweight clone; the canonical
+The first broad `bun run check` attempt finished exit1: 268 pass, 15 fail, one
+error, 2,106 assertions, 283 tests/67 files, 1,072.86 seconds. Its
+[structured per-test failures](ticket-44/unfrozen-broad-check.json) are retained in
+Git. The original raw output remains only in ignored `vendor/session-full-check.txt`
+with SHA-256 `05cb8db929720dec2ad77057d2b936aa8c69fdbebdfa372b1e2cf267dc0fe15f`. This attempt is invalid
+for final tuple acceptance because code changed while it ran: later idle tests
+used new APIs against an older cached carrier module. This was an avoidable test
+snapshot mistake; subsequent serialized runs must freeze all consumed source.
+Other observed failures include the missing owned DSH fault checkout, test and
+native fixture timeouts, and a lease-holder stdout assertion. Their underlying
+causes are not all established; these results must not become a whole-suite PASS. The DSH source fault tests now use an owned lightweight clone; the canonical
 shared DSH checkout was never mutated. Root is serializing native32's fixed-source
 full suite before #44 composes that exact 1–6 source and reruns the isolated tuple.
-Source-level typecheck passed at the checkpoint. Exact completed broad results and
-final matched browser/native evidence will be added after that scheduled rerun.
+Source-level typecheck passed at the checkpoint. The native code checkpoint `6f5d0db905b6bb291fa342b427b16c109ceb7979`
+(source `2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661`,
+unchanged schema `ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f`)
+is now merged into this component's Git branch. Its ignored native checkout and
+built fixtures have intentionally not been rebuilt during the pause. Final matched
+browser/native evidence requires that clean owned 1–6 preparation and the root's
+serialized rerun. Do not run the stale fixture bundle as final acceptance.
 
 **S1-CHILD-OWNERSHIP-FOLLOWUP (#48/#61): BLOCKED / not attested.** Test genuine native
 tool/subagent child survival during forced worker exit and establish the native
@@ -61,3 +74,7 @@ kill unknown descendants or signal an external TUI. Final applicable gates stay 
 Windows/WSL2 is explicitly deferred by the recorded delivery adjustment. #40's final
 same-holder rebuild and #41's production compatibility/admission remain separate
 integration gates. No prompt submission or ordinary Stop/force UI is delivered here.
+
+Resume state: **PAUSED**. Root32 owns the heavy validation slot. No runtime checks
+were run for this evidence-hygiene change. Native vendor and bundles intentionally
+remain old until the scheduled clean rebuild.

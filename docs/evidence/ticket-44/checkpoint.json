@@ -6,7 +6,7 @@
   "nativeSourceSha256": "2fc226972a094936ced2f081d1ca67d647947968cd8f3696de918d2d16f9c415",
   "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
   "grantsComponent": "3357e89426350caf9c77ca166878d78b87ce324a",
-  "pendingNativeFix": "b6df0e60878d30ab345f57a662a240ebaddb1753",
+  "pendingNativeFix": "6f5d0db905b6bb291fa342b427b16c109ceb7979",
   "historicalBuildManifests": {
     "browser": {
       "sha256": "155d60e31dd28c40cbf70fa4fdc61b11ffde0cb2598f010e331f077e0c09ddbd",
@@ -5427,5 +5427,31 @@
   "normalPrivateAdmission": "blocked",
   "historicalProofWarning": "Recorded browser/native/busy artifacts predate the fixed native32 source and are not final matched-tuple acceptance. Browser build manifests identify the exact historical consumed bytes; latest idle/logout source fixes require final isolated rerun.",
   "followOn": "S1-CHILD-OWNERSHIP-FOLLOWUP (#48/#61): direct Bun-child exit/reap is established; arbitrary native tool/subagent descendant cleanup remains unverified.",
-  "windows": "DEFERRED by recorded user delivery adjustment; no Windows PASS."
+  "windows": "DEFERRED by recorded user delivery adjustment; no Windows PASS.",
+  "composedCodeHeadAfterNativeFix": "2d00ce3940714a9ad6412f3450c98dfeab6929ca",
+  "pendingNativeSourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+  "nativeVendorRebuiltAfterMerge": false,
+  "heavyChecksPausedForSerializedNative32Run": true,
+  "unfrozenBroadAttempt": {
+    "command": "bun run check",
+    "exitCode": 1,
+    "passed": 268,
+    "failed": 15,
+    "errors": 1,
+    "assertions": 2106,
+    "tests": 283,
+    "files": 67,
+    "elapsedSeconds": 1072.86,
+    "matchedTuple": false,
+    "reason": "Code was edited while this run was active; later tests used new idle APIs against an older cached carrier module. Precise per-test failures and observed errors are retained in structured JSON. The raw log is retained only under ignored vendor with its SHA-256. No whole-suite PASS or final failure diagnosis is claimed.",
+    "ownedCleanup": "No live owned44 native/test process remained in the completion process snapshot; raw Bun output records dangling-process cleanup after timed-out fixtures.",
+    "structuredResults": "docs/evidence/ticket-44/unfrozen-broad-check.json",
+    "rawLog": {
+      "tracked": false,
+      "path": "vendor/session-full-check.txt",
+      "sha256": "05cb8db929720dec2ad77057d2b936aa8c69fdbebdfa372b1e2cf267dc0fe15f",
+      "bytes": 47617
+    }
+  },
+  "resumeState": "PAUSED: root32 owns the heavy validation slot; do not rebuild vendor/bundles or run runtime checks until scheduled."
 }
