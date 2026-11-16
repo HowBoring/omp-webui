@@ -44,7 +44,7 @@ test("explicit cancellation bypasses a held answer without rewriting its delayed
       {type:"respond_ui",targetId:"cancel",answer:{type:"cancel"}},
     ]);
     worker.requests[1]!.reply.resolve({status:"stale"});expect(await cancel).toEqual({status:"stale"});
-    expect(await Promise.all(repeated)).toEqual(Array.from({length:512},()=>({status:"stale"})));
+    expect(await Promise.all(repeated)).toEqual(Array.from({length:512},()=>({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"})));
     worker.requests[0]!.reply.resolve({status:"answered"});expect(await head).toEqual({status:"answered"});
   }finally{bridge.dispose();}
 });
