@@ -21,3 +21,9 @@ shared carrier/build extraction. `tuple.json.nativeTraceReused` explicitly recor
 that the unchanged native-only syscall trace was retained; its OMP identity and
 native guard/fixture hashes are verified before reuse. `review-fix/` retains both
 red regressions and exact new validation outcomes, including setup failures.
+
+`control-fix/` records the later cancellation-waiter correction, including its
+actual HTTP/Remote held-native-ack red and green results. It supersedes the older
+review's implication that sharing one native promise bounded external callers.
+Current browser summaries and tuple describe this corrected Host; native source,
+schema and guard/fixture trace identities remain unchanged.

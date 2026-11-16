@@ -59,6 +59,8 @@ tuple={'kind':'ticket33-isolated-explicit-interaction-linux-candidate','OMP':ide
     'tests/interactions/no-provider.ts','tests/interactions/native-extension.ts',
     'tests/interactions/native-core-loop.ts','tests/interactions/native-client.ts','bun.lock',
     'scripts/build-identities.ts','apps/diagnostics/build.ts','apps/interactions/build.ts','apps/catalog/build.ts',
-    'apps/host/src/dsh-events-carrier.ts','packages/interactions/bridge.ts','packages/contracts/interactions.ts']}}
+    'apps/host/src/dsh-events-carrier.ts','packages/interactions/bridge.ts','packages/contracts/interactions.ts',
+    'apps/host/src/interactions-fixture-server.ts','tests/browser/interactions-control.test.ts',
+    'tests/browser/interactions-browser.py']}}
 (destination/'tuple.json').write_text(json.dumps(tuple,indent=2)+'\n')
 print(json.dumps({'status':'retained','browserCases':counts,'nativeInetDispatchSyscalls':trace['inetDispatchSyscalls']}))

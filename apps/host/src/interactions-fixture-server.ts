@@ -10,7 +10,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import { interactionsContribution, interactionsHostContribution, type UIAnswer,
   type InteractionScenario } from "../../../packages/contracts/interactions.ts";
-import { InteractionBridge } from "../../../packages/interactions/bridge.ts";
+import { InteractionBridge, type InteractionPort } from "../../../packages/interactions/bridge.ts";
 import { startNativeInteractionFixture } from "../../../tests/interactions/worker.ts";
 
 interface Options { port?:number; waitMs?:number }
@@ -41,9 +41,15 @@ class InteractionsService extends TypertRemoteService {
 
 /** Isolated loopback interaction acceptance carrier. Product Session admission is blocked. */
 export async function startInteractionsFixtureServer(options: Options={}) {
+  const worker=await startNativeInteractionFixture();
+  const carrier=await startInteractionsFixtureCarrier(worker,options);
+  return {...carrier,async stop(){await carrier.stop();return worker.close();}};
+}
+
+/** Public isolated carrier with an owned worker boundary; no browser-provided worker controls. */
+export async function startInteractionsFixtureCarrier(worker:InteractionPort,options:Options={}) {
   const ctx = new Context();
   const assets=resolve("vendor/dsh-interactions");
-  const worker=await startNativeInteractionFixture();
   const bridge=new InteractionBridge(worker,options.waitMs === undefined ? {} : {waitMs:options.waitMs});
   await ctx.plugin(TypertRegistry);await ctx.plugin(RemoteAccessService);await ctx.plugin(TypertGatewayService,{});
   ctx.typert.register(interactionsHostContribution);new InteractionsService(ctx,bridge);
@@ -74,7 +80,6 @@ export async function startInteractionsFixtureServer(options: Options={}) {
       await events.dispose();
       await ctx.fiber.dispose();
       await server.stop(true);
-      return worker.close();
     },
   };
 }

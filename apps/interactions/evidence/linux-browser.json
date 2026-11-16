@@ -8,12 +8,12 @@
       "case": "root-startup-public-Slot-no-Session",
       "status": "PASS",
       "defaultWaitMs": 1800000,
-      "interactionId": "15d069f0d65c9cab"
+      "interactionId": "15d06d93ea2eaa7f"
     },
     {
       "case": "refresh-and-all-viewers-disconnect-never-renew",
       "status": "PASS",
-      "originalDeadline": 1794835868333
+      "originalDeadline": 1794836821756
     },
     {
       "case": "real-Linux-keyboard-explicit-root-answer",
@@ -42,7 +42,7 @@
     {
       "case": "real-native-ask-expiry-cancels",
       "status": "PASS",
-      "interactionId": "15d069f4bbdc9cb7"
+      "interactionId": "15d06d97b5eeaa8b"
     },
     {
       "case": "real-native-HTML-form-partial-expiry-no-defaults",
@@ -71,9 +71,9 @@
     "inputs": 247,
     "bundle": {
       "file": "interactions-fixture-main.js",
-      "sha256": "7be0cb6295aaa12a3cffeee3d9bba1560f13e0b37ab45a34e366430a20b12741"
+      "sha256": "a187fab0e1ef9cd0d3cfb3ec6030d5920f04b6d4e07cba9bc1de8c8681ffddfe"
     },
-    "inputSetSha256": "bc53e64d5986cd27d1d5f81a16ba76b727dd80997b914d3cb1454a8cd1012bab"
+    "inputSetSha256": "4e059520f6664e085fd637ea8ea795f682ed025670581423a9a636df37c33480"
   },
   "DSH": {
     "kind": "S0-isolated-interactions",
@@ -120,9 +120,9 @@
     "acknowledgedAbortCommands": 2
   },
   "rawArtifacts": {
-    "summary.json": "978e6d3498f68f962a773dfb6673315ebfcfc00e3eaf6364ff801a26ad368f8a",
-    "host.log": "089e22d2d54d065228742e587c6ef2a4a1aa4df3fe4ff9dba4dc2560794ef7ef",
-    "trace.zip": "223968b56a6405f6be35905005d51ffc0a8f537ae5ad24445cdbaa0f31ef2ab3",
+    "summary.json": "da4834fe269d89dcca473188b935c5cd5646ffb98e272403b70eb921c194c03c",
+    "host.log": "07bc1d17b258a4ba1221abdffd622ed6994f7f2d5895382b0b8ad81f310356eb",
+    "trace.zip": "3c379fd65b5bb2aaa18971cec051367fb9cfc1524f1cb4de5edebb5855110f8b",
     "root-Slot.png": "ea4d4ab9d55949651b8451e957d1010bd891b4e0b0930a092714dd6120a304c3"
   }
 }

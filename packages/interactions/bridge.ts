@@ -12,7 +12,7 @@ export interface InteractionPort {
   subscribe(listener:(frame:NativeFrame)=>void):()=>void;
   command(command:object):Promise<unknown>;
 }
-interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; answering:boolean; cancellation?:Promise<InteractionAnswerResult>; retired:boolean }
+interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; answering:boolean; controlWaiting:boolean; cancellation?:Promise<InteractionAnswerResult>; retired:boolean }
 const interactive=new Set(["ask","select","input","editor","confirm"]);
 const presentation=new Set(["notify","setStatus","setWidget","setTitle","set_editor_text","open_url"]);
 const sourceRequest=z.object({id:z.string(),method:z.string(),message:z.string().max(32768).optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().max(65536).optional(),title:z.string().max(32768).optional(),timeout:z.number().optional(),
@@ -28,6 +28,7 @@ export class InteractionBridge {
   readonly generation=randomUUID();
   #answers=0;
   #controls=0;
+  #controlWaiters=0;
   #aborting=false;
   #policy=false;
   #closed=false;
@@ -56,22 +57,30 @@ export class InteractionBridge {
   answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);
     if(generation !== this.generation || !entry || entry.retired) return Promise.resolve({status:"stale"});
-    if(answer.type !== "cancel" && performance.now()>=entry.deadlineMono) {
-      const reply=this.answer(generation,id,{type:"cancel",timedOut:true});
-      this.#stop();return reply;
-    }
-    if(answer.type === "cancel") {
-      if(entry.cancellation) return entry.cancellation;
-      if(this.#controls>=16) return this.#overloaded();
-      // Control traffic has a reserved budget and never waits for an answer acknowledgement.
-      this.#controls++;
-      entry.cancellation=this.#send(id,answer).finally(()=>{this.#controls--;});
-      return entry.cancellation;
+    const expired=answer.type !== "cancel" && performance.now()>=entry.deadlineMono;
+    if(answer.type === "cancel" || expired) {
+      // Bound retained Remote/HTTP callers independently of the coalesced native command.
+      if(entry.controlWaiting || this.#controlWaiters>=16) {
+        if(expired) {void this.#cancel(id,entry,{type:"cancel",timedOut:true});this.#stop();}
+        return this.#overloaded();
+      }
+      entry.controlWaiting=true;this.#controlWaiters++;
+      const reply=this.#cancel(id,entry,expired ? {type:"cancel",timedOut:true} : answer);
+      if(expired)this.#stop();
+      return reply.finally(()=>{entry.controlWaiting=false;this.#controlWaiters--;});
     }
     // No browser answer queue: reserve capacity before retaining payloads or creating continuations.
     if(entry.answering || entry.cancellation || this.#answers>=8) return this.#overloaded();
     entry.answering=true;this.#answers++;
     return this.#send(id,answer).finally(()=>{entry.answering=false;this.#answers--;});
+  }
+  #cancel(id:string,entry:Pending,answer:UIAnswer):Promise<InteractionAnswerResult> {
+    if(entry.cancellation)return entry.cancellation;
+    if(this.#controls>=16)return this.#overloaded();
+    // Internal expiry coalesces independently of external caller admission.
+    this.#controls++;
+    entry.cancellation=this.#send(id,answer).finally(()=>{this.#controls--;});
+    return entry.cancellation;
   }
   #overloaded():Promise<InteractionAnswerResult> {
     return Promise.resolve({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"});
@@ -120,9 +129,9 @@ export class InteractionBridge {
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
       method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
-    const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,answering:false,timer:setTimeout(()=>{
+    const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,answering:false,controlWaiting:false,timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.
-      void this.answer(this.generation,card.id,{type:"cancel",timedOut:true});
+      void this.#cancel(card.id,entry,{type:"cancel",timedOut:true});
       this.#stop();
     },wait)};
     this.#pending.set(card.id,entry);

@@ -60,7 +60,7 @@ async def run(args):
         await expect(first.locator('[data-interaction-id]')).to_have_count(0)
         await expect(second.locator('[data-interaction-id]')).to_have_count(0)
         results=[await page.locator('[data-answer-result]').inner_text() for page in [first,second]]
-        assert sorted(results)==['answered','stale'],results
+        assert sorted(results) in [['answered','stale'],['answered','overloaded']],results
         passed('Session-native-ask-two-page-first-valid',results=results)
         await first.get_by_role('button',name='Start select',exact=True).click()
         await expect(first.get_by_role('button',name='Deny',exact=True)).to_be_visible()

@@ -74,8 +74,12 @@ one outstanding answer per interaction, eight per worker, and no answer queue.
 Excess attempts return the typed Host result
 `{status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"}` immediately. This is Host
 admission feedback, separate from the unchanged native `respond_ui` result schema.
-Up to sixteen cancellation requests and one coalesced abort have separate capacity;
-duplicate cancellation attempts share the existing request. A held answer reply
+Up to sixteen native cancellation commands and one coalesced abort have separate
+capacity. External cancellation/expired-answer waiters have an independent bound:
+one per Interaction and sixteen per worker, with immediate typed Host overload for
+excess callers before any waiting continuation is allocated. Native cancellations
+coalesce independently; internal deadline work bypasses external waiter admission.
+A held answer reply
 cannot delay cancellation, expiry or abort. Invalid native replies release answer
 capacity without renewing the interaction deadline. The original native result is
 returned unchanged even when its acknowledgement arrives after the Host deadline
