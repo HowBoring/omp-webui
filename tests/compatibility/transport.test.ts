@@ -34,10 +34,10 @@ test("a valid report followed by partial EOF is a failed drain, never successful
   expect(drain.protocolFailure).toBe("RPC_PROTOCOL");
 });
 
-for (const mode of ["wrong-id", "wrong-command", "invalid-result"]) {
+for (const mode of ["wrong-id", "wrong-command", "invalid-result", "missing-policy"]) {
   test(`public transport rejects ${mode} without treating acknowledgement as compatibility`, async () => {
     const client = await fixture(mode);
-    try { await expect(client.inspect()).rejects.toThrow(mode === "invalid-result" ? "RPC_RESULT_SCHEMA" : "RPC_PROTOCOL"); }
+    try { await expect(client.inspect()).rejects.toThrow(["invalid-result","missing-policy"].includes(mode) ? "RPC_RESULT_SCHEMA" : "RPC_PROTOCOL"); }
     finally { await client.close(); }
   });
 }

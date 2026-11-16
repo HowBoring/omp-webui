@@ -15,6 +15,7 @@ test("actual candidate launcher preflight uses isolated protocol without touchin
     const output = await new Response(child.stdout).text();
     expect(await child.exited).toBe(0);
     expect(output).toContain('"safePreflight":true');
+    expect(output).toContain('"rpcUiInteractionPolicy":{"version":"1","explicitAnswersOnly":true');
     expect(output).toContain('"sessionAdmission":"blocked"');
     expect(await new Response(child.stderr).text()).toBe("");
     expect(await readdir(profile)).toEqual([]);

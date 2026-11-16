@@ -139,13 +139,19 @@ await Bun.write(join(source, "modes/rpc/interactions-command.generated.js"), int
 await Bun.write(join(source, "modes/rpc/interactions.generated.ts"),
   `// Generated from authored wire/interactions.ts.\n` +
   `import validate from './interactions-command.generated.js';\n` +
-  `import type { RpcUIAnswer } from './rpc-interactions';\n` +
+  `import policy from './interactions-policy.generated.js';\n` +
+  `import result from './interactions-result.generated.js';\n` +
+  `import type { RpcUIAnswer, RpcInteractionPolicy, RpcUIReplyResult } from './rpc-interactions';\n` +
   `type Command = {id?:string;type:'get_interaction_policy'} | {id?:string;type:'respond_ui';targetId:string;answer:RpcUIAnswer};\n` +
-  `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n`);
+  `export function validateInteractionCommand(value:unknown):value is Command { return validate(value); }\n` +
+  `export function validInteractionPolicy(value:unknown):value is RpcInteractionPolicy { return policy(value); }\n` +
+  `export function validInteractionResult(value:unknown):value is RpcUIReplyResult { return result(value); }\n`);
+await Bun.write(join(source,"modes/rpc/interactions-policy.generated.js"),standaloneCode(ajv,ajv.compile(definition("InteractionPolicy"))));
+await Bun.write(join(source,"modes/rpc/interactions-result.generated.js"),standaloneCode(ajv,ajv.compile(definition("UIReplyResult"))));
 await emit("packages/contracts/generated/interaction-command.js", interactionValidatorCode);
 await emit("packages/contracts/generated/interaction-command.d.ts",
   "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
-for (const [name, definitionName] of Object.entries({"interaction-policy":"InteractionPolicy", "interaction-result":"UIReplyResult"})) {
+for (const [name, definitionName] of Object.entries({"interaction-policy":"InteractionPolicy", "interaction-result":"UIReplyResult", "interaction-request":"ExtensionUiRequest"})) {
   await emit(`packages/contracts/generated/${name}.js`, standaloneCode(ajv, ajv.compile(definition(definitionName))));
   await emit(`packages/contracts/generated/${name}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }

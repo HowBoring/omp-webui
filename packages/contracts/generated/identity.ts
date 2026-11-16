@@ -1,2 +1,2 @@
 // Generated from the same authored source patch and schema.
-export const compatibilityBuild = {"base":"7c49c11aa5bbaf3f418406583096168ad5b8c6dc","sourceSha256":"ce880cd122f0bd2689ecb41a812834945bafb25f287d0234ef25eecff029cca7","patchSha256":"7957601256cf4d0d4eb80ec7fcc1a71b67658c072cd13b820c4bd383b76970f0","schemaSha256":"ffb7b45dbd4bbb99b514fefe1cb8592d2325807ea3a440bec97414ac7f71db89"};
+export const compatibilityBuild = {"base":"7c49c11aa5bbaf3f418406583096168ad5b8c6dc","sourceSha256":"67516716519dcb1c23b6ac668713478e1a981b1a956b145fe057b90e9b47b2f2","patchSha256":"bf4a35f56d0fdf1499ecf8107a3fadf7c1c968997e36883184e79c89e925a518","schemaSha256":"67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"};
