@@ -25,9 +25,9 @@ OS fixture establishes only its recorded socket/pidfd primitives, including a se
 
 | Check | Actual result | Scope |
 | --- | --- | --- |
-| Pure ownership module and owned filesystem tests | PASS: 21 tests, 76 assertions, 8 source files / 1 wrapper, 59 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
-| Public request/response/helper schema corpus | PASS: 11 request + 8 response + 5 helper cases | AJV 8.17.1 and strict request/helper decoders |
-| Focused source type check | PASS: `bun check --no-script`, 18 files, 0 errors, 69 ms | New ownership TS/test files only; C and CLI graph excluded |
+| Pure ownership module and owned filesystem tests | PASS: 31 tests, 114 assertions, 9 source files / 1 wrapper, 96 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
+| Public request/response/helper/authentication schema corpus | PASS: 11 request + 8 response + 5 helper + 9 authentication cases | AJV 8.17.1, strict request/helper/challenge decoders; reply signature evidence separately in pure tests |
+| Focused source type check | PASS: `bun check --no-script`, 20 files, 0 errors, 119.43 ms | New ownership TS/test files only; C and CLI graph excluded |
 | Host repository type check | PASS: `bun run typecheck`, exit 0 | Host source compile only |
 | Ordered patch application | PASS: private index, base + 1–6 + 0010 | Prepared tree recorded in identity JSON |
 | Whitespace check | PASS: owned Native diff and repository diff | Source only |
@@ -53,7 +53,7 @@ bun --no-env-file scripts/validate-ownership-preparation.ts <owned-native-checko
 Despite its filename, `execution-ownership-cli.test.ts` imports only `launch/ownership/entry.ts`, which refuses
 before any runtime import; it is not actual CLI acceptance. The source checker creates a fresh synthetic HOME,
 profile, XDG and cwd, passes an allowlisted environment, preloads the guard before any Native module, imports the
-eight test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
+nine test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
 only `src/launch/ownership/*.ts` and `test/execution-ownership*.ts`, with strict
 mode, Bun types, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noEmit` and bundler resolution.
 
@@ -73,7 +73,30 @@ incomplete fence surviving dispatcher state loss. The filesystem test uses synth
 seam; it does not prove a real helper, lease, process extinction or completion acknowledgement. This recovered source
 was already authored before reattachment; its initial RED history is unavailable, so no new RED→GREEN claim is made.
 The recorded 17/58 source result and scoped socket primitive remain historical evidence for their original inputs.
-The current 21/76 and 18-file check apply to the new preparation identity, with the OS test deliberately skipped.
+The recovered 21/76 and 18-file check apply to checkpoint `df21a34`, with the OS test deliberately skipped.
+
+## Signed replies and bounded consumers, source only
+
+The subsequent source checkpoint implements the coordinator-approved asymmetric authentication direction in
+ADR 0018. The server still requires actual client/helper SO_PEERPIDFD; a Bun worker client instead verifies a fresh
+nonce/request-bound Ed25519 reply against independent operator public-key approval. A signature is not a global
+provenance/lifecycle/admission receipt. The operator record, selected-installation transport/backend, actual server,
+worker early-message proof and external protectors remain absent/unproven. `bootstrap` and dispatcher entry still
+refuse before normal runtime effects.
+
+Public pure wire tests cover a valid known RFC 8032 fixture key, reply replay, all signed-field alterations, a wrong
+operator pin, changed server generation, concurrent challenge refusal and close during asynchronous verification.
+Public schema cases check authenticated envelope shapes; dummy schema signatures are not cryptographic proof.
+The process context serializes up to 64 broker acquisitions with a total 10-second queue/dispatch deadline, snapshotting
+the requested scope before an await. Queue overflow refuses only excess unstarted requests. Wire failure/active timeout
+revokes context and drains the queue without retry; the wire client enforces abort and prevents dispatch after close.
+
+Recorded vertical source RED→GREEN: storage retirement method absent→owned generation retirement; awaited broker
+scope mutation returned `/work/replacement-project`→retained `/work/requested-project`; absent authentication module→
+signed fresh request; close during verification resolved an authentic reply→typed refusal; parallel consumers failed
+`ownership_limit`→their independent matched grants; close before queued transport dispatch recorded one request→zero.
+The final current 31/114 result includes the 64-admitted/65th-refused queue case and synthetic filesystem reopening after
+storage-only retirement. These results make no actual socket, helper extinction, CLI, Native Agent or global claim.
 
 Compile only with `bun --no-env-file scripts/build-ownership-bridge-preparation.ts <owned-native-checkout>
 <absolute-owned-output-parent>`. It uses a unique output directory, fixed strict compiler/linker flags and an

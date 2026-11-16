@@ -6,6 +6,7 @@ const argument = process.argv[2];
 if (!argument || process.argv.length !== 3) throw new Error("USAGE: check-ownership-preparation.ts <owned-native-source>");
 const source = await realpath(resolve(argument)), repository = resolve(import.meta.dir, "..");
 const files = ["execution-ownership-cli.test.ts", "execution-ownership-client.test.ts", "execution-ownership-context.test.ts",
+  "execution-ownership-authentication.test.ts",
   "execution-ownership-contract.test.ts",
   "execution-ownership-dispatcher.test.ts", "execution-ownership-helper-wire.test.ts", "execution-ownership-fences.test.ts",
   "execution-ownership-linux.test.ts"];
