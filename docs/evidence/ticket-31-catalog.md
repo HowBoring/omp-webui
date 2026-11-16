@@ -1,14 +1,22 @@
 # Ticket 31 — bounded readonly native catalog, Linux fixture
 
+This is the retained pre-review acceptance record. The [review-fix evidence](ticket-31-review-fixes.md)
+records the corrected overlapping-source behavior, shared stdio core and current tuple/measurements.
+
 Status: **PASS for AC1–5 on the isolated Linux component**. Product private Session admission remains blocked.
 This is not protected continuation, authorization integration, complete MVP or formal S5 acceptance.
-The latest integration branch (including accepted ticket 42) was merged before final clean reproduction.
+The latest integration branch, including accepted ticket 42 and transport fix
+`3643be43d6ed7d3b5c782ddb97d24398ecc64641`, was merged before final combined validation.
+The [catalog transport follow-up](ticket-31-transport-deadlines.md) records independent queue/inflight bounds,
+startup deadlines and direct public-stdio late-publication proof. Both Host bundles/enrollment and the actual
+browser workflow were regenerated after that merge; unchanged native and pinned DSH client inputs are explicit
+in the tuple reuse record.
 
 The [versioned native contract](../../compatibility/CATALOG.md) defines the actual wire, identity, source layout,
 partial failures and fixed limits. The [runbook](../../apps/catalog/README.md) reproduces native/Host/DSH/browser use.
-Exact hashes and platform facts are in [tuple.json](../../apps/catalog/evidence/tuple.json),
-[browser results](../../apps/catalog/evidence/linux-browser.json) and
-[native trace summary](../../apps/catalog/evidence/trace-summary.json).
+Exact hashes and platform facts are in [tuple.json](../../apps/catalog/evidence/before-review/tuple.json),
+[browser results](../../apps/catalog/evidence/before-review/linux-browser.json) and
+[native trace summary](../../apps/catalog/evidence/before-review/trace-summary.json).
 
 | Acceptance | Actual evidence |
 | --- | --- |
@@ -21,10 +29,10 @@ Exact hashes and platform facts are in [tuple.json](../../apps/catalog/evidence/
 Final browser measurements use Linux x64/glibc 2.41, Bun 1.4.4 and actual Chromium **156.0.8078.79**.
 This environment exposes 5 CPUs and 18,440,100 KiB memory; it is not the formal 4-vCPU/8-GiB/SSD reference.
 Two warmups are unscored, followed by 30 scored samples for each operation. Nearest-rank P95 is retained with
-all samples and maxima: catalog **1913.50 ms** (max 1924.34), old page **223.18 ms** (max 223.49).
-The first browser cold screen is **1697.10 ms** after the Host is listening. Startup/install verification is excluded
+all samples and maxima: catalog **1402.50 ms** (max 1436.59), old page **213.55 ms** (max 258.05).
+The first browser cold screen is **1665.17 ms** after the Host is listening. Startup/install verification is excluded
 from those stable-operation measurements and is not timed here; formal first-start/whole-machine costs remain S5.
-Host RSS sampling is every 25 ms: sampled peak **123816 KiB**, OS high-water **284172 KiB**. OMP/browser/tool
+Host RSS sampling is every 25 ms: sampled peak **124000 KiB**, OS high-water **270684 KiB**. OMP/browser/tool
 peaks are not measured here and are not misreported as Host memory. All recorded component thresholds pass.
 
 Measurement caught a predecessor's startup high-water of 686796 KiB despite stable RSS of 86524 KiB. The final
@@ -59,7 +67,7 @@ cumulative patch `aebc1697a7f3321b5c0c06a7a0cc49925f500fde6be83261a25679e7516970
 `f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289`.
 The final native trace records 204 lines, one execve, one native ownership connect, zero lease binds, zero non-Unix
 connects and zero unsafe writes/ordinary Session imports. The safe preflight trace remains Session-readfree.
-The upstream fresh-artifact test passes 1 test / 5 assertions. The final full merged check passes **82 tests / 443 assertions**; individual assertion
+The upstream fresh-artifact test passes 1 test / 5 assertions. The final full merged check passes **90 tests / 509 assertions**; individual assertion
 counts vary with the number of bounded scan windows, with exact command results retained in the handoff.
 Authored native modules pass a strict TypeScript check with actual upstream types. Unrelated full-upstream
 configuration/type diagnostics are outside that narrow check and are not called a passing upstream-wide check.

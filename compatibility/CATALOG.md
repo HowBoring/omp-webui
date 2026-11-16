@@ -39,7 +39,8 @@ sourceId = SHA256(profile + ':' + canonical source root + ':' + SHA256(dev:ino:b
 instanceId = SHA256(dev:ino:birthtimeNs:nativeSessionId). Native Session ID is a distinct logical identifier.
 The reference is base64url JSON `{sourceId,locator,instanceId,nativeSessionId}`; it is an identifier, **not authorization**.
 Native descriptor verification merges proven same-physical-file aliases, while same-ID copies remain distinct.
-Different source scopes remain distinct even if hard links connect them. Physical replacement/atomic rewrite
+Different source scopes remain distinct even when nested authorized roots contain the same physical file or hard links connect them.
+Directory traversal deduplicates canonical directories within each source identity. Authorization never expands a source's fixed traversal depth. Physical replacement/atomic rewrite
 invalidates the old instance binding; a fresh descriptor can reissue it while retaining the logical native ID.
 Move/rewrite is never silently followed. Ticket 32 must revalidate these exact facts while holding the real native
 lease, maintain first-write protection and recheck current directory authority; this readonly observation is no reservation.
@@ -73,6 +74,13 @@ Directory state adds at most 2048 bounded paths/stat records; only the current d
 reads are serial. Window timing is checked between filesystem operations; the hard child deadline covers a stuck
 operation. Descriptor-byte memory excludes directory/map/array/JS overhead, bounded separately by the above counts.
 The native response packer returns fewer items with a continuing cursor when needed; it never hides the remainder.
+The Host preflight and catalog clients share `BoundedStdioTransport` lifecycle/correlation and `StdioWriteQueue`
+write/flush mechanics; generated command/result validators and ready/notification policies stay mode-specific.
+Only a validated correlated v2 acknowledgement enables chunks before the next physical line is decoded; catalog
+mode still rejects all chunks. Duplicate request IDs cannot replace a pending waiter.
+The Host catalog transport independently bounds pending requests and queued/inflight writes at 32, releases
+write slots in finally, and skips queued requests that expired before writing. Its startup budget covers ready
+and negotiation together, separately selectable from requests/drain; default budgets are unchanged.
 The Host catalog transport rejects chunk frames because every permitted catalog response fits below the physical
 RPC ceiling, and keeps its actual byte buffer at the catalog response bound.
 

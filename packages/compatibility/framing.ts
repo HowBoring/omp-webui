@@ -13,7 +13,8 @@ export class PhysicalFrames {
   }
   negotiate(version: 2): void { this.version = version; }
 
-  push(chunk: Uint8Array): object[] {
+  /** A synchronous consumer can apply a correlated negotiation before decoding the next physical line. */
+  push(chunk: Uint8Array, accept?: (frame: object) => void): object[] {
     const output: object[] = [];
     let start = 0;
     while (start < chunk.byteLength) {
@@ -31,7 +32,10 @@ export class PhysicalFrames {
         }
         const frame = this.decoder.push(value);
         this.pendingChunk = frame === undefined;
-        if (frame !== undefined) output.push(frame);
+        if (frame !== undefined) {
+          if (accept) accept(frame);
+          else output.push(frame);
+        }
         this.used = 0;
       }
       start = end;

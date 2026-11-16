@@ -26,22 +26,26 @@ python3 tests/browser/catalog-browser.py
 
 `catalog:fixture-data` is an explicit **test fixture authoring** tool, not a Host service. It replaces only the owned
 ignored `vendor/catalog-fixture` with 1000 native Sessions in 1000 buckets, a custom same-ID copy and unknown-cwd
-Session, verified aliases, malformed metadata and an invalid custom source. Never point this fixture at real data.
+Session, a nested authorized bucket source, verified aliases, malformed metadata and an invalid custom source.
+The 1002 physical Sessions produce 1003 source-scoped rows; all three `native-0000` records have separately
+verified references. Never point this fixture at real data.
 The acceptance Host is fixed at `http://127.0.0.1:3181`; the synthetic HOME/source paths are fixed in its local entry.
 The source-mode native child receives only this isolated HOME/cwd/TMPDIR and explicit source configuration, with
 Bun transpiler caching disabled. The ordinary preflight uses its own empty synthetic HOME and never reads Sessions.
 
-DSH source/build reuse in this environment: `vendor/dsh` is a read-only symlink to ticket 30's complete, clean pinned
-`vendor/dsh-clean`, already proven by ticket 30's eight artifact gates. No DSH source or shared artifact is modified.
-The fixture independently compiles its 238 browser source inputs into its own ignored `vendor/dsh-catalog`, checks
-DSH base/clean tracked source and records every consumed input/asset identity. A fresh environment may prepare its
-own pinned DSH clone with the existing `dsh:prepare` / `dsh:link` commands instead. OMP source is a distinct owned
-ignored clone; local frozen runtime dependencies were copied transparently from ticket 30 then revalidated/reused.
+The original DSH build used ticket 30's complete, clean pinned `vendor/dsh-clean`; the catalog build recorded all
+238 browser source inputs, DSH base, contract and asset hashes. This review-fix worktree transparently copies the
+unchanged `dsh-catalog` and `dsh-diagnostics` artifact directories and rechecks those identities; it does not perform
+a cold DSH build or modify shared DSH source. A fresh environment may prepare its own pinned DSH clone with
+`dsh:prepare` / `dsh:link` instead. OMP uses an owned writable ignored clone from the local fixed-base object cache;
+its frozen dependency files are reused read-only via hard links in owned directories.
 No global installation is changed, no provider/model/tool is configured or invoked, and no real profile/history is read.
 
 The enrollment includes this acceptance Host/client and the complete native source/dependency closure. Stop the
 fixture before rebuilding or changing its enrolled tuple. Browser calls use genuine DSH envelopes and typed results;
-there is no parallel REST Session protocol. Native errors become bounded typed fixture outcomes, including stale/
+there is no parallel REST Session protocol. The readonly transport independently bounds pending requests and queued/inflight writes at 32; expired queued
+commands never start later. One startup budget covers ready plus negotiation separately from requests/drain.
+Native errors become bounded typed fixture outcomes, including stale/
 expired/scope cursors. Wrong correlation is tested as a separately labelled intercepted carrier fault. This isolated
 anonymous loopback fixture is not the product's authorization implementation.
 
@@ -50,3 +54,6 @@ See [native contract and budgets](../../compatibility/CATALOG.md) and
 manifests stay ignored under vendor; summaries and exact hashes are tracked. Windows Chrome/WSL2 was explicitly
 deferred by the owner, so no Windows PASS is claimed. Formal complete-product/native-write/performance acceptance
 remains in later tickets; this page proves the readonly slice only.
+
+The [review-fix evidence](../../docs/evidence/ticket-31-review-fixes.md) records the current tuple, native overlap regression,
+shared stdio checks and explicit reuse of the unchanged pinned DSH browser artifacts.
