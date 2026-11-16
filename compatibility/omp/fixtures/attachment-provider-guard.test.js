@@ -69,3 +69,48 @@ test('native document clone keeps its original content baseline across a context
   expect(() => carryPreparedModelMessage(copy, { role: 'developer', content: 'modified', timestamp: 1 }))
     .toThrow('ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED');
 });
+
+test('queued groups are selected from actual call originals without an initiating task scope', async () => {
+  const { capturePreparedDeliveries, assertPreparedDeliveries } = await import('../../../vendor/omp/packages/coding-agent/src/attachments/provider-guard');
+  const target = { sourceId: 'a'.repeat(64), instanceId: 'b'.repeat(64), nativeSessionId: 'native' };
+  const make = name => {
+    const image = { type: 'image', mimeType: 'image/png', data: `prepared ${name}` };
+    const link = { originalId: name, preparedId: `prepared-${name}`, originalSha256: 'c'.repeat(64),
+      preparedSha256: 'd'.repeat(64), representationKind: 'image' };
+    const group = { target, modelFingerprint: 'model', attachments: [link], dispatched: false };
+    stagePreparedImage(image, link, group);
+    return { group, message: { role: 'user', timestamp: 1, content: [image] } };
+  };
+  const prior = make('old'), queued = make('queued'); prior.group.dispatched = true;
+  const groups = capturePreparedDeliveries([prior.message, queued.message]);
+  expect(groups).toEqual([queued.group]);
+  expect(() => assertPreparedDeliveries({ messages: [prior.message, queued.message] }, 'model', groups, target)).not.toThrow();
+  expect(() => assertPreparedDeliveries({ messages: [prior.message] }, 'model', groups, target))
+    .toThrow('ATTACHMENT_PROVIDER_REPRESENTATION_MISSING');
+});
+
+test('payload errors, rewrites and cancellation retain only their explicit pending delivery group', async () => {
+  const { guardPreparedPayload } = await import('../../../vendor/omp/packages/coding-agent/src/attachments/provider-guard');
+  const make = () => ({ target: {}, modelFingerprint: 'model', attachments: [], dispatched: false });
+  const group = make(), unrelated = make();
+  await expect(guardPreparedPayload({ original: true }, [group], () => {}, () => { throw Error('hook failure'); }))
+    .rejects.toThrow('hook failure'); expect(group.dispatched).toBe(false);
+  await expect(guardPreparedPayload({ original: true }, [group], () => {}, () => ({ replaced: true })))
+    .rejects.toThrow('ATTACHMENT_PROVIDER_PAYLOAD_CHANGED'); expect(group.dispatched).toBe(false);
+  const abort = new AbortController();
+  await expect(guardPreparedPayload({ original: true }, [group], () => {}, () => { abort.abort(); }, abort.signal))
+    .rejects.toThrow(); expect(group.dispatched).toBe(false);
+  await guardPreparedPayload({ original: true }, [group], () => {}, () => undefined);
+  expect(group.dispatched).toBe(true); expect(unrelated.dispatched).toBe(false);
+});
+
+test('explicit native custom input construction carries origin; identical custom data does not', async () => {
+  const { captureSubmission, copySubmission, messageSubmission } = await import('../../../vendor/omp/packages/coding-agent/src/session/submission-provenance');
+  const scope = { origin: { sourceId: 'a'.repeat(64), instanceId: 'b'.repeat(64), nativeSessionId: 'native', clientSubmissionId: 'skill' }, phase: 'input' };
+  const invocation = { customType: 'skill-prompt', content: 'actual native skill input' };
+  runSubmission(scope, () => captureSubmission(invocation, 'user'));
+  const nativeMessage = { role: 'custom', ...invocation, timestamp: 1 };
+  copySubmission(invocation, nativeMessage);
+  expect(messageSubmission(nativeMessage)).toMatchObject({ origin: scope.origin, role: 'input' });
+  expect(messageSubmission({ ...nativeMessage })).toBeUndefined();
+});

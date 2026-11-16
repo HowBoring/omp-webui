@@ -445,30 +445,32 @@ index 0000000000..5e7c067d85
 +}
 diff --git a/packages/coding-agent/src/attachments/provider-guard.ts b/packages/coding-agent/src/attachments/provider-guard.ts
 new file mode 100644
-index 0000000000..685ac1b6ee
+index 0000000000..a735754716
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/provider-guard.ts
-@@ -0,0 +1,87 @@
+@@ -0,0 +1,135 @@
 +import type { Context, ImageContent, Message } from "@oh-my-pi/pi-ai";
 +import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 +import type { FileMentionMessage } from "../session/messages";
-+import { stageAttachmentMessage } from "../session/submission-provenance";
++import { stageAttachmentMessage, type SubmissionTarget } from "../session/submission-provenance";
 +import type { PreparedAttachmentLink } from "./receipts";
 +import { submissionScope, stagedAttachmentLinks } from "../session/submission-provenance";
 +
-+interface ImageOrigin { link: PreparedAttachmentLink; data: string; mimeType: string }
++export interface PreparedDelivery { readonly target: SubmissionTarget; readonly modelFingerprint: string;
++	readonly attachments: readonly PreparedAttachmentLink[]; dispatched: boolean }
++interface ImageOrigin { link: PreparedAttachmentLink; data: string; mimeType: string; delivery?: PreparedDelivery }
 +const images = new WeakMap<object, ImageOrigin>();
-+const documentSources = new WeakMap<object, { files: string; role: string }>();
-+const documents = new WeakMap<object, { links: readonly PreparedAttachmentLink[]; content: string; role: string }>();
++const documentSources = new WeakMap<object, { files: string; role: string; delivery?: PreparedDelivery }>();
++const documents = new WeakMap<object, { links: readonly PreparedAttachmentLink[]; content: string; role: string; delivery?: PreparedDelivery }>();
 +
 +/** Native staging establishes causal identity on the actual immutable image object. */
-+export function stagePreparedImage(image: ImageContent, link: PreparedAttachmentLink): void {
-+	images.set(image, { link: { ...link }, data: image.data, mimeType: image.mimeType });
++export function stagePreparedImage(image: ImageContent, link: PreparedAttachmentLink, delivery?: PreparedDelivery): void {
++	images.set(image, { link: { ...link }, data: image.data, mimeType: image.mimeType, ...(delivery ? { delivery } : {}) });
 +}
 +
 +/** Stage the original immutable document fields, independently of later extension/model views. */
-+export function stagePreparedDocument(message: FileMentionMessage): void {
-+	 documentSources.set(message, { files: JSON.stringify(message.files), role: message.role });
++export function stagePreparedDocument(message: FileMentionMessage, delivery?: PreparedDelivery): void {
++	documentSources.set(message, { files: JSON.stringify(message.files), role: message.role, ...(delivery ? { delivery } : {}) });
 +}
 +
 +/** This native clone operation establishes origin before extension handlers can mutate or replace any clone. */
@@ -497,7 +499,8 @@ index 0000000000..685ac1b6ee
 +		throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED");
 +	}
 +	const links = stagedAttachmentLinks(source)?.filter(link => link.representationKind === "text");
-+	if (links?.length) documents.set(target, { links, content: JSON.stringify(target.content), role: target.role });
++	if (links?.length) documents.set(target, { links, content: JSON.stringify(target.content), role: target.role,
++		...(origin?.delivery ? { delivery: origin.delivery } : {}) });
 +}
 +
 +function assertOrder(expected: string[], actual: string[]): void {
@@ -507,13 +510,58 @@ index 0000000000..685ac1b6ee
 +	}
 +}
 +
++/** Capture only actual native causal objects present in this call, after queued inputs fold into the live context. */
++export function capturePreparedDeliveries(messages: readonly object[]): PreparedDelivery[] {
++	const deliveries = new Set<PreparedDelivery>();
++	for (const message of messages) {
++		const document = documentSources.get(message)?.delivery ?? documents.get(message)?.delivery;
++		if (document && !document.dispatched) deliveries.add(document);
++		const content: unknown = Reflect.get(message, "content");
++		if (!Array.isArray(content)) continue;
++		for (const part of content) {
++			const delivery = part && typeof part === "object" ? images.get(part)?.delivery : undefined;
++			if (delivery && !delivery.dispatched) deliveries.add(delivery);
++		}
++	}
++	return [...deliveries];
++}
++
++/** Expectations come from the actual native call's source objects, independently of the task draining its queue. */
++export function assertPreparedDeliveries(context: Context, modelFingerprint: string, deliveries: readonly PreparedDelivery[],
++	target: SubmissionTarget): void {
++	for (const delivery of deliveries) {
++		if (delivery.modelFingerprint !== modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
++		if (delivery.target.sourceId !== target.sourceId || delivery.target.instanceId !== target.instanceId ||
++			delivery.target.nativeSessionId !== target.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
++	}
++	assertAttachments(context, deliveries.flatMap(delivery => [...delivery.attachments]));
++}
++
++/** Validate the final native payload-hook boundary; a thrown/rejected/cancelled hook never retires its groups. */
++export async function guardPreparedPayload(payload: unknown, deliveries: readonly PreparedDelivery[],
++	validate: () => void, transform: () => unknown | Promise<unknown>, signal?: AbortSignal): Promise<unknown> {
++	signal?.throwIfAborted(); validate();
++	const fingerprint = Bun.SHA256.hash(JSON.stringify(payload) ?? "undefined", "hex");
++	const transformed = await transform();
++	signal?.throwIfAborted(); validate();
++	if (Bun.SHA256.hash(JSON.stringify(transformed ?? payload) ?? "undefined", "hex") !== fingerprint) {
++		throw new Error("ATTACHMENT_PROVIDER_PAYLOAD_CHANGED");
++	}
++	for (const delivery of deliveries) delivery.dispatched = true;
++	return transformed;
++}
++
 +/** Refuse lost/replaced prepared inputs before any provider dispatch; identical bytes do not establish origin. */
 +export function assertPreparedProviderContext(context: Context, modelFingerprint: string): void {
 +	const prepared = submissionScope()?.prepared;
 +	if (!prepared) return;
 +	if (modelFingerprint !== prepared.modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
-+	const expected = prepared.attachments.filter(link => link.representationKind === "image").map(link => link.preparedId);
-+	const expectedText = prepared.attachments.filter(link => link.representationKind === "text").map(link => link.preparedId);
++	assertAttachments(context, prepared.attachments);
++}
++
++function assertAttachments(context: Context, attachments: readonly PreparedAttachmentLink[]): void {
++	const expected = attachments.filter(link => link.representationKind === "image").map(link => link.preparedId);
++	const expectedText = attachments.filter(link => link.representationKind === "text").map(link => link.preparedId);
 +	const actual: string[] = [];
 +	const actualText: string[] = [];
 +	for (const message of context.messages) {
@@ -538,10 +586,10 @@ index 0000000000..685ac1b6ee
 +}
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
 new file mode 100644
-index 0000000000..d507c7281c
+index 0000000000..752a8739b9
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/receipts.ts
-@@ -0,0 +1,201 @@
+@@ -0,0 +1,204 @@
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
 +import type { FileMentionMessage } from "../session/messages";
 +import { decodeBase64ImageData } from "@oh-my-pi/pi-utils/mime";
@@ -550,7 +598,7 @@ index 0000000000..d507c7281c
 +import { ATTACHMENT_BUDGET_VERSION, ATTACHMENT_LIMITS } from "./limits";
 +import { stageAttachmentMessage } from "../session/submission-provenance";
 +import { measureAttachmentRpc, measureAttachmentOutput } from "./rpc-budget";
-+import { stagePreparedImage, stagePreparedDocument } from "./provider-guard";
++import { stagePreparedImage, stagePreparedDocument, type PreparedDelivery } from "./provider-guard";
 +
 +export interface AttachmentBinding {
 +	sourceId: string; instanceId: string; nativeSessionId: string; contextId: string;
@@ -671,6 +719,9 @@ index 0000000000..d507c7281c
 +		const images: ImageContent[] = [];
 +		const companionMessages: FileMentionMessage[] = [];
 +		const attachments: PreparedAttachmentLink[] = [];
++		const delivery: PreparedDelivery = { target: { sourceId: staged.receipt.binding.sourceId,
++			instanceId: staged.receipt.binding.instanceId, nativeSessionId: staged.receipt.binding.nativeSessionId },
++			modelFingerprint: staged.receipt.binding.modelFingerprint, attachments, dispatched: false };
 +		for (const item of staged.receipt.items) {
 +			if (item.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
 +			const representation = item.representation;
@@ -679,13 +730,13 @@ index 0000000000..d507c7281c
 +			attachments.push(Object.freeze(link));
 +			if (representation.kind === "image") {
 +				const image: ImageContent = { type: "image", data: representation.data, mimeType: representation.mimeType };
-+				stagePreparedImage(image, link); images.push(image);
++				stagePreparedImage(image, link, delivery); images.push(image);
 +			}
 +			else {
 +				const message: FileMentionMessage = { role: "fileMention", timestamp: staged.receipt.expiresAt - ATTACHMENT_LIMITS.receiptMs,
 +					files: [{ path: `attachment-prepared://${item.preparedId}`, content: representation.text,
 +						byteSize: Buffer.byteLength(representation.text) }] };
-+				stageAttachmentMessage(message, [link]); stagePreparedDocument(message);
++				stageAttachmentMessage(message, [link]); stagePreparedDocument(message, delivery);
 +				Object.freeze(message.files[0]); Object.freeze(message.files);
 +				for (const key of ["role", "timestamp", "files"] as const) {
 +					Object.defineProperty(message, key, { writable: false, configurable: false });
@@ -1134,18 +1185,46 @@ index ea64e54560..63a031ecb1 100644
 +	onFrame(parsed, encodedBytes);
  }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 66fff2dfdb..3b5cd5d873 100644
+index e71a0ac1e3..e8c2c651b6 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1,5 +1,7 @@
+@@ -1,6 +1,9 @@
  import { nativeSubmissionPolicy } from "../../session/submission-policy";
  import { RpcSubmissions } from "./rpc-submissions";
+-import { runSubmission, submissionScope } from "../../session/submission-provenance";
++import type { CustomMessage } from "../../session/messages";
 +import { createAttachmentPreparations, validateAttachmentCommand } from "./rpc-attachments";
 +import { rpcInputPolicy } from "./rpc-input-policy";
- import { runSubmission, submissionScope } from "../../session/submission-provenance";
++import { runSubmission, submissionScope, stageInputAttachmentMessage, captureSubmission } from "../../session/submission-provenance";
  import { validateHistoryCommand } from "./history.generated";
  import { RpcHistoryObservation } from "./rpc-history";
-@@ -386,7 +388,7 @@ export async function tryRunRpcSkillCommand(
+ import { getStrictStartup, observeStrictStartup } from "./strict-context";
+@@ -303,16 +306,16 @@ export async function runRpcSkillCommand(
+ 	images?: ImageContent[],
+ ): Promise<boolean> {
+ 	const built = prebuilt ?? (await session.buildUserSkillPrompt(invocation.skill, invocation));
+-	return session.promptCustomMessage(
+-		{
++	const value = submissionScope();
++	return runSubmission(value ? { ...value, phase: "input" } : undefined, () => {
++		const message: Pick<CustomMessage, "customType" | "content" | "display" | "details" | "attribution"> = {
+ 			customType: SKILL_PROMPT_MESSAGE_TYPE,
+ 			content: images?.length ? [{ type: "text", text: built.message }, ...images] : built.message,
+-			display: true,
+-			details: built.details,
+-			attribution: "user",
+-		},
+-		{ streamingBehavior, queueChipText: invocation.queueChipText, onPromptAdmitted },
+-	);
++			display: true, details: built.details, attribution: "user",
++		};
++		stageInputAttachmentMessage(message, images); captureSubmission(message, "user");
++		return session.promptCustomMessage(message, { streamingBehavior, queueChipText: invocation.queueChipText, onPromptAdmitted });
++	});
+ }
+ 
+ /**
+@@ -386,7 +389,7 @@ export async function tryRunRpcSkillCommand(
  export interface RpcInputFrameDeps {
  	handleCommand: (command: RpcCommand) => Promise<RpcResponse>;
  	output: RpcOutput;
@@ -1154,7 +1233,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  	trackBackgroundTask?: (task: Promise<void>) => void;
  	pendingExtensionRequests: Map<string, PendingExtensionRequest>;
  	onHostToolResult: (frame: RpcHostToolResult) => void;
-@@ -440,6 +442,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
+@@ -440,6 +443,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
   * A Set, not a Record: `type` is untrusted input and must not hit prototype keys.
   */
  const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
@@ -1162,7 +1241,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  	"bash",
  	"predict_word",
  	"live_start",
-@@ -603,22 +606,36 @@ export class RpcInputDispatcher {
+@@ -605,22 +609,36 @@ export class RpcInputDispatcher {
  	readonly #deps: RpcInputFrameDeps;
  	readonly #afterSerialCommand: (() => Promise<void>) | undefined;
  	readonly #acceptInput: ((command: RpcCommand) => void) | undefined;
@@ -1201,7 +1280,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  			this.#acceptInput?.(command);
  			// Bash and predict_word retain their immediate side channel. Prompts,
  			// steers, follow-ups and steer_subagent start through the serial tail, but
-@@ -638,11 +655,18 @@ export class RpcInputDispatcher {
+@@ -640,11 +658,18 @@ export class RpcInputDispatcher {
  				this.#tasks.delete(task);
  			});
  		} catch (err: unknown) {
@@ -1220,7 +1299,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  	/** Await every accepted serial command, including commands queued before EOF. */
  	async drain(): Promise<void> {
  		while (this.#tasks.size > 0) {
-@@ -1330,7 +1354,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1332,7 +1357,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -1229,7 +1308,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1683,22 +1707,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1685,22 +1710,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// Read stdin from now on: `session_start` may be waiting on a dialog only the client can answer. Until the
  	// command loop below exists, negotiation, interaction control and the ask-dialog opt-in are handled at once; every other
  	// frame is held, in arrival order, for that loop.
@@ -1261,7 +1340,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  	const rejectStartupDialogs = (): void => {
  		if (heldFrames) pendingExtensionRequests.rejectAll("RPC client disconnected during startup");
  	};
-@@ -1844,7 +1872,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1846,7 +1875,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -1271,26 +1350,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
  	type OrderedInputOutcome = "local" | "cancelled" | "admitted" | "builtin-agent";
-@@ -1855,8 +1884,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
- 		const initiatingSubmission = submissionScope();
- 		return inputGate.enqueue(() => runSubmission(initiatingSubmission, async () => {
- 			const sessionId = session.sessionId;
--			const isCurrent = () =>
--				inputGate.isCurrent(command) && !shutdownState.requested && session.sessionId === sessionId;
-+			const isCurrent = () => {
-+				if (!inputGate.isCurrent(command) || shutdownState.requested || session.sessionId !== sessionId) return false;
-+				if (initiatingSubmission) {
-+					const target = session.sessionManager.getSubmissionTarget();
-+					const origin = initiatingSubmission.origin;
-+					if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId ||
-+						target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
-+				}
-+				return true;
-+			};
- 			if (!isCurrent()) return "cancelled";
- 			let text = command.message;
- 			let images = command.images;
-@@ -1866,10 +1903,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1878,10 +1908,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				if (!isCurrent()) return "cancelled";
  				if (result.handled) return "local";
  				if (result.text !== undefined) text = result.text;
@@ -1306,7 +1366,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  			if (command.type === "steer") {
  				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
  				return "admitted";
-@@ -1987,6 +2028,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1999,6 +2033,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -1323,7 +1383,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  			case "submission_query": {
  				try { submissions.validate(command); return success(id, command.type,
  					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
-@@ -1999,7 +2050,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2011,7 +2055,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  					if (!reservation.admitted) return success(id, command.type, submissions.query(command.clientSubmissionId, 0, 64, true));
  					const { scope } = reservation;
  					try {
@@ -1333,7 +1393,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  						inputGate.alias(command, input);
  						if (input.type === "abort_and_prompt") {
  							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
-@@ -2962,7 +3014,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2974,7 +3019,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// the reader and killing the whole process (issue #5194).
  	const held = heldFrames;
  	heldFrames = undefined;
@@ -1344,7 +1404,7 @@ index 66fff2dfdb..3b5cd5d873 100644
  
  	// stdin closed — RPC client is gone. Fail pending side-channel requests
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-index 345c18f6b9..58810ed391 100644
+index 618b561af7..1eebc0851d 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -6,11 +6,13 @@ import { messageSubmission, runSubmission, sameSubmission } from "../../session/
@@ -1424,7 +1484,7 @@ index 345c18f6b9..58810ed391 100644
        const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
      } } };
    }
-@@ -106,13 +130,15 @@ export class RpcSubmissions {
+@@ -108,13 +132,15 @@ export class RpcSubmissions {
      const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
      const retained = new Set(durableEntries.map(entry => entry.id));
      const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
@@ -1443,7 +1503,7 @@ index 345c18f6b9..58810ed391 100644
      }
      relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
      const end = Math.min(offset + limit, relations.length);
-@@ -121,6 +147,7 @@ export class RpcSubmissions {
+@@ -123,6 +149,7 @@ export class RpcSubmissions {
          && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
        reservation: "committed", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
        persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
@@ -1632,30 +1692,43 @@ index 6679486e23..933e047e8a 100644
      params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
  ] as const;
 diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
-index 5bddc84cfe..65d7e0be93 100644
+index 5bddc84cfe..b386a6114b 100644
 --- a/packages/coding-agent/src/sdk.ts
 +++ b/packages/coding-agent/src/sdk.ts
-@@ -35,6 +35,10 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
+@@ -35,6 +35,9 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
  import { isOpenAICodexWebSocketPreferred } from "@oh-my-pi/pi-ai/providers/openai-codex-transport";
  import { withCredentialRedaction } from "@oh-my-pi/pi-ai/providers/transform-messages";
  import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
 +import { attachmentModelFingerprint } from "./attachments/model-binding";
-+import { assertPreparedProviderContext } from "./attachments/provider-guard";
-+import { submissionScope } from "./session/submission-provenance";
++import { assertPreparedDeliveries, capturePreparedDeliveries, guardPreparedPayload, type PreparedDelivery } from "./attachments/provider-guard";
 +import { cfgImagesUrlsEnabled } from "./blob-broker/settings";
  import { syncOpenAIResponsesHistoryTexts } from "@oh-my-pi/pi-ai/utils";
  import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
  import type { Component } from "@oh-my-pi/pi-tui";
-@@ -4811,24 +4815,46 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -4798,7 +4801,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 		// One transform per conversation: the date/cwd reminder remembers what each
+ 		// conversation was sent, so the main loop and every advisor get their own.
+ 		// Only the main loop journals its reminders in the session.
+-		const createTransformProviderContext = (journal?: DateCwdReminderJournal) => {
++		let mainPreparedDeliveries: PreparedDelivery[] = [];
++		const providerPreparedDeliveries = new WeakMap<Context, PreparedDelivery[]>();
++		const checkPreparedDeliveries = (context: Context, model: Model, deliveries: readonly PreparedDelivery[]): void => {
++			if (!deliveries.length) return;
++			assertPreparedDeliveries(context, attachmentModelFingerprint(model, {
++				blocked: cfgImagesBlockImages.get(settings), urls: cfgImagesUrlsEnabled.get(settings),
++			}), deliveries, sessionManager.getSubmissionTarget());
++		};
++		const createTransformProviderContext = (journal?: DateCwdReminderJournal,
++			expectations?: () => PreparedDelivery[]) => {
+ 			const dateCwdReminder = new DateCwdReminderInjector(journal);
+ 			return async (context: Context, transformModel: Model): Promise<Context> => {
+ 				let transformed = obfuscator ? obfuscateProviderContext(obfuscator, context) : context;
+@@ -4811,25 +4823,29 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  				// cases they own (STB WebP), so this stays the backstop for everything
  				// else, and it runs before the blob broker uploads any of these bytes.
  				transformed = await dropUnreadableContextImages(transformed, transformModel);
-+				if (submissionScope()?.prepared) {
-+					sessionManager.getSubmissionTarget();
-+					assertPreparedProviderContext(transformed, attachmentModelFingerprint(transformModel, {
-+						blocked: cfgImagesBlockImages.get(settings), urls: cfgImagesUrlsEnabled.get(settings),
-+					}));
-+				}
++				const deliveries = expectations?.() ?? capturePreparedDeliveries(context.messages);
++				checkPreparedDeliveries(transformed, transformModel, deliveries);
  				transformed = await blobBroker.decorateContext(transformed, transformModel);
  				// Byte budget after decoration: URL/file-referenced images carry no inline bytes.
  				transformed = clampProviderContextImageBytes(transformed, transformModel);
@@ -1668,40 +1741,73 @@ index 5bddc84cfe..65d7e0be93 100644
  					formatLocalCalendarDate(),
  					normalizePromptPath(sessionManager.getCwd()),
  				);
-+				if (submissionScope()?.prepared) assertPreparedProviderContext(finalContext, attachmentModelFingerprint(transformModel, {
-+					blocked: cfgImagesBlockImages.get(settings), urls: cfgImagesUrlsEnabled.get(settings),
-+				}));
++				checkPreparedDeliveries(finalContext, transformModel, deliveries);
++				if (deliveries.length) providerPreparedDeliveries.set(finalContext, [...deliveries]);
 +				return finalContext;
  			};
  		};
  		const transformProviderContext = createTransformProviderContext(
- 			createSessionDateCwdReminderJournal(sessionManager),
+-			createSessionDateCwdReminderJournal(sessionManager),
++			createSessionDateCwdReminderJournal(sessionManager), () => mainPreparedDeliveries,
  		);
- 		const onPayload = async (payload: unknown, model?: Model, signal?: AbortSignal) => {
+-		const onPayload = async (payload: unknown, model?: Model, signal?: AbortSignal) => {
 -			return await extensionRunner.emitBeforeProviderRequest(payload, model, signal);
-+			const prepared = submissionScope()?.prepared;
-+			const fingerprint = prepared ? Bun.SHA256.hash(JSON.stringify(payload) ?? "undefined", "hex") : undefined;
-+			if (prepared) sessionManager.getSubmissionTarget();
-+			const transformed = await extensionRunner.emitBeforeProviderRequest(payload, model, signal);
-+			if (prepared) {
-+				sessionManager.getSubmissionTarget();
-+				if (attachmentModelFingerprint(model, { blocked: cfgImagesBlockImages.get(settings),
-+					urls: cfgImagesUrlsEnabled.get(settings) }) !== prepared.modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
-+				if (Bun.SHA256.hash(JSON.stringify(transformed ?? payload) ?? "undefined", "hex") !== fingerprint) {
-+					throw new Error("ATTACHMENT_PROVIDER_PAYLOAD_CHANGED");
-+				}
-+			}
-+			return transformed;
- 		};
+-		};
++		const onPayload = (payload: unknown, model?: Model, signal?: AbortSignal) =>
++			extensionRunner.emitBeforeProviderRequest(payload, model, signal);
  		const onResponse: SimpleStreamOptions["onResponse"] = async (response, model, signal) => {
  			await extensionRunner.emitAfterProviderResponse(response, model, signal);
+ 		};
+@@ -4899,8 +4915,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 			if (cfgOffline.get(settings) && streamModel.provider !== session?.model?.provider) {
+ 				return Promise.reject(new Error("Offline mode restricts model calls to the active session provider."));
+ 			}
++			const deliveries = providerPreparedDeliveries.get(context) ?? capturePreparedDeliveries(context.messages);
++			checkPreparedDeliveries(context, streamModel, deliveries);
++			const guardedOptions: SimpleStreamOptions | undefined = deliveries.length ? { ...streamOptions,
++				onPayload: (payload, payloadModel, signal) => guardPreparedPayload(payload, deliveries,
++					() => checkPreparedDeliveries(context, payloadModel ?? streamModel, deliveries),
++					() => streamOptions?.onPayload?.(payload, payloadModel, signal), signal),
++			} : streamOptions;
+ 			return withCredentialRedaction(cfgSecretsEnabled.get(settings), () =>
+-				settingsBoundStreamFn(streamModel, context, streamOptions),
++				settingsBoundStreamFn(streamModel, context, guardedOptions),
+ 			);
+ 		};
+ 		// Primary-agent (and its auto-learn capture twin) provider options read per
+@@ -5028,7 +5051,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 				// loop (side-channel, advisor, and maintenance requests use
+ 				// dedicated wrappers), so it owns the warmer. The replay omits the
+ 				// one-shot fallback-credit redemption.
+-				session.startCacheWarming(streamModel, context, merged);
++				if (!providerPreparedDeliveries.get(context)?.length) session.startCacheWarming(streamModel, context, merged);
+ 				return stream;
+ 			},
+ 			cursorExecHandlers,
+@@ -5083,6 +5106,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 					: undefined
+ 				: undefined,
+ 		});
++		disposeCallbacks.add(agent.addBeforeModelCallHook((_signal, context) => {
++			// This is the actual folded native input, including queued messages; the draining task's ALS origin is irrelevant.
++			mainPreparedDeliveries = capturePreparedDeliveries(context.messages);
++		}));
++		disposeCallbacks.add(agent.addBeforeModelCall(context => {
++			const activeModel = agent.state.model;
++			if (mainPreparedDeliveries.length && !activeModel) throw new Error("ATTACHMENT_TARGET_CHANGED");
++			if (activeModel) checkPreparedDeliveries(context, activeModel, mainPreparedDeliveries);
++			if (mainPreparedDeliveries.length) providerPreparedDeliveries.set(context, [...mainPreparedDeliveries]);
++		}));
+ 		// The main Agent's issued provider is available before AgentSession accounts
+ 		// for the finalized message, including errors synthesized after a stream throws.
+ 		agent.subscribe(event => {
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index b6c52add3d..6a12ae7979 100644
+index b6c52add3d..7565fa5e60 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,4 +1,7 @@
 -import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask } from "./submission-provenance";
-+import { captureSubmission, messageSubmission, runSubmission, submissionScope, trackSubmissionTask, stageInputAttachmentMessage, takePreparedAttachmentMessages } from "./submission-provenance";
++import { captureSubmission, copySubmission, messageSubmission, sameSubmission, runSubmission, submissionScope, trackSubmissionTask, stageInputAttachmentMessage, takePreparedAttachmentMessages } from "./submission-provenance";
 +import { attachmentModelFingerprint, attachmentImageCapable } from "../attachments/model-binding";
 +import { cfgImagesBlockImages } from "../modes/settings";
 +import { cfgImagesUrlsEnabled } from "../blob-broker/settings";
@@ -1726,7 +1832,20 @@ index b6c52add3d..6a12ae7979 100644
  		return normalizeModelContextImages(images, { model: this.model });
  	}
  
-@@ -9117,6 +9131,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8730,6 +8744,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#normalizeAgentMessageImages<T extends AgentMessage>(message: T): Promise<T> {
++		const value = submissionScope(), cause = messageSubmission(message);
++		if (value?.phase === "input" && value.prepared && cause?.role === "input" && sameSubmission(cause.origin, value.origin)) {
++			const content = "content" in message ? message.content : undefined;
++			const images = Array.isArray(content) ? content.filter((part): part is ImageContent => part.type === "image") : undefined;
++			return this.#normalizeImagesForModel(images).then(() => message);
++		}
+ 		return this.#providerBoundary.normalizeAgentMessageImages(message);
+ 	}
+ 
+@@ -9117,6 +9137,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					userInitiated: options?.userInitiated === true ? true : undefined,
  				}
  			: { role: "user" as const, content: userContent, attribution: promptAttribution, timestamp: submittedAt };
@@ -1734,7 +1853,24 @@ index b6c52add3d..6a12ae7979 100644
  
  		const preludeMessages: AgentMessage[] = [];
  		if (eagerTodoPrelude) {
-@@ -9701,6 +9716,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9330,12 +9351,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
+ 			timestamp: Date.now(),
+ 		};
++		copySubmission(message, customMessage);
+ 		const hasSkillImages =
+ 			isUserInvokedSkillPrompt(customMessage) &&
+ 			Array.isArray(customMessage.content) &&
+ 			customMessage.content.some(part => part.type === "image");
+ 		const preparationGeneration = this.#promptGeneration;
+-		const preparedMessage = hasSkillImages ? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
++		const preparedMessage = hasSkillImages || (submissionScope()?.prepared && messageSubmission(customMessage)?.role === "input")
++			? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
++		copySubmission(customMessage, preparedMessage);
+ 		const descriptionNotice = hasSkillImages
+ 			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
+ 			: undefined;
+@@ -9701,6 +9725,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			if (options?.prependMessages) {
  				messages.push(...options.prependMessages);
  			}
@@ -1742,7 +1878,7 @@ index b6c52add3d..6a12ae7979 100644
  
  			// Early bail-out: if a newer abort/prompt cycle started during setup,
  			// return before mutating shared state (nextTurn messages, system prompt).
-@@ -10316,7 +10332,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10316,7 +10341,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
@@ -1752,7 +1888,7 @@ index b6c52add3d..6a12ae7979 100644
  		// Captured before any await below so the aside branch can detect a
  		// newSession()/switchSession() that completed while normalization/vision
  		// description was in flight and drop a record that would otherwise land in a
-@@ -10370,6 +10387,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10370,6 +10396,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const records: AgentMessage[] = [...prependMessages, ...attachmentSourceNotices];
  			if (imageDescriptionNotice) records.push(imageDescriptionNotice);
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
@@ -1760,7 +1896,7 @@ index b6c52add3d..6a12ae7979 100644
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
  			for (const message of records) captureSubmission(message, message.role);
-@@ -10422,6 +10440,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10422,6 +10449,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -1768,6 +1904,25 @@ index b6c52add3d..6a12ae7979 100644
  		for (const message of group) captureSubmission(message, message.role);
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
+@@ -10912,13 +10940,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
+ 			timestamp: Date.now(),
+ 		};
++		copySubmission(message, appMessage);
+ 		const preprocessed = options?.preprocessed;
+-		const prependMessages = options?.prependMessages ?? [];
++		const prependMessages: readonly AgentMessage[] = [...(options?.prependMessages ?? []),
++			...(messageSubmission(appMessage)?.role === "input" ? takePreparedAttachmentMessages() : [])];
+ 		const onPromptAdmitted = options?.onPromptAdmitted;
+ 		const onPromptQueued = options?.onPromptQueued;
+ 		const normalizedAppMessage = preprocessed
+ 			? { ...appMessage, content: preprocessed.content }
+ 			: await this.#normalizeAgentMessageImages(appMessage);
++		copySubmission(appMessage, normalizedAppMessage);
++		for (const queued of prependMessages) captureSubmission(queued, queued.role);
+ 		const descriptionNotice = preprocessed
+ 			? preprocessed.descriptionNotice
+ 			: await this.#buildSkillImageDescriptionNotice(normalizedAppMessage);
 diff --git a/packages/coding-agent/src/session/messages.ts b/packages/coding-agent/src/session/messages.ts
 index 46a04f5715..d03956a4f7 100644
 --- a/packages/coding-agent/src/session/messages.ts
@@ -1894,10 +2049,10 @@ index 95661b2e45..bf56a12d23 100644
 +  maxImagesBytes: 8 * 1024 * 1024, maxPendingTasks: 4096,
  } as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
-index a2a89c55b7..b82e5e5ce0 100644
+index a2a89c55b7..1e99eeae1d 100644
 --- a/packages/coding-agent/src/session/submission-provenance.ts
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
-@@ -1,17 +1,31 @@
+@@ -1,26 +1,60 @@
  import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  /** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
  import * as asyncHooks from "node:async_hooks";
@@ -1933,8 +2088,16 @@ index a2a89c55b7..b82e5e5ce0 100644
  export function runSubmission<T>(value: SubmissionScope | undefined, run: () => T): T {
    return scope.run(value, run);
  }
-@@ -19,8 +33,20 @@ export function submissionScope(): SubmissionScope | undefined { return scope.ge
+ export function submissionScope(): SubmissionScope | undefined { return scope.getStore(); }
  export function messageSubmission(message: object): SubmissionCausality | undefined { return originals.get(message); }
++/** Carry an explicit native construction origin into its actual message; never infer from content or custom type. */
++export function copySubmission(source: object, target: object): void {
++  const cause = originals.get(source);
++  if (!cause || originals.has(target)) return;
++  originals.set(target, structuredClone(cause));
++  const attachments = attachmentMessages.get(source);
++  if (attachments) attachmentMessages.set(target, attachments);
++}
  export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
    if (!value || originals.has(message)) return;
 +  const attachments = attachmentMessages.get(message);
