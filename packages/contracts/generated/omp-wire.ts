@@ -46,6 +46,20 @@ export interface AttachmentImage {
 
 export type AttachmentRepresentation = AttachmentText | AttachmentImage;
 
+export interface AttachmentFacts {
+	originalBytes?: number;
+	convertedBytes?: number;
+	preparedBytes?: number;
+	sourceWidth?: number;
+	sourceHeight?: number;
+	frames?: number;
+	decodedBytes?: number;
+	pagesNeedingOcr?: number[];
+	hasEncodingIssues?: boolean;
+	omittedImages?: number;
+	emptyText?: boolean;
+}
+
 export interface AttachmentReadyItem {
 	status: "ready";
 	originalId: string;
@@ -54,6 +68,7 @@ export interface AttachmentReadyItem {
 	preparedSha256: string;
 	representation: AttachmentRepresentation;
 	degradations: string[];
+	facts?: AttachmentFacts;
 }
 
 export interface AttachmentFailedItem {

@@ -1198,6 +1198,48 @@
         }
       ]
     },
+    "AttachmentFacts": {
+      "type": "object",
+      "properties": {
+        "originalBytes": {
+          "type": "integer"
+        },
+        "convertedBytes": {
+          "type": "integer"
+        },
+        "preparedBytes": {
+          "type": "integer"
+        },
+        "sourceWidth": {
+          "type": "integer"
+        },
+        "sourceHeight": {
+          "type": "integer"
+        },
+        "frames": {
+          "type": "integer"
+        },
+        "decodedBytes": {
+          "type": "integer"
+        },
+        "pagesNeedingOcr": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hasEncodingIssues": {
+          "type": "boolean"
+        },
+        "omittedImages": {
+          "type": "integer"
+        },
+        "emptyText": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
     "AttachmentReadyItem": {
       "type": "object",
       "properties": {
@@ -1224,6 +1266,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "facts": {
+          "$ref": "#/$defs/AttachmentFacts"
         }
       },
       "required": [

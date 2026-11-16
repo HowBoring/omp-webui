@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "ticket": 38,
+  "scope": "isolated-public-native-provider-integrity-checkpoint",
+  "acceptance": "IN_PROGRESS",
+  "privateSessionAdmission": "blocked",
+  "source": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "07b17cb1e1fcf2791f2b305b74aaee3bcbe5f248bdbcff7b0740358b02e8c99a",
+    "patchSha256": "5559c50252bce560ff145d283a249519ba4f5a29db0b2b2ced7664d06d8f20ae",
+    "schemaSha256": "45e40e3dd7e80059696c77b2284b463c336f1b137e283c94a1c04dfdbacb67a4"
+  },
+  "dependencyCheckpoint": "1fea4f8f6810709059d5880a463eaa21af58a727",
+  "checks": [
+    {
+      "command": "bun scripts/build-compatibility.ts",
+      "result": "PASS"
+    },
+    {
+      "command": "bun test tests/attachments/provider.test.ts",
+      "result": "PASS",
+      "tests": 1,
+      "assertions": 23,
+      "seconds": 5.92,
+      "cleanup": "owned native worker exited0; synthetic profile removed",
+      "observed": [
+        "preparation leaves actual input/model/tool counters unchanged",
+        "provider receives the exact staged image MIME/byte count/SHA-256",
+        "actual input entry retains explicit original/prepared relation",
+        "equal-byte ingress image replacement refused before model dispatch",
+        "removing a prepared document from context refused before model dispatch",
+        "before_provider_request payload rewrite refused before model dispatch"
+      ]
+    },
+    {
+      "command": "bun test compatibility/omp/fixtures/attachment-provider-guard.test.js",
+      "result": "PASS",
+      "tests": 5,
+      "assertions": 6,
+      "scope": "pure native object-origin and native-clone construction guard"
+    },
+    {
+      "command": "bun test tests/attachments/bridge.test.ts",
+      "result": "PASS",
+      "tests": 4,
+      "assertions": 12,
+      "scope": "pure authority/consent/request-binding coordinator"
+    }
+  ],
+  "supersedesClaims": {
+    "priorEntryOnlyCheck": "Commitment of input/prepared entries alone does not prove provider delivery; a fresh positive provider counter check first failed and exposed native annotations and the actual context clone boundary."
+  },
+  "remainingGates": [
+    "strict authored native TS after the latest explicit context clone carrier",
+    "actual queued/skill/steer/follow-up provider identity across different initiating scopes",
+    "all selected formats and cancellation/fault/resource negatives on the final tuple",
+    "actual larger-than-1MiB unchunked stdin plus Host aggregate backpressure and budget boundary cases",
+    "actual typed Remote/public semantic provider/shell slot browser workflow with trusted Host authority",
+    "restart/branch/copy/no-entry and durable duplicate/recovery combinations",
+    "merge current integration and final accepted native/DSH dependencies; full matched tuple checks"
+  ],
+  "windows": "OWNER_DEFERRED_NOT_RUN",
+  "digests": {
+    "compatibility/omp/0009-attachment-preparation.patch": "77fd5fea2068c4985e7f5fdbe7d099dd380512455f14bc665b2b88876ad07ab7",
+    "compatibility/omp/fixtures/attachment-provider.ts": "5332bf508eab8ac1c31dfaaea24e2d0675a8df66d2bf2c52345db620b04e0b3f",
+    "tests/attachments/provider.test.ts": "a7f0740a02c4b5a53b8611acafdaeed75630bb259f9facb68bbf77e6aa67c936",
+    "packages/attachments/bridge.ts": "466bfd0e4cb880cc7b3c8cce151e06d7b92cfdfb1a83467f69da586250c0d0bb",
+    "packages/contracts/attachment-remote.ts": "dd925bb90e99876fabbbd9fa5f1bacd3538b36ccffce73630d6e9970c63e668e"
+  }
+}

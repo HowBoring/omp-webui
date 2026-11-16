@@ -30,3 +30,14 @@ authority generation or a content hash supplies no browser/file authority by its
 Public RPC/schema/client, #36 consumption/provenance, downstream exact-image behavior, bounded fault
 fixtures and the real Bun/DSH browser path remain mandatory gates. Component tests do not authorize
 private Session admission or establish product/global-runtime support. Windows remains owner-deferred.
+
+The OMP-specific `ompAttachments` typed Remote contribution uses the existing public DSH Gateway/Connection.
+Its native port is restricted to preparation/cancellation and durable submission; browser calls contain opaque
+projection/draft/original identities, with trusted targets and verified bytes resolved by the Host authority.
+The public semantic provider `beforeDispatch` binds explicit consent to the actual DSH request and local attempt.
+The optional shell overlay displays every prepared representation and actual degradation before acceptance.
+This contribution requires no upstream DSH business-workflow patch.
+
+Provider-delivery verification remains open: a fresh positive check exposed native cache annotations on frozen
+companion objects before model dispatch. Wire fields remain readonly while internal native annotations are allowed.
+An input/companion entry commit alone is not proof that a prepared representation reached the provider.

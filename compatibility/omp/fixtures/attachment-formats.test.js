@@ -24,15 +24,15 @@ test("decoded PNG size is refused before its compressed stream can allocate pixe
   expect(await prepareAttachment({ format: "png", bytes })).toEqual({ status: "failed", code: "attachment_decoded_budget" });
 });
 
-const contentTypes = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"/>';
+const contentTypes = format => `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Override PartName="/${format === 'pptx' ? 'ppt/presentation.xml' : 'xl/workbook.xml'}" ContentType="application/vnd.openxmlformats-officedocument.${format === 'pptx' ? 'presentationml.presentation' : 'spreadsheetml.sheet'}.main+xml"/></Types>`;
 const packages = {
   pptx: [
-    ["[Content_Types].xml", contentTypes],
+    ["[Content_Types].xml", contentTypes("pptx")],
     ["ppt/presentation.xml", '<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>'],
     ["ppt/slides/slide1.xml", '<p:sld><p:cSld><p:spTree><p:sp><p:txBody><a:p><a:r><a:t>Selected slide text</a:t></a:r></a:p></p:txBody></p:sp></p:spTree></p:cSld></p:sld>'],
   ],
   xlsx: [
-    ["[Content_Types].xml", contentTypes],
+    ["[Content_Types].xml", contentTypes("xlsx")],
     ["xl/workbook.xml", '<workbook><sheets><sheet name="Selected sheet" r:id="sheet1"/></sheets></workbook>'],
     ["xl/_rels/workbook.xml.rels", '<Relationships><Relationship Id="sheet1" Target="worksheets/sheet1.xml"/></Relationships>'],
     ["xl/worksheets/sheet1.xml", '<worksheet><sheetData><row><c t="inlineStr"><is><t>Selected cell text</t></is></c></row></sheetData></worksheet>'],
