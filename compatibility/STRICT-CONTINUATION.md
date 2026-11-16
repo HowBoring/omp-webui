@@ -62,7 +62,7 @@ its authoritative marker directly.
 
 Generation-aware paths include central full/stream/header loaders, FileSessionStorage read/stat/slices/scan,
 ordinary SessionManager/TUI continuation and title writes, pack/render export, subagent byte reads, activity and
-memory rollout readers. Generation maintenance GC/strip/compress/delete/generic relocation explicitly refuses
+memory rollout readers. Generation maintenance GC/strip/compress/delete/generic relocation/unpack replacement explicitly refuses
 (or opportunistic GC skips) without partial destruction; these operations are not supported by format v1. A hardlink
 alias lacking controls is an explicit catalog partial error while the original bound reference remains valid.
 Full publication with multiple hardlinks refuses before mutation. Source lookup never guesses another directory.

@@ -252,7 +252,7 @@ index cc8737279f..5e6ac8fbca 100644
  		const sessionManager = await SessionManager.open(workingCopy, undefined, undefined, {
  			suppressBreadcrumb: true,
 diff --git a/packages/coding-agent/src/debug/report-bundle.ts b/packages/coding-agent/src/debug/report-bundle.ts
-index 126b71fff8..b20660a3c8 100644
+index 126b71fff8..4f8a89eaa5 100644
 --- a/packages/coding-agent/src/debug/report-bundle.ts
 +++ b/packages/coding-agent/src/debug/report-bundle.ts
 @@ -1,3 +1,4 @@
@@ -269,7 +269,13 @@ index 126b71fff8..b20660a3c8 100644
  			data["session.jsonl"] = sessionContent;
  			files.push("session.jsonl");
  		} catch {
-@@ -207,7 +208,7 @@ async function addDirectoryToArchive(
+@@ -202,12 +203,13 @@ async function addDirectoryToArchive(
+ 		const entryPath = path.join(dirPath, entry.name);
+ 		const archivePath = `${archivePrefix}/${entry.name}`;
+ 		if (entry.isDirectory()) {
++      if (/^\..+\.omp-generations$/.test(entry.name)) continue; // Children are flattened; immutable control history is not a backup member.
+ 			await addDirectoryToArchive(data, files, entryPath, archivePath);
+ 			continue;
  		}
  		if (!entry.isFile()) continue;
  		try {
@@ -520,7 +526,7 @@ index 796d87c814..dc96dd1e98 100644
  				// A goal exit triggered by the last turn restores tools asynchronously; report after it.
  				await goalController.settled();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-subagents.ts b/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
-index 518e871558..2814f47329 100644
+index 518e871558..4f5c6ccf8a 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-subagents.ts
 @@ -1,3 +1,4 @@
@@ -537,14 +543,19 @@ index 518e871558..2814f47329 100644
  	let size: number;
  	try {
  		({ size } = await fs.stat(sessionFile));
-@@ -84,6 +85,7 @@ export async function readRpcSubagentTranscript(sessionFile: string, fromByte =
+@@ -84,7 +85,11 @@ export async function readRpcSubagentTranscript(sessionFile: string, fromByte =
  			messages: [],
  		};
  	}
-+  if (isGenerationCarrier(sessionFile)) { file = new Blob([readNativeGeneration(sessionFile).text]); size = file.size; }
- 	let reset = false;
+-	let reset = false;
++  const generation = isGenerationCarrier(sessionFile);
++  if (generation) { file = new Blob([readNativeGeneration(sessionFile).text]); size = file.size; }
++  // Physical append offsets do not identify a position across logical generation replacement.
++	let reset = generation && startByte !== 0;
++  if (generation) startByte = 0;
  	if (startByte > size) {
  		startByte = 0;
+ 		reset = true;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 index a0c7055d75..efccf79be7 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
@@ -1236,9 +1247,18 @@ index 0000000000..e4133efd3a
 +  { name: "cancel_strict_start", doc: "Cancel pending startup; already published side effects remain explicit.", result: "StrictStartState" },
 +] as const;
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 4446c01159..42445be79c 100644
+index 4446c01159..4036cb4d6e 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -12525,7 +12525,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const bashTransition = this.#bash.beginSessionTransition();
+ 
+ 			// Fork the session (creates new session file with same entries)
+-			let forkResult: { oldSessionFile: string; newSessionFile: string } | undefined;
++			let forkResult: { oldSessionFile: string; newSessionFile: string; artifactsCopied?: boolean } | undefined;
+ 			try {
+ 				// No file means fork() is a no-op. Otherwise invalidate admitted
+ 				// prompt setup before the asynchronous identity rewrite begins.
 @@ -12545,7 +12545,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			// under a fresh id, so the work already produced is still this session's.
  			this.#recovery.reanchorServedAttribution(previousSessionId);
@@ -2408,7 +2428,7 @@ index 4750d350d0..b1887e00fe 100644
  		// reads the session id from the live header (#18674). Best-effort, so
  		// a busy dashboard store never fails the delete itself.
 diff --git a/packages/coding-agent/src/session/session-transfer.ts b/packages/coding-agent/src/session/session-transfer.ts
-index fe0d01485b..d9e9964b42 100644
+index fe0d01485b..45466242ae 100644
 --- a/packages/coding-agent/src/session/session-transfer.ts
 +++ b/packages/coding-agent/src/session/session-transfer.ts
 @@ -1,3 +1,5 @@
@@ -2453,6 +2473,30 @@ index fe0d01485b..d9e9964b42 100644
  	}
  }
  
+@@ -508,6 +515,7 @@ async function restoreAside(aside: readonly AsidePath[]): Promise<void> {
+ 
+ /** Rename session files and their artifacts directories to sibling backups, all or nothing. */
+ async function setAside(files: readonly string[]): Promise<AsidePath[]> {
++  if (files.some(file => isGenerationCarrier(file))) throw new Error("GENERATION_UNPACK_REPLACEMENT_UNSUPPORTED");
+ 	const aside: AsidePath[] = [];
+ 	try {
+ 		for (const file of files) {
+@@ -601,6 +609,7 @@ export async function unpackSession(archivePath: string, options: UnpackSessionO
+ 		}
+ 
+ 		const localCopies = await findLocalCopies(id, sessionDir);
++    if (localCopies.some(file => isGenerationCarrier(file))) throw new Error("GENERATION_UNPACK_REPLACEMENT_UNSUPPORTED");
+ 		let diverged = false;
+ 		for (const file of localCopies) {
+ 			const entries = (await loadEntriesFromFile(file)).filter(isBodyEntry);
+@@ -650,6 +659,7 @@ export async function unpackSession(archivePath: string, options: UnpackSessionO
+  */
+ export async function markSessionMoved(sessionFile: string, label: string): Promise<void> {
+ 	const target = path.resolve(sessionFile);
++  if (isGenerationCarrier(target)) throw new Error("GENERATION_MOVE_MARKER_UNSUPPORTED");
+ 	const to = label.trim();
+ 	if (!to) throw new SessionTransferError("The move label must not be empty.");
+ 	const id = await requireSessionId(target);
 diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
 new file mode 100644
 index 0000000000..f62d357da0
