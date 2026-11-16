@@ -66,7 +66,7 @@
       },
       {
         "name": "history_snapshot_open",
-        "doc": "Atomic native retained-tree/active-chain/running-message observation, with bounded live watermark.",
+        "doc": "Atomic native retained-tree/active-chain/running/live observation. Optional live handoff permits only verified append/prefix progress.",
         "params": "HistorySnapshotOpenParams",
         "result": "HistoryOpen",
         "nullable": false,
@@ -77,7 +77,7 @@
       },
       {
         "name": "history_snapshot_page",
-        "doc": "Immutable, source/version/scope/expiry-bound native history page; any source change rejects old cursor.",
+        "doc": "Immutable same-cut native history page. Default rejects any content change; opt-in live handoff rejects discontinuities.",
         "params": "HistorySnapshotPageParams",
         "result": "HistoryPage",
         "nullable": false,
@@ -6692,11 +6692,19 @@
         "status"
       ]
     },
+    "HistoryHandoff": {
+      "enum": [
+        "current",
+        "live"
+      ],
+      "type": "string"
+    },
     "HistoryScope": {
       "enum": [
         "tree",
         "active",
-        "running"
+        "running",
+        "live"
       ],
       "type": "string"
     },
@@ -6906,6 +6914,16 @@
         },
         "live": {
           "$ref": "#/$defs/HistoryLiveIdentity"
+        },
+        "settlement": {
+          "$ref": "#/$defs/HistorySettlement"
+        },
+        "livePhase": {
+          "enum": [
+            "streaming",
+            "ended"
+          ],
+          "type": "string"
         },
         "toolCallId": {
           "type": "string"
@@ -7139,12 +7157,16 @@
         },
         "running": {
           "type": "string"
+        },
+        "live": {
+          "type": "string"
         }
       },
       "required": [
         "tree",
         "active",
-        "running"
+        "running",
+        "live"
       ]
     },
     "HistoryOpen": {
@@ -7152,6 +7174,13 @@
       "properties": {
         "version": {
           "const": "coherent-history-v1"
+        },
+        "handoff": {
+          "enum": [
+            "current",
+            "live"
+          ],
+          "type": "string"
         },
         "snapshot": {
           "type": "string"
@@ -7205,6 +7234,7 @@
       },
       "required": [
         "version",
+        "handoff",
         "snapshot",
         "cursor",
         "scope",
@@ -7445,6 +7475,9 @@
       "properties": {
         "scope": {
           "$ref": "#/$defs/HistoryScope"
+        },
+        "handoff": {
+          "$ref": "#/$defs/HistoryHandoff"
         }
       },
       "required": [

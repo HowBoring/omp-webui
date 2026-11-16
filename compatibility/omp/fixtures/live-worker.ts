@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {LiveTransport} from '../../../packages/compatibility/live-transport.ts';
-export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean}={}){
+export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean;seed?:number;delayMs?:number;scenario?:"empty-error"|"refusal"|"empty-overflow"|"rewind"|"transform"|"handled"}={}){
   const profile=await fs.mkdtemp(path.join(os.tmpdir(),'omp-live-cli-'));
   const argv=[process.execPath,'--no-env-file','--preload',
     path.resolve('compatibility/omp/fixtures/history-network-guard.js'),path.resolve('vendor/omp-candidate/cli.js'),
@@ -12,7 +12,8 @@ export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?
     '--trusted-extension',path.resolve('compatibility/omp/fixtures/live-provider.ts')];
   const transport=await LiveTransport.open({argv:options.trace?['strace','--kill-on-exit','-f','-e','trace=network','-o',path.join(profile,'network.strace'),...argv]:argv,
     cwd:profile,env:{HOME:profile,PI_CODING_AGENT_DIR:profile,OMP_HISTORY_FIXTURE_PROFILE:profile,
-      PATH:process.env.PATH??'/usr/bin:/bin',...(options.tools?{OMP_LIVE_FIXTURE_TOOLS:'1'}:{}),...(options.burst?{OMP_LIVE_FIXTURE_BURST:'1'}:{})},readyTimeoutMs:20000}).catch(async error=>{await fs.rm(profile,{recursive:true,force:true});throw error;});
+      PATH:process.env.PATH??'/usr/bin:/bin',...(options.tools?{OMP_LIVE_FIXTURE_TOOLS:'1'}:{}),...(options.burst?{OMP_LIVE_FIXTURE_BURST:'1'}:{}),
+      ...(options.seed?{OMP_LIVE_FIXTURE_SEED:String(options.seed)}:{}),...(options.delayMs?{OMP_LIVE_FIXTURE_DELAY_MS:String(options.delayMs)}:{}),...(options.scenario?{OMP_LIVE_FIXTURE_SCENARIO:options.scenario}:{})},readyTimeoutMs:20000}).catch(async error=>{await fs.rm(profile,{recursive:true,force:true});throw error;});
   try {
     // Native lazy materialization is a source replacement. Warm up through public prompt before opening DSH.
     if(warmup)await transport.prompt();

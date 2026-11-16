@@ -1,14 +1,14 @@
-# Live settlement candidate checkpoint (#35)
+# Live settlement and immutable-cut handoff candidate (#35)
 
-This is an isolated S0 implementation checkpoint, **not final #35 acceptance**. Product private Session admission
-stays blocked. The coordinator requested a pause for review before the final #34 source tuple is merged. Current
-ordered source is 0001–0004 + additive `0006-live-settlement.patch`; #32/0005 is not a dependency of this slice.
-Linux Chromium is exercised. Windows Chrome/WSL2 remains deferred by the owner.
+This is the isolated S0 #35 component candidate. Product private Session admission stays blocked. The ordered
+native source is 0001–0004 plus additive `0006-live-settlement.patch`; #32/0005 is not a dependency. Final #31,
+#33 and #34 source and the current integration branch are merged. Linux Chromium is exercised. Windows
+Chrome/WSL2 remains deferred by the owner. Independent coordinator review/acceptance is separate.
 
 ## Native public contract
 
 The existing `history_observation_poll` now returns native source metadata and safe readable payloads, plus scoped
-`message_start`, `message_update`, `message_final`, and `message_settlement` facts. Every cut adds native mutation
+`message_start`, `message_update`, `message_final`, provisional `message_decision`, and final `message_settlement` facts. Every cut adds native mutation
 counter and retained-state revision alongside the complete content revision and shared observation watermark.
 Same-count mutable source rewrites emit `native_untracked_rewrite`; indexed mutations retain actual entry/leaf,
 revision and context counters. Append, rewrite/rebuild (including delete/reparent), leaf/source/context changes
@@ -29,7 +29,24 @@ other real no-append paths report `no_entry`. Recoverable durable submissions be
 symbol hooks are available for later ingress/provenance integration; they do not invent a durable request ID.
 
 The source patch updates handwritten forwarding/handler, wire schema, generated clients and native package docs.
+The native public SDK helper `getHistoryMessageContext` uses exactly the same context digest as coherent cuts.
 Host imports only matched public RPC modules. It never reads native Session files or imports the native runtime.
+
+Empty-error skips are provisional because genuine terminal maintenance can append the original object later.
+Exactly one final settlement follows that actual recovery decision. Lazy native error classification is
+materialized before assistant entry publication; complete entry fingerprints still include the resulting field.
+A late frame carrying the original native Symbol keeps its identity, and cannot restart a settled attempt.
+Queued persistence captures its initiating lifecycle before yielding, so immediate reuse of the SAME original
+object still settles each lifecycle correctly (a dedicated failing test preceded this correction).
+
+The additive `history_snapshot_open({scope, handoff: 'live'})` retains one immutable cut while runtime prefix
+progress and verified appends continue. Default #34 behavior remains strict. A fourth same-snapshot `live` cursor
+contains exact unresolved ended messages and the actual streaming prefix. Prior header/entry fingerprints,
+source/Session/context digests and contiguous bounded mutation records must all remain compatible. Runtime-message replacement/reorder also emits `native_runtime_replaced`; runtime append must carry exact
+lifecycle/original-object authority and only pending finalization may change an existing runtime object. Only
+leaf-preserving background appends or direct active-chain extension are allowed. Model/system/tool configuration,
+branch jumps, retained/new-entry rewrites, delete/reparent, source/worker changes, compaction and gaps fail the
+binding. No broad append exception bypasses a context fence.
 
 ## Derived DSH generation
 
@@ -40,10 +57,10 @@ journal. The assistant baseline is mandatory even when idle. Live assistant revi
 final native content replaces temporary presentation through the stock controller's settlement machinery.
 Derived chunks/times are presentation values, not original provider timing/chunks or a durable native journal.
 Actual provider/model fields are retained from the safe native mapper. Structural records remain marked native
-records. This checkpoint uses the stock Conversation/Trajectory assembly with a small JSON renderer, not the full
+records. This candidate uses the stock Conversation/Trajectory assembly with a small JSON renderer, not the full
 product shell or the final typed native/tool renderer.
 
-A source/context change, irreparable gap, unavailable association, old/out-of-order poll, or eviction fails the old
+A source/runtime/context change, irreparable gap, unavailable association, old/out-of-order poll, or eviction fails the old
 generation explicitly. The acceptance page hides its rows, releases the actual public controller reference, then
 requires a manual full-view reopen. It never calls private resync, sends a second snapshot on the old physical
 follow, uses surface replacement to delete branches, or changes the native Session ID to clear the view. Final
@@ -54,7 +71,8 @@ this fixture does not claim an Interaction redelivery or integrated draft policy
 
 Fixed bounds: native journal/entry association and tool-owner tables 4096; native notification bytes 8 MiB;
 per-live item 512 KiB; derived journal 60,000 records/32 MiB; per-follow queue 256 frames/1 MiB; source history limits
-remain #34's limits. Oversized/unrepresentable observations emit an explicit live gap, and native/derived eviction
+remain #34's limits plus live fingerprints (scanItems 40,004). Native polls cap 128 events / 768 KiB. Opening stage is
+bounded to 60,000 parts / 256 MiB, pending associations/attempt chunks 4096 / 8 MiB; snapshot baseline must fit 768 KiB. Oversized/unrepresentable observations emit an explicit live gap, and native/derived eviction
 fails affected cursors/generations. No transcript or provider chunks are persisted by Host.
 
 ## Evidence and reproduction
@@ -80,13 +98,22 @@ export PATH=/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:$PAT
 bun scripts/prepare-compatibility.ts --reset --source-only
 bun scripts/build-compatibility.ts
 bun scripts/build-compatibility.ts --check
+# Full-suite source-fault tests need an OWN writable source-only DSH clone at vendor/dsh.
+# Recreate it from the local canonical candidate; do not point these tests at shared source.
+git clone --shared --no-checkout /workspace/work/omp-webui-ticket-39-final-fix/vendor/dsh-final vendor/dsh
+git -C vendor/dsh checkout --detach 38a6a5c965aa99ab525161efb7cc5cf1fe62fced
+bun scripts/dsh-source.ts vendor/dsh --apply
 bun run check
 bun test compatibility/omp/fixtures/live-native.test.js
 bun test compatibility/omp/fixtures/live-public-rpc.test.js
-bun test tests/live/projection.test.ts
+bun test tests/live
+bun scripts/check-live-native.ts
 bun apps/live-fixture/build.ts
 bun scripts/verify-live-browser.ts
 ```
+
+The source-only negative-test clone was removed after acceptance to reclaim 258 MiB; unique native source,
+served assets and raw evidence remain. Recreate that clone with the commands above before rerunning the full suite.
 
 The browser verifier covers a stable persisted-source opening, same-content distinct native entries, dense DSH
 seq/assistant revision/index and exact final settlement without duplicate rows; navigation invalidation/manual
@@ -97,21 +124,31 @@ append, same-shape rewrite, delete/reparent, scoped reused tool IDs, original-ob
 eviction and a real native ~36 MiB source that explicitly exceeds the 32 MiB derived journal budget. The actual CLI
 also exercises genuine controlled tool execution and native live-buffer overflow with event filtering enabled.
 
-Current verification: ordered native build and generated `--check` PASS; `bun run check` PASS with 151 tests /
-1,279 assertions across 32 files and Host build; both Chromium scenarios PASS. Exact checkpoint source, schema,
-asset, owned-source and retained strace digests are in `evidence/live-checkpoint.json`.
+Final verification: clean native build/generation and authored native TypeScript PASS; full suite 194 tests / 1,619 assertions / 42 files plus Host build PASS; six Chromium scenarios PASS. Exact reproducible identities are recorded in `evidence/live-checkpoint.json`.
+The file retains its checkpoint name for continuity; its status distinguishes the final component candidate.
 
-## Genuine unfinished gates at this checkpoint
+## Coverage and limits
 
-- Final #31/#33/#34 canonical source tuple and current integration merge/reverification are pending coordinator
-  reactivation. Current evidence/build identities describe the checkpoint's declared ordered patches only.
-- Full #35 AC1–5 review/acceptance remains pending. The native `failed`/classifier-refusal/empty-error/rewind and
-  replaced-prompt no-entry branches need dedicated positive/negative settlement evidence beyond implemented
-  decisions; current tests do not turn untested branches into PASS.
-- Opening a derived view during an active native prefix explicitly refuses/requires reopen. The native same-cut
-  running cursor exposes exact prefix identity, but this checkpoint does not yet build an active-attempt opening
-  baseline. Unknown/unrepresentable live categories fail explicitly; final typed native/tool rendering is not claimed.
-- Full multi-holder reset, integrated drafts/attachments/Interactions and private product admission remain later
-  integration gates (#39/#40 and dependent product slices). A manual fixture reopen is not that public reset API.
-- No durable submission/commit receipt (#36), immediately persistent navigation (#37), full product browser, real
-  provider inference, or Windows support PASS is claimed. Formal latency/RSS acceptance remains #60.
+The additional active-opening browser case adopts a real native prefix as a legal DSH baseline, then renders
+its later exact final once. A public HistoryClient latency fixture sustains native prefix progress and a genuine
+extension append across multiple immutable native pages, proving one native snapshot and no gap/duplicate.
+Public native abort settles an adopted attempt without replay. Real classifier refusal/sensitive, provisional
+empty error with/without later recovery, native write exception, latched backing failure, sealed drop, replaced
+prompt, genuine checkpoint/rewind and late original-object delivery have dedicated settlement proofs. The real
+extension input transformer adds equal-content custom/user messages; handled input invokes no fabricated live
+lifecycle. Native display deobfuscation produces an unequal-content copy while settlement still names the exact
+original stored object. DSH component tests cover final/abandoned attempts and explicit maintenance/rewind failure. Actual Chromium
+also covers refusal abandonment, terminal empty-error recovery and genuine checkpoint/rewind using the stock
+DSH controller/Conversation/Trajectory components. Six final traces show zero INET connects/sends; each native guard
+reports 15 blocked / 0 dispatched and every owned worker exits 0 without force.
+
+An opening with unresolved earlier runtime finals whose order cannot yet be legally represented, missing
+native identity or ambiguous reusable tool owners fails explicitly. Oversized sources/prefixes, old/out-of-order
+polls, overflow and eviction also fail within declared limits. This candidate does not claim unbounded recovery.
+Native source-only records with no lifecycle are projected directly from their authoritative public entry;
+source notifications alone never produce a durable receipt or a guessed live association.
+
+Full multi-holder reset, integrated drafts/attachments/Interactions and private product admission remain later
+integration gates (#39/#40 and dependent product slices). The fixture proves DOM draft survival only. No durable
+submission/commit receipt (#36), immediately persistent navigation (#37), full product browser, real provider
+inference or Windows PASS is claimed. Formal latency/RSS acceptance remains #60.

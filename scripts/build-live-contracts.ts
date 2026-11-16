@@ -1,15 +1,11 @@
 /** Isolated live acceptance transport validators from the matched native public wire. */
 import Ajv2020 from 'ajv/dist/2020.js';
 import standaloneCode from 'ajv/dist/standalone/index.js';
+import {makeCommandSchemas} from './command-schemas.ts';
 const schema=await Bun.file('vendor/omp/packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json').json();
 const ajv=new Ajv2020({strict:false,code:{source:true,esm:true}});ajv.addSchema(schema);
 const names=['get_state','prompt','abort','navigate_tree','set_event_filter','set_session_name'];
-const selected=schema['x-rpc'].commands.filter((value:{name:string})=>names.includes(value.name));
-const variants=selected.map((value:{name:string;params:string|null})=>{
-  const params=value.params?schema.$defs[value.params]:{properties:{},required:[]};
-  return {type:'object',additionalProperties:false,required:['id','type',...(params.required??[])],
-    properties:{id:{type:'string',minLength:1,maxLength:96},type:{const:value.name},...params.properties}};
-});
+const variants=makeCommandSchemas(schema,names,{maxIdLength:96});
 for(const [name,value] of Object.entries({command:{$defs:schema.$defs,anyOf:variants},
   notification:{$ref:`${schema.$id}#/$defs/RpcNotification`},state:{$ref:`${schema.$id}#/$defs/SessionState`}})) {
   const code=standaloneCode(ajv,ajv.compile(value));

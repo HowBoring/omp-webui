@@ -16,9 +16,19 @@ async function* idle(signal:AbortSignal):AsyncGenerator<never>{while(!signal.abo
 const unary=new Set(['session/list','session/page','session/projections','ompLiveFixture/action']);
 const streams=new Set(['$events','session/follow','session/control']);
 /** Public DSH carrier for one explicitly isolated synthetic native Session. */
-export async function startLiveFixture(port=3185,options:{warmup?:boolean;trace?:boolean}={}){
-  const fixture=await openLiveFixture(options.warmup??true,options);const ctx=new Context();
+export async function startLiveFixture(port=3185,options:{warmup?:boolean;trace?:boolean;activeOpening?:boolean;scenario?:"refusal"|"empty-error"|"rewind"}={}){
+  const fixture=await openLiveFixture(options.warmup??true,{...options,...(options.activeOpening?{seed:500,delayMs:1600}:{})});const ctx=new Context();
   try {
+  if(options.activeOpening){
+    await fixture.transport.prompt();
+    for(let attempt=0;attempt<100;attempt++){
+      const cut=await fixture.transport.history.open('live','live');
+      try {if((await fixture.transport.history.page(cut.cursor)).items.some(item=>item.kind==='running_prefix'))break;
+        if(attempt===99)throw Error('live_fixture_prefix_unavailable');
+      }finally{await fixture.transport.history.close(cut.snapshot);}
+      await Bun.sleep(10);
+    }
+  }
   const state=await LiveFixtureState.open(fixture.transport);
   await ctx.plugin(TypertRegistry);await ctx.plugin(RemoteAccessService);await ctx.plugin(TypertGatewayService,{});
   ctx.typert.register({package:sessionContribution.package,face:"host",schemas:[],model:{services:[],events:[],objects:[]},invocations:sessionContribution.descriptors});ctx.typert.register(liveHostContribution);

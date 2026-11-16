@@ -1,21 +1,70 @@
 {
-  "status": "CHECKPOINT_NOT_FINAL_ACCEPTANCE",
+  "status": "COMPONENT_CANDIDATE_REVIEW_PENDING",
   "issue": 35,
   "platform": "Linux Chromium",
+  "previousCheckpoint": "65c56110719048439ddd604806ee19b84bbae4a0",
+  "integration": "2842168abe27d733c353c6fe14153f0e660f1d8a",
   "provider": "controlled in-process; never real AI",
   "build": {
     "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "e7ef14750f0a3d33600c8021fe80d11508c66dd3173cc321b8ddcafd91c13532",
-    "patchSha256": "2a0cd83554b97264806cecaa3a1aeae84b3f366e677d3036fcccffca94070af0",
-    "schemaSha256": "eeb94fffa8a8730aa5ec6265ca365615818cd5c56f953530e606fb4b92b76dc1"
+    "sourceSha256": "4970972e7bfdae73dafcd133b83790b1ced71b3bfc4e375b637ac4565e468726",
+    "patchSha256": "ca375f6dd764b167028efb77b27bab809d12ce337bdb31a97eb7a34c4482fce0",
+    "schemaSha256": "dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b"
+  },
+  "orderedPatches": [
+    {
+      "path": "compatibility/omp/0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "path": "compatibility/omp/0002-readonly-catalog.patch",
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+    },
+    {
+      "path": "compatibility/omp/0003-explicit-interactions.patch",
+      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+    },
+    {
+      "path": "compatibility/omp/0004-coherent-history.patch",
+      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+    },
+    {
+      "path": "compatibility/omp/0006-live-settlement.patch",
+      "sha256": "f1fe21f463a51ce49c1fa8a2fcda0d098b2acce89ce9bfb3710dd10a592b5366"
+    }
+  ],
+  "dshSource": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+    "mode": "candidate",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      }
+    ],
+    "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
   },
   "browserAssets": {
-    "sourceSha256": "7abbeaa51204c3b68e256c072e420b9f19e0216c82a6b23e622673d512121212",
+    "sourceInputs": 667,
+    "sourceSha256": "effb82d0a8634a35ef766413d8712b79e1d792c2e98da48d2c06a28c17354090",
     "contractSha256": "57c042eb0ca9535294c98ebbadb07cca3a39274ab6759879948d9464fdfa7602",
     "assets": {
-      "client.js": "a0ecbc92ce34354b1ebc6781e6fa2091387f135af8f229ec3dcd69205635a20b",
+      "client.js": "53a0518c77949bc3edd71276d2a5bfa46481f653055d185bb7865665f4985481",
       "index.html": "67eefc16316f9cb6c3399a7ead11b516fdeb3e1d2c8a4d32071d1d1d125e6bf1"
-    }
+    },
+    "manifestSha256": "5d9374b0011001263f6997287c93af9342ddcbac8666ea7071cde0288468075d"
+  },
+  "tools": {
+    "bun": "1.4.4",
+    "chromium": "156.0.8078.79 Debian GNU/Linux13"
   },
   "browser": [
     {
@@ -46,7 +95,7 @@
         "realProviderInference": false
       },
       "trace": {
-        "sha256": "1f83048ffff7691d358cc234d923f5ccaa3915a44eba495a828901e640d7eff4",
+        "sha256": "a40df376eea0cf3948cca46eedb78c5145fcdd941ebd31174634420ffaeac1f1",
         "inetConnects": 0,
         "inetSends": 0
       }
@@ -79,51 +128,312 @@
         "realProviderInference": false
       },
       "trace": {
-        "sha256": "296f69cbef4c9580992f348d187ab7597fd9ddd3372cd00e95a6dfcefa49a354",
+        "sha256": "f01f367b5cf37d742dfc7a213e0e6d31f13886381612a8a8cfcc81daddaf205d",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "active-opening",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 9,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "active-opening",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "40fc60af08f16adb8b3d92436d1d6f16bef6c1d8d63a96c4dd5d45f8ad8be884",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "refusal",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 11,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "refusal",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "4f52aea179a47fc25827d97de3d72f6524a8ce66be2af0c955c0c1a59680dfac",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "empty-error",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 9,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "empty-error",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 2,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "1723903e68730d0364eae6e0e6ad4131f405f76167210db9f4149b0767107af1",
+        "inetConnects": 0,
+        "inetSends": 0
+      }
+    },
+    {
+      "status": "PASS",
+      "mode": "rewind",
+      "nativeIdentityPreserved": true,
+      "physicalSnapshots": 2,
+      "frames": 14,
+      "draft": "independent DOM fixture only",
+      "durability": "not_attested",
+      "provider": "controlled-in-process-not-real-AI"
+    },
+    {
+      "mode": "rewind",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 480
+      },
+      "audit": {
+        "guard": "history-egress-v1",
+        "actualNetworkDispatches": 0,
+        "denied": 15
+      },
+      "controlled": {
+        "calls": 4,
+        "kind": "controlled-in-process-provider",
+        "realProviderInference": false
+      },
+      "trace": {
+        "sha256": "35cc6d8c538f74e3bb45ab09ccf8bf1c0df0a50b3a258628919da93bb5a0f8d3",
         "inetConnects": 0,
         "inetSends": 0
       }
     }
   ],
-  "pending": [
-    "final preceding source tuple/integration merge",
-    "active-prefix opening baseline",
-    "dedicated native failed/no-entry branch evidence",
-    "independent review"
-  ],
-  "windows": "DEFERRED",
-  "productSessionAdmission": "blocked",
   "checks": {
-    "orderedNativeBuild": "PASS",
+    "cleanOrderedNativeBuild": "PASS",
     "generatedCheck": "PASS",
-    "hostTypecheck": "PASS",
+    "authoredNativeTypecheck": "PASS (7 authored native modules; unrelated upstream diagnostics excluded)",
     "fullCheck": {
       "status": "PASS",
-      "tests": 151,
-      "assertions": 1279,
-      "files": 32,
-      "seconds": 161.53
+      "tests": 194,
+      "assertions": 1619,
+      "files": 42,
+      "seconds": 300.17,
+      "hostBuild": "PASS"
     },
-    "browser": "2 PASS scenarios"
+    "browser": "6 PASS scenarios",
+    "nativeUnit": "19 PASS cases in full suite",
+    "publicNativeRpc": "9 PASS cases in full suite",
+    "sourceBuildGateNegative": "PASS in owned clone"
   },
+  "acceptance": {
+    "AC1": "Shared cut/revision; append, retained/runtime rewrite/delete/reparent, branch/context/source/worker and gap fences",
+    "AC2": "Exact original object/Symbol entry or explicit final no_entry/failed at actual native decision; provisional empty-error skip distinguished",
+    "AC3": "Worker/source/Session/context/initiating-branch identities; reusable tool ownership; authoritative final content; late and same-object queued reuse",
+    "AC4": "One immutable native snapshot; legal DSH active/idle assistant baseline; immutable contiguous seq and same-cut pages; not_attested throughout",
+    "AC5": "Real CLI and Chromium overlap/race/branch/error paths; native and adapter negative out-of-order/gap/overflow/eviction/budget cases"
+  },
+  "redGreen": {
+    "sameObjectQueuedReuse": {
+      "red": "First lifecycle incorrectly settled as msg-2; expected msg-1",
+      "green": "Both captured initiating lifecycles settle to exact native original-object association"
+    },
+    "emptyError": "Real terminal recovery appends the original after provisional skip; one final settlement rather than premature no-entry",
+    "lazyClassification": "Full fingerprint caught errorId materialization after append; classification now occurs before publication, field remains hashed"
+  },
+  "limits": {
+    "nativeJournalEvents": 4096,
+    "nativeJournalBytes": 8388608,
+    "nativePollEvents": 128,
+    "nativePollBytes": 786432,
+    "liveItemBytes": 524288,
+    "derivedEvents": 60000,
+    "derivedBytes": 33554432,
+    "openingParts": 60000,
+    "openingBytes": 268435456,
+    "attemptChunks": 4096,
+    "attemptBytes": 8388608,
+    "followFrames": 256,
+    "followBytes": 1048576
+  },
+  "pending": [
+    "Independent coordinator review/acceptance",
+    "Full multi-holder reset and integrated draft/attachment/Interaction preservation (#39/#40)",
+    "Native durable submission/provenance receipts (#36)",
+    "Full 0005 generation-storage composition (#41)"
+  ],
+  "explicitLimits": [
+    "Unrepresentable unresolved-runtime opening order, missing exact identity/owner or exceeded budget fails explicitly and requires full-view reopen",
+    "Manual single-view public release/reopen only; DOM textarea survival is not integrated draft preservation",
+    "Derived presentation times/chunks are not provider timing or original chunk records"
+  ],
+  "windows": "DEFERRED by owner",
+  "productSessionAdmission": "blocked",
+  "durability": "not_attested",
   "ownedSources": {
-    "apps/live-fixture/server.ts": "0d4fead099ad3be565e0addfae6255c1cccf2474fc1f985323ec4805b527f44e",
+    "apps/live-fixture/server.ts": "6014977c2a8bc13159423271da61957d2bb1733e42818e3ea827d0522bd73148",
     "apps/live-fixture/service.ts": "df3c6a277dfc52559e6f785b0ec02b1567c837081ccf725b982130044bee80e8",
+    "apps/live-fixture/build.ts": "a6bec92a81f2c2efb08c81b0cd4579ad734afef810c82ff007f7c09d08d8ed1b",
     "apps/live-fixture/src/client.ts": "dd747b791c5644185135f4ebd358382f054e1d2e483cd011b7eb290a41fe7d90",
-    "packages/projection/live-journal.ts": "cf45a2b1cd8b5c8f2aaefcd7aa3965c986251024112507ceaf8863390eb06d57",
+    "packages/projection/live-journal.ts": "0e7d21f8079227f23e1e15595faa0b02354570972ae2ac5b6d23b0383f73dc33",
     "packages/compatibility/live-transport.ts": "d53df38cacaf9c80914c690ca090d3b2efc90b416fd1ac28509e2992db6e1a45",
-    "compatibility/omp/fixtures/live-worker.ts": "58c522d788516aeb9af3e6f77d892dbb0e45463a195c6ced2594479c1ad5e7d7",
-    "compatibility/omp/fixtures/live-provider.ts": "33fd78f5b6779275f1d36107b7e12c255beb43db0ff0401c25061cc19cd4df2a",
-    "compatibility/omp/0006-live-settlement.patch": "59faf872103c568cdc6c6ba218e39673274309c7fc1e65e56aa195a440b2d48d"
+    "packages/contracts/live-fixture.ts": "57c042eb0ca9535294c98ebbadb07cca3a39274ab6759879948d9464fdfa7602",
+    "compatibility/omp/fixtures/live-worker.ts": "73dd93532b74f2a549b7de39c96adcca3b312a2b1519e891fad7f7381b95aff7",
+    "compatibility/omp/fixtures/live-provider.ts": "9b9b0fb276f0cbda80d4e6d4ad89442d28c45bb941a3d711130d6e19b4a46b6c",
+    "compatibility/omp/fixtures/live-native.test.js": "47f08579e86003f35820a0dcf8036e63b7d86b7f3de594b1f5e6067f13944e4b",
+    "compatibility/omp/fixtures/live-public-rpc.test.js": "a1345d8e58b145b77120ba4acdd14e64743521618023240b41ea5bffd901e873",
+    "compatibility/omp/0006-live-settlement.patch": "f1fe21f463a51ce49c1fa8a2fcda0d098b2acce89ce9bfb3710dd10a592b5366",
+    "scripts/build-live-contracts.ts": "6c7612d8d5c42d739808a0ca83b214480f8c50ec9183194bdf6457b4fa90b88b",
+    "scripts/check-live-native.ts": "ad038e996a1e2e60a4af30da0e7771759b1b04835ca3ef08c70bc029d79ba6cf",
+    "scripts/verify-live-browser.ts": "fc05d73c9431fb8da68d6101629e794bd2b8cce5b7fdb29e5b5bb9a21fa362a7",
+    "tests/browser/live-browser.py": "d7c32685fc6c196ebb9e6ca83c53428660651392bce69e34ed7647cf96c69dec",
+    "tests/live/active-open.test.ts": "c3a9ea807971a3d05ad9f08141482f26d74c544fe27ddce0c8e832f11eefc3c9",
+    "tests/live/settlement.test.ts": "69c56154cb665f21be9668d3bf5c29dbabb907064e5b73b0504b45b5f7a6245a",
+    "tests/live/projection.test.ts": "8c590d71a36fc5cbb4e191b4d1097e6b5f3fd59e0c2ef8a13b87c06b5d0198e7",
+    "tests/compatibility/live-build.test.ts": "6d7e6e3283c6379343e6aac877e1c0eac5193ae5249c9f157522aac78cf9edf6",
+    "upstreams.lock.json": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c"
   },
   "retainedNetworkTraces": [
     {
-      "file": "vendor/live-evidence/omp-live-cli-8318p3.network.strace",
-      "sha256": "296f69cbef4c9580992f348d187ab7597fd9ddd3372cd00e95a6dfcefa49a354"
+      "file": "vendor/live-evidence/omp-live-cli-V6onB4.network.strace",
+      "sha256": "35cc6d8c538f74e3bb45ab09ccf8bf1c0df0a50b3a258628919da93bb5a0f8d3"
     },
     {
-      "file": "vendor/live-evidence/omp-live-cli-dND6Tn.network.strace",
-      "sha256": "1f83048ffff7691d358cc234d923f5ccaa3915a44eba495a828901e640d7eff4"
+      "file": "vendor/live-evidence/omp-live-cli-XPieGO.network.strace",
+      "sha256": "4f52aea179a47fc25827d97de3d72f6524a8ce66be2af0c955c0c1a59680dfac"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-zdmLXh.network.strace",
+      "sha256": "1723903e68730d0364eae6e0e6ad4131f405f76167210db9f4149b0767107af1"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-rWs4vp.network.strace",
+      "sha256": "f01f367b5cf37d742dfc7a213e0e6d31f13886381612a8a8cfcc81daddaf205d"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-WTTMtp.network.strace",
+      "sha256": "a40df376eea0cf3948cca46eedb78c5145fcdd941ebd31174634420ffaeac1f1"
+    },
+    {
+      "file": "vendor/live-evidence/omp-live-cli-o2Cdzz.network.strace",
+      "sha256": "40fc60af08f16adb8b3d92436d1d6f16bef6c1d8d63a96c4dd5d45f8ad8be884"
+    }
+  ],
+  "rawEvidence": [
+    {
+      "file": "vendor/live-evidence/final-native-build.log",
+      "sha256": "ec8b5bdd09fe88ba955b56d245f034221a43d452ef9cc777d7cca577542b0cc1"
+    },
+    {
+      "file": "vendor/live-evidence/final-generated.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "vendor/live-evidence/native-types.log",
+      "sha256": "516f528bf6fc073c9a636e6d4f73552615f9210f16f83f1db286da1687fa62e3"
+    },
+    {
+      "file": "vendor/live-evidence/final-live-build.log",
+      "sha256": "a87306b1bb614a9ef4135b604c8057d95f8a55ce0b65b9e92417538c052f6341"
+    },
+    {
+      "file": "vendor/live-evidence/final-check.log",
+      "sha256": "d1b73277c6d79342b4bb989c662004bce6357f145614f6c918ec36903e59acac"
+    },
+    {
+      "file": "vendor/live-evidence/final-browser.log",
+      "sha256": "690ca735a899342eff296a1b00b2cd507327262c6e8c9ecdf06c0fdc65b064a4"
+    },
+    {
+      "file": "vendor/live-evidence/reused-object-red.log",
+      "sha256": "32e3ac0817a630df3cbebd23dbbeda4b510f13fa64ff98f82e6afe0079d9c23e"
+    },
+    {
+      "file": "vendor/live-evidence/reused-object-green.log",
+      "sha256": "01e9c3b32bcc6ff23066f510d7421dccb1f368b50d5e9c09351a7ef026ded870"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "vendor/live-evidence/stable.png",
+      "sha256": "9eab23ad6b06b37b271b328949304f1babf202835386941d6725b9024b677e2e"
+    },
+    {
+      "file": "vendor/live-evidence/first-materialization.png",
+      "sha256": "08742752a293bdc119e9b3d7f7ef35994bccf69ea8706c0d0f2779f5d56cf169"
+    },
+    {
+      "file": "vendor/live-evidence/active-opening.png",
+      "sha256": "b647a838431972871e02078aca514d787dc5bda728cd9dde3b0213b0293cc4df"
+    },
+    {
+      "file": "vendor/live-evidence/refusal.png",
+      "sha256": "0370eb9aa3f34150ee7088c6994ce8c092c1de42e8cf78d1e8a8ac9dd0b9f3ac"
+    },
+    {
+      "file": "vendor/live-evidence/empty-error.png",
+      "sha256": "575c4224f09b3ebfdae7abc031b3024de725b29c123b55787f20e095be512efc"
+    },
+    {
+      "file": "vendor/live-evidence/rewind.png",
+      "sha256": "a1c3ac2876cc4b2d3da342dca3efdd817d6aa0bf2c1bea719bda84a00110424e"
     }
   ]
 }

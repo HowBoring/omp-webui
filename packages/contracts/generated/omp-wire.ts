@@ -1680,7 +1680,9 @@ export interface UIReplyResult {
 	status: "answered" | "cancelled" | "expired" | "invalid" | "stale";
 }
 
-export type HistoryScope = "tree" | "active" | "running";
+export type HistoryHandoff = "current" | "live";
+
+export type HistoryScope = "tree" | "active" | "running" | "live";
 
 export interface HistoryContent {
 	cursor: string;
@@ -1737,6 +1739,8 @@ export interface HistoryItem {
 	provider?: string;
 	model?: string;
 	live?: HistoryLiveIdentity;
+	settlement?: HistorySettlement;
+	livePhase?: "streaming" | "ended";
 	toolCallId?: string;
 	toolName?: string;
 	isError?: boolean;
@@ -1798,10 +1802,12 @@ export interface HistoryCursors {
 	tree: string;
 	active: string;
 	running: string;
+	live: string;
 }
 
 export interface HistoryOpen {
 	version: "coherent-history-v1";
+	handoff: "current" | "live";
 	snapshot: string;
 	cursor: string;
 	scope: HistoryScope;
@@ -1867,6 +1873,7 @@ export interface DescribeSessionParams {
 
 export interface HistorySnapshotOpenParams {
 	scope: HistoryScope;
+	handoff?: HistoryHandoff;
 }
 
 export interface HistorySnapshotPageParams {

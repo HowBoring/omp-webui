@@ -19,26 +19,42 @@ async def main():
   await page.wait_for_function("document.querySelector('#status').textContent.startsWith('Ready')")
   initial=json.loads(await page.locator('#evidence').inner_text());native_id=initial['sessionId']
   await page.locator('#draft').fill('Unsent independent fixture draft')
-  await page.locator('#prompt').click()
-  if os.environ.get('LIVE_MODE')=='first-materialization':
+  mode=os.environ.get('LIVE_MODE','stable')
+  active=mode=='active-opening'
+  if not active:await page.locator('#prompt').click()
+  if mode in ['first-materialization','rewind']:
    await page.wait_for_function("document.querySelector('#status').textContent.includes('invalidated')")
    await page.wait_for_timeout(500)
   else:
-   await page.wait_for_function("document.querySelectorAll('#conversation .row').length===4")
+   expected_rows=3 if mode=='refusal' else 4
+   try:await page.wait_for_function('(expected)=>document.querySelectorAll("#conversation .row").length===expected',arg=expected_rows)
+   except Exception:
+    print(json.dumps({'statusText':await page.locator('#status').inner_text(),'conversation':await page.locator('#conversation').inner_text(),'evidence':await page.locator('#evidence').inner_text(),'errors':errors,'frames':frames[-15:]}))
+    raise
+   for attempt in range(500):
+    if any(f['value']['type']=='assistant-stream' and f['value']['frame']['type']=='end' for f in frames):break
+    await page.wait_for_timeout(10)
    await page.wait_for_function("!document.querySelector('#partial')")
    rendered=await page.locator('#conversation').inner_text()
-   assert rendered.count('authoritative controlled final')==2,rendered
+   if mode=='empty-error':assert rendered.count('synthetic non-retryable terminal error')==1,rendered
+   else:assert rendered.count('authoritative controlled final')==(1 if mode=='refusal' else 2),rendered
    journal=json.loads(await page.locator('#evidence').inner_text())['journal']
    seqs=[entry['seq'] for entry in journal]
-   assert seqs==list(range(len(seqs))),seqs
+   assert seqs==list(range(seqs[0],seqs[0]+len(seqs))),seqs
    assert all(entry['type']=='event' for entry in journal),journal
    starts=[f for f in frames if f['value']['type']=='snapshot']
    assert all(f['value']['assistantStream']['revision']>=0 for f in starts)
    assert all(f['value']['projections']['asOfSeq']==f['value']['cursor'] for f in starts)
    live=[f['value']['frame'] for f in frames if f['value']['type']=='assistant-stream']
-   assert [f['revision'] for f in live]==list(range(1,len(live)+1)),live
-   assert [f['index'] for f in live if f['type']=='chunk']==list(range(len([f for f in live if f['type']=='chunk'])))
-   assert live[-1]['type']=='end' and live[-1]['outcome']['kind']=='committed',live
+   revision=starts[0]['value']['assistantStream']['revision']
+   assert [f['revision'] for f in live]==list(range(revision+1,revision+len(live)+1)),live
+   baseline=starts[0]['value']['assistantStream'].get('activeAttempt')
+   if active:
+    assert baseline and baseline['nextIndex']>0,starts
+    assert live[-1]['attemptId']==baseline['attemptId'],live
+   first_index=baseline['nextIndex'] if baseline else 0
+   assert [f['index'] for f in live if f['type']=='chunk']==list(range(first_index,first_index+len([f for f in live if f['type']=='chunk'])))
+   assert live[-1]['type']=='end' and live[-1]['outcome']['kind']==('abandoned' if mode=='refusal' else 'committed'),live
    await page.wait_for_function("!document.querySelector('#rewind').disabled")
    await page.locator('#rewind').click()
    await page.wait_for_function("document.querySelector('#status').textContent.includes('invalidated')")
@@ -51,7 +67,7 @@ async def main():
   assert final['sessionId']==native_id
   assert final['generation']!=initial['generation']
   assert await page.locator('#draft').input_value()=='Unsent independent fixture draft'
-  if os.environ.get('LIVE_MODE')!='first-materialization':
+  if mode not in ['first-materialization','rewind']:
    assert 'authoritative controlled final' not in await page.locator('#conversation').inner_text()
   by_stream={}
   for frame in frames:
