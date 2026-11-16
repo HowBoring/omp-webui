@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "d23bf883edd35afe12fef970bd7cb16bc3e234ef3b3de18a6a277fc6a3231e23"
+    "sha256": "a9aa3f4715a7e036b104d934eb07cf220aac098c49a69d8d7967b18e74d8f400"
   },
-  "preparedTree": "6ae35039afa6700ffc1eeff8907cf9c4708e7859",
-  "preparedSourceSha256": "60d9ba5e9a3ea017e92feeb703190fd067d546684bc352a1163e86b91b5c1d92",
+  "preparedTree": "ac5bf3f7caecbc96b2fb416e45a7c07f7c4c52b0",
+  "preparedSourceSha256": "59cb60785f4ee6c83f7948fd0892844854f5eacb2ba6dd42c50262a5149063a5",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -43,7 +43,7 @@
   "backendCapabilityGranted": false,
   "actualGlobal": "BLOCKED",
   "privateAdmission": "BLOCKED",
-  "processContext": "SOURCE_ONLY_PUBLIC_BUN_UDS_COMPILED_OPERATOR_PIN_ABSENT",
+  "processContext": "SOURCE_ONLY_PUBLIC_BUN_UDS_STABLE_ANCHOR_ABSENT_GENERATION_IMMUTABLE",
   "durableFenceAdapter": "SOURCE_AND_SYNTHETIC_FS_ONLY",
   "signedReplyAuthentication": "SOURCE_ONLY_PINNED_OPERATOR_RECORD_LOADER_SYNTHETIC_TRACER_NOT_RUN",
   "contextBrokerQueue": {
@@ -65,5 +65,16 @@
     }
   ],
   "independentServerTracer": "PASS_SCOPED_PUBLIC_UDS_PEER_SIGNATURE_DRAINED",
-  "actualLauncherMaintenanceRetention": "NOT_RUN"
+  "actualLauncherMaintenanceRetention": "NOT_RUN",
+  "signedApprovalAuthentication": "SOURCE_ONLY_STABLE_ANCHOR_DOMAIN_SEPARATED_APPROVAL_DISTINCT_REPLY_KEY",
+  "approvalSourceEvidence": {
+    "tests": 53,
+    "osTestsSkipped": 2,
+    "assertions": 189,
+    "focusedTypeFiles": 30,
+    "deterministicBuildGraph": "PASS_COMPILE_ONLY_FINAL_BYTES_BEFORE_EXTERNAL_SIGNED_RECORD",
+    "productionAnchorProvisioned": false,
+    "productionApprovalProvisioned": false,
+    "runtimeExecuted": false
+  }
 }

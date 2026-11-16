@@ -75,7 +75,14 @@ def verify_fixture(file, expected):
         raise RuntimeError("TRACER_INTERPRETER_CHANGED")
     pinned(value["approval"])
     pinned(value["key"])  # Only hash/metadata: never parse or print the private signing key.
-    approval = json.loads(Path(value["approval"]["path"]).read_text())
+    anchor = json.loads(Path(value["approval"]["path"]).read_text())
+    pinned(value["approvalRecord"])
+    if anchor["version"] != "omp-execution-approval-anchor/1" \
+            or anchor["approvalRecord"]["path"] != value["approvalRecord"]["path"]:
+        raise RuntimeError("TRACER_ANCHOR_RECORD_CHANGED")
+    # Fixture identity/initial-state checks only; the actual public loader verifies the approval signature.
+    envelope = json.loads(Path(value["approvalRecord"]["path"]).read_text())
+    approval = json.loads(envelope["payload"])
     state = file.parent / "home/state"
     if value["syntheticHome"] != str(file.parent / "home") or json.loads((file.parent / "home/fixture-marker.json").read_text()) != {
             "kind": "ownership-server-synthetic-home/1", "privateData": False}:

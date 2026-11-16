@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..12f654993f 100644
+index a4b6abe4e7378f84c82d7a55b255f60a9bd1039f..12f654993fc203f37dab14bb5f9fe33d3428654d 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
 @@ -2,6 +2,18 @@
@@ -22,7 +22,7 @@ index a4b6abe4e7..12f654993f 100644
  
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..a7ee5e3d37 100644
+index 0b34d8fc54c144e575dabb91854afdcfb1f26912..a7ee5e3d37ec6e6f3255b19555dacf23123c837d 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -10,6 +10,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
@@ -36,7 +36,7 @@ index 0b34d8fc54..a7ee5e3d37 100644
  - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
 diff --git a/packages/coding-agent/docs/execution-ownership-consumers.md b/packages/coding-agent/docs/execution-ownership-consumers.md
 new file mode 100644
-index 0000000000..b73ba4ceaf
+index 0000000000000000000000000000000000000000..b73ba4ceafdc35921d87ca3fd20e57845362d067
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership-consumers.md
 @@ -0,0 +1,46 @@
@@ -88,7 +88,7 @@ index 0000000000..b73ba4ceaf
 +same-UID code, arbitrary downloaded old Native, or irreversible external tool effects.
 diff --git a/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md b/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md
 new file mode 100644
-index 0000000000..749ace4466
+index 0000000000000000000000000000000000000000..749ace4466cf33b3bb645870bd7a7b4d71c02cc6
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md
 @@ -0,0 +1,34 @@
@@ -128,10 +128,10 @@ index 0000000000..749ace4466
 +旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..20feb0e6f2
+index 0000000000000000000000000000000000000000..3f36ca7115e0620bcbce95f55cfc9de6fc977b20
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,251 @@
+@@ -0,0 +1,277 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -238,8 +238,8 @@ index 0000000000..20feb0e6f2
 +`authentication` defines the `omp-execution-auth/1` envelope around the existing ownership request/response. The
 +dispatcher authenticates the actual requesting OS process with SO_PEERPIDFD. Bun clients in every worker realm use
 +public UDS APIs and verify Ed25519 signatures against an independently operator-approved raw public key. A client
-+does not load FFI or retain a server pidfd. The outside-release approval record and actual transport/backend are still
-+missing; there is no environment-selected endpoint/key, automatic key enrollment, local spawn or legacy fallback.
++does not load FFI or retain a server pidfd. The stable outside-release approval anchor and signed release record have source loaders; production selection
++and complete broker admission remain unavailable; there is no environment-selected endpoint/key, automatic key enrollment, local spawn or legacy fallback.
 +
 +Each fresh 32-byte random nonce is bound to the exact UTF-8 request SHA256, operation, request ID, installation ID,
 +approved closure/schema, server generation and exact response. Signing bytes are the JSON array in
@@ -353,13 +353,39 @@ index 0000000000..20feb0e6f2
 +
 +## Selected approval and first server tracer (source only)
 +
-+`approval` loads only an explicitly supplied operator pin containing canonical path, device, inode and SHA256.
-+The protected public record is outside the mutable release; it binds installation, closure/schema, Ed25519 public key,
-+release path, the 0700 outside-release socket/state/fence directories, and exact bridge/helper hashes. Reads are bounded
-+at 16 KiB, reject links/replacement/changed bytes/non-0600 ownership, and recheck before/after asynchronous admission.
-+The client compiled pin has no source default. Environment, HOME/cwd, server responses and release-local metadata
-+never enroll a public key or discover a fallback. The separate protected server-key record proves possession of the
-+approved public key before the bridge can load. Neither record proves actual global closure or maintenance retention.
++`bootstrap` compiles only `OMP_EXECUTION_OWNERSHIP_ANCHOR`: the canonical path/device/inode/SHA256 of a
++protected immutable outside-release anchor. Source checkouts have no default. Its exact JSON fields are `version`
++(`omp-execution-approval-anchor/1`), `installation`, dedicated `approvalPublicKey`, `approvalRecord` (fixed `path`
++and protected `parent` path/device/inode), `approvalVersion` (`omp-execution-approval/2`), and `recordBytes` (16384).
++The anchor rejects all tuple-dependent fields, including release closure/schema/component/approval-record digests.
++No environment, HOME/cwd, server response or release-local manifest discovers/enrolls trust or creates keys.
++
++Build final inventoried bytes with that stable pin, then compute the exhaustive final release closure, then separately
++sign the outside-release approval. The exact compact JSON envelope fields are `version`
++(`omp-execution-signed-approval/1`), `payload` (an exact compact JSON string), and canonical base64url `signature`.
++The dedicated Ed25519 approval key signs UTF-8 `omp-execution-release-approval/2` + NUL + that exact payload string.
++Duplicate fields, whitespace variants, extra fields, wrong installation/version/policy and invalid signatures refuse.
++Payload version `omp-execution-approval/2` and policy `omp-execution-ownership/1` bind full final closure/schema,
++release directory identity, global entry/control pins, bridge/helper/control-I/O/validator digests, dispatcher reply
++public key (`dispatcherReplyPublicKey`), endpoint, and state/fence identities. The approval key must differ from the
++reply key; dispatcher signing-key possession never authorizes another release. Public UDS nonce/reply bytes stay unchanged.
++
++Records are bounded at 16 KiB, canonical, no-follow, regular single-link, owner-only 0600; protected record parent and
++state/fence directories must retain pinned identities and 0700. Named/opened identity, exact bytes/digest and change
++metadata are checked before/after bounded reads and asynchronous admission. The initial selection is immutable:
++record replacement, byte changes (even identical-byte rewrite), anchor loss or replacement invalidate new admission
++permanently for that loaded generation. Bootstrap caches its first selection/failure; no reload/reconnect/retry enrolls
++a new approval. Each worker realm independently verifies the same selected tuple through the existing dispatcher
++registration gates. The coordination policy prohibits publication while any process/realm use lock or unresolved
++fence remains; this source loader is not a cross-realm publication lock or a replacement for those gates.
++
++Publishing/revoking/upgrading/rolling back approval requires an explicit operator action under existing exclusive
++control, all-process/shared locks, durable fences and current-data/TUI compatibility gates. A changed record needs
++manual restart/new supervision generation. An old valid signed record gives no exception to actual tuple, current-data,
++provenance/mappings/semantics or lifecycle gates. There is no updater, automatic downgrade or cryptographic rollback
++counter. No production anchor, approval record, key provisioning or global target exists in this source preparation.
++The separate protected server-key record proves possession of the approved dispatcher reply key before bridge load;
++valid approval signatures authenticate operator approval only and grant no production/private admission.
 +
 +`uds-client` uses public Bun UDS methods in every realm and the existing nonce/request-bound Ed25519 verifier.
 +It keeps one connection, bounds connect/request/response work, handles partial writes, and fails permanently on
@@ -384,7 +410,7 @@ index 0000000000..20feb0e6f2
 +source checks until a coordinator-cleared OS window supplies its manifest. Actual peer identity must be established
 +by the narrow C syscall trace, never a client-supplied PID or a successful signature alone.
 diff --git a/packages/coding-agent/src/blob-broker/daemon.ts b/packages/coding-agent/src/blob-broker/daemon.ts
-index 94d8bd457e..582426e750 100644
+index 94d8bd457e0ed3b98700be49968dfae622aed60d..582426e750661d2b5680f8e11d184a64a2fa6a66 100644
 --- a/packages/coding-agent/src/blob-broker/daemon.ts
 +++ b/packages/coding-agent/src/blob-broker/daemon.ts
 @@ -1,3 +1,4 @@
@@ -439,7 +465,7 @@ index 94d8bd457e..582426e750 100644
  		if (!info) return null;
  		return new DaemonBlobBackend(socket, info, callbacks);
 diff --git a/packages/coding-agent/src/blob-broker/service.ts b/packages/coding-agent/src/blob-broker/service.ts
-index b3d7414ab1..4d940277c5 100644
+index b3d7414ab158c619ad8e04583189a438e53b15fb..4d940277c52ebf32fc3ca6c0c88b7f887abd85ef 100644
 --- a/packages/coding-agent/src/blob-broker/service.ts
 +++ b/packages/coding-agent/src/blob-broker/service.ts
 @@ -1,3 +1,4 @@
@@ -461,7 +487,7 @@ index b3d7414ab1..4d940277c5 100644
  				: null;
  		if (daemon) backends.push(daemon);
 diff --git a/packages/coding-agent/src/cli-runtime.ts b/packages/coding-agent/src/cli-runtime.ts
-index 9cd9c7b133..5191cc4dbd 100644
+index 9cd9c7b1332e9536e35dfea3d8423a4c6d57d127..5191cc4dbddf0441fa78ee5e06a12f61d6fe5386 100644
 --- a/packages/coding-agent/src/cli-runtime.ts
 +++ b/packages/coding-agent/src/cli-runtime.ts
 @@ -28,6 +28,7 @@ import {
@@ -521,7 +547,7 @@ index 9cd9c7b133..5191cc4dbd 100644
  		return true;
  	}
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
-index ff1bfe94d2..a4eaff9c0a 100755
+index ff1bfe94d241d510f85007a47194263398951a7b..a4eaff9c0a5bc7682b2dffd3eb255f14f5b6a88d 100755
 --- a/packages/coding-agent/src/cli.ts
 +++ b/packages/coding-agent/src/cli.ts
 @@ -4,6 +4,27 @@
@@ -602,7 +628,7 @@ index ff1bfe94d2..a4eaff9c0a 100755
    }
  }
 diff --git a/packages/coding-agent/src/cli/ps-data.ts b/packages/coding-agent/src/cli/ps-data.ts
-index 7485ca8293..7a871fb156 100644
+index 7485ca8293df22a4d894b36188034bd735a7326e..7a871fb156d8ff6099306473db06f75e49348794 100644
 --- a/packages/coding-agent/src/cli/ps-data.ts
 +++ b/packages/coding-agent/src/cli/ps-data.ts
 @@ -1,23 +1,16 @@
@@ -828,7 +854,7 @@ index 7485ca8293..7a871fb156 100644
 +	return current ? [current, ...liveGlobals] : liveGlobals;
  }
 diff --git a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts b/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
-index 0fde65a3ab..6de48998c2 100644
+index 0fde65a3ab5e4f8a0bbdff9bd59231f98e0402fb..6de48998c23d1dda843f94a69c2cc9c0be76de05 100644
 --- a/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
 +++ b/packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts
 @@ -1,3 +1,4 @@
@@ -845,7 +871,7 @@ index 0fde65a3ab..6de48998c2 100644
  	if (!loader) {
  		return ompCreateAgentSession(options);
 diff --git a/packages/coding-agent/src/ida/client.ts b/packages/coding-agent/src/ida/client.ts
-index 73216b616f..d0f4dbe8cb 100644
+index 73216b616fd54e31b72d09640400390ce410ba69..d0f4dbe8cb7da25f9269b19f2a556a9b09030f10 100644
 --- a/packages/coding-agent/src/ida/client.ts
 +++ b/packages/coding-agent/src/ida/client.ts
 @@ -1,3 +1,4 @@
@@ -928,7 +954,7 @@ index 73216b616f..d0f4dbe8cb 100644
  	handles.clear();
  	await Promise.all(
 diff --git a/packages/coding-agent/src/launch/client.ts b/packages/coding-agent/src/launch/client.ts
-index be6b55bca1..d760a82a21 100644
+index be6b55bca12be6171361924278b0476154170107..d760a82a21684ec591f88bbc9d27fd2a99dadd08 100644
 --- a/packages/coding-agent/src/launch/client.ts
 +++ b/packages/coding-agent/src/launch/client.ts
 @@ -1,15 +1,9 @@
@@ -1369,27 +1395,33 @@ index be6b55bca1..d760a82a21 100644
  }
 diff --git a/packages/coding-agent/src/launch/ownership/approval.ts b/packages/coding-agent/src/launch/ownership/approval.ts
 new file mode 100644
-index 0000000000..64faf86db8
+index 0000000000000000000000000000000000000000..b6462db8549205a462dfa5c43117e4a43a5d0262
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/approval.ts
-@@ -0,0 +1,116 @@
+@@ -0,0 +1,213 @@
 +import * as fs from "node:fs";
 +import * as path from "node:path";
++import type { BigIntStats } from "node:fs";
 +import type { OwnershipAuthenticationApproval } from "./authentication";
 +import { OwnershipError, ownershipGeneration, ownershipIdentity } from "./protocol";
 +
-+/** Compiled operator selection. Never populated from environment, cwd, HOME, a peer reply or a release manifest. */
++/** Explicit protected-file identity. Bootstrap compiles ONLY the stable anchor pin, never a release approval digest. */
 +export interface OwnershipApprovalPin { readonly path: string; readonly device: string; readonly inode: string; readonly sha256: string }
 +export interface OwnershipFileApproval { readonly file: string; readonly sha256: string }
 +export interface OwnershipDirectoryApproval { readonly path: string; readonly device: string; readonly inode: string }
 +export interface LoadedOwnershipApproval extends OwnershipAuthenticationApproval {
 +	readonly releaseRoot: string;
++	readonly releaseDirectory: OwnershipDirectoryApproval;
++	readonly entry: OwnershipApprovalPin;
++	readonly control: OwnershipApprovalPin;
++	readonly controlIo: OwnershipFileApproval;
++	readonly validator: OwnershipFileApproval;
 +	readonly endpoint: string;
 +	readonly stateDirectory: OwnershipDirectoryApproval;
 +	readonly fenceDirectory: OwnershipDirectoryApproval;
 +	readonly bridge: OwnershipFileApproval;
 +	readonly helper: OwnershipFileApproval;
-+	/** Recheck the independently pinned public record and state directory before/after every asynchronous admission step. */
++	/** Recheck this immutable generation snapshot before/after async admission. Any failure permanently invalidates it. */
 +	verify(): Promise<void>;
 +}
 +
@@ -1428,7 +1460,7 @@ index 0000000000..64faf86db8
 +	const stat = await fs.promises.lstat(value.path, { bigint: true });
 +	if (await fs.promises.realpath(value.path) !== value.path || !stat.isDirectory() || String(stat.dev) !== value.device
 +		|| String(stat.ino) !== value.inode || stat.uid !== BigInt(process.getuid?.() ?? -1)
-+		|| (stat.mode & 0o777n) !== 0o700n) throw new OwnershipError("dispatcher_mismatch");
++		|| (stat.mode & 0o7777n) !== 0o700n) throw new OwnershipError("dispatcher_mismatch");
 +}
 +/** Decode only an independently supplied compiled/operator pin; decoding never discovers or approves a record. */
 +export function ownershipApprovalPin(value: unknown): OwnershipApprovalPin {
@@ -1437,61 +1469,152 @@ index 0000000000..64faf86db8
 +		sha256: ownershipGeneration(source.sha256) });
 +}
 +
-+/** Bounded protected-file read; file contents are returned only to their explicit trusted caller. */
-+export async function readOwnershipPinnedFile(pin: OwnershipApprovalPin): Promise<string> {
-+	canonical(pin.path); numeric(pin.device); numeric(pin.inode, true); ownershipGeneration(pin.sha256);
-+	if (await fs.promises.realpath(pin.path) !== pin.path) throw new OwnershipError("dispatcher_mismatch");
-+	const file = await fs.promises.open(pin.path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++interface FileSnapshot { readonly pin: OwnershipApprovalPin; readonly bytes: string; readonly stamp: string }
++function stamp(stat: BigIntStats): string {
++	return [stat.dev, stat.ino, stat.uid, stat.gid, stat.mode, stat.nlink, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");
++}
++function protectedFile(stat: BigIntStats): void {
++	if (!stat.isFile() || stat.nlink !== 1n || stat.size > 16_384n || stat.uid !== BigInt(process.getuid?.() ?? -1)
++		|| (stat.mode & 0o7777n) !== 0o600n) throw new OwnershipError("dispatcher_mismatch");
++}
++async function snapshot(location: string, expected?: FileSnapshot | OwnershipApprovalPin): Promise<FileSnapshot> {
++	canonical(location);
++	if (await fs.promises.realpath(location) !== location) throw new OwnershipError("dispatcher_mismatch");
++	const file = await fs.promises.open(location, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK);
 +	try {
++		const before = await file.stat({ bigint: true }); protectedFile(before);
++		const identity = { path: location, device: String(before.dev), inode: String(before.ino) };
++		const pinned = expected && ("pin" in expected ? expected.pin : expected);
++		if (pinned && (pinned.path !== location || pinned.device !== identity.device || pinned.inode !== identity.inode)) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
 +		const verify = async (): Promise<void> => {
-+			for (const stat of [await file.stat({ bigint: true }), await fs.promises.lstat(pin.path, { bigint: true })]) {
-+				if (!stat.isFile() || stat.nlink !== 1n || stat.size > 16_384n || String(stat.dev) !== pin.device
-+					|| String(stat.ino) !== pin.inode || stat.uid !== BigInt(process.getuid?.() ?? -1)
-+					|| (stat.mode & 0o777n) !== 0o600n) throw new OwnershipError("dispatcher_mismatch");
++			if (await fs.promises.realpath(location) !== location) throw new OwnershipError("dispatcher_mismatch");
++			for (const stat of [await file.stat({ bigint: true }), await fs.promises.lstat(location, { bigint: true })]) {
++				protectedFile(stat);
++				if (stamp(stat) !== stamp(before)) throw new OwnershipError("dispatcher_mismatch");
 +			}
 +		};
 +		await verify();
-+		const bytes = Buffer.alloc(16_385), read = await file.read(bytes, 0, bytes.length, 0);
-+		if (read.bytesRead > 16_384 || new Bun.CryptoHasher("sha256").update(bytes.subarray(0, read.bytesRead)).digest("hex") !== pin.sha256) {
-+			throw new OwnershipError("dispatcher_mismatch");
-+		}
++		const read = async (): Promise<Buffer> => {
++			const bytes = Buffer.alloc(16_385), result = await file.read(bytes, 0, bytes.length, 0);
++			if (BigInt(result.bytesRead) !== before.size) throw new OwnershipError("dispatcher_mismatch");
++			return bytes.subarray(0, result.bytesRead);
++		};
++		const bytes = await read(), digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
 +		await verify();
-+		return new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, read.bytesRead));
++		const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
++		if (!(await read()).equals(bytes) || (expected && "bytes" in expected && expected.bytes !== text)
++			|| (pinned && pinned.sha256 !== digest)
++			|| (expected && "stamp" in expected && expected.stamp !== stamp(before))) throw new OwnershipError("dispatcher_mismatch");
++		await verify();
++		return Object.freeze({ pin: Object.freeze({ ...identity, sha256: digest }), stamp: stamp(before),
++			bytes: text });
 +	} finally { await file.close(); }
 +}
 +
-+/** Read an explicitly selected outside-release public operator record. This never creates/enrolls trust or a server. */
++/** Bounded protected-file read; file contents are returned only to their explicit trusted caller. */
++export async function readOwnershipPinnedFile(selected: OwnershipApprovalPin): Promise<string> {
++	try { const pin = ownershipApprovalPin(selected); return (await snapshot(pin.path, pin)).bytes; }
++	catch { throw new OwnershipError("dispatcher_mismatch"); }
++}
++
++/** Exact bytes signed by the dedicated approval key; disjoint from the dispatcher reply signature domain. */
++const APPROVAL_DOMAIN = "omp-execution-release-approval/2\0";
++function key(value: unknown): string {
++	if (typeof value !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(value)
++		|| Buffer.from(value, "base64url").toString("base64url") !== value) throw new OwnershipError("dispatcher_mismatch");
++	return value;
++}
++function exactJson(bytes: string): unknown {
++	const value: unknown = JSON.parse(bytes);
++	if (JSON.stringify(value) !== bytes) throw new OwnershipError("dispatcher_mismatch");
++	return value;
++}
++function anchor(value: unknown) {
++	const source = record(value, ["version", "installation", "approvalPublicKey", "approvalRecord", "approvalVersion", "recordBytes"]);
++	const location = record(source.approvalRecord, ["path", "parent"]), parent = directory(location.parent);
++	const file = canonical(location.path);
++	if (source.version !== "omp-execution-approval-anchor/1" || source.approvalVersion !== "omp-execution-approval/2"
++		|| source.recordBytes !== 16384 || path.dirname(file) !== parent.path) throw new OwnershipError("dispatcher_mismatch");
++	return { installation: ownershipGeneration(source.installation), approvalPublicKey: key(source.approvalPublicKey),
++		file, parent };
++}
++async function approvedPayload(bytes: string, publicKey: string): Promise<Record<string, unknown>> {
++	const envelope = record(exactJson(bytes), ["version", "payload", "signature"]);
++	if (envelope.version !== "omp-execution-signed-approval/1" || typeof envelope.payload !== "string"
++		|| typeof envelope.signature !== "string") throw new OwnershipError("dispatcher_mismatch");
++	const signature = Uint8Array.from(Buffer.from(envelope.signature, "base64url"));
++	if (signature.length !== 64 || Buffer.from(signature).toString("base64url") !== envelope.signature) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	const verificationKey = await crypto.subtle.importKey("raw", Uint8Array.from(Buffer.from(publicKey, "base64url")), "Ed25519", false, ["verify"]);
++	if (!await crypto.subtle.verify("Ed25519", verificationKey, signature, new TextEncoder().encode(APPROVAL_DOMAIN + envelope.payload))) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	return record(exactJson(envelope.payload), ["version", "policy", "installation", "identity", "dispatcherReplyPublicKey", "releaseRoot",
++		"releaseDirectory", "entry", "control", "endpoint", "stateDirectory", "fenceDirectory", "bridge", "helper", "controlIo", "validator"]);
++}
++
++/**
++ * Select one signed outside-release approval for a supervision generation. Signatures authenticate approval only:
++ * actual global provenance/mappings, semantics, all-process maintenance locks and durable fences remain separate gates.
++ * Publication/upgrade/rollback require explicit coordinated operator action; a new record needs a new generation.
++ */
 +export async function loadOwnershipApproval(selected: OwnershipApprovalPin): Promise<LoadedOwnershipApproval> {
 +	const pin = ownershipApprovalPin(selected);
 +	try {
-+		const bytes = await readOwnershipPinnedFile(pin), decoded: unknown = JSON.parse(bytes);
-+		const source = record(decoded, ["version", "installation", "identity", "publicKey", "releaseRoot", "endpoint", "stateDirectory", "fenceDirectory", "bridge", "helper"]);
-+		if (source.version !== "omp-execution-approval/1" || typeof source.publicKey !== "string"
-+			|| !/^[A-Za-z0-9_-]{43}$/.test(source.publicKey)
-+			|| Buffer.from(source.publicKey, "base64url").toString("base64url") !== source.publicKey) throw new OwnershipError("dispatcher_mismatch");
-+		const releaseRoot = canonical(source.releaseRoot), state = directory(source.stateDirectory), endpoint = canonical(source.endpoint);
-+		const fences = directory(source.fenceDirectory);
-+		outside(pin.path, releaseRoot); outside(state.path, releaseRoot); outside(fences.path, releaseRoot);
-+		if (path.dirname(fences.path) !== state.path || fences.path === endpoint) throw new OwnershipError("dispatcher_mismatch");
-+		if (path.dirname(endpoint) !== state.path || Buffer.byteLength(endpoint) >= 108) throw new OwnershipError("dispatcher_mismatch");
++		const fixed = await snapshot(pin.path, pin), trust = anchor(exactJson(fixed.bytes));
++		await verifyDirectory(trust.parent);
++		const selectedRecord = await snapshot(trust.file), source = await approvedPayload(selectedRecord.bytes, trust.approvalPublicKey);
++		if (source.version !== "omp-execution-approval/2" || source.policy !== "omp-execution-ownership/1"
++			|| source.installation !== trust.installation || key(source.dispatcherReplyPublicKey) === trust.approvalPublicKey) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		const releaseRoot = canonical(source.releaseRoot), releaseDirectory = directory(source.releaseDirectory);
++		const state = directory(source.stateDirectory), endpoint = canonical(source.endpoint), fences = directory(source.fenceDirectory);
++		const entry = ownershipApprovalPin(source.entry), control = ownershipApprovalPin(source.control);
++		for (const file of [pin.path, trust.parent.path, trust.file, state.path, fences.path, entry.path, control.path]) outside(file, releaseRoot);
++		if (releaseDirectory.path !== releaseRoot || path.dirname(fences.path) !== state.path || fences.path === endpoint
++			|| path.dirname(endpoint) !== state.path || Buffer.byteLength(endpoint) >= 108) throw new OwnershipError("dispatcher_mismatch");
++		let failed = false;
 +		const verify = async (): Promise<void> => {
 +			try {
-+				if (await readOwnershipPinnedFile(pin) !== bytes || await fs.promises.realpath(releaseRoot) !== releaseRoot
-+					|| !(await fs.promises.lstat(releaseRoot)).isDirectory()) {
++				if (failed) throw new OwnershipError("dispatcher_mismatch");
++				await snapshot(pin.path, fixed); await verifyDirectory(trust.parent);
++				await snapshot(trust.file, selectedRecord);
++				const stat = await fs.promises.lstat(releaseRoot, { bigint: true });
++				if (await fs.promises.realpath(releaseRoot) !== releaseRoot || !stat.isDirectory()
++					|| String(stat.dev) !== releaseDirectory.device || String(stat.ino) !== releaseDirectory.inode) {
 +					throw new OwnershipError("dispatcher_mismatch");
 +				}
-+				await verifyDirectory(state); await verifyDirectory(fences);
-+			} catch { throw new OwnershipError("dispatcher_mismatch"); }
++				await verifyDirectory(state); await verifyDirectory(fences); await verifyDirectory(trust.parent);
++				await snapshot(trust.file, selectedRecord); await snapshot(pin.path, fixed);
++				if (failed) throw new OwnershipError("dispatcher_mismatch");
++			} catch { failed = true; throw new OwnershipError("dispatcher_mismatch"); }
 +		};
 +		await verify();
-+		return Object.freeze({ installation: ownershipGeneration(source.installation), identity: Object.freeze(ownershipIdentity(source.identity)),
-+			publicKey: source.publicKey, releaseRoot, endpoint, stateDirectory: state, fenceDirectory: fences,
-+			bridge: member(source.bridge, releaseRoot), helper: member(source.helper, releaseRoot), verify });
++		return Object.freeze({ installation: trust.installation, identity: Object.freeze(ownershipIdentity(source.identity)),
++			publicKey: key(source.dispatcherReplyPublicKey), releaseRoot, releaseDirectory, entry, control, endpoint,
++			stateDirectory: state, fenceDirectory: fences, bridge: member(source.bridge, releaseRoot),
++			helper: member(source.helper, releaseRoot), controlIo: member(source.controlIo, releaseRoot),
++			validator: member(source.validator, releaseRoot), verify });
 +	} catch { throw new OwnershipError("dispatcher_mismatch"); }
++}
++
++/** Explicit generation owner: first selection (including failure) is retained; no reload/retry enrollment. */
++export class OwnershipApprovalGeneration {
++	readonly #pin: OwnershipApprovalPin;
++	#selected: Promise<LoadedOwnershipApproval> | undefined;
++	constructor(pin: OwnershipApprovalPin) { this.#pin = ownershipApprovalPin(pin); }
++	async load(): Promise<LoadedOwnershipApproval> {
++		this.#selected ??= loadOwnershipApproval(this.#pin);
++		const approval = await this.#selected; await approval.verify(); return approval;
++	}
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/authentication.ts b/packages/coding-agent/src/launch/ownership/authentication.ts
 new file mode 100644
-index 0000000000..18eed73a5f
+index 0000000000000000000000000000000000000000..18eed73a5f983d892e35269ce4fdc8683d856247
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/authentication.ts
 @@ -0,0 +1,175 @@
@@ -1672,17 +1795,19 @@ index 0000000000..18eed73a5f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/bootstrap.ts b/packages/coding-agent/src/launch/ownership/bootstrap.ts
 new file mode 100644
-index 0000000000..738952b2af
+index 0000000000000000000000000000000000000000..eccef54d98d38ada793bb7d4c3b0210463940d35
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/bootstrap.ts
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,23 @@
 +import { OwnershipError } from "./protocol";
-+import { loadOwnershipApproval, type OwnershipApprovalPin } from "./approval";
++import { OwnershipApprovalGeneration, type OwnershipApprovalPin } from "./approval";
 +import { connectApprovedOwnershipClient } from "./uds-client";
 +
-+/** Build injects the independently approved selection. Source checkouts deliberately have no operator target. */
-+declare const OMP_EXECUTION_OWNERSHIP_APPROVAL: OwnershipApprovalPin | undefined;
++/** Build injects ONLY the stable anchor pin. Release closure/schema/approval digest never enter this define. */
++declare const OMP_EXECUTION_OWNERSHIP_ANCHOR: OwnershipApprovalPin | undefined;
 +import type { OwnershipClient } from "./client";
++
++let generation: OwnershipApprovalGeneration | undefined;
 +
 +/**
 + * Fixed selected-installation bootstrap. Missing compiled operator approval stays unavailable.
@@ -1691,14 +1816,15 @@ index 0000000000..738952b2af
 + * No HOME/profile/cwd rendezvous, automatic dispatcher spawn, legacy peer or local broker fallback is permitted.
 + */
 +export async function connectProcessOwnershipClient(): Promise<OwnershipClient> {
-+	if (typeof OMP_EXECUTION_OWNERSHIP_APPROVAL === "undefined" || !OMP_EXECUTION_OWNERSHIP_APPROVAL) {
++	if (typeof OMP_EXECUTION_OWNERSHIP_ANCHOR === "undefined" || !OMP_EXECUTION_OWNERSHIP_ANCHOR) {
 +		throw new OwnershipError("ownership_backend_unavailable");
 +	}
-+	return connectApprovedOwnershipClient(await loadOwnershipApproval(OMP_EXECUTION_OWNERSHIP_APPROVAL));
++	generation ??= new OwnershipApprovalGeneration(OMP_EXECUTION_OWNERSHIP_ANCHOR);
++	return connectApprovedOwnershipClient(await generation.load());
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
 new file mode 100644
-index 0000000000..5dc255c6f8
+index 0000000000000000000000000000000000000000..5dc255c6f8467448d35fd4bdc17dda25e08e6f12
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/client.ts
 @@ -0,0 +1,135 @@
@@ -1839,7 +1965,7 @@ index 0000000000..5dc255c6f8
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/context.ts b/packages/coding-agent/src/launch/ownership/context.ts
 new file mode 100644
-index 0000000000..a0b59ac0dc
+index 0000000000000000000000000000000000000000..a0b59ac0dc3fc83a48c43f29955abb6ee217c367
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/context.ts
 @@ -0,0 +1,165 @@
@@ -2010,7 +2136,7 @@ index 0000000000..a0b59ac0dc
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000..c6cb1a87e9
+index 0000000000000000000000000000000000000000..c6cb1a87e9536914333309bd2343b7878cb4952c
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 @@ -0,0 +1,246 @@
@@ -2262,7 +2388,7 @@ index 0000000000..c6cb1a87e9
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/entry.ts b/packages/coding-agent/src/launch/ownership/entry.ts
 new file mode 100644
-index 0000000000..b00b709cc8
+index 0000000000000000000000000000000000000000..b00b709cc81b989757a89b04eed68cb03cb75455
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/entry.ts
 @@ -0,0 +1,10 @@
@@ -2278,7 +2404,7 @@ index 0000000000..b00b709cc8
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/fences.ts b/packages/coding-agent/src/launch/ownership/fences.ts
 new file mode 100644
-index 0000000000..adbb1f4496
+index 0000000000000000000000000000000000000000..adbb1f4496dce4ae5a8d5d8206974c08f6c9ccea
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/fences.ts
 @@ -0,0 +1,150 @@
@@ -2434,7 +2560,7 @@ index 0000000000..adbb1f4496
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/framing.ts b/packages/coding-agent/src/launch/ownership/framing.ts
 new file mode 100644
-index 0000000000..3affc084ed
+index 0000000000000000000000000000000000000000..3affc084ed3701b67a9fdd61ab4a1e385a4879a2
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/framing.ts
 @@ -0,0 +1,38 @@
@@ -2478,7 +2604,7 @@ index 0000000000..3affc084ed
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/helper-protocol.ts b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
 new file mode 100644
-index 0000000000..5f7910ccd6
+index 0000000000000000000000000000000000000000..5f7910ccd6c2eed73706ddda7f919274ab7f7f6c
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
 @@ -0,0 +1,76 @@
@@ -2560,7 +2686,7 @@ index 0000000000..5f7910ccd6
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.c b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 new file mode 100644
-index 0000000000..f2952b794f
+index 0000000000000000000000000000000000000000..f2952b794f21802e38dda98aebc845d770936d51
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 @@ -0,0 +1,339 @@
@@ -2905,7 +3031,7 @@ index 0000000000..f2952b794f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 new file mode 100644
-index 0000000000..878699c0f0
+index 0000000000000000000000000000000000000000..878699c0f013b1f9cc02bd69283092c208d362a2
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 @@ -0,0 +1,209 @@
@@ -3120,7 +3246,7 @@ index 0000000000..878699c0f0
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-system.ts b/packages/coding-agent/src/launch/ownership/linux-system.ts
 new file mode 100644
-index 0000000000..166df5e330
+index 0000000000000000000000000000000000000000..166df5e33055c3bcee3ead0f76b4e7c524f9b7ae
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-system.ts
 @@ -0,0 +1,88 @@
@@ -3214,7 +3340,7 @@ index 0000000000..166df5e330
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
-index 0000000000..9a13b90bcc
+index 0000000000000000000000000000000000000000..9a13b90bcc8a9be851a158b45071f627a9a8eb95
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/protocol.ts
 @@ -0,0 +1,200 @@
@@ -3420,7 +3546,7 @@ index 0000000000..9a13b90bcc
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/server-key.ts b/packages/coding-agent/src/launch/ownership/server-key.ts
 new file mode 100644
-index 0000000000..566fa7141f
+index 0000000000000000000000000000000000000000..566fa7141f22f0ba326ffd674434052437c65d52
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/server-key.ts
 @@ -0,0 +1,24 @@
@@ -3450,7 +3576,7 @@ index 0000000000..566fa7141f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/server.ts b/packages/coding-agent/src/launch/ownership/server.ts
 new file mode 100644
-index 0000000000..d4ffc10c38
+index 0000000000000000000000000000000000000000..d4ffc10c38cb77d2b69601fbcbce13c16d660d5b
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/server.ts
 @@ -0,0 +1,159 @@
@@ -3615,7 +3741,7 @@ index 0000000000..d4ffc10c38
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/uds-client.ts b/packages/coding-agent/src/launch/ownership/uds-client.ts
 new file mode 100644
-index 0000000000..37e09c4d99
+index 0000000000000000000000000000000000000000..37e09c4d994ca501cedf7e72e941ac50adb6953d
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/uds-client.ts
 @@ -0,0 +1,86 @@
@@ -3707,7 +3833,7 @@ index 0000000000..37e09c4d99
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
 new file mode 100644
-index 0000000000..c8cb35f391
+index 0000000000000000000000000000000000000000..c8cb35f391496449a242e45e0e61f43d012fc158
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/wire.schema.json
 @@ -0,0 +1,652 @@
@@ -4365,7 +4491,7 @@ index 0000000000..c8cb35f391
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts b/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts
 new file mode 100644
-index 0000000000..db94e7cd31
+index 0000000000000000000000000000000000000000..db94e7cd31f0973b89e0de38290fe1aa62ed1dba
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/worker-bootstrap.ts
 @@ -0,0 +1,150 @@
@@ -4520,7 +4646,7 @@ index 0000000000..db94e7cd31
 +export function finishOwnershipWorkerBootstrap(): void { bootstrap?.finish(); bootstrap = undefined; }
 +export function cancelOwnershipWorkerBootstrap(): void { bootstrap?.close(); bootstrap = undefined; }
 diff --git a/packages/coding-agent/src/launch/presence.ts b/packages/coding-agent/src/launch/presence.ts
-index 8e61472b9c..660910cae0 100644
+index 8e61472b9c6d17091ff865899ef3ba4db44b404a..660910cae0fd2c12994d3700b1af8b22ba973352 100644
 --- a/packages/coding-agent/src/launch/presence.ts
 +++ b/packages/coding-agent/src/launch/presence.ts
 @@ -1,32 +1,12 @@
@@ -4647,7 +4773,7 @@ index 8e61472b9c..660910cae0 100644
 +	throw new OwnershipError("ownership_backend_unavailable");
  }
 diff --git a/packages/coding-agent/src/launch/services.ts b/packages/coding-agent/src/launch/services.ts
-index 53fe06a4ee..847ed9ddb2 100644
+index 53fe06a4eef2ca79461e475b3424f250ea2828d6..847ed9ddb209c24b6ddf778ccc017d4557acce8d 100644
 --- a/packages/coding-agent/src/launch/services.ts
 +++ b/packages/coding-agent/src/launch/services.ts
 @@ -1,12 +1,12 @@
@@ -4694,7 +4820,7 @@ index 53fe06a4ee..847ed9ddb2 100644
  	if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,47}$/.test(params.name))
  		throw new ToolError("Service name must be 1-48 letters, numbers, dots, underscores, or hyphens");
 diff --git a/packages/coding-agent/src/lsp/client.ts b/packages/coding-agent/src/lsp/client.ts
-index 9152cc68ed..5c9de11b1b 100644
+index 9152cc68edbedc9a7f9a192c00736f84089f2db2..5c9de11b1b8356943f7a6c2b799e02ff6d06e27a 100644
 --- a/packages/coding-agent/src/lsp/client.ts
 +++ b/packages/coding-agent/src/lsp/client.ts
 @@ -1,3 +1,4 @@
@@ -4729,7 +4855,7 @@ index 9152cc68ed..5c9de11b1b 100644
  		}
  		proc ??= ptree.spawn([command, ...args], {
 diff --git a/packages/coding-agent/src/lsp/lspmux.ts b/packages/coding-agent/src/lsp/lspmux.ts
-index d51d400293..6d47922a4f 100644
+index d51d400293cd8783661a7de7bd9117acac77118d..6d47922a4f49c3518a3af86db024829e2a9098d2 100644
 --- a/packages/coding-agent/src/lsp/lspmux.ts
 +++ b/packages/coding-agent/src/lsp/lspmux.ts
 @@ -1,3 +1,4 @@
@@ -4762,7 +4888,7 @@ index d51d400293..6d47922a4f 100644
  	return wrapWithLspmux(command, args, state);
  }
 diff --git a/packages/coding-agent/src/lsp/mux/daemon.ts b/packages/coding-agent/src/lsp/mux/daemon.ts
-index 1357647aea..02d17d93ae 100644
+index 1357647aeaf35b7f29e1ad2a8b326b324a204a15..02d17d93aed5103a4117fc62d8d88900d3da3601 100644
 --- a/packages/coding-agent/src/lsp/mux/daemon.ts
 +++ b/packages/coding-agent/src/lsp/mux/daemon.ts
 @@ -1,3 +1,4 @@
@@ -4796,7 +4922,7 @@ index 1357647aea..02d17d93ae 100644
  		const endpoint = await ensureLspMuxDaemon(opts.cwd, opts.signal);
  		if (!endpoint) return null;
 diff --git a/packages/coding-agent/src/main.ts b/packages/coding-agent/src/main.ts
-index cf68ec5209..0b8fc6af8f 100644
+index cf68ec52096a57315fbfd62234059c3f9c06efa5..0b8fc6af8f325997bbb2204ee2f86266c7e76f75 100644
 --- a/packages/coding-agent/src/main.ts
 +++ b/packages/coding-agent/src/main.ts
 @@ -1,4 +1,5 @@
@@ -4814,7 +4940,7 @@ index cf68ec5209..0b8fc6af8f 100644
  	const { runCli } = await import("./cli");
  	await runCli(args.length === 0 ? ["launch"] : args);
 diff --git a/packages/coding-agent/src/predict/client.ts b/packages/coding-agent/src/predict/client.ts
-index 9d410bcfda..ced477ca1b 100644
+index 9d410bcfdaaa6438addb4d9d1df2b3f9be926cf0..ced477ca1b7fb7a7b8cf5f14c3b572d93c79e71d 100644
 --- a/packages/coding-agent/src/predict/client.ts
 +++ b/packages/coding-agent/src/predict/client.ts
 @@ -1,3 +1,4 @@
@@ -4913,7 +5039,7 @@ index 9d410bcfda..ced477ca1b 100644
  
  /**
 diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
-index 5bddc84cfe..dbaba65511 100644
+index 5bddc84cfec62abb873cb0eea8496b2731e3070f..dbaba65511a235030837fee297ccfb08b508a46d 100644
 --- a/packages/coding-agent/src/sdk.ts
 +++ b/packages/coding-agent/src/sdk.ts
 @@ -1,3 +1,4 @@
@@ -4930,7 +5056,7 @@ index 5bddc84cfe..dbaba65511 100644
  	const extensionRoots = options.extensionRoots?.();
  	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
 diff --git a/packages/coding-agent/src/stream/paths.ts b/packages/coding-agent/src/stream/paths.ts
-index 2395e7ac10..a8d67d772a 100644
+index 2395e7ac100fb9f801e3c391e6c3d9ec92a364c7..a8d67d772aa98eae97e2e276904f68f0a6f7b653 100644
 --- a/packages/coding-agent/src/stream/paths.ts
 +++ b/packages/coding-agent/src/stream/paths.ts
 @@ -1,12 +1,13 @@
@@ -4958,7 +5084,7 @@ index 2395e7ac10..a8d67d772a 100644
 +	requireCoveredSharedStream();
  }
 diff --git a/packages/coding-agent/src/stream/publisher.ts b/packages/coding-agent/src/stream/publisher.ts
-index ea6f36ca79..75fa1fb668 100644
+index ea6f36ca79e16e2b1265c54a655dccffc7a19a44..75fa1fb668724745b0976d5146e56db48e02eede 100644
 --- a/packages/coding-agent/src/stream/publisher.ts
 +++ b/packages/coding-agent/src/stream/publisher.ts
 @@ -3,7 +3,7 @@ import type { StreamChatMessage } from "@oh-my-pi/pi-wire";
@@ -4979,7 +5105,7 @@ index ea6f36ca79..75fa1fb668 100644
  		this.#tui = options.tui;
  		this.#encoder = new StreamPaintEncoder(
 diff --git a/packages/coding-agent/src/stream/streamer.ts b/packages/coding-agent/src/stream/streamer.ts
-index 92e795e242..4cc90896b7 100644
+index 92e795e2429fb0606c49f99b8861c4434b5056a1..4cc90896b752b607061c13f85745ba121ff85e19 100644
 --- a/packages/coding-agent/src/stream/streamer.ts
 +++ b/packages/coding-agent/src/stream/streamer.ts
 @@ -19,7 +19,7 @@ import {
@@ -5016,7 +5142,7 @@ index 92e795e242..4cc90896b7 100644
  	const events: StreamConsoleEvent[] = [];
  	const listeners = new Set<(event: StreamConsoleEvent) => void>();
 diff --git a/packages/coding-agent/src/tools/browser.ts b/packages/coding-agent/src/tools/browser.ts
-index 18f78c1b24..5d4539d238 100644
+index 18f78c1b24e2805dae727d5e97477d4061cc027f..5d4539d23860e423ba80a870fd956b9ec914f6dc 100644
 --- a/packages/coding-agent/src/tools/browser.ts
 +++ b/packages/coding-agent/src/tools/browser.ts
 @@ -1,3 +1,4 @@
@@ -5041,7 +5167,7 @@ index 18f78c1b24..5d4539d238 100644
  	if (parsed instanceof type.errors) {
  		throw new ToolError(`browser received invalid arguments: ${parsed.summary}`);
 diff --git a/packages/coding-agent/src/tools/browser/orphan-registry.ts b/packages/coding-agent/src/tools/browser/orphan-registry.ts
-index 7e7b4e7411..c9663e6a5a 100644
+index 7e7b4e7411edd4f8ecf0f7e241421546dde4bb9c..c9663e6a5a4a626b8978b2d0281e8ceb70bd8f17 100644
 --- a/packages/coding-agent/src/tools/browser/orphan-registry.ts
 +++ b/packages/coding-agent/src/tools/browser/orphan-registry.ts
 @@ -24,13 +24,17 @@ import * as fs from "node:fs/promises";
@@ -5155,7 +5281,7 @@ index 7e7b4e7411..c9663e6a5a 100644
  	try {
  		scan = await collectOrphanTargets(scope);
 diff --git a/packages/coding-agent/src/tools/browser/registry.ts b/packages/coding-agent/src/tools/browser/registry.ts
-index fc25872317..fe675b8d74 100644
+index fc258723177e7ceea094bb55c452d55de1915f8e..fe675b8d74338e7fab1a6706717ad585ba5014fb 100644
 --- a/packages/coding-agent/src/tools/browser/registry.ts
 +++ b/packages/coding-agent/src/tools/browser/registry.ts
 @@ -1,3 +1,4 @@
@@ -5215,7 +5341,7 @@ index fc25872317..fe675b8d74 100644
  			stealth: { browserSession: null, override: null },
  		};
 diff --git a/packages/coding-agent/src/tools/browser/relay/daemon.ts b/packages/coding-agent/src/tools/browser/relay/daemon.ts
-index 860837405e..bd1089ca5c 100644
+index 860837405e081624d0054be7d7507a08663a511c..bd1089ca5cb43fbdca4ef00e46c4a309c3f6299c 100644
 --- a/packages/coding-agent/src/tools/browser/relay/daemon.ts
 +++ b/packages/coding-agent/src/tools/browser/relay/daemon.ts
 @@ -1,3 +1,4 @@
@@ -5248,7 +5374,7 @@ index 860837405e..bd1089ca5c 100644
  	if (port === null) return false;
  	const name = relayDaemonName(port);
 diff --git a/packages/coding-agent/src/tools/browser/shared-daemon.ts b/packages/coding-agent/src/tools/browser/shared-daemon.ts
-index 0fe343ff21..600abd9d92 100644
+index 0fe343ff21ff66b609b7f55a348131887d3257f2..600abd9d924bc7a71f17969c934021acebbff625 100644
 --- a/packages/coding-agent/src/tools/browser/shared-daemon.ts
 +++ b/packages/coding-agent/src/tools/browser/shared-daemon.ts
 @@ -1,3 +1,4 @@
@@ -5335,46 +5461,77 @@ index 0fe343ff21..600abd9d92 100644
  	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-approval.test.ts b/packages/coding-agent/test/execution-ownership-approval.test.ts
 new file mode 100644
-index 0000000000..f2da801009
+index 0000000000000000000000000000000000000000..8b7ead0be9a83fbaf8dd8c5c1d66915db1a3b129
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-approval.test.ts
-@@ -0,0 +1,54 @@
-+import { expect, test } from "bun:test";
+@@ -0,0 +1,281 @@
++import { expect, test, spyOn } from "bun:test";
 +import * as fs from "node:fs/promises";
++import * as nodeFs from "node:fs";
 +import * as path from "node:path";
-+import { loadOwnershipApproval, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
++import { loadOwnershipApproval, OwnershipApprovalGeneration, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
++import { OwnershipReplyVerifier } from "../src/launch/ownership/authentication";
++import { connectApprovedOwnershipClient } from "../src/launch/ownership/uds-client";
 +
-+/** Synthetic operator files only; no global installation is selected and no library/socket is opened. */
-+test("operator approval stays bound to its outside-release inode and digest across later reads", async () => {
-+	const root = await fs.mkdtemp("/tmp/ownership-approval-");
++// RFC 8032 test vectors. Public synthetic fixture material, never installation/operator keys.
++const approvalPublicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
++const replyPublicKey = "PUAXw-hDiVqStwqnTRt-vJyYLM8uxJaMwM1V8Sr0Zgw";
++const seed = "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60";
++const hash = (value: string | Uint8Array): string => new Bun.CryptoHasher("sha256").update(value).digest("hex");
++async function pin(file: string) {
++	const stat = await fs.stat(file, { bigint: true });
++	return { path: file, device: String(stat.dev), inode: String(stat.ino), sha256: hash(await fs.readFile(file)) };
++}
++async function directory(file: string) {
++	const stat = await fs.stat(file, { bigint: true });
++	return { path: file, device: String(stat.dev), inode: String(stat.ino) };
++}
++async function fixture() {
++	const root = await fs.mkdtemp("/tmp/ownership-approval-"); await fs.chmod(root, 0o700);
++	for (const name of ["release", "operator", "state", "state/fences"]) await fs.mkdir(path.join(root, name), { mode: 0o700 });
++	const release = path.join(root, "release"), operator = path.join(root, "operator");
++	const record = path.join(operator, "approval.json"), anchorFile = path.join(operator, "anchor.json");
++	const file = { path: path.join(root, "entry"), device: "27", inode: "12", sha256: "f".repeat(64) };
++	const payload = { version: "omp-execution-approval/2", policy: "omp-execution-ownership/1", installation: "c".repeat(64),
++		identity: { closure: "a".repeat(64), schema: "b".repeat(64) }, dispatcherReplyPublicKey: replyPublicKey, releaseRoot: release,
++		releaseDirectory: await directory(release), entry: file, control: { ...file, path: path.join(root, "control") },
++		endpoint: path.join(root, "state/socket"), stateDirectory: await directory(path.join(root, "state")),
++		fenceDirectory: await directory(path.join(root, "state/fences")),
++		bridge: { file: path.join(release, "bridge.so"), sha256: "d".repeat(64) },
++		helper: { file: path.join(release, "helper"), sha256: "e".repeat(64) },
++		controlIo: { file: path.join(release, "control-io.so"), sha256: "1".repeat(64) },
++		validator: { file: path.join(release, "validator.js"), sha256: "2".repeat(64) } };
++	const anchor = { version: "omp-execution-approval-anchor/1", installation: payload.installation,
++		approvalPublicKey, approvalRecord: { path: record, parent: await directory(operator) },
++		approvalVersion: "omp-execution-approval/2", recordBytes: 16384 };
++	await fs.writeFile(anchorFile, JSON.stringify(anchor), { mode: 0o600 });
++	const key = await crypto.subtle.importKey("pkcs8", Buffer.from(`302e020100300506032b657004220420${seed}`, "hex"),
++		"Ed25519", false, ["sign"]);
++	async function publish(value: unknown = payload, domain = "omp-execution-release-approval/2\0") {
++		const bytes = typeof value === "string" ? value : JSON.stringify(value), signature = await crypto.subtle.sign("Ed25519", key, new TextEncoder().encode(domain + bytes));
++		await fs.writeFile(record, JSON.stringify({ version: "omp-execution-signed-approval/1", payload: bytes,
++			signature: Buffer.from(signature).toString("base64url") }), { mode: 0o600 });
++	}
++	await publish();
++	return { root, record, anchorFile, anchor, payload, publish, selected: await pin(anchorFile),
++		cleanup: () => fs.rm(root, { recursive: true, force: true }) };
++}
++
++/** Public approved-client authentication seam; no socket, FFI, Native entry or global selection. */
++test("stable anchor authenticates final approval and rejects requests for another release tuple", async () => {
++	const f = await fixture();
 +	try {
-+		await fs.chmod(root, 0o700);
-+		const release = path.join(root, "release"), state = path.join(root, "state");
-+		await fs.mkdir(release, { mode: 0o700 }); await fs.mkdir(state, { mode: 0o700 });
-+		const fence = path.join(state, "fences"); await fs.mkdir(fence, { mode: 0o700 });
-+		const stateStat = await fs.stat(state, { bigint: true }), fenceStat = await fs.stat(fence, { bigint: true });
-+		const value = { version: "omp-execution-approval/1", installation: "c".repeat(64),
-+			identity: { closure: "a".repeat(64), schema: "b".repeat(64) }, publicKey: "A".repeat(43), releaseRoot: release,
-+			endpoint: path.join(state, "socket"), stateDirectory: { path: state, device: String(stateStat.dev), inode: String(stateStat.ino) },
-+			fenceDirectory: { path: fence, device: String(fenceStat.dev), inode: String(fenceStat.ino) },
-+			bridge: { file: path.join(release, "bridge.so"), sha256: "d".repeat(64) },
-+			helper: { file: path.join(release, "private-helper"), sha256: "e".repeat(64) } };
-+		const record = path.join(root, "approval.json"), bytes = JSON.stringify(value);
-+		await fs.writeFile(record, bytes, { mode: 0o600 });
-+		const stat = await fs.stat(record, { bigint: true });
-+		const pin = { path: record, device: String(stat.dev), inode: String(stat.ino),
-+			sha256: new Bun.CryptoHasher("sha256").update(bytes).digest("hex") };
-+		const approval = await loadOwnershipApproval(pin);
-+		expect(approval.identity).toEqual(value.identity);
-+		await fs.rename(record, path.join(root, "old.json")); await fs.writeFile(record, bytes, { mode: 0o600 });
-+		await expect(approval.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
-+		const inside = path.join(release, "approval.json"); await fs.writeFile(inside, bytes, { mode: 0o600 });
-+		const insideStat = await fs.stat(inside, { bigint: true });
-+		await expect(loadOwnershipApproval({ ...pin, path: inside, inode: String(insideStat.ino) }))
++		const approval = await loadOwnershipApproval(f.selected), verifier = new OwnershipReplyVerifier(approval);
++		const request = { version: "omp-execution-ownership/1", id: "request-00000001",
++			identity: f.payload.identity, operation: { op: "classify" } };
++		const challenge = await verifier.challenge(JSON.stringify(request));
++		expect(JSON.parse(challenge.frame)).toMatchObject({ installation: f.payload.installation });
++		verifier.close();
++		await expect(new OwnershipReplyVerifier(approval).challenge(JSON.stringify({ ...request,
++			identity: { ...request.identity, closure: "f".repeat(64) } })))
 +			.rejects.toMatchObject({ code: "dispatcher_mismatch" });
-+	} finally { await fs.rm(root, { recursive: true, force: true }); }
++	} finally { await f.cleanup(); }
 +});
-+
 +
 +test("pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions", async () => {
 +	const root = await fs.mkdtemp("/tmp/ownership-approval-file-");
@@ -5393,9 +5550,205 @@ index 0000000000..f2da801009
 +		await expect(readOwnershipPinnedFile(pin)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
 +	} finally { await fs.rm(root, { recursive: true, force: true }); }
 +});
++
++
++test("ambiguous duplicate fields cannot enter the exact signed approval format", async () => {
++	const f = await fixture();
++	try {
++		const bytes = JSON.stringify(f.payload).replace('{"version":', '{"installation":"' + "0".repeat(64) + '","version":');
++		await f.publish(bytes);
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("approval key, installation and signing domain cannot be substituted by dispatcher authority", async () => {
++	const f = await fixture();
++	try {
++		await f.publish({ ...f.payload, installation: "0".repeat(64) });
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await f.publish({ ...f.payload, dispatcherReplyPublicKey: approvalPublicKey });
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await f.publish(f.payload, "omp-execution-auth/1\0");
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await f.publish();
++		await fs.writeFile(f.anchorFile, JSON.stringify({ ...f.anchor, approvalPublicKey: replyPublicKey }));
++		await expect(loadOwnershipApproval(await pin(f.anchorFile))).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("every final tuple and endpoint field is authenticated without trusting unsigned envelope additions", async () => {
++	const f = await fixture();
++	try {
++		const original = await fs.readFile(f.record, "utf8"), envelope = JSON.parse(original);
++		const replacements = [
++			{ identity: { ...f.payload.identity, closure: "0".repeat(64) } },
++			{ identity: { ...f.payload.identity, schema: "0".repeat(64) } },
++			{ helper: { ...f.payload.helper, sha256: "0".repeat(64) } },
++			{ bridge: { ...f.payload.bridge, sha256: "0".repeat(64) } },
++			{ controlIo: { ...f.payload.controlIo, sha256: "0".repeat(64) } },
++			{ validator: { ...f.payload.validator, sha256: "0".repeat(64) } },
++			{ entry: { ...f.payload.entry, inode: "999" } }, { control: { ...f.payload.control, inode: "999" } },
++			{ releaseDirectory: { ...f.payload.releaseDirectory, inode: "999" } },
++			{ releaseRoot: path.join(f.root, "other-release") }, { dispatcherReplyPublicKey: approvalPublicKey },
++			{ endpoint: path.join(f.root, "state/other-socket") },
++			{ fenceDirectory: { ...f.payload.fenceDirectory, inode: "999" } },
++			{ stateDirectory: { ...f.payload.stateDirectory, inode: "999" } }, { policy: "legacy" },
++		];
++		for (const replacement of replacements) {
++			await fs.writeFile(f.record, JSON.stringify({ ...envelope, payload: JSON.stringify({ ...f.payload, ...replacement }) }));
++			await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		}
++		await fs.writeFile(f.record, JSON.stringify({ ...envelope, publicKey: replyPublicKey }));
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await fs.writeFile(f.record, original); await fs.chmod(f.record, 0o666);
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("absent or replaced anchor cannot discover trust from the approval record", async () => {
++	const f = await fixture();
++	try {
++		const original = await fs.readFile(f.anchorFile), approval = await loadOwnershipApproval(f.selected);
++		await fs.rename(f.anchorFile, path.join(f.root, "anchor-held"));
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await expect(approval.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await fs.writeFile(f.anchorFile, original, { mode: 0o600 });
++		await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("stable anchor refuses tuple-dependent fields, release-local trust and replaced approval parent", async () => {
++	const f = await fixture();
++	try {
++		for (const field of ["closure", "schema", "helper", "approvalSha256"]) {
++			await fs.writeFile(f.anchorFile, JSON.stringify({ ...f.anchor, [field]: "a".repeat(64) }));
++			await expect(loadOwnershipApproval(await pin(f.anchorFile))).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		}
++		await fs.writeFile(f.anchorFile, JSON.stringify(f.anchor));
++		const original = await pin(f.anchorFile), bytes = await fs.readFile(f.anchorFile);
++		const inside = path.join(f.payload.releaseRoot, "anchor.json"); await fs.writeFile(inside, bytes, { mode: 0o600 });
++		await expect(loadOwnershipApproval(await pin(inside))).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		const operator = path.dirname(f.record); await fs.rename(operator, path.join(f.root, "operator-held"));
++		await fs.mkdir(operator, { mode: 0o700 });
++		await fs.writeFile(f.anchorFile, bytes, { mode: 0o600 });
++		await fs.copyFile(path.join(f.root, "operator-held/approval.json"), f.record);
++		// Re-pin only the anchor to isolate the independently pinned protected-parent refusal.
++		await expect(loadOwnershipApproval({ ...original, ...await pin(f.anchorFile) }))
++			.rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("record replacement permanently invalidates its generation and a new approval requires explicit selection", async () => {
++	const f = await fixture();
++	try {
++		const generation = new OwnershipApprovalGeneration(f.selected), approval = await generation.load();
++		await fs.rename(f.record, path.join(f.root, "old-approval"));
++		await f.publish({ ...f.payload, identity: { ...f.payload.identity, closure: "f".repeat(64) } });
++		await expect(approval.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await expect(generation.load()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		const fresh = await new OwnershipApprovalGeneration(f.selected).load();
++		const request = { version: "omp-execution-ownership/1", id: "request-00000001",
++			identity: f.payload.identity, operation: { op: "classify" } };
++		await expect(new OwnershipReplyVerifier(fresh).challenge(JSON.stringify(request)))
++			.rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		// Restoring the exact old inode/bytes does not recover the invalidated generation.
++		await fs.unlink(f.record); await fs.rename(path.join(f.root, "old-approval"), f.record);
++		await expect(generation.load()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("same-inode record rewrite and initial selection failure cannot silently recover", async () => {
++	const f = await fixture();
++	try {
++		const generation = new OwnershipApprovalGeneration(f.selected), approval = await generation.load();
++		const before = await fs.stat(f.record, { bigint: true });
++		await f.publish(); // Identical bytes and valid signature still changed this generation's selected record.
++		expect((await fs.stat(f.record, { bigint: true })).ino).toBe(before.ino);
++		await expect(approval.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		const other = new OwnershipApprovalGeneration(f.selected); await fs.unlink(f.record);
++		await expect(other.load()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await f.publish();
++		await expect(other.load()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await f.cleanup(); }
++});
++
++test("record replacement after open cannot authenticate different named bytes", async () => {
++	const f = await fixture(), open = nodeFs.promises.open;
++	const intercepted = spyOn(nodeFs.promises, "open").mockImplementation(async (...args) => {
++		const file = await open(...args);
++		if (args[0] === f.record) {
++			await fs.rename(f.record, path.join(f.root, "opened-approval")); await f.publish();
++		}
++		return file;
++	});
++	try { await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" }); }
++	finally { intercepted.mockRestore(); await f.cleanup(); }
++});
++
++test("approval replacement while signature verification is pending fails the post-verification admission check", async () => {
++	const f = await fixture(), verify = crypto.subtle.verify.bind(crypto.subtle);
++	const intercepted = spyOn(crypto.subtle, "verify").mockImplementation(async (...args) => {
++		const valid = await verify(...args);
++		await fs.rename(f.record, path.join(f.root, "verified-approval")); await f.publish();
++		return valid;
++	});
++	try { await expect(loadOwnershipApproval(f.selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" }); }
++	finally { intercepted.mockRestore(); await f.cleanup(); }
++});
++
++test("final compiled bytes can be exhaustively inventoried before signing approval without rebuilding the anchor", async () => {
++	const f = await fixture();
++	try {
++		const build = async (): Promise<Uint8Array> => {
++			const result = await Bun.build({ entrypoints: [path.resolve(import.meta.dir, "../src/launch/ownership/bootstrap.ts")],
++				target: "bun", define: { OMP_EXECUTION_OWNERSHIP_ANCHOR: JSON.stringify(f.selected) } });
++			if (!result.success || result.outputs.length !== 1 || !result.outputs[0]) throw new Error("SYNTHETIC_BUILD_FAILED");
++			return new Uint8Array(await result.outputs[0].arrayBuffer());
++		};
++		// Every member of this tiny generated release is inventoried. No masked/omitted compiled-byte digest.
++		const inventory = async (): Promise<string> => {
++			const members = [];
++			for (const name of (await fs.readdir(f.payload.releaseRoot)).sort()) {
++				const file = path.join(f.payload.releaseRoot, name), stat = await fs.lstat(file);
++				if (!stat.isFile() || stat.nlink !== 1) throw new Error("SYNTHETIC_MEMBER_INVALID");
++				members.push({ name, mode: stat.mode, sha256: hash(await fs.readFile(file)) });
++			}
++			return hash(JSON.stringify(members));
++		};
++		const compiled = await build(); await fs.writeFile(path.join(f.payload.releaseRoot, "cli.js"), compiled, { mode: 0o600 });
++		const schema = path.join(f.payload.releaseRoot, "schema.json"); await fs.writeFile(schema, '{"syntheticSchema":1}', { mode: 0o600 });
++		const first = await inventory();
++		await f.publish({ ...f.payload, identity: { closure: first, schema: hash(await fs.readFile(schema)) } });
++		const previous = await new OwnershipApprovalGeneration(f.selected).load();
++		await fs.writeFile(schema, '{"syntheticSchema":2}');
++		const second = await inventory(); expect(second).not.toBe(first);
++		await f.publish({ ...f.payload, identity: { closure: second, schema: hash(await fs.readFile(schema)) } });
++		await expect(previous.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		const current = await new OwnershipApprovalGeneration(f.selected).load();
++		const request = { version: "omp-execution-ownership/1", id: "request-00000001",
++			identity: { closure: second, schema: hash(await fs.readFile(schema)) }, operation: { op: "classify" } };
++		expect(JSON.parse((await new OwnershipReplyVerifier(current).challenge(JSON.stringify(request))).frame))
++			.toMatchObject({ installation: f.payload.installation });
++		expect(hash(await build())).toBe(hash(compiled));
++		expect(await inventory()).toBe(second);
++	} finally { await f.cleanup(); }
++});
++
++
++test("approved client refuses a replaced approval before any public socket admission", async () => {
++	const f = await fixture();
++	const connect = spyOn(Bun, "connect").mockImplementation(() => { throw new Error("UNEXPECTED_SOCKET_ADMISSION"); });
++	try {
++		const client = connectApprovedOwnershipClient(await loadOwnershipApproval(f.selected));
++		await fs.rename(f.record, path.join(f.root, "client-old-approval")); await f.publish();
++		await expect(client.classify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await expect(client.classify()).rejects.toMatchObject({ code: "dispatcher_unavailable" });
++		client.close();
++	} finally { connect.mockRestore(); await f.cleanup(); }
++});
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644
-index 0000000000..3985cff8c3
+index 0000000000000000000000000000000000000000..3985cff8c3594d23efabbcec212756f099a659d4
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 @@ -0,0 +1,126 @@
@@ -5527,7 +5880,7 @@ index 0000000000..3985cff8c3
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-cli.test.ts b/packages/coding-agent/test/execution-ownership-cli.test.ts
 new file mode 100644
-index 0000000000..b070e70461
+index 0000000000000000000000000000000000000000..b070e70461ed93f7a251c77a95cfb0da42efd517
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-cli.test.ts
 @@ -0,0 +1,6 @@
@@ -5539,7 +5892,7 @@ index 0000000000..b070e70461
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-client.test.ts b/packages/coding-agent/test/execution-ownership-client.test.ts
 new file mode 100644
-index 0000000000..aef89d4177
+index 0000000000000000000000000000000000000000..aef89d417753e869844af34ca73840a9edc99559
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-client.test.ts
 @@ -0,0 +1,76 @@
@@ -5621,7 +5974,7 @@ index 0000000000..aef89d4177
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-context.test.ts b/packages/coding-agent/test/execution-ownership-context.test.ts
 new file mode 100644
-index 0000000000..6adb8766d7
+index 0000000000000000000000000000000000000000..6adb8766d71df858fed9eb1e84a3fd77b74e1452
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-context.test.ts
 @@ -0,0 +1,112 @@
@@ -5739,7 +6092,7 @@ index 0000000000..6adb8766d7
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-contract.test.ts b/packages/coding-agent/test/execution-ownership-contract.test.ts
 new file mode 100644
-index 0000000000..c345643593
+index 0000000000000000000000000000000000000000..c34564359354edb8b3b639617300f5ff77b767aa
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-contract.test.ts
 @@ -0,0 +1,54 @@
@@ -5799,7 +6152,7 @@ index 0000000000..c345643593
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000..f480b92587
+index 0000000000000000000000000000000000000000..f480b925872682b41b637363b659a56e7063db07
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 @@ -0,0 +1,223 @@
@@ -6028,7 +6381,7 @@ index 0000000000..f480b92587
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-fences.test.ts b/packages/coding-agent/test/execution-ownership-fences.test.ts
 new file mode 100644
-index 0000000000..d4b645ba3c
+index 0000000000000000000000000000000000000000..d4b645ba3c41194c51804bec7aa194f93852776a
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-fences.test.ts
 @@ -0,0 +1,65 @@
@@ -6099,7 +6452,7 @@ index 0000000000..d4b645ba3c
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-helper-wire.test.ts b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
 new file mode 100644
-index 0000000000..6eca6ae513
+index 0000000000000000000000000000000000000000..6eca6ae5139b7bd9945a0eb61014c54cbca8b7c1
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
 @@ -0,0 +1,33 @@
@@ -6138,7 +6491,7 @@ index 0000000000..6eca6ae513
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-linux.test.ts b/packages/coding-agent/test/execution-ownership-linux.test.ts
 new file mode 100644
-index 0000000000..489665ab42
+index 0000000000000000000000000000000000000000..489665ab42ba2ff1dde572b1e26a804730e6b4c2
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-linux.test.ts
 @@ -0,0 +1,58 @@
@@ -6202,7 +6555,7 @@ index 0000000000..489665ab42
 +}, 5_000);
 diff --git a/packages/coding-agent/test/execution-ownership-server.test.ts b/packages/coding-agent/test/execution-ownership-server.test.ts
 new file mode 100644
-index 0000000000..f5db794119
+index 0000000000000000000000000000000000000000..f5db794119d031492177679abdb1c730548a88d8
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-server.test.ts
 @@ -0,0 +1,53 @@
@@ -6261,7 +6614,7 @@ index 0000000000..f5db794119
 +}, 10_000);
 diff --git a/packages/coding-agent/test/execution-ownership-worker.test.ts b/packages/coding-agent/test/execution-ownership-worker.test.ts
 new file mode 100644
-index 0000000000..0d20432183
+index 0000000000000000000000000000000000000000..0d2043218300f6e9d2ef18c12daebd8cd31f8b03
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-worker.test.ts
 @@ -0,0 +1,48 @@
@@ -6315,7 +6668,7 @@ index 0000000000..0d20432183
 +});
 diff --git a/packages/coding-agent/test/fixtures/ownership-server-runner.ts b/packages/coding-agent/test/fixtures/ownership-server-runner.ts
 new file mode 100644
-index 0000000000..9fba1a1a12
+index 0000000000000000000000000000000000000000..9fba1a1a1250a746ac2e0a66837d779d2d2dc8cb
 --- /dev/null
 +++ b/packages/coding-agent/test/fixtures/ownership-server-runner.ts
 @@ -0,0 +1,27 @@

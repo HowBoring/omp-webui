@@ -47,9 +47,24 @@ const keys = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"]
 const publicKey = Buffer.from(await crypto.subtle.exportKey("raw", keys.publicKey)).toString("base64url");
 const privateKey = Buffer.from(await crypto.subtle.exportKey("pkcs8", keys.privateKey)).toString("base64url");
 const installation = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex");
-const approval = { version: "omp-execution-approval/1", installation,
+const releaseRoot = path.join(root, "release"), releaseStat = await fs.stat(releaseRoot, { bigint: true });
+const approvalKeys = await crypto.subtle.generateKey("Ed25519", true, ["sign", "verify"]);
+const approvalPublicKey = Buffer.from(await crypto.subtle.exportKey("raw", approvalKeys.publicKey)).toString("base64url");
+// Identity-only placeholders: these are never a real global entry/control or production capability.
+async function syntheticPin(name: string) {
+  const file = path.join(root, name), bytes = `synthetic-ownership-${name}/1`;
+  await fs.writeFile(file, bytes, { mode: 0o600, flag: "wx" }); const stat = await fs.stat(file, { bigint: true });
+  identities.push({ file, sha256: hash(bytes) });
+  return { path: file, device: String(stat.dev), inode: String(stat.ino), sha256: hash(bytes) };
+}
+const entryPin = await syntheticPin("entry-marker"), controlPin = await syntheticPin("control-marker");
+const approval = { version: "omp-execution-approval/2", policy: "omp-execution-ownership/1", installation,
   identity: { closure: hash(JSON.stringify(identities)), schema: hash(await fs.readFile(path.join(modules, "wire.schema.json"))) },
-  publicKey, releaseRoot: path.join(root, "release"), endpoint: path.join(state, "socket"),
+  dispatcherReplyPublicKey: publicKey, releaseRoot,
+  releaseDirectory: { path: releaseRoot, device: String(releaseStat.dev), inode: String(releaseStat.ino) },
+  entry: entryPin, control: controlPin,
+  controlIo: { file: path.join(releaseRoot, "no-control-io-authorized"), sha256: "0".repeat(64) },
+  validator: { file: path.join(releaseRoot, "no-validator-authorized"), sha256: "0".repeat(64) }, endpoint: path.join(state, "socket"),
   stateDirectory: { path: state, device: String(stateStat.dev), inode: String(stateStat.ino) },
   fenceDirectory: { path: fences, device: String(fenceStat.dev), inode: String(fenceStat.ino) },
   bridge: { file: bridge, sha256: artifact.sha256 },
@@ -60,16 +75,24 @@ async function pinned(name: string, value: unknown) {
   await fs.writeFile(file, bytes, { mode: 0o600, flag: "wx" }); const stat = await fs.stat(file, { bigint: true });
   return { path: file, device: String(stat.dev), inode: String(stat.ino), sha256: hash(bytes) };
 }
-const approvalPin = await pinned("approval.json", approval);
+const payload = JSON.stringify(approval);
+const signature = Buffer.from(await crypto.subtle.sign("Ed25519", approvalKeys.privateKey,
+  new TextEncoder().encode("omp-execution-release-approval/2\0" + payload))).toString("base64url");
+const recordPin = await pinned("approval.json", { version: "omp-execution-signed-approval/1", payload, signature });
+const operator = path.join(root, "operator"), operatorStat = await fs.stat(operator, { bigint: true });
+const approvalPin = await pinned("anchor.json", { version: "omp-execution-approval-anchor/1", installation,
+  approvalPublicKey, approvalRecord: { path: recordPin.path,
+    parent: { path: operator, device: String(operatorStat.dev), inode: String(operatorStat.ino) } },
+  approvalVersion: "omp-execution-approval/2", recordBytes: 16384 });
 const keyPin = await pinned("key.json", { version: "omp-execution-signing-key/1", installation, publicKey, privateKey });
 const fixture = { format: "omp-execution-server-tracer/1", scope: "synthetic-operator-public-uds-kernel-peer-signature-only",
-  approval: approvalPin, key: keyPin, sourceInputs: identities,
+  approval: approvalPin, approvalRecord: recordPin, key: keyPin, sourceInputs: identities,
   syntheticHome: path.join(root, "home"), marker: { file: marker, sha256: hash(markerBytes) },
   guard: path.join(repository, "compatibility/omp/fixtures/no-provider.ts"), bunConfig: path.join(repository, "bunfig.toml"),
   retainingParent: path.join(repository, "scripts/retain-ownership-server-tracer.py"),
   retainingInterpreter: "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
   retentionPolicy: "sole-P_ALL-waiter-with-held-root-pidfd-no-signals-retain-until-ECHILD",
-  createdSyntheticKeys: true, autoEnrolledClientTrust: false, ffiLoaded: false, endpointOpened: false,
+  createdSyntheticKeys: true, distinctApprovalAndReplyKeys: true, autoEnrolledClientTrust: false, ffiLoaded: false, endpointOpened: false,
   nativeExecuted: false, helperAuthorized: false, maintenanceRetentionProven: false, productPrivateAdmission: "BLOCKED" };
 await fs.writeFile(path.join(root, "fixture.json"), JSON.stringify(fixture, null, 2) + "\n", { mode: 0o600, flag: "wx" });
 process.stdout.write(JSON.stringify({ root, fixture: path.join(root, "fixture.json"), sourceInputs: identities.length,

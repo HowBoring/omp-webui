@@ -1,0 +1,101 @@
+{
+  "format": "omp-execution-approval-anchor-source-evidence/1",
+  "status": "SOURCE_ONLY_UNACCEPTED",
+  "stableTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
+  "oldTree": "6ae35039afa6700ffc1eeff8907cf9c4708e7859",
+  "preparedTree": "ac5bf3f7caecbc96b2fb416e45a7c07f7c4c52b0",
+  "patchSha256": "a9aa3f4715a7e036b104d934eb07cf220aac098c49a69d8d7967b18e74d8f400",
+  "sourceSha256": "59cb60785f4ee6c83f7948fd0892844854f5eacb2ba6dd42c50262a5149063a5",
+  "schemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
+  "changedNativeFiles": [
+    "packages/coding-agent/docs/execution-ownership.md",
+    "packages/coding-agent/src/launch/ownership/approval.ts",
+    "packages/coding-agent/src/launch/ownership/bootstrap.ts",
+    "packages/coding-agent/test/execution-ownership-approval.test.ts"
+  ],
+  "realNativeIndexBeforeAfterSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+  "consumerDeltaReapplied": false,
+  "activePatchListChanged": false,
+  "final1Through10Composed": false,
+  "inputs": [
+    {
+      "path": "vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval.ts",
+      "sha256": "4c84e015b5f340998f8b5cc8e3e525d7f312e1d18e0996f0c946128d84133fce"
+    },
+    {
+      "path": "vendor/omp-ownership/packages/coding-agent/src/launch/ownership/bootstrap.ts",
+      "sha256": "6f811d9285514818ea5fffaa8c7bfc3bbd3cf5925b9bcf0a132c3ab3edbe4ac9"
+    },
+    {
+      "path": "vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts",
+      "sha256": "3d04d3118d1d35c1f57b882783c62ea7a52bb96a6923560fb54fbe4b5079a3ae"
+    },
+    {
+      "path": "vendor/omp-ownership/packages/coding-agent/docs/execution-ownership.md",
+      "sha256": "abaa1075245f60a8b189df812935a5b81baf13488205436e3d76d7f7eadce2e7"
+    },
+    {
+      "path": "scripts/prepare-ownership-server-tracer.ts",
+      "sha256": "1efd2153f9c133db1ef0994b26903ee335839dcb3d3283fabe7b4893485c5cc9"
+    },
+    {
+      "path": "scripts/retain-ownership-server-tracer.py",
+      "sha256": "30b67acc9b8351d86d3ff5232aa3602da661f66f59e75ba4409db2a19fb83fc4"
+    },
+    {
+      "path": "docs/adr/0018-native-execution-ownership.md",
+      "sha256": "249c18cf29ef0a78f28aa5bd4e684c42f8ccf464f19715f378eb20ea30cdbb29"
+    },
+    {
+      "path": "compatibility/omp/0010-execution-ownership.patch",
+      "sha256": "a9aa3f4715a7e036b104d934eb07cf220aac098c49a69d8d7967b18e74d8f400"
+    },
+    {
+      "path": "compatibility/omp/execution-ownership.preparation.json",
+      "sha256": "c86db562a1c0775341e96451ba205d5ef47040773cb32e48feca1f3f4a2d9e42"
+    }
+  ],
+  "checks": {
+    "firstStableAnchorTest": "RED_OLD_LOADER_REJECTED_ANCHOR",
+    "duplicateJsonTest": "RED_BEFORE_STRICT_JSON_DECODE",
+    "finalPureSuite": {
+      "pass": 53,
+      "osOnlySkipped": 2,
+      "assertions": 189
+    },
+    "focusedTypes": {
+      "files": 30,
+      "errors": 0
+    },
+    "hostTypes": {
+      "files": 160,
+      "errors": 0
+    },
+    "wireSchemaCases": 41,
+    "parsedEntrypoints": 8,
+    "parsedConsumers": 16,
+    "retainer": "AST_SYNTAX_ONLY_NOT_EXECUTED",
+    "graph": "COMPILE_ONLY_FINAL_BOOTSTRAP_BYTES_STABLE_ACROSS_CHANGED_EXTERNAL_APPROVAL"
+  },
+  "scope": {
+    "actualNativeEntrypointsExecuted": false,
+    "actualSocketsOpened": false,
+    "ffiOrCExecuted": false,
+    "actualTracerPreparationExecuted": false,
+    "actualRetainerExecuted": false,
+    "productionKeysOrRecordsProvisioned": false,
+    "globalInstallationSelected": false,
+    "privateAdmission": "BLOCKED",
+    "capabilityGranted": false
+  },
+  "snapshots": [
+    {
+      "directory": "research/restore4-41-anchor-preserve-20261117",
+      "sha256": "79439279e4b18e9ac2841d0b0a1232426cfdd024644552e7ead78ffe98a52a45"
+    },
+    {
+      "directory": "research/restore4-41-anchor-preexport-20261117",
+      "sha256": "52a4eee7b60318d8c4122eb5a99ea25f8321339d1102da5a01d1491a86d8a8dd"
+    }
+  ]
+}

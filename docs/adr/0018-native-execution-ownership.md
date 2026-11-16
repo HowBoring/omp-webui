@@ -21,7 +21,7 @@ orphan reparenting never promotes a private descendant to external. No recovery 
 
 Authentication is asymmetric. The server obtains actual client/helper SO_PEERPIDFD identities. Ordinary Bun clients,
 including worker realms, use public UDS APIs and verify Ed25519 replies against the operator's independently pinned
-public key in an outside-release approval record; clients do not load FFI or claim a retained server pidfd. Each reply
+dispatcher reply public key authenticated by a separately signed outside-release approval record; clients do not load FFI or claim a retained server pidfd. Each reply
 binds a fresh nonce, exact request SHA256, protocol/operation/request ID, installation ID, approved closure/schema,
 server generation and response. Invalid/missing signatures or a replacement generation fail closed, without trust
 enrollment, fallback or automatic keys. The dispatcher private key stays in protected local dispatcher data, never
@@ -70,8 +70,27 @@ hostile same-UID/ptrace/namespace/reparent tricks and externally delegated irrev
 supported lifecycle guarantee. This is not an OS sandbox or external-effects rollback.
 
 
-Source preparation now includes an explicit pinned outside-release approval/key loader, public Bun UDS client and
-nonblocking C-backed independent server module for the first synthetic identity tracer. The normal dispatcher entry
-remains unavailable, no compiled production operator pin exists, and broker start/publish remain unavailable pending
-external protector integration. The opt-in tracer has not run. Its controlled source/tool identity is separate from
-actual global provenance or lifecycle admission; maintenance retention and helper paths remain independently unproven.
+Source preparation now separates a stable independently pinned outside-release anchor from changing release approval.
+The compiled anchor contains only installation, dedicated Ed25519 approval verification key, fixed protected record
+location/parent identity and version/bounds; no release closure/schema/component digest or changing-record digest.
+The build order is stable anchor -> final compiled bytes -> exhaustive final closure -> signed outside approval.
+The domain-separated approval binds final closure/schema, root/entry/control, bridge/helper/control-I/O/validator,
+dispatcher reply key, endpoint and state/fence policy. Approval and dispatcher reply keys must differ. Signatures
+authenticate approval only; actual global provenance/mappings, semantics, durable fences and data gates remain required.
+
+Approval selection is immutable per supervision generation. The loader captures opened record identity/digest/exact
+bytes/change metadata and rechecks opened/named files before/after reads and asynchronous admission; replacement or
+change permanently invalidates new admission for that selection. Bootstrap retains first selection/failure. No live
+reload, reconnect approval, environment/HOME/cwd/manifest trust, self-enrollment or startup key creation is permitted.
+Workers retain existing independent public UDS authentication and registration semantics; publication is prohibited
+while any process/realm shared lock or unresolved fence remains. These source checks do not implement or prove those
+all-process publication gates.
+
+Publishing/revoking/upgrading/rolling back approval is an explicit operator action under existing exclusive control,
+all-process/shared locks, fences and current-data/TUI compatibility gates. Changed approval requires manual restart
+and a new supervision generation. Old signed records bypass no actual tuple/current-data check; no updater, automatic
+downgrade or new cryptographic antirollback counter is introduced. No production anchor/approval/key/global selection
+exists. The normal dispatcher entry and broker publication remain unavailable pending full external-protector and
+final release integration. Earlier public UDS/kernel-peer/signed-reply and C-launcher/actual-Bun lock proofs are scoped
+historical evidence; the new anchor/envelope path has only pure/tempfile/crypto/compile/type evidence and grants no
+runtime/global/private admission.
