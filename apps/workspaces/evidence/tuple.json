@@ -63,5 +63,6 @@
   "productAdmission": "BLOCKED pending #41 combined/global gate and #44 protected open/worker revocation",
   "windowsWSL2": "DEFERRED by user",
   "builtOnIntegration": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
-  "integrationRefresh": "Latest merge changes catalog build/provenance tests only; all enrolled Workspace/Host/OMP/client inputs unchanged."
+  "integrationRefresh": "Latest merge changes catalog build/provenance tests only; all enrolled Workspace/Host/OMP/client inputs unchanged.",
+  "browserEvidenceSha256": "aae63af4a8b96855a2f12d39e68cdbe3ebf32d45a89434d1128c113adf683d82"
 }

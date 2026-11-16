@@ -50,8 +50,14 @@ No new seam approval was needed.
 - `BUN_EXECUTABLE=... python3 scripts/trace-catalog.py`: PASS on actual SessionManager-authored isolated native files.
   Final trace has 229 lines, zero writes/ordinary runtime imports, zero listener binds, zero non-Unix connects,
   two readonly native lease observations and one exec. Actual framing is ready + three correlated responses.
-- `python3 tests/workspaces/browser.py`: final browser result is recorded separately in the evidence directory.
-  It owns a native file-lock holder, Host processes and deliberately synthetic storage only.
+- `python3 tests/workspaces/browser.py`: PASS, 12 scenarios, 47 discovered rows, 35 explicit synthetic registered
+  references, 38 real DSH Remote calls and zero page errors. Actual Linux Chromium 156.0.8078.79 + Bun 1.4.4
+  passes SIGKILL Host restart with unchanged absolute credential/grant, native readonly child exit, canonical-root
+  replacement denial, explicit revoke + second process restart, unchanged native manifests, actual native cursor
+  error and a separately labelled wrong-correlation carrier fault. All owned processes are stopped. See
+  [the complete browser result](../../apps/workspaces/evidence/linux-browser.json).
+- After merging latest integration `2118454`, strict typecheck and its added catalog provenance/build tests PASS
+  (two tests/32 assertions). That merge changes no enrolled component runtime/client input.
 
 Exact source/patch/schema/runtime/client/Host/installation identities are in
 [tuple.json](../../apps/workspaces/evidence/tuple.json); the [native syscall summary](../../apps/workspaces/evidence/native-trace.json)
