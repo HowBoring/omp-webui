@@ -901,7 +901,7 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 9ce3e51889..0718be184f 100644
+index 9ce3e51889..7133c28143 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
@@ -1118,7 +1118,7 @@ index 9ce3e51889..0718be184f 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -4193,6 +4248,98 @@ export class SessionManager {
+@@ -4193,6 +4248,106 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1176,9 +1176,19 @@ index 9ce3e51889..0718be184f 100644
 +		this.#submissionFormatReady = true;
 +	}
 +	async #appendSubmissionControl(value: NativeSubmission): Promise<void> {
++		await this.#appendNativeControlRecord(submissionRecord(value));
++		// StrictReservation appended and read back the exact bytes on the pinned descriptor, under its unchanged source proof.
++		this.#verifiedSubmissions = this.#verifiedSubmissions.filter(item => !sameSubmission(item.origin, value.origin));
++		this.#verifiedSubmissions.push(structuredClone(value));
++	}
++	/** Shared native-only control publication. Caller owns #withAtomicPersistenceLock and native namespace validation. */
++	async #appendNativeControlRecord(record: CustomEntry): Promise<void> {
 +		this.getSubmissionTarget();
++		if (!record.customType.startsWith("omp.native-control/")) throw new Error("NATIVE_CONTROL_NAMESPACE_INVALID");
 +		if (this.#diskFailure) throw this.#diskFailure;
-+		const line = this.#lineFor(submissionRecord(value)), bytes = Buffer.byteLength(line);
++		// A raw native reader sees the same active path: control records do not become the conversation leaf.
++		const leaf = this.#index.leafId();
++		const line = this.#lineFor({...record,parentId:leaf,activeLeafId:leaf}), bytes = Buffer.byteLength(line);
 +		if (bytes > 8 * 1024 * 1024 || this.#submissionBytes + bytes > submissionPolicy.maxMetadataBytes)
 +			throw new Error("SUBMISSION_METADATA_LIMIT");
 +		await this.#scheduleDiskWork(async () => {
@@ -1186,10 +1196,8 @@ index 9ce3e51889..0718be184f 100644
 +			await writer.append(line); await writer.flush();
 +			this.#recordDurableAppend(line); this.#submissionBytes += bytes;
 +		});
-+		// StrictReservation appended and read back the exact bytes on the pinned descriptor, under its unchanged source proof.
-+		this.#verifiedSubmissions = this.#verifiedSubmissions.filter(item => !sameSubmission(item.origin, value.origin));
-+		this.#verifiedSubmissions.push(structuredClone(value));
 +	}
++
 +	#retainSubmissionEntryFacts(): void {
 +		const byKey = new Map(this.#nativeSubmissions.map(value => [value.origin.clientSubmissionId, value]));
 +		for (const [entryId, submission] of this.#verifiedSubmissionEntries) {
@@ -1217,7 +1225,7 @@ index 9ce3e51889..0718be184f 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4440,6 +4587,7 @@ export class SessionManager {
+@@ -4440,6 +4595,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -1225,7 +1233,7 @@ index 9ce3e51889..0718be184f 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4723,8 @@ export class SessionManager {
+@@ -4575,6 +4731,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -1234,7 +1242,7 @@ index 9ce3e51889..0718be184f 100644
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
  		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4740,8 @@ export class SessionManager {
+@@ -4590,8 +4748,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -1245,7 +1253,7 @@ index 9ce3e51889..0718be184f 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4750,7 @@ export class SessionManager {
+@@ -4600,6 +4758,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
