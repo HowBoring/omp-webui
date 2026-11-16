@@ -1,16 +1,26 @@
 {
-  "format": "omp-ticket-41-anchor-uds-preparation/1",
+  "format": "omp-ticket-41-anchor-uds-preparation/2",
   "status": "READY_NOT_RUN_ROOT_GO_REQUIRED",
   "sourceMerge": {
-    "commit": "18ba9e49c2fbf8f09fc0932a8d0c6ed1efc664c4",
-    "tree": "d67010f80863beaee24e5d8a345e146a94625527",
-    "base": "813e6b05a691b16fe7f41f3e7d96f06e9a5d0539",
-    "exactMergedCommit": "18ba9e49c2fbf8f09fc0932a8d0c6ed1efc664c4",
-    "onlySourceChange": "scripts/prepare-ownership-server-tracer.ts: anchorPin name and shared local writeAndPin",
+    "commit": "a17e1dd14a9086180a0cd1fddbe1d414085335cc",
+    "tree": "80d4fdf58fa6ff41af1c8a37eb85852f66f0194c",
+    "base": "606ff04f79d950374b8e04f4dab0a67a24fc17c9",
     "integrationAncestor": "4024c4084173c102764e0c1e42efa183ba8810d4",
+    "integrationMerge": "Already up to date before source commit",
     "focusedStrictTypes": "PASS",
     "typescriptParser": "PASS",
     "diffCheck": "PASS"
+  },
+  "fixtureFix": {
+    "reason": "Public inspectBroker accepts dispatcher_unavailable for both signed refusal and transport failure; it closes on both. Same-client post-classify cannot distinguish.",
+    "publicBoundary": "Existing BunOwnershipTransport.exchange resolves only after approval and signed nonce/request/operation/server-generation verification; decodeOwnershipResponse receives that resolved frame and the exact original request. No catch converts transport rejection to a refusal.",
+    "postRefusalChecks": [
+      "same-client classify equals original registration",
+      "same-client listScopes remains empty"
+    ],
+    "productApiChanged": false,
+    "nativeSourceChanged": false,
+    "faultRegressionRuntime": "NOT RUN; separately opt-in controlled public Bun UDS peer source/type checked only"
   },
   "nativePreparation": {
     "patchSha256": "a9aa3f4715a7e036b104d934eb07cf220aac098c49a69d8d7967b18e74d8f400",
@@ -26,91 +36,94 @@
   },
   "ready": {
     "status": "READY_NOT_RUN_ROOT_GO_REQUIRED",
-    "sourceHead": "18ba9e49c2fbf8f09fc0932a8d0c6ed1efc664c4",
-    "sourceTree": "d67010f80863beaee24e5d8a345e146a94625527",
-    "fixture": "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
-    "fixtureSha256": "f29d3092cc5316ecdea6c858c35c57405718fffc9035b80b5b81ab7667352dff",
+    "sourceHead": "a17e1dd14a9086180a0cd1fddbe1d414085335cc",
+    "sourceTree": "80d4fdf58fa6ff41af1c8a37eb85852f66f0194c",
+    "fixture": "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+    "fixtureSha256": "bf1e67ad206f3f3586849bc2604f484f105131953e3b833bdc9bf3a45dd16ad8",
     "frozenInputs": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/frozen-inputs.json",
-      "sha256": "64bc5496399b81190aac95d0e844087bd49c9b594c03143aff4b702e323f2625",
-      "files": 40,
-      "declaredSourceInputs": 34
+      "file": "/tmp/ownership-server-tracer-bFpAny/frozen-inputs.json",
+      "sha256": "a0d77427f4939f56154534386e58aada7763537c45bc73d3c32c2f561ee2e898",
+      "files": 41,
+      "declaredSourceInputs": 35
     },
     "runPlan": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/run-plan.json",
-      "sha256": "2bd60b1746e06622a91bece5ae54a64fbc677fd6a68bba3888ac6abd07b81ec0"
+      "file": "/tmp/ownership-server-tracer-bFpAny/run-plan.json",
+      "sha256": "a35f6d99adfcbd8ae15648753bd61fd9724b189cc081d14ca3ce423fd5556429"
     },
     "anchor": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/operator/anchor.json",
-      "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/anchor.json",
-      "sha256": "b2c540b6b22a0a50b187f0a54f001a549cbea8281d59c2321f0bd53818f10e29",
+      "file": "/tmp/ownership-server-tracer-bFpAny/operator/anchor.json",
+      "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/anchor.json",
+      "sha256": "c1120a999741bb9953dd6d25612d5d072bddcf664b4685d42566320e36593775",
       "device": "27",
-      "inode": "343239",
+      "inode": "344838",
       "bytes": 441,
       "mode": "0o600",
       "uid": 1000,
       "gid": 1000,
       "nlink": 1,
-      "mtimeNs": "1794871421245086700",
-      "ctimeNs": "1794871421245086700"
+      "mtimeNs": "1794872756447861132",
+      "ctimeNs": "1794872756447861132"
     },
     "approvalRecord": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/operator/approval.json",
-      "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/approval.json",
-      "sha256": "4bd1b1a6e42db5317d6a4a0318443f622c42975270bdc0bf102551206b1d67ac",
+      "file": "/tmp/ownership-server-tracer-bFpAny/operator/approval.json",
+      "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/approval.json",
+      "sha256": "8e7995395cdac26d77ddc69bce8fa5e5398116ca0187d89daee9ce96dce52326",
       "device": "27",
-      "inode": "343238",
+      "inode": "344837",
       "bytes": 2158,
       "mode": "0o600",
       "uid": 1000,
       "gid": 1000,
       "nlink": 1,
-      "mtimeNs": "1794871421240146780",
-      "ctimeNs": "1794871421240146780"
+      "mtimeNs": "1794872756444983524",
+      "ctimeNs": "1794872756444983524"
     },
     "dispatcherKeyMetadata": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/operator/key.json",
-      "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/key.json",
-      "sha256": "6b8a41fd8af404d02a84e5beefc87d02459292317e18012fdafc03d2d2dee324",
+      "file": "/tmp/ownership-server-tracer-bFpAny/operator/key.json",
+      "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/key.json",
+      "sha256": "f2ad965d7ce97dfdf36b653c3ad776b64d519d96d7cf88424caef57a25e42fce",
       "device": "27",
-      "inode": "343240",
+      "inode": "344839",
       "bytes": 261,
       "mode": "0o600",
       "uid": 1000,
       "gid": 1000,
       "nlink": 1,
-      "mtimeNs": "1794871421245086700",
-      "ctimeNs": "1794871421245086700"
+      "mtimeNs": "1794872756447861132",
+      "ctimeNs": "1794872756447861132"
     },
-    "endpoint": "/tmp/ownership-server-tracer-QTCN2K/home/state/socket",
-    "syntheticHome": "/tmp/ownership-server-tracer-QTCN2K/home",
+    "endpoint": "/tmp/ownership-server-tracer-bFpAny/home/state/socket",
+    "syntheticHome": "/tmp/ownership-server-tracer-bFpAny/home",
     "bridge": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/release/bridge.so",
-      "resolved": "/tmp/ownership-server-tracer-QTCN2K/release/bridge.so",
+      "file": "/tmp/ownership-server-tracer-bFpAny/release/bridge.so",
+      "resolved": "/tmp/ownership-server-tracer-bFpAny/release/bridge.so",
       "sha256": "127353f7ccb35605e56f9fbbaf6d28fab3050404bccadef0699f7091a9e428e3",
       "device": "27",
-      "inode": "343235",
+      "inode": "344834",
       "bytes": 21608,
       "mode": "0o600",
       "uid": 1000,
       "gid": 1000,
       "nlink": 1,
-      "mtimeNs": "1794871421236146693",
-      "ctimeNs": "1794871421236146693"
+      "mtimeNs": "1794872756432983265",
+      "ctimeNs": "1794872756432983265"
     },
     "distinctApprovalReplyKeys": true,
     "signedEnvelopeCryptoCheck": "PASS_NO_NATIVE_IMPORTS",
     "typescriptSourceParse": {
-      "files": 22,
+      "files": 20,
       "status": "PASS_PARSE_ONLY"
     },
+    "focusedStrictTypes": "PASS",
     "retainerSyntax": "PASS_AST_ONLY_NEVER_EXECUTED",
     "newRuntimeStatus": "NOT_RUN",
     "productPrivateAdmission": "BLOCKED"
   },
   "frozenInputsManifest": {
-    "file": "/tmp/ownership-server-tracer-QTCN2K/frozen-inputs.json",
-    "sha256": "64bc5496399b81190aac95d0e844087bd49c9b594c03143aff4b702e323f2625",
+    "format": "omp-execution-anchor-uds-frozen-inputs/1",
+    "scope": "explicit selected synthetic fixture members; not an exhaustive production or mapped-runtime closure",
+    "fixture": "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+    "fixtureSha256": "bf1e67ad206f3f3586849bc2604f484f105131953e3b833bdc9bf3a45dd16ad8",
     "files": [
       {
         "file": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3.12",
@@ -127,130 +140,130 @@
         "ctimeNs": "1794418893000000000"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/control-marker",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/control-marker",
+        "file": "/tmp/ownership-server-tracer-bFpAny/control-marker",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/control-marker",
         "sha256": "8b4ce377d1b79e23092a0b230b096a07037e9c332e7e4a78940d9e407668691b",
         "device": "27",
-        "inode": "343237",
+        "inode": "344836",
         "bytes": 36,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421240146780",
-        "ctimeNs": "1794871421240146780"
+        "mtimeNs": "1794872756440983437",
+        "ctimeNs": "1794872756440983437"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/cwd/server.test.ts",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/cwd/server.test.ts",
-        "sha256": "f326f83784c77c7b99b81f60e15854e330ef449aca5732dafbe0fc1284d4611e",
+        "file": "/tmp/ownership-server-tracer-bFpAny/cwd/server.test.ts",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/cwd/server.test.ts",
+        "sha256": "a6a0f26fc6a7d21b3834d1744eca492ec8d2b402aa07b1ef5f6a92699f41c791",
         "device": "27",
-        "inode": "343234",
-        "bytes": 129,
+        "inode": "344833",
+        "bytes": 109,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421236146693",
-        "ctimeNs": "1794871421236146693"
+        "mtimeNs": "1794872756432983265",
+        "ctimeNs": "1794872756432983265"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/entry-marker",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/entry-marker",
+        "file": "/tmp/ownership-server-tracer-bFpAny/entry-marker",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/entry-marker",
         "sha256": "ee67b2f98ce68d3e6792c5af88cc01585c10e5ce18af16e2db5f694aa8baa114",
         "device": "27",
-        "inode": "343236",
+        "inode": "344835",
         "bytes": 34,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421240146780",
-        "ctimeNs": "1794871421240146780"
+        "mtimeNs": "1794872756436983351",
+        "ctimeNs": "1794872756436983351"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
-        "sha256": "f29d3092cc5316ecdea6c858c35c57405718fffc9035b80b5b81ab7667352dff",
+        "file": "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+        "sha256": "bf1e67ad206f3f3586849bc2604f484f105131953e3b833bdc9bf3a45dd16ad8",
         "device": "27",
-        "inode": "343241",
-        "bytes": 8917,
+        "inode": "344840",
+        "bytes": 9106,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421245086700",
-        "ctimeNs": "1794871421245086700"
+        "mtimeNs": "1794872756447861132",
+        "ctimeNs": "1794872756447861132"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/home/fixture-marker.json",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/home/fixture-marker.json",
+        "file": "/tmp/ownership-server-tracer-bFpAny/home/fixture-marker.json",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/home/fixture-marker.json",
         "sha256": "d1d22e3509dad2e7da464253e68779a067097352dd0b66822e7bcd9eaab70fc7",
         "device": "27",
-        "inode": "343233",
+        "inode": "344832",
         "bytes": 64,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421236146693",
-        "ctimeNs": "1794871421236146693"
+        "mtimeNs": "1794872756432983265",
+        "ctimeNs": "1794872756432983265"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/operator/anchor.json",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/anchor.json",
-        "sha256": "b2c540b6b22a0a50b187f0a54f001a549cbea8281d59c2321f0bd53818f10e29",
+        "file": "/tmp/ownership-server-tracer-bFpAny/operator/anchor.json",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/anchor.json",
+        "sha256": "c1120a999741bb9953dd6d25612d5d072bddcf664b4685d42566320e36593775",
         "device": "27",
-        "inode": "343239",
+        "inode": "344838",
         "bytes": 441,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421245086700",
-        "ctimeNs": "1794871421245086700"
+        "mtimeNs": "1794872756447861132",
+        "ctimeNs": "1794872756447861132"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/operator/approval.json",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/approval.json",
-        "sha256": "4bd1b1a6e42db5317d6a4a0318443f622c42975270bdc0bf102551206b1d67ac",
+        "file": "/tmp/ownership-server-tracer-bFpAny/operator/approval.json",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/approval.json",
+        "sha256": "8e7995395cdac26d77ddc69bce8fa5e5398116ca0187d89daee9ce96dce52326",
         "device": "27",
-        "inode": "343238",
+        "inode": "344837",
         "bytes": 2158,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421240146780",
-        "ctimeNs": "1794871421240146780"
+        "mtimeNs": "1794872756444983524",
+        "ctimeNs": "1794872756444983524"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/operator/key.json",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/operator/key.json",
-        "sha256": "6b8a41fd8af404d02a84e5beefc87d02459292317e18012fdafc03d2d2dee324",
+        "file": "/tmp/ownership-server-tracer-bFpAny/operator/key.json",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/operator/key.json",
+        "sha256": "f2ad965d7ce97dfdf36b653c3ad776b64d519d96d7cf88424caef57a25e42fce",
         "device": "27",
-        "inode": "343240",
+        "inode": "344839",
         "bytes": 261,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421245086700",
-        "ctimeNs": "1794871421245086700"
+        "mtimeNs": "1794872756447861132",
+        "ctimeNs": "1794872756447861132"
       },
       {
-        "file": "/tmp/ownership-server-tracer-QTCN2K/release/bridge.so",
-        "resolved": "/tmp/ownership-server-tracer-QTCN2K/release/bridge.so",
+        "file": "/tmp/ownership-server-tracer-bFpAny/release/bridge.so",
+        "resolved": "/tmp/ownership-server-tracer-bFpAny/release/bridge.so",
         "sha256": "127353f7ccb35605e56f9fbbaf6d28fab3050404bccadef0699f7091a9e428e3",
         "device": "27",
-        "inode": "343235",
+        "inode": "344834",
         "bytes": 21608,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871421236146693",
-        "ctimeNs": "1794871421236146693"
+        "mtimeNs": "1794872756432983265",
+        "ctimeNs": "1794872756432983265"
       },
       {
         "file": "/usr/bin/env",
@@ -309,18 +322,46 @@
         "ctimeNs": "1794852258625667483"
       },
       {
-        "file": "/workspace/work/omp-webui-ticket-41/scripts/prepare-ownership-server-tracer.ts",
-        "resolved": "/workspace/work/omp-webui-ticket-41/scripts/prepare-ownership-server-tracer.ts",
-        "sha256": "a62a71988692f454d0abfcb29a5d9628b3905a0efb962f2f21244cf01e740fb3",
+        "file": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-server-public-uds.test.ts",
+        "resolved": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-server-public-uds.test.ts",
+        "sha256": "d4cb54d3db50fa90fb2f22833c86322e88b2ff3d7f7c29e32fdec9d64676e19d",
         "device": "27",
-        "inode": "334683",
-        "bytes": 8811,
+        "inode": "344070",
+        "bytes": 4451,
         "mode": "0o600",
         "uid": 1000,
         "gid": 1000,
         "nlink": 1,
-        "mtimeNs": "1794871351914645527",
-        "ctimeNs": "1794871351914645527"
+        "mtimeNs": "1794872630780886286",
+        "ctimeNs": "1794872630780886286"
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-transport-drop.test.ts",
+        "resolved": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-transport-drop.test.ts",
+        "sha256": "7bc0d3615418f7ac6b0117d518160420996e06dbb58b8c0cb6508142f507e540",
+        "device": "27",
+        "inode": "344689",
+        "bytes": 4321,
+        "mode": "0o600",
+        "uid": 1000,
+        "gid": 1000,
+        "nlink": 1,
+        "mtimeNs": "1794872675395235065",
+        "ctimeNs": "1794872675395235065"
+      },
+      {
+        "file": "/workspace/work/omp-webui-ticket-41/scripts/prepare-ownership-server-tracer.ts",
+        "resolved": "/workspace/work/omp-webui-ticket-41/scripts/prepare-ownership-server-tracer.ts",
+        "sha256": "1cafc8f81d13381f87c0d70ff75ec7c4b1ada6498862028df2a2af592c915189",
+        "device": "27",
+        "inode": "334683",
+        "bytes": 8909,
+        "mode": "0o600",
+        "uid": 1000,
+        "gid": 1000,
+        "nlink": 1,
+        "mtimeNs": "1794872630781450806",
+        "ctimeNs": "1794872630781450806"
       },
       {
         "file": "/workspace/work/omp-webui-ticket-41/scripts/retain-ownership-server-tracer.py",
@@ -603,20 +644,6 @@
         "ctimeNs": "1794861325773416390"
       },
       {
-        "file": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-server.test.ts",
-        "resolved": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-server.test.ts",
-        "sha256": "dff7ee4a2e60a5845d721d22a6e66c7c2b216e9becad41a862c8a1b5e00b7141",
-        "device": "27",
-        "inode": "333485",
-        "bytes": 3287,
-        "mode": "0o600",
-        "uid": 1000,
-        "gid": 1000,
-        "nlink": 1,
-        "mtimeNs": "1794864269660448498",
-        "ctimeNs": "1794864269660448498"
-      },
-      {
         "file": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/fixtures/ownership-server-runner.ts",
         "resolved": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/fixtures/ownership-server-runner.ts",
         "sha256": "0dee5b3cc0e076fcaed9c29726bf0eccbbe633ee6fbb40d0c3460e54050329de",
@@ -673,6 +700,105 @@
         "ctimeNs": "1794750674013687238"
       }
     ],
+    "directories": [
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny",
+        "device": "27",
+        "inode": "344820",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/cache",
+        "device": "27",
+        "inode": "344830",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/config",
+        "device": "27",
+        "inode": "344828",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/cwd",
+        "device": "27",
+        "inode": "344827",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/data",
+        "device": "27",
+        "inode": "344829",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/home",
+        "device": "27",
+        "inode": "344823",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/home/state",
+        "device": "27",
+        "inode": "344824",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/home/state/fences",
+        "device": "27",
+        "inode": "344825",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/operator",
+        "device": "27",
+        "inode": "344821",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/profile",
+        "device": "27",
+        "inode": "344826",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/release",
+        "device": "27",
+        "inode": "344822",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      },
+      {
+        "directory": "/tmp/ownership-server-tracer-bFpAny/xdg-state",
+        "device": "27",
+        "inode": "344831",
+        "mode": "0o700",
+        "uid": 1000,
+        "gid": 1000
+      }
+    ],
+    "secretHandling": "Only whole-file hashes and metadata of key.json; no secret key bytes recorded.",
     "launchPathMetadata": [
       {
         "path": "/usr/bin/env",
@@ -726,128 +852,29 @@
         "mtimeNs": "499162500000000000",
         "ctimeNs": "1794750674013687238"
       }
-    ],
-    "directories": [
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K",
-        "device": "27",
-        "inode": "343221",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/cache",
-        "device": "27",
-        "inode": "343231",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/config",
-        "device": "27",
-        "inode": "343229",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/cwd",
-        "device": "27",
-        "inode": "343228",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/data",
-        "device": "27",
-        "inode": "343230",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/home",
-        "device": "27",
-        "inode": "343224",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/home/state",
-        "device": "27",
-        "inode": "343225",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/home/state/fences",
-        "device": "27",
-        "inode": "343226",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/operator",
-        "device": "27",
-        "inode": "343222",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/profile",
-        "device": "27",
-        "inode": "343227",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/release",
-        "device": "27",
-        "inode": "343223",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      },
-      {
-        "directory": "/tmp/ownership-server-tracer-QTCN2K/xdg-state",
-        "device": "27",
-        "inode": "343232",
-        "mode": "0o700",
-        "uid": 1000,
-        "gid": 1000
-      }
-    ],
-    "scope": "explicit selected synthetic fixture members; not an exhaustive production or mapped-runtime closure"
+    ]
   },
   "runPlan": {
     "format": "omp-execution-anchor-uds-run-plan/1",
     "status": "READY_NOT_RUN_ROOT_GO_REQUIRED",
-    "sourceHead": "18ba9e49c2fbf8f09fc0932a8d0c6ed1efc664c4",
-    "fixture": "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
-    "fixtureSha256": "f29d3092cc5316ecdea6c858c35c57405718fffc9035b80b5b81ab7667352dff",
+    "sourceHead": "a17e1dd14a9086180a0cd1fddbe1d414085335cc",
+    "fixture": "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+    "fixtureSha256": "bf1e67ad206f3f3586849bc2604f484f105131953e3b833bdc9bf3a45dd16ad8",
     "frozenInputs": {
-      "file": "/tmp/ownership-server-tracer-QTCN2K/frozen-inputs.json",
-      "sha256": "64bc5496399b81190aac95d0e844087bd49c9b594c03143aff4b702e323f2625",
-      "files": 40,
-      "declaredSourceInputs": 34
+      "file": "/tmp/ownership-server-tracer-bFpAny/frozen-inputs.json",
+      "sha256": "a0d77427f4939f56154534386e58aada7763537c45bc73d3c32c2f561ee2e898",
+      "files": 41,
+      "declaredSourceInputs": 35
     },
     "command": [
       "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
       "-I",
       "-S",
       "/workspace/work/omp-webui-ticket-41/scripts/retain-ownership-server-tracer.py",
-      "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
-      "f29d3092cc5316ecdea6c858c35c57405718fffc9035b80b5b81ab7667352dff"
+      "/tmp/ownership-server-tracer-bFpAny/fixture.json",
+      "bf1e67ad206f3f3586849bc2604f484f105131953e3b833bdc9bf3a45dd16ad8"
     ],
-    "cwd": "/tmp/ownership-server-tracer-QTCN2K/cwd",
+    "cwd": "/tmp/ownership-server-tracer-bFpAny/cwd",
     "outerCommandPrefix": [
       "/usr/bin/env",
       "-i",
@@ -859,15 +886,15 @@
       "TMPDIR": "/tmp"
     },
     "childEnvironment": {
-      "HOME": "/tmp/ownership-server-tracer-QTCN2K/home",
-      "PI_CODING_AGENT_DIR": "/tmp/ownership-server-tracer-QTCN2K/profile",
-      "XDG_CONFIG_HOME": "/tmp/ownership-server-tracer-QTCN2K/config",
-      "XDG_DATA_HOME": "/tmp/ownership-server-tracer-QTCN2K/data",
-      "XDG_STATE_HOME": "/tmp/ownership-server-tracer-QTCN2K/xdg-state",
-      "XDG_CACHE_HOME": "/tmp/ownership-server-tracer-QTCN2K/cache",
+      "HOME": "/tmp/ownership-server-tracer-bFpAny/home",
+      "PI_CODING_AGENT_DIR": "/tmp/ownership-server-tracer-bFpAny/profile",
+      "XDG_CONFIG_HOME": "/tmp/ownership-server-tracer-bFpAny/config",
+      "XDG_DATA_HOME": "/tmp/ownership-server-tracer-bFpAny/data",
+      "XDG_STATE_HOME": "/tmp/ownership-server-tracer-bFpAny/xdg-state",
+      "XDG_CACHE_HOME": "/tmp/ownership-server-tracer-bFpAny/cache",
       "TMPDIR": "/tmp",
       "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
-      "OMP_OWNERSHIP_SERVER_FIXTURE_MANIFEST": "/tmp/ownership-server-tracer-QTCN2K/fixture.json"
+      "OMP_OWNERSHIP_SERVER_FIXTURE_MANIFEST": "/tmp/ownership-server-tracer-bFpAny/fixture.json"
     },
     "tracedChildCommand": [
       "/usr/bin/strace",
@@ -876,7 +903,7 @@
       "-e",
       "trace=socket,bind,listen,accept4,connect,getsockopt",
       "-o",
-      "/tmp/ownership-server-tracer-QTCN2K/network.trace",
+      "/tmp/ownership-server-tracer-bFpAny/network.trace",
       "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
       "test",
       "--no-env-file",
@@ -910,12 +937,14 @@
       "toolInitialYieldMs": 1000,
       "toolFollowupPollMs": 1000,
       "hardKillOrCancelAfterDeadline": false,
-      "requestMs": 10000
+      "requestMs": 10000,
+      "expectedAuthenticatedExchanges": 8,
+      "faultPeerRegressionSelected": false
     },
     "expectations": [
       "Public loader verifies new stable anchor and domain-separated signed approval with distinct reply key.",
       "One guarded public Bun UDS client connects to independent server; actual C socketpair ABI self-probe distinguished from actual accept/SO_PEERPIDFD.",
-      "Signed classify then reclassify has stable external registration; list_scopes empty; inspect missing generation refuses without create.",
+      "Same public transport: signed classify/reclassify stable external registration, empty scopes; await authenticated exact inspect_broker request reply, then decode correlated negative body dispatcher_unavailable; post-refusal signed classify unchanged and list_scopes empty. Transport EOF/connect/timeout rejects and cannot satisfy body assertion.",
       "client.close -> server stdin EOF -> awaited real exit0/no signal -> retainer actual P_ALL/ECHILD.",
       "Exact frozen file metadata/hash and operator pins unchanged; own socket absent and fences empty; narrow trace has no AF_INET/AF_INET6.",
       "Save raw stdout/stderr/trace/containment hashes and captured top-level tool completion; never infer missing guard counters or parent exit."
@@ -938,17 +967,27 @@
       "signals": 0
     },
     "historicalFixtures": "Old SOt2Bg FAIL and XKSI1y PASS use historical record tuple; preserved and never rerun. Launcher-lock PASS and copied-Bun reclamation remain separate evidence.",
-    "preflight": "Root must revalidate every frozen-input metadata/hash and launch-path identity immediately before the one command; wrapper independently rechecks declared source SHA and all synthetic protected pins before forking."
+    "preflight": "Root must revalidate every frozen-input metadata/hash and launch-path identity immediately before the one command; wrapper independently rechecks declared source SHA and all synthetic protected pins before forking.",
+    "fixtureTestSource": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-server-public-uds.test.ts",
+    "faultPeerRegression": {
+      "source": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/ownership-transport-drop.test.ts",
+      "status": "SOURCE_AND_TYPES_ONLY_NOT_RUN",
+      "selection": "Separate OMP_OWNERSHIP_TRANSPORT_FAULT_FIXTURE_MANIFEST; absent from this entry and environment. Must not run against a used fixture."
+    },
+    "hangBoundary": "Readiness and final child/stderr awaits lack independent cancellation. Test timeout and 30s retainer marker are diagnostic only, never extinction. Preserve sole parent/original tool handle on unresolved outcome.",
+    "guardCounters": "UNKNOWN_NOT_EMITTED_OR_PROBED; preload and narrow socket trace are separate evidence; no inferred 16-deny/0-dispatch result."
   },
   "preparationValidation": {
-    "frozenInputFilesVerified": 40,
+    "frozenInputFilesVerified": 41,
     "launchPathsVerified": 4,
     "directoriesVerified": 12,
     "nativeFilesVerifiedUnchanged": 4398,
     "nativeIndexSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
     "nativeStatusSha256": "587c7569c013d5214baf8fdc561e521cca77f22e36baf7dea9e155b7e144fef4",
     "historicalRawFilesVerifiedUnchanged": 66,
-    "copiedBunStillAbsent": true,
+    "supersededFixtureRootFilesMetadataVerified": 9,
+    "supersededFrozenAndPlanHashesUnchanged": true,
+    "supersededStatus": "SUPERSEDED_NOT_RUN",
     "endpointAbsent": true,
     "fencesEmpty": true,
     "newExecutionLogsAbsent": true,
@@ -956,11 +995,28 @@
     "runtimeStatus": "NOT RUN"
   },
   "preparationExecutionScope": [
-    "Reviewed synthetic file/crypto preparation only under env -i and no-provider preload before preparation imports.",
-    "New fixture, protected marker, distinct synthetic approval/reply keys and signed envelope created outside new ignored release. No production keys read or written.",
-    "Pure Ed25519 signature/key-role check without Native imports;22 selected TS sources parsed; retainer AST parsed only.",
-    "Existing exact strict C artifact reused; no new C compile, C execution, dlopen, socket, Native/CLI, browser, process probe, signal or global installation."
+    "Owned source/types/AST and guarded env-i file/crypto preparation only.",
+    "New marked synthetic profile/home, independently pinned anchor and signed envelope; distinct synthetic key roles. No production keys.",
+    "Existing bridge bytes reused; no C compile/load/execution, FFI, UDS, Native/CLI, retainer, process probe, signal, browser or global installation.",
+    "New controlled public UDS dropped-peer regression is source/type checked, NOT RUN. No red/green runtime result claimed."
   ],
+  "superseded": {
+    "status": "SUPERSEDED_NOT_RUN",
+    "archive": "/workspace/work/omp-webui-ticket-41/docs/evidence/ticket-41-anchor-uds-superseded.json",
+    "fixture": "/tmp/ownership-server-tracer-QTCN2K/fixture.json",
+    "fixtureSha256": "f29d3092cc5316ecdea6c858c35c57405718fffc9035b80b5b81ab7667352dff",
+    "frozenInputs": {
+      "file": "/tmp/ownership-server-tracer-QTCN2K/frozen-inputs.json",
+      "sha256": "64bc5496399b81190aac95d0e844087bd49c9b594c03143aff4b702e323f2625",
+      "files": 40,
+      "declaredSourceInputs": 34
+    },
+    "runPlan": {
+      "file": "/tmp/ownership-server-tracer-QTCN2K/run-plan.json",
+      "sha256": "2bd60b1746e06622a91bece5ae54a64fbc677fd6a68bba3888ac6abd07b81ec0"
+    },
+    "preservation": "Old frozen manifest, fixture-root files/key metadata and plan bytes unchanged; do not rerun old fixture. Selected source preparation script changed for new fixture as intended."
+  },
   "historicalEvidence": {
     "manifest": "/workspace/work/omp-webui-ticket-41/vendor/anchor-uds-preparation/historical-evidence.before.json",
     "sha256": "8e6853b18671cab7cbd5d2a48e931eff9e6a1f6b90beab084b8cc3c9d4d0ac69",
@@ -972,6 +1028,7 @@
     "copiedBunReclamationPreserved": true,
     "priorUdsFormat": "historical whole plain-record tuple; not runtime evidence for current stable-anchor/signed-envelope source"
   },
+  "guardCounters": "UNKNOWN_NOT_EMITTED_OR_PROBED",
   "actualRuntime": "NOT RUN",
   "productionGlobalAndPrivateAdmission": "BLOCKED"
 }
