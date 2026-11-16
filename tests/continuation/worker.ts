@@ -57,14 +57,28 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
 }
 
 export async function selectedDescriptor(home: string, leaseDirectory?: string) {
-  const client = await CatalogTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
-    resolve("compatibility/omp/fixtures/no-provider.ts"), resolve("vendor/omp-candidate/cli.js"), "--rpc-catalog"],
-    env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
-      ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}) }, timeoutMs: 3000 });
+  const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 3000);
   try {
-    const page = await client.catalog.page();
-    const item = page.items[0]; if (!item) throw new Error("STRICT_FIXTURE_DESCRIPTOR_MISSING"); return item;
-  } finally { await client.close(); }
+    const client = await CatalogTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
+      resolve("compatibility/omp/fixtures/no-provider.ts"), resolve("vendor/omp-candidate/cli.js"), "--rpc-catalog"],
+      env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
+        ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}) }, timeoutMs: 3000,
+      signal: controller.signal });
+    try {
+      let cursor: string | undefined;
+      // Scanning can return no items and repeat the same opaque cursor while making progress.
+      for (let pages = 0; pages < 64; pages++) {
+        const page = await client.catalog.page(cursor === undefined ? {} : { cursor });
+        const item = page.items[0]; if (item) return item;
+        const failure = page.failures[0]; if (failure) throw new Error(failure.code);
+        if (page.status === "partial") throw new Error("STRICT_FIXTURE_CATALOG_PARTIAL");
+        if (!page.nextCursor) throw new Error(page.status === "complete"
+          ? "STRICT_FIXTURE_DESCRIPTOR_MISSING" : "STRICT_FIXTURE_CATALOG_STALLED");
+        cursor = page.nextCursor;
+      }
+      throw new Error("STRICT_FIXTURE_CATALOG_PAGE_LIMIT");
+    } finally { await client.close(); }
+  } finally { clearTimeout(timer); }
 }
 export const isolatedRuntimeArgs = ["--offline", "--provider", "openai", "--model", "gpt-4o", "--no-extensions",
   "--no-skills", "--no-rules", "--no-tools", "--no-context-files"];
