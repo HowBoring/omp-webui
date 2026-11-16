@@ -11,4 +11,4 @@ await copyFile(join(source,"bucket-0000/native-0000.jsonl"),join(custom,"same-id
 await symlink(join(source,"bucket-0000/native-0000.jsonl"),join(source,"bucket-0000/alias.jsonl"));
 await Bun.write(join(source,"malformed.jsonl"),"not a native header\n");
 console.info(JSON.stringify({kind:"synthetic-native-fixture",home,nativeSessions:1002,buckets:1000,
-  customSources:[custom,join(home,"missing-source")],seed:"catalog-v1-1000-cwd"}));
+  customSources:[custom,join(source,"bucket-0000"),join(home,"missing-source")],catalogRows:1003,seed:"catalog-v1-1000-cwd"}));
