@@ -75,10 +75,16 @@ try:
             tracees.add(spawned.value)
         if stopped == (signal.SIGTRAP | 0x80):
             info = c.create_string_buffer(128)
-            ptrace(0x420e, pid, 128, c.addressof(info))
+            try:
+                ptrace(0x420e, pid, 128, c.addressof(info))
+            except ProcessLookupError:
+                continue
             operation = info.raw[0]
             regs = Registers()
-            ptrace(12, pid, 0, c.addressof(regs))
+            try:
+                ptrace(12, pid, 0, c.addressof(regs))
+            except ProcessLookupError:
+                continue
             if operation == 1 and regs.orig_rax == 18:
                 try:
                     file = os.readlink(f"/proc/{pid}/fd/{regs.rdi}")
