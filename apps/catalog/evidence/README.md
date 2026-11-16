@@ -1,14 +1,14 @@
 # Ticket 31 Linux readonly catalog evidence
 
 `linux-browser.json` records the actual Chromium → pinned DSH Remote → Bun → public OMP catalog candidate,
-including all 1003 source-scoped rows from 1002 physical Sessions (1000 native IDs in distinct buckets, same-ID
-custom copy, nested authorized bucket source and unknown cwd),
+including all 1005 source-scoped rows from 1004 physical Sessions (1000 native IDs in distinct buckets, same-ID
+custom copy, nested authorized bucket source, unknown cwd and two actual SessionManager-created Sessions),
 description, source failures, real `$events` mux, a separately labelled wrong-correlation carrier fault, and blocked
 private APIs. It retains two unscored warmups plus 30 scored catalog and old-page samples, nearest-rank P95,
 all errors and 25 ms Host RSS samples' peak plus OS high-water. The machine differs from the formal S5 reference;
 this is component evidence, not complete MVP/platform acceptance.
 
-The latest tuple includes the corrected source-scoped directory traversal and shared bounded stdio lifecycle/queue.
+The latest tuple includes canonical native title-slot parsing, corrected source-scoped traversal and shared bounded stdio.
 Native/source/real-TTL/transport checks and both Host bundles/enrollment were repeated. Unmodified pinned DSH browser
 assets were copied and revalidated by exact hashes, without a cold DSH build. `before-review/` preserves the preceding
 tuple, browser measurements and native trace; the earlier startup-memory failure remains in the delivery record.
@@ -19,3 +19,7 @@ show no native writes, migration/repair/index operations, lease acquisition, ord
 processes. `tuple.json` identifies the exact patch/schema/client/Host installation and asset tuple.
 Raw traces/screenshots/builds are ignored under `vendor/catalog-evidence` and `vendor/catalog-browser`; their hashes
 are retained. No real history/provider/global install is used. Windows/WSL2 acceptance is explicitly deferred.
+
+`before-native-layout/` preserves the first review-fix tuple and samples, whose header-first synthetic corpus
+missed title-slot-first native files. The [native-layout correction](../../../docs/evidence/ticket-31-native-layout.md)
+records the genuine regression and current actual-native/canonical corpus evidence.
