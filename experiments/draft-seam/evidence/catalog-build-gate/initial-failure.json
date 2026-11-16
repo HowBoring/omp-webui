@@ -1,0 +1,29 @@
+{
+  "status": "EXPECTED_FAILURE",
+  "command": "bun test tests/compatibility/catalog-build.test.ts",
+  "beforeFix": true,
+  "result": {
+    "pass": 0,
+    "fail": 1,
+    "assertions": 1
+  },
+  "failure": "Correct declared candidate rejected at apps/catalog/build.ts:17 by git diff --exit-code HEAD --",
+  "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+  "excerpt": [
+    "  {",
+    "-   \"exitCode\": 0,",
+    "-   \"stderr\": \"\",",
+    "+   \"exitCode\": 1,",
+    "+   \"stderr\": ",
+    "+ \"12 | const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })",
+    "+ 13 |   .parse(JSON.parse(lockBytes.toString()));",
+    "+ 14 | const dshRoot = resolve(dirname(require.resolve(\"@deepseek-ai/dsh-api-gateway/package.json\")), \"../../..\");",
+    "+ 15 | const actualBase = execFileSync(\"git\", [\"-C\", dshRoot, \"rev-parse\", \"HEAD\"], { encoding: \"utf8\" }).trim();",
+    "+ 16 | if (actualBase !== lock.dsh.commit) throw new Error(\"Diagnostic DSH pin mismatch\");",
+    "+ 17 | execFileSync(\"git\", [\"-C\", dshRoot, \"diff\", \"--exit-code\", \"HEAD\", \"--\"], { stdio: \"pipe\" });",
+    "+      ^",
+    "+ error: Command failed: git -C /workspace/work/omp-webui-ticket-39-final-fix/vendor/dsh-final diff --exit-code HEAD --"
+  ],
+  "retainedFullLog": "vendor/evidence/catalog-build-red.log",
+  "retainedFullLogSha256": "7b975bb06fbb2c50ae8db63c5fc0fa98d10e17c8062fc963b2215efb94b4b41c"
+}
