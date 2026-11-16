@@ -1,0 +1,5 @@
+{
+  "name": "@omp-webui/draft-navigation", "version": "0.0.0", "type": "module",
+  "exports": { ".": "./index.js", "./client": "./client.js", "./package.json": "./package.json" },
+  "dsh": { "client": { "platform": "web", "inject": [] } }
+}

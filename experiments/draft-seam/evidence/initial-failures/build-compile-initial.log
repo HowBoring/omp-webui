@@ -1,0 +1,51 @@
+$ bash scripts/prepare-dsh.sh
+{"baseCommit":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceHead":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceTree":"eb3ecb9a0ec2996f3462a9c858fc8a92e5e63369","mode":"candidate","patches":[{"path":"patches/0001-navigation-policy.patch","sha256":"d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4","treeAfter":"be590b5411230c215158bb6359635d409a653523"},{"path":"patches/0002-semantic-drafts.patch","sha256":"d153399e1aefe322890a811d2eede745fbda676869e75be8f6f4939b61db5bb5","treeAfter":"eb3ecb9a0ec2996f3462a9c858fc8a92e5e63369"}],"sourceSha256":"b34cd96bc5cc710c4ec524d8c630da75a580d7167df860b14e51e844e8859a05"}
+native/system/packages/darwin-arm64      | [WARN] Unsupported platform: wanted: {"cpu":["arm64"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+native/system/packages/darwin-x64        | [WARN] Unsupported platform: wanted: {"cpu":["x64"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+native/system/packages/linux-arm64       | [WARN] Unsupported platform: wanted: {"cpu":["arm64"],"os":["linux"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+packages/experimental/cua-macos          | [WARN] Unsupported platform: wanted: {"cpu":["any"],"os":["darwin"],"libc":["any"]} (current: {"os":"linux","cpu":"x64","libc":"glibc"})
+Scope: all 398 workspace projects
+Already up to date
+Done in 1.9s using pnpm v11.28.5
+Update available! 11.28.5 → 12.21.0.
+Changelog: https://pnpm.io/v/12.21.0
+To update, run: curl -fsSL https://get.pnpm.io/install.sh | sh -
+{"baseCommit":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceHead":"38a6a5c965aa99ab525161efb7cc5cf1fe62fced","sourceTree":"eb3ecb9a0ec2996f3462a9c858fc8a92e5e63369","mode":"candidate","patches":[{"path":"patches/0001-navigation-policy.patch","sha256":"d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4","treeAfter":"be590b5411230c215158bb6359635d409a653523"},{"path":"patches/0002-semantic-drafts.patch","sha256":"d153399e1aefe322890a811d2eede745fbda676869e75be8f6f4939b61db5bb5","treeAfter":"eb3ecb9a0ec2996f3462a9c858fc8a92e5e63369"}],"sourceSha256":"b34cd96bc5cc710c4ec524d8c630da75a580d7167df860b14e51e844e8859a05"}
+$ tsx scripts/build.ts --scope artifacts --serial
+run-gates: build:artifacts running 8 gate(s) with 1 worker(s) from --serial.
+run-gates: start native addon
+run-gates: PASS native addon (1.08s)
+run-gates: start Host Typert
+run-gates: PASS Host Typert (9.46s)
+run-gates: start host compiler
+run-gates: PASS host compiler (1.64s)
+run-gates: start Host bundle
+run-gates: PASS Host bundle (9.93s)
+run-gates: start Desktop bundle
+run-gates: PASS Desktop bundle (2.69s)
+run-gates: start client compiler
+
+== FAILED client compiler (44.91s) ==
+command: tsc -b <tsconfig.client.json references>
+outcome: exit 2
+packages/client/ui-conversation/src/client/input/semantic-drafts.ts(412,54): error TS2532: Object is possibly 'undefined'.
+packages/client/ui-conversation/src/client/input/semantic-drafts.ts(412,98): error TS2532: Object is possibly 'undefined'.
+
+== SKIPPED Client bundle (0.00s) ==
+command: pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE client
+outcome: dependency failed or skipped: client-src
+
+== SKIPPED Web build (0.00s) ==
+command: pnpm run build:web
+outcome: dependency failed or skipped: client-bundle
+
+run-gates: 5 passed, 1 failed, 2 skipped in 69.72s.
+run-gates: unsuccessful gates:
+  - FAILED client compiler (44.91s, exit 2)
+    tsc -b <tsconfig.client.json references>
+  - SKIPPED Client bundle (0.00s, dependency failed or skipped: client-src)
+    pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE client
+  - SKIPPED Web build (0.00s, dependency failed or skipped: client-bundle)
+    pnpm run build:web
+[ELIFECYCLE] Command failed with exit code 1.
+error: script "dsh:prepare" exited with code 1

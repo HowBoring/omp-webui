@@ -94,7 +94,10 @@ OMP 固定为 `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`，DSH 固定为 `38a6a5
 4. **DSH 草稿公开接缝**：当前实现只在按 Session ID 共享的 localStorage 中保存语义文字，不保存 runtime 附件。需要窄接口承载语义快照、有序稳定原件引用、向确认 binding 的原子恢复，以及新的回执就绪/失效状态；配置持久化归属和键，避免旧共享存储破坏页签隔离。不访问私有 registry、覆盖实例或重写核心 Conversation。
 5. **匹配交付**：Native wire/schema/handler/client、DSH 补丁/资产和 Host 按同一组合验证；继续复用经精确门禁的全局 OMP。新原生数据元信息还须验证 TUI、tree/navigation/branch、升级与回退兼容；branch 等复制原生消息后以公共来源事实恢复关联，不猜测新旧 entry 对应。不能将旧官方 release 宣称已有这些保证。
 
-公开 DSH 恢复接缝在源码层面有窄扩展路线，但尚未经过实现和浏览器实验。若实施需要大范围私有适配或核心 Conversation 重写，返回客户端组合决策，不能静默扩范围。
+公开 DSH 恢复接缝已有[窄公开补丁与 Linux 浏览器夹具实证](../experiments/draft-seam/README.md)，
+通过实际 DSH Client、受控公开 Remote 与 provider 验证语义快照、页签隔离、原子恢复及新回执。
+该实证不证明产品 Host 原件持久化、原生准备／提交或真实授权。后续若需要大范围私有适配或核心
+Conversation 重写，仍须返回客户端组合决策，不能静默扩范围。
 
 ## 验收证据要求
 

@@ -1,0 +1,17 @@
+$ tsx scripts/build.ts --scope check --serial
+run-gates: build:check running 2 gate(s) with 1 worker(s) from --serial.
+run-gates: start host aggregate check
+run-gates: PASS host aggregate check (91.46s)
+run-gates: start client aggregate check
+
+== FAILED client aggregate check (71.62s) ==
+command: tsc -p tsconfig.client.json
+outcome: exit 2
+packages/client/ui-conversation/tests/semantic-drafts.client.spec.ts(175,5): error TS2322: Type '(_scope: DraftScope, record: SemanticDraftRecord, reason: "edit" | "hydrate" | "submission" | "recovery") => number' is not assignable to type '(scope: DraftScope, record: SemanticDraftRecord, reason: "edit" | "hydrate" | "submission" | "recovery", signal?: AbortSignal | undefined) => void | Promise<...>'.
+  Type 'number' is not assignable to type 'void | Promise<void>'.
+
+run-gates: 1 passed, 1 failed, 0 skipped in 163.08s.
+run-gates: unsuccessful gates:
+  - FAILED client aggregate check (71.62s, exit 2)
+    tsc -p tsconfig.client.json
+[ELIFECYCLE] Command failed with exit code 1.
