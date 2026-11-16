@@ -34,10 +34,18 @@ private Session admission or establish product/global-runtime support. Windows r
 The OMP-specific `ompAttachments` typed Remote contribution uses the existing public DSH Gateway/Connection.
 Its native port is restricted to preparation/cancellation and durable submission; browser calls contain opaque
 projection/draft/original identities, with trusted targets and verified bytes resolved by the Host authority.
-The public semantic provider `beforeDispatch` binds explicit consent to the actual DSH request and local attempt.
+The public semantic provider `beforeDispatch` registers the actual DSH request and frozen local attempt.
+The trusted typed Session prompt Remote receives the exact DSH serialized content, prepares that same
+attempt and holds Native admission until every object is ready and actual degradations are accepted.
+Pre-Enter checks cover original readiness; they do not recreate private DSH quote/reference serialization.
 The optional shell overlay displays every prepared representation and actual degradation before acceptance.
 This contribution requires no upstream DSH business-workflow patch.
 
-Provider-delivery verification remains open: a fresh positive check exposed native cache annotations on frozen
-companion objects before model dispatch. Wire fields remain readonly while internal native annotations are allowed.
-An input/companion entry commit alone is not proof that a prepared representation reached the provider.
+Persisted attachment links earn optional `entryPart` locators from the actual native part object at final
+saved-message construction. Content/file indices are not guessed from a receipt, hash or append order.
+Missing, changed or ambiguous occurrences remain explicit; reservations have no persisted slot. Public
+history may expose the saved causal links without asserting that displayed history is exact provider input.
+
+Wire fields remain readonly while native internal cache annotations are allowed. Actual controlled-provider
+checks establish only their recorded source tuple; the pending locator/source changes require fresh matched
+public-RPC/provider verification. An input/companion commit alone does not establish provider delivery.

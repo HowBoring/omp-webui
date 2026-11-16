@@ -26,10 +26,10 @@ index ba1689e681..48dc4291ef 100644
  - [MCP configuration guide](../../docs/mcp-config.md)
 diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
 new file mode 100644
-index 0000000000..e17c4b104c
+index 0000000000..6e647562da
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-attachments.md
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,61 @@
 +# Controlled attachment preparation v1
 +
 +This compatibility extension adds `attachment_prepare`, `attachment_cancel` and optional
@@ -61,6 +61,15 @@ index 0000000000..e17c4b104c
 +reserved originals from actual committed entry relations: reservation/acknowledgement alone is not
 +a Sent Attachment. `attachment-provenance-v1` is a native required feature; older compatibility
 +readers must refuse rather than rewrite away metadata they do not understand.
++
++Persisted entry relations may include `entryPart: {kind: "content" | "files", index}`. This zero-based
++index addresses the actual saved native body: an image's `content` part or a converted document's
++`files` item, with indices bounded to 0–65535. Native staging retains the exact part's object identity;
++the final message construction locates it after filtering and reordering. Equal bytes, an original
++hash, a planned position or a replacement object cannot establish that association. Removed,
++changed or duplicated parts instead carry `entryPartUnavailable: "missing" | "changed" | "ambiguous"`.
++Reservation manifests have no persisted slot. A locator proves the saved representation's causal
++position; it does not establish provider delivery or grant access to the Host-owned original.
 +
 +Converters use an owned Linux process, synthetic home, allowlisted environment, pre-import network
 +denial, 512 MiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
@@ -176,6 +185,69 @@ index 0000000000..55984966c4
 +			? error.message : "attachment_conversion_failed";
 +		return { status: "failed", code };
 +	}
++}
+diff --git a/packages/coding-agent/src/attachments/entry-parts.ts b/packages/coding-agent/src/attachments/entry-parts.ts
+new file mode 100644
+index 0000000000..54f185280a
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/entry-parts.ts
+@@ -0,0 +1,57 @@
++/** Native persisted-body locators earned from the actual staged part object, never content matching. */
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import type { SubmissionCausality } from "../session/submission-provenance";
++import type { PreparedAttachmentLink } from "./receipts";
++
++export interface PreparedEntryPart { kind: "content" | "files"; index: number }
++export const MAX_PREPARED_ENTRY_PART_INDEX = 65_535;
++interface PartOrigin { link: PreparedAttachmentLink; baseline: string }
++const parts = new WeakMap<object, PartOrigin>();
++function representation(part: unknown, kind: PreparedAttachmentLink["representationKind"]): string | undefined {
++	if (!isRecord(part)) return;
++	if (kind === "text") return typeof part.content === "string" ? JSON.stringify({ content: part.content }) : undefined;
++	return part.type === "image" && typeof part.data === "string" && typeof part.mimeType === "string"
++		? JSON.stringify({ type: "image", data: part.data, mimeType: part.mimeType }) : undefined;
++}
++/** Only the native receipt freezer may establish this association on its newly created exact wire part. */
++export function stagePreparedEntryPart(part: object, link: PreparedAttachmentLink): void {
++	const baseline = representation(part, link.representationKind);
++	if (baseline === undefined) throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++	parts.set(part, { link: structuredClone(link), baseline });
++}
++/** Explicit native construction/clone carrier; extension replacements cannot establish this identity. */
++export function copyPreparedEntryPart(source: object, target: object): void {
++	const origin = parts.get(source); if (origin) parts.set(target, origin);
++}
++interface Candidate { part: object; locator: PreparedEntryPart; origin: PartOrigin }
++function candidates(body: unknown): Candidate[] {
++	if (!isRecord(body)) return [];
++	const result: Candidate[] = [];
++	for (const kind of ["content", "files"] as const) {
++		const values = body[kind]; if (!Array.isArray(values)) continue;
++		for (let index = 0; index < Math.min(values.length, MAX_PREPARED_ENTRY_PART_INDEX + 1); index++) {
++			const part: unknown = values[index]; if (!isRecord(part)) continue;
++			const origin = parts.get(part); if (!origin) continue;
++			result.push({ part, locator: { kind, index }, origin });
++		}
++	}
++	return result;
++}
++/** Called at final persisted-message construction, after all native filtering/normalization. Missing parts stay explicit. */
++export function locatePreparedEntryParts(cause: SubmissionCausality | undefined, body: unknown): SubmissionCausality | undefined {
++	if (!cause?.attachments?.length) return cause;
++	const actual = candidates(body);
++	const attachments = cause.attachments.map(link => {
++		const { entryPart: _oldPart, entryPartUnavailable: _oldUnavailable, ...manifest } = link;
++		const found = actual.filter(value => value.origin.link.preparedId === link.preparedId);
++		if (found.length !== 1) return { ...manifest, entryPartUnavailable: found.length ? "ambiguous" as const : "missing" as const };
++		const value = found[0];
++		if (JSON.stringify(value.origin.link) !== JSON.stringify(manifest)
++			|| representation(value.part, link.representationKind) !== value.origin.baseline
++			|| value.locator.kind !== (link.representationKind === "text" ? "files" : "content")) {
++			return { ...manifest, entryPartUnavailable: "changed" as const };
++		}
++		return { ...manifest, entryPart: value.locator };
++	});
++	return { ...cause, attachments };
 +}
 diff --git a/packages/coding-agent/src/attachments/input-policy.ts b/packages/coding-agent/src/attachments/input-policy.ts
 new file mode 100644
@@ -462,10 +534,11 @@ index 0000000000..39b436297a
 +}
 diff --git a/packages/coding-agent/src/attachments/provider-guard.ts b/packages/coding-agent/src/attachments/provider-guard.ts
 new file mode 100644
-index 0000000000..a2f8ef97ad
+index 0000000000..907abd0a88
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/provider-guard.ts
-@@ -0,0 +1,136 @@
+@@ -0,0 +1,140 @@
++import { stagePreparedEntryPart, copyPreparedEntryPart } from "./entry-parts";
 +import type { Context, ImageContent, Message } from "@oh-my-pi/pi-ai";
 +import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
 +import type { FileMentionMessage } from "../session/messages";
@@ -482,6 +555,7 @@ index 0000000000..a2f8ef97ad
 +
 +/** Native staging establishes causal identity on the actual immutable image object. */
 +export function stagePreparedImage(image: ImageContent, link: PreparedAttachmentLink, delivery?: PreparedDelivery): void {
++	stagePreparedEntryPart(image, link);
 +	images.set(image, { link: { ...link }, data: image.data, mimeType: image.mimeType, ...(delivery ? { delivery } : {}) });
 +}
 +
@@ -503,7 +577,9 @@ index 0000000000..a2f8ef97ad
 +		if (!Array.isArray(content) || !Array.isArray(copiedContent)) continue;
 +		for (let part = 0; part < content.length; part++) {
 +			const origin = content[part] && typeof content[part] === "object" ? images.get(content[part]) : undefined;
-+			if (origin && copiedContent[part] && typeof copiedContent[part] === "object") images.set(copiedContent[part], origin);
++			if (origin && copiedContent[part] && typeof copiedContent[part] === "object") {
++				images.set(copiedContent[part], origin); copyPreparedEntryPart(content[part], copiedContent[part]);
++			}
 +		}
 +	}
 +	return cloned;
@@ -604,16 +680,18 @@ index 0000000000..a2f8ef97ad
 +}
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
 new file mode 100644
-index 0000000000..752a8739b9
+index 0000000000..ae4b1536e8
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/receipts.ts
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,208 @@
 +import type { ImageContent } from "@oh-my-pi/pi-ai";
 +import type { FileMentionMessage } from "../session/messages";
 +import { decodeBase64ImageData } from "@oh-my-pi/pi-utils/mime";
 +import type { AttachmentFormat, AttachmentPreparation } from "./prepare";
 +import { prepareAttachmentIsolated } from "./isolated";
 +import { ATTACHMENT_BUDGET_VERSION, ATTACHMENT_LIMITS } from "./limits";
++import { stagePreparedEntryPart } from "./entry-parts";
++import type { PreparedEntryPart } from "./entry-parts";
 +import { stageAttachmentMessage } from "../session/submission-provenance";
 +import { measureAttachmentRpc, measureAttachmentOutput } from "./rpc-budget";
 +import { stagePreparedImage, stagePreparedDocument, type PreparedDelivery } from "./provider-guard";
@@ -642,6 +720,7 @@ index 0000000000..752a8739b9
 +export interface PreparedAttachmentLink {
 +	originalId: string; preparedId: string; originalSha256: string; preparedSha256: string;
 +	representationKind: "text" | "image";
++	entryPart?: PreparedEntryPart; entryPartUnavailable?: "missing" | "changed" | "ambiguous";
 +}
 +export interface PreparedSubmission {
 +	message: string; images: ImageContent[]; companionMessages: FileMentionMessage[];
@@ -754,6 +833,7 @@ index 0000000000..752a8739b9
 +				const message: FileMentionMessage = { role: "fileMention", timestamp: staged.receipt.expiresAt - ATTACHMENT_LIMITS.receiptMs,
 +					files: [{ path: `attachment-prepared://${item.preparedId}`, content: representation.text,
 +						byteSize: Buffer.byteLength(representation.text) }] };
++				stagePreparedEntryPart(message.files[0], link);
 +				stageAttachmentMessage(message, [link]); stagePreparedDocument(message, delivery);
 +				Object.freeze(message.files[0]); Object.freeze(message.files);
 +				for (const key of ["role", "timestamp", "files"] as const) {
@@ -843,29 +923,39 @@ index 0000000000..a1774d215d
 +}
 diff --git a/packages/coding-agent/src/attachments/validation.ts b/packages/coding-agent/src/attachments/validation.ts
 new file mode 100644
-index 0000000000..819c8e9002
+index 0000000000..9efcdc0790
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/validation.ts
-@@ -0,0 +1,20 @@
+@@ -0,0 +1,30 @@
 +import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import { MAX_PREPARED_ENTRY_PART_INDEX } from "./entry-parts";
 +import type { PreparedAttachmentLink } from "./receipts";
 +
 +const identity = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(value);
 +const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 +
++function validEntryPart(value: unknown): boolean {
++	return isRecord(value) && Object.keys(value).every(key => ["kind", "index"].includes(key))
++		&& (value.kind === "content" || value.kind === "files") && typeof value.index === "number"
++		&& Number.isSafeInteger(value.index) && value.index >= 0 && value.index <= MAX_PREPARED_ENTRY_PART_INDEX;
++}
 +/** Pure native persisted-metadata validation; object/content hashes convey no read authority. */
 +export function validPreparedLinks(value: unknown): value is PreparedAttachmentLink[] {
 +	return Array.isArray(value) && value.length <= 8 && value.every(link => isRecord(link) &&
 +		identity(link.originalId) && identity(link.preparedId) && digest(link.originalSha256) && digest(link.preparedSha256) &&
 +		(link.representationKind === "text" || link.representationKind === "image") &&
-+		Object.keys(link).every(key => ["originalId", "preparedId", "originalSha256", "preparedSha256", "representationKind"].includes(key)));
++		(link.entryPart === undefined || (validEntryPart(link.entryPart) && link.entryPartUnavailable === undefined &&
++			isRecord(link.entryPart) && link.entryPart.kind === (link.representationKind === "text" ? "files" : "content"))) &&
++		(link.entryPartUnavailable === undefined || (typeof link.entryPartUnavailable === "string" &&
++			["missing", "changed", "ambiguous"].includes(link.entryPartUnavailable))) &&
++		Object.keys(link).every(key => ["originalId", "preparedId", "originalSha256", "preparedSha256", "representationKind", "entryPart", "entryPartUnavailable"].includes(key)));
 +}
 +
 +export function validNativePreparation(value: unknown): boolean {
 +	return isRecord(value) && identity(value.receiptId) && digest(value.resultDigest) && identity(value.draftRevision) &&
 +		identity(value.authorityGeneration) && Array.isArray(value.acceptedDegradations) && value.acceptedDegradations.length <= 16 &&
 +		value.acceptedDegradations.every(code => typeof code === "string" && /^[a-z_]{1,64}$/.test(code)) &&
-+		validPreparedLinks(value.attachments);
++		validPreparedLinks(value.attachments) && value.attachments.every(link => link.entryPart === undefined && link.entryPartUnavailable === undefined);
 +}
 diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
 new file mode 100644
@@ -1626,10 +1716,10 @@ index 2acbd31b6d..87a37d3571 100644
    let negotiated = false, attempted = false;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/attachments.ts b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
 new file mode 100644
-index 0000000000..98ed5c0e98
+index 0000000000..3cab70c683
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,43 @@
 +/** Controlled inline objects, ephemeral preparation receipts, and exact-result consent. No path read authority. */
 +export const attachmentDefs = {
 +	AttachmentInputPolicy: { "+": "reject", version: "'attachment-input-policy-v1'", supportedInputKinds: "'prompt'[]",
@@ -1659,8 +1749,10 @@ index 0000000000..98ed5c0e98
 +		resultDigest: "string", items: "AttachmentItem[]" },
 +	AttachmentConsent: { "+": "reject", receiptId: "string", resultDigest: "string", draftRevision: "string",
 +		authorityGeneration: "string", acceptedDegradations: "string[]" },
++	PreparedEntryPart: { "+": "reject", kind: "'content' | 'files'", index: "0 <= number.integer <= 65535" },
 +	PreparedAttachmentLink: { "+": "reject", originalId: "string", preparedId: "string", originalSha256: "string",
-+		preparedSha256: "string", representationKind: "'text' | 'image'" },
++		preparedSha256: "string", representationKind: "'text' | 'image'", "entryPart?": "PreparedEntryPart",
++		"entryPartUnavailable?": "'missing' | 'changed' | 'ambiguous'" },
 +	SubmissionPreparation: { receiptId: "string", resultDigest: "string", draftRevision: "string",
 +		authorityGeneration: "string", acceptedDegradations: "string[]", attachments: "PreparedAttachmentLink[]" },
 +};
@@ -2038,18 +2130,29 @@ index 46a04f5715..d03956a4f7 100644
  	if (len === 0) prefixOutputLen = 0;
  
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 645d21851f..378292341d 100644
+index 645d21851f..352be7b308 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -2,6 +2,7 @@ import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./
+@@ -1,7 +1,9 @@
+ import { isSubmissionControl, submissionRecord, readSubmissionRecords } from "./submission-records";
  import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
  import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
++import { locatePreparedEntryParts } from "../attachments/entry-parts";
  import { causalSubmission, sameSubmission } from "./submission-provenance";
 +import { validPreparedLinks } from "../attachments/validation";
  import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
  import { nativeHistoryContextId } from "./history-context";
  import { associateMessageEntry } from "./live-message-observation";
-@@ -2445,7 +2446,8 @@ export class SessionManager {
+@@ -2252,6 +2254,8 @@ export class SessionManager {
+ 			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
+ 		}
+ 		entry.submission ??= causalSubmission(entry.type === "message" ? entry.message : undefined);
++		entry.submission = locatePreparedEntryParts(entry.submission, entry.type === "message" ? entry.message
++			: entry.type === "custom_message" ? entry : undefined);
+ 		this.#entries.push(entry);
+ 		this.#index.insert(entry);
+ 		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+@@ -2445,7 +2449,8 @@ export class SessionManager {
  			const records = new Map((snapshot.nativeSubmissions ?? []).map(item => [item.origin.clientSubmissionId, item]));
  			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
  			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
@@ -2059,7 +2162,7 @@ index 645d21851f..378292341d 100644
  		}
  		this.#applyEntries(restoredHeader, [...snapshot.entries]);
  		this.#nativeSubmissions = structuredClone(snapshot.nativeSubmissions ?? []);
-@@ -4010,6 +4012,7 @@ export class SessionManager {
+@@ -4010,6 +4015,7 @@ export class SessionManager {
  		details?: T,
  		attribution: MessageAttribution | undefined = "agent",
  		timestamp?: number,
@@ -2067,7 +2170,7 @@ index 645d21851f..378292341d 100644
  	): string {
  		const normalized = normalizeCustomMessagePayload<T>({ customType, content, display, details, attribution });
  		const fresh = this.#freshEntryFields();
-@@ -4018,6 +4021,7 @@ export class SessionManager {
+@@ -4018,6 +4024,7 @@ export class SessionManager {
  			customType: normalized.customType,
  			content: normalized.content,
  			display: normalized.display,
@@ -2075,7 +2178,7 @@ index 645d21851f..378292341d 100644
  			// Drop AgentSession-internal transient fields before disk persistence.
  			details: stripInternalDetailsFields(normalized.details),
  			attribution: normalized.attribution,
-@@ -4258,6 +4262,14 @@ export class SessionManager {
+@@ -4258,6 +4265,14 @@ export class SessionManager {
  		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
  	}
  	/** Permanent append-only native reservation. No execution may precede its verified publication. */
@@ -2090,7 +2193,7 @@ index 645d21851f..378292341d 100644
  	reserveSubmission(value: NativeSubmission): Promise<boolean> {
  		return this.#withAtomicPersistenceLock(async () => {
  			this.getSubmissionTarget();
-@@ -4268,6 +4280,13 @@ export class SessionManager {
+@@ -4268,6 +4283,13 @@ export class SessionManager {
  			}
  			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
  			await this.#ensureSubmissionFormat();
@@ -2104,7 +2207,7 @@ index 645d21851f..378292341d 100644
  			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
  			this.#nativeSubmissions.push(reserved);
  			await this.#appendSubmissionControl(reserved);
-@@ -4282,7 +4301,8 @@ export class SessionManager {
+@@ -4282,7 +4304,8 @@ export class SessionManager {
  			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
  			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
@@ -2114,7 +2217,7 @@ index 645d21851f..378292341d 100644
  			const entryFacts = [...facts.values()];
  			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			await this.flush();
-@@ -4332,11 +4352,17 @@ export class SessionManager {
+@@ -4332,11 +4355,17 @@ export class SessionManager {
  			const value = byKey.get(submission.origin.clientSubmissionId);
  			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
  			value.entryFacts ??= [];

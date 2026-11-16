@@ -20,7 +20,7 @@ export const authoredPaths = ["src/session/session-lease.ts", "src/session/submi
     "packages/coding-agent/src/attachments/worker.ts", "packages/coding-agent/src/attachments/deny-network.ts",
     "packages/coding-agent/src/attachments/receipts.ts", "packages/coding-agent/src/markit/types.ts",
     "packages/coding-agent/src/attachments/rpc-budget.ts",
-    "packages/coding-agent/src/attachments/validation.ts",
+    "packages/coding-agent/src/attachments/validation.ts", "packages/coding-agent/src/attachments/entry-parts.ts",
     "packages/coding-agent/src/attachments/provider-guard.ts", "packages/coding-agent/src/extensibility/extensions/runner.ts",
     "packages/coding-agent/src/session/messages.ts",
     "packages/coding-agent/src/attachments/model-binding.ts", "packages/coding-agent/src/sdk.ts",

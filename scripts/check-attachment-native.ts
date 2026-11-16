@@ -6,7 +6,7 @@ const files = ["src/attachments/limits.ts", "src/attachments/input-policy.ts", "
   "src/attachments/isolated.ts", "src/attachments/worker.ts", "src/attachments/deny-network.ts", "src/attachments/receipts.ts", "src/attachments/rpc-budget.ts",
   "src/modes/rpc/rpc-attachments.ts", "src/modes/rpc/attachment-client.ts", "src/modes/rpc/wire/attachments.ts",
   "src/modes/rpc/rpc-input.ts", "src/modes/rpc/rpc-input-policy.ts",
-  "src/attachments/validation.ts", "src/session/submission-provenance.ts", "src/session/submission-records.ts",
+  "src/attachments/validation.ts", "src/attachments/entry-parts.ts", "src/session/submission-provenance.ts", "src/session/submission-records.ts",
   "src/attachments/provider-guard.ts", "src/extensibility/extensions/runner.ts",
   "src/session/messages.ts",
   "src/attachments/model-binding.ts", "src/sdk.ts",
