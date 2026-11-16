@@ -58,6 +58,12 @@ stress are hash-bound and reused; they are not presented as new runs. Original r
 in `checkpoints/26aa8b4-review-baseline-*`. Initial command-environment and overlapping-port failures are retained
 with their successful corrected runs in the review report.
 
+The final branch includes accepted #33 `90d66826` and current integration `385b972d`. After the accepted merge,
+the owned native checkout was reset through ordered0001–0004 and rebuilt; generated `--check`, strict TypeScript,
+five affected tests (31 assertions), browser/product Host/History Host builds and the complete bundled Host browser
+proof all pass again. The subsequent integration merge changes ancestry only. Native source/schema, DSH candidate
+and consumed History assets retain the exact identities recorded in the refreshed tuple.
+
 ## Reproduction and provenance
 
 Use Bun 1.4.4 and the fixed source pins. The workspace reuses the verified #30 native dependency cache and reviewed #39 DSH candidate read-only

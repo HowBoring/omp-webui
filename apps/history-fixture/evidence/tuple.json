@@ -1,11 +1,11 @@
 {
   "kind": "isolated-synthetic-component-evidence",
-  "capturedAt": "2026-11-16T13:20:17.312324+00:00",
+  "capturedAt": "2026-11-16T13:28:04.444679+00:00",
   "privateSessionAdmission": "blocked",
-  "integration": "2118454e02ac1e5db40847fec62f812308698309",
+  "integration": "385b972db48595d0614fc4ce99c8c1e0f2eff26d",
   "sourceFreezes": {
     "catalog": "54786156b9de07f425a7a26eb126e6ace971b3ae",
-    "interactions": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+    "interactions": "90d66826ea14055203830f7bebdeb81eed8c95c2",
     "historyAPI": "2f1c033"
   },
   "linux": {
@@ -89,7 +89,7 @@
       "dshSourceMode": "candidate",
       "actualNativeHistoryPageResponses": 8,
       "reportSha256": "ad218eecd33fb86a43ccb28b07448878dc6012169fc9572e78bb3fa91d7161c2",
-      "screenshotSha256": "4c736cd7f69c6032ae9c902bff47cb304b9ac23e57f59b49c5ae45b302f92ab8",
+      "screenshotSha256": "82ee7205b033f8e89c9125d3ddf16a0325f3541881ba5e275a9aec1bc60d4923",
       "logSha256": "657e33db6eb6aa73028177afb53e7054dd5317215cd9b78c9b3372bc958bdf3f",
       "ownedWorkerProfileCleanup": "PASS: built Host graceful exit and fixture.stop finally completed"
     },
@@ -185,7 +185,7 @@
     "reviewFix": {
       "status": "PASS",
       "report": "review-fix.json",
-      "sha256": "a6a9fe0e31627816fe58fb5914b69a7ce78642325c15387d1d11cc00ea612614"
+      "sha256": "4b76d4cc6a2b48165e4a24fc149d681932e30725bf104dd179277a2e38f071ab"
     }
   },
   "priorFinalRuns": {
