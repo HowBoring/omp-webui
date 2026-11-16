@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "5dead6896176ffa03abc48ae6bc3b4daace84474e48296631434d3c725d8ffe1"
+    "sha256": "fac600809a89314621261f950adb5b24e9e8ce34e6083d58a1bb5632716b508d"
   },
-  "preparedTree": "67391c33ab73f91c07a14882ecd553cc1c01a29e",
-  "preparedSourceSha256": "4e96c1364e508014a0bd885f21b90641a54d1c63bdcf514553af8124f02d76e5",
+  "preparedTree": "a2d6f32d2978d31be1c859d6c3c2183dc50b379a",
+  "preparedSourceSha256": "ef1b0b3ccdec279613b6396eb3955aa0daf59a6fe76e863537d3225ca1389868",
   "ownershipWireSchemaSha256": "edc849e959791fa7116be5668d6fffee45b0f8f642b3d3f872fb22510aca9135",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -42,5 +42,7 @@
   "socketPidfdPrimitive": "PASS_SCOPED_ONLY",
   "backendCapabilityGranted": false,
   "actualGlobal": "BLOCKED",
-  "privateAdmission": "BLOCKED"
+  "privateAdmission": "BLOCKED",
+  "processContext": "SOURCE_ONLY_BOOTSTRAP_UNAVAILABLE",
+  "durableFenceAdapter": "SOURCE_AND_SYNTHETIC_FS_ONLY"
 }

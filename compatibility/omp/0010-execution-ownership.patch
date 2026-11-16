@@ -1,36 +1,37 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7378f84c82d7a55b255f60a9bd1039f..502fb2cdd86dfbbe5240a9a961a33b7a7ea2c1dc 100644
+index a4b6abe4e7..b42f63c66b 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,10 @@
+@@ -2,6 +2,11 @@
  
  ## [Unreleased]
  
 +### Added
 +
 +- Prepared a public execution-ownership protocol and explicit unavailable dispatcher entry; no lifecycle or shared-service capability is enabled ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
++- Added the fail-closed public process-context interface and owned durable incomplete-fence source adapter; Native consumer/bootstrap integration remains unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
  ### Fixed
  
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54c144e575dabb91854afdcfb1f26912..359bb4c7008cf651b900c3dfeb51deb944940186 100644
+index 0b34d8fc54..29aef9c23e 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -10,6 +10,7 @@ For installation, setup, provider configuration, model roles, slash commands, an
  Package-specific references:
  
  - [CHANGELOG](./CHANGELOG.md)
-+- [Execution ownership preparation](./docs/execution-ownership.md) (public contract source; Linux backend and ordinary-client integration unavailable)
++- [Execution ownership preparation](./docs/execution-ownership.md) (process context, durable fence and public contract source; Linux backend and ordinary-client integration unavailable)
  - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
  - [MCP configuration guide](../../docs/mcp-config.md)
  - [MCP runtime lifecycle](../../docs/mcp-runtime-lifecycle.md)
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000000000000000000000000000000000..f25f1a0386aeb8b2f5ea0b6e29d0b7b47e714733
+index 0000000000..2af3f5a8b2
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,160 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -130,6 +131,34 @@ index 0000000000000000000000000000000000000000..f25f1a0386aeb8b2f5ea0b6e29d0b7b4
 +implement an OS server. Do not evict an unresolved helper/lifetime or close its protector to make a resource test pass.
 +Timeout is an unanswered operation, never proof that no broker/service was created. Persist uncertainty and block reuse.
 +
++## Process context contract (source only)
++
++The specific public subpath `@oh-my-pi/pi-coding-agent/launch/ownership/context` exposes the following fixed
++interface. It does not load the Agent/Session graph or the C bridge. The current `bootstrap` adapter deliberately
++rejects `ownership_backend_unavailable`; no selected-installation transport/operator approval exists yet.
++
++| Function | Required behavior |
++| --- | --- |
++| `getExecutionOwnership()` | Pure synchronous `unavailable` or immutable `registered` state; never initializes, connects or reads an environment flag as authority |
++| `initializeExecutionOwnership()` | Idempotent asynchronous process/worker-realm registration; reject without local spawn, legacy attach or private/external fallback |
++| `requireExecutionOwnership()` | Synchronous registered-state guard; refuse before Session/factory effects if initialization failed or was omitted |
++| `requireSharedExecution()` | Synchronous external-only guard; private policy throws typed `shared_service_unsupported` before shared effects |
++| `acquireExecutionBroker(scope)` | Asynchronous fixed dispatcher grant matching the canonical project/global scope, generation, runtime directory and token; no executable/argv input |
++
++Initialize before the normal CLI/strict runtime graph and as the first action in SDK `createAgentSession` and the
++legacy session factory, before inference registration or resource reload. A Bun worker realm must register through
++the public Bun UDS transport using its actual OS peer; environment inheritance is not authority. Only the dispatcher
++main thread may load FFI. SDK module eager-import purity is not claimed. Shared clients must use the grant and guard
++before token/directory/factory/connect/ping/reconnect/request effects. A protocol/transport mismatch revokes the
++context and closes its client; subsequent synchronous guards fail closed. Context initialization/consumer integration
++and actual worker/Native evidence remain unfinished.
++
++`OwnershipFences` is the owned filesystem adapter behind the public dispatcher seam. It pins the independently
++approved directory device/inode outside the release, creates/fsyncs an exclusive incomplete-generation record before
++publication, and retains uncertainty across dispatcher state loss. Reopening unknown records refuses admission.
++Closing metadata descriptors does not remove records or prove extinction. Completion/retirement and maintenance
++protection are not implemented by this adapter.
++
 +## Required consumer policy and supervision (not yet integrated)
 +
 +Hosted Native and nested compatible Native below the registered private helper will receive immutable private-only
@@ -164,7 +193,7 @@ index 0000000000000000000000000000000000000000..f25f1a0386aeb8b2f5ea0b6e29d0b7b4
 +Arbitrary downloaded old OMP, malicious same-UID/ptrace/namespace/reparent manipulation and externally delegated
 +irreversible effects are outside this supported lifecycle guarantee. Generic bash is not an OS sandbox or external-effects rollback.
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
-index ff1bfe94d241d510f85007a47194263398951a7b..8705f78d102c53161b3af3230745344d61d728da 100755
+index ff1bfe94d2..8705f78d10 100755
 --- a/packages/coding-agent/src/cli.ts
 +++ b/packages/coding-agent/src/cli.ts
 @@ -17,6 +17,12 @@ function validStrictArgs(args: string[]): boolean {
@@ -195,12 +224,30 @@ index ff1bfe94d241d510f85007a47194263398951a7b..8705f78d102c53161b3af3230745344d
      const args = process.argv.slice(2);
      if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
      else void runCli(args).catch(() => { process.exitCode = 1; });
+diff --git a/packages/coding-agent/src/launch/ownership/bootstrap.ts b/packages/coding-agent/src/launch/ownership/bootstrap.ts
+new file mode 100644
+index 0000000000..bdbdc3c144
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/bootstrap.ts
+@@ -0,0 +1,12 @@
++import { OwnershipError } from "./protocol";
++import type { OwnershipClient } from "./client";
++
++/**
++ * Fixed selected-installation bootstrap, deliberately unavailable in this source preparation.
++ * Future client transport uses public Bun UDS in every realm; only the dispatcher loads the C/FFI backend.
++ * Each realm re-registers the same authenticated OS process, never inherits authority from an environment flag.
++ * No HOME/profile/cwd rendezvous, automatic dispatcher spawn, legacy peer or local broker fallback is permitted.
++ */
++export async function connectProcessOwnershipClient(): Promise<OwnershipClient> {
++	throw new OwnershipError("ownership_backend_unavailable");
++}
 diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..a1b10c5e9afa1586024a98d3d6ea18493a24785a
+index 0000000000..74bd68d008
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/client.ts
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,100 @@
 +import {
 +	decodeOwnershipResponse, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError, ownershipGeneration, ownershipIdentity, ownershipScope,
 +	type OwnershipIdentity, type OwnershipOperation, type OwnershipRegistration, type OwnershipRequest, type OwnershipResult, type OwnershipScope,
@@ -228,6 +275,9 @@ index 0000000000000000000000000000000000000000..a1b10c5e9afa1586024a98d3d6ea1849
 +		this.#identity = Object.freeze(ownershipIdentity(identity));
 +		this.#transport = transport;
 +	}
++
++	/** Immutable independently selected expected release/schema, never taken from an unverified peer reply. */
++	get identity(): Readonly<OwnershipIdentity> { return this.#identity; }
 +
 +	async classify(): Promise<OwnershipRegistration> {
 +		const result = await this.#request({ op: "classify" });
@@ -298,9 +348,124 @@ index 0000000000000000000000000000000000000000..a1b10c5e9afa1586024a98d3d6ea1849
 +		this.close(); return new OwnershipError(code);
 +	}
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/context.ts b/packages/coding-agent/src/launch/ownership/context.ts
+new file mode 100644
+index 0000000000..a04136b302
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/context.ts
+@@ -0,0 +1,109 @@
++import { connectProcessOwnershipClient } from "./bootstrap";
++import type { OwnershipClient } from "./client";
++import { OwnershipError, type OwnershipErrorCode, type OwnershipIdentity,
++	type OwnershipRegistration, type OwnershipScope } from "./protocol";
++
++export type RegisteredExecutionOwnership = Readonly<OwnershipRegistration & {
++	status: "registered"; identity: Readonly<OwnershipIdentity>;
++}>;
++export type ProcessExecutionOwnership = RegisteredExecutionOwnership
++	| Readonly<{ status: "unavailable"; code: OwnershipErrorCode }>;
++export interface ExecutionBrokerSelection {
++	readonly scope: OwnershipScope;
++	readonly generation: string;
++	readonly runtimeDirectory: string;
++	readonly token: string;
++	readonly dispatcher: string;
++	readonly identity: Readonly<OwnershipIdentity>;
++}
++
++function unavailable(code: OwnershipErrorCode): ProcessExecutionOwnership {
++	return Object.freeze({ status: "unavailable", code });
++}
++
++/** Immutable process-policy module. Callers normalize before factories; pure getters never connect or create files. */
++export class ExecutionOwnershipContext {
++	readonly #client: OwnershipClient;
++	#state = unavailable("ownership_backend_unavailable");
++	#initialization: Promise<RegisteredExecutionOwnership> | undefined;
++	constructor(client: OwnershipClient) { this.#client = client; }
++
++	getExecutionOwnership(): ProcessExecutionOwnership { return this.#state; }
++	initializeExecutionOwnership(): Promise<RegisteredExecutionOwnership> {
++		this.#initialization ??= this.#initialize();
++		return this.#initialization;
++	}
++	async #initialize(): Promise<RegisteredExecutionOwnership> {
++		try {
++			const registration = await this.#client.classify();
++			const state = Object.freeze({ ...registration, status: "registered" as const, identity: this.#client.identity });
++			this.#state = state;
++			return state;
++		} catch (error) { throw this.#failure(error); }
++	}
++
++	requireExecutionOwnership(): RegisteredExecutionOwnership {
++		if (this.#state.status !== "registered") throw new OwnershipError(this.#state.code);
++		return this.#state;
++	}
++	requireSharedExecution(): RegisteredExecutionOwnership & { policy: "external" } {
++		const state = this.requireExecutionOwnership();
++		if (state.policy !== "external") throw new OwnershipError("shared_service_unsupported");
++		return Object.freeze({ ...state, policy: "external" as const });
++	}
++	async acquireExecutionBroker(scope: OwnershipScope): Promise<ExecutionBrokerSelection> {
++		const state = this.requireSharedExecution();
++		try {
++			const result = await this.#client.broker(scope);
++			return Object.freeze({ scope: Object.freeze(result.scope), generation: result.generation,
++				runtimeDirectory: result.runtimeDirectory, token: result.token, dispatcher: state.dispatcher, identity: state.identity });
++		} catch (error) { throw this.#failure(error); }
++	}
++	#failure(error: unknown): OwnershipError {
++		const failure = error instanceof OwnershipError ? error : new OwnershipError("dispatcher_unavailable");
++		this.#state = unavailable(failure.code); this.#client.close();
++		return failure;
++	}
++}
++
++let processContext: ExecutionOwnershipContext | undefined;
++let initialization: Promise<RegisteredExecutionOwnership> | undefined;
++let initialState = unavailable("ownership_backend_unavailable");
++
++/** Pure read, including before initialization; unavailable is never silently interpreted as external/private fallback. */
++export function getExecutionOwnership(): ProcessExecutionOwnership {
++	return processContext?.getExecutionOwnership() ?? initialState;
++}
++
++/** Before normal CLI/strict graph imports and as the first SDK factory action, including every worker realm. */
++export function initializeExecutionOwnership(): Promise<RegisteredExecutionOwnership> {
++	initialization ??= connectProcessOwnershipClient().then(client => {
++		processContext = new ExecutionOwnershipContext(client);
++		return processContext.initializeExecutionOwnership();
++	}).catch((error: unknown) => {
++		const code = error instanceof OwnershipError ? error.code : "dispatcher_unavailable";
++		initialState = unavailable(code);
++		throw error;
++	});
++	return initialization;
++}
++
++export function requireExecutionOwnership(): RegisteredExecutionOwnership {
++	const state = getExecutionOwnership();
++	if (state.status !== "registered") throw new OwnershipError(state.code);
++	return state;
++}
++
++/** Guard before every shared factory/token/directory/connect/request/completion effect, including ping/reconnect. */
++export function requireSharedExecution(): RegisteredExecutionOwnership & { policy: "external" } {
++	const state = requireExecutionOwnership();
++	if (state.policy !== "external") throw new OwnershipError("shared_service_unsupported");
++	return Object.freeze({ ...state, policy: "external" as const });
++}
++
++/** Fixed Native dispatcher operation; never accepts executable/argv or a browser-supplied endpoint. */
++export async function acquireExecutionBroker(scope: OwnershipScope): Promise<ExecutionBrokerSelection> {
++	requireSharedExecution();
++	if (!processContext) throw new OwnershipError("ownership_backend_unavailable");
++	return processContext.acquireExecutionBroker(scope);
++}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..d9c6607f9bdf6089b8ca97ce02e695c547b8d400
+index 0000000000..d9c6607f9b
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 @@ -0,0 +1,225 @@
@@ -531,7 +696,7 @@ index 0000000000000000000000000000000000000000..d9c6607f9bdf6089b8ca97ce02e695c5
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/entry.ts b/packages/coding-agent/src/launch/ownership/entry.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b00b709cc81b989757a89b04eed68cb03cb75455
+index 0000000000..b00b709cc8
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/entry.ts
 @@ -0,0 +1,10 @@
@@ -545,9 +710,147 @@ index 0000000000000000000000000000000000000000..b00b709cc81b989757a89b04eed68cb0
 +export async function startOwnershipDispatcher(): Promise<never> {
 +	throw new OwnershipError("ownership_backend_unavailable");
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/fences.ts b/packages/coding-agent/src/launch/ownership/fences.ts
+new file mode 100644
+index 0000000000..152cc35844
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/fences.ts
+@@ -0,0 +1,132 @@
++import * as fs from "node:fs";
++import * as path from "node:path";
++import { OWNERSHIP_LIMITS, OwnershipError, ownershipGeneration, ownershipIdentity,
++	type OwnershipIdentity } from "./protocol";
++
++export interface OwnershipFenceApproval {
++	/** Stable independently pinned directory OUTSIDE the mutable release and private helper's own fence directory. */
++	directory: { path: string; device: string; inode: string };
++	releaseRoot: string;
++	installation: string;
++	identity: OwnershipIdentity;
++}
++interface HeldFence { file: fs.promises.FileHandle; device: bigint; inode: bigint }
++
++/**
++ * Public Native durable lifecycle metadata, never Session history or PID signal authority.
++ * Opening a nonempty directory fails closed: restart cannot silently adopt/erase an incomplete generation.
++ * A concrete backend must also retain maintenance protection and independently validate actual helper extinction.
++ */
++export class OwnershipFences {
++	readonly #approval: OwnershipFenceApproval;
++	readonly #directory: fs.promises.FileHandle;
++	readonly #fences = new Map<string, HeldFence>();
++	#closed = false;
++	#blocked = false;
++	#busy = false;
++
++	constructor(approval: OwnershipFenceApproval, directory: fs.promises.FileHandle) {
++		ownershipGeneration(approval.installation);
++		this.#approval = Object.freeze({ ...approval, directory: Object.freeze({ ...approval.directory }),
++			identity: Object.freeze(ownershipIdentity(approval.identity)) });
++		this.#directory = directory;
++	}
++
++	static async open(approval: OwnershipFenceApproval): Promise<OwnershipFences> {
++		ownershipGeneration(approval.installation);
++		for (const value of [approval.directory.path, approval.releaseRoot]) {
++			if (!path.isAbsolute(value) || path.resolve(value) !== value) throw new OwnershipError("maintenance_fenced");
++		}
++		if (approval.directory.path === approval.releaseRoot || approval.directory.path.startsWith(`${approval.releaseRoot}/`)
++			|| !/^\d+$/.test(approval.directory.device) || !/^[1-9]\d*$/.test(approval.directory.inode)) {
++			throw new OwnershipError("maintenance_fenced");
++		}
++		const directory = await fs.promises.open(approval.directory.path,
++			fs.constants.O_RDONLY | fs.constants.O_DIRECTORY | fs.constants.O_NOFOLLOW);
++		const fences = new OwnershipFences(approval, directory);
++		try { await fences.verify(); return fences; }
++		catch (error) { await fences.close(); throw error; }
++	}
++
++	async verify(): Promise<void> { await this.#operation(() => this.#verify()); }
++
++	/** Durably record uncertainty BEFORE publication/worker START. A failed write leaves its partial fence intact. */
++	async create(generation: string, kind: "private-helper" | "external-lifetime"): Promise<void> {
++		await this.#operation(async () => {
++			ownershipGeneration(generation);
++			if (kind !== "private-helper" && kind !== "external-lifetime") throw new OwnershipError("ownership_protocol");
++			await this.#verify();
++			if (this.#fences.has(generation) || this.#fences.size >= OWNERSHIP_LIMITS.helperGenerations) {
++				throw new OwnershipError("ownership_limit");
++			}
++			const file = await fs.promises.open(this.#file(generation),
++				fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW, 0o600);
++			let retained = false;
++			try {
++				const stat = await file.stat({ bigint: true });
++				this.#fences.set(generation, { file, device: stat.dev, inode: stat.ino }); retained = true;
++				await file.writeFile(JSON.stringify({ version: "omp-execution-fence/1", installation: this.#approval.installation,
++					identity: this.#approval.identity, kind, generation, state: "incomplete" }) + "\n");
++				await file.sync(); await this.#directory.sync();
++				await this.#verify();
++			} catch (error) { if (!retained) await file.close(); throw error; }
++		});
++	}
++
++	/** Closes owned metadata descriptors only; files remain. This never proves process extinction. */
++	async close(): Promise<void> {
++		if (this.#closed) return;
++		if (this.#busy) throw new OwnershipError("ownership_limit");
++		this.#closed = true;
++		const results = await Promise.allSettled([...this.#fences.values()].map(value => value.file.close()));
++		await this.#directory.close(); this.#fences.clear();
++		if (results.some(result => result.status === "rejected")) throw new OwnershipError("ownership_unresolved");
++	}
++
++	#file(generation: string): string { return path.join(this.#approval.directory.path, `dispatcher-${generation}.json`); }
++
++	async #verifyDirectory(): Promise<void> {
++		const approval = this.#approval.directory, uid = process.getuid?.();
++		if (uid === undefined || await fs.promises.realpath(approval.path) !== approval.path) {
++			throw new OwnershipError("maintenance_fenced");
++		}
++		const stats = [await fs.promises.lstat(approval.path, { bigint: true }), await this.#directory.stat({ bigint: true })];
++		for (const stat of stats) {
++			if (!stat.isDirectory() || String(stat.dev) !== approval.device || String(stat.ino) !== approval.inode
++				|| stat.uid !== BigInt(uid) || (stat.mode & 0o777n) !== 0o700n) throw new OwnershipError("maintenance_fenced");
++		}
++	}
++
++	async #verify(): Promise<void> {
++		await this.#verifyDirectory();
++		let count = 0;
++		const directory = await fs.promises.opendir(this.#approval.directory.path);
++		try {
++			while (true) {
++				const entry = await directory.read();
++				if (!entry) break;
++				if (++count > OWNERSHIP_LIMITS.helperGenerations) throw new OwnershipError("ownership_limit");
++				const generation = /^dispatcher-([a-f0-9]{64})\.json$/.exec(entry.name)?.[1];
++				const held = generation ? this.#fences.get(generation) : undefined;
++				if (!generation || !held) throw new OwnershipError("maintenance_fenced");
++				const stats = [await fs.promises.lstat(this.#file(generation), { bigint: true }), await held.file.stat({ bigint: true })];
++				for (const stat of stats) {
++					if (!stat.isFile() || stat.nlink !== 1n || stat.dev !== held.device || stat.ino !== held.inode
++						|| stat.uid !== BigInt(process.getuid?.() ?? -1) || (stat.mode & 0o777n) !== 0o600n
++						|| stat.size > 2048n) throw new OwnershipError("maintenance_fenced");
++				}
++			}
++		} finally { await directory.close(); }
++		if (count !== this.#fences.size) throw new OwnershipError("maintenance_fenced");
++		await this.#verifyDirectory();
++	}
++
++	async #operation<T>(action: () => Promise<T>): Promise<T> {
++		if (this.#closed || this.#blocked) throw new OwnershipError("maintenance_fenced");
++		if (this.#busy) throw new OwnershipError("ownership_limit");
++		this.#busy = true;
++		try { return await action(); }
++		catch (error) { this.#blocked = true; throw error; }
++		finally { this.#busy = false; }
++	}
++}
 diff --git a/packages/coding-agent/src/launch/ownership/framing.ts b/packages/coding-agent/src/launch/ownership/framing.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..2a1ca28fe7b2c00ddaf1593a5cb4359b2d3653fd
+index 0000000000..2a1ca28fe7
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/framing.ts
 @@ -0,0 +1,32 @@
@@ -585,7 +888,7 @@ index 0000000000000000000000000000000000000000..2a1ca28fe7b2c00ddaf1593a5cb4359b
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/helper-protocol.ts b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..5f7910ccd6c2eed73706ddda7f919274ab7f7f6c
+index 0000000000..5f7910ccd6
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
 @@ -0,0 +1,76 @@
@@ -667,7 +970,7 @@ index 0000000000000000000000000000000000000000..5f7910ccd6c2eed73706ddda7f919274
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.c b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 new file mode 100644
-index 0000000000000000000000000000000000000000..f2952b794f21802e38dda98aebc845d770936d51
+index 0000000000..f2952b794f
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 @@ -0,0 +1,339 @@
@@ -1012,7 +1315,7 @@ index 0000000000000000000000000000000000000000..f2952b794f21802e38dda98aebc845d7
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..878699c0f013b1f9cc02bd69283092c208d362a2
+index 0000000000..878699c0f0
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 @@ -0,0 +1,209 @@
@@ -1227,7 +1530,7 @@ index 0000000000000000000000000000000000000000..878699c0f013b1f9cc02bd69283092c2
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..2a4b0d0687b24eb00b9d0419f928ceb3c9f83c77
+index 0000000000..2a4b0d0687
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/protocol.ts
 @@ -0,0 +1,170 @@
@@ -1403,7 +1706,7 @@ index 0000000000000000000000000000000000000000..2a4b0d0687b24eb00b9d0419f928ceb3
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
 new file mode 100644
-index 0000000000000000000000000000000000000000..9e10a055e370125f9532219052df1f6f00e5efe9
+index 0000000000..9e10a055e3
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/wire.schema.json
 @@ -0,0 +1,466 @@
@@ -1875,7 +2178,7 @@ index 0000000000000000000000000000000000000000..9e10a055e370125f9532219052df1f6f
 +}
 diff --git a/packages/coding-agent/test/execution-ownership-cli.test.ts b/packages/coding-agent/test/execution-ownership-cli.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..b070e70461ed93f7a251c77a95cfb0da42efd517
+index 0000000000..b070e70461
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-cli.test.ts
 @@ -0,0 +1,6 @@
@@ -1887,7 +2190,7 @@ index 0000000000000000000000000000000000000000..b070e70461ed93f7a251c77a95cfb0da
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-client.test.ts b/packages/coding-agent/test/execution-ownership-client.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..ec857092d039f5ccae5bc09db6b25431e730e7e5
+index 0000000000..ec857092d0
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-client.test.ts
 @@ -0,0 +1,44 @@
@@ -1935,9 +2238,76 @@ index 0000000000000000000000000000000000000000..ec857092d039f5ccae5bc09db6b25431
 +	await expect(client.broker({ kind: "project", directory: "/work" })).rejects.toThrow("dispatcher_unavailable");
 +	expect(wire.effects).toEqual(["classify", "classify"]);
 +});
+diff --git a/packages/coding-agent/test/execution-ownership-context.test.ts b/packages/coding-agent/test/execution-ownership-context.test.ts
+new file mode 100644
+index 0000000000..de81b07b0c
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-context.test.ts
+@@ -0,0 +1,61 @@
++import { expect, test } from "bun:test";
++import { OwnershipClient } from "../src/launch/ownership/client";
++import {
++	ExecutionOwnershipContext, getExecutionOwnership, initializeExecutionOwnership, requireExecutionOwnership,
++	requireSharedExecution,
++} from "../src/launch/ownership/context";
++import { decodeOwnershipRequest } from "../src/launch/ownership/protocol";
++
++const identity = { closure: "a".repeat(64), schema: "b".repeat(64) };
++
++test("process normalization is single-flight and private policy refuses shared factories before another request", async () => {
++	const requests: string[] = [];
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) {
++			const request = decodeOwnershipRequest(frame); requests.push(request.operation.op);
++			return JSON.stringify({ version: request.version, id: request.id, identity, ok: true,
++				result: { op: "classify", registration: { registration: "registration-0001", dispatcher: "dispatcher-000001",
++					policy: "private", generation: "generation-000001" } } });
++		}, close() {},
++	});
++	const context = new ExecutionOwnershipContext(client);
++	expect(() => context.requireExecutionOwnership()).toThrow("ownership_backend_unavailable");
++	const [first, second] = await Promise.all([context.initializeExecutionOwnership(), context.initializeExecutionOwnership()]);
++	expect(first).toBe(second);
++	expect(Reflect.set(first, "policy", "external")).toBe(false);
++	expect(() => context.requireSharedExecution()).toThrow("shared_service_unsupported");
++	await expect(context.acquireExecutionBroker({ kind: "project", directory: "/work" })).rejects.toThrow("shared_service_unsupported");
++	expect(requests).toEqual(["classify"]);
++});
++
++test("unconfigured process context stays unavailable and never infers authority from the environment", async () => {
++	expect(getExecutionOwnership()).toEqual({ status: "unavailable", code: "ownership_backend_unavailable" });
++	expect(() => requireExecutionOwnership()).toThrow("ownership_backend_unavailable");
++	expect(() => requireSharedExecution()).toThrow("ownership_backend_unavailable");
++	await expect(initializeExecutionOwnership()).rejects.toMatchObject({ code: "ownership_backend_unavailable" });
++	expect(getExecutionOwnership()).toEqual({ status: "unavailable", code: "ownership_backend_unavailable" });
++});
++
++test("a mismatched broker grant revokes the registered context before subsequent shared effects", async () => {
++	let closed = false;
++	const client = new OwnershipClient(identity, {
++		async exchange(frame) {
++			const request = decodeOwnershipRequest(frame);
++			const result = request.operation.op === "classify"
++				? { op: "classify", registration: { registration: "registration-0001", dispatcher: "dispatcher-000001",
++					policy: "external", generation: "generation-000001" } }
++				: { op: "broker", scope: { kind: "project", directory: "/different-project" },
++					generation: "broker-generation-0001", runtimeDirectory: "/run/owned-broker", token: "c".repeat(64) };
++			return JSON.stringify({ version: request.version, id: request.id, identity, ok: true, result });
++		},
++		close() { closed = true; },
++	});
++	const context = new ExecutionOwnershipContext(client);
++	await context.initializeExecutionOwnership();
++	expect(context.requireSharedExecution().policy).toBe("external");
++	await expect(context.acquireExecutionBroker({ kind: "project", directory: "/work/project" }))
++		.rejects.toMatchObject({ code: "ownership_protocol" });
++	expect(context.getExecutionOwnership()).toEqual({ status: "unavailable", code: "ownership_protocol" });
++	expect(() => context.requireSharedExecution()).toThrow("ownership_protocol");
++	expect(closed).toBe(true);
++});
 diff --git a/packages/coding-agent/test/execution-ownership-contract.test.ts b/packages/coding-agent/test/execution-ownership-contract.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..e530e52ed8f959470e27ef6af6ef7ae72e85a3e4
+index 0000000000..e530e52ed8
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-contract.test.ts
 @@ -0,0 +1,46 @@
@@ -1989,7 +2359,7 @@ index 0000000000000000000000000000000000000000..e530e52ed8f959470e27ef6af6ef7ae7
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..3ad8369208c595e7f44d4f012c4b4dc88200fd8b
+index 0000000000..3ad8369208
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 @@ -0,0 +1,170 @@
@@ -2163,9 +2533,59 @@ index 0000000000000000000000000000000000000000..3ad8369208c595e7f44d4f012c4b4dc8
 +		.toMatchObject({ ok: false, error: "ownership_backend_unavailable" });
 +	expect(system.publications).toEqual([]);
 +});
+diff --git a/packages/coding-agent/test/execution-ownership-fences.test.ts b/packages/coding-agent/test/execution-ownership-fences.test.ts
+new file mode 100644
+index 0000000000..5f2fa22c18
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-fences.test.ts
+@@ -0,0 +1,44 @@
++import { expect, test } from "bun:test";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { OwnershipDispatcher, type OwnershipSystem, type StablePeer } from "../src/launch/ownership/dispatcher";
++import { OwnershipFences } from "../src/launch/ownership/fences";
++import { OWNERSHIP_VERSION } from "../src/launch/ownership/protocol";
++
++const identity = { closure: "a".repeat(64), schema: "b".repeat(64) }, installation = "c".repeat(64);
++const generation = "d".repeat(64);
++
++/** Public dispatcher seam with synthetic OS facts and the real owned durable filesystem adapter. */
++function system(fences: OwnershipFences): OwnershipSystem {
++	const helpers = new Set<StablePeer>();
++	return {
++		dispatcher: "dispatcher-generation-0001", async ready() {},
++		async classify(peer) { return helpers.has(peer) ? { kind: "private", generation } : { kind: "external" }; },
++		async protectHelper(_control, helper) { await fences.create(generation, "private-helper"); helpers.add(helper); },
++		async markUnresolved() { await fences.verify(); },
++		async completeHelper() { throw new Error("no kernel extinction proof"); },
++		async canonicalScope(scope) { return scope; },
++		async broker() { throw new Error("external protector unavailable"); },
++		async publish() { throw new Error("external protector unavailable"); },
++	};
++}
++
++test("dispatcher state loss preserves a durable helper fence and reopening cannot silently admit another generation", async () => {
++	const root = await fs.mkdtemp("/tmp/ownership-fence-fixture-");
++	const directory = path.join(root, "dispatcher-fences");
++	await fs.mkdir(directory, { mode: 0o700 });
++	const stat = await fs.stat(directory, { bigint: true });
++	const approval = { directory: { path: directory, device: String(stat.dev), inode: String(stat.ino) },
++		releaseRoot: path.join(root, "release"), installation, identity };
++	let fences: OwnershipFences | undefined;
++	try {
++		fences = await OwnershipFences.open(approval);
++		const dispatcher = await OwnershipDispatcher.open(identity, system(fences)), host = {}, helper = {};
++		const prepared = await dispatcher.handle(host, JSON.stringify({ version: OWNERSHIP_VERSION, id: "prepare-request-0001",
++			identity, operation: { op: "prepare_helper", generation } }));
++		expect(prepared).toMatchObject({ ok: true, result: { op: "prepare_helper", generation } });
++		await dispatcher.registerHelperPeer(helper, generation);
++		await fences.close(); fences = undefined;
++		await expect(OwnershipFences.open(approval)).rejects.toThrow("maintenance_fenced");
++	} finally { await fences?.close(); await fs.rm(root, { recursive: true, force: true }); }
++});
 diff --git a/packages/coding-agent/test/execution-ownership-helper-wire.test.ts b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..6eca6ae5139b7bd9945a0eb61014c54cbca8b7c1
+index 0000000000..6eca6ae513
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
 @@ -0,0 +1,33 @@
@@ -2204,7 +2624,7 @@ index 0000000000000000000000000000000000000000..6eca6ae5139b7bd9945a0eb61014c54c
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-linux.test.ts b/packages/coding-agent/test/execution-ownership-linux.test.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..489665ab42ba2ff1dde572b1e26a804730e6b4c2
+index 0000000000..489665ab42
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-linux.test.ts
 @@ -0,0 +1,58 @@

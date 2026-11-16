@@ -25,9 +25,9 @@ OS fixture establishes only its recorded socket/pidfd primitives, including a se
 
 | Check | Actual result | Scope |
 | --- | --- | --- |
-| Pure ownership module tests | PASS: 17 tests, 58 assertions, 6 source files / 1 wrapper, 86 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
+| Pure ownership module and owned filesystem tests | PASS: 21 tests, 76 assertions, 8 source files / 1 wrapper, 59 ms; 1 OS case skipped | Guard + synthetic environment before imports; no CLI/Agent/provider/kernel calls |
 | Public request/response/helper schema corpus | PASS: 11 request + 8 response + 5 helper cases | AJV 8.17.1 and strict request/helper decoders |
-| Focused source type check | PASS: `bun check --no-script`, 13 files, 0 errors, 129.14 ms | New ownership TS/test files only; C and CLI graph excluded |
+| Focused source type check | PASS: `bun check --no-script`, 18 files, 0 errors, 69 ms | New ownership TS/test files only; C and CLI graph excluded |
 | Host repository type check | PASS: `bun run typecheck`, exit 0 | Host source compile only |
 | Ordered patch application | PASS: private index, base + 1–6 + 0010 | Prepared tree recorded in identity JSON |
 | Whitespace check | PASS: owned Native diff and repository diff | Source only |
@@ -53,9 +53,27 @@ bun --no-env-file scripts/validate-ownership-preparation.ts <owned-native-checko
 Despite its filename, `execution-ownership-cli.test.ts` imports only `launch/ownership/entry.ts`, which refuses
 before any runtime import; it is not actual CLI acceptance. The source checker creates a fresh synthetic HOME,
 profile, XDG and cwd, passes an allowlisted environment, preloads the guard before any Native module, imports the
-six test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
+eight test sources through one temporary wrapper and deliberately omits the kernel fixture input. It also type-checks
 only `src/launch/ownership/*.ts` and `test/execution-ownership*.ts`, with strict
 mode, Bun types, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noEmit` and bundler resolution.
+
+## Recovered process context checkpoint
+
+The second-reattach checkpoint preserves the previously uncommitted process context/bootstrap and durable filesystem
+adapter. The five public functions and their effect ordering are documented in the Native patch's
+`docs/execution-ownership.md`. They are fixed for downstream consumer integration: pure `getExecutionOwnership`,
+single-flight asynchronous `initializeExecutionOwnership`, synchronous `requireExecutionOwnership` and
+`requireSharedExecution`, and asynchronous matched `acquireExecutionBroker(scope)`. The bootstrap remains an explicit
+`ownership_backend_unavailable` refusal. No normal/strict CLI graph, SDK factory, worker entry, broker client or
+consumer has been switched to it in this checkpoint. SDK eager import purity is not established.
+
+The source suite proves immutable private registration/single-flight, shared denial before another wire request,
+unavailable bootstrap without fallback, matched-grant failure revoking the context, and an actual synthetic-directory
+incomplete fence surviving dispatcher state loss. The filesystem test uses synthetic OS facts at the public dispatcher
+seam; it does not prove a real helper, lease, process extinction or completion acknowledgement. This recovered source
+was already authored before reattachment; its initial RED history is unavailable, so no new RED→GREEN claim is made.
+The recorded 17/58 source result and scoped socket primitive remain historical evidence for their original inputs.
+The current 21/76 and 18-file check apply to the new preparation identity, with the OS test deliberately skipped.
 
 Compile only with `bun --no-env-file scripts/build-ownership-bridge-preparation.ts <owned-native-checkout>
 <absolute-owned-output-parent>`. It uses a unique output directory, fixed strict compiler/linker flags and an

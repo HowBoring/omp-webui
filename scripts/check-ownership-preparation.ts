@@ -5,8 +5,10 @@ import { dirname, join, resolve } from "node:path";
 const argument = process.argv[2];
 if (!argument || process.argv.length !== 3) throw new Error("USAGE: check-ownership-preparation.ts <owned-native-source>");
 const source = await realpath(resolve(argument)), repository = resolve(import.meta.dir, "..");
-const files = ["execution-ownership-cli.test.ts", "execution-ownership-client.test.ts", "execution-ownership-contract.test.ts",
-  "execution-ownership-dispatcher.test.ts", "execution-ownership-helper-wire.test.ts", "execution-ownership-linux.test.ts"];
+const files = ["execution-ownership-cli.test.ts", "execution-ownership-client.test.ts", "execution-ownership-context.test.ts",
+  "execution-ownership-contract.test.ts",
+  "execution-ownership-dispatcher.test.ts", "execution-ownership-helper-wire.test.ts", "execution-ownership-fences.test.ts",
+  "execution-ownership-linux.test.ts"];
 const temporary = await mkdtemp("/tmp/ownership-source-check-");
 try {
   for (const name of ["home", "cwd", "profile", "config", "data", "state", "cache"]) {
