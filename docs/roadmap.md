@@ -35,10 +35,14 @@ Status: scaffold created; implementation not complete.
   verified global OMP reuse and one supported Host/OMP-build/schema combination.
 - [x] Confirm the [attachment contract](attachment-contract.md): originals, quotas, per-tab recovery,
   expiry/deletion and complete preparation before admission with explicit degradation consent.
+- [x] Confirm the [projection contract](projection-contract.md): folded older native history, explicit
+  generation rebuild from persisted facts and recoverable navigation positions, as recorded in ADR 0010.
 - [ ] Specify and validate public OMP catalog/description, protected continuation and explicit-answer-only
   UI expiry/cancellation guarantees in an actual compatibility build and matched schema.
 - [ ] Deliver and verify public attachment preparation/consumption and recoverable native submission/commit
   association, plus the narrow DSH draft recovery seam; source review does not prove these implemented.
+- [ ] Deliver coherent native history/live observations, source revisions/change coverage, bounded paging
+  and durable navigation positions; prove public DSH same-ID journal/baseline invalidation and draft preservation.
 - [ ] Verify the actual global launch/runtime closure, early capability guarantees, full conformance
   evidence and native-data/TUI upgrade/rollback compatibility before product admission.
 
@@ -63,7 +67,8 @@ Exit criterion: one Session can be used through DSH WebUI with streaming and too
 
 ## M2 — history and interaction correctness
 
-- Full active-branch Conversation projection and separate full-tree History view.
+- Full active-branch Conversation projection and separate full-tree History view, following the accepted
+  [projection contract](projection-contract.md); folded pre-compaction/reset history is not exact model context.
 - Older-history pagination.
 - Implement the accepted [history interaction contract](history-interaction-contract.md): full tree,
   same-Session History Navigation and Branched Session from a historical user message, with confirmation

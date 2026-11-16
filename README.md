@@ -35,6 +35,9 @@ The MVP supports one validated combination; the compatibility build and global-i
 The [attachment contract](docs/attachment-contract.md) records accepted original retention, quotas,
 deletion, per-tab draft recovery and complete preparation before prompt admission, with explicit acceptance
 of content-affecting degradation. Storage, public RPC guarantees and browser integration remain unimplemented.
+The [projection contract](docs/projection-contract.md) retains folded older native history, permits
+explicit view-generation rebuilds from persisted facts, and requires durable native navigation positions.
+Coherent OMP history/live observation and a public DSH journal-rebuild seam remain delivery gates.
 
 ## Architecture at a glance
 

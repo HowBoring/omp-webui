@@ -54,6 +54,7 @@ the tested shortcut profile and Linux Web limitations are explicit in that repor
 | OMP public dependencies | Install pinned CLI/client artifacts; compile and runtime-import the public exports; verify Bun/native dependency closure on supported platforms |
 | RPC v2/process lifecycle | Real `rpc-ui` worker, ready/negotiation/get_state round trip, chunk limits/corruption/backpressure, stdout drain and process cleanup |
 | Completion and history | Prompt admission/result/settled; synchronous builtin `data.agentInvoked: false` completion without a later result; paged history, active-branch projection, duplicate/gap recovery |
+| Native projection and rebuild | [Accepted projection contract](projection-contract.md); coherent history/live cut and source versions, folded boundaries, scoped pages/seqs, multi-view same-ID DSH invalidation, draft preservation and navigation position persisted before any later input/exit marker |
 | Interaction Broker | Tool and extension dialogs, ask opt-in, approvals, cancellation/deadlines, disconnects, authorized answerer and stale-generation rejection; `--no-ui` fail-closed behavior |
 | DSH client delivery | Matched external build and dependency/asset closure, loader/module composition, license/third-party notice preservation; no vendored source or old SDK Driver |
 | DSH Remote mapping | Descriptor-based capability matrix, unary envelopes/codec/errors, mux/uplink/cancel, `$events` generation and `$events/result`; explicit unsupported capability behavior |

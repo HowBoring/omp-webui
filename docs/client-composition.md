@@ -67,7 +67,7 @@ openSession/retain/open 路径则读取其流。uiWorkspace 私有构造并捕�
 | 目录/Session | workspace/follow 与 session/list 等既有 DTO 的真实适配；OMP 专用操作沿生成的 DSH Remote contributions，新增方法名/字段另定，不创造第二套浏览器协议 |
 | 创建/打开 | 明确用户动作和真实结果；workspace/initializeDefault 的“不适用”可返回原生合同允许的 undefined，但不能伪报创建成功 |
 | 聊天/取消 | session/prompt、session/cancel；DSH accepted 与 OMP prompt ack、prompt_result、settled 分开映射；MVP 忙时拒绝新输入入队，不照搬 stock keepInbox 的停止语义 |
-| 历史/实时 | session/follow、实际分页调用、session/control 与 projections；active branch、assistant baseline 和重连规则由投影决策细化 |
+| 历史/实时 | session/follow、实际 session/page、session/control 与 projections；按[投影合同](projection-contract.md)保持共同 cut、活动分支及代次一致 |
 | 工具/交互 | 复用 Tool、approval、user-questions 呈现；$events/result、ask 回答和投影须绑定正确 Session/worker/UI generation，按[交互生命周期合同](interaction-lifecycle-contract.md)实施首个有效答复结算与重投 |
 | 模型/思考 | 只适配已授权当前 Session 的真实 OMP 能力；不据此开放 provider/凭据/角色全局管理 |
 | WebUI 偏好 | settings/describe 提供真实受支持 namespace；写入仅限 WebUI 自有偏好，按准确 namespace 合同适配，不回传伪成功 |
@@ -98,11 +98,21 @@ prompt；失败保留草稿，截断等降级须用户明确接受。当前公�
 需要窄公开接缝承载语义快照、有序原件引用、匹配 binding 的原子恢复和新回执状态，并允许
 配置持久化归属/键。当前只有源码可行性依据，没有该补丁或浏览器恢复实证；不走私有 registry。
 
+## 投影代次重建
+
+[投影合同](projection-contract.md)已确认旧段折叠、从原生持久事实重建和导航位置持久化。
+固定 DSH 的 `surface.replace` 只替换模型 surface，Chat 保留原文；physical follow restart 也
+保留旧 window 并拒绝倒退 cursor。它们不能从聊天区移除离开的原生分支，连接 ready 不足以重置 journal。
+同原生 ID 的新投影代次需要窄公开接缝，协调所有持有者、journal/Chat/projections/assistant baseline，
+拒绝陈旧页和流，并按附件合同保全独立草稿。公开最终引用释放/重新 retain 不保证多持有者统一失效，
+也不能代替附件恢复；具体实例的私有 `resync` 不属于可用接口。现有导航策略实验未验证这项新增接缝。
+
 ## 验证门禁
 
 - [DSH 导航与能力接缝：自动创建及动作门禁实证](https://github.com/HowBoring/omp-webui/issues/27)：
   隔离实证和候选 patch/manifest 已固定，见[验证结果与边界](dsh-policy-validation.md)；真实 OMP/Bun 集成、最终 roster 和浏览器键位矩阵仍需验收。
 - 附件合同、实际浏览器上传/回执/取消/历史读取，以及 OMP 图片/普通文件链路必须验证。
+- 投影代次失效、同 ID 重建、旧分支移除、多页面与草稿恢复，以及实际原生快照/live/持久位置门禁须验证。
 - 使用真实支持的 namespace/typed DTO；不以空 fixture 回答冒充产品服务。未知 capability、
   部分失败、非图片文件和被占用 Session 都需可见的正确结果。
 - Tree 的选择/预览、原会话导航与新建会话确认、草稿手动发送，以及停止后重新发起流程，已由

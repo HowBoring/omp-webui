@@ -299,16 +299,24 @@ OMP history is tree-shaped. DSH Conversation consumes an ordered event journal w
 
 The projection layer must:
 
-1. Read OMP durable entries and the current tree/leaf through public RPC.
-2. Preserve OMP entry IDs as stable source identities.
+1. Read OMP entries and the current tree/leaf through public RPC, distinguishing observed memory from committed state.
+2. Preserve scoped OMP entry identities and detect payload rewrites or deletions.
 3. Project only the active root-to-leaf branch into the Conversation surface.
 4. Preserve the full branch tree for the OMP History extension.
 5. Map OMP live assistant updates to DSH transient assistant-stream frames, then settle them against the durable committed entry.
 6. Reconcile buffered live events against the opening history snapshot to avoid gaps and duplicates.
-7. Express branch changes as a DSH-compatible replacement/rebaseline, not by appending abandoned-branch messages.
+7. Coordinate a new DSH projection generation when the visible branch changes; old records must not remain in Chat.
 8. Rebuild all derived state after worker restart; never treat the projection cache as durable truth.
 
-Do not assume OMP entry order is the active conversation path. Do not invent a DSH sequence from wall-clock timestamps. The exact cursor and replacement algorithm is an M0/M1 design gate and must be covered by fixtures for normal turns, tool batches, rewind, fork, compaction, and reconnect.
+The accepted [projection contract](projection-contract.md) and [ADR 0010](adr/0010-native-history-projection.md)
+retain readable older active-path history as folded segments, separate it from model context, and define
+snapshot/live cuts, generation-scoped cursors and recovery limits. Source append order is not branch order;
+DSH seq is not a timestamp or native ID. Current RPC lacks the required coherent observation/version and
+complete live-to-entry/commit linkage. DSH surface replacement preserves human transcript originals, and
+physical follow restart preserves the old journal window; neither provides the required branch reset.
+A narrow public invalidation/rebuild seam must coordinate Chat, projections, assistant state and drafts.
+Navigation success also requires a recoverable native position before another prompt or normal shutdown.
+These are unimplemented delivery gates, with real failure/restart and multi-view fixtures required.
 
 ### 6.5 Interaction Broker
 

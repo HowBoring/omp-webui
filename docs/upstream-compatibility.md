@@ -184,6 +184,16 @@ and isolated real-browser comparisons. These APIs belong to the experimental pat
 unmodified official release. Production pins and the health-only runtime remain unchanged;
 real OMP RPC/Remote mapping, final roster and browser support still require their own validation.
 
+## History and projection limits
+
+The accepted [projection contract](projection-contract.md) adds source-verified limitations and delivery
+gates. OMP history reads have no shared live observation/revision contract; entries can be rewritten or
+removed, and process-local message IDs do not join native entries. Plain navigation acknowledgement is
+not an immediate durable position receipt; clean disposal may append an exit marker, which is conditional.
+DSH model-surface replacement preserves Chat originals, while physical follow restart preserves its old
+journal window. Neither implements active-branch replacement with fresh seqs. Public native coherence,
+position commits and coordinated DSH journal/baseline invalidation remain unimplemented and unvalidated.
+
 ## Prior art
 
 `https://github.com/LaneSun/omp-web` is useful prior art for the DSH client boot process, OMP feature mapping, and browser acceptance cases. It is not a runtime dependency and no old SDK-based Driver is copied into this scaffold. Its DSH baseline predates the current DSH Remote/Session stream contract; re-check all code and assumptions against the pins above.

@@ -54,6 +54,14 @@ _Avoid_: Workspace list, chronological transcript
 Changing the active history point within the same OMP Session.
 _Avoid_: New conversation, filesystem rollback
 
+**Historical Position**:
+The native history point from which an OMP Session continues, distinct from a node selected for preview.
+_Avoid_: Preview selection, browser scroll position
+
+**Conversation Projection**:
+The browser's readable presentation of the active path in an OMP Session, including retained older history.
+_Avoid_: Full Session Tree, exact model input, second transcript
+
 **Branched Session**:
 A new OMP Session created from a historical user-message point in another Session.
 _Avoid_: History Navigation, copy of the whole conversation
