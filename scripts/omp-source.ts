@@ -17,7 +17,7 @@ const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.gener
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
 export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/history.generated.ts",
-  ...["command", "open", "page", "poll", "content"].map(name => `packages/coding-agent/src/modes/rpc/history-${name}.generated.js`), "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
+  ...["command", "open", "page", "poll", "content"].flatMap(name => ["js", "d.ts"].map(extension => `packages/coding-agent/src/modes/rpc/history-${name}.generated.${extension}`)), "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
   "packages/coding-agent/src/modes/rpc/interactions-command.generated.js","node_modules", "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
   "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js", "packages/coding-agent/src/modes/rpc/catalog.generated.ts",
   "packages/coding-agent/src/modes/rpc/catalog-command.generated.js", "packages/coding-agent/src/modes/rpc/catalog-page.generated.js",

@@ -5,7 +5,7 @@ import { HistoryClient, type HistoryCommand } from "../contracts/generated/histo
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import { PhysicalFrames } from "./framing.ts";
 
-interface ProcessSelection { argv: string[]; env: Record<string, string>; cwd?: string; timeoutMs?: number; signal?: AbortSignal }
+interface ProcessSelection { argv: string[]; env: Record<string, string>; cwd?: string; timeoutMs?: number; readyTimeoutMs?: number; signal?: AbortSignal }
 interface Pending {
   command: HistoryCommand["type"] | "negotiate_protocol";
   resolve(value: unknown): void;
@@ -30,6 +30,7 @@ export class HistoryTransport {
   private admitting = true;
   private fault: Error | undefined;
   private stderrBytes = 0;
+  private queuedWrites = 0;
   private writeQueue = Promise.resolve();
   private closing: Promise<DrainResult> | undefined;
   private readonly signal: AbortSignal | undefined;
@@ -54,10 +55,11 @@ export class HistoryTransport {
 
   static async open(selection: ProcessSelection): Promise<HistoryTransport> {
     const client = new HistoryTransport(selection);
-    const timer = setTimeout(() => { client.fail("RPC_READY_TIMEOUT"); }, client.timeout);
+    const startupTimeout = selection.readyTimeoutMs ?? client.timeout;
+    const timer = setTimeout(() => { client.fail("RPC_READY_TIMEOUT"); }, startupTimeout);
     try {
       await client.ready.promise;
-      const result = await client.send({ id: crypto.randomUUID(), type: "negotiate_protocol", protocolVersion: 2 });
+      const result = await client.send({ id: crypto.randomUUID(), type: "negotiate_protocol", protocolVersion: 2 }, startupTimeout);
       if (!validNegotiated(result) || result.protocolVersion !== 2) throw new Error("RPC_NEGOTIATION");
       client.frames.negotiate(2);
       return client;
@@ -71,10 +73,10 @@ export class HistoryTransport {
 
   readonly history = new HistoryClient(command => this.send(command));
 
-  private send(command: HistoryCommand | Extract<PreflightCommand,{type:"negotiate_protocol"}>): Promise<unknown> {
+  private send(command: HistoryCommand | Extract<PreflightCommand,{type:"negotiate_protocol"}>, timeoutMs = this.timeout): Promise<unknown> {
     if (!this.admitting || this.fault !== undefined) return Promise.reject(this.fault ?? new Error("RPC_CLOSED"));
     if (!validateHistoryCommand(command)) return Promise.reject(new Error("RPC_COMMAND_SCHEMA"));
-    if (this.pending.size >= 32) return Promise.reject(new Error("RPC_PENDING_LIMIT"));
+    if (this.pending.size >= 32 || this.queuedWrites >= 32) return Promise.reject(new Error("RPC_PENDING_LIMIT"));
     const line = JSON.stringify(command) + "\n";
     if (Buffer.byteLength(line) > 16384) return Promise.reject(new Error("RPC_COMMAND_LIMIT"));
     const result = Promise.withResolvers<unknown>();
@@ -82,11 +84,14 @@ export class HistoryTransport {
       this.pending.delete(command.id);
       this.remember(command.id, command.type, true);
       result.reject(new Error("RPC_REQUEST_TIMEOUT"));
-    }, this.timeout);
+    }, timeoutMs);
     this.pending.set(command.id, { command: command.type, resolve: result.resolve, reject: result.reject, timer });
+    this.queuedWrites++;
     this.writeQueue = this.writeQueue.then(async () => {
-      this.child.stdin.write(line);
-      await this.child.stdin.flush();
+      try {
+        if (!this.pending.has(command.id)) return;
+        this.child.stdin.write(line); await this.child.stdin.flush();
+      } finally { this.queuedWrites--; }
     }).catch(() => { this.fail("RPC_STDIN"); });
     return result.promise;
   }

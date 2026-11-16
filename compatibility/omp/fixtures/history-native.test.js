@@ -1,5 +1,5 @@
 import { test, expect, afterAll } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, appendFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 const profile = await mkdtemp(join(tmpdir(), 'omp-history-native-'));
@@ -215,3 +215,45 @@ test('eight retained 4 MiB image representations and 5 MiB text remain accessibl
     expect(Buffer.from(encoded.join(''),'base64').equals(representations[index])).toBe(true);
   }
 },120000);
+
+
+test('native loader partial history refuses a complete snapshot instead of silently hiding malformed records', async () => {
+  const manager=SessionManager.create(profile,join(profile,'partial-sessions'));
+  manager.appendMessage({role:'user',content:'valid retained record',timestamp:1});
+  await manager.ensureOnDisk();await manager.flush();
+  const file=manager.getSessionFile();await manager.close();
+  await appendFile(file,'{"broken":\n');
+  const reopened=await SessionManager.open(file,join(profile,'partial-sessions'),undefined,{initialCwd:profile,throwIfMissing:true,suppressBreadcrumb:true});
+  try {
+    expect(reopened.loadedMalformedRecords).toBeGreaterThan(0);
+    const history=new RpcHistoryObservation(reopened,()=>({messages:[],streaming:false,compacting:false}));
+    expect(()=>history.open('tree')).toThrow('history_partial_source');
+  }finally{await reopened.close();}
+});
+
+test('unknown message/content semantics block complete history instead of becoming a silent unsupported row', () => {
+  const manager=SessionManager.inMemory(profile);
+  const id=manager.appendMessage({role:'user',content:[{type:'futureContent',privateState:'synthetic'}],timestamp:1});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  expect(()=>history.open('tree')).toThrow('history_unknown_content');
+  manager.getEntry(id).message={role:'futureMessage',content:'unreviewed semantics'};
+  expect(()=>history.open('tree')).toThrow('history_unknown_message');
+});
+
+test('native mutation feed carries actual entry/session/leaf facts independently of content polling', () => {
+  const manager=SessionManager.inMemory(profile), changes=[];
+  manager.subscribeHistoryChanges(change=>changes.push(change));
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  const cut=history.open('tree').cut;
+  const entry=manager.appendMessage({role:'user',content:'after observation starts',timestamp:1});
+  expect(changes.at(-1)).toMatchObject({kind:'append',entryId:entry,leafId:entry,sessionId:manager.getSessionId()});
+  expect(history.poll(cut.workerId,cut.observationSeq).events.some(event=>event.kind==='native_append')).toBe(true);
+});
+
+test('reentrant native mutation during serialization cannot be published as an atomic cut', () => {
+  const manager=SessionManager.inMemory(profile);let changed=false;
+  manager.appendCustomEntry('synthetic-json-state',{toJSON(){if(!changed){changed=true;manager.appendMessage({role:'user',content:'reentrant append',timestamp:1});}return 'stable';}});
+  const history=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
+  expect(()=>history.open('tree')).toThrow('history_changed_during_capture');
+  expect(history.open('tree').count).toBe(2);
+});

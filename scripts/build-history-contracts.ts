@@ -14,6 +14,7 @@ const outputs = { Open: "HistoryOpen", Page: "HistoryPage", Poll: "HistoryPoll",
 for (const [name, definition] of Object.entries(outputs)) {
   const code = standaloneCode(ajv, ajv.compile({ $ref: `${schema.$id}#/$defs/${definition}` }));
   await Bun.write(native + `history-${name.toLowerCase()}.generated.js`, code);
+  await Bun.write(native + `history-${name.toLowerCase()}.generated.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
   await emit(`packages/contracts/generated/history-${name.toLowerCase()}.js`, code);
   await emit(`packages/contracts/generated/history-${name.toLowerCase()}.d.ts`, "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 }
@@ -26,6 +27,7 @@ const commandSchema = { $defs: schema.$defs, anyOf: commands.map((command: { nam
 }) };
 const commandCode = standaloneCode(ajv, ajv.compile(commandSchema));
 await Bun.write(native + "history-command.generated.js", commandCode);
+await Bun.write(native + "history-command.generated.d.ts", "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 await emit("packages/contracts/generated/history-command.js", commandCode);
 await emit("packages/contracts/generated/history-command.d.ts", "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
 let shared = '// Generated from same-source native history wire.\nimport command from "./history-command.generated.js";\n' +

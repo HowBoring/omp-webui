@@ -34,7 +34,7 @@ index 0000000000..40f254d14f
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index 3d8c711548..e6cc2e9027 100644
+index 3d8c711548..884aac611c 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -1,3 +1,4 @@
@@ -42,10 +42,11 @@ index 3d8c711548..e6cc2e9027 100644
  /**
   * RPC Client for programmatic access to the coding agent.
   *
-@@ -1054,6 +1055,22 @@ export class RpcClient {
- 	 * `SessionManager` on the server: no `since` returns all entries in append
- 	 * order, `since` returns entries strictly after the matching durable entry.
- 	 */
+@@ -1049,6 +1050,23 @@ export class RpcClient {
+ 		return this.#getData<{ commands: RpcAvailableSlashCommand[] }>(response).commands;
+ 	}
+ 
++	/** Capture one atomic retained-tree/active-chain/running observation with shared expiring cursors. */
 +	async historySnapshotOpen(scope: HistoryScope): Promise<HistoryOpen> {
 +		return this.#getData<HistoryOpen>(await this.#send({ type: "history_snapshot_open", scope }));
 +	}
@@ -62,15 +63,15 @@ index 3d8c711548..e6cc2e9027 100644
 +		return this.#getData<HistoryPoll>(await this.#send({ type: "history_observation_poll", workerId, after }));
 +	}
 +
- 	async getEntries(since?: string): Promise<{ entries: SessionEntry[]; leafId: string | null }> {
- 		const response = await this.#send({ type: "get_entries", since });
- 		return this.#getData<{ entries: SessionEntry[]; leafId: string | null }>(response);
+ 	/**
+ 	 * Pi-compatible append-history read. Delegates to the canonical
+ 	 * `SessionManager` on the server: no `since` returns all entries in append
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..7af75ff9df
+index 0000000000..592465d734
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-@@ -0,0 +1,302 @@
+@@ -0,0 +1,306 @@
 +/** Coherent native history v1. In-memory observations are not persistence receipts. */
 +import { randomUUID, createHash } from "node:crypto";
 +import type { SessionManager } from "../../session/session-manager";
@@ -125,12 +126,16 @@ index 0000000000..7af75ff9df
 +    if (block.type === "thinking" && typeof block.thinking === "string") return `[Thinking] ${block.thinking}`;
 +    if (block.type === "toolCall") return `[Tool call: ${typeof block.name === "string" ? block.name : "unknown"}]`;
 +    if (block.type === "image") return "[Retained native image available; original association unproven]";
-+    return "[Unsupported content block]";
++    if (block.type === "redactedThinking") return "[Native redacted thinking]";
++    if (block.type === "fallback") return "[Native provider fallback boundary]";
++    if (block.type === "anthropicServerTool") return "[Native provider-managed tool record]";
++    throw new Error("history_unknown_content");
 +  }).join("\n");
 +}
 +function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
 +  const message = record(value);
 +  const role = typeof message.role === "string" ? message.role : "unknown";
++  if (role === "developer") return { role, text: "[Native developer context record]" };
 +  if (role === "fileMention") {
 +    const files = Array.isArray(message.files) ? message.files.map(record) : [];
 +    return { role, text: files.map(file => `[File mention: ${typeof file.path === "string" ? file.path : "unknown"}]\n` +
@@ -155,7 +160,7 @@ index 0000000000..7af75ff9df
 +    text: (typeof message.output === "string" ? message.output : "[Native execution]") +
 +      (message.cancelled === true ? "\n[Native execution cancelled]" : ""),
 +    ...(content && Array.isArray(message.images) ? {contents:content(message.images)} : {}) };
-+  return { text: "[Native message: unsupported display type]" };
++  throw new Error("history_unknown_message");
 +}
 +/** The whitelist deliberately never spreads native entries, custom state, provider metadata or config. */
 +function readableEntry(value: unknown, active: Set<string>, content: (value: unknown) => HistoryContent[]): HistoryItem {
@@ -548,7 +553,7 @@ index 9f8449ecb3..93c54db31d 100644
  	};
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..0d7cc41b1f 100644
+index 5835039797..08fd01e4c1 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,4 +1,8 @@
@@ -662,7 +667,7 @@ index 5835039797..0d7cc41b1f 100644
  		if (trigger) entry.trigger = trigger;
  		this.#entries.push(entry);
  		this.#index.insert(entry);
-+		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
++		this.#historyChanged("append", false, entry.id);
  		this.#notifyEntryAppended(entry);
  		await this.#persistTitleChangeEntry(entry, { title, source, updatedAt: timestamp });
  		// Keep the recent-sessions title index current so welcome-screen lookups
@@ -674,7 +679,7 @@ index 5835039797..0d7cc41b1f 100644
  		this.#bodyRevision++;
  		if (!this.#persist || !this.#sessionFile) return;
  		await this.#rewriteAtomically();
-@@ -4045,6 +4068,66 @@ export class SessionManager {
+@@ -4045,6 +4068,70 @@ export class SessionManager {
  	}
  
  	/** All session entries (excludes header). Returns a shallow copy. */
@@ -696,7 +701,8 @@ index 5835039797..0d7cc41b1f 100644
 +		this.#historyRevision++;
 +		if (context) this.#historyContextRevision++;
 +		for (const listener of this.#historyListeners) {
-+			try { listener({ kind, sourceBinding, revision: this.#historyRevision, contextRevision: this.#historyContextRevision }); }
++			try { listener({ kind, revision: this.#historyRevision, contextRevision: this.#historyContextRevision,
++				sessionId: this.#sessionId, leafId: this.#index.leafId(), ...(entryId ? {entryId} : {}) }); }
 +			catch { logger.warn("History observer failed"); }
 +		}
 +	}
@@ -708,6 +714,7 @@ index 5835039797..0d7cc41b1f 100644
 +	 */
 +	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true) {
 +		const started = performance.now();
++		const observedRevision = this.#historyRevision;
 +		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
 +		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
 +		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
@@ -733,6 +740,8 @@ index 5835039797..0d7cc41b1f 100644
 +		if (running.messages.length > limits.runningMessages || this.#entries.length + running.messages.length + 2 > limits.scanItems) throw new Error("history_scan_entries");
 +		const messages = running.messages.map(copy);
 +		const state = copy({ prefix: running.prefix ?? null, streaming: running.streaming, compacting: running.compacting });
++		if (observedRevision !== this.#historyRevision) throw new Error("history_changed_during_capture");
++		if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
 +		return { sourceId, sourceBinding, sessionId: identity.sessionId, leafId: identity.leafId, contextRevision: identity.contextRevision, entries,
 +			runtime: { messages, ...state }, contentRevision: hash.digest("hex"), scannedBytes,
 +			scanMs: performance.now() - started };
@@ -741,7 +750,7 @@ index 5835039797..0d7cc41b1f 100644
  	getEntries(): SessionEntry[] {
  		return [...this.#entries];
  	}
-@@ -4103,6 +4186,7 @@ export class SessionManager {
+@@ -4103,6 +4190,7 @@ export class SessionManager {
  			}
  			this.#entries = this.#entries.filter(candidate => candidate.id !== entryId);
  			this.#index.rebuild(this.#entries);
@@ -749,7 +758,7 @@ index 5835039797..0d7cc41b1f 100644
  			if (entry.type === "message" && entry.message.role === "assistant") {
  				const { api, provider, model, usage, stopReason, errorMessage } = entry.message;
  				// Off-branch like late usage: totals count every entry, and the kept
-@@ -4218,6 +4302,7 @@ export class SessionManager {
+@@ -4218,6 +4306,7 @@ export class SessionManager {
  		this.#titleUpdatedAt = timestamp;
  		this.#hasTitleSlot = true;
  		this.#index.rebuild(this.#entries);
@@ -757,7 +766,7 @@ index 5835039797..0d7cc41b1f 100644
  		this.#artifactManager = null;
  		this.#artifactManagerSessionFile = null;
  		this.#forceFileCreation = this.#persist;
-@@ -4359,10 +4444,12 @@ export class SessionManager {
+@@ -4359,10 +4448,12 @@ export class SessionManager {
  		manager.#hasTitleSlot = true;
  		manager.#entries = history;
  		manager.#index.rebuild(history);

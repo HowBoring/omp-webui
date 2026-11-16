@@ -21,7 +21,13 @@ async def main():
         active=await page.locator('#history').inner_text()
         assert 'After native reset' in active and 'Abandoned branch' not in active and 'Background branch' not in active
         assert 'SYNTHETIC_PRIVATE_TOKEN' not in active
-        assert await page.locator('#history details').count() >= 1
+        assert await page.locator('#history details').count() >= 2
+        assert not await page.get_by_text('Before native compaction',exact=True).is_visible()
+        for details in await page.locator('#history details').all():
+            await details.locator(':scope > summary').click()
+        assert await page.get_by_text('Before native compaction',exact=True).is_visible()
+        await page.get_by_role('button',name='Preview retained image/png',exact=False).click()
+        await page.wait_for_function("document.querySelector('#history img')?.naturalWidth === 1")
         await page.locator('#scope').select_option('tree')
         await page.wait_for_function("document.querySelector('#state').textContent.includes('128 readable records')")
         for _ in range(10):
@@ -45,9 +51,12 @@ async def main():
             'result':{'ok':True,'value':{'status':'error','code':'history_stale_cursor'}}}))
         await page.locator('#refresh').click()
         await page.get_by_text('history_stale_cursor',exact=True).wait_for()
-        result={'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
+        build_text=Path('packages/contracts/generated/identity.ts').read_text()
+        omp_build=json.loads(build_text.split(' = ',1)[1].strip().removesuffix(';'))
+        dsh_build=json.loads(Path('vendor/dsh-history/manifest.json').read_text())
+        result={'ompBuild':omp_build,'dshBuild':{key:dsh_build[key] for key in ['dshBase','sourceSha256','contractSha256','assets']},'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
             'privateSessionAdmission':'blocked','cases':{'sameCutPagedActiveAndFullTree':'PASS',
-            'retainedBoundariesFolded':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS'},
+            'retainedBoundariesFoldedAndExpandable':'PASS','nativeRetainedImagePreview':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS'},
             'nativePageResponses':len(pages),'windows':'DEFERRED'}
         (evidence/'browser.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
         await browser.close()

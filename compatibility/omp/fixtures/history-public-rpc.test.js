@@ -8,13 +8,14 @@ const { RpcClient } = await import('../../../vendor/omp/packages/coding-agent/sr
 
 test('real public native client/schema/server pages and public rename mutation invalidate prior cuts', async () => {
   let stderr = '';
-  const client = new RpcClient({spawn: () => {
+  const makeClient = resumeFile => new RpcClient({spawn: () => {
     const child = Bun.spawn([process.execPath,'--no-env-file',resolve(import.meta.dir,'history-rpc.js')], {
-      env:{PATH:process.env.PATH,HOME:isolated,PI_CODING_AGENT_DIR:isolated,OMP_HISTORY_FIXTURE_PROFILE:isolated},
+      env:{PATH:process.env.PATH,HOME:isolated,PI_CODING_AGENT_DIR:isolated,OMP_HISTORY_FIXTURE_PROFILE:isolated,...(resumeFile?{OMP_HISTORY_FIXTURE_RESUME:resumeFile}:{})},
       stdin:'pipe',stdout:'pipe',stderr:'pipe'});
     void new Response(child.stderr).text().then(text=>{stderr=text;});
     return {stdin:child.stdin,stdout:child.stdout,exited:child.exited,peekStderr:()=>stderr,kill:signal=>child.kill(signal)};
   }});
+  let client = makeClient();
   try {
     await client.start();
     const opened = await client.historySnapshotOpen('tree');
@@ -35,6 +36,15 @@ test('real public native client/schema/server pages and public rename mutation i
     await expect(client.historySnapshotPage('foreign')).rejects.toThrow('history_stale_cursor');
     const poll = await client.historyObservationPoll(opened.cut.workerId,opened.cut.observationSeq);
     expect(poll.events.some(event=>event.kind==='native_content_changed')).toBe(true);
+    const state = await client.getState();
+    expect(state.sessionFile.startsWith(isolated+'/')).toBe(true);
+    await client.stop(); client = makeClient(state.sessionFile); await client.start();
+    const resumed = await client.historySnapshotOpen('tree');
+    expect(resumed.cut.sessionId).toBe(newer.cut.sessionId);
+    expect(resumed.cut.workerId).not.toBe(newer.cut.workerId);
+    await expect(client.historySnapshotPage(newer.cursor)).rejects.toThrow('history_stale_cursor');
+    await expect(client.historyObservationPoll(newer.cut.workerId,newer.cut.observationSeq)).rejects.toThrow('history_stale_observation');
+    expect((await client.getState()).sessionName).toBe('Renamed synthetic fixture');
   } finally { await client.stop();
     const audit=JSON.parse(await readFile(join(isolated,'network-audit.json'),'utf8'));
     expect(audit.actualNetworkDispatches).toBe(0);

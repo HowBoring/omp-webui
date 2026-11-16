@@ -32,3 +32,25 @@ test("Bun history adapter reads real native same-cut scopes and cancellation clo
     expect(audit).toMatchObject({ guard: "history-egress-v1", actualNetworkDispatches: 0 });
   } finally { await transport.close(); await rm(profile, { recursive: true, force: true }); }
 }, 30_000);
+
+test("labelled public protocol fault keeps blocked queued writes bounded after request expiry", async () => {
+  const transport = await HistoryTransport.open({
+    argv: [process.execPath, "tests/fixtures/preflight-peer.ts", "never-read"], env: {},
+    timeoutMs: 50, readyTimeoutMs: 3000,
+  });
+  try {
+    const errors: string[] = [];
+    for (let batch = 0; batch < 8; batch++) {
+      await Promise.all(Array.from({ length: 32 }, async () => {
+        try { await transport.history.page("x".repeat(15_000)); }
+        catch (error) { errors.push(error instanceof Error ? error.message : "unknown"); }
+      }));
+    }
+    expect(errors).toContain("RPC_PENDING_LIMIT");
+    expect(errors.every(code => ["RPC_PENDING_LIMIT", "RPC_REQUEST_TIMEOUT"].includes(code))).toBe(true);
+    const started = performance.now();
+    const result = await transport.close();
+    expect(result.forced).toBe(true);
+    expect(performance.now() - started).toBeLessThan(1500);
+  } finally { await transport.close(); }
+}, 10_000);
