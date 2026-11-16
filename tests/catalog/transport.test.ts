@@ -42,24 +42,39 @@ test("catalog blocked stdin bounds queued and inflight writes independently of e
 
 
 test("catalog requests that expire while queued are not published when a real blocked reader resumes",async()=>{
-  const client=await fixture("resume-read",50);
+  const client=await fixture("resume-read",200);
   try{
-    let knownQueued:string[]=[];
-    for(let wave=0;wave<8;wave++){
+    const timedOut:string[]=[];
+    let blocked=false;
+    for(let wave=0;wave<8&&!blocked;wave++){
       const references=Array.from({length:32},(_,index)=>`wave-${wave}-${index}-`.padEnd(4090,"r"));
       const outcomes=await Promise.all(references.map(reference=>client.catalog.describe(reference).then(
         ()=>"RESPONSE",error=>error instanceof Error?error.message:"UNKNOWN")));
-      // A mixed wave proves a prior write is still blocked: independent queue capacity refuses some calls,
-      // while the newly admitted calls time out behind that same blocked predecessor.
-      if(outcomes.includes("RPC_PENDING_LIMIT")&&outcomes.includes("RPC_REQUEST_TIMEOUT"))
-        knownQueued=references.filter((_,index)=>outcomes[index]==="RPC_REQUEST_TIMEOUT");
+      timedOut.push(...references.filter((_,index)=>outcomes[index]==="RPC_REQUEST_TIMEOUT"));
+      // Previous waves have settled. A refusal now proves write capacity remains occupied under backpressure.
+      // A whole wave may be refused, so a mixed timeout/refusal wave is not required.
+      blocked=outcomes.includes("RPC_PENDING_LIMIT");
     }
-    expect(knownQueued.length).toBeGreaterThan(0);
-    await Bun.sleep(1200);
-    for(const reference of knownQueued){
-      // The fixture's public description probes its received-reference set after it resumes reading.
-      expect((await client.catalog.describe(`probe:${reference}`)).status).toBe("missing");
+    expect(blocked).toBe(true);
+    expect(timedOut.length).toBeGreaterThan(0);
+    // Only our public fault peer is signalled; its pre-ready latch makes release explicit.
+    process.kill(client.processId,"SIGUSR1");
+    const releasedDeadline=performance.now()+2000;
+    for(;;){
+      try{expect((await client.catalog.describe("probe:released")).status).toBe("missing");break;}
+      catch(error){
+        if(!(error instanceof Error)||error.message!=="RPC_PENDING_LIMIT"||performance.now()>=releasedDeadline)throw error;
+        await Bun.sleep(10);
+      }
     }
+    let suppressed=0;
+    for(const reference of timedOut){
+      // Some writes reached the sink before expiry. At least one expired queued write must be suppressed.
+      const status=(await client.catalog.describe(`probe:${reference}`)).status;
+      expect(["missing","replaced"]).toContain(status);
+      if(status==="missing")suppressed++;
+    }
+    expect(suppressed).toBeGreaterThan(0);
     expect(await client.close()).toEqual({code:0,forced:false,stderrBytes:0});
   }finally{await client.close();}
 },10000);

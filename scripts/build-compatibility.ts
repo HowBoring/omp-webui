@@ -2,7 +2,7 @@ import { mkdir, rm, symlink } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
-import { z } from "zod";
+import { makeCommandSchemas } from "./command-schemas.ts";
 import { digest } from "../packages/compatibility/installation.ts";
 
 import type { RpcWireBundle } from "@oh-my-pi/pi-coding-agent/modes/rpc/wire/index";
@@ -39,16 +39,8 @@ const patchSha256 = digest(patchText);
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true }, allErrors: false });
 ajv.addSchema(bundle);
 const definition = (name: string) => ({ $ref: `${bundle.$id}#/$defs/${name}` });
-const parameterDefinition = z.object({ properties: z.record(z.string(), z.unknown()),
-  required: z.array(z.string()).default([]) });
-const makeCommandSchemas = (names: string[]) => bundle["x-rpc"].commands.filter(command => names.includes(command.name)).map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return { type: "object", additionalProperties: false, required: ["id", "type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
-});
-const catalogSchemas = makeCommandSchemas(["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
-const commandSchemas = makeCommandSchemas(["get_compatibility", "negotiate_protocol"]);
+const catalogSchemas = makeCommandSchemas(bundle, ["catalog_sources", "catalog_page", "describe_session", "negotiate_protocol"]);
+const commandSchemas = makeCommandSchemas(bundle, ["get_compatibility", "negotiate_protocol"]);
 // This S0 client deliberately validates only marker-free preflight definitions. Later
 // Session unions require a separately implemented policy for the upstream leniency markers.
 const audited = new Set<string>();
@@ -116,13 +108,8 @@ console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.
 }
 
 // The runtime startup-fast interaction dispatcher validates the same authored public command schema.
-const interactionSchemas = bundle["x-rpc"].commands.filter(command =>
-  ["get_interaction_policy", "respond_ui", "negotiate_protocol"].includes(command.name)).map(command => {
-  const params = command.params === null ? { properties: {}, required: [] }
-    : parameterDefinition.parse(bundle.$defs[command.params]);
-  return { type: "object", additionalProperties: false, required: ["type", ...params.required],
-    properties: { id: { type: "string", minLength: 1 }, type: { const: command.name }, ...params.properties } };
-});
+const interactionSchemas = makeCommandSchemas(bundle,
+  ["get_interaction_policy", "respond_ui", "negotiate_protocol"], { requireId: false });
 for (const schema of interactionSchemas) audit(schema);
 for (const name of ["InteractionPolicy", "UIReplyResult"]) audit(bundle.$defs[name]);
 const interactionValidator = ajv.compile({ $defs: bundle.$defs, anyOf: interactionSchemas });
@@ -181,3 +168,6 @@ for (const name of [...Object.keys(outputs), "command"]) {
 }
 await emit("packages/contracts/generated/identity.ts",
   `// Generated from the same authored source patch and schema.\nexport const compatibilityBuild = ${JSON.stringify(build)};\n`);
+
+// Generate the narrow history public client and validators from this exact matched schema.
+await import("./build-history-contracts.ts");

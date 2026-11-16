@@ -1680,6 +1680,136 @@ export interface UIReplyResult {
 	status: "answered" | "cancelled" | "expired" | "invalid" | "stale";
 }
 
+export type HistoryScope = "tree" | "active" | "running";
+
+export interface HistoryContent {
+	cursor: string;
+	mimeType: string;
+	bytes: number;
+	sha256: string;
+	origin: "retained_native";
+	originalAssociation: "unproven";
+}
+
+export interface HistoryContentPage {
+	snapshot: string;
+	cut: HistoryCut;
+	expiresAt: number;
+	content: HistoryContent;
+	encoding: "base64";
+	partIndex: number;
+	data: string;
+	nextCursor?: string;
+}
+
+export interface HistoryItem {
+	id: string;
+	parentId: string | null;
+	kind: string;
+	active: boolean;
+	text: string;
+	toolCallId?: string;
+	toolName?: string;
+	isError?: boolean;
+	stopReason?: string;
+	contents?: HistoryContent[];
+	entryId?: string;
+	partIndex?: number;
+	partCount?: number;
+	role?: string;
+	timestamp?: string;
+	boundary?: "compaction" | "reset" | "branch";
+}
+
+export interface HistorySourceBinding {
+	sourceId: string;
+	instanceId: string;
+	nativeSessionId: string;
+	reference: string;
+}
+
+export interface HistoryCut {
+	durability: "not_attested";
+	sourceBindingStatus: "worker" | "catalog";
+	sourceId: string;
+	sessionId: string;
+	workerId: string;
+	contextId: string;
+	contentRevision: string;
+	leafId: string | null;
+	observationSeq: number;
+	catalogBinding?: HistorySourceBinding;
+}
+
+export interface HistoryLimits {
+	entries: number;
+	runningMessages: number;
+	scanItems: number;
+	bytes: number;
+	nativeItemBytes: number;
+	itemBytes: number;
+	ms: number;
+	snapshotBytes: number;
+	cacheBytes: number;
+	snapshots: number;
+	pageItems: number;
+	pageBytes: number;
+	responseBytes: number;
+	ttlMs: number;
+	contentItems: number;
+	contentPageBytes: number;
+	liveEvents: number;
+	liveBytes: number;
+	pollItems: number;
+}
+
+export interface HistoryCursors {
+	tree: string;
+	active: string;
+	running: string;
+}
+
+export interface HistoryOpen {
+	version: "coherent-history-v1";
+	snapshot: string;
+	cursor: string;
+	scope: HistoryScope;
+	cut: HistoryCut;
+	cursors: HistoryCursors;
+	expiresAt: number;
+	count: number;
+	streaming: boolean;
+	compacting: boolean;
+	prefix: HistoryItem | null;
+	scannedBytes: number;
+	scanMs: number;
+	snapshotMs: number;
+	limits: HistoryLimits;
+}
+
+export interface HistoryPage {
+	snapshot: string;
+	scope: HistoryScope;
+	cut: HistoryCut;
+	expiresAt: number;
+	items: HistoryItem[];
+	complete: true;
+	nextCursor?: string;
+}
+
+export interface HistoryChange {
+	seq: number;
+	kind: string;
+}
+
+export interface HistoryPoll {
+	cut: HistoryCut;
+	after: number;
+	through: number;
+	events: HistoryChange[];
+	hasMore: boolean;
+}
+
 /** Unsolicited outbound frame (everything except responses and host tool/URI requests), discriminated by `type`. */
 export type RpcNotification = ReadyEvent | PromptResultEvent | SessionSettledEvent | ExtensionError | ExtensionUiRequest | AvailableCommandsUpdateEvent | SubagentLifecycleEvent | SubagentProgressEvent | SubagentEvent | LivePhaseEvent | LiveLevelsEvent | LiveTranscriptEvent | LiveEndEvent | DictationStateEvent | DictationTranscriptEvent | DictationEndEvent | BtwDeltaEvent | BtwRecordEvent | CommandOutputEvent | SessionInfoUpdateEvent | ConfigUpdateEvent | RpcFrameErrorEvent | RpcAgentEvent;
 
@@ -1698,6 +1828,31 @@ export interface CatalogPageParams {
 
 export interface DescribeSessionParams {
 	reference: string;
+}
+
+export interface HistorySnapshotOpenParams {
+	scope: HistoryScope;
+}
+
+export interface HistorySnapshotPageParams {
+	cursor: string;
+}
+
+export interface HistoryContentPageParams {
+	cursor: string;
+}
+
+export interface HistorySnapshotCloseParams {
+	snapshot: string;
+}
+
+export interface HistorySnapshotCloseResult {
+	closed: boolean;
+}
+
+export interface HistoryObservationPollParams {
+	workerId: string;
+	after: number;
 }
 
 export interface NegotiateProtocolParams {
@@ -2083,6 +2238,11 @@ export interface RpcWireCommands {
 	catalog_sources: { params: undefined; result: CatalogSources };
 	catalog_page: { params: CatalogPageParams; result: CatalogPage };
 	describe_session: { params: DescribeSessionParams; result: CatalogDescription };
+	history_snapshot_open: { params: HistorySnapshotOpenParams; result: HistoryOpen };
+	history_snapshot_page: { params: HistorySnapshotPageParams; result: HistoryPage };
+	history_content_page: { params: HistoryContentPageParams; result: HistoryContentPage };
+	history_snapshot_close: { params: HistorySnapshotCloseParams; result: HistorySnapshotCloseResult };
+	history_observation_poll: { params: HistoryObservationPollParams; result: HistoryPoll };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };
