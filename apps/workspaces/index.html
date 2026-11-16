@@ -1,0 +1,11 @@
+<!doctype html><meta charset="utf-8"><title>OMP directory authorization component</title>
+<style>body{font:16px system-ui;max-width:1000px;margin:2rem auto}article{border:1px solid #aaa;padding:1rem;margin:1rem 0}input{width:75%}button{margin:.3rem}pre{white-space:pre-wrap}</style>
+<h1>Workspace directory authorization</h1><p>Synthetic native data only. Component acceptance; product history/open/execution awaits #41 and #44.</p>
+<p id="status">Authenticating…</p><button id="logout">Log out</button>
+<h2>Directory grants</h2><p>Grant a canonical working directory and descendants. Session Sources remain fixed locally.</p>
+<input id="path" aria-label="Directory path"><button id="preview">Review directory</button>
+<p id="confirmation"></p><button id="confirm" hidden>Grant this canonical directory and descendants</button><section id="grants"></section>
+<h2>Registered-reference metadata</h2><p id="index-scope">Synthetic Session Index input; registration/open persistence belongs to #44.</p><button id="registered-next" disabled>Next registered references</button><section id="registered"></section>
+<section id="sources"></section><p>Sessions are grouped by cwd within the current native page. Groups and ownership are observations, not complete global counts or registration.</p>
+<button id="refresh">Refresh discovery and permissions</button><button id="next" disabled>Next native page</button><section id="catalog"></section>
+<script type="module" src="/client.js"></script>

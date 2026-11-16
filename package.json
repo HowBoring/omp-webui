@@ -25,6 +25,10 @@
     "catalog:fixture": "bun --no-env-file vendor/host-catalog/catalog-fixture-main.js",
     "catalog:fixture-data": "bun scripts/create-catalog-fixture.ts",
     "catalog:build": "bun apps/catalog/build.ts && bun scripts/build-catalog-host.ts",
+    "workspaces:fixture-data": "bun scripts/create-workspace-fixture.ts",
+    "workspaces:build": "bun apps/workspaces/build.ts && bun scripts/build-workspace-host.ts",
+    "workspaces:component": "bun --no-env-file vendor/host-workspaces/workspace-component-main.js",
+    "test:workspaces:browser": "python3 tests/workspaces/browser.py",
     "interactions:build": "bun apps/interactions/build.ts && bun scripts/build-interactions-host.ts",
     "interactions:fixture": "bun --no-env-file vendor/host-interactions/interactions-fixture-main.js"
   },
