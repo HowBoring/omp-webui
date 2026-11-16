@@ -57,11 +57,12 @@ async def main():
         assert any(value['nextCursor'] for value in pages if 'nextCursor' in value)
         await page.screenshot(path=str(evidence/'history.png'),full_page=True)
         # Public browser controls + delayed actual native response reproduce abandoned opens.
-        held=asyncio.Event(); release=asyncio.Event(); delayed=False
+        held=asyncio.Event(); release=asyncio.Event(); delayed=False; refresh_calls=[]
         async def delay_open(route):
             nonlocal delayed
             options=route.request.post_data_json['payload']['args']['options']
             response=await route.fetch()
+            refresh_calls.append({'operation':options['operation'],'status':(await response.json())['result']['value']['status']})
             if options['operation']=='open' and not delayed:
                 delayed=True; held.set(); await release.wait()
             await route.fulfill(response=response)
@@ -72,7 +73,11 @@ async def main():
         # A controlled 100 ms delivery delay lets concurrent requests reach the real native two-cut limit.
         await page.wait_for_timeout(100)
         release.set()
-        await page.wait_for_function("document.querySelector('#state').textContent.includes('readable records')",timeout=3000)
+        try:
+            await page.wait_for_function("document.querySelector('#state').textContent.includes('readable records')",timeout=3000)
+        except Exception:
+            print(json.dumps({'overlappingRefreshFailure':await page.locator('#state').inner_text(),'nativeResponses':refresh_calls}),flush=True)
+            raise
         await page.locator('#scope').select_option('tree')
         await page.wait_for_function("document.querySelector('#state').textContent.includes('128 readable records')")
         while not await page.locator('#more').is_disabled():
@@ -98,7 +103,7 @@ async def main():
         result={'fixtureSha256':fixture_hashes,'bunLockSha256':hashlib.sha256(Path('bun.lock').read_bytes()).hexdigest(),'ompBuild':omp_build,'dshBuild':{key:dsh_build[key] for key in ['dshBase','dshSource','sourceSha256','contractSha256','assets']},'kind':'actual-dsh-bun-native-fixture','browser':browser.version,'platform':'Linux Chromium',
             'privateSessionAdmission':'blocked','cases':{'sameCutPagedActiveFullTreeAndRunning':'PASS',
             'retainedBoundariesFoldedAndExpandable':'PASS','nativeRetainedImagePreview':'PASS','hiddenStateNotExposed':'PASS','publicRemoteStaleCursorFault':'PASS','overlappingRefreshRereadsAndPagesImmediately':'PASS'},
-            'lifecycle':lifecycle,'nativePageResponses':len(pages),'windows':'DEFERRED'}
+            'lifecycle':lifecycle,'refreshNativeResponses':refresh_calls,'nativePageResponses':len(pages),'windows':'DEFERRED'}
         (evidence/'browser.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
         await browser.close()
 

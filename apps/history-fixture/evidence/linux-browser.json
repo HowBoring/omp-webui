@@ -34,10 +34,10 @@
       ],
       "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
     },
-    "sourceSha256": "5c7b967f276b813ac39b42c08d888b0f5c8b671d118283f32521182007ee3e42",
+    "sourceSha256": "34f5035951511a0965251108222134aa0b070a2f3f76401531e58662ba3c8a0d",
     "contractSha256": "344dcf4a9dd48b5eeee87e5c2774c719d58fe03343b023e0d461a7c80ec4e067",
     "assets": {
-      "client.js": "b523755a538038d4fd04355cdb4155d8c85fcb43993bac84bd3ec138a7d1a542",
+      "client.js": "98ea489f577355e155340352f93b04ef933d26fab4841e414af34d95c56b1903",
       "index.html": "a3a1c218fc35ed6f5e7dbded6a26b95ad3f8c72d204dee4577c069e9e4be619f"
     }
   },
@@ -50,8 +50,56 @@
     "retainedBoundariesFoldedAndExpandable": "PASS",
     "nativeRetainedImagePreview": "PASS",
     "hiddenStateNotExposed": "PASS",
-    "publicRemoteStaleCursorFault": "PASS"
+    "publicRemoteStaleCursorFault": "PASS",
+    "overlappingRefreshRereadsAndPagesImmediately": "PASS"
   },
+  "lifecycle": {
+    "scope-change": {
+      "status": "PASS",
+      "nativeSnapshotsAllocated": 2,
+      "nativeSnapshotsClosed": 2
+    },
+    "generation-loss": {
+      "status": "PASS",
+      "nativeSnapshotsAllocated": 2,
+      "nativeSnapshotsClosed": 2
+    },
+    "dispose": {
+      "status": "PASS",
+      "nativeSnapshotsAllocated": 1,
+      "nativeSnapshotsClosed": 1
+    }
+  },
+  "refreshNativeResponses": [
+    {
+      "operation": "close",
+      "status": "closed"
+    },
+    {
+      "operation": "open",
+      "status": "opened"
+    },
+    {
+      "operation": "close",
+      "status": "closed"
+    },
+    {
+      "operation": "open",
+      "status": "opened"
+    },
+    {
+      "operation": "page",
+      "status": "page"
+    },
+    {
+      "operation": "page",
+      "status": "page"
+    },
+    {
+      "operation": "page",
+      "status": "page"
+    }
+  ],
   "nativePageResponses": 8,
   "windows": "DEFERRED"
 }
