@@ -1,0 +1,147 @@
+{
+  "format": "omp-execution-ownership-consumer-preparation-v1",
+  "status": "SOURCE_ONLY_NOT_RUNTIME_ACCEPTED",
+  "hostBase": "df21a34570f35f919d395eadafa55b14e4de970f",
+  "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "basePreparedTree": "a2d6f32d2978d31be1c859d6c3c2183dc50b379a",
+  "basePreparedSourceSha256": "ef1b0b3ccdec279613b6396eb3955aa0daf59a6fe76e863537d3225ca1389868",
+  "baseOwnershipPatchSha256": "fac600809a89314621261f950adb5b24e9e8ce34e6083d58a1bb5632716b508d",
+  "delta": {
+    "file": "0010-execution-ownership-consumers.delta.patch",
+    "sha256": "08b24d8aa006da8afb8edd25785bc4c057ada451e8637c5400b59cc55dced164",
+    "bytes": 66824
+  },
+  "preparedTree": "9052be8a474f01bbeca8ff2e3b568bdbb6e3a5a8",
+  "files": [
+    {
+      "path": "packages/coding-agent/CHANGELOG.md",
+      "sha256": "e44c0daadcab5a9ccacce593c574f2eaf7d30d10bd217fc12103cb85dd653463"
+    },
+    {
+      "path": "packages/coding-agent/README.md",
+      "sha256": "0a60e32442b6b6bea7d075e6af4256ef65fc8e17c1217536ea4b4d306a416198"
+    },
+    {
+      "path": "packages/coding-agent/docs/execution-ownership-consumers.md",
+      "sha256": "9dfed1dd4685e6206c09fdaaeb806382906479c73a77887e1b1b2abafa26f587"
+    },
+    {
+      "path": "packages/coding-agent/docs/execution-ownership-consumers.zh-CN.md",
+      "sha256": "50ce468054ebbed54caf8181008e92b0c09471c245eadabb623966a74a196626"
+    },
+    {
+      "path": "packages/coding-agent/src/blob-broker/daemon.ts",
+      "sha256": "58817f1199f427fa22b99791d9929e49e7c8d0c4580169923fb8ff5b5d821f5c"
+    },
+    {
+      "path": "packages/coding-agent/src/blob-broker/service.ts",
+      "sha256": "33c90cd238c4ccce82c65ad9c5ce2f7d2ac1afd1d398509ea4e7086f3a21c800"
+    },
+    {
+      "path": "packages/coding-agent/src/extensibility/legacy-pi-coding-agent-shim.ts",
+      "sha256": "2b274eb48f6c6920143859f506e71b3c27942cd79414483ae3fe55fc9e3fcfbb"
+    },
+    {
+      "path": "packages/coding-agent/src/ida/client.ts",
+      "sha256": "1f1fa6a8a352c39a21b2e914f5ffd3fb17c8d78f5a26da2862148e8ff18f0604"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/client.ts",
+      "sha256": "8fb351ad6e6cf327a59592dbe98e8175258818b0270666ba7abfbce39bba30eb"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/services.ts",
+      "sha256": "dabef65d44ad7c8b13a4b40413d847c63bc19c53464ea560fc10839a681018a3"
+    },
+    {
+      "path": "packages/coding-agent/src/lsp/client.ts",
+      "sha256": "e4ba4368629eac7c2a9c8afdd6aaff950a5001b2e90c1c220895b6291962d056"
+    },
+    {
+      "path": "packages/coding-agent/src/lsp/lspmux.ts",
+      "sha256": "8082f12b92951e362918cbe4dae1b62c101dbdd077aa6500c17a817e0e267d93"
+    },
+    {
+      "path": "packages/coding-agent/src/lsp/mux/daemon.ts",
+      "sha256": "6b188e355c802df0059196f8976b612bb1f8ee0e038b45f9f404f074bb67707a"
+    },
+    {
+      "path": "packages/coding-agent/src/predict/client.ts",
+      "sha256": "3dd7a2a9716a485846cee586542ff33fefca4b4b1a7615c684cd6cadb7df8fdc"
+    },
+    {
+      "path": "packages/coding-agent/src/sdk.ts",
+      "sha256": "3985c4390f0e6cee9a2faa35e834538fb7ace2b8b9e77caadcfd5cc61f131a42"
+    },
+    {
+      "path": "packages/coding-agent/src/tools/browser.ts",
+      "sha256": "9dabcde219fed4f22c13c437cc48fdd7ac0cf6152a0ff1d103589b34ca61f776"
+    },
+    {
+      "path": "packages/coding-agent/src/tools/browser/orphan-registry.ts",
+      "sha256": "bf1d890189266b2d78f49bc1f5650fa3165bb327ed20096498d1c781b17ac3a6"
+    },
+    {
+      "path": "packages/coding-agent/src/tools/browser/registry.ts",
+      "sha256": "b5d1483e94c6a0eb1bc6ce84ee3e9694eb3aac91f02ad75f3158a1fb6fb076da"
+    },
+    {
+      "path": "packages/coding-agent/src/tools/browser/relay/daemon.ts",
+      "sha256": "3fac344818a3994b5354a5f814b957e419027cc22e0d3f3a30377ad5278348c7"
+    },
+    {
+      "path": "packages/coding-agent/src/tools/browser/shared-daemon.ts",
+      "sha256": "e337d04265cc98a776f78b94da6b7044aa0fa2061906dc8ae02eae78442ec2db"
+    }
+  ],
+  "upstreamInstructions": {
+    "path": "AGENTS.md",
+    "sha256": "4feb5c6028c3a64e5f41847404ad917501a17c83b2a21c19bbdd241dbae20c15",
+    "namespaceNodeImports": true,
+    "esPrivateMembers": true,
+    "noInlineImportsAuthored": true,
+    "noSourceGrepTests": true,
+    "readmeAndJSDocUpdated": true
+  },
+  "verification": {
+    "pureOwnership": {
+      "pass": 21,
+      "skipKernel": 1,
+      "fail": 0,
+      "assertions": 76,
+      "typeCheckedFiles": 18,
+      "guardBeforeImports": true,
+      "allowlistedSyntheticEnvironment": true,
+      "logSha256": "9b2751dccbce8eb24fd4e532a3a71a75e4602f390b07fd9ffab611c3e31b45be"
+    },
+    "wholeSdkSourceTypecheck": {
+      "baselineExit": 1,
+      "candidateExit": 1,
+      "baselineDiagnostics": 77,
+      "candidateDiagnostics": 77,
+      "addedDiagnostics": [],
+      "removedDiagnostics": [],
+      "changedFileDiagnostics": 0,
+      "result": "BLOCKED_IDENTICAL_BASELINE_DIAGNOSTICS",
+      "baselineLogSha256": "4559d8fd77e8a8df997eee163ceec5848728bc8a87dd35374ffa4c30db1cfc0e",
+      "candidateLogSha256": "062eedd5df11bb960ec0fd159bfea138c82053c02dbab65e118248598b8f8c1e",
+      "dependencyTopology": {
+        "link": "/workspace/work/omp-webui-ticket-41-native-consumers/vendor/omp-consumers/node_modules",
+        "target": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules",
+        "piUtils": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-utils",
+        "typescript": "6.0.3"
+      }
+    },
+    "newConsumerBehaviorRuntime": "NOT RUN"
+  },
+  "activePatchListChanged": false,
+  "finalPatches1Through10Composed": false,
+  "nativeRuntime": "NOT RUN",
+  "actualGlobal": "BLOCKED",
+  "capabilityGranted": false,
+  "privateAdmission": "BLOCKED",
+  "processSignalsIssued": false,
+  "orphansOrFencesChanged": false,
+  "deferredPlatform": "actual Windows Chrome/WSL2",
+  "changedFilesSha256": "2e960ce6d6b470a8316ae1a014a53c43032f4ddab3f70a1287ec11ff19335afe"
+}
