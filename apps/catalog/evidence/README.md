@@ -7,6 +7,10 @@ private APIs. It retains two unscored warmups plus 30 scored catalog and old-pag
 all errors and 25 ms Host RSS samples' peak plus OS high-water. The machine differs from the formal S5 reference;
 this is component evidence, not complete MVP/platform acceptance.
 
+The latest tuple includes the shared and catalog transport queue/startup corrections. Host bundles/enrollment and
+actual browser samples were refreshed; unchanged native/source/TTL trace and pinned DSH browser assets are
+identified transparently by the tuple reuse record.
+
 `trace-summary.json` records actual native catalog syscall evidence. The trace and whole-home manifest tests
 show no native writes, migration/repair/index operations, lease acquisition, ordinary Session imports or model/tool
 processes. `tuple.json` identifies the exact patch/schema/client/Host installation and asset tuple.

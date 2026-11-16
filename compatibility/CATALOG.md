@@ -73,6 +73,9 @@ Directory state adds at most 2048 bounded paths/stat records; only the current d
 reads are serial. Window timing is checked between filesystem operations; the hard child deadline covers a stuck
 operation. Descriptor-byte memory excludes directory/map/array/JS overhead, bounded separately by the above counts.
 The native response packer returns fewer items with a continuing cursor when needed; it never hides the remainder.
+The Host catalog transport independently bounds pending requests and queued/inflight writes at 32, releases
+write slots in finally, and skips queued requests that expired before writing. Its startup budget covers ready
+and negotiation together, separately selectable from requests/drain; default budgets are unchanged.
 The Host catalog transport rejects chunk frames because every permitted catalog response fits below the physical
 RPC ceiling, and keeps its actual byte buffer at the catalog response bound.
 

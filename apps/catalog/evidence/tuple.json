@@ -4,7 +4,7 @@
   "cumulativePatchSha256": "aebc1697a7f3321b5c0c06a7a0cc49925f500fde6be83261a25679e7516970c2",
   "sourceSha256": "907148c7554ce20af8f32902e3de57fe08c4be67ccbc612a50d9e089070d70fb",
   "schemaSha256": "f2066f6f64058b01e24640bda9e5a8625fe18d579c0fe3440f774b99fe9ea289",
-  "installationManifestSha256": "58d32601823ff66536171013f6f727ebaf5e61dec0ee5e5c5c67d70f7d09ef38",
+  "installationManifestSha256": "31fc177f827abfc88e70f2e43a5ff821ce4b5e7a797a1a696ed2b61a2c556238",
   "installationAssets": 77415,
   "orderedPatches": [
     {
@@ -28,14 +28,14 @@
   },
   "hostBundle": {
     "file": "catalog-fixture-main.js",
-    "sha256": "8a6b1da0e7a028f9a97da918b6fccad664989ae41544e0b5ba1cf2f3e54e7a32"
+    "sha256": "1e4d62e43c46d088241590cfa899f85bdf5efa1cbf8e3328aede124215715e53"
   },
   "runtime": {
     "name": "bun",
     "version": "1.4.4"
   },
   "screenshots": {
-    "catalog.png": "2ee5e617903c843df7ab178ba58b9e4d8ba6bd11d34ea2d971ce3f2085871e51"
+    "catalog.png": "e0c24af79cd8656006b174e544852e929ce0075af91056db00d16e439aa3711c"
   },
   "fixture": {
     "kind": "synthetic-native-v3",
@@ -52,5 +52,25 @@
   },
   "upstreamReuse": "Owned OMP clone; frozen runtime copied then rechecked. Pinned clean DSH source read-only from ticket30; independently built catalog assets.",
   "productSessionAdmission": "blocked",
-  "windowsChromeWsl2": "DEFERRED by owner"
+  "windowsChromeWsl2": "DEFERRED by owner",
+  "diagnosticHostBundle": {
+    "file": "diagnostics-main.js",
+    "sha256": "1eea8d036604fc747c07a79f1d460964c08163319d62df4c97aaee1e8fde8d9d"
+  },
+  "integrationBase": "3643be43d6ed7d3b5c782ddb97d24398ecc64641",
+  "transportFollowup": {
+    "kind": "actual-stdio-process-contract-fixtures",
+    "pendingRequests": 32,
+    "queuedOrInflightWrites": 32,
+    "readyAndNegotiation": "one independently configurable budget; defaults unchanged",
+    "expiredQueuedRequests": "skipped before starting a write; slot released in finally",
+    "backpressureEvidence": "eight waves of 32 schema-valid 4096-byte describe references; >1 MiB offered; actual blocked flush proved by forced nonzero RPC_STDIN drain",
+    "latePublicationEvidence": "a real paused reader resumes; public reference-receipt probes reject mutation with skip guard removed"
+  },
+  "reusedEvidence": {
+    "nativeSourceSchemaAndPatch": "unchanged from 13233badec6ff5b12f35735b7ce19b176a215360",
+    "nativeSyscallTrace": "apps/catalog/evidence/trace-summary.json unchanged; exact same native candidate inputs",
+    "native1000BucketAndRealTtlProof": "unchanged behavior and source; also covered by final full regression run",
+    "dshClientAssets": "unchanged pinned-source browser assets; no DSH cold rebuild; actual browser workflow rerun with new Host tuple"
+  }
 }
