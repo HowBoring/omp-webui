@@ -1,0 +1,18 @@
+{
+  "status": "PASS",
+  "exactArtifactPathSet": true,
+  "fileCount": 371,
+  "sha256": "1f7848987424b48a877fbeb03484f8253e712cdf2e3e355d2627a959016d8d35",
+  "upstreamBuildRecord": {
+    "formatVersion": 1,
+    "environment": {
+      "DSH_CLIENT_COMMIT_HASH": "38a6a5c",
+      "DSH_CLIENT_GIT_DIRTY": "true",
+      "DSH_CLIENT_VERSION": "0.2.2-rc.3"
+    },
+    "artifacts": {
+      "fileCount": 371,
+      "sha256": "1f7848987424b48a877fbeb03484f8253e712cdf2e3e355d2627a959016d8d35"
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "date": "2026-11-16",
+  "integrationBase": "9d5e5eb196e929086ae80bac965c4011f838d4f6",
+  "runtime": {
+    "name": "bun",
+    "version": "1.4.4"
+  },
+  "focusedBuildBoundary": {
+    "tests": 2,
+    "assertions": 32,
+    "failures": 0,
+    "elapsedSeconds": 22.55
+  },
+  "fullCheck": {
+    "tests": 111,
+    "files": 23,
+    "assertions": 947,
+    "failures": 0,
+    "elapsedSeconds": 104.16,
+    "networkEnabled": true,
+    "hostBuild": "PASS"
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "command": "bun run typecheck",
+      "log": "vendor/evidence/app-typecheck.log",
+      "logSha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    {
+      "status": "PASS",
+      "command": "bun node_modules/typescript/bin/tsc --noEmit -p tsconfig.scripts.json",
+      "log": "vendor/evidence/scripts-typecheck.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "status": "PASS",
+      "command": "bun scripts/build-compatibility.ts --check",
+      "log": "vendor/evidence/omp-generated-check.log",
+      "logSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "status": "PASS",
+      "command": "bun test tests/compatibility/catalog-build.test.ts",
+      "log": "vendor/evidence/catalog-build-cases.log",
+      "logSha256": "f41a717181eecec9e5bf7439174f57bb87583f1d6fe15b2d4dc8c53cabff7017"
+    },
+    {
+      "status": "PASS",
+      "command": "DSH_SOURCE=vendor/dsh-reconstruction bun run check",
+      "log": "vendor/evidence/repository-check.log",
+      "logSha256": "232a56f952eead03b9f949c34a14fd24e4efe8c98613b572fac35f03a2649cfa"
+    },
+    {
+      "status": "PASS",
+      "command": "bun run diagnostics:build",
+      "log": "vendor/evidence/diagnostics-build.log",
+      "logSha256": "e46b2ba17f9392a40f0807b2397145d4262a1b82994d9aecdc81a56d4773ac1b"
+    },
+    {
+      "status": "PASS",
+      "command": "bun run catalog:build",
+      "log": "vendor/evidence/catalog-build.log",
+      "logSha256": "0a1a9300f4e97ccc8fb91bcdeea362342b1387026d846c06a96277507ceafe9b"
+    }
+  ],
+  "negativeBuildCases": [
+    "unpatched baseline",
+    "only first declared patch",
+    "undeclared consumed source edit",
+    "undeclared untracked source",
+    "ignored startup .env",
+    "exact candidate tree with unrelated source ancestry"
+  ],
+  "limits": [
+    "No OMP/DSH patch or API changes",
+    "No full DSH build/1488-test rerun; exact accepted source and all 371 artifacts independently reverified",
+    "Existing optional global JSDoc navigation-prose baseline failure unchanged and not claimed green",
+    "No additional browser acceptance required for source-admission-only change; prior accepted Chromium fixture evidence unchanged",
+    "Product/private/global-install admission remains blocked; Windows/WSL2 deferred per user direction"
+  ]
+}

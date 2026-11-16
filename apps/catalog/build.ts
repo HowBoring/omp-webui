@@ -1,9 +1,10 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { dirname, relative, resolve } from "node:path";
 import { createRequire } from "node:module";
 import { z } from "zod";
+
+import { verifyDshSource } from "../../scripts/dsh-source.ts";
 
 const root = resolve(import.meta.dir, "../..");
 const outdir = resolve(root, "vendor/dsh-catalog");
@@ -12,9 +13,8 @@ const lockBytes = await readFile(resolve(root, "upstreams.lock.json"));
 const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })
   .parse(JSON.parse(lockBytes.toString()));
 const dshRoot = resolve(dirname(require.resolve("@deepseek-ai/dsh-api-gateway/package.json")), "../../..");
-const actualBase = execFileSync("git", ["-C", dshRoot, "rev-parse", "HEAD"], { encoding: "utf8" }).trim();
-if (actualBase !== lock.dsh.commit) throw new Error("Diagnostic DSH pin mismatch");
-execFileSync("git", ["-C", dshRoot, "diff", "--exit-code", "HEAD", "--"], { stdio: "pipe" });
+const dshSource = await verifyDshSource(dshRoot, "candidate");
+if (dshSource.baseCommit !== lock.dsh.commit) throw new Error("Catalog DSH pin mismatch");
 // Published browser bundles use DSH's module-loader wrapper. For this standalone
 // shell compile the explicitly exported source entrypoints into one Cordis realm.
 const entries = new Map([
@@ -78,7 +78,7 @@ for (const name of ["client.js", "index.html"]) {
 const inputDigests = [...inputs.values()].sort((left, right) =>
   `${left.package}@${left.version}/${left.file}`.localeCompare(`${right.package}@${right.version}/${right.file}`, "en"));
 const manifest = {
-  kind: "isolated-catalog-fixture", dshBase: actualBase,
+  kind: "isolated-catalog-fixture", dshBase: dshSource.baseCommit, dshSource,
   lockSha256: createHash("sha256").update(lockBytes).digest("hex"), runtime: { name: "bun", version: Bun.version },
   sourceInputs: inputs.size,
   inputs: inputDigests,
