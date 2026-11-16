@@ -10,6 +10,28 @@
     "inbound": "RpcInbound",
     "commands": [
       {
+        "name": "get_interaction_policy",
+        "doc": "Read the immutable effective rpc-ui policy, immediately available before extension startup UI or timers.",
+        "params": null,
+        "result": "InteractionPolicy",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "respond_ui",
+        "doc": "Atomically answer or cancel extension UI; invalid answers remain pending, old IDs return stale. Available during startup.",
+        "params": "RespondUiParams",
+        "result": "UIReplyResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "catalog_sources",
         "doc": "Readonly catalog v1 startup-selected profile and explicitly configured sources.",
         "params": null,
@@ -4955,6 +4977,9 @@
         "type": {
           "const": "ready"
         },
+        "interactionPolicy": {
+          "$ref": "#/$defs/InteractionPolicy"
+        },
         "protocolVersion": {
           "type": "integer"
         },
@@ -5795,6 +5820,14 @@
         },
         "targetId": {
           "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "cancelled",
+            "expired",
+            "aborted"
+          ],
+          "type": "string"
         }
       },
       "required": [
@@ -6089,7 +6122,7 @@
         "id",
         "cancelled"
       ],
-      "description": "Dismisses a dialog; `timedOut` reports the host's own deadline (an `ask` dialog then takes its recommended answers)."
+      "description": "Dismisses a dialog; `timedOut` reports the host's own deadline (rpc-ui cancels without substituting an answer)."
     },
     "AnswersUiResponse": {
       "type": "object",
@@ -6474,6 +6507,129 @@
         "scheme"
       ]
     },
+    "InteractionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "1"
+        },
+        "explicitAnswersOnly": {
+          "const": true
+        },
+        "nativeExpiry": {
+          "const": "cancel"
+        },
+        "toolExpiry": {
+          "const": "cancel"
+        },
+        "invalidAnswer": {
+          "const": "pending"
+        }
+      },
+      "required": [
+        "version",
+        "explicitAnswersOnly",
+        "nativeExpiry",
+        "toolExpiry",
+        "invalidAnswer"
+      ]
+    },
+    "UIValueAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "value"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ]
+    },
+    "UIConfirmAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "confirm"
+        },
+        "confirmed": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type",
+        "confirmed"
+      ]
+    },
+    "UICancelAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "cancel"
+        },
+        "timedOut": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "UIAskAnswer": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "ask"
+        },
+        "answers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AskAnswer"
+          }
+        }
+      },
+      "required": [
+        "type",
+        "answers"
+      ]
+    },
+    "UIAnswer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UIValueAnswer"
+        },
+        {
+          "$ref": "#/$defs/UIConfirmAnswer"
+        },
+        {
+          "$ref": "#/$defs/UICancelAnswer"
+        },
+        {
+          "$ref": "#/$defs/UIAskAnswer"
+        }
+      ]
+    },
+    "UIReplyResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "answered",
+            "cancelled",
+            "expired",
+            "invalid",
+            "stale"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
     "RpcNotification": {
       "anyOf": [
         {
@@ -6561,6 +6717,21 @@
         }
       ],
       "description": "Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`."
+    },
+    "RespondUiParams": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "string"
+        },
+        "answer": {
+          "$ref": "#/$defs/UIAnswer"
+        }
+      },
+      "required": [
+        "targetId",
+        "answer"
+      ]
     },
     "CatalogPageParams": {
       "type": "object",

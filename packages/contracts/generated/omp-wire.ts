@@ -1161,6 +1161,7 @@ export interface CompatibilityReport {
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
 export interface ReadyEvent {
 	type: "ready";
+	interactionPolicy?: InteractionPolicy;
 	protocolVersion?: number;
 	supportedProtocolVersions?: number[];
 	maxFrameBytes?: number;
@@ -1441,6 +1442,7 @@ export interface CancelUiRequest {
 	id: string;
 	method: "cancel";
 	targetId: string;
+	reason?: "cancelled" | "expired" | "aborted";
 }
 
 export interface NotifyUiRequest {
@@ -1516,7 +1518,7 @@ export interface ConfirmUiResponse {
 	confirmed: boolean;
 }
 
-/** Dismisses a dialog; `timedOut` reports the host's own deadline (an `ask` dialog then takes its recommended answers). */
+/** Dismisses a dialog; `timedOut` reports the host's own deadline (rpc-ui cancels without substituting an answer). */
 export interface CancelUiResponse {
 	type: "extension_ui_response";
 	id: string;
@@ -1642,117 +1644,38 @@ export interface HostUriSchemeDefinition {
 	immutable?: boolean;
 }
 
-export type HistoryScope = "tree" | "active" | "running";
-
-export interface HistoryContent {
-	cursor: string;
-	mimeType: string;
-	bytes: number;
-	sha256: string;
-	origin: "retained_native";
-	originalAssociation: "unproven";
+export interface InteractionPolicy {
+	version: "1";
+	explicitAnswersOnly: true;
+	nativeExpiry: "cancel";
+	toolExpiry: "cancel";
+	invalidAnswer: "pending";
 }
 
-export interface HistoryContentPage {
-	snapshot: string;
-	cut: HistoryCut;
-	expiresAt: number;
-	content: HistoryContent;
-	encoding: "base64";
-	partIndex: number;
-	data: string;
-	nextCursor?: string;
+export interface UIValueAnswer {
+	type: "value";
+	value: string;
 }
 
-export interface HistoryItem {
-	id: string;
-	parentId: string | null;
-	kind: string;
-	active: boolean;
-	text: string;
-	contents?: HistoryContent[];
-	entryId?: string;
-	partIndex?: number;
-	partCount?: number;
-	role?: string;
-	timestamp?: string;
-	boundary?: "compaction" | "reset" | "branch";
+export interface UIConfirmAnswer {
+	type: "confirm";
+	confirmed: boolean;
 }
 
-export interface HistoryCut {
-	sourceId: string;
-	sessionId: string;
-	workerId: string;
-	contextId: string;
-	contentRevision: string;
-	leafId: string | null;
-	observationSeq: number;
+export interface UICancelAnswer {
+	type: "cancel";
+	timedOut?: boolean;
 }
 
-export interface HistoryLimits {
-	entries: number;
-	bytes: number;
-	nativeItemBytes: number;
-	itemBytes: number;
-	ms: number;
-	snapshotBytes: number;
-	cacheBytes: number;
-	snapshots: number;
-	pageItems: number;
-	pageBytes: number;
-	responseBytes: number;
-	ttlMs: number;
-	contentItems: number;
-	contentPageBytes: number;
-	liveEvents: number;
-	liveBytes: number;
-	pollItems: number;
+export interface UIAskAnswer {
+	type: "ask";
+	answers: AskAnswer[];
 }
 
-export interface HistoryCursors {
-	tree: string;
-	active: string;
-	running: string;
-}
+export type UIAnswer = UIValueAnswer | UIConfirmAnswer | UICancelAnswer | UIAskAnswer;
 
-export interface HistoryOpen {
-	version: "coherent-history-v1";
-	snapshot: string;
-	cursor: string;
-	scope: HistoryScope;
-	cut: HistoryCut;
-	cursors: HistoryCursors;
-	expiresAt: number;
-	count: number;
-	streaming: boolean;
-	compacting: boolean;
-	prefix: HistoryItem | null;
-	scannedBytes: number;
-	scanMs: number;
-	limits: HistoryLimits;
-}
-
-export interface HistoryPage {
-	snapshot: string;
-	scope: HistoryScope;
-	cut: HistoryCut;
-	expiresAt: number;
-	items: HistoryItem[];
-	complete: true;
-	nextCursor?: string;
-}
-
-export interface HistoryChange {
-	seq: number;
-	kind: string;
-}
-
-export interface HistoryPoll {
-	cut: HistoryCut;
-	after: number;
-	through: number;
-	events: HistoryChange[];
-	hasMore: boolean;
+export interface UIReplyResult {
+	status: "answered" | "cancelled" | "expired" | "invalid" | "stale";
 }
 
 /** Unsolicited outbound frame (everything except responses and host tool/URI requests), discriminated by `type`. */
@@ -1761,6 +1684,11 @@ export type RpcNotification = ReadyEvent | PromptResultEvent | SessionSettledEve
 /** Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`. */
 export type RpcServerFrame = RpcResponse | RpcHostRequest | RpcNotification;
 
+export interface RespondUiParams {
+	targetId: string;
+	answer: UIAnswer;
+}
+
 export interface CatalogPageParams {
 	cursor?: string;
 	pageSize?: number;
@@ -1768,31 +1696,6 @@ export interface CatalogPageParams {
 
 export interface DescribeSessionParams {
 	reference: string;
-}
-
-export interface HistorySnapshotOpenParams {
-	scope: HistoryScope;
-}
-
-export interface HistorySnapshotPageParams {
-	cursor: string;
-}
-
-export interface HistoryContentPageParams {
-	cursor: string;
-}
-
-export interface HistorySnapshotCloseParams {
-	snapshot: string;
-}
-
-export interface HistorySnapshotCloseResult {
-	closed: boolean;
-}
-
-export interface HistoryObservationPollParams {
-	workerId: string;
-	after: number;
 }
 
 export interface NegotiateProtocolParams {
@@ -2173,14 +2076,11 @@ export interface GetBtwHistoryResult {
 
 /** Every RPC command's parameters and successful response `data`. */
 export interface RpcWireCommands {
+	get_interaction_policy: { params: undefined; result: InteractionPolicy };
+	respond_ui: { params: RespondUiParams; result: UIReplyResult };
 	catalog_sources: { params: undefined; result: CatalogSources };
 	catalog_page: { params: CatalogPageParams; result: CatalogPage };
 	describe_session: { params: DescribeSessionParams; result: CatalogDescription };
-	history_snapshot_open: { params: HistorySnapshotOpenParams; result: HistoryOpen };
-	history_snapshot_page: { params: HistorySnapshotPageParams; result: HistoryPage };
-	history_content_page: { params: HistoryContentPageParams; result: HistoryContentPage };
-	history_snapshot_close: { params: HistorySnapshotCloseParams; result: HistorySnapshotCloseResult };
-	history_observation_poll: { params: HistoryObservationPollParams; result: HistoryPoll };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };
