@@ -1,0 +1,136 @@
+{
+  "status": "MATCHED_NARROW_RUNTIME_PASS_NOT_FINAL_ACCEPTANCE",
+  "sourceCheckpoint": "d9a2da7fccf5da94b1d8cb58f139d533d138a516",
+  "integration": "530225f",
+  "fixed32": "6f5d0db905b6bb291fa342b427b16c109ceb7979",
+  "build": {
+    "sourceSha256": "1bc2075519ed7765db74defba156a1f387897d436d3ace83187cc6673b98f674",
+    "patchSha256": "c02b975ea6b5fb857818c952cabb8b0eb53aa9d6102cd00b4b29e5659318e611",
+    "schemaSha256": "68da71277f27dc72385e01101f4fc18d2197f129b0de3745d6b6727caecb68be"
+  },
+  "sourceHeldDuringRuntime": true,
+  "environment": {
+    "bun": "1.4.4",
+    "python": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3 3.12.14",
+    "TMPDIR": "/tmp",
+    "platform": "Linux x86_64",
+    "childIsolation": "synthetic HOME/XDG/cwd, preimport network guard, literal in-process provider/tool; no paid provider",
+    "sandbox": "network capability enabled for native fixtures; selected namespace and OS faults target only spawned synthetic children"
+  },
+  "checks": [
+    {
+      "name": "clean ordered1-7 source reset/apply +build +generated --check",
+      "status": "PASS"
+    },
+    {
+      "name": "authored native submission strict TypeScript",
+      "status": "PASS",
+      "limit": "unrelated upstream diagnostics excluded"
+    },
+    {
+      "name": "Host strict TypeScript",
+      "status": "PASS"
+    },
+    {
+      "name": "queued/source replacement actual public cases",
+      "status": "PASS",
+      "tests": 2,
+      "assertions": 27,
+      "seconds": 7.28,
+      "boundaries": [
+        "inside queue before first hook",
+        "after awaited input hook"
+      ],
+      "fault": "owned synthetic selected carrier rename/copy after public committed reservation query; protected guard rejects, terminal unknown, no second hook/provider/tool or query/duplicate replay"
+    },
+    {
+      "name": "directly affected ingress/query/recovery/source proof",
+      "status": "PASS",
+      "tests": 16,
+      "assertions": 156,
+      "seconds": 70.83,
+      "files": [
+        "reservation",
+        "concurrency",
+        "causality",
+        "generated",
+        "no-entry",
+        "wire",
+        "new-session",
+        "drift",
+        "cwd-guard"
+      ]
+    },
+    {
+      "name": "actual submission entry crash/restart",
+      "status": "PASS",
+      "tests": 1,
+      "assertions": 9,
+      "seconds": 10.65,
+      "faultAttested": "selected pwrite completion cut log asserted +child exit91 +restart query+duplicate no replay"
+    },
+    {
+      "name": "remaining reservation/pre-entry/completion crashes +partial write",
+      "status": "PASS",
+      "tests": 4,
+      "assertions": 33,
+      "seconds": 42.77,
+      "faultAttested": "each selected real cut log asserted; partial entry writes actual20 bytes and returns ENOSPC; unknown remains unknown, memory get_entries is not commit proof"
+    }
+  ],
+  "totals": {
+    "tests": 23,
+    "assertions": 225,
+    "failures": 0,
+    "scope": "narrow completed runtime runs only"
+  },
+  "earlierAttempts": [
+    {
+      "name": "queued-source default sandbox",
+      "status": "ENVIRONMENT_BLOCKED",
+      "testsReportedFailed": 2,
+      "assertions": 0,
+      "cause": "EPERM writing native fixture Bun child pipe before first assertion; rerun required network capability and passed"
+    }
+  ],
+  "controllerCorrection": "Adopted accepted32 ProcessLookupError handling around syscall-info/register reads for vanished owned tracees; missed-fault log assertions retained. Fresh actual entry-crash pass supersedes earlier setup timeout only for this matched run.",
+  "files": [
+    {
+      "path": "compatibility/omp/fixtures/submission-provider.ts",
+      "sha256": "d9eb026542bce9d61f9838d101e13306e2e76fd5d77dae0f1a108f8bbe67baa8"
+    },
+    {
+      "path": "tests/submissions/queued-source.test.ts",
+      "sha256": "9a4951c54203404cc0961ce118cbc68119b39d136607957065152585f29af0c3"
+    },
+    {
+      "path": "tests/submissions/syscall-faults.py",
+      "sha256": "e13d77cfa71deda7072e0753c7487aae83f727dc913a2536f468728bd6fdea52"
+    },
+    {
+      "path": "tests/continuation/syscall-faults.py",
+      "sha256": "972ee9c68cf5db55bbd8230b29dc60ac037d5f8d465beaa34067efc95af921c7"
+    },
+    {
+      "path": "tests/continuation/native-faults.c",
+      "sha256": "62c488ca99575e4aca0b57d6d80bf4a30a6c1923f1613f16d4f3311f1ab106d7"
+    }
+  ],
+  "nativeFaultShim": {
+    "sourceSha256": "62c488ca99575e4aca0b57d6d80bf4a30a6c1923f1613f16d4f3311f1ab106d7",
+    "artifactSha256": "6f4ad9edb8c50fa1a42d131a4dae6d5d32dac7ee04010370d72fe70464b20bf9"
+  },
+  "cleanup": "Each test closes/reaps owned worker/controller and removes synthetic profile in finally; exact owned candidate/controller process scan empty after completion. No fixture browser host launched in this window.",
+  "notRun": [
+    "negative old-guard regression demonstration",
+    "final state-packet/late-fact and malformed causal-entry validation",
+    "clean known-failed persistence vs unknown plus remaining publication/materialization cases",
+    "idle/held follow-up withdrawal/clear/abort lifecycle",
+    "large readers/logical export rollback and archive acceptance",
+    "new-ledger DSH/Bun/browser tuple",
+    "final combined full suite and affected broader strict acceptance",
+    "repeat1000-turn scale (not needed for this narrow shared ingress correction; final acceptance scheduling separate)"
+  ],
+  "privateSessionAdmission": "blocked",
+  "limits": "Component proof only; no private production/global installation/Windows/full MVP or formal performance admission."
+}

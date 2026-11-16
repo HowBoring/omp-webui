@@ -45,10 +45,12 @@ component ingress recovery only; its displayed seed history and session aliases 
 Windows/WSL2 is deferred by the owner. Product attachment originals/preparation, multi-holder history reset,
 production admission, global runtime enrollment and full-MVP performance/maintainer acceptance remain separate.
 
-The queued-source correction is currently a source-only checkpoint. Protected submission ingress revalidates its native
+The queued-source correction began as a source-only checkpoint and now has a matched narrow runtime proof. Protected submission ingress revalidates its native
 lease, namespace, cwd and origin inside the input queue before the first hook and after awaited ingress checks.
 `submission_submit` uses the same background admission path as prompt, so query can observe its durable reservation
 while ingress waits. Loss of protected authority leaves unpublishable completion unknown. The actual public-worker
-regression in `tests/submissions/queued-source.test.ts` is authored but execution is held during the prerequisite gate;
-`compatibility/evidence/submission-checkpoints/queued-source.json` records this limit. Existing generated identities and
-the ignored executable still describe the preceding built checkpoint until a scheduled clean rebuild.
+regression in `tests/submissions/queued-source.test.ts` passes both queued and post-await replacement cases. The clean
+rebuilt1–7 tuple passes23 focused cases/225 assertions, including five actual OS crash/write faults.
+`compatibility/evidence/submission-checkpoints/narrow-runtime.json` records exact tuple, checks, cleanup and remaining gates.
+`queued-source.json` retains the earlier unexecuted checkpoint. Whole-suite, late-fact, large-reader and new-ledger browser
+acceptance remain pending; this narrow run does not complete #36.
