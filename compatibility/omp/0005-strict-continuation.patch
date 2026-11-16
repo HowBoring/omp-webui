@@ -867,10 +867,10 @@ index 0000000000..4763326da8
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 new file mode 100644
-index 0000000000..2a28635509
+index 0000000000..d6e23b09c7
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-@@ -0,0 +1,295 @@
+@@ -0,0 +1,296 @@
 +import { sessionHeaderFromPrefix } from "../../session/session-header-id";
 +import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "../../session/session-drafts";
 +/** Exact-instance ownership acquired before ordinary Session or extension initialization. */
@@ -1044,7 +1044,8 @@ index 0000000000..2a28635509
 +        const prefix = readHeldGenerationMetadata(this.#fd, this.#parentFd, this.filePath, 16_384);
 +        const header = sessionHeaderFromPrefix(prefix);
 +        if (header?.id !== this.descriptor.nativeSessionId) throw new Error("STRICT_NATIVE_ID_CHANGED");
-+        if (typeof header.cwd !== "string" || fs.realpathSync(header.cwd) !== this.#cwdPath)
++        if (typeof header.cwd !== "string" || !path.isAbsolute(header.cwd)
++          || fs.realpathSync(header.cwd) !== this.#cwdPath)
 +          throw new Error("STRICT_CWD_CHANGED");
 +      }
 +    } catch (error) {

@@ -10,7 +10,7 @@ The accepted seams remain actual public OMP RPC and native TUI/data contracts, c
 | Duplicated lease acquisition | Move the existing central lease implementation into lightweight `session/session-lease.ts`, retaining its public re-export from session-storage. Strict acquisition, both creation paths and readonly catalog probes share native test-directory selection and untrusted-ID normalization. A genuine central native owner blocks strict RPC continuation under a shared test directory and an untrusted native ID; explicit native creation meets that same held lease. Probes retain read-only behavior. |
 | Failed factory resource ownership | Reservation factories own every acquired fd/lease in disposable stacks until successful validation transfers them. The parent fd is acquired by the factory and passed into the constructor. Native SessionManager.open releases a backend it acquired when later initialization fails. Corrupt committed-body loading, actual RLIMIT-induced parent-open EMFILE and a kernel-boundary replacement after pinned carrier/cwd acquisition all reject and permit immediate real lease reacquisition with the same owned descriptor inventory. |
 | Duplicated metadata authentication | Full and bounded-prefix resolution use one authenticated metadata reader with identical hash, token, offset, carrier and native-ID validation. |
-| Missing current native cwd guard | The shared logical-header parser supplies ID and cwd. Every reservation guard compares the current header's resolved cwd with the reserved canonical cwd before extension startup or mutation. A same-inode/same-ID, equal-byte-length cwd replacement refuses title publication, preserves replacement bytes and latches unknown. The corresponding ID replacement remains covered. |
+| Missing current native cwd guard | The shared logical-header parser supplies ID and cwd. Every reservation guard compares the current header's resolved cwd with the reserved canonical cwd before extension startup or mutation. A same-inode/same-ID, equal-byte-length cwd replacement refuses title publication, preserves replacement bytes and latches unknown. The corresponding ID replacement remains covered. A relative recorded cwd is also refused even when it resolves to the reserved directory; this separate red→green RPC regression passes (1 test / 7 assertions). |
 
 The original held ticket-32 native checkout was not changed. The new native checkout is an owned lightweight shared clone; package dependencies are read-only links. Native 0006 is byte-for-byte unchanged from the reviewed branch.
 
@@ -21,6 +21,6 @@ Red evidence was observed for unsafe cwd title publication, unreadable post-publ
 Native build tuple:
 
 - Base: `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`
-- Source SHA-256: `035237201f97d36bdda968875cf43e5c1bf5d980061b93d0492d0af922893e82`
-- Aggregate patch SHA-256: `b7beec94c3487bd44e5af7d5f2d92a1e9f69ad76da676c60c6ba02ffb3d723af`
+- Source SHA-256: `2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661`
+- Aggregate patch SHA-256: `19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286`
 - Schema SHA-256: `ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f`
