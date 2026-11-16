@@ -8,28 +8,52 @@
     "real chips/quotes/command, stock attachment cards and repeated original order survive refresh; handles/receipts rebuilt",
     "missing original preserves semantic text and visible reason; manual Enter cannot submit partial draft",
     "late preparation cannot replace a newer browser edit",
-    "no prompt/create Remote calls; shared legacy key unchanged; fresh raw upload receipts distinct"
+    "no prompt/create Remote calls; shared legacy key unchanged; fresh raw upload receipts distinct",
+    "delayed public Remote acceptance plus same-tab refresh: durable frozen text/originals, no upload, no replay, unknown recovery blocked",
+    "late acceptance never clears refreshed quarantine; explicit authoritative fixture outcome durably resolves without replay",
+    "failed Remote reply stays unknown across refresh; explicit not-submitted decision restores input without automatic send",
+    "provider checkpoint storage failure and withdrawal retain frozen text; no Remote execution"
   ],
   "pageErrors": [],
   "chromium": "156.0.8078.79",
   "sharedKeyReads": 0,
   "sharedKeyWrites": 0,
+  "localDraftSubmissionIds": [
+    "c30a4ec4-012d-43d5-9761-40bf3b2ef73b",
+    "c6201322-020b-470f-8731-0eb992d1db6e",
+    "44fccc70-0887-4ff2-b0f0-f71b4404762a"
+  ],
+  "dispatchedLocalDraftSubmissionIds": [
+    "c30a4ec4-012d-43d5-9761-40bf3b2ef73b",
+    "c6201322-020b-470f-8731-0eb992d1db6e"
+  ],
+  "dshSessionRequestIds": [
+    "2291a30f-b6e1-4772-8f10-d06ed4892317",
+    "4a298a6c-32dd-42ef-b8b3-5e87aa473080"
+  ],
+  "outerRpcIds": [
+    "305551df-7933-469f-8c9b-7fac693d6cb3",
+    "2559b40e-d27d-4e4c-bbcd-090dcb50ecd8"
+  ],
+  "logicalPromptCalls": 2,
+  "physicalPromptRequests": 6,
+  "carrierRetransmissions": 4,
   "uploads": [
     {
       "receiptId": "fixture-receipt-1",
       "file": {
-        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
-        "name": "first.txt",
-        "bytes": 22
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
       },
       "sessionId": "fixture-existing"
     },
     {
       "receiptId": "fixture-receipt-2",
       "file": {
-        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
-        "name": "second.txt",
-        "bytes": 23
+        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+        "name": "first.txt",
+        "bytes": 22
       },
       "sessionId": "fixture-existing"
     },
@@ -68,46 +92,81 @@
         "bytes": 23
       },
       "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-7",
+      "file": {
+        "attachmentId": "08c497ad3542d85611d74cae99083e1245ae14045685e7fdf4cc5603048cf6b0",
+        "name": "first.txt",
+        "bytes": 22
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-8",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
+    },
+    {
+      "receiptId": "fixture-receipt-9",
+      "file": {
+        "attachmentId": "2414303ddd8fe978042c7f2a8ee3bdeacac2f314cc3e7005803492a2535b3276",
+        "name": "second.txt",
+        "bytes": 23
+      },
+      "sessionId": "fixture-existing"
     }
   ],
   "result": "PASS",
   "final": {
     "ready": true,
     "result": {
-      "status": "blocked",
-      "reason": "revision"
+      "status": "done"
     },
     "active": "fixture-existing",
     "semantic": {
       "scope": {
-        "tabOwner": "4ec9b52c-737f-4483-956d-8591444401be",
+        "tabOwner": "d3c96c92-f2a8-472c-a1c2-48f0c9ea3479",
         "hostContext": "persistent-fixture-host-origin-data",
         "sourceContext": "native-fixture-source-a",
         "nativeSessionId": "fixture-existing",
         "projectionGeneration": "fixture-projection-1",
         "storageKey": "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]"
       },
-      "revision": 8,
-      "phase": "plain",
+      "revision": 9,
+      "phase": "sending",
       "draft": {
-        "text": "Newer user edit while preparing",
+        "text": "Storage failure must not execute",
         "references": []
       },
       "originals": [],
-      "readiness": []
+      "readiness": [],
+      "unresolved": {
+        "id": "44fccc70-0887-4ff2-b0f0-f71b4404762a",
+        "ownsDraft": true,
+        "draft": {
+          "text": "Storage failure must not execute",
+          "references": []
+        },
+        "originals": []
+      }
     },
-    "owner": "4ec9b52c-737f-4483-956d-8591444401be",
+    "owner": "d3c96c92-f2a8-472c-a1c2-48f0c9ea3479",
     "saved": {
       "records": {
         "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]": {
           "record": {
             "draft": {
-              "text": "Newer user edit while preparing",
+              "text": "Storage failure must not execute",
               "references": []
             },
             "originals": []
           },
-          "editedAt": 1794826879335
+          "editedAt": 1794830000137
         },
         "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-second\"]": {
           "record": {
@@ -117,10 +176,20 @@
             },
             "originals": []
           },
-          "editedAt": 1794826868446
+          "editedAt": 1794829980285
         }
       },
-      "owner": "4ec9b52c-737f-4483-956d-8591444401be"
+      "owner": "d3c96c92-f2a8-472c-a1c2-48f0c9ea3479",
+      "dispatches": {
+        "c30a4ec4-012d-43d5-9761-40bf3b2ef73b": {
+          "storageKey": "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]",
+          "requestId": "2291a30f-b6e1-4772-8f10-d06ed4892317"
+        },
+        "c6201322-020b-470f-8731-0eb992d1db6e": {
+          "storageKey": "[\"persistent-fixture-host-origin-data\",\"native-fixture-source-a\",\"fixture-existing\"]",
+          "requestId": "4a298a6c-32dd-42ef-b8b3-5e87aa473080"
+        }
+      }
     }
   }
 }

@@ -2,6 +2,7 @@
 import { createTabProvider } from './tab-provider.js';
 window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require => {
   const React = require('react');
+  const identities = require('@deepseek-ai/dsh-client-ui-conversation');
   function Controls({ source, actions }) {
     const state = React.useSyncExternalStore(source.subscribe, source.getSnapshot);
     return React.createElement('section', { id: 'draft-fixture', 'aria-label': 'Public draft provider fixture',
@@ -29,10 +30,11 @@ window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require 
         for (const listener of listeners) listener();
       };
       let generation = 'fixture-projection-1';
+      let failCheckpoint = false;
       let prepareRelease;
       let delayPreparation = false;
       const tab = await createTabProvider({ hostContext: 'persistent-fixture-host-origin-data',
-        sourceContext: 'native-fixture-source-a', generation: () => generation,
+        sourceContext: 'native-fixture-source-a', generation: () => generation, identities,
         prepare: async (_scope, refs, signal) => {
           if (delayPreparation) await new Promise(resolve => { prepareRelease = resolve; });
           return Promise.all(refs.map(async ref => {
@@ -43,7 +45,11 @@ window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require 
           }));
         },
       });
-      ctx.conversation.input.registerDraftProvider(ctx, tab.provider);
+      const provider = { ...tab.provider, write(scope, record, reason, signal) {
+        if (reason === 'submission' && failCheckpoint) throw new Error('Fixture durable marker storage failure');
+        return tab.provider.write(scope, record, reason, signal);
+      } };
+      const withdraw = ctx.conversation.input.registerDraftProvider(ctx, provider);
       const held = new Map();
       let binding;
       let stop;
@@ -71,9 +77,9 @@ window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require 
           clipboardText: '@a', offset, length: 2 })),
         quotes: [{ offset: 13, length: 8, text: 'quoted' }],
       }, originals: [
-        { id: 'original-b', name: 'second.txt', mediaType: 'text/plain' },
-        { id: 'original-a', name: 'first.txt', mediaType: 'text/plain' },
-        { id: 'original-b', name: 'second.txt', mediaType: 'text/plain' },
+        { id: identities.DraftOriginalId('original-b'), name: 'second.txt', mediaType: 'text/plain' },
+        { id: identities.DraftOriginalId('original-a'), name: 'first.txt', mediaType: 'text/plain' },
+        { id: identities.DraftOriginalId('original-b'), name: 'second.txt', mediaType: 'text/plain' },
       ] });
       const hydrate = record => input.hydrateDraft({ binding, scope: tab.provider.scope(binding),
         expectedRevision: input.draft(binding).getSnapshot().revision, record });
@@ -81,7 +87,17 @@ window.__ModuleLoader__.load({ id: '@omp-webui/draft-fixture', factory: require 
         'open-a': record(() => open('fixture-existing')),
         'open-b': record(() => open('fixture-second')),
         sample: record(() => hydrate(sample())),
-        missing: record(() => hydrate({ ...sample(), originals: [{ id: 'missing', name: 'lost.txt', mediaType: 'text/plain' }] })),
+        'pending-sample': record(() => hydrate({ ...sample(), draft: { text: 'Unresolved attached input', references: [] } })),
+        recover: record(async () => {
+          const outcome = await (await fetch('/probe/submission-outcome')).json();
+          if (!['accepted', 'not-submitted'].includes(outcome.value)) return { status: 'blocked', reason: 'unknown' };
+          const state = input.draft(binding).getSnapshot();
+          return input.resolveDraftSubmission({ binding, scope: state.scope, expectedRevision: state.revision,
+            submissionId: state.unresolved.id, outcome: outcome.value });
+        }),
+        'fail-checkpoint': record(() => { failCheckpoint = true; }),
+        withdraw: record(() => withdraw()),
+        missing: record(() => hydrate({ ...sample(), originals: [{ id: identities.DraftOriginalId('missing'), name: 'lost.txt', mediaType: 'text/plain' }] })),
         clear: record(() => hydrate({ draft: { text: '', references: [] }, originals: [] })),
         restore: record(() => input.restoreDraft(binding)),
         delay: record(() => { delayPreparation = true; }),

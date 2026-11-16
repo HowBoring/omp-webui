@@ -19,3 +19,5 @@ After ticket30 landed at `0ab18e55b0640a944c318d688a7db4c60ed72a0f`, the coordin
 shared DSH build pipeline extension to ticket39. Its public source-build gate is additionally tested using
 actual fixed-source Git trees and controlled authored/ignored/untracked source mutations. This preserves the
 existing diagnostic trust boundary; it does not enable product Sessions.
+
+Review correction uses the same accepted seams: public Client binding replacement/refresh quarantine, durable marker and exact public prompt-request correlation, failed/unknown outcome, explicit authoritative recovery, newer draft ownership, provider replacement/disposal and cancellation/storage failures. The actual Chromium case holds a real public Remote acceptance across same-tab reload and requires zero extra send/upload calls. Initial failing observations remain under `evidence/initial-failures/`; final evidence records the corrected source tuple.

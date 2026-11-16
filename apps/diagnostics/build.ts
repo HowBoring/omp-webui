@@ -13,7 +13,7 @@ const lockBytes = await readFile(resolve(root, "upstreams.lock.json"));
 const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })
   .parse(JSON.parse(lockBytes.toString()));
 const dshRoot = resolve(dirname(require.resolve("@deepseek-ai/dsh-api-gateway/package.json")), "../../..");
-const dshSource = await verifyDshSource(dshRoot);
+const dshSource = await verifyDshSource(dshRoot, "candidate");
 if (dshSource.baseCommit !== lock.dsh.commit) throw new Error("Diagnostic DSH pin mismatch");
 // Published browser bundles use DSH's module-loader wrapper. For this standalone
 // shell compile the explicitly exported source entrypoints into one Cordis realm.

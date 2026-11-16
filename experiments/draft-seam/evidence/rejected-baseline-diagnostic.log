@@ -1,0 +1,11 @@
+62 |     git(root, ["read-tree", sourceHead], index);
+63 |     git(root, ["add", "-A", "--", "."], index);
+64 |     const sourceTree = git(root, ["write-tree"], index).trim();
+65 |     const mode = sourceTree === expected.manifest.baseTree ? "baseline"
+66 |       : sourceTree === expected.tree ? "candidate" : undefined;
+67 |     if (mode === undefined || (required !== undefined && mode !== required)) throw new Error("DSH_AUTHORED_SOURCE_MISMATCH");
+                                                                                            ^
+error: DSH_AUTHORED_SOURCE_MISMATCH
+      at verifyDshSource (/workspace/work/omp-webui-ticket-39-review-fix/scripts/dsh-source.ts:67:88)
+
+Bun v1.4.4 (Linux x64)

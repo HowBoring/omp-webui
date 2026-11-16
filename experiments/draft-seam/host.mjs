@@ -98,6 +98,9 @@ const frames = [];
 const uploads = [];
 const served = new Map();
 let receiptCounter = 0;
+let promptMode = 'accept';
+let submissionOutcome = 'unknown';
+const pendingPrompts = [];
 const mime = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html',
   '.json': 'application/json', '.woff2': 'font/woff2', '.svg': 'image/svg+xml', '.png': 'image/png' };
 function json(response, value, status = 200) {
@@ -107,6 +110,20 @@ function json(response, value, status = 200) {
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, 'http://127.0.0.1');
   try {
+    if (url.pathname === '/probe/prompt-mode') {
+      promptMode = url.searchParams.get('value'); submissionOutcome = 'unknown';
+      return json(response, { value: promptMode });
+    }
+    if (url.pathname === '/probe/release-prompt') {
+      submissionOutcome = url.searchParams.get('outcome') ?? 'unknown';
+      for (const pending of pendingPrompts.splice(0)) {
+        const result = { ok: true, value: { accepted: true } };
+        pending.call.result = result;
+        json(pending.response, { type: 'server-response', rpcId: pending.call.rpcId, result });
+      }
+      return json(response, { value: submissionOutcome });
+    }
+    if (url.pathname === '/probe/submission-outcome') return json(response, { value: submissionOutcome });
     if (url.pathname === '/probe/status') return json(response, { requests, frames, uploads, selected: [...selected],
       creates });
     if (url.pathname.startsWith('/fixture/originals/')) {
@@ -159,7 +176,14 @@ const server = createServer(async (request, response) => {
         result = ok({ sessionId });
       }
       else if (endpoint === 'session/projections') result = ok({ asOfSeq: -1, values: {} });
-      else if (endpoint === 'session/prompt' || endpoint === 'session/cancel' || endpoint === 'session/updateQueue') result = ok({ accepted: true });
+      else if (endpoint === 'session/prompt' && promptMode === 'delay') {
+        pendingPrompts.push({ response, call: requests.at(-1) });
+        return;
+      }
+      else if (endpoint === 'session/prompt' && promptMode === 'drop') {
+        response.destroy(); return;
+      }
+      else if (endpoint === 'session/prompt' || endpoint === 'session/cancel'  || endpoint === 'session/updateQueue') result = ok({ accepted: true });
       else if (endpoint === 'session/rename') result = ok({ title: args.title, seq: 0 });
       else result = fail('gateway/internal', `Unsupported by isolated fixture: ${endpoint}`);
       requests.at(-1).result = result;

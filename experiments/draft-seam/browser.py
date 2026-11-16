@@ -162,6 +162,113 @@ with sync_playwright() as p:
         assert page.evaluate("JSON.parse(localStorage.getItem('dsh.conversation.fixture-existing')).draft") == 'shared other-tab text'
         assert not report['pageErrors'], report['pageErrors']
         report['checks'].append('no prompt/create Remote calls; shared legacy key unchanged; fresh raw upload receipts distinct')
+        # Actual public Remote request remains delayed while a same-tab refresh destroys the old Client.
+        page.request.get(base + '/probe/prompt-mode?value=delay')
+        action(page, 'pending-sample')
+        page.locator('[data-composer-input=true]').press('Enter')
+        page.wait_for_function("JSON.parse(document.querySelector('#draft-state').textContent).semantic.unresolved !== undefined")
+        for _ in range(100):
+            pending_status = page.request.get(base + '/probe/status').json()
+            if len([c for c in pending_status['requests'] if c['endpoint'] == 'session/prompt']) == 1:
+                break
+            page.wait_for_timeout(30)
+        assert len([c for c in pending_status['requests'] if c['endpoint'] == 'session/prompt']) == 1
+        protected = state(page)['semantic']['unresolved']
+        assert protected['draft']['text'] == 'Unresolved attached input'
+        assert [r['id'] for r in protected['originals']] == ['original-b', 'original-a', 'original-b']
+        pending_saved = saved(page)
+        assert any(r['record'].get('unresolved', {}).get('id') == protected['id'] for r in pending_saved['records'].values())
+        assert 'receipt' not in json.dumps(pending_saved).lower()
+        prompt = [c for c in pending_status['requests'] if c['endpoint'] == 'session/prompt'][0]
+        args = prompt['payload'].get('args', prompt['payload'])
+        assert pending_saved['dispatches'][protected['id']]['requestId'] == args['request']['requestId']
+        uploads_before = len(pending_status['uploads'])
+        page.reload()
+        ready(page)
+        open_a(page)
+        assert state(page)['semantic']['unresolved'] == protected
+        assert state(page)['semantic']['phase'] == 'sending'
+        assert state(page)['semantic']['draft']['text'] == 'Unresolved attached input'
+        assert all(r['status'] == 'invalid' for r in state(page)['semantic']['readiness'])
+        assert page.locator('[data-composer-input=true]').get_attribute('contenteditable') == 'false'
+        assert saved(page) == pending_saved
+        action(page, 'recover')
+        assert state(page)['result'] == {'status': 'blocked', 'reason': 'unknown'}
+        page.locator('[data-composer-input=true]').press('Enter')
+        refreshed_status = page.request.get(base + '/probe/status').json()
+        assert len([c for c in refreshed_status['requests'] if c['endpoint'] == 'session/prompt']) == 1
+        assert len(refreshed_status['uploads']) == uploads_before
+        page.screenshot(path=str(root / 'unresolved-after-refresh.png'))
+        report['checks'].append('delayed public Remote acceptance plus same-tab refresh: durable frozen text/originals, no upload, no replay, unknown recovery blocked')
+
+        page.request.get(base + '/probe/release-prompt?outcome=accepted')
+        assert state(page)['semantic']['unresolved'] == protected
+        action(page, 'recover')
+        assert state(page)['result'] == {'status': 'applied'}
+        assert state(page)['semantic']['phase'] == 'plain'
+        assert state(page)['semantic']['draft']['text'] == ''
+        assert state(page)['semantic'].get('unresolved') is None
+        report['checks'].append('late acceptance never clears refreshed quarantine; explicit authoritative fixture outcome durably resolves without replay')
+
+        page.request.get(base + '/probe/prompt-mode?value=drop')
+        edit(page, 'Unknown outcome after failed Remote response')
+        page.locator('[data-composer-input=true]').press('Enter')
+        page.wait_for_function("JSON.parse(document.querySelector('#draft-state').textContent).semantic.unresolved !== undefined")
+        for _ in range(100):
+            failed_status = page.request.get(base + '/probe/status').json()
+            if len({c['rpcId'] for c in failed_status['requests'] if c['endpoint'] == 'session/prompt'}) == 2:
+                break
+            page.wait_for_timeout(30)
+        assert len({c['rpcId'] for c in failed_status['requests'] if c['endpoint'] == 'session/prompt'}) == 2
+        unknown_marker = state(page)['semantic']['unresolved']
+        page.reload()
+        ready(page)
+        open_a(page)
+        assert state(page)['semantic']['unresolved'] == unknown_marker
+        assert state(page)['semantic']['phase'] == 'sending'
+        assert state(page)['semantic']['draft']['text'] == 'Unknown outcome after failed Remote response'
+        action(page, 'recover')
+        assert state(page)['result']['reason'] == 'unknown'
+        page.request.get(base + '/probe/release-prompt?outcome=not-submitted')
+        action(page, 'recover')
+        assert state(page)['semantic']['phase'] == 'plain'
+        assert state(page)['semantic']['draft']['text'] == 'Unknown outcome after failed Remote response'
+        status = page.request.get(base + '/probe/status').json()
+        assert len({c['rpcId'] for c in status['requests'] if c['endpoint'] == 'session/prompt'}) == 2
+        report['checks'].append('failed Remote reply stays unknown across refresh; explicit not-submitted decision restores input without automatic send')
+
+        action(page, 'fail-checkpoint')
+        edit(page, 'Storage failure must not execute')
+        page.locator('[data-composer-input=true]').press('Enter')
+        page.wait_for_function("JSON.parse(document.querySelector('#draft-state').textContent).semantic.unresolved !== undefined")
+        page.wait_for_timeout(100)
+        status = page.request.get(base + '/probe/status').json()
+        assert len({c['rpcId'] for c in status['requests'] if c['endpoint'] == 'session/prompt'}) == 2
+        assert state(page)['semantic']['draft']['text'] == 'Storage failure must not execute'
+        assert state(page)['semantic']['phase'] == 'sending'
+        action(page, 'withdraw')
+        assert state(page)['semantic']['unresolved']['draft']['text'] == 'Storage failure must not execute'
+        report['checks'].append('provider checkpoint storage failure and withdrawal retain frozen text; no Remote execution')
+        prompt_calls = [c for c in status['requests'] if c['endpoint'] == 'session/prompt']
+        logical = {}
+        for call in prompt_calls:
+            prior = logical.setdefault(call['rpcId'], call['payload'])
+            assert prior == call['payload'], 'carrier retransmission changed the original prompt'
+        assert len(logical) == 2
+        assert len({payload['args']['request']['requestId'] for payload in logical.values()}) == 2
+        dispatched_ids = list(saved(page).get('dispatches', {}))
+        assert set(dispatched_ids) == {protected['id'], unknown_marker['id']}
+        local_ids = [protected['id'], unknown_marker['id'], state(page)['semantic']['unresolved']['id']]
+        assert len(set(local_ids)) == 3
+        report['localDraftSubmissionIds'] = local_ids
+        report['dispatchedLocalDraftSubmissionIds'] = dispatched_ids
+        report['dshSessionRequestIds'] = [payload['args']['request']['requestId'] for payload in logical.values()]
+        report['outerRpcIds'] = list(logical)
+        report['logicalPromptCalls'] = len(logical)
+        report['physicalPromptRequests'] = len(prompt_calls)
+        report['carrierRetransmissions'] = len(prompt_calls) - len(logical)
+        assert not [c for c in status['requests'] if c['endpoint'] == 'session/create']
+        assert not report['pageErrors'], report['pageErrors']
         report['uploads'] = status['uploads']
         report['result'] = 'PASS'
         report['final'] = state(page)
