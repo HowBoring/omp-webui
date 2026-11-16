@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { controlledRuntime, decodeSubmission, terminalSubmission } from "./fixture.ts";
+import { controlledRuntime, decodeSubmission, terminalSubmission, submissionHistory } from "./fixture.ts";
 import { z } from "zod";
 import { nativeFixture } from "../catalog/fixture.ts";
 import { isolatedRuntimeArgs, negotiateStrict, selectedDescriptor, strictWorker } from "../continuation/worker.ts";
@@ -52,6 +52,9 @@ try {
       const target = recovery.parse(query.data).target;
       expect(decoded.relations).toContainEqual(expect.objectContaining({ entryId: inputEntryId!, role: "input", availability: "retained", persistence: "committed" }));
       expect(target.nativeSessionId).not.toBe(selected.nativeSessionId);
+      expect((await submissionHistory(worker)).find(item => item.id === inputEntryId)?.submission)
+        .toEqual({ origin: { sourceId: selected.sourceId, instanceId: selected.instanceId,
+          nativeSessionId: selected.nativeSessionId, clientSubmissionId: command.clientSubmissionId }, role: "input" });
       expect(query).toMatchObject({ success: true, data: { found: true, admission: "inherited", terminal: true, inputOutcome: "generated",
         origin: { nativeSessionId: selected.nativeSessionId, instanceId: selected.instanceId } } });
       expect(await worker.request({ ...command, ...target })).toMatchObject({ success: false, code: "SUBMISSION_CONFLICT" });

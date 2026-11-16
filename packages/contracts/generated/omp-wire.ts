@@ -933,6 +933,11 @@ export interface SubmissionPolicy {
 	maxPendingTasks: number;
 }
 
+export interface SubmissionCausality {
+	origin: SubmissionOrigin;
+	role: "input" | "prepared" | "additional" | "execution";
+}
+
 export interface SubmissionTarget {
 	sourceId: string;
 	instanceId: string;
@@ -958,6 +963,7 @@ export interface SubmissionResult {
 	admission: "local" | "inherited" | "absent";
 	reservation: "committed" | "unknown" | "absent";
 	inputOutcome: "unresolved" | "generated" | "no_input";
+	operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown";
 	persistence: "committed" | "failed" | "unknown" | "unresolved";
 	terminal: boolean;
 	relations: SubmissionRelation[];
@@ -1833,6 +1839,7 @@ export interface HistoryItem {
 	kind: string;
 	active: boolean;
 	text: string;
+	submission?: SubmissionCausality;
 	provider?: string;
 	model?: string;
 	live?: HistoryLiveIdentity;
@@ -2008,6 +2015,7 @@ export interface SubmissionSubmitParams {
 	preparationId: string;
 	inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt";
 	message: string;
+	idleOnly?: boolean;
 	images?: ImageContent[];
 	streamingBehavior?: StreamingBehavior;
 }

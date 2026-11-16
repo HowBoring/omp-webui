@@ -4342,6 +4342,27 @@
         "maxPendingTasks"
       ]
     },
+    "SubmissionCausality": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/SubmissionOrigin"
+        },
+        "role": {
+          "enum": [
+            "input",
+            "prepared",
+            "additional",
+            "execution"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "origin",
+        "role"
+      ]
+    },
     "SubmissionTarget": {
       "type": "object",
       "properties": {
@@ -4450,6 +4471,15 @@
           ],
           "type": "string"
         },
+        "operationOutcome": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled",
+            "unknown"
+          ],
+          "type": "string"
+        },
         "persistence": {
           "enum": [
             "committed",
@@ -4494,6 +4524,7 @@
         "admission",
         "reservation",
         "inputOutcome",
+        "operationOutcome",
         "persistence",
         "terminal",
         "relations",
@@ -7360,6 +7391,9 @@
         "text": {
           "type": "string"
         },
+        "submission": {
+          "$ref": "#/$defs/SubmissionCausality"
+        },
         "provider": {
           "type": "string"
         },
@@ -8048,6 +8082,9 @@
         },
         "message": {
           "type": "string"
+        },
+        "idleOnly": {
+          "type": "boolean"
         },
         "images": {
           "type": "array",

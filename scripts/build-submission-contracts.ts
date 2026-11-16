@@ -4,7 +4,7 @@ import Ajv2020 from "ajv/dist/2020.js";
 import standaloneCode from "ajv/dist/standalone/index.js";
 import { makeCommandSchemas } from "./command-schemas.ts";
 const root = resolve("vendor/omp/packages/coding-agent/src/modes/rpc");
-const bundle = JSON.parse(await Bun.file(resolve("vendor/omp-candidate/rpc-wire.schema.json")).text());
+const bundle = JSON.parse(await Bun.file(resolve(root, "wire/rpc-wire.schema.json")).text());
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true } });
 ajv.addSchema(bundle);
 const command = standaloneCode(ajv, ajv.compile({ $defs: bundle.$defs, anyOf: makeCommandSchemas(bundle, ["submission_submit", "submission_query"], { requireId: false }) }));
