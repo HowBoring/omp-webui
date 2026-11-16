@@ -7,6 +7,7 @@
     "schemaSha256": "67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"
   },
   "nativeSourceFreeze": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+  "nativeTraceReused": true,
   "orderedPatches": [
     {
       "file": "0001-safe-preflight.patch",
@@ -28,12 +29,12 @@
       "version": "1.4.4",
       "executableSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
     },
-    "inputs": 246,
+    "inputs": 247,
     "bundle": {
       "file": "interactions-fixture-main.js",
-      "sha256": "93b54fb25f7776dc064af88c97a54c69dd0de00d54584b0352908e4b38cdfd6f"
+      "sha256": "a187fab0e1ef9cd0d3cfb3ec6030d5920f04b6d4e07cba9bc1de8c8681ffddfe"
     },
-    "inputSetSha256": "8ef71cce3a92192123ad62e920cab655d6b6095dbd2db776871bbe7b9611a642"
+    "inputSetSha256": "4e059520f6664e085fd637ea8ea795f682ed025670581423a9a636df37c33480"
   },
   "DSH": {
     "kind": "S0-isolated-interactions",
@@ -64,21 +65,31 @@
     },
     "sourceInputs": 255,
     "inputs": 255,
-    "sourceSha256": "aba4299345a0a4a86458edfc4b8c8544dd7ad215c563d39737a21a96853c63c1",
-    "contractSha256": "520266598312853b77c0ac3d8994c26c97b1f1de2900b1b06abfbf63f4c09e87",
+    "sourceSha256": "6b8f040e64fa45d91f189c9530db2626f6a4e7cb90366919867241db0ab1b79a",
+    "contractSha256": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
     "assets": {
-      "client.js": "21865bab6e410a515acbe6068e467c65550e5863b85785c5b6c20120721d55f6",
+      "client.js": "e70609e020d439ba2ff963880f278a67aabce1ca80beea5fb8c498a61c9f701d",
       "index.html": "28c2c860702e135d3f3c48b9e9ee524676c039e32c462e74d929b1c3982e28af"
     },
-    "inputSetSha256": "19c73961498a71371ae1fafd98a789d2d6e2c09988572f96b72dab459310920a"
+    "inputSetSha256": "4acf94ee2251438fe082347315d657c187ef5252516e9f9204f1799d456d13e5"
   },
   "sourceManifestSha256": {
-    "vendor/host-interactions/manifest.json": "32c9e2f3a28ddd71ff8b87a90be3fd7246edfdb813933bdf1779d72c3f0c1379",
-    "vendor/dsh-interactions/manifest.json": "88a43aa83ebff6a1651c2c7dece3b24a62b8c835d01476b23e855fd9d6bfdcc2",
+    "vendor/host-interactions/manifest.json": "f1d75fe409c889a129282196ad66e644f77d8769df18f0cee09f77cfd0a53c5b",
+    "vendor/dsh-interactions/manifest.json": "6f80da4f0072ec6fc9f3fda4bbb78fee75b0e658f1435f761fa4cdd69d1d396b",
     "tests/interactions/no-provider.ts": "d6289b7695f0ef8ed9d2f4258e91a99219c5f2d4e1fa4c81e45cbe519e0a7b4a",
     "tests/interactions/native-extension.ts": "2875772a176018177572797ceecc9d2c8c06419a4da92d555083acb44aab1324",
     "tests/interactions/native-core-loop.ts": "66809f6b89b1be295eff813c95938d56b5ba6ba155dde715e7258c3100df43fd",
     "tests/interactions/native-client.ts": "52eff05114f0345205ef82cf3ed4bf3f4d08b045d091a7437ba194cafce8e137",
-    "bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a"
+    "bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+    "scripts/build-identities.ts": "87b6cc2b2bf444d5ba47f27deff5b0b63e8962b61897b41cbd93fae7cf505534",
+    "apps/diagnostics/build.ts": "bda52ec363767a352dcba99664eef16c14b6da2c6916ae9960b236c7a5fa3048",
+    "apps/interactions/build.ts": "dfbc93ce8ff269bb2aa7bd39c011e5a36651726e963d9160654f9839890b4d95",
+    "apps/catalog/build.ts": "b7d9fc29604d569c55540c3e70e83854af789b6bf3ab83281de46b16e61fc062",
+    "apps/host/src/dsh-events-carrier.ts": "a306738188cddf0f7f65c69683d874d6193b90d18f83e8db15c1881d7d8231f2",
+    "packages/interactions/bridge.ts": "38d8d33f26cfe6b31b55d143bbcfb4d58881de2ab0814a7e1f1d88176518b392",
+    "packages/contracts/interactions.ts": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
+    "apps/host/src/interactions-fixture-server.ts": "8e95ca478e1e40257a6ec30764a9213c6271077a6dae04f1b117ffb3e4ff634e",
+    "tests/browser/interactions-control.test.ts": "405f85ec071ad8fdd6400ce37b94fea4726a2070bf244d46b47ab4959a2284aa",
+    "tests/browser/interactions-browser.py": "179e1423c2c207f8abf36ccc9d47351d75f36c3e65bc4a96d9ce1394241f96b4"
   }
 }

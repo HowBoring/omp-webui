@@ -4,9 +4,11 @@ All five #33 acceptance criteria are implemented on the real candidate native
 paths. This slice remains S0 isolated: no product private Session admission,
 global OMP installation, real provider/model call or Windows acceptance is claimed.
 Windows is explicitly deferred. Native source froze at
-`13fd5508440af24e877ec9cbb607e983962b1bc2`; subsequent changes cover fixture/evidence
-and current-integration DSH source verification. The final branch includes
-integration `9d5e5eb196e929086ae80bac965c4011f838d4f6`.
+`13fd5508440af24e877ec9cbb607e983962b1bc2`; subsequent changes cover Host bounds,
+shared carrier/build machinery, fixtures/evidence and current-integration DSH
+source verification. The final branch includes
+integration `2118454e02ac1e5db40847fec62f812308698309`, including the accepted
+#39 catalog candidate build gate.
 
 | Acceptance criterion | Implementation and actual evidence |
 | --- | --- |
@@ -100,8 +102,9 @@ base `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`, authored tree
 `c0b09e15c170a82894608c397a363a7a96e5d05c`. The canonical declared-patch source gate
 passes. Earlier baseline DSH runs were replaced by current-candidate browser
 records. Exactly one React/ReactDOM 18.3.1 realm serves both DSH and the app.
-All native source/build outputs and dependencies are owned ignored files; shared
-DSH source/dependencies were reused read-only and no global installation changed.
+Native candidate/runtime outputs are reused read-only; negative source tests use
+owned ignored OMP/DSH copies. Shared DSH source/dependencies are reused read-only
+and no global installation changed.
 
 Commands use Bun 1.4.4 at
 `/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun`; native
@@ -142,3 +145,105 @@ browser errors and Host/native exit 0, no forced kill, complete stdout drain and
 acknowledged native abort commands. Raw Playwright traces/screenshots/logs remain
 ignored outputs whose hashes are retained. Broker #47, complete durable delivery,
 product Session authority/admission and Windows remain outside this slice.
+
+
+## Independent review fixes
+
+The unbounded Host answer tail was removed. Retained capacity is one answer per
+interaction and eight per worker, checked before retaining the payload or creating
+continuations. Excess attempts receive the typed Host-only
+`INTERACTION_ANSWER_LIMIT` result; the native acknowledgement schema and patch
+0003/source freeze are unchanged. Cancellation has sixteen reserved native-command slots; external cancellation
+and expired-answer waiters now have separate limits of one per Interaction and
+sixteen per worker. Excess callers receive immediate Host overload even when the
+native cancellation is already pending. Native cancellation coalescing and one
+coalesced abort run independently of answer acknowledgements. Native `invalid` keeps the original request and deadline; delayed
+`answered`, `cancelled`, `expired` and `stale` results remain native facts.
+
+The public controlled-port regression holds the head acknowledgement and floods
+512 answers, verifies immediate overload and exactly one admitted attempt, then
+observes invalid/retry, delayed native success, late staleness, cancellation bypass,
+512 duplicate cancels, per-worker bounds, expiry progress and disposal. A separate
+controlled monotonic-clock case reaches the deadline before its timer callback;
+it sends native cancellation/abort and returns a real `stale` acknowledgement,
+proving elapsed time alone cannot fabricate an `expired` result. Public DSH Remote
+validation accepts the Host overload union while the native result schema rejects
+it. Original red logs remain under
+[review-fix](../../apps/interactions/evidence/review-fix/bridge-red.json), alongside
+[the deadline red](../../apps/interactions/evidence/review-fix/deadline-red.json).
+
+Shared build identity collection now covers diagnostics, interactions and catalog.
+Each retains its actual-resolved-source candidate verification. The #39 catalog
+child-workspace harness copies the shared collector and still exercises a real
+successful candidate build, as well as baseline/partial/wrong-ancestry/unrecorded
+source rejection. The shared bounded DSH events carrier owns peer/stream admission,
+origin mechanics, cancellation, backpressure and disposal; slice routes, validators
+and authorization remain explicit. There is no general browser-to-native RPC path.
+
+The new default/configured Linux browser runs use the rebuilt Host and canonical
+DSH candidate, retain 10/11 passing cases, and observe native/Host exit 0 without
+forced termination or unread stdout. The existing native-only syscall trace is
+explicitly reused, after checking unchanged native source identity and guard,
+extension, public-client and core-loop fixture hashes; it is not a new trace run.
+Native source mutation checks run only on owned OMP/DSH source clones. Shared
+candidate builds, runtime dependencies and DSH source remain read-only.
+
+Review validation commands and exact results are retained in
+[review validation](../../apps/interactions/evidence/review-fix/validation.json).
+Setup failures are retained there: missing PATH/.bin tooling, missing React type
+links, and the React realm guard rejecting the initial incorrect React 19
+dependency link. A test-only widened TypeScript literal also failed the final
+check and was corrected with a const literal; its diagnostic is retained. The links were corrected to the pinned React 18.3.1
+realm before final builds and browser runs. No failed attempt is counted as PASS.
+
+Final review-fix integration validation on the merged 2118454 combination passed
+**128 tests / 1,001 assertions across 29 files in 132.74 seconds**, root strict
+TypeScript and Host build. The preliminary pre-deadline/Remote run passed
+126 tests / 1,041 assertions; the final run includes both additional cases.
+Each count is the observed output of its own run; all 128 final cases passed. The affected public source gates passed 5 tests / 7
+assertions; the actual catalog build gate passed 2 tests / 32 assertions.
+No native patch, generated wire contract or retained native syscall trace changed.
+
+
+## Cancellation waiter review correction
+
+The previous direct bridge test bounded native command count but missed retained
+HTTP/Remote callers sharing the cancellation promise. The new regression crosses
+actual loopback HTTP through public DSH Connection/Remote/Gateway and the same
+Host service used by the native browser fixture. Its owned public InteractionPort
+holds native cancellation and abort acknowledgements; no private DSH instance or
+native internal collaborator is substituted. The public carrier factory accepts
+an owned worker boundary; browser inputs cannot select a worker.
+
+The retained new red observes 512 explicit cancellation calls remaining pending
+for the full 2-second probe. Green covers both an explicit cancellation already
+pending and an internal deadline cancellation already pending. In each case one
+external caller waits, while 512 explicit cancellations and 512 postdeadline
+ordinary answers receive immediate typed Host overload through real HTTP. One
+native cancellation and one abort remain pending, and releasing the native reply
+returns its actual `cancelled` result to the first caller. Later calls are stale;
+carrier disposal removes subscriptions and no later request is published.
+Internal deadline processing bypasses external waiter admission. The existing
+monotonic-before-timer regression still returns the real native result and keeps
+cancellation-before-abort dispatch order.
+
+Both rebuilt Linux Chromium runs pass 10/11 cases. The concurrent two-page race
+requires exactly one `answered`; its other result may be Host `overloaded` before
+the first native acknowledgement, or native `stale` after retirement. An initial
+browser run exposed the older assertion requiring only `stale`; that failure is
+recorded separately from the subsequent passing runs. Direct bridge native-race
+and actual native-worker tests continue to establish native result semantics.
+
+The native source freeze, ordered 0001/0002/0003 patch hashes, schema and native
+fixture/guard hashes remain unchanged. Candidate bundles/runtime are reused
+read-only; negative source mutation tests run on owned OMP/DSH copies. The unchanged
+native syscall trace is explicitly reused after identity/hash verification.
+Current integration 2118454 is already an ancestor (merge reports up to date).
+Exact final commands, counts, log hashes and limits are retained in
+[control waiter validation](../../apps/interactions/evidence/control-fix/validation.json).
+The earlier review-fix red/validation records remain as historical evidence.
+
+Final cancellation-waiter integration check passes **130 tests / 1,031 assertions
+across 30 files in 135.84 seconds**, root strict TypeScript and Host build. The
+affected bridge/Remote checks pass **8 tests / 48 assertions**. Both held-control
+HTTP scenarios and actual native-worker races pass within that full suite.

@@ -15,3 +15,15 @@ Regenerate using `scripts/trace-interactions.py`, both browser commands in
 `compatibility/INTERACTIONS.md`, then `python3 scripts/retain-interactions-evidence.py`.
 No raw user data or credentials are present: every profile/Session is synthetic.
 Product admission and Windows acceptance are outside this evidence.
+
+The current browser summaries were rerun after the independent review fixes and
+shared carrier/build extraction. `tuple.json.nativeTraceReused` explicitly records
+that the unchanged native-only syscall trace was retained; its OMP identity and
+native guard/fixture hashes are verified before reuse. `review-fix/` retains both
+red regressions and exact new validation outcomes, including setup failures.
+
+`control-fix/` records the later cancellation-waiter correction, including its
+actual HTTP/Remote held-native-ack red and green results. It supersedes the older
+review's implication that sharing one native promise bounded external callers.
+Current browser summaries and tuple describe this corrected Host; native source,
+schema and guard/fixture trace identities remain unchanged.

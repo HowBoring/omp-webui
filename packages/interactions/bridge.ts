@@ -3,7 +3,7 @@ import { z } from "zod";
 import validPolicy from "../contracts/generated/interaction-policy.js";
 import validRequest from "../contracts/generated/interaction-request.js";
 import { interactionReplySchema, pendingInteractionSchema, type UIAnswer,
-  type PendingInteraction, type InteractionSnapshot, type InteractionReply } from "../contracts/interactions.ts";
+  type PendingInteraction, type InteractionSnapshot, type InteractionAnswerResult } from "../contracts/interactions.ts";
 
 interface NativeFrame { type:string; [key:string]:unknown }
 export interface InteractionPort {
@@ -12,7 +12,7 @@ export interface InteractionPort {
   subscribe(listener:(frame:NativeFrame)=>void):()=>void;
   command(command:object):Promise<unknown>;
 }
-interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; tail:Promise<void>; retired:boolean }
+interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; answering:boolean; controlWaiting:boolean; cancellation?:Promise<InteractionAnswerResult>; retired:boolean }
 const interactive=new Set(["ask","select","input","editor","confirm"]);
 const presentation=new Set(["notify","setStatus","setWidget","setTitle","set_editor_text","open_url"]);
 const sourceRequest=z.object({id:z.string(),method:z.string(),message:z.string().max(32768).optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().max(65536).optional(),title:z.string().max(32768).optional(),timeout:z.number().optional(),
@@ -26,6 +26,10 @@ const sourceRequest=z.object({id:z.string(),method:z.string(),message:z.string()
  */
 export class InteractionBridge {
   readonly generation=randomUUID();
+  #answers=0;
+  #controls=0;
+  #controlWaiters=0;
+  #aborting=false;
   #policy=false;
   #closed=false;
   #seen=new Set<string>();
@@ -50,24 +54,48 @@ export class InteractionBridge {
   bindSession(sessionId:string):void {
     this.#scope={kind:"session",sessionId:z.string().min(1).parse(sessionId)};
   }
-  async answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionReply> {
+  answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);
-    if(generation !== this.generation || !entry || entry.retired) return {status:"stale"};
-    const settled=Promise.withResolvers<InteractionReply>();
-    entry.tail=entry.tail.then(async()=>{
-      if(entry.retired) {settled.resolve({status:"stale"});return;}
-      try {
-        const effectiveAnswer=performance.now()>=entry.deadlineMono ? {type:"cancel" as const,timedOut:true} : answer;
-        const reply=await this.port.command({type:"respond_ui",targetId:id,answer:effectiveAnswer});
-        const result=interactionReplySchema.parse(reply);
-        if(result.status !== "invalid") this.#retire(id,result.status,"explicit-native-acknowledgement");
-        if(result.status === "expired") this.#stop();
-        settled.resolve(result);
-      } catch {
-        this.#retire(id,"unknown","worker-reply-lost");settled.resolve({status:"stale"});
+    if(generation !== this.generation || !entry || entry.retired) return Promise.resolve({status:"stale"});
+    const expired=answer.type !== "cancel" && performance.now()>=entry.deadlineMono;
+    if(answer.type === "cancel" || expired) {
+      // Bound retained Remote/HTTP callers independently of the coalesced native command.
+      if(entry.controlWaiting || this.#controlWaiters>=16) {
+        if(expired) {void this.#cancel(id,entry,{type:"cancel",timedOut:true});this.#stop();}
+        return this.#overloaded();
       }
-    });
-    return settled.promise;
+      entry.controlWaiting=true;this.#controlWaiters++;
+      const reply=this.#cancel(id,entry,expired ? {type:"cancel",timedOut:true} : answer);
+      if(expired)this.#stop();
+      return reply.finally(()=>{entry.controlWaiting=false;this.#controlWaiters--;});
+    }
+    // No browser answer queue: reserve capacity before retaining payloads or creating continuations.
+    if(entry.answering || entry.cancellation || this.#answers>=8) return this.#overloaded();
+    entry.answering=true;this.#answers++;
+    return this.#send(id,answer).finally(()=>{entry.answering=false;this.#answers--;});
+  }
+  #cancel(id:string,entry:Pending,answer:UIAnswer):Promise<InteractionAnswerResult> {
+    if(entry.cancellation)return entry.cancellation;
+    if(this.#controls>=16)return this.#overloaded();
+    // Internal expiry coalesces independently of external caller admission.
+    this.#controls++;
+    entry.cancellation=this.#send(id,answer).finally(()=>{this.#controls--;});
+    return entry.cancellation;
+  }
+  #overloaded():Promise<InteractionAnswerResult> {
+    return Promise.resolve({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"});
+  }
+  async #send(id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
+    try {
+      const reply=await this.port.command({type:"respond_ui",targetId:id,answer});
+      const result=interactionReplySchema.parse(reply);
+      if(result.status !== "invalid") this.#retire(id,result.status,"explicit-native-acknowledgement");
+      if(result.status === "expired") this.#stop();
+      // A delayed acknowledgement remains the native result, even if a notice arrived first.
+      return result;
+    } catch {
+      this.#retire(id,"unknown","worker-reply-lost");return {status:"stale"};
+    }
   }
   dispose():void {
     this.#closed=true;this.#policy=false;this.#dispose();
@@ -101,9 +129,10 @@ export class InteractionBridge {
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
       method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
-    const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,tail:Promise.resolve(),timer:setTimeout(()=>{
+    const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,answering:false,controlWaiting:false,timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.
-      void this.answer(this.generation,card.id,{type:"cancel",timedOut:true}).finally(()=>this.#stop());
+      void this.#cancel(card.id,entry,{type:"cancel",timedOut:true});
+      this.#stop();
     },wait)};
     this.#pending.set(card.id,entry);
   }
@@ -112,5 +141,9 @@ export class InteractionBridge {
     entry.retired=true;clearTimeout(entry.timer);this.#pending.delete(id);
     this.#outcomes.push({id,status,reason});if(this.#outcomes.length>64)this.#outcomes.shift();
   }
-  #stop():void {void this.port.command({type:"abort"}).catch(()=>{});}
+  #stop():void {
+    if(this.#aborting || this.#closed)return;
+    this.#aborting=true;
+    void this.port.command({type:"abort"}).catch(()=>{}).finally(()=>{this.#aborting=false;});
+  }
 }

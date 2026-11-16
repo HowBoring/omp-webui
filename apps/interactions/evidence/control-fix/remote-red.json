@@ -1,0 +1,15 @@
+{
+  "status": "FAIL",
+  "phase": "red before waiter admission fix",
+  "command": "bun test tests/browser/interactions-control.test.ts",
+  "exitCode": 1,
+  "testsPassed": 0,
+  "testsFailed": 1,
+  "assertions": 3,
+  "seam": "actual HTTP DSH Connection/typed Remote/Gateway/Host service \u2192 owned public InteractionPort",
+  "nativeAcknowledgement": "held",
+  "expected": "512 excess explicit cancellations resolve typed Host INTERACTION_ANSWER_LIMIT before native acknowledgement release",
+  "observed": "Promise.race returned pending after 2000 ms; native command coalescing alone retained all HTTP/Remote calls",
+  "rawLog": "vendor/control-red.log",
+  "rawLogSha256": "598013f85885b399e30104f19a3e4220c5de86c64c0f927455a49f0328ad795a"
+}
