@@ -1,0 +1,15 @@
+{
+  "command": "DSH_SOURCE=$PWD/vendor/dsh-owned bun run check",
+  "exitCode": 2,
+  "failures": [
+    {
+      "case": "new Remote overload test expected literal",
+      "diagnostic": "TS2769 No overload matches this call: widened {status:string,code:string} is incompatible with literal Host overload discriminants",
+      "correction": "as const on the expected Host overload result"
+    }
+  ],
+  "status": "FAIL",
+  "phase": "retained original failure",
+  "rawLog": "vendor/review-remote-typecheck-red.log",
+  "rawLogSha256": "2b1acd26bc504ba0404e5b399aee05d10f696267beddf20e30efcdd382832c70"
+}

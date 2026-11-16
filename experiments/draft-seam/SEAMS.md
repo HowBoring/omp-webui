@@ -26,3 +26,8 @@ Final review adds a public subscriber-level quarantine-entry regression (red: ed
 green: document/originals/marker/frozen phases published together), including a synchronous programmatic edit
 attempt and explicit accepted recovery. The real Chromium refresh scenario records the same observation and
 verifies that no edit is admitted during quarantine.
+
+The catalog integration follow-up runs the shipped catalog build entrypoint with actual resolved DSH packages
+and disposable source checkouts. It verifies complete-candidate admission, baseline/partial/unrecorded/wrong-
+ancestry rejection before output publication, and the resulting source/input/asset manifest. This is the same
+approved source-build seam; see [red/green and validation evidence](CATALOG-BUILD-GATE.md).

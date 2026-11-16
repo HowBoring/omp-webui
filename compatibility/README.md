@@ -1,8 +1,12 @@
 # S0 public compatibility candidate and Linux diagnostics
 
 Ticket [#30](https://github.com/HowBoring/omp-webui/issues/30), parent [#29](https://github.com/HowBoring/omp-webui/issues/29).
-This delivers diagnostics only. All private Session routes remain blocked. The normal `bun run dev` scaffold
+The default surface delivers diagnostics only. All private Session routes remain blocked. The normal `bun run dev` scaffold
 is retained; `bun run diagnostics` runs the explicitly built diagnostic Host.
+
+The separate [explicit interaction candidate (#33)](INTERACTIONS.md) implements public native
+explicit-answer/cancellation semantics and an isolated DSH root Slot/Remote acceptance page. Its
+[evidence](../docs/evidence/ticket-33-interactions.md) does not grant product Session admission.
 
 ## Build from the fixed sources
 
@@ -104,9 +108,10 @@ file creation and no ordinary CLI runtime import. Raw traces, bundles and the la
 sanitary summaries and final identities are tracked with the evidence.
 
 No global OMP exists in this environment, so the user-global installation has not been enrolled or replaced.
-No real profile/history, provider, model or unknown TUI is touched. The candidate never advertises catalog,
-strict continuation, explicit-answer expiry, attachment receipts, coherent history or private Session security
-as implemented. Linux is the current scope. The owner explicitly deferred Windows/WSL2 acceptance until
+No real profile/history, provider, model or unknown TUI is touched. Diagnostic admission remains blocked
+for the complete product capability set. Separate isolated catalog and interaction source extensions have
+their own evidence and do not complete private Session security or the remaining product gates.
+Linux is the current scope. The owner explicitly deferred Windows/WSL2 acceptance until
 implementation completes and they switch environments; it is not recorded as a Linux blocker or a Windows pass.
 
 ## Ordered DSH client extensions (#39)
