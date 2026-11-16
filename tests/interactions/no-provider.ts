@@ -55,5 +55,5 @@ Bun.connect = ((...args: unknown[]) => {
 }) as typeof Bun.connect;
 syncBuiltinESMExports();
 Object.defineProperty(globalThis,Symbol.for("omp.s0.network-guard"),{
-  value:Object.freeze({denied:()=>deniedCount,dispatched:()=>0}),
+  value:Object.freeze({denied:()=>deniedCount}),
 });

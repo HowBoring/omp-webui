@@ -1,5 +1,5 @@
 import { expect } from "bun:test";
-import { startRawNativeInteractionProcess } from "./worker.ts";
+import { startRawNativeInteractionProcess } from "./raw-client-process.ts";
 // This process already has a synthetic HOME/cwd/profile before importing the public native client.
 const { RpcClient }=await import(`${process.env.OMP_NATIVE_ROOT!}/modes/rpc/rpc-client.ts`);
 const fixture=await startRawNativeInteractionProcess({root:process.env.OMP_WEB_ROOT!});
@@ -42,6 +42,6 @@ try {
   expect(readyVerified).toBe(true);
   expect(await client.getState()).toMatchObject({model:{provider:"openai",id:"gpt-4o"}});
   await client.prompt("/s0-select");await selection.promise;
-  const outcome=await fixture.close();expect(outcome).toMatchObject({code:0,forced:false});
+  const outcome=await fixture.close();expect(outcome).toMatchObject({code:0,forced:false,networkDenials:3});
 }finally{detach();await client.stop();}
 console.log("native-client: PASS");

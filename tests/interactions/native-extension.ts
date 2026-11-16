@@ -1,11 +1,34 @@
 /** Copied inside the owned OMP package: public self exports resolve to the candidate source. */
 import type { ExtensionAPI, ExtensionContext } from "@oh-my-pi/pi-coding-agent/extensibility/extensions";
+import { createAssistantMessageEventStream, type AssistantMessage } from "@oh-my-pi/pi-ai";
 import { ToolContextStore } from "@oh-my-pi/pi-coding-agent/tools/context";
 import { AskTool } from "@oh-my-pi/pi-coding-agent/tools/ask";
 import { Settings } from "@oh-my-pi/pi-coding-agent/config/settings";
 
 const questions = [{ id: "decision", question: "Synthetic decision?", options: [{ label: "Allow" }, { label: "Deny" }] }];
 export default function interactions(pi: ExtensionAPI): void {
+  // Established public provider boundary: literal messages only, no model/network implementation.
+  pi.registerProvider("s0-scripted",{baseUrl:"http://provider.invalid/v1",apiKey:"synthetic-in-process-only",api:"s0-scripted-ask",
+    models:[{id:"ask",name:"S0 deterministic stream fixture",reasoning:false,input:["text"],
+      cost:{input:0,output:0,cacheRead:0,cacheWrite:0},contextWindow:32768,maxTokens:1024}],
+    streamSimple:(model,context)=>{
+      const stream=createAssistantMessageEventStream();
+      const last=context.messages.findLast(message=>message.role === "user" || message.role === "toolResult");
+      const message:AssistantMessage={role:"assistant",api:model.api,provider:model.provider,model:model.id,
+        usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}},
+        timestamp:Date.now(),content:[{type:"text",text:"scripted boundary complete"}],stopReason:"stop"};
+      const toolCall={type:"toolCall" as const,id:`s0-native-ask-${context.messages.length}`,name:"ask",arguments:{html:
+        '<form><label>Pick<select name="pick"><option selected>default</option><option>chosen</option></select></label>'+
+        '<label>Reason<input name="reason" value="default reason"></label></form>'}};
+      if(last?.role === "user"){message.content=[toolCall];message.stopReason="toolUse";}
+      stream.push({type:"start",partial:message});
+      if(last?.role === "user"){
+        stream.push({type:"toolcall_start",contentIndex:0,partial:message});
+        stream.push({type:"toolcall_end",contentIndex:0,toolCall,partial:message});
+      }
+      stream.push({type:"done",reason:last?.role === "user" ? "toolUse" : "stop",message});return stream;
+    },
+  });
   pi.on("session_start", async (_event, ctx) => {
     const answer = await ctx.ui.input("S0 isolated startup interaction");
     ctx.ui.notify(`startup:${answer ?? "cancelled"}`);

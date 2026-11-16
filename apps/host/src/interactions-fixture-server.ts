@@ -135,6 +135,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer): Promise<Res
   try {
     if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") return new Response("JSON required", { status: 415 });
     const envelope = clientRequestSchema.parse(await request.json());
+    if(new URL(request.url).pathname !== `/api/${envelope.method}`)throw new Error("S0 endpoint mismatch");
     const method=interactionsContribution.methods[envelope.method];
     if(method === undefined) throw new Error("Unsupported S0 Remote");
     const payload=z.strictObject({args:z.record(z.string(),z.unknown())}).parse(envelope.payload);

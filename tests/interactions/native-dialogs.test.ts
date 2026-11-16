@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 // The child environment is isolated BEFORE any native OMP module is imported.
-for (const fixture of ["native-dialogs", "controlled-clock", "native-client"]) test(`${fixture}: public RPC dialogs retain invalid answers and cancel native expiry without defaults`, async () => {
+for (const fixture of ["native-dialogs", "controlled-clock", "native-client", "native-core-loop"]) test(`${fixture}: public RPC dialogs retain invalid answers and cancel native expiry without defaults`, async () => {
   const home = await mkdtemp(join(tmpdir(), "omp-interactions-"));
   await mkdir(join(home, "profile"));
   const child = Bun.spawn([process.execPath, "--no-env-file", "--preload", resolve("tests/interactions/no-provider.ts"), resolve(`tests/interactions/${fixture}.ts`)], {
