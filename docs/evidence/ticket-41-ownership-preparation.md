@@ -199,3 +199,21 @@ Source-only verification after restore: **40 pass / 1 OS skip / 136 assertions**
 8 entrypoint and 16 consumer files parsed without executing their entrypoints, and **41 schema corpus cases** passed.
 The exact tuple is recorded in the JSON checkpoint. This is neither actual broker/UDS lifecycle evidence nor
 Native/global provenance; the backend and product private admission remain blocked.
+
+## Public UDS server spine prepared after restore
+
+The inactive source patch now contains the pinned outside-release approval/key loaders, public Bun UDS client,
+nonblocking C-backed server and concrete Linux peer/helper/fence adapter. Ordinary compiled operator selection remains
+absent, the dispatcher CLI remains unavailable, and broker create/publish remains unavailable pending the accepted
+external protector's final implementation. No old protector binary was enrolled.
+
+Guarded source checks: **42 pass / 2 OS skip / 142 assertions**, focused Native types **30 files / 0 errors**, Host
+types **159 files / 0 errors**, schema corpus **41 cases**. Static test/server bundles compile 15 modules; the C bridge
+compiles under its fixed strict flags to 21,608 bytes, with no library load/probe. Exact hashes are in the JSON.
+
+An explicitly synthetic operator fixture is prepared under `/tmp/ownership-server-tracer-2Yln6e`, with 28 frozen
+source/tool/bridge inputs rehashed, protected public/key pins outside its release, no endpoint, no authorized helper
+executable and empty fence directory. Its first opt-in actual test will start one independent guarded Bun server
+child, use the parent's public UDS client and signed replies, and close/await the child through public stdin EOF.
+Narrow socket/peer syscall tracing is planned; it has **NOT RUN**. This preparation does not establish global closure,
+maintenance retention, helper lifecycle, protected broker/services or Native/worker/browser behavior.

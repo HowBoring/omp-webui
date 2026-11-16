@@ -30,22 +30,22 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "b21f4f6917a8abd416216169fdf155d88731780b9027f15cb04b37bcd9e30643"
+    "sha256": "d23bf883edd35afe12fef970bd7cb16bc3e234ef3b3de18a6a277fc6a3231e23"
   },
-  "preparedTree": "2b349f563eac3e17d2ac48400478a97a3c7eb14b",
-  "preparedSourceSha256": "2ec6b9694d7d53d33c4b933d3afdc331fc8a2198d67b957caaea9a7910c48c81",
+  "preparedTree": "6ae35039afa6700ffc1eeff8907cf9c4708e7859",
+  "preparedSourceSha256": "60d9ba5e9a3ea017e92feeb703190fd067d546684bc352a1163e86b91b5c1d92",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
-  "nativeBackend": "NOT IMPLEMENTED",
+  "nativeBackend": "SOURCE_ONLY_PEER_HELPER_SPINE_BROKER_UNAVAILABLE",
   "cBridgeCompile": "PASS_STRICT_ZERO_DIAGNOSTICS",
   "socketPidfdPrimitive": "PASS_SCOPED_ONLY",
   "backendCapabilityGranted": false,
   "actualGlobal": "BLOCKED",
   "privateAdmission": "BLOCKED",
-  "processContext": "SOURCE_ONLY_BOOTSTRAP_UNAVAILABLE",
+  "processContext": "SOURCE_ONLY_PUBLIC_BUN_UDS_COMPILED_OPERATOR_PIN_ABSENT",
   "durableFenceAdapter": "SOURCE_AND_SYNTHETIC_FS_ONLY",
-  "signedReplyAuthentication": "SOURCE_ONLY_PINNED_OPERATOR_RECORD_ABSENT",
+  "signedReplyAuthentication": "SOURCE_ONLY_PINNED_OPERATOR_RECORD_LOADER_SYNTHETIC_TRACER_NOT_RUN",
   "contextBrokerQueue": {
     "outstanding": 64,
     "totalDeadlineMs": 10000
@@ -63,5 +63,7 @@
       "sha256": "80c02131fa0949f3099df1f8aa6ddc0bb42b671b0a49846f35e2f84cb1b25ae9",
       "reason": "Independent global admin client and generation-bound no-create request/reconnect mode"
     }
-  ]
+  ],
+  "independentServerTracer": "NOT_RUN",
+  "actualLauncherMaintenanceRetention": "NOT_RUN"
 }

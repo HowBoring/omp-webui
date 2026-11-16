@@ -68,3 +68,10 @@ LSP and mandatory attachments. Rebuild and validate one final matched global com
 Linux is current scope; the owner deferred actual Windows Chrome/WSL2 acceptance. Arbitrary old downloaded Native,
 hostile same-UID/ptrace/namespace/reparent tricks and externally delegated irreversible effects are outside this
 supported lifecycle guarantee. This is not an OS sandbox or external-effects rollback.
+
+
+Source preparation now includes an explicit pinned outside-release approval/key loader, public Bun UDS client and
+nonblocking C-backed independent server module for the first synthetic identity tracer. The normal dispatcher entry
+remains unavailable, no compiled production operator pin exists, and broker start/publish remain unavailable pending
+external protector integration. The opt-in tracer has not run. Its controlled source/tool identity is separate from
+actual global provenance or lifecycle admission; maintenance retention and helper paths remain independently unproven.

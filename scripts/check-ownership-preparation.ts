@@ -6,7 +6,7 @@ const argument = process.argv[2];
 if (!argument || process.argv.length !== 3) throw new Error("USAGE: check-ownership-preparation.ts <owned-native-source>");
 const source = await realpath(resolve(argument)), repository = resolve(import.meta.dir, "..");
 const files = ["execution-ownership-cli.test.ts", "execution-ownership-client.test.ts", "execution-ownership-context.test.ts",
-  "execution-ownership-authentication.test.ts",
+  "execution-ownership-authentication.test.ts", "execution-ownership-approval.test.ts", "execution-ownership-server.test.ts",
   "execution-ownership-worker.test.ts",
   "execution-ownership-contract.test.ts",
   "execution-ownership-dispatcher.test.ts", "execution-ownership-helper-wire.test.ts", "execution-ownership-fences.test.ts",
@@ -24,7 +24,7 @@ try {
   await writeFile(config, JSON.stringify({ compilerOptions: { target: "ESNext", module: "Preserve", moduleResolution: "Bundler",
     strict: true, noEmit: true, types: ["bun"], skipLibCheck: true, noUncheckedIndexedAccess: true,
     exactOptionalPropertyTypes: true, allowImportingTsExtensions: true,
-    typeRoots: [join(repository, "node_modules/@types"), join(repository, "node_modules")] }, files: [...modules, ...tests] }));
+    typeRoots: [join(repository, "node_modules/@types"), join(repository, "node_modules")] }, files: [...modules, ...tests, join(source, "packages/coding-agent/test/fixtures/ownership-server-runner.ts")] }));
   const env = { HOME: join(temporary, "home"), PI_CODING_AGENT_DIR: join(temporary, "profile"),
     XDG_CONFIG_HOME: join(temporary, "config"), XDG_DATA_HOME: join(temporary, "data"),
     XDG_STATE_HOME: join(temporary, "state"), XDG_CACHE_HOME: join(temporary, "cache"), TMPDIR: "/tmp",
@@ -60,7 +60,7 @@ try {
     if (file.path.endsWith(".ts")) { parser.transformSync(bytes); parsedConsumerFiles++; }
   }
   process.stdout.write(JSON.stringify({ scope: "owned-source-only", sourceFiles: files.length, runnerFiles: 1,
-    typeCheckedFiles: modules.length + tests.length, guardBeforeImports: true,
+    typeCheckedFiles: modules.length + tests.length + 1, guardBeforeImports: true,
     parsedEntrypoints: parsedEntrypoints.length, actualEntrypointsExecuted: false,
     consumerSourceFiles, parsedConsumerFiles,
     kernelFixtureEnabled: false, actualGlobal: "BLOCKED", capabilityGranted: false }) + "\n");

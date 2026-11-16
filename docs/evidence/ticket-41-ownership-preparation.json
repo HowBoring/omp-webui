@@ -67,5 +67,45 @@
     "kernel": "NOT_RUN",
     "nativeRuntime": "NOT_RUN",
     "noCreateInspection": "SOURCE_AND_SYNTHETIC_SEAM_ONLY"
+  },
+  "publicUdsServerSourceCheckpoint": {
+    "status": "READY_SOURCE_ONLY_NOT_RUN",
+    "preparedTree": "6ae35039afa6700ffc1eeff8907cf9c4708e7859",
+    "preparedSourceSha256": "60d9ba5e9a3ea017e92feeb703190fd067d546684bc352a1163e86b91b5c1d92",
+    "patchSha256": "d23bf883edd35afe12fef970bd7cb16bc3e234ef3b3de18a6a277fc6a3231e23",
+    "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
+    "pureTests": 42,
+    "pureAssertions": 142,
+    "osCasesSkipped": 2,
+    "focusedTypes": {
+      "files": 30,
+      "errors": 0
+    },
+    "hostTypes": {
+      "files": 159,
+      "errors": 0
+    },
+    "schemaCases": 41,
+    "staticBundleModules": 15,
+    "cCompile": {
+      "status": "PASS_STRICT_ZERO_DIAGNOSTICS",
+      "sourceSha256": "e6e71c13cd5144c9bac2636fad16ef9a9449c9229a7184d4480c163f5e8e1b49",
+      "artifactSha256": "127353f7ccb35605e56f9fbbaf6d28fab3050404bccadef0699f7091a9e428e3",
+      "bytes": 21608,
+      "loaded": false
+    },
+    "syntheticFixture": {
+      "file": "/tmp/ownership-server-tracer-2Yln6e/fixture.json",
+      "sha256": "dcaeca55d9e22bf77209220984e9ed5fcd161f5577246842732367340b90f962",
+      "sourceInputsVerified": 28,
+      "endpointAbsent": true,
+      "helperAbsent": true,
+      "fencesEmpty": true
+    },
+    "actualServerTracer": "NOT_RUN",
+    "privateHelperPaths": "NOT_RUN",
+    "maintenanceRetention": "NOT_RUN",
+    "brokerCreation": "UNAVAILABLE",
+    "productPrivateAdmission": "BLOCKED"
   }
 }

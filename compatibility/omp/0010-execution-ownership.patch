@@ -1,12 +1,14 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..a09f959698 100644
+index a4b6abe4e7..12f654993f 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,16 @@
+@@ -2,6 +2,18 @@
  
  ## [Unreleased]
  
 +### Added
++
++- Prepared explicit pinned operator approval and signed public UDS registration with an independent Linux server tracer; actual runtime and broker admission remain unavailable ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
 +- Prepared dispatcher-only broker consumers and private execution guards; actual shared services, private LSP and attachment fallback remain unvalidated ([WebUI #41](https://github.com/HowBoring/omp-webui/issues/41)).
 +
@@ -20,14 +22,14 @@ index a4b6abe4e7..a09f959698 100644
  
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..60d9f19630 100644
+index 0b34d8fc54..a7ee5e3d37 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -10,6 +10,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
  Package-specific references:
  
  - [CHANGELOG](./CHANGELOG.md)
-+- [Execution ownership preparation](./docs/execution-ownership.md) (source process context, signed wire, no-create administration and durable fences; Linux backend/runtime unavailable)
++- [Execution ownership preparation](./docs/execution-ownership.md) (source process context, pinned approval/signed UDS server tracer, no-create administration and durable fences; broker/runtime admission unavailable)
 +- [Ownership consumer preparation](./docs/execution-ownership-consumers.md) / [执行归属消费端准备](./docs/execution-ownership-consumers.zh-CN.md) (dispatcher-only broker clients, private feature guards and unproven fallbacks)
  - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
  - [MCP configuration guide](../../docs/mcp-config.md)
@@ -126,10 +128,10 @@ index 0000000000..749ace4466
 +旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..b751802251
+index 0000000000..20feb0e6f2
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,217 @@
+@@ -0,0 +1,251 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -259,7 +261,7 @@ index 0000000000..b751802251
 +
 +The specific public subpath `@oh-my-pi/pi-coding-agent/launch/ownership/context` exposes the following fixed
 +interface. It does not load the Agent/Session graph or the C bridge. The current `bootstrap` adapter deliberately
-+rejects `ownership_backend_unavailable`; no selected-installation transport/operator approval exists yet.
++rejects `ownership_backend_unavailable`; the compiled operator pin is absent in source checkouts. Explicit synthetic approval/UDS interfaces now exist, without production selection or broker admission.
 +
 +| Function | Required behavior |
 +| --- | --- |
@@ -347,6 +349,40 @@ index 0000000000..b751802251
 +
 +Arbitrary downloaded old OMP, malicious same-UID/ptrace/namespace/reparent manipulation and externally delegated
 +irreversible effects are outside this supported lifecycle guarantee. Generic bash is not an OS sandbox or external-effects rollback.
++
++
++## Selected approval and first server tracer (source only)
++
++`approval` loads only an explicitly supplied operator pin containing canonical path, device, inode and SHA256.
++The protected public record is outside the mutable release; it binds installation, closure/schema, Ed25519 public key,
++release path, the 0700 outside-release socket/state/fence directories, and exact bridge/helper hashes. Reads are bounded
++at 16 KiB, reject links/replacement/changed bytes/non-0600 ownership, and recheck before/after asynchronous admission.
++The client compiled pin has no source default. Environment, HOME/cwd, server responses and release-local metadata
++never enroll a public key or discover a fallback. The separate protected server-key record proves possession of the
++approved public key before the bridge can load. Neither record proves actual global closure or maintenance retention.
++
++`uds-client` uses public Bun UDS methods in every realm and the existing nonce/request-bound Ed25519 verifier.
++It keeps one connection, bounds connect/request/response work, handles partial writes, and fails permanently on
++connection/authentication loss. It imports no ownership FFI. `server` alone opens the C bridge, captures actual peers,
++retains/deduplicates their kernel identities and serializes at most one pending request per each of 64 connections.
++Nonblocking C reads/writes advance on a 5 ms timer; response writes use bounded 16 KiB fragments inside the unchanged
++1 MiB signed-envelope allowance. Partial input/request/idle deadlines remain fixed. No socket descriptor is obtained
++from a private Bun field. Helper loss marks the dispatcher fence before queued external operations can resume.
++
++`linux-system` implements actual peer classification, approved direct-child helper binary validation, durable REGISTER
++and trusted same-socket COMPLETE handling. Those paths are source/type checked only. Broker creation/publication is
++still typed unavailable; no external protector binary is approved by this preparation. The ordinary dispatcher CLI
++entry stays unavailable until maintenance protection and the complete broker backend are ready. No additional
++maintenance-lock API was introduced; actual existing C launcher lock retention still needs its independent proof.
++
++The opt-in public server tracer starts one independent guarded Bun server process under an entirely synthetic
++HOME/profile/cwd and allowlisted environment. Its parent uses only the public client to classify/reclassify, list empty
++owned scopes and refuse inspection of a missing generation. Public stdin EOF closes the child and the parent awaits
++its real exit. It launches no Native/Agent/helper/service. Test-only fixture preparation creates independent outside-
++release operator/key records and records every declared source/tool/bridge input. Creating these explicit synthetic
++records is not client auto-enrollment or production installation. The test is **NOT RUN** and skipped by ordinary
++source checks until a coordinator-cleared OS window supplies its manifest. Actual peer identity must be established
++by the narrow C syscall trace, never a client-supplied PID or a successful signature alone.
 diff --git a/packages/coding-agent/src/blob-broker/daemon.ts b/packages/coding-agent/src/blob-broker/daemon.ts
 index 94d8bd457e..582426e750 100644
 --- a/packages/coding-agent/src/blob-broker/daemon.ts
@@ -1331,6 +1367,128 @@ index be6b55bca1..d760a82a21 100644
 +	const ping = await client.request({ op: "ping" });
 +	if (ping.op !== "ping" || ping.projectDir !== client.projectDir) throw new Error("daemon broker ping mismatch");
  }
+diff --git a/packages/coding-agent/src/launch/ownership/approval.ts b/packages/coding-agent/src/launch/ownership/approval.ts
+new file mode 100644
+index 0000000000..64faf86db8
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/approval.ts
+@@ -0,0 +1,116 @@
++import * as fs from "node:fs";
++import * as path from "node:path";
++import type { OwnershipAuthenticationApproval } from "./authentication";
++import { OwnershipError, ownershipGeneration, ownershipIdentity } from "./protocol";
++
++/** Compiled operator selection. Never populated from environment, cwd, HOME, a peer reply or a release manifest. */
++export interface OwnershipApprovalPin { readonly path: string; readonly device: string; readonly inode: string; readonly sha256: string }
++export interface OwnershipFileApproval { readonly file: string; readonly sha256: string }
++export interface OwnershipDirectoryApproval { readonly path: string; readonly device: string; readonly inode: string }
++export interface LoadedOwnershipApproval extends OwnershipAuthenticationApproval {
++	readonly releaseRoot: string;
++	readonly endpoint: string;
++	readonly stateDirectory: OwnershipDirectoryApproval;
++	readonly fenceDirectory: OwnershipDirectoryApproval;
++	readonly bridge: OwnershipFileApproval;
++	readonly helper: OwnershipFileApproval;
++	/** Recheck the independently pinned public record and state directory before/after every asynchronous admission step. */
++	verify(): Promise<void>;
++}
++
++function record(value: unknown, keys: readonly string[]): Record<string, unknown> {
++	if (typeof value !== "object" || value === null || Array.isArray(value)) throw new OwnershipError("dispatcher_mismatch");
++	const source = value as Record<string, unknown>;
++	if (Object.keys(source).length !== keys.length || Object.keys(source).some(key => !keys.includes(key))) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	return source;
++}
++function canonical(value: unknown): string {
++	if (typeof value !== "string" || value.length > 4096 || value.includes("\0")
++		|| !path.isAbsolute(value) || path.resolve(value) !== value) throw new OwnershipError("dispatcher_mismatch");
++	return value;
++}
++function outside(value: string, root: string): void {
++	if (root === "/" || value === root || value.startsWith(`${root}/`)) throw new OwnershipError("dispatcher_mismatch");
++}
++function numeric(value: unknown, nonzero = false): string {
++	if (typeof value !== "string" || !(nonzero ? /^[1-9]\d*$/ : /^\d+$/).test(value)) {
++		throw new OwnershipError("dispatcher_mismatch");
++	}
++	return value;
++}
++function directory(value: unknown): OwnershipDirectoryApproval {
++	const source = record(value, ["path", "device", "inode"]);
++	return Object.freeze({ path: canonical(source.path), device: numeric(source.device), inode: numeric(source.inode, true) });
++}
++function member(value: unknown, root: string): OwnershipFileApproval {
++	const source = record(value, ["file", "sha256"]), file = canonical(source.file);
++	if (!file.startsWith(`${root}/`)) throw new OwnershipError("dispatcher_mismatch");
++	return Object.freeze({ file, sha256: ownershipGeneration(source.sha256) });
++}
++async function verifyDirectory(value: OwnershipDirectoryApproval): Promise<void> {
++	const stat = await fs.promises.lstat(value.path, { bigint: true });
++	if (await fs.promises.realpath(value.path) !== value.path || !stat.isDirectory() || String(stat.dev) !== value.device
++		|| String(stat.ino) !== value.inode || stat.uid !== BigInt(process.getuid?.() ?? -1)
++		|| (stat.mode & 0o777n) !== 0o700n) throw new OwnershipError("dispatcher_mismatch");
++}
++/** Decode only an independently supplied compiled/operator pin; decoding never discovers or approves a record. */
++export function ownershipApprovalPin(value: unknown): OwnershipApprovalPin {
++	const source = record(value, ["path", "device", "inode", "sha256"]);
++	return Object.freeze({ path: canonical(source.path), device: numeric(source.device), inode: numeric(source.inode, true),
++		sha256: ownershipGeneration(source.sha256) });
++}
++
++/** Bounded protected-file read; file contents are returned only to their explicit trusted caller. */
++export async function readOwnershipPinnedFile(pin: OwnershipApprovalPin): Promise<string> {
++	canonical(pin.path); numeric(pin.device); numeric(pin.inode, true); ownershipGeneration(pin.sha256);
++	if (await fs.promises.realpath(pin.path) !== pin.path) throw new OwnershipError("dispatcher_mismatch");
++	const file = await fs.promises.open(pin.path, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
++	try {
++		const verify = async (): Promise<void> => {
++			for (const stat of [await file.stat({ bigint: true }), await fs.promises.lstat(pin.path, { bigint: true })]) {
++				if (!stat.isFile() || stat.nlink !== 1n || stat.size > 16_384n || String(stat.dev) !== pin.device
++					|| String(stat.ino) !== pin.inode || stat.uid !== BigInt(process.getuid?.() ?? -1)
++					|| (stat.mode & 0o777n) !== 0o600n) throw new OwnershipError("dispatcher_mismatch");
++			}
++		};
++		await verify();
++		const bytes = Buffer.alloc(16_385), read = await file.read(bytes, 0, bytes.length, 0);
++		if (read.bytesRead > 16_384 || new Bun.CryptoHasher("sha256").update(bytes.subarray(0, read.bytesRead)).digest("hex") !== pin.sha256) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		await verify();
++		return new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, read.bytesRead));
++	} finally { await file.close(); }
++}
++
++/** Read an explicitly selected outside-release public operator record. This never creates/enrolls trust or a server. */
++export async function loadOwnershipApproval(selected: OwnershipApprovalPin): Promise<LoadedOwnershipApproval> {
++	const pin = ownershipApprovalPin(selected);
++	try {
++		const bytes = await readOwnershipPinnedFile(pin), decoded: unknown = JSON.parse(bytes);
++		const source = record(decoded, ["version", "installation", "identity", "publicKey", "releaseRoot", "endpoint", "stateDirectory", "fenceDirectory", "bridge", "helper"]);
++		if (source.version !== "omp-execution-approval/1" || typeof source.publicKey !== "string"
++			|| !/^[A-Za-z0-9_-]{43}$/.test(source.publicKey)
++			|| Buffer.from(source.publicKey, "base64url").toString("base64url") !== source.publicKey) throw new OwnershipError("dispatcher_mismatch");
++		const releaseRoot = canonical(source.releaseRoot), state = directory(source.stateDirectory), endpoint = canonical(source.endpoint);
++		const fences = directory(source.fenceDirectory);
++		outside(pin.path, releaseRoot); outside(state.path, releaseRoot); outside(fences.path, releaseRoot);
++		if (path.dirname(fences.path) !== state.path || fences.path === endpoint) throw new OwnershipError("dispatcher_mismatch");
++		if (path.dirname(endpoint) !== state.path || Buffer.byteLength(endpoint) >= 108) throw new OwnershipError("dispatcher_mismatch");
++		const verify = async (): Promise<void> => {
++			try {
++				if (await readOwnershipPinnedFile(pin) !== bytes || await fs.promises.realpath(releaseRoot) !== releaseRoot
++					|| !(await fs.promises.lstat(releaseRoot)).isDirectory()) {
++					throw new OwnershipError("dispatcher_mismatch");
++				}
++				await verifyDirectory(state); await verifyDirectory(fences);
++			} catch { throw new OwnershipError("dispatcher_mismatch"); }
++		};
++		await verify();
++		return Object.freeze({ installation: ownershipGeneration(source.installation), identity: Object.freeze(ownershipIdentity(source.identity)),
++			publicKey: source.publicKey, releaseRoot, endpoint, stateDirectory: state, fenceDirectory: fences,
++			bridge: member(source.bridge, releaseRoot), helper: member(source.helper, releaseRoot), verify });
++	} catch { throw new OwnershipError("dispatcher_mismatch"); }
++}
 diff --git a/packages/coding-agent/src/launch/ownership/authentication.ts b/packages/coding-agent/src/launch/ownership/authentication.ts
 new file mode 100644
 index 0000000000..18eed73a5f
@@ -1514,21 +1672,29 @@ index 0000000000..18eed73a5f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/bootstrap.ts b/packages/coding-agent/src/launch/ownership/bootstrap.ts
 new file mode 100644
-index 0000000000..bdbdc3c144
+index 0000000000..738952b2af
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/bootstrap.ts
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,20 @@
 +import { OwnershipError } from "./protocol";
++import { loadOwnershipApproval, type OwnershipApprovalPin } from "./approval";
++import { connectApprovedOwnershipClient } from "./uds-client";
++
++/** Build injects the independently approved selection. Source checkouts deliberately have no operator target. */
++declare const OMP_EXECUTION_OWNERSHIP_APPROVAL: OwnershipApprovalPin | undefined;
 +import type { OwnershipClient } from "./client";
 +
 +/**
-+ * Fixed selected-installation bootstrap, deliberately unavailable in this source preparation.
++ * Fixed selected-installation bootstrap. Missing compiled operator approval stays unavailable.
 + * Future client transport uses public Bun UDS in every realm; only the dispatcher loads the C/FFI backend.
 + * Each realm re-registers the same authenticated OS process, never inherits authority from an environment flag.
 + * No HOME/profile/cwd rendezvous, automatic dispatcher spawn, legacy peer or local broker fallback is permitted.
 + */
 +export async function connectProcessOwnershipClient(): Promise<OwnershipClient> {
-+	throw new OwnershipError("ownership_backend_unavailable");
++	if (typeof OMP_EXECUTION_OWNERSHIP_APPROVAL === "undefined" || !OMP_EXECUTION_OWNERSHIP_APPROVAL) {
++		throw new OwnershipError("ownership_backend_unavailable");
++	}
++	return connectApprovedOwnershipClient(await loadOwnershipApproval(OMP_EXECUTION_OWNERSHIP_APPROVAL));
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/client.ts b/packages/coding-agent/src/launch/ownership/client.ts
 new file mode 100644
@@ -2952,6 +3118,100 @@ index 0000000000..878699c0f0
 +		if (this.#library.symbols.omp_ownership_close(handle) !== 0) throw new OwnershipError("ownership_unresolved");
 +	}
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/linux-system.ts b/packages/coding-agent/src/launch/ownership/linux-system.ts
+new file mode 100644
+index 0000000000..166df5e330
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/linux-system.ts
+@@ -0,0 +1,88 @@
++import * as fs from "node:fs";
++import type { LoadedOwnershipApproval } from "./approval";
++import type { OwnershipSystem, PublicationPermit, StablePeer } from "./dispatcher";
++import { OwnershipFences } from "./fences";
++import type { LinuxOwnershipBridge } from "./linux-bridge";
++import { OwnershipError, ownershipGeneration, type OwnershipScope } from "./protocol";
++
++/** Concrete Linux peer/helper spine. Broker creation/publication remains unavailable until protector integration. */
++export class LinuxOwnershipSystem implements OwnershipSystem {
++	readonly dispatcher: string;
++	readonly #approval: LoadedOwnershipApproval;
++	readonly #bridge: LinuxOwnershipBridge;
++	readonly #fences: OwnershipFences;
++	readonly #helpers = new Map<StablePeer, string>();
++	#unresolved = false;
++	constructor(approval: LoadedOwnershipApproval, bridge: LinuxOwnershipBridge, fences: OwnershipFences, generation: string) {
++		this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.dispatcher = ownershipGeneration(generation);
++	}
++	async ready(): Promise<void> { await this.#verify(); }
++	async classify(peer: StablePeer) {
++		await this.#verify();
++		const helper = this.#bridge.classify(peer, [...this.#helpers.keys()]);
++		if (!helper) return { kind: "external" as const };
++		const generation = this.#helpers.get(helper);
++		if (!generation) throw new OwnershipError("ownership_unresolved");
++		return { kind: "private" as const, generation };
++	}
++	async protectHelper(control: StablePeer, helper: StablePeer, generation: string): Promise<void> {
++		try {
++			await this.#verify();
++			if (!this.#bridge.isDirectChild(helper, control) || (await this.classify(control)).kind !== "external") {
++				throw new OwnershipError("ownership_unresolved");
++			}
++			await this.#verifyHelper(helper);
++			await this.#fences.create(generation, "private-helper");
++			this.#helpers.set(helper, generation);
++			await this.#verifyHelper(helper); await this.#verify();
++			if (!this.#bridge.isDirectChild(helper, control)) throw new OwnershipError("ownership_unresolved");
++		} catch (error) { this.#unresolved = true; throw error; }
++	}
++	async markUnresolved(_generation: string): Promise<void> { this.#unresolved = true; }
++	async completeHelper(helper: StablePeer, generation: string): Promise<void> {
++		try {
++			await this.#verify(); await this.#verifyHelper(helper);
++			if (this.#helpers.get(helper) !== generation) throw new OwnershipError("ownership_unresolved");
++			// Only the approved helper on its original held socket can assert its trusted P_ALL/ECHILD completion.
++			await this.#fences.retireCompleted(generation); this.#helpers.delete(helper);
++		} catch (error) { this.#unresolved = true; throw error; }
++	}
++	async canonicalScope(scope: OwnershipScope): Promise<OwnershipScope> {
++		await this.#verify();
++		if (scope.kind === "global") return scope;
++		const directory = await fs.promises.realpath(scope.directory), stat = await fs.promises.lstat(directory);
++		if (!stat.isDirectory() || directory !== scope.directory) throw new OwnershipError("ownership_unresolved");
++		return { kind: "project", directory };
++	}
++	async broker(_scope: OwnershipScope, _permit: PublicationPermit): Promise<never> {
++		throw new OwnershipError("ownership_backend_unavailable");
++	}
++	async inspectBroker(_scope: OwnershipScope, _generation: string, _permit: PublicationPermit): Promise<undefined> {
++		await this.#verify(); return undefined;
++	}
++	async publish(): Promise<never> { throw new OwnershipError("ownership_backend_unavailable"); }
++	async #verify(): Promise<void> {
++		if (this.#unresolved) throw new OwnershipError("maintenance_fenced");
++		await this.#approval.verify(); await this.#fences.verify();
++		for (const helper of this.#helpers.keys()) {
++			if (!this.#bridge.peerAlive(helper)) { this.#unresolved = true; throw new OwnershipError("maintenance_fenced"); }
++		}
++	}
++	async #verifyHelper(peer: StablePeer): Promise<void> {
++		const hints = this.#bridge.peerHints(peer), approved = this.#approval.helper;
++		const target = `/proc/${hints.pid}/exe`;
++		if (!this.#bridge.peerAlive(peer) || await fs.promises.readlink(target) !== approved.file) {
++			throw new OwnershipError("ownership_unresolved");
++		}
++		const file = await fs.promises.open(target, fs.constants.O_RDONLY);
++		try {
++			const stat = await file.stat();
++			if (!stat.isFile() || stat.size > 1_048_576) throw new OwnershipError("ownership_unresolved");
++			const bytes = Buffer.alloc(1_048_577), read = await file.read(bytes, 0, bytes.length, 0);
++			if (read.bytesRead > 1_048_576 || new Bun.CryptoHasher("sha256").update(bytes.subarray(0, read.bytesRead)).digest("hex") !== approved.sha256
++				|| !this.#bridge.peerAlive(peer) || await fs.promises.readlink(target) !== approved.file) {
++				throw new OwnershipError("ownership_unresolved");
++			}
++		} finally { await file.close(); }
++	}
++}
 diff --git a/packages/coding-agent/src/launch/ownership/protocol.ts b/packages/coding-agent/src/launch/ownership/protocol.ts
 new file mode 100644
 index 0000000000..9a13b90bcc
@@ -3157,6 +3417,293 @@ index 0000000000..9a13b90bcc
 +		throw new OwnershipError("dispatcher_mismatch");
 +	}
 +	return { version: OWNERSHIP_VERSION, id: expected.id, ok: true, identity, result: result(source.result, expected.operation) };
++}
+diff --git a/packages/coding-agent/src/launch/ownership/server-key.ts b/packages/coding-agent/src/launch/ownership/server-key.ts
+new file mode 100644
+index 0000000000..566fa7141f
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/server-key.ts
+@@ -0,0 +1,24 @@
++import { readOwnershipPinnedFile, type LoadedOwnershipApproval, type OwnershipApprovalPin } from "./approval";
++import { OwnershipError } from "./protocol";
++
++/** Separate protected dispatcher key record; ordinary clients never read it and no endpoint can supply it. */
++export async function loadOwnershipSigningKey(pin: OwnershipApprovalPin, approval: LoadedOwnershipApproval): Promise<CryptoKey> {
++	try {
++		if (pin.path === approval.releaseRoot || pin.path.startsWith(`${approval.releaseRoot}/`)) throw new OwnershipError("dispatcher_mismatch");
++		const value: unknown = JSON.parse(await readOwnershipPinnedFile(pin));
++		if (typeof value !== "object" || value === null || Array.isArray(value)) throw new OwnershipError("dispatcher_mismatch");
++		const record = value as Record<string, unknown>;
++		if (Object.keys(record).length !== 4 || record.version !== "omp-execution-signing-key/1"
++			|| record.installation !== approval.installation || record.publicKey !== approval.publicKey
++			|| typeof record.privateKey !== "string" || record.privateKey.length > 256) throw new OwnershipError("dispatcher_mismatch");
++		const bytes = Buffer.from(record.privateKey, "base64url");
++		if (bytes.toString("base64url") !== record.privateKey) throw new OwnershipError("dispatcher_mismatch");
++		const key = await crypto.subtle.importKey("pkcs8", bytes, "Ed25519", false, ["sign"]);
++		const publicKey = await crypto.subtle.importKey("raw", Buffer.from(approval.publicKey, "base64url"), "Ed25519", false, ["verify"]);
++		const challenge = crypto.getRandomValues(new Uint8Array(32));
++		if (!await crypto.subtle.verify("Ed25519", publicKey, await crypto.subtle.sign("Ed25519", key, challenge), challenge)) {
++			throw new OwnershipError("dispatcher_mismatch");
++		}
++		await approval.verify(); return key;
++	} catch { throw new OwnershipError("dispatcher_mismatch"); }
++}
+diff --git a/packages/coding-agent/src/launch/ownership/server.ts b/packages/coding-agent/src/launch/ownership/server.ts
+new file mode 100644
+index 0000000000..d4ffc10c38
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/server.ts
+@@ -0,0 +1,159 @@
++import * as fs from "node:fs/promises";
++import type { LoadedOwnershipApproval, OwnershipApprovalPin } from "./approval";
++import { decodeOwnershipChallenge, signOwnershipReply } from "./authentication";
++import { OwnershipDispatcher, type StablePeer } from "./dispatcher";
++import { OwnershipFences } from "./fences";
++import { OwnershipFrames } from "./framing";
++import { HELPER_OWNERSHIP_VERSION, HelperWireSession } from "./helper-protocol";
++import { LinuxOwnershipBridge, type OwnershipSocket } from "./linux-bridge";
++import { LinuxOwnershipSystem } from "./linux-system";
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++import { loadOwnershipSigningKey } from "./server-key";
++
++interface Connection {
++	readonly socket: OwnershipSocket;
++	readonly peer: StablePeer;
++	readonly frames: OwnershipFrames;
++	readonly helper: HelperWireSession;
++	active: boolean;
++	closed: boolean;
++	helperRegistered: boolean;
++	helperCompleted: boolean;
++	deadline: number;
++	output: Uint8Array | undefined;
++}
++
++/** Main-thread Linux server. Poll callbacks never block; only this independent dispatcher loads ownership FFI. */
++export class LinuxOwnershipServer {
++	readonly #approval: LoadedOwnershipApproval;
++	readonly #bridge: LinuxOwnershipBridge;
++	readonly #fences: OwnershipFences;
++	readonly #dispatcher: OwnershipDispatcher;
++	readonly #key: CryptoKey;
++	readonly #generation: string;
++	readonly #listener: OwnershipSocket;
++	readonly #connections = new Set<Connection>();
++	readonly #peers: StablePeer[] = [];
++	#tail = Promise.resolve();
++	#timer: Timer | undefined;
++	#closed = false;
++	#endpointIdentity: { device: bigint; inode: bigint } | undefined;
++
++	constructor(approval: LoadedOwnershipApproval, bridge: LinuxOwnershipBridge, fences: OwnershipFences,
++		dispatcher: OwnershipDispatcher, key: CryptoKey, generation: string, listener: OwnershipSocket) {
++		this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.#dispatcher = dispatcher;
++		this.#key = key; this.#generation = generation; this.#listener = listener;
++	}
++
++	/** Explicit synthetic/selected operator start; no ordinary client can invoke this as a fallback. */
++	static async open(approval: LoadedOwnershipApproval, keyPin: OwnershipApprovalPin): Promise<LinuxOwnershipServer> {
++		await approval.verify();
++		const key = await loadOwnershipSigningKey(keyPin, approval);
++		const bridge = await LinuxOwnershipBridge.open({ ...approval.bridge, verify: approval.verify });
++		let fences: OwnershipFences | undefined;
++		try {
++			fences = await OwnershipFences.open({ directory: approval.fenceDirectory, releaseRoot: approval.releaseRoot,
++				installation: approval.installation, identity: approval.identity });
++			const generation = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex");
++			const system = new LinuxOwnershipSystem(approval, bridge, fences, generation);
++			const dispatcher = await OwnershipDispatcher.open(approval.identity, system);
++			await approval.verify();
++			const listener = bridge.listen(approval.endpoint);
++			const server = new LinuxOwnershipServer(approval, bridge, fences, dispatcher, key, generation, listener);
++			const stat = await fs.lstat(approval.endpoint, { bigint: true });
++			server.#endpointIdentity = { device: stat.dev, inode: stat.ino }; server.#schedule();
++			return server;
++		} catch (error) { bridge.close(); await fences?.close(); throw error; }
++	}
++
++	/** Closes only this server's descriptors. Helper uncertainty retains durable fences; no process is signalled. */
++	async close(): Promise<void> {
++		if (this.#closed) return;
++		this.#closed = true; clearTimeout(this.#timer);
++		for (const connection of this.#connections) this.#drop(connection);
++		await this.#tail;
++		try {
++			const stat = await fs.lstat(this.#approval.endpoint, { bigint: true });
++			if (stat.isSocket() && stat.dev === this.#endpointIdentity?.device && stat.ino === this.#endpointIdentity.inode) {
++				await fs.unlink(this.#approval.endpoint);
++			}
++		} finally { this.#bridge.close(); await this.#fences.close(); }
++	}
++
++	#schedule(): void { this.#timer = setTimeout(() => this.#poll(), 5); }
++	#poll(): void {
++		if (this.#closed) return;
++		try {
++			for (let count = this.#connections.size; count < OWNERSHIP_LIMITS.connections; count++) {
++				const socket = this.#bridge.accept(this.#listener, process.getuid?.() ?? -1);
++				if (!socket) break;
++				try { this.#admit(socket); } catch { this.#bridge.releaseSocket(socket); }
++			}
++			for (const connection of this.#connections) {
++				try { this.#advance(connection); } catch { this.#drop(connection); }
++			}
++		} catch { void this.close(); return; }
++		this.#schedule();
++	}
++	#admit(socket: OwnershipSocket): void {
++		const captured = this.#bridge.capturePeer(socket);
++		let peer: StablePeer;
++		try {
++			const existing = this.#peers.find(value => this.#bridge.peerAlive(value) && this.#bridge.samePeer(value, captured));
++			peer = existing ?? captured;
++			if (!existing) this.#peers.push(peer);
++		} catch (error) { this.#bridge.releasePeer(captured); throw error; }
++		if (peer !== captured) this.#bridge.releasePeer(captured);
++		this.#connections.add({ socket, peer, frames: new OwnershipFrames(), helper: new HelperWireSession(this.#approval.installation),
++			active: false, closed: false, helperRegistered: false, helperCompleted: false,
++			deadline: performance.now() + OWNERSHIP_LIMITS.idleMs, output: undefined });
++	}
++	#advance(connection: Connection): void {
++		if (performance.now() >= connection.deadline) { this.#drop(connection); return; }
++		if (connection.output) {
++			const bytes = connection.output, count = this.#bridge.write(connection.socket, bytes.subarray(0, OWNERSHIP_LIMITS.frameBytes));
++			connection.output = count === bytes.length ? undefined : bytes.subarray(count);
++			if (!connection.output) { connection.active = false; connection.deadline = performance.now() + OWNERSHIP_LIMITS.idleMs; }
++		}
++		const bytes = this.#bridge.read(connection.socket);
++		if (bytes === undefined) return;
++		if (!bytes.length) { connection.frames.end(); this.#drop(connection); return; }
++		if (connection.active) throw new OwnershipError("ownership_limit");
++		connection.deadline = Math.min(connection.deadline, performance.now() + OWNERSHIP_LIMITS.requestMs);
++		for (const frame of connection.frames.push(bytes)) {
++			connection.active = true;
++			this.#tail = this.#tail.then(() => this.#respond(connection, frame)).catch(() => this.#drop(connection));
++		}
++	}
++	async #respond(connection: Connection, frame: string): Promise<void> {
++		if (connection.closed || this.#closed || performance.now() >= connection.deadline) return;
++		await this.#approval.verify();
++		const value: unknown = JSON.parse(frame);
++		let response: string;
++		if (typeof value === "object" && value !== null && "version" in value && value.version === HELPER_OWNERSHIP_VERSION) {
++			response = await this.#dispatcher.handleHelper(connection.peer, connection.helper, frame);
++			if (!connection.helperRegistered) connection.helperRegistered = true; else connection.helperCompleted = true;
++			if ((connection.closed || this.#closed) && !connection.helperCompleted) {
++				await this.#dispatcher.helperUncertain(connection.peer); return;
++			}
++		} else {
++			const challenge = await decodeOwnershipChallenge(frame, this.#approval);
++			const result = await this.#dispatcher.handle(connection.peer, JSON.stringify(challenge.request));
++			response = await signOwnershipReply(challenge, JSON.stringify(result), { installation: this.#approval.installation,
++				identity: this.#approval.identity, serverGeneration: this.#generation, privateKey: this.#key }) + "\n";
++		}
++		await this.#approval.verify();
++		if (connection.closed || this.#closed || performance.now() >= connection.deadline) return;
++		connection.output = new TextEncoder().encode(response);
++	}
++	#drop(connection: Connection): void {
++		if (connection.closed) return;
++		connection.closed = true; this.#connections.delete(connection);
++		if (connection.helperRegistered && !connection.helperCompleted) {
++			// Set the dispatcher fence synchronously, before any already queued external request can resume.
++			const uncertainty = this.#dispatcher.helperUncertain(connection.peer).catch(() => undefined);
++			this.#tail = this.#tail.then(() => uncertainty).catch(() => undefined);
++		}
++		this.#bridge.releaseSocket(connection.socket);
++	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/uds-client.ts b/packages/coding-agent/src/launch/ownership/uds-client.ts
+new file mode 100644
+index 0000000000..37e09c4d99
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/uds-client.ts
+@@ -0,0 +1,86 @@
++import type { Socket } from "bun";
++import type { LoadedOwnershipApproval } from "./approval";
++import { OwnershipReplyVerifier } from "./authentication";
++import { OwnershipClient, type OwnershipTransport } from "./client";
++import { OwnershipFrames } from "./framing";
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++
++/** Public Bun UDS only, including worker realms. Authentication never reads a private socket field or loads FFI. */
++export class BunOwnershipTransport implements OwnershipTransport {
++	readonly #approval: LoadedOwnershipApproval;
++	readonly #verifier: OwnershipReplyVerifier;
++	readonly #frames = new OwnershipFrames("response");
++	#socket: Socket<undefined> | undefined;
++	#pending: { resolve(value: string): void; reject(error: unknown): void; received: boolean } | undefined;
++	#write: Uint8Array | undefined;
++	#connectReject: ((error: unknown) => void) | undefined;
++	#closed = false;
++	#busy = false;
++	constructor(approval: LoadedOwnershipApproval) {
++		this.#approval = approval; this.#verifier = new OwnershipReplyVerifier(approval);
++	}
++	async exchange(frame: string, signal: AbortSignal): Promise<string> {
++		if (this.#closed || signal.aborted) throw new OwnershipError("dispatcher_unavailable");
++		if (this.#busy) throw new OwnershipError("ownership_limit");
++		this.#busy = true;
++		const reply = Promise.withResolvers<string>();
++		const abort = (): void => this.close();
++		signal.addEventListener("abort", abort, { once: true });
++		try {
++			await this.#approval.verify();
++			const challenge = await this.#verifier.challenge(frame);
++			await this.#connect();
++			await this.#approval.verify();
++			if (this.#closed || signal.aborted) throw new OwnershipError("dispatcher_unavailable");
++			this.#pending = { resolve: reply.resolve, reject: reply.reject, received: false };
++			this.#write = new TextEncoder().encode(`${challenge.frame}\n`); this.#drain();
++			const response = await this.#verifier.verify(await reply.promise, challenge);
++			await this.#approval.verify();
++			if (this.#closed || signal.aborted) throw new OwnershipError("dispatcher_unavailable");
++			return response;
++		} catch (error) {
++			this.close();
++			throw error instanceof OwnershipError ? error : new OwnershipError("dispatcher_unavailable");
++		} finally { this.#pending = undefined; this.#busy = false; signal.removeEventListener("abort", abort); }
++	}
++	close(): void {
++		if (this.#closed) return;
++		this.#closed = true; this.#verifier.close(); this.#write = undefined;
++		this.#connectReject?.(new OwnershipError("dispatcher_unavailable"));
++		this.#pending?.reject(new OwnershipError("dispatcher_unavailable")); this.#socket?.terminate(); this.#socket = undefined;
++	}
++	async #connect(): Promise<void> {
++		if (this.#socket) return;
++		const cancelled = Promise.withResolvers<never>(); this.#connectReject = cancelled.reject;
++		const timeout: Timer = setTimeout(() => this.close(), OWNERSHIP_LIMITS.connectMs);
++		try {
++			const connecting = Bun.connect<undefined>({ unix: this.#approval.endpoint, socket: {
++				data: (_socket, bytes) => this.#receive(bytes), drain: () => this.#drain(),
++				close: () => this.close(), error: () => this.close(), connectError: () => this.close(),
++			} });
++			const socket = await Promise.race([connecting.then(value => {
++				if (this.#closed) { value.terminate(); throw new OwnershipError("dispatcher_unavailable"); }
++				return value;
++			}), cancelled.promise]);
++			if (this.#closed) { socket.terminate(); throw new OwnershipError("dispatcher_unavailable"); }
++			this.#socket = socket;
++		} finally { clearTimeout(timeout); this.#connectReject = undefined; }
++	}
++	#receive(bytes: Uint8Array): void {
++		try {
++			if (!this.#pending || this.#pending.received) throw new OwnershipError("ownership_protocol");
++			for (const frame of this.#frames.push(bytes)) { this.#pending.received = true; this.#pending.resolve(frame); }
++		} catch { this.close(); }
++	}
++	#drain(): void {
++		if (!this.#write || !this.#socket || this.#closed) return;
++		const written = this.#socket.write(this.#write);
++		if (written < 0 || written > this.#write.length) { this.close(); return; }
++		this.#write = written === this.#write.length ? undefined : this.#write.subarray(written);
++	}
++}
++
++/** Explicit selected approval; no automatic rendezvous discovery, server launch or reconnect fallback. */
++export function connectApprovedOwnershipClient(approval: LoadedOwnershipApproval): OwnershipClient {
++	return new OwnershipClient(approval.identity, new BunOwnershipTransport(approval));
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/wire.schema.json b/packages/coding-agent/src/launch/ownership/wire.schema.json
 new file mode 100644
@@ -4786,6 +5333,66 @@ index 0fe343ff21..600abd9d92 100644
  	const key = `${scope.projectDir}\u0000${scope.daemonName}`;
  	const inFlight = reachabilityChecks.get(key);
  	if (inFlight) return inFlight;
+diff --git a/packages/coding-agent/test/execution-ownership-approval.test.ts b/packages/coding-agent/test/execution-ownership-approval.test.ts
+new file mode 100644
+index 0000000000..f2da801009
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-approval.test.ts
+@@ -0,0 +1,54 @@
++import { expect, test } from "bun:test";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import { loadOwnershipApproval, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
++
++/** Synthetic operator files only; no global installation is selected and no library/socket is opened. */
++test("operator approval stays bound to its outside-release inode and digest across later reads", async () => {
++	const root = await fs.mkdtemp("/tmp/ownership-approval-");
++	try {
++		await fs.chmod(root, 0o700);
++		const release = path.join(root, "release"), state = path.join(root, "state");
++		await fs.mkdir(release, { mode: 0o700 }); await fs.mkdir(state, { mode: 0o700 });
++		const fence = path.join(state, "fences"); await fs.mkdir(fence, { mode: 0o700 });
++		const stateStat = await fs.stat(state, { bigint: true }), fenceStat = await fs.stat(fence, { bigint: true });
++		const value = { version: "omp-execution-approval/1", installation: "c".repeat(64),
++			identity: { closure: "a".repeat(64), schema: "b".repeat(64) }, publicKey: "A".repeat(43), releaseRoot: release,
++			endpoint: path.join(state, "socket"), stateDirectory: { path: state, device: String(stateStat.dev), inode: String(stateStat.ino) },
++			fenceDirectory: { path: fence, device: String(fenceStat.dev), inode: String(fenceStat.ino) },
++			bridge: { file: path.join(release, "bridge.so"), sha256: "d".repeat(64) },
++			helper: { file: path.join(release, "private-helper"), sha256: "e".repeat(64) } };
++		const record = path.join(root, "approval.json"), bytes = JSON.stringify(value);
++		await fs.writeFile(record, bytes, { mode: 0o600 });
++		const stat = await fs.stat(record, { bigint: true });
++		const pin = { path: record, device: String(stat.dev), inode: String(stat.ino),
++			sha256: new Bun.CryptoHasher("sha256").update(bytes).digest("hex") };
++		const approval = await loadOwnershipApproval(pin);
++		expect(approval.identity).toEqual(value.identity);
++		await fs.rename(record, path.join(root, "old.json")); await fs.writeFile(record, bytes, { mode: 0o600 });
++		await expect(approval.verify()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		const inside = path.join(release, "approval.json"); await fs.writeFile(inside, bytes, { mode: 0o600 });
++		const insideStat = await fs.stat(inside, { bigint: true });
++		await expect(loadOwnershipApproval({ ...pin, path: inside, inode: String(insideStat.ino) }))
++			.rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await fs.rm(root, { recursive: true, force: true }); }
++});
++
++
++test("pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions", async () => {
++	const root = await fs.mkdtemp("/tmp/ownership-approval-file-");
++	try {
++		await fs.chmod(root, 0o700);
++		const file = path.join(root, "record"), bytes = "operator-approved-record";
++		await fs.writeFile(file, bytes, { mode: 0o600 });
++		const stat = await fs.stat(file, { bigint: true });
++		const pin = { path: file, device: String(stat.dev), inode: String(stat.ino),
++			sha256: new Bun.CryptoHasher("sha256").update(bytes).digest("hex") };
++		await fs.chmod(file, 0o666);
++		await expect(readOwnershipPinnedFile(pin)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await fs.chmod(file, 0o600); await fs.writeFile(file, "different-operator-data");
++		await expect(readOwnershipPinnedFile(pin)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++		await fs.rename(file, path.join(root, "held")); await fs.symlink(path.join(root, "held"), file);
++		await expect(readOwnershipPinnedFile(pin)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++	} finally { await fs.rm(root, { recursive: true, force: true }); }
++});
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644
 index 0000000000..3985cff8c3
@@ -5593,6 +6200,65 @@ index 0000000000..489665ab42
 +		throw error;
 +	} finally { bridge?.close(); await fs.rm(directory, { recursive: true, force: true }); }
 +}, 5_000);
+diff --git a/packages/coding-agent/test/execution-ownership-server.test.ts b/packages/coding-agent/test/execution-ownership-server.test.ts
+new file mode 100644
+index 0000000000..f5db794119
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-server.test.ts
+@@ -0,0 +1,53 @@
++import { expect, test } from "bun:test";
++import * as path from "node:path";
++import { loadOwnershipApproval, ownershipApprovalPin } from "../src/launch/ownership/approval";
++import { connectApprovedOwnershipClient } from "../src/launch/ownership/uds-client";
++
++const manifestPath = process.env.OMP_OWNERSHIP_SERVER_FIXTURE_MANIFEST;
++
++/** Opt-in real public Bun UDS→independent server C SO_PEERPIDFD→signed reply. NOT Native/global/lifetime acceptance. */
++test.skipIf(!manifestPath)("public Bun client registers with an independent dispatcher and verifies signed peer identity", async () => {
++	if (!manifestPath?.startsWith("/tmp/ownership-server-tracer-") || !manifestPath.endsWith("/fixture.json")) {
++		throw new Error("OWNERSHIP_SERVER_FIXTURE_REQUIRED");
++	}
++	const fixture: unknown = await Bun.file(manifestPath).json();
++	if (typeof fixture !== "object" || fixture === null || !("approval" in fixture) || !("guard" in fixture)
++		|| typeof fixture.guard !== "string" || !("bunConfig" in fixture) || typeof fixture.bunConfig !== "string") {
++		throw new Error("OWNERSHIP_SERVER_FIXTURE_INVALID");
++	}
++	const root = path.dirname(manifestPath), approval = await loadOwnershipApproval(ownershipApprovalPin(fixture.approval));
++	const child = Bun.spawn([process.execPath, "--no-env-file", `--config=${fixture.bunConfig}`, `--preload=${fixture.guard}`,
++		path.join(import.meta.dir, "fixtures/ownership-server-runner.ts")], {
++		cwd: path.join(root, "cwd"), stdin: "pipe", stdout: "pipe", stderr: "pipe",
++		env: { HOME: path.join(root, "home"), PI_CODING_AGENT_DIR: path.join(root, "profile"), TMPDIR: "/tmp",
++			XDG_CONFIG_HOME: path.join(root, "config"), XDG_DATA_HOME: path.join(root, "data"),
++			XDG_STATE_HOME: path.join(root, "xdg-state"), XDG_CACHE_HOME: path.join(root, "cache"),
++			PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`, OMP_OWNERSHIP_SERVER_FIXTURE_MANIFEST: manifestPath },
++	});
++	const stderr = new Response(child.stderr).text(), client = connectApprovedOwnershipClient(approval);
++	try {
++		const reader = child.stdout.getReader();
++		try {
++			let ready = "";
++			while (!ready.endsWith("\n")) {
++				const chunk = await reader.read();
++				if (chunk.done || !chunk.value || chunk.value.length + ready.length > 64) throw new Error("OWNERSHIP_SERVER_READY_MISSING");
++				ready += new TextDecoder("utf-8", { fatal: true }).decode(chunk.value);
++			}
++			expect(ready).toBe("OWNERSHIP_SERVER_READY\n");
++		} finally { reader.releaseLock(); }
++		const first = await client.classify(), second = await client.classify();
++		expect(first.policy).toBe("external");
++		expect(first.dispatcher).toMatch(/^[a-f0-9]{64}$/);
++		expect(second).toEqual(first);
++		expect(await client.listScopes()).toEqual([]);
++		await expect(client.inspectBroker({ kind: "project", directory: approval.releaseRoot }, "missing-generation"))
++			.rejects.toMatchObject({ code: "dispatcher_unavailable" });
++	} finally {
++		client.close(); child.stdin.end();
++		const exitCode = await child.exited, error = await stderr;
++		expect(exitCode).toBe(0); expect(error).toBe("");
++		process.stdout.write(JSON.stringify({ fixture: "ownership-server-public-uds", serverPid: child.pid, clientPid: process.pid,
++			serverExit: exitCode, signal: child.signalCode, stdinEofSent: true, serverAwaited: true }) + "\n");
++	}
++}, 10_000);
 diff --git a/packages/coding-agent/test/execution-ownership-worker.test.ts b/packages/coding-agent/test/execution-ownership-worker.test.ts
 new file mode 100644
 index 0000000000..0d20432183
@@ -5646,4 +6312,37 @@ index 0000000000..0d20432183
 +		{ messages: 2, bytes: 128 });
 +	expect(() => oversized.deliver(new Uint8Array(129))).toThrow("ownership_limit");
 +	other.close();
++});
+diff --git a/packages/coding-agent/test/fixtures/ownership-server-runner.ts b/packages/coding-agent/test/fixtures/ownership-server-runner.ts
+new file mode 100644
+index 0000000000..9fba1a1a12
+--- /dev/null
++++ b/packages/coding-agent/test/fixtures/ownership-server-runner.ts
+@@ -0,0 +1,27 @@
++import { loadOwnershipApproval, ownershipApprovalPin } from "../../src/launch/ownership/approval";
++import { LinuxOwnershipServer } from "../../src/launch/ownership/server";
++import { OwnershipError } from "../../src/launch/ownership/protocol";
++
++/** Synthetic explicit server process only. Public stdin EOF closes it; no signal, Native or helper launch exists. */
++async function run(): Promise<void> {
++	const selected = process.env.OMP_OWNERSHIP_SERVER_FIXTURE_MANIFEST;
++	if (!selected?.startsWith("/tmp/ownership-server-tracer-") || !selected.endsWith("/fixture.json")) {
++		throw new OwnershipError("ownership_protocol");
++	}
++	const value: unknown = await Bun.file(selected).json();
++	if (typeof value !== "object" || value === null || !("approval" in value) || !("key" in value)) {
++		throw new OwnershipError("ownership_protocol");
++	}
++	const approval = await loadOwnershipApproval(ownershipApprovalPin(value.approval));
++	const server = await LinuxOwnershipServer.open(approval, ownershipApprovalPin(value.key));
++	try {
++		process.stdout.write("OWNERSHIP_SERVER_READY\n");
++		for await (const bytes of Bun.stdin.stream()) {
++			if (bytes.length) throw new OwnershipError("ownership_protocol");
++		}
++	} finally { await server.close(); }
++}
++void run().catch(error => {
++	process.stderr.write(JSON.stringify({ code: error instanceof OwnershipError ? error.code : "ownership_unresolved" }) + "\n");
++	process.exitCode = 2;
 +});
