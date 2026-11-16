@@ -5,25 +5,25 @@
       "name": "same-native-identity-and-registration-reuse-without-refresh-replay",
       "result": "PASS",
       "binding": {
-        "sourceId": "dc4c50cfd272b9813f8f602511693928317b921169823b8076c6bfb9a4dad882",
-        "instanceId": "045291652cf5a3f9c42352fd4aca328cb0d4efdd88d260b5684ddcee67481826",
+        "sourceId": "c87e2ae710ffdc26c172734db3ca4dfd57cafb99e6f39a83dc4e04a4d5e7cf01",
+        "instanceId": "8088df7327a1a59d75930ad0c81e1e65ed338be4832de11828bdc4667e6c90d9",
         "nativeSessionId": "native-0000",
-        "reference": "eyJzb3VyY2VJZCI6ImRjNGM1MGNmZDI3MmI5ODEzZjhmNjAyNTExNjkzOTI4MzE3YjkyMTE2OTgyM2I4MDc2YzZiZmI5YTRkYWQ4ODIiLCJsb2NhdG9yIjoiYnVja2V0L25hdGl2ZS0wMDAwLmpzb25sIiwiaW5zdGFuY2VJZCI6IjA0NTI5MTY1MmNmNWEzZjljNDIzNTJmZDRhY2EzMjhjYjBkNGVmZGQ4OGQyNjBiNTY4NGRkY2VlNjc0ODE4MjYiLCJuYXRpdmVTZXNzaW9uSWQiOiJuYXRpdmUtMDAwMCJ9",
+        "reference": "eyJzb3VyY2VJZCI6ImM4N2UyYWU3MTBmZmRjMjZjMTcyNzM0ZGIzY2E0ZGZkNTdjYWZiOTllNmYzOWE4M2RjNGUwNGE0ZDVlN2NmMDEiLCJsb2NhdG9yIjoiYnVja2V0L25hdGl2ZS0wMDAwLmpzb25sIiwiaW5zdGFuY2VJZCI6IjgwODhkZjczMjdhMWE1OWQ3NTkzMGFkMGM4MWUxZTY1ZWQzMzhiZTQ4MzJkZTExODI4YmRjNDY2N2U2YzkwZDkiLCJuYXRpdmVTZXNzaW9uSWQiOiJuYXRpdmUtMDAwMCJ9",
         "aliases": [
           "bucket/native-0000.jsonl"
         ],
         "cwd": {
-          "recorded": "/workspace/work/omp-webui-ticket-32/vendor/continuation-profile/project",
-          "canonical": "/workspace/work/omp-webui-ticket-32/vendor/continuation-profile/project",
+          "recorded": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/continuation-profile/project",
+          "canonical": "/workspace/work/omp-webui-ticket-32-review-fix/vendor/continuation-profile/project",
           "status": "known"
         },
         "title": "Native Session 0",
         "createdAt": "2026-01-01T00:00:00.000Z",
-        "modifiedAt": "2026-11-16T15:21:51.773Z",
-        "observedAt": "2026-11-16T15:25:52.914Z",
+        "modifiedAt": "2026-11-16T15:58:18.412Z",
+        "observedAt": "2026-11-16T16:14:20.702Z",
         "ownership": {
           "state": "held",
-          "observedAt": "2026-11-16T15:25:52.914Z"
+          "observedAt": "2026-11-16T16:14:20.702Z"
         }
       }
     },
@@ -48,5 +48,16 @@
   "browser": "156.0.8078.79",
   "DSHRemoteCalls": 21,
   "pageErrors": [],
-  "sessionAdmission": "blocked"
+  "sessionAdmission": "blocked",
+  "build": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+    "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
+    "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+  },
+  "browserManifestSha256": "7fb23378993454a7c9debc1efe9ad45548c64af7c6b07e2d3a333467ae13c7d4",
+  "screenshot": {
+    "path": "vendor/continuation-browser/continuation.png",
+    "sha256": "79ee42c0b035287c4b6075503b91e9e87978c52f92fc97aac112998b57e60168"
+  }
 }
