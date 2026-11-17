@@ -7,7 +7,9 @@ export class OriginalIntake<Caller> {
     private readonly authorize: (caller: Caller, target: AttachmentTarget) => OriginalScope) {}
 
   private access(caller: Caller, target: AttachmentTarget): () => OriginalScope {
-    const requested = attachmentTarget.parse(target);
+    const validated = attachmentTarget.safeParse(target);
+    if (!validated.success) throw Error("attachment_invalid_target");
+    const requested = validated.data;
     return () => {
       const scope = this.authorize(caller, requested);
       if (scope.sessionId !== requested.sessionId || scope.draftId !== requested.draftId) {
@@ -17,12 +19,22 @@ export class OriginalIntake<Caller> {
     };
   }
 
-  stage(caller: Caller, target: AttachmentTarget, descriptor: OriginalDescriptor,
+  async stage(caller: Caller, target: AttachmentTarget, descriptor: OriginalDescriptor,
     body: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
-    return this.store.stage(this.access(caller, target), originalDescriptor.parse(descriptor), body, signal);
+    try {
+      const access = this.access(caller, target), validated = originalDescriptor.safeParse(descriptor);
+      if (!validated.success) throw Error("attachment_invalid_descriptor");
+      return await this.store.stage(access, validated.data, body, signal);
+    } catch (error) { throw intakeError(error); }
   }
 
-  read(caller: Caller, target: AttachmentTarget, objectId: string, signal?: AbortSignal) {
-    return this.store.read(this.access(caller, target), objectId, signal);
+  async read(caller: Caller, target: AttachmentTarget, objectId: string, signal?: AbortSignal) {
+    try { return await this.store.read(this.access(caller, target), objectId, signal); }
+    catch (error) { throw intakeError(error); }
   }
+}
+
+function intakeError(error: unknown): Error {
+  if (error instanceof Error && error.message.length <= 96 && /^attachment_[a-z_]+$/.test(error.message)) return error;
+  return Error("attachment_storage_unavailable");
 }

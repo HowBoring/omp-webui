@@ -34,14 +34,14 @@
     {
       "check": "focused attachments public store/intake/Remote",
       "status": "PASS",
-      "tests": 18,
-      "assertions": 72
+      "tests": 23,
+      "assertions": 95
     },
     {
       "check": "combined attachments/preferences/tree pure public Remote suites",
       "status": "PASS",
-      "tests": 48,
-      "assertions": 194
+      "tests": 53,
+      "assertions": 217
     },
     {
       "check": "repository strict TypeScript tsc --noEmit -p tsconfig.json",
@@ -58,7 +58,10 @@
     "Absent proposed Host Remote contract",
     "Missing original exposed raw filesystem error",
     "Unknown payload with known object ID name was accepted on restart",
-    "In-flight reservations lacked independent concurrent bound"
+    "In-flight reservations lacked independent concurrent bound",
+    "Raw intake target validation threw a synchronous ZodError",
+    "Raw intake invalid descriptors exposed Zod validation details",
+    "SQLite rollback-journal directory fault escaped raw intake as disk I/O error"
   ],
   "covered": [
     "exact original SHA-256 and bytes across reopen",
@@ -76,7 +79,12 @@
     "display traversal/project non-overwrite and private permissions",
     "unaccounted restart payload refusal",
     "explicit verified Open and exact target required before raw-stream reads",
-    "typed public Remote canonical-base64 stage/read with current scope and no Native claims"
+    "typed public Remote canonical-base64 stage/read with current scope and no Native claims",
+    "raw stage/read invalid targets reject asynchronously with bounded stable errors",
+    "raw descriptor schema failures and SQLite reservation failures expose only stable codes before body consumption",
+    "raw storage recovery after real rollback-journal fault retains zero leaked quota",
+    "raw intake preserves revocation, binding, cancellation and quota refusal codes",
+    "oversized attachment-like producer errors are bounded and failed reservations reclaimed"
   ],
   "execution": {
     "runtime": "Bun 1.4.4 (38afee6c8)",
@@ -134,13 +142,47 @@
   ],
   "sourceSha256": {
     "docs/adr/0021-host-original-intake.md": "20ea4146219c5a6af1dd7aee0d7ad9befd0d1ba8994d2ab92094fb2c63b22eb6",
-    "packages/attachments/README.md": "a6f6944a634dc8a8c8336bd54961030932716672e9aee23b10aa6d806e0d420e",
-    "packages/attachments/intake.ts": "8f0cf934e9ae0fcbaeff9da0dca7eb03fae64ffd8958f08ea9f1b538c04ccfc0",
+    "packages/attachments/README.md": "4dd0b26f75345198ba8653fb6d0150f53aaf3586272e87c8a6f0bf2d5e9d9a82",
+    "packages/attachments/intake.ts": "00dc1072a64dfdc0c3547073e05d8c6a4ee8330fbd5ae71c05df03bd38f6d878",
     "packages/attachments/service.ts": "90b6120c158621aeb8b26ccfe74c2a1ba33ea2b2d4cf1a9b8542b5a342f73bb2",
     "packages/attachments/store.ts": "751955bf055aef19c235101e42f7f6fa21de3cb51c81df6eee70b4de7f76cec7",
     "packages/contracts/attachments.ts": "12930c6c81600fb178cf123ee9ec9a98404fc0251145940f8a53e69b97a7410f",
     "tests/attachments/no-runtime.ts": "1b8fec99e1bbdba8dd9b783b5bf2f36781ba3dd228044a0c254b4ab5717af6d3",
     "tests/attachments/remote.test.ts": "3a699c65ab936f6b9d57c541246bae83cd5b9e7738dae54c38ff85f7f3e6cf1a",
-    "tests/attachments/store.test.ts": "23c4b00bb4b355369fcb4bdf1674fa1ac5d5e515546822ca8509a1895542d057"
+    "tests/attachments/store.test.ts": "28fb14fb63b390e5ef0dd17086c53c7bbf5b2b4278a7534807c81d842080a6c3"
+  },
+  "reviewFix": {
+    "reviewedSource": "00cefff5ffe59cbb261f217d831a8d6dcaf36ad8",
+    "integrationFixedPoint": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+    "priorEvidence": "docs/implementation/ticket-54-source-evidence-before-boundary-fix.json",
+    "priorEvidenceSha256": "846d1605759409d9673ab13156074d56d8d603f447fb11587200df3fd46a87d3",
+    "finding": "Standards P2: normalize failures at proposed raw-stream OriginalIntake boundary",
+    "change": "Async stage/read validate inputs to fixed codes and normalize unexpected errors; bounded existing attachment codes pass through",
+    "red": [
+      {
+        "test": "raw intake rejects an invalid target",
+        "observed": "synchronous ZodError; not.toThrow failed"
+      },
+      {
+        "test": "raw intake rejects invalid descriptors",
+        "observed": "raw ZodError instead of attachment_invalid_descriptor"
+      },
+      {
+        "test": "raw intake bounds SQLite reservation errors",
+        "observed": "disk I/O error instead of attachment_storage_unavailable"
+      }
+    ],
+    "green": {
+      "focusedTests": 23,
+      "focusedAssertions": 95,
+      "combinedTests": 53,
+      "combinedAssertions": 217,
+      "strictTypeScript": "PASS",
+      "diffCheck": "PASS"
+    },
+    "fixtureFault": "Directory at configured private originals.sqlite-journal path prevents actual SQLite rollback journal creation; no SQL/private-field mocks or assertions",
+    "existingTestsPreserved": true,
+    "mediaDefinitionHeuristic": "Deferred; unrelated shared-domain refactor is unnecessary for this boundary correction",
+    "admission": "Unregistered source only; ticket 54 and 29 OPEN, private product admission BLOCKED"
   }
 }

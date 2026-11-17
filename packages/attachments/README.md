@@ -19,7 +19,12 @@ this component cannot enqueue execution.
 `OriginalIntake<Caller>` is the proposed raw-stream Host port. Its `stage` accepts
 a caller admitted by the Host carrier, a Session/draft target, display metadata,
 the exact declared byte length, an async byte stream and a cancellation signal.
-Its `read` returns bytes and metadata, never a filesystem path. The Host callback
+Its `read` returns bytes and metadata, never a filesystem path. Both methods
+reject asynchronously with a stable `attachment_*` error message of at most
+96 characters. Invalid targets/descriptors use `attachment_invalid_target` /
+`attachment_invalid_descriptor`; unexpected storage failures, including SQLite
+reservation failures, use `attachment_storage_unavailable`. Existing authority,
+cancellation and quota refusal codes retain their meaning. The Host callback
 must recheck current browser credentials, canonical directory grants, verified
 Native profile/source/instance/Session identity, trusted page/draft ownership and
 the applicable occupation/access policy. It must attest explicit verified New/Open

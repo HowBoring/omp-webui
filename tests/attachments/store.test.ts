@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, unlinkSync,
+  writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { OriginalStore, type OriginalScope, type OriginalLimits } from "../../packages/attachments/store.ts";
 import { OriginalIntake } from "../../packages/attachments/intake.ts";
@@ -241,5 +242,84 @@ test("aborting a stalled upload releases its reservation without waiting for ano
   release({ done: true, value: undefined });
   await pending.catch(() => {});
   expect(outcome).toContain("attachment_canceled");
+  expect(store.usage(access).chargedBytes).toBe(0);
+});
+
+test("raw intake rejects an invalid target with one bounded code before body consumption", async () => {
+  const { store } = open();
+  const intake = new OriginalIntake(store, () => access());
+  let consumed = false;
+  async function* untouched() { consumed = true; yield image; }
+  const target = { sessionId: "", draftId: "draft" };
+  let pending: Promise<unknown> | undefined;
+  expect(() => { pending = intake.stage({}, target, descriptor, untouched()); }).not.toThrow();
+  await expect(pending).rejects.toThrow(/^attachment_invalid_target$/);
+  expect(consumed).toBe(false);
+  expect(store.usage(access).chargedBytes).toBe(0);
+  expect(() => { pending = intake.read({}, target, "opaque-id"); }).not.toThrow();
+  await expect(pending).rejects.toThrow(/^attachment_invalid_target$/);
+});
+
+test("raw intake rejects invalid descriptors without exposing schema details or consuming bytes", async () => {
+  const { store } = open();
+  const intake = new OriginalIntake(store, () => access());
+  let consumed = false;
+  async function* untouched() { consumed = true; yield image; }
+  for (const invalid of [{ ...descriptor, byteLength: 0 }, { ...descriptor, displayName: "" },
+    { ...descriptor, mediaType: "text/html" as const }]) {
+    // @ts-expect-error The raw boundary must validate malformed runtime descriptors too.
+    await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, invalid, untouched()))
+      .rejects.toThrow(/^attachment_invalid_descriptor$/);
+  }
+  expect(consumed).toBe(false);
+  expect(store.usage(access).chargedBytes).toBe(0);
+});
+
+test("raw intake bounds SQLite reservation errors and can stage after the storage fault clears", async () => {
+  const { store, dataDir } = open();
+  const intake = new OriginalIntake(store, () => access());
+  const target = { sessionId: "native", draftId: "draft" };
+  let consumed = false;
+  async function* untouched() { consumed = true; yield image; }
+  // A directory prevents SQLite from creating its rollback journal at the real filesystem boundary.
+  const journal = join(dataDir, "originals.sqlite-journal");
+  mkdirSync(journal);
+  try {
+    await expect(intake.stage({}, target, descriptor, untouched())).rejects.toThrow(/^attachment_storage_unavailable$/);
+    expect(consumed).toBe(false);
+  } finally { rmSync(journal, { recursive: true, force: true }); }
+  expect(store.usage(access).chargedBytes).toBe(0);
+  const staged = await intake.stage({}, target, descriptor, bytes());
+  expect((await intake.read({}, target, staged.objectId)).bytes).toEqual(image);
+});
+
+test("raw intake retains revocation, binding, cancellation and quota refusal codes", async () => {
+  const { store } = open({ totalBytes: 14 });
+  let allowed = true, epoch = "epoch";
+  const intake = new OriginalIntake(store, () => {
+    if (!allowed) throw Error("revoked");
+    return { ...scope, authorityEpoch: epoch };
+  });
+  const target = { sessionId: "native", draftId: "draft" };
+  async function* revoked() { yield image.subarray(0, 7); allowed = false; yield image.subarray(7); }
+  await expect(intake.stage({}, target, descriptor, revoked())).rejects.toThrow(/^attachment_authority_unavailable$/);
+  allowed = true;
+  async function* rebound() { yield image.subarray(0, 7); epoch = "new-epoch"; yield image.subarray(7); }
+  await expect(intake.stage({}, target, descriptor, rebound())).rejects.toThrow(/^attachment_binding_changed$/);
+  const abort = new AbortController(); abort.abort();
+  await expect(intake.stage({}, target, descriptor, bytes(), abort.signal)).rejects.toThrow(/^attachment_canceled$/);
+  expect(store.usage(access).chargedBytes).toBe(0);
+  const original = await intake.stage({}, target, descriptor, bytes());
+  await expect(intake.stage({}, target, descriptor, bytes())).rejects.toThrow(/^attachment_store_full$/);
+  allowed = false;
+  await expect(intake.read({}, target, original.objectId)).rejects.toThrow(/^attachment_authority_unavailable$/);
+});
+
+test("raw intake bounds oversized attachment-like producer errors and releases the reservation", async () => {
+  const { store } = open();
+  const intake = new OriginalIntake(store, () => access());
+  async function* failed(): AsyncGenerator<Uint8Array> { throw Error(`attachment_${"x".repeat(100)}`); }
+  await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, descriptor, failed()))
+    .rejects.toThrow(/^attachment_storage_unavailable$/);
   expect(store.usage(access).chargedBytes).toBe(0);
 });
