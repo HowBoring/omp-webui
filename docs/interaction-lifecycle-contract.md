@@ -2,6 +2,11 @@
 
 Status: 用户已确认六项政策；以下为实施目标，Broker、停止流程和公共 RPC 增量尚未实现。
 
+Source-only progress: [#48 Stop coordinator](stop-coordinator-source-status.md)
+now provides the typed Host Remote/coordinator and controlled-clock fixtures.
+Actual Native transport, product browser/dispatch, and owned-supervisor force
+integration remain gated; this does not change the runtime acceptance status.
+
 2026-11-17 source-only update: [#47 Broker source vertical](interaction-broker-source-status.md)
 now implements the isolated Broker/public Remote seam. Product admission, full Stop
 coordination and real browser/Native/final-tuple acceptance remain pending; the

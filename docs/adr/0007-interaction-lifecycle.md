@@ -29,3 +29,10 @@ answer and delayed result application. It reuses generated Native `respond_ui`
 types and the effective explicit-answer policy; host tool/URI contracts remain
 separate. This is isolated source/fixture evidence. It does not install a product
 route or change the required real browser/Native/final-tuple acceptance gates.
+
+The [#48 Stop source vertical](../stop-coordinator-source-status.md) adds a typed
+public Host Remote/coordinator using existing queue withdrawal and summary abort
+operations. Joint Native/Host idle, unsent-only recovery, and one-use current-worker
+force offers are explicit. Actual public transport/product dispatch and original
+supervisor-handle force integration remain required; the source capability cannot
+resolve or kill a PID and supplies no automatic ordinary-Stop kill deadline.

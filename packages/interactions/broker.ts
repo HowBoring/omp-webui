@@ -43,6 +43,8 @@ export class InteractionBroker {
   #accepting = true;
   #closed = false;
   #stopRequested = false;
+  #revoked = false;
+  #inFlight = 0;
   #wait = 30 * 60 * 1000;
   constructor(scope: BrokerScope, readonly workerGeneration: string, readonly agentScope: string,
     readonly native: BrokerNativePort, readonly authorized: (page: PageIdentity, scope: BrokerScope) => boolean,
@@ -119,9 +121,20 @@ export class InteractionBroker {
       request.method === "input" || request.method === "editor") this.#open(request);
   }
   async revokeScope(reason = "authority-revoked"): Promise<void> {
-    this.#accepting = false; this.#pages.clear();
+    this.#revoked = true; this.#accepting = false; this.#pages.clear();
     const cancellations = [...this.#pending.keys()].map(id => this.#cancel(id, reason));
     this.#requestStop(reason); await Promise.all(cancellations);
+  }
+  /** Ordinary Stop boundary: fences new/late answers without recursively invoking native.requestStop. */
+  async beginStop(): Promise<void> {
+    this.#accepting = false;
+    await Promise.all([...this.#pending.keys()].map(id => this.#cancel(id, "worker-stopping")));
+  }
+  get pendingCount(): number { return this.#pending.size + this.#inFlight; }
+  /** Called only after the coordinator observes joint Native/Host quiescence. */
+  resumeAfterStop(): void {
+    if (this.#closed || this.#revoked || this.pendingCount) throw new Error("INTERACTION_NOT_QUIESCENT");
+    this.#stopRequested = false; this.#accepting = true;
   }
   close(): void {
     this.#closed = true; this.#accepting = false; this.#pages.clear(); this.#policy = false;
@@ -139,7 +152,7 @@ export class InteractionBroker {
   #open(request: Interactive): void {
     if (this.#seen.has(request.id)) return;
     if (!this.#accepting || !this.#policy || this.#pending.size >= 16 || this.#seen.size >= 4096) {
-      void this.native.respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
+      void this.#respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
       this.#requestStop("ui-not-admitted"); return;
     }
     this.#seen.add(request.id);
@@ -153,7 +166,7 @@ export class InteractionBroker {
       title: "title" in request ? request.title : "Native ask", createdAt, deadline: createdAt + wait,
       reason: "explicit-answer-required" });
     if (!parsed.success) {
-      void this.native.respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
+      void this.#respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
       this.#requestStop("ui-presentation-incompatible"); return;
     }
     const card = parsed.data;
@@ -174,7 +187,7 @@ export class InteractionBroker {
     entry.state = "settling";
     if (answer.type === "cancel") { entry.deliveries.clear(); entry.cancelTimer(); }
     try {
-      const result = interactionReplySchema.parse(await this.native.respondUi({ targetId: id,
+      const result = interactionReplySchema.parse(await this.#respondUi({ targetId: id,
         answer: nativeAnswer(answer) }));
       if (result.status === "invalid" && !this.#closed && this.#pending.get(id) === entry) {
         if (answer.type === "cancel") {
@@ -196,6 +209,10 @@ export class InteractionBroker {
     entry.cancelTimer(); this.#pending.delete(id);
     this.#outcomes.push({ id, status, reason, stop: "none" });
     if (this.#outcomes.length > 64) this.#outcomes.shift();
+  }
+  async #respondUi(params: RespondUiParams): Promise<UIReplyResult> {
+    this.#inFlight++;
+    try { return await this.native.respondUi(params); } finally { this.#inFlight--; }
   }
   #requestStop(reason: string): void {
     if (this.#closed || this.#stopRequested) return;
