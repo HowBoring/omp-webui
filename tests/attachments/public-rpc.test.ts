@@ -1282,15 +1282,14 @@ async function refuseImageOneByteOver(fixture: Awaited<ReturnType<typeof openWor
   expect(response.success).toBe(true); expect(isAttachmentReceipt(response.data)).toBe(true);
   if (!isAttachmentReceipt(response.data)) throw Error("ATTACHMENT_PUBLIC_IMAGE_OVER_RECEIPT_MISSING");
   const receipt = response.data;
-  // The unchanged helper's 10MiB stdin bound catches STREAM_BYTE_LIMIT as this generic converter code.
-  // This exposes a diagnostic gap: it is not the count/total ATTACHMENT_INPUT_BUDGET command rejection.
+  // The per-image raw budget must fail explicitly before isolated conversion, separately from count/total/RPC.
   expect(receipt).toMatchObject({ status: "failed", preparationId: draft.preparationId, draftId: draft.draftId,
     draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
       instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
   expect(receipt.items).toHaveLength(1);
   expect(receipt.items[0]).toMatchObject({ status: "failed", originalId: "image",
     originalSha256: "ba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780",
-    preparedSha256: "", code: "attachment_converter_error" });
+    preparedSha256: "", code: "attachment_original_budget" });
   expect(await fixture.worker.request(submission(fixture, receipt, "image-over-refused", [])))
     .toMatchObject({ success: false, code: "ATTACHMENT_NOT_READY", error: "ATTACHMENT_NOT_READY" });
   await expectBudgetQueryAbsent(fixture.worker, "image-over-refused");
@@ -1302,7 +1301,7 @@ async function refuseImageOneByteOver(fixture: Awaited<ReturnType<typeof openWor
   expect(await fixture.client.cancel(receipt.preparationId)).toEqual({ cancelled: true });
 }
 
-test("actual public 10MiB PNG requires transformation consent and refuses one image byte over before effects", async () => {
+test("actual public 10MiB PNG requires transformation consent and reports original budget for one byte over", async () => {
   await withWorker(async fixture => {
     const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
     const receipt = await prepareImageLimit(fixture, imageLimitDraft()), prepared = preparedImage(receipt);

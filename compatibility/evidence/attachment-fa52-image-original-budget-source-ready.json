@@ -1,0 +1,356 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_REVIEW_READY_NOT_BUILT_NOT_RUN",
+  "sourceParent": "7cc3bf178f023f5eabbf4c69ebba1916b256ce0b",
+  "scope": "Minimal public per-image raw-overlimit diagnostic using existingattachment_original_budget; exactly10MiB unchanged. No negative-format matrix/API expansion.",
+  "contract": {
+    "boundary": "AttachmentPreparations.#prepareItem after strictbase64+originalSHA; before image capability check/owned helper launch.",
+    "condition": "image && decoded.bytes.byteLength > ATTACHMENT_LIMITS.imageBytes",
+    "failedItemCode": "attachment_original_budget",
+    "publicShape": "Existing failed receipt/item, preparedSha256 empty; submissionATTACHMENT_NOT_READY before reservation/effects.",
+    "semanticsBasis": "Existing prepareAttachment already reports this exact structured reason for format-specific original byte excess. Public failed-item code:string already accepts it; no new API/schema fields.",
+    "limitsUnchanged": {
+      "imageBytes": 10485760,
+      "objects": 8,
+      "rawTotalBytes": 33554432,
+      "completeEncodedRpcBytes": 50331648
+    },
+    "invariants": "Exact caller draft/object/base64/hash, selectedbinding/revision/authority/consent, all-item reporting, whole-input refusal; no fallback/shrink/drop."
+  },
+  "publicTest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 94494,
+    "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693",
+    "name": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over",
+    "status": "UPDATED_EXPECTATION_NOT_EXECUTED",
+    "redExpectation": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/red-expectation.json",
+      "bytes": 1268,
+      "sha256": "e4ca70f5e36326dde30336f5887c547681cc487044b42b2ba3ca68af1d5da90c"
+    },
+    "oldFullPreimage": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/tests/attachments/public-rpc.test.ts",
+      "bytes": 94592,
+      "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e"
+    },
+    "firstTwelveCasesExactPrefixBytes": 85975,
+    "positiveBody": "Unchanged AST including ready10MiB, explicittransformationconsent, independentpixeloracle, exactsavedpart/history/onecontrolledprovider/query."
+  },
+  "nativeSourceChanges": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/CHANGELOG.md",
+      "bytes": 203402,
+      "sha256": "a626a12a05a2399ce825ae445b56285a238238c56e690a84f56cb00a27505f70"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5367,
+      "sha256": "66e49c935482aecbb9f20a3afa8a8a34a4976fd1080878b95fc35c873357028d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12667,
+      "sha256": "491a58242e294f0b0c1326b5818457b7acce067cdf6adf0cac919c37977c4458"
+    }
+  ],
+  "orderedPatch": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/0010-image-original-budget.patch",
+    "bytes": 3099,
+    "sha256": "972a1987e01d64fc255a7944db22a1503ebbb622fc8de28fbdf6ad06719bdd24"
+  },
+  "patchRegistration": {
+    "path": "/workspace/work/omp-webui-ticket-38/scripts/omp-source.ts",
+    "bytes": 10156,
+    "sha256": "b174fcc58a896fbf55337592fc7051b6c570531c30824b143846519c0f7c3b91"
+  },
+  "proposedSourceTuple": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256ExpectedUnchanged": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566",
+    "status": "SOURCE_FINGERPRINT_ONLY_NOT_BUILT_NOT_RUN"
+  },
+  "historicalActual": {
+    "proof": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-image-ten-mib-runtime-success.json",
+      "bytes": 24740,
+      "sha256": "9f40c3608d527e42692f560c282504966c40f4d83fcc9efa1f25725bf3bdcc1a"
+    },
+    "usage": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-ten-mib-window-usage.json",
+      "bytes": 3543,
+      "sha256": "1ab7841e69e84413590a5ccb5af7308c95a0d51cfbecb46165502fc0747a511e"
+    },
+    "status": "IMMUTABLE_POSITIVE10MIB_PASS_PLUS_ONE_GENERIC_DIAGNOSTIC_GAP",
+    "consumedReady": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-ten-mib-source-ready.json",
+      "bytes": 15259,
+      "sha256": "9c5d89d728bf068a0115e662722ef13e3f28339217be2a55cbcfdfd2b3608541"
+    },
+    "consumedFreeze": {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/final-inputs.json",
+      "bytes": 8211,
+      "sha256": "988d5ad2e1928fbd2392bd81070cf1149b115d22d7f06c7e9a21605a5b89042f"
+    },
+    "meaning": "Historical actual remains scoped to originalsource94436ed; new expected stable reason NOT RUN."
+  },
+  "preservation": {
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preservation-before.json",
+      "bytes": 292797,
+      "sha256": "e8c2134809419a260a5061e24693c8a8261cbb6ec64248bb326cc40c94d12b4e"
+    },
+    "oldCurrentRecords": 883,
+    "unchangedCurrentRecords": 878,
+    "overrides": 5,
+    "oldNativeRecords": 166,
+    "unchangedNativeRecords": 163,
+    "oldMatchedBuildInputRecords": 290,
+    "unchangedOldMatchedBuildInputRecords": 286,
+    "smallTextPreimages": [
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+          "bytes": 94592,
+          "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/tests/attachments/public-rpc.test.ts",
+          "bytes": 94592,
+          "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/scripts/omp-source.ts",
+          "bytes": 10120,
+          "sha256": "bd0eeebd72c2939595c5017860d19bfd5541eb00b32797f1e1a8ea64c5913241"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/scripts/omp-source.ts",
+          "bytes": 10120,
+          "sha256": "bd0eeebd72c2939595c5017860d19bfd5541eb00b32797f1e1a8ea64c5913241"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/0009-attachment-preparation.patch",
+          "bytes": 163788,
+          "sha256": "54563304138f46364541768e30f17fd0c084312e28748b572a86b4929f5d974f"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/compatibility/omp/0009-attachment-preparation.patch",
+          "bytes": 163788,
+          "sha256": "54563304138f46364541768e30f17fd0c084312e28748b572a86b4929f5d974f"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+          "bytes": 12550,
+          "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+          "bytes": 12550,
+          "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+          "bytes": 5154,
+          "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+          "bytes": 5154,
+          "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/CHANGELOG.md",
+          "bytes": 203233,
+          "sha256": "f105caab82b61defcf564cb4a33adca309a71552897f7b7af8c422f57734c880"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/vendor/omp/packages/coding-agent/CHANGELOG.md",
+          "bytes": 203233,
+          "sha256": "f105caab82b61defcf564cb4a33adca309a71552897f7b7af8c422f57734c880"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+          "bytes": 4972,
+          "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+          "bytes": 4972,
+          "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+          "bytes": 4070,
+          "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+          "bytes": 4070,
+          "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+        }
+      },
+      {
+        "original": {
+          "path": "/workspace/work/omp-webui-ticket-38/packages/contracts/generated/identity.ts",
+          "bytes": 393,
+          "sha256": "e6abce322bceea67bfddd2cc527b4f78a337f754d417227ca94e4f7e48614b75"
+        },
+        "preimage": {
+          "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preimages/packages/contracts/generated/identity.ts",
+          "bytes": 393,
+          "sha256": "e6abce322bceea67bfddd2cc527b4f78a337f754d417227ca94e4f7e48614b75"
+        }
+      }
+    ],
+    "oldNativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "nativeIndexUnchanged": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+      "bytes": 1271154,
+      "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+    },
+    "patches1Through9Unchanged": true,
+    "oldArtifacts": "Candidate4/generated128/schema untouched; old build proof immutable. Hash references retained; no build/ELF/tree copies."
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/0010-image-original-budget.patch",
+      "bytes": 3099,
+      "sha256": "972a1987e01d64fc255a7944db22a1503ebbb622fc8de28fbdf6ad06719bdd24"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/scripts/omp-source.ts",
+      "bytes": 10156,
+      "sha256": "b174fcc58a896fbf55337592fc7051b6c570531c30824b143846519c0f7c3b91"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+      "bytes": 94494,
+      "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-source.md",
+      "bytes": 5321,
+      "sha256": "19693fa08bd536bf2d659ad4a401ca479bdf32a01a09feaec36b98887ef79779"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/CHANGELOG.md",
+      "bytes": 203402,
+      "sha256": "a626a12a05a2399ce825ae445b56285a238238c56e690a84f56cb00a27505f70"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5367,
+      "sha256": "66e49c935482aecbb9f20a3afa8a8a34a4976fd1080878b95fc35c873357028d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12667,
+      "sha256": "491a58242e294f0b0c1326b5818457b7acce067cdf6adf0cac919c37977c4458"
+    }
+  ],
+  "externalChecksAndPreimages": [
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/preservation-before.json",
+      "bytes": 292797,
+      "sha256": "e8c2134809419a260a5061e24693c8a8261cbb6ec64248bb326cc40c94d12b4e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/red-expectation.json",
+      "bytes": 1268,
+      "sha256": "e4ca70f5e36326dde30336f5887c547681cc487044b42b2ba3ca68af1d5da90c"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/red-public-rpc.test.ts",
+      "bytes": 94494,
+      "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/source-patch-readback.json",
+      "bytes": 2467,
+      "sha256": "f9f37fc4fd4d279e01ac8694182b2950e4cddbc2b267501ba501c1021afa22a6"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/static-source-check.cjs",
+      "bytes": 5158,
+      "sha256": "b1f359124eaedcd5145660a674aac6e2d4aeafba35d06e9e9f467f4a0a05c460"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/static-source-check.json",
+      "bytes": 581,
+      "sha256": "126b1bd54de9dae563a2984146154769f7892b56230a1256c4335b5fb80c074b"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/static-source-check-first.cjs",
+      "bytes": 5158,
+      "sha256": "ec35d6ba54b8a68900b0e5a4c84f06740083c25af5728838ab647238e6489037"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/static-source-check-first-failure.json",
+      "bytes": 366,
+      "sha256": "15b73df37e766cdf864b467c9e22f93a6ab41c183006f777895daa5acf09c221"
+    }
+  ],
+  "sourceChecks": {
+    "patchReadback": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/source-patch-readback.json",
+      "bytes": 2467,
+      "sha256": "f9f37fc4fd4d279e01ac8694182b2950e4cddbc2b267501ba501c1021afa22a6"
+    },
+    "ast": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/static-source-check.json",
+      "bytes": 581,
+      "sha256": "126b1bd54de9dae563a2984146154769f7892b56230a1256c4335b5fb80c074b"
+    },
+    "status": "PASS_METADATA_PATCH_PARSE_TRANSPILE_AST_ONLY",
+    "typecheck": "Not run; parse/transpile is not semantic typechecking.",
+    "actualRedGreen": "NOT RUN; sourceassertion authored before minimalNativechange; public test imports Native-bearingfixture and is forbidden here.",
+    "checkerFailure": "Externalchecker first selected wrong statementindex; authoringfailure retained and correctedPASS separate."
+  },
+  "buildAndGeneratorPlan": {
+    "status": "HOLD_FOR_ROOT_SCOPE_NOT_EXECUTED",
+    "schema": "No wiredefinition/client/generator/schema shape change. Regeneration expected same schemaSHA; unverified until separate reviewed build.",
+    "identity": "Newsource/patchSHA require new source-bearing build identities and matchedmanifest; current oldcandidate/generatedidentity cannot support this combination.",
+    "hazards": "Existing export/verifySource invoke Nativegitadd-N; prepare can reset source; build can remove outputs. Do not run under this assignment or silently overwrite oldsource/artifacts.",
+    "sequence": [
+      "Root agrees exact source/build scope and non-destructive Nativeindex/output handling; preserve exact3dirty Nativefiles and old artifacts.",
+      "Review guarded import graph; no-provider preload before every Nativeimport, fresh syntheticHOME/allowlisted env; no Agent/Host/browser/seed.",
+      "Apply ordered1\u201310 to an approved isolated source context without resetting this dirty checkout; establish source/patch tuple and expected unchanged wire schema.",
+      "Build/regenerate only approved artifacts, diff/enroll source-bearing identity changes and any unexpected schema change; produce fresh matchedmanifest.",
+      "Fresh paired SOURCE/build review + independent Rootpre/capacity and exactlyONE newcoordinated public retest scope."
+    ]
+  },
+  "futureRuntime": {
+    "status": "NONE_AUTHORIZED",
+    "case": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over",
+    "required": "New matchedbuild/freeze/output/profile/scope/retainer and Root singlewindow coordination. Old10MiB scope/retainer consumed. No pre/run/post/absence checks in thisSOURCEslice.",
+    "failurePolicy": "Preserve firstfailure; no auto retry/Nativefix/expectationweakening/targetshrink."
+  },
+  "notRun": "No Native/SDK/OMP/codec imports or execution, Native-bearingtests, Agent/provider/Host/browser, seed, global/private/product, proc/kernel, oldpre/post/absence checks, generators/export/build, Nativeindexmutation/commit/rebase, merge/push/GH write.",
+  "admission": "SOURCE REVIEW ONLY. New combinationNOTBUILT/NOTRUN; public diagnosticfix unproven. Whole29/38/53/54 open."
+}
