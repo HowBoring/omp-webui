@@ -374,3 +374,99 @@ test("actual public failed mixed preparation refuses all input before reservatio
     expect(await client.cancel(receipt.preparationId)).toEqual({ cancelled: true });
   });
 }, 45_000);
+
+async function prepareWebp(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
+  // Pillow/hashlib authored the original and its carrier hash; no Native encoder supplied expectations.
+  const original = await fs.readFile(new URL("./fixtures/opaque-200.webp", import.meta.url));
+  const originalSha256 = "0dd383c62fb5fd7b38a18c4f0cca4ec8670828cf2a63f39bbd96d45102729133";
+  const originalCarrierSha256 = "82e0ddb7abb78e7d758d9622e43c973fb68e042f3edf7c42ebe39b53f2c49328";
+  expect(original.byteLength).toBe(38); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const carrier = { kind: "image", mimeType: "image/webp", data: original.toBase64(), width: 200, height: 200 };
+  expect(Bun.SHA256.hash(JSON.stringify(carrier), "hex")).toBe(originalCarrierSha256);
+  const receipt = await fixture.client.prepare({ preparationId: "prepared-webp", draftId: "draft-webp",
+    draftRevision: "1", authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "image", format: "webp", sha256: originalSha256, data: original.toBase64() },
+    ] });
+  expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-webp", draftId: "draft-webp",
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0], prepared = preparedImage(receipt);
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_WEBP_NOT_READY");
+  expect(item.originalSha256).toBe(originalSha256);
+  expect(item.degradations).toEqual(["image_transformed"]);
+  expect(["image/png", "image/jpeg"]).toContain(prepared.mimeType);
+  expect({ width: prepared.width, height: prepared.height }).toEqual({ width: 200, height: 200 });
+  const preparedBytes = Buffer.from(prepared.data, "base64");
+  expect(preparedBytes.byteLength).toBeGreaterThan(0);
+  expect(preparedBytes.byteLength).toBeLessThanOrEqual(500 * 1024);
+  expect(Bun.SHA256.hash(preparedBytes, "hex")).not.toBe(originalSha256);
+  // Contract consistency only: converter-specific output bytes/hash are deliberately not predicted.
+  const representation = { kind: "image", mimeType: prepared.mimeType, data: prepared.data,
+    width: prepared.width, height: prepared.height };
+  expect(item.preparedSha256).toBe(Bun.SHA256.hash(JSON.stringify(representation), "hex"));
+  expect(item.preparedSha256).not.toBe(originalCarrierSha256);
+  expect(item.facts).toEqual({ originalBytes: 38, preparedBytes: preparedBytes.byteLength,
+    sourceWidth: 200, sourceHeight: 200, frames: 1, decodedBytes: 160000 });
+  return receipt;
+}
+
+async function refuseWebpWithoutConsent(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  expect(await fixture.worker.request(submission(fixture, receipt, "webp-success", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "webp-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [],
+    nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+}
+
+async function verifyWebpSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult): Promise<void> {
+  const image = savedLink(result, "image", "input"), prepared = preparedImage(receipt);
+  expect(image.link).toMatchObject(expectedLink(receipt, "image", "image"));
+  expect(image.locator.kind).toBe("content");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === image.entryId);
+  expect(matches).toHaveLength(1);
+  const input = z.object({ role: z.literal("user"), content: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ type: z.literal("image"), data: z.string(), mimeType: z.string() })
+    .parse(input.content[image.locator.index]);
+  expect(part).toEqual({ type: "image", data: prepared.data, mimeType: prepared.mimeType });
+  // Only the public relation entryId and actual part index supply causality; hashes witness bytes only.
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === image.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("input");
+    expect(row.submission?.attachments).toContainEqual(image.link);
+  }
+}
+
+test("actual public WebP requires transformation consent before indexed saved image and provider delivery", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await prepareWebp(fixture), prepared = preparedImage(receipt);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    await refuseWebpWithoutConsent(fixture, receipt);
+    expect(await worker.request(submission(fixture, receipt, "webp-success", ["image_transformed"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "webp-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "webp-success" },
+      preparation: consent(receipt, ["image_transformed"]) });
+    await verifyWebpSavedPart(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([{ mimeType: prepared.mimeType,
+      bytes: Buffer.byteLength(prepared.data, "base64"), sha256: Bun.SHA256.hash(Buffer.from(prepared.data, "base64"), "hex") }]);
+    expect(after.requests.at(-1)?.attachmentText).toEqual([]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "webp-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
