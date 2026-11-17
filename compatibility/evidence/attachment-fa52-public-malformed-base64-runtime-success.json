@@ -1,0 +1,379 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_ACTUAL_PUBLIC_MALFORMED_BASE64_WHOLE_INPUT_REFUSAL_CASE",
+  "hostHeadDuringActual": "ca6b4829ef14b93f84537b33af477ab07c3ac802",
+  "hostTreeDuringActual": "865fd0b7ea853c9a8be476b802d3c70bdb6c235c",
+  "testSource": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 98062,
+    "sha256": "8588fd02e29c1181334f615df6ee9b8cefc38a13f3edffa818415e1f0993bea9",
+    "name": "actual public malformed base64 with valid UTF8 refuses all input before reservation or effects"
+  },
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-malformed-base64-public-v1-source-ready.json",
+    "bytes": 10784,
+    "sha256": "20733d47bfad8553c1f3b8cc15a338fe20d6fa097fdf448d965ec6648d0e25c8"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-source-20261117/final-inputs.json",
+    "bytes": 6337,
+    "sha256": "15acfb22c0e9b98155d9311843fb60c7801aae95d5f1a8c65f69518addfde7f3"
+  },
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "expectedAndActualPublicBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runtimeMeaning": "Actual controlled Native worker executed public preparation and submission refusal with the existing literal-provider harness. This negative case admitted no input or model dispatch; it is public runtime evidence, not compiler-only evidence.",
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 13,
+    "expectCalls": 17,
+    "caseDurationMs": 3758.18,
+    "reportedDuration": "3.85s",
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "earnedPublicBehavior": [
+    "Raw public worker.request(attachment_prepare) bypassed AttachmentClient original validation and returned a receipt accepted by the existing public receipt schema.",
+    "Valid 28-byte UTF8 original remained ready with original SHA fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419, prepared SHA e603d01747bf11e95e94972008c3befe7d041b60b064fa8134add64c18019b0e, exact text and no degradation.",
+    "Second schema-valid UTF8 object data %%%% produced failed item attachment_invalid_base64, empty prepared SHA, and failed overall receipt with matching draft and selected target binding. Its all-zero SHA is only the retained declaration; malformed base64 has no decoded original and no decoded-byte hash is claimed.",
+    "Preparation and refused submit left public entry snapshots and all controlled provider effects exactly equal to their before snapshots.",
+    "Submission returned ATTACHMENT_NOT_READY; public submission_query showed found false, admission/reservation absent, terminal false, unresolved input/persistence, unknown operation, no relations and null nextOffset.",
+    "Complete caller draft including valid original, order, message, malformed raw data and declaration remained exact; the valid decoded original SHA was checked. Browser/editor/durable draft retention remains unproved."
+  ],
+  "publicPreflight": {
+    "report": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+      "candidate": "image-original-budget-v2",
+      "processId": 658160,
+      "actual": {
+        "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+        "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+        "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+        "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+      },
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4",
+        "platform": "linux",
+        "arch": "x64"
+      }
+    },
+    "drain": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 0
+      }
+    },
+    "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+  },
+  "identityComposition": "Actual public preflight PID658160 reported exact additive d8d/069e/8f9/base7c49 on Bun1.4.4 linux x64, with clean original narrow transport drain. Physical generated Native identity remains distinct and unchanged. No global Host identity or product admission claim.",
+  "runner": {
+    "status": "PASS",
+    "case": "actual public malformed base64 with valid UTF8 refuses all input before reservation or effects",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public malformed base64 with valid UTF8 refuses all input before reservation or effects$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-malformed-base64-v1-20261117-fcdkie2g",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-malformed-base64-v1-20261117-fcdkie2g",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-malformed-base64-v1-20261117-fcdkie2g",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T16:12:45.310947+00:00",
+    "startedMonotonicNs": 200847184436023,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-source-20261117/public-retainer.py",
+      "bytes": 9927,
+      "sha256": "37099e88947b9f710cb861361938413e6aa3f83bf9d5bcc7be39425bb9a698e5"
+    },
+    "runnerPid": 658147,
+    "runnerWaitStatus": 0,
+    "originalWaitObserved": true,
+    "originalReaderJoinsObserved": true,
+    "originalStreamEofObserved": true,
+    "finishedAt": "2026-11-17T16:12:49.165310+00:00",
+    "finishedMonotonicNs": 200851038808153,
+    "stdoutStderrFilesClosedAfterOriginalWaitAndBothReaderJoins": true,
+    "capture": {
+      "stdout": {
+        "observedBytes": 621,
+        "observedSha256": "c8d12b97e0151451158fba3406be42cad79cdd7341b6428d45d91c132c3ab724",
+        "capturedBytes": 621,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/stdout.txt",
+          "bytes": 621,
+          "sha256": "c8d12b97e0151451158fba3406be42cad79cdd7341b6428d45d91c132c3ab724"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      },
+      "stderr": {
+        "observedBytes": 240,
+        "observedSha256": "dd4ee376a21b648150f11f30df0a0fdfe4f90a1867396d7461721a4462c3fef4",
+        "capturedBytes": 240,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/stderr.txt",
+          "bytes": 240,
+          "sha256": "dd4ee376a21b648150f11f30df0a0fdfe4f90a1867396d7461721a4462c3fef4"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      }
+    },
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "publicPreflightAudit": {
+      "report": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+        "candidate": "image-original-budget-v2",
+        "processId": 658160,
+        "actual": {
+          "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+          "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+          "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+          "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+        },
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        }
+      },
+      "drain": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+        "drain": {
+          "code": 0,
+          "forced": false,
+          "stderrBytes": 0
+        }
+      },
+      "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+    },
+    "topSyntheticHomeRetained": "/tmp/attachment-runtime-malformed-base64-v1-20261117-fcdkie2g"
+  },
+  "preAndPost": {
+    "precheck": {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/precheck.json",
+      "bytes": 2875,
+      "sha256": "2dc6ce8222cf33cc345256c0c95db7b9589bdbeb8d7dae950db8a89c385f1214"
+    },
+    "postcheck": {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/postcheck.json",
+      "bytes": 2832,
+      "sha256": "70eb92f44d4162744c691a460526adb930c8b02d8f9947f610c6caa12d9caf1a"
+    },
+    "currentSourceRecords": 992,
+    "baseSourceRecords": 978,
+    "sourceOverrides": 1,
+    "nativeFiles": 10715,
+    "nativeIndex": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+      "bytes": 1271154,
+      "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+    },
+    "allOldCompilerFailPassPreserved": true,
+    "perCaseHomesBefore": [],
+    "perCaseHomesAfter": [],
+    "perCaseHomesUnchanged": true,
+    "postRawStatus": "PASS_FRESH_SOURCE_METADATA_NATIVE_RUNTIME_NOT_RUN",
+    "postStatusMeaning": "NATIVE_RUNTIME_NOT_RUN is the inherited metadata-only checker label; actual preceding controlled Native public refusal test PASSED."
+  },
+  "originalTools": {
+    "records": {
+      "pre-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-initial-tool.json",
+        "bytes": 131,
+        "sha256": "4e62014bfb9994cb81b7b2d8893d1dfcc400e60cdbe64ea77506e213e6d6073d"
+      },
+      "pre-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-final-tool.json",
+        "bytes": 2942,
+        "sha256": "04729e104a214ba070ab2f02c1069ef71ad8875f1528738023dbbce5aa33b623"
+      },
+      "run-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-initial-tool.json",
+        "bytes": 130,
+        "sha256": "d2a34bc3cda7850e12d19fde79e3e5583bdfeb39c2008b55b54ff9c3fa599ccc"
+      },
+      "run-poll1": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-poll1-tool.json",
+        "bytes": 4462,
+        "sha256": "a8cbd80818767b7c10fcd8d0ccb660cef2a5aceb98475f879e2f14523f49deb1"
+      },
+      "post-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-initial-tool.json",
+        "bytes": 131,
+        "sha256": "8b27acb42895fc32ad606fb0c594f44ebd497a69a3854059e21ca5a2198654eb"
+      },
+      "post-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-final-tool.json",
+        "bytes": 2897,
+        "sha256": "5a09be2be78dc2f9216af998f19b15819be59f97af41b51d7f84d7eba43b2920"
+      }
+    },
+    "pre": {
+      "initialChunk": "933e13",
+      "session": 74221,
+      "completionChunk": "d4f60a",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "0adcdb",
+      "session": 36507,
+      "completionChunk": "2be7a7",
+      "exitCode": 0
+    },
+    "post": {
+      "initialChunk": "31d58c",
+      "session": 87325,
+      "completionChunk": "84fbdf",
+      "exitCode": 0
+    }
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/precheck.json",
+      "bytes": 2875,
+      "sha256": "2dc6ce8222cf33cc345256c0c95db7b9589bdbeb8d7dae950db8a89c385f1214"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/postcheck.json",
+      "bytes": 2832,
+      "sha256": "70eb92f44d4162744c691a460526adb930c8b02d8f9947f610c6caa12d9caf1a"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/runner.json",
+      "bytes": 4469,
+      "sha256": "e23940f489043352fb23ce190545704e2ae1f91183f9d455c97c9d82c90af6c5"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/start.json",
+      "bytes": 1582,
+      "sha256": "3e66229650caab6483b6770862374d7ecaabff20e3614e167aba88d92264923b"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/used-once.json",
+      "bytes": 104,
+      "sha256": "e78e4e69d43b7b32191976cc84401416c904fd5bd71a8858ca34473fa3161c88"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/stdout.txt",
+      "bytes": 621,
+      "sha256": "c8d12b97e0151451158fba3406be42cad79cdd7341b6428d45d91c132c3ab724"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/stderr.txt",
+      "bytes": 240,
+      "sha256": "dd4ee376a21b648150f11f30df0a0fdfe4f90a1867396d7461721a4462c3fef4"
+    },
+    {
+      "path": "/tmp/ticket-38-public-malformed-base64-v1-20261117-hjsrmfw8/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-initial-tool.json",
+      "bytes": 131,
+      "sha256": "4e62014bfb9994cb81b7b2d8893d1dfcc400e60cdbe64ea77506e213e6d6073d"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-final-tool.json",
+      "bytes": 2942,
+      "sha256": "04729e104a214ba070ab2f02c1069ef71ad8875f1528738023dbbce5aa33b623"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-initial-tool.json",
+      "bytes": 130,
+      "sha256": "d2a34bc3cda7850e12d19fde79e3e5583bdfeb39c2008b55b54ff9c3fa599ccc"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-poll1-tool.json",
+      "bytes": 4462,
+      "sha256": "a8cbd80818767b7c10fcd8d0ccb660cef2a5aceb98475f879e2f14523f49deb1"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-initial-tool.json",
+      "bytes": 131,
+      "sha256": "8b27acb42895fc32ad606fb0c594f44ebd497a69a3854059e21ca5a2198654eb"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-final-tool.json",
+      "bytes": 2897,
+      "sha256": "5a09be2be78dc2f9216af998f19b15819be59f97af41b51d7f84d7eba43b2920"
+    }
+  ],
+  "retainedEvidencepack": {
+    "archive": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-evidencepack-20261117/raw.tar.gz",
+      "bytes": 6145,
+      "sha256": "1974808da8f8aaa830ab3ecd1ebc139a1067d66a6be1bee6ecc263b4706cecc5"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-evidencepack-20261117/manifest.json",
+      "bytes": 4770,
+      "sha256": "7b2929630f6c345a86ba6d605589bfc7d65352135d4fe7db35ae9fddd5c2be7d"
+    },
+    "readback": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-evidencepack-20261117/readback.json",
+      "bytes": 720,
+      "sha256": "0ab8886a585cf92118c835d4732718b2ee95b4749362d18252d0f8a5326df04b"
+    },
+    "memberCount": 15,
+    "uncompressedBytes": 28254,
+    "readbackMeaning": "Ordered regular names, sizes, SHA256 and full bytes exact without extraction."
+  },
+  "drainLimits": "Original top Bun658147 wait0/both reader joins/actual EOF, exact stdout621B/stderr240B captures, publicPF658160 clean narrow transport drain. Other helper individual PIDs/waits/forced outcomes are not separately exported. Top syntheticHOME retained. Empty unchanged per-case homes are filesystem metadata only; no P_ALL/general extinction claim.",
+  "oracleLimits": "Dynamic receipt/prepared IDs, raw response and complete counter snapshots were asserted by the pinned test but are not separately exported. No Native Session/history or profile payloads read/copied during retention.",
+  "limitations": [
+    "One anchored malformed-base64 plus valid UTF8 whole-input refusal case; thirteen others filtered. Earlier proofs retain their own scopes.",
+    "Unsupported formats/types/path/extra fields, mismatch/corrupt files, stale/expiry/cancel-late/replay/restart matrices remain open.",
+    "Guard0dispatch/0denied is instrumented evidence, not general syscall network proof.",
+    "No Host/browser/original storage/durable draft/global/private/product/Windows support claim. Whole29/38/53/54 remain open."
+  ],
+  "evidenceOnlyActions": "Allowlisted raw/tool/source assertion reads, compact pack/readback and new proof/window/note only. No consumed pre/run/post or old checker rerun, no test/Source/code/Native/index/schema/build/generator edits, no runtime actor or Host/browser/kernel/GitHub/merge/push."
+}
