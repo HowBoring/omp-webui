@@ -138,3 +138,6 @@ DSH source checkouts and generated bundles belong under ignored `vendor/`; they 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+Ticket 46's [parsed Tool presentation source patch](compatibility/dsh/README.md) is
+unregistered preparation. Emission, matched builds and private Session admission remain blocked.

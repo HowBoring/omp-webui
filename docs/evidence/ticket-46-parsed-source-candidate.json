@@ -1,0 +1,248 @@
+{
+  "status": "UNREGISTERED_SOURCE_CANDIDATE_FRESH_PAIR_REVIEW_PENDING",
+  "integrationBase": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "sourceHostCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+  "sourceHostTree": "2d7d61f3155acec304de0df603ac45b648e18eec",
+  "authoredReviewBase": "8322179bb64f2ef292da3b7d803ce4ebdcb89ef1",
+  "sourceAuthoredCommits": [
+    "879c1244adda2d83e531cf960b2d75d647af5adb",
+    "fa78f91b93c686d22d9ac977aea7a4adb869a892",
+    "429994a10872c9d090e967e3d1ec9a83f3bbd4c7"
+  ],
+  "excludedInheritedPathCount": 208,
+  "originalReviewedSlicePathCount": 15,
+  "excludedActiveManifestFromReviewedSlice": "compatibility/dsh/patches.json",
+  "candidateDescriptor": "compatibility/dsh/parsed-tool-source-candidate.json",
+  "historicalEvidence": {
+    "paths": [
+      "docs/evidence/ticket-46-parsed-tool-source.json",
+      "docs/evidence/ticket-46-parsed-tool-source.md"
+    ],
+    "preservedBytesFrom": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+    "statusTextAndLogs": "HISTORICAL_NOT_CURRENT_CANDIDATE_ACCEPTANCE"
+  },
+  "selectedReviewedFiles": [
+    {
+      "path": "README.md",
+      "bytes": 9166,
+      "sha256": "6d9af076f6aa6c54830d0208c638c02b8362d87c00c0ae95c77e8df6dd7b5f3e",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/README.md",
+      "bytes": 4069,
+      "sha256": "2cbf586d887614177121831b2e4bcd087e4ee642367b7dcae07b0b835fc8f6cb",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": false,
+      "normalization": "candidate descriptor and historical-evidence clarification"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/README.md",
+      "bytes": 1500,
+      "sha256": "6f19ecb1c069afa04bff77bc9f5c0d935406936a6455712772121e92c66be0d5",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/contract.fixture.ts",
+      "bytes": 1679,
+      "sha256": "cce4f53b9ba34246f40c20f08b138ec43aee642c70a7ce31e1f5e8946c3ad7bb",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/guard.ts",
+      "bytes": 501,
+      "sha256": "3c7ffc4935e40e147e3918021ebe6940f330bd8a742d7737b508d1823af0208d",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/presentation.fixture.tsx",
+      "bytes": 4770,
+      "sha256": "062adab1126d9003b522d08457605729c64eebcdf1401fab807145c09f8c5c53",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/tsconfig.contract.json",
+      "bytes": 80,
+      "sha256": "5446b9f3a3d7a92c4b2edc7adc4260bc76c4c9b6c36491502e6a7273b165f945",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/tsconfig.json",
+      "bytes": 403,
+      "sha256": "eaa4d6a2fc9e5598a786df3e65a5285289b629e57a3f6ef6116590af13a3ba3d",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/fixtures/typecheck-source.mjs",
+      "bytes": 1962,
+      "sha256": "2188bcf67707f5e596093e595f2c92ca6a8e60d663a895601ec2144a0d5bef0b",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/patches/0005-local-prompt-refusal.patch",
+      "bytes": 30534,
+      "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "compatibility/dsh/patches/0006-parsed-tool-presentation.patch",
+      "bytes": 45437,
+      "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "docs/adr/0023-dsh-parsed-tool-presentation.md",
+      "bytes": 1695,
+      "sha256": "84efd05836042ea19a5797bf39a3c7c0d0e880569b43d75a737ee431bf5bccc1",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "docs/evidence/ticket-46-parsed-tool-source.json",
+      "bytes": 25162,
+      "sha256": "09bc32b3fd6cc078e4f0a06090ad609523030b058667cf7567609d2bc7918d82",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    },
+    {
+      "path": "docs/evidence/ticket-46-parsed-tool-source.md",
+      "bytes": 10043,
+      "sha256": "b3b3fa1333aaf5ffba5b4142ab1362f8d0b68e2ecb89f5c88b7eddc1bb2a9639",
+      "sourceCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+      "matchesReviewedSourceBytes": true,
+      "normalization": null
+    }
+  ],
+  "addedInertPrerequisite": {
+    "path": "compatibility/dsh/patches/0004-submission-settlement.patch",
+    "bytes": 33972,
+    "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859",
+    "treeAfter": "c50168120be5019ba36b193f8c000614869cd851",
+    "hashAndIntermediateTree": "MATCH",
+    "applyStderr": ""
+  },
+  "patchSequence": [
+    {
+      "path": "compatibility/dsh/patches/0001-navigation-policy.patch",
+      "bytes": 103517,
+      "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+      "treeAfter": "be590b5411230c215158bb6359635d409a653523",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    },
+    {
+      "path": "compatibility/dsh/patches/0002-semantic-drafts.patch",
+      "bytes": 115802,
+      "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+      "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    },
+    {
+      "path": "compatibility/dsh/patches/0003-projection-rebuild.patch",
+      "bytes": 186108,
+      "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+      "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    },
+    {
+      "path": "compatibility/dsh/patches/0004-submission-settlement.patch",
+      "bytes": 33972,
+      "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859",
+      "treeAfter": "c50168120be5019ba36b193f8c000614869cd851",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    },
+    {
+      "path": "compatibility/dsh/patches/0005-local-prompt-refusal.patch",
+      "bytes": 30534,
+      "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241",
+      "treeAfter": "b7d45d6871e1b004df6d745738b8fc008c79b262",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    },
+    {
+      "path": "compatibility/dsh/patches/0006-parsed-tool-presentation.patch",
+      "bytes": 45437,
+      "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d",
+      "treeAfter": "2440ab8cdd85b85013aff36d3af60edb1b311e27",
+      "hashAndIntermediateTree": "MATCH",
+      "applyStderr": ""
+    }
+  ],
+  "finalDshSourceTree": "2440ab8cdd85b85013aff36d3af60edb1b311e27",
+  "protectedIntegrationInputs": [
+    {
+      "path": "compatibility/dsh/patches.json",
+      "matchesIntegrationBytes": true,
+      "sha256": "e1e9145f770b6a3929e6c603e9bd64e78acd492cbe399ca8e3a6f31e161509c8"
+    },
+    {
+      "path": "upstreams.lock.json",
+      "matchesIntegrationBytes": true,
+      "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c"
+    },
+    {
+      "path": "package.json",
+      "matchesIntegrationBytes": true,
+      "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3"
+    },
+    {
+      "path": "packages/compatibility/assets.ts",
+      "matchesIntegrationBytes": true,
+      "sha256": "3881f874e7680916283a3aeb0ace654e4d3ae68ca7f6afab21eb2bcbe60e29a6"
+    },
+    {
+      "path": "apps/host/src/main.ts",
+      "matchesIntegrationBytes": true,
+      "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace"
+    },
+    {
+      "path": "scripts/dsh-source.ts",
+      "matchesIntegrationBytes": true,
+      "sha256": "b49629716d216c9c22c4d7eed5bafd55b1f27174facb219311a74745d3987cfa"
+    }
+  ],
+  "checks": {
+    "patchHashAndAllSixIntermediateTrees": "PASS_FRESH_STATIC_RECONSTRUCTION",
+    "reconstructionIsolation": "Separate temporary index/object directory; original sparse source objects read-only; no original index or object writes",
+    "currentCandidateDescriptorConsumers": "NONE: scripts/dsh-source.ts still uses only the unchanged active manifest",
+    "scopedPublicTypes": "NOT_RERUN: exact authored fixture/types retained; no matching source/dependencies copied into candidate worktree",
+    "SSR": "NOT_RERUN: historical source recorded one test/17 assertions",
+    "broadStrictOverlay": "NOT_RERUN: historical89/89 diagnostics with zero introduced is not a whole strict pass",
+    "fullBunBuildGenerationNativeHostBrowserFfiOmp": "NOT_RUN"
+  },
+  "notAdmitted": [
+    "parsed event emission",
+    "generated known-event catalog/public contract admission",
+    "Host projector/HTTP routes",
+    "Native durable owner context or reopen",
+    "matched client/runtime cohort",
+    "global or private Session admission"
+  ],
+  "wholeTickets46And29": "OPEN",
+  "mergeAndPush": "NOT_PERFORMED; fresh exact-composition paired review required"
+}

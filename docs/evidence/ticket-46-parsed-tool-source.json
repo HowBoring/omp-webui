@@ -1,0 +1,585 @@
+{
+  "status": "SOURCE_PATCH_PREPARED_EMISSION_BUILD_ADMISSION_BLOCKED",
+  "ticket": 46,
+  "freshPairReview": "PENDING_AFTER_EXPORT_DISCIPLINE_REFACTOR",
+  "wholeTickets46And29": "OPEN",
+  "privateSessionAdmission": "BLOCKED",
+  "preservedCommit": "6a82eca5644e6e2ac393e03d2cd118c6288b622e",
+  "preservedBranch": "preserve/ticket-46-before-parsed-arguments-6a82eca",
+  "integrationMerged": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "ownedMerge": "8322179bb64f2ef292da3b7d803ce4ebdcb89ef1",
+  "dshBase": {
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "baseTree": "77ab54bbce37988207baa603b1d39aa9db9aeaaa"
+  },
+  "orderedPatches": [
+    {
+      "path": "patches/0001-navigation-policy.patch",
+      "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+      "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+    },
+    {
+      "path": "patches/0002-semantic-drafts.patch",
+      "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+      "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+    },
+    {
+      "path": "patches/0003-projection-rebuild.patch",
+      "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+      "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+    },
+    {
+      "path": "patches/0004-submission-settlement.patch",
+      "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859",
+      "treeAfter": "c50168120be5019ba36b193f8c000614869cd851"
+    },
+    {
+      "path": "patches/0005-local-prompt-refusal.patch",
+      "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241",
+      "treeAfter": "b7d45d6871e1b004df6d745738b8fc008c79b262"
+    },
+    {
+      "path": "patches/0006-parsed-tool-presentation.patch",
+      "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d",
+      "treeAfter": "2440ab8cdd85b85013aff36d3af60edb1b311e27"
+    }
+  ],
+  "parsedEvent": "tool/parsed-call",
+  "requiredOnRead": true,
+  "existingToolCallAndLlmArguments": "UNCHANGED_EXACT_RAW_STRING",
+  "generatedKnownEventCatalog": "UNCHANGED_NEW_EVENT_UNSUPPORTED_UNTIL_REVIEWED_GENERATION",
+  "hostProjector": "UNREGISTERED_NO_EMISSION",
+  "nativeDurableOwnerContextAfterReopen": "UNIMPLEMENTED",
+  "ownedSource": "IGNORED_SPARSE_SOURCE_ONLY_NOT_COMPLETE_BUILD_CANDIDATE",
+  "borrowedReadOnly": "/workspace/work/omp-webui-ticket-45/vendor/dsh; source Git object alternate and existing dependencies only",
+  "upstreamFloat": false,
+  "nativeWireSchemaOrBuildChange": false,
+  "newDependenciesOrVendorCopy": false,
+  "checks": {
+    "orderedPatchHashesAndTrees": "PASS: fresh reapplication of all six intermediate trees after private formatter refactor",
+    "publicContractStrictTypes": {
+      "status": "PASS",
+      "exitCode": 0,
+      "expectedErrors": 4,
+      "currentLog": "vendor/tool-preparation/export-fix-contract.log"
+    },
+    "publicPresentationRed": {
+      "status": "EXPECTED_FAIL",
+      "reason": "public assembler omitted the unimplemented parsed-call row",
+      "evidenceAt": "historicalSourceProof"
+    },
+    "publicPresentationGreen": {
+      "status": "PASS",
+      "tests": 1,
+      "assertions": 17,
+      "seam": "Public ConversationNodeAssembler/ChatSnapshot source + GenericToolCard + React static output",
+      "currentLog": "vendor/tool-preparation/export-fix-presentation-green.log"
+    },
+    "strictSourceOverlay": {
+      "status": "BASELINE_FAILURE_UNCHANGED",
+      "baselineDiagnostics": 89,
+      "candidateDiagnostics": 89,
+      "introducedDiagnostics": 0,
+      "strictFlagsWeakened": false,
+      "fullTypecheckPass": false,
+      "comparisonKey": "Counter of normalized source file path, TypeScript code and full diagnostic message; locations excluded to permit added source lines",
+      "currentBaselineLog": "vendor/tool-preparation/export-fix-types-baseline.log",
+      "currentCandidateLog": "vendor/tool-preparation/export-fix-types-current.log",
+      "comparisonReport": "vendor/tool-preparation/export-fix-typecheck-comparison.json",
+      "freshLogsByteEqual": true,
+      "affectedTypeScriptRoots": [
+        "packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx",
+        "packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts",
+        "packages/client/ui-chat/src/client/conversation-nodes/tool.ts",
+        "packages/client/ui-conversation/src/client/contract/records.ts",
+        "packages/client/ui-conversation/src/client/index.ts",
+        "packages/client/ui-conversation/src/client/locales.ts",
+        "packages/client/ui-schedule/src/client/schedule-create-card.ts",
+        "packages/client/ui-tool/src/client/tool/ToolCallTree.tsx",
+        "packages/client/ui-tool/src/client/tool/components/ToolRow.tsx",
+        "packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts",
+        "packages/client/ui-tool/src/client/tool/models/tool-call-model.ts",
+        "packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx",
+        "packages/client/ui-trajectory/src/client/layout.ts",
+        "packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts",
+        "packages/core/session/src/types.ts"
+      ],
+      "sameBaselineDiagnosticCountAsHistoricalProof": true,
+      "historicalMessageOrderingDifference": "One TS2367 union member enumeration order differs from the historical log; fresh baseline and candidate diagnostic messages match exactly."
+    },
+    "fullUpstreamBuildGenerationBrowserRuntime": "NOT_RUN",
+    "publicPresentationSourceTypes": {
+      "status": "NO_AUTHORED_FIXTURE_DIAGNOSTICS",
+      "diagnostics": 89,
+      "sameBaselineDiagnostics": true,
+      "fullTypecheckPass": false,
+      "evidenceAt": "historicalSourceProof"
+    },
+    "coverageLimits": "Known-key ToolCallTree dispatch, Trajectory and interruption source-inspected only; existing SSR fixture directly exercises GenericToolCard."
+  },
+  "procedureDeviation": {
+    "command": "ps -o pid,etime,rss,args -C node | head -4",
+    "observed": "header only; no process rows",
+    "signalsOrChanges": false,
+    "furtherCensus": false
+  },
+  "requiredLaterGates": [
+    "Fresh independent Standards/Spec review",
+    "Upstream persistence inventory/catalog/public descriptor generation and compatibility acknowledgement",
+    "Bilingual pairing refresh",
+    "Complete exact-source matched consumer/type/build checks",
+    "New cohort identities/admission",
+    "Native durable owner/context persistence before Host producer admission",
+    "Actual NativeRPC/Host/DSH browser tool and reopen evidence"
+  ],
+  "sourceInputs": [
+    {
+      "path": "compatibility/dsh/README.md",
+      "bytes": 3195,
+      "sha256": "753f7f89d3965ebcc4b59a3d192211034521240a6d8aea446f1f282b92242f4f"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/README.md",
+      "bytes": 1500,
+      "sha256": "6f19ecb1c069afa04bff77bc9f5c0d935406936a6455712772121e92c66be0d5"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/contract.fixture.ts",
+      "bytes": 1679,
+      "sha256": "cce4f53b9ba34246f40c20f08b138ec43aee642c70a7ce31e1f5e8946c3ad7bb"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/guard.ts",
+      "bytes": 501,
+      "sha256": "3c7ffc4935e40e147e3918021ebe6940f330bd8a742d7737b508d1823af0208d"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/presentation.fixture.tsx",
+      "bytes": 4770,
+      "sha256": "062adab1126d9003b522d08457605729c64eebcdf1401fab807145c09f8c5c53"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/tsconfig.contract.json",
+      "bytes": 80,
+      "sha256": "5446b9f3a3d7a92c4b2edc7adc4260bc76c4c9b6c36491502e6a7273b165f945"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/tsconfig.json",
+      "bytes": 403,
+      "sha256": "eaa4d6a2fc9e5598a786df3e65a5285289b629e57a3f6ef6116590af13a3ba3d"
+    },
+    {
+      "path": "compatibility/dsh/fixtures/typecheck-source.mjs",
+      "bytes": 1962,
+      "sha256": "2188bcf67707f5e596093e595f2c92ca6a8e60d663a895601ec2144a0d5bef0b"
+    },
+    {
+      "path": "compatibility/dsh/patches/0001-navigation-policy.patch",
+      "bytes": 103517,
+      "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4"
+    },
+    {
+      "path": "compatibility/dsh/patches/0002-semantic-drafts.patch",
+      "bytes": 115802,
+      "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f"
+    },
+    {
+      "path": "compatibility/dsh/patches/0003-projection-rebuild.patch",
+      "bytes": 186108,
+      "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302"
+    },
+    {
+      "path": "compatibility/dsh/patches/0004-submission-settlement.patch",
+      "bytes": 33972,
+      "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859"
+    },
+    {
+      "path": "compatibility/dsh/patches/0005-local-prompt-refusal.patch",
+      "bytes": 30534,
+      "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241"
+    },
+    {
+      "path": "compatibility/dsh/patches/0006-parsed-tool-presentation.patch",
+      "bytes": 45437,
+      "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d"
+    },
+    {
+      "path": "compatibility/dsh/patches.json",
+      "bytes": 1453,
+      "sha256": "27f9295bc9d95c17691cb6a5149a0b070c8c5d014fa79bd0616926101f453078"
+    },
+    {
+      "path": "README.md",
+      "bytes": 9166,
+      "sha256": "6d9af076f6aa6c54830d0208c638c02b8362d87c00c0ae95c77e8df6dd7b5f3e"
+    },
+    {
+      "path": "docs/adr/0023-dsh-parsed-tool-presentation.md",
+      "bytes": 1695,
+      "sha256": "84efd05836042ea19a5797bf39a3c7c0d0e880569b43d75a737ee431bf5bccc1"
+    },
+    {
+      "path": "docs/evidence/ticket-46-parsed-tool-source.md",
+      "bytes": 10043,
+      "sha256": "b3b3fa1333aaf5ffba5b4142ab1362f8d0b68e2ecb89f5c88b7eddc1bb2a9639"
+    }
+  ],
+  "changedDshBlobs": [
+    {
+      "path": "packages/client/ui-chat/README.md",
+      "beforeBlob": "2fac916272e976d9faae94536ebaa20614322d07",
+      "afterBlob": "166792c09cf2d074e88918f0f49b5cf72c45e686"
+    },
+    {
+      "path": "packages/client/ui-chat/README.zh.md",
+      "beforeBlob": "385c7e8483ab0878f9ba11ac6802a57cff26e3c2",
+      "afterBlob": "8a9c305724995358be6e45e6358b6bded92907a4"
+    },
+    {
+      "path": "packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx",
+      "beforeBlob": "e1d4a2e9b1a382465eede5bdfc500c2634961b94",
+      "afterBlob": "f5949a5ed07b7c0d7dc14ffa8c738b857b226f80"
+    },
+    {
+      "path": "packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts",
+      "beforeBlob": "e61bb53109dfa160ac66030e2e943698568f2724",
+      "afterBlob": "81f54b6aef5d8c92e9af9390b6ad32692749aff8"
+    },
+    {
+      "path": "packages/client/ui-chat/src/client/conversation-nodes/tool.ts",
+      "beforeBlob": "3ed7b86d13bd299ff67709dc69cd69690184f66f",
+      "afterBlob": "ae94cf651bb39839b6fd89c6f6170ffaa9ecca6b"
+    },
+    {
+      "path": "packages/client/ui-conversation/README.md",
+      "beforeBlob": "3a709877d248a26a2eed693925717f1083bc9efa",
+      "afterBlob": "c266100940b287c6f83a52b15e5bfb3ca231c67e"
+    },
+    {
+      "path": "packages/client/ui-conversation/README.zh.md",
+      "beforeBlob": "22341bd2cd0eaeed8fd653e752434818d2bd8f8c",
+      "afterBlob": "8b69d72aeab0373b1643637f4429bf786f34d94a"
+    },
+    {
+      "path": "packages/client/ui-conversation/src/client/contract/records.ts",
+      "beforeBlob": "daddf0aac7cd1ee848918a36d353aba395e0e64a",
+      "afterBlob": "e6d4ccd3e26dacc41dd3b4e6416039603b77d9ce"
+    },
+    {
+      "path": "packages/client/ui-conversation/src/client/index.ts",
+      "beforeBlob": "7595fc12c78013cc1fc5a777087d3f11caee8293",
+      "afterBlob": "b550227426186bd23fbe9d4a88f120c4406d2b7f"
+    },
+    {
+      "path": "packages/client/ui-conversation/src/client/locales.ts",
+      "beforeBlob": "a29d8481985839911c06303cd80da24217e263d0",
+      "afterBlob": "eccf094984bf5995b1bfa8241d9b5de1a29d7089"
+    },
+    {
+      "path": "packages/client/ui-schedule/src/client/schedule-create-card.ts",
+      "beforeBlob": "20ec61fe80ae29abcbc4846f485194e2f6eadae2",
+      "afterBlob": "5392261538591f771d1e0d2825684091a89b93d9"
+    },
+    {
+      "path": "packages/client/ui-tool/README.md",
+      "beforeBlob": "448a4e197b0a7767cc4dde982f5c855aafad962a",
+      "afterBlob": "39416229f5430fe0bee505e54d2a5ced0336018f"
+    },
+    {
+      "path": "packages/client/ui-tool/README.zh.md",
+      "beforeBlob": "37757c47a75ce043d97fb4cbee423948fce602b2",
+      "afterBlob": "339b80d55368c460254b5a573769a6ac2bc5589e"
+    },
+    {
+      "path": "packages/client/ui-tool/src/client/tool/ToolCallTree.tsx",
+      "beforeBlob": "9355ddac427c0ba96bb6e9795295adb21210307e",
+      "afterBlob": "d634e750b8c95f8ce8e66448168e891f1e6b8ade"
+    },
+    {
+      "path": "packages/client/ui-tool/src/client/tool/components/ToolRow.tsx",
+      "beforeBlob": "9985614f80b2f867004709875c0f2e58d1886e86",
+      "afterBlob": "3f994cff1f25a0f7a234d7f6af376b9dd6516510"
+    },
+    {
+      "path": "packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts",
+      "beforeBlob": "e48d7d442362204d2d5059df58a29974e648aadd",
+      "afterBlob": "79b8f8895ee76fa5bbd0cfd29d96dc62f3c6d89e"
+    },
+    {
+      "path": "packages/client/ui-tool/src/client/tool/models/tool-call-model.ts",
+      "beforeBlob": "ae96145b03d516a399ee10537fc2d4a8738636f3",
+      "afterBlob": "1c7fb3b34ed21e2cf3a14994b724396d19a705b7"
+    },
+    {
+      "path": "packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx",
+      "beforeBlob": "6ce48b990fc2fb8b98b7765f5f1cfb3e6c8e24f9",
+      "afterBlob": "e944699a288c2c41fd3873a1766f44af55a691d6"
+    },
+    {
+      "path": "packages/client/ui-trajectory/README.md",
+      "beforeBlob": "265c6fffd96e9cf9c384dd87d64c18009356aeb8",
+      "afterBlob": "9fd9a2b6dd5bd58a4ede106f745b3fd43c85887e"
+    },
+    {
+      "path": "packages/client/ui-trajectory/README.zh.md",
+      "beforeBlob": "bed828aa7f11d0e5fb687ada53b5a23ddf62251a",
+      "afterBlob": "275ead2b407b4719bc1fffd7c44f5f72219029af"
+    },
+    {
+      "path": "packages/client/ui-trajectory/src/client/layout.ts",
+      "beforeBlob": "06c9015a896d7ba80cf9fb3697167c2e3218a384",
+      "afterBlob": "d99a2e07294be4652e5546b08f3b5f030fc34e92"
+    },
+    {
+      "path": "packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts",
+      "beforeBlob": "ba06b40f9b8665fa6ab8d445d63964f284b4d15c",
+      "afterBlob": "999ddaf8546afc4e285fc38802bcf34e7c43d52d"
+    },
+    {
+      "path": "packages/core/session/README.md",
+      "beforeBlob": "3b55b1fcced8dd7625e17d034e87b515f69af4d5",
+      "afterBlob": "7fa3eae14d440817b0dc13cc213685e677aa1825"
+    },
+    {
+      "path": "packages/core/session/README.zh.md",
+      "beforeBlob": "9ca25d8a115657276af567c6ca6d4c4e50d56289",
+      "afterBlob": "25de695df10cb79d98eacc2b91b0d0bc07dd90dd"
+    },
+    {
+      "path": "packages/core/session/src/types.ts",
+      "beforeBlob": "0cf13c86a0313ba8869f36bb48004e61dc4cb685",
+      "afterBlob": "ea0d97797f3f6baa825a33b2ca965a960a4d6724"
+    }
+  ],
+  "localLogs": [
+    {
+      "path": "vendor/tool-preparation/parsed-red.log",
+      "bytes": 919,
+      "sha256": "ec59d96e8ac5b700039e98b7ae92dd4dd3683f0daaaa524bc670a40cbbcd0cbd"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-green.log",
+      "bytes": 266,
+      "sha256": "87852e34681ee51463afdbb74ac43db880fdf7eda81fcc7a9f0e16d0285688b6"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-contract-types.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-types-baseline.log",
+      "bytes": 41909,
+      "sha256": "1953a373990d3f9906c5a85ee15e3352c524015dcd66a0523d76b1db1dd5c10d"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-types-current.log",
+      "bytes": 41909,
+      "sha256": "1953a373990d3f9906c5a85ee15e3352c524015dcd66a0523d76b1db1dd5c10d"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-presentation-types.log",
+      "bytes": 41903,
+      "sha256": "8932f6374e1fdbc67f09c23a103b626068815499811074e6957c38c44a7afae1"
+    },
+    {
+      "path": "vendor/tool-preparation/parsed-ordered-patches.log",
+      "bytes": 124,
+      "sha256": "aff705a463da5f8261a1c7e7a9ccf9470602fdc99512d22777e065b15e1a720c"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-presentation.log",
+      "bytes": 42,
+      "sha256": "74301b433bbcc36411586b7f5c34f5382e0f9ddeac58412d27fc6adfb509dced"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-presentation-green.log",
+      "bytes": 263,
+      "sha256": "01e8369ea2ea5316cf5cbf4cb75157f4c56c5d33173326bd0d788a6d30d27f61"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-contract.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-types-baseline.log",
+      "bytes": 41909,
+      "sha256": "c3e711b4a6dc848bcb9d1e6f61b7ea953820bd18a1858eb6830f10407d059cdb"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-types-current.log",
+      "bytes": 41909,
+      "sha256": "c3e711b4a6dc848bcb9d1e6f61b7ea953820bd18a1858eb6830f10407d059cdb"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-typecheck-roots.json",
+      "bytes": 983,
+      "sha256": "3c108e9c2eb979931ed7e53ef4f32647e3067f94c7d8526137f32a70cf524de9"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-typecheck-comparison.json",
+      "bytes": 1501,
+      "sha256": "7ca619c2547ed5f3e6935fcf5e22bff59ee213b7a8a050f08139c9ff5a27645d"
+    },
+    {
+      "path": "vendor/tool-preparation/export-fix-ordered-patches.json",
+      "bytes": 3300,
+      "sha256": "dabbbbe0d53835885ebbd80f6a054847eaa59daa78e5fbd9e5035cff60372827"
+    }
+  ],
+  "unchangedLegacyPtc": "Existing PTC dispatch JSON.stringify into legacy argsRaw remains unchanged; no original model spelling claim is made for it.",
+  "historicalRuntimeReferenceOnly": {
+    "nativeSource": "da856968a1f8a1c1110705a24dabad5ceb807108edee94972172d2af8bdbbb9f",
+    "schema": "0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501",
+    "dshSource": "3d81761d8d8f092915920822033c0965837ec405a5402d35a99acd55df856d29",
+    "attestedByThisSlice": false
+  },
+  "historicalSourceCheckpoint": "879c1244adda2d83e531cf960b2d75d647af5adb",
+  "documentationCorrection": {
+    "kind": "ADR_NUMBER_ONLY",
+    "previousPath": "docs/adr/0022-dsh-parsed-tool-presentation.md",
+    "currentPath": "docs/adr/0023-dsh-parsed-tool-presentation.md",
+    "reason": "ADR 0022 is reserved for supervised Session Index work; parsed Tool presentation owns ADR 0023.",
+    "patchesTypesFixturesOrPriorChecksChanged": false,
+    "checksBuildsOrRuntimeRerun": false,
+    "appliesAtCheckpoint": "fa78f91b93c686d22d9ac977aea7a4adb869a892"
+  },
+  "historicalSourceProof": {
+    "commit": "fa78f91b93c686d22d9ac977aea7a4adb869a892",
+    "hostTree": "e98ac5a3ebeee9d6a350827f082b4319b5ea58b5",
+    "evidencePath": "docs/evidence/ticket-46-parsed-tool-source.json",
+    "evidenceBlob": "fd983ee58bd1349f01209f8a9b3612a8d0c8eab2",
+    "evidenceSha256": "64c75391deba0d4fc5b345f0a5fdb67cf4c7361b4623e4a2ca4dbb03eeaf485f",
+    "dshTree": "27e8e94d9a6a57e47a1638008ab0bbb507daa0c2",
+    "patch6Sha256": "cdb0a1e15e4d0d8b9428386780de87db8f529c34457eebd37a452f63e3f5d03c",
+    "historicalLocalLogsUnchanged": true,
+    "priorInputsReadFromGitNotOverwritten": true
+  },
+  "exportDisciplineRefactor": {
+    "ticketFinding": "P2: unapproved public runtime helper export and feature-plugin runtime import",
+    "rule": "Actual pinned DSH packages/client/AGENTS.md Export discipline 1 and 3",
+    "formatterOwner": "private function in ui-trajectory/src/client/layout.ts",
+    "publicTypeRetained": "ToolCallArguments",
+    "newPublicValueExport": false,
+    "newCrossPluginRuntimeValueImport": false,
+    "privateCast": false,
+    "behaviorChange": false,
+    "requiredEventAndRawParsedContractsChanged": false,
+    "adr0023Changed": false,
+    "historicalDshDelta": [
+      {
+        "path": "packages/client/ui-conversation/README.md",
+        "beforeBlob": "bef1414f57ac20fa0f9f8da9a111cc9251b4b881",
+        "afterBlob": "c266100940b287c6f83a52b15e5bfb3ca231c67e"
+      },
+      {
+        "path": "packages/client/ui-conversation/README.zh.md",
+        "beforeBlob": "dbba442db70fd4b9299c2f41d73dc5387bedfac5",
+        "afterBlob": "8b69d72aeab0373b1643637f4429bf786f34d94a"
+      },
+      {
+        "path": "packages/client/ui-conversation/src/client/contract/records.ts",
+        "beforeBlob": "f22228a19e09799239c0a758466078765abcee99",
+        "afterBlob": "e6d4ccd3e26dacc41dd3b4e6416039603b77d9ce"
+      },
+      {
+        "path": "packages/client/ui-conversation/src/client/index.ts",
+        "beforeBlob": "9c5c4840474d6c93e546f7e57da358b13ad33366",
+        "afterBlob": "b550227426186bd23fbe9d4a88f120c4406d2b7f"
+      },
+      {
+        "path": "packages/client/ui-trajectory/README.md",
+        "beforeBlob": "f92c71cf76e53f137a7d22a3c9c088b355337ef7",
+        "afterBlob": "9fd9a2b6dd5bd58a4ede106f745b3fd43c85887e"
+      },
+      {
+        "path": "packages/client/ui-trajectory/README.zh.md",
+        "beforeBlob": "1cb7654c998377aee59f635dff6ba11d7adc107d",
+        "afterBlob": "275ead2b407b4719bc1fffd7c44f5f72219029af"
+      },
+      {
+        "path": "packages/client/ui-trajectory/src/client/layout.ts",
+        "beforeBlob": "ec3ffd21730684e0ef2e19ebbeb48934e5bef3b1",
+        "afterBlob": "d99a2e07294be4652e5546b08f3b5f030fc34e92"
+      }
+    ],
+    "patches1Through5ByteEqualToCheckpointAndReviewed45": true,
+    "allOwnedAffectedSourceMatchesExport": true,
+    "readOnlyBaselineAffectedFilesMatchPatch5Tree": true,
+    "reviewsAtCheckpoint": [
+      {
+        "path": "/workspace/work/mvp-implementation/reviews/ticket-46-parsed-source-spec.md",
+        "bytes": 4257,
+        "sha256": "9ee969fa3bf2d7884ed3e32b29ae7f9975e0d2feb90a729236b4a4c0e6143475",
+        "verdict": "NO_BLOCKING_SOURCE_FINDING"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/reviews/ticket-46-parsed-source-standards.md",
+        "bytes": 4145,
+        "sha256": "cdd547b9c77dbc4b6ef5882aa5c4b689e16e9e14052129c50c2a9e0a5a545ef9",
+        "verdict": "ONE_P2_CHANGES_REQUESTED"
+      }
+    ],
+    "ownedIndexUpdate": {
+      "beforeTree": "27e8e94d9a6a57e47a1638008ab0bbb507daa0c2",
+      "afterTree": "2440ab8cdd85b85013aff36d3af60edb1b311e27",
+      "preimage": {
+        "path": "vendor/tool-preparation/export-fix-owned-index-preimage",
+        "bytes": 2764965,
+        "sha256": "5072ee905644d1ce8406f8f983b0b5e7e535a562636f28af90cc3bee94aea960"
+      },
+      "updatedOnlyDeltaPaths": true
+    }
+  },
+  "refactorValidation": {
+    "nodeVersion": "24.22.1",
+    "bunVersion": "1.4.4",
+    "bunExecutable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "presentationArgv": [
+      "test",
+      "--no-env-file",
+      "--tsconfig-override",
+      "./compatibility/dsh/fixtures/tsconfig.json",
+      "--preload",
+      "./compatibility/dsh/fixtures/guard.ts",
+      "./compatibility/dsh/fixtures/presentation.fixture.tsx"
+    ],
+    "contractArgv": [
+      "node",
+      "node_modules/typescript/bin/tsc",
+      "-p",
+      "compatibility/dsh/fixtures/tsconfig.contract.json"
+    ],
+    "sourceArgvPrefix": [
+      "node",
+      "compatibility/dsh/fixtures/typecheck-source.mjs"
+    ],
+    "sourceRoots": [
+      "packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx",
+      "packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts",
+      "packages/client/ui-chat/src/client/conversation-nodes/tool.ts",
+      "packages/client/ui-conversation/src/client/contract/records.ts",
+      "packages/client/ui-conversation/src/client/index.ts",
+      "packages/client/ui-conversation/src/client/locales.ts",
+      "packages/client/ui-schedule/src/client/schedule-create-card.ts",
+      "packages/client/ui-tool/src/client/tool/ToolCallTree.tsx",
+      "packages/client/ui-tool/src/client/tool/components/ToolRow.tsx",
+      "packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts",
+      "packages/client/ui-tool/src/client/tool/models/tool-call-model.ts",
+      "packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx",
+      "packages/client/ui-trajectory/src/client/layout.ts",
+      "packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts",
+      "packages/core/session/src/types.ts"
+    ],
+    "sourceEnvironment": {
+      "DSH_BASE_SOURCE": "/workspace/work/omp-webui-ticket-45/vendor/dsh",
+      "TOOL46_BASELINE": "1 for baseline; 0 for candidate"
+    },
+    "initialInvocationFailure": "bun missing from PATH; exit 127 before fixture load. Retained absolute Bun then passed. No install/copy.",
+    "newTestSeamOrTests": false,
+    "newProcessCensusOrSignals": false,
+    "freshIntegrationRead": "42769489183eedb20b371083c49f915fda2bb8cf already ancestor; no merge delta",
+    "newNativeFfiKernelProductProcessListenerNetworkBrowserProbesGenerationFullBuildOrAdmission": false
+  }
+}

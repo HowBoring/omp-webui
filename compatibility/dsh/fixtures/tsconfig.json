@@ -1,0 +1,16 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "react": [
+        "../../../vendor/dsh/packages/client/ui-tool/node_modules/react"
+      ],
+      "react/*": [
+        "../../../vendor/dsh/packages/client/ui-tool/node_modules/react/*"
+      ],
+      "react-dom/*": [
+        "../../../vendor/dsh/packages/client/ui-tool/node_modules/react-dom/*"
+      ]
+    }
+  }
+}

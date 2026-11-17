@@ -1,0 +1,709 @@
+diff --git a/packages/client/ui-chat/README.md b/packages/client/ui-chat/README.md
+index 2fac916272e976d9faae94536ebaa20614322d07..166792c09cf2d074e88918f0f49b5cf72c45e686 100644
+--- a/packages/client/ui-chat/README.md
++++ b/packages/client/ui-chat/README.md
+@@ -10,6 +10,8 @@ Desktop product events use the optional [product analytics service](../product-a
+ 
+ ## Summary
+ 
++The required `tool/parsed-call` event uses the existing Tool Conversation Definition and public records. Parsed object arguments remain distinct from raw `tool/call` strings through dispatch, final result and replay. Assistant model blocks remain raw-only. The producer must establish authoritative owner/context association before emitting either call representation; matching a public call ID here does not establish Native ownership after reopen.
++
+ Generation-scoped Conversation replacement retires old row identities, history-navigation callbacks, image reads, scroll anchors, and disclosure choices. Reused numeric turn or answer positions cannot inherit choices from another projection. Rebuilding and failure use the existing history status presentation; retained execution scopes and pending Interactions keep their lifetimes.
+ 
+ Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding Assistant replies; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
+diff --git a/packages/client/ui-chat/README.zh.md b/packages/client/ui-chat/README.zh.md
+index 385c7e8483ab0878f9ba11ac6802a57cff26e3c2..8a9c305724995358be6e45e6358b6bded92907a4 100644
+--- a/packages/client/ui-chat/README.zh.md
++++ b/packages/client/ui-chat/README.zh.md
+@@ -10,6 +10,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++必读事件 `tool/parsed-call` 使用现有工具会话定义及公开记录。已解析对象与 `tool/call` 原始字符串在分派、最终结果和重放中保持区分。助手模型块仍只接受原始字符串。生产者必须先确认权威归属及上下文关联；此处匹配调用 ID 不能确立重新打开后的 Native 归属。
++
+ 带投影代次的 Conversation 替换会退休旧行身份、历史导航回调、图像读取、滚动锚点和展开选择。复用数字轮次或回答位置不能继承其他投影的选择。重建和失败复用既有历史状态展示；保留的执行 scope 和待处理 Interaction 保持各自生命周期。
+ 
+ 使用本包可在浏览器中渲染已记录的 Session 对话，包括历史图片、本地化操作和滚动位置恢复。工作步骤展示模式控制思考预览与过程显隐，不隐藏 Assistant 回复；完全展开模式保持已完成轮次的过程行可见。本地 transcript（文本记录）与 steering（中途引导）提交会立即显示并保留在原区域，在权威会话记录到达时原子地消失，而排队中的提交始终不进入 Chat。本包不组装或修改模型请求。
+diff --git a/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx b/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
+index e1d4a2e9b1a382465eede5bdfc500c2634961b94..f5949a5ed07b7c0d7dc14ffa8c738b857b226f80 100644
+--- a/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
++++ b/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
+@@ -34,7 +34,8 @@ export function ApprovalCommand({ callId, useChat }: PropsRuntime<'conversation.
+   const command = useChat((snapshot) => {
+     for (const node of snapshot.nodes.values()) {
+       const root = node.kind === 'tool-call' ? (node as ChatNode<'tool-call'>).data.root : undefined
+-      if (root !== undefined && root.callId === callId && !('kind' in root) && root.phase === 'start') return commandOf(root)
++      if (root !== undefined && root.callId === callId && !('kind' in root) && root.phase === 'start'
++        && root.argumentRepresentation !== 'parsed-json') return commandOf(root)
+     }
+     return undefined
+   })
+diff --git a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts b/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
+index e61bb53109dfa160ac66030e2e943698568f2724..81f54b6aef5d8c92e9af9390b6ad32692749aff8 100644
+--- a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
++++ b/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
+@@ -1,8 +1,9 @@
+ /** Chat-owned conversion from durable Session events to Chat view data. */
+ 
++import { PartialArguments, type JsonValue } from '@deepseek-ai/dsh-util-values'
+ import type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm/types'
+ import type {
+-  AssistantBlock, ContextProducerView, KnownContextForm,
++  AssistantBlock, ContextProducerView, KnownContextForm, ToolCallArguments,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ 
+ /* jscpd:ignore-start -- Chat and Trajectory own independent event-to-view projections. */
+@@ -177,3 +178,16 @@ export function isTokenDelta(chunk: StreamChunk): boolean {
+ }
+ 
+ /* jscpd:ignore-end */
++
++/**
++ * Retain source arguments without reconstructing a model string from JSON.
++ * @param value - Exact model text or an admitted parsed JSON object.
++ * @returns Discriminated presentation material and a sealed argument reader.
++ */
++export function toToolCallArguments(value: string | { [key: string]: JsonValue }) {
++  const presentation: ToolCallArguments = typeof value === 'string'
++    ? { argsRaw: value }
++    : { argumentRepresentation: 'parsed-json', argsParsed: value }
++  return { ...presentation, args: typeof value === 'string'
++    ? PartialArguments.fromText(value) : PartialArguments.fromObject(value) }
++}
+diff --git a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
+index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffaa9ecca6b 100644
+--- a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
++++ b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
+@@ -7,6 +7,7 @@ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
+ import type {} from '@deepseek-ai/dsh-tool-executor-ptc/client'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import type { ChatNode, ToolChatData } from '../contract/chat-nodes.ts'
++import { toToolCallArguments } from './event-projection.ts'
+ import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode, contextLocation } from './common.ts'
+ 
+ declare module '../contract/chat-nodes.ts' {
+@@ -39,15 +40,16 @@ function jsonArguments(value: unknown): string {
+ }
+ 
+ function rootCall(match: ConversationMatch, previous?: ToolCallBlock): StartedToolCall {
+-  if (match.event.type !== 'tool/call') throw new Error('tool-call start requires tool/call')
++  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
++    throw new Error('tool-call start requires a call event')
++  }
+   return {
+     phase: 'start',
+     callId: String(match.event.data.callId),
+     name: match.event.data.name,
+-    argsRaw: match.event.data.arguments,
+-    args: previous === undefined
+-      ? PartialArguments.fromText(match.event.data.arguments)
+-      : previous.args.settle(match.event.data.arguments),
++    ...toToolCallArguments(match.event.data.arguments),
++    ...(match.event.type === 'tool/call' && previous !== undefined
++      ? { args: previous.args.settle(match.event.data.arguments) } : {}),
+     turn: match.event.data.turn,
+     step: match.event.data.step,
+     time: match.event.time,
+@@ -107,7 +109,9 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
+     callId: String(message.source.callId),
+     name: previous?.name ?? '',
+     args: previous?.args ?? PartialArguments.EMPTY,
+-    call: previous === undefined ? null : { name: previous.name, argsRaw: previous.argsRaw },
++    call: previous === undefined ? null : previous.argumentRepresentation === 'parsed-json'
++      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed }
++      : { name: previous.name, argsRaw: previous.argsRaw },
+     callTime: previous?.time ?? null,
+     content: message.content,
+     isError: message.isError === true,
+@@ -255,7 +259,9 @@ function projectBlock(
+       ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
+       name: block.name,
+       args: block.args,
+-      call: { name: block.name, argsRaw: block.argsRaw },
++      call: block.argumentRepresentation === 'parsed-json'
++        ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed }
++        : { name: block.name, argsRaw: block.argsRaw },
+       callTime: block.time,
+       content: [],
+       isError: true,
+@@ -301,7 +307,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+       }
+       return chunk.type === 'tool-call-delta' ? { id: String(chunk.id), role: 'start' } : null
+     }
+-    if (event.type === 'tool/call') return { id: String(event.data.callId), role: 'start' }
++    if (event.type === 'tool/call' || event.type === 'tool/parsed-call') return { id: String(event.data.callId), role: 'start' }
+     if (event.type === 'tool/result' && isAppendSurfaceEvent(event)) {
+       return { id: String(event.data.message.source.callId), role: 'update' }
+     }
+@@ -315,11 +321,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+   },
+   start: (_context, match) => {
+     const state: ToolState = { root: undefined, children: new Map(), parents: new Map() }
+-    return match.event.type === 'tool/call' ? { ...state, root: rootCall(match) } : applyDelta(state, match)
++    return match.event.type === 'tool/call' || match.event.type === 'tool/parsed-call' ? { ...state, root: rootCall(match) } : applyDelta(state, match)
+   },
+   update: (context, match) => {
+     if (match.event.type === 'assistant/live-chunk') return applyDelta(context.state, match)
+-    if (match.event.type === 'tool/call') return { ...context.state, root: rootCall(match, context.state.root) }
++    if (match.event.type === 'tool/call' || match.event.type === 'tool/parsed-call') return { ...context.state, root: rootCall(match, context.state.root) }
+     if (match.event.type === 'tool/result') {
+       const root = context.state.root
+       const running = root !== undefined && !('kind' in root) && root.phase === 'start' ? root : undefined
+@@ -363,6 +369,7 @@ export function registerToolConversationNode(ctx: Context): void {
+     match: {
+       'assistant/live-chunk': match,
+       'tool/call': match,
++      'tool/parsed-call': match,
+       'tool/result': match,
+       'tool/ptc-dispatch-start': match,
+       'tool/ptc-dispatch': match,
+diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
+index 3a709877d248a26a2eed693925717f1083bc9efa..c266100940b287c6f83a52b15e5bfb3ca231c67e 100644
+--- a/packages/client/ui-conversation/README.md
++++ b/packages/client/ui-conversation/README.md
+@@ -11,6 +11,8 @@ Desktop product events use the optional [product analytics service](../product-a
+ 
+ ## Summary
+ 
++`ToolCallArguments` preserves either `argsRaw` exactly or the `argumentRepresentation: 'parsed-json'` arm with `argsParsed` and no raw field. Call heads and final results retain the same arm. This presentation does not establish a Native owner, context association or execution authority.
++
+ `ui-conversation` owns target-neutral Conversation assembly and the shared browser shell. It consumes Session Controller `SessionEventLikeEntry` feeds, exposes React-free registries and per-Session bindings through `ctx.uiConversation`, and contributes the `useConversation`, `useInput`, and `inputActions` standard props through `ctx.uiSession`. It also owns the per-session durable image URL cache: `ctx.uiConversation.imageUrl(sessionId, attachment)` resolves one Gateway-authorized browser URL per attachment and revokes it with the Session binding, so every Conversation target shares one `session.attachment` read. Concrete targets such as Chat are separate packages that register their own Definitions, snapshot builders, Views, and renderers.
+ 
+ ## Table of Contents
+diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
+index 22341bd2cd0eaeed8fd653e752434818d2bd8f8c..8b69d72aeab0373b1643637f4429bf786f34d94a 100644
+--- a/packages/client/ui-conversation/README.zh.md
++++ b/packages/client/ui-conversation/README.zh.md
+@@ -11,6 +11,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++`ToolCallArguments` 原样保留 `argsRaw`，或使用 `argumentRepresentation: 'parsed-json'` 和 `argsParsed`，后者没有原始字符串字段。调用头和最终结果保留同一表示。显示表示不确立 Native 归属、上下文关联或执行权限。
++
+ `ui-conversation` 拥有与 target 无关的 Conversation 组装和共享浏览器 shell。它消费 Session Controller 的 `SessionEventLikeEntry` feed，通过 `ctx.uiConversation` 暴露不依赖 React 的注册表与逐 Session binding，并通过 `ctx.uiSession` 提供 `useConversation`、`useInput` 和 `inputActions` 标准 props。它还拥有按会话的持久化图片 URL 缓存：`ctx.uiConversation.imageUrl(sessionId, attachment)` 为每个附件解析一个经 Gateway 授权的浏览器 URL，并随 Session binding 释放而撤销，因此所有 Conversation target 共享一次 `session.attachment` 读取。Chat 等具体 target 位于独立包，由各自包注册 Definition、快照 builder、View 和 renderer。
+ 
+ ## 目录
+diff --git a/packages/client/ui-conversation/src/client/contract/records.ts b/packages/client/ui-conversation/src/client/contract/records.ts
+index daddf0aac7cd1ee848918a36d353aba395e0e64a..e6d4ccd3e26dacc41dd3b4e6416039603b77d9ce 100644
+--- a/packages/client/ui-conversation/src/client/contract/records.ts
++++ b/packages/client/ui-conversation/src/client/contract/records.ts
+@@ -9,6 +9,7 @@ import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
+ import type { LlmRetryEventData } from '@deepseek-ai/dsh-llm-retry/types'
+ import type { TodoItem } from '@deepseek-ai/dsh-tool-todo/client'
+ import type { ContextProducerView, KnownContextForm } from './context-producer.ts'
++import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+ import type { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ export type { TodoItem }
+ 
+@@ -173,7 +174,7 @@ export interface ToolResultNode {
+   /** The argument view of the paired call; see {@link ToolArgs}. */
+   args: ToolArgs
+   /** Call head backfilled from the in-window tool/call; null when window truncation left the call outside (card head shows callId). */
+-  call: { name: string; argsRaw: string } | null
++  call: ({ name: string } & ToolCallArguments) | null
+   /** Unix epoch ms of the paired tool/call when the call is still in-window; used for call-row duration. */
+   callTime: number | null
+   content: readonly ContentBlock[]
+@@ -302,11 +303,17 @@ export interface PreparingToolCall extends ToolCallHead {
+   readonly phase: 'preparing'
+ }
+ 
++/** Argument presentation retains exact raw text or a parsed JSON object without an original-text claim. */
++export type ToolCallArguments =
++  | { readonly argsRaw: string; readonly argumentRepresentation?: never; readonly argsParsed?: never }
++  | {
++    readonly argumentRepresentation: 'parsed-json'
++    readonly argsParsed: { [key: string]: JsonValue }
++    readonly argsRaw?: never
++  }
++
+ /** A dispatched tool call with complete arguments and no result yet. */
+-export interface StartedToolCall extends ToolCallHead {
+-  readonly phase: 'start'
+-  readonly argsRaw: string
+-}
++export type StartedToolCall = ToolCallHead & { readonly phase: 'start' } & ToolCallArguments
+ 
+ /** A tool still preparing or awaiting its result. */
+ export type RunningToolCall = PreparingToolCall | StartedToolCall
+diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
+index 7595fc12c78013cc1fc5a777087d3f11caee8293..b550227426186bd23fbe9d4a88f120c4406d2b7f 100644
+--- a/packages/client/ui-conversation/src/client/index.ts
++++ b/packages/client/ui-conversation/src/client/index.ts
+@@ -56,7 +56,7 @@ export type {
+   AssistantBlock, AssistantMessageNode, AssistantProviderMetadataView, AssistantRequestConfig,
+   AssistantTiming, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
+   ModelRetryNode, PartialAssistant, PreparingToolCall, RunningToolCall, StartedToolCall, SteeringMessageNode, TodoItem,
+-  ToolCallBlock, ToolArgs, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UnknownSurfaceNode,
++  ToolCallBlock, ToolCallArguments, ToolArgs, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UnknownSurfaceNode,
+   UserMessageNode,
+ } from './contract/records.ts'
+ export type {
+diff --git a/packages/client/ui-conversation/src/client/locales.ts b/packages/client/ui-conversation/src/client/locales.ts
+index a29d8481985839911c06303cd80da24217e263d0..eccf094984bf5995b1bfa8241d9b5de1a29d7089 100644
+--- a/packages/client/ui-conversation/src/client/locales.ts
++++ b/packages/client/ui-conversation/src/client/locales.ts
+@@ -325,6 +325,7 @@ export const zh = {
+   'row.stopped': '已停止',
+   'row.commandArguments': '命令参数',
+   'row.input': '输入',
++  'row.parsedInput': '解析后的 JSON 参数',
+   'row.output': '输出',
+   'row.inspect': '查看',
+   'row.imageSize': '{width}x{height}px，{bytes} 字节',
+@@ -726,6 +727,7 @@ export const en = {
+   'row.stopped': 'Stopped',
+   'row.commandArguments': 'Command arguments',
+   'row.input': 'IN',
++  'row.parsedInput': 'Parsed JSON arguments',
+   'row.output': 'OUT',
+   'row.inspect': 'Inspect',
+   'row.imageSize': '{width}x{height}px, {bytes} bytes',
+@@ -1126,6 +1128,7 @@ export const ja = {
+   'row.stopped': '停止',
+   'row.commandArguments': 'コマンド引数',
+   'row.input': 'IN',
++  'row.parsedInput': '引数（解析済み JSON）',
+   'row.output': 'OUT',
+   'row.inspect': '検査',
+   'row.imageSize': '{width}x{height}px、{bytes} バイト',
+@@ -1519,6 +1522,7 @@ export const es = {
+   'row.stopped': 'Detenido',
+   'row.commandArguments': 'Argumentos de comando',
+   'row.input': 'IN',
++  'row.parsedInput': 'Argumentos JSON analizados',
+   'row.output': 'OUT',
+   'row.inspect': 'inspeccionar',
+   'row.imageSize': '{width}x{height}px, {bytes} bytes',
+@@ -1919,6 +1923,7 @@ export const fr = {
+   'row.stopped': 'Arrêté',
+   'row.commandArguments': 'Arguments de commande',
+   'row.input': 'IN',
++  'row.parsedInput': 'Arguments JSON analysés',
+   'row.output': 'OUT',
+   'row.inspect': 'Inspecter',
+   'row.imageSize': '{width}x{height}px, {bytes} octets',
+@@ -2319,6 +2324,7 @@ export const de = {
+   'row.stopped': 'Angehalten',
+   'row.commandArguments': 'Befehlsargumente',
+   'row.input': 'IN',
++  'row.parsedInput': 'Geparste JSON-Argumente',
+   'row.output': 'OUT',
+   'row.inspect': 'Inspizieren',
+   'row.imageSize': '{width}x{height}px, {bytes} Bytes',
+@@ -2719,6 +2725,7 @@ export const ru = {
+   'row.stopped': 'Остановлено',
+   'row.commandArguments': 'Аргументы команды',
+   'row.input': 'IN',
++  'row.parsedInput': 'Разобранные аргументы JSON',
+   'row.output': 'OUT',
+   'row.inspect': 'Осмотреть',
+   'row.imageSize': '{width}x{height}px, {bytes} байт',
+@@ -3119,6 +3126,7 @@ export const pt = {
+   'row.stopped': 'Parado',
+   'row.commandArguments': 'Argumentos de comando',
+   'row.input': 'IN',
++  'row.parsedInput': 'Argumentos JSON analisados',
+   'row.output': 'OUT',
+   'row.inspect': 'Inspecionar',
+   'row.imageSize': '{width}x{height}px, {bytes} bytes',
+diff --git a/packages/client/ui-schedule/src/client/schedule-create-card.ts b/packages/client/ui-schedule/src/client/schedule-create-card.ts
+index 20ec61fe80ae29abcbc4846f485194e2f6eadae2..5392261538591f771d1e0d2825684091a89b93d9 100644
+--- a/packages/client/ui-schedule/src/client/schedule-create-card.ts
++++ b/packages/client/ui-schedule/src/client/schedule-create-card.ts
+@@ -145,7 +145,7 @@ export function scheduleCreateCardModel(block: ToolBlock, toolName: string): Sch
+   // A call still preparing carries no arguments, so its title falls back to the tool name.
+   const argsRaw = settled
+     ? block.call?.argsRaw ?? ''
+-    : block.phase === 'start' ? block.argsRaw : ''
++    : block.phase === 'start' ? block.argsRaw ?? '' : ''
+   const output = settled ? resultText(block) : null
+   const task = settled ? narrowScheduleRecord(parseJson(output ?? '')) : undefined
+   return {
+diff --git a/packages/client/ui-tool/README.md b/packages/client/ui-tool/README.md
+index 448a4e197b0a7767cc4dde982f5c855aafad962a..39416229f5430fe0bee505e54d2a5ced0336018f 100644
+--- a/packages/client/ui-tool/README.md
++++ b/packages/client/ui-tool/README.md
+@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
++Calls with `argumentRepresentation: 'parsed-json'` use the existing generic row, including names that otherwise select a keyed business view. Expanded arguments render under the localized parsed JSON label as inert selectable text. They expose no argument file links, downloads, HTML or execution controls. Raw callers retain their existing keyed dispatch, formatting and original strings. Final results retain their text and `isError`; this card does not infer cancellation or Native ownership.
++
+ `dsh-client-ui-tool` is the client Tool presentation plugin of the dsh web client: it renders every tool call in the conversation. `ui-conversation` dispatches each ordered `tool-call` Conversation Node through the matching key of `conversation.chat.node`; this package renders its root and PTC dispatch children, then dispatches every atomic call through the keyed `tool.call.toolview` slot. Unregistered Tool names use the generic card. Business UI packages register only their wire Tool names and atomic views — they do not pair Session events, rebuild the transcript, or own root/subcall topology, because the Runtime remains authoritative for call/result pairing, lifecycle, and recursive `subCalls` projection.
+ 
+ ## Table of Contents
+diff --git a/packages/client/ui-tool/README.zh.md b/packages/client/ui-tool/README.zh.md
+index 37757c47a75ce043d97fb4cbee423948fce602b2..339b80d55368c460254b5a573769a6ac2bc5589e 100644
+--- a/packages/client/ui-tool/README.zh.md
++++ b/packages/client/ui-tool/README.zh.md
+@@ -9,6 +9,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++`argumentRepresentation: 'parsed-json'` 调用使用现有通用行，即使工具名称通常选择专用视图。展开参数以本地化标签显示不可执行、可选择的 JSON 文本，不提供参数文件链接、下载、HTML 或执行控件。原始调用保留现有分派、格式及字符串。最终结果保留文本和 `isError`；卡片不推断取消或 Native 归属。
++
+ `dsh-client-ui-tool` 是 dsh Web 客户端的 Client 工具展示插件：它渲染对话中的每一次工具调用。`ui-conversation` 通过 `conversation.chat.node` 的匹配 key 分发每个已排序的 `tool-call` Conversation Node；本包渲染其中的 root 及其 PTC dispatch 子调用，并把每个原子调用通过 keyed slot `tool.call.toolview` 分发。没有注册的工具名称使用通用卡片。业务 UI 包只注册 wire 工具名称和原子视图——它们不配对会话事件、不重建 transcript（文本记录），也不拥有 root/subcall 拓扑，因为运行时仍对 call/result 配对、生命周期与递归 `subCalls` 投影拥有最终决定权。
+ 
+ ## 目录
+diff --git a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx b/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
+index 9355ddac427c0ba96bb6e9795295adb21210307e..d634e750b8c95f8ce8e66448168e891f1e6b8ade 100644
+--- a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
++++ b/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
+@@ -42,13 +42,15 @@ const ToolCall = memo(function ToolCall({
+     () => call.phase === 'result' && toolRowModel(toolName, call.block).autoReviewDenial !== null,
+     [toolName, call],
+   )
++  const material = call.phase === 'result' ? call.block.call : call.phase === 'start' ? call.block : null
++  const parsed = material?.argumentRepresentation === 'parsed-json'
+   return (
+     <div
+       className={css.callRow}
+       data-chat-anchor-key={`call:${callId}`}
+       data-chat-call-id={callId}
+     >
+-      {autoReviewDenied
++      {autoReviewDenied || parsed
+         ? renderFallback(owner)
+         : renderSlot('tool.call.toolview', owner, {
+           entryKey: toolName,
+diff --git a/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx b/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
+index 9985614f80b2f867004709875c0f2e58d1886e86..3f994cff1f25a0f7a234d7f6af376b9dd6516510 100644
+--- a/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
++++ b/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
+@@ -48,6 +48,8 @@ export interface ToolRowProps {
+   summarySuffix?: string | null | undefined
+   /** Original argument JSON formatted only while the row is expanded. */
+   bodyRaw?: string | null | undefined
++  /** Formatted parsed JSON, rendered as inert text under an explicit label. */
++  bodyParsed?: string | undefined
+   /** Flattened result text for the expanded Output section; null/absent = no output section. */
+   output?: string | null | undefined
+   /** Ask-user transcript card; card fields are mutually exclusive and replace text sections. */
+@@ -172,6 +174,7 @@ export const ToolRow = memo(function ToolRow({
+   summary,
+   summarySuffix,
+   bodyRaw,
++  bodyParsed,
+   output,
+   askQuestion,
+   errorSummary,
+@@ -211,14 +214,14 @@ export const ToolRow = memo(function ToolRow({
+   const webBody = web ?? null
+   const askQuestionBody = askQuestion ?? null
+   const detailsBody = details ?? null
+-  const inputRaw = bodyRaw ?? null
++  const inputRaw = bodyParsed ?? bodyRaw ?? null
+   const outputText = output ?? null
+   const card = askQuestionBody ?? terminalBody ?? diffBody ?? readBody ?? imageBody ?? searchBody ?? webBody ?? detailsBody
+   const expandable = state !== 'preparing' && (inputRaw !== null || outputText !== null || card !== null)
+   const open = expanded && expandable
+   const bodyText = useMemo(
+-    () => open && card === null && inputRaw !== null ? formatToolBody(variant, inputRaw) : null,
+-    [card, inputRaw, open, variant],
++    () => open && card === null && inputRaw !== null ? bodyParsed ?? formatToolBody(variant, inputRaw) : null,
++    [bodyParsed, card, inputRaw, open, variant],
+   )
+   const status = stateStatus(state, t)
+   const running = state === 'running' || state === 'preparing'
+@@ -421,7 +424,7 @@ export const ToolRow = memo(function ToolRow({
+                             <div className={css.ioCard}>
+                               {cardBody !== null && (
+                                 <div className={css.ioSection}>
+-                                  <span className={css.ioLabel}>{t('row.input')}</span>
++                                  <span className={css.ioLabel}>{t(bodyParsed === undefined ? 'row.input' : 'row.parsedInput')}</span>
+                                   <span className={css.ioText}>{cardBody}</span>
+                                 </div>
+                               )}
+diff --git a/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts b/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
+index e48d7d442362204d2d5059df58a29974e648aadd..79b8f8895ee76fa5bbd0cfd29d96dc62f3c6d89e 100644
+--- a/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
++++ b/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
+@@ -26,7 +26,7 @@ export function parsedToolCall(block: ToolCallBlock): ParsedToolCall | null {
+   }
+   let value: unknown
+   try {
+-    value = JSON.parse(call.argsRaw)
++    value = call.argumentRepresentation === 'parsed-json' ? call.argsParsed : JSON.parse(call.argsRaw)
+   } catch {
+     parsedCalls.set(block, null)
+     return null
+diff --git a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
+index ae96145b03d516a399ee10537fc2d4a8738636f3..1c7fb3b34ed21e2cf3a14994b724396d19a705b7 100644
+--- a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
++++ b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
+@@ -370,10 +370,22 @@ export function formatToolBody(variant: ToolRowVariant, argsRaw: string): string
+  * @returns the row model.
+  */
+ export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: string, home?: string): ToolRowModel {
++  const call = 'kind' in block ? block.call : block.phase === 'start' ? block : null
++  if (call?.argumentRepresentation === 'parsed-json') {
++    return {
++      variant: 'others', titleKey: 'tool.title.generic', summary: toolName,
++      filePath: undefined, fileTargets: undefined,
++      bodyRaw: null, output: 'kind' in block ? resultText(block) || null : null,
++      errorSummary: null, autoReviewDenial: null,
++      state: 'kind' in block
++        ? block.error?.code === 'interrupted' ? 'stopped' : block.isError ? 'error' : 'ok'
++        : 'running',
++    }
++  }
+   const variant = classifyTool(toolName)
+   const titleKey = toolTitleKey(toolName)
+   const done = 'kind' in block
+-  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
++  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw ?? null : null
+   // Result metadata marks a settled call that did not finish every requested effect.
+   const stopped = done && typeof block.meta === 'object' && block.meta !== null
+     && !Array.isArray(block.meta) && (block.meta as Record<string, unknown>).stopped === true
+diff --git a/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx b/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
+index 6ce48b990fc2fb8b98b7765f5f1cfb3e6c8e24f9..e944699a288c2c41fd3873a1766f44af55a691d6 100644
+--- a/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
++++ b/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
+@@ -37,6 +37,13 @@ export function GenericToolCard({
+   toolName, block, cwd, home, openFile, getFileTriggerProps, inspect, useDisclosure, t,
+ }: GenericToolCardProps) {
+   const model = toolRowModel(toolName, block, cwd, home)
++  const call = 'kind' in block ? block.call : block.phase === 'start' ? block : null
++  if (call?.argumentRepresentation === 'parsed-json') {
++    return <ToolRow useDisclosure={useDisclosure} t={t} variant="others" toolName={toolName}
++      icon={VARIANT_ICONS.others} title={t('tool.title.generic')} summary={toolName}
++      bodyRaw={null} bodyParsed={JSON.stringify(call.argsParsed, null, 2)}
++      output={model.output} state={model.state} />
++  }
+   const autoReview = model.autoReviewDenial === null
+     ? null
+     : localizeAutoReviewDenial(model.autoReviewDenial, t)
+diff --git a/packages/client/ui-trajectory/README.md b/packages/client/ui-trajectory/README.md
+index 265c6fffd96e9cf9c384dd87d64c18009356aeb8..9fd9a2b6dd5bd58a4ede106f745b3fd43c85887e 100644
+--- a/packages/client/ui-trajectory/README.md
++++ b/packages/client/ui-trajectory/README.md
+@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
++Parsed Tool calls retain their discriminated public argument records through final results. Trajectory privately formats text-only argument details, wrapping parsed values in labeled JSON with `argumentRepresentation: 'parsed-json'`; raw details retain the original model string unchanged. Presentation call IDs do not establish Native context or durable owner associations.
++
+ The Trajectory tab lets you inspect agent activity as a turn-aware ledger and interactive timing overview. It groups User, Assistant, Tool, nested Subtool, and compaction records, marks turn and step boundaries, and opens a record inspector for token usage, duration, input, output, timing, images, and attachment summaries. Long histories open at the current tail, load older pages on demand, and render only visible rows. During streaming, the view follows the tail until you scroll upward, and in-flight records show a start marker without inventing elapsed time.
+ 
+ ## Table of Contents
+diff --git a/packages/client/ui-trajectory/README.zh.md b/packages/client/ui-trajectory/README.zh.md
+index bed828aa7f11d0e5fb687ada53b5a23ddf62251a..275ead2b407b4719bc1fffd7c44f5f72219029af 100644
+--- a/packages/client/ui-trajectory/README.zh.md
++++ b/packages/client/ui-trajectory/README.zh.md
+@@ -9,6 +9,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++已解析工具调用在最终结果中保留公开参数判别字段。Trajectory 在包内格式化纯文本参数详情，使用包含 `argumentRepresentation: 'parsed-json'` 的 JSON 包装，原始详情保留模型字符串。显示调用 ID 不确立 Native 上下文或持久归属。
++
+ Trajectory 标签页让你以按轮次组织的事件记录表和交互式时间概览检查 agent（智能体）活动。它对用户、助手、工具、嵌套子工具和压缩（compaction）记录分组，标示轮次与步骤边界，并为所选记录打开检查器，显示 token 用量、耗时、输入、输出、计时、图片和附件摘要。较长历史打开时定位于当前尾部，按需加载更早页面，并且只渲染可见行。流式输出期间，视图会跟随尾部，直到你向上滚动；进行中的记录只显示开始标记，不会虚构耗时。
+ 
+ ## 目录
+diff --git a/packages/client/ui-trajectory/src/client/layout.ts b/packages/client/ui-trajectory/src/client/layout.ts
+index 06c9015a896d7ba80cf9fb3697167c2e3218a384..d99a2e07294be4652e5546b08f3b5f030fc34e92 100644
+--- a/packages/client/ui-trajectory/src/client/layout.ts
++++ b/packages/client/ui-trajectory/src/client/layout.ts
+@@ -9,6 +9,7 @@ import type {
+   RequestInspectionSnapshot,
+   RequestPromptChange,
+   RequestView,
++  ToolCallArguments,
+   ToolCallBlock,
+   ToolResultNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -22,6 +23,17 @@ import { formatElapsedSeconds } from './trajectory-record.ts'
+ import type { TrajectoryTranslate } from './locales.ts'
+ import { COMPACTION_INTERRUPTED_ERROR } from './copy-codes.ts'
+ 
++/**
++ * Format Trajectory argument details without claiming parsed JSON is original model text.
++ * @param call - Raw or parsed argument presentation.
++ * @returns Exact raw text, or labeled JSON that makes no original-text claim.
++ */
++function toolArgumentText(call: ToolCallArguments): string {
++  return call.argumentRepresentation === 'parsed-json'
++    ? JSON.stringify({ argumentRepresentation: 'parsed-json', arguments: call.argsParsed }, null, 2)
++    : call.argsRaw
++}
++
+ /** One Message or Step group inside a turn. */
+ export interface TrajectoryGroupModel {
+   title: string
+@@ -461,9 +473,9 @@ export function deriveTrajectoryLayout(
+             kind: 'tool',
+             sourceSeq: node.seq,
+             ...(node.call !== null
+-              ? summarizeCall(node.call.name, node.call.argsRaw)
++              ? summarizeCall(node.call.name, toolArgumentText(node.call))
+               : resultAsText(resultPreview)),
+-            ...(node.call !== null ? { inputDetail: node.call.argsRaw } : {}),
++            ...(node.call !== null ? { inputDetail: toolArgumentText(node.call) } : {}),
+             outputDetail: detailResult(node, t),
+             resultSeq: node.seq,
+             outputBlocks: node.content.map(block => sourceBlock(block)),
+@@ -516,8 +528,8 @@ export function deriveTrajectoryLayout(
+       cell: {
+         index: ++index,
+         kind: 'tool',
+-        ...summarizeCall(call.name, call.argsRaw),
+-        inputDetail: call.argsRaw,
++        ...summarizeCall(call.name, toolArgumentText(call)),
++        inputDetail: toolArgumentText(call),
+         callId: call.callId,
+         timeSeconds: null,
+         startedAt: finiteTime(call.time),
+@@ -780,8 +792,8 @@ function expandAssistant(
+       ...(call === undefined ? {} : { subCalls: call.subCalls }),
+       cell: {
+         index: ++index, kind: 'tool',
+-        ...summarizeCall(block.name, block.argsRaw),
+-        inputDetail: block.argsRaw,
++        ...summarizeCall(block.name, toolArgumentText(block)),
++        inputDetail: toolArgumentText(block),
+         callId: block.callId,
+         ...(result !== undefined
+           ? {
+@@ -830,7 +842,7 @@ function assistantSourceBlock(block: AssistantBlock): TrajectorySourceBlock {
+     case 'reasoning': return { type: 'thinking', content: block.text }
+     case 'tool-call': return {
+       type: 'tool-call',
+-      content: block.argsRaw,
++      content: toolArgumentText(block),
+       callId: block.callId,
+       toolName: block.name,
+     }
+@@ -1025,12 +1037,12 @@ function expandSubCalls(
+         callId: sub.callId,
+         ...(settled
+           ? (sub.call !== null
+-            ? summarizeCall(sub.call.name, sub.call.argsRaw)
++            ? summarizeCall(sub.call.name, toolArgumentText(sub.call))
+             : resultAsText(resultPreview))
+-          : summarizeCall(sub.name, sub.argsRaw)),
++          : summarizeCall(sub.name, toolArgumentText(sub))),
+         ...(settled
+-          ? (sub.call !== null ? { inputDetail: sub.call.argsRaw } : {})
+-          : { inputDetail: sub.argsRaw }),
++          ? (sub.call !== null ? { inputDetail: toolArgumentText(sub.call) } : {})
++          : { inputDetail: toolArgumentText(sub) }),
+         ...(settled
+           ? {
+             outputDetail: detailResult(sub, t),
+diff --git a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
+index ba06b40f9b8665fa6ab8d445d63964f284b4d15c..999ddaf8546afc4e285fc38802bcf34e7c43d52d 100644
+--- a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
++++ b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
+@@ -33,15 +33,17 @@ interface DispatchData {
+ }
+ 
+ function rootCall(match: ConversationMatch): StartedToolCall {
+-  if (match.event.type !== 'tool/call') {
++  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
+     throw new Error('trajectory-tool-call start requires tool/call')
+   }
+   return {
+     phase: 'start',
+     callId: String(match.event.data.callId),
+     name: match.event.data.name,
+-    argsRaw: match.event.data.arguments,
+-    args: PartialArguments.fromText(match.event.data.arguments),
++    ...(match.event.type === 'tool/parsed-call'
++      ? { argumentRepresentation: 'parsed-json', argsParsed: match.event.data.arguments,
++        args: PartialArguments.fromObject(match.event.data.arguments) } as const
++      : { argsRaw: match.event.data.arguments, args: PartialArguments.fromText(match.event.data.arguments) }),
+     turn: match.event.data.turn,
+     step: match.event.data.step,
+     time: match.event.time,
+@@ -62,7 +64,9 @@ function rootResult(
+     callId: String(message.source.callId),
+     name: previous?.name ?? '',
+     args: previous?.args ?? PartialArguments.EMPTY,
+-    call: previous === undefined ? null : { name: previous.name, argsRaw: previous.argsRaw },
++    call: previous === undefined ? null : previous.argumentRepresentation === 'parsed-json'
++      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed }
++      : { name: previous.name, argsRaw: previous.argsRaw },
+     callTime: previous?.time ?? null,
+     content: message.content,
+     isError: message.isError === true,
+@@ -204,7 +208,9 @@ function projectCall(
+     ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
+     name: block.name,
+     args: block.args,
+-    call: { name: block.name, argsRaw: block.argsRaw },
++    call: block.argumentRepresentation === 'parsed-json'
++      ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed }
++      : { name: block.name, argsRaw: block.argsRaw },
+     callTime: block.time,
+     content: [],
+     isError: true,
+@@ -232,7 +238,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
+   kind: 'trajectory-tool-call',
+   target: 'trajectory',
+   match: (event) => {
+-    if (event.type === 'tool/call') return { id: String(event.data.callId), role: 'start' }
++    if (event.type === 'tool/call' || event.type === 'tool/parsed-call') return { id: String(event.data.callId), role: 'start' }
+     if (event.type === 'tool/result') {
+       return { id: String(event.data.message.source.callId), role: 'update' }
+     }
+diff --git a/packages/core/session/README.md b/packages/core/session/README.md
+index 3b55b1fcced8dd7625e17d034e87b515f69af4d5..7fa3eae14d440817b0dc13cc213685e677aa1825 100644
+--- a/packages/core/session/README.md
++++ b/packages/core/session/README.md
+@@ -9,6 +9,8 @@ English | [中文](README.zh.md)
+ 
+ ## Summary
+ 
++`tool/call` retains the exact raw model argument string. The required `tool/parsed-call` event carries only a parsed JSON object for display; it neither supplies model input nor authorizes execution. Producers must admit a matched reader and independently establish call/result ownership. Older readers must refuse this unknown required event. The parsed event must never be marked ignorable. Persistence inventory, acknowledgement, catalog generation and matched consumer builds are required before emission.
++
+ `dsh-session` records every model-visible fact in an append-only session log and derives model history from that record. Consumers can inspect, replay, fork, and flush sessions while preserving historical events; compaction hides superseded entries from the active conversation without deleting them. Sessions remain in memory unless a persistence backend is added, and durability checkpoints wait for configured backends. Choose this package wherever an agent needs a reconstructable session record; it does not call models.
+ 
+ ## Table of Contents
+diff --git a/packages/core/session/README.zh.md b/packages/core/session/README.zh.md
+index 9ca25d8a115657276af567c6ca6d4c4e50d56289..25de695df10cb79d98eacc2b91b0d0bc07dd90dd 100644
+--- a/packages/core/session/README.zh.md
++++ b/packages/core/session/README.zh.md
+@@ -9,6 +9,8 @@ kind: "package-reference"
+ 
+ ## 概述
+ 
++`tool/call` 保留模型产生的原始参数字符串。必读事件 `tool/parsed-call` 仅携带用于显示的已解析 JSON 对象，不提供模型输入或执行授权。生产者必须准入匹配的读取器并独立确认调用与结果的归属。旧读取器必须拒绝未知的必读事件，不能将其标记为 ignorable。发出该事件前，必须完成持久化清单、兼容性确认、目录生成及匹配消费者构建。
++
+ `dsh-session` 在仅追加的会话日志中记录每个模型可见事实，并从该记录派生模型历史。消费方可以检查、回放、fork 和刷新会话，同时保留历史事件；压缩（compaction）会在活跃对话中隐藏被取代的条目，但不会删除它们。除非添加持久化后端，否则会话仅保留在内存中；持久性检查点会等待配置的后端。agent 需要可重建的会话记录时请选择本包；它本身不调用模型。
+ 
+ ## 目录
+diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
+index 0cf13c86a0313ba8869f36bb48004e61dc4cb685..ea0d97797f3f6baa825a33b2ca965a960a4d6724 100644
+--- a/packages/core/session/src/types.ts
++++ b/packages/core/session/src/types.ts
+@@ -367,6 +367,21 @@ export interface SessionEventMap {
+    * call with its `tool/result`.
+    */
+   'tool/call': { turn: number; step: number; callId: ToolCallId; name: string; arguments: string }
++  /**
++   * Display-only call whose source retained parsed JSON object arguments, not
++   * the original model string. Required on read: never mark this event ignorable.
++   * This event does not supply model input or authorize tool execution. Producers
++   * must admit a matched reader and attest ownership independently of callId.
++   * @mode event
++   * @param data - Source-qualified call presentation admitted by its producer.
++   */
++  'tool/parsed-call': {
++    turn: number
++    step: number
++    callId: ToolCallId
++    name: string
++    arguments: { [key: string]: JsonValue }
++  }
+   /**
+    * A completed tool call's model-facing result, optional internal failure
+    * identity and user-facing reason, and optional tool-private `meta`
+@@ -521,7 +536,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
+      * defaulting to required means a forgotten marker over-refuses (an
+      * inconvenience) rather than silently resuming a gutted session.
+      */
+-    ignorable?: true
++    ignorable?: K extends 'tool/parsed-call' ? never : true
+   } & (K extends SurfaceEventType ? SurfaceIntent<K> : {
+     surfaceOp?: never
+     sourceEventSeqs?: never
