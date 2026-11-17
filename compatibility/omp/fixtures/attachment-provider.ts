@@ -18,12 +18,14 @@ function capture(context: Context): Capture {
   const images: Capture["images"] = [], text: Capture["text"] = [], attachmentText: Capture["attachmentText"] = [];
   const captureText = (role: string, value: string): void => {
     text.push({ role, sha256: Bun.SHA256.hash(value, "hex") });
-    // Native wraps text-only file mentions in developer text. Capture only this known fixture's exact span.
-    const literal = "Controlled prepared document", offset = value.indexOf(literal);
-    if (offset < 0 || attachmentText.length >= 2) return;
-    const span = value.slice(offset, offset + literal.length);
-    attachmentText.push({ role, sha256: Bun.SHA256.hash(span, "hex"), bytes: Buffer.byteLength(span),
-      occurrences: value.indexOf(literal, offset + literal.length) < 0 ? 1 : 2 });
+    // Native wraps file mentions in developer text. These known spans witness delivery only, never history joins.
+    for (const literal of ["Controlled prepared document", "Controlled DOCX text witness"]) {
+      const offset = value.indexOf(literal);
+      if (offset < 0 || attachmentText.length >= 2) continue;
+      const span = value.slice(offset, offset + literal.length);
+      attachmentText.push({ role, sha256: Bun.SHA256.hash(span, "hex"), bytes: Buffer.byteLength(span),
+        occurrences: value.indexOf(literal, offset + literal.length) < 0 ? 1 : 2 });
+    }
   };
   for (const message of context.messages) {
     if (typeof message.content === "string") captureText(message.role, message.content);

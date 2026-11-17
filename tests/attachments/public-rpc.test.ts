@@ -262,6 +262,94 @@ test("actual public JPEG preserves prepared bytes through indexed saved image an
   });
 }, 45_000);
 
+async function prepareDocx(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
+  // Independent fixed ZIP/XML fixture and Python hashlib pins; Native conversion has not supplied expectations.
+  const original = await fs.readFile(new URL("./fixtures/minimal-text.docx", import.meta.url));
+  const originalSha256 = "76e2ed8160cbd314a8527cd57f07eb8d422c5e1ea7dc4769dc946e5a1f0554a0";
+  const representationSha256 = "fbe65ce22456deb2f5d5dc0fb22632c772adb897e934a6f01bdba31e12298cc9";
+  expect(original.byteLength).toBe(1259); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const receipt = await fixture.client.prepare({ preparationId: "prepared-docx", draftId: "draft-docx",
+    draftRevision: "1", authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "docx", format: "docx", sha256: originalSha256, data: original.toBase64() },
+    ] });
+  expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-docx", draftId: "draft-docx",
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0];
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_DOCX_NOT_READY");
+  expect(item).toMatchObject({ originalId: "docx", originalSha256, preparedSha256: representationSha256 });
+  expect(item.representation).toEqual({ kind: "text", text: "Controlled DOCX text witness" });
+  expect(item.degradations).toEqual(["document_structure_changed"]);
+  expect(item.facts).toEqual({ originalBytes: 1259, convertedBytes: 28, omittedImages: 0 });
+  expect(item.preparedSha256).not.toBe(originalSha256);
+  expect(original.equals(Buffer.from("Controlled DOCX text witness"))).toBe(false);
+  return receipt;
+}
+
+async function refuseDocxWithoutConsent(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  expect(await fixture.worker.request(submission(fixture, receipt, "docx-success", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "docx-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [],
+    nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+}
+
+async function verifyDocxSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult): Promise<void> {
+  const document = savedLink(result, "docx", "prepared");
+  expect(document.link).toMatchObject(expectedLink(receipt, "docx", "text"));
+  expect(document.locator.kind).toBe("files");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === document.entryId);
+  expect(matches).toHaveLength(1);
+  const companion = z.object({ role: z.literal("fileMention"), files: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ path: z.string(), content: z.string(), byteSize: z.number() })
+    .parse(companion.files[document.locator.index]);
+  expect(part).toEqual({ path: `attachment-prepared://${document.link.preparedId}`,
+    content: "Controlled DOCX text witness", byteSize: 28 });
+  expect(Bun.SHA256.hash(part.content, "hex"))
+    .toBe("d771072c331e616e4702b39e480f6f8c69e7abebfb09f039d26e3013f7970eea");
+  // Causality uses only the returned relation.entryId and actual indexed saved part, never content or hashes.
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === document.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("prepared");
+    expect(row.submission?.attachments).toContainEqual(document.link);
+  }
+}
+
+test("actual public DOCX requires exact degradation consent before indexed saved text and provider delivery", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await prepareDocx(fixture);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    await refuseDocxWithoutConsent(fixture, receipt);
+    expect(await worker.request(submission(fixture, receipt, "docx-success", ["document_structure_changed"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "docx-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "docx-success" },
+      preparation: consent(receipt, ["document_structure_changed"]) });
+    await verifyDocxSavedPart(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([]);
+    expect(after.requests.at(-1)?.attachmentText).toEqual([{ role: "developer", bytes: 28, occurrences: 1,
+      sha256: "d771072c331e616e4702b39e480f6f8c69e7abebfb09f039d26e3013f7970eea" }]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "docx-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
+
 test("actual public failed mixed preparation refuses all input before reservation or effects", async () => {
   await withWorker(async fixture => {
     const { worker, client } = fixture, before = await entries(worker), effects = await fixture.effects();
