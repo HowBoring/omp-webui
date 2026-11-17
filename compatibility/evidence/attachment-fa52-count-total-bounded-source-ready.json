@@ -1,0 +1,183 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "01bbf1cd1cc628c47e47f80e345ac75721a45697",
+  "scope": "Only bounded process stdout/stderr retainer evidence; existing eight-object/32MiB public case unchanged.",
+  "priorReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-source-ready.json",
+    "bytes": 29960,
+    "sha256": "90bfda6fdcd069b1ae7c9c45f413973e98d613ddbe54ff48ec2c6d25bf23e199"
+  },
+  "priorFreeze": {
+    "path": "/tmp/ticket38-count-total-source-20261117/final-inputs.json",
+    "bytes": 13285,
+    "sha256": "c81c9fa070fba8edcc471c9f5c2f5f0a41fcfa20f9f692fbdc4eae08c5861b18"
+  },
+  "resolver": {
+    "path": "/tmp/ticket38-count-total-bounded-source-20261117.py",
+    "bytes": 2166,
+    "sha256": "bc8f84388dba27d564bf3d32790d02dcac34e9802a2f89cd777f17fe1fdf7737"
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_capture.py",
+      "bytes": 6091,
+      "sha256": "02adca47ba1ad6e47e4a45fcfc7430cef423909d9cffdbcff16eee68f3755e64"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-bounded-source.md",
+      "bytes": 2402,
+      "sha256": "60bbb7cfe5240d428c021ba3da074baee4801e679b40b09054dde15ba78fa273"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-retainer-20261117.py",
+      "bytes": 8507,
+      "sha256": "8e4afe8a47e0f462ac87a62f951184569d8d17ac89cc62fc953de016a535078d"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-source-20261117.py",
+      "bytes": 2166,
+      "sha256": "bc8f84388dba27d564bf3d32790d02dcac34e9802a2f89cd777f17fe1fdf7737"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-source-20261117/author_metadata.py",
+      "bytes": 6378,
+      "sha256": "456ed7da94f84bad658d857a0cfcc7dd8766197e13ab8e93e0256b666841a04d"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-source-20261117/static_binding.py",
+      "bytes": 3353,
+      "sha256": "080d4f47296ab5a242e85d4f247edbd1b3027f3c0ce3e2872aa6a131c608089d"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-source-20261117/preservation.json",
+      "bytes": 1694,
+      "sha256": "876ee6092cd23a643bc3f68de58ce321edb52bc84a8e88dc26aa16703b76d37b"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-bounded-source-20261117/source-tool-results.json",
+      "bytes": 10691,
+      "sha256": "0483934b410e1eb2c49acf0601acbc476535ad768f67cf77ae5a812466917688"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-source-ready.json",
+      "bytes": 29960,
+      "sha256": "90bfda6fdcd069b1ae7c9c45f413973e98d613ddbe54ff48ec2c6d25bf23e199"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-source-20261117/final-inputs.json",
+      "bytes": 13285,
+      "sha256": "c81c9fa070fba8edcc471c9f5c2f5f0a41fcfa20f9f692fbdc4eae08c5861b18"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-20261117-fb0_pygm/precheck.json",
+      "bytes": 3091,
+      "sha256": "3d1742bd102f7f7fdbffd964994411da1103484896713025e4d7607e2369eaa9"
+    }
+  ],
+  "retainer": {
+    "path": "/tmp/ticket38-count-total-bounded-retainer-20261117.py",
+    "bytes": 8507,
+    "sha256": "8e4afe8a47e0f462ac87a62f951184569d8d17ac89cc62fc953de016a535078d"
+  },
+  "capture": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    "tests": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_capture.py",
+      "bytes": 6091,
+      "sha256": "02adca47ba1ad6e47e4a45fcfc7430cef423909d9cffdbcff16eee68f3755e64"
+    },
+    "limitPerStreamBytes": 1048576,
+    "readChunkBytes": 65536,
+    "fullStream": "Count and SHA every observed byte until original EOF.",
+    "overflowOrErrors": "FAIL even on child exit0. Write faults stop writes and continue draining.",
+    "readFault": "FAIL/no EOF claim, retain original source handle; persistent read fault can prevent exit. No recovery authority.",
+    "wait": "Original Popen wait plus both original reader joins and EOF required; readers start before wait.",
+    "forbidden": "No timeout/kill/census/PID fallback/retry/descendant-extinction claim.",
+    "testsRun": "9 synchronous finite pure binary I/O tests PASS; no process/thread spawn. Retainer AST-only; never imported/executed."
+  },
+  "preservation": {
+    "path": "/tmp/ticket38-count-total-bounded-source-20261117/preservation.json",
+    "bytes": 1694,
+    "sha256": "876ee6092cd23a643bc3f68de58ce321edb52bc84a8e88dc26aa16703b76d37b"
+  },
+  "baseCurrentInputs": 819,
+  "recursiveChain": [
+    819,
+    781,
+    745,
+    703,
+    667
+  ],
+  "overrides": [],
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 85975,
+    "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645",
+    "name": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects"
+  },
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN; fresh paired exact-source review + independent Root precheck + separate ONE required.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-count-total-bounded-20261117-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 90000,
+    "workerRequestDeadlineMs": 10000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner. New top capture requires original wait and both reader joins/EOF.",
+    "prePost": "Root independent exactnewdelta/781\u2192745\u2192703\u2192667 + Native166/build290/41archive/15addon/6HTML; exactNativeHEAD/index/status/binarydiffs, candidate/dependencylinks and cleanHostHEAD/tree/index. No bulkcopies. Retain originalhandles/readers/toolreturns; noPIDfallback/groupkill/census.",
+    "failurePolicy": "Stop firstFAIL, preserveexactfailure. No retry/fix/expectationweakening, Native API/schema/product/build/dependency change, othercase/format, Host/browser/FFI/socket/kernelprobe, GH/merge/global/private/product admission, fence/orphan444480/processcensus/PIDfallback/groupkill. Ifpubliccapabilitygap, SOURCE HOLD; never shrinkacceptedrawlimit or silentlyapprove degradation.",
+    "runtimeWindow": "NONE authorized by thisSOURCE. Root coordination and separateONE required; neverreuse consumedreadiness/raw/output/retainerprefixes."
+  },
+  "oldPrecheck": {
+    "record": {
+      "path": "/tmp/ticket-38-public-count-total-20261117-fb0_pygm/precheck.json",
+      "bytes": 3091,
+      "sha256": "3d1742bd102f7f7fdbffd964994411da1103484896713025e4d7607e2369eaa9"
+    },
+    "meaning": "Unused historical precheck only; no used-once/start/runner. Never reused for new bounded source."
+  },
+  "newPrefixes": [
+    "/tmp/ticket38-count-total-bounded-source-20261117",
+    "/tmp/ticket-38-public-count-total-bounded-20261117-",
+    "/tmp/attachment-runtime-count-total-bounded-20261117-"
+  ],
+  "notRun": "No retainer pre/run/post, actual case, Bun worker, seed, Native/OMP/Host/provider/browser/FFI/kernel action.",
+  "admission": "SOURCE ONLY, NOT RUN. Whole38/53/54/MVP open; product/global/private admission unchanged blocked."
+}
