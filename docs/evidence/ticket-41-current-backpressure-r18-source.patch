@@ -1,0 +1,603 @@
+# PUBLIC SOURCE REFERENCE ONLY — HISTORICAL R18; DO NOT APPLY OR EXECUTE
+# Base: b38e5a69caf1de8888ef36799740d1f021fafa30 (R17 fixture sources).
+# New paths identify the frozen outside-Git source packet, relative to its evidence-store root.
+# This is an auditable textual export, not a runtime installation or execution entry point.
+# Its hardcoded ROOT/path/generation/marker identify an already consumed scope.
+# Future reproduction requires fresh reviewed generation/path/artifacts and separate Root clearance.
+# Zero-context hunks avoid whitespace-only patch context; original/export hashes bind exact bytes.
+# Unchanged fixed synthetic root is mapped by SHA256 in the adjacent evidence JSON.
+
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/README.md
+@@ -0,0 +1,35 @@
++R18 is an isolated SOURCE candidate for ONE future unchanged-current-C external backpressure attempt. No production C changes, preparation, compilation, ELF, target execution, Native import, actor, pidfd, /proc lookup, signal, key, permit or actual authority is part of this packet's creation. Existing R17 source, consumed stage and 19-member manifest remain untouched.
++
++The historical R17 exit74 cause remains UNRESOLVED. The successful self-exec and exact-Popen-boundary diagnostics omit full Dispatcher/production ELF context and establish neither that cause nor normal production-C acceptance. This source packet permits a fresh separately reviewed case; it does not fix the old cause.
++
++The runtime delta is limited to the three existing Python fixture modules. Before Popen, the durable journal records fd3 socket identity, socket type, descriptor/status flags, explicit pass_fds and close_fds. HOLD includes a bounded scrubbed Refusal code. The first HELLO read observes the retained original guardian pidfd and makes any control byte sticky. An original guardian already terminal when pidfd binding finishes may be bound for observation, never accepted as live for START.
++
++Only the exact pinned external C's defined control flow classifies original guardian CLD_EXITED74 before any control byte/HELLO/START as a candidate startup refusal. The original Popen must return74; stdout/stderr must reach EOF and their threads join; own fences/business marker must remain absent; the Dispatcher must finish its original accept timeout with no accepted peer and its thread joined; the kernel must return P_ALL ECHILD for the controller's current direct-child domain. Only then is the exact fixture writer duplicate closed and empty control EOF required. Any failure retains HOLD. This proof does not claim general descendant extinction or attribute an internal failing C predicate.
++
++The controller emits FAILED_DRAINED_STARTUP74 and returns3 only after those observations. Outer always collects original controller wait, reader EOF/joins and direct-domain ECHILD even without a business marker; explicit status3 is failure, never PASS. Zero without a business marker still refuses after observation. The original sampled 20-second business deadline and all normal HELLO/gate/START/X/natural-root0/EAGAIN/250ms/COMPLETE/EOF/wait0/fence/lease criteria remain. Existing manual SIGKILL requires its original post-HOLD fresh Root command, after exact START and natural ROOT_EXIT0, and is never PASS; no new signal path is added.
++
++31 pure callback/selected-AST tests pass (original22 retained, nine focused cases). Initial focused startup tests were observed failing before the new functions existed. Tests import only the effect-free policy; runtime adapters, constructors and main are never imported/executed. Production C and synthetic root fixture are byte-identical to their pinned source. Local implement-spec/TDD/code-review guidance was read from /workspace/work/omp-webui-current/.agents/skills; the previously agreed OS/fd3 seam is used. Fresh independent Spec and Standards SOURCE review remains required; this implementer does not self-approve.
++
++Prospective Root commands below are instructions for later authorized boundaries, not actions performed here. Stop for paired SOURCE review before preparation. Compiler-only permission is separate from source preparation. Fresh paired artifact review must bind all source/configuration/recipe/ELF hashes and establish the startup74 external-build control-flow proof for the exact artifact. Runtime needs a fresh literal ONE clearance bound to that manifest; no command below grants it.
++
++```bash
++# Pure source tests only (safe to repeat; no target/runtime imports).
++cd /workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1
++/usr/bin/python3 -B -m unittest external_backpressure_policy_test startup74_test -v
++
++# AFTER paired SOURCE approval and Root preparation clearance only.
++/usr/bin/python3 -B /workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py --prepare-source external-current-602f498-backpressure-r18-v1
++
++# AFTER separate compiler-only clearance: exact commands also recorded in compiler-recipe.json.
++env -i PATH=/usr/bin:/bin /usr/bin/gcc -std=c11 -Wall -Wextra -Werror -O2 -static /tmp/omp-external-current-backpressure-r18-20261117/root.c -o /tmp/omp-external-current-backpressure-r18-20261117/release/bin/omp
++env -i PATH=/usr/bin:/bin /usr/bin/gcc -std=c11 -Wall -Wextra -Werror -O2 -static -include /tmp/omp-external-current-backpressure-r18-20261117/configuration.h /workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/external-protector.c -o /tmp/omp-external-current-backpressure-r18-20261117/release/bin/omp-external-protector
++
++# AFTER compiler completion: unsigned sealer only, then paired artifact review.
++/usr/bin/python3 -B /workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py --seal-unsigned external-current-602f498-backpressure-r18-v1
++
++# AFTER fresh exact manifest/artifact ONE clearance only. Substitute the approved literal SHA256.
++cd /workspace/work/omp-webui-ticket-41-current-backpressure
++env -i PATH=/usr/bin:/bin HOME=/tmp/omp-external-current-backpressure-r18-20261117/home TMPDIR=/tmp LC_ALL=C /usr/bin/python3 -B /workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure.py --run-once external-current-602f498-backpressure-r18-v1 APPROVED_LITERAL_MANIFEST_SHA256
++```
++
++Root's fresh original-guardian gate still occurs before START. Unknown exit, constructor, pidfd, journal, observer, prefix, connection and timeout outcomes remain HOLD with original owners. Failed drainage is observation only; product/Native/#41/#61 admission remains BLOCKED.
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/SHA256SUMS
+@@ -0,0 +1,12 @@
++8e9af7a00ba80b3d19fc5c037e7cfff57ac20eef1f491652400d106b136712a5  README.md
++ec3a99da023046e9b974ecf159dbd2e39a894347db27aefb2396bdff1d68046b  SourcePlan.json
++c3930df41fba5b9121b44a537014b8e5f43e861e89686fe3af7efec34615f0cf  SourcePublicCaps.json
++f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b  external-backpressure-root.c
++02a82a0548ba3345e48775e882c7be207af8be7f27718bbcc394dde0f8d4065f  external_backpressure.py
++7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c  external_backpressure_io.py
++49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176  external_backpressure_policy.py
++3e2e349a28bc669e478a3ad25e11b169822b038f8217d4ee047e458d7191290a  external_backpressure_policy_test.py
++643ba9585e11e99ce59c7cead0e8c44c465084681eeb6302dd321f765646e512  external_backpressure_stage.py
++70db18270e264965afb1d2dfeaedba9adf0b2aeded09bece7e55ef9549246a61  source-validation.json
++32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a  startup74-proof.json
++3a63f89a29df835ef90fda3bf7253dc292596f4b593d20f73d9e2be6923905dd  startup74_test.py
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/SourcePlan.json
+@@ -0,0 +1,61 @@
++{
++  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
++  "sourceReview": "FRESH_PAIRED_REVIEW_REQUIRED",
++  "baseCommit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++  "baseTree": "c817c96c5a003fbd4347a3957774a4e39a8e6273",
++  "fixtureSourceCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
++  "marker": "external-current-602f498-backpressure-r18-v1",
++  "generation": "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382",
++  "stage": "/tmp/omp-external-current-backpressure-r18-20261117",
++  "case": "backpressure-only",
++  "productionChanges": false,
++  "runtime": "NOT_RUN",
++  "historicalCause": "UNRESOLVED",
++  "productAdmission": "BLOCKED",
++  "sourceSha256": {
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/README.md": "8e9af7a00ba80b3d19fc5c037e7cfff57ac20eef1f491652400d106b136712a5",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json": "c3930df41fba5b9121b44a537014b8e5f43e861e89686fe3af7efec34615f0cf",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure.py": "02a82a0548ba3345e48775e882c7be207af8be7f27718bbcc394dde0f8d4065f",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_io.py": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py": "3e2e349a28bc669e478a3ad25e11b169822b038f8217d4ee047e458d7191290a",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py": "643ba9585e11e99ce59c7cead0e8c44c465084681eeb6302dd321f765646e512",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74-proof.json": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a",
++    "/workspace/work/mvp-implementation/recovery/r18-current-backpressure-source-v1/startup74_test.py": "3a63f89a29df835ef90fda3bf7253dc292596f4b593d20f73d9e2be6923905dd",
++    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
++    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
++    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
++    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++  },
++  "cInputs": {
++    "compatibility/launcher/control.h": {
++      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++      "blob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
++      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
++    },
++    "compatibility/supervision/candidates.h": {
++      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++      "blob": "12637556c77aa1c3cd6fe5722eaa7bba21ee195c",
++      "sha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f"
++    },
++    "compatibility/supervision/external-protector.c": {
++      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++      "blob": "c48a10f7c90d1ff36c6521c33afbb8f0cde89049",
++      "sha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c"
++    },
++    "compatibility/supervision/private-helper.c": {
++      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++      "blob": "6939247d6defa1c80fc4a079dfa9aceb4deefd29",
++      "sha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++    }
++  },
++  "validation": {
++    "purePythonTests": 31,
++    "runtimeAdapterImports": false,
++    "compiledTargets": false,
++    "actors": false,
++    "nativeImports": false,
++    "signals": false
++  }
++}
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/SourcePublicCaps.json
+@@ -0,0 +1,25 @@
++{
++  "schema": "omp-external-backpressure-source-caps/1",
++  "status": "SOURCE_CANDIDATE_REVIEW_REQUIRED",
++  "sourceOnly": true,
++  "stage": "/tmp/omp-external-current-backpressure-r18-20261117",
++  "marker": "external-current-602f498-backpressure-r18-v1",
++  "generation": "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382",
++  "installation": "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54",
++  "productionC": {
++    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
++    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
++    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
++    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++  },
++  "case": "ONE future unchanged-current-C external fd3 backpressure",
++  "diagnostics": "SUCCESSFUL_DIAGNOSTICS_NOT_PRODUCTION_C_ACCEPTANCE",
++  "historicalCause": "UNRESOLVED",
++  "sourceReview": "FRESH_PAIRED_REQUIRED",
++  "artifactReview": "FRESH_PAIRED_REQUIRED",
++  "runtime": "NOT_RUN",
++  "actualAuthority": false,
++  "status3": "FAILED_DRAINED_STARTUP74_NEVER_PASS",
++  "manualRecovery": "EXISTING_FRESH_POST_HOLD_ORIGINAL_PIDFD_PROTOCOL_ONLY_NOT_PASS",
++  "productAdmission": "BLOCKED"
++}
+--- a/tests/supervision/fixtures/external_backpressure.py
++++ b/recovery/r18-current-backpressure-source-v1/external_backpressure.py
+@@ -6,0 +7,2 @@
++import fcntl
++import stat
+@@ -19 +21 @@
+-from external_backpressure_policy import recover, remaining, require
++from external_backpressure_policy import Refusal, recover, remaining, require
+@@ -24,5 +26,15 @@
+-ROOT = Path(__file__).resolve().parents[3]
+-STAGE = Path("/tmp/omp-external-current-backpressure-r17-20261117")
+-MARKER = "external-current-602f498-backpressure-r17-v1"
+-GENERATION = "37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b"
+-INSTALLATION = "d3f6c9e719c0fa69ce89b26ab5b4c24566c7a00bd429de9aa7c33841bbad7291"
++ROOT = Path("/workspace/work/omp-webui-ticket-41-current-backpressure")
++STAGE = Path("/tmp/omp-external-current-backpressure-r18-20261117")
++MARKER = "external-current-602f498-backpressure-r18-v1"
++GENERATION = "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382"
++INSTALLATION = "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54"
++PRODUCTION_C_SHA256 = {
++    "compatibility/launcher/control.h":
++        "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
++    "compatibility/supervision/candidates.h":
++        "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
++    "compatibility/supervision/external-protector.c":
++        "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
++    "compatibility/supervision/private-helper.c":
++        "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
++}
+@@ -60 +72 @@
+-def proof_original(session, process, journal, role):
++def proof_original(session, process, journal, role, allow_terminal=False):
+@@ -63,2 +75,2 @@
+-    require(os.waitid(os.P_PIDFD, pidfd, os.WEXITED | os.WNOHANG | os.WNOWAIT | WALL) is None,
+-            "ORIGINAL_EXITED_BEFORE_BINDING")
++    observed = os.waitid(os.P_PIDFD, pidfd, os.WEXITED | os.WNOHANG | os.WNOWAIT | WALL)
++    require(observed is None or allow_terminal, "ORIGINAL_EXITED_BEFORE_BINDING")
+@@ -118 +130,7 @@
+-    journal.save("PROTECTOR_CONSTRUCTOR_INTENT", fd3=3, fillerFd=writer.fileno())
++    metadata = os.fstat(3)
++    require(stat.S_ISSOCK(metadata.st_mode) and identity(3) == identity(writer.fileno()), "FD3_NOT_WRITER")
++    journal.save("PROTECTOR_CONSTRUCTOR_INTENT", fd3=3, fillerFd=writer.fileno(),
++                 fd3Identity=identity(3), socketType=writer.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE),
++                 descriptorFlags=fcntl.fcntl(3, fcntl.F_GETFD), statusFlags=fcntl.fcntl(3, fcntl.F_GETFL),
++                 fd3Inheritable=os.get_inheritable(3),
++                 fd3IsSocket=True, passFds=[3], closeFds=True)
+@@ -124 +142 @@
+-    session.pidfd = proof_original(session, process, journal, "protector")
++    session.pidfd = proof_original(session, process, journal, "protector", allow_terminal=True)
+@@ -131,0 +150,55 @@
++def startup_line(session, peer, journal):
++    """Watch only the held original pidfd; retain evidence of even one control byte."""
++    until = time.monotonic() + BUDGET
++    raw = bytearray()
++    while True:
++        ready = select.select([peer, session.pidfd], [], [], remaining(time.monotonic, until, "IO_TIMEOUT"))[0]
++        remaining(time.monotonic, until, "IO_TIMEOUT")
++        require(ready, "IO_TIMEOUT")
++        if peer in ready:
++            byte = receive(peer, 1, until)
++            require(byte, "FRAME_EOF")
++            session.startup_bytes = True
++            raw.extend(byte)
++            require(len(raw) <= 512, "FRAME_LIMIT")
++            if byte == b"\n":
++                journal.save("RAW_LINE", ascii=raw.decode("ascii"))
++                return bytes(raw)
++        else:
++            require(session.pidfd not in ready, "PREHELLO_ORIGINAL_TERMINAL")
++
++
++def failed_startup74(session, journal, owned):
++    """Known pinned C exits74 before successful maintenance open/fork; never normal PASS.
++
++    The source boundary is not a descendant-extinction observation. P_ALL ECHILD
++    below remains mandatory for this controller's current direct-child domain.
++    """
++    require(session.source74_verified and not session.interrupted and not session.signal_attempted
++            and not any((session.startup_bytes, session.hello, session.start_intent,
++                         session.started, session.root_zero)), "STARTUP74_INELIGIBLE")
++    require(identity(session.pidfd) == session.identity, "ORIGINAL_PIDFD_CHANGED")
++    observed = os.waitid(os.P_PIDFD, session.pidfd, os.WEXITED | os.WNOHANG | os.WNOWAIT | WALL)
++    require(observed is not None and observed.si_pid == session.protector.pid
++            and observed.si_code == os.CLD_EXITED and observed.si_status == 74, "STARTUP74_ORIGINAL_STATUS")
++    require(not (STAGE / "business-started.jsonl").exists() and not list((STAGE / "fences").iterdir()),
++            "STARTUP74_FENCE_OR_BUSINESS")
++    until = time.monotonic() + BUDGET
++    original_wait(session.protector, session.pidfd, until, 74, journal, "startup74-protector")
++    peer, writer, _sink, readers, dispatcher = owned
++    for index, reader in enumerate(readers):
++        reader.finish(until, journal, f"startup74-protector-{index}")
++        require(not reader.raw, "UNEXPECTED_PROTECTOR_OUTPUT")
++    dispatcher.startup_no_peer(until)
++    domain_empty(until, journal, "startup74-controller")
++    require(not (STAGE / "business-started.jsonl").exists() and not list((STAGE / "fences").iterdir()),
++            "STARTUP74_FENCE_OR_BUSINESS")
++    journal.save("STARTUP74_CLOSE_FIXTURE_DUPLICATE_AFTER_REAP")
++    writer.close()
++    require(receive(peer, 1, until) == b"", "STARTUP74_CONTROL_NOT_EMPTY_EOF")
++    journal.save("FAILED_DRAINED_STARTUP74", originalWait=74, originalReadersEOF=True,
++                 originalReadersJoined=True, directDomainECHILD=True, normalPass=False,
++                 cause="UNRESOLVED", descendantExtinctionClaim=False)
++    return 3
++
++
+@@ -133 +206 @@
+-    hello = line(peer, time.monotonic() + BUDGET, journal).decode("ascii").split()
++    hello = startup_line(session, peer, journal).decode("ascii").split()
+@@ -135,0 +209 @@
++    session.hello = True
+@@ -140,0 +215 @@
++    session.start_intent = True
+@@ -236,0 +312,7 @@
++def refusal_code(failure):
++    code = str(failure) if isinstance(failure, Refusal) else "NON_REFUSAL"
++    if 0 < len(code) <= 96 and all(c in "ABCDEFGHIJKLMNOPQRSTUVWXYZ_0123456789" for c in code):
++        return code
++    return "SCRUBBED_REFUSAL"
++
++
+@@ -247 +329,4 @@
+-            journal.save("HOLD", failureType=type(failure).__name__, noAutomaticCleanup=True)
++            journal.save("HOLD", failureType=type(failure).__name__, refusalCode=refusal_code(failure),
++                         noAutomaticCleanup=True)
++            if owned is not None and isinstance(failure, Refusal) and str(failure) == "PREHELLO_ORIGINAL_TERMINAL":
++                return failed_startup74(session, journal, owned)
+@@ -286,2 +371 @@
+-    require(until is not None, "CONTROLLER_TERMINAL_WITHOUT_BUSINESS_PROOF")
+-    if time.monotonic() >= until:
++    if until is not None and time.monotonic() >= until:
+@@ -289 +373 @@
+-    observation_until = time.monotonic() + BUDGET if expired else until
++    observation_until = time.monotonic() + BUDGET if expired or until is None else until
+@@ -292 +375,0 @@
+-    require(result in (0, 2), "CONTROLLER_FAILED")
+@@ -297 +380,3 @@
+-    if time.monotonic() >= until:
++    require(result in (0, 2, 3), "CONTROLLER_FAILED")
++    require(until is not None or result == 3, "CONTROLLER_TERMINAL_WITHOUT_BUSINESS_PROOF")
++    if until is not None and time.monotonic() >= until:
+@@ -299 +384 @@
+-    normal = result == 0 and not expired
++    normal = result == 0 and until is not None and not expired
+@@ -300,0 +386,2 @@
++    if result == 3:
++        status = "FAILED_DRAINED_STARTUP74"
+@@ -306 +393 @@
+-    return 0 if normal else 2
++    return 3 if result == 3 else (0 if normal else 2)
+@@ -317,0 +405,9 @@
++    proof_path = Path(__file__).with_name("startup74-proof.json")
++    require(manifest["startup74ProofSha256"] == sha(proof_path), "STARTUP74_PROOF_CHANGED")
++    proof = json.loads(proof_path.read_bytes())
++    require(proof["schema"] == "omp-external-startup74-proof/1"
++            and proof["productionC"] == PRODUCTION_C_SHA256 and proof["definedControlFlowOnly"] is True
++            and proof["descendantExtinctionClaim"] is False, "STARTUP74_SOURCE_PROOF")
++    for path, digest in PRODUCTION_C_SHA256.items():
++        require(manifest["members"].get(str(ROOT / path)) == digest, "STARTUP74_C_PIN_CHANGED")
++    return True
+@@ -326 +422 @@
+-        verify(sys.argv[3])
++        session.source74_verified = verify(sys.argv[3])
+@@ -347 +443 @@
+-                journal.save("HOLD", failureType=type(failure).__name__)
++                journal.save("HOLD", failureType=type(failure).__name__, refusalCode=refusal_code(failure))
+--- a/tests/supervision/fixtures/external_backpressure_io.py
++++ b/recovery/r18-current-backpressure-source-v1/external_backpressure_io.py
+@@ -137,0 +138,3 @@
++        self.thread.join(remaining(time.monotonic, until, "READER_JOIN_TIMEOUT"))
++        require(not self.thread.is_alive(), "READER_JOIN_TIMEOUT")
++        remaining(time.monotonic, until, "READER_JOIN_TIMEOUT")
+@@ -152,0 +156 @@
++        self.accepted = False
+@@ -162,0 +167 @@
++            self.accepted = True
+@@ -188,0 +194,4 @@
++        except TimeoutError:
++            self.failure = "DISPATCHER_AMBIGUITY" if self.accepted else "DISPATCHER_ACCEPT_TIMEOUT"
++            self.completing.set()
++            self.ack.set()
+@@ -193,0 +203,9 @@
++
++    def startup_no_peer(self, until):
++        require(self.done.wait(remaining(time.monotonic, until, "DISPATCHER_FINISH_TIMEOUT")),
++                "DISPATCHER_FINISH_TIMEOUT")
++        self.thread.join(remaining(time.monotonic, until, "DISPATCHER_JOIN_TIMEOUT"))
++        require(not self.thread.is_alive(), "DISPATCHER_JOIN_TIMEOUT")
++        remaining(time.monotonic, until, "DISPATCHER_JOIN_TIMEOUT")
++        require(not self.accepted and self.failure == "DISPATCHER_ACCEPT_TIMEOUT", "STARTUP74_DISPATCHER_UNKNOWN")
++        self.journal.save("STARTUP74_DISPATCHER_ACCEPT_TIMEOUT_JOINED_NO_PEER")
+--- a/tests/supervision/fixtures/external_backpressure_policy.py
++++ b/recovery/r18-current-backpressure-source-v1/external_backpressure_policy.py
+@@ -89,0 +90,4 @@
++        self.source74_verified = False
++        self.startup_bytes = False
++        self.hello = False
++        self.start_intent = False
+--- a/tests/supervision/fixtures/external_backpressure_policy_test.py
++++ b/recovery/r18-current-backpressure-source-v1/external_backpressure_policy_test.py
+@@ -169 +169,2 @@
+-            "line": lambda *args: next(frames), "require": policy.require, "GENERATION": "g", "BUDGET": 5,
++            "line": lambda *args: next(frames), "startup_line": lambda *args: next(frames),
++            "require": policy.require, "GENERATION": "g", "BUDGET": 5,
+@@ -297 +298 @@
+-    def run_outer(self, late=False, clock_failure=False):
++    def run_outer(self, late=False, clock_failure=False, result=0, business=True):
+@@ -305,2 +306,2 @@
+-                waited.append(0)
+-                return 0
++                waited.append(result)
++                return result
+@@ -315 +316 @@
+-                return True
++                return business
+@@ -337,0 +339,14 @@
++    def test_startup_failure3_before_business_still_collects_original_terminal_evidence(self):
++        _session, waited, events, run = self.run_outer(result=3, business=False)
++        self.assertEqual(run(), 3)
++        self.assertEqual(waited, [3])
++        self.assertIn("ORIGINAL_CONTROLLER_WAIT", events)
++        self.assertIn("OUTER_FAILED_DRAINED_STARTUP74", events)
++
++    def test_zero_without_business_is_reaped_but_never_passes(self):
++        _session, waited, events, run = self.run_outer(result=0, business=False)
++        with self.assertRaisesRegex(policy.Refusal, "CONTROLLER_TERMINAL_WITHOUT_BUSINESS_PROOF"):
++            run()
++        self.assertEqual(waited, [0])
++        self.assertNotIn("OUTER_PASS_DRAINED", events)
++
+--- a/tests/supervision/fixtures/external_backpressure_stage.py
++++ b/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py
+@@ -13,7 +13,7 @@
+-ROOT = Path(__file__).resolve().parents[3]
+-STAGE = Path("/tmp/omp-external-current-backpressure-r17-20261117")
+-FIXTURES = "tests/supervision/fixtures/"
+-PLAN = ROOT / "docs/evidence/ticket-41-current-backpressure-source.json"
+-MARKER = "external-current-602f498-backpressure-r17-v1"
+-GENERATION = "37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b"
+-INSTALLATION = "d3f6c9e719c0fa69ce89b26ab5b4c24566c7a00bd429de9aa7c33841bbad7291"
++ROOT = Path("/workspace/work/omp-webui-ticket-41-current-backpressure")
++STAGE = Path("/tmp/omp-external-current-backpressure-r18-20261117")
++PACKET = Path(__file__).resolve().parent
++PLAN = PACKET / "SourcePlan.json"
++MARKER = "external-current-602f498-backpressure-r18-v1"
++GENERATION = "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382"
++INSTALLATION = "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54"
+@@ -57,2 +57,2 @@
+-        require(sha(ROOT / name) == digest, "SOURCE_PIN_CHANGED:" + name)
+-    return {str(ROOT / name): digest for name, digest in plan["sourceSha256"].items()}
++        require(sha(Path(name)) == digest, "SOURCE_PIN_CHANGED:" + name)
++    return {str(Path(name)): digest for name, digest in plan["sourceSha256"].items()}
+@@ -76 +76 @@
+-    durable(STAGE / "root.c", (ROOT / (FIXTURES + "external-backpressure-root.c")).read_bytes())
++    durable(STAGE / "root.c", (PACKET / "external-backpressure-root.c").read_bytes())
+@@ -92,0 +93,2 @@
++        "startupRefusal": ("known pinned guardian74 before bytes/HELLO/START; "
++                           "original wait74/EOF/joins/no-peer/ECHILD required; return3 never PASS"),
+@@ -115 +117,2 @@
+-        "members": pins, "productAdmission": "BLOCKED", "runtime": "NOT_RUN"})
++        "members": pins, "startup74ProofSha256": sha(PACKET / "startup74-proof.json"),
++        "productAdmission": "BLOCKED", "runtime": "NOT_RUN"})
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/source-validation.json
+@@ -0,0 +1,23 @@
++{
++  "status": "SOURCE_CHECKS_PASS_RUNTIME_NOT_RUN",
++  "pureTests": 31,
++  "originalBaselineTests": 22,
++  "focusedTests": 9,
++  "initialFocusedRed": "observed missing startup_line/failed_startup74 before implementation",
++  "astParse": "PASS_ALL_6_PYTHON_FILES",
++  "sourcePins": 14,
++  "productionCInputsUnchanged": 4,
++  "syntheticRootUnchanged": true,
++  "runtimeAdapterImports": false,
++  "staging": false,
++  "compilation": false,
++  "native": false,
++  "actors": false,
++  "procAccess": false,
++  "pidfdAccess": false,
++  "signals": false,
++  "keys": false,
++  "oldToolInteraction": false,
++  "independentReview": "PENDING_ROOT_PAIRED_SPEC_STANDARDS",
++  "historicalCause": "UNRESOLVED"
++}
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/startup74-proof.json
+@@ -0,0 +1,34 @@
++{
++  "schema": "omp-external-startup74-proof/1",
++  "productionBase": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
++  "productionC": {
++    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
++    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
++    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
++    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++  },
++  "definedControlFlowOnly": true,
++  "boundary": "external main status74 precedes successful maintenance open and root fork",
++  "reasoning": [
++    "external-protector.c defines OMP_EXTERNAL_PROTECTOR and includes private-helper.c",
++    "main initial validation and signal configuration status74 paths precede prepare_private_domain",
++    "prepare_private_domain calls protect_generation before launch_root can execute",
++    "protect_generation assigns state.lock = open; successful open never resets lock to negative",
++    "external main startup error returns74 only when state.lock < 0; otherwise retains incomplete owner in run",
++    "run external has no status74 return; root child status is never original guardian status"
++  ],
++  "requiredRuntimeObservations": [
++    "original-held-pidfd CLD_EXITED74",
++    "original-Popen-wait74",
++    "no-control-byte-HELLO-START-business-marker",
++    "own-fences-empty",
++    "stdout-stderr-EOF-and-thread-joins",
++    "dispatcher-accept-timeout-no-peer-and-thread-join",
++    "kernel-P_ALL-ECHILD-current-direct-domain",
++    "close-exact-fixture-duplicate-after-reap",
++    "control-EOF-empty"
++  ],
++  "descendantExtinctionClaim": false,
++  "historicalR17Cause": "UNRESOLVED",
++  "artifactReview": "fresh exact source/configuration/recipe/ELF paired artifact review required before runtime"
++}
+--- /dev/null
++++ b/recovery/r18-current-backpressure-source-v1/startup74_test.py
+@@ -0,0 +1,122 @@
++"""Agreed pure OS/fd3 callbacks and selected AST; no adapter import or actor."""
++import unittest
++from pathlib import Path
++from types import SimpleNamespace as N
++from external_backpressure_policy_test import policy, source_function, io_class
++
++
++class Startup74Tests(unittest.TestCase):
++    def scenario(self, observed=None, wait_failure=None, **changes):
++        session = policy.Session()
++        session.protector, session.pidfd, session.identity = N(pid=77), 16, (5, 99)
++        session.source74_verified = True
++        session.startup_bytes = session.hello = session.start_intent = False
++        for name, value in changes.items():
++            setattr(session, name, value)
++        effects = []
++        class FakePath:
++            def __truediv__(self, other): return self
++            def exists(self): return False
++            def iterdir(self): return iter([])
++        def waitid(*args): return observed if observed is not None else N(si_code=1, si_status=74, si_pid=77)
++        def original_wait(*args):
++            effects.append(("original-wait", args[3]))
++            if wait_failure is not None: raise wait_failure
++        journal = N(save=lambda event, **kw: effects.append(event))
++        reader = N(raw=b'', finish=lambda *args: effects.append('reader-joined'))
++        writer = N(close=lambda: effects.append('close-duplicate'))
++        dispatcher = N(startup_no_peer=lambda until: effects.append('dispatcher-joined-no-peer'))
++        function = source_function('failed_startup74', {
++            'require': policy.require, 'identity': lambda fd: (5, 99), 'os': N(waitid=waitid,
++                P_PIDFD=3, WEXITED=4, WNOHANG=8, WNOWAIT=16, CLD_EXITED=1), 'WALL': 32,
++            'time': N(monotonic=lambda: 0), 'BUDGET': 5, 'STAGE': FakePath(),
++            'original_wait': original_wait,
++            'receive': lambda *args: b'', 'domain_empty': lambda *args: effects.append('kernel-ECHILD')})
++        return session, effects, lambda: function(session, journal, (object(), writer, 12, [reader], dispatcher))
++
++    def test_known_prehello74_is_failed_drain_after_original_reap(self):
++        _session, effects, run = self.scenario()
++        self.assertEqual(run(), 3)
++        self.assertLess(effects.index(('original-wait', 74)), effects.index('close-duplicate'))
++        self.assertIn('reader-joined', effects)
++        self.assertIn('kernel-ECHILD', effects)
++        self.assertIn('dispatcher-joined-no-peer', effects)
++        self.assertEqual(effects[-1], 'FAILED_DRAINED_STARTUP74')
++
++    def test_any_prefix_start_or_missing_source_proof_preserves_duplicate(self):
++        for field in ('startup_bytes', 'hello', 'start_intent', 'started', 'root_zero'):
++            _session, effects, run = self.scenario(**{field: True})
++            with self.assertRaises(policy.Refusal): run()
++            self.assertNotIn('close-duplicate', effects)
++        _session, effects, run = self.scenario(source74_verified=False)
++        with self.assertRaises(policy.Refusal): run()
++        self.assertNotIn('close-duplicate', effects)
++
++    def test_other_original_status_or_unreaped_owner_retains_duplicate(self):
++        for observed in (N(si_code=1, si_status=0, si_pid=77), N(si_code=2, si_status=9, si_pid=77),
++                         N(si_code=1, si_status=74, si_pid=78)):
++            _session, effects, run = self.scenario(observed=observed)
++            with self.assertRaisesRegex(policy.Refusal, 'STARTUP74_ORIGINAL_STATUS'): run()
++            self.assertNotIn('close-duplicate', effects)
++        _session, effects, run = self.scenario(wait_failure=policy.Refusal('ORIGINAL_WAIT_STATUS'))
++        with self.assertRaisesRegex(policy.Refusal, 'ORIGINAL_WAIT_STATUS'): run()
++        self.assertNotIn('close-duplicate', effects)
++
++    def test_partial_hello_then_terminal_never_loses_prefix(self):
++        session = policy.Session()
++        session.pidfd = 16
++        observations = iter([(['peer'], [], []), ([16], [], [])])
++        function = source_function('startup_line', {
++            'select': N(select=lambda *args: next(observations)), 'remaining': policy.remaining,
++            'time': N(monotonic=lambda: 0), 'require': policy.require,
++            'receive': lambda *args: b'H', 'BUDGET': 5})
++        with self.assertRaisesRegex(policy.Refusal, 'PREHELLO_ORIGINAL_TERMINAL'):
++            function(session, 'peer', N(save=lambda *args, **kw: None))
++        self.assertTrue(session.startup_bytes)
++
++
++class CompletionObservationTests(unittest.TestCase):
++    def test_eof_without_joined_reader_does_not_finish(self):
++        journal = []
++        for live in (False, True):
++            reader_type = io_class('Reader', {'require': policy.require, 'remaining': policy.remaining,
++                'time': N(monotonic=lambda: 0)})
++            reader = reader_type.__new__(reader_type)
++            reader.eof = N(wait=lambda until: True)
++            reader.thread = N(join=lambda until: None, is_alive=lambda: live)
++            reader.failure, reader.raw = None, bytearray()
++            if live:
++                with self.assertRaisesRegex(policy.Refusal, 'READER_JOIN_TIMEOUT'):
++                    reader.finish(5, N(save=lambda *args, **kw: journal.append(args[0])), 'test')
++            else:
++                reader.finish(5, N(save=lambda *args, **kw: journal.append(args[0])), 'test')
++        self.assertEqual(journal, ['ORIGINAL_READER_EOF'])
++
++    def test_only_no_peer_accept_timeout_can_finish_dispatcher_startup_refusal(self):
++        dispatcher_type = io_class('Dispatcher', {'require': policy.require, 'remaining': policy.remaining,
++            'time': N(monotonic=lambda: 0)})
++        for accepted, failure, live in ((False, 'DISPATCHER_ACCEPT_TIMEOUT', False),
++                (True, 'DISPATCHER_ACCEPT_TIMEOUT', False), (False, 'DISPATCHER_AMBIGUITY', False),
++                (False, 'DISPATCHER_ACCEPT_TIMEOUT', True)):
++            dispatcher = dispatcher_type.__new__(dispatcher_type)
++            dispatcher.done = N(wait=lambda bound: True)
++            dispatcher.thread = N(join=lambda bound: None, is_alive=lambda: live)
++            dispatcher.accepted, dispatcher.failure = accepted, failure
++            events = []
++            dispatcher.journal = N(save=lambda *args: events.append(args[0]))
++            if accepted or failure != 'DISPATCHER_ACCEPT_TIMEOUT' or live:
++                with self.assertRaises(policy.Refusal): dispatcher.startup_no_peer(5)
++                self.assertEqual(events, [])
++            else:
++                dispatcher.startup_no_peer(5)
++                self.assertEqual(events, ['STARTUP74_DISPATCHER_ACCEPT_TIMEOUT_JOINED_NO_PEER'])
++
++    def test_refusal_code_is_bounded_and_scrubbed(self):
++        function = source_function('refusal_code', {'Refusal': policy.Refusal})
++        self.assertEqual(function(policy.Refusal('PREHELLO_ORIGINAL_TERMINAL')), 'PREHELLO_ORIGINAL_TERMINAL')
++        for value in ('/private/path', 'TOKEN secret', 'A' * 97, ''):
++            self.assertEqual(function(policy.Refusal(value)), 'SCRUBBED_REFUSAL')
++        self.assertEqual(function(RuntimeError('do not log')), 'NON_REFUSAL')
++
++
++if __name__ == '__main__': unittest.main()
