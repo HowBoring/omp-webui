@@ -381,6 +381,48 @@ test("actual public failed mixed preparation refuses all input before reservatio
   });
 }, 45_000);
 
+test("actual public malformed base64 with valid UTF8 refuses all input before reservation or effects", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    // This is only a schema-valid declaration: invalid base64 has no decoded original or decoded-byte hash.
+    const declaredSha256 = "0000000000000000000000000000000000000000000000000000000000000000";
+    const draft = { preparationId: "prepared-base64-failed", draftId: "draft-base64-failed", draftRevision: "1",
+      authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+        { originalId: "document", format: "utf8" as const, sha256: textSha256, data: Buffer.from(text).toBase64() },
+        { originalId: "invalid", format: "utf8" as const, sha256: declaredSha256, data: "%%%%" },
+      ] };
+    const unchangedDraft = structuredClone(draft);
+    // Raw public RPC bypasses AttachmentClient's original-byte validation and reaches the Native command seam.
+    const response = await worker.request({ type: "attachment_prepare", ...draft });
+    expect(response.success).toBe(true);
+    if (!isAttachmentReceipt(response.data)) throw Error("ATTACHMENT_PUBLIC_BASE64_RECEIPT_SCHEMA");
+    const receipt = response.data;
+    expect(receipt).toMatchObject({ status: "failed", preparationId: draft.preparationId, draftId: draft.draftId,
+      draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
+      binding: { sourceId: fixture.selected.sourceId, instanceId: fixture.selected.instanceId,
+        nativeSessionId: fixture.selected.nativeSessionId } });
+    expect(receipt.items).toHaveLength(2);
+    expect(receipt.items).toMatchObject([
+      { status: "ready", originalId: "document", originalSha256: textSha256, preparedSha256: preparedTextSha256,
+        representation: { kind: "text", text }, degradations: [] },
+      { status: "failed", originalId: "invalid", originalSha256: declaredSha256, preparedSha256: "",
+        code: "attachment_invalid_base64" },
+    ]);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "base64-refused")))
+      .toMatchObject({ success: false, code: "ATTACHMENT_NOT_READY", error: "ATTACHMENT_NOT_READY" });
+    const missing = decodeSubmission(await worker.request({ type: "submission_query",
+      clientSubmissionId: "base64-refused" }));
+    expect(missing).toMatchObject({ found: false, admission: "absent", reservation: "absent", terminal: false,
+      inputOutcome: "unresolved", operationOutcome: "unknown", persistence: "unresolved", relations: [],
+      nextOffset: null });
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(draft).toEqual(unchangedDraft);
+    expect(Bun.SHA256.hash(Buffer.from(draft.objects[0]!.data, "base64"), "hex")).toBe(textSha256);
+    // Exact caller draft retention includes the malformed raw string and declaration; no browser persistence claim.
+  }, "image-original-budget-v2");
+}, 45_000);
+
 async function prepareWebp(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
   // Pillow/hashlib authored the original and its carrier hash; no Native encoder supplied expectations.
   const original = await fs.readFile(new URL("./fixtures/opaque-200.webp", import.meta.url));
