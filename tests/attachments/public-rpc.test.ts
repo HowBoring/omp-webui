@@ -202,6 +202,66 @@ test("actual public PNG and text commit exact indexed parts with matching query 
   });
 }, 45_000);
 
+async function verifyJpegSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult,
+  originalData: string): Promise<void> {
+  const image = savedLink(result, "image", "input");
+  expect(image.link).toMatchObject(expectedLink(receipt, "image", "image"));
+  expect(image.locator.kind).toBe("content");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === image.entryId);
+  expect(matches).toHaveLength(1);
+  const input = z.object({ role: z.literal("user"), content: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ type: z.literal("image"), data: z.string(), mimeType: z.string() })
+    .parse(input.content[image.locator.index]);
+  expect(part).toEqual({ type: "image", data: originalData, mimeType: "image/jpeg" });
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === image.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin);
+    expect(row.submission?.attachments).toContainEqual(image.link);
+  }
+}
+
+test("actual public JPEG preserves prepared bytes through indexed saved image and provider delivery", async () => {
+  // Independent Python/Pillow fixture and hashlib pins; no expected bytes are taken from a Native result.
+  const original = await fs.readFile(new URL("./fixtures/opaque-200.jpeg", import.meta.url));
+  const originalSha256 = "7622bbfcb0ab173d3dd13c0282fc0c8902de814f9283a58bce0b8e43e10654d5";
+  const representationSha256 = "2de4100d163176cc222bb318f972dc371d7b5e61a5a12a23280ee4eb078f3285";
+  expect(original.byteLength).toBe(1723); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  await withWorker(async fixture => {
+    const { worker, client } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await client.prepare({ preparationId: "prepared-jpeg", draftId: "draft-jpeg", draftRevision: "1",
+      authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+        { originalId: "image", format: "jpeg", sha256: originalSha256, data: original.toBase64() },
+      ] });
+    expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-jpeg", draftId: "draft-jpeg",
+      draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+        instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.items[0]).toMatchObject({ status: "ready", originalId: "image", originalSha256,
+      preparedSha256: representationSha256, degradations: [], facts: { originalBytes: 1723, preparedBytes: 1723,
+        sourceWidth: 200, sourceHeight: 200, frames: 1, decodedBytes: 160_000 } });
+    expect(preparedImage(receipt)).toEqual({ kind: "image", mimeType: "image/jpeg", data: original.toBase64(),
+      width: 200, height: 200 });
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "jpeg-success", []))).toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "jpeg-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "jpeg-success" }, preparation: consent(receipt, []) });
+    await verifyJpegSavedPart(worker, receipt, result, original.toBase64());
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([{ mimeType: "image/jpeg", bytes: 1723, sha256: originalSha256 }]);
+    expect(after.requests.at(-1)?.attachmentText).toEqual([]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "jpeg-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
+
 test("actual public failed mixed preparation refuses all input before reservation or effects", async () => {
   await withWorker(async fixture => {
     const { worker, client } = fixture, before = await entries(worker), effects = await fixture.effects();

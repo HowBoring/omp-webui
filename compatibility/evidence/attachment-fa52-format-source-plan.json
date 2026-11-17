@@ -1,0 +1,151 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_JPEG_TRACER_AUTHORED_STATIC_READY_ACTUAL_NOT_RUN",
+  "sourceCheckpoint": "8bb7cd3e4e13bea379fbf159f0f8f0bbc7e080f4",
+  "principle": "One public-seam vertical slice at a time. Existing PNG/text success and mixed failure are unchanged and need individually authorized matched reruns. Root authorized authoring ONE JPEG SOURCE tracer after static tuple readback; no actual case is authorized by this plan. Inspect the actual JPEG outcome before authoring any following slice. No matrix, automatic retry, or expected-transform invention.",
+  "precondition": [
+    "Current9f33 source /5e315 aggregate /8f9c schema matches independently read-back first8 common09e256/fa52 plus own9; existing build/generated/Native+Hosttypes/pure52/170 records PASS without rebuild.",
+    "Root individually authorizes each actual case; this plan grants no Native/CLI/provider execution.",
+    "Old success47 and negative13 remain earned on oldf2e6 tuple only. Neither transfers to new9f33 tuple."
+  ],
+  "publicSeam": [
+    "attachment_prepare",
+    "submission_submit",
+    "submission_query",
+    "get_entries",
+    "history_snapshot_open",
+    "history_snapshot_page",
+    "history_snapshot_close",
+    "attachment_cancel"
+  ],
+  "smallestNextFormatSlice": {
+    "format": "jpeg",
+    "proposedName": "actual public JPEG preserves prepared bytes through indexed saved image and provider delivery",
+    "status": "One JPEG public RPC tracer authored, static Host types and external-only syntax PASS. Actual Native/provider execution NOT RUN.",
+    "fixture": {
+      "fixture": "tests/attachments/fixtures/opaque-200.jpeg",
+      "authoring": "Pillow 13.0.0: RGB200x200 solid(37,83,127); JPEG quality85 subsampling0 optimizeFalse progressiveFalse; no OMP/Bun/converter execution.",
+      "bytes": 1723,
+      "originalSha256": "7622bbfcb0ab173d3dd13c0282fc0c8902de814f9283a58bce0b8e43e10654d5",
+      "expectedPreparedRepresentationSha256": "2de4100d163176cc222bb318f972dc371d7b5e61a5a12a23280ee4eb078f3285",
+      "width": 200,
+      "height": 200,
+      "independentValidation": "Python Pillow reopen/load confirms JPEG/RGB200x200; Python hashlib independently pins the original and compact public representation JSON in field order kind,mimeType,data,width,height.",
+      "expectationBasis": "Inspected resizeImage fast path preserves valid supported200x200 JPEG below128000bytes; prepareImage reports no degradation, one frame and160000decodedBytes. These are unexecuted source expectations, not observed Native results."
+    },
+    "assertions": [
+      "Prepare exactly that one controlled JPEG via existing typed AttachmentClient, with original independent hash and stable draft/authority binding.",
+      "Require ready image/jpeg200x200, exact1723 original/prepared bytes, one frame/160000 decodedBytes and empty degradations; prepared base64 equals pinned original. Expected public-representation digest2de4100d… is independently computed with Python compact JSON, never learned from a Native result.",
+      "Preparation changes neither public entries nor controlled-provider effects.",
+      "Commit with explicit acceptedDegradations:[]; require one terminal correlated successful committed input, exact public origin/preparation/attachment identities.",
+      "Resolve public relation.entryId plus entryPart.kind:content/index to exact saved image bytes; confirm public history rows for same entryId carry exact link/origin.",
+      "Provider captures exactly one new image/jpeg1723B/originalSHA7622bbfc… in exactly one new model dispatch/input; tool/blocked counts unchanged. A second public terminal query is identical and has no provider effects.",
+      "Do not repeat or add WebP/GIF/document cases until this concrete JPEG result is reviewed."
+    ],
+    "whyDistinct": "Exercises no-transform image/jpeg delivery and empty required-consent set, versus existing transformed PNG plus prepared-text companion.",
+    "source": {
+      "path": "tests/attachments/public-rpc.test.ts",
+      "bytes": 19074,
+      "sha256": "b80f05ba7461275ff26483f435b09448eb07f061714fc94d292d5916674845e4"
+    }
+  },
+  "laterSlicesInOutcomeLedOrder": [
+    {
+      "format": "webp",
+      "boundary": "Use one static WebP with independently pinned original. Ready model representation must not remain image/webp because target preparation excludes WebP; require image_transformed, explicit no-consent refusal/no effects then exact consent. Use matching prepared receipt as authority for prepared bytes and public locator/provider equality; preserve independent original hash. A malformed RIFF length is a separate later refusal slice.",
+      "status": "Concept only; fixture-specific public contract inspection follows the actual JPEG outcome. No test authored/run."
+    },
+    {
+      "format": "gif",
+      "boundary": "Use a deliberately two-frame valid bounded GIF so animation loss is observable. Require facts.frames:2 plus image_transformed and animation_first_frame_only; image/png prepared representation, explicit refusal with either acceptance missing, then exact acceptance of both when separately authorized. A frame extending outside its canvas is a distinct later malformed case predicted attachment_invalid_image.",
+      "status": "Concept only; fixture-specific public contract inspection follows the actual JPEG outcome. No test authored/run."
+    },
+    {
+      "format": "docx",
+      "boundary": "Use a small deterministic Office ZIP with correct word/document.xml content type and one known paragraph. Native contract requires document_structure_changed. Assert exact expected paragraph/markdown and independent original hash, no-consent refusal, explicit acceptance then saved files locator and bounded exact text provider presence. Hash exact expected text span without rebuilding Native developer wrappers. Omitted embedded images need a separate fixture and explicit document_images_omitted acceptance.",
+      "malformedAndUnsupported": "Keep ZIP structure and selected type distinct: validZIP with wrong Office main content type predicts attachment_format_mismatch; otherwise validDOCX declaring unsupported XML encoding predicts attachment_document_encoding_unsupported. Both must fail whole input before reservation/effects.",
+      "status": "Concept only; fixture-specific public contract inspection follows the actual JPEG outcome. No test authored/run."
+    },
+    {
+      "format": "jpeg malformed",
+      "trigger": "After JPEG success result is reviewed.",
+      "boundary": "After the real JPEG outcome, choose one concrete corrupt JPEG and inspect decoder rejection semantics before pinning an expectation. Missing JPEG terminal bytes alone may be tolerated by a decoder and is not assumed invalid. A valid PNG declared jpeg is separately predicted attachment_format_mismatch by the inspected MIME contract; do not conflate payload corruption with selected-format mismatch.",
+      "status": "Concept only; fixture-specific public contract inspection follows the actual JPEG outcome. No test authored/run."
+    },
+    {
+      "format": "unsupported selected format",
+      "boundary": "SVG is outside public AttachmentFormat. Send one raw schema-invalid public attachment_prepare with format:svg, require command failure ATTACHMENT_COMMAND_SCHEMA and no receipt/input/model/entry effects. This is a command-level unsupported-format rejection; it is not a failed converter receipt. Native rpc-mode maps validator message to code/error.",
+      "status": "Concept only; fixture-specific public contract inspection follows the actual JPEG outcome. No test authored/run."
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+      "bytes": 1937,
+      "sha256": "95634d45ddd1b2cdb455351102354a20f9ae07b608b032e39dba6cbe0d2ccee6"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-mode.ts",
+      "bytes": 131206,
+      "sha256": "7fc5594f2a1866cf2d59ccbb34dea2542102b161d6c85a36c5f39e07ecfb71e8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/package.ts",
+      "bytes": 3724,
+      "sha256": "b410b3efe8aadd40085fe21d34196b560292838d62241fb61ed9c4fbf81314a3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/converters/docx.ts",
+      "bytes": 2064,
+      "sha256": "424b5e2593bc8578be6254ba9a2394af7cb874aba5258ff52f22f928dfd000bd"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/utils/image-resize.ts",
+      "bytes": 30822,
+      "sha256": "2dbfe65f9639442cce80def61eb7a84e95080eeee55dc120aceb76d4af36d930"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/image-animation.ts",
+      "bytes": 4996,
+      "sha256": "74b2fb5283b2128f5f6366cafb68279d9a649349af8e909701f4f7168ec7f3af"
+    }
+  ],
+  "executionDiscipline": "Actual future cases each use anchored name, existing preimport history network guard, fresh explicit allowlist synthetic profile, topTMPDIR=/tmp, per-case45s, original handles/exit/stdout/stderr/finally drain and sourcepre/post; stop firstFAIL, no retry/productfix without new Root authorization. No browser/Host/private Session imports or session-file parsing.",
+  "remainingMandatory": [
+    "Full selected-format and document behavior beyond this sequence",
+    "Decoded/raw/RPC/prepared/conversion/staging budgets and cancellation/expiry/stale-context/target boundaries",
+    "History restart/copy/branch/restore/provider/persistence/fault and TUI evidence",
+    "Actual browser/DSH consent and final coherent1–10 matched artifacts/reviews",
+    "Whole38/MVP acceptance remains OPEN"
+  ],
+  "preservedOriginalPlan": {
+    "path": "/tmp/attachment-fa52-format-source-plan.preserved.json",
+    "bytes": 9052,
+    "sha256": "ba947460c5cdcde8c31594f604af842a4e1a9cedeb565b81a8d96515c4b5de44"
+  }
+}
