@@ -47,13 +47,49 @@ Native routing, and actual skill/file-command/prompt-template expansion paths ca
 The post-Enter public Remote/provider/slot integration and its failure/reconnect coverage remain under implementation.
 
 
-Latest source/build checkpoint: exact common7 `a6408bb`, navigation8 `e9573a3`, and regenerated own9
-compose in ordered1–9. The [matched build record](evidence/attachment-a640-e957-matched-build.json)
-records the clean source checkpoint, native source/patch/schema identities, declared source inputs and
-actual CLI/chunk/generated artifact hashes. Clean ordered preparation, genuine build/generation and
-`--check`, authored attachment/navigation/submission TypeScript and Host TypeScript passed. The inspected
-pure suite passed51 tests/160 assertions across11 files. These checks execute no Native worker or provider.
+Current isolated format evidence uses Native source
+`9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9`, patch
+`5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad`, and public schema
+`8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566`.
+The [current matched build](evidence/attachment-fa52-matched-build.json) identifies this tuple.
+Each row below is one separately authorized isolated public-RPC run on its recorded synthetic input.
+These are sample-specific outcomes, not full-format fidelity, combined-suite or product acceptance.
 
-Runtime for this tuple is **NOT RUN**. Format/converter tests, public Native history/provider/persistence,
-transform and budget faults, actual DSH exact serialization/browser workflow, full suite and independent
-review remain open. Prior tuple evidence remains historical. Whole38 and product admission stay incomplete.
+| Selected input | Current tuple evidence | Assertions |
+| --- | --- | ---: |
+| PNG + UTF-8 text | [PASS](evidence/attachment-fa52-public-png-text-runtime-success.json) | 47 |
+| JPEG | [PASS](evidence/attachment-fa52-public-jpeg-runtime-success.json) | 33 |
+| WebP | [PASS](evidence/attachment-fa52-public-webp-runtime-success.json) | 49 |
+| Animated GIF | [PASS](evidence/attachment-fa52-public-gif-runtime-success.json) | 55 |
+| PDF | [PASS](evidence/attachment-fa52-public-pdf-runtime-success.json) | 49 |
+| DOCX | [PASS](evidence/attachment-fa52-public-docx-runtime-success.json) | 45 |
+| PPTX | [PASS](evidence/attachment-fa52-public-pptx-runtime-success.json) | 45 |
+| XLSX | [PASS](evidence/attachment-fa52-public-xlsx-runtime-success.json) | 45 |
+| EPUB | [PASS](evidence/attachment-fa52-public-epub-runtime-success.json) | 45 |
+| Mixed valid image + invalid UTF-8 | [PASS: entire input refused](evidence/attachment-fa52-public-mixed-refusal-runtime-success.json) | 13 |
+
+Successful runs check public preparation, receipt-bound consent where required, public submission/query,
+and exact causal saved-part/history associations. Provider capture checks the bytes described by each
+proof. For document/text cases, its known `Controlled prepared document` witness covers 28 bytes;
+full prepared-text equality at the receipt and indexed saved part does not establish full provider-wrapper
+delivery. Each proof records its own containment, cleanup and observability limits.
+
+The next [5 MiB UTF-8 boundary slice](evidence/attachment-fa52-text-budget-source-ready.json) is
+**SOURCE READY / RUNTIME NOT RUN**. Its independently authored single-line multibyte literal is exactly
+5,242,880 bytes; the worked 50 KiB UTF-8-safe head is 51,199 bytes and requires actual `text_truncated`
+consent. The same literal plus one ASCII byte must fail preparation before admission/effects and retain
+the caller's complete draft. Raw-original, prepared/model and fully encoded RPC budgets remain separate.
+Only the small [independent manifest](../tests/attachments/fixtures/utf8-5mib-boundary.json) is stored;
+the test generates the original in memory. Actual red/green awaits fresh Root review and a separate
+exactly ONE anchored runtime grant. Browser draft persistence is outside this public Native seam.
+
+Historical checkpoint: common7 `a6408bb`, navigation8 `e9573a3`, and its own9 compose in ordered1–9.
+The [historical matched build](evidence/attachment-a640-e957-matched-build.json) records its source,
+build/generation/`--check`, TypeScript and pure-suite checks (51 tests/160 assertions across11 files).
+Its previous “runtime NOT RUN” statement belongs to that historical tuple; it does not describe the
+current9f33 sample runs above.
+
+Remaining refusal/budget/locator/lifecycle/stale/cancel/expiry faults, history/restart/copy/branch/restore,
+actual DSH serialization/browser workflow, coherent full-stack checks and independent reviews remain open.
+Linux evidence does not establish WindowsChrome/WSL2 acceptance (owner-deferred). Global runtime selection,
+private product Sessions, whole38 and MVP admission remain blocked/open.

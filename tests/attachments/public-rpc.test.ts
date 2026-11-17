@@ -936,3 +936,124 @@ test("actual public EPUB requires structure consent before indexed saved text an
     expect(await fixture.effects()).toEqual(after);
   });
 }, 45_000);
+
+async function prepareTextAtRawLimit(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
+  // Independent Python streaming literal pins; no Native result supplies expected bytes or hashes.
+  const original = Buffer.from("Controlled prepared document" + "界".repeat(1_747_617) + "!", "utf8");
+  const originalSha256 = "ba9da0ac80bbde2e2c0475b51f543ddfb61532a433af8792135dae85813a9bec";
+  expect(original.byteLength).toBe(5_242_880); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const receipt = await fixture.client.prepare({ preparationId: "prepared-text-limit", draftId: "draft-text-limit",
+    draftRevision: "1", authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "text-limit", format: "utf8", sha256: originalSha256, data: original.toBase64() },
+    ] });
+  expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-text-limit", draftId: "draft-text-limit",
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0];
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_TEXT_LIMIT_NOT_READY");
+  expect(item.originalSha256).toBe(originalSha256);
+  expect(item.representation).toEqual({ kind: "text", text: "Controlled prepared document" + "界".repeat(17_057) });
+  expect(item.preparedSha256).toBe("9bf7e907f0e0985e7f55064ee2fe5de719076439385805d545815b9930ebe2c3");
+  expect(item.degradations).toEqual(["text_truncated"]);
+  expect(item.preparedSha256).not.toBe(originalSha256);
+  // UTF8 currently exposes the degradation itself, without optional byte-count AttachmentFacts.
+  return receipt;
+}
+
+async function refuseTextWithoutConsent(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  expect(await fixture.worker.request(submission(fixture, receipt, "text-limit-success", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "text-limit-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [], nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+}
+
+async function verifyTextLimitSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult) {
+  const document = savedLink(result, "text-limit", "prepared");
+  expect(document.link).toMatchObject(expectedLink(receipt, "text-limit", "text"));
+  expect(document.locator.kind).toBe("files");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === document.entryId);
+  expect(matches).toHaveLength(1);
+  const companion = z.object({ role: z.literal("fileMention"), files: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ path: z.string(), content: z.string(), byteSize: z.number() })
+    .parse(companion.files[document.locator.index]);
+  expect(part).toEqual({ path: `attachment-prepared://${document.link.preparedId}`,
+    content: "Controlled prepared document" + "界".repeat(17_057), byteSize: 51_199 });
+  expect(Buffer.byteLength(part.content, "utf8")).toBe(51_199);
+  expect(Bun.SHA256.hash(part.content, "hex"))
+    .toBe("5a567064a39ff504a906cd425e64e15d14a8ba1c865ba20a374242e1cb2b950f");
+  // Causality uses only returned public entryId and actual indexed body, never text/hash/order matching.
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === document.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("prepared");
+    expect(row.submission?.attachments).toContainEqual(document.link);
+  }
+}
+
+async function refuseTextOneByteOver(fixture: Awaited<ReturnType<typeof openWorker>>) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  const original = Buffer.from("Controlled prepared document" + "界".repeat(1_747_617) + "!!", "utf8");
+  const originalSha256 = "b531fde1cecce82394955e183dd34efaf72d85e9abb4707c1e2f102d76d3c350";
+  expect(original.byteLength).toBe(5_242_881); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const draft = { preparationId: "prepared-text-over", draftId: "draft-text-over", draftRevision: "1",
+    authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "text-over", format: "utf8" as const, sha256: originalSha256, data: original.toBase64() },
+    ] };
+  const unchangedDraft = structuredClone(draft);
+  const receipt = await fixture.client.prepare(draft);
+  expect(receipt).toMatchObject({ status: "failed", preparationId: draft.preparationId, draftId: draft.draftId,
+    draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
+    binding: { sourceId: fixture.selected.sourceId, instanceId: fixture.selected.instanceId,
+      nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  expect(receipt.items[0]).toMatchObject({ status: "failed", originalId: "text-over", originalSha256,
+    preparedSha256: "", code: "attachment_original_budget" });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+  expect(await fixture.worker.request(submission(fixture, receipt, "text-over-refused", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_NOT_READY", error: "ATTACHMENT_NOT_READY" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "text-over-refused" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [], nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+  expect(draft).toEqual(unchangedDraft);
+  expect(Bun.SHA256.hash(Buffer.from(draft.objects[0]!.data, "base64"), "hex")).toBe(originalSha256);
+  // This checks the caller's complete retained draft, not untested browser persistence or editor state.
+}
+
+test("actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await prepareTextAtRawLimit(fixture);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    await refuseTextWithoutConsent(fixture, receipt);
+    expect(await worker.request(submission(fixture, receipt, "text-limit-success", ["text_truncated"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "text-limit-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "text-limit-success" },
+      preparation: consent(receipt, ["text_truncated"]) });
+    await verifyTextLimitSavedPart(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([]);
+    // Unchanged provider witnesses known28B once; full51199B/provider wrapper delivery remains unclaimed.
+    expect(after.requests.at(-1)?.attachmentText).toEqual([{ role: "developer", bytes: 28, occurrences: 1,
+      sha256: "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419" }]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "text-limit-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+    await refuseTextOneByteOver(fixture);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
