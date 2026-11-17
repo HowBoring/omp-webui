@@ -1,4 +1,4 @@
-# ADR 0016: Keep read-only Tree preview separate from native position and Conversation
+# ADR 0020: Keep read-only Tree preview separate from native position and Conversation
 
 - Status: Isolated source component; product registration and acceptance remain closed
 - Date: 2026-11-17

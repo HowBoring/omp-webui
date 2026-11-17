@@ -105,5 +105,41 @@
   "issues_remain_open": [
     50,
     29
-  ]
+  ],
+  "integration_reverification": {
+    "date": "2026-11-17",
+    "historical_reviewed_source_tip": "80441af6ecc42fa2dc72ecd100011d6b7ff5751c",
+    "historical_integration_base_unchanged": true,
+    "integration_tip_merged_into_source": "4097b82d9c56f0fe39bf1ede48019042c9564985",
+    "tested_source_merge": "a81c47158e570a20f24cfce8383eafaebc163f0f",
+    "source_and_test_hashes_unchanged": true,
+    "adr": "docs/adr/0020-readonly-tree-preview.md",
+    "historical_adr_path": "docs/adr/0016-readonly-tree-preview.md",
+    "housekeeping": "Rename ADR 0016 to 0020; 0016-0019 are reserved for other source branches. Only docs changed after the tested source merge.",
+    "environment": "Same env -i, executable, synthetic HOME/profile/cwd and TMPDIR as original verification; --no-env-file; existing preferences no-provider preload for tests and TypeScript.",
+    "focused": {
+      "tests": 22,
+      "assertions": 86,
+      "passed": true
+    },
+    "combined_public_remote_regression": {
+      "tests": 31,
+      "assertions": 124,
+      "passed": true
+    },
+    "strict_typescript": {
+      "passed": true,
+      "scope": "full repository tsconfig.json",
+      "runtime_native_imports": false
+    },
+    "host_build": {
+      "passed": true,
+      "modules": 5,
+      "output": "/tmp/omp-tree-source-cwd/tree-merge-host-build.js",
+      "command": "bun build --no-env-file /workspace/work/omp-webui-ticket-50/apps/host/src/main.ts --target=bun --outfile=/tmp/omp-tree-source-cwd/tree-merge-host-build.js",
+      "output_evaluated": false
+    },
+    "native_browser_private_runtime_or_product_admission": false,
+    "accepted_corpus_reachability_gap": "16 MiB per-snapshot and 32 MiB total retained-text budgets do not establish the 10,000-entry/100 MiB native-history target; whole #50 and #29 remain open."
+  }
 }

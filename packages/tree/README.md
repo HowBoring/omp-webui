@@ -86,6 +86,11 @@ frame, snapshot and expiry bounds still apply through the actual transport. Thes
 are source safety budgets, not measured accepted performance targets. No tree or
 transcript is written to disk.
 
+The 16/32 MiB retained-text limits do not establish reachability of the parent
+specification's 10,000-entry/100 MiB serialized native-history corpus. That target
+remains a whole-ticket gap requiring measurement and implementation work; the
+limits have not been raised to imply acceptance.
+
 The tests exercise actual public DSH Client Remote → synthetic in-memory
 Connection carrier → public Host Gateway → `ReadonlyTree` → actual generated
 `HistoryClient` → synthetic native DTO port. The public `TreeBrowser` and React
@@ -117,3 +122,11 @@ Real Native/browser traces, public source/build/asset identities for the final
 supported tuple, broker/auth carrier wiring, live invalidation across actual
 Browser Views, ticket 46 rendering, retained/pruned data recovery and the full
 acceptance/performance matrix remain unverified. See the [source evidence](../../docs/implementation/ticket-50-source-evidence.json).
+
+The integration recheck merged `4097b82d9c56f0fe39bf1ede48019042c9564985`
+into the reviewed source before rerunning strict TypeScript, the focused 22/86
+suite and combined 31/124 pure Remote suite. A build bundled the scaffold Host's
+five modules without evaluation. [ADR 0020](../../docs/adr/0020-readonly-tree-preview.md)
+renumbers the source decision for combined integration; the evidence retains the
+original source base and hashes. No implementation/test source changed during
+this integration housekeeping.
