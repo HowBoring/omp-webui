@@ -1,0 +1,9 @@
+#define OMP_DISPATCHER_PATH "/source-only/dispatcher"
+#define OMP_INSTALLATION_ID "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+#define OMP_NATIVE_ENTRY "/source-only/release/bin/omp"
+#define OMP_CONTROL_PATH "/source-only/control"
+#define OMP_CONTROL_DEVICE UINTMAX_C(1)
+#define OMP_CONTROL_INODE UINTMAX_C(1)
+#define OMP_FENCE_PATH "/source-only/fences"
+#define OMP_FENCE_DEVICE UINTMAX_C(1)
+#define OMP_FENCE_INODE UINTMAX_C(1)

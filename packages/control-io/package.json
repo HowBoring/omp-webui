@@ -1,0 +1,8 @@
+{
+  "name": "@omp-webui/control-io",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": { ".": { "types": "./index.d.ts", "import": "./index.js" } },
+  "files": ["*.js", "*.d.ts"],
+  "engines": { "bun": "1.4.4" }
+}
