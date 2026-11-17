@@ -1,0 +1,62 @@
+{
+  "status": "PASS_SOURCE_ONLY_NOT_STAGED_NOT_RUN",
+  "predecessorHarnessHead": "baa98667901c98e7e084c730519b52ad68960301",
+  "preservedPacketReadySha256": "511406b4df1ef2313db82238c9a0efac985ed693930f09c70e2bed3bc5b4ee7c",
+  "packet": "/workspace/work/mvp-implementation/recovery/ticket41-r11-stage-source-v2",
+  "seams": [
+    "Isolated existing compiler function with fake spawn and filesystem receipt writer; producer top level never evaluated",
+    "No-follow bounded verifier reader and traversal with fake special-file metadata and ordinary temporary regular files"
+  ],
+  "red": [
+    {
+      "toolChunk": "b61e4b",
+      "result": "Nonzero fake compiler throws DRAIN_C_BUILD_FAILED but zero receipts; success unchanged"
+    },
+    {
+      "toolChunk": "aebb1b",
+      "result": "Bounded reader boundary absent before implementation"
+    }
+  ],
+  "green": {
+    "selectedBunTests": {
+      "chunk_id": "fcf3c0",
+      "wall_time_seconds": 0.845466873,
+      "exit_code": 0,
+      "original_token_count": 521,
+      "output": "bun test v1.4.4 (38afee6c8)\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts:\n(pass) only the exact pinned Root platform runtime variant can authenticate [13.17ms]\n(pass) aliases, mutable files, replacement and incomplete runtime observations fail closed [5.17ms]\n(pass) other executable, argv, config root, missing guard arguments and handoff injections are rejected [0.64ms]\n(pass) the external runtime is independently pinned in the exhaustive signed platform roster [24.86ms]\n(pass) launch configuration requires an explicit runtime variant and canonical new stage scope [6.73ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts:\n(pass) launch roster equality normalizes observed field order and still rejects a changed mode [0.65ms]\n(pass) Host START registration stays held after signed status until original parent continues [0.57ms]\n(pass) pending Native status cannot announce registered or release the Host START callback [0.20ms]\n(pass) HELLO from another generation or helper cannot reach signed-status or parent release [0.23ms]\n(pass) uncertain prepare cannot be retried or converted into a held START [0.15ms]\n(pass) a pending registration owns the sole parent START gate [0.22ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts:\n(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.52ms]\n(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [5.62ms]\n(pass) untrusted phase values cannot become diagnostic payloads [0.09ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-compiler.test.ts:\n(pass) failed compiler result is retained before the stable build failure reaches the caller [1.66ms]\n(pass) successful compiler keeps the existing success receipt contract [0.38ms]\n\n 16 pass\n 0 fail\n 92 expect() calls\nRan 16 tests across 4 files. [810.00ms]\n"
+    },
+    "sourceOnlyAstFilesystem": {
+      "chunk_id": "2900db",
+      "wall_time_seconds": 0.652316713,
+      "exit_code": 0,
+      "original_token_count": 140,
+      "output": "{\"status\":\"PASS_PURE_SOURCE_ONLY\",\"plannedInputs\":123,\"imports\":{\"compatibility/omp/fixtures/native-helper-drain-launch.ts\":[\"node:fs/promises\",\"node:path\",\"zod\",\"./native-signed-probe-launch\",\"./native-helper-drain-runtime\"],\"compatibility/omp/fixtures/native-helper-drain-runtime.ts\":[\"node:fs/promises\",\"node:fs\",\"node:crypto\",\"zod\"],\"compatibility/omp/fixtures/native-signed-probe-launch.ts\":[\"node:fs/promises\",\"node:path\",\"node:crypto\",\"zod\"]},\"nativeImported\":false,\"built\":false,\"emittedExecuted\":false,\"actualProof\":\"NOT_RUN\",\"admission\":\"BLOCKED\"}\n"
+    },
+    "compilerStrongerReceiptRecheck": {
+      "toolChunk": "e3d29f",
+      "tests": 2,
+      "assertions": 10
+    },
+    "pythonVerifierTests": {
+      "toolChunk": "678333",
+      "tests": 7,
+      "result": "PASS; fake FIFO/device/oversize/link/UID rejection before open/read, descriptor/path substitution, growth max+1, private-key no-read, traversal count/depth/allocation, eight ordinary regular platform members"
+    },
+    "strictNoEmitTypeScript": {
+      "toolChunk": "714a97",
+      "result": "PASS_TARGETED_NO_NATIVE_GRAPH"
+    }
+  },
+  "bunCaptureApi": "Installed bun-types/bun.d.ts: BaseOptions.maxBuffer (8066), SpawnSyncOptions extends BaseOptions (8069); SyncSubprocess metadata (8381–8401). 1 MiB bounded capture; exact captured bytes encoded base64 and hashed, returned status/overflow flags retained. Trusted pinned GCC input diagnostics expected below bound. No descendant-drain or kernel proof.",
+  "actual": {
+    "stageCreated": false,
+    "privateFilesRead": false,
+    "keysGenerated": false,
+    "signaturesGenerated": false,
+    "cCompilerInvoked": false,
+    "bunBuildInvoked": false,
+    "NativeHostImported": false,
+    "actorsRun": false,
+    "admission": "BLOCKED"
+  }
+}

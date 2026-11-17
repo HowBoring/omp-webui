@@ -26,6 +26,7 @@
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts",
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts",
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-bootstrap.ts",
-    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts"
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-compiler.test.ts"
   ]
 }

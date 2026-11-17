@@ -46,9 +46,23 @@ async function compile(source: string, output: string, extra: string[] = []): Pr
   try { await fs.lstat(output); throw new Error("DRAIN_BUILD_DESTINATION_EXISTS"); }
   catch (error) { if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error; }
   await assertHelperDrainSourceInput(sourcePlan, source);
+  await pin(source);
   const argv = ["/usr/bin/gcc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-O2", ...extra, source, "-o", output];
-  const result = Bun.spawnSync(argv, { env: { PATH: "/usr/bin:/bin", TMPDIR: "/tmp" }, stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) throw new Error("DRAIN_C_BUILD_FAILED");
+  const captureLimitBytes = 1_048_576;
+  const result = Bun.spawnSync(argv, { env: { PATH: "/usr/bin:/bin", TMPDIR: "/tmp" },
+    stdout: "pipe", stderr: "pipe", maxBuffer: captureLimitBytes });
+  if (result.exitCode !== 0 || !result.success) {
+    const captured = (bytes: Buffer) => ({ encoding: "base64", data: bytes.toString("base64"),
+      bytes: bytes.length, sha256: sha256(bytes) });
+    await write(`${output}.build.json`, JSON.stringify({ argv, sourcePath: source, source: inputs.get(source),
+      status: "FAILED_NEVER_LOADED_OR_EXECUTED", exitCode: result.exitCode,
+      signalCode: result.signalCode ?? null, success: result.success, pid: result.pid,
+      resourceUsage: result.resourceUsage, captureLimitBytes,
+      exitedDueToTimeout: result.exitedDueToTimeout ?? false,
+      exitedDueToMaxBuffer: result.exitedDueToMaxBuffer ?? false,
+      stdout: captured(result.stdout), stderr: captured(result.stderr) }, null, 2) + "\n");
+    throw new Error("DRAIN_C_BUILD_FAILED");
+  }
   await assertHelperDrainSourceInput(sourcePlan, source);
   await pin(source); await pin(await fs.realpath("/usr/bin/gcc"));
   await write(`${output}.build.json`, JSON.stringify({ argv, source: inputs.get(source), diagnostics: result.stderr.toString(),

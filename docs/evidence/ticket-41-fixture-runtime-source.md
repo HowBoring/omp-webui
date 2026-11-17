@@ -95,3 +95,34 @@ in `fixture-runtime/checks.json`; the retained targeted config is `fixture-runti
 No actual Bun fixture, Native, FFI, C compiler/load, Agent, Host, browser, network, seed, helper, actor, kernel lifecycle,
 staging, signing, key operation, GitHub write, integration merge or runtime fault matrix is part of this validation.
 The Source remains NOT BUILT/NOT RUN and public admission remains BLOCKED.
+
+## R11 staging-source corrective successor
+
+The successor to `baa98667901c98e7e084c730519b52ad68960301` fixes the two R11 source-review P2 findings.
+The previous nine-file packet and its Ready SHA
+`511406b4df1ef2313db82238c9a0efac985ed693930f09c70e2bed3bc5b4ee7c` remain immutable at
+`/workspace/work/mvp-implementation/recovery/ticket41-r11-stage-source`; corrected orchestration is a sibling
+`ticket41-r11-stage-source-v2`. The existing 123-input source plan refreshes only the producer's exact record;
+no runtime module, Native/public/retainer/nonce/journal API or original source tree changes.
+
+The original synchronous compiler wait remains. On failure it now exclusively saves the actual argv, source path
+and precompile digest, exit status, success/signal/overflow/timeout flags, PID/resource usage and both captured
+raw byte streams (base64, byte counts and SHA-256) before throwing `DRAIN_C_BUILD_FAILED`. Bun's installed typed
+`spawnSync` API supports the explicit 1 MiB `maxBuffer` capture bound. Pinned trusted GCC source diagnostics are
+expected within that bound; an over-limit receipt truthfully identifies bounded capture rather than claiming
+uncaptured bytes. Successful build receipts retain their existing shape. This is no descendant-drain or kernel proof.
+
+The sibling verifier validates canonical regular type, owner, permitted link count/mode/size before opening and
+uses no-follow/nonblocking descriptors with fstat/path identity checks before and after a bounded read. Growth
+reads at most the limit plus one byte and fails. Stage JSON uses that same reader. Launch/stage files have an
+8 MiB bound; only the exact external canonical runtime has a separate 128 MiB streaming digest bound. Traversal
+counts discovered members while enumerating (2048), limits depth (32), and checks allocated stage bytes (16 MiB)
+before file inspection. Private keys remain stat-only and the byte/JSON reader explicitly refuses their paths.
+
+Agreed pure compiler and verifier boundaries are tested with fake process/FS results, fake FIFO/device metadata,
+and ordinary temporary regular files. No special device, FIFO, proc, target runtime, compiler or actor is used.
+Compiler RED observed a nonzero result throw with no receipt; bounded-reader RED observed its missing boundary.
+Current validation passes 16 Bun tests/92 assertions, seven Python tests, targeted strict no-emit TypeScript and
+the 123-input pure AST/filesystem checker. Exact retained evidence is `fixture-runtime/r11-source-fix-checks.json`.
+The R11 stage remains absent. Fresh paired review of the new exact Source commit/tree and sibling Ready is the
+next gate; staging, GCC/Bun builds, keys, signatures and actual runtime work remain NOT RUN.
