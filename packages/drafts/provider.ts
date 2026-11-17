@@ -39,6 +39,12 @@ const fail = (code: string): never => { throw new Error(code); };
 const fingerprint = (scope: DraftScope): string => encode([scope.tabOwner, scope.hostContext, scope.sourceContext,
   scope.nativeSessionId, scope.storageKey, scope.projectionGeneration]);
 
+function snapshotScope(scope: DraftScope): DraftScope {
+  return Object.freeze({ tabOwner: scope.tabOwner, hostContext: scope.hostContext, sourceContext: scope.sourceContext,
+    nativeSessionId: scope.nativeSessionId, storageKey: scope.storageKey,
+    projectionGeneration: scope.projectionGeneration });
+}
+
 function stableIdentity(owner: string, a: DraftAuthority): string {
   const identity = [owner, a.host, a.browser, a.page, a.profile, a.source, a.instance, a.session, a.cwd, a.draft];
   if (identity.some(value => typeof value !== "string" || value.length === 0 || value.length > 4096)
@@ -88,7 +94,8 @@ class ScopedDraftProvider implements ConversationDraftProvider {
     const raw = this.options.storage.getItem(saved.storageKey);
     return raw === null ? undefined : decode(raw);
   }
-  async read(saved: DraftScope, signal: AbortSignal) {
+  async read(scope: DraftScope, signal: AbortSignal) {
+    const saved = snapshotScope(scope);
     this.current(saved, signal);
     await this.writes;
     this.current(saved, signal);
@@ -96,8 +103,9 @@ class ScopedDraftProvider implements ConversationDraftProvider {
     this.current(saved, signal);
     return record;
   }
-  write(saved: DraftScope, record: SemanticDraftRecord,
+  write(scope: DraftScope, record: SemanticDraftRecord,
     reason: Parameters<ConversationDraftProvider["write"]>[2], signal?: AbortSignal) {
+    const saved = snapshotScope(scope);
     const encoded = encode(record);
     const parsed = decode(encoded);
     const operation = this.writes.then(() => {
@@ -116,8 +124,9 @@ class ScopedDraftProvider implements ConversationDraftProvider {
     this.writes = operation.catch(() => {});
     return operation;
   }
-  async prepare(saved: DraftScope, originals: Parameters<ConversationDraftProvider["prepare"]>[1],
+  async prepare(scope: DraftScope, originals: Parameters<ConversationDraftProvider["prepare"]>[1],
     signal: AbortSignal) {
+    const saved = snapshotScope(scope);
     this.current(saved, signal);
     if (originals.length > 8) fail("draft_storage_limit");
     if (this.readSaved(saved)?.unresolved) fail("draft_submission_protected");

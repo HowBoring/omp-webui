@@ -52,6 +52,57 @@ function fixture() {
 }
 const signal = () => new AbortController().signal;
 
+test("queued writes keep their initiating identity when a caller mutates a copied scope", async () => {
+  const unchanged = fixture(), same = { ...unchanged.scope };
+  const control = unchanged.provider.write(same, record, "edit");
+  Object.assign(same, unchanged.scope);
+  await control;
+  expect(await unchanged.provider.read(unchanged.scope, signal())).toEqual(record);
+
+  const b = fixture(), copied = { ...b.scope };
+  const pending = b.provider.write(copied, record, "edit");
+  b.change({ draft: "different-draft" });
+  const next = b.provider.scope(b.binding);
+  Object.assign(copied, next);
+  await expect(pending).rejects.toThrow("draft_scope_changed");
+  expect(await b.provider.read(next, signal())).toBeUndefined();
+});
+
+test("reads cannot return another draft after caller mutation during their pending write barrier", async () => {
+  const b = fixture();
+  await b.provider.write(b.scope, record, "edit");
+  b.change({ draft: "different-draft" });
+  const next = b.provider.scope(b.binding);
+  const otherRecord = { draft: { text: "other draft", references: [] }, originals: [] };
+  await b.provider.write(next, otherRecord, "edit");
+  b.change({ draft: "draft" });
+  const copied = { ...b.provider.scope(b.binding) };
+  const pending = b.provider.read(copied, signal());
+  b.change({ draft: "different-draft" });
+  Object.assign(copied, b.provider.scope(b.binding));
+  await expect(pending).rejects.toThrow("draft_scope_changed");
+  expect(await b.provider.read(next, signal())).toEqual(otherRecord);
+});
+
+test("deferred preparation cannot return initiating Files under a caller-replaced scope", async () => {
+  const b = fixture();
+  const deferred = Promise.withResolvers<readonly [{ readonly status: "ready"; readonly file: File }]>();
+  // Synthetic provider result only; no Native preparation is performed.
+  const file = new File(["draft A fixture bytes"], "draft-a.txt");
+  const provider = createDraftProvider({ ...b.options, prepareOriginals: () => deferred.promise });
+  const copied = { ...provider.scope(b.binding) };
+  const pending = provider.prepare(copied, record.originals.slice(0, 1), signal());
+  b.change({ draft: "different-draft" });
+  Object.assign(copied, provider.scope(b.binding));
+  deferred.resolve([{ status: "ready", file }]);
+  await expect(pending).rejects.toThrow("draft_scope_changed");
+
+  const same = { ...copied };
+  const control = provider.prepare(same, record.originals.slice(0, 1), signal());
+  Object.assign(same, copied);
+  expect(await control).toEqual([{ status: "ready", file }]);
+});
+
 test("every trusted stable identity isolates semantic storage while an epoch replacement fences the old scope", async () => {
   for (const key of ["host", "browser", "page", "profile", "source", "instance", "cwd", "draft"] as const) {
     const b = fixture();

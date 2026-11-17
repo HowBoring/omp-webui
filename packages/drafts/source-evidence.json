@@ -12,13 +12,21 @@
     "@deepseek-ai/dsh-api-session-controller/client"
   ],
   "sourceTypecheck": "PASS with exact source graph, root strict options and upstream CSS declaration; no public type stubs",
-  "publicProviderTests": { "passed": 14, "failed": 0, "assertions": 72 },
+  "publicProviderTests": { "passed": 17, "failed": 0, "assertions": 79 },
+  "historicalPublicProviderTests": {
+    "candidateCommit": "d801374764f5712a2918ef1f43569ba72022bb92",
+    "passed": 14, "failed": 0, "assertions": 72,
+    "scope": "Historical earlier candidate evidence; not added to current suite counts"
+  },
   "tdd": [
     "RED missing provider module; GREEN full semantic/ordered-invalid round trip",
     "RED ownsDraft false independent newer draft refused; GREEN marker snapshot retained",
     "RED explicit recovery gate ignored; GREEN only exact external authoritative gate permits marker removal",
     "RED injected synthetic File resolver ignored; GREEN ordered fixture results and late authority refusal",
-    "RED copied DSH scope rejected; GREEN public scope copy accepted and ready generation exact"
+    "RED copied DSH scope rejected; GREEN public scope copy accepted and ready generation exact",
+    "RED queued A write accepts caller scope replacement with current B; GREEN B receives no A record",
+    "RED pending A read returns B after caller scope replacement; GREEN initiating A authority stays fenced",
+    "RED deferred A preparation returns Files under caller-replaced B; GREEN completion rejects and same-identity control succeeds"
   ],
   "networkGuard": "Existing tests/interactions/no-provider.ts preloaded before all public DSH imports",
   "retention": "Zero renewal surface; clock-driven resolver is synthetic and no readiness is cached across expiry",
@@ -27,5 +35,12 @@
   "publicClientAtomicHydrationComposition": "NOT RUN; existing DSH engine retained",
   "nativePreparationOrOutcome": "BLOCKED external capability; default originals remain invalid",
   "productAdmissionAndWholeTicket": "NOT CLAIMED",
+  "scopeMutationFix": {
+    "reviewedCandidate": "d801374764f5712a2918ef1f43569ba72022bb92",
+    "operationSnapshot": "Independent frozen copy of all six required DraftScope fields at read/write/prepare entry before first queue or await",
+    "recordSnapshotInspection": "write already encodes then JSON-decodes before queueing and invokes the real public parser on that independent JSON value; no caller record alias retained",
+    "status": "SOURCE_FIX_REQUIRES_FRESH_PAIR_REVIEW",
+    "externalExecEvidence": "/workspace/work/mvp-implementation/recovery/ticket57-source/scope-mutation-exec-results.json"
+  },
   "externalExecEvidence": "/workspace/work/mvp-implementation/recovery/ticket57-source/exec-results.json"
 }

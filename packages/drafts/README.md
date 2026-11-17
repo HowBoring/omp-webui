@@ -43,6 +43,12 @@ attempt and next record. Without that gate, even a recovery-labeled write is
 refused. This is an external authoritative outcome prerequisite, not an outcome
 lookup, transport-ack inference, automatic retry or Native receipt.
 
+Read, write and preparation operations independently copy and freeze all six
+required public scope fields at entry, before any queue or await. Mutating a
+caller-owned copied scope cannot redirect an operation to another current draft
+or let an old preparation result return under replacement authority. Copies with
+the same identity remain accepted; authority is still rechecked at completion.
+
 Original preparation returns one ordered visible invalid item by default:
 `draft_native_preparation_unavailable`. An optional resolver uses the existing
 public provider preparation signature and must already supply authorized,
@@ -68,6 +74,14 @@ deferred resolver promises. The source typecheck maps the public Conversation
 and SessionController client entrypoints to exact active patches 1–3 under an
 ignored, read-only `vendor/dsh` link. It includes the upstream CSS declaration;
 there are no replacement public declarations or copied dependencies.
+
+The focused scope-mutation fix passes 17 provider tests with 79 assertions and
+the exact-source strict typecheck. Its three deterministic regressions each
+failed before the corresponding entry snapshot was added: queued A writes must
+not publish into B, pending A reads must not return B, and deferred A Files must
+not return after replacement with B. Same-identity controls remain successful.
+The original 14-test/72-assertion run is historical evidence for the earlier
+candidate, not an additional suite or product acceptance.
 
 With that exact source tree and the repository dependency links available:
 
