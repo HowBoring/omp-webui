@@ -1,0 +1,201 @@
+{
+  "status": "SOURCE_ONLY_NOT_FINAL_ACCEPTANCE",
+  "ticket": 44,
+  "parentTicket": 29,
+  "ticketsRemainOpen": true,
+  "decision": 26,
+  "preMergeCheckpoint": "0ffcf54b94704a4ef5641690f179b742c29dbe41",
+  "integrationSource": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "mergeConflicts": false,
+  "runtimeBehaviorChanges": false,
+  "authoredChanges": [
+    "Renumber supervised Session Index ADR from 0015 to 0022 to preserve the integration projection ADR 0015.",
+    "Record current source-only composition and explicit historical evidence/cleanup/admission limits."
+  ],
+  "boundaries": {
+    "normalHostPrivateAdmission": "blocked_unchanged",
+    "globalAdmission": "blocked_unchanged",
+    "sessionComponent": "unregistered",
+    "sessionSupervisor": "existing InteractionBridge and SessionWorker retained",
+    "brokerStopPreferencesTreeOriginalStore": "separate unregistered source components; no new runtime wiring",
+    "forceAndDescendantCleanup": "BLOCKED/not_attested pending #41 helper ownership binding; direct Bun-child evidence is historical and not an automatic fallback capability"
+  },
+  "validation": {
+    "strictTypeScript": {
+      "status": "PASS",
+      "command": "/workspace/work/tooling/node_modules/bun/bin/bun.exe run typecheck"
+    },
+    "fsSqliteInMemoryDsh": {
+      "status": "PASS",
+      "tests": 46,
+      "assertions": 191,
+      "files": 8,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/sessions/index.test.ts ./tests/sessions/revoke-all.test.ts ./tests/workspaces/grants.test.ts ./tests/interactions/bridge.test.ts ./tests/browser/interactions-remote.test.ts ./tests/preferences/remote.test.ts ./tests/attachments/store.test.ts ./tests/attachments/remote.test.ts"
+    },
+    "guardedBrokerStop": {
+      "status": "PASS",
+      "tests": 42,
+      "assertions": 291,
+      "files": 2,
+      "command": "bun test --no-env-file ./tests/interactions/broker-remote.fixture.ts ./tests/interactions/stop-remote.fixture.ts",
+      "boundary": "synthetic public ports, controlled clock, in-memory DSH; no owned process executed"
+    },
+    "treeRemote": {
+      "status": "PASS",
+      "tests": 20,
+      "assertions": 73,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/tree/remote.test.ts -t '^(?!public Tree component|a larger synthetic tree)'"
+    },
+    "treeReactStaticMarkup": {
+      "status": "PASS",
+      "tests": 2,
+      "assertions": 13,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/tree/remote.test.ts -t '^(public Tree component|a larger synthetic tree)'",
+      "boundary": "pure React SSR; no browser or Native serializer execution"
+    },
+    "total": {
+      "tests": 110,
+      "assertions": 568,
+      "failures": 0
+    },
+    "hostCompile": {
+      "status": "PASS",
+      "command": "bun build apps/host/src/main.ts --target=bun --outfile=/tmp/ticket44-source-reconcile-host.js",
+      "modules": 5,
+      "bytes": 17121,
+      "sha256": "de3c0580e88777f060e05a07a695f55d3133db4c3dba43c669a729308c8debae",
+      "executed": false
+    },
+    "earlyToolInvocationFailures": [
+      {
+        "log": "typecheck-initial.txt",
+        "reason": "Bun absent from shell PATH; no code ran; corrected to existing absolute Bun1.4.4."
+      },
+      {
+        "log": "pure-fs-sqlite-dsh.txt",
+        "reason": "Flags preceding test caused Bun package-script dispatch, whose shell could not find Bun; no tests ran. Corrected to bun test with test flags."
+      }
+    ],
+    "notRun": [
+      "actual Native/OMP or Native serializer",
+      "FFI/kernel/socket/listener/process/probe/runtime fixture",
+      "browser/TUI",
+      "full bun test or bun run check",
+      "Native/DSH rebuild or install"
+    ]
+  },
+  "cohort": {
+    "integrationGeneratedFilesEqual": 64,
+    "historicalSessionControlsRetained": true,
+    "sessionControlsEmbeddedDefinitionsEqualIntegrationSchema": 345,
+    "newPublicCommands": false,
+    "canonicalSchemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f",
+    "normalEntrypointsAndPinsUnchanged": {
+      "apps/host/src/main.ts": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+      "apps/host/src/http.ts": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+      "upstreams.lock.json": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+      "bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+      "package.json": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3"
+    },
+    "sourceFiles": 326,
+    "sourceSha256": "0c3800a101cf1d3028e58ed66aee60c5b92b88d318127099dec25b072ceb9646"
+  },
+  "preservation": {
+    "baselinePath": "/workspace/work/mvp-implementation/research/ticket-44-source-reconcile/preservation-before.json",
+    "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+    "summary": {
+      "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+      "repositories": {
+        "native": {
+          "checks": {
+            "head": true,
+            "status": true,
+            "indexSha256": true,
+            "stagedDiffSha256": true,
+            "workingDiffSha256": true
+          },
+          "authoredCount": 10668,
+          "fileMismatches": [],
+          "addedAuthoredPaths": []
+        },
+        "dsh": {
+          "checks": {
+            "head": true,
+            "status": true,
+            "indexSha256": true,
+            "stagedDiffSha256": true,
+            "workingDiffSha256": true
+          },
+          "authoredCount": 21061,
+          "fileMismatches": [],
+          "addedAuthoredPaths": []
+        }
+      },
+      "artifactMismatches": [],
+      "historicalRawMismatches": [],
+      "artifactsCount": 21,
+      "historicalRawCount": 18,
+      "pass": true
+    },
+    "nativeGit": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "indexSha256": "6a75752818d2754960cdb7543e9386bae58a24d18257775776fc4a57d2bf4967",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingDiffSha256": "09b59060088c63583a5159261487d3df82b1d5887fe48bbf71d171b7d9a6f2f0"
+    },
+    "dshGit": {
+      "head": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "indexSha256": "cce25b693b34f354787108b220049a19aab6236ffd9633714b8e427d7b6d3c1a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "workingDiffSha256": "9681a18ef1aa9aa2d0b4cbb96eb0719037aeef5f1bf5c5dc5ccbe0805f01858f"
+    },
+    "historicalCheckpointSha256": "e4c3eeeb615f5f1590aecd4273610f74fbc84a8e35ec63e06520a7a83021c5fc",
+    "historicalBroadFailLedgerSha256": "c0b02841da821a5de7982fb4647ba7de877651872f711fd6e49c6ecd28732a95",
+    "historicalRawBroadFailSha256": "05cb8db929720dec2ad77057d2b936aa8c69fdbebdfa372b1e2cf267dc0fe15f",
+    "historicalResults": "Linux browser/busy Native/TUI are historical; unfrozen broad attempt 268 pass/15 fail/1 error remains FAIL, not final tuple proof",
+    "historicalAdrInputPath": "docs/adr/0015-supervised-session-index.md retained in original checkpoint metadata"
+  },
+  "logs": {
+    "typecheck-initial.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/typecheck-initial.txt",
+      "sha256": "74301b433bbcc36411586b7f5c34f5382e0f9ddeac58412d27fc6adfb509dced"
+    },
+    "host-build.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/host-build.txt",
+      "sha256": "6d8bd3294d4ea557db164119add458a556fa78c3d1272f596f2a1e2a0bf44edd"
+    },
+    "preservation-after.json": {
+      "path": "docs/evidence/ticket-44-source-reconcile/preservation-after.json",
+      "sha256": "869e5c8afae627eca1f0dc09a6d031644ecafb1704b20bdfc6de5adc380a93bd"
+    },
+    "pure-fs-sqlite-dsh-final.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/pure-fs-sqlite-dsh-final.txt",
+      "sha256": "33133a9ecf739cad29529e83f8a1811ae07c55e456ef2de4e258853aeaeab76d"
+    },
+    "pure-tree-source.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/pure-tree-source.txt",
+      "sha256": "bce6a3bd4aa78ca4fced6aecf075fe2b80e15e9c6e7a205c0a04ec0444b12253"
+    },
+    "pure-tree-ssr.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/pure-tree-ssr.txt",
+      "sha256": "762b05ebf5880cb6358653dbfcdece2348930a1fc26b3c93124a2e266fe9b19f"
+    },
+    "pure-fs-sqlite-dsh.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/pure-fs-sqlite-dsh.txt",
+      "sha256": "f24adb4ed2b0e23200ab194d261669d9311c3b4815992869c3dc2e4f8f9d76ca"
+    },
+    "typecheck-merge.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/typecheck-merge.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    "pure-broker-stop.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/pure-broker-stop.txt",
+      "sha256": "1962b4bc8cf4cc5c821653a6c49cfbf9d244db4f2d246228673ef2f688fb2460"
+    },
+    "control-schema-audit.txt": {
+      "path": "docs/evidence/ticket-44-source-reconcile/control-schema-audit.txt",
+      "sha256": "557727d41b18abb0dbc2fe77acf83d58316f264b87dbbd97a4ec36bd00dc2af8"
+    }
+  },
+  "next": "Fresh independent source review pair and Root merge; no current matched-tuple or whole-ticket PASS."
+}

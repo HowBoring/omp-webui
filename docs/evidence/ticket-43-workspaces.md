@@ -1,9 +1,31 @@
 # Ticket #43 — isolated authenticated directory/Workspace component
 
-Current component includes integration `d22a908b2b6b8a53093af70c347b92cc5e69869b` (#35 accepted), merged into the
-isolated review-fix branch. #43 remains **unmerged/unclosed pending #41**. Protected open, real registration/index
-persistence and Session-worker revocation remain #44 composition work. The default Host continues to deny private
-Session capabilities. Windows Chrome/WSL2 remains explicitly owner-deferred.
+## Current source reconciliation (2026-11-17)
+
+The reviewed source fix `3357e89426350caf9c77ca166878d78b87ce324a` now includes integration
+`acc50ff4b45ab5419f27211a5c483f9618c0d00f` via own-branch merge `9b4ad362211c8a39d62719f7dafb013a4228ef0b`.
+The merge was conflict-free and preserves both explicit Workspace and continuation fixture enrollment branches.
+Parent #29 Decision 26 permits source components to integrate while semantic/private-data gates remain closed.
+The earlier hold pending #41 still applies to product admission and whole-ticket closure, not this source-only merge.
+
+Current verification: **42 tests / 206 assertions / 6 files**, strict repository TypeScript and normal Host compile
+passed. Tests use temporary Host-owned filesystem/SQLite and public DSH in-memory fixtures; no actual OMP imports,
+worker/Agent starts, sockets, listeners, browser, Native/FFI, global install or upstream builds ran. The second index
+test and HTTP admission/error tests were excluded because they require Native or real listeners. The prior wire
+failure fix remains source-identical; its real HTTP tests were not rerun. The normal Host source remains identical
+to integration, with `PRIVATE_CAPABILITY_GATE_CLOSED` independently checked after login. No Workspace Remote was
+registered in the normal Host. See [exact source verification](../implementation/ticket-43-source-evidence.json).
+
+All existing JSON/browser/native records below are preserved byte-for-byte as historical evidence. Integration's
+generated Native source/schema identity and DSH source patch set differ from that tuple. No current final-tuple
+browser/native PASS, current Workspace bundle, complete product, private-Session or global-install admission is
+claimed. #43 and #29 remain OPEN; #44 still owns real registration/protected open/worker revocation composition.
+Windows Chrome/WSL2 remains explicitly owner-deferred.
+
+## Historical reviewed component evidence
+
+The earlier component included integration `d22a908b2b6b8a53093af70c347b92cc5e69869b` (#35 accepted), merged into
+the isolated review-fix branch. Its recorded results below apply only to that matched component tuple.
 
 ## Error boundary review fix
 
@@ -29,7 +51,7 @@ same-path replacement, the actual 256-grant transaction limit, native/catalog an
 storage, EIO sanitization, unknown Error/string/forged-Remote objects and all malformed/admission statuses.
 [Red/green evidence](../../apps/workspaces/evidence/review-fix/error-boundary.json) retains exact results and logs.
 
-## Current validation
+## Historical validation on the recorded tuple
 
 - Fixed native 0001–0004 +0006 prepared in an owned source clone, built and generated-artifact checked: PASS.
   Source `4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871`, patch
@@ -48,13 +70,13 @@ storage, EIO sanitization, unknown Error/string/forged-Remote objects and all ma
   35 synthetic index references, 40 DSH calls and zero page errors. Actual SIGKILL restart restores absolute
   credentials and grants, readonly child exits, canonical-root replacement loses rights, revoke persists through a
   second restart, native cursor errors/correlation faults remain explicit, and native inode/mtime/content stays
-  unchanged. [Current browser result](../../apps/workspaces/evidence/linux-browser.json).
+  unchanged. [Historical browser result](../../apps/workspaces/evidence/linux-browser.json).
 
 DSH remains the immutable #39 c0 compiled closure (`c0b09e15c170a82894608c397a363a7a96e5d05c`), consumed through
 owned per-package links. No eight-artifact/two-aggregate upstream rebuild, install or shared-source mutation was needed.
 The 239-input browser build has byte-identical client JS `920c0f…` and index HTML `cfffdd…`; the public contract type
 import changes consumed source/contract identities. The Host now includes the sanitizer and public error vocabulary.
-Exact resulting source/build/schema/runtime/client/Host/installation identities are in
+Exact historical source/build/schema/runtime/client/Host/installation identities are in
 [tuple.json](../../apps/workspaces/evidence/tuple.json). Prior native `8960…`/`8345…` evidence is archived in
 [before-review-fix-8157865](../../apps/workspaces/evidence/before-review-fix-8157865/tuple.json); the still earlier
 116-test full-suite result remains historical, with **no entire latest-suite claim**.
@@ -73,4 +95,4 @@ The browser fixture retains 47 discovered rows and 35 explicitly synthetic reado
 replaced, missing, source-unavailable and invalid-reference states. The native inode/mtime/content manifest must stay
 unchanged. No real profile, provider/model or global installation is used. Native source0005/0007 composition,
 complete-product/private-Session/global-install acceptance, formal reference-hardware performance and Windows/WSL2
-acceptance are not claimed. Current component evidence cannot unlock #41 or close #43.
+acceptance are not claimed. Historical component evidence cannot unlock #41 or close #43.

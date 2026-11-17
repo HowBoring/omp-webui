@@ -18,16 +18,19 @@ The native generation adapter preserves the carrier inode. Immutable native JSON
 
 ## Checks
 
-On the clean ordered 0001–0006 source recorded in `ticket-32-checkpoint.json`:
+The reviewed defects are corrected on native source `2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661`; exact source/build/schema, assets, fixture and evidence digests are recorded in `ticket-32-checkpoint.json`. The original held candidate remains unchanged. See `ticket-32-review-fix.md` for each finding and its red→green evidence.
 
-- Fixed-base clean patch application, native compatibility build, generated build `--check`, focused strict native TypeScript and authored live native TypeScript: PASS.
-- `bun run check`: typecheck, 247 tests, 1,966 assertions, 57 files, 518.66 seconds, product Host build: PASS. This includes the actual 100MiB/10,000-session catalog reachability run; it is not an append-throughput claim.
-- After the final Host-only repeated-Continue/observed-exit fix: typecheck PASS; actual Host adapter regression 1 test / 9 assertions PASS; isolated Host bundle rebuilt. Native tuple unchanged. The first focused attempt timed out because two read-only queries were sent after an observed worker exit; the Host now fences that case. A restricted-network launch also returned EPERM before fixture setup; the authorized isolated process run passed.
-- Actual matched/baseline TUI matrix: 3 tests / 24 assertions PASS, including conditional flattened rollback. These tests are included in the full suite.
-- Final-tuple `strace` publication/reopen plus nested logical copy: 2 tests / 21 assertions PASS. The retained syscall report records actual fd xattrs, discriminator/commit pwrite64 and no-clobber fd-bound linkat, and zero INET calls.
-- Final Chromium result and screenshot: `ticket-32-browser.json` / `.png`; exact identities and artifact digests: `ticket-32-checkpoint.json`.
+- Owned clean ordered 0001–0006 application, compatibility build and generated `--check`: PASS. Native 0006 remains byte-for-byte unchanged; schema remains `ed446d…`.
+- Final root TypeScript, focused authored native strict/live TypeScript, and separate Host build: PASS.
+- Complete `bun run check` attempt: **FAIL**, 255 tests PASS / one test-controller failure / 2,023 assertions across 59 files in 576.03 seconds. An exiting native thread disappeared between syscall-info and GETREGS, yielding ESRCH in the parent-open EMFILE test controller. The full attempt and digest are retained; this is not a complete-suite PASS.
+- After the controller-only correction, actual factory/OS publication faults: **PASS**, 14 tests / 78 assertions. A vanished tracee cannot satisfy fault injection: the controller requires the intended directory syscall to complete, and the EMFILE case requires the actual -24 result, native EMFILE error, real lease reacquisition and unchanged owned descriptor inventory. Native source was unchanged.
+- Final matched/baseline native TUI: **PASS**, three tests / 24 assertions, including genuine TUI ownership exclusion and conditional flattened rollback.
+- Final Chromium → DSH Remote/Connection → Bun → public native RPC: **PASS**, five cases / 21 typed Remote calls / no page errors, Chromium 156.0.8078.79. Structured results: `ticket-32-browser.json`; final screenshot is ignored and its digest is in the checkpoint. The existing tracked PNG is historical previous-candidate evidence.
+- Final native `strace` title publication/reopen and nested logical copy: **PASS**, two tests / 21 assertions; zero INET calls, 103 fd-xattr calls, six native control writes and two no-clobber fd-bound links. Structured digest report: `ticket-32-native-syscalls.json`.
 
-The accepted 0006 live patch was mechanically rebased after owned 0005. All nonempty added/deleted payload lines are identical to its accepted version; import union/context and one blank line differ. `ticket-32-live-composition.json` records both digests. No unreviewed #44 transport changes were incorporated.
+An early browser attempt preceded listening during the 77,524-asset provenance check and returned connection refused; the final run followed the ready announcement. One synthetic fixture-authoring attempt in the restricted sandbox hit Bun stdio EPERM and passed in the required network-enabled sandbox. All native test fixtures were synthetic and temporary. Final active owned native/browser workers: zero. The fixture Host exited on SIGTERM and its catalog child is absent; its PTY launcher had orphaned the Host, so a terminal zombie remains for PID1 to reap, with no live CPU/fds.
+
+**Closure remains blocked** until fresh review and the integration merger's next complete matched `bun run check` are green. Per coordinator, the full suite was not repeated here after the isolated controller correction. Product admission remains blocked.
 
 ## Limits and conditional compatibility
 

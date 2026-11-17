@@ -1,4 +1,4 @@
-# ADR 0015: Persist references and supervise one explicitly opened native worker
+# ADR 0022: Persist references and supervise one explicitly opened native worker
 
 - Status: Isolated S1 component; normal private Session admission remains closed
 - Ticket: #44
@@ -40,3 +40,9 @@ arbitrary browser PIDs never enter process control.
 General extension-descendant containment, ordinary Stop/force UI, prompt submission,
 full projection rebuilding and the final production compatibility gate remain
 separate component obligations. The isolated fixture cannot unlock those gates.
+
+Source reconciliation renumbers this authored decision from 0015 to 0022 because
+0015 is already assigned to retained execution/projection replacement. Historical
+checkpoint manifests retain their original input path and hash; they are not current
+source manifests. The supervised Session component remains unregistered and cannot
+authorize production admission or an automatic direct-child cleanup fallback.

@@ -1,6 +1,6 @@
 # Supervised native Sessions (#44)
 
-This is an isolated S1 component. The normal Host does not import its server or
+This is an isolated, unregistered S1 source component. The normal Host does not import its server or
 open private Sessions. #41, accepted #43, the final matched DSH/native tuple and
 independent component acceptance remain integration gates.
 
@@ -68,3 +68,21 @@ contract before claiming complete cleanup. Do not infer ownership from a PID tre
 kill arbitrary descendants, target an external TUI, or turn this component's direct
 Bun-child reap result into a blanket descendant-cleanup PASS. Final integration
 admission remains closed until the applicable gate is resolved.
+
+## Source reconciliation (2026-11-17)
+
+The component composes integration `42769489183eedb20b371083c49f915fda2bb8cf`
+(#43 grants, #47/#48 Broker/Stop, #49 preferences, #50 Tree and #54 originals).
+The retained SessionSupervisor uses its existing InteractionBridge/SessionWorker
+boundary; the separate Broker/Stop, preferences, Tree and OriginalStore source
+components are not newly registered here. Strict Host TypeScript and the selected
+FS/SQLite/in-memory DSH tests pass; this does not attest actual Native execution,
+Session cleanup, a current browser/native tuple or whole-ticket acceptance.
+See [source evidence](../../docs/implementation/ticket-44-source-evidence.json)
+and [ADR 0022](../../docs/adr/0022-supervised-session-index.md).
+
+The old browser/busy Native/TUI results and unfrozen broad-check FAIL remain
+historical. The original Native/DSH authoring, indexes, diffs and recorded bundles
+were hash-checked unchanged. #41 helper ownership binding remains required before
+attesting forced cleanup or any automatic fallback. No new global or private
+Session admission is enabled; #44 and umbrella #29 remain OPEN.

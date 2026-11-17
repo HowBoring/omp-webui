@@ -1,6 +1,33 @@
-# Ticket #44 component checkpoint — final tuple verification pending
+# Ticket #44 source reconciliation — final tuple verification pending
 
-Code checkpoint: `881ce9cfcb80e9c89016004b172c487dba22cbe7`. The normal Host remains
+Current source composes integration `42769489183eedb20b371083c49f915fda2bb8cf`
+from the clean ticket checkpoint `0ffcf54b94704a4ef5641690f179b742c29dbe41`.
+This is an unregistered Decision 26 source component. Strict Host TypeScript,
+110 selected FS/SQLite/in-memory DSH tests (568 assertions), and a small compile
+of normal Host main pass. No actual Native/OMP, process fixture, listener, socket,
+FFI, browser, serializer probe or broad suite ran. Two Tree tests use pure React
+static markup; they do not execute a browser or the Native serializer. Generated
+Host wire/schema bytes match the integration cohort; the retained control
+validator's 345 embedded definitions match that schema. The existing supervisor
+and InteractionBridge remain separate from the newly available unregistered
+Broker/Stop/preferences/Tree/OriginalStore source components. No public command,
+API or product route is invented to join them.
+
+[Reconciliation evidence](../implementation/ticket-44-source-evidence.json) records
+commands, early tool invocation failures and preservation checks. The source merge
+required no runtime behavior edits. ADR 0022 resolves the authored 0015 filename
+collision; the historical checkpoint's old path is retained as original metadata.
+All historical evidence files and old Native/DSH authoring, indexes, diffs and
+recorded bundles remain unchanged. Normal Host main/http and private/global
+admission gates remain unchanged. #41 helper ownership binding and fresh matched
+component acceptance are still required; direct Bun-child evidence cannot authorize
+an automatic cleanup fallback. #44 and #29 stay OPEN, pending fresh pair source
+review and Root integration.
+
+The material below is **historical checkpoint evidence**, not acceptance of this
+reconciled source. The 268-pass/15-fail broad attempt remains explicitly FAIL.
+
+Historical code checkpoint: `881ce9cfcb80e9c89016004b172c487dba22cbe7`. The normal Host remains
 unchanged and private Session admission is closed. This is neither a full MVP nor
 a final matched-tuple PASS. [Recorded checkpoint identities and historical build
 inputs](ticket-44/checkpoint.json) distinguish real evidence from the current source.
@@ -75,6 +102,6 @@ Windows/WSL2 is explicitly deferred by the recorded delivery adjustment. #40's f
 same-holder rebuild and #41's production compatibility/admission remain separate
 integration gates. No prompt submission or ordinary Stop/force UI is delivered here.
 
-Resume state: **PAUSED**. Root32 owns the heavy validation slot. No runtime checks
-were run for this evidence-hygiene change. Native vendor and bundles intentionally
-remain old until the scheduled clean rebuild.
+Historical resume state: **PAUSED** at the recorded checkpoint. Root32 owned
+the then-heavy validation slot. Current source reconciliation performed no Native
+runtime checks or rebuild; the preserved old bundles are not current acceptance.

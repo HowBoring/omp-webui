@@ -1,0 +1,188 @@
+{
+  "ticket": 54,
+  "umbrella": 29,
+  "date": "2026-11-17",
+  "status": "SOURCE_ONLY_UNREGISTERED",
+  "wholeTicketStatus": "OPEN",
+  "umbrellaStatus": "OPEN",
+  "integrationBase": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+  "integrationTipMergedBeforeCompletion": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+  "decision": "Source components before 41/45 gates; no Native or product admission",
+  "seams": [
+    "public OriginalStore with real private temporary filesystem and Bun SQLite",
+    "proposed typed OriginalIntake raw-stream Host port",
+    "actual public DSH Client Remote -> synthetic Connection -> Host Gateway -> AttachmentRemote"
+  ],
+  "state": {
+    "publication": "staged-unprepared",
+    "validation": "signature-only",
+    "nativeAssociation": "unassociated",
+    "preparedReceipt": false,
+    "sentAttachment": false
+  },
+  "defaultLimits": {
+    "originalBytes": 10485760,
+    "draftObjects": 8,
+    "draftOriginalBytes": 33554432,
+    "totalPayloadBytes": 10737418240,
+    "storeObjects": 100000,
+    "inFlightReservations": 16
+  },
+  "accounting": "FULL SQLite BEGIN IMMEDIATE reservation before body iteration; receiving bytes remain charged until physical cleanup succeeds; no derived sink yet",
+  "restartScope": "New Store/SQLite connection in same process; interrupted real filesystem directory displacement followed by exclusive recovery. Not actual Host-process/power-loss acceptance.",
+  "results": [
+    {
+      "check": "focused attachments public store/intake/Remote",
+      "status": "PASS",
+      "tests": 23,
+      "assertions": 95
+    },
+    {
+      "check": "combined attachments/preferences/tree pure public Remote suites",
+      "status": "PASS",
+      "tests": 53,
+      "assertions": 217
+    },
+    {
+      "check": "repository strict TypeScript tsc --noEmit -p tsconfig.json",
+      "status": "PASS"
+    },
+    {
+      "check": "git diff --check",
+      "status": "PASS"
+    }
+  ],
+  "redBeforeGreen": [
+    "Absent public store module",
+    "Abort of stalled stream waited for next chunk",
+    "Absent proposed Host Remote contract",
+    "Missing original exposed raw filesystem error",
+    "Unknown payload with known object ID name was accepted on restart",
+    "In-flight reservations lacked independent concurrent bound",
+    "Raw intake target validation threw a synchronous ZodError",
+    "Raw intake invalid descriptors exposed Zod validation details",
+    "SQLite rollback-journal directory fault escaped raw intake as disk I/O error"
+  ],
+  "covered": [
+    "exact original SHA-256 and bytes across reopen",
+    "two real SQLite connections reserve a shared quota before concurrent body reads",
+    "store-full refusal without eviction or body iteration",
+    "persisted limits cannot be increased by second connection",
+    "object, draft-count, draft-bytes and in-flight limits",
+    "cross-browser/page/profile/source/instance/Session/cwd/draft isolation",
+    "same-hash independent objects cannot authorize each other",
+    "midstream authority revocation and epoch changes",
+    "aborted stalled intake promptly releases physical data and reservation",
+    "partial filesystem failure and exclusive recovery",
+    "under-length/oversized/disguised image streams",
+    "missing and corrupt originals remain charged and refuse reads",
+    "display traversal/project non-overwrite and private permissions",
+    "unaccounted restart payload refusal",
+    "explicit verified Open and exact target required before raw-stream reads",
+    "typed public Remote canonical-base64 stage/read with current scope and no Native claims",
+    "raw stage/read invalid targets reject asynchronously with bounded stable errors",
+    "raw descriptor schema failures and SQLite reservation failures expose only stable codes before body consumption",
+    "raw storage recovery after real rollback-journal fault retains zero leaked quota",
+    "raw intake preserves revocation, binding, cancellation and quota refusal codes",
+    "oversized attachment-like producer errors are bounded and failed reservations reclaimed"
+  ],
+  "execution": {
+    "runtime": "Bun 1.4.4 (38afee6c8)",
+    "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "guard": "tests/attachments/no-runtime.ts preloads tests/preferences/no-provider.ts before public DSH/store imports; resolver additionally denies OMP runtime packages and bun:ffi",
+    "environment": {
+      "env": "env -i",
+      "HOME": "/tmp/attachment54-test/home",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment54-test/profile",
+      "XDG_CONFIG_HOME": "/tmp/attachment54-test/profile",
+      "TOP": "/tmp/attachment54-test",
+      "TMPDIR": "/tmp",
+      "cwd": "/tmp/attachment54-test/cwd",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0",
+      "envFiles": "--no-env-file"
+    },
+    "focusedArguments": [
+      "test",
+      "--no-env-file",
+      "--preload",
+      "/workspace/work/omp-webui-ticket-54/tests/attachments/no-runtime.ts",
+      "/workspace/work/omp-webui-ticket-54/tests/attachments/store.test.ts",
+      "/workspace/work/omp-webui-ticket-54/tests/attachments/remote.test.ts"
+    ],
+    "combinedAdditionalFiles": [
+      "tests/preferences/remote.test.ts",
+      "tests/tree/remote.test.ts"
+    ],
+    "maximumSyntheticInputPayloadBytes": 15,
+    "maximumSuccessfullyStoredPayloadBytes": 14,
+    "dependencies": "Existing integration node_modules linked for read-only use; no install or dependency changes",
+    "nativeRuntimeImported": false,
+    "workerOrAgentStarted": false,
+    "networkOrListenerOpened": false,
+    "browserLaunched": false,
+    "ffiBridgeUsed": false,
+    "nativeDataReadOrWritten": false,
+    "runtimeOrVendorCopied": false,
+    "globalInstallOrBuildRun": false,
+    "sqlite": "Allowed Bun builtin bun:sqlite with real temporary Host-owned metadata only"
+  },
+  "remainingGates": [
+    "Current auth/broker/trusted-page/raw HTTP/WS carrier registration and real revocation integration",
+    "Full carrier-envelope/stream/deadline/output limits before parsing or publication",
+    "Actual valid PNG/JPEG/WebP/GIF and raw/base64/paste/drop browser input acceptance",
+    "Native bounded decoding, model and complete encoded RPC budgets",
+    "Same-version public prepare/consume and explicit version-bound degradation acceptance",
+    "Native durable submit/entry/original associations and uncertain-result protection",
+    "Draft hydration/24-hour edit clock and protected lifecycle/confirmed deletion (57/58)",
+    "Shared total reservation for any future temporary or durable derived payload",
+    "Actual Host-process/power-loss restart and filesystem durability acceptance",
+    "Safe preview/download renderer and current rights for actual HTTP GET/HEAD",
+    "Matched final Native/build/schema/client assets and actual Linux Chromium/Windows Chrome WSL2 product acceptance",
+    "Full required scale/performance/hardware measurements"
+  ],
+  "sourceSha256": {
+    "docs/adr/0021-host-original-intake.md": "20ea4146219c5a6af1dd7aee0d7ad9befd0d1ba8994d2ab92094fb2c63b22eb6",
+    "packages/attachments/README.md": "4dd0b26f75345198ba8653fb6d0150f53aaf3586272e87c8a6f0bf2d5e9d9a82",
+    "packages/attachments/intake.ts": "00dc1072a64dfdc0c3547073e05d8c6a4ee8330fbd5ae71c05df03bd38f6d878",
+    "packages/attachments/service.ts": "90b6120c158621aeb8b26ccfe74c2a1ba33ea2b2d4cf1a9b8542b5a342f73bb2",
+    "packages/attachments/store.ts": "751955bf055aef19c235101e42f7f6fa21de3cb51c81df6eee70b4de7f76cec7",
+    "packages/contracts/attachments.ts": "12930c6c81600fb178cf123ee9ec9a98404fc0251145940f8a53e69b97a7410f",
+    "tests/attachments/no-runtime.ts": "1b8fec99e1bbdba8dd9b783b5bf2f36781ba3dd228044a0c254b4ab5717af6d3",
+    "tests/attachments/remote.test.ts": "3a699c65ab936f6b9d57c541246bae83cd5b9e7738dae54c38ff85f7f3e6cf1a",
+    "tests/attachments/store.test.ts": "28fb14fb63b390e5ef0dd17086c53c7bbf5b2b4278a7534807c81d842080a6c3"
+  },
+  "reviewFix": {
+    "reviewedSource": "00cefff5ffe59cbb261f217d831a8d6dcaf36ad8",
+    "integrationFixedPoint": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+    "priorEvidence": "docs/implementation/ticket-54-source-evidence-before-boundary-fix.json",
+    "priorEvidenceSha256": "846d1605759409d9673ab13156074d56d8d603f447fb11587200df3fd46a87d3",
+    "finding": "Standards P2: normalize failures at proposed raw-stream OriginalIntake boundary",
+    "change": "Async stage/read validate inputs to fixed codes and normalize unexpected errors; bounded existing attachment codes pass through",
+    "red": [
+      {
+        "test": "raw intake rejects an invalid target",
+        "observed": "synchronous ZodError; not.toThrow failed"
+      },
+      {
+        "test": "raw intake rejects invalid descriptors",
+        "observed": "raw ZodError instead of attachment_invalid_descriptor"
+      },
+      {
+        "test": "raw intake bounds SQLite reservation errors",
+        "observed": "disk I/O error instead of attachment_storage_unavailable"
+      }
+    ],
+    "green": {
+      "focusedTests": 23,
+      "focusedAssertions": 95,
+      "combinedTests": 53,
+      "combinedAssertions": 217,
+      "strictTypeScript": "PASS",
+      "diffCheck": "PASS"
+    },
+    "fixtureFault": "Directory at configured private originals.sqlite-journal path prevents actual SQLite rollback journal creation; no SQL/private-field mocks or assertions",
+    "existingTestsPreserved": true,
+    "mediaDefinitionHeuristic": "Deferred; unrelated shared-domain refactor is unnecessary for this boundary correction",
+    "admission": "Unregistered source only; ticket 54 and 29 OPEN, private product admission BLOCKED"
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "ticket": 43,
+  "umbrella": 29,
+  "date": "2026-11-17",
+  "status": "SOURCE_ONLY_UNREGISTERED",
+  "wholeTicketStatus": "OPEN",
+  "umbrellaStatus": "OPEN",
+  "privateProductGlobalAdmission": "BLOCKED",
+  "reviewedComponentFix": "3357e89426350caf9c77ca166878d78b87ce324a",
+  "integrationTipMergedBeforeCompletion": "acc50ff4b45ab5419f27211a5c483f9618c0d00f",
+  "ownBranchIntegrationMerge": "9b4ad362211c8a39d62719f7dafb013a4228ef0b",
+  "decision": "Parent 29 Decision 26 permits isolated source integration before missing semantic/private-data gates; no closure or actual OMP admission.",
+  "merge": "Conflict-free ort merge; preserves Workspace and continuation explicit fixture enrollment. No resets.",
+  "sourcePreservation": {
+    "reviewedWorkspaceExecutableContractsModulesTestsAndHistoricalEvidence": "unchanged from 3357e89; reconciliation changes documentation only",
+    "normalHostMainAndHttp": "byte-identical to acc50ff integration",
+    "nativeApisSchemaUpstreamBuildDependencyPinsAndLockfiles": "unchanged from acc50ff integration",
+    "normalHostWorkspaceRegistration": false,
+    "newProtectedCapability": false
+  },
+  "results": [
+    {
+      "check": "guarded pure grants/access and actual public DSH in-memory preferences/tree Remote subset",
+      "status": "PASS",
+      "tests": 40,
+      "assertions": 199,
+      "files": 4
+    },
+    {
+      "check": "readonly Session Index metadata case only",
+      "status": "PASS",
+      "tests": 1,
+      "assertions": 2,
+      "filteredNativeCases": 1
+    },
+    {
+      "check": "normal Host private gate after real module-level login",
+      "status": "PASS",
+      "tests": 1,
+      "assertions": 5,
+      "observedCode": "PRIVATE_CAPABILITY_GATE_CLOSED"
+    },
+    {
+      "check": "repository strict TypeScript tsc --noEmit -p tsconfig.json",
+      "status": "PASS"
+    },
+    {
+      "check": "normal Host compile only: bun build apps/host/src/main.ts --target=bun --outfile=/tmp/omp-workspaces43-source/host-main.js",
+      "status": "PASS",
+      "modules": 5,
+      "bytesDisplay": "15.78 KB",
+      "outputExecuted": false
+    }
+  ],
+  "testTotal": {
+    "tests": 42,
+    "assertions": 206,
+    "files": 6
+  },
+  "seams": [
+    "DirectoryGrants public policy with real temporary Host-owned filesystem/Bun SQLite",
+    "registeredPage public metadata adapter with generated CatalogClient and synthetic missing-description boundary",
+    "actual public DSH Client Remote -> synthetic in-memory Connection -> actual public Host Gateway for existing preferences/tree source",
+    "normal Host fetch handler/browser access public module contract without a listener"
+  ],
+  "execution": {
+    "runtime": "Bun 1.4.4 (38afee6c8)",
+    "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "environment": "env -i; PATH=/usr/bin:/bin; HOME=/tmp/omp-workspaces43-source/home; PI_CODING_AGENT_DIR and XDG_CONFIG_HOME=/tmp/omp-workspaces43-source/profile; TMPDIR=/tmp; BUN_RUNTIME_TRANSPILER_CACHE_PATH=0; --no-env-file",
+    "firstTestCwd": "/tmp",
+    "indexAndHostGateTestCwd": "/tmp/omp-workspaces43-source/cwd",
+    "typecheckAndCompileCwd": "/workspace/work/omp-webui-ticket-43-review-fix",
+    "preload": "tests/attachments/no-runtime.ts -> tests/preferences/no-provider.ts; denies external effects, OMP runtime resolution and bun:ffi before test imports",
+    "firstTestFiles": [
+      "tests/workspaces/grants.test.ts",
+      "tests/access/browser-access.test.ts",
+      "tests/preferences/remote.test.ts",
+      "tests/tree/remote.test.ts"
+    ],
+    "indexTestArguments": [
+      "tests/workspaces/index.test.ts",
+      "--test-name-pattern",
+      "readonly Session Index metadata"
+    ],
+    "hostGateTestArguments": [
+      "tests/access/host.test.ts"
+    ],
+    "importsInspectedFirst": true,
+    "nativeRuntimeImported": false,
+    "workerOrAgentStarted": false,
+    "networkOrListenerOpened": false,
+    "browserLaunched": false,
+    "ffiBridgeUsed": false,
+    "nativeDataReadOrWritten": false,
+    "runtimeOrVendorCopied": false,
+    "dependencyInstallRun": false,
+    "globalInstallOrUpstreamBuildRun": false,
+    "dependencies": "Existing read-only per-package links to immutable ticket-39-final-fix c0 compiled DSH closure; no regeneration or install.",
+    "restartScope": "Module/SQLite reopen only; no current real Host process restart or crash acceptance."
+  },
+  "excluded": [
+    "tests/workspaces/index.test.ts concurrent-revoke native child case",
+    "tests/workspaces/admission.test.ts and remote-errors.test.ts: actual HTTP listeners",
+    "all browser/native/FFI/kernel/network/process/probe and broad test suites",
+    "Workspace browser/component build, candidate enrollment and manifest generation"
+  ],
+  "historicalEvidence": {
+    "preservedByteForByte": true,
+    "sha256": {
+      "apps/workspaces/evidence/tuple.json": "11b2ec8ce313795c6f2431f3f7b8aa931333b5078de079b63c6b75e77e43308a",
+      "apps/workspaces/evidence/linux-browser.json": "7e0109301de12a58c39ca53425f6299946fd1ea58c027a2dd1e2521ea34d47e8",
+      "apps/workspaces/evidence/native-trace.json": "e722db08c11da479e0f12408049e0d0e8ee9ef433298a42e8be4663c9c29ba44",
+      "apps/workspaces/evidence/review-fix/error-boundary.json": "3b681dc6d3158c45cb4c56e729b57632ce8a373c5568cfb7e0ef5f7b4a0e4a15"
+    },
+    "tuple": "Native source 4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871 / schema dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b / DSH c0b09e15c170a82894608c397a363a7a96e5d05c",
+    "scope": "Historical real Linux browser/native/error-wire results on prior matched component only; no rerun after reconciliation.",
+    "currentFinalTupleAcceptance": "NOT RUN; integration generated identity and DSH source patch set differ; old evidence does not validate current artifacts."
+  },
+  "sourceSha256": {
+    "apps/host/src/workspace-component-main.ts": "57543414d5dafdcfc02434c18da25dc0b47db170e729864424798ffdaa7081e2",
+    "apps/host/src/workspace-component-server.ts": "0a25555f3ce660feeeb47ff4389094122894f8133732986b754659baf15e4963",
+    "packages/contracts/workspaces.ts": "5807c727627a34ae827b03bc156bf8baf8c93237d9bcdfe7644b93dc6074ca16",
+    "packages/contracts/workspace-errors.ts": "5fa1a3e7724cf3c389dbfb488a40ee10c80a88ec9873cfaff1e7c24e969ba241",
+    "packages/workspaces/catalog.ts": "0e2a0fb6c32a5ab254d2159cae4bbf075235697fca977774b5ea8f10b9a5fd26",
+    "packages/workspaces/errors.ts": "59e84ad3339a1d7b6b723484cc8ead48dc1371e1c2bbd48806508ae9b9d511d8",
+    "packages/workspaces/grants.ts": "3aae280f591cfed825fca97f020ad9d02c3fa5bb186ea1bf051375b5f96d3ccc",
+    "packages/workspaces/index.ts": "40de31c0df16d8235df60f3531b2e65aecc9bd28f02d727215fbcd89d8f1480f",
+    "packages/workspaces/fixture-index.ts": "5684749b3888c1c9931d62ca752160c0591b91ab17b8478033205f8d8a7436ef",
+    "apps/host/src/main.ts": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+    "apps/host/src/http.ts": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+    "scripts/enroll-candidate.ts": "2b27e6cad0d3f53e750ac6dec7abf57afaad2618b42ceb55539669dad83109ff",
+    "package.json": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+    "packages/contracts/generated/identity.ts": "bddd3701beecea1e28452381bd8f3d11fd7da1c16a2b67863b5dc079498c3627",
+    "compatibility/dsh/patches.json": "e1e9145f770b6a3929e6c603e9bd64e78acd492cbe399ca8e3a6f31e161509c8",
+    "tests/attachments/no-runtime.ts": "1b8fec99e1bbdba8dd9b783b5bf2f36781ba3dd228044a0c254b4ab5717af6d3",
+    "tests/preferences/no-provider.ts": "287bff06c8649fe523f9ecaefd79ea6bb02811bb36f7b21bba90b930503d078b",
+    "tests/workspaces/grants.test.ts": "cfdd63959a57c01d728a577b0b3c0631293d997a4ffd8c9450ed06e203586c77",
+    "tests/workspaces/index.test.ts": "60d0cc879e949d65c9a41d1df7c067eb3028f92512d1f148f92b14e3ad621eb1",
+    "tests/access/browser-access.test.ts": "5b747690908a381d50351f140a9f430a158216440b359b163280c63ab30c10f4",
+    "tests/access/host.test.ts": "ab2b6903daa3523246131cbd7d8fe95e87329cc4087bedd17f170c768d6c4d27",
+    "tests/preferences/remote.test.ts": "4a58c0996b9beaa7332d39bdda92c4d1d0ce58df1c4fa99270ac59be072ca0a6",
+    "tests/tree/remote.test.ts": "17d639614fd634b300e97dfc90d462b9f2e5c4471f722bd073f96c43b4802c0b"
+  },
+  "remainingGates": [
+    "Fresh focused review before Root integration merge",
+    "#41 matched public compatibility/global-install admission",
+    "#44 actual Session Index registration/protected open and supervised worker revocation composition",
+    "Fresh matched Native/build/schema/DSH/client/Host artifacts and real product browser/native evidence",
+    "User-deferred Windows Chrome/WSL2 and complete final acceptance/performance/native compatibility"
+  ]
+}

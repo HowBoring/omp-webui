@@ -1,0 +1,3 @@
+$ bun test ./tests/sessions/index.test.ts ./tests/sessions/revoke-all.test.ts ./tests/workspaces/grants.test.ts ./tests/interactions/bridge.test.ts ./tests/browser/interactions-remote.test.ts ./tests/preferences/remote.test.ts ./tests/attachments/store.test.ts ./tests/attachments/remote.test.ts
+/usr/bin/bash: line 1: bun: command not found
+error: script "test" exited with code 127

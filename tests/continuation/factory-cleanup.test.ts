@@ -54,7 +54,7 @@ test("real parent-open EMFILE releases the lease acquired for explicit native cr
   try {
     await mkdir(join(home,"project"));
     expect(await probe(home,join(home,"new.jsonl"),"create-parent","native-parent-emfile")).toMatchObject({
-      reacquired:true, descriptorsUnchanged:true, exists:false });
+      error:expect.stringContaining("EMFILE"), reacquired:true, descriptorsUnchanged:true, exists:false });
     expect(await Bun.file(join(home,"strict-syscalls.log")).text()).toContain('"returned":-24');
   } finally { await rm(home,{recursive:true,force:true}); }
 },20_000);

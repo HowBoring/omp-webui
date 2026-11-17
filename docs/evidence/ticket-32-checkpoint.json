@@ -1,13 +1,15 @@
 {
-  "status": "COMPONENT_CANDIDATE_INDEPENDENT_REVIEW_PENDING",
+  "status": "REVIEW_FIX_TARGETED_PASS_COMPLETE_INTEGRATION_GATE_PENDING",
   "issue": 32,
   "productSessionAdmission": "blocked",
-  "sourceCheckpoint": "76e770fb4eacba717f3a58f77508b823ce8e5221",
+  "nativeSourceCheckpoint": "6f5d0db905b6bb291fa342b427b16c109ceb7979",
+  "testControllerCheckpoint": "58347d1dd52ac670bd0e05558676eb758695edd6",
+  "reviewedBase": "9a6b9e12dfae005a2865faa45d3224945239b14e",
   "integration": "d22a908b2b6b8a53093af70c347b92cc5e69869b",
   "build": {
     "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "2fc226972a094936ced2f081d1ca67d647947968cd8f3696de918d2d16f9c415",
-    "patchSha256": "46f81f53da4b5b79494a1d098b6d7a41f6ea3ed5a5f2291a64967366b49a9485",
+    "sourceSha256": "2ead29a974d7b1a85d97e27575cacd80bc1f917d348012daa108ff3071192661",
+    "patchSha256": "19821d6e2e340bcf52ee1d288f2f42a29998bc54e183c384a04557e2effb2286",
     "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
   },
   "orderedPatches": [
@@ -29,13 +31,15 @@
     },
     {
       "path": "compatibility/omp/0005-strict-continuation.patch",
-      "sha256": "bb51ceabe1863e89def734ddbceb164ebb3a6807f3045e42243c5889f051d74b"
+      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
     },
     {
       "path": "compatibility/omp/0006-live-settlement.patch",
       "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
     }
   ],
+  "native0006UnchangedFromReviewedBase": true,
+  "originalHeldNativeCheckout": "unchanged; own lightweight clone used",
   "dshSource": {
     "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
     "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
@@ -56,125 +60,160 @@
     "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
   },
   "browserAssets": {
-    "sourceInputs": 235,
-    "sourceSha256": "17b42c681aad574518136aed46c10509f5e9cafdd0d9dcc046cfed768806d71d",
+    "sourceInputs": 251,
+    "sourceSha256": "6933175e705950550fc6372beb06d37bec7df84a5c4429317b89cb1a907a1c96",
     "contractSha256": "524dcbe1a9dba69387dcee37e369a6ba197c65c078a441273aceddddf46df49b",
     "assets": {
-      "client.js": "15ab128f6664196086c0f2a7379af19d7647173692fd8a7ba0842a25ce460aa2",
+      "client.js": "dfeb601f2e7eae5ca44f21cbdbf8954ba0c5a5a8bc6fcac20492cbe667b5da4a",
       "index.html": "5957c6e304412c38555689113c3cae99f8feac1df5a2b000314f3310ef2a5984"
     }
   },
-  "browserManifestSha256": "cd2976dbb3520cc30bb497d6dd35fb2ddbb7935e7ff4503e1c7206864eab25ed",
+  "browserManifestSha256": "7fb23378993454a7c9debc1efe9ad45548c64af7c6b07e2d3a333467ae13c7d4",
   "hostAssets": {
     "inputs": 259,
     "bundle": {
       "file": "continuation-fixture-main.js",
-      "sha256": "5a17e6aaaa08a3cdf1c8ed122a118c28f70fced71ac6352238ff7a3da125060c"
+      "sha256": "273baf1f20f3d90ddbd72769bdf9d1326894710436938a13f6c1f3f86b18d3f1"
     },
-    "manifestSha256": "d27b9c8bf940f3620f66f40fc76eeae44b4f51da11f66191f82b557a2bc5d57a"
+    "manifestSha256": "676a01a661ff7a65a0a1e1d70e3d485724e7be03fa010a4fcf8158aca9556343"
   },
-  "installation": {
-    "format": "omp-webui-s0-v1",
-    "assets": 77523,
-    "sha256": "85eedfc7cce0c79eaee0aeed9f70cbddb3efd6b3fe26047cd50e0c07770a20ac",
-    "runtime": {
-      "path": "../rpc-public-module-probe/tooling/bun/package/bin/bun",
-      "kind": "file",
-      "identity": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
-      "mode": 493
-    },
-    "platform": "linux",
-    "arch": "x64"
+  "candidateAssets": {
+    "cli.js": "6ec0c561041fa7cf98f2c4cb70ac855a9a0cd744308b8dc2ffdfb205bb910656",
+    "chunk-mqa8k80w.js": "82a8edf42dcef25fce41186af0f4e48d5f3b42140166534670b6521c04e266a7"
   },
-  "tools": {
-    "bun": "1.4.4",
-    "chromium": "156.0.8078.79",
-    "platform": "Linux-6.18.57-x86_64-with-glibc2.41"
+  "browserScreenshot": {
+    "path": "vendor/continuation-browser/continuation.png",
+    "sha256": "79ee42c0b035287c4b6075503b91e9e87978c52f92fc97aac112998b57e60168"
   },
-  "checks": {
-    "cleanOrderedBuild": "PASS",
-    "generatedCheck": "PASS",
-    "authoredStrictNativeTypecheck": "PASS",
-    "authoredLiveNativeTypecheck": "PASS",
-    "fullRepositoryCheck": {
+  "platform": {
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "kernel": "Linux 6.18.57 x86_64",
+    "filesystem": "overlayfs for /tmp and /workspace",
+    "bun": "1.4.4 (38afee6c8)",
+    "browser": "156.0.8078.79",
+    "WindowsWSL": "NOT RUN / deferred"
+  },
+  "checks": [
+    {
+      "command": "bun scripts/prepare-compatibility.ts --reset --source-only; bun scripts/build-compatibility.ts; bun scripts/build-compatibility.ts --check",
       "result": "PASS",
-      "tests": 247,
-      "assertions": 1966,
-      "files": 57,
-      "seconds": 518.66,
-      "includes": "typecheck + native/Host tests + product Host build; before final Host-only repeated-Continue/observed-exit fix"
+      "scope": "owned clean ordered 0001\u20130006 source; dependencies read-only"
     },
-    "finalHostRegression": {
+    {
+      "command": "bun run typecheck",
+      "result": "PASS"
+    },
+    {
+      "command": "bun scripts/check-strict-native.ts",
       "result": "PASS",
-      "tests": 1,
-      "assertions": 9
+      "scope": "focused authored strict native modules; unrelated upstream diagnostics excluded"
     },
-    "finalTypecheck": "PASS",
-    "actualTUI": {
+    {
+      "command": "bun scripts/check-live-native.ts",
+      "result": "PASS",
+      "scope": "focused authored live/history native modules; unrelated upstream diagnostics excluded"
+    },
+    {
+      "command": "bun run build",
+      "result": "PASS",
+      "scope": "Host health scaffold bundle; separate execution after failed complete-check attempt"
+    },
+    {
+      "command": "bun run check",
+      "result": "FAIL",
+      "testsPassed": 255,
+      "testsFailed": 1,
+      "assertions": 2023,
+      "files": 59,
+      "seconds": 576.03,
+      "failure": "test-controller PTRACE_GETREGS ESRCH on vanished tracee in parent-open EMFILE regression; native source unchanged",
+      "log": "vendor/strict-review-evidence/full-check-attempt1.log",
+      "sha256": "d2b55d178dde9fa7ee53e7899bdd008fa80f913bc78d3ab5311d72c5be40fba7"
+    },
+    {
+      "command": "bun test tests/continuation/factory-cleanup.test.ts tests/continuation/faults.test.ts",
+      "result": "PASS",
+      "tests": 14,
+      "assertions": 78,
+      "seconds": 55.55,
+      "scope": "after controller-only correction; intended syscall cut must complete and native EMFILE error/actual -24/lease reacquisition/fd cleanup must all be observed"
+    },
+    {
+      "command": "bun test tests/continuation/native-tui.test.ts",
       "result": "PASS",
       "tests": 3,
       "assertions": 24,
-      "includedInFullSuite": true
+      "seconds": 25.3
     },
-    "finalSyscalls": {
-      "result": "PASS",
-      "tests": 2,
-      "assertions": 21,
-      "report": "docs/evidence/ticket-32-native-syscalls.json"
-    },
-    "finalBrowser": {
+    {
+      "command": "python3 tests/browser/continuation-browser.py",
       "result": "PASS",
       "cases": 5,
       "DSHRemoteCalls": 21,
       "pageErrors": 0,
-      "report": "docs/evidence/ticket-32-browser.json"
-    },
-    "startupCancelLostResult": "actual worker public boundaries, no automatic replay"
-  },
-  "faultArtifacts": {
-    "tests/continuation/native-faults.c": "62c488ca99575e4aca0b57d6d80bf4a30a6c1923f1613f16d4f3311f1ab106d7",
-    "vendor/strict-fixture/native-faults.so": "6f4ad9edb8c50fa1a42d131a4dae6d5d32dac7ee04010370d72fe70464b20bf9",
-    "tests/continuation/syscall-faults.py": "40ce4337c252b382c7bf4ac55282cb7b72010198c00fe41c2c6df70d3e22d3e7",
-    "tests/continuation/native-faults.ts": "e8020a4789fcc5ce97c830b07cbfb972f3b4afc8eecf2c2c4d9ec6b448fb0324",
-    "compatibility/omp/fixtures/no-provider.ts": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
-  },
-  "reports": {
-    "docs/evidence/ticket-32-browser.json": "fc4830084f4de9c7a021c42bd541a87c0d271e4bddd77849a5db2a42ecc29a48",
-    "docs/evidence/ticket-32-browser.png": "bb8b5167fceda44693ce7f7b7cff10da5079d7cab3e98788bfa43b7348272c5b",
-    "docs/evidence/ticket-32-live-composition.json": "fb4c37c186331391dd0576bf6f4628b44268379be7e330e6e468a5414be2d476",
-    "docs/evidence/ticket-32-native-syscalls.json": "f36e31cef7d8d6049b4092f6e68419c067472e3fb74267cc0fc64d8c553abb78",
-    "docs/evidence/ticket-32-strict-continuation.md": "94361a9867bf4599d840bd2c7c2e76dbe99dc72402f06b9f569c74c2a5d3aef4"
-  },
-  "rawChecks": [
-    {
-      "path": "vendor/strict-evidence/final-browser.log",
-      "sha256": "00ee720ea69d06529adcd8085bfb1b1daa3df31446bf280395ec0b910af9ff56"
+      "browser": "156.0.8078.79"
     },
     {
-      "path": "vendor/strict-evidence/final-enroll.log",
-      "sha256": "ea044099e05a79fb78897aa9f9b8043fa3a4d19e34f651bac57e84315f888bc6"
-    },
+      "command": "strace -ff -yy -s 160 -e trace=network,fgetxattr,fsetxattr,pwrite64,linkat -o vendor/strict-review-evidence/final-trace/native bun test tests/continuation/generation.test.ts tests/continuation/nested-artifacts.test.ts -t 'native title publication keeps|native copy preserves'",
+      "result": "PASS",
+      "tests": 2,
+      "assertions": 21,
+      "seconds": 19.06,
+      "INETCalls": 0
+    }
+  ],
+  "rawEvidence": [
     {
-      "path": "vendor/strict-evidence/final-host-build.log",
-      "sha256": "5a36b8a85a49ff5bf3ce3df4db47f7f4ead60b09c9492477edfadae2a7744d69"
-    },
-    {
-      "path": "vendor/strict-evidence/final-host-state.log",
-      "sha256": "95d929ed89a3fd9847df7abe3fa216c8090e846197a07ee268e5155056eb4480"
-    },
-    {
-      "path": "vendor/strict-evidence/final-syscalls.log",
-      "sha256": "6d7d687101970ea65f1d834899e0f4075a86aa5869b9c75869e087f3f101eb86"
-    },
-    {
-      "path": "vendor/strict-evidence/final-typecheck.log",
+      "path": "vendor/strict-review-evidence/typecheck-final.log",
       "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    {
+      "path": "vendor/strict-review-evidence/live-types-final.log",
+      "sha256": "516f528bf6fc073c9a636e6d4f73552615f9210f16f83f1db286da1687fa62e3"
+    },
+    {
+      "path": "vendor/strict-review-evidence/host-build-final.log",
+      "sha256": "17510aaf6f79648c1a9ad9e9580b6c3474b1f89da41e21151721e8001f88cc3b"
+    },
+    {
+      "path": "vendor/strict-review-evidence/faults-after-controller-fix.log",
+      "sha256": "8ffdd949c8174d96972b3007ee49d12cbad5859b3bf4fce5003fbb48926a1443"
+    },
+    {
+      "path": "vendor/strict-review-evidence/tui-final.log",
+      "sha256": "66f07cb1f287cc1ba9031ee68abdba285905dbf8a508d2465696bcfa79d6ca7b"
+    },
+    {
+      "path": "vendor/strict-review-evidence/browser-final.log",
+      "sha256": "240ebe22979a139e513a9e1b1d3dc37ddf4c9ad9e638fc141ea674b7ff9043c8"
+    },
+    {
+      "path": "vendor/strict-review-evidence/browser-run.log",
+      "sha256": "f3c11f7fc6e0c4d08d9b334555994e662088d768931dc5ab63534eb80c21b50c"
+    },
+    {
+      "path": "vendor/strict-review-evidence/syscall-final.log",
+      "sha256": "eb13f8e363dafd3ddaefeb48f11cb9869ba5076f05acdbef151d30d62bb95f2f"
     }
   ],
   "ownedSources": {
+    "apps/continuation/src/client.ts": "f251ef0f6612482b06efbb7ed2a90e875bada6b62936c91678144cc328e43630",
+    "apps/host/src/continuation-fixture-main.ts": "4a88d6523046b1c716bab4d42f083c23c7e1a965bf259d2941fbcdf1b5f72475",
+    "apps/host/src/continuation-fixture-server.ts": "3ed134240de437dfc91e559438807ad530bbdc38cc66964574f0ade3bdf8bc88",
+    "compatibility/omp/fixtures/carrier-budget.ts": "99e43d162ecb52d70ba2874d3f34b7a25ec99da3baed832a84d1e176317493b9",
+    "compatibility/omp/fixtures/factory-cleanup.ts": "83171132739b7551e35da2f415cc400ae1a0778420bfbdab1d9913ef9a73559b",
+    "packages/compatibility/strict-transport.ts": "6472adaa39a8d28883fdb9c8bbebe43b5bd129d136a46455eb1398de662b925f",
+    "packages/continuation/fixture.ts": "7c424cd5e85f3d480948f924fdcdc3c68056212ad78312b17f4b718d0edd8c55",
+    "packages/contracts/continuation.ts": "524dcbe1a9dba69387dcee37e369a6ba197c65c078a441273aceddddf46df49b",
+    "scripts/build-continuation-fixtures.ts": "3b0894419168f15875425d0e7e80db1374c4b3ecd2feee236f18008e95437393",
+    "scripts/check-strict-native.ts": "3fc6b887c0c3b35b944c7aa61a23d42ca8fe349a8631cdc0a723cfab67ba1fa2",
+    "scripts/omp-source.ts": "db39feec5e5f2d25276c3ad34229040910861f86c0f34adcb8bf92dc39150c45",
+    "tests/browser/continuation-browser.py": "4ec716021564bbc9b35eade943a4162b0d2d3a33dc41dd44e972fd34c159054b",
     "tests/continuation/budgets.test.ts": "b1b13f36ad112d164ca7403d5c4eb43cb6d87a5d4ebf7443cdb2c6438dcf9ad5",
+    "tests/continuation/carrier-budget.test.ts": "3e50e6c7f263c30edba32fabdd4cbf24c80f9f3d4fe6bb9ba3c2fb0d67307a3f",
     "tests/continuation/continuation.test.ts": "73c344d1b3e9ea8da48a7e2e0d964684d066393f3fceac4c6e81ba9af1d43aba",
     "tests/continuation/copies.test.ts": "4d64276f87eafaf1ee04db9d97a359434445f39ce20a74ee10ff96a1a1a72dd8",
+    "tests/continuation/factory-cleanup.test.ts": "2ce66bb5f2c79a8f7896842d50c173130d49e19edaa63be9eb203916dbf4c9d2",
     "tests/continuation/faults.test.ts": "00dabc73eeb981449d9e15e5b56ca6f3c14c01d6abd31f57a7455486883dfdb9",
     "tests/continuation/format-integrity.test.ts": "2eeabdad1eb907a5b04cdc7be37a6bb1fd3f965f60e39d2ddb5811504d87eecf",
     "tests/continuation/generation.test.ts": "2b1b78dec0f79bf8c44b77c45f6593a60bcdebcc742a47f7c7cd2ce631d11844",
@@ -184,24 +223,49 @@
     "tests/continuation/native-faults.ts": "e8020a4789fcc5ce97c830b07cbfb972f3b4afc8eecf2c2c4d9ec6b448fb0324",
     "tests/continuation/native-tui.test.ts": "904942baa85e898898e75473f04fa74f930d8eeb331b1e711ed2f56fe7409bef",
     "tests/continuation/nested-artifacts.test.ts": "0c0d07b44e4c273844182e2f941b7ad3df378088786726251f70796ba9945ce0",
-    "tests/continuation/ownership.test.ts": "6d03bf59b526fb0e94e5e9954fc74bce8623dcaea026a3a2243d8fde255bcc0c",
+    "tests/continuation/ownership.test.ts": "1d4264a1c73e900a3a1ad2cf9a4f0bb582175904d4e60be986a2ccf180e47f83",
     "tests/continuation/shared-readers.test.ts": "4f17b4caced9849455071619c10c9ededfd38d9d430fd893ae4d295585a44fbd",
     "tests/continuation/startup-extension.ts": "9f57043f9623a6da96bd8d4ceaaa24c9ef31f8d29b3806a99baa229ba2b9b975",
-    "tests/continuation/startup-order.test.ts": "e05b015898c15ffba8902f3ba083adcc3c96530a6056e0e9f2537134d5b0d36c",
+    "tests/continuation/startup-order.test.ts": "0f2a9439c868bc2f1d9f0de1e73d90daae8363ddbc55570d69b9e3dce2f7f71d",
     "tests/continuation/startup.test.ts": "ab29d69d16ab254b0d640bd0d4bed76d1209d8eb2b6be27fe51e86233e5abe5a",
-    "tests/continuation/syscall-faults.py": "40ce4337c252b382c7bf4ac55282cb7b72010198c00fe41c2c6df70d3e22d3e7",
+    "tests/continuation/syscall-faults.py": "972ee9c68cf5db55bbd8230b29dc60ac037d5f8d465beaa34067efc95af921c7",
     "tests/continuation/transport.test.ts": "44f0e2632abbf3bc4011bde38d8061bee73082f5b79c7b6cd205808c5b4df262",
     "tests/continuation/tui-probe.py": "8c4f3730bd8b92412013cd00be95c333f3094925dec600231a95411d4f310b1e",
-    "tests/continuation/worker.ts": "1b8b07f01fbd431e43b4de3e8caf90acd947d6927f3fefa189a6d004aa371f3e",
-    "tests/browser/continuation-browser.py": "4ec716021564bbc9b35eade943a4162b0d2d3a33dc41dd44e972fd34c159054b",
-    "packages/continuation/fixture.ts": "7c424cd5e85f3d480948f924fdcdc3c68056212ad78312b17f4b718d0edd8c55",
-    "packages/contracts/continuation.ts": "524dcbe1a9dba69387dcee37e369a6ba197c65c078a441273aceddddf46df49b",
-    "packages/compatibility/strict-transport.ts": "6472adaa39a8d28883fdb9c8bbebe43b5bd129d136a46455eb1398de662b925f",
-    "apps/host/src/continuation-fixture-main.ts": "4a88d6523046b1c716bab4d42f083c23c7e1a965bf259d2941fbcdf1b5f72475",
-    "apps/host/src/continuation-fixture-server.ts": "3ed134240de437dfc91e559438807ad530bbdc38cc66964574f0ade3bdf8bc88",
-    "apps/continuation/src/client.ts": "f251ef0f6612482b06efbb7ed2a90e875bada6b62936c91678144cc328e43630",
-    "scripts/check-strict-native.ts": "b85154a717bd932c7acb29ea10c426a66087bf4bec2337df02fd6e1b4561f920",
-    "scripts/build-continuation-fixtures.ts": "3b0894419168f15875425d0e7e80db1374c4b3ecd2feee236f18008e95437393"
+    "tests/continuation/worker.ts": "e23ee190c2ceaac3560f63acdeb7be95d79a305eb330c9cd5a3bd3f361154add"
+  },
+  "cleanup": {
+    "activeOwnedNativeBrowserWorkers": 0,
+    "catalogChild": "absent after Host SIGTERM",
+    "Host": "exited after SIGTERM; PTY launcher had orphaned it, terminal zombie remains for PID1 reaping; no live CPU/fds",
+    "temporaryNativeFixtures": "removed by test finally blocks"
+  },
+  "attempts": [
+    {
+      "scope": "first complete-check attempt",
+      "result": "FAIL",
+      "reason": "controller GETREGS ESRCH; preserved above; no native source change"
+    },
+    {
+      "scope": "early browser navigation before fixture Host announced ready",
+      "result": "FAIL / setup timing",
+      "reason": "ERR_CONNECTION_REFUSED during full77524-asset provenance startup; final run after ready passed"
+    },
+    {
+      "scope": "first synthetic fixture authoring in default restricted sandbox",
+      "result": "BLOCKED",
+      "reason": "Bun stdio EPERM; network-enabled sandbox rerun passed"
+    }
+  ],
+  "requiredNextGate": "Fresh review followed by one complete matched integration bun run check. No complete-check PASS and no #32 closure claim until that is green. No full repeat here per coordinator.",
+  "previousCandidate": {
+    "sourceCheckpoint": "76e770fb4eacba717f3a58f77508b823ce8e5221",
+    "build": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "2fc226972a094936ced2f081d1ca67d647947968cd8f3696de918d2d16f9c415",
+      "patchSha256": "46f81f53da4b5b79494a1d098b6d7a41f6ea3ed5a5f2291a64967366b49a9485",
+      "schemaSha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+    },
+    "historicalTrackedScreenshot": "docs/evidence/ticket-32-browser.png; unchanged from previous candidate, not the current screenshot"
   },
   "explicitLimits": [
     "Linux x64 tested filesystem; required fd xattrs/O_TMPFILE/linkat; Windows/WSL unverified",

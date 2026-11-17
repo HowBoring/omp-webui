@@ -1,0 +1,38 @@
+/** Preimport boundary for pure preference fixtures: no network, processes or listeners. */
+import http from "node:http";
+import https from "node:https";
+import http2 from "node:http2";
+import net from "node:net";
+import tls from "node:tls";
+import dgram from "node:dgram";
+import childProcess from "node:child_process";
+import { syncBuiltinESMExports } from "node:module";
+
+const deny = (): never => { throw new Error("PREFERENCES_FIXTURE_EXTERNAL_EFFECT_DENIED"); };
+globalThis.fetch = Object.assign(deny, { preconnect: deny });
+globalThis.WebSocket = class { constructor() { deny(); } } as unknown as typeof WebSocket;
+http.request = deny;
+http.get = deny;
+http.Server.prototype.listen = deny;
+https.request = deny;
+https.get = deny;
+http2.connect = deny;
+net.connect = deny;
+net.createConnection = deny;
+net.Socket.prototype.connect = deny;
+net.Server.prototype.listen = deny;
+tls.connect = deny;
+dgram.createSocket = deny;
+childProcess.spawn = deny;
+childProcess.spawnSync = deny;
+childProcess.exec = Object.assign(deny, { __promisify__: deny });
+childProcess.execSync = deny;
+childProcess.execFile = Object.assign(deny, { __promisify__: deny });
+childProcess.execFileSync = deny;
+childProcess.fork = deny;
+Bun.connect = deny;
+Bun.listen = deny;
+Bun.serve = deny;
+Bun.spawn = deny;
+Bun.spawnSync = deny;
+syncBuiltinESMExports();

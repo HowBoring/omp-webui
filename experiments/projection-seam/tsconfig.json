@@ -1,0 +1,5 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": { "resolveJsonModule": true },
+  "include": ["build.ts", "native-provider.ts", "native.ts", "native-identity.ts", "native-transport.ts", "native-service.ts", "native-smoke.ts"]
+}

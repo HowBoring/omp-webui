@@ -1,0 +1,34 @@
+{
+  "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+  "repositories": {
+    "native": {
+      "checks": {
+        "head": true,
+        "status": true,
+        "indexSha256": true,
+        "stagedDiffSha256": true,
+        "workingDiffSha256": true
+      },
+      "authoredCount": 10668,
+      "fileMismatches": [],
+      "addedAuthoredPaths": []
+    },
+    "dsh": {
+      "checks": {
+        "head": true,
+        "status": true,
+        "indexSha256": true,
+        "stagedDiffSha256": true,
+        "workingDiffSha256": true
+      },
+      "authoredCount": 21061,
+      "fileMismatches": [],
+      "addedAuthoredPaths": []
+    }
+  },
+  "artifactMismatches": [],
+  "historicalRawMismatches": [],
+  "artifactsCount": 21,
+  "historicalRawCount": 18,
+  "pass": true
+}

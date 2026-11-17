@@ -1,5 +1,10 @@
 # Directory authorization and read-only Workspace mapping (#43)
 
+Current status (2026-11-17): unregistered source component reconciled with integration `acc50ff`; #43 and #29 remain
+OPEN and private/product/global admission remains BLOCKED. Pure contract checks and the normal Host compile are
+recorded in [source evidence](../../docs/implementation/ticket-43-source-evidence.json). The earlier Linux
+browser/native `4764…`/`dcc2…`/c0 results remain historical; they do not validate the reconciled final combination.
+
 `DirectoryGrants` stores only canonical roots and their filesystem identity (device, inode, birth time), grant ID
 and timestamp in private Host-owned SQLite. It never reads native Sessions. A 60-second in-memory confirmation
 binds an explicitly reviewed canonical target; confirmation is single-use and verifies replacement again.

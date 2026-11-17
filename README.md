@@ -25,7 +25,10 @@ The [public Client policy experiment](docs/dsh-policy-validation.md) now passes 
 checks; its patch and fixture assets remain on a separate experiment branch, without product runtime integration.
 The [local access policy](docs/local-access-contract.md) remembers browser authorization for 30 days,
 allows explicit persistent directory grants in the WebUI, and confines uploads to dedicated staging.
-Authentication and these grant operations remain unimplemented.
+The normal Host supplies persistent browser login while private capabilities remain gated.
+The [Workspace component](apps/workspaces/README.md) supplies isolated grant/catalog source and historical fixture
+evidence. Its current [source verification](docs/implementation/ticket-43-source-evidence.json) leaves Workspace
+registration in the normal Host absent and private capabilities gated; it does not establish complete #43 acceptance.
 The accepted [history interaction contract](docs/history-interaction-contract.md) separates tree selection,
 same-Session navigation and new-Session branching, with explicit confirmation, unsent drafts and a
 stop-then-wait flow. Its disposable prototype is evidence for the interaction decision, not RPC integration.

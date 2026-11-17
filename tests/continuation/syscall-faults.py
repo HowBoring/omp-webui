@@ -67,6 +67,7 @@ ptrace(24, child)
 tracees, pending = {child}, {}
 open_pending, parent_opens, cwd_pinned, carrier_writable = {}, 0, False, False
 fired = False
+open_fault_completed = False
 exit_code = None
 try:
     while tracees:
@@ -91,7 +92,10 @@ try:
                 continue
             operation = info.raw[0]
             regs = Registers()
-            ptrace(12, pid, 0, c.addressof(regs))
+            try:
+                ptrace(12, pid, 0, c.addressof(regs))
+            except ProcessLookupError:
+                continue
             if operation == 1 and regs.orig_rax in (2, 257) and fault in ("native-parent-emfile", "swap-after-reservation-parent"):
                 address, flags = (regs.rdi, regs.rsi) if regs.orig_rax == 2 else (regs.rsi, regs.rdx)
                 name = os.fsdecode(string_memory(pid, address))
@@ -124,6 +128,7 @@ try:
                     target.rename(str(target) + ".moved")
                     shutil.copyfile(str(target) + ".replacement", target)
                 audit(fault, boundary="open-directory-return", returned=result, parent_opens=parent_opens)
+                open_fault_completed = True
             elif operation == 1 and regs.orig_rax == 18:
                 try:
                     file = os.readlink(f"/proc/{pid}/fd/{regs.rdi}")
@@ -184,4 +189,7 @@ finally:
             pass
 if fault.startswith("crash-") and fired:
     sys.exit(91)
+if fault in ("native-parent-emfile", "swap-after-reservation-parent") and not open_fault_completed:
+    audit("intended-open-fault-not-completed", fault=fault)
+    sys.exit(97)
 sys.exit(exit_code if exit_code is not None else 98)
