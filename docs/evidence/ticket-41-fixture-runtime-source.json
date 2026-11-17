@@ -7,15 +7,17 @@
     "compatibility/omp/fixtures/native-helper-drain-launch.ts": "4a86eb3d28d2ceb9599fb07c705fef4009e8671557607ca3ab3df7feb78b64bb",
     "compatibility/omp/fixtures/native-helper-drain-runtime.ts": "213ec9819cbce0f980b090c1715f7b7f540c6d2a44962f8ead53fbc66e08abf4",
     "compatibility/omp/fixtures/native-helper-drain-source-plan.ts": "4f5ece507e911da3d81be4a26e873e224fa474148e9a5da80f11d699d881e2a3",
-    "compatibility/omp/fixtures/native-helper-drain-source-plan.json": "6c91e94ac70b8dc99dbe741ab5706ab2d574a3daa2ad8ef32da28c4d239f7cd1",
+    "compatibility/omp/fixtures/native-helper-drain-source-plan.json": "3eca1dd26990b1e2ba2ce4b1bc7de596c0858c9d831ad2587dc80ac7b41c7810",
     "scripts/check-native-helper-two-process.ts": "4df9d5d87d8839aa1c947117f19680834122c01e20d52498578cd4347e6ac7a2",
     "scripts/prepare-native-helper-drain.ts": "40d058e5b961b208d00fa5e7915208b925c92d39c476204ce7e41c85a4c1886e",
     "tests/ownership/native-helper-drain-runtime.test.ts": "fd5462236f3be320c6bfa45ff08648782d610444a463e6712c8fc1d64a72af50",
     "tests/ownership/native-helper-two-process.test.ts": "869f11800c9e98248f2dbb573f9b632f7675f7c351440e6d28e357b55bfb2ea4",
     "docs/adr/0018-native-execution-ownership.md": "67dfd0c852a7da5eae192b47669f75bacb9399b87b643efef0aac6959aeb2b62",
-    "docs/evidence/ticket-41-fixture-runtime-source.md": "61d2653b90b83ec7bf98dfea7af0e05303231efcef8095f5fc8d72c6dad06f4f",
+    "docs/evidence/ticket-41-fixture-runtime-source.md": "baa0460f153b6f17dcd3e266d676c8c442fea8c83dcb6486752c024b307341a8",
     "tests/ownership/native-helper-drain-compiler.test.ts": "3c5e0519b4a3f363bf7a2323c85ed211f1d0f1c9069a03bcbc79a580c9d49bca",
-    "tests/ownership/test_r11_stage_inspection.py": "e6ad0d0bd5ac9a432cba6122a37bd60125798a631e7a3451d87082291d9d5d58"
+    "tests/ownership/test_r11_stage_inspection.py": "e6ad0d0bd5ac9a432cba6122a37bd60125798a631e7a3451d87082291d9d5d58",
+    "compatibility/omp/fixtures/native-helper-drain-native.ts": "c2f637d6089dd2605a1b91a34035e4e1f19268f50f8705dda263353b75de5bcd",
+    "compatibility/omp/fixtures/native-helper-drain-host.ts": "f5e563fb409c25f4ba8128f2c4feea5323b9b4287bba4503ac14e80ffd2f97f0"
   },
   "evidenceHashes": {
     "docs/evidence/fixture-runtime/checks.json": "773d0aa572fcccf75204197aeba096264604df886244fe7a45feb783c03fa8c9",
@@ -59,5 +61,75 @@
     "productAdmission": "BLOCKED"
   },
   "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_REVIEW",
-  "predecessorHarnessHead": "baa98667901c98e7e084c730519b52ad68960301"
+  "predecessorHarnessHead": "baa98667901c98e7e084c730519b52ad68960301",
+  "publicTerminalLoaderFix": {
+    "predecessorHarnessHead": "300edbcfa6496018ae5d17231a5c143a8f764571",
+    "status": "SOURCE_ONLY_RUNTIME_GREEN_NOT_RUN",
+    "changedEntrypoints": [
+      "compatibility/omp/fixtures/native-helper-drain-native.ts",
+      "compatibility/omp/fixtures/native-helper-drain-host.ts"
+    ],
+    "oldPublicLoader": "loadOwnershipControlApproval",
+    "selectedPublicLoader": "loadOwnershipTerminalApproval",
+    "explicitPolicy": "anchor/3 + approval/4 + signature-domain/4",
+    "red": {
+      "seam": "Existing agreed actual public two-process fixture run",
+      "generation": "a2509b6fb22c0c5b820537b26dc49b7750e51890d7e9579540702650f63d9067",
+      "phase": "native_approval",
+      "publicCode": "dispatcher_mismatch",
+      "evidenceSha256": {
+        "/workspace/work/mvp-implementation/recovery/restore12-r14-root-actual-initial-tool.json": "d007e639a4f30210b9048785e0fdd647d2338aaa6f9fd38555955c4498249cf0",
+        "/workspace/work/mvp-implementation/recovery/restore12-r14-root-actual-recovery-tool.json": "96532ad120e05ecd3c82c7a9b0b25ba2b2157fbd195bfdaa8c89ce1cf89c46ae"
+      },
+      "fixtureAcceptance": false,
+      "automaticCleanupAcceptance": false
+    },
+    "sourcePlan": {
+      "inputs": 123,
+      "addedInputs": 0,
+      "removedInputs": 0,
+      "changedRecords": [
+        "compatibility/omp/fixtures/native-helper-drain-native.ts",
+        "compatibility/omp/fixtures/native-helper-drain-host.ts"
+      ],
+      "sha256": "3eca1dd26990b1e2ba2ce4b1bc7de596c0858c9d831ad2587dc80ac7b41c7810"
+    },
+    "validation": {
+      "existingPureTests": {
+        "toolChunk": "9ff4ed",
+        "exitCode": 0,
+        "tests": 16,
+        "assertions": 92,
+        "preload": "tests/preferences/no-provider.ts",
+        "isolation": "Synthetic env-i HOME/profile/cwd and XDG roots"
+      },
+      "existingPureSourceChecker": {
+        "toolChunk": "d9db6f",
+        "argument": "--runtime-source-only",
+        "exitCode": 0,
+        "plannedInputs": 123,
+        "nativeImported": false,
+        "built": false
+      },
+      "existingTargetedTypes": {
+        "toolChunk": "7f92a5",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "check",
+          "--no-script",
+          "-p",
+          "docs/evidence/fixture-runtime/tsconfig.json"
+        ],
+        "exitCode": 0,
+        "files": 15,
+        "nativeGraphIncluded": false
+      },
+      "newTestsAdded": false,
+      "runtimeGreen": "NOT_RUN"
+    },
+    "nativePublicApiSecurityIdentityAssemblyChanged": false,
+    "sourceOnly": true,
+    "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_REVIEW_THEN_NEW_ROOT_PACKET_STAGE_SIGN_AND_ONE_ACTUAL_RUN",
+    "productAdmission": "BLOCKED"
+  }
 }

@@ -786,15 +786,15 @@
       "ctime": "1794921820780221417"
     },
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-host.ts": {
-      "sha256": "79738a941ac685c742a0eae3fb0f39bb1e6fd7ed102fec7de4fd5cee643ba886",
+      "sha256": "f5e563fb409c25f4ba8128f2c4feea5323b9b4287bba4503ac14e80ffd2f97f0",
       "device": "27",
       "inode": "333322",
-      "size": 4936,
+      "size": 4938,
       "uid": 1000,
       "mode": 384,
       "nlink": 1,
-      "mtime": "1794921820780221417",
-      "ctime": "1794921820780221417"
+      "mtime": "1794933868723041946",
+      "ctime": "1794933868723041946"
     },
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-io.ts": {
       "sha256": "9d408915daab6b1f13c5dc0b4e9a8a87c5d25c140d1f5c0d6cefe76da59de818",
@@ -819,15 +819,15 @@
       "ctime": "1794925475411055522"
     },
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-native.ts": {
-      "sha256": "5f2293def632adb4ccd6f33155c8f5ee13565c567ea9bfbbd8bf67a52719f071",
+      "sha256": "c2f637d6089dd2605a1b91a34035e4e1f19268f50f8705dda263353b75de5bcd",
       "device": "27",
       "inode": "333336",
-      "size": 2778,
+      "size": 2780,
       "uid": 1000,
       "mode": 384,
       "nlink": 1,
-      "mtime": "1794922018574514048",
-      "ctime": "1794922018574514048"
+      "mtime": "1794933868722617266",
+      "ctime": "1794933868722617266"
     },
     "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-public-pins.json": {
       "sha256": "a0abd9339f9f8628440db327ca492b40244c8d591bbed93ce7c1f6178cf09292",

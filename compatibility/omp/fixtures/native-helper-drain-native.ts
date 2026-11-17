@@ -7,7 +7,7 @@ import { drainFact, parentCommand } from "./native-helper-drain-io";
 export async function runHelperDrainFixture(config: HelperDrainConfiguration,
   reportPhase: (phase: HelperDrainPhase) => void = () => {}): Promise<void> {
   reportPhase("native_imports");
-  const { loadOwnershipControlApproval } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval");
+  const { loadOwnershipTerminalApproval } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval");
   const { captureLauncherMaintenanceHandoff } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/maintenance-handoff");
   const { selectOwnershipControlRelease } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/selected-control-release");
   const { LinuxOwnershipServer } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/server");
@@ -15,7 +15,7 @@ export async function runHelperDrainFixture(config: HelperDrainConfiguration,
   const handoff = captureLauncherMaintenanceHandoff(process.argv.slice(2));
   if (handoff.arguments.join(",") !== "--fixture-native") throw new Error("DRAIN_NATIVE_ARGUMENTS");
   reportPhase("native_approval");
-  const approval = await loadOwnershipControlApproval(config.anchor);
+  const approval = await loadOwnershipTerminalApproval(config.anchor);
   if (!approval.helperFence) throw new Error("DRAIN_V4_REQUIRED");
   reportPhase("native_claim");
   const guard = handoff.claim(approval);

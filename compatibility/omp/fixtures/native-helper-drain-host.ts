@@ -7,7 +7,7 @@ import type { PrivateHelperHandle } from "../../../../omp-webui-ticket-41-contro
 
 /** Actual Host public adapter and Native public client. No mechanical dispatcher or fabricated ACK/status. */
 export async function runHelperDrainFixture(config: HelperDrainConfiguration): Promise<void> {
-  const { loadOwnershipControlApproval } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval");
+  const { loadOwnershipTerminalApproval } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval");
   const { captureLauncherMaintenanceHandoff } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/maintenance-handoff");
   const { connectApprovedOwnershipClient } = await import("../../../vendor/omp-ownership/packages/coding-agent/src/launch/ownership/uds-client");
   // The public module delegates selection.verify; use this tree's reviewed bounded-alias production inspector.
@@ -15,7 +15,7 @@ export async function runHelperDrainFixture(config: HelperDrainConfiguration): P
   const { createPrivateHelperOwner } = await import("../../../../omp-webui-ticket-41-controlio-public-adapter/packages/supervision/adapter.ts");
   const handoff = captureLauncherMaintenanceHandoff(process.argv.slice(2));
   if (handoff.arguments.join(",") !== "--fixture-host") throw new Error("DRAIN_HOST_ARGUMENTS");
-  const approval = await loadOwnershipControlApproval(config.anchor);
+  const approval = await loadOwnershipTerminalApproval(config.anchor);
   if (!approval.helperFence) throw new Error("DRAIN_V4_REQUIRED");
   const guard = handoff.claim(approval);
   const original = await inspectCoordinatedSelection({ root: approval.releaseRoot,

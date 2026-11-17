@@ -126,3 +126,27 @@ Current validation passes 16 Bun tests/92 assertions, seven Python tests, target
 the 123-input pure AST/filesystem checker. Exact retained evidence is `fixture-runtime/r11-source-fix-checks.json`.
 The R11 stage remains absent. Fresh paired review of the new exact Source commit/tree and sibling Ready is the
 next gate; staging, GCC/Bun builds, keys, signatures and actual runtime work remain NOT RUN.
+
+
+## R14 explicit terminal-approval loader correction
+
+R14 actual public-run evidence failed with `dispatcher_mismatch` during `native_approval`, before claim,
+selection or server open. Both fixture entrypoints selected `loadOwnershipControlApproval`, whose explicit
+anchor/2 + approval/3 policy rejects the fresh signed anchor/3 + approval/4 configuration. Both now call the
+existing public `loadOwnershipTerminalApproval`, which explicitly selects approval/4 and preserves strict
+validation, composed-approval registration and the existing helper-fence requirement. No Native API,
+security check, dispatcher identity, assembly, selection or retainer policy changes.
+
+The existing public-run seam supplies the meaningful RED at
+`/workspace/work/mvp-implementation/recovery/restore12-r14-root-actual-initial-tool.json`; its paired
+`restore12-r14-root-actual-recovery-tool.json` preserves the original held-pidfd TERM recovery, original wait
+-15, both EOFs, kernel terminal observation and final P_ALL ECHILD. Fixture and automatic-cleanup acceptance
+remain false. R14 stays consumed and its evidence is not rewritten. The read-only diagnosis is
+`/workspace/work/mvp-implementation/research/ticket41-r14-dispatcher-mismatch.md`.
+
+The source plan keeps all 123 canonical inputs and refreshes only the two changed fixture records. Source-only
+checks validate that unchanged closure and the existing pure regressions; no new AST or wiring test is added.
+The runtime behavior GREEN remains NOT RUN and requires fresh paired Source review, a new Root packet/stage,
+fresh signing and one separately cleared actual run through the same public seam. This correction performs no
+Native/Host import, C compilation, producer execution, key operation, staging or actor launch. Product admission
+remains BLOCKED.
