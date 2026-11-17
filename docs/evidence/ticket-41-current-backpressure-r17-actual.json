@@ -1,0 +1,244 @@
+{
+  "status": "ACTUAL_PRESTART_FAIL74_MANUAL_KERNEL_TERMINALS_ONLY",
+  "issue": "https://github.com/HowBoring/omp-webui/issues/41",
+  "source": {
+    "commit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+    "tree": "18b04962404fadee4fa18aceea271188a18dc8c8",
+    "baseCommit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+    "existingEightSourceAdditions": "BYTE_IDENTICAL",
+    "productionChanges": false,
+    "sealedLabels": "Historical SOURCE_READY_RUNTIME_NOT_RUN and READY_NOT_RUN/NOT_RUN are preserved; actual result is recorded separately"
+  },
+  "window": {
+    "stage": "/tmp/omp-external-current-backpressure-r17-20261117",
+    "marker": "external-current-602f498-backpressure-r17-v1",
+    "generation": "37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b",
+    "manifestSha256": "e15903d6a8e00986fcd19a7e38bcc11f7b40b4250a15237922ca2d78b057cb41",
+    "oneUse": "CONSUMED_FAILED_DO_NOT_RERUN",
+    "sourceReview": "PAIRED_FINAL_SOURCE_GO",
+    "artifactReview": "PAIRED_UNSIGNED_ARTIFACT_GO",
+    "rootAuthorization": "ONE_LITERAL_EXACT_MANIFEST_WINDOW"
+  },
+  "preparationTools": [
+    {
+      "role": "source-prepare",
+      "chunk": "084b33",
+      "exitCode": 0
+    },
+    {
+      "role": "root-compiler",
+      "chunk": "e36f8a",
+      "exitCode": 0
+    },
+    {
+      "role": "protector-compiler",
+      "chunk": "ec0f57",
+      "exitCode": 0
+    },
+    {
+      "role": "unsigned-seal",
+      "chunk": "08eb7d",
+      "exitCode": 0
+    }
+  ],
+  "actual": {
+    "initialChunk": "50c330",
+    "originalToolSession": 20749,
+    "holdChunk": "58cb89",
+    "result": "PRESTART_FAIL74_NO_PASS",
+    "hold": "ORIGINAL_OWNERS_RETAINED_RECOVERY_INELIGIBLE_OR_FAILED",
+    "guardian": {
+      "pid": 675659,
+      "parentPid": 675655,
+      "observedState": "Z",
+      "rawExitStatus": 18944,
+      "exitCode": 74,
+      "originalHeldPidfs": [
+        5,
+        685038
+      ]
+    },
+    "helloObserved": false,
+    "beforeBusinessGateEmitted": false,
+    "startCommandSent": false,
+    "businessStarted": false,
+    "fences": [],
+    "backpressureAcceptance": false,
+    "normalCleanupPass": false,
+    "finalChunk": "9713bc",
+    "originalToolEOF": true,
+    "originalToolExitCode": 137,
+    "fullToolArraySha256": "e7ae6704cac782f233af7ccbfef7bdaaa07539ba66ffb1612c375168ec187b02"
+  },
+  "manual": {
+    "sourceReview": "FRESH_PAIRED_SOURCE_GO",
+    "rootClearance": "EXACT_TWO_ORIGINAL_PYTHON_KERNEL_TERMINALS_ONLY",
+    "supervisorToolChunk": "3bbd72",
+    "supervisorToolEOF": true,
+    "supervisorToolExitCode": 0,
+    "receiptSha256": "cddf323e8ee6132059f899ce03e453f815344db48f2b65f53ed70c8c1cb57ca0",
+    "status": "MANUAL_KERNEL_TERMINALS_ONLY",
+    "fixtureResult": "FAIL",
+    "normalPass": false,
+    "automaticCleanupAcceptance": false,
+    "objects": [
+      {
+        "role": "controller",
+        "originalPid": 675655,
+        "boundPidfs": [
+          5,
+          685034
+        ]
+      },
+      {
+        "role": "outer",
+        "originalPid": 675650,
+        "boundPidfs": [
+          5,
+          685029
+        ]
+      }
+    ],
+    "signals": [
+      {
+        "role": "controller",
+        "signal": "SIGKILL",
+        "viaBoundPidfd": true,
+        "outcome": "SYSCALL_SUCCEEDED_NO_TERMINAL_INFERENCE"
+      },
+      {
+        "role": "outer",
+        "signal": "SIGKILL",
+        "viaBoundPidfd": true,
+        "outcome": "SYSCALL_SUCCEEDED_NO_TERMINAL_INFERENCE"
+      }
+    ],
+    "kernelTerminals": {
+      "controller": true,
+      "outer": true
+    },
+    "order": "ORIGINALS_VALIDATED_TWICE_CONTROLLER_SIGNAL_TERMINAL_THEN_OUTER_REVALIDATED_SIGNAL_TERMINAL",
+    "guardianSignals": 0,
+    "guardianHandleAcquisitionDuringManual": false,
+    "originalParentWaitReapECHILD": "NOT_ATTESTED",
+    "generalDescendantExtinction": "NOT_ATTESTED",
+    "originalToolEOFCollectedSeparately": true,
+    "normalReapLimitation": "Frozen outer runner requires business marker before normal child wait; no original reap proof follows from this pre-START manual action"
+  },
+  "preservation": {
+    "postFailureBeforeManual": {
+      "toolChunk": "9a8bce",
+      "receipt": "recovery/restore15-r17-failed-post-preservation.json",
+      "manifestMembersUnchanged": 19,
+      "nativeFilesUnchanged": 137,
+      "nativeHeadStatusIndexStagedUnstaged": "UNCHANGED",
+      "businessStarted": false,
+      "fences": []
+    },
+    "postManual": {
+      "toolChunk": "dcf1a7",
+      "toolExitCode": 0,
+      "receipt": "recovery/restore15-r17-post-manual-preservation.json",
+      "manifestMembersUnchanged": 19,
+      "manualReceiptMatched": true,
+      "stageBeforeAfterIdentical": true,
+      "originalToolFullArrayMatched": true,
+      "businessStarted": false,
+      "fences": [],
+      "nativeMeasurement": "NO_NEW_MEASUREMENT; prior 137-file proof is before manual, no subsequent Native actions"
+    },
+    "independentEvidenceCommitAudit": {
+      "manifestMembersHashed": 19,
+      "mismatches": 0,
+      "fullToolArrayEqualsThreeIndividualObjects": true,
+      "manualToolOutputEqualsManualResult": true,
+      "postManualToolOutputEqualsPreservationReceipt": true
+    }
+  },
+  "diagnosis": {
+    "cause": "UNRESOLVED",
+    "sourceInference": "Exit74 in the pinned defined external C control flow is before successful maintenance open, or an earlier validation/prerequisite failure",
+    "exactFailingSyscall": "NOT_OBSERVED",
+    "fd3InheritanceCause": "NOT_ESTABLISHED",
+    "seccompCause": "NOT_ESTABLISHED",
+    "note": "research/ticket41-r17-prestart-diagnosis.md"
+  },
+  "windowUsage": {
+    "r17": "ONE_CONSUMED_FAILED_PRESTART_WINDOW; manual terminal disposition is not another backpressure acceptance case",
+    "r16": "PRIVATE_NOMINAL_TWO_PROCESS_FIXTURE_PASS_DIFFERENT_TUPLE_NO_CURRENT_C_BACKPRESSURE_PASS",
+    "newRuntimeAttemptsDuringEvidenceWork": 0,
+    "epipe": "NOT_IMPLEMENTED_NOT_RUN"
+  },
+  "admission": {
+    "nativeAuthentication": "NOT_ESTABLISHED",
+    "productPrivateSession": "BLOCKED",
+    "global": "BLOCKED",
+    "issue41": "OPEN",
+    "issue29": "OPEN"
+  },
+  "evidenceWork": {
+    "scope": "DOCS_EVIDENCE_SUMMARIES_ONLY",
+    "runtimeAdapterOrStagerImports": false,
+    "tests": false,
+    "buildsOrCompilers": false,
+    "probes": false,
+    "processObservation": false,
+    "pidfdAcquisition": false,
+    "signals": false,
+    "nativeActions": false,
+    "keyAccess": false,
+    "bun": false,
+    "githubOperations": false
+  },
+  "manifestMemberSha256": {
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external_backpressure.py": "9b7786bc2f47dc250a9b88047cfe725ff4d37cbe4960bd1971794e4d951e2239",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external_backpressure_io.py": "4376f52c4b12b970fc58e339575f97669e4dddbb97fdbe6d8a4b831cd165499e",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external_backpressure_policy.py": "203ea55963d9cfdf5fce2c9d62f6e0af7424e21b8a2ca44c31ef13f02a773d32",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external_backpressure_policy_test.py": "0e57a8a23509ef441a1c3430e9b74da33548df3503504a7245f950658b261500",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external_backpressure_stage.py": "03286c6b50bbc48c331a9cfebe2b8b45639c80631bb1cd82c74f0de4415f9e7e",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/tests/supervision/fixtures/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/docs/evidence/ticket-41-current-backpressure-source.md": "14d6a5eaf7aed646f1946c5e232a98232a7ca07322f31229285e8dad750c09c2",
+    "/workspace/work/omp-webui-ticket-41-current-backpressure/docs/evidence/ticket-41-current-backpressure-source.json": "a77981867d0d534becc36a9c90eec19f9cf0fc15f9e245c788f1db0c5e9ae9d3",
+    "/tmp/omp-external-current-backpressure-r17-20261117/root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+    "/tmp/omp-external-current-backpressure-r17-20261117/configuration.h": "c9eeb0e2ac86a1bcf1d4bb26c4a48fae2634bbba69af0ad7017544aa3e981d46",
+    "/tmp/omp-external-current-backpressure-r17-20261117/root-marker": "38a7e5ef1cdc95bd7f5933e6214ae387850630b022fb246de2a1260122711a6f",
+    "/tmp/omp-external-current-backpressure-r17-20261117/raw-input.json": "95f39fc6dc64f8e17f7bc9f1dbc44de248e2e82661586bb9d7890e31b81ea5e3",
+    "/tmp/omp-external-current-backpressure-r17-20261117/compiler-recipe.json": "43ed948e2ab85747a8a832525489f1978204b275259defab5fae5f7d951c9864",
+    "/tmp/omp-external-current-backpressure-r17-20261117/release/bin/omp": "711f111265066d05e0b656c031d5345e3e61e897a3f3a0ca07b3bdfc4fd3fda0",
+    "/tmp/omp-external-current-backpressure-r17-20261117/release/bin/omp-external-protector": "b8a7dce8cac7022c2e1e33c4e7678957e15c156d77eba378f90fd97fa819c388"
+  },
+  "provenance": {
+    "root": "/workspace/work/mvp-implementation",
+    "capture": "SHA256_ONLY_NO_RAW_LOGS_OR_ARTIFACT_BYTES",
+    "sha256": {
+      "recovery/restore15-r17-prepare-tool.json": "ea666294c7c189a796d1e775e33783cd7a48f1345ed2eccc547f4e30c94dcdd0",
+      "recovery/restore15-r17-compiler-root-tool.json": "be21b3911506ac18aa5fce5ce5c4e7546dbc3654672f60d7c3afe2210e0196f9",
+      "recovery/restore15-r17-compiler-protector-initial-tool.json": "00c74389c296e3e2cad7fa4208cf95c13ee4a6b26a347d1a7f191afc44e4951b",
+      "recovery/restore15-r17-seal-tool.json": "7cc76a0912b9fdcd70f638fb41696bbe7c5da51f8591dffee2504f18e2117c7b",
+      "recovery/restore15-r17-preflight.json": "fc5a59e7fdbf6c38d6d8a20086d6b963b58363a99e0de5dee604fc5425ea9074",
+      "recovery/restore15-r17-actual-initial-tool.json": "0efd2dd7ad2894ec8dbff6673d2e60bc4ad3b2f4e4fbd5696ad182fb729f5ae3",
+      "recovery/restore15-r17-actual-poll1-tool.json": "f060a18c2069806d27fcdc272c8df591b1ed92d35db14fe80a2405e76318c161",
+      "recovery/restore15-r17-actual-final-tool.json": "dcb7f3d5aa8ae563660140d23c0bab946accb57e46dc284aad9ada26e0fcce88",
+      "recovery/restore15-r17-actual-full-tool-results.json": "e7ae6704cac782f233af7ccbfef7bdaaa07539ba66ffb1612c375168ec187b02",
+      "recovery/restore15-r17-original-handle-audit.json": "acc1dcafdc9b382bc80ceb872e02ce4a34cce55bd8177cc0a61c7663f03d08ad",
+      "recovery/restore15-r17-failed-post-preservation.json": "40b9627dc6b959bb4e63a6d71217d6496dc7faa0bd0b0957f93533506ec53028",
+      "recovery/restore15-r17-failed-post-preservation-tool.json": "5d2ec726828d8292426b20646a079a8f1bbe6871600e8ca8bf66f5069b031482",
+      "recovery/restore15-r17-manual-initial-tool.json": "215762896b369ef53d9d4d9a25e181f06c770b6189d5f3b0551c97d83bd96269",
+      "recovery/restore15-r17-root-manual-clearance.json": "ce0d9b93cc046e1c3b1210b052f948303bddbe50bdcd67460469f36f75ac34e0",
+      "recovery/restore15-r17-post-manual-preservation.json": "01f7a2a9e13b721edc49cdbec8323c24c7cd376ba9d5f852f21f0500f97fed3b",
+      "recovery/restore15-r17-post-manual-preservation-tool.json": "9de8b3339afad99975523db085ccdb7c7548f045f890e7cf0257135935d1867a",
+      "recovery/r17-prestart-manual-source-v1/manual-result.json": "cddf323e8ee6132059f899ce03e453f815344db48f2b65f53ed70c8c1cb57ca0",
+      "research/ticket41-r17-prestart-diagnosis.md": "6e0cf32467c04dc0e755960a45809bdd12af542ff998d0cbab94639fa45be379",
+      "reviews/ticket41-current-backpressure-source-spec-final.md": "4486db2203f919c5402b6386c915e0f3ef0c55dc0fada15fb05f5002b31c5366",
+      "reviews/ticket41-current-backpressure-source-standards-final.md": "667fe412cfd320e2f9c9eca13fc9fdb59746f94c0d439962f25780447c9ee00b",
+      "reviews/ticket41-r17-final-artifact-spec.md": "ce1977a83296a4e969ad7a06edccc838becb725a706545389b72c0a54b1b991c",
+      "reviews/ticket41-r17-final-artifact-standards.md": "646d05fe360559b1659c7dd0308956ddfef1ac1b7c8da8af8c743ee77b2abc50",
+      "reviews/ticket41-r17-manual-prestart-spec.md": "4c34f2daa757baebd4f990e98dacd3be39f7a1f7e6cc0691d8b32b142b163f31",
+      "reviews/ticket41-r17-manual-prestart-standards.md": "33a633c40ea412e08e02b3c4a8f48a8ec9ca34c327c88757c45c7167f7538386"
+    }
+  }
+}
