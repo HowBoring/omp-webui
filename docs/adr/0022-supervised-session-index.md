@@ -46,3 +46,21 @@ Source reconciliation renumbers this authored decision from 0015 to 0022 because
 checkpoint manifests retain their original input path and hash; they are not current
 source manifests. The supervised Session component remains unregistered and cannot
 authorize production admission or an automatic direct-child cleanup fallback.
+
+Source-review correction (2026-11-17): the durable-first Open records a bounded
+prelaunch refusal even when its cwd disappeared or the previous owned worker is
+still draining. Native/adapter failures are admitted through explicit code sets;
+unknown or oversized codes cannot enter the 96-character attempt field. A failed
+attempt write cannot bypass release of a definitely refused owned worker or
+retention of a worker with an unknown outcome. Exit diagnostics retain a separate
+`SESSION_ATTEMPT_UNAVAILABLE` observation when shutdown cannot save its attempt.
+Both idle retirement and shutdown require zero exit, no force and no protocol
+failure before persisting `closed`.
+
+The isolated Session carrier now preserves recognized typed lifecycle failures,
+request correlation and constant recovery instructions through the public DSH
+Remote contract. It rebuilds errors without native exception text, paths, details
+or stacks; malformed envelopes remain HTTP rejections before invocation. The
+public New endpoint resolves the service's `new` method. These changes are covered
+only by FS/SQLite, public native-port and in-memory DSH regressions; they create no
+new Native execution, descendant-cleanup or production-admission attestation.

@@ -1,0 +1,34 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+(pass) busy New and Switch return correlated typed lifecycle failures with an explicit recovery action [90.39ms]
+71 |       [new RemoteError("SESSION_NATIVE_REPLACED", secret, {}), "SESSION_NATIVE_REPLACED"],
+72 |       [Object.assign(new Error(secret), { code: "EIO", path: secret }), "EIO"],
+73 |       [new Error("STRICT_OCCUPIED"), "STRICT_OCCUPIED"],
+74 |     ] as const) {
+75 |       f.controls.catalogFailure = thrown;
+76 |       expect(await f.remote.catalog({})).toMatchObject({ ok: false, error: { code, details: {} } });
+                                              ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "error": {
+-     "code": "SESSION_NATIVE_REPLACED",
+-     "details": {},
+-   },
++   "error": [RemoteError: Session request failed.],
+    "ok": false,
+  }
+
+- Expected  - 4
++ Received  + 1
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-remote.test.ts:76:42)
+(fail) known typed errors keep safe codes while arbitrary native messages and forged objects are sanitized [29.07ms]
+(pass) malformed carrier envelopes reject before invocation while a valid stale choice returns a correlated failure [20.93ms]
+(pass) unconfirmed New returns manual recovery through Remote without inventing a registration [28.53ms]
+
+ 3 pass
+ 1 fail
+ 28 expect() calls
+Ran 4 tests across 1 file. [466.00ms]

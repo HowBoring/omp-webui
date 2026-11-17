@@ -58,7 +58,7 @@ export class SessionsService extends TypertRemoteService {
   @Remote("switch") async switch(selectionId: SessionSelectionId) {
     return publicView(await this.options.supervisor.switchTo(this.identity(), this.selection(selectionId)));
   }
-  @Remote("new") async create(grantId: string) {
+  @Remote("new") async new(grantId: string) {
     const identity = this.identity(), grant = this.options.grants.list().find(item => item.id === grantId && item.status === "valid");
     if (!grant) throw new Error("SESSION_DIRECTORY_DENIED"); return publicView(await this.options.supervisor.create(identity, grant.path));
   }

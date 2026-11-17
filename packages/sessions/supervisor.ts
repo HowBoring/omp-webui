@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { BrowserAccess, BrowserAuthority } from "../access/index.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
+import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { SessionWorker } from "../compatibility/session-worker.ts";
@@ -11,9 +12,11 @@ import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
 import { SessionIndex, type RegisteredSession } from "./index.ts";
 
+/** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
+export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
 interface Options {
   authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; catalog: CatalogClient;
-  launch(cwd: string): Promise<SessionWorker>;
+  launch(cwd: string): Promise<SupervisedSessionWorker>;
 }
 export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
@@ -21,19 +24,24 @@ export interface SessionView {
 }
 export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
-  uiCancelled: boolean; drain: DrainResult; notificationCount: number; tailNotifications: number;
+  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult;
+  notificationCount: number; tailNotifications: number;
 }
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
-  opening: Promise<void>; launching?: Promise<SessionWorker>; worker?: SessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
+  opening: Promise<void>; launching?: Promise<SupervisedSessionWorker>; worker?: SupervisedSessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; retired: boolean; exited: boolean; idlePending?: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
 }
 const same = (left: CatalogDescriptor, right: CatalogDescriptor) => left.sourceId === right.sourceId
   && left.instanceId === right.instanceId && left.nativeSessionId === right.nativeSessionId;
 const directoryIdentity = (cwd: string): string => {
-  const stat = fs.statSync(cwd, { bigint: true });
-  if (!stat.isDirectory()) throw new Error("SESSION_CWD_CHANGED"); return `${stat.dev}:${stat.ino}:${stat.birthtimeNs}`;
+  try {
+    const stat = fs.statSync(cwd, { bigint: true });
+    if (stat.isDirectory()) return `${stat.dev}:${stat.ino}:${stat.birthtimeNs}`;
+  } catch {}
+  throw new Error("SESSION_CWD_CHANGED");
 };
+const cleanDrain = (drain: DrainResult): boolean => drain.code === 0 && !drain.forced && !drain.protocolFailure;
 const key = (item: CatalogDescriptor) => JSON.stringify([item.sourceId, item.instanceId, item.nativeSessionId]);
 export function nativeSettled(state: SessionState): boolean {
   return state.isSettled === true && state.isStreaming === false && state.isCompacting === false
@@ -85,16 +93,24 @@ export class SessionSupervisor {
       }
       return this.#view(existing);
     }
-    if (existing && (!existing.exited || existing.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
-    const cwd = selected.cwd.status === "known" ? selected.cwd.canonical : undefined;
-    if (!cwd) {
-      this.options.index.observe(record.id, { state: "failed", code: "SESSION_CWD_UNKNOWN" }); throw new Error("SESSION_CWD_UNKNOWN");
-    }
-    const active: Active = { id: randomUUID(), key: key(selected), cwd, cwdIdentity: directoryIdentity(cwd), generation: randomUUID(), selected, record,
-      opening: Promise.resolve(), state: "opening", retired: false, exited: false, startupAttempted: false };
-    this.#active = active;
+    const active = this.#reserve(selected, record);
     active.opening = this.#perform(identity, active, "continue");
     await active.opening; this.#current(identity, active); return this.#view(active);
+  }
+  #reserve(selected: CatalogDescriptor, record: RegisteredSession): Active {
+    try {
+      const existing = this.#active;
+      if (existing && (!existing.exited || existing.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
+      const cwd = selected.cwd.status === "known" ? selected.cwd.canonical : undefined;
+      if (!cwd) throw new Error("SESSION_CWD_UNKNOWN");
+      const active: Active = { id: randomUUID(), key: key(selected), cwd, cwdIdentity: directoryIdentity(cwd), generation: randomUUID(), selected, record,
+        opening: Promise.resolve(), state: "opening", retired: false, exited: false, startupAttempted: false };
+      this.#active = active; return active;
+    } catch (error) {
+      const code = sessionFailureCode(error);
+      this.options.index.observe(record.id, { state: "failed", code });
+      throw new Error(code);
+    }
   }
   async create(identity: BrowserAccess, cwd: string): Promise<SessionView> {
     this.#browser(identity); this.#directory(cwd);
@@ -107,8 +123,8 @@ export class SessionSupervisor {
   }
   async #perform(identity: BrowserAccess, active: Active, intent: "continue" | "new"): Promise<void> {
     const record = active.record;
-    if (record) this.options.index.observe(record.id, { state: "opening" });
     try {
+      if (record) this.options.index.observe(record.id, { state: "opening" });
       this.#current(identity, active);
       if (active.selected) {
         const described = await this.options.catalog.describe(active.selected.reference); this.#current(identity, active);
@@ -130,26 +146,29 @@ export class SessionSupervisor {
           if (active.record) this.options.index.observe(active.record.id,
             { state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" });
         }
-      });
+      }).catch(() => {});
       this.#current(identity, active); active.startupAttempted = true;
       const result = await active.worker.startup.start({ intent, expectedCwd: active.cwd,
         ...(active.selected ? { reference: active.selected.reference } : {}) });
       this.#ownedCurrent(active); this.#accept(active, result);
     } catch (error) {
-      const failure = error instanceof Error && /^[A-Z][A-Z0-9_]+$/.test(error.message) ? error.message : "SESSION_OPEN_OUTCOME_UNKNOWN";
+      const failure = sessionFailureCode(error);
       const code = active.startupAttempted && (active.retired || ["SESSION_HOST_CLOSING", "SESSION_DIRECTORY_DENIED",
         "SESSION_CWD_CHANGED", "SESSION_MANUAL_OPEN_REQUIRED"].includes(failure)) ? "SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN" : failure;
       active.state = "outcome_unknown";
       const unknown = code.startsWith("RPC_") || code.includes("UNKNOWN") || code.includes("LOST");
-      if (active.record) this.options.index.observe(active.record.id, { state: unknown ? "outcome_unknown" : "failed", code });
+      let recorded = true;
+      try {
+        if (active.record) this.options.index.observe(active.record.id, { state: unknown ? "outcome_unknown" : "failed", code });
+      } catch { recorded = false; }
       // An uncertain result is observed manually, never retried. A definite refusal releases only our worker.
       if (!active.worker || !unknown || active.retired) await this.#stop(active, "open-failed");
-      throw new Error(code);
+      throw new Error(recorded ? code : "SESSION_ATTEMPT_UNAVAILABLE");
     }
   }
   #accept(active: Active, result: StrictStartState): void {
     if (result.phase !== "open") {
-      const code = result.code && /^(STRICT|GENERATION)_[A-Z_]+$/.test(result.code) ? result.code : "SESSION_OPEN_NOT_CONFIRMED";
+      const code = result.code && isNativeSessionErrorCode(result.code) ? result.code : "SESSION_OPEN_NOT_CONFIRMED";
       active.state = "outcome_unknown";
       if (active.record) this.options.index.observe(active.record.id, { state: "outcome_unknown", code });
       throw new Error(code);
@@ -215,8 +234,8 @@ export class SessionSupervisor {
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
     active.exited = true; active.idlePending = false; active.state = "closed"; active.bridge?.dispose();
-    if (active.record) this.options.index.observe(active.record.id, { state: drain.code === 0 && !drain.protocolFailure ? "closed" : "outcome_unknown",
-      ...(drain.code === 0 && !drain.protocolFailure ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
+    if (active.record) this.options.index.observe(active.record.id, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
+      ...(cleanDrain(drain) ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
     this.#exits.push({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
       queuedInputsWithdrawn: false, uiCancelled: true, drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) });
@@ -303,12 +322,15 @@ export class SessionSupervisor {
     const drain = active.worker ? await active.worker.close({ cooperativeMs: remaining, terminationGraceMs: 5000, readerGraceMs: 1000 })
       : { code: 0, forced: false, stderrBytes: 0 };
     active.exited = true; active.idlePending = false; active.state = "closed";
-    if (active.record && this.options.index.get(active.record.id)?.attempt.state === "open") {
-      this.options.index.observe(active.record.id, { state: drain.code === 0 && !drain.forced ? "closed" : "outcome_unknown",
-        ...(drain.code === 0 && !drain.forced ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) });
-    }
+    let indexFailure: WorkerExit["indexFailure"];
+    try {
+      if (active.record && this.options.index.get(active.record.id)?.attempt.state === "open") {
+        this.options.index.observe(active.record.id, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
+          ...(cleanDrain(drain) ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) });
+      }
+    } catch { indexFailure = "SESSION_ATTEMPT_UNAVAILABLE"; }
     const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
-      queuedInputsWithdrawn, uiCancelled, drain, notificationCount: active.worker?.notificationCount ?? 0,
+      queuedInputsWithdrawn, uiCancelled, ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) };
     this.#exits.push(exit); if (this.#exits.length > 32) this.#exits.shift(); return exit;
   }

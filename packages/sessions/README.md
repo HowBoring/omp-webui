@@ -86,3 +86,29 @@ historical. The original Native/DSH authoring, indexes, diffs and recorded bundl
 were hash-checked unchanged. #41 helper ownership binding remains required before
 attesting forced cleanup or any automatic fallback. No new global or private
 Session admission is enabled; #44 and umbrella #29 remain OPEN.
+
+## Source-review corrections (2026-11-17)
+
+Explicit Open keeps a stable failed attempt for a missing/replaced cwd or an
+owned worker still draining, after the native reference is durably registered.
+Native/adapter error codes come from an explicit bounded vocabulary. Unknown and
+oversized failures remain bounded unknown outcomes. If saving a failure itself
+fails, definite refusals still release the owned worker; unknown outcomes retain
+that worker for manual observation. Shutdown diagnostics separately expose an
+unavailable attempt write. A protocol-failed tail prevents a `closed` index
+outcome even when the child exits zero without force.
+
+The isolated carrier returns recognized typed DSH errors with constant recovery
+instructions and the original request ID. Busy New/Switch explains the required
+Stop/quiescence/fresh action; an unconfirmed New explains manual observation even
+before it has any registration. Native exception text, paths, arbitrary details
+and stacks are withheld. Malformed envelopes remain HTTP rejections. New uses
+the declared service method, so the real Gateway reaches the same supervisor
+policy as Switch.
+
+The [review-fix evidence delta](../../docs/implementation/ticket-44-review-fix-evidence.json)
+preserves the previous source evidence by immutable pointer. The added tests use
+FS/SQLite and public native ports plus the actual shared carrier and DSH
+Gateway/Connection in memory. The root UI, browser-only logout and one shared
+worker/generation remain covered. All historical Native/browser results and
+#41 cleanup/admission limits above remain unchanged.

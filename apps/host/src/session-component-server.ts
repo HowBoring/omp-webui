@@ -2,24 +2,19 @@ import { Context } from "@deepseek-ai/cordis";
 import TypertRegistry from "@deepseek-ai/dsh-typert-registry";
 import RemoteAccessService from "@deepseek-ai/dsh-api-remote-access";
 import { TypertGatewayService } from "@deepseek-ai/dsh-api-gateway";
-import { Peer, clientRequestSchema } from "@deepseek-ai/dsh-client-connection";
-import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
+import { Peer } from "@deepseek-ai/dsh-client-connection";
 import { parseRemoteStreamClientMessage } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
 import type { ServerWebSocket } from "bun";
 import { resolve } from "node:path";
-import { z } from "zod";
-import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
-import { sessionsContribution, sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
+import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import type { SessionWorker } from "../../../packages/compatibility/session-worker.ts";
-const methods = { ...sessionsContribution.methods, ...sessionContribution.methods };
-const unary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections"]);
+import { dispatchSessionRequest as dispatch, sessionUnary as unary, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
-const successfulReplies = new WeakSet<Response>();
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
   "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
 import type { CatalogClient } from "../../../packages/contracts/generated/catalog-client.ts";
@@ -100,7 +95,7 @@ export async function startSessionComponentServer(options: Options) {
         try {
           const response = await sessionCaller.run(identity, () => dispatch(request, ctx, owner, () => access.revalidate(identity)));
           if (!access.revalidate(identity)) return new Response("Access invalidated", { status: 401 });
-          if (objectReplies.has(path) && successfulReplies.has(response)) { try { supervisor.assertObjectAccess(identity); }
+          if (objectReplies.has(path) && isSuccessfulSessionReply(response)) { try { supervisor.assertObjectAccess(identity); }
             catch { return new Response("Session access invalidated", { status: 403 }); } }
           return response;
         } finally { --inflight; }
@@ -165,33 +160,6 @@ export async function startSessionComponentServer(options: Options) {
   };
 }
 
-async function dispatch(request: Request, ctx: Context, peer: Peer, current: () => boolean): Promise<Response> {
-  if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
-    return new Response("JSON required", { status: 415 });
-  }
-  let decoded;
-  try {
-    const envelope = clientRequestSchema.parse(await request.json());
-    const method = Object.entries(methods).find(([name]) => name === envelope.method)?.[1];
-    if (!method || !unary.has(envelope.method) || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
-    const payload = z.strictObject({args:z.record(z.string(),z.unknown())}).parse(envelope.payload);
-    const args = z.record(z.string(),z.unknown()).parse(method.input({strict:true}).create().parse(payload.args));
-    decoded = { envelope, method, args };
-  } catch { return new Response("Invalid workspace request", { status: 400 }); }
-  const { envelope, method, args } = decoded;
-  if (!current()) return new Response("Access invalidated", { status: 401 });
-  try {
-    request.signal.throwIfAborted();
-    if (!current()) return new Response("Access invalidated", { status: 401 });
-    const value = await ctx.typertGateway.invoke({namespace:method.namespace,method:method.method,
-      args,peer,signal:request.signal});
-    const response = Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
-    successfulReplies.add(response); return response;
-  } catch (error) {
-    return Response.json({ type: "server-response", rpcId: envelope.rpcId,
-      result: { ok: false, error: ctx.typertGateway.wireStream.failure(new RemoteError("gateway/bad-request", "Session operation unavailable. Inspect the registered reference status.", {})) } });
-  }
-}
 
 async function pump(socket: ServerWebSocket<SocketData>, streamId: string, endpoint: string, payload: unknown,
   control: AbortController, ctx: Context, current: () => boolean): Promise<void> {

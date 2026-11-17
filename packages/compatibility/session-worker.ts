@@ -1,5 +1,6 @@
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
 import { z } from "zod";
+import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
 import { BoundedStdioTransport, type ProcessSelection, type DrainPolicy } from "./stdio-transport.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import { HistoryClient } from "../contracts/generated/history-client.ts";
@@ -52,8 +53,7 @@ export class SessionWorker {
           || !interactionPolicy(frame.interactionPolicy)) return false;
         publish(frame); return true;
       },
-      remoteError: error => error && /^(?:(?:STRICT|GENERATION)_[A-Z_]+|history_[a-z_]+)$/.test(error)
-        ? error : "RPC_NATIVE_REJECTED",
+      remoteError: nativeWorkerFailureCode,
       physicalFrameBytes: MAX_RPC_FRAME_BYTES, allowChunks: true, commandBytes: 16_384,
       queuedBytes: 262_144, pendingLimit: 32, settledLimit: 256, stderrBytes: 65_536, defaultTimeoutMs: 10_000,
       notification: frame => {
