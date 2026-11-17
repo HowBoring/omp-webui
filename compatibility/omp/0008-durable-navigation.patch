@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 3f15bb5540..ec34bf1bd7 100644
+index 87101a2aa0..8b871dbbe1 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -15,6 +15,8 @@
+@@ -19,6 +19,8 @@
  
  ### Added
  
@@ -645,7 +645,7 @@ index 380a100d81..b7a801ef86 100644
  	const hasServiceTierEntry = existingBranch.some(entry => entry.type === "service_tier_change");
  
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 79547098f4..bee76cd468 100644
+index bd24bb39cd..e18973f2f5 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -689,6 +689,9 @@ export class SessionBusyError extends Error {
@@ -658,7 +658,7 @@ index 79547098f4..bee76cd468 100644
  	editorText?: string;
  	/** Image attachments of the target user message, parallel to the positional `[Image #N]` markers in {@link editorText}. */
  	editorImages?: ImageContent[];
-@@ -15032,6 +15035,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15056,6 +15059,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			 * or the branch summary were awaited, before any tree change is made.
  			 */
  			requireIdle?: boolean;
@@ -669,7 +669,7 @@ index 79547098f4..bee76cd468 100644
  		} = {},
  	): Promise<NavigateTreeResult> {
  		const queued = this.#enterSessionTransition(() => this.navigateTree(targetId, options));
-@@ -15039,6 +15046,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15063,6 +15070,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		using _transition = this.#beginSessionTransition();
  		await this.#bash.flushPending();
  		const oldLeafId = this.sessionManager.getLeafId();
@@ -687,7 +687,7 @@ index 79547098f4..bee76cd468 100644
  
  		const targetEntry = this.sessionManager.getEntry(targetId);
  		if (!targetEntry) {
-@@ -15061,7 +15079,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15085,7 +15103,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// `reopenAsk` / branch the new answer instead of silently reporting a
  		// no-op (chatgpt-codex review on #5895).
  		if (targetId === oldLeafId && !targetIsUserMessage && !(options.allowAskReopen && targetIsAskResult)) {
@@ -696,7 +696,7 @@ index 79547098f4..bee76cd468 100644
  		}
  
  		// Model required for summarization
-@@ -15086,7 +15104,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15110,7 +15128,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const toolCallId = targetEntry.message.toolCallId;
  			const html = this.#recoverAskReanswerHtml(targetEntry.parentId, toolCallId);
  			if (html !== undefined) {
@@ -705,7 +705,7 @@ index 79547098f4..bee76cd468 100644
  			}
  			// Original arguments couldn't be recovered (corrupted/legacy session
  			// data) — fall through to a plain leaf move so navigation still works.
-@@ -15128,14 +15146,18 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15152,14 +15170,18 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  
  		// Emit session_before_tree event
  		if (this.#extensionRunner?.hasHandlers("session_before_tree")) {
@@ -725,7 +725,7 @@ index 79547098f4..bee76cd468 100644
  			}
  
  			if (result?.summary && options.summarize) {
-@@ -15171,7 +15193,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15195,7 +15217,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			});
  			this.#branchSummaryAbortController = undefined;
  			if (result.aborted) {
@@ -734,7 +734,7 @@ index 79547098f4..bee76cd468 100644
  			}
  			if (result.error) {
  				throw new Error(result.error);
-@@ -15186,6 +15208,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15210,6 +15232,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			summaryDetails = hookSummary.details;
  		}
  
@@ -743,7 +743,7 @@ index 79547098f4..bee76cd468 100644
  		// A run admitted during the hook or summary awaits would keep writing into the branch the leaf leaves.
  		if (options.requireIdle) this.#assertIdleForSnapshot("navigate the session tree");
  
-@@ -15310,7 +15334,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15334,7 +15358,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// Emit session_tree event; only handlers can mutate session entries, so skip
  		// the emit and the context rebuild when no handlers are registered (mirrors
  		// the session_before_tree guard above).
@@ -753,7 +753,7 @@ index 79547098f4..bee76cd468 100644
  			await this.#extensionRunner.emit({
  				type: "session_tree",
  				newLeafId: this.sessionManager.getLeafId(),
-@@ -15318,27 +15344,29 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -15342,27 +15368,29 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				summaryEntry,
  				fromExtension: summaryText ? fromExtension : undefined,
  			});

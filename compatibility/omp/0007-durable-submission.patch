@@ -1,17 +1,21 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..3f15bb5540 100644
+index a4b6abe4e7..87101a2aa0 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -4,6 +4,8 @@
+@@ -4,6 +4,12 @@
  
  ### Fixed
  
++- Protected input retained in native queues after plain abort no longer receives premature terminal no-input completion; actual original-object withdrawal or consumption rechecks its receipt ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
++
++- Permanently withdrawn queued originals retain explicit no-entry provenance, including pre-delivery and held objects, without treating temporary moves or retained abort input as discarded ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
++
 +- Direct Native task/revival child-manager appends no longer infer a protected parent's ambient submission; explicit origin facts and same-owner stale-source checks remain enforced ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
 +
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
  
  ### Fixed
-@@ -13,9 +15,12 @@
+@@ -13,9 +19,12 @@
  
  ### Added
  
@@ -37,10 +41,10 @@ index 0b34d8fc54..7e51b0abc2 100644
 +Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers and direct task/revival manager appends keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
 diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
 new file mode 100644
-index 0000000000..fdb37cbdfe
+index 0000000000..1821df6bdf
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-submissions.md
-@@ -0,0 +1,35 @@
+@@ -0,0 +1,53 @@
 +# Durable native submission prototype
 +
 +`submission_submit` binds a permanent client identity to the exact protected native target, immutable preparation identity and input bytes. A reservation is published before extension, builtin, abort, model or tool dispatch. Duplicate keys return existing facts without executing. Conflicting bytes or targets are refused. This does not promise exactly-once external effects: a crashed reserved input remains unresolved and never resumes automatically.
@@ -76,6 +80,24 @@ index 0000000000..fdb37cbdfe
 +submission. The complete entry operation, its queued publication and notifications run under the manager's owner
 +scope. Explicit original/copy causes and stored inherited entry metadata remain intact and must pass the existing
 +protected-target and permanent-receipt checks. Same-owner stale targets still fail closed.
++
++Permanent native queue removal, editor restore, explicit group drop and queued/held withdrawal settle the exact
++removed original objects, including their hidden companions. This also covers the user input withdrawn before
++`abort_and_restore_queue` interrupts the parent. A pre-delivery original receives a native settlement identity
++without a fabricated delivered-message lifecycle; protected completion retains its original role and explicit
++`no_entry` fact with reason `native_queue_withdrawn`. Persistence still requires the protected receipt publication.
++Queue promotion, temporary parking/rollback and user input retained by plain abort do not constitute withdrawal.
++Recordable non-user messages retained for abort-time persistence also keep their normal entry path. A withdrawn
++follow-up without an exact primary-operation callback retains unknown operation outcome; removal does not invent
++an executed-operation result.
++
++Native idle can retain a follow-up after plain abort. Its protected reservation remains nonterminal with unresolved
++input while authoritative native queued, claimed, undelivered or temporarily held original input/prepared objects
++still carry that exact captured origin. Completion checks those existing object views after draining admitted work;
++it does not wait indefinitely on a queue, mutate input, or infer a no-entry decision from an absent entry. Actual
++withdrawal or input-consumption settlements recheck completion through the same protected publication path. Only
++verified committed input entries establish generated input. No exact primary callback still means unknown operation
++outcome; a worker retirement leaves unfinished reservations unresolved and never replays queued memory.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 index e189b420d9..c255209d03 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
@@ -517,10 +539,10 @@ index eaef54f541..9dac259e5b 100644
  		// behind the response for the same id and lets queue drains land before
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..e7cf4efe6c
+index 0000000000..e7fc8dcd9e
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-@@ -0,0 +1,173 @@
+@@ -0,0 +1,195 @@
 +import { assertSubmissionEntries } from "../../session/submission-records";
 +import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
 +/** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
@@ -537,7 +559,7 @@ index 0000000000..e7cf4efe6c
 +  streamingBehavior?: "steer" | "followUp"; idleOnly?: boolean;
 +}
 +export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
-+interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>>; revision: number; settled: boolean;
++interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>>; revision: number; recheckReady: boolean;
 +  operationOutcome: SubmissionOperationOutcome; publication?: Promise<void> }
 +export class RpcSubmissions {
 +  readonly #pending = new Map<string, PendingSubmission>();
@@ -552,12 +574,19 @@ index 0000000000..e7cf4efe6c
 +      const pending = this.#pending.get(cause.origin.clientSubmissionId);
 +      if (!pending || !sameSubmission(pending.origin, cause.origin)) return;
 +      const decision = observation.settlement;
-+      if (decision.status === "observed") return;
-+      if (!pending.noEntries.has(observation.live.messageId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
-+      pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
-+        role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++      if (decision.status === "observed") {
++        if (cause.role !== "input" && cause.role !== "prepared") return;
++      } else {
++        if (!pending.noEntries.has(observation.live.messageId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
++        pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
++          role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++      }
 +      pending.revision++;
-+      if (pending.settled) this.track(this.complete(pending.origin, pending.operationOutcome));
++      if (pending.recheckReady) {
++        // One queued recheck covers concurrent settlements; an active attempt reads the latest revision.
++        pending.recheckReady = false;
++        this.track(this.complete(pending.origin, pending.operationOutcome));
++      }
 +    });
 +  }
 +  validate(command: unknown): void {
@@ -592,7 +621,7 @@ index 0000000000..e7cf4efe6c
 +      throw failure;
 +    }
 +    const tasks = new Set<Promise<unknown>>();
-+    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, settled: false, operationOutcome: "unknown" });
++    if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, recheckReady: false, operationOutcome: "unknown" });
 +    return { admitted, scope: { origin, owner: this.session.sessionManager, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
 +      const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
 +    } } };
@@ -617,13 +646,26 @@ index 0000000000..e7cf4efe6c
 +    pending.publication = publication;
 +    return publication;
 +  }
++  /** Native queues own these originals; absence of an entry is not final while initiating input remains pending. */
++  #hasPendingInput(origin: SubmissionOrigin): boolean {
++    const agent = this.session.agent;
++    for (const originals of [agent.peekSteeringQueue(), agent.peekFollowUpQueue(),
++      agent.peekUndeliveredQueuedMessages(), this.session.heldQueuedMessages]) {
++      for (const original of originals) {
++        const cause = messageSubmission(original);
++        if (cause && (cause.role === "input" || cause.role === "prepared") && sameSubmission(cause.origin, origin))
++          return true;
++      }
++    }
++    return false;
++  }
 +  async #complete(origin: SubmissionOrigin, operation: SubmissionOperationOutcome | Promise<SubmissionOperationOutcome>): Promise<void> {
 +    const pending = this.#pending.get(origin.clientSubmissionId);
 +    if (!pending) return;
 +    try {
 +      const operationOutcome = await operation;
 +      pending.operationOutcome = operationOutcome;
-+      pending.settled = false;
++      pending.recheckReady = false;
 +      while (pending.tasks.size) await Promise.allSettled([...pending.tasks]);
 +      await this.session.waitForAdmittedSubmissions();
 +      await this.session.waitForIdle();
@@ -632,12 +674,14 @@ index 0000000000..e7cf4efe6c
 +      do {
 +      revision = pending.revision;
 +      const state = this.session.sessionManager.readSubmissionState();
++      // Idle may retain interrupted user input. Defer without parking a waiter or changing its queue.
++      if (this.#hasPendingInput(origin)) { pending.recheckReady = true; return; }
 +      const generated = state.entries.some(entry => entry.submission && sameSubmission(entry.submission.origin, origin)
 +        && entry.submission.role === "input");
 +      await this.session.sessionManager.completeSubmission(origin, generated ? "generated" : "no_input",
 +        [...pending.noEntries.values()], operationOutcome);
 +      } while (revision !== pending.revision);
-+      pending.settled = true;
++      pending.recheckReady = true;
 +    } catch (failure) { this.fail(origin, failure); }
 +
 +  }
@@ -1023,7 +1067,7 @@ index 5bddc84cfe..380a100d81 100644
  	const extensionRoots = options.extensionRoots?.();
  	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 68a1154008..79547098f4 100644
+index 68a1154008..bd24bb39cd 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
@@ -1402,7 +1446,104 @@ index 68a1154008..79547098f4 100644
  		// Normalize content to text string + optional images
  		let text: string;
  		let images: ImageContent[] | undefined;
-@@ -13561,6 +13654,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11319,8 +11412,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const keep: (m: AgentMessage) => boolean = options?.forInterrupt
+ 			? m => recordedOnInterrupt.has(m)
+ 			: m => !isUserAuthoredQueuedMessage(m) && !isHiddenUserCompanion(m);
++		const discarded: AgentMessage[] = [];
+ 		for (const message of [...steeringAll, ...followUpAll]) {
+ 			if (!keep(message)) {
++				discarded.push(message);
+ 				if (message.role === "custom" && message.customType === "ttsr-injection") {
+ 					this.#ttsr.releaseDeferredReservationFromDetails(message.details);
+ 				}
+@@ -11329,6 +11424,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			}
+ 		}
+ 		this.agent.replaceQueues(steeringAll.filter(keep), followUpAll.filter(keep));
++		this.#settleWithdrawnQueuedMessages(discarded);
+ 		this.#reconcileQueuedMessageDrain();
+ 		return { steering, followUp };
+ 	}
+@@ -11425,8 +11521,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	dropQueuedMessages(messages: Iterable<AgentMessage>): void {
+ 		const dropped = new Set(messages);
+ 		if (dropped.size === 0) return;
++		const original = [...this.agent.peekSteeringQueue(), ...this.agent.peekFollowUpQueue()];
+ 		const kept = (queue: readonly AgentMessage[]): AgentMessage[] => queue.filter(message => !dropped.has(message));
+ 		this.agent.replaceQueues(kept(this.agent.peekSteeringQueue()), kept(this.agent.peekFollowUpQueue()));
++		this.#settleWithdrawnQueuedMessages(original.filter(message => dropped.has(message)));
+ 		this.#reconcileQueuedMessageDrain();
+ 	}
+ 
+@@ -11441,6 +11539,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 
+ 		const removed = selected[index];
+ 		this.agent.replaceQueue(queue, this.#withoutQueuedUserMessage(selected, index));
++		this.#settleWithdrawnQueuedMessages(selected.slice(this.#queuedUserGroupStart(selected, index), index + 1));
+ 		this.#reconcileQueuedMessageDrain();
+ 		return toRestoredQueuedMessage(removed);
+ 	}
+@@ -11502,6 +11601,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		return remaining;
+ 	}
+ 
++	/** Permanent disposition only: moves, temporary holds and retained abort input never pass here. */
++	#settleWithdrawnQueuedMessages(messages: Iterable<AgentMessage>): void {
++		for (const message of new Set(messages)) {
++			this.#messageObservations.settle(message, {
++				status: "no_entry", durability: "not_attested", reason: "native_queue_withdrawn",
++			});
++		}
++	}
++
+ 	/**
+ 	 * Pop the last queued message (steering first, then follow-up).
+ 	 * Used by dequeue keybinding to restore messages to editor one at a time.
+@@ -11520,6 +11628,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		if (fromSteer >= 0) {
+ 			const removed = steering[fromSteer];
+ 			this.agent.replaceQueues(this.#withoutQueuedUserMessage(steering, fromSteer), followUp.slice());
++			this.#settleWithdrawnQueuedMessages(
++				steering.slice(this.#queuedUserGroupStart(steering, fromSteer), fromSteer + 1),
++			);
+ 			this.#reconcileQueuedMessageDrain();
+ 			return toRestoredQueuedMessage(removed);
+ 		}
+@@ -11527,6 +11638,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		if (fromFollowUp >= 0) {
+ 			const removed = followUp[fromFollowUp];
+ 			this.agent.replaceQueues(steering.slice(), this.#withoutQueuedUserMessage(followUp, fromFollowUp));
++			this.#settleWithdrawnQueuedMessages(
++				followUp.slice(this.#queuedUserGroupStart(followUp, fromFollowUp), fromFollowUp + 1),
++			);
+ 			this.#reconcileQueuedMessageDrain();
+ 			return toRestoredQueuedMessage(removed);
+ 		}
+@@ -11554,16 +11668,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		}
+ 		if (index >= 0) {
+ 			this.agent.replaceQueue(queue, this.#withoutQueuedUserMessage(pending, index));
++			this.#settleWithdrawnQueuedMessages(pending.slice(this.#queuedUserGroupStart(pending, index), index + 1));
+ 			this.#reconcileQueuedMessageDrain();
+ 			return true;
+ 		}
+ 		if (!this.#heldQueuedMessages.has(message)) return false;
+ 		const held = [...this.#heldQueuedMessages];
+ 		const heldIndex = held.indexOf(message);
+-		for (let i = this.#queuedUserGroupStart(held, heldIndex); i <= heldIndex; i++) {
+-			this.#heldQueuedMessages.delete(held[i]);
+-			this.#withdrawnHeldMessages.add(held[i]);
++		const withdrawn = held.slice(this.#queuedUserGroupStart(held, heldIndex), heldIndex + 1);
++		for (const original of withdrawn) {
++			this.#heldQueuedMessages.delete(original);
++			this.#withdrawnHeldMessages.add(original);
+ 		}
++		this.#settleWithdrawnQueuedMessages(withdrawn);
+ 		return true;
+ 	}
+ 
+@@ -13561,6 +13678,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  
  	/** Retry the last failed assistant turn when the session is idle. */
  	async retry(): Promise<boolean> {
@@ -1413,7 +1554,7 @@ index 68a1154008..79547098f4 100644
  		const didRetry = await this.#recovery.retry(this.#prunedTerminalFailure);
  		// A manual retry is the user resuming the run they interrupted, so it lifts the
  		// interrupt's auto-resume suppression the same way a typed prompt does.
-@@ -13583,6 +13680,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -13583,6 +13704,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * a model, or with nothing left unfinished.
  	 */
  	async restoreInterruptedTurn(): Promise<boolean> {
@@ -1424,6 +1565,26 @@ index 68a1154008..79547098f4 100644
  		const branch = this.sessionManager.getBranch();
  		if (this.isStreaming || !hasRestorableTurn(branch)) return false;
  		const model = this.model;
+diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
+index 907d538adc..25d6a079b5 100644
+--- a/packages/coding-agent/src/session/live-message-observation.ts
++++ b/packages/coding-agent/src/session/live-message-observation.ts
+@@ -96,8 +96,14 @@ export class NativeMessageObservations {
+     if (live) this.#emit({ kind: "message_decision", live, message, settlement });
+   }
+   settle(message: AgentMessage, settlement: NativeMessageSettlement, live = nativeMessageIdentity(message)): void {
++    // A permanently withdrawn original may never enter the delivered-message lifecycle.
++    // Give its actual decision an identity without inventing a message_start or open stream.
++    if (!live) {
++      live = { ...this.context(), messageId: `msg-${++this.#count}` };
++      (message as ObservedMessage)[kLive] = live;
++    }
+     decisions.set(message, { live, settlement: { ...settlement } });
+-    if (live) this.#emit({ kind: "message_settlement", live, message, settlement });
++    this.#emit({ kind: "message_settlement", live, message, settlement });
+   }
+   #emit(observation: NativeMessageObservation): void {
+     for (const listener of this.#listeners) {
 diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
 index 0db8962316..d79c0bd86a 100644
 --- a/packages/coding-agent/src/session/session-artifact-copy.ts
