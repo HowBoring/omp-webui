@@ -1,0 +1,143 @@
+{
+  "format": "omp-native-signed-probe-actual-evidence/1",
+  "status": "ACTUAL_FAIL_DRAINED_BEFORE_NATIVE_IMPORT",
+  "sourceHead": "5a445183d7d3880a7ef4cefefb5078f81eb8283a",
+  "stage": "/tmp/native-signed-probe-restore7-a",
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117",
+  "preservationManifestSha256": "e36ebd38352c6db5f610b2fea319ac2a625e8a8540be5dd74c25faa0d92cfb1e",
+  "consumedReadySha256": "afd79e4d2ec4bc60f070b951579a7f90aadd3473d65ad3f7d1d07e6c37cf40f3",
+  "frozenInputs": 102,
+  "frozenInputBytesAndOriginalStatVerified": true,
+  "nativeChangedFilesByteIdentical": 130,
+  "nativeHeadIndexStatusStagedWorkingExact": true,
+  "preserved": [
+    {
+      "path": "READY.json",
+      "bytes": 30872,
+      "sha256": "afd79e4d2ec4bc60f070b951579a7f90aadd3473d65ad3f7d1d07e6c37cf40f3"
+    },
+    {
+      "path": "approval-request.json",
+      "bytes": 8316,
+      "sha256": "974b8d986b66bbe4e357c399a381cc66b332fed0f809f3a350a4d414346211c4"
+    },
+    {
+      "path": "operator/approval.json",
+      "bytes": 4336,
+      "sha256": "a6403c3449b998005980e68bbcba5a68790353e7dcd5b2f45a3af9bf1951901a"
+    },
+    {
+      "path": "operator/anchor.json",
+      "bytes": 441,
+      "sha256": "d83c0b9952b7417029005d9fa258f98e097daf9a2a957979658ef64a463dbd15"
+    },
+    {
+      "path": "operator/key.json",
+      "bytes": 261,
+      "sha256": "d0f798eb1e05dffd6769804444251a7e1fde87bc162575f269de53eb08797e15"
+    },
+    {
+      "path": "operator/configuration.json",
+      "bytes": 491,
+      "sha256": "6ad1e4af2934c4749963334195aef920594468e3cd0ecc8a7da6d14e0825d53e"
+    },
+    {
+      "path": "root-artifact-review.json",
+      "bytes": 459,
+      "sha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a"
+    },
+    {
+      "path": "root-signing-metadata.json",
+      "bytes": 525,
+      "sha256": "4879c2aeece7f8b1b9798aae2407e7b4cbfe5b097f7815ffb9f443c86bd43b58"
+    },
+    {
+      "path": "source-inputs.json",
+      "bytes": 14561,
+      "sha256": "b70cf7b963fcf841c8efaa5cf72259e6b933c6d659a12353baca0b228994d598"
+    },
+    {
+      "path": "stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "stderr.log",
+      "bytes": 754,
+      "sha256": "cce56babce855d972a50e30febb930e77a4b17154864cd1bef2259f4b4bbeadc"
+    },
+    {
+      "path": "result.json",
+      "bytes": 541,
+      "sha256": "fd093f6c2746d59146f71b129d7c95d372d4c76f7c0971b6bc4c76994bba1ff9"
+    },
+    {
+      "path": "one-run-started",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "launch/launch-closure.json",
+      "bytes": 9794,
+      "sha256": "ffd171ff220c53700ff5fec22447ee40a1925481cde8791293a2d1d6aece5245"
+    },
+    {
+      "path": "launch/components/release.json",
+      "bytes": 7197,
+      "sha256": "6f0ccaed7fc862b9ce9e9135e228692f4b29864b9594cc43b0fa3a23758067fd"
+    }
+  ],
+  "result": {
+    "stage": "DRAINED",
+    "status": "FAIL",
+    "kernelEndpoint": "P_ALL/ECHILD",
+    "rootStatus": {
+      "pid": 565394,
+      "code": 1,
+      "status": 1
+    },
+    "reaped": [
+      {
+        "pid": 565394,
+        "code": 1,
+        "status": 1
+      }
+    ],
+    "originalReadersEof": true,
+    "originalReaderOutcomes": {
+      "stdout": "EOF",
+      "stderr": "EOF"
+    },
+    "originalPidfdKernelExit": true,
+    "signalsSent": 0,
+    "prepareInvoked": false,
+    "exclusiveControlAvailableAfterExit": false,
+    "privateAdmission": "BLOCKED",
+    "globalAdmission": "BLOCKED"
+  },
+  "exclusiveControlAvailableAfterExitInterpretation": "NOT_PROBED_ON_FAIL; clean=false short-circuits post-exit lock check; false is not retained-lock proof",
+  "runtimeReached": [
+    "actual unchanged C entry",
+    "same-PID canonical Bun",
+    "Native-free authenticateProbeLaunch"
+  ],
+  "unreached": [
+    "first Native-bearing import",
+    "inherited Native fd handoff",
+    "public module loading",
+    "FFI",
+    "server/client",
+    "EOF close phase"
+  ],
+  "failure": "PROBE_LAUNCH_CLOSURE_CHANGED",
+  "postRunIndependentSemanticRosterMembers": 45,
+  "suspectedCause": "strict schema parse reorders row keys while JSON.stringify equality is insertion-order sensitive",
+  "rawRootToolMetadata": "Archive contains labeled Root transcription, not independently captured tool history",
+  "privateKeyArchivedOrCommitted": false,
+  "runtime107MBArchived": false,
+  "actualRerun": false,
+  "admission": {
+    "private": "BLOCKED",
+    "global": "BLOCKED"
+  }
+}
