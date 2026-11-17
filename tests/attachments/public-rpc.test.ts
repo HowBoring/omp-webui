@@ -423,6 +423,44 @@ test("actual public malformed base64 with valid UTF8 refuses all input before re
   }, "image-original-budget-v2");
 }, 45_000);
 
+test("actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects", async () => {
+  await withWorker(async fixture => {
+    const { worker, client } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const draft = { preparationId: "prepared-ready-cancel", draftId: "draft-ready-cancel", draftRevision: "1",
+      authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+        { originalId: "document", format: "utf8" as const, sha256: textSha256, data: Buffer.from(text).toBase64() },
+      ] };
+    const unchangedDraft = structuredClone(draft), receipt = await client.prepare(draft);
+    expect(receipt).toMatchObject({ status: "ready", preparationId: draft.preparationId, draftId: draft.draftId,
+      draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
+      binding: { sourceId: fixture.selected.sourceId, instanceId: fixture.selected.instanceId,
+        nativeSessionId: fixture.selected.nativeSessionId } });
+    expect(receipt.items).toHaveLength(1);
+    expect(receipt.items).toMatchObject([
+      { status: "ready", originalId: "document", originalSha256: textSha256, preparedSha256: preparedTextSha256,
+        representation: { kind: "text", text }, degradations: [] },
+    ]);
+    // Capture otherwise-valid public consent before the awaited public cancellation barrier.
+    const lateSubmission = submission(fixture, receipt, "cancelled-ready-refused");
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await client.cancel(receipt.preparationId)).toEqual({ cancelled: true });
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    // The returned public expiry is still in the future: cancellation, rather than expiry, invalidated it.
+    expect(receipt.expiresAt).toBeGreaterThan(Date.now());
+    expect(await worker.request(lateSubmission))
+      .toMatchObject({ success: false, code: "ATTACHMENT_RECEIPT_STALE", error: "ATTACHMENT_RECEIPT_STALE" });
+    const missing = decodeSubmission(await worker.request({ type: "submission_query",
+      clientSubmissionId: "cancelled-ready-refused" }));
+    expect(missing).toMatchObject({ found: false, admission: "absent", reservation: "absent", terminal: false,
+      inputOutcome: "unresolved", operationOutcome: "unknown", persistence: "unresolved", relations: [],
+      nextOffset: null });
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(draft).toEqual(unchangedDraft);
+    expect(Bun.SHA256.hash(Buffer.from(draft.objects[0]!.data, "base64"), "hex")).toBe(textSha256);
+    // This sequential ready-cancel transition proves caller retention; pending-publication races remain separate.
+  }, "image-original-budget-v2");
+}, 45_000);
+
 async function prepareWebp(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
   // Pillow/hashlib authored the original and its carrier hash; no Native encoder supplied expectations.
   const original = await fs.readFile(new URL("./fixtures/opaque-200.webp", import.meta.url));
