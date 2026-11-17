@@ -1,0 +1,73 @@
+/** Pure tests/types/build/AST only. Never imports a fixture entry, starts the producer/retainer or executes output. */
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import { assertOwnershipFfiDeferred } from "./ownership-import-gate";
+import { helperDrainAdapter, helperDrainPublicRoot,
+  verifyHelperDrainPublicInputs } from "../compatibility/omp/fixtures/native-helper-drain-public";
+
+const root = path.resolve(import.meta.dir, ".."), temporary = await fs.mkdtemp("/tmp/helper-two-process-source-");
+const records: { entry: string; bytes: number; sha256: string; eagerFfi: string;
+  inputs: Record<string, string> }[] = [];
+const commands: { argv: string[]; exitCode: number; stdout: string; stderr: string }[] = [];
+try {
+  await verifyHelperDrainPublicInputs();
+  const fixtures = `${root}/compatibility/omp/fixtures`;
+  for (const [entry, host] of [[`${fixtures}/native-helper-drain-bootstrap.ts`, false],
+    [`${fixtures}/native-helper-drain-native.ts`, false], [`${fixtures}/native-helper-drain-host.ts`, true],
+    [`${root}/scripts/prepare-native-helper-drain.ts`, false]] as const) {
+    const result = await Bun.build({ entrypoints: [entry], target: "bun", format: "esm", packages: "bundle", metafile: true,
+      plugins: host ? [{ name: "source-only-public-control-io", setup(build) {
+        build.onResolve({ filter: /control-io\/index\.ts$/ }, () => ({ path: "/__SOURCE_ONLY__/control-io/index.js", external: true }));
+      } }] : [] });
+    if (!result.success || result.outputs.length !== 1 || !result.outputs[0]) throw new Error("DRAIN_SOURCE_BUILD_FAILED");
+    const bytes = await result.outputs[0].text();
+    if (!host) assertOwnershipFfiDeferred(bytes);
+    const metadata: unknown = typeof result.metafile === "string" ? JSON.parse(result.metafile) : result.metafile;
+    if (!metadata || typeof metadata !== "object" || !("inputs" in metadata)
+      || !metadata.inputs || typeof metadata.inputs !== "object") throw new Error("DRAIN_SOURCE_METADATA");
+    const inputs: Record<string, string> = {};
+    for (const name of Object.keys(metadata.inputs)) {
+      const file = path.resolve(root, name);
+      inputs[path.relative(root, file)] = new Bun.CryptoHasher("sha256").update(await fs.readFile(file)).digest("hex");
+    }
+    if (host) {
+      for (const name of ["coordinator", "resolver", "artifact", "observation", "elf", "platform"]) {
+        if (!inputs[`packages/delivery/${name}.ts`]) throw new Error("DRAIN_REVIEWED_HOST_VERIFIER_MISSING");
+      }
+      if (Object.keys(inputs).some(name => path.resolve(root, name).startsWith(`${helperDrainAdapter}/packages/delivery/`))) {
+        throw new Error("DRAIN_LEGACY_HOST_VERIFIER_BUNDLED");
+      }
+    }
+    records.push({ entry: path.relative(root, entry), bytes: Buffer.byteLength(bytes),
+      sha256: new Bun.CryptoHasher("sha256").update(bytes).digest("hex"),
+      eagerFfi: host ? "HOST_MAINTENANCE_GRAPH_LOADS_ONLY_AFTER_AUTHENTICATED_BOOTSTRAP" : "ZERO", inputs });
+  }
+  const files = (await fs.readdir(fixtures)).filter(name => /^native-helper-drain-.*\.ts$/.test(name))
+    .map(name => `${fixtures}/${name}`);
+  files.push(`${root}/scripts/prepare-native-helper-drain.ts`, import.meta.path, `${root}/tests/ownership/native-helper-two-process.test.ts`);
+  const config = `${temporary}/tsconfig.json`;
+  await fs.writeFile(config, JSON.stringify({ compilerOptions: { target: "ESNext", module: "Preserve", moduleResolution: "Bundler",
+    strict: true, noEmit: true, skipLibCheck: true, types: ["bun"], noUncheckedIndexedAccess: true,
+    exactOptionalPropertyTypes: true, allowImportingTsExtensions: true,
+    typeRoots: [`${root}/node_modules/@types`, `${root}/node_modules`], paths: { "@omp-webui/control-io": [
+      `${helperDrainPublicRoot}/control-io/index.d.ts`] } }, files }));
+  for (const name of ["home", "profile", "cwd", "config", "data", "state", "cache"]) await fs.mkdir(`${temporary}/${name}`, { mode: 0o700 });
+  const env = { HOME: `${temporary}/home`, PI_CODING_AGENT_DIR: `${temporary}/profile`, XDG_CONFIG_HOME: `${temporary}/config`,
+    XDG_DATA_HOME: `${temporary}/data`, XDG_STATE_HOME: `${temporary}/state`, XDG_CACHE_HOME: `${temporary}/cache`,
+    PATH: "/usr/bin:/bin", TMPDIR: "/tmp" };
+  for (const argv of [[process.execPath, "test", "--no-env-file", `--preload=${root}/tests/preferences/no-provider.ts`,
+    `${root}/tests/ownership/native-helper-two-process.test.ts`], [process.execPath, "check", "--no-script", "-p", config]]) {
+    const result = Bun.spawnSync(argv, { cwd: `${temporary}/cwd`, env, stdout: "pipe", stderr: "pipe", timeout: 30_000 });
+    process.stdout.write(result.stdout); process.stderr.write(result.stderr);
+    commands.push({ argv, exitCode: result.exitCode, stdout: result.stdout.toString(), stderr: result.stderr.toString() });
+    if (result.exitCode !== 0) throw new Error("DRAIN_SOURCE_CHECK_FAILED");
+  }
+  await verifyHelperDrainPublicInputs();
+  const record = { status: "PASS_SOURCE_ONLY", builds: records, commands, emittedExecuted: false,
+    producerExecuted: false, retainerExecuted: false, nativeImported: false, ffiLoaded: false,
+    helperStarted: false, socketsOpened: false, signatureKeysUsed: false, actualProof: "NOT_RUN", admission: "BLOCKED" };
+  const output = process.argv[2];
+  if (output) await fs.writeFile(output, JSON.stringify(record, null, 2) + "\n");
+  process.stdout.write(JSON.stringify({ status: record.status, builds: records.map(({ inputs, ...build }) =>
+    ({ ...build, sourceInputs: Object.keys(inputs).length })), actualProof: record.actualProof, admission: record.admission }) + "\n");
+} finally { await fs.rm(temporary, { recursive: true, force: true }); }

@@ -1,0 +1,22 @@
+{
+  "control-io/package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+  "control-io/index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+  "provenance/owned-control-io.c": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816",
+  "provenance/owned-control-io.h": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c",
+  "provenance/control-io/package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+  "provenance/build-control-io.ts": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b",
+  "provenance/build-control-io-public.ts": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab",
+  "provenance/control-io-build.json": "1e778e1b9c1846fbf2e34747d7947d3aa78c6474a701f88c5bc6feb91f2ef539",
+  "provenance/control-io-toolchain-package.json": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d",
+  "provenance/control-io-toolchain-bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+  "control-io/index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+  "provenance/control-io/index.ts": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9",
+  "control-io/loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+  "provenance/control-io/loader.ts": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8",
+  "control-io/socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+  "provenance/control-io/socket.ts": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600",
+  "control-io/selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+  "provenance/control-io/selection.ts": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+  "control-io/errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+  "provenance/control-io/errors.ts": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b"
+}

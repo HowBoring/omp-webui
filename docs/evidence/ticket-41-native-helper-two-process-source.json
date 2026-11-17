@@ -1,0 +1,159 @@
+{
+  "format": "omp-native-helper-two-process-source-v1",
+  "status": "SOURCE_READY_FOR_FRESH_PAIRED_REVIEW",
+  "hostBase": "0fb76a302cbcabacd0953fe74ae427182bf6d3b4",
+  "sourceInputs": {
+    "compatibility/omp/fixtures/native-helper-drain-bootstrap.ts": "18eafd3211bcd9d9c4db0e8f393ed8a3e58ae6f76f3834a80aaf456885f1f56d",
+    "compatibility/omp/fixtures/native-helper-drain-gate.ts": "033ba6250f4953a3028bc96f7847c85773288a2eaabafda9d4e2c6c1544c1484",
+    "compatibility/omp/fixtures/native-helper-drain-host.ts": "79738a941ac685c742a0eae3fb0f39bb1e6fd7ed102fec7de4fd5cee643ba886",
+    "compatibility/omp/fixtures/native-helper-drain-io.ts": "9d408915daab6b1f13c5dc0b4e9a8a87c5d25c140d1f5c0d6cefe76da59de818",
+    "compatibility/omp/fixtures/native-helper-drain-launch.ts": "da045799890828b8a4694aa1a35be32d076cb96eea5a9dfe793ec7bd0bffef88",
+    "compatibility/omp/fixtures/native-helper-drain-native.ts": "6a95cf5b99092b4e270e1e3e2cfa1587f98f3cb7c1d7fe0f702fd7d654686dd1",
+    "compatibility/omp/fixtures/native-helper-drain-public-pins.json": "a0abd9339f9f8628440db327ca492b40244c8d591bbed93ce7c1f6178cf09292",
+    "compatibility/omp/fixtures/native-helper-drain-public.ts": "6bed27072d824c3f53cd7688c479562d5768f6fd5f757f4a661a76fa2517b938",
+    "scripts/prepare-native-helper-drain.ts": "e550a35917a7f7625edb5bb9b4e8c701d831f5f26758174a782ae1ddd136026d",
+    "scripts/retain-native-helper-drain.py": "cdb97e4952494278d5952b02ce347ff1d84a97168efd3fe716345b6ea26d3f9c",
+    "scripts/check-native-helper-two-process.ts": "c80ae0b5740a705fb29e7b8c3280adb30ff4838c1af8426a28de05bec8151374",
+    "tests/ownership/native-helper-two-process.test.ts": "5b7d0bc1096f4e3325332db11761ea7b816a53066b4b0aedf455f62acad23491",
+    "docs/evidence/ticket-41-native-helper-two-process-plan.md": "9422b1765a1c6032c5ed29a8476b640bcce73069502930d81eb7c6685997e9a9"
+  },
+  "checks": {
+    "record": "ticket-41-native-helper-two-process-checks.json",
+    "sha256": "0f55ef79e58556ee0da5796578d2870a3e492b765764ea2d0d26725ebb50e0d8",
+    "pureTests": 6,
+    "assertions": 15,
+    "strictFiles": 63,
+    "buildOnlyGraphs": 4,
+    "emittedExecuted": false,
+    "producerExecuted": false,
+    "retainerExecuted": false,
+    "bootstrapNativeProducerEagerFfiImports": 0,
+    "host": "MAINTENANCE_GRAPH_ONLY_AFTER_AUTHENTICATED_BOOTSTRAP",
+    "retainerParsedOnly": true,
+    "outerLaunchSchema": "SAME_STRICT_SCHEMA_NORMALIZATION_FOR_BOTH_ROSTERS"
+  },
+  "publicSourceTrace": {
+    "publicBuildInputs": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/index.ts",
+        "sha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/loader.ts",
+        "sha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/socket.ts",
+        "sha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/selection.ts",
+        "sha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/errors.ts",
+        "sha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/control-io/package.json",
+        "sha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/scripts/build-control-io.ts",
+        "sha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/scripts/build-control-io-public.ts",
+        "sha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/package.json",
+        "sha256": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d",
+        "historicalProvenanceExact": true
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/bun.lock",
+        "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+        "historicalProvenanceExact": true
+      }
+    ],
+    "runtimePublicSourceModules": [
+      "index",
+      "loader",
+      "socket",
+      "selection",
+      "errors"
+    ],
+    "hostVerifierBundledInPublicPackage": false,
+    "publicRebuildPerformed": false,
+    "hostSelectionConnection": "H coordinator -> resolver -> artifact/platform/elf/observation; P adapter selectedControlIo delegates H verify; unchanged public loader invokes that verify"
+  },
+  "publicOutputPins": {
+    "control-io/package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+    "control-io/index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+    "control-io/index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+    "control-io/loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+    "control-io/socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+    "control-io/selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+    "control-io/errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413"
+  },
+  "preservation": {
+    "nativePaths": 137,
+    "nativeHeadIndexListingStagedStatusWorktreePatchExact": true,
+    "native137PathBytesExact": true,
+    "nativeIndexSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+    "nativePatchAndExportExact": true,
+    "nativeExportHashes": {
+      "compatibility/omp/0010-execution-ownership.patch": "d243a44147da99e00306884ff5094f224aacd059f25ec17648074bd9d2e61eba",
+      "docs/evidence/ticket-41-native-helper-drain-export.json": "58a889860d581e3fe808159b01dc34d69efe3a80c6261e63ebafb8fdb6bb0664"
+    },
+    "publicBuildInputCount": 10,
+    "publicBuildInputsExact": true,
+    "publicRebuildPerformed": false,
+    "nativeIndexBytesMatchReviewedExport": true,
+    "public20MembersExact": true,
+    "public10BuildInputsExact": true
+  },
+  "cChecks": {
+    "helperWorkerNativeBridge": "PASS_STRICT_SYNTAX_ONLY_NO_OUTPUT",
+    "launcherConfiguredFlags": "PASS_SYNTAX_ONLY_NO_OUTPUT",
+    "expandedLauncherConversionAudit": "EXISTING_SIGN_CONVERSION_AT_OMP_ENTRY_C_43",
+    "cChanged": false,
+    "rawRecordSha256": "d0af5d072d6499e1bf61fd906bb4c9326686792003ce8e1698320c79c0c21ddb",
+    "configuredLauncherRecordSha256": "e19b91a760df567f257800369c4451148abc4383acc3d1104e87424b27d61914"
+  },
+  "research": "/workspace/work/mvp-implementation/research/restore8-41-helper-two-process-source",
+  "runtimeFaultRows": "NOT_RUN",
+  "actualSameManifestProof": "NOT_RUN",
+  "actualHelperNative": "NOT_RUN",
+  "staging": "NOT_RUN_ROOT_ONLY",
+  "signaturesOrPrivateKeys": "NOT_CREATED_OR_USED",
+  "globalAdmission": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "next": [
+    "FRESH_SPEC_REVIEW",
+    "FRESH_STANDARDS_REVIEW",
+    "ROOT_EXACT_STAGE_REVIEW",
+    "ONE_SEPARATELY_AUTHORIZED_RUNTIME_GATE"
+  ],
+  "reviewedHostAncestorFix": "809144a10392f6ca549ece968029118156b05e92",
+  "externalCInputs": {
+    "/workspace/work/omp-webui-ticket-41/compatibility/launcher/omp-entry.c": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b",
+    "/workspace/work/omp-webui-ticket-41/compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/private-helper.c": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f",
+    "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/candidates.h": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893",
+    "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/tests/supervision/fixtures/worker.c": "807728d22c8caf6c180e2d55a11c2bf11f67fa972848a5a6f07853fac14b1a0a",
+    "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.c": "0a07096d6e168540d5f63417da62410597ac67c8ec298b4b435b959e234033f0"
+  },
+  "unsignedBuilderProvenance": "SOURCE_INPUT_DIGEST_RECORD_INCLUDED_IN_BOTH_FINAL_INVENTORIES_BEFORE_UNSIGNED_APPROVAL_REQUEST",
+  "retainerFaults": "ORIGINAL_HANDLES_RETAINED_WITH_SANITIZED_CHILD_FAILURE_CODES_NO_DISCOVERY_OR_SIGNALS"
+}
