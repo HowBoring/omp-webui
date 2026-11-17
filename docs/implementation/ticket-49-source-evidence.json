@@ -1,0 +1,75 @@
+{
+  "status": "SOURCE_FIXTURE_ONLY",
+  "integrationBase": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "dshSourceBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "reviewedSourceSha256": {
+    "packages/api/session-controller/src/types.ts (ticket45 candidate)": "3afaf55365f38d46bca70ae5c175dc4b9571c935c0ad8c558f00b831b3328022",
+    "packages/api/session-controller/src/commands.ts": "d387517e345d444e2ebf15c1af0c74e0ac59b55774cbebfba03f4037946b185a",
+    "packages/settings/settings/src/types.ts": "fde8e28bde0fc1ffe390b53a2975832e1501e55b74b862e1e6c9be7824f97833",
+    "packages/api/settings-controller/src/index.ts": "73d05b8340fbcc93a814a19aaecb53b81a777b0af08f10271f4ff6dd415d3a53",
+    "packages/client/locale/src/locale-settings.ts": "bb563ce8a6cf56d8e8676cd3604f413c66d5e5b517a87641638647fa9ccff1c5",
+    "packages/client/ui-theme/src/theme-settings.ts": "f767181d6eed53034cee90c92a2a63f4b4b0875a1383edc9296cb78e184dd633"
+  },
+  "usedPublicDependencySha256": {
+    "dsh-api-settings-controller/lib/typert.remote-client.js": "b05d27b44055a9c785fcc39b2ea80698444ad5699102703d18883b2b2ac37908",
+    "dsh-settings/lib/types/types.d.ts": "1ad03f47c7b354a9e95fd5f96f86a455491fa64d7be6c87e4584d1533bcac322",
+    "dsh-api-gateway/lib/types/types.d.ts": "d880fae3a75e230eb7146d81a116940193e8e3251b1b417fbfa4e5b3d2910c15",
+    "dsh-client-connection/lib/types/peer.d.ts": "71ec1c00e521966953086e44038a058387f7c218d421b3faf711f8daf8f6405d"
+  },
+  "tests": {
+    "file": "tests/preferences/remote.test.ts",
+    "passed": 8,
+    "assertions": 36,
+    "themeRed": "missing production service module",
+    "notificationRed": "expected revision 1 public event, received []",
+    "strictTypeScript": "PASS",
+    "bun": "1.4.4 (38afee6c8)",
+    "typescript": "6.0.3"
+  },
+  "guards": {
+    "allowlistedEnvironment": true,
+    "syntheticHomeProfileCwd": true,
+    "tmpdir": "/tmp",
+    "noEnvFile": true,
+    "preimportGuard": "tests/preferences/no-provider.ts",
+    "localSocketException": false,
+    "processLaunchDenied": true
+  },
+  "notRun": [
+    "actual browser",
+    "actual Host process",
+    "Native/SDK/Agent runtime",
+    "model/thinking RPC mutation",
+    "restart persistence",
+    "cross-view event carrier",
+    "Windows/WSL2"
+  ],
+  "productAdmission": "BLOCKED",
+  "ticket49": "OPEN",
+  "ticket29": "OPEN",
+  "reviewFix": {
+    "base": "3d917dc0a22967ceada879fd690abb4cda6c82e4",
+    "branch": "mvp/ticket-49-preferences-review-fix",
+    "integrationTipMerged": "4024c4084173c102764e0c1e42efa183ba8810d4",
+    "basePreimageSha256": {
+      "packages/preferences/service.ts": "86f6332e6ae95805195e8bef6809283b4c54cda6a57e9522c6cc88de1ac28fa9",
+      "tests/preferences/remote.test.ts": "749ff2f9cf1af12daf845e4569fe4a91a203cf1bad53809d4695ac2bcba3b1a6",
+      "packages/preferences/README.md": "7922dcb656c04729b6efa6a4ea4701d772109b0000414b7eefc237ffb5882e39",
+      "docs/implementation/ticket-49-source-evidence.json": "65ba0a2efdb4441b9b2284823c5f873b4668cb85169ab38b5e612a0a29a342a0",
+      "docs/implementation/ticket-49-source-plan.md": "defd64596361941737071f11fceb39462c518d08563900db2879ad7cd5f3486b"
+    },
+    "reviewSha256": {
+      "ticket-49-preferences-spec.md": "b43edf0cb83d06def4b8a36a81a5240b1d9e15844d0a3ed046fa2454b435e841",
+      "ticket-49-preferences-standards.md": "a69bf22505f279e1d36ff01f2693a91ba21dd5305f93d8ee075cfdfc74525db4"
+    },
+    "initialSourceSliceTests": {
+      "passed": 6,
+      "assertions": 30,
+      "preimportGuard": "tests/interactions/no-provider.ts"
+    },
+    "canceledInvocationRed": "Removing only invocation.signal.aborted accepted the canceled Remote mutation: expected false, received true.",
+    "canceledPeerRed": "Removing only invocation.peer.signal.aborted accepted the Remote mutation after public Peer.dispose(): expected false, received true.",
+    "cancellationGreen": "Both guards restored; both Remote readbacks show theme system/revision 0, empty locale/revision 0 and no Host-local notification.",
+    "scope": "Pure public DSH Client/Connection/Gateway fixture only; no product registration or runtime admission."
+  }
+}
