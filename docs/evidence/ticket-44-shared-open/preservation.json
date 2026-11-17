@@ -1,0 +1,72 @@
+{
+  "baselinePath": "/workspace/work/mvp-implementation/research/ticket-44-source-reconcile/preservation-before.json",
+  "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+  "repositories": {
+    "native": {
+      "checks": {
+        "head": true,
+        "status": true,
+        "indexSha256": true,
+        "stagedDiffSha256": true,
+        "workingDiffSha256": true
+      },
+      "authoredCount": 10668,
+      "fileMismatches": [],
+      "addedAuthoredPaths": []
+    },
+    "dsh": {
+      "checks": {
+        "head": true,
+        "status": true,
+        "indexSha256": true,
+        "stagedDiffSha256": true,
+        "workingDiffSha256": true
+      },
+      "authoredCount": 21061,
+      "fileMismatches": [],
+      "addedAuthoredPaths": []
+    }
+  },
+  "artifactsCount": 21,
+  "artifactsMismatches": [],
+  "historicalRawCount": 18,
+  "historicalRawMismatches": [],
+  "integrationTip": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "normalHostAndPins": {
+    "apps/host/src/main.ts": {
+      "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+      "equalsIntegration": true
+    },
+    "apps/host/src/http.ts": {
+      "sha256": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+      "equalsIntegration": true
+    },
+    "upstreams.lock.json": {
+      "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+      "equalsIntegration": true
+    },
+    "bun.lock": {
+      "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+      "equalsIntegration": true
+    },
+    "package.json": {
+      "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+      "equalsIntegration": true
+    }
+  },
+  "priorEvidence": {
+    "docs/implementation/ticket-44-source-evidence.json": {
+      "sha256": "49350c88b478de400b440a67868211e061bf65025fa5d5108513813ec25d36d3",
+      "unchanged": true
+    },
+    "docs/implementation/ticket-44-review-fix-evidence.json": {
+      "sha256": "f8140958799b82338ea29969da15b972e36b910df84a72da643570589847a117",
+      "unchanged": true
+    },
+    "docs/implementation/ticket-44-attempt-order-evidence.json": {
+      "sha256": "1c3dcd5e3c060a81555ca91675dbb85b32df8849d1c67fb2f61c3de919fdd3f8",
+      "unchanged": true
+    }
+  },
+  "pass": true
+}

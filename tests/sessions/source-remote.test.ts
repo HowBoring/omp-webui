@@ -1,5 +1,5 @@
 /** Actual shared Session carrier + Gateway/Connection/Remote, all envelopes in memory. No sockets/listeners. */
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import TypertRegistry from "@deepseek-ai/dsh-typert-registry";
 import RemoteAccessService from "@deepseek-ai/dsh-api-remote-access";
@@ -40,6 +40,72 @@ async function fixture() {
   return { ...f, remote: client.remote.ompSessions, first, second, observed, dispatch,
     async close() { await client.fiber.dispose(); await peer.dispose(); await host.fiber.dispose(); await f.close(); } };
 }
+
+test("a fresh explicit Open clears an expired selection failure while sharing the same worker", async () => {
+  const f = await fixture(), clock = spyOn(Date, "now").mockReturnValue(Date.now());
+  try {
+    const first = await f.remote.open(f.first.selectionId);
+    if (!first.ok) throw first.error;
+    clock.mockReturnValue(Date.now() + 60_001);
+    expect(await f.remote.open(f.first.selectionId)).toMatchObject({ ok: false,
+      error: { code: "SESSION_SELECTION_EXPIRED" } });
+    expect(await f.remote.index({})).toMatchObject({ ok: true, value: { records: [
+      { attempt: { state: "failed", code: "SESSION_SELECTION_EXPIRED" } } ] } });
+    expect(await f.remote.recheck()).toMatchObject({ ok: true, value: {
+      registration: { attempt: { state: "failed", code: "SESSION_SELECTION_EXPIRED" } } } });
+    const catalog = await f.remote.catalog({});
+    if (!catalog.ok) throw catalog.error;
+    const choice = catalog.value.choices.find(item => item.nativeSessionId === f.first.nativeSessionId)!;
+    expect(await f.remote.open(choice.selectionId)).toMatchObject({ ok: true, value: {
+      workerId: first.value.workerId, generation: first.value.generation, state: "open",
+      registration: { id: first.value.registration.id, attempt: { state: "open" } } } });
+    expect(await f.remote.index({})).toMatchObject({ ok: true,
+      value: { records: [{ id: first.value.registration.id, attempt: { state: "open" } }] } });
+    expect(f.supervisor.starts).toBe(1); expect(f.controls.closed).toBe(false);
+    expect(await f.remote.revoke(f.grant.id)).toMatchObject({ ok: true });
+    expect(f.controls.closed).toBe(true);
+    expect(await f.remote.index({})).toMatchObject({ ok: true,
+      value: { records: [{ attempt: { state: "closed" } }] } });
+  } finally { clock.mockRestore(); await f.close(); }
+});
+
+test("an older shared Open cannot clear a selection failure recorded while its confirmation was pending", async () => {
+  const f = await fixture(), clock = spyOn(Date, "now").mockReturnValue(Date.now());
+  const reached = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  let pending: Promise<unknown> | undefined;
+  try {
+    expect((await f.remote.open(f.first.selectionId)).ok).toBe(true);
+    const observe = f.controls.observe;
+    f.controls.observe = async () => { reached.resolve(); await release.promise; return observe(); };
+    pending = f.remote.open(f.first.selectionId); await reached.promise;
+    clock.mockReturnValue(Date.now() + 60_001);
+    expect(await f.remote.open(f.first.selectionId)).toMatchObject({ ok: false,
+      error: { code: "SESSION_SELECTION_EXPIRED" } });
+    release.resolve(); await pending;
+    expect(await f.remote.index({})).toMatchObject({ ok: true,
+      value: { records: [{ attempt: { state: "failed", code: "SESSION_SELECTION_EXPIRED" } }] } });
+    expect(f.supervisor.starts).toBe(1); expect(f.controls.closed).toBe(false);
+  } finally { release.resolve(); await pending; clock.mockRestore(); await f.close(); }
+});
+
+test("an unconfirmed shared Open leaves the expired-selection failure durable", async () => {
+  const f = await fixture(), clock = spyOn(Date, "now").mockReturnValue(Date.now());
+  try {
+    expect((await f.remote.open(f.first.selectionId)).ok).toBe(true);
+    clock.mockReturnValue(Date.now() + 60_001);
+    expect(await f.remote.open(f.first.selectionId)).toMatchObject({ ok: false,
+      error: { code: "SESSION_SELECTION_EXPIRED" } });
+    const catalog = await f.remote.catalog({});
+    if (!catalog.ok) throw catalog.error;
+    const choice = catalog.value.choices.find(item => item.nativeSessionId === f.first.nativeSessionId)!;
+    f.controls.observe = async () => ({ version: "strict-start-v1", phase: "outcome_unknown", code: "STRICT_START_OUTCOME_UNKNOWN" });
+    expect(await f.remote.open(choice.selectionId)).toMatchObject({ ok: false,
+      error: { code: "STRICT_START_OUTCOME_UNKNOWN" } });
+    expect(await f.remote.index({})).toMatchObject({ ok: true,
+      value: { records: [{ attempt: { state: "failed", code: "SESSION_SELECTION_EXPIRED" } }] } });
+    expect(f.supervisor.starts).toBe(1); expect(f.controls.closed).toBe(false);
+  } finally { clock.mockRestore(); await f.close(); }
+});
 
 test("busy New and Switch return correlated typed lifecycle failures with an explicit recovery action", async () => {
   const f = await fixture();

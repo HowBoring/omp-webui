@@ -1,0 +1,172 @@
+{
+  "ticket": 44,
+  "scope": "Focused source-only P2 correction: explicit same-Session Open after expired selection reuses the active worker and confirms its captured Index attempt.",
+  "reviewedBase": "2a307048a34012281dfa73672bf6ce60297ea2de",
+  "reviews": [
+    "/workspace/work/mvp-implementation/reviews/ticket-44-attempt-order-spec.md",
+    "/workspace/work/mvp-implementation/reviews/ticket-44-attempt-order-standards.md"
+  ],
+  "finding": "A fresh successful shared Open returned state open with a failed SESSION_SELECTION_EXPIRED durable registration because the worker retained an older attempt revision.",
+  "change": [
+    "Capture the explicit Open entry registration revision and pass it only to validated successful shared-worker confirmation. Conditional observation can adopt that attempt; it cannot adopt a refusal recorded after the request began.",
+    "Startup, manual recheck, worker-loss, retirement and shutdown continue to use worker-owned revisions. No unconditional latest-revision read or write was added to these paths.",
+    "One worker, worker ID and generation survive the repaired Open. A later grant revocation closes that worker and saves closed using its newly owned revision."
+  ],
+  "confirmedSeam": "Previously authorized public SessionsService/DSH Remote plus Session Index seam; real FS/SQLite and in-memory native public-RPC fixture. No private method tests or database queries.",
+  "validation": {
+    "redGreen": {
+      "red": "02-shared-open-red.txt: one failure; public Open returned open with failed SESSION_SELECTION_EXPIRED registration.",
+      "green": "03-shared-open-green.txt: original regression passes after minimal source change."
+    },
+    "focusedFinal": {
+      "tests": 25,
+      "assertions": 167,
+      "files": 5,
+      "failures": 0,
+      "log": "05-focused-session-final.txt",
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/sessions/source-remote.test.ts ./tests/sessions/source-supervisor.test.ts ./tests/sessions/index.test.ts ./tests/sessions/revoke-all.test.ts ./tests/sessions/error-contract.test.ts"
+    },
+    "strictTypeScript": {
+      "result": "PASS",
+      "log": "strict-typescript.json",
+      "stdout": "",
+      "stderr": "",
+      "exitCode": 0
+    },
+    "regressions": [
+      "Expired selection failure remains visible until a fresh explicit successful Open, which shares the worker and restores the durable open attempt; manual recheck cannot clear the prior failure.",
+      "An older shared Open whose state confirmation is pending cannot replace a later expired-selection refusal.",
+      "Unconfirmed native state cannot reacquire the expired-selection attempt or cause a second launch.",
+      "Grant revocation after recovery closes the shared worker and persists closed.",
+      "Existing stale idle/startup, fixed-clock ABA/reopen, definite-refusal cleanup and unknown-worker retention during Index outage remain green."
+    ],
+    "notRun": [
+      "Native/OMP/SDK/serializer/runtime, FFI/kernel/process/socket/listener/browser execution under test",
+      "DSH/Native/Host builds, package install, broad tests, GitHub, merge, push"
+    ]
+  },
+  "preservation": {
+    "baselinePath": "/workspace/work/mvp-implementation/research/ticket-44-source-reconcile/preservation-before.json",
+    "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+    "repositories": {
+      "native": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 10668,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      },
+      "dsh": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 21061,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      }
+    },
+    "artifactsCount": 21,
+    "artifactsMismatches": [],
+    "historicalRawCount": 18,
+    "historicalRawMismatches": [],
+    "integrationTip": "42769489183eedb20b371083c49f915fda2bb8cf",
+    "normalHostAndPins": {
+      "apps/host/src/main.ts": {
+        "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+        "equalsIntegration": true
+      },
+      "apps/host/src/http.ts": {
+        "sha256": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+        "equalsIntegration": true
+      },
+      "upstreams.lock.json": {
+        "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+        "equalsIntegration": true
+      },
+      "bun.lock": {
+        "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+        "equalsIntegration": true
+      },
+      "package.json": {
+        "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+        "equalsIntegration": true
+      }
+    },
+    "priorEvidence": {
+      "docs/implementation/ticket-44-source-evidence.json": {
+        "sha256": "49350c88b478de400b440a67868211e061bf65025fa5d5108513813ec25d36d3",
+        "unchanged": true
+      },
+      "docs/implementation/ticket-44-review-fix-evidence.json": {
+        "sha256": "f8140958799b82338ea29969da15b972e36b910df84a72da643570589847a117",
+        "unchanged": true
+      },
+      "docs/implementation/ticket-44-attempt-order-evidence.json": {
+        "sha256": "1c3dcd5e3c060a81555ca91675dbb85b32df8849d1c67fb2f61c3de919fdd3f8",
+        "unchanged": true
+      }
+    },
+    "pass": true
+  },
+  "evidence": {
+    "02-shared-open-red.txt": {
+      "path": "docs/evidence/ticket-44-shared-open/02-shared-open-red.txt",
+      "sha256": "5f1aee67489c5d119f654b8367c6953c39eaca599faa24246460e8a656285bb5",
+      "bytes": 1707
+    },
+    "03-shared-open-green.txt": {
+      "path": "docs/evidence/ticket-44-shared-open/03-shared-open-green.txt",
+      "sha256": "ef9b7183a8dbac521f8843906c2c601638b20af7a0d837c9cfe1a46fe2605c22",
+      "bytes": 260
+    },
+    "05-focused-session-final.txt": {
+      "path": "docs/evidence/ticket-44-shared-open/05-focused-session-final.txt",
+      "sha256": "ea457190a0f0dc40efe979ab9bc9d36f7fa00d9cfa587b158c2135f80c9e4579",
+      "bytes": 2918
+    },
+    "preservation.json": {
+      "path": "docs/evidence/ticket-44-shared-open/preservation.json",
+      "sha256": "ff526146ab16ed2dbbf0e3f43b005b8c8bb505a732b4f1f9e4278816be89f28a",
+      "bytes": 2323
+    },
+    "strict-typescript.json": {
+      "path": "docs/evidence/ticket-44-shared-open/strict-typescript.json",
+      "sha256": "eef98f36ab84c2ee98d3f50b6117663ca5d01771f5c2a33743c92e1747dfeeb6",
+      "bytes": 642
+    }
+  },
+  "externalRaw": {
+    "directory": "/workspace/work/mvp-implementation/research/ticket-44-shared-open",
+    "fullExecObjects": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-shared-open/tool-results-final.json",
+      "sha256": "1998149ca60a98332c87fddf614bbbddb3387a935a64718d6f30eb53a2c4c8a0"
+    },
+    "boundedPreimages": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-shared-open/preimages.json",
+      "sha256": "80bf2260371a6de065bdf3231533fd3690790931d2c7273896177009f5a8d36e",
+      "files": 4,
+      "includesNativeOrDshCopies": false
+    }
+  },
+  "recordedCorrections": [
+    "Initial bare bun command was unavailable (exit127); no tests ran. Retained 01-shared-open-red.txt is setup failure, not RED evidence. Corrected to existing pinned Bun 1.4.4 absolute path.",
+    "Initial preservation comparator included existing tracked DSH symlinks, while the retained baseline inventories regular authored files. All Git status/index/diffs and recorded file/artifact hashes already matched. Retained preservation-initial.json; corrected inventory classification yields no new regular authored paths."
+  ],
+  "historicalResults": "Prior source test totals remain historical, not rerun here. Historical broad FAIL (268 pass, 15 fail, 1 error) is unchanged; no whole-ticket or runtime attestation.",
+  "boundaries": {
+    "whole44And29": "OPEN",
+    "forceAndDescendantCleanup41": "BLOCKED/not_attested",
+    "globalPrivateAdmission": "BLOCKED/unchanged",
+    "component": "unregistered"
+  },
+  "next": "STOP after commit for fresh focused independent source/spec review. Root merger only."
+}

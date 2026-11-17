@@ -16,7 +16,7 @@ import type { SessionWorkerFrame } from "../../packages/compatibility/session-wo
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean;
-  start(): Promise<StrictStartState>; launch(): Promise<void>;
+  start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
   drain: DrainResult; retirement: GracefulDrainResult | undefined;
 }
 
@@ -38,6 +38,7 @@ export async function sourceFixture(now: () => number = Date.now) {
   const controls: NativeFixtureControls = {
     catalogFailure: undefined, busy: false, launches: 0, closed: false,
     start: async (): Promise<StrictStartState> => opened,
+    observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
     drain: { code: 0, forced: false, stderrBytes: 0 },
     retirement: undefined,
@@ -45,7 +46,8 @@ export async function sourceFixture(now: () => number = Date.now) {
   const worker: SupervisedSessionWorker = {
     frames: [{ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true, nativeExpiry: "cancel",
       toolExpiry: "cancel", invalidAnswer: "pending" } }], exited: exited.promise, notificationCount: 0,
-    startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start() : opened,
+    startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start()
+      : command.type === "get_strict_state" ? controls.observe() : opened,
       (value): value is StrictStartState => validState(value)),
     history: new HistoryClient(async () => { throw new Error("SYNTHETIC_HISTORY_UNUSED"); }),
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },

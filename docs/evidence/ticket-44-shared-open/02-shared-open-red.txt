@@ -1,0 +1,47 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+52 |     expect(await f.remote.index({})).toMatchObject({ ok: true, value: { records: [
+53 |       { attempt: { state: "failed", code: "SESSION_SELECTION_EXPIRED" } } ] } });
+54 |     const catalog = await f.remote.catalog({});
+55 |     if (!catalog.ok) throw catalog.error;
+56 |     const choice = catalog.value.choices.find(item => item.nativeSessionId === f.first.nativeSessionId)!;
+57 |     expect(await f.remote.open(choice.selectionId)).toMatchObject({ ok: true, value: {
+                                                         ^
+error: expect(received).toMatchObject(expected)
+
+  {
+    "ok": true,
+    "value": {
++     "cwd": "/tmp/session-source-AkQEwD/project",
+      "generation": "1b94d438-921c-4566-83fb-aa7ecaf88df8",
+      "registration": {
+        "attempt": {
+-         "state": "open",
++         "code": "SESSION_SELECTION_EXPIRED",
++         "state": "failed",
+        },
++       "cwd": "/tmp/session-source-AkQEwD/project",
+        "id": "6ddbc3ec-9d52-4671-96f5-afd15e9b6605",
++       "instanceId": "instance",
++       "nativeSessionId": "native-session",
++       "observedAt": "2026-11-16T00:00:00.000Z",
++       "registeredAt": "2026-11-17T10:28:05.465Z",
++       "sourceId": "source",
+      },
+      "state": "open",
+      "workerId": "648e6009-c608-438f-97c4-49f09465e236",
+    },
+  }
+
+- Expected  - 1
++ Received  + 9
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-remote.test.ts:57:53)
+(fail) a fresh explicit Open clears an expired selection failure while sharing the same worker [110.59ms]
+
+ 0 pass
+ 4 filtered out
+ 1 fail
+ 3 expect() calls
+Ran 1 test across 1 file. [346.00ms]

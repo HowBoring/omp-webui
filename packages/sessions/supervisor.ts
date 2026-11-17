@@ -101,7 +101,7 @@ export class SessionSupervisor {
       }
       await existing.opening; this.#current(identity, existing);
       if (existing.worker) {
-        const observed = await existing.worker.startup.state(); this.#current(identity, existing); this.#accept(existing, observed);
+        const observed = await existing.worker.startup.state(); this.#current(identity, existing); this.#accept(existing, observed, record);
       }
       return this.#view(existing);
     }
@@ -177,7 +177,7 @@ export class SessionSupervisor {
       throw new Error(recorded ? code : "SESSION_ATTEMPT_UNAVAILABLE");
     }
   }
-  #accept(active: Active, result: StrictStartState): void {
+  #accept(active: Active, result: StrictStartState, explicitAttempt?: RegisteredSession): void {
     if (result.phase !== "open") {
       const code = result.code && isNativeSessionErrorCode(result.code) ? result.code : "SESSION_OPEN_NOT_CONFIRMED";
       active.state = "outcome_unknown";
@@ -191,7 +191,10 @@ export class SessionSupervisor {
     active.key = key(binding);
     const registered = this.options.index.register(binding);
     active.record ??= registered;
-    this.#observe(active, { state: "open" }); active.state = "open";
+    // Only this explicit Open may reclaim its captured attempt; lifecycle observations keep their owned revision.
+    const observed = this.options.index.observeCurrent(explicitAttempt ?? active.record, { state: "open" });
+    if (observed) active.record = observed;
+    active.state = "open";
     active.bridge!.bindSession(binding.nativeSessionId);
   }
   #view(active: Active): SessionView {

@@ -1,0 +1,41 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+(pass) a fresh explicit Open clears an expired selection failure while sharing the same worker [129.34ms]
+(pass) an older shared Open cannot clear a selection failure recorded while its confirmation was pending [54.64ms]
+(pass) an unconfirmed shared Open leaves the expired-selection failure durable [43.11ms]
+(pass) busy New and Switch return correlated typed lifecycle failures with an explicit recovery action [50.44ms]
+(pass) known typed errors keep safe codes while arbitrary native messages and forged objects are sanitized [41.95ms]
+(pass) malformed carrier envelopes reject before invocation while a valid stale choice returns a correlated failure [22.66ms]
+(pass) unconfirmed New returns manual recovery through Remote without inventing a registration [38.48ms]
+
+tests/sessions/source-supervisor.test.ts:
+(pass) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [20.95ms]
+(pass) Open failure survives older idle completion with tail %s at the same clock [70.26ms]
+(pass) Open failure survives older idle completion with tail RPC_PROTOCOL at the same clock [47.89ms]
+(pass) zero exit with a failed final protocol tail persists an unknown shutdown outcome [31.20ms]
+(pass) retired startup completion preserves a newer refused Open after the worker slot is released [52.11ms]
+(pass) idle completion records actual cleanup even when the index cannot save its outcome [69.93ms]
+(pass) an oversized adapter code remains bounded and its unknown worker is available for manual observation [33.89ms]
+(pass) a failed attempt write cannot bypass cleanup of a definitely refused owned worker [25.81ms]
+(pass) an index outage retains an unknown owned worker for manual observation after storage recovers [65.97ms]
+(pass) a replaced directory is a durable prelaunch refusal without a worker [30.07ms]
+(pass) shared startup retains root UI and one generation when one waiting browser logs out [95.83ms]
+
+tests/sessions/index.test.ts:
+(pass) first open persists one reference and its failure across Host restart [14.79ms]
+(pass) Host restart preserves native identity and requires manual reopen without resurrecting a worker [36.05ms]
+(pass) same native ID in different physical instances remains distinct and snapshots reject expired cursors [12.53ms]
+(pass) replacement of the Host state directory fails closed [12.23ms]
+(pass) a stale observation cannot replace a later identical attempt at the same clock after reopen [15.11ms]
+
+tests/sessions/revoke-all.test.ts:
+(pass) trusted revoke-all invalidates durable credentials and peers and notifies admission before returning [17.36ms]
+
+tests/sessions/error-contract.test.ts:
+(pass) the public native error boundary preserves known refusal/history codes and bounds unrecognized failures [0.14ms]
+
+ 25 pass
+ 0 fail
+ 167 expect() calls
+Ran 25 tests across 5 files. [1314.00ms]

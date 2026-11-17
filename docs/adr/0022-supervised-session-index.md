@@ -67,6 +67,12 @@ exit diagnostics proceed independently, including an unavailable idle-exit write
 Only the latest metadata attempt is stored; no transcript or attempt history is
 introduced. Internal revisions are omitted from the unchanged DSH contract.
 
+A fresh explicit same-Session Open can confirm its captured attempt revision while
+sharing the surviving worker. Only a validated successful binding reacquires that
+revision; an older in-flight Open cannot acquire a refusal recorded after it began.
+Manual rechecks and background lifecycle observations retain their worker-owned
+revision and cannot clear an intervening expired-selection failure.
+
 The isolated Session carrier now preserves recognized typed lifecycle failures,
 request correlation and constant recovery instructions through the public DSH
 Remote contract. It rebuilds errors without native exception text, paths, details
