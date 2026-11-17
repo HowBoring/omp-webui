@@ -42,8 +42,8 @@
     },
     {
       "path": "scripts/retain-native-signed-probe.py",
-      "sha256": "23ac9d1c730e3daa1c747a7d153737e23dcba9216704bf69604c6bfcdd945b82",
-      "bytes": 14738
+      "sha256": "0dfef852a291efedcf71f208ae713326df524d1199334553de95d39108ea77a7",
+      "bytes": 16038
     },
     {
       "path": "tests/ownership/native-signed-probe.test.ts",
@@ -54,6 +54,11 @@
       "path": "tests/ownership/native_signed_probe_ready_test.py",
       "sha256": "13050bb1f36c6ed10a4d05eefa9cd30cdb251a3e9e2954cbdac5e29ffd72ae0d",
       "bytes": 3756
+    },
+    {
+      "path": "tests/ownership/native_signed_probe_retainer_test.py",
+      "sha256": "f3d96c4c4919fe1c5c80525e9f0b66166b864400ea8f57fd51def3918125d3d8",
+      "bytes": 8893
     }
   ],
   "prerequisites": {
@@ -131,22 +136,65 @@
       {
         "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-python-syntax.json",
         "sha256": "a2e151ae756116282864d4c1f44a36d668a1c68e068a76a209d76831978fa1b3"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/launch-green.log",
+        "sha256": "b0efba1f37a079d5e5943aa8ae5e5d29bd83526fefeacd379e84a0f79c8cbce5"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/launch-red-corrected.log",
+        "sha256": "ed71c96eabf12a4b9affe995833384966ed96a6d39c8a290d42d86667b8e9177"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/launch-red.log",
+        "sha256": "3b52208b394ad296d7a27a6de118fdff6a971f6ba3c29190694fdccfe4999201"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/pure-tests-final.log",
+        "sha256": "9bdf7ad4262ac03abd83ee0c5295e83a7c4717a97e7f89b37e91f7ebf4e8d2d9"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/read-close-green.log",
+        "sha256": "0a7487dd447ed39892a423a22370611e100bf0b90f72781bde8e794e93941693"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/read-close-red.log",
+        "sha256": "e8e887babf637a2c697d2ff6f057076259892f1bf4b2672e69080be080c8609a"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/read-error-green.log",
+        "sha256": "67cf22d597855650ab27ed969e3f4815ffe0536dcf7e5d68bdfaf72f53839559"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/read-error-red.log",
+        "sha256": "bde4077b9f577917ad65b75947f8899aa2d3ae44d028cc9a355be4fff9cfb615"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/source-fix-checks.json",
+        "sha256": "0168467b3ddf40d9365a43f813647c11b18a9d4c47f5f68d2d63ea15e35da9e2"
       }
-    ]
+    ],
+    "retainerFailureBoundaryTestMethods": 5,
+    "currentPurePythonTestMethods": 7,
+    "retainerFaultCases": 10
   },
   "tdd": {
     "initialTypeCheck": "FAILED_REQUIRED_GLOBAL_SCOPE_SERVICE; corrected to browser-relay; raw preserved",
     "readyOwnershipRed": "Real readonly system UID mismatch prevented public READY admission",
     "readyOwnershipGreen": "Explicit expected UID pins; fixed readonly system allowlist only; stage/operator remain current-UID and strict 0600",
     "readyHarnessNote": "Corrected pure test closure fixture paths before GREEN; original RED was the real owner rejection before closure inspection",
-    "noInventedRuntimeRedGreen": true
+    "noInventedRuntimeRedGreen": true,
+    "launchSetupRed": "Original source retained its own writers after pipe3/log/cwd failures; raw original and corrected harness RED preserved",
+    "launchSetupGreen": "Every created pipe is tracked before fallible setup; own child-side copies close on every launch exit; partial setup drains actual EOF/ECHILD to FAIL",
+    "rawReadRed": "Nonrecoverable original-reader error escaped receive; separate failed-close RED preserved",
+    "rawReadGreen": "FAILED original reader remains owned through ECHILD; no fake EOF; mixed EOF/FAILED and absent readers report honestly",
+    "retainerHarnessCorrection": "Initial fake boundary mislabeled child-side stdin read end as output reader; corrected before preserved corrected RED"
   },
   "actual": {
     "sourcePreparerExecuted": false,
     "runtimeCopied": false,
     "operatorKeyOrApprovalCreated": false,
     "unitTestInMemorySyntheticSignatures": true,
-    "retainerImportedOrExecuted": false,
     "nativeApplicationOrSdkOrTuiExecuted": false,
     "nativeRuntimeModuleImported": false,
     "emittedNativeExecuted": false,
@@ -158,8 +206,26 @@
     "processCensusRun": false,
     "newCArgvSignedV3Composition": "NOT_RUN",
     "actualGlobal": "BLOCKED",
-    "privateAdmission": "BLOCKED"
+    "privateAdmission": "BLOCKED",
+    "retainerModuleImportedOrMainExecuted": false,
+    "retainerClassExecutedOnlyWithInertOsAdapters": true
   },
   "request": "docs/evidence/ticket-41-native-signed-probe-request.json",
-  "ready": "docs/evidence/ticket-41-native-signed-probe-not-ready.json"
+  "ready": "docs/evidence/ticket-41-native-signed-probe-not-ready.json",
+  "launchFailureFix": {
+    "sourceBase": "6e5067cf0aa39c812fca574927b1093480853581",
+    "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117",
+    "reviewFinding": "Spec P2 pre-spawn writer leak",
+    "specReview": "/workspace/work/mvp-implementation/reviews/ticket-41-signed-probe-spec.md",
+    "standardsReview": "/workspace/work/mvp-implementation/reviews/ticket-41-signed-probe-standards.md",
+    "priorSourcePathsPreserved": 12,
+    "nativeChangedFilesByteIdentical": 130,
+    "priorNativeHeadIndexStatusStagedWorkingExact": true,
+    "priorRawProofRecordsUnchanged": 9,
+    "originalReadersEof": "True only when stdout and stderr each have actual zero-byte-read EOF outcome",
+    "failedRawRead": "Retain original descriptor until final P_ALL/ECHILD and pending reader terminals; FAIL with EOF false",
+    "unresolvedObservation": "Retain wait ownership with no timeout release authority",
+    "sourcePreparerExecuted": false,
+    "ready": "UNSIGNED_NOT_READY_NOT_RUN"
+  }
 }

@@ -75,6 +75,15 @@ both original reader EOFs, final authoritative P_ALL/ECHILD, absent endpoint, em
 availability after exit. It never uses census emptiness, child discovery, numeric PID fallback, group kills or signals.
 Timeout/observer failure requests original stdin EOF and retains wait ownership; elapsed time is never extinction proof.
 
+Pipe ends and opened logs are registered before subsequent fallible setup. Every launch exception closes the parent's
+copies of child-side stdin/stdout/stderr ends; partial setup with no child can therefore reach actual reader EOF and
+P_ALL/ECHILD, producing FAIL. A post-spawn pidfd failure preserves the original child identity and readers through the
+sole wait loop. Each output reports its actual outcome: NOT_CREATED, PENDING, EOF, or FAILED. Only a zero-byte original
+read records EOF; `originalReadersEof` requires both original outputs to report EOF. A nonrecoverable raw-read error
+records FAILED and requests original stdin EOF. Its descriptor remains owned until authoritative P_ALL/ECHILD and all
+remaining readers reach a terminal outcome; the report is FAIL with `originalReadersEof:false`. Interrupted/nonblocking
+reads and unresolved wait/observer failures remain pending. A deadline never authorizes release.
+
 ## Preparation and readiness handoff
 
 `scripts/prepare-native-signed-probe.ts` is an **unexecuted** source/build action. It requires Root to supply a protected
@@ -120,6 +129,15 @@ Two pure Python tests drive the exact public `verify_ready` function through AST
 retainer, ctypes, its main block or launch/kernel paths. The real readonly-system rejection is preserved as RED; GREEN
 accepts exact independently pinned system owners and rejects a stage file claiming a system UID. The test's closure
 fixture paths were also corrected before GREEN; they were not the initial rejection. Native operator pins remain strict.
+
+The focused review found a real pre-spawn writer leak. Five AST-extracted public Retainer tests use inert OS adapters
+for all three pipe failures, occupied/unavailable logs, cwd failure, post-spawn pidfd acquisition failure, raw-read errors
+before and after ECHILD, failed-reader close error, and transient reads past the diagnostic deadline. The preserved RED
+shows the original writer leak; GREEN verifies actual fake-boundary EOF/ECHILD and honest FAIL. A separate raw-read RED
+shows the uncaught error before FAILED-terminal handling; no runtime execution is claimed. The first harness also
+misclassified the child-side stdin read end as an output reader; that assertion was corrected before the preserved
+corrected RED. The original failure and correction are both retained. These tests extract only the Retainer class;
+they never import the retainer module, ctypes, main, Native, or execute real spawn/wait/pidfd/lock/socket operations.
 
 Checks and exact hashes are in [source evidence](ticket-41-native-signed-probe.json). C compilation and bundled outputs
 are build evidence only. No emitted module, C entry, Native application, library, FFI, socket, process lock, kernel

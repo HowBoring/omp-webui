@@ -129,6 +129,7 @@ class Retainer:
         self.stage = stage
         self.pid = self.pidfd = self.stdin = None
         self.readers = {}
+        self.reader_outcomes = {"stdout": "NOT_CREATED", "stderr": "NOT_CREATED"}
         self.logs = {}
         self.counts = {}
         self.line = b""
@@ -155,39 +156,51 @@ class Retainer:
                 self.failed = True
 
     def launch(self):
-        input_read, self.stdin = os.pipe2(os.O_CLOEXEC)
-        output_read, output_write = os.pipe2(os.O_CLOEXEC)
-        error_read, error_write = os.pipe2(os.O_CLOEXEC)
-        self.readers = {output_read: "stdout", error_read: "stderr"}
-        for descriptor, label in self.readers.items():
-            os.set_blocking(descriptor, False)
-            self.logs[label] = os.open(self.stage / (label + ".log"), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            self.counts[label] = 0
-        actions = [(os.POSIX_SPAWN_DUP2, input_read, 0), (os.POSIX_SPAWN_DUP2, output_write, 1),
-                   (os.POSIX_SPAWN_DUP2, error_write, 2)]
-        environment = {"HOME": str(self.stage / "home"), "PI_CODING_AGENT_DIR": str(self.stage / "profile"),
-                       "TMPDIR": "/tmp", "PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8",
-                       "XDG_CONFIG_HOME": str(self.stage / "config"), "XDG_DATA_HOME": str(self.stage / "data"),
-                       "XDG_STATE_HOME": str(self.stage / "xdg-state"), "XDG_CACHE_HOME": str(self.stage / "cache")}
-        command = str(self.stage / "launch/bin/omp")
-        os.chdir(self.stage / "cwd")
+        child_ends = []
         try:
+            input_read, self.stdin = os.pipe2(os.O_CLOEXEC)
+            child_ends.append(input_read)
+            for label in ["stdout", "stderr"]:
+                reader, writer = os.pipe2(os.O_CLOEXEC)
+                child_ends.append(writer)
+                self.readers[reader] = label
+                self.reader_outcomes[label] = "PENDING"
+                self.counts[label] = 0
+            for descriptor, label in self.readers.items():
+                os.set_blocking(descriptor, False)
+                self.logs[label] = os.open(self.stage / (label + ".log"), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            actions = [(os.POSIX_SPAWN_DUP2, descriptor, target) for target, descriptor in enumerate(child_ends)]
+            environment = {"HOME": str(self.stage / "home"), "PI_CODING_AGENT_DIR": str(self.stage / "profile"),
+                           "TMPDIR": "/tmp", "PATH": "/usr/bin:/bin", "LC_ALL": "C.UTF-8",
+                           "XDG_CONFIG_HOME": str(self.stage / "config"), "XDG_DATA_HOME": str(self.stage / "data"),
+                           "XDG_STATE_HOME": str(self.stage / "xdg-state"), "XDG_CACHE_HOME": str(self.stage / "cache")}
+            command = str(self.stage / "launch/bin/omp")
+            os.chdir(self.stage / "cwd")
             self.pid = os.posix_spawn(command, [command], environment, file_actions=actions)
             self.pidfd = os.pidfd_open(self.pid)
             os.waitid(os.P_PIDFD, self.pidfd, os.WEXITED | os.WNOHANG | os.WNOWAIT | WALL)
             report({"stage": "RETAINING_LAUNCHED", "rootPid": self.pid, "originalPidfd": True,
                     "initialKernelEndpoint": "P_ALL/ECHILD", "signalsSent": 0})
         finally:
-            for descriptor in [input_read, output_write, error_write]:
-                os.close(descriptor)
+            # These are only the parent's copies; original child identity/readers stay owned even after spawn failure.
+            for descriptor in child_ends:
+                try:
+                    os.close(descriptor)
+                except BaseException:
+                    self.uncertain()
 
     def receive(self, descriptor):
         try:
             data = os.read(descriptor, 65536)
-        except BlockingIOError:
+        except (BlockingIOError, InterruptedError):
             return
+        except OSError:
+            self.reader_outcomes[self.readers[descriptor]] = "FAILED"
+            self.uncertain()
+            return  # Keep the failed original descriptor until authoritative ECHILD; never call it EOF.
         if not data:
             os.close(descriptor)
+            self.reader_outcomes[self.readers[descriptor]] = "EOF"
             del self.readers[descriptor]
             return
         label = self.readers[descriptor]
@@ -222,7 +235,7 @@ class Retainer:
 
     def drain(self):
         echild = False
-        while not echild or self.readers:
+        while not echild or "PENDING" in self.reader_outcomes.values():
             try:
                 while True:
                     item = os.waitid(os.P_ALL, 0, os.WEXITED | os.WNOHANG | WALL)
@@ -241,8 +254,9 @@ class Retainer:
                 self.uncertain()
             try:
                 if time.monotonic() - self.began > 30:
-                    self.uncertain()  # Deadline is diagnostic; retain until ECHILD and original readers' EOF.
-                readable, _, _ = select.select(list(self.readers), [], [], 0.05)
+                    self.uncertain()  # Deadline is diagnostic; retain until ECHILD and actual reader terminals.
+                pending = [fd for fd, label in self.readers.items() if self.reader_outcomes[label] == "PENDING"]
+                readable, _, _ = select.select(pending, [], [], 0.05)
                 for descriptor in readable:
                     self.receive(descriptor)
             except BaseException:
@@ -251,6 +265,12 @@ class Retainer:
 
     def finish(self):
         self.eof()
+        for descriptor in self.readers:  # Failed terminals remain owned until drain observed final ECHILD.
+            try:
+                os.close(descriptor)
+            except OSError:
+                self.uncertain()
+        self.readers.clear()
         for descriptor in self.logs.values():
             os.close(descriptor)
         if self.pidfd is not None:
@@ -261,7 +281,9 @@ class Retainer:
                                                   and not event & (select.POLLERR | select.POLLNVAL) for _, event in events)
             os.close(self.pidfd)
         normal = self.root_status and self.root_status["code"] == os.CLD_EXITED and self.root_status["status"] == 0
-        clean = self.ready and self.closed and normal and self.pidfd_exit and not self.line and not self.failed
+        readers_eof = all(outcome == "EOF" for outcome in self.reader_outcomes.values())
+        clean = (self.ready and self.closed and normal and self.pidfd_exit and readers_eof
+                 and not self.line and not self.failed)
         if clean:
             try:
                 if os.path.lexists(self.stage / "home/state/socket") or any((self.stage / "home/state/fences").iterdir()):
@@ -275,7 +297,8 @@ class Retainer:
                 clean = False
         result = {"stage": "DRAINED", "status": "PASS_SYNTHETIC_ONLY" if clean else "FAIL",
                   "kernelEndpoint": "P_ALL/ECHILD", "rootStatus": self.root_status, "reaped": self.reaped,
-                  "originalReadersEof": True, "originalPidfdKernelExit": self.pidfd_exit, "signalsSent": 0, "prepareInvoked": False,
+                  "originalReadersEof": readers_eof, "originalReaderOutcomes": self.reader_outcomes,
+                  "originalPidfdKernelExit": self.pidfd_exit, "signalsSent": 0, "prepareInvoked": False,
                   "exclusiveControlAvailableAfterExit": bool(clean), "privateAdmission": "BLOCKED", "globalAdmission": "BLOCKED"}
         descriptor = os.open(self.stage / "result.json", os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as stream:
