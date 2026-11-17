@@ -1,0 +1,214 @@
+{
+  "kind": "unregistered-public-navigation-contract-source-candidate",
+  "version": "durable-navigation-v1",
+  "integrationBase": "49c437cc69ecfb1e7f83ea234dc054baf9dc4ecf",
+  "registration": "none",
+  "hostRpcPort": "absent",
+  "capability": "unavailable",
+  "runtimeEvidence": "NOT_RUN",
+  "source": {
+    "repository": "https://github.com/HowBoring/omp-webui",
+    "commit": "c8efeced4b6f59bc686a90fe48f4ee4ea72d5180",
+    "nativePackage": {
+      "name": "@oh-my-pi/pi-coding-agent",
+      "version": "18.20.2",
+      "packageJsonSha256": "edb7ec54d5fbb4534f7fc04a5e8ef4075424d4aa649aa32dc16bc79a7f1a3f92"
+    },
+    "nativePublicBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "buildIdentity": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "09e2564259760962635133284314b53b03774a1b6e96f8bcce85dcceb8b91874",
+      "patchSha256": "3badafce026c420eea8aa71c4b89deab915a1cd074b8068e0c74931858bb8f8f",
+      "schemaSha256": "0cde2405878c052df5ba4766182e25016990f5b1024cdb84bbd119fd451fa9aa"
+    },
+    "sourcePatchFormula": "sha256(base + newline + concatenated ordered patches)",
+    "patches": [
+      {
+        "path": "compatibility/omp/0001-safe-preflight.patch",
+        "bytes": 63144,
+        "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+      },
+      {
+        "path": "compatibility/omp/0002-readonly-catalog.patch",
+        "bytes": 33466,
+        "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+      },
+      {
+        "path": "compatibility/omp/0003-explicit-interactions.patch",
+        "bytes": 49968,
+        "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+      },
+      {
+        "path": "compatibility/omp/0004-coherent-history.patch",
+        "bytes": 49490,
+        "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+      },
+      {
+        "path": "compatibility/omp/0005-strict-continuation.patch",
+        "bytes": 174829,
+        "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+      },
+      {
+        "path": "compatibility/omp/0006-live-settlement.patch",
+        "bytes": 74456,
+        "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+      },
+      {
+        "path": "compatibility/omp/0007-durable-submission.patch",
+        "bytes": 165135,
+        "sha256": "0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957"
+      },
+      {
+        "path": "compatibility/omp/0008-durable-navigation.patch",
+        "bytes": 76272,
+        "sha256": "2b946933de6b71f6ac6462820e54bb03e1b3811f60cab41426cdfbf5073bb812"
+      }
+    ],
+    "immutableFreeze": {
+      "path": "/workspace/work/omp-webui-ticket-37/docs/evidence/ticket-37-terminal-composed-source-ready.json",
+      "sha256": "9bb1c85d437dc4efe6e1f92c78b3280540a9dbdbf12465f984fae622e9bb140c",
+      "inputs": 6110,
+      "orderedInputRecordsSha256": "36e9908b0f45d275928b7cc34013d9a3a83b3b49c9a3b836708afc69b3b2d003",
+      "verification": "6110 + Native123/index/staged/working/status exact, read-only metadata check"
+    },
+    "nativePublicFiles": {
+      "wire/rpc-wire.schema.json": {
+        "bytes": 176308,
+        "sha256": "721a14e4e3ee5630a40e6a35cf09e4ad085b5901c89ec84f14e62687a428facc"
+      },
+      "wire/rpc-wire.generated.ts": {
+        "bytes": 68418,
+        "sha256": "4ba1d0e3f50209a572c2857f1df021f099eaddce813bf5a813a43b03ef1e9608"
+      },
+      "navigation-client.ts": {
+        "bytes": 1696,
+        "sha256": "29ed7ce7ab90f39e4aaf52b2c00e01ddacf6026f563a1dbf1459912fe990ef70"
+      }
+    },
+    "publicNativeEquality": {
+      "schema": "JSON-value-equal; exact public bytes = JSON.stringify(native schema value, null, 2) + newline",
+      "wire": "byte-equal",
+      "validators": "byte-equal",
+      "client": "byte-equal after existing public generator import-path transform"
+    }
+  },
+  "artifacts": {
+    "navigation-client.ts": {
+      "bytes": 1681,
+      "sha256": "89db47f834e144648eea4f17b891b9966514bd2ffd76b31c5cba1e972ec4e642"
+    },
+    "navigation-command.d.ts": {
+      "bytes": 78,
+      "sha256": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9"
+    },
+    "navigation-command.js": {
+      "bytes": 115052,
+      "sha256": "56285798a3c249c599d65b460892e7cc0421598d3b99b67e490efb4130ef2814"
+    },
+    "navigation-preview.d.ts": {
+      "bytes": 78,
+      "sha256": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9"
+    },
+    "navigation-preview.js": {
+      "bytes": 7690,
+      "sha256": "4fc0077363cb2c73da9b92e21557ab708c5c732defe10184dd6a6bcb2e70e1c8"
+    },
+    "navigation-result.d.ts": {
+      "bytes": 78,
+      "sha256": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9"
+    },
+    "navigation-result.js": {
+      "bytes": 24409,
+      "sha256": "0ebf9aab91c7b091be48a737030c4819c98986999648c9fa0933cbf6e09ed92d"
+    },
+    "omp-wire.ts": {
+      "bytes": 2467,
+      "sha256": "e5d988b2744f1da4ddadf5075c1c8f8fa2a52993b2aaaa22fa228557c019112f"
+    },
+    "source/omp-wire.public.ts": {
+      "bytes": 68418,
+      "sha256": "4ba1d0e3f50209a572c2857f1df021f099eaddce813bf5a813a43b03ef1e9608"
+    },
+    "source/omp.schema.json": {
+      "bytes": 213836,
+      "sha256": "0cde2405878c052df5ba4766182e25016990f5b1024cdb84bbd119fd451fa9aa"
+    },
+    "validators.ts": {
+      "bytes": 685,
+      "sha256": "33beeb7cdf5dfc9ea3dc18d2e2758ff98351f498b3b03e4d898f6cf4b8787e47"
+    }
+  },
+  "types": {
+    "generator": "scripts/check-navigation-contract-candidate.ts",
+    "method": "public TypeScript AST declaration-reference closure + selected original command-table member text",
+    "closedDeclarations": [
+      "NavigateTreeCommittedParams",
+      "NavigationInspectParams",
+      "NavigationOrigin",
+      "NavigationPolicy",
+      "NavigationPreview",
+      "NavigationQueryParams",
+      "NavigationResult",
+      "SubmissionTarget"
+    ],
+    "commandNames": [
+      "navigation_inspect",
+      "navigate_tree_committed",
+      "navigation_query"
+    ],
+    "rootTypeImports": [],
+    "activeSubmissionTarget": "absent; exact candidate public declaration retained"
+  },
+  "closedRuntimeDependencies": {
+    "navigation-client.ts": [],
+    "validators.ts": [
+      "navigation-command.js",
+      "navigation-preview.js",
+      "navigation-result.js"
+    ],
+    "navigation-command.js": [
+      "ajv/dist/runtime/ucs2length"
+    ],
+    "navigation-preview.js": [],
+    "navigation-result.js": [],
+    "ajv/dist/runtime/ucs2length": {
+      "resolved": "/workspace/work/omp-webui-current/node_modules/ajv/dist/runtime/ucs2length.js",
+      "bytes": 808,
+      "sha256": "1df012dd3d23fced07255a7204798004509687cb1f431ae0ab976db436bbd890",
+      "imports": []
+    }
+  },
+  "tooling": {
+    "typescript": {
+      "bytes": 3527,
+      "sha256": "9332e97c30d3e53ed54910b89207ed657fb444066484df6e5b6965bf130865e9"
+    },
+    "ajv": {
+      "bytes": 4457,
+      "sha256": "ce1539e6f4e0f345ed402c47137d2679497b2035d4a4f420ee11acdde03dea92"
+    },
+    "zod": {
+      "bytes": 4142,
+      "sha256": "cff7e142055a9dd9bc2947a71ca3fb5e3aacdfda966d7728993ff3656245b94a"
+    }
+  },
+  "preservedActiveArtifacts": {
+    "packages/contracts/generated/omp-wire.ts": {
+      "bytes": 63675,
+      "sha256": "967bff28825d494a15adc0d846f1a7054a0d6d0e6ff791a3ae410104c45a6582"
+    },
+    "packages/contracts/generated/omp.schema.json": {
+      "bytes": 197763,
+      "sha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+    }
+  },
+  "limits": [
+    "No Host transport port, capability negotiation, active command union, decoder, global schema, upstream lock or patch-list changes.",
+    "Structural schema validity does not prove exact scope, policy admission, semantic success, or durable effects.",
+    "Wire permits omitted confirmation revisions; future Host must require both and validate exact scope and semantic combinations.",
+    "No legacy navigate_tree fallback, automatic replay or retry.",
+    "Source37 terminal-fault actual remains pending with earlier failed actual and unresolved old fake accounting.",
+    "Historical crash proofs do not attest this current cohort.",
+    "Whole51/37/29 and product/global admission remain open/blocked."
+  ]
+}
