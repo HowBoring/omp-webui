@@ -66,6 +66,7 @@ static int proc_view_matches(void) {
     return own_status_integer(status, "\nNSpid:", (uintmax_t)getpid()) &&
         own_status_integer(status, "\nThreads:", 1) && own_status_integer(status, "\nTracerPid:", 0);
 }
+#ifndef OMP_PROC_VIEW_ONLY
 static int candidate_open(struct candidate_stream *stream) {
     memset(stream, 0, sizeof(*stream));
     if (!proc_view_matches()) return 0;
@@ -169,4 +170,5 @@ static int candidate_next(struct candidate_stream *stream, pid_t *candidate) {
     if (result < 0) stream->failed = 1;
     return result;
 }
+#endif /* !OMP_PROC_VIEW_ONLY */
 #endif

@@ -1,4 +1,4 @@
-> Source normalization: this copy belongs to the unregistered H/public-P source tuple. Historical results below apply only to their original artifacts. See [ADR 0026](../../docs/adr/0026-unregistered-supervision-prerequisites.md) and the new tuple evidence; actual composed runtime/global/private admission remains BLOCKED.
+> Source normalization: the H/public-P prerequisites from [ADR 0026](../../docs/adr/0026-unregistered-supervision-prerequisites.md) now carry the unregistered external source composition in [ADR 0027](../../docs/adr/0027-unregistered-external-protector-composition.md). Historical results below apply only to their original artifacts. The new composition requires fresh paired review; actual runtime/global/private admission remains BLOCKED.
 
 # Private Linux supervision (#41 / #48 / #61)
 
@@ -72,8 +72,10 @@ Native dispatcher and maintenance must refuse new registrations/updates until su
 Never delete fences on elapsed time, recover by PID kill or infer cleanup from helper exit. Maintenance integration
 must consult both its stable lock and dispatcher durable fences; old flock-only maintenance is not sufficient.
 
-No external shared lifetime mode is enabled. Reusing mechanics later requires a separate explicit external policy:
-control EOF must retain protection and must never apply this private force policy to external brokers/services.
+The separately built, unregistered external source policy shares these mechanics; see [EXTERNAL.md](EXTERNAL.md)
+and [ADR 0027](../../docs/adr/0027-unregistered-external-protector-composition.md). Its control EOF retains protection
+and never applies private force policy to external brokers/services. The private binary cannot select that policy
+through argv/environment. No external dispatcher registration or actual lifetime proof is added here.
 
 ## Agreed tests and remaining evidence
 
@@ -111,7 +113,7 @@ without a returned owner. Reusing the same selected lifetime for another owner i
 Source tests are recorded in [the public-adapter evidence](../../docs/evidence/ticket-41-controlio-public-adapter-source.md).
 The old kernel nominal fixture now names this owner but is NOT READY for an actual window: a fresh independently
 approved public-module release/approval stage is still required. Private helper C/wire remain the IO baseline; the
-full external merge is a separate future approval tuple. Native0010 and product admission remain unchanged.
+external composition still needs fresh review and later new build/provenance/approval proof. Native0010 and product admission remain unchanged.
 
 Session, adapter and builder failures use `PrivateHelperError.code`; decoder errors retain their existing
 `PrivateControlError` type and codes. Optional `causeCode` contains only a finite helper/system category.

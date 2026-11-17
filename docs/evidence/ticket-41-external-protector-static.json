@@ -1,0 +1,15 @@
+{
+  "scope": "source-only; built targets never executed",
+  "privateBase": "5608b676da265c59870949425367b6e980643609",
+  "strictStaticCompiles": 2,
+  "externalPrivateDefinitionsExcluded": 9,
+  "privateAssemblyIdentical": true,
+  "privateAssemblySha256": "8fe051fbc3e34832aee2089ab0e872f258799b171b1c68d34ce2c95eba23ea40",
+  "configurationSha256": "eda6136ca28b044921d795471fd0fe805d895df7e46c1f36256913b9f45bd337",
+  "sourceDigests": {
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "ca025edeae5533460bfa2d422afb7e202c7d1533a7eb3946c4aee24d7221164b",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+  }
+}

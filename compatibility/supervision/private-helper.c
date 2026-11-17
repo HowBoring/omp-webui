@@ -45,11 +45,27 @@ enum dispatcher_phase { CONNECTING, REGISTER_WRITE, REGISTER_READ, REGISTERED, C
 #define P_PIDFD 3
 #endif
 
+/* Compile-time policy only: the external wrapper is separately built and independently approved.
+ * No argument/environment can select it in the private executable. */
+#ifdef OMP_EXTERNAL_PROTECTOR
+#define OMP_PROC_VIEW_ONLY 1
+#define LIFETIME_VERSION "omp-execution-external/1"
+#define REGISTER_OPERATION "register_external"
+#define COMPLETE_OPERATION "complete_external"
+#define FENCE_VERSION "omp-external-incomplete/1"
+#else
+#define LIFETIME_VERSION "omp-execution-helper/1"
+#define REGISTER_OPERATION "register_helper"
+#define COMPLETE_OPERATION "complete_helper"
+#define FENCE_VERSION "omp-private-incomplete/1"
+#endif
 #include "candidates.h"
 
 struct supervisor {
     const char *generation;
+#ifndef OMP_EXTERNAL_PROTECTOR
     struct candidate_stream candidates;
+#endif
     pid_t root;
     int root_pidfd;
     int barrier;
@@ -67,6 +83,9 @@ struct supervisor {
     int incomplete;
     int hello_sent;
     int extinct;
+#ifdef OMP_EXTERNAL_PROTECTOR
+    int complete_queued;
+#endif
     int root_exit_code;
     int root_exit_signal;
     int dispatcher;
@@ -121,6 +140,7 @@ static void close_barrier(struct supervisor *state) {
     state->spawn_closed = 1;
     if (state->barrier >= 0) { close(state->barrier); state->barrier = -1; }
 }
+#ifndef OMP_EXTERNAL_PROTECTOR
 static void begin_mandatory(struct supervisor *state) {
     close_barrier(state);
     if (state->mandatory || state->force) return;
@@ -133,11 +153,18 @@ static void begin_mandatory(struct supervisor *state) {
     }
     (void)emit(state, "STATE %s cooperative\n", state->generation);
 }
+#endif
 static void lose_control(struct supervisor *state) {
     if (state->control_open) close(CONTROL_FD);
     state->control_open = 0;
+#ifdef OMP_EXTERNAL_PROTECTOR
+    /* External EOF is never shutdown authority. Before START only the never-exec barrier closes. */
+    if (!state->started) close_barrier(state);
+    state->incomplete = 1;
+#else
     state->outgoing_count = 0;
     begin_mandatory(state);
+#endif
 }
 static void unresolved(struct supervisor *state) {
     if (state->incomplete) return;
@@ -205,7 +232,7 @@ static int protect_generation(struct supervisor *state) {
         O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW | O_CLOEXEC, 0600);
     if (state->fence < 0) return 0;
     char record[FRAME_BYTES];
-    int length = snprintf(record, sizeof(record), "omp-private-incomplete/1 %s %ld\n", state->generation, (long)getpid());
+    int length = snprintf(record, sizeof(record), FENCE_VERSION " %s %ld\n", state->generation, (long)getpid());
     if (length <= 0 || length >= (int)sizeof(record) || write(state->fence, record, (size_t)length) != length) return 0;
     return fsync(state->fence) == 0 && fsync(state->fence_directory) == 0 &&
         fence_directory_matches(state->fence_directory) && omp_control_matches(state->lock);
@@ -248,6 +275,7 @@ static int reap_children(struct supervisor *state) {
     return 0;
 }
 /* Successful waitid(P_PIDFD) proves this held stable identity is our direct child. No numeric-PID kill exists. */
+#ifndef OMP_EXTERNAL_PROTECTOR
 static int signal_child(int pidfd, int signal_number) {
     siginfo_t status;
     memset(&status, 0, sizeof(status));
@@ -278,7 +306,11 @@ static int signal_candidates(struct supervisor *state, int signal_number) {
     }
     return result;
 }
+#endif
 static int start_root(struct supervisor *state) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+    if (state->incomplete || !state->hello_sent || state->dispatcher_phase != REGISTERED) return 0;
+#endif
     if (state->started || state->spawn_closed || state->root_reaped) return 0;
     const char byte = 'S';
     ssize_t count;
@@ -295,10 +327,15 @@ static int command(struct supervisor *state, char *frame) {
     if (strcmp(generation, state->generation) != 0) return 0;
     if (strcmp(frame, "START") == 0) return start_root(state);
     if (strcmp(frame, "STATUS") == 0) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+        const char *phase = state->incomplete ? "incomplete" : state->started ? "running" : "waiting";
+#else
         const char *phase = state->incomplete ? "incomplete" : state->force ? "kill" : state->term_sent ? "term" :
             state->mandatory ? "cooperative" : state->started ? "running" : "waiting";
+#endif
         return emit(state, "STATE %s %s\n", state->generation, phase);
     }
+#ifndef OMP_EXTERNAL_PROTECTOR
     if (strcmp(frame, "ORDINARY_STOP") == 0) {
         if (!state->started || state->mandatory || state->force) return 0;
         return emit(state, "STATE %s ordinary\n", state->generation);
@@ -309,6 +346,7 @@ static int command(struct supervisor *state, char *frame) {
         state->force = 1;
         return emit(state, "STATE %s kill\n", state->generation);
     }
+#endif
     return 0;
 }
 enum line_feed { LINE_INVALID = -1, LINE_PARTIAL, LINE_READY };
@@ -338,6 +376,7 @@ static void read_control(struct supervisor *state) {
         }
     }
 }
+#ifndef OMP_EXTERNAL_PROTECTOR
 static void escalation(struct supervisor *state) {
     if (interrupted) begin_mandatory(state);
     if (state->mandatory && !state->force) {
@@ -358,7 +397,11 @@ static void escalation(struct supervisor *state) {
     }
     if (state->force) unresolved(state); /* Force dispatch is not an extinction receipt. */
 }
+#endif
 static int arguments_valid(int argc, char **argv) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+    return argc == 2 && hex_generation(argv[1]);
+#else
     if (argc < 4 || argc > ARGUMENT_COUNT + 2 || !hex_generation(argv[1]) || strcmp(argv[2], "--") != 0) return 0;
     size_t total = 0;
     for (int index = 3; index < argc; index++) {
@@ -368,6 +411,7 @@ static int arguments_valid(int argc, char **argv) {
     }
     /* This source is private RPC only; no externally protected lifetime can accidentally inherit EOF kill. */
     return argc >= 5 && strcmp(argv[3], "--mode") == 0 && strcmp(argv[4], "rpc-ui") == 0;
+#endif
 }
 static int environment_valid(void) {
     extern char **environ;
@@ -390,7 +434,9 @@ static int control_valid(void) {
 }
 static void child_exec(int barrier, struct supervisor *state, char **arguments) {
     close(CONTROL_FD);
+#ifndef OMP_EXTERNAL_PROTECTOR
     if (state->candidates.directory) closedir(state->candidates.directory);
+#endif
     close(state->lock);
     close(state->fence_directory);
     close(state->fence);
@@ -439,10 +485,10 @@ static void dispatcher_lost(struct supervisor *state) {
     unresolved(state);
 }
 static int dispatcher_request(struct supervisor *state, int complete) {
-    const char *operation = complete ? "complete_helper" : "register_helper";
+    const char *operation = complete ? COMPLETE_OPERATION : REGISTER_OPERATION;
     const char *id = complete ? state->complete_id : state->register_id;
     int length = snprintf(state->dispatcher_outgoing, FRAME_BYTES,
-        "{\"version\":\"omp-execution-helper/1\",\"id\":\"%s\",\"installation\":\"%s\","
+        "{\"version\":\"" LIFETIME_VERSION "\",\"id\":\"%s\",\"installation\":\"%s\","
         "\"operation\":{\"op\":\"%s\",\"generation\":\"%s\"}}\n", id, OMP_INSTALLATION_ID, operation, state->generation);
     uint64_t now = monotonic_ms();
     if (length <= 0 || length >= FRAME_BYTES || now == UINT64_MAX) return 0;
@@ -497,8 +543,8 @@ static int dispatcher_ack(struct supervisor *state) {
     if (!complete && state->dispatcher_phase != REGISTER_READ) return 0;
     char expected[FRAME_BYTES];
     int length = snprintf(expected, sizeof(expected),
-        "{\"version\":\"omp-execution-helper/1\",\"id\":\"%s\",\"ok\":true,\"operation\":\"%s\",\"generation\":\"%s\"}",
-        complete ? state->complete_id : state->register_id, complete ? "complete_helper" : "register_helper", state->generation);
+        "{\"version\":\"" LIFETIME_VERSION "\",\"id\":\"%s\",\"ok\":true,\"operation\":\"%s\",\"generation\":\"%s\"}",
+        complete ? state->complete_id : state->register_id, complete ? COMPLETE_OPERATION : REGISTER_OPERATION, state->generation);
     if (length <= 0 || length >= FRAME_BYTES || strcmp(expected, state->dispatcher_incoming) != 0) return 0;
     state->dispatcher_phase = complete ? ACKNOWLEDGED : REGISTERED;
     if (complete) return 1;
@@ -532,11 +578,42 @@ static void dispatcher_progress(struct supervisor *state) {
     uint64_t now = monotonic_ms();
     if (now == UINT64_MAX || now >= state->dispatcher_deadline) dispatcher_lost(state);
 }
+#ifdef OMP_EXTERNAL_PROTECTOR
+static int external_complete(struct supervisor *state) {
+    if (interrupted) unresolved(state);
+    if (state->incomplete || !state->control_open || !state->extinct ||
+        state->dispatcher_phase != ACKNOWLEDGED) return 0;
+    if (!state->complete_queued) {
+        if (!emit(state, "COMPLETE %s\n", state->generation)) { lose_control(state); return 0; }
+        state->complete_queued = 1;
+    }
+    /* EAGAIN/partial writes retain the queue, fence, shared lease and owning process for the next poll. */
+    flush_control(state);
+    if (interrupted) unresolved(state);
+    /* A failed send can change health while flushing. An empty queue alone never proves delivery. */
+    if (state->incomplete || !state->control_open || state->outgoing_count ||
+        state->dispatcher_phase != ACKNOWLEDGED) return 0;
+    if (!clear_fence(state)) { unresolved(state); return 0; }
+    /* COMPLETE is provisional until the controller observes this successful finalization and direct reap. */
+    return 1;
+}
+#endif
 static int run(struct supervisor *state) {
     for (;;) {
         if (reap_children(state)) state->extinct = 1;
-        if (state->extinct && state->dispatcher_phase == REGISTERED && !dispatcher_request(state, 1)) dispatcher_lost(state);
-        if (state->extinct && state->dispatcher_phase == ACKNOWLEDGED) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+        /* Any unknown observer/control/protocol result is sticky; it cannot become success later. */
+        if (interrupted) unresolved(state); /* Protector signals never propagate into external services. */
+        if (!state->incomplete && state->extinct && state->dispatcher_phase == REGISTERED
+#else
+        if (state->extinct && state->dispatcher_phase == REGISTERED
+#endif
+            && !dispatcher_request(state, 1)) dispatcher_lost(state);
+#ifdef OMP_EXTERNAL_PROTECTOR
+        if (external_complete(state)) return 0;
+#else
+        if (state->extinct && state->dispatcher_phase == ACKNOWLEDGED
+        ) {
             if (!clear_fence(state)) { unresolved(state); }
             else {
                 if (!emit(state, "COMPLETE %s\n", state->generation)) lose_control(state);
@@ -545,6 +622,7 @@ static int run(struct supervisor *state) {
             }
         }
         escalation(state);
+#endif
         dispatcher_progress(state);
         flush_control(state);
         int writing = state->dispatcher_phase == CONNECTING || state->dispatcher_phase == REGISTER_WRITE ||
@@ -554,7 +632,12 @@ static int run(struct supervisor *state) {
             { .fd = state->dispatcher, .events = POLLIN | (writing ? POLLOUT : 0) }
         };
         int result = poll(descriptors, 2, POLL_MS);
-        if (result < 0 && errno != EINTR) { unresolved(state); begin_mandatory(state); }
+        if (result < 0 && errno != EINTR) {
+            unresolved(state);
+#ifndef OMP_EXTERNAL_PROTECTOR
+            begin_mandatory(state);
+#endif
+        }
         if (result <= 0) continue;
         if (descriptors[0].revents & POLLIN) read_control(state);
         if (descriptors[0].revents & (POLLERR | POLLHUP | POLLNVAL)) lose_control(state);
@@ -588,32 +671,58 @@ static int prepare_private_domain(struct supervisor *state) {
     int tested = waitid(P_PIDFD, (id_t)self, &status, WEXITED | WNOHANG | WNOWAIT | __WALL);
     int supported = tested < 0 && errno == ECHILD;
     close(self);
+#ifdef OMP_EXTERNAL_PROTECTOR
+    if (!supported || !proc_view_matches() || !protect_generation(state)) return 0;
+#else
     if (!supported || !candidate_open(&state->candidates) || !protect_generation(state)) return 0;
+#endif
     if (!random_id(state->register_id) || !random_id(state->complete_id) || strcmp(state->register_id, state->complete_id) == 0 ||
         strcmp(state->register_id, state->generation) == 0 || strcmp(state->complete_id, state->generation) == 0) return 0;
     return 1;
 }
 static int launch_root(struct supervisor *state, char **argv) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+    (void)argv;
+#endif
     int barrier[2];
     if (pipe2(barrier, O_CLOEXEC) != 0) return 0; /* Durable incomplete fence remains on startup failure. */
     state->barrier = barrier[1];
     state->root = fork();
     if (state->root < 0) return 0;
     if (state->root == 0) {
+#ifdef OMP_EXTERNAL_PROTECTOR
+        char *arguments[] = { OMP_NATIVE_ENTRY, "__omp_worker_daemon_broker", NULL };
+        child_exec(barrier[0], state, arguments);
+#else
         argv[2] = OMP_NATIVE_ENTRY;
         child_exec(barrier[0], state, argv + 2);
+#endif
     }
     close(barrier[0]);
     state->root_pidfd = (int)syscall(SYS_pidfd_open, state->root, 0);
-    if (state->root_pidfd < 0 || !signal_child(state->root_pidfd, 0) ||
+    if (state->root_pidfd < 0 ||
+#ifndef OMP_EXTERNAL_PROTECTOR
+        !signal_child(state->root_pidfd, 0) ||
+#endif
         !start_time(getpid(), state->helper_start, sizeof(state->helper_start)) ||
         !start_time(state->root, state->native_start, sizeof(state->native_start))) {
-        unresolved(state); begin_mandatory(state);
+        unresolved(state);
+#ifdef OMP_EXTERNAL_PROTECTOR
+        close_barrier(state);
+#else
+        begin_mandatory(state);
+#endif
     } else if (!connect_dispatcher(state)) dispatcher_lost(state);
     return 1;
 }
 int main(int argc, char **argv) {
     if (!arguments_valid(argc, argv) || !environment_valid() || !control_valid()) return 74;
+#ifdef OMP_EXTERNAL_PROTECTOR
+    const char *hint_generation = getenv("OMP_EXECUTION_BROKER_GENERATION");
+    const char *hint_scope = getenv("OMP_EXECUTION_BROKER_SCOPE");
+    if (!hint_generation || strcmp(hint_generation, argv[1]) != 0 || !hint_scope ||
+        strnlen(hint_scope, ENVIRONMENT_BYTES + 1) > ENVIRONMENT_BYTES) return 74;
+#endif
     const char *injections[] = {"BUN_OPTIONS", "NODE_OPTIONS", "BUN_INSPECT", "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT"};
     for (size_t index = 0; index < sizeof(injections) / sizeof(injections[0]); index++) {
         if (getenv(injections[index]) != NULL) return 74;
@@ -624,7 +733,17 @@ int main(int argc, char **argv) {
     state.root_pidfd = state.barrier = state.lock = state.fence_directory = state.fence = state.dispatcher = -1;
     state.dispatcher_phase = LOST;
     state.control_open = 1;
+#ifdef OMP_EXTERNAL_PROTECTOR
+    if (!configure_signals()) return 74;
+    if (!prepare_private_domain(&state) || !launch_root(&state, argv)) {
+        /* Once maintenance protection is held, every startup error retains the owning protector. */
+        if (state.lock < 0) return 74;
+        state.incomplete = 1;
+        close_barrier(&state);
+    }
+#else
     if (!configure_signals() || !prepare_private_domain(&state) || !launch_root(&state, argv)) return 74;
+#endif
     /* Allocate retained identities first so dispatcher writes cannot reuse fd1. Child exec is still held. */
     close(STDIN_FILENO); close(STDOUT_FILENO); close(STDERR_FILENO);
     return run(&state);
