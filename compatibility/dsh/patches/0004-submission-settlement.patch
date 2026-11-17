@@ -1,0 +1,475 @@
+diff --git a/packages/api/session-controller/README.i18n.yaml b/packages/api/session-controller/README.i18n.yaml
+index 790d31f1..9b8833d8 100644
+--- a/packages/api/session-controller/README.i18n.yaml
++++ b/packages/api/session-controller/README.i18n.yaml
+@@ -18,8 +18,8 @@
+   en: 50fa3dd0a2ce79c8
+   zh: 88bd7ea6058d2122
+ /session-controller/client-references:
+-  en: c785f1fe75deb5a3
+-  zh: 6a6308411818db4f
++  en: 4624b4079ffa9154
++  zh: 18d876e0e2c7151a
+ /session-controller/session-media-references:
+   en: 954923654eebe2dc
+   zh: 6bd9a7d2ea965aed
+diff --git a/packages/api/session-controller/README.md b/packages/api/session-controller/README.md
+index 080bb9da..d504ba6a 100644
+--- a/packages/api/session-controller/README.md
++++ b/packages/api/session-controller/README.md
+@@ -83,6 +83,8 @@ The controller composes `ArchivedSessionGate` through `ctx.plugin`: it loads onc
+ <a id="client-references"></a>
+ ## Client references
+ 
++An adapter whose accepted operation can finish without producing input returns `SessionPromptValue.noInput` only after authoritative terminal proof of successful operation and no input. A no-input fact alone proves neither success nor absence of side effects. Its branded request and original projection identify the optimistic echo; generic acceptance supplies neither fact. `SessionFace.settleSubmissionNoInput` consumes the same proof after a lost reply or later recovery, independently of draft hydration or revision changes. It retires only that echo with `reason: 'no-input'`, preserves successful acceptance, creates no inbox or history record, and never sends input. Observed inbox or durable input takes precedence over a contradictory no-input proof. Repeated settlement of an absent echo has no effect; an original in-flight prompt retains its own settled record to recognize a late matching receipt. Disposal and mismatched identity cannot authorize execution or affect a successor echo. An embedding must keep unknown outcomes explicit and validate the native proof before invoking this method.
++
+ `@deepseek-ai/dsh-api-session-controller/projection` exposes the React-free `parseProjectionBinding`, `projectionSource`, and `projectionGeneration` decoders to providers; decoding validates opaque identity, while authenticated source authority remains the provider’s responsibility.
+ 
+ Opt-in `projectionRebuild: true` separates disposable presentation from the exact retained execution binding. `binding.projection` reports rebuilding, ready, or failed with a generation cancellation signal. Typed control invalidation names the next branded source/generation; duplicate and retired invalidations are ignored. A fresh journal, complete projections, and mandatory assistant baseline commit at one cut. Every page and projection writer must carry that identity; stock providers reject scoped reads. Old rows withdraw immediately, failed baselines stay visibly failed, and `sessions.retryProjection(id)` retries only the last authority. A terminal control failure withdraws scoped presentation before cancellation callbacks; retry explicitly recreates the Session-owned observer, accepts its complete control baseline, then opens the presentation baseline. Concurrent retries share observer recovery; old callbacks cannot publish and final release cannot resurrect a scope. It does not use physical reconnect as projection reset or change Gateway stream semantics. Stop, Agent Contexts, pending Interactions, and independent retains keep their lifetimes. Staging allows 512 combined baseline/update entries and 4 MiB of UTF-8 JSON for `{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }`, including the complete baseline identity/cut, keys, sequences, wrappers and separators. These are serialized payload limits, not JavaScript heap limits; 256 retired generations per Client lifetime prevent authority replay, then require a visible reload failure. Defaults retain stock reconnect and pagination behavior.
+diff --git a/packages/api/session-controller/README.zh.md b/packages/api/session-controller/README.zh.md
+index d6716844..d02672bb 100644
+--- a/packages/api/session-controller/README.zh.md
++++ b/packages/api/session-controller/README.zh.md
+@@ -83,6 +83,8 @@ Client 的首次 `follow`、重连首屏与 `loadOlder()` 至少请求 50 条以
+ <a id="client-references"></a>
+ ## Client 引用
+ 
++对于已接受的操作可能在未产生输入时结束的适配器，只有权威的终态证明确认操作成功且未生成输入后，才返回 `SessionPromptValue.noInput`。仅有无输入事实既不能证明成功，也不能证明没有副作用。带品牌的请求标识与原始投影用于识别乐观回显；通用接收确认不能替代操作成功与无输入事实。`SessionFace.settleSubmissionNoInput` 在回执丢失或后续恢复时消费同一证明，不依赖草稿水合或修订变化。它仅以 `reason: 'no-input'` 退休该回显，保留成功接收结果，不创建 inbox 或历史记录，也不发送输入。已观察到的同一请求的 inbox 或持久输入优先于与其矛盾的无输入证明。对已不存在的回显重复结算没有效果；原始在途 prompt 保留自身已结算记录，以识别迟到的匹配回执。资源释放或身份不匹配均不能授权执行，也不会影响后续提交的回显。嵌入方必须显式保留未知结果，并在调用此方法前校验原生证明。
++
+ `@deepseek-ai/dsh-api-session-controller/projection` 向 provider 提供不依赖 React 的 `parseProjectionBinding`、`projectionSource` 和 `projectionGeneration` 解码器；解码仅验证不透明身份，鉴权后的来源权威仍由 provider 负责。
+ 
+ 显式设置 `projectionRebuild: true` 后，可丢弃的展示状态与精确保留的执行绑定分离。`binding.projection` 携带代次取消信号，报告 rebuilding、ready 或 failed。类型化控制失效帧指定下一组带品牌的来源／代次；重复或已退休的失效通知被忽略。新 journal、完整 projections 与必需的 assistant baseline 在共同 cut 一起提交。每个历史页和投影写入方都必须携带该身份；stock provider 拒绝带代次的读取。旧行立即撤回，基线失败持续可见，`sessions.retryProjection(id)` 仅重试最后的权威代次。控制流终止失败会先撤回带代次的展示，再触发取消回调；重试显式重建 Session 所拥有的观察器，接收完整控制基线后才打开展示基线。并发重试共享观察器恢复；旧回调不能发布，最后一次释放后不能复活作用域。此过程不把物理重连当作投影重置，也不改变 Gateway 流语义。Stop、Agent Context、待处理 Interaction 和独立引用保持各自生命周期。暂存基线与更新合计最多 512 个条目；`{ baseline: baselineOrNull, updates: [[key, { value, seq }], ...] }` 的 UTF-8 JSON 最多 4 MiB，包括完整基线身份与 cut、键、序号、包装和分隔符。这是序列化载荷限制，并非 JavaScript 堆限制；每个 Client 生命周期保留 256 个已退休代次以拒绝权威重放，超过后明确提示重新加载。默认设置保持 stock 重连与分页行为。
+diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
+index ce060ec4..1fc79bfc 100644
+--- a/packages/api/session-controller/src/client/contract/session.ts
++++ b/packages/api/session-controller/src/client/contract/session.ts
+@@ -12,14 +12,15 @@ import type { MessageId } from '@deepseek-ai/dsh-llm/brand'
+ import type { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types'
+ import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
+-import type { PromptContentPart, QueueAction, SessionRequestId } from '../../types.ts'
++import type { PromptContentPart, QueueAction, SessionRequestId, SessionPromptValue, SessionNoInputSettlement } from '../../types.ts'
+ import type { PendingSubmissionAttachment, SessionSnapshot } from './snapshot.ts'
+ 
+ /**
+  * Why a local submission echo left the snapshot: `observed` when its durable
+  * `user/message` event or host queue occurrence arrived (with the admitted
+  * attachment references in prompt order), `failed` when the prompt was rejected,
+- * threw, or was aborted before acceptance.
++ * threw, or was aborted before acceptance; `no-input` when the Host proves an accepted operation completed
++ * without generating input. Acknowledgement alone cannot supply a no-input decision.
+  */
+ export type PendingSubmissionRetirement =
+   | {
+@@ -27,6 +28,8 @@ export type PendingSubmissionRetirement =
+     readonly attachments: readonly (ImageAttachmentRef | FileAttachmentRef)[]
+   }
+   | { readonly reason: 'failed' }
++  /** An accepted operation completed without generating an inbox or durable input. */
++  | { readonly reason: 'no-input' }
+ 
+ /** Input registering one local submission echo ahead of its prompt call. */
+ export interface BeginSubmissionInput {
+@@ -84,6 +87,15 @@ export interface ISession {
+    * @returns the minted identity for {@link prompt} plus the pre-prompt abandon path.
+    */
+   beginSubmission(input: BeginSubmissionInput): SubmissionHandle
++  /**
++   * Retire only the echo named by an authoritative terminal no-input proof. Generic acceptance is insufficient;
++   * an observed inbox/input cannot be contradicted. Original projection identity scopes old echoes independently
++   * of newer drafts or presentation generations. This operation never sends input or changes a draft.
++   * @param settlement - exact prompt request and original projection carried by the Host proof.
++   * @returns true when one matching echo retires; false after disposal, input observation, prior retirement or mismatch.
++   * An absent echo makes repeated settlement a no-op; neither return value authorizes replay.
++   */
++  settleSubmissionNoInput(settlement: SessionNoInputSettlement): boolean
+   /**
+    * Send a prompt into the session. The Host can hold the prompt at its
+    * admission stage, so the call can stay open; acceptance publishes the
+@@ -100,7 +112,7 @@ export interface ISession {
+     mode: 'queue' | 'steer',
+     signal?: AbortSignal,
+     requestId?: SessionRequestId,
+-  ): Promise<RemoteResult<{ accepted: true }>>
++  ): Promise<RemoteResult<SessionPromptValue>>
+   /**
+    * Resolve one stored image using this Session's gateway permission scope.
+    * @param attachment - complete image reference from the folded session log.
+diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
+index fbdb95e7..0089b6fd 100644
+--- a/packages/api/session-controller/src/client/sessions/session.ts
++++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -23,6 +23,8 @@ import type {
+   SessionAssistantStreamBaseline,
+   SessionProjectionBaseline,
+   SessionRequestId,
++  SessionPromptValue,
++  SessionNoInputSettlement,
+ } from '../../types.ts'
+ import type {
+   BeginSubmissionInput, PendingSubmissionRetirement, SessionFace, SubmissionHandle,
+@@ -143,6 +145,7 @@ export class Session implements SessionFace {
+   /** New Session display state; unknown bare sessions begin conservatively blank. */
+   private blankBit = true
+   private removed = false
++  private disposed = false
+   private promptError: PromptError | null = null
+   private lastAgentError: string | null = null
+   /** Local submission echoes, insertion-ordered, including those the Host has not accepted yet. */
+@@ -166,6 +169,8 @@ export class Session implements SessionFace {
+     admitted?: readonly (ImageAttachmentRef | FileAttachmentRef)[]
+     /** Whether the Host accepted the prompt; the echo is published only from then on. */
+     accepted: boolean
++    /** Retained by an in-flight prompt even after independent recovery removes this echo. */
++    noInputSettled?: boolean
+     readonly onAccept?: (() => void) | undefined
+     readonly onRetire?: ((retirement: PendingSubmissionRetirement) => void) | undefined
+     retiring: boolean
+@@ -351,7 +356,7 @@ export class Session implements SessionFace {
+     mode: 'queue' | 'steer',
+     signal?: AbortSignal,
+     requestId?: SessionRequestId,
+-  ): Promise<RemoteResult<{ accepted: true }>> {
++  ): Promise<RemoteResult<SessionPromptValue>> {
+     this.promptError = null
+     this.lastAgentError = null
+     const unavailable = this.projectionState.phase !== 'stock' && this.projectionState.phase !== 'ready'
+@@ -365,14 +370,17 @@ export class Session implements SessionFace {
+       return { ok: false, error }
+     }
+     // Before the first await, so a turn observed ahead of the receipt clears it.
++    const actualRequestId = requestId ?? randomUUID() as SessionRequestId
++    const originalEcho = this.submissionSettlements.get(actualRequestId)
+     const firstPrompt = this.blankBit && !this.firstPromptPendingTurn
+     if (firstPrompt) this.firstPromptPendingTurn = true
+-    let result: RemoteResult<{ accepted: true }>
++    const requestedProjection = this.projections.current()
++    let result: RemoteResult<SessionPromptValue>
+     if (this.address === undefined) {
+       const clientTimeZone = resolvedClientTimeZone()
+       const projection = this.projections.current()
+       result = await this.remote.session.prompt({
+-        requestId: requestId ?? randomUUID() as SessionRequestId,
++        requestId: actualRequestId,
+         sessionId: this.sessionId,
+         mode,
+         content,
+@@ -393,7 +401,7 @@ export class Session implements SessionFace {
+       // wire type is used; this array is not filtered or reordered.
+       const routedContent = content as Exclude<PromptContentPart, { readonly type: 'file' }>[]
+       const routed = await this.remote.subagents.prompt({
+-        requestId: requestId ?? randomUUID() as SessionRequestId,
++        requestId: actualRequestId,
+         childSessionId: this.address.childSessionId,
+         delivery: mode,
+         content: routedContent,
+@@ -409,10 +417,41 @@ export class Session implements SessionFace {
+       this.notifier.markDirty()
+       return result
+     }
+-    this.acceptPrompt(requestId)
++    const noInput = result.value.noInput
++    if (noInput !== undefined) {
++      const alreadySettled = originalEcho?.noInputSettled === true && sameProjection(originalEcho.projection, noInput.projection)
++      if (actualRequestId !== noInput.requestId || !sameProjection(requestedProjection, noInput.projection)
++        || originalEcho !== undefined && !alreadySettled && !this.settleSubmissionNoInput(noInput)) {
++        const error = new RemoteError('gateway/internal', 'prompt no-input settlement does not match its submission', {})
++        this.promptError = { op: 'send', error }
++        this.notifier.markDirty()
++        return { ok: false, error }
++      }
++      if (firstPrompt && originalEcho === undefined && sameProjection(requestedProjection, this.projections.current())) {
++        this.firstPromptPendingTurn = false
++        this.notifier.markDirty()
++      }
++    } else this.acceptPrompt(requestId)
+     return result
+   }
+ 
++  settleSubmissionNoInput(proof: SessionNoInputSettlement): boolean {
++    if (this.disposed) return false
++    const settlement = this.submissionSettlements.get(proof.requestId)
++    if (settlement === undefined || settlement.retiring || settlement.admitted !== undefined
++      || settlement.receipt !== undefined || !sameProjection(settlement.projection, proof.projection)) return false
++    const accepted = settlement.accepted
++    const emptyFirstPrompt = this.firstPromptPendingTurn && this.pendingSubmissions.length === 1 && !this.running
++      && sameProjection(settlement.projection, this.projections.current())
++    settlement.accepted = true
++    settlement.retiring = true
++    settlement.noInputSettled = true
++    if (emptyFirstPrompt) { this.firstPromptPendingTurn = false; this.promptAttempted = false; this.blankBit = true }
++    try { if (!accepted) settlement.onAccept?.() }
++    finally { this.finishSubmission(proof.requestId, { reason: 'no-input' }) }
++    return true
++  }
++
+   /**
+    * Apply the Host's acceptance of one prompt: publish its echo, move a blank
+    * Session to engaging, and tell the submitter. The prompt receipt and an
+@@ -791,6 +830,7 @@ export class Session implements SessionFace {
+    * @returns when the Remote iterator has completed teardown.
+    */
+   async dispose(): Promise<void> {
++    this.disposed = true
+     this.stopObservingInbox()
+     // Unsettled echoes retire as failed so their owners can restore or
+     // release browser resources; admitted echoes keep their observed outcome.
+diff --git a/packages/api/session-controller/src/types.ts b/packages/api/session-controller/src/types.ts
+index 2da21c15..4ae964b2 100644
+--- a/packages/api/session-controller/src/types.ts
++++ b/packages/api/session-controller/src/types.ts
+@@ -352,9 +352,18 @@ export interface SessionPromptRequest {
+   readonly clientTimeZone?: string
+ }
+ 
+-/** Receipt after one prompt enters the target Agent inbox. */
++/** Receipt after the Host accepts one prompt operation; input admission is observed separately. */
+ export interface SessionPromptValue {
+   readonly accepted: true
++  /** Present only after authoritative terminal proof that this accepted operation succeeded without generating input.
++   * Absence preserves ordinary inbox/history settlement; acceptance alone never supplies this proof. */
++  readonly noInput?: SessionNoInputSettlement
++}
++
++/** Host-attested successful no-input outcome for one exact prompt and its original presentation authority. */
++export interface SessionNoInputSettlement {
++  readonly requestId: SessionRequestId
++  readonly projection: SessionProjectionBinding
+ }
+ 
+ /** Durable image read request. */
+diff --git a/packages/api/session-controller/tests/submission-no-input.client.spec.ts b/packages/api/session-controller/tests/submission-no-input.client.spec.ts
+new file mode 100644
+index 00000000..99dca4cc
+--- /dev/null
++++ b/packages/api/session-controller/tests/submission-no-input.client.spec.ts
+@@ -0,0 +1,157 @@
++/** Accepted operations with no inbox or durable input retire only their scoped local echo. */
++import { Context } from '@deepseek-ai/cordis'
++import { SessionId } from '@deepseek-ai/dsh-session/types'
++import { ok, type RemoteMock } from '@deepseek-ai/dsh-remote-mock'
++import { createClientTest, webApp, type TestClient } from '@deepseek-ai/dsh-client-test-runtime/src/assembly/index.ts'
++import { describe, expect, onTestFinished, vi } from 'vitest'
++import { ClientSessions } from '../src/client/sessions/service.ts'
++import { parseProjectionBinding } from '../src/projection-binding.ts'
++import { createUserMessage } from '@deepseek-ai/dsh-llm'
++import type { SessionProjectionBinding, SessionPromptValue } from '../src/types.ts'
++import type { RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
++import type { PendingSubmissionRetirement } from '../src/client/contract/session.ts'
++import { FOLLOW } from './remote/session.client.ts'
++
++const ID = SessionId('no-input-session')
++const PROJECTION = parseProjectionBinding({ source: 'synthetic-native-source', generation: 'generation-one' })
++const it = createClientTest({ roster: webApp.closure(['@deepseek-ai/dsh-api-gateway']) })
++
++describe('no-input submission settlement', () => {
++  it('accepts a synchronous no-input operation without retaining a transcript echo or creating a turn', async ({ mock, start }) => {
++    const client = await start(), ctx = new Context()
++    const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++    onTestFinished(() => ctx.fiber.dispose())
++    mock.remote.session.list.mockResolvedValue(ok({ items: [{ sessionId: ID, updatedAt: 1,
++      running: false, blank: true, agentAvailable: true, projection: PROJECTION }] }))
++    mock.stream(FOLLOW, (_args, stream) => { stream.push({ type: 'snapshot', projection: PROJECTION,
++      header: { version: 4, id: ID, createdAt: 0, isSeeded: false }, cursor: -1, records: [], hasMore: false,
++      projections: { projection: PROJECTION, asOfSeq: -1, values: {} }, assistantStream: { revision: 0 } }) })
++    await sessions.refresh()
++    using reference = sessions.retain(ID, { source: 'controllerOperation' })
++    const binding = await reference.ready, retired: PendingSubmissionRetirement[] = []
++    const handle = binding.session.beginSubmission({ mode: 'queue', text: '/help', attachments: [],
++      onRetire: result => { retired.push(result) } })
++    mock.remote.session.prompt.mockResolvedValue(ok({ accepted: true, noInput: { requestId: handle.requestId, projection: PROJECTION } }))
++    expect((await binding.session.prompt([{ type: 'text', text: '/help' }], 'queue', undefined, handle.requestId)).ok).toBe(true)
++    expect(binding.session.getSnapshot()).toMatchObject({ pendingSubmissions: [], blank: true, awaitingFirstTurn: false })
++    expect(binding.eventSource.getSnapshot().entries).toEqual([])
++    expect(retired).toEqual([{ reason: 'no-input' }])
++  })
++})
++
++/** Open an empty, projection-scoped Session through its public retain interface. */
++async function openEmpty(mock: RemoteMock, start: () => Promise<TestClient>) {
++  let projection = PROJECTION
++  const client = await start(), ctx = new Context()
++  const sessions = new ClientSessions(ctx, client.ctx.remote, { projectionRebuild: true })
++  onTestFinished(() => ctx.fiber.dispose())
++  mock.remote.session.list.mockResolvedValue(ok({ items: [{ sessionId: ID, updatedAt: 1,
++    running: false, blank: true, agentAvailable: true, projection: PROJECTION }] }))
++  mock.stream(FOLLOW, (_args, stream) => { stream.push({ type: 'snapshot', projection,
++    header: { version: 4, id: ID, createdAt: 0, isSeeded: false }, cursor: -1, records: [], hasMore: false,
++    projections: { projection, asOfSeq: -1, values: {} }, assistantStream: { revision: 0 } }) })
++  await sessions.refresh()
++  const reference = sessions.retain(ID, { source: 'controllerOperation' })
++  onTestFinished(() => reference.release())
++  const binding = await reference.ready
++  return { session: binding.session, sessions, binding,
++    replaceProjection(next: SessionProjectionBinding) {
++      projection = next
++      sessions.handleControlFrame({ type: 'projection-invalidated', sessionId: ID, projection: next })
++    } }
++}
++
++it('recognizes a late original no-input receipt without clearing a successor send', async ({ mock, start }) => {
++  const { session } = await openEmpty(mock, start)
++  const retired: PendingSubmissionRetirement[] = []
++  const old = session.beginSubmission({ mode: 'queue', text: '/help', attachments: [],
++    onRetire: result => { retired.push(result) } })
++  const late = Promise.withResolvers<RemoteResult<SessionPromptValue>>()
++  onTestFinished(() => late.resolve(ok({ accepted: true })))
++  mock.remote.session.prompt.mockImplementationOnce(() => late.promise)
++  const original = session.prompt([{ type: 'text', text: '/help' }], 'queue', undefined, old.requestId)
++  const proof = { requestId: old.requestId, projection: PROJECTION }
++  expect(session.settleSubmissionNoInput(proof)).toBe(true)
++  expect(session.settleSubmissionNoInput(proof)).toBe(false)
++  const successor = session.beginSubmission({ mode: 'queue', text: 'new question', attachments: [] })
++  mock.remote.session.prompt.mockResolvedValueOnce(ok({ accepted: true }))
++  await session.prompt([{ type: 'text', text: 'new question' }], 'queue', undefined, successor.requestId)
++  expect(session.getSnapshot()).toMatchObject({ awaitingFirstTurn: true, blank: false })
++  late.resolve(ok({ accepted: true, noInput: proof }))
++  expect((await original).ok).toBe(true)
++  const unrelated = session.beginSubmission({ mode: 'queue', text: 'cancelled edit', attachments: [] })
++  unrelated.abandon()
++  expect(session.getSnapshot()).toMatchObject({ awaitingFirstTurn: true, blank: false,
++    pendingSubmissions: [{ requestId: successor.requestId, text: 'new question' }] })
++  expect(retired).toEqual([{ reason: 'no-input' }])
++})
++
++
++it('rejects mismatched proof and preserves ordinary accepted echoes until exact terminal settlement', async ({ mock, start }) => {
++  const { session } = await openEmpty(mock, start)
++  const retired: PendingSubmissionRetirement[] = []
++  const handle = session.beginSubmission({ mode: 'queue', text: '/help', attachments: [],
++    onRetire: result => { retired.push(result) } })
++  mock.remote.session.prompt.mockResolvedValueOnce(ok({ accepted: true }))
++  expect((await session.prompt([{ type: 'text', text: '/help' }], 'queue', undefined, handle.requestId)).ok).toBe(true)
++  expect(session.getSnapshot().pendingSubmissions).toMatchObject([{ requestId: handle.requestId }])
++  const wrong = parseProjectionBinding({ source: 'different-source', generation: 'generation-one' })
++  expect(session.settleSubmissionNoInput({ requestId: handle.requestId, projection: wrong })).toBe(false)
++  expect(retired).toEqual([])
++  expect(session.settleSubmissionNoInput({ requestId: handle.requestId, projection: PROJECTION })).toBe(true)
++  expect(session.getSnapshot()).toMatchObject({ pendingSubmissions: [], blank: true, awaitingFirstTurn: false })
++  expect(retired).toEqual([{ reason: 'no-input' }])
++})
++
++it('retires an old-generation echo without changing the successor projection or echo', async ({ mock, start }) => {
++  const { session, binding, replaceProjection } = await openEmpty(mock, start)
++  const retired: PendingSubmissionRetirement[] = []
++  const old = session.beginSubmission({ mode: 'queue', text: '/help', attachments: [],
++    onRetire: result => { retired.push(result) } })
++  mock.remote.session.prompt.mockResolvedValue(ok({ accepted: true }))
++  await session.prompt([{ type: 'text', text: '/help' }], 'queue', undefined, old.requestId)
++  const next = parseProjectionBinding({ source: 'synthetic-native-source', generation: 'generation-two' })
++  replaceProjection(next)
++  await vi.waitFor(() => { expect(binding.projection.getSnapshot().phase).toBe('ready') })
++  const successor = session.beginSubmission({ mode: 'queue', text: 'new branch draft', attachments: [] })
++  await session.prompt([{ type: 'text', text: 'new branch draft' }], 'queue', undefined, successor.requestId)
++  const before = session.getSnapshot()
++  expect(session.settleSubmissionNoInput({ requestId: old.requestId, projection: PROJECTION })).toBe(true)
++  expect(binding.projection.getSnapshot()).toMatchObject({ phase: 'ready', binding: next })
++  expect(session.getSnapshot()).toMatchObject({ blank: before.blank, awaitingFirstTurn: before.awaitingFirstTurn,
++    pendingSubmissions: [{ requestId: successor.requestId, text: 'new branch draft' }] })
++  expect(retired).toEqual([{ reason: 'no-input' }])
++})
++
++it('cannot contradict a matching observed inbox input with a no-input proof', async ({ mock, start }) => {
++  const { session, sessions } = await openEmpty(mock, start)
++  const retired: PendingSubmissionRetirement[] = []
++  const handle = session.beginSubmission({ mode: 'queue', text: 'actual input', attachments: [],
++    onRetire: result => { retired.push(result) } })
++  mock.remote.session.prompt.mockResolvedValueOnce(ok({ accepted: true }))
++  await session.prompt([{ type: 'text', text: 'actual input' }], 'queue', undefined, handle.requestId)
++  const message = createUserMessage({ source: { kind: 'user', rpcId: handle.requestId },
++    content: [{ type: 'text', text: 'actual input' }] })
++  sessions.handleControlFrame({ type: 'projection', sessionId: ID, projection: PROJECTION, seq: 0,
++    changes: [{ key: 'inbox', val: { 'next-turn': [message], 'next-step': [] } }] })
++  await Promise.resolve()
++  expect(session.settleSubmissionNoInput({ requestId: handle.requestId, projection: PROJECTION })).toBe(false)
++  expect(retired).toEqual([])
++  expect(session.getSnapshot().pendingSubmissions).toMatchObject([{ requestId: handle.requestId }])
++})
++
++
++it('rejects a receipt for the wrong request without retiring its registered echo', async ({ mock, start }) => {
++  const { session } = await openEmpty(mock, start)
++  const retired: PendingSubmissionRetirement[] = []
++  const original = session.beginSubmission({ mode: 'queue', text: '/help', attachments: [],
++    onRetire: result => { retired.push(result) } })
++  const other = session.beginSubmission({ mode: 'queue', text: 'separate draft', attachments: [] })
++  mock.remote.session.prompt.mockResolvedValueOnce(ok({ accepted: true,
++    noInput: { requestId: other.requestId, projection: PROJECTION } }))
++  expect((await session.prompt([{ type: 'text', text: '/help' }], 'queue', undefined, original.requestId)).ok).toBe(false)
++  expect(retired).toEqual([])
++  expect(session.settleSubmissionNoInput({ requestId: original.requestId, projection: PROJECTION })).toBe(true)
++  expect(retired).toEqual([{ reason: 'no-input' }])
++  other.abandon()
++})
+diff --git a/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts b/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
+index 3d0c55d1..94de8299 100644
+--- a/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
++++ b/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
+@@ -56,6 +56,7 @@ function fakeSession(): SessionFace {
+     getSnapshot: () => snapshot.getSnapshot(),
+     subscribe: listener => snapshot.subscribe(listener),
+     beginSubmission: () => ({ requestId: 'test-req' as never, abandon: () => {} }),
++    settleSubmissionNoInput: () => { throw new Error('unused fake Session operation') },
+     prompt: () => Promise.reject(new Error('unused fake Session operation')),
+     readAttachment: () => Promise.reject(new Error('unused fake Session operation')),
+     updateQueue: () => Promise.reject(new Error('unused fake Session operation')),
+diff --git a/packages/test-support/client-runtime/README.i18n.yaml b/packages/test-support/client-runtime/README.i18n.yaml
+index e52df945..eb6fe033 100644
+--- a/packages/test-support/client-runtime/README.i18n.yaml
++++ b/packages/test-support/client-runtime/README.i18n.yaml
+@@ -9,8 +9,8 @@
+   en: c8ace9e40ec1a7a0
+   zh: d952212ed5d6acb6
+ /deepseek-ai-dsh-client-test-runtime/summary:
+-  en: 8dd2bd0bfcef3d1c
+-  zh: 899be35812e95919
++  en: 13e5a5a649912802
++  zh: 92abd45a566784e9
+ /deepseek-ai-dsh-client-test-runtime/table-of-contents:
+   en: d152484eb41ac6b4
+   zh: 09388d293f9be9cb
+diff --git a/packages/test-support/client-runtime/README.md b/packages/test-support/client-runtime/README.md
+index 86feed3d..ff0b3032 100644
+--- a/packages/test-support/client-runtime/README.md
++++ b/packages/test-support/client-runtime/README.md
+@@ -11,7 +11,7 @@ Direct component fixtures use `contextMenuHook(open)` to supply the global menu
+ 
+ ## Summary
+ 
+-Fixture Session bindings expose an explicit stock projection lifecycle by default. Tests may provide a public projection source; projection retry fails explicitly unless the fixture declares it.
++Fixture Session bindings expose an explicit stock projection lifecycle by default. `settleSubmissionNoInput` fails explicitly unless the fixture supplies the behavior. Tests may provide a public projection source; projection retry fails explicitly unless the fixture declares it.
+ 
+ `SlotTestRuntime.create()` lets Vitest suites drive production slots, stores, typed Session and Workspace fixtures, and local DOM assertions in jsdom. For plugin activation, reload, reconnect, and cleanup tests, `createClientTest` starts the web profile's bundle roster with endpoint-named Remote mocks, without a business Host. Missing services and unstubbed calls fail explicitly. The whole-client fixture owns startup and disposal; the local runtime provides idempotent disposal. Use this package through `devDependencies` for client tests; it is not a product plugin.
+ 
+diff --git a/packages/test-support/client-runtime/README.zh.md b/packages/test-support/client-runtime/README.zh.md
+index 3a969d66..7be30631 100644
+--- a/packages/test-support/client-runtime/README.zh.md
++++ b/packages/test-support/client-runtime/README.zh.md
+@@ -11,7 +11,7 @@ kind: "package-library"
+ 
+ ## 概述
+ 
+-Fixture Session 绑定默认公开明确的 stock 投影生命周期。测试可以提供公开投影来源；未由 fixture 声明的投影重试明确失败。
++Fixture Session 绑定默认公开明确的 stock 投影生命周期。若 fixture 未提供 `settleSubmissionNoInput` 行为，调用该方法会明确失败。测试可以提供公开投影来源；未由 fixture 声明的投影重试明确失败。
+ 
+ `SlotTestRuntime.create()` 让 Vitest 套件在 jsdom 中驱动生产 slot、store、带类型的 Session 与 Workspace fixture，并对局部 DOM 断言。面向插件激活、重载、重连与清理的测试，`createClientTest` 使用具名端点 Remote mock 启动 web profile 的 bundle roster，无需业务 Host。缺失服务与未打桩调用会明确失败。整机 fixture 拥有启动和销毁，局部 runtime 提供幂等销毁。通过 `devDependencies` 将本包用于客户端测试；它不是产品插件。
+ 
+diff --git a/packages/test-support/client-runtime/src/sessions.ts b/packages/test-support/client-runtime/src/sessions.ts
+index 217bbb0a..f3ecac01 100644
+--- a/packages/test-support/client-runtime/src/sessions.ts
++++ b/packages/test-support/client-runtime/src/sessions.ts
+@@ -121,6 +121,14 @@ export class FixtureSession implements SessionFace {
+     }
+   }
+ 
++  /**
++   * Fail-loud stub; supply `settleSubmissionNoInput` on the fixture's session face to exercise it.
++   * @returns never — always throws.
++   */
++  settleSubmissionNoInput(): never {
++    throw new Error(`test session "${this.sessionId}": settleSubmissionNoInput is not stubbed — supply it on the fixture's session face`)
++  }
++
+   private submissionSeq = 0
+ 
+   /**

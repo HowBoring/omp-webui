@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "status": "UNREGISTERED_SOURCE_ONLY",
+  "ticket": 46,
+  "activeManifest": "compatibility/dsh/patches.json",
+  "activeManifestChanged": false,
+  "candidateConsumption": "NO_CURRENT_SCRIPT_OR_RUNTIME_CONSUMER",
+  "sourceHostCommit": "429994a10872c9d090e967e3d1ec9a83f3bbd4c7",
+  "integrationBase": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "sourceManifest": {
+    "schemaVersion": 1,
+    "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "baseTree": "77ab54bbce37988207baa603b1d39aa9db9aeaaa",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      },
+      {
+        "path": "patches/0003-projection-rebuild.patch",
+        "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+        "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+      },
+      {
+        "path": "patches/0004-submission-settlement.patch",
+        "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859",
+        "treeAfter": "c50168120be5019ba36b193f8c000614869cd851"
+      },
+      {
+        "path": "patches/0005-local-prompt-refusal.patch",
+        "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241",
+        "treeAfter": "b7d45d6871e1b004df6d745738b8fc008c79b262"
+      },
+      {
+        "path": "patches/0006-parsed-tool-presentation.patch",
+        "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d",
+        "treeAfter": "2440ab8cdd85b85013aff36d3af60edb1b311e27"
+      }
+    ]
+  },
+  "requiredLaterGates": [
+    "Fresh paired review of this normalized composition",
+    "Complete owned exact DSH source and consumer checks",
+    "Persistence/catalog generation and compatibility acknowledgement",
+    "Bilingual pairing",
+    "Matched builds, frozen cohort identities and independent runtime admission"
+  ],
+  "wholeTickets46And29": "OPEN",
+  "privateSessionAdmission": "BLOCKED"
+}
