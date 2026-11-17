@@ -1057,3 +1057,165 @@ test("actual public 5MiB UTF8 requires truncation consent and refuses one byte o
     expect(await fixture.effects()).toEqual(after);
   });
 }, 45_000);
+
+type BudgetDraft = Parameters<AttachmentClient["prepare"]>[0];
+type BudgetCommand = BudgetDraft & { type: "attachment_prepare"; id?: string };
+
+function countTotalDraft(): BudgetDraft {
+  // Spec29/Q6 literals and independent Python streaming pins; no Native limits/result imports.
+  const original = Buffer.from("Controlled prepared document" + "x".repeat(4_194_276), "utf8");
+  const sha256 = "92b6fae8c43b91f2d2112427ee14947565814730c56e11eb176c0fc73fe23b32";
+  expect(original.byteLength).toBe(4_194_304); expect(Bun.SHA256.hash(original, "hex")).toBe(sha256);
+  const data = original.toBase64();
+  const objects = Array.from({ length: 8 }, (_, index) => ({ originalId: `text-${index + 1}`,
+    format: "utf8" as const, sha256, data }));
+  expect(objects.reduce((bytes, object) => bytes + Buffer.byteLength(object.data, "base64"), 0)).toBe(33_554_432);
+  return { preparationId: "prepared-count-total", draftId: "draft-count-total", draftRevision: "1",
+    authorityGeneration: "grant", message: "ordinary @missing-path prose", objects };
+}
+
+async function sendBudgetFrame(worker: Worker, command: BudgetCommand, expectedWireBytes: number) {
+  if (!command.id) throw Error("ATTACHMENT_PUBLIC_BUDGET_CORRELATION_REQUIRED");
+  // This exact command goes to send(), whose public fixture writes JSON.stringify(command) + newline.
+  // Unlike request(), send() preserves this id, so the measured envelope is the actual stdin frame.
+  const wireBytes = Buffer.byteLength(JSON.stringify(command) + "\n", "utf8");
+  expect(wireBytes).toBe(expectedWireBytes); expect(wireBytes).toBeLessThan(50_331_648);
+  worker.send(command);
+  return worker.wait(frame => frame.type === "response" && frame.id === command.id);
+}
+
+async function prepareCountTotal(fixture: Awaited<ReturnType<typeof openWorker>>, draft: BudgetDraft) {
+  const client = new AttachmentClient(async command => {
+    if (command.type !== "attachment_prepare") throw Error("ATTACHMENT_PUBLIC_BUDGET_PREPARE_ONLY");
+    expect(command.id).toHaveLength(36);
+    const response = await sendBudgetFrame(fixture.worker, command, 44_740_518);
+    if (!response.success) throw Error(`ATTACHMENT_PUBLIC_PREPARE_${String(response.code)}`);
+    return response.data;
+  }, isAttachmentReceipt);
+  const receipt = await client.prepare(draft);
+  expect(receipt).toMatchObject({ status: "ready", preparationId: draft.preparationId, draftId: draft.draftId,
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items.map(item => item.originalId)).toEqual(draft.objects.map(object => object.originalId));
+  expect(receipt.items).toHaveLength(8);
+  expect(new Set(receipt.items.map(item => item.preparedId)).size).toBe(8);
+  for (const item of receipt.items) {
+    if (item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_COUNT_TOTAL_NOT_READY");
+    expect(item.originalSha256).toBe("92b6fae8c43b91f2d2112427ee14947565814730c56e11eb176c0fc73fe23b32");
+    expect(item.representation).toEqual({ kind: "text", text: "Controlled prepared document" + "x".repeat(51_172) });
+    expect(item.preparedSha256).toBe("b5b175df454069cef4a11b866e34146af6785b651c85efaa02069c365486e9f4");
+    expect(item.degradations).toEqual(["text_truncated"]);
+    expect(item.preparedSha256).not.toBe(item.originalSha256);
+  }
+  return receipt;
+}
+
+async function expectBudgetQueryAbsent(worker: Worker, key: string) {
+  expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: key })))
+    .toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+      operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [], nextOffset: null });
+}
+
+async function verifyCountTotalSavedParts(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult) {
+  const saved = await entries(worker), history = await submissionHistory(worker);
+  const links = result.relations.flatMap(relation => relation.attachments ?? []);
+  expect(links).toHaveLength(8);
+  expect(new Set(links.map(link => link.originalId)).size).toBe(8);
+  const locators = new Set<string>();
+  for (const item of receipt.items) {
+    const document = savedLink(result, item.originalId, "prepared");
+    expect(document.link).toMatchObject(expectedLink(receipt, item.originalId, "text"));
+    expect(document.locator.kind).toBe("files");
+    locators.add(`${document.entryId}:${document.locator.kind}:${document.locator.index}`);
+    const matches = saved.entries.filter(entry => entry.id === document.entryId);
+    expect(matches).toHaveLength(1);
+    const companion = z.object({ role: z.literal("fileMention"), files: z.array(z.unknown()) }).parse(matches[0]?.message);
+    const part = z.object({ path: z.string(), content: z.string(), byteSize: z.number() })
+      .parse(companion.files[document.locator.index]);
+    expect(part).toEqual({ path: `attachment-prepared://${document.link.preparedId}`,
+      content: "Controlled prepared document" + "x".repeat(51_172), byteSize: 51_200 });
+    expect(Bun.SHA256.hash(part.content, "hex"))
+      .toBe("87a381e538d26bc4c3ee9ad4edb5f915b4da222bb55481af59e5ffe58c4ed4c5");
+    const rows = history.filter(row => row.entryId === document.entryId);
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("prepared");
+      expect(row.submission?.attachments).toContainEqual(document.link);
+    }
+  }
+  // Equal bytes/hashes do not merge eight distinct logical objects or their actual saved locations.
+  expect(locators.size).toBe(8);
+}
+
+async function refuseBudgetDraft(fixture: Awaited<ReturnType<typeof openWorker>>, draft: BudgetDraft,
+  wireBytes: number, queryKey: string) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  // Strings are immutable; copy every object without duplicating the 44MiB base64 strings.
+  const unchangedDraft = { ...draft, objects: draft.objects.map(object => ({ ...object })) };
+  const response = await sendBudgetFrame(fixture.worker,
+    { ...draft, id: queryKey.padEnd(36, "0"), type: "attachment_prepare" }, wireBytes);
+  expect(response).toMatchObject({ success: false, code: "ATTACHMENT_INPUT_BUDGET", error: "ATTACHMENT_INPUT_BUDGET" });
+  expect(response.data).toBeUndefined();
+  await expectBudgetQueryAbsent(fixture.worker, queryKey);
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+  expect(draft).toEqual(unchangedDraft);
+  for (const object of draft.objects) {
+    expect(Bun.SHA256.hash(Buffer.from(object.data, "base64"), "hex")).toBe(object.sha256);
+  }
+  // Public prepare rejects the whole command without a consumable receipt; no browser persistence claim.
+}
+
+async function refuseCountAndTotal(fixture: Awaited<ReturnType<typeof openWorker>>, accepted: BudgetDraft) {
+  const tiny = { format: "utf8" as const, sha256: "bb7208bc9b5d7c04f1236a82a0093a5e33f40423d5ba8d4266f7092c3ba43b62",
+    data: "IQ==" };
+  const countDraft = { ...accepted, preparationId: "prepared-count-over", draftId: "draft-count-over",
+    objects: Array.from({ length: 9 }, (_, index) => ({ ...tiny, originalId: `text-${index + 1}` })) };
+  expect(countDraft.objects).toHaveLength(9);
+  expect(countDraft.objects.reduce((bytes, object) => bytes + Buffer.byteLength(object.data, "base64"), 0)).toBe(9);
+  await refuseBudgetDraft(fixture, countDraft, 1_414, "count-over-refused");
+  const original = Buffer.from("Controlled prepared document" + "x".repeat(4_194_276) + "!", "utf8");
+  expect(original.byteLength).toBe(4_194_305);
+  const sha256 = "a2ff6cfe3749e48dc056fff1f4367eca40f85d2a47b0176ed92ac9db70644bb5";
+  expect(Bun.SHA256.hash(original, "hex")).toBe(sha256);
+  const totalDraft = { ...accepted, preparationId: "prepared-total-over", draftId: "draft-total-over",
+    objects: accepted.objects.map((object, index) => index === 0 ? { ...object, sha256, data: original.toBase64() }
+      : { ...object }) };
+  expect(totalDraft.objects).toHaveLength(8);
+  expect(totalDraft.objects.reduce((bytes, object) => bytes + Buffer.byteLength(object.data, "base64"), 0)).toBe(33_554_433);
+  await refuseBudgetDraft(fixture, totalDraft, 44_740_516, "total-over-refused");
+}
+
+test("actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const draft = countTotalDraft(), receipt = await prepareCountTotal(fixture, draft);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "count-total-success", [])))
+      .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+        error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+    await expectBudgetQueryAbsent(worker, "count-total-success");
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "count-total-success", ["text_truncated"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "count-total-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "count-total-success" },
+      preparation: consent(receipt, ["text_truncated"]) });
+    await verifyCountTotalSavedParts(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([]);
+    // Unchanged capture caps at two per-message 28B spans. This does not witness eight/full provider bodies.
+    expect(after.requests.at(-1)?.attachmentText).toEqual(Array.from({ length: 2 }, () => ({ role: "developer",
+      bytes: 28, occurrences: 1, sha256: "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419" })));
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "count-total-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+    await refuseCountAndTotal(fixture, draft);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 90_000);

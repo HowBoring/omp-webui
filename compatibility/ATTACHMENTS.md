@@ -74,14 +74,32 @@ proof. For document/text cases, its known `Controlled prepared document` witness
 full prepared-text equality at the receipt and indexed saved part does not establish full provider-wrapper
 delivery. Each proof records its own containment, cleanup and observability limits.
 
-The next [5 MiB UTF-8 boundary slice](evidence/attachment-fa52-text-budget-source-ready.json) is
-**SOURCE READY / RUNTIME NOT RUN**. Its independently authored single-line multibyte literal is exactly
+The [5 MiB UTF-8 boundary slice](evidence/attachment-fa52-public-text-budget-runtime-success.json) has
+one recorded isolated **PASS**. Its independently authored single-line multibyte literal is exactly
 5,242,880 bytes; the worked 50 KiB UTF-8-safe head is 51,199 bytes and requires actual `text_truncated`
 consent. The same literal plus one ASCII byte must fail preparation before admission/effects and retain
 the caller's complete draft. Raw-original, prepared/model and fully encoded RPC budgets remain separate.
 Only the small [independent manifest](../tests/attachments/fixtures/utf8-5mib-boundary.json) is stored;
-the test generates the original in memory. Actual red/green awaits fresh Root review and a separate
-exactly ONE anchored runtime grant. Browser draft persistence is outside this public Native seam.
+the test generates the original in memory. Its source readiness and consumed runtime window remain
+historical evidence. Browser draft persistence is outside this public Native seam.
+
+The next [count and total budget slice](evidence/attachment-fa52-count-total-source-ready.json) is
+**SOURCE READY / RUNTIME NOT RUN**. Eight distinct logical UTF-8 objects of 4 MiB each must all prepare
+before explicit `text_truncated` consent admits one input. Every returned original, prepared identity,
+saved part and history association is checked, including eight distinct saved locations despite equal
+content. The unchanged provider captures at most two known 28-byte spans; it does not prove all eight
+full provider bodies. Nine one-byte objects isolate count refusal; eight individually valid objects
+totaling 32 MiB + 1 byte isolate aggregate refusal. Both must reject the whole command without a receipt,
+entry or provider effect, preserving the complete caller draft.
+
+Raw totals and encoded budgets are checked separately. The actual accepted JSONL command, including
+its unchanged correlation ID, base64, metadata and newline, is 44,740,518 bytes, below 50,331,648 bytes
+(48 MiB). Appending one raw byte here leaves base64 length unchanged; the aggregate refusal therefore
+cannot be mistaken for an RPC-size refusal. This is a valid encoded-frame measurement, not an assertion
+at the 48 MiB boundary. No public boundary guarantee is inferred from private helper unit tests.
+The small [independent manifest](../tests/attachments/fixtures/utf8-count-total-boundary.json) contains
+streamed literal hashes and worked sizes; large originals exist only in memory during a separately
+authorized actual run. Actual red/green awaits fresh Root review and exactly ONE anchored runtime grant.
 
 Historical checkpoint: common7 `a6408bb`, navigation8 `e9573a3`, and its own9 compose in ordered1–9.
 The [historical matched build](evidence/attachment-a640-e957-matched-build.json) records its source,

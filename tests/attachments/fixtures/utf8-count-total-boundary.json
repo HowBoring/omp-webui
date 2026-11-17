@@ -1,0 +1,60 @@
+{
+  "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+  "specBasis": "Spec29 story63 / decisions20-21 and attachment-contract Q6: max8 objects and33554432B; pertext5242880B, separate encoded50331648B.",
+  "generation": "UTF8(\"Controlled prepared document\" + \"x\".repeat(4194276)); eight separate logical IDs text-1..8, equal original bytes.",
+  "arithmetic": "28+4194276=4194304B each; 8*4194304=33554432B. Total-over appends one ASCII ! to only first object:33554433B across8; first4194305<5242880. Count-over9 separate one-byte ! objects=9B<33554432.",
+  "original": {
+    "bytes": 4194304,
+    "sha256": "92b6fae8c43b91f2d2112427ee14947565814730c56e11eb176c0fc73fe23b32"
+  },
+  "totalOverFirstOriginal": {
+    "bytes": 4194305,
+    "sha256": "a2ff6cfe3749e48dc056fff1f4367eca40f85d2a47b0176ed92ac9db70644bb5"
+  },
+  "countOverOriginal": {
+    "generation": "ASCII !; base64 IQ==",
+    "bytes": 1,
+    "sha256": "bb7208bc9b5d7c04f1236a82a0093a5e33f40423d5ba8d4266f7092c3ba43b62"
+  },
+  "acceptedRawBytes": 33554432,
+  "totalOverRawBytes": 33554433,
+  "countOverRawBytes": 9,
+  "expectedPrepared": {
+    "bytes": 51200,
+    "sha256": "87a381e538d26bc4c3ee9ad4edb5f915b4da222bb55481af59e5ffe58c4ed4c5",
+    "generation": "Controlled prepared document + x repeated51172; no suffix/newline.",
+    "representationSha256": "b5b175df454069cef4a11b866e34146af6785b651c85efaa02069c365486e9f4",
+    "degradations": [
+      "text_truncated"
+    ],
+    "basis": "Independent50KiB head:51200-28=51172 ASCII x. Eight full expected saved bodies, eight distinct causal locators; no optional UTF8 facts invented."
+  },
+  "encodedFrames": {
+    "accepted": {
+      "base64Bytes": 44739264,
+      "envelopeIncludingNewlineBytes": 1254,
+      "wireBytes": 44740518
+    },
+    "totalOver": {
+      "base64Bytes": 44739264,
+      "envelopeIncludingNewlineBytes": 1252,
+      "wireBytes": 44740516
+    },
+    "countOver": {
+      "base64Bytes": 36,
+      "envelopeIncludingNewlineBytes": 1378,
+      "wireBytes": 1414
+    },
+    "rpcCeilingBytes": 50331648,
+    "basis": "Actual public send retains generated36-character UUID; JSON compact UTF8+newline exactly measured before send. Refusal IDs distinct36 characters. Envelope depends only on same-sized IDs, not UUID contents.",
+    "separation": "Raw+1 leaves base64 length unchanged because4194304 and4194305 share encoded5592408B. Both large frames fit48MiB. This is NOT an exact48MiB boundary test; no public boundary claim from a private helper."
+  },
+  "providerKnownSpan": {
+    "text": "Controlled prepared document",
+    "bytes": 28,
+    "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+    "capture": "Unchanged provider caps2 per-message spans; expect two developer known28B witnesses once each. No fulltext or eight-body provider claim."
+  },
+  "authoring": "Python stdlib hashlib literal chunks<=4096B and empty-data JSON envelope arithmetic. No large fixture or Native/Host/converter import/execution.",
+  "limits": "SOURCE EXPECTATIONS UNEXECUTED; actualRED/GREEN requires freshRootreview/exactONE. Complete caller draft retained, browser/editor/storage state untested."
+}
