@@ -1,0 +1,358 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_PUBLIC_V3_NATIVE_RUNTIME_NOT_RUN",
+  "sourceParent": "a554c5680d84444f41fb1a5bc6acdb74c3b0ec4c",
+  "scope": "One anchored public10MiB PNG/stable per-image original-budget case, explicitly additivecandidate; extra publicpreflight identity/drain gate before syntheticSession authoring. No productionadmission/newNativeAPI.",
+  "baseSource920": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-source-20261117/final-inputs.json",
+    "bytes": 16457,
+    "sha256": "a817c5ff6dfbec102ffe6890a5833cd55f0febd729e072b5886bd4c9873b96dd"
+  },
+  "baseNativeInventory": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-build-plan-20261117/source-inventory.json",
+    "bytes": 2600147,
+    "sha256": "c213e58a4c0276c84323e65af614b5be3f4ac07e085b9936cebcd28a6e88eac3"
+  },
+  "externalCompilerClosure": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/external-compiler-closure.json",
+    "bytes": 7686,
+    "sha256": "46cf8bdff41ade4f61513dd4a98d0193c823f9295b2a97b42a9428cab2f536c9"
+  },
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "compilerEvidence": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-evidence.json",
+    "bytes": 8303,
+    "sha256": "b0e9cb8771b478600e02666d4e0db13682dbe853c5ddc09141f5c3063dec4c07"
+  },
+  "expectedPublicBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "physicalGeneratedIdentityDistinct": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "cohortAudit": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-source-audit.json",
+    "bytes": 2251,
+    "sha256": "817c5c04fd33c2f3f1641d048cacc684def70df4fcd9cc9d4e83eb6c85a7e519"
+  },
+  "resolver": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/source-resolver.py",
+    "bytes": 14487,
+    "sha256": "7cfcb36c796e35af914b09b40598b093bb4140e30f65e2f596a66b7062dd4138"
+  },
+  "retainer": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/public-retainer.py",
+    "bytes": 9959,
+    "sha256": "5c96805a1f2afd4155746f4d84d04eca138cead89d78987e1b3012f848c03dda"
+  },
+  "capture": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    "limitPerStreamBytes": 1048576,
+    "faultPolicy": "Count/hash everyobservedbyte; actualEOF andoriginalwait/readers required; overflow/read/write/flush/disk errors FAIL. Lifecycleuncertainty stays originalretainingHOLD."
+  },
+  "ownership": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_launch_ownership.py",
+      "bytes": 3322,
+      "sha256": "54c9fdce3499dd0f3087b1df79c54356f36b9cde37094215cd9b92e5d884c065"
+    },
+    "AST": "Fivecallback ASTs exact latestproven retainer; started callback eventlabel only. Exact run_owned call, helperswholefilehashes unchanged. No new lifecyclehelper/protocol; no timeout/signal/retry/census/recovery."
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+      "bytes": 94899,
+      "sha256": "f8daa3ae9141aa2805b35f99b9d7cd84d045878018d905bf520b86681bc8894e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 7174,
+      "sha256": "71476ec389f38391a3c80eb5e6b21a43299bb1cc2e5c135ea73d0b299e9e4afe"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/image-original-budget-cohort.ts",
+      "bytes": 2646,
+      "sha256": "8c08c8435afcbb7602f74bcc5749b4c988b36eafc6216bafeb6e808853820045"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-public-v3-source.md",
+      "bytes": 5130,
+      "sha256": "5d6f4d9a9bf000bb1ffbc3cf87861b88eec5810fab30f35f906f6edcc46162a4"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/source-resolver.py",
+      "bytes": 14487,
+      "sha256": "7cfcb36c796e35af914b09b40598b093bb4140e30f65e2f596a66b7062dd4138"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/public-retainer.py",
+      "bytes": 9959,
+      "sha256": "5c96805a1f2afd4155746f4d84d04eca138cead89d78987e1b3012f848c03dda"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/initial-preservation.json",
+      "bytes": 4157,
+      "sha256": "b63cfd14809c23770bdafb71fcb212c73f0a1c70602af7f3750f09fff39a291e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-source-audit.cjs",
+      "bytes": 7363,
+      "sha256": "4a70427b0c7ef91df3eb17addfd9efd11879fd94e9c7380931f9230614332d7e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-source-audit.json",
+      "bytes": 2251,
+      "sha256": "817c5c04fd33c2f3f1641d048cacc684def70df4fcd9cc9d4e83eb6c85a7e519"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-source-audit-first.cjs",
+      "bytes": 7306,
+      "sha256": "297001cc5cd140b1ae8470e47e39ac7c9d8a8ad5687bca44aa7b4de302742779"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-audit-first-tool-results.json",
+      "bytes": 1228,
+      "sha256": "ba18028f4ba7638f54d91a5a2282a9c857939c8d6115d88b64b10f0ae075efd0"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-audit-tool-results.json",
+      "bytes": 452,
+      "sha256": "e7f355c81c0c1bee135699879bb9d78219236a8112c557d2530b67b5f3e8c60a"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/host-typecheck-tool-results.json",
+      "bytes": 290,
+      "sha256": "d40b35603da00a64140aa2dde8cd584461b66bfbebc1685f1b21c70ebd246b9e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/retainer-static-check.json",
+      "bytes": 1033,
+      "sha256": "21abc1339ac505f4ee98c1aedc434cca18ccc7d4a5cc111fab7cae823585caff"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/preimages/tests/attachments/public-rpc.test.ts",
+      "bytes": 94494,
+      "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/preimages/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-evidence.json",
+      "bytes": 8303,
+      "sha256": "b0e9cb8771b478600e02666d4e0db13682dbe853c5ddc09141f5c3063dec4c07"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-window-usage.json",
+      "bytes": 1779,
+      "sha256": "c706d2967f93559e0a53f37cd7f2fa0d888c4a4463d5af237a87ad26847bcfd9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler.md",
+      "bytes": 2278,
+      "sha256": "bc83a63a671a16123175bf1ce323162602f7bd76b0e612ad1334e1f9d7c2db80"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+      "bytes": 14500,
+      "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/cli.js",
+      "bytes": 3286,
+      "sha256": "56cf4218fa0fa15cecaae415aa870ae46e643473f89dd4ef39ccace833a283fc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/chunk-wdb2qd0x.js",
+      "bytes": 23710,
+      "sha256": "053801f6249ef26d2806ff30693db2b61ce20970a38a21c4663608e0e7756930"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/rpc-wire.schema.json",
+      "bytes": 227457,
+      "sha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/build-source-ready.json",
+      "bytes": 20860,
+      "sha256": "34e41cb1b6e58a95ce9d9958e6c9f1a4883001babcd7ffda308283d86b6ae59c"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/source-inventory.json",
+      "bytes": 1566,
+      "sha256": "9f26d39ac0cc71cb2a4641abbd90765ec19847338df9fe80d9715c9e9f16fe98"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/external-compiler-closure.json",
+      "bytes": 7686,
+      "sha256": "46cf8bdff41ade4f61513dd4a98d0193c823f9295b2a97b42a9428cab2f536c9"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/build-candidate.ts",
+      "bytes": 9383,
+      "sha256": "82f68c275f5b06d2f19d1d989dcff833051393b79308b1c2c51b0fdca8081c5e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/build-retainer.py",
+      "bytes": 14415,
+      "sha256": "82032ea24636d01dacf5e10245b46ef18efc45e7b89ebecca6bb3af9dabfb8de"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/precheck.py",
+      "bytes": 17283,
+      "sha256": "92e8217874c4806422ec8c68c3c95786a8c254a91a31e868252385a14c1b9caa"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-root-tool.json",
+      "bytes": 7078,
+      "sha256": "3560182cdcf5ca7170616c72b445cc832aa736459297ff8b3445479b26534c92"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-v2-root-tool.json",
+      "bytes": 7982,
+      "sha256": "d6b65be8aee0c6b52accb897e000f15e9d5d3ac29cdb86fe60777e7288e1a6f5"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-compiler-v2-root-post-tool.json",
+      "bytes": 3300,
+      "sha256": "b2902db89afc424fa02cd04b9807a2fd0e5d1f7f1fd0cb5cbdb28f051cc19665"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/raw.tar.gz",
+      "bytes": 61993,
+      "sha256": "86030b3cb81ea6664792056058fe8b0c20699a2108a0bef34ab29982666f23a1"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/manifest.json",
+      "bytes": 9042,
+      "sha256": "83eb6da583350e4ec08394bc0ff2a531aa0c0dd9446c334f36942d912f6a5405"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/raw.tar.gz",
+      "bytes": 609265,
+      "sha256": "d939e3be40e14198c9993b6363aa69f25bb9adc533c0875c748fee7f28df955b"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/manifest.json",
+      "bytes": 10815,
+      "sha256": "c4e783203b971097381d340bf1c50bc709124e23c7a319f0ccbefaff0b8f58a3"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-build-plan-20261117/source-inventory.json",
+      "bytes": 2600147,
+      "sha256": "c213e58a4c0276c84323e65af614b5be3f4ac07e085b9936cebcd28a6e88eac3"
+    }
+  ],
+  "overrides": [
+    {
+      "before": {
+        "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+        "bytes": 94494,
+        "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693"
+      },
+      "preimage": {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/preimages/tests/attachments/public-rpc.test.ts",
+        "bytes": 94494,
+        "sha256": "07825d7b97b1fe0146affb00460b7325d7963fb158495e9f01a7aebe2bbe2693"
+      },
+      "after": {
+        "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+        "bytes": 94899,
+        "sha256": "f8daa3ae9141aa2805b35f99b9d7cd84d045878018d905bf520b86681bc8894e"
+      }
+    },
+    {
+      "before": {
+        "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+        "bytes": 6594,
+        "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+      },
+      "preimage": {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/preimages/tests/continuation/worker.ts",
+        "bytes": 6594,
+        "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+      },
+      "after": {
+        "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+        "bytes": 7174,
+        "sha256": "71476ec389f38391a3c80eb5e6b21a43299bb1cc2e5c135ea73d0b299e9e4afe"
+      }
+    }
+  ],
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 94899,
+    "sha256": "f8daa3ae9141aa2805b35f99b9d7cd84d045878018d905bf520b86681bc8894e",
+    "name": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over"
+  },
+  "bodyPreservation": "First12caseAST exact; final withWorker callback/negative helper exact; only explicitcandidatearg added. Original75expects; additionalidentity/drain manualthrows, no newexpect calls.",
+  "binding": "ClosedFixtureCandidate baseline default; onlylastcase image-original-budget-v2; catalog+strictworker share exactadditivecli. Before nativeFixture, samecandidate publicpreflight expectednewtuple and cleanoriginaltransportdrain, auditscaptured.",
+  "identityLimits": "Compiledpreflightoverlaynewd8 !=physicalgeneratedold9; actualruntimepublicreportunrun. Staticimports show selectedcompiledPFchunk and fivepinneddeferredNative routes, not globalHostidentity equivalence/admission.",
+  "nativeIndex": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+    "bytes": 1271154,
+    "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+  },
+  "sourceChecks": {
+    "hostNormalTypes": "PASS fullHostnoEmit tsc34988/f7404a; no valueimports/testexecution.",
+    "cohortAST": "PASS99959/22a2af; initialexternalparserquotedkeyfailure preserved.",
+    "retainerAST": "Fivecallbacks exact/hashhelpers unchanged; notexecuted."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN; freshSourcepair/Rootcapacity/pre/exactONE",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public 10MiB PNG requires transformation consent and reports original budget for one byte over$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-image-original-budget-v3-20261117-*>",
+      "PI_CODING_AGENT_DIR": "<same syntheticHOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same syntheticHOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "preImport": "Top historyguard before allNative-bearingfixture/HostFrame imports; everypreflight/catalog/worker/serializer/converter uses existingguarded syntheticHOME paths; no trueAgent/privateSession/global install.",
+    "newActor": "One publicdiagnostic preflight child before fixtureauthoring; requestidentity and cleanDrain mustmatch; originalclose result audited. Otherworker/catalog/serializer/converter helpers unchanged, no invented perchildoutcome.",
+    "limits": {
+      "caseDeadlineMs": 90000,
+      "requestDeadlineMs": 10000,
+      "preflightTransportDeadlineMs": 3000,
+      "topOuterTimeout": false,
+      "streamCaptureBytesEach": 1048576,
+      "minimumFreeTmpBytes": 33554432
+    },
+    "failurePolicy": "FirstFAIL preserved/no retry/fix/expectationweakening; originalownedhandles+EOF needed; uncertainlaunch/lifecycle retainsHOLD; no recovery/census/kernel/PIDfallback.",
+    "profiles": "FreshTopHOME retained with audit; internalfixtureownshome+originalexits; filesystembefore/after unchanged notP_ALL/extinction.",
+    "otherCases": "Twelve filtered; no otherformat/matrix/browser/Host/seed/nativeCLI experiments outsidethiscontrolledpubliccase."
+  },
+  "freshPrefixes": [
+    "/tmp/ticket-38-public-image-original-budget-v3-20261117-",
+    "/tmp/attachment-runtime-image-original-budget-v3-20261117-"
+  ],
+  "notRun": "No SourceReadyretainerpre/run/post, Native import/CLI/publicPF/worker/test/codec/FFI/Agent/Host/browser/kernel/proc/seed/build/generator; only pureAST/hash/Git/RAMpatch/normalTS. Oldconsumedcheckers untouched.",
+  "admission": "STOP_FRESH_PAIRED_SOURCE_REVIEW. BroaduserLinuxauthorization exists; RootseparatecoordinatedONE after newfreeze/pre/capacity. No repeatuserpermission, no automaticruntimeauthority. Whole29/38/53/54/global/private/productopen."
+}

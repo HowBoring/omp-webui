@@ -10,6 +10,8 @@ import type {
 import { nativeFixture } from "../catalog/fixture.ts";
 import { decodeSubmission, submissionHistory, terminalSubmission } from "../submissions/fixture.ts";
 import { negotiateStrict, selectedDescriptor, strictWorker } from "../continuation/worker.ts";
+import type { FixtureCandidate } from "../continuation/worker.ts";
+import { inspectAttachmentCandidate } from "./image-original-budget-cohort.ts";
 
 // Same originals as the existing provider tracer; expected hashes independently recorded with Python hashlib.
 const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=";
@@ -34,13 +36,17 @@ const effectsSchema = z.object({ inputCalls: z.number(), modelAttempts: z.number
   })) });
 type Worker = ReturnType<typeof strictWorker>;
 
-async function withWorker(run: (fixture: Awaited<ReturnType<typeof openWorker>>) => Promise<void>): Promise<void> {
+async function withWorker(run: (fixture: Awaited<ReturnType<typeof openWorker>>) => Promise<void>,
+  candidate: FixtureCandidate = "baseline"): Promise<void> {
   if (!Reflect.get(globalThis, Symbol.for("omp.s0.network-guard")) || os.tmpdir() !== "/tmp") {
     throw Error("ATTACHMENT_PUBLIC_FIXTURE_PREIMPORT_GUARD_AND_TOP_TMP_REQUIRED");
   }
   const home = await fs.mkdtemp("/tmp/attachment-public-");
   let fixture: Awaited<ReturnType<typeof openWorker>> | undefined;
-  try { fixture = await openWorker(home); await run(fixture); }
+  try {
+    await inspectAttachmentCandidate(home, candidate);
+    fixture = await openWorker(home, candidate); await run(fixture);
+  }
   finally {
     try {
       if (fixture) {
@@ -51,10 +57,10 @@ async function withWorker(run: (fixture: Awaited<ReturnType<typeof openWorker>>)
   }
 }
 
-async function openWorker(home: string) {
+async function openWorker(home: string, candidate: FixtureCandidate) {
   await nativeFixture(home);
-  const selected = await selectedDescriptor(home), cwd = path.join(home, "project");
-  const worker = strictWorker(home, cwd, runtime);
+  const selected = await selectedDescriptor(home, undefined, candidate), cwd = path.join(home, "project");
+  const worker = strictWorker(home, cwd, runtime, undefined, undefined, undefined, undefined, 10_000, candidate);
   try {
     await negotiateStrict(worker);
     expect(await worker.request({ type: "strict_start", intent: "continue", reference: selected.reference,
@@ -1335,5 +1341,5 @@ test("actual public 10MiB PNG requires transformation consent and reports origin
     expect(await fixture.effects()).toEqual(after);
     await refuseImageOneByteOver(fixture);
     expect(await fixture.effects()).toEqual(after);
-  });
+  }, "image-original-budget-v2");
 }, 90_000);

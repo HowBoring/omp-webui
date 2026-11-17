@@ -6,7 +6,16 @@ import { z } from "zod";
 import { PhysicalFrames } from "../../packages/compatibility/framing.ts";
 const frameSchema = z.object({ type: z.string(), id: z.string().optional() }).catchall(z.unknown());
 export type StrictFrame = z.infer<typeof frameSchema>;
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, leaseDirectory?: string, trace?: string, requestTimeoutMs = 10_000) {
+export type FixtureCandidate = "baseline" | "image-original-budget-v2";
+/** Test-owned closed selection; browser input cannot supply an executable or path. */
+export function fixtureCandidatePath(candidate: FixtureCandidate): string {
+  if (candidate === "baseline") return resolve("vendor/omp-candidate/cli.js");
+  if (candidate === "image-original-budget-v2") {
+    return resolve("vendor/omp-candidate-image-original-budget-compiler-inputs-v2/cli.js");
+  }
+  throw Error("FIXTURE_CANDIDATE_UNSUPPORTED");
+}
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, leaseDirectory?: string, trace?: string, requestTimeoutMs = 10_000, candidate: FixtureCandidate = "baseline") {
   if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
   if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1000 || requestTimeoutMs > 120_000) throw new Error("STRICT_FIXTURE_TIMEOUT_BOUNDS");
   if (trace && !trace.startsWith(home + "/")) throw new Error("STRICT_FIXTURE_TRACE_PATH");
@@ -14,7 +23,7 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
     ? [Bun.which("python3") ?? "/usr/bin/python3", resolve(fault.name.startsWith("submission-") ? "tests/submissions/syscall-faults.py" : "tests/continuation/syscall-faults.py")] : []),
     process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/no-provider.ts"),
     ...(fault ? ["--preload", resolve(fault.name.startsWith("submission-") ? "tests/submissions/wire-faults.ts" : "tests/continuation/native-faults.ts")] : []),
-    resolve("vendor/omp-candidate/cli.js"), "--mode", "rpc-ui", ...(ordinaryFile ? ["--session", ordinaryFile] : ["--strict-start"]), ...runtimeArgs], {
+    fixtureCandidatePath(candidate), "--mode", "rpc-ui", ...(ordinaryFile ? ["--session", ordinaryFile] : ["--strict-start"]), ...runtimeArgs], {
     cwd, env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", TMPDIR: home,
       ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}),
       ...(fault ? { OMP_STRICT_FIXTURE_HOME: home, OMP_STRICT_FAULT: fault.name, OMP_STRICT_FAULT_TARGET: fault.target, LD_PRELOAD: resolve("vendor/strict-fixture/native-faults.so") } : {}),
@@ -58,11 +67,11 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
   };
 }
 
-export async function selectedDescriptor(home: string, leaseDirectory?: string) {
+export async function selectedDescriptor(home: string, leaseDirectory?: string, candidate: FixtureCandidate = "baseline") {
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 3000);
   try {
     const client = await CatalogTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
-      resolve("compatibility/omp/fixtures/no-provider.ts"), resolve("vendor/omp-candidate/cli.js"), "--rpc-catalog"],
+      resolve("compatibility/omp/fixtures/no-provider.ts"), fixtureCandidatePath(candidate), "--rpc-catalog"],
       env: { HOME: home, PATH: "/usr/bin:/bin", BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
         ...(leaseDirectory ? { PI_TEST_SESSION_OWNERS_DIR: leaseDirectory } : {}) }, timeoutMs: 3000,
       signal: controller.signal });
