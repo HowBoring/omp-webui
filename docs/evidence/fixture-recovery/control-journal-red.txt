@@ -1,0 +1,16 @@
+F
+======================================================================
+FAIL: test_failed_control_listening_journal_keeps_original_owner_without_control (__main__.RetainerOwnershipTests.test_failed_control_listening_journal_keeps_original_owner_without_control)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 304, in test_failed_control_listening_journal_keeps_original_owner_without_control
+    deliver.assert_not_called()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'pidfd_send_signal' to not have been called. Called 1 times.
+Calls: [call(99, <Signals.SIGTERM: 15>, None, 0)].
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)

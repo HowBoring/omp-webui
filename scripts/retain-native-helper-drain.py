@@ -101,7 +101,7 @@ def pin(expected):
 
 
 class Retainer:
-    def __init__(self):
+    def __init__(self, challenge_factory=None):
         self.children = {}
         self.pidfds = {}
         self.reader = selectors.DefaultSelector()
@@ -128,6 +128,11 @@ class Retainer:
         self.recovery_fault = False
         self.drain_fault = False
         self.recovered = False
+        self.recovery_disqualified = False
+        self.recovery_scope = None
+        self.challenge_factory = challenge_factory if challenge_factory is not None else lambda: os.urandom(16).hex()
+        self.hold_challenge = None
+        self.challenge_published = False
         self.waits = {}
         self.p_all = "NOT_OBSERVED"
 
@@ -148,25 +153,70 @@ class Retainer:
         self.emit(self.receipt())  # Flush the original tool journal BEFORE any recovery action.
 
     def enter_hold(self, failure):
+        if self.holding:
+            self.recovery_disqualified = True
         self.holding = True
         if self.failure_phase is None:
             self.failure_phase = self.phase
             text = str(failure) if type(failure) is RuntimeError else ""
             self.failure_code = text if re.fullmatch(r"RETAINER_[A-Z_]{1,64}", text) else "RETAINER_UNRESOLVED"
-        self.note("HOLD")
+        try:
+            self.note("HOLD")
+            if self.recovery_eligible() and self.recovery_scope is None:
+                self.recovery_scope = (self.children["native"], self.pidfds["native"], self.generation,
+                                       self.phase, dict(self.failures[0]))
+                self.hold_challenge = self.challenge_factory()
+                require(type(self.hold_challenge) is str and re.fullmatch(r"[a-f0-9]{32}", self.hold_challenge),
+                        "RETAINER_HOLD_CHALLENGE")
+                self.note("ROOT_HOLD_CHALLENGE", holdChallenge=self.hold_challenge)
+                self.challenge_published = True
+        except BaseException:
+            self.recovery_disqualified = True
+            self.root_consumed = True
+            raise
+
+    def recovery_eligible(self):
+        early = {"bootstrap_import", "bootstrap_entry", "native_imports", "native_handoff", "native_approval",
+                 "native_claim", "native_selection", "native_server_open"}
+        eligible = (self.holding and not self.drain_fault and not self.recovery_fault
+                    and self.generation is not None and self.phase == "NATIVE_AWAIT_READY"
+                    and self.failure_code == "RETAINER_CHILD_RETAINED_FAILURE"
+                    and self.failure_phase == "NATIVE_AWAIT_READY"
+                    and set(self.children) == set(self.pidfds) == self.launch_returned == {"native"}
+                    and self.events == {"native": [], "host": []} and len(self.failures) == 1
+                    and self.failures[0]["role"] == "native" and self.failures[0]["phase"] in early
+                    and set(self.buffers) == {("native", "stdout"), ("native", "stderr")}
+                    and not any(self.buffers.values())
+                    and self.reader_channels == {("native", "stdout"), ("native", "stderr")})
+        if eligible and self.recovery_scope is not None:
+            child, descriptor, generation, phase, failure = self.recovery_scope
+            eligible = (self.children["native"] is child and self.pidfds["native"] == descriptor
+                        and self.generation == generation and self.phase == phase and self.failures[0] == failure)
+        if not eligible:
+            self.recovery_disqualified = True
+        return eligible and not self.recovery_disqualified
 
     def listen_root(self):
         # Only this original execution's stdin; no endpoint, path, PID or recovered descriptor authority.
-        os.set_blocking(sys.stdin.fileno(), False)
-        self.reader.register(sys.stdin, selectors.EVENT_READ, ("root", "stdin"))
-        self.root_listening = True
-        self.note("ROOT_CONTROL_LISTENING")
+        require(self.challenge_published and not self.root_consumed and self.recovery_eligible(),
+                "RETAINER_ROOT_CONTROL_UNAVAILABLE")
+        try:
+            os.set_blocking(sys.stdin.fileno(), False)
+            self.reader.register(sys.stdin, selectors.EVENT_READ, ("root", "stdin"))
+            self.root_listening = True
+            self.note("ROOT_CONTROL_LISTENING")
+        except BaseException:
+            self.recovery_disqualified = True
+            self.root_consumed = True
+            raise
 
     def root_control(self, chunk):
-        if not chunk:
-            self.note("ROOT_CONTROL_EOF")
-            return
         if self.root_consumed:
+            return
+        if not chunk or not self.challenge_published or not self.holding:
+            self.root_consumed = True
+            self.root_buffer = b""
+            self.note("ROOT_CONTROL_EOF" if not chunk else "ROOT_CONTROL_REJECTED")
             return
         self.root_buffer += chunk
         if len(self.root_buffer) > 128:
@@ -178,23 +228,17 @@ class Retainer:
             return
         self.root_consumed = True  # A malformed or uncertain request never earns an automatic retry.
         command, self.root_buffer = self.root_buffer, b""
-        expected = ("RECOVER_EARLY_NATIVE " + (self.generation or "") + "\n").encode("ascii")
-        early = {"bootstrap_import", "bootstrap_entry", "native_imports", "native_handoff", "native_approval",
-                 "native_claim", "native_selection", "native_server_open"}
-        eligible = (self.holding and not self.drain_fault and self.generation is not None and command == expected
-                    and self.failure_code == "RETAINER_CHILD_RETAINED_FAILURE"
-                    and self.failure_phase == "NATIVE_AWAIT_READY"
-                    and set(self.children) == set(self.pidfds) == self.launch_returned == {"native"}
-                    and self.events == {"native": [], "host": []} and len(self.failures) == 1
-                    and self.failures[0]["role"] == "native" and self.failures[0]["phase"] in early
-                    and set(self.buffers) == {("native", "stdout"), ("native", "stderr")}
-                    and self.reader_channels == {("native", "stdout"), ("native", "stderr")})
-        if not eligible:
+        expected = f"RECOVER_EARLY_NATIVE {self.generation or ''} {self.hold_challenge}\n".encode("ascii")
+        for channel in self.buffers:
+            if channel[1] == "stdout":
+                self.consume_buffer(channel)
+        if not self.recovery_eligible() or command != expected:
             self.note("ROOT_CONTROL_REJECTED")
             return
         self.recovery_attempted = True
         try:
             self.note("RECOVERY_SIGNAL_INTENT", role="native", signal="SIGTERM")
+            require(self.recovery_eligible(), "RETAINER_RECOVERY_SCOPE_CHANGED")
             signal.pidfd_send_signal(self.pidfds["native"], signal.SIGTERM, None, 0)
             self.note("RECOVERY_SIGNAL_DELIVERED", role="native", signal="SIGTERM")
         except BaseException:
@@ -210,8 +254,10 @@ class Retainer:
                 and not ready[0][1] & (select.POLLERR | select.POLLNVAL))
 
     def recovery_step(self):
-        if not self.recovery_attempted or self.recovery_fault or self.drain_fault or self.recovered:
+        if self.recovered:
             return self.recovered
+        if not self.recovery_attempted or not self.recovery_eligible():
+            return False
         try:
             if "native" not in self.waits:
                 try:
@@ -225,6 +271,7 @@ class Retainer:
             self.assert_echild()  # Unknown adopted/living/zombie children HOLD. Never enumerate or infer extinction.
             self.p_all = "ECHILD"
             self.note("RECOVERY_TERMINAL_FACTS")
+            require(self.recovery_eligible(), "RETAINER_RECOVERY_SCOPE_CHANGED")
             os.close(self.pidfds["native"])
             self.recovered = True
             self.note("RECOVERY_COMPLETE_RUN_STILL_FAILED")
@@ -315,7 +362,9 @@ class Retainer:
         for channel in self.buffers:
             if channel[1] == "stdout":
                 self.consume_buffer(channel)
-        for key, _ in self.reader.select(timeout):
+        # Root cannot outrun a simultaneously readable original child observation.
+        ready = self.reader.select(timeout)
+        for key, _ in sorted(ready, key=lambda item: item[0].data == ("root", "stdin")):
             channel = key.data
             chunk = os.read(key.fileobj.fileno(), 4096 if channel[0] != "root" else 129)
             if channel == ("root", "stdin"):
@@ -380,6 +429,7 @@ class Retainer:
             self.history.append({"role": role, **event})
             self.failures.append({"role": role, "code": code, "codeSource": source, "phase": phase})
             if self.holding:
+                self.recovery_disqualified = True
                 self.note("CHILD_RETAINED_FAILURE", role=role)
                 return
             raise RuntimeError("RETAINER_CHILD_RETAINED_FAILURE")
@@ -391,6 +441,7 @@ class Retainer:
         self.events[role].append(event)
         self.history.append({"role": role, **event})
         if self.holding:
+            self.recovery_disqualified = True
             self.note("ORIGINAL_CHILD_EVENT", role=role, childEvent=event["event"])
 
     def await_event(self, role, count, deadline):

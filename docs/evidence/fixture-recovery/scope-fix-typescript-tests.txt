@@ -1,0 +1,19 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/ownership/native-helper-two-process.test.ts:
+(pass) launch roster equality normalizes observed field order and still rejects a changed mode [10.45ms]
+(pass) Host START registration stays held after signed status until original parent continues [6.16ms]
+(pass) pending Native status cannot announce registered or release the Host START callback [0.22ms]
+(pass) HELLO from another generation or helper cannot reach signed-status or parent release [0.24ms]
+(pass) uncertain prepare cannot be retried or converted into a held START [0.16ms]
+(pass) a pending registration owns the sole parent START gate [0.21ms]
+
+tests/ownership/native-helper-drain-diagnostics.test.ts:
+(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.28ms]
+(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.27ms]
+(pass) untrusted phase values cannot become diagnostic payloads [0.05ms]
+
+ 9 pass
+ 0 fail
+ 33 expect() calls
+Ran 9 tests across 2 files. [210.00ms]

@@ -7,11 +7,11 @@
     "compatibility/omp/fixtures/native-helper-drain-bootstrap.ts": "0991db4f2d079aaad81d7d51f5982e266720a660b1addf8e63b75bfe1cea0c77",
     "compatibility/omp/fixtures/native-helper-drain-diagnostics.ts": "8a05c256dc117d6c4f86f29ccd83df89e6d5c56ec16eda348f9a1c992e111a43",
     "compatibility/omp/fixtures/native-helper-drain-native.ts": "5f2293def632adb4ccd6f33155c8f5ee13565c567ea9bfbbd8bf67a52719f071",
-    "scripts/retain-native-helper-drain.py": "f58e6d66ef8495109c76885f68770f26db9cf41f9eaaa89c700278125d232612",
+    "scripts/retain-native-helper-drain.py": "f91d6ed2b952f636c77055b199375ff1810ecfac16dc56a40e1b638d09679109",
     "scripts/check-native-helper-two-process.ts": "87a20c543d4b9b7faac88e3741b3f2cdd257483eaba10413f7ca2f55be9bb656",
     "tests/ownership/native-helper-drain-diagnostics.test.ts": "981e870d3fbcb5de670b18b3f4a34909b7009256cc57b818b5c524d7c93a4ab0",
-    "tests/ownership/native_helper_drain_retainer_test.py": "18361ba699ab216c843db47fc0c85e6c2715856caa0819e5465c7745c964396b",
-    "docs/evidence/ticket-41-fixture-recovery-source.md": "750f8ce7b818b5436871fd93151a4d3c23b7a1ad609d9de954eab17f27a30ff7"
+    "tests/ownership/native_helper_drain_retainer_test.py": "83ae1aad5c0779f6d882360e0fb671df58ed5433bedf09cc575857eeaf400ef3",
+    "docs/evidence/ticket-41-fixture-recovery-source.md": "11d4a28d9685ddfdccfba5e2ac70ded4f1a6e281907a45814c0a03aa617685c6"
   },
   "pureEvidence": {
     "docs/evidence/fixture-recovery/acquisition-green.txt": "670a39115e7523a8984e4842e16547cb2094b03fad392b037b4b9dc8b2656e62",
@@ -43,7 +43,22 @@
     "docs/evidence/fixture-recovery/root-recovery-red.txt": "e4417bc4320d46058cce2dd5cd240c4c5941036742801e41186aadea7dc830b3",
     "docs/evidence/fixture-recovery/syntax.txt": "72cbdc38579443f02ab392a13889cfe7e9cae2fa10070b6304a45b96d46dffb2",
     "docs/evidence/fixture-recovery/typecheck.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "docs/evidence/fixture-recovery/typescript-tests.txt": "911ca99e46eea8efabdaf7dbd6386713ab3001ac4383af746661421e2e65755d"
+    "docs/evidence/fixture-recovery/typescript-tests.txt": "911ca99e46eea8efabdaf7dbd6386713ab3001ac4383af746661421e2e65755d",
+    "docs/evidence/fixture-recovery/scope-latch-green.txt": "24adda79e21044fef19cdc7f0606a9cd7770fc9a99c705a8622ee923c13bce5d",
+    "docs/evidence/fixture-recovery/scope-fix-python-ast.txt": "f9058f40e016ea6097a11099a98f4bfa9f8848236d9c1317449108049e3c9ecc",
+    "docs/evidence/fixture-recovery/scope-latch-red.txt": "c889d3f8f3d7531ba97224c5342a8fe2ad9dc277cff60372b5d3986e89d0467e",
+    "docs/evidence/fixture-recovery/partial-observation-red.txt": "b0f4da593959c319b2d351608d15c5a74ac39e3a3ac76c13c7de128307924d3a",
+    "docs/evidence/fixture-recovery/hold-challenge-red.txt": "9b9b748ba8914f582e2b59c18baee4de8505549f4862a5af64abb84fbab24f4c",
+    "docs/evidence/fixture-recovery/hold-challenge-green.txt": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad",
+    "docs/evidence/fixture-recovery/scope-fix-typescript-ast.txt": "72cbdc38579443f02ab392a13889cfe7e9cae2fa10070b6304a45b96d46dffb2",
+    "docs/evidence/fixture-recovery/scope-fix-typecheck.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/evidence/fixture-recovery/scope-fix-python-usr-bin.txt": "9bc30cd416ae2f2c2df3caae2bb37e9a24b8158cfdd7ceb6a2f8f91d9301d59c",
+    "docs/evidence/fixture-recovery/control-journal-green.txt": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881",
+    "docs/evidence/fixture-recovery/scope-fix-typescript-tests.txt": "71c2b725f3675006191a2ad27e67b2957be2cfb29ea1e413d5a1b4b246c922c5",
+    "docs/evidence/fixture-recovery/control-journal-red.txt": "8e32233b0449e92bdf42a75afcf82a00facfb43a5272e239b5ec7379e38e7abe",
+    "docs/evidence/fixture-recovery/partial-observation-green.txt": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad",
+    "docs/evidence/fixture-recovery/scope-fix-python.txt": "64dae1244ed0fb876274a5066823cf80a9cd073552151c5ca4d3c12decdaf268",
+    "docs/evidence/fixture-recovery/scope-fix-checks.json": "f5da0f9986b2b6c7c596bf2bdd8413f5d346c9945c51e7db4a55f96a30299a53"
   },
   "preimages": {
     "scripts/retain-native-helper-drain.py": {
@@ -111,7 +126,7 @@
       "shared_service_unsupported",
       "ownership_backend_unavailable"
     ],
-    "recoveryCommand": "RECOVER_EARLY_NATIVE <exact-generation>\\n",
+    "recoveryCommand": "RECOVER_EARLY_NATIVE <exact 64 lowercase hex generation> <fresh 32 lowercase hex holdChallenge>\\n",
     "signal": "ONE_SIGTERM_ORIGINAL_RETAINED_NATIVE_PIDFD_ONLY_AFTER_ROOT_COMMAND",
     "requires": [
       "FIRST_HOLD_AUTHENTICATED_NATIVE_FAILURE_WHILE_AWAITING_READY",
@@ -122,13 +137,20 @@
       "ORIGINAL_WAIT",
       "BOTH_ACTUAL_EOF",
       "ORIGINAL_PIDFD_TERMINAL",
-      "ORIGINAL_P_ALL_ECHILD"
+      "ORIGINAL_P_ALL_ECHILD",
+      "FRESH_POST_HOLD_JOURNALED_CHALLENGE",
+      "ORIGINAL_CHILD_OBSERVATIONS_BEFORE_ROOT_CONTROL",
+      "NO_UNCERTAIN_BUFFERED_OUTPUT",
+      "CONTINUOUS_PINNED_EARLY_NATIVE_SCOPE_BEFORE_SIGNAL_AND_COMPLETION"
     ],
     "unknownAdoptedOrUnresolved": "HOLD",
     "automaticRetry": false,
     "laterNativeOrHostRecovery": "NOT_IMPLEMENTED_HOLD",
     "processDrainageNeverFixturePass": true,
-    "fences": "NOT_INSPECTED_NO_RETAINER_MUTATION"
+    "fences": "NOT_INSPECTED_NO_RETAINER_MUTATION",
+    "holdChallenge": "FRESH_OS_URANDOM_128_BITS_ONLY_IN_FIRST_ELIGIBLE_HOLD_FLUSHED_ORIGINAL_JOURNAL_BEFORE_CONTROL",
+    "rootOpportunity": "FIRST_COMPLETE_BOUNDED_COMMAND_OVERSIZE_OR_EOF_CONSUMES_NO_REFRESH_OR_RECONNECT_RETRY",
+    "scopeDisqualification": "PERMANENT_ON_LATER_EVENT_FAILURE_HOST_OBJECT_CHANGED_FIRST_FAILURE_PHASE_OR_ORIGINAL_AUTHORITY"
   },
   "actual": {
     "nativeImported": false,
@@ -146,5 +168,27 @@
     "fullBuildGraphs": "NOT_RUN",
     "productAdmission": "BLOCKED"
   },
-  "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_PAIR"
+  "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_PAIR",
+  "repairBase": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef",
+  "sourceReadiness": "NOT_BUILT_NOT_RUN",
+  "supersedesSource": {
+    "commit": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef",
+    "tree": "b6c4b35a7af495377a3fff5ec83a9456cb3d5304",
+    "descriptorSha256": "66c713477ada0bc14996b09e172fded7fa5709b71a10f5700215a1ddc9e7eae0",
+    "descriptorGitBlob": "b7becda40a73d09a6d52b5663c46dc15dc52cb4e",
+    "immutableDescriptor": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef:docs/evidence/ticket-41-fixture-recovery-source.json",
+    "immutableEvidenceTree": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef:docs/evidence/fixture-recovery",
+    "specReview": "HOLD_P1_LATE_EVENT_SCOPE_P2_PRE_HOLD_CONTROL",
+    "standardsReview": "GO_SOURCE_ONLY"
+  },
+  "repairValidation": {
+    "pythonTests": 25,
+    "pythonInterpreters": 2,
+    "bunTests": 9,
+    "bunAssertions": 33,
+    "checks": "docs/evidence/fixture-recovery/scope-fix-checks.json",
+    "pureOnly": true,
+    "fullNativeTypes": "NOT_RUN",
+    "fullBuildGraphs": "NOT_RUN"
+  }
 }

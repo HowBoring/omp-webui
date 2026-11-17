@@ -1,0 +1,1 @@
+PASS_PYTHON_AST_ONLY ['scripts/retain-native-helper-drain.py', 'tests/ownership/native_helper_drain_retainer_test.py']

@@ -1,0 +1,16 @@
+F
+======================================================================
+FAIL: test_partial_pending_child_output_cannot_authorize_a_signal_before_its_observation (__main__.RetainerOwnershipTests.test_partial_pending_child_output_cannot_authorize_a_signal_before_its_observation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 288, in test_partial_pending_child_output_cannot_authorize_a_signal_before_its_observation
+    deliver.assert_not_called()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'pidfd_send_signal' to not have been called. Called 1 times.
+Calls: [call(99, <Signals.SIGTERM: 15>, None, 0)].
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)

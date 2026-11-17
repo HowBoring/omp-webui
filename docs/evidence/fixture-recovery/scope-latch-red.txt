@@ -1,0 +1,51 @@
+FFFF
+======================================================================
+FAIL: test_late_authenticated_ready_or_second_failure_permanently_blocks_completion (__main__.RetainerOwnershipTests.test_late_authenticated_ready_or_second_failure_permanently_blocks_completion) (kind='NATIVE_READY')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 212, in test_late_authenticated_ready_or_second_failure_permanently_blocks_completion
+    self.assertFalse(retainer.recovery_step())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_late_authenticated_ready_or_second_failure_permanently_blocks_completion (__main__.RetainerOwnershipTests.test_late_authenticated_ready_or_second_failure_permanently_blocks_completion) (kind='FIXTURE_RETAINED_FAILURE')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 212, in test_late_authenticated_ready_or_second_failure_permanently_blocks_completion
+    self.assertFalse(retainer.recovery_step())
+AssertionError: True is not false
+
+======================================================================
+FAIL: test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output (__main__.RetainerOwnershipTests.test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output) (order='root_first')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 238, in test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output
+    deliver.assert_not_called()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'pidfd_send_signal' to not have been called. Called 1 times.
+Calls: [call(99, <Signals.SIGTERM: 15>, None, 0)].
+
+======================================================================
+FAIL: test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output (__main__.RetainerOwnershipTests.test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output) (order='child_first')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 239, in test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output
+    self.assertEqual(retainer.history, [{"role": "native", **event}])
+AssertionError: Lists differ: [] != [{'role': 'native', 'event': 'NATIVE_READY[136 chars]LY'}]
+
+Second list contains 1 additional elements.
+First extra element 0:
+{'role': 'native', 'event': 'NATIVE_READY', 'pid': 123, 'generation': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'scope': 'TWO_PROCESS_HELPER_FIXTURE_ONLY'}
+
+- []
++ [{'event': 'NATIVE_READY',
++   'generation': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
++   'pid': 123,
++   'role': 'native',
++   'scope': 'TWO_PROCESS_HELPER_FIXTURE_ONLY'}]
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.004s
+
+FAILED (failures=4)

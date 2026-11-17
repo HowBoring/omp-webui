@@ -1,0 +1,14 @@
+E
+======================================================================
+ERROR: test_hold_mints_and_flushes_fresh_challenge_before_accepting_root_decision (__main__.RetainerOwnershipTests.test_hold_mints_and_flushes_fresh_challenge_before_accepting_root_decision)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 190, in test_hold_mints_and_flushes_fresh_challenge_before_accepting_root_decision
+    retainer = module.Retainer(challenge_factory=lambda: minted.append("mint") or "c" * 32)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: Retainer.__init__() got an unexpected keyword argument 'challenge_factory'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (errors=1)

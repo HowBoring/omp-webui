@@ -1,0 +1,72 @@
+{
+  "format": "omp-native-helper-fixture-recovery-scope-fix-checks/1",
+  "status": "PASS_PURE_SOURCE_ONLY",
+  "commands": [
+    {
+      "label": "python",
+      "command": "python3 -B tests/ownership/native_helper_drain_retainer_test.py > docs/evidence/fixture-recovery/scope-fix-python.txt 2>&1",
+      "chunk_id": "2e23c7",
+      "wall_time_seconds": 0.239289212,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "python_usr_bin",
+      "command": "/usr/bin/python3 -B tests/ownership/native_helper_drain_retainer_test.py > docs/evidence/fixture-recovery/scope-fix-python-usr-bin.txt 2>&1",
+      "chunk_id": "fc484b",
+      "wall_time_seconds": 0.171712181,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "bun",
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test --no-env-file --preload=./tests/preferences/no-provider.ts tests/ownership/native-helper-drain-diagnostics.test.ts tests/ownership/native-helper-two-process.test.ts > docs/evidence/fixture-recovery/scope-fix-typescript-tests.txt 2>&1",
+      "chunk_id": "354857",
+      "wall_time_seconds": 0.200595635,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "types",
+      "command": "/workspace/work/omp-webui-ticket-41/node_modules/.bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ESNext --module Preserve --moduleResolution Bundler --types bun --noUncheckedIndexedAccess --exactOptionalPropertyTypes --allowImportingTsExtensions compatibility/omp/fixtures/native-helper-drain-diagnostics.ts compatibility/omp/fixtures/native-helper-drain-bootstrap.ts tests/ownership/native-helper-drain-diagnostics.test.ts tests/ownership/native-helper-two-process.test.ts > docs/evidence/fixture-recovery/scope-fix-typecheck.txt 2>&1",
+      "chunk_id": "c2756a",
+      "wall_time_seconds": 2.354763101,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "python_ast",
+      "command": "python3 -B -c 'import ast; from pathlib import Path; paths = [\"scripts/retain-native-helper-drain.py\", \"tests/ownership/native_helper_drain_retainer_test.py\"]; [ast.parse(Path(path).read_text(), filename=path) for path in paths]; print(\"PASS_PYTHON_AST_ONLY\", paths)' > docs/evidence/fixture-recovery/scope-fix-python-ast.txt 2>&1",
+      "chunk_id": "ab5871",
+      "wall_time_seconds": 0.096378336,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "typescript_ast",
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --no-env-file --preload=./tests/preferences/no-provider.ts -e 'import ts from \"typescript\"; import * as fs from \"node:fs\"; const files = [\"compatibility/omp/fixtures/native-helper-drain-diagnostics.ts\", \"compatibility/omp/fixtures/native-helper-drain-bootstrap.ts\", \"compatibility/omp/fixtures/native-helper-drain-native.ts\", \"scripts/check-native-helper-two-process.ts\"]; for (const file of files) { const parsed = ts.createSourceFile(file, fs.readFileSync(file, \"utf8\"), ts.ScriptTarget.Latest, true); if (parsed.parseDiagnostics.length) throw new Error(\"SOURCE_SYNTAX_FAILED \" + file); } process.stdout.write(JSON.stringify({status:\"PASS_PARSE_ONLY\", files, nativeImported:false, buildsExecuted:false}) + \"\\n\");' > docs/evidence/fixture-recovery/scope-fix-typescript-ast.txt 2>&1",
+      "chunk_id": "8d8823",
+      "wall_time_seconds": 1.142334396,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    }
+  ],
+  "pythonTests": 25,
+  "bunTests": 9,
+  "bunAssertions": 33,
+  "fullNativeTypes": "NOT_RUN",
+  "fullBuildGraphs": "NOT_RUN",
+  "oneRunRetainerEntryExecuted": false,
+  "nativeImported": false,
+  "nativeFfiLoaded": false,
+  "kernelExperiments": false,
+  "stageOperations": false,
+  "actualProof": "NOT_RUN",
+  "productAdmission": "BLOCKED"
+}

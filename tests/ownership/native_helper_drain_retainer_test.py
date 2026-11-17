@@ -32,7 +32,7 @@ class RetainerOwnershipTests(unittest.TestCase):
     def setUp(self):
         # Any unplanned kernel/process operation fails the pure suite immediately.
         for target, name in [(module.os, "pidfd_open"), (module.os, "waitid"), (module.os, "read"),
-                             (module.os, "set_blocking"), (module.os, "close"),
+                             (module.os, "set_blocking"), (module.os, "close"), (module.os, "urandom"),
                              (module.signal, "pidfd_send_signal"), (module.select, "poll")]:
             guard = patch.object(target, name, side_effect=AssertionError("unfaked OS boundary: " + name))
             guard.start()
@@ -40,7 +40,7 @@ class RetainerOwnershipTests(unittest.TestCase):
 
     def make_retainer(self):
         with patch.object(module.selectors, "DefaultSelector", FakeSelector):
-            return module.Retainer()
+            return module.Retainer(challenge_factory=lambda: "c" * 32)
 
     def test_constructor_baseexception_retains_exact_preallocated_original(self):
         allocated = []
@@ -89,6 +89,7 @@ class RetainerOwnershipTests(unittest.TestCase):
         retainer.buffers = {("native", name): b"" for name in ("stdout", "stderr")}
         retainer.eof = set(retainer.buffers)
         retainer.reader_channels = set(retainer.buffers)
+        retainer.counts = {channel: 0 for channel in retainer.buffers}
         retainer.failures = [{"role": "native", "code": "ownership_unresolved", "codeSource": "public_code",
                               "phase": "native_server_open"}]
         retainer.enter_hold(RuntimeError("RETAINER_CHILD_RETAINED_FAILURE"))
@@ -102,7 +103,7 @@ class RetainerOwnershipTests(unittest.TestCase):
                 patch.object(module.select, "poll", return_value=poll), \
                 patch.object(module.os, "waitid", side_effect=ChildProcessError), \
                 patch.object(module.os, "close", side_effect=lambda descriptor: operations.append(("close", descriptor))):
-            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + "\n").encode())
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
             self.assertTrue(retainer.recovery_step())
         self.assertEqual(operations, ["original_pidfd_signal", "original_wait", ("close", 99)])
         self.assertEqual(receipts[-1]["status"], "FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED")
@@ -113,8 +114,8 @@ class RetainerOwnershipTests(unittest.TestCase):
         self.assertEqual(receipts[-1]["pAll"], "ECHILD")
 
     def test_failed_final_journal_never_releases_original_owner(self):
-        retainer = self.make_retainer()
-        retainer.holding, retainer.recovery_attempted = True, True
+        retainer = self.early_retainer()
+        retainer.recovery_attempted = True
         retainer.children["native"] = SimpleNamespace(wait=lambda **_options: -15)
         retainer.pidfds["native"] = 99
         retainer.eof = {("native", "stdout"), ("native", "stderr")}
@@ -160,9 +161,36 @@ class RetainerOwnershipTests(unittest.TestCase):
             self.assertFalse(retainer.recovery_step())
             close.assert_not_called()
 
-    def early_retainer(self):
+    def early_retainer(self, enter_hold=True):
         retainer = self.make_retainer()
         retainer.emit = lambda _value: None
+        retainer.generation, retainer.phase = "a" * 64, "NATIVE_AWAIT_READY"
+        retainer.children["native"] = SimpleNamespace(wait=lambda **_options: -15)
+        retainer.pidfds["native"] = 99
+        retainer.launch_returned.add("native")
+        retainer.buffers = {("native", name): b"" for name in ("stdout", "stderr")}
+        retainer.reader_channels = set(retainer.buffers)
+        retainer.counts = {channel: 0 for channel in retainer.buffers}
+        retainer.failures = [{"role": "native", "code": "ownership_unresolved", "codeSource": "public_code",
+                              "phase": "native_server_open"}]
+        if enter_hold:
+            retainer.enter_hold(RuntimeError("RETAINER_CHILD_RETAINED_FAILURE"))
+        return retainer
+
+    def test_missing_original_reader_registration_cannot_authorize_recovery_signal(self):
+        retainer = self.early_retainer()
+        retainer.reader_channels.remove(("native", "stderr"))
+        with patch.object(module.signal, "pidfd_send_signal") as deliver:
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+            deliver.assert_not_called()
+        self.assertFalse(retainer.recovery_attempted)
+
+    def test_hold_mints_and_flushes_fresh_challenge_before_accepting_root_decision(self):
+        minted, receipts = [], []
+        with patch.object(module.selectors, "DefaultSelector", FakeSelector):
+            retainer = module.Retainer(challenge_factory=lambda: minted.append("mint") or "c" * 32)
+        self.assertEqual(minted, [])
+        retainer.emit = lambda value: receipts.append(json.loads(json.dumps(value)))
         retainer.generation, retainer.phase = "a" * 64, "NATIVE_AWAIT_READY"
         retainer.children["native"] = SimpleNamespace(wait=lambda **_options: -15)
         retainer.pidfds["native"] = 99
@@ -172,15 +200,122 @@ class RetainerOwnershipTests(unittest.TestCase):
         retainer.failures = [{"role": "native", "code": "ownership_unresolved", "codeSource": "public_code",
                               "phase": "native_server_open"}]
         retainer.enter_hold(RuntimeError("RETAINER_CHILD_RETAINED_FAILURE"))
-        return retainer
-
-    def test_missing_original_reader_registration_cannot_authorize_recovery_signal(self):
-        retainer = self.early_retainer()
-        retainer.reader_channels.remove(("native", "stderr"))
+        self.assertEqual(minted, ["mint"])
+        challenge = receipts[-1]["journal"][-1]
+        self.assertEqual(challenge["event"], "ROOT_HOLD_CHALLENGE")
+        self.assertEqual(challenge["holdChallenge"], "c" * 32)
+        self.assertTrue(all(item["phase"] == "NATIVE_AWAIT_READY" for item in receipts[-1]["journal"]))
         with patch.object(module.signal, "pidfd_send_signal") as deliver:
-            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + "\n").encode())
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+            deliver.assert_called_once_with(99, module.signal.SIGTERM, None, 0)
+
+    def test_prequeued_old_generation_or_challenge_cannot_become_a_fresh_hold_decision(self):
+        for generation, challenge, fragmented in [("b" * 64, "c" * 32, False),
+                                                   ("a" * 64, "d" * 32, False),
+                                                   ("a" * 64, "d" * 32, True)]:
+            with self.subTest(generation=generation, challenge=challenge, fragmented=fragmented):
+                # These bytes were queued before the first HOLD/challenge journal could be inspected.
+                command = ("RECOVER_EARLY_NATIVE " + generation + " " + challenge + "\n").encode()
+                retainer = self.early_retainer()
+                root = (SimpleNamespace(data=("root", "stdin"), fileobj=SimpleNamespace(fileno=lambda: 12)), None)
+                chunks = [command[:90], command[90:]] if fragmented else [command]
+                with patch.object(module.os, "read", side_effect=chunks), \
+                        patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    for _ in chunks:
+                        retainer.reader.ready = [root]
+                        self.assertFalse(retainer.hold_step())
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+                    deliver.assert_not_called()
+                self.assertTrue(retainer.root_consumed)
+                self.assertFalse(retainer.recovery_attempted)
+
+    def test_first_eof_or_malformed_control_consumes_opportunity_without_reconnect_retry(self):
+        for first in [b"", b"RECOVER_EARLY_NATIVE " + b"a" * 64 + b"\n", b"x" * 129, b"wrong\n"]:
+            with self.subTest(first=first[:24]):
+                retainer = self.early_retainer()
+                with patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    retainer.root_control(first)
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+                    deliver.assert_not_called()
+                self.assertTrue(retainer.root_consumed)
+
+    def test_failed_hold_or_challenge_journal_never_enables_control_or_mints_again(self):
+        for failed_event in ["HOLD", "ROOT_HOLD_CHALLENGE"]:
+            with self.subTest(failed_event=failed_event):
+                retainer = self.early_retainer(enter_hold=False)
+                minted = []
+                retainer.challenge_factory = lambda: minted.append("mint") or "d" * 32
+                def broken_journal(value):
+                    if value["journal"][-1]["event"] == failed_event:
+                        raise OSError("fake HOLD journal failure")
+                retainer.emit = broken_journal
+                with self.assertRaises(OSError):
+                    retainer.enter_hold(RuntimeError("RETAINER_CHILD_RETAINED_FAILURE"))
+                retainer.emit = lambda _value: None
+                retainer.enter_hold(RuntimeError("RETAINER_UNRESOLVED"))
+                with patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "d" * 32 + "\n").encode())
+                    self.assertFalse(retainer.hold_step())
+                    deliver.assert_not_called()
+                self.assertEqual(minted, [] if failed_event == "HOLD" else ["mint"])
+                self.assertFalse(retainer.challenge_published)
+
+    def test_changed_first_failure_phase_or_host_object_permanently_disqualifies_recovery(self):
+        for change in ["failure", "phase", "host"]:
+            with self.subTest(change=change):
+                retainer = self.early_retainer()
+                retainer.recovery_attempted = True
+                if change == "failure":
+                    retainer.failures[0]["code"] = "ownership_limit"
+                elif change == "phase":
+                    retainer.phase = "HOST_AWAIT_REGISTERED"
+                else:
+                    retainer.children["host"] = SimpleNamespace()
+                self.assertFalse(retainer.recovery_step())
+                retainer.failures[0]["code"] = "ownership_unresolved"
+                retainer.phase = "NATIVE_AWAIT_READY"
+                retainer.children.pop("host", None)
+                self.assertFalse(retainer.recovery_step())
+                with patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+                    deliver.assert_not_called()
+
+    def test_partial_pending_child_output_cannot_authorize_a_signal_before_its_observation(self):
+        retainer = self.early_retainer()
+        retainer.buffers[("native", "stdout")] = b'{"event":"NATIVE_READY"'
+        with patch.object(module.signal, "pidfd_send_signal") as deliver:
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
             deliver.assert_not_called()
         self.assertFalse(retainer.recovery_attempted)
+
+    def test_failed_control_listening_journal_keeps_original_owner_without_control(self):
+        retainer = self.early_retainer()
+        def broken_journal(value):
+            if value["journal"][-1]["event"] == "ROOT_CONTROL_LISTENING":
+                raise OSError("fake control journal failure")
+        retainer.emit = broken_journal
+        with patch.object(module.os, "set_blocking"), patch.object(retainer.reader, "register"):
+            with self.assertRaises(OSError):
+                retainer.listen_root()
+        retainer.emit = lambda _value: None
+        with patch.object(module.signal, "pidfd_send_signal") as deliver:
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+            self.assertFalse(retainer.hold_step())
+            deliver.assert_not_called()
+
+    def test_later_hold_error_never_refreshes_challenge_or_restores_control(self):
+        retainer = self.early_retainer(enter_hold=False)
+        minted = []
+        retainer.challenge_factory = lambda: minted.append("mint") or "c" * 32
+        retainer.enter_hold(RuntimeError("RETAINER_CHILD_RETAINED_FAILURE"))
+        retainer.enter_hold(RuntimeError("RETAINER_UNRESOLVED"))
+        self.assertEqual(minted, ["mint"])
+        self.assertEqual(retainer.receipt()["failurePhase"], "NATIVE_AWAIT_READY")
+        self.assertEqual(retainer.receipt()["code"], "RETAINER_CHILD_RETAINED_FAILURE")
+        with patch.object(module.signal, "pidfd_send_signal") as deliver:
+            retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+            self.assertFalse(retainer.hold_step())
+            deliver.assert_not_called()
 
     def test_hold_drains_and_journals_already_buffered_original_events(self):
         retainer = self.early_retainer()
@@ -190,6 +325,79 @@ class RetainerOwnershipTests(unittest.TestCase):
         retainer.buffers[("native", "stdout")] = (json.dumps(event) + "\n").encode()
         self.assertFalse(retainer.hold_step())
         self.assertEqual(retainer.history, [{"role": "native", **event}])
+
+    def test_late_authenticated_ready_or_second_failure_permanently_blocks_completion(self):
+        for kind in ["NATIVE_READY", "FIXTURE_RETAINED_FAILURE"]:
+            with self.subTest(kind=kind):
+                retainer = self.early_retainer()
+                retainer.children["native"].pid = 123
+                event = {"event": kind, "pid": 123, "generation": "a" * 64,
+                         "scope": "TWO_PROCESS_HELPER_FIXTURE_ONLY"}
+                if kind == "FIXTURE_RETAINED_FAILURE":
+                    event.update(code="ownership_unresolved", codeSource="public_code", phase="native_server_open")
+                with patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+                    deliver.assert_called_once()
+                retainer.accept_event("native", event)
+                retainer.eof = set(retainer.buffers)
+                poll = SimpleNamespace(register=lambda *_args: None, poll=lambda _timeout: [(99, module.select.POLLIN)])
+                with patch.object(module.select, "poll", return_value=poll), \
+                        patch.object(module.os, "waitid", side_effect=ChildProcessError), \
+                        patch.object(module.os, "close") as close:
+                    self.assertFalse(retainer.recovery_step())
+                    retainer.events = {"native": [], "host": []}
+                    retainer.failures = retainer.failures[:1]
+                    self.assertFalse(retainer.recovery_step())
+                    close.assert_not_called()
+                self.assertEqual(retainer.history, [{"role": "native", **event}])
+
+    def test_scope_is_rechecked_after_intent_and_terminal_journal_before_authority_release(self):
+        for observation in ["RECOVERY_SIGNAL_INTENT", "RECOVERY_TERMINAL_FACTS"]:
+            with self.subTest(observation=observation):
+                retainer = self.early_retainer()
+                retainer.children["native"].pid = 123
+                event = {"event": "NATIVE_READY", "pid": 123, "generation": "a" * 64,
+                         "scope": "TWO_PROCESS_HELPER_FIXTURE_ONLY"}
+                def observe_after_journal(value):
+                    if value["journal"][-1]["event"] == observation:
+                        retainer.accept_event("native", event)
+                retainer.emit = observe_after_journal
+                poll = SimpleNamespace(register=lambda *_args: None, poll=lambda _timeout: [(99, module.select.POLLIN)])
+                with patch.object(module.signal, "pidfd_send_signal") as deliver, \
+                        patch.object(module.select, "poll", return_value=poll), \
+                        patch.object(module.os, "waitid", side_effect=ChildProcessError), \
+                        patch.object(module.os, "close") as close:
+                    if observation == "RECOVERY_SIGNAL_INTENT":
+                        retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
+                    else:
+                        retainer.recovery_attempted = True
+                        retainer.eof = set(retainer.buffers)
+                    self.assertFalse(retainer.recovery_step())
+                    deliver.assert_not_called()
+                    close.assert_not_called()
+                self.assertEqual(retainer.history, [{"role": "native", **event}])
+
+    def test_pending_ready_precedes_root_control_for_both_selector_orders_and_buffered_output(self):
+        for order in ["root_first", "child_first", "buffered"]:
+            with self.subTest(order=order):
+                retainer = self.early_retainer()
+                retainer.children["native"].pid = 123
+                channel = ("native", "stdout")
+                event = {"event": "NATIVE_READY", "pid": 123, "generation": "a" * 64,
+                         "scope": "TWO_PROCESS_HELPER_FIXTURE_ONLY"}
+                frame = (json.dumps(event) + "\n").encode()
+                command = ("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode()
+                child = (SimpleNamespace(data=channel, fileobj=SimpleNamespace(fileno=lambda: 10)), None)
+                root = (SimpleNamespace(data=("root", "stdin"), fileobj=SimpleNamespace(fileno=lambda: 12)), None)
+                retainer.reader.ready = [root, child] if order == "root_first" else [child, root]
+                if order == "buffered":
+                    retainer.buffers[channel] = frame
+                    retainer.reader.ready = [root]
+                with patch.object(module.os, "read", side_effect=lambda fd, _limit: command if fd == 12 else frame), \
+                        patch.object(module.signal, "pidfd_send_signal") as deliver:
+                    self.assertFalse(retainer.hold_step())
+                    deliver.assert_not_called()
+                self.assertEqual(retainer.history, [{"role": "native", **event}])
 
     def test_root_eof_invalid_generation_and_nonoriginal_authority_stay_hold_without_signals(self):
         for command in [b"", b"RECOVER_EARLY_NATIVE " + b"b" * 64 + b"\n", b"kill 123\n",
@@ -228,7 +436,7 @@ class RetainerOwnershipTests(unittest.TestCase):
                 elif fault == "earlier_parent_drain":
                     retainer.failure_code = "RETAINER_STDERR"
                 with patch.object(module.signal, "pidfd_send_signal") as deliver:
-                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + "\n").encode())
+                    retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
                     deliver.assert_not_called()
                 self.assertFalse(retainer.recovery_attempted)
 
@@ -274,7 +482,7 @@ class RetainerOwnershipTests(unittest.TestCase):
                         raise OSError("fake intent failure")
                 retainer.emit = journal
                 with patch.object(module.signal, "pidfd_send_signal", side_effect=OSError("fake signal failure")) as deliver:
-                    command = ("RECOVER_EARLY_NATIVE " + "a" * 64 + "\n").encode()
+                    command = ("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode()
                     retainer.root_control(command)
                     retainer.root_control(command)
                     self.assertFalse(retainer.hold_step())

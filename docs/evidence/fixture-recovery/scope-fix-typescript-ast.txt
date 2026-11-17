@@ -1,0 +1,1 @@
+{"status":"PASS_PARSE_ONLY","files":["compatibility/omp/fixtures/native-helper-drain-diagnostics.ts","compatibility/omp/fixtures/native-helper-drain-bootstrap.ts","compatibility/omp/fixtures/native-helper-drain-native.ts","scripts/check-native-helper-two-process.ts"],"nativeImported":false,"buildsExecuted":false}
