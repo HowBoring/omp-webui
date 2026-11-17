@@ -273,7 +273,7 @@ export class BoundedStdioTransport {
       const code = await this.child.exited;
       await Promise.all([this.stdout, this.stderr]);
       return { code, forced, stderrBytes: this.stderrBytes,
-        ...(policy ? { terminationSent, forceSent, stdoutEOF: this.stdoutEOF, stderrEOF: this.stderrEOF } : {}),
+        terminationSent, forceSent, stdoutEOF: this.stdoutEOF, stderrEOF: this.stderrEOF,
         ...(this.fault === undefined ? {} : { protocolFailure: this.fault.message }) };
     } finally {
       clearTimeout(terminate); clearTimeout(kill); clearTimeout(stopReaders);

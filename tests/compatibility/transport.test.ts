@@ -8,7 +8,8 @@ test("real candidate transport negotiates public v2 then drains and reaps after 
   const report = await client.inspect();
   expect(report.candidate).toBe("omp-webui-s0");
   expect(report.sessionAdmission).toBe("blocked");
-  expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+  expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0,
+    terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true });
 });
 
 const fixture = (mode: string, timeoutMs = 500, readyDelayMs = 0, negotiateDelayMs = 0) => PreflightTransport.open({
@@ -140,7 +141,8 @@ test("stdin EOF still drains a valid pending response before observing actual ex
   const report = client.inspect();
   const closing = client.close();
   expect((await report).candidate).toBe("omp-webui-s0");
-  expect(await closing).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+  expect(await closing).toEqual({ code: 0, forced: false, stderrBytes: 0,
+    terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true });
 });
 
 
@@ -151,7 +153,8 @@ test("preflight rejects a duplicate generated ID without replacing its pending w
     const first = client.inspect();
     await expect(client.inspect()).rejects.toThrow("RPC_DUPLICATE_ID");
     expect((await first).sessionAdmission).toBe("blocked");
-    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0,
+      terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true });
   } finally { uuid.mockRestore(); await client.close(); }
 });
 
@@ -160,7 +163,8 @@ test("v2 negotiation applies before an adjacent chunk in the same pipe packet", 
   const client = await fixture("coalesced-v2", 1000);
   try {
     expect((await client.inspect()).sessionAdmission).toBe("blocked");
-    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0,
+      terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true });
   } finally { await client.close(); }
 });
 
