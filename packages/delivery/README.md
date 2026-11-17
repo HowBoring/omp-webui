@@ -12,17 +12,39 @@ absolute canonical directory. It enumerates **every** member, rather than trusti
 The manifest records content, modes, direct link targets and directory membership. Only root `release.json` is
 excluded. Required nonempty directories are `bin`, `runtime`, `worker`, `native`, `host`, `client`, `contracts` and
 `provenance`. Required files are `bin/omp`, `runtime/bun`, `runtime/bunfig.toml` and `worker/cli.js`; launcher/runtime
-must be executable. Hardlinked members, external/absolute dependency links, indirect links and symlinked ancestors
+must be executable. Hardlinked members, absolute links, indirect internal links and symlinked package ancestors
 are unsupported. Internal relative direct links are inventoried together with the target's ordinary membership.
 Existing linked/hardlinked manifest destinations are refused; publication uses a unique temporary file and rename
 so enrollment does not write through an external manifest link. This is not a power-loss durability promise.
-Platform library files are explicit absolute identities and do not become stable merely because they are hashed.
+Platform dependencies use the existing v1 file/link members: normalized absolute paths outside the release,
+canonical parents, and either canonical single-link regular files with SHA256 identities or relative aliases with
+exact nonempty readlink text and modes. Directory aliases are link members, never directory members. Aliases are
+accepted only when encountered while resolving a required ELF PT_INTERP pathname. Every alias must be inventoried;
+final interpreter files must be canonical inventoried files. Absolute, unsigned, unused, cyclic, dangling or
+wrong-target aliases refuse inspection. This does not admit arbitrary symlinked ancestors for other files.
+
+All release files and recursively reached platform libraries are checked for supported Linux x64/arm64 ELF64
+little-endian DT_NEEDED/PT_INTERP closure. Providers must be unambiguous; unsupported loader search tags refuse.
+Canonical-only layouts remain supported. Non-ELF source fixtures with no dependencies remain valid. Metadata reads
+never execute ELF, invoke a loader, import Native ownership internals or establish actual runtime mappings.
 
 `inspectRelease({ root, expectedIdentity })` requires a SHA256 supplied from independent reviewed operator
 configuration. It checks the exhaustive inventory and platform dependencies. It does not derive approval from
 `release.json` or regenerate enrollment. The root is explicit, so relocation has no project-layout `../..` assumption.
-Inventory limits are 200,000 members, 256 platform files and 32 MiB manifest bytes; exceeding them refuses enrollment
-or verification without silently dropping members. These are artifact-control budgets, not native scan/RPC budgets.
+Inventory limits are 200,000 members, depth 64, 8 GiB total package files, 1 GiB per file, 256 platform members and
+32 MiB manifest bytes. ELF metadata uses at most 128 program headers, 1 MiB bounded metadata reads and 256 needed
+names. Interpreter resolution permits at most 16 links and 256 components. Exceeding a budget refuses inspection.
+These are artifact-control budgets, not Native scan/RPC budgets.
+
+A retained generation observes aliases, target files and traversed ancestors: device/inode, uid/gid, full mode,
+link count, size and nanosecond change/modify timestamps, plus exact link text. These are observed stability facts,
+not owner/device/inode fields authenticated by v1. File reads use O_NOFOLLOW and compare held-descriptor and named
+identity before and after reads; traversal/hashing ends with an observation recheck. Same-content replacement
+refuses verification. Verification is serialized and any failure permanently latches bounded, typed
+`RELEASE_UNVERIFIED` for that generation. The exposed manifest is frozen. A failed held verification does not
+automatically release the caller's retained maintenance lease. Ancestor changes can conservatively refuse even
+when unrelated directory membership changed. Independently pinned approval and cooperative maintenance remain
+necessary; this does not defend against hostile same-UID/root writers.
 
 `resolveGlobalSelection({ entry, root, expectedIdentity })` accepts only an explicitly selected absolute entry:
 the exact inventoried `bin/omp`, or a direct link to it with canonical ancestors. It rejects shell/package-manager

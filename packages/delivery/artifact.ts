@@ -1,7 +1,10 @@
-import { lstat, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { lstat, readdir, readlink, realpath, rename, rm, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { z } from "zod";
-import { assetSchema, digest, identifyAsset, type AssetIdentity } from "../compatibility/installation.ts";
+import { assetSchema, digest, type AssetIdentity } from "../compatibility/installation.ts";
+
+import { ReleaseObservation, canonical, refuse } from "./observation.ts";
+import { platformMember, verifyPlatform } from "./platform.ts";
 
 const manifestName = "release.json";
 const maxMembers = 200_000;
@@ -17,40 +20,50 @@ export type ReleaseManifest = z.infer<typeof releaseSchema>;
 export interface ReleaseSelection { root: string; expectedIdentity: string }
 export interface VerifiedRelease {
   manifest: ReleaseManifest; identity: string; root: string; runtime: string; target: string; launcher: string;
-  /** Recheck after acquiring the coordinated maintenance lease; hashes alone do not stabilize an installation. */
+  /** Recheck the exhaustive ELF/alias closure under retained maintenance; any failure permanently fences this generation. */
   verify(): Promise<void>;
 }
 
 async function checkedRoot(root: string): Promise<string> {
-  if (!isAbsolute(root) || resolve(root) !== root || await realpath(root) !== root) {
+  canonical(root);
+  if (root === "/" || !isAbsolute(root) || resolve(root) !== root || await realpath(root) !== root) {
     throw new Error("RELEASE_LAYOUT_UNSUPPORTED");
   }
   return root;
 }
 
 /** Enumerate every package member, including directory membership. No implicit out-of-release dependency escapes. */
-async function inventory(root: string): Promise<AssetIdentity[]> {
+async function inventory(root: string, observation = new ReleaseObservation()): Promise<AssetIdentity[]> {
   const assets: AssetIdentity[] = [];
-  const visit = async (path: string): Promise<void> => {
-    if (assets.length >= maxMembers) throw new Error("RELEASE_INVENTORY_LIMIT");
-    const stat = await lstat(join(root, path));
-    if (stat.isFile() && stat.nlink !== 1) throw new Error("RELEASE_HARDLINK_UNSUPPORTED");
-    const asset = await identifyAsset(root, path, join(root, manifestName));
+  let total = 0n;
+  const visit = async (path: string, depth = 0): Promise<void> => {
+    if (assets.length >= maxMembers || depth > 64) throw new Error("RELEASE_INVENTORY_LIMIT");
+    const stat = await observation.observe(join(root, path));
+    total += stat.isFile() ? stat.size : 0n;
+    if (total > 8_589_934_592n) throw new Error("RELEASE_INVENTORY_LIMIT");
+    if (stat.isFile() && stat.nlink !== 1n) throw new Error("RELEASE_HARDLINK_UNSUPPORTED");
+    if (stat.isSymbolicLink() && isAbsolute(await readlink(join(root, path)))) {
+      throw new Error("RELEASE_LINK_ABSOLUTE");
+    }
+    const asset = await observation.member(join(root, path), path, join(root, manifestName));
     // A relative direct link can point at an inventoried package member. Ancestors/indirection are rejected upstream.
     if (asset.kind === "link") {
       if (isAbsolute(asset.identity)) throw new Error("RELEASE_LINK_ABSOLUTE");
       const target = await realpath(join(root, path));
-      if (!target.startsWith(`${root}/`)) throw new Error("RELEASE_LINK_ESCAPE");
+      if (!target.startsWith(`${root}/`) || target !== resolve(root, path, "..", asset.identity)) {
+        throw new Error("RELEASE_LINK_ESCAPE");
+      }
     }
     assets.push(asset);
     if (asset.kind === "directory") {
       for (const name of (await readdir(join(root, path))).sort()) {
         if (path === "." && name === manifestName) continue;
-        await visit(path === "." ? name : `${path}/${name}`);
+        await visit(path === "." ? name : `${path}/${name}`, depth + 1);
       }
     }
   };
   await visit(".");
+  await observation.recheck();
   return assets;
 }
 
@@ -80,15 +93,18 @@ export async function writeReleaseManifest(input: { root: string; platformDepend
   if (existing !== undefined && (!existing.isFile() || existing.nlink !== 1)) {
     throw new Error("RELEASE_MANIFEST_PATH_UNSUPPORTED");
   }
-  const assets = await inventory(root);
+  const observation = new ReleaseObservation();
+  const assets = await inventory(root, observation);
   assertComponents(assets);
   const platformDependencies: AssetIdentity[] = [];
-  for (const path of [...new Set(input.platformDependencies)].sort()) {
-    if (!isAbsolute(path) || await realpath(path) !== path || !(await lstat(path)).isFile()) {
-      throw new Error("RELEASE_PLATFORM_DEPENDENCY_UNSUPPORTED");
-    }
-    platformDependencies.push(await identifyAsset("/", path, ""));
+  if (input.platformDependencies.length > 256 || new Set(input.platformDependencies).size !== input.platformDependencies.length) {
+    throw new Error("RELEASE_PLATFORM_DEPENDENCY_UNSUPPORTED");
   }
+  for (const path of [...input.platformDependencies].sort()) {
+    platformDependencies.push(await platformMember(observation, path, root));
+  }
+  await verifyPlatform(observation, root, assets.filter(asset => asset.kind === "file")
+    .map(asset => join(root, asset.path)), platformDependencies);
   const manifest = releaseSchema.parse({ format: "omp-webui-release-inventory-v1", stage: "unaccepted-artifact",
     platform: process.platform, arch: process.arch, assets, platformDependencies });
   const bytes = JSON.stringify(manifest, null, 2) + "\n";
@@ -107,28 +123,35 @@ export async function inspectRelease(selection: ReleaseSelection): Promise<Verif
     hash.parse(selection.expectedIdentity);
     const root = await checkedRoot(selection.root);
     const path = join(root, manifestName);
-    const stat = await lstat(path);
-    if (!stat.isFile() || stat.size > maxManifestBytes) throw new Error("manifest");
-    const bytes = await readFile(path);
+    const observation = new ReleaseObservation();
+    const bytes = await observation.bytes(path, maxManifestBytes);
     if (digest(bytes) !== selection.expectedIdentity) throw new Error("trust");
-    const manifest = releaseSchema.parse(JSON.parse(bytes.toString("utf8")));
-    const verify = async (): Promise<void> => {
-      const manifestStat = await lstat(path);
-      if (!manifestStat.isFile() || manifestStat.nlink !== 1 || manifestStat.size > maxManifestBytes
-        || await checkedRoot(root) !== root || digest(await readFile(path)) !== selection.expectedIdentity
-        || manifest.platform !== process.platform || manifest.arch !== process.arch) throw new Error("identity");
-      const actual = await inventory(root);
-      assertComponents(actual);
-      if (JSON.stringify(actual) !== JSON.stringify(manifest.assets)) throw new Error("closure");
-      for (const entry of manifest.platformDependencies) {
-        if (!isAbsolute(entry.path) || await realpath(entry.path) !== entry.path
-          || JSON.stringify(await identifyAsset("/", entry.path, "")) !== JSON.stringify(entry)) {
-          throw new Error("platform dependency");
-        }
-      }
+    const manifest = releaseSchema.parse(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)));
+    for (const asset of [...manifest.assets, ...manifest.platformDependencies]) Object.freeze(asset);
+    Object.freeze(manifest.assets); Object.freeze(manifest.platformDependencies); Object.freeze(manifest);
+    let failed = false;
+    let pending = Promise.resolve();
+    const verify = (): Promise<void> => {
+      const check = async (): Promise<void> => {
+        try {
+          if (failed || await checkedRoot(root) !== root || !(await observation.bytes(path, maxManifestBytes)).equals(bytes)
+            || manifest.platform !== process.platform || manifest.arch !== process.arch) throw new Error("identity");
+          const actual = await inventory(root, observation);
+          assertComponents(actual);
+          if (JSON.stringify(actual) !== JSON.stringify(manifest.assets)) throw new Error("closure");
+          await verifyPlatform(observation, root, actual.filter(asset => asset.kind === "file")
+            .map(asset => join(root, asset.path)), manifest.platformDependencies);
+          if (!(await observation.bytes(path, maxManifestBytes)).equals(bytes)) throw new Error("identity");
+          await observation.recheck();
+          if (failed) throw new Error("generation");
+        } catch { failed = true; refuse(); }
+      };
+      const result = pending.then(check);
+      pending = result.catch(() => {});
+      return result;
     };
     await verify();
     return { manifest, identity: selection.expectedIdentity, root, runtime: join(root, "runtime/bun"),
       target: join(root, "worker/cli.js"), launcher: join(root, "bin/omp"), verify };
-  } catch { throw new Error("RELEASE_UNVERIFIED"); }
+  } catch { refuse(); }
 }

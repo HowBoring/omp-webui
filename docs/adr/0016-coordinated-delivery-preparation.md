@@ -29,3 +29,12 @@ service ownership. Source-only Native ownership work remains a separate unimplem
 A worker-held fd alone cannot protect release loads by surviving descendants/shared services. Until those
 lifetimes, external runtime libraries, complete native/DSH semantics, TUI/current-data rollback and actual global
 selection are proven together, no lifetime/cleanup/global capability or private Session admission is granted.
+
+
+The v1 platform-member exception now permits exact relative aliases solely on required ELF interpreter traversal,
+including directory aliases with canonical parents. It does not relax package links or ordinary file ancestors.
+Host recursively verifies the supported ELF closure, retains metadata/link observations across generation checks,
+and brackets bounded O_NOFOLLOW reads with descriptor/path identity checks. Same-content replacement and read
+failures permanently refuse that generation. The format and independent trust/maintenance obligations are unchanged.
+See [Host platform-alias source evidence](../evidence/ticket-41-host-platform-alias.md). Fresh paired review and
+same-manifest Host/Native actual proof remain outstanding; product/global/private admission stays BLOCKED.

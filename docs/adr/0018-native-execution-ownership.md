@@ -161,3 +161,13 @@ unchanged. The c17750a actual signed no-prepare composition remains historical h
 stageB keys/runtime have been retired. New helper drainage is source-only/NOT RUN. Ordinary dispatcher/broker backend,
 actual helper composition, final release/global provenance and private admission remain BLOCKED.
 See [helper drain source evidence](../evidence/ticket-41-native-helper-drain.md).
+
+
+The Host delivery inspector now implements the existing v1 platform-link contract for bounded required ELF
+interpreter aliases and recursive library closure, with retained read-race observations. This is a Host source
+prerequisite; it changes no Native v3/v4 approval dispatch, helperFence gate, public control-I/O ABI or authenticated
+selection authority. The existing public member shape already represents exact relative readlink identities and
+canonical file digests. No additional manifest, approval field or release RPC is introduced. The two-process plan
+remains HOLD until fresh paired review and a fresh same-manifest actual proof; the public adapter must first receive
+this reviewed production Host change through its normal source/build provenance. No generated package is rebuilt
+or substituted here. See [source evidence](../evidence/ticket-41-host-platform-alias.md).

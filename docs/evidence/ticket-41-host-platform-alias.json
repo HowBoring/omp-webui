@@ -1,0 +1,67 @@
+{
+  "format": "omp-host-platform-alias-source-v1",
+  "status": "SOURCE_ONLY_AWAITING_FRESH_PAIRED_REVIEW",
+  "base": "ba308632550066980290f7a8534860b6fc20c31d",
+  "source": {
+    "packages/delivery/artifact.ts": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a",
+    "packages/delivery/elf.ts": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e",
+    "packages/delivery/observation.ts": "7dae85908623d553523d37b388d0cebf4a2e2ab999505448b3d0d928417139f4",
+    "packages/delivery/platform.ts": "e47e2f3f2cbcfb1f41c0dcb0536ed3e620e84a6303203638bc0c05a8b7bb4408",
+    "tests/delivery/platform.test.ts": "291b917d4ecd3110faf14f2980b47ccc93d96c0d95ea9b6fed5d9b9f93ded1f4",
+    "packages/delivery/README.md": "49114c849f1af164d1873438dfca2ec833f52bd0bc2840432413cb7415999c02",
+    "docs/adr/0016-coordinated-delivery-preparation.md": "8948b9514ec1cfe49e7ea2007246661625b16a938a3c6995af8eecb0fdc35cd4",
+    "docs/adr/0018-native-execution-ownership.md": "8566e324f68c9b602f7dfc10da9093756483c3da864691812ff4e56fc852794e"
+  },
+  "checks": {
+    "environment": "env-i equivalent allowlist; synthetic HOME/profile/XDG/cwd/TMPDIR",
+    "guard": "existing no-provider.ts preload before imports; no OMP imports in affected graph",
+    "results": [
+      {
+        "check": "base-regression-red",
+        "exitCode": 1,
+        "rawSha256": "be1273dba597ae3be477f80cfeca4545bf8f5b7657c8578bc72d46771c3f8a9f"
+      },
+      {
+        "check": "tests",
+        "exitCode": 0,
+        "rawSha256": "bebc8cb6323c1af2dd99d2f1ff3b29d3448120d57418e1de4117b070719115d1"
+      },
+      {
+        "check": "types",
+        "exitCode": 0,
+        "rawSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ],
+    "tests": 50,
+    "assertions": 61,
+    "strictRepositoryTypes": "PASS",
+    "testFiles": [
+      "tests/delivery/platform.test.ts",
+      "tests/delivery/artifact.test.ts",
+      "tests/delivery/resolver.test.ts"
+    ]
+  },
+  "preservation": {
+    "nativeDirtyPaths": 137,
+    "nativeHeadIndexStagedStatusWorktreePatchExact": true,
+    "native137PathBytesExact": true,
+    "publicPackageFilesExact": {
+      "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    "nativePatchSha256": "d243a44147da99e00306884ff5094f224aacd059f25ec17648074bd9d2e61eba",
+    "nativeExportSha256": "58a889860d581e3fe808159b01dc34d69efe3a80c6261e63ebafb8fdb6bb0664"
+  },
+  "actualHelperNative": "NOT_RUN",
+  "twoProcessPlan": "HOLD",
+  "globalAdmission": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "publicApiOrBinaryChanged": false,
+  "sourceReconciliationAndRebuild": "REQUIRED_AFTER_REVIEW",
+  "actualSameManifestProof": "REQUIRED_SEPARATELY_AUTHORIZED"
+}
