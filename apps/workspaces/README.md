@@ -1,5 +1,21 @@
 # Authenticated synthetic Workspace acceptance component
 
+## Source reconciliation, 2026-11-17
+
+This is an **unregistered source component**, reconciled with integration `acc50ff4b45ab5419f27211a5c483f9618c0d00f`.
+The normal Host imports neither this executable nor its Workspace Remote contribution; authenticated private API
+requests still return `PRIVATE_CAPABILITY_GATE_CLOSED`. Parent #29 Decision 26 permits this source-only integration;
+it does not admit private Sessions, establish a global OMP installation or close #43/#29.
+
+The browser/native records under `evidence/` are preserved historical results from the earlier `4764…` native source,
+`dcc2…` schema and c0 DSH tuple. They were not rerun after reconciliation. Integration's generated identity and DSH
+source patch set have since advanced; the old tuple is not current-combination acceptance or a current enrollment.
+See [current source verification](../../docs/implementation/ticket-43-source-evidence.json) for pure filesystem/SQLite,
+in-memory public DSH, strict TypeScript and normal Host compile results. No current Workspace browser/native build,
+installation, listener or process acceptance is claimed.
+
+## Historical fixture and procedure
+
 This explicit executable uses real Linux Chromium, fixed DSH Connection/ClientRemote/Gateway/Peer/`$events`, Bun,
 #42 owner login/CSRF and an external actual OMP readonly catalog candidate. It is separate from the product Host.
 Only the fixed synthetic HOME `vendor/workspace-fixture` and locally fixed sources are available. Browser directory
@@ -16,7 +32,9 @@ cwd within that page, current cwd rights, native ownership and partial/error sta
 The separate registered-reference panel is labelled synthetic metadata input and calls actual public descriptions;
 real Session Index registration and protected open remain #44. The normal Host never imports this executable.
 
-With Bun 1.4.4 and the fixed Node/Corepack tools from `compatibility/README.md` on PATH:
+The earlier matched fixture used Bun 1.4.4 and fixed Node/Corepack tools from `compatibility/README.md` on PATH.
+The following is its historical procedure, not a verified procedure for the reconciled combination or authorization
+to build, enroll or launch an actual OMP candidate. Such work needs separate admission and freshly matched evidence:
 
 ```sh
 bun run compat:prepare --reset
@@ -47,5 +65,6 @@ SessionManager-authored files, custom unknown/missing/child/prefix/symlink cwd c
 source. It deliberately authors a separate 35-record synthetic Session Index input from native public metadata,
 including verified, replaced, missing, source-unavailable and invalid references. No transcript or tree is copied.
 
-Current evidence: [#43 component report](../../docs/evidence/ticket-43-workspaces.md). Windows Chrome/WSL2 remains
-owner-deferred. Product admission/integration/closure remains blocked on #41, with worker revocation composed in #44.
+Historical and current scopes: [#43 component report](../../docs/evidence/ticket-43-workspaces.md).
+Windows Chrome/WSL2 remains owner-deferred. Product admission and whole-ticket closure remain blocked on #41,
+with registration, protected open and worker revocation composed in #44; source-only integration is permitted.
