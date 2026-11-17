@@ -15,9 +15,13 @@
     "generation": "37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b",
     "manifestSha256": "e15903d6a8e00986fcd19a7e38bcc11f7b40b4250a15237922ca2d78b057cb41",
     "oneUse": "CONSUMED_FAILED_DO_NOT_RERUN",
-    "sourceReview": "PAIRED_FINAL_SOURCE_GO",
+    "sourceReview": "PAIRED_ROOT_SOURCE_GO",
     "artifactReview": "PAIRED_UNSIGNED_ARTIFACT_GO",
-    "rootAuthorization": "ONE_LITERAL_EXACT_MANIFEST_WINDOW"
+    "rootAuthorization": "ONE_LITERAL_EXACT_MANIFEST_WINDOW",
+    "sourceReviewPaths": [
+      "reviews/ticket41-external-current-backpressure-spec.md",
+      "reviews/ticket41-external-current-backpressure-standards.md"
+    ]
   },
   "preparationTools": [
     {
@@ -233,8 +237,8 @@
       "recovery/restore15-r17-post-manual-preservation-tool.json": "9de8b3339afad99975523db085ccdb7c7548f045f890e7cf0257135935d1867a",
       "recovery/r17-prestart-manual-source-v1/manual-result.json": "cddf323e8ee6132059f899ce03e453f815344db48f2b65f53ed70c8c1cb57ca0",
       "research/ticket41-r17-prestart-diagnosis.md": "6e0cf32467c04dc0e755960a45809bdd12af542ff998d0cbab94639fa45be379",
-      "reviews/ticket41-current-backpressure-source-spec-final.md": "4486db2203f919c5402b6386c915e0f3ef0c55dc0fada15fb05f5002b31c5366",
-      "reviews/ticket41-current-backpressure-source-standards-final.md": "667fe412cfd320e2f9c9eca13fc9fdb59746f94c0d439962f25780447c9ee00b",
+      "reviews/ticket41-external-current-backpressure-spec.md": "2b274a5eaa0420e5c4cace4ae9abb4233d7c177a17676380141607724e472a37",
+      "reviews/ticket41-external-current-backpressure-standards.md": "829098b960258daa5fe5a9ef074f8a91e2a195c745484c7e537c1b54f2f58338",
       "reviews/ticket41-r17-final-artifact-spec.md": "ce1977a83296a4e969ad7a06edccc838becb725a706545389b72c0a54b1b991c",
       "reviews/ticket41-r17-final-artifact-standards.md": "646d05fe360559b1659c7dd0308956ddfef1ac1b7c8da8af8c743ee77b2abc50",
       "reviews/ticket41-r17-manual-prestart-spec.md": "4c34f2daa757baebd4f990e98dacd3be39f7a1f7e6cc0691d8b32b142b163f31",

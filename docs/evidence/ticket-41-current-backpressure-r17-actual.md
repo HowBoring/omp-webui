@@ -25,7 +25,7 @@ Marker: `external-current-602f498-backpressure-r17-v1`.
 Generation: `37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b`.
 Manifest SHA256: `e15903d6a8e00986fcd19a7e38bcc11f7b40b4250a15237922ca2d78b057cb41`.
 
-Fresh paired final Source reviews and separate unsigned-artifact reviews were GO for their stated scopes.
+Fresh paired Root Source reviews and separate unsigned-artifact reviews were GO for their stated scopes.
 Root separately cleared one exact-manifest runtime window. Preparation `084b33`, root compilation
 `e36f8a`, protector compilation `ec0f57` and sealing `08eb7d` each reached exit 0. These are preparation
 receipts, not runtime acceptance.
