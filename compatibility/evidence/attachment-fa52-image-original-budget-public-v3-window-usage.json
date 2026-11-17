@@ -1,0 +1,80 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_ACTUAL_PUBLIC_PASS_DRAINED",
+  "sourceCheckpoint": "d3ce63246f14979c884704e653cf15d53f29fb12",
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-public-v3-source-ready.json",
+    "bytes": 19347,
+    "sha256": "dadfec154fdeca6d2d1687a717f0e65e636e826147d703034b52e03fade0e376"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/final-inputs.json",
+    "bytes": 18938,
+    "sha256": "0065acdef2672930fcc7101f49b723c0d0646405c6d82792d37c49bbd67a8c76"
+  },
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-image-original-budget-runtime-success.json",
+    "bytes": 20038,
+    "sha256": "6527678d510bf6fa434d2df0e94725d02baefd68860e8aac944fa319649df253"
+  },
+  "case": "actual public 10MiB PNG requires transformation consent and reports original budget for one byte over",
+  "attempts": 1,
+  "retry": "NONE",
+  "runnerPid": 650794,
+  "runnerWaitStatus": 0,
+  "originalWaitBothReadersAndEof": true,
+  "actualPFpid": 650807,
+  "actualPFdrain": {
+    "code": 0,
+    "forced": false,
+    "stderrBytes": 0
+  },
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "rawArchive": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-evidencepack-20261117/raw.tar.gz",
+    "bytes": 5370,
+    "sha256": "7a92b78d94f41a00c6cc1ad737c8b428e4b03c977e33f4a5e380b3b1761a72af"
+  },
+  "rawManifest": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-evidencepack-20261117/manifest.json",
+    "bytes": 3650,
+    "sha256": "b518d4a26e2d3fb01d2dc51fc826ca05687ded8de3ea66f6113b6ac919cfb9e5"
+  },
+  "RootTools": {
+    "preRun": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-tool.json",
+      "bytes": 7861,
+      "sha256": "4acba895cf0e54840fe65d48fbae4e556cdf01142ad6760bbc8626af277e9d33"
+    },
+    "post": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-original-budget-public-v3-root-post-tool.json",
+      "bytes": 3094,
+      "sha256": "6eb79792d5c9560f2d90551fd90236a459a27f26f62c7f1a45a1bb8b7aba3d4d"
+    },
+    "pre": {
+      "initialChunk": "f2202f",
+      "session": 52183,
+      "completionChunk": "e08f16",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "af7a68",
+      "session": 81365,
+      "completionChunk": "bf1ac5",
+      "exitCode": 0
+    },
+    "postcheck": {
+      "initialChunk": "00dd36",
+      "session": 84253,
+      "completionChunk": "27e9bd",
+      "exitCode": 0
+    }
+  },
+  "window": "Root declared noactiveNativewindow after actualoriginalwait/readers andpost. Consumedsource/rawscope cannotrerun or becheckedpristine; anylateractualrequiresfreshSource/freeze/Rootcoordination.",
+  "postLabelMeaning": "The suffixNATIVE_RUNTIME_NOT_RUN belongs to this metadata-onlychecker; it does NOT negate the actualcontrolledNativeexecution above. Immutable rawlabel/limits describe checkeractions only.",
+  "acceptance": "Per-image diagnosticgapclosedforthispubliccase; full38/53/54/29open; noP_ALL/global/private/productclaim."
+}
