@@ -1,3 +1,6 @@
+> Historical preparation snapshot. The authorized attempt is now **USED_ONCE_PASS_DRAINED**;
+> see [completed proof](ticket-41-anchor-uds-green.md). Do not rerun this fixture.
+
 # #41 stable-anchor public UDS fixture: READY, NOT RUN
 
 Source fix `a17e1dd14a9086180a0cd1fddbe1d414085335cc`, tree

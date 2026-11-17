@@ -91,6 +91,8 @@ all-process/shared locks, fences and current-data/TUI compatibility gates. Chang
 and a new supervision generation. Old signed records bypass no actual tuple/current-data check; no updater, automatic
 downgrade or new cryptographic antirollback counter is introduced. No production anchor/approval/key/global selection
 exists. The normal dispatcher entry and broker publication remain unavailable pending full external-protector and
-final release integration. Earlier public UDS/kernel-peer/signed-reply and C-launcher/actual-Bun lock proofs are scoped
-historical evidence; the new anchor/envelope path has only pure/tempfile/crypto/compile/type evidence and grants no
-runtime/global/private admission.
+final release integration. Earlier public UDS/kernel-peer/signed-reply and C-launcher/actual-Bun lock proofs remain
+separate historical evidence. The [signed-anchor public UDS fixture](../evidence/ticket-41-anchor-uds-green.md) now has one actual
+synthetic PASS: authenticated inspect refusal and postchecks, accepted-client C kernel peer capture, awaited server
+exit0 and retained P_ALL/ECHILD. It supplies no Native Agent/helper/broker/protector lifetime, production closure
+or global/private admission; guard counters remain UNKNOWN.
