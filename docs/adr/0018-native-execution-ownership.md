@@ -96,3 +96,17 @@ separate historical evidence. The [signed-anchor public UDS fixture](../evidence
 synthetic PASS: authenticated inspect refusal and postchecks, accepted-client C kernel peer capture, awaited server
 exit0 and retained P_ALL/ECHILD. It supplies no Native Agent/helper/broker/protector lifetime, production closure
 or global/private admission; guard counters remain UNKNOWN.
+
+The next inactive source prerequisite selects the inherited C launcher FLOCK using an explicit reserved argv locator
+and a pure main-thread filesystem guard, before either bridge/control-I/O loading. The locator supplies no authority;
+exact signed control metadata and bounded self-fdinfo prove the retained descriptor fact. Process exit owns lock
+release; generation disposal never closes/unlocks it. Linux `pi-natives.FileLock` is an exclusive abstract UDS lock,
+so it cannot substitute for the existing maintenance policy.
+
+Composed selection has a separate strict anchor/2 + approval/3 signature domain and exhaustive digest-bound inventory,
+with signed public-package/native roles, directory/link/mode verification and bounded ELF dependency/alias closure.
+The concrete Native adapter implements the existing public `@omp-webui/control-io` selection contract using only
+filesystem inspection; Host runtime code and I/O algorithms are not imported/copied. Historical v2 UDS approvals
+cannot be promoted. Production package resolution, actual public module load/lifetime, later authenticated preparation
+and actual new handoff evidence remain missing. Server open therefore stays unavailable before any library import.
+See [source prerequisite evidence](../evidence/ticket-41-native-control-selection.md); this is no production admission.

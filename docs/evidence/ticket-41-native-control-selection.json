@@ -1,0 +1,201 @@
+{
+  "format": "omp-native-control-selection-source-prerequisites-v1",
+  "status": "PASS_SCOPED_SOURCE_PREREQUISITES_PRODUCTION_BLOCKED",
+  "sourceBase": "c2d2af5f523798a82e263107843e0280a150fd96",
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-selection-preserve-20261117T014017Z",
+  "nativeHeadIndexStagedPreserved": true,
+  "nativeSources": [
+    {
+      "path": "packages/coding-agent/docs/execution-ownership.md",
+      "sha256": "b12af7b828ea8210d5a5c40838b3440b8b81ff1da460d02f3dfffa5ef7fbe09b",
+      "bytes": 30054
+    },
+    {
+      "path": "packages/coding-agent/src/cli.ts",
+      "sha256": "ce634bb22a4eea26bfafc4e16ad4c560c6b9f129f8c2cca8f8f0ded72dc9a2fa",
+      "bytes": 4695
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/approval.ts",
+      "sha256": "30da33c4f9f5189f9896d25469d601ab23536041c284c674acea5e380a4ec6c0",
+      "bytes": 14934
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/control-selection.ts",
+      "sha256": "db35ac0774b0ee4591c76cecb9e019d5422eecd57fa7c4d6509b348140f14259",
+      "bytes": 4416
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+      "sha256": "de688b0066bd8c8a1c0c54aa69667bc1119a803c4a08289cf03c57c7c569b7b2",
+      "bytes": 12512
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/maintenance-handoff.ts",
+      "sha256": "265706e57636e4fa43047bacbdd1d90579fe041d53dc7adba9cc3e25a693db69",
+      "bytes": 7503
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/platform-closure.ts",
+      "sha256": "5eae8b40bc533d293a55ea6908aed5bb970192e331e22189accc8bad5d2c3923",
+      "bytes": 9262
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/release-inventory.ts",
+      "sha256": "26ef9bebe1704c9ee211bf3dd72f99f82b7711048de95f25fac50120f3ec12a7",
+      "bytes": 10402
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+      "sha256": "6925495028aff834e33eef398a7e19c0d19dd1d6d02a36ab930e81ff21b1de6f",
+      "bytes": 4970
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/server.ts",
+      "sha256": "6d62985180b0dd6570be0929dea47fadd28efa3d58aef17f284b6c6d8def463b",
+      "bytes": 7776
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
+      "sha256": "09f6d2acd29c32fc14cff63e952ffb0ae3ed08c5244804b573c487604d12853a",
+      "bytes": 22269
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-control-selection.test.ts",
+      "sha256": "037b540400619b4ae3d6598badb11ea256b67ccb69547855860819fca5423cd3",
+      "bytes": 1642
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-inventory.test.ts",
+      "sha256": "407dc7d18ac740f48495d58942feedbd0c26f7ccd539cb8e8a75bce5134d7beb",
+      "bytes": 8761
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-linux.test.ts",
+      "sha256": "da18d1b158780d2abedccc467ac6856be74ddbe0969bcd6be4217b94841aa5b5",
+      "bytes": 3562
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts",
+      "sha256": "06e33aea7299b18fa2cd9c20113daa861927173dd390f1844fe53e8437887d84",
+      "bytes": 4415
+    }
+  ],
+  "hostInputs": [
+    {
+      "path": "compatibility/launcher/omp-entry.c",
+      "sha256": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b"
+    },
+    {
+      "path": "compatibility/launcher/control.h",
+      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    {
+      "path": "scripts/check-native-control-selection.ts",
+      "sha256": "e8b9197c0706437c6b63ccc679f93c6234a6e19df26f37424dcca1a5e43c7246"
+    },
+    {
+      "path": "docs/evidence/ticket-41-native-control-selection-checks.json",
+      "sha256": "634fbf60aabec0c033ebf78b10ac954f0421e39c02184a6df4442dcde2adaf83"
+    },
+    {
+      "path": "docs/evidence/ticket-41-native-control-selection-elf.json",
+      "sha256": "c58b6f92ace4496dffa30448fde7ecf52c28031035b68358be526000e02dab8d"
+    }
+  ],
+  "publicContract": {
+    "gitCommit": "f30936d06c2c954bf896430390a97b41855919cd",
+    "member": "packages/control-io/selection.ts",
+    "sha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+    "resolution": "TYPE_ONLY_EXPLICIT_BUILD_CHECK_MAPPING_NOT_PRODUCTION_PACKAGE_RESOLUTION"
+  },
+  "canonicalControlHeader": {
+    "gitCommit": "f30936d06c2c954bf896430390a97b41855919cd",
+    "path": "compatibility/launcher/control.h",
+    "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+  },
+  "patch": {
+    "file": "0010-execution-ownership.patch",
+    "sha256": "8ed1a76f62520805d5d29956f47537ffa8aba979052e2a76dcf122904d724cb8"
+  },
+  "preparedTree": "72137ab067b40845625152aa2d0c276a6256b654",
+  "preparedSourceSha256": "02b06297e123d73a3e34d49ec6bd967fbbb236616754379a108454b8e7d6212d",
+  "activePatchListChanged": false,
+  "consumerDeltaRecomposed": false,
+  "final1Through10Composed": false,
+  "sourceChecks": {
+    "tests": 23,
+    "assertions": 144,
+    "typeCheckedFiles": 38,
+    "pureGraphModules": 16,
+    "strictCCompile": "PASS_ZERO_DIAGNOSTICS",
+    "checkerToolTypes": "PASS"
+  },
+  "staticActualElfMetadata": {
+    "status": "PASS_READ_ONLY_METADATA_ONLY",
+    "inputs": [
+      {
+        "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41-control-io-abi-fix/vendor/control-io-ptr-roundtrip/release/lib/libomp-control-io.so",
+        "sha256": "d97a49a02167da8ad4d07d7bd0eb3a921e486696041e7d0512bd9d728a7222f2"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-41/vendor/ownership-bridge-build/libomp-execution-ownership.so",
+        "sha256": "c4a0f5a653f468b1d8abb1e30e7db52b0c50a0e6a83f02a28dcb416f78eff0af"
+      }
+    ],
+    "dependencyFiles": 5,
+    "signedAliasesRequired": [
+      {
+        "path": "/lib64",
+        "kind": "link",
+        "identity": "usr/lib64",
+        "mode": 511
+      },
+      {
+        "path": "/usr/lib64/ld-linux-x86-64.so.2",
+        "kind": "link",
+        "identity": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "mode": 511
+      }
+    ],
+    "actualMappings": "NOT_INSPECTED",
+    "metadataToolEngine": {
+      "bun": "1.4.4",
+      "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "purpose": "guarded pure source metadata tooling"
+    }
+  },
+  "historicalLauncherProof": {
+    "evidence": "docs/evidence/ticket-41-launcher-lock-green.json",
+    "originalCSourceSha256": "581a2259d80505c2ff301073c3558a05b1f79502bfec67b7ceb179c03aebfb22",
+    "preimageArchive": "/workspace/work/mvp-implementation/recovery/ticket41-native-selection-preserve-20261117T014017Z/host/clean-preimage/compatibility/launcher/omp-entry.c",
+    "revalidation": "19_SURVIVING_INPUTS_AND_13_RAW_HISTORICAL_BEFORE_NEW_C_EDIT",
+    "topLevelParentToolStatus": "NOT_CAPTURED",
+    "reRun": false,
+    "newHandoffCovered": false
+  },
+  "historicalUdsProof": "ORIGINAL_V1_TUPLE_ONLY_NO_REINTERPRETATION",
+  "newHandoffActual": "NOT_RUN",
+  "completeComposedSelectionNominal": "NOT_RUN",
+  "publicModuleBuildResolution": "BLOCKED",
+  "publicModuleLoadLifetimeReadiness": "NOT_RUN",
+  "nativeApplicationRuntime": "NOT_RUN",
+  "productionAnchorApprovalKeys": "NOT_CREATED",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "issue41Complete": false,
+  "issue61Complete": false,
+  "finalPublishedCumulativeCandidates": 1,
+  "authoringCandidateExports": 2,
+  "supersededCandidate": {
+    "sha256": "ab4942b579a9e26c31de90f78b7b9dbdb8f03dbd1d8c97dded640453fe1b25bb",
+    "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-selection-preserve-20261117T014017Z/superseded-0010-native-control-selection-candidate.patch",
+    "status": "UNCOMMITTED_SUPERSEDED_NOT_RUN",
+    "reason": "Final review found structural bridge callbacks could bypass nominal admission; replaced under explicit coordinator authorization"
+  },
+  "bridgeAdmission": "NOMINAL_COMPLETE_APPROVAL_SELECTION_EXACT_BRIDGE_MEMBER_MAIN_THREAD_BEFORE_DLOPEN"
+}

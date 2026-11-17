@@ -30,14 +30,14 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "a9aa3f4715a7e036b104d934eb07cf220aac098c49a69d8d7967b18e74d8f400"
+    "sha256": "8ed1a76f62520805d5d29956f47537ffa8aba979052e2a76dcf122904d724cb8"
   },
-  "preparedTree": "ac5bf3f7caecbc96b2fb416e45a7c07f7c4c52b0",
-  "preparedSourceSha256": "59cb60785f4ee6c83f7948fd0892844854f5eacb2ba6dd42c50262a5149063a5",
+  "preparedTree": "72137ab067b40845625152aa2d0c276a6256b654",
+  "preparedSourceSha256": "02b06297e123d73a3e34d49ec6bd967fbbb236616754379a108454b8e7d6212d",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
-  "nativeBackend": "SOURCE_ONLY_PEER_HELPER_SPINE_BROKER_UNAVAILABLE",
+  "nativeBackend": "SOURCE_ONLY_COMPOSED_SERVER_REFUSES_PENDING_PUBLIC_CONTROL_IO_OWNER",
   "cBridgeCompile": "PASS_STRICT_ZERO_DIAGNOSTICS",
   "socketPidfdPrimitive": "PASS_SCOPED_ONLY",
   "backendCapabilityGranted": false,
@@ -65,9 +65,9 @@
     }
   ],
   "independentServerTracer": "PASS_SCOPED_PUBLIC_UDS_PEER_SIGNATURE_DRAINED",
-  "actualLauncherMaintenanceRetention": "NOT_RUN",
+  "actualLauncherMaintenanceRetention": "HISTORICAL_PRE_HANDOFF_C_ONLY_NEW_HANDOFF_NOT_RUN",
   "signedApprovalAuthentication": "SOURCE_ONLY_STABLE_ANCHOR_DOMAIN_SEPARATED_APPROVAL_DISTINCT_REPLY_KEY",
-  "approvalSourceEvidence": {
+  "historicalApprovalSourceEvidence": {
     "tests": 53,
     "osTestsSkipped": 2,
     "assertions": 189,
@@ -76,5 +76,28 @@
     "productionAnchorProvisioned": false,
     "productionApprovalProvisioned": false,
     "runtimeExecuted": false
+  },
+  "nativeControlSelection": {
+    "status": "SOURCE_PREREQUISITES_ONLY_PRODUCTION_BLOCKED",
+    "evidence": "docs/evidence/ticket-41-native-control-selection.json",
+    "approvalVersion": "omp-execution-approval/3",
+    "anchorVersion": "omp-execution-approval-anchor/2",
+    "newLauncherHandoffActual": "NOT_RUN",
+    "publicModuleRuntimeResolution": "BLOCKED",
+    "publicModuleLoadLifetime": "NOT_RUN",
+    "completeComposedSelectionNominal": "NOT_RUN",
+    "tests": 23,
+    "assertions": 144,
+    "typeCheckedFiles": 38,
+    "pureGraphModules": 16,
+    "strictCCompile": "PASS",
+    "elfActualBytesMetadata": "PASS_READ_ONLY_METADATA_ONLY",
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED",
+    "consumerDeltaRecomposed": false,
+    "finalPublishedCumulativeCandidates": 1,
+    "authoringCandidateExports": 2,
+    "supersededCandidateSha256": "ab4942b579a9e26c31de90f78b7b9dbdb8f03dbd1d8c97dded640453fe1b25bb",
+    "bridgeAdmission": "NOMINAL_COMPLETE_APPROVAL_SELECTION_EXACT_APPROVED_BRIDGE_MEMBER_BEFORE_DLOPEN"
   }
 }

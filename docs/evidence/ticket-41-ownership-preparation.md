@@ -270,3 +270,18 @@ This proves the first actual independent public UDS/kernel-peer/signed-reply spi
 prove actual global provenance, maintenance retention, private helper lifecycle, protected broker/services, worker
 realms, Native consumer semantics or private admission. The initial guard-refusal RED remains separate historical
 evidence. Exact identities, raw hashes and scope limits are in `ticket-41-public-uds-server-green.json`.
+
+## Sixth-restore composed control selection prerequisite
+
+The refreshed inactive0010 adds the exact C argv locator's pure main-thread guard, separate strict v3 composed
+approval and exhaustive Native filesystem/ELF selection adapter. Historical v2 client/UDS source cannot authorize
+composed server/private/helper admission. Server open now deliberately refuses before any bridge runtime import
+until public module build resolution and actual load/lifetime composition exist. The former server/UDS evidence is
+historical for its original tuple; it is not replayed against this newly blocked source.
+
+New source checks: **23 pure tests / 144 assertions / 0 failures**, **38 focused type files**, strict zero-diagnostic
+C compile, 16-module pure/client import graph. Read-only actual Bun/control-I/O/bridge ELF metadata closes with five
+canonical platform files and two explicitly signed interpreter aliases. No application entry/library load/mappings
+probe ran. Exact new source tuple, final cumulative candidate and limitations are in
+[ticket-41-native-control-selection.md](ticket-41-native-control-selection.md). New argv handoff actual evidence,
+complete public module nominal/lifetime, actual global and private admission remain blocked/not run.

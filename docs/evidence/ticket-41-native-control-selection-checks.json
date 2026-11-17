@@ -1,0 +1,86 @@
+{
+  "format": "omp-native-control-selection-source-check-v1",
+  "status": "PASS_SOURCE_ONLY",
+  "native": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership",
+  "publicContract": {
+    "path": "/tmp/ticket41-native-selection-check/public-selection.ts",
+    "sha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+    "runtimeResolution": "BLOCKED_TYPE_MAPPING_ONLY"
+  },
+  "pureGraph": [
+    "packages/coding-agent/src/launch/ownership/approval.ts",
+    "packages/coding-agent/src/launch/ownership/authentication.ts",
+    "packages/coding-agent/src/launch/ownership/client.ts",
+    "packages/coding-agent/src/launch/ownership/control-selection.ts",
+    "packages/coding-agent/src/launch/ownership/framing.ts",
+    "packages/coding-agent/src/launch/ownership/maintenance-handoff.ts",
+    "packages/coding-agent/src/launch/ownership/platform-closure.ts",
+    "packages/coding-agent/src/launch/ownership/protocol.ts",
+    "packages/coding-agent/src/launch/ownership/release-inventory.ts",
+    "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+    "packages/coding-agent/src/launch/ownership/uds-client.ts",
+    "packages/coding-agent/src/launch/ownership/worker-bootstrap.ts",
+    "packages/coding-agent/test/execution-ownership-approval.test.ts",
+    "packages/coding-agent/test/execution-ownership-control-selection.test.ts",
+    "packages/coding-agent/test/execution-ownership-inventory.test.ts",
+    "packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts"
+  ],
+  "typeCheckedFiles": 38,
+  "results": [
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "test",
+        "--no-env-file",
+        "--preload=/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/no-provider.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts"
+      ],
+      "exitCode": 0,
+      "stdout": "bun test v1.4.4 (38afee6c8)\n",
+      "stderr": "\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts:\n(pass) stable anchor authenticates final approval and rejects requests for another release tuple [16.13ms]\n(pass) pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions [2.64ms]\n(pass) ambiguous duplicate fields cannot enter the exact signed approval format [4.85ms]\n(pass) approval key, installation and signing domain cannot be substituted by dispatcher authority [10.40ms]\n(pass) every final tuple and endpoint field is authenticated without trusting unsigned envelope additions [29.94ms]\n(pass) absent or replaced anchor cannot discover trust from the approval record [7.52ms]\n(pass) stable anchor refuses tuple-dependent fields, release-local trust and replaced approval parent [9.67ms]\n(pass) record replacement permanently invalidates its generation and a new approval requires explicit selection [19.64ms]\n(pass) same-inode record rewrite and initial selection failure cannot silently recover [11.42ms]\n(pass) record replacement after open cannot authenticate different named bytes [4.23ms]\n(pass) approval replacement while signature verification is pending fails the post-verification admission check [4.23ms]\n(pass) final compiled bytes can be exhaustively inventoried before signing approval without rebuilding the anchor [27.97ms]\n(pass) approved client refuses a replaced approval before any public socket admission [12.36ms]\n(pass) composed server approval refuses historical v2 even when its signature and snapshot are valid [2.47ms]\n(pass) composed v3 requires its own anchor, signing domain and complete frozen inventory approval [21.07ms]\n(pass) callbacks cannot promote a legacy approval, forged approval or forged guard into the server selection [6.80ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts:\n(pass) reserved locator is exact, first, single and versioned; absent locator cannot claim protection [0.38ms]\n(pass) only the explicit descriptor's shared whole-file FLOCK can protect the signed stable inode [3.48ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts:\n(pass) composed control selection requires the complete versioned signed inventory and public package roles [0.35ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts:\n(pass) signed inventory cannot omit real directory members or accept a self-declared identity [3.73ms]\n(pass) complete fixture protects real rosters, modes, direct links and the exhaustive ELF metadata closure [37.45ms]\n(pass) signed platform dependencies cannot drift, omit a DT_NEEDED provider or name the wrong architecture [15.43ms]\n(pass) interpreter aliases require every signed link and reject omission, replacement and unused aliases [29.53ms]\n\n 23 pass\n 0 fail\n 144 expect() calls\nRan 23 tests across 4 files. [354.00ms]\n"
+    },
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "/workspace/work/omp-webui-ticket-41/node_modules/typescript/bin/tsc",
+        "--noEmit",
+        "-p",
+        "/tmp/native-control-selection-check-EXTzUG/tsconfig.json"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "/usr/bin/gcc",
+        "-std=c11",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-O2",
+        "-DOMP_CONTROL_PATH=\"/synthetic/control\"",
+        "-DOMP_CONTROL_DEVICE=27",
+        "-DOMP_CONTROL_INODE=42",
+        "-c",
+        "/workspace/work/omp-webui-ticket-41/compatibility/launcher/omp-entry.c",
+        "-o",
+        "/tmp/native-control-selection-check-EXTzUG/entry.o"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "nativeCliExecuted": false,
+  "ffiImported": false,
+  "librariesLoaded": false,
+  "socketsOpened": false,
+  "kernelLockAcquired": false,
+  "productionApprovalCreated": false,
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}

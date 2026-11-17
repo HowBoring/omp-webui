@@ -1,0 +1,180 @@
+{
+  "format": "omp-native-control-selection-elf-feasibility-v1",
+  "status": "PASS_READ_ONLY_METADATA_ONLY",
+  "inputs": [
+    {
+      "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "kind": "file",
+      "identity": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "mode": 493,
+      "device": "27",
+      "inode": "162910",
+      "bytes": "107308936",
+      "mtimeNs": "499162500000000000",
+      "ctimeNs": "1794750674013687238",
+      "metadata": {
+        "needed": [
+          "libc.so.6",
+          "ld-linux-x86-64.so.2",
+          "libpthread.so.0",
+          "libdl.so.2",
+          "libm.so.6"
+        ],
+        "interpreter": "/lib64/ld-linux-x86-64.so.2"
+      }
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-41-control-io-abi-fix/vendor/control-io-ptr-roundtrip/release/lib/libomp-control-io.so",
+      "kind": "file",
+      "identity": "d97a49a02167da8ad4d07d7bd0eb3a921e486696041e7d0512bd9d728a7222f2",
+      "mode": 448,
+      "device": "27",
+      "inode": "344720",
+      "bytes": "15848",
+      "mtimeNs": "1794870519062482657",
+      "ctimeNs": "1794873075537984666",
+      "metadata": {
+        "needed": [
+          "libc.so.6"
+        ]
+      }
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-41/vendor/ownership-bridge-build/libomp-execution-ownership.so",
+      "kind": "file",
+      "identity": "c4a0f5a653f468b1d8abb1e30e7db52b0c50a0e6a83f02a28dcb416f78eff0af",
+      "mode": 448,
+      "device": "27",
+      "inode": "251964",
+      "bytes": "21512",
+      "mtimeNs": "1794856318926235831",
+      "ctimeNs": "1794856318926278425",
+      "metadata": {
+        "needed": [
+          "libc.so.6"
+        ]
+      }
+    }
+  ],
+  "dependencies": [
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+      "kind": "file",
+      "identity": "9792e3cbb541c8f44c7acf5f14f4022ea62998ecc787d326bed4d8b6547dfd92",
+      "mode": 493,
+      "device": "27",
+      "inode": "-9223372036854243605",
+      "bytes": "1995216",
+      "mtimeNs": "1782769072000000000",
+      "ctimeNs": "1782769072000000000"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "kind": "file",
+      "identity": "c8438e4fde1934e61c88311633f00949ff645d5c04cdb8671fa3d78164d2f307",
+      "mode": 493,
+      "device": "27",
+      "inode": "-9223372036854238868",
+      "bytes": "225672",
+      "mtimeNs": "1782769072000000000",
+      "ctimeNs": "1782769072000000000"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libpthread.so.0",
+      "kind": "file",
+      "identity": "85e21f7dba0394411d00959176fd18b470e575b0b05f1f4f41e5636802ce0500",
+      "mode": 420,
+      "device": "27",
+      "inode": "-9223372036854241282",
+      "bytes": "14408",
+      "mtimeNs": "1782769072000000000",
+      "ctimeNs": "1782769072000000000"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libdl.so.2",
+      "kind": "file",
+      "identity": "295fa521a03cd2faa99974f378c9e23dd622021ec7d32bcad4f8ea61aec8a872",
+      "mode": 420,
+      "device": "27",
+      "inode": "-9223372036854243103",
+      "bytes": "14408",
+      "mtimeNs": "1782769072000000000",
+      "ctimeNs": "1782769072000000000"
+    },
+    {
+      "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+      "kind": "file",
+      "identity": "6d567d53e895273ca14a1f9dc164fc6c8d39aed2f60aa46a733c2784228915f3",
+      "mode": 420,
+      "device": "27",
+      "inode": "-9223372036854235467",
+      "bytes": "977112",
+      "mtimeNs": "1782769072000000000",
+      "ctimeNs": "1782769072000000000"
+    }
+  ],
+  "interpreterAliases": [
+    {
+      "path": "/lib64",
+      "kind": "link",
+      "identity": "usr/lib64",
+      "mode": 511
+    },
+    {
+      "path": "/usr/lib64/ld-linux-x86-64.so.2",
+      "kind": "link",
+      "identity": "../lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+      "mode": 511
+    }
+  ],
+  "closureMetadata": "SUPPORTED_WITH_EXPLICIT_SIGNED_ALIASES_REQUIRED",
+  "unsupportedDynamicFeatures": [
+    "DT_RPATH",
+    "DT_RUNPATH",
+    "DT_AUDIT",
+    "DT_DEPAUDIT",
+    "DT_AUXILIARY",
+    "DT_FILTER"
+  ],
+  "unsupportedFeaturesObserved": [],
+  "readelf": [
+    {
+      "file": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "exitCode": 0,
+      "stdout": "\nElf file type is EXEC (Executable file)\nEntry point 0x1a40600\nThere are 9 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  PHDR           0x000040 0x0000000000200040 0x0000000000200040 0x0001f8 0x0001f8 R   0x8\n  INTERP         0x000238 0x0000000000200238 0x0000000000200238 0x00001c 0x00001c R   0x1\n      [Requesting program interpreter: /lib64/ld-linux-x86-64.so.2]\n  LOAD           0x000000 0x0000000000200000 0x0000000000200000 0x1837ff4 0x1837ff4 R   0x1000\n  LOAD           0x1838600 0x0000000001a40600 0x0000000001a40600 0x4df4c40 0x4df4c40 R E 0x1000\n  LOAD           0x662d240 0x0000000006836240 0x0000000006836240 0x01cc98 0x1d5e38 RW  0x1000\n  TLS            0x662d240 0x0000000006836240 0x0000000006836240 0x002530 0x0057c0 R   0x10\n  DYNAMIC        0x6649000 0x0000000006852000 0x0000000006852000 0x0001f0 0x0001f0 RW  0x8\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x8\n  NOTE           0x000254 0x0000000000200254 0x0000000000200254 0x000044 0x000044 R   0x4\n\n Section to Segment mapping:\n  Segment Sections...\n   00     \n   01     .interp \n   02     .interp .note.ABI-tag .note.gnu.build-id .dynsym .gnu.version .gnu.version_d .gnu.version_r .gnu.hash .hash .dynstr .rela.dyn .rela.plt .rodata .bun_builtins \n   03     .text .init .fini .plt \n   04     .tdata .tm_clone_table .data .fini_array .init_array .data.rel.ro .bun __DATA,__wtf_config __DATA,__jsc_opcodes .dynamic .got .got.plt .bss \n   05     .tdata .tbss \n   06     .dynamic \n   07     \n   08     .note.ABI-tag .note.gnu.build-id \n\nDynamic section at offset 0x6649000 contains 31 entries:\n  Tag        Type                         Name/Value\n 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n 0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]\n 0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]\n 0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]\n 0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]\n 0x0000000000000015 (DEBUG)              0x0\n 0x0000000000000007 (RELA)               0x2103e8\n 0x0000000000000008 (RELASZ)             1416 (bytes)\n 0x0000000000000009 (RELAENT)            24 (bytes)\n 0x0000000000000017 (JMPREL)             0x210970\n 0x0000000000000002 (PLTRELSZ)           9168 (bytes)\n 0x0000000000000003 (PLTGOT)             0x68522d0\n 0x0000000000000014 (PLTREL)             RELA\n 0x0000000000000006 (SYMTAB)             0x200298\n 0x000000000000000b (SYMENT)             24 (bytes)\n 0x0000000000000005 (STRTAB)             0x20aab0\n 0x000000000000000a (STRSZ)              22840 (bytes)\n 0x000000006ffffef5 (GNU_HASH)           0x2072f0\n 0x0000000000000004 (HASH)               0x2088a0\n 0x0000000000000019 (INIT_ARRAY)         0x6848670\n 0x000000000000001b (INIT_ARRAYSZ)       80 (bytes)\n 0x000000000000001a (FINI_ARRAY)         0x6848660\n 0x000000000000001c (FINI_ARRAYSZ)       16 (bytes)\n 0x000000000000000c (INIT)               0x6833a1c\n 0x000000000000000d (FINI)               0x6833a38\n 0x000000006ffffff0 (VERSYM)             0x2068b0\n 0x000000006ffffffc (VERDEF)             0x207134\n 0x000000006ffffffd (VERDEFNUM)          2\n 0x000000006ffffffe (VERNEED)            0x20716c\n 0x000000006fffffff (VERNEEDNUM)         5\n 0x0000000000000000 (NULL)               0x0\n",
+      "stderr": ""
+    },
+    {
+      "file": "/workspace/work/omp-webui-ticket-41-control-io-abi-fix/vendor/control-io-ptr-roundtrip/release/lib/libomp-control-io.so",
+      "exitCode": 0,
+      "stdout": "\nElf file type is DYN (Shared object file)\nEntry point 0x0\nThere are 9 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x000720 0x000720 R   0x1000\n  LOAD           0x001000 0x0000000000001000 0x0000000000001000 0x0005b1 0x0005b1 R E 0x1000\n  LOAD           0x002000 0x0000000000002000 0x0000000000002000 0x0001ac 0x0001ac R   0x1000\n  LOAD           0x002da0 0x0000000000003da0 0x0000000000003da0 0x000268 0x0005a0 RW  0x1000\n  DYNAMIC        0x002db0 0x0000000000003db0 0x0000000000003db0 0x0001e0 0x0001e0 RW  0x8\n  NOTE           0x000238 0x0000000000000238 0x0000000000000238 0x000024 0x000024 R   0x4\n  GNU_EH_FRAME   0x002008 0x0000000000002008 0x0000000000002008 0x00004c 0x00004c R   0x4\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10\n  GNU_RELRO      0x002da0 0x0000000000003da0 0x0000000000003da0 0x000260 0x000260 R   0x1\n\n Section to Segment mapping:\n  Segment Sections...\n   00     .note.gnu.build-id .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt \n   01     .init .plt .plt.got .text .fini \n   02     .rodata .eh_frame_hdr .eh_frame \n   03     .init_array .fini_array .dynamic .got .data .bss \n   04     .dynamic \n   05     .note.gnu.build-id \n   06     .eh_frame_hdr \n   07     \n   08     .init_array .fini_array .dynamic .got \n\nDynamic section at offset 0x2db0 contains 26 entries:\n  Tag        Type                         Name/Value\n 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n 0x000000000000000c (INIT)               0x1000\n 0x000000000000000d (FINI)               0x15a8\n 0x0000000000000019 (INIT_ARRAY)         0x3da0\n 0x000000000000001b (INIT_ARRAYSZ)       8 (bytes)\n 0x000000000000001a (FINI_ARRAY)         0x3da8\n 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)\n 0x000000006ffffef5 (GNU_HASH)           0x260\n 0x0000000000000005 (STRTAB)             0x450\n 0x0000000000000006 (SYMTAB)             0x2a0\n 0x000000000000000a (STRSZ)              293 (bytes)\n 0x000000000000000b (SYMENT)             24 (bytes)\n 0x0000000000000003 (PLTGOT)             0x3f90\n 0x0000000000000002 (PLTRELSZ)           168 (bytes)\n 0x0000000000000014 (PLTREL)             RELA\n 0x0000000000000017 (JMPREL)             0x678\n 0x0000000000000007 (RELA)               0x5d0\n 0x0000000000000008 (RELASZ)             168 (bytes)\n 0x0000000000000009 (RELAENT)            24 (bytes)\n 0x000000000000001e (FLAGS)              BIND_NOW\n 0x000000006ffffffb (FLAGS_1)            Flags: NOW\n 0x000000006ffffffe (VERNEED)            0x5a0\n 0x000000006fffffff (VERNEEDNUM)         1\n 0x000000006ffffff0 (VERSYM)             0x576\n 0x000000006ffffff9 (RELACOUNT)          3\n 0x0000000000000000 (NULL)               0x0\n",
+      "stderr": ""
+    },
+    {
+      "file": "/workspace/work/omp-webui-ticket-41/vendor/ownership-bridge-build/libomp-execution-ownership.so",
+      "exitCode": 0,
+      "stdout": "\nElf file type is DYN (Shared object file)\nEntry point 0x0\nThere are 9 program headers, starting at offset 64\n\nProgram Headers:\n  Type           Offset   VirtAddr           PhysAddr           FileSiz  MemSiz   Flg Align\n  LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x000e08 0x000e08 R   0x1000\n  LOAD           0x001000 0x0000000000001000 0x0000000000001000 0x001b71 0x001b71 R E 0x1000\n  LOAD           0x003000 0x0000000000003000 0x0000000000003000 0x00051c 0x00051c R   0x1000\n  LOAD           0x003d00 0x0000000000004d00 0x0000000000004d00 0x000308 0x008360 RW  0x1000\n  DYNAMIC        0x003d10 0x0000000000004d10 0x0000000000004d10 0x0001e0 0x0001e0 RW  0x8\n  NOTE           0x000238 0x0000000000000238 0x0000000000000238 0x000024 0x000024 R   0x4\n  GNU_EH_FRAME   0x003034 0x0000000000003034 0x0000000000003034 0x0000bc 0x0000bc R   0x4\n  GNU_STACK      0x000000 0x0000000000000000 0x0000000000000000 0x000000 0x000000 RW  0x10\n  GNU_RELRO      0x003d00 0x0000000000004d00 0x0000000000004d00 0x000300 0x000300 R   0x1\n\n Section to Segment mapping:\n  Segment Sections...\n   00     .note.gnu.build-id .gnu.hash .dynsym .dynstr .gnu.version .gnu.version_r .rela.dyn .rela.plt \n   01     .init .plt .plt.got .text .fini \n   02     .rodata .eh_frame_hdr .eh_frame \n   03     .init_array .fini_array .dynamic .got .data .bss \n   04     .dynamic \n   05     .note.gnu.build-id \n   06     .eh_frame_hdr \n   07     \n   08     .init_array .fini_array .dynamic .got \n\nDynamic section at offset 0x3d10 contains 26 entries:\n  Tag        Type                         Name/Value\n 0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]\n 0x000000000000000c (INIT)               0x1000\n 0x000000000000000d (FINI)               0x2b68\n 0x0000000000000019 (INIT_ARRAY)         0x4d00\n 0x000000000000001b (INIT_ARRAYSZ)       8 (bytes)\n 0x000000000000001a (FINI_ARRAY)         0x4d08\n 0x000000000000001c (FINI_ARRAYSZ)       8 (bytes)\n 0x000000006ffffef5 (GNU_HASH)           0x260\n 0x0000000000000005 (STRTAB)             0x738\n 0x0000000000000006 (SYMTAB)             0x2d0\n 0x000000000000000a (STRSZ)              722 (bytes)\n 0x000000000000000b (SYMENT)             24 (bytes)\n 0x0000000000000003 (PLTGOT)             0x4ef0\n 0x0000000000000002 (PLTRELSZ)           648 (bytes)\n 0x0000000000000014 (PLTREL)             RELA\n 0x0000000000000017 (JMPREL)             0xb80\n 0x0000000000000007 (RELA)               0xad8\n 0x0000000000000008 (RELASZ)             168 (bytes)\n 0x0000000000000009 (RELAENT)            24 (bytes)\n 0x000000000000001e (FLAGS)              BIND_NOW\n 0x000000006ffffffb (FLAGS_1)            Flags: NOW\n 0x000000006ffffffe (VERNEED)            0xa68\n 0x000000006fffffff (VERNEEDNUM)         1\n 0x000000006ffffff0 (VERSYM)             0xa0a\n 0x000000006ffffff9 (RELACOUNT)          3\n 0x0000000000000000 (NULL)               0x0\n",
+      "stderr": ""
+    }
+  ],
+  "inputsUnchanged": true,
+  "subjectRuntimeEntryInvoked": false,
+  "metadataToolEngine": {
+    "bun": "1.4.4",
+    "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "purpose": "guarded pure source metadata tooling"
+  },
+  "dlopen": false,
+  "actualMappings": "NOT_INSPECTED",
+  "productionApproval": "NOT_CREATED",
+  "productionReadiness": "BLOCKED",
+  "auditScript": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-selection-preserve-20261117T014017Z/audit-elf.ts",
+    "sha256": "2fd100cbe890a8915f66a5ed0b2854747f040e5bf6f9ec4626527ea36cb5b903"
+  },
+  "parserSource": {
+    "path": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/platform-closure.ts",
+    "sha256": "5eae8b40bc533d293a55ea6908aed5bb970192e331e22189accc8bad5d2c3923"
+  },
+  "scope": "Static ELF metadata feasibility using readelf and guarded pure-source Bun tooling; no Native application entry/library loading or runtime mappings"
+}
