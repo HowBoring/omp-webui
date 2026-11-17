@@ -1,0 +1,87 @@
+{
+  "status": "INDEPENDENT_STREAMED_LITERALS_NATIVE_NOT_RUN",
+  "specBasis": "Spec29 story63 / decision21 and Q6: image10485760B;1object and raw totals below33554432B, independent decode/model/50331648B RPC budgets.",
+  "generation": "Corrected68B tinyPNG, signature+IHDR33B, insert159 npAD private ancillary chunks with65536 zero data bytes and one tail chunk, then unchangedIDAT+IEND. Each CRC is type+data IEEE CRC32; type n/p/A/D means ancillary/private/reserved-uppercase/unsafe-to-copy. No payload written or fully materialized in SOURCE authoring.",
+  "original": {
+    "bytes": 10485760,
+    "sha256": "77924f168b5bef101d0ac293965b1f8a7aecaecfd1b7335bc4cac0ff812db5b1",
+    "ancillaryChunks": 160,
+    "fullChunks": 159,
+    "lastChunkDataBytes": 63548
+  },
+  "over": {
+    "bytes": 10485761,
+    "sha256": "ba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780",
+    "ancillaryChunks": 160,
+    "fullChunks": 159,
+    "lastChunkDataBytes": 63549
+  },
+  "tiny": {
+    "bytes": 68,
+    "sha256": "5e3d382db4dd83d59aa5742793ad6b7903409e865c83bcbc54835049f043bc15",
+    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII="
+  },
+  "validity": {
+    "originalIdatStoredCrc": "efa34599",
+    "correctedIdatCrc": "efa2a75b",
+    "originalIdatZlibHex": "78da63fcff1f0003030200",
+    "decodedScanlineHex": "01ffff",
+    "layout": "1x1,8bit gray+alpha,noninterlaced;Sub filter1 yields gray255 alpha255. NoPLTE/tRNS/APNG/colorprofile. npAD chunks precedeIDAT, IEND exactend, allCRCs checked. Over+1 changes lastzero-data length+CRC, never appends junk."
+  },
+  "expectedPrepared": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "mimeType": "image/png",
+    "width": 200,
+    "height": 200,
+    "bytes": 590,
+    "representationSha256": "d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff",
+    "degradations": [
+      "image_transformed"
+    ],
+    "facts": {
+      "sourceWidth": 1,
+      "sourceHeight": 1,
+      "frames": 1,
+      "decodedBytes": 4
+    },
+    "opaqueWhiteRgba": {
+      "bytes": 160000,
+      "sha256": "cdbf6c0880cfbeebfa8480444fef83685e70091bf1f23a5e8a71564d1f8be33a"
+    },
+    "basis": "UnchangedresizeImage neverfastpaths1x1 (floor200), so both old68B PNG and padded10MiB use same200x200 decode/encode path. Ancillaryunknown chunks and repairedCRC do not change decodedpixels; exact590B/d395 pin is historical known-output regression, not a new codec prediction. Pure zlib/filter/CRC witness independently requires every prepared pixel RGBAwhite; noNative codec imported.",
+    "encodedByteSha256": "UNPREDICTED/not separately retained in priorproof; provider bytehash consistency only, bounded by fixed known representationSHA and independent whitepixel witness. Wholemodel layout unclaimed."
+  },
+  "encodedFrames": {
+    "accepted": {
+      "base64Bytes": 13981016,
+      "envelopeIncludingNewlineBytes": 370,
+      "wireBytes": 13981386
+    },
+    "over": {
+      "base64Bytes": 13981016,
+      "envelopeIncludingNewlineBytes": 368,
+      "wireBytes": 13981384
+    },
+    "rpcCeilingBytes": 50331648
+  },
+  "refusalSourceExpectation": {
+    "prepareResponse": "success:true,receipt.status=failed,item.code=attachment_converter_error,preparedSha256 empty",
+    "submit": "ATTACHMENT_NOT_READY before reservation/effects",
+    "basis": "receipt validates count/total/RPC, not perimage. Isolatedworker readStreamBounded(stdin,imageBytes10485760) catchesSTREAM_BYTE_LIMIT generically. This source-specificdiagnosticgap remains; not claimed as clear publicbudgetcode or fullQ6acceptance."
+  },
+  "budgets": {
+    "acceptedCount": 1,
+    "overCount": 1,
+    "acceptedRawTotal": 10485760,
+    "overRawTotal": 10485761,
+    "countCeiling": 8,
+    "rawTotalCeiling": 33554432,
+    "sourcePixels": 1,
+    "decodedBytes": 4,
+    "decodedCeiling": 67108864,
+    "preparedImageCeiling": 512000,
+    "preparedAggregateCeiling": 8388608,
+    "preparedDimensionCeiling": 1568
+  },
+  "limits": "NoNative execution. Positive10MiB target remains unmet untilactualPASS; anyunexpected refusal is capabilityHOLD, not success/shrunken target. NoHost/browser/originalretention/productclaim. NewCRC and pixelwitness require freshSOURCEpair and RootONE; failurepreserved noautofix/retry."
+}

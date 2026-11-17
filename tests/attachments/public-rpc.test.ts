@@ -1219,3 +1219,122 @@ test("actual public eight UTF8 objects at 32MiB require consent and refuse count
     expect(await fixture.effects()).toEqual(after);
   });
 }, 90_000);
+
+import { opaqueWhitePngWitness, whitePngAtBytes } from "./png-literal.ts";
+
+function imageLimitDraft(over = false): BudgetDraft {
+  // Independent streamed Python SHA/CRC/envelope pins; neither Native limits nor encoder outputs are imported.
+  const original = whitePngAtBytes(over ? 10_485_761 : 10_485_760);
+  const sha256 = over ? "ba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780"
+    : "77924f168b5bef101d0ac293965b1f8a7aecaecfd1b7335bc4cac0ff812db5b1";
+  expect(original.byteLength).toBe(over ? 10_485_761 : 10_485_760);
+  expect(Bun.SHA256.hash(original, "hex")).toBe(sha256);
+  expect(opaqueWhitePngWitness(original, 1, 1))
+    .toBe("ad95131bc0b799c0b1af477fb14fcf26a6a9f76079e48bf090acb7e8367bfd0e");
+  return { preparationId: over ? "prepared-image-over" : "prepared-image-limit",
+    draftId: over ? "draft-image-over" : "draft-image-limit", draftRevision: "1", authorityGeneration: "grant",
+    message: "ordinary @missing-path prose", objects: [{ originalId: "image", format: "png", sha256,
+      data: original.toBase64() }] };
+}
+
+async function prepareImageLimit(fixture: Awaited<ReturnType<typeof openWorker>>, draft: BudgetDraft) {
+  const client = new AttachmentClient(async command => {
+    if (command.type !== "attachment_prepare") throw Error("ATTACHMENT_PUBLIC_IMAGE_LIMIT_PREPARE_ONLY");
+    expect(command.id).toHaveLength(36);
+    const response = await sendBudgetFrame(fixture.worker, command, 13_981_386);
+    if (!response.success) throw Error(`ATTACHMENT_PUBLIC_PREPARE_${String(response.code)}`);
+    return response.data;
+  }, isAttachmentReceipt);
+  const receipt = await client.prepare(draft);
+  expect(receipt).toMatchObject({ status: "ready", preparationId: draft.preparationId, draftId: draft.draftId,
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0], prepared = preparedImage(receipt);
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_IMAGE_LIMIT_NOT_READY");
+  expect(item.originalId).toBe("image");
+  expect(item.originalSha256).toBe("77924f168b5bef101d0ac293965b1f8a7aecaecfd1b7335bc4cac0ff812db5b1");
+  expect(item.degradations).toEqual(["image_transformed"]);
+  expect({ kind: prepared.kind, mimeType: prepared.mimeType, width: prepared.width, height: prepared.height })
+    .toEqual({ kind: "image", mimeType: "image/png", width: 200, height: 200 });
+  // Same decoded 1x1 white pixel and resize path as historical PNG proof; no new encoder hash is invented.
+  const bytes = Buffer.from(prepared.data, "base64");
+  expect(bytes.byteLength).toBe(590);
+  expect(item.preparedSha256).toBe("d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff");
+  expect(Bun.SHA256.hash(JSON.stringify({ kind: "image", mimeType: prepared.mimeType, data: prepared.data,
+    width: prepared.width, height: prepared.height }), "hex")).toBe(item.preparedSha256);
+  expect(item.preparedSha256).not.toBe(item.originalSha256);
+  expect(opaqueWhitePngWitness(bytes, 200, 200))
+    .toBe("cdbf6c0880cfbeebfa8480444fef83685e70091bf1f23a5e8a71564d1f8be33a");
+  expect(item.facts).toEqual({ originalBytes: 10_485_760, preparedBytes: 590,
+    sourceWidth: 1, sourceHeight: 1, frames: 1, decodedBytes: 4 });
+  return receipt;
+}
+
+async function refuseImageOneByteOver(fixture: Awaited<ReturnType<typeof openWorker>>) {
+  const draft = imageLimitDraft(true), before = await entries(fixture.worker), effects = await fixture.effects();
+  const unchanged = { ...draft, objects: draft.objects.map(object => ({ ...object })) };
+  expect(draft.objects).toHaveLength(1);
+  const rawTotal = draft.objects.reduce((count, object) => count + Buffer.byteLength(object.data, "base64"), 0);
+  expect(rawTotal).toBe(10_485_761); expect(rawTotal).toBeLessThan(33_554_432);
+  const response = await sendBudgetFrame(fixture.worker,
+    { ...draft, id: "image-over-refused".padEnd(36, "0"), type: "attachment_prepare" }, 13_981_384);
+  expect(response.success).toBe(true); expect(isAttachmentReceipt(response.data)).toBe(true);
+  if (!isAttachmentReceipt(response.data)) throw Error("ATTACHMENT_PUBLIC_IMAGE_OVER_RECEIPT_MISSING");
+  const receipt = response.data;
+  // The unchanged helper's 10MiB stdin bound catches STREAM_BYTE_LIMIT as this generic converter code.
+  // This exposes a diagnostic gap: it is not the count/total ATTACHMENT_INPUT_BUDGET command rejection.
+  expect(receipt).toMatchObject({ status: "failed", preparationId: draft.preparationId, draftId: draft.draftId,
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  expect(receipt.items[0]).toMatchObject({ status: "failed", originalId: "image",
+    originalSha256: "ba7976fc44daa4f000c1f7dd68d8ea6d14275fa100fc9a543b2391a58967a780",
+    preparedSha256: "", code: "attachment_converter_error" });
+  expect(await fixture.worker.request(submission(fixture, receipt, "image-over-refused", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_NOT_READY", error: "ATTACHMENT_NOT_READY" });
+  await expectBudgetQueryAbsent(fixture.worker, "image-over-refused");
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+  expect(draft).toEqual(unchanged);
+  for (const object of draft.objects) {
+    expect(Bun.SHA256.hash(Buffer.from(object.data, "base64"), "hex")).toBe(object.sha256);
+  }
+  expect(await fixture.client.cancel(receipt.preparationId)).toEqual({ cancelled: true });
+}
+
+test("actual public 10MiB PNG requires transformation consent and refuses one image byte over before effects", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await prepareImageLimit(fixture, imageLimitDraft()), prepared = preparedImage(receipt);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "image-limit-success", [])))
+      .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+        error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+    await expectBudgetQueryAbsent(worker, "image-limit-success");
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    expect(await worker.request(submission(fixture, receipt, "image-limit-success", ["image_transformed"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "image-limit-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "image-limit-success" },
+      preparation: consent(receipt, ["image_transformed"]) });
+    // Public relation.entryId + actual content index give causality; verifyWebpSavedPart is format-neutral.
+    await verifyWebpSavedPart(worker, receipt, result);
+    expect(result.relations.flatMap(relation => relation.attachments ?? [])).toHaveLength(1);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    // Known image representation + independently decoded white pixels above; byte SHA here is delivery consistency.
+    expect(after.requests.at(-1)?.images).toEqual([{ mimeType: "image/png", bytes: 590,
+      sha256: Bun.SHA256.hash(Buffer.from(prepared.data, "base64"), "hex") }]);
+    expect(after.requests.at(-1)?.attachmentText).toEqual([]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "image-limit-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+    await refuseImageOneByteOver(fixture);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 90_000);
