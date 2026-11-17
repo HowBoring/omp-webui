@@ -1,0 +1,65 @@
+{
+  "format": "ticket-41-native-helper-two-process-window-usage/1",
+  "status": "ONE_ROOT_NOMINAL_WINDOW_COMPLETED",
+  "scope": "R16_SYNTHETIC_FIXTURE_ONLY",
+  "sourceHead": "f81db5a899cc95359fcaec4c24a909ba34e5ec68",
+  "generation": "2d664bf23a4fded8322b5d7e41c1bc33bb7e6cdb364c4301e38e38ebe27bc52b",
+  "stage": "/tmp/native-helper-drain-r16-20261117",
+  "clearance": {
+    "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-one-runtime-clearance.json",
+    "sha256": "c59b341ba9dd846f7c00e6527f17c57e63726accfccb17f5885682138eab03a2",
+    "status": "ROOT_ONE_SYNTHETIC_TWO_PROCESS_HELPER_FIXTURE_CLEARED",
+    "rootOriginalStdinAndExecRetained": true
+  },
+  "originalTool": {
+    "initial": {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-initial-tool.json",
+      "sha256": "413fe428fb857f7fed2e75b48d2638087f1bfe25bf5b893088733707898b373c",
+      "chunk": "4f749a",
+      "session": 75398
+    },
+    "final": {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-poll1-tool.json",
+      "sha256": "34f7f9d2280e28e35e77c658edc4e9fa676606b4abe10dbbfa012442dc94a31d",
+      "chunk": "b74e6d",
+      "exit": 0
+    },
+    "completeFinalSummary": {
+      "status": "NOMINAL_TWO_PROCESS_FIXTURE_PASS",
+      "originalPids": {
+        "native": 670599,
+        "host": 670619
+      },
+      "pAll": "ECHILD",
+      "faultMatrix": "NOT_RUN",
+      "productAdmission": "BLOCKED"
+    },
+    "rawSixFramesPrinted": false,
+    "rawPerRoleWaitStatusesPrinted": false,
+    "rawHelperPidPrinted": false
+  },
+  "actualInvocations": 1,
+  "additionalActualInvocations": 0,
+  "retainerOrSignedCheckerRerun": false,
+  "faultMatrix": "NOT_RUN",
+  "recoveryDuringR16Nominal": "NONE_REPORTED_OR_NEEDED_BY_PASS_PATH",
+  "afterCompletion": {
+    "rootNativeWindow": "NONE",
+    "authority": "ROOT_CONFIRMED_AFTER_ORIGINAL_SESSION_75398_FINAL_B74E6D_EXIT0; NO_OTHER_NATIVE_OR_ROLE_CONTROL_STARTED",
+    "sourceOnlyPostflightChunk": "afd35b",
+    "independentPostReceipt": "/workspace/work/mvp-implementation/recovery/restore14-r16-post-readonly-preservation.json",
+    "independentPostReceiptSha256": "db5421a4eba818521ae9f1bf1ff3133ad5f631ea0f9f97a5c12d333e320df04c",
+    "fencesEmpty": true,
+    "socketAbsent": true
+  },
+  "independentCompiler": {
+    "ticket": 45,
+    "scope": "COMPILER_ONLY_F3",
+    "originalSession": 60050,
+    "state": "ACTIVE_PER_ROOT_AT_DELEGATION",
+    "interactionByEvidenceFollowthrough": "NONE"
+  },
+  "followthroughScope": "READ_ONLY_METADATA_HASH_AND_PUBLIC_TEXT_EVIDENCE_THEN_THREE_NEW_EVIDENCE_DOCUMENTS_ONLY",
+  "privateKeys": "STAT_ONLY_NO_OPEN_HASH_ARCHIVE",
+  "productAdmission": "BLOCKED"
+}

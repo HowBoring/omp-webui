@@ -1,0 +1,324 @@
+{
+  "format": "ticket-41-native-helper-two-process-runtime-evidence/1",
+  "status": "NOMINAL_TWO_PROCESS_FIXTURE_PASS",
+  "scope": "ISOLATED_SYNTHETIC_PUBLIC_NATIVE_OWNERSHIP_DISPATCHER_HOST_CONTROL_IO_AND_PRIVATE_C_HELPER_FIXTURE_ONLY",
+  "source": {
+    "harnessHead": "f81db5a899cc95359fcaec4c24a909ba34e5ec68",
+    "harnessParent": "8d3738c61570fc33ccc43430823af55cdbd06c19",
+    "harnessTree": "d24100af3d7f539cd0e3f92226b43c3a41520a85",
+    "sourceReady": "/workspace/work/mvp-implementation/recovery/ticket41-r16-stage-source-v9/Ready.json",
+    "sourceReadySha256": "22c5a0f4c8b7ad231634ed340b51484c87a40070255eb6c413e19c8e7d6582b4",
+    "sourceManifestSha256": "2efca3198dae5b1d791eea6f5bb5202a3516b91ea0c933e73c30d23d060abb0a",
+    "retainer": {
+      "path": "scripts/retain-native-helper-drain.py",
+      "sha256": "04610030f46ec4e32ea067c2457590e84e2bbf010c25758150f113772e49ae15",
+      "validationLines": {
+        "exactFrameFieldsTypesIdentitySequence": 396,
+        "registrationBeforeCloseAndStart": 473,
+        "allOriginalOutputEof": 490,
+        "originalWaitZeroAndTerminalPidfds": 493,
+        "pAllEchildBeforePass": 501
+      }
+    }
+  },
+  "stage": "/tmp/native-helper-drain-r16-20261117",
+  "stageDisposition": "CONSUMED_PASS_PRESERVED_NO_REUSE_REPAIR_OR_RERUN",
+  "generation": "2d664bf23a4fded8322b5d7e41c1bc33bb7e6cdb364c4301e38e38ebe27bc52b",
+  "directOriginalToolEvidence": {
+    "initial": {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-initial-tool.json",
+      "sha256": "413fe428fb857f7fed2e75b48d2638087f1bfe25bf5b893088733707898b373c",
+      "chunk": "4f749a",
+      "session": 75398
+    },
+    "final": {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-poll1-tool.json",
+      "sha256": "34f7f9d2280e28e35e77c658edc4e9fa676606b4abe10dbbfa012442dc94a31d",
+      "chunk": "b74e6d",
+      "exit": 0
+    },
+    "completeFinalSummary": {
+      "status": "NOMINAL_TWO_PROCESS_FIXTURE_PASS",
+      "originalPids": {
+        "native": 670599,
+        "host": 670619
+      },
+      "pAll": "ECHILD",
+      "faultMatrix": "NOT_RUN",
+      "productAdmission": "BLOCKED"
+    },
+    "rawSixFramesPrinted": false,
+    "rawPerRoleWaitStatusesPrinted": false,
+    "rawHelperPidPrinted": false
+  },
+  "retainerEnforcedConditions": {
+    "evidenceClass": "ASSERTED_TEST_BEHAVIOR_FROM_EXACT_UNCHANGED_RETAINER_SOURCE_NOT_SEPARATELY_PRINTED_RAW_OBSERVATIONS",
+    "nativeFrameSequence": [
+      "NATIVE_READY",
+      "NATIVE_DRAINING",
+      "NATIVE_CLOSED"
+    ],
+    "hostFrameSequence": [
+      "HOST_REGISTERED_HELD",
+      "HOST_CLEAN_REAP_EOF",
+      "HOST_CLOSED"
+    ],
+    "frameValidation": "EXACT_FIELDS_TYPES_ROLE_PID_AND_GENERATION_PER_ROLE_ORDER",
+    "registeredHeldBeforeStart": true,
+    "parentCommands": "NATIVE_CLOSE_AFTER_HOST_REGISTERED_HELD_THEN_HOST_START_AFTER_NATIVE_DRAINING_WITH_EXACT_GENERATION_AND_CLEAN_COMMAND_EOF",
+    "hostHelperReceipt": "HELPER_EXIT_0_AND_CLEAN_DECODED_CONTROL_TAIL_THEN_AWAITED_MODULE_CLOSE_BEFORE_HOST_LEASE_RELEASE",
+    "nativeClosureReceipt": "AWAITED_SERVER_CLOSE_SELECTION_RELEASE_INHERITED_C_GUARD_CURRENT_NO_HOST_REAP_INFERENCE",
+    "originalRoleWaits": "BOTH_ORIGINAL_POPEN_WAIT_RESULTS_MUST_BE_ZERO",
+    "originalReaders": "ALL_FOUR_STDOUT_STDERR_CHANNELS_MUST_REACH_EOF",
+    "originalPidfds": "BOTH_RETAINED_ORIGINAL_ROLE_PIDFDS_MUST_BE_KERNEL_TERMINAL",
+    "pAll": "AUTHORITATIVE_P_ALL_ECHILD_REQUIRED_BEFORE_PASS"
+  },
+  "publicApproval": {
+    "unsignedReadySha256": "8d2d930c29ce1a4e0c5a95bfcef0118899f2615e71d424c5fcee7b7d2f2d4618",
+    "reconstructedPayloadSha256": "98fef148417b306dd0cb40f9a68bfef6c20d3badd706115f9485ae39b0c77a43",
+    "oneRunManifestSha256": "424333cfed125271b142b3edbf9667c73ba1c3ff3927fb98777372b53fe10dc0",
+    "sourceBindingSha256": "f39a7042dfb356cef10e3e9039aa81688a39b66e36b577a02f4a9b051458a429",
+    "approvedBindingSha256": "4ca268f8b868241440f8240cc2ec2767f2746427a65805442aec38eae76c91f9",
+    "signedCheck": "ROOT_R11_SIGNED_ONE_RUN_READY_GO_FROM_RETAINED_ROOT_RECEIPT_NOT_RERUN",
+    "publicRecords": {
+      "anchor.json": {
+        "sha256": "eb5ef505ed0d33d91cb4340938cdd145cf5ada4fb64dd280fd81439c203f67cf",
+        "size": 446
+      },
+      "configuration.json": {
+        "sha256": "6837861076cc9fde0940ccdfaf2df61d1cc9623ede0b34be2a65e377cfe51313",
+        "size": 931
+      },
+      "root-source-binding.json": {
+        "sha256": "f39a7042dfb356cef10e3e9039aa81688a39b66e36b577a02f4a9b051458a429",
+        "size": 1304
+      },
+      "unsigned-ready.json": {
+        "sha256": "8d2d930c29ce1a4e0c5a95bfcef0118899f2615e71d424c5fcee7b7d2f2d4618",
+        "size": 1137
+      },
+      "approval.json": {
+        "sha256": "0ba960f8199001a934cb5381798546b1aefb060c5dc6948a879a2b2772dc0733",
+        "size": 4649
+      },
+      "one-run.json": {
+        "sha256": "424333cfed125271b142b3edbf9667c73ba1c3ff3927fb98777372b53fe10dc0",
+        "size": 787
+      },
+      "root-approved-binding.json": {
+        "sha256": "4ca268f8b868241440f8240cc2ec2767f2746427a65805442aec38eae76c91f9",
+        "size": 902
+      }
+    }
+  },
+  "postRunPreservation": {
+    "receipt": "/workspace/work/mvp-implementation/recovery/restore14-r16-post-readonly-preservation.json",
+    "sha256": "db5421a4eba818521ae9f1bf1ff3133ad5f631ea0f9f97a5c12d333e320df04c",
+    "sourcePreflight": {
+      "chunk": "afd35b",
+      "exit": 0,
+      "sourceInputs": 123,
+      "nativePaths": 137,
+      "publicMembers": 20,
+      "nativeIndexSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+      "canonicalRuntimeDigestRecomputed": true
+    },
+    "launch": {
+      "members": 66,
+      "sha256": "a679d3f8bce8e601659298a0bf472d15571444c12bc5b85c8db2a3a1d8f0404e",
+      "platformMembers": 8
+    },
+    "release": {
+      "members": 56,
+      "sha256": "1ab7571630dd3b3f7244c2eee7e2664090975d6e8a0c7e258a20807fd0d5614e",
+      "platformMembers": 4
+    },
+    "stageMetadata": {
+      "discoveredMembers": 92,
+      "allocatedBytes": 4325376,
+      "memberBound": 2048,
+      "depthBound": 32,
+      "allocationBound": 16777216,
+      "regularFileBound": 8388608,
+      "cacheEntries": []
+    },
+    "fences": {
+      "/tmp/native-helper-drain-r16-20261117/home/state/fences": {
+        "identity": {
+          "path": "/tmp/native-helper-drain-r16-20261117/home/state/fences",
+          "device": "27",
+          "inode": "1949570"
+        },
+        "entries": []
+      },
+      "/tmp/native-helper-drain-r16-20261117/helper-fences": {
+        "identity": {
+          "path": "/tmp/native-helper-drain-r16-20261117/helper-fences",
+          "device": "27",
+          "inode": "1949568"
+        },
+        "entries": []
+      }
+    },
+    "socket": {
+      "path": "/tmp/native-helper-drain-r16-20261117/home/state/socket",
+      "exists": false
+    },
+    "publicNetworkAudit": {
+      "path": "/tmp/native-helper-drain-r16-20261117/profile/network-audit.json",
+      "exists": false,
+      "denied": "UNKNOWN",
+      "dispatched": "UNKNOWN"
+    },
+    "privateKeyPolicy": "STAT_ONLY_NEVER_OPENED_HASHED_OR_ARCHIVED",
+    "manualR15ApprovalSourceProof": {
+      "approvedEqualsTemplate": true,
+      "supervisorSha256": "9db634b9aea954c24bf8af60b89c6ac7918436b0c5cf95a3dcda77eab84ae1bb",
+      "policySha256": "5049a898aadafac049b8210a4400b562dc43d33d9b0b04958437b62b7aa67d83",
+      "configSha256": "af567552c098f1d05fe372ab7573ffc01d352aa29bcf6036169174820d51e6f6",
+      "auditSha256": "fcb5889512e85ea541bf55c6ccee2243ee87130b38a3d07dbb39dc1cdc06b0a7",
+      "scope": "PRESERVED_SOURCE_PROOF_ONLY_NO_MANUAL_ACTION_OR_MUTATION"
+    }
+  },
+  "scopeLimits": {
+    "nativeAgentSession": "NOT_RUN",
+    "chat": "NOT_RUN",
+    "rpcUi": "NOT_RUN",
+    "ordinaryNativeDispatcherBrokerBackendAdmission": "BLOCKED",
+    "faultMatrix": "NOT_RUN",
+    "externalProtector": "NOT_RUN",
+    "globalGate": "NOT_RUN",
+    "realSessions": "NOT_TOUCHED",
+    "globalInstallation": "NOT_TOUCHED",
+    "productAdmission": "BLOCKED",
+    "wholeTicket41OrSpec29Completion": false,
+    "broaderAutomaticCleanupAcceptance": "NOT_ESTABLISHED"
+  },
+  "historicalFailuresPreserved": {
+    "R9": "FAILED_NATIVE_STARTUP_MANUAL_KERNEL_TERMINALS_ONLY_ORIGINAL_TOOL_EOF130_NO_PARENT_REAP_OR_GENERAL_EXTINCTION_ATTESTATION",
+    "R12": "UNSIGNED_UNEXECUTED_INSPECTION_FAILED_COMPILER_BUN_CACHE_OVER_8MIB_FILE_BOUND",
+    "R13": "UNSIGNED_UNEXECUTED_INSPECTION_FAILED_AST_ORACLE_BUILTIN_PREFIX_MISMATCH",
+    "R14": "NATIVE_APPROVAL_DISPATCHER_MISMATCH_BEFORE_READY_OR_HOST_ELIGIBLE_ORIGINAL_RECOVERY_ENDED_EXIT1_NOT_FIXTURE_PASS",
+    "R15": "HOST_AWAIT_REGISTERED_RETAINER_EVENT_FIELDS_FAILURE_MANUAL_THREE_SELECTED_KERNEL_TERMINALS_ONLY_ORIGINAL_TOOL_EOF143_WAITS_EMPTY_P_ALL_NOT_OBSERVED_NO_GENERAL_EXTINCTION_ATTESTATION",
+    "historicalFixtureAcceptance": false,
+    "historicalAutomaticCleanupAcceptance": false,
+    "oldScopes": "CONSUMED_PRESERVED_NEVER_REPAIRED_OR_RERUN",
+    "sourceHistoryPointers": [
+      "/workspace/work/mvp-implementation/RESTORE11.md",
+      "/workspace/work/mvp-implementation/RESTORE12.md",
+      "/workspace/work/mvp-implementation/RESTORE13.md",
+      "/workspace/work/mvp-implementation/RESTORE14.md"
+    ]
+  },
+  "evidenceFollowthrough": {
+    "sourceChanges": false,
+    "testsAddedOrRun": false,
+    "nativeImports": false,
+    "keysOpened": false,
+    "checkerModesRerun": false,
+    "actualRerun": false,
+    "compilerOrActorOperation": false,
+    "procInspectionOrSignals": false,
+    "bunCommands": 0
+  },
+  "rootPublicReceiptsAndReviews": [
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-preflight-tool.json",
+      "sha256": "d34eba979595d3f54c7c645618365d140d56e738ebb44db78a5e32da0e307148",
+      "bytes": 362
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-prestage-tool.json",
+      "sha256": "0194b4b17cf1069e2791a0c7abb2aaae5593d6dc8420f48a6d67e1990b65e4a4",
+      "bytes": 506
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-compiler-initial-tool.json",
+      "sha256": "3ee34a89a186745ad3cda17335b2cece88118d122a94b5cddfda6a9f37a39b91",
+      "bytes": 131
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-compiler-final-tool.json",
+      "sha256": "2c04c6a99737b1927bae3cc8a0bcb11d8f250bd1de3d07ae6593e928259e8a7b",
+      "bytes": 333
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-unsigned-inspection-initial-tool.json",
+      "sha256": "527ebd794c76c8863e9452a9f76765501cdb182ccc3fb3cd301b7b4e752b733f",
+      "bytes": 131
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-unsigned-inspection-final-tool.json",
+      "sha256": "3588b24838c457a60ded65df2bd407f594e5aa9a6d5e82c4dfd72777af479847",
+      "bytes": 126
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-public-ready-read-tool.json",
+      "sha256": "89977d7806873242b6b76203200557f122902d59a84d54cf8e317f5108cf777c",
+      "bytes": 1652
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-late-sign-initial-tool.json",
+      "sha256": "874300f248f943c9f7cc93d51472700e839e3ccecfd4862b1c64c89cd714b32c",
+      "bytes": 130
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-late-sign-final-tool.json",
+      "sha256": "493e0a2a7020c0582406d5a3296dd8b3efb483091190296b69b27d19488867a0",
+      "bytes": 593
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-signed-check-initial-tool.json",
+      "sha256": "b186d51a51ba5186c16866ca3af73aa4171eb8b9ce9a183a6056093097352438",
+      "bytes": 131
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-signed-check-final-tool.json",
+      "sha256": "3fbc51ae3450e0b48b7d278e4b09ed7275e36d11fbfeffcd44d21dc46d8dfb77",
+      "bytes": 791
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-initial-tool.json",
+      "sha256": "413fe428fb857f7fed2e75b48d2638087f1bfe25bf5b893088733707898b373c",
+      "bytes": 131
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-actual-poll1-tool.json",
+      "sha256": "34f7f9d2280e28e35e77c658edc4e9fa676606b4abe10dbbfa012442dc94a31d",
+      "bytes": 326
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore14-r16-root-one-runtime-clearance.json",
+      "sha256": "c59b341ba9dd846f7c00e6527f17c57e63726accfccb17f5885682138eab03a2",
+      "bytes": 1300
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket41-r16-joint-source-spec.md",
+      "sha256": "50f1609d2bdd150603bcf6e985423249bb13f83b3e167ace232ca3659312a6ab",
+      "bytes": 2650
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket41-r16-joint-source-standards.md",
+      "sha256": "3717dfb9bd7236347f4d5b40678f0abd7e71d7575c3387e2e5e829d0d36180b7",
+      "bytes": 2745
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket41-r16-final-artifact-spec.md",
+      "sha256": "595d1ec966a2146198843c16990268be9bcb9d038a00e858c9a1f933227f87d0",
+      "bytes": 2659
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket41-r16-final-artifact-standards.md",
+      "sha256": "577b4c191c583867ade5064f56197d9e0ade2c27cf7f6bdfe0de4b04c7be13fe",
+      "bytes": 2743
+    }
+  ],
+  "publicEvidencePack": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket41-r16-nominal-evidence-public.tar.gz",
+    "sha256": "4c4e63b3d0dc5d148af9ca3885154d656764b543d2159f3dfb994ef40e849cb6",
+    "bytes": 45912,
+    "members": 35,
+    "uncompressedPublicBytes": 190311,
+    "fullReadback": "PASS_ALL_MEMBER_BYTES_AND_SHA256"
+  }
+}
