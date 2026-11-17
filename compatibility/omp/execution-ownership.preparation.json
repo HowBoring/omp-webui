@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "a14b65661d079f668352fb60ef21713bd2789ae8579704769f991d59e5395f7b"
+    "sha256": "d9aae7f5ec83f7f9e13f44be487b1c920a126513402b251ee3a6986e0d09d9ea"
   },
-  "preparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
-  "preparedSourceSha256": "0cbb8454f6ba4dd686025d6445d63a441f0afcc18df98e1806700bbb1f16cabd",
+  "preparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
+  "preparedSourceSha256": "11912fcb60102ee44c03b38ea0a6134af04bcc672f26725eb383f29f8fe2ba7f",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -158,5 +158,20 @@
     "actualGlobal": "BLOCKED",
     "privateAdmission": "BLOCKED",
     "finalExportsThisFix": 1
+  },
+  "nativeHelperDrain": {
+    "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+    "evidence": "docs/evidence/ticket-41-native-helper-drain.json",
+    "approval": "EXPLICIT_ANCHOR_3_APPROVAL_4_SIGNATURE_DOMAIN_4",
+    "legacyV3": "ANY_COMMITTED_PREPARE_RETAINS_UNCHANGED",
+    "nativeEligibility": "TRUSTED_COMPLETE_ORIGINAL_PIDFD_EXIT_AUTHENTICATED_DURABLE_HELPER_FENCE_ABSENCE_LOCAL_QUIESCENCE",
+    "hostOwnership": "ORIGINAL_HELPER_WAIT_AND_CLEAN_CONTROL_EOF_REQUIRED_INDEPENDENTLY",
+    "helperFences": "READ_ONLY_NATIVE_NEVER_UNLINKS",
+    "processOwnedCDescriptor": "NEVER_GENERATION_CLOSE_OR_UNLOCK",
+    "actualHelperDrain": "NOT_RUN",
+    "ordinaryEntry": "BLOCKED",
+    "brokerBackend": "UNAVAILABLE",
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED"
   }
 }

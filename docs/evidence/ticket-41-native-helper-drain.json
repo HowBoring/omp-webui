@@ -1,0 +1,216 @@
+{
+  "format": "omp-native-helper-drain-source-v1",
+  "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+  "decision": "NATIVE_TERMINAL_ELIGIBILITY_IS_SEPARATE_FROM_HOST_REAP_AND_CONTROL_RECEIPT",
+  "authority": [
+    {
+      "path": "/workspace/work/mvp-implementation/research/ticket-41-helper-drain-contract.md",
+      "sha256": "e9869bb9ad74c71eafcfa2db0e9d5e2aa93e029ce2c0587b4c9c8f745ff406b7"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/research/ticket-41-native-drain-next.md",
+      "sha256": "4a5156426ce00bb1752054b973d7812f65397e9297587a6bd6be951a4af84209"
+    }
+  ],
+  "hostBase": "c17750add9c7599cac906f3ef8eaa18783c416e6",
+  "mergedIntegration": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+  "preparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
+  "patchSha256": "d9aae7f5ec83f7f9e13f44be487b1c920a126513402b251ee3a6986e0d09d9ea",
+  "preparedSourceSha256": "11912fcb60102ee44c03b38ea0a6134af04bcc672f26725eb383f29f8fe2ba7f",
+  "sourceExport": "docs/evidence/ticket-41-native-helper-drain-export.json",
+  "checks": {
+    "record": "docs/evidence/ticket-41-native-helper-drain-checks.json",
+    "sha256": "dd5f13f6e37d3b2277583daacfbd80d31fe5b7349014db1b7ff76e5bd1cb0791",
+    "tests": 105,
+    "assertions": 949,
+    "typeCheckedFiles": 53,
+    "workerClientGraphModules": 11,
+    "strictC": "PASS_SHARED_COMPILE_ONLY_ZERO_DIAGNOSTICS",
+    "emittedBuild": {
+      "status": "PASS_BUILD_ONLY",
+      "bytes": 87956,
+      "sha256": "ccc25dc489fcf9b21de8f0f11c949a942b5826c2a6f49aba01bcbfc6d9868107",
+      "eagerFfiImports": 0,
+      "emittedNativeExecuted": false
+    },
+    "publicContract": {
+      "package": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io",
+      "files": {
+        "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+        "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+        "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+        "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+        "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+        "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+        "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+      },
+      "runtimeImported": false,
+      "typeMapping": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+      "resolution": "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT"
+    },
+    "testGuard": "tests/preferences/no-provider.ts BEFORE ALL PURE NATIVE TEST IMPORTS",
+    "runtime": "ENV_I_SYNTHETIC_HOME_PROFILE_CWD_TMP_NO_ENV_FILE_BUN_1_4_4"
+  },
+  "mechanisms": {
+    "signedPolicy": "EXPLICIT_ANCHOR_3_APPROVAL_4_DOMAIN_4_REQUIRED_EXACT_HELPER_FENCE_BINDING",
+    "legacy": "STRICT_ANCHOR_2_APPROVAL_3_UNCHANGED_ANY_COMMITTED_PREPARE_RETAINS",
+    "provenance": "SIGNED_EXHAUSTIVE_HELPER_SOURCE_HEADERS_CONFIGURATION_BUILD_SCRIPT_AND_HELPER_HASH; EXACT_ACTUAL_C_CONFIG_MATCH",
+    "ledger": "USED_GENERATION_TOMBSTONES_PLUS_RETAINED_PENDING_ATTEMPT_ACTIVE_COMPLETED_TERMINAL_CORRELATION",
+    "prepare": "COMMITTED_BEFORE_REPLY_LOST_REPLY_DOES_NOT_UNDO_PREPARE",
+    "register": "RETAINS_ORIGINAL_CONTROLLER_HELPER_WIRE_SESSION_BEFORE_AWAITED_PEER_STORAGE_WORK",
+    "complete": "AUTHENTICATED_ORIGINAL_TRUSTED_HELPER_SESSION; RETAINS_CORRELATION; NO_RELEASE_RPC",
+    "terminal": "ORIGINAL_RETAINED_PIDFD_KERNEL_EXIT_AND_AUTHENTICATED_DURABLE_HELPER_FENCE_ABSENCE",
+    "afterExit": "NO_PROC_EXECUTABLE_ANCESTRY_OR_NUMERIC_PID_REDISCOVERY",
+    "helperFences": "READ_ONLY_OPENAT_FSTATAT_NOFOLLOW_HELD_DIRECTORY_FILE_IDENTITIES; NEVER_NATIVE_UNLINK",
+    "absence": "ORIGINAL_UNLINKED_FILE_EXACT_NAME_ENOENT_DIRECTORY_FSYNC_RECHECK_SELECTION_AND_DIRECTORY",
+    "uncertainty": "REPLACEMENT_UNKNOWN_ENTRY_DESCRIPTOR_SELECTION_FSYNC_CLOSE_FAILURE_STICKY",
+    "drain": "STOP_ADMISSIONS_CONTINUE_REGISTERED_HELPER_COMPLETE_ACK_PER_WRITE_AUTHORITY_AND_SERIALIZED_TERMINAL_CHECKS",
+    "disposal": "TERMINAL_EMPTY_SCOPES_DRAINED_OUTPUT_CALLBACKS_STABLE_TAIL_FINAL_RECHECK_THEN_ENDPOINT_FENCE_BRIDGE_PUBLIC_MODULE_SELECTION_LAST",
+    "cMaintenanceDescriptor": "PROCESS_OWNED_UNTIL_EXIT_NEVER_GENERATION_CLOSED_OR_UNLOCKED",
+    "host": "INDEPENDENT_ORIGINAL_HELPER_WAIT_AND_CLEAN_CONTROL_EOF_TAIL_BEFORE_HOST_LEASE_RELEASE",
+    "privateCOrdering": "UNCHANGED_FENCE_CLEAR_FSYNC_BEFORE_HOST_COMPLETE_FLUSH_CAN_RETURN_75_NO_EXTERNAL_PROOF_TRANSFER"
+  },
+  "tdd": {
+    "directory": "/workspace/work/mvp-implementation/research/restore7-41-helper-drain",
+    "successiveRedGreenSlices": [
+      "dispatcher",
+      "approval",
+      "fence",
+      "drain",
+      "tail",
+      "peer",
+      "session",
+      "policy",
+      "fence-close",
+      "tombstones",
+      "stop-close"
+    ],
+    "rawRecords": [
+      {
+        "file": "01-dispatcher-green.txt",
+        "sha256": "6090e4bc7e37c3c7e1c506f37fc6973a1b68ebb12afaf412884a32117170d691"
+      },
+      {
+        "file": "01-dispatcher-red.txt",
+        "sha256": "6927adf48e7221bf339908d8968b23026907b6a3126670a94fd629bbc22da6aa"
+      },
+      {
+        "file": "02-approval-green.txt",
+        "sha256": "7654222a4ced8132359cc5a9927677667e15b563e07eb62cc5922169133b0db0"
+      },
+      {
+        "file": "02-approval-red.txt",
+        "sha256": "e65838e01be75674a7f23300fd7b2b17b564545c956964f2b25fcf30179f45d8"
+      },
+      {
+        "file": "03-fence-green.txt",
+        "sha256": "db2693f4d2c13febe03df6190cd96eaeb79da9b52fa93d5a17877b530366807d"
+      },
+      {
+        "file": "03-fence-red.txt",
+        "sha256": "ee939249dc3c623309324e4e3abd5776c183ce28b76be01d1f11eb51c393d883"
+      },
+      {
+        "file": "04-drain-green.txt",
+        "sha256": "00dac57a1a83ada93d5d5c3356251708c95a741b408e03be5f8b313acee88b16"
+      },
+      {
+        "file": "04-drain-red.txt",
+        "sha256": "24b4c64c0fe94b316f8e4e754a2a14895ba8747bc7695e6aa8379fb3ed73314c"
+      },
+      {
+        "file": "05-tail-green.txt",
+        "sha256": "fe3e9a5a6db978f45a7ba96a42e7f0b5f9b01063372f5e7e2853d8dd37e89053"
+      },
+      {
+        "file": "05-tail-red.txt",
+        "sha256": "5c94ee5fb4cb0c51fbbe91f173a5fa704029781ed0ff1d104e8fdeadba730648"
+      },
+      {
+        "file": "06-peer-green.txt",
+        "sha256": "4939553efab42583766e4c0beefbfc54050ff2b533d7b8ab9e1ebf6332188e1a"
+      },
+      {
+        "file": "06-peer-red.txt",
+        "sha256": "9cf437d168888f93ed0b42e43d0e5a9241c359f356c0a2693f290c17b00bc1ec"
+      },
+      {
+        "file": "07-session-green.txt",
+        "sha256": "c593270c35c96b3c98b51ceacab7aabce8533b93a57bad56e6b8b2f88ddc6eb4"
+      },
+      {
+        "file": "07-session-red.txt",
+        "sha256": "f22186af432337c584d71f1edf198a1dd7fba99d88844d63d2797b056a268987"
+      },
+      {
+        "file": "08-policy-green.txt",
+        "sha256": "ef9f71e2a74727aac24f3049b6879302be5ac3d33b6a45996a193036735cdfd6"
+      },
+      {
+        "file": "08-policy-red.txt",
+        "sha256": "9954ecad53506e349d946346e912700c93fe7b2e28860ce5b4a0217bbb156909"
+      },
+      {
+        "file": "09-terminal.txt",
+        "sha256": "2ae119a48914ffaa15e564946ec8204d0856d5f9978ee7a97dc1ff8a5d8b533f"
+      },
+      {
+        "file": "10-fence-close-green.txt",
+        "sha256": "c404d98b4343581d198bbd9ee7460b2331ab293456b4aec464f57d40a4cda024"
+      },
+      {
+        "file": "10-fence-close-red.txt",
+        "sha256": "e869dea1c67d6817b8e508592375cdbd598c1ee1a9e427373213280ea7266c6c"
+      },
+      {
+        "file": "11-tombstones-green.txt",
+        "sha256": "3b15376033516d39dd5ff7a8fc920c60fbd6d22199c70da557ad0014d2209cdf"
+      },
+      {
+        "file": "11-tombstones-red.txt",
+        "sha256": "1149b795b6cd22a72e725c975772059e8b4a1cadf984fe3292987337d07fd176"
+      },
+      {
+        "file": "12-stop-close-green.txt",
+        "sha256": "db1f0110c8425e10f6589ca03161d825987fe743b8c2925a5c8a63c4ee09c86c"
+      },
+      {
+        "file": "12-stop-close-red.txt",
+        "sha256": "1b2aaa3d712ccf0e941a4dd53b06aa8f071d01ed10e5b5854e1ed4bc3b1f37c3"
+      }
+    ],
+    "additionalCases": "LIVE_PEER_LOST_OR_PARTIAL_ACK_EXIT_OR_EOF_WITHOUT_COMPLETE_PIDFD_ERROR_REPLACEMENT_FSYNC_UNKNOWN_ENTRY_CALLBACKS_SCOPES_CLOSE_FAILURE_NO_DOUBLE_RELEASE"
+  },
+  "preservation": {
+    "directory": "/workspace/work/mvp-implementation/research/restore7-41-helper-drain",
+    "originalNativeChangedFiles": 130,
+    "originalNativeFilesUnchanged": 120,
+    "originalModifiedSourceFiles": 10,
+    "newSourceFiles": 7,
+    "nativeHeadIndexStagedExact": true,
+    "boundedSourcePreimagesMatchPreviousInactiveTree": true,
+    "privateIndexPrefixAndPatchReplayExact": true,
+    "activePatchListChanged": false,
+    "consumerDeltaChanged": false,
+    "finalPatches1Through10Composed": false
+  },
+  "historicalNoPrepareProof": {
+    "hostCommit": "c17750add9c7599cac906f3ef8eaa18783c416e6",
+    "scope": "NO_PREPARE_NO_HELPER_ONLY",
+    "retiredConsumedStageB": "/workspace/work/mvp-implementation/recovery/signed-probe-b-retirement.json",
+    "disclosedEphemeralKeysReused": false
+  },
+  "currentSourceActualComposition": "NOT_RUN",
+  "actualHelperDrain": "NOT_RUN",
+  "actualHelperFenceSyscalls": "NOT_RUN",
+  "nativeCliSdkAgentFfiLibrarySocketKernelHelperControllerExecuted": false,
+  "actualProductionKeysConfigurationOrApprovalCreated": false,
+  "ordinaryEntry": "BLOCKED",
+  "brokerBackend": "UNAVAILABLE",
+  "finalComposition": "BLOCKED",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "freshStandardsAndSpecReviews": "PENDING_ROOT",
+  "issue41Complete": false,
+  "issue61Complete": false
+}

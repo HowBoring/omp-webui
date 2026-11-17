@@ -139,3 +139,25 @@ retracted. Signed negative inspection replies and trusted COMPLETE acknowledgeme
 while an invalid owner forbids all output. These checks reject detected invalidation; they make no timing claim about
 undetected external changes. The extracted pure reply queue creates no production owner, transport or RPC authority.
 See [publication-barrier source fix](../evidence/ticket-41-native-control-publication.md); actual composition is NOT RUN.
+
+
+The inactive v4 source now distinguishes Native eligibility from independent Host ownership. The preceding ANY-prepare
+rule remains the strict anchor/2 + approval/3 policy. Explicit anchor/3 + approval/4 uses its own signature domain and
+requires signed `helperFence` policy/directory/helper digest matching actual private-C conventions and inventoried
+build configuration. It retains used-generation tombstones, unresolved prepare/REGISTER entries, original controller,
+helper peer and wire session after COMPLETE. No cancellation or public release RPC clears unmatched prepares.
+
+V4 Native disposal requires trusted COMPLETE + original retained SO_PEERPIDFD exit + held authenticated helper-fence
+absence, sealed by directory fsync/recheck + settled callback/output/resource state. No /proc, ancestry or numeric PID
+rediscovery is used after exit. Native never unlinks helper fences. Unknown entries/replacement/descriptor/fsync/close
+errors remain sticky uncertainty. Registered helpers and COMPLETE ACK output continue while admission drains; terminal
+checks serialize with the response tail. Empty scopes, a final stable tail and quiescence checks precede descriptor
+cleanup, awaited public-module close and selection release last. The C maintenance descriptor remains process-owned.
+
+This provides no helper exit status, Host receipt or Host reap: Host still independently owns its original helper wait
+and requires clean control EOF/tail before Host lease release. Public-adapter private C clears its fence before Host
+COMPLETE flush and may exit75; external fix5's stronger ordering is not private-mode evidence. That C ordering is
+unchanged. The c17750a actual signed no-prepare composition remains historical helper-free evidence; its consumed
+stageB keys/runtime have been retired. New helper drainage is source-only/NOT RUN. Ordinary dispatcher/broker backend,
+actual helper composition, final release/global provenance and private admission remain BLOCKED.
+See [helper drain source evidence](../evidence/ticket-41-native-helper-drain.md).

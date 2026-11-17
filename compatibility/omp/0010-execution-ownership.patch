@@ -128,10 +128,10 @@ index 0000000000..749ace4466
 +旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..dc128dddef
+index 0000000000..d29b844d10
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,376 @@
+@@ -0,0 +1,427 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -508,6 +508,57 @@ index 0000000000..dc128dddef
 +Public-adapter nominal evidence proves its independent production adapter with mechanical fake ACKs, not signed Native
 +preparation. This Native composition and the changed C argv handoff remain NOT RUN. Source tests/builds grant no global,
 +private or #41/#61 capability; historical v2 UDS evidence is not proof for these bytes.
++
++
++### Inactive v4 Native helper terminal eligibility
++
++This source slice changes only the explicit v4 policy. Strict anchor/2 + approval/3 remains unchanged and ANY
++committed prepare still retains its Native generation. A separately selected anchor/3 declares approval/4 with
++signature domain `omp-execution-release-approval/4\0`. Its required exact `helperFence` record contains policy
++`omp-private-helper-fence/1`, canonical outside-release directory identity, and `helperSha256` equal to the signed
++helper bytes. It cannot be inferred from optional roles or supplied by a controller, environment or numeric PID.
++No production selection, keys or signed configuration are created here.
++
++The policy matches public-adapter private-helper.c: directory0700, effective UID ownership, regular single-link
++file0600, `<64-lowercase-hex-generation>.fence`, and exact bounded
++`omp-private-incomplete/1 <generation> <observed-helper-pid>\n`. The PID is correlation only. Signed exhaustive
++inventory must include actual helper C, candidates/control headers, generated `private-helper-configuration.h`
++and `build-private-helper.ts` provenance. Configuration must exactly match the current signed dispatcher,
++installation, Native entry, control and helper-fence inputs. These reviewed source/configuration digests and helper
++digest are authenticated together; hashing a binary does not independently decode its compiled constants. A future
++operator build/approval producer must use one reviewed input to generate both configuration and policy.
++
++Used-generation tombstones are separate from pending, active and completed ledger entries. Prepare commits before
++reply publication; discarding its reply cannot undo it. REGISTER retains original controller/helper/session before
++awaited peer/storage work. COMPLETE keeps exact correlation and rejects replay or a replacement session. At most64
++pending/active helpers and512 used generations are retained; completed/terminal entries are never evicted to admit
++reuse. Unmatched prepare, failed REGISTER and EOF/exit without trusted COMPLETE remain unresolved.
++
++With explicit v4 only, Native eligibility requires trusted COMPLETE, kernel exit observed through the original
++retained SO_PEERPIDFD, authenticated helper-fence absence and local callback/output/resource quiescence. A live peer
++remains pending even if ACK was lost or a fence appears absent. After exit, terminal checks never consult /proc,
++ancestry or a rediscovered numeric PID. Read-only openat/fstatat/no-follow operations pin directory/file descriptors
++and validate metadata/content. ENOENT requires the original unlinked file, fsync of the held directory, and repeated
++absence/directory/selection checks. Present original fence stays pending; replacement, unknown entries, descriptor,
++selection or fsync errors permanently retain uncertainty. Native never unlinks helper fences. Checked close failures
++retain the module/selection and are not retried.
++
++Close stops admission/listener acceptance while continuing registered-helper polling and COMPLETE ACK continuation
++with per-write owner checks. Terminal checks share the stable response tail. Only certain terminal state, empty
++scopes and drained output/callbacks stop scheduling and close connections. A final tail/quiescence/terminal check
++precedes exact endpoint verification, helper-fence descriptor closure, bridge/dispatcher-fence closure, awaited public
++module close and selection release last. Both metadata owners retain uncertainty; the C maintenance descriptor stays
++process-owned until actual process exit. Timeouts never become successful drainage or disposal authority.
++
++Native eligibility supplies no Host wait result, exit status, control delivery or Host receipt. Host still requires
++its original helper wait and clean control EOF/tail before releasing its own lease. The actual private C clears/fsyncs
++its fence before flushing Host COMPLETE and can exit75; external fix5's stronger ordering cannot be transferred to
++private mode. No helper ordering or new release RPC is introduced here. Broker factories, external lifetime protectors,
++ordinary entry, global/private admission and final1–10 composition remain unavailable.
++
++The historical c17750a signed C→Bun no-prepare proof exercised no helper and does not validate these changed bytes.
++Its stageB keys/runtime were retired after proof and must never be reused. Current-source helper drainage is NOT RUN.
++Pure interface tests, strict nominal types, strict C compilation and emitted-build AST checks are source evidence only.
 diff --git a/packages/coding-agent/src/blob-broker/daemon.ts b/packages/coding-agent/src/blob-broker/daemon.ts
 index 94d8bd457e..582426e750 100644
 --- a/packages/coding-agent/src/blob-broker/daemon.ts
@@ -1498,10 +1549,10 @@ index be6b55bca1..d760a82a21 100644
  }
 diff --git a/packages/coding-agent/src/launch/ownership/approval.ts b/packages/coding-agent/src/launch/ownership/approval.ts
 new file mode 100644
-index 0000000000..44df822b2c
+index 0000000000..44e559c013
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/approval.ts
-@@ -0,0 +1,225 @@
+@@ -0,0 +1,250 @@
 +import { strictOwnershipRecord as record } from "./strict-record";
 +import * as fs from "node:fs";
 +import * as path from "node:path";
@@ -1514,6 +1565,11 @@ index 0000000000..44df822b2c
 +export interface OwnershipApprovalPin { readonly path: string; readonly device: string; readonly inode: string; readonly sha256: string }
 +export interface OwnershipFileApproval { readonly file: string; readonly sha256: string }
 +export interface OwnershipDirectoryApproval { readonly path: string; readonly device: string; readonly inode: string }
++export interface OwnershipHelperFenceApproval {
++  readonly policy: "omp-private-helper-fence/1";
++  readonly directory: OwnershipDirectoryApproval;
++  readonly helperSha256: string;
++}
 +export interface LoadedOwnershipApproval extends OwnershipAuthenticationApproval {
 +	readonly releaseRoot: string;
 +	readonly releaseDirectory: OwnershipDirectoryApproval;
@@ -1526,6 +1582,7 @@ index 0000000000..44df822b2c
 +	readonly fenceDirectory: OwnershipDirectoryApproval;
 +	readonly bridge: OwnershipFileApproval;
 +	readonly helper: OwnershipFileApproval;
++	readonly helperFence?: OwnershipHelperFenceApproval;
 +	/** Recheck this immutable generation snapshot before/after async admission. Any failure permanently invalidates it. */
 +	verify(): Promise<void>;
 +}
@@ -1629,17 +1686,17 @@ index 0000000000..44df822b2c
 +	if (JSON.stringify(value) !== bytes) throw new OwnershipError("dispatcher_mismatch");
 +	return value;
 +}
-+function anchor(value: unknown, composed: boolean) {
++function anchor(value: unknown, version: 2 | 3 | 4) {
 +	const source = record(value, ["version", "installation", "approvalPublicKey", "approvalRecord", "approvalVersion", "recordBytes"]);
 +	const location = record(source.approvalRecord, ["path", "parent"]), parent = directory(location.parent);
 +	const file = canonical(location.path);
-+	if (source.version !== (composed ? "omp-execution-approval-anchor/2" : "omp-execution-approval-anchor/1")
-+		|| source.approvalVersion !== (composed ? "omp-execution-approval/3" : "omp-execution-approval/2")
++	if (source.version !== `omp-execution-approval-anchor/${version - 1}`
++		|| source.approvalVersion !== `omp-execution-approval/${version}`
 +		|| source.recordBytes !== 16384 || path.dirname(file) !== parent.path) throw new OwnershipError("dispatcher_mismatch");
 +	return { installation: ownershipGeneration(source.installation), approvalPublicKey: key(source.approvalPublicKey),
 +		file, parent };
 +}
-+async function approvedPayload(bytes: string, publicKey: string, composed: boolean): Promise<Record<string, unknown>> {
++async function approvedPayload(bytes: string, publicKey: string, version: 2 | 3 | 4): Promise<Record<string, unknown>> {
 +	const envelope = record(exactJson(bytes), ["version", "payload", "signature"]);
 +	if (envelope.version !== "omp-execution-signed-approval/1" || typeof envelope.payload !== "string"
 +		|| typeof envelope.signature !== "string") throw new OwnershipError("dispatcher_mismatch");
@@ -1648,11 +1705,11 @@ index 0000000000..44df822b2c
 +		throw new OwnershipError("dispatcher_mismatch");
 +	}
 +	const verificationKey = await crypto.subtle.importKey("raw", Uint8Array.from(Buffer.from(publicKey, "base64url")), "Ed25519", false, ["verify"]);
-+	if (!await crypto.subtle.verify("Ed25519", verificationKey, signature, new TextEncoder().encode((composed ? "omp-execution-release-approval/3\0" : APPROVAL_DOMAIN) + envelope.payload))) {
++	if (!await crypto.subtle.verify("Ed25519", verificationKey, signature, new TextEncoder().encode((version === 2 ? APPROVAL_DOMAIN : `omp-execution-release-approval/${version}\0`) + envelope.payload))) {
 +		throw new OwnershipError("dispatcher_mismatch");
 +	}
 +	return record(exactJson(envelope.payload), ["version", "policy", "installation", "identity", "dispatcherReplyPublicKey", "releaseRoot",
-+		"releaseDirectory", "entry", "control", "endpoint", "stateDirectory", "fenceDirectory", "bridge", "helper", "controlIo", "validator"]);
++		"releaseDirectory", "entry", "control", "endpoint", "stateDirectory", "fenceDirectory", "bridge", "helper", "controlIo", "validator", ...(version === 4 ? ["helperFence"] : [])]);
 +}
 +
 +/**
@@ -1660,19 +1717,31 @@ index 0000000000..44df822b2c
 + * actual global provenance/mappings, semantics, all-process maintenance locks and durable fences remain separate gates.
 + * Publication/upgrade/rollback require explicit coordinated operator action; a new record needs a new generation.
 + */
-+async function loadApproval(selected: OwnershipApprovalPin, composed: boolean): Promise<LoadedOwnershipApproval> {
++async function loadApproval(selected: OwnershipApprovalPin, version: 2 | 3 | 4): Promise<LoadedOwnershipApproval> {
 +	const pin = ownershipApprovalPin(selected);
 +	try {
-+		const fixed = await snapshot(pin.path, pin), trust = anchor(exactJson(fixed.bytes), composed);
++		const fixed = await snapshot(pin.path, pin), trust = anchor(exactJson(fixed.bytes), version);
 +		await verifyDirectory(trust.parent);
-+		const selectedRecord = await snapshot(trust.file), source = await approvedPayload(selectedRecord.bytes, trust.approvalPublicKey, composed);
-+		if (source.version !== (composed ? "omp-execution-approval/3" : "omp-execution-approval/2") || source.policy !== "omp-execution-ownership/1"
++		const selectedRecord = await snapshot(trust.file), source = await approvedPayload(selectedRecord.bytes, trust.approvalPublicKey, version);
++		if (source.version !== `omp-execution-approval/${version}` || source.policy !== "omp-execution-ownership/1"
 +			|| source.installation !== trust.installation || key(source.dispatcherReplyPublicKey) === trust.approvalPublicKey) {
 +			throw new OwnershipError("dispatcher_mismatch");
 +		}
 +		const releaseRoot = canonical(source.releaseRoot), releaseDirectory = directory(source.releaseDirectory);
 +		const state = directory(source.stateDirectory), endpoint = canonical(source.endpoint), fences = directory(source.fenceDirectory);
 +		const entry = ownershipApprovalPin(source.entry), control = ownershipApprovalPin(source.control);
++		const helper = member(source.helper, releaseRoot);
++		let helperFence: OwnershipHelperFenceApproval | undefined;
++		if (version === 4) {
++			const policy = record(source.helperFence, ["policy", "directory", "helperSha256"]);
++			const location = directory(policy.directory);
++			outside(location.path, releaseRoot);
++			if (policy.policy !== "omp-private-helper-fence/1" || policy.helperSha256 !== helper.sha256
++				|| location.path === fences.path || (location.device === fences.device && location.inode === fences.inode)) {
++				throw new OwnershipError("dispatcher_mismatch");
++			}
++			helperFence = Object.freeze({ policy: "omp-private-helper-fence/1", directory: location, helperSha256: helper.sha256 });
++		}
 +		for (const file of [pin.path, trust.parent.path, trust.file, state.path, fences.path, entry.path, control.path]) outside(file, releaseRoot);
 +		if (releaseDirectory.path !== releaseRoot || path.dirname(fences.path) !== state.path || fences.path === endpoint
 +			|| path.dirname(endpoint) !== state.path || Buffer.byteLength(endpoint) >= 108) throw new OwnershipError("dispatcher_mismatch");
@@ -1682,12 +1751,13 @@ index 0000000000..44df822b2c
 +				if (failed) throw new OwnershipError("dispatcher_mismatch");
 +				await snapshot(pin.path, fixed); await verifyDirectory(trust.parent);
 +				await snapshot(trust.file, selectedRecord);
-+				if (composed) await approvedPayload(selectedRecord.bytes, trust.approvalPublicKey, true);
++				if (version >= 3) await approvedPayload(selectedRecord.bytes, trust.approvalPublicKey, version);
 +				const stat = await fs.promises.lstat(releaseRoot, { bigint: true });
 +				if (await fs.promises.realpath(releaseRoot) !== releaseRoot || !stat.isDirectory()
 +					|| String(stat.dev) !== releaseDirectory.device || String(stat.ino) !== releaseDirectory.inode) {
 +					throw new OwnershipError("dispatcher_mismatch");
 +				}
++				if (helperFence) await verifyDirectory(helperFence.directory);
 +				await verifyDirectory(state); await verifyDirectory(fences); await verifyDirectory(trust.parent);
 +				await snapshot(trust.file, selectedRecord); await snapshot(pin.path, fixed);
 +				if (failed) throw new OwnershipError("dispatcher_mismatch");
@@ -1697,18 +1767,24 @@ index 0000000000..44df822b2c
 +		return Object.freeze({ installation: trust.installation, identity: Object.freeze(ownershipIdentity(source.identity)),
 +			publicKey: key(source.dispatcherReplyPublicKey), releaseRoot, releaseDirectory, entry, control, endpoint,
 +			stateDirectory: state, fenceDirectory: fences, bridge: member(source.bridge, releaseRoot),
-+			helper: member(source.helper, releaseRoot), controlIo: composed ? decodeOwnershipControlIo(source.controlIo, releaseRoot) : member(source.controlIo, releaseRoot),
++			helper, ...(helperFence ? { helperFence } : {}), controlIo: version >= 3 ? decodeOwnershipControlIo(source.controlIo, releaseRoot) : member(source.controlIo, releaseRoot),
 +			validator: member(source.validator, releaseRoot), verify });
 +	} catch { throw new OwnershipError("dispatcher_mismatch"); }
 +}
 +
 +/** Historical public UDS/client approval; this shape never authorizes the composed server. */
 +export async function loadOwnershipApproval(selected: OwnershipApprovalPin): Promise<LoadedOwnershipApproval> {
-+  return loadApproval(selected, false);
++  return loadApproval(selected, 2);
 +}
 +/** Separate strict anchor/2 + approval/3 + signature-domain/3 admission. No v2 fallback or automatic enrollment. */
 +export async function loadOwnershipControlApproval(selected: OwnershipApprovalPin): Promise<LoadedOwnershipControlApproval> {
-+  const approval = await loadApproval(selected, true);
++  const approval = await loadApproval(selected, 3);
++  const composed = Object.freeze({ ...approval, controlIo: decodeOwnershipControlIo(approval.controlIo, approval.releaseRoot) });
++  composedApprovals.add(composed); return composed;
++}
++/** Explicit anchor/3 + approval/4 policy. Never inferred from optional inventory roles or legacy approval. */
++export async function loadOwnershipTerminalApproval(selected: OwnershipApprovalPin): Promise<LoadedOwnershipControlApproval> {
++  const approval = await loadApproval(selected, 4);
 +  const composed = Object.freeze({ ...approval, controlIo: decodeOwnershipControlIo(approval.controlIo, approval.releaseRoot) });
 +  composedApprovals.add(composed); return composed;
 +}
@@ -2468,10 +2544,10 @@ index 0000000000..e7318acaa0
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000..772af6b6aa
+index 0000000000..c425936cbd
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
-@@ -0,0 +1,267 @@
+@@ -0,0 +1,317 @@
 +import {
 +	decodeOwnershipRequest, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError,
 +	ownershipBrokerScope, ownershipGeneration, ownershipIdentity, ownershipToken, sameOwnershipScope,
@@ -2494,6 +2570,10 @@ index 0000000000..772af6b6aa
 + */
 +export interface OwnershipSystem {
 +	readonly dispatcher: string;
++	/** Present only for explicit signed v4 policy; older approvals keep ANY-prepare retention. */
++	readonly helperTerminalPolicy?: "omp-private-helper-fence/1";
++	verifyTerminalState?(): Promise<void>;
++	checkHelperTerminal?(helper: StablePeer, generation: string): Promise<"pending" | "terminal">;
 +	/** Probe actual kernel operations and load durable fences. Any unresolved generation rejects startup. */
 +	ready(): Promise<void>;
 +	/** Synchronous current-module/protection barrier after awaited work and immediately before commit. */
@@ -2525,6 +2605,11 @@ index 0000000000..772af6b6aa
 +	readonly #identity: OwnershipIdentity;
 +	readonly #system: OwnershipSystem;
 +	readonly #helpers = new Map<StablePeer, string>();
++	readonly #completed = new Map<string, { readonly helper: StablePeer; readonly control: StablePeer;
++		readonly session: HelperWireSession | undefined; terminal: boolean }>();
++	readonly #sessions = new Map<StablePeer, HelperWireSession>();
++	readonly #attempts = new Map<string, { readonly helper: StablePeer; readonly control: StablePeer;
++		readonly session: HelperWireSession | undefined }>();
 +	readonly #helperControllers = new Map<string, StablePeer>();
 +	readonly #pendingHelpers = new Map<string, StablePeer>();
 +	readonly #helperGenerations = new Set<string>();
@@ -2555,14 +2640,39 @@ index 0000000000..772af6b6aa
 +	/** Queued admission replies must recheck current dispatcher/system authority before every transport write. */
 +	assertPublication(): void { this.#assertAvailable(); }
 +
-+	/**
-+	 * Native owns no original Host wait handle. Once ANY prepare commits, even COMPLETE/EOF cannot prove that
-+	 * original helper was reaped. This conservative generation remains retained until process exit/operator recovery.
-+	 */
++	/** V3 retains ANY prepare; explicit V4 establishes Native eligibility, never Host reap/receipt. */
 +	assertDrained(): void {
-+		if (!this.#stopping || this.#busy || this.#blocked || this.#helperGenerations.size || this.#scopes.size) {
++		const unresolved = this.#system.helperTerminalPolicy !== "omp-private-helper-fence/1"
++			? this.#helperGenerations.size > 0
++			: this.#pendingHelpers.size > 0 || this.#helpers.size > 0
++				|| [...this.#completed.values()].some(entry => !entry.terminal);
++		if (!this.#stopping || this.#busy || this.#blocked || unresolved || this.#scopes.size) {
 +			throw new OwnershipError("ownership_unresolved");
 +		}
++	}
++
++	/** Serialized with operations; a committed prepare without trusted COMPLETE can never become terminal. */
++	async checkDrained(): Promise<boolean> {
++		return this.#serial(async () => {
++			if (!this.#stopping || this.#blocked) throw new OwnershipError("ownership_unresolved");
++			if (this.#system.helperTerminalPolicy !== "omp-private-helper-fence/1") {
++				return !this.#helperGenerations.size && !this.#scopes.size;
++			}
++			try {
++				this.#system.assertReady();
++				if (!this.#system.checkHelperTerminal) throw new OwnershipError("ownership_unresolved");
++				for (const [generation, entry] of this.#completed) {
++					// Keep exact peer/controller/session and used-generation tombstones after terminal observation.
++					if (!entry.terminal) entry.terminal = await this.#system.checkHelperTerminal(entry.helper, generation) === "terminal";
++				}
++				this.#system.assertReady();
++				if (!this.#pendingHelpers.size && !this.#helpers.size && [...this.#completed.values()].every(entry => entry.terminal)) {
++					await this.#system.verifyTerminalState?.();
++				}
++			} catch (error) { this.#blocked = true; throw error; }
++			return !this.#pendingHelpers.size && !this.#helpers.size && !this.#scopes.size
++				&& [...this.#completed.values()].every(entry => entry.terminal);
++		});
 +	}
 +
 +	/** Trusted supervisor control seam, separate from the ordinary client socket. Return releases no worker itself. */
@@ -2570,10 +2680,14 @@ index 0000000000..772af6b6aa
 +		return this.#serial(async () => {
 +			this.#assertAvailable(); ownershipGeneration(generation);
 +			if (this.#pendingHelpers.get(generation) !== control) throw new OwnershipError("ownership_unresolved");
-+			if (this.#helpers.has(helper) || [...this.#helpers.values()].includes(generation)) {
++			if (this.#attempts.has(generation) || [...this.#attempts.values()].some(entry => entry.helper === helper)
++				|| this.#helpers.has(helper) || [...this.#completed.values()].some(entry => entry.helper === helper)
++				|| [...this.#helpers.values()].includes(generation)) {
 +				throw new OwnershipError("ownership_protocol");
 +			}
 +			if (this.#helpers.size >= OWNERSHIP_LIMITS.helpers) throw new OwnershipError("ownership_limit");
++			// Commit original attempted correlation before storage/peer awaits; uncertain REGISTER cannot erase it.
++			this.#attempts.set(generation, Object.freeze({ helper, control, session: this.#sessions.get(helper) }));
 +			try { await this.#system.protectHelper(control, helper, generation); }
 +			catch (error) { this.#blocked = true; throw error; }
 +			this.#assertAvailable();
@@ -2596,10 +2710,17 @@ index 0000000000..772af6b6aa
 +		if (bound && bound !== peer) throw new OwnershipError("ownership_unresolved");
 +		this.#helperSockets.set(session, peer);
 +		const request = session.decode(frame);
-+		if (request.operation.op === "register_helper") await this.registerHelperPeer(peer, request.operation.generation);
++		if (request.operation.op === "register_helper") {
++			if (!this.#pendingHelpers.has(request.operation.generation)) throw new OwnershipError("ownership_unresolved");
++			const original = this.#sessions.get(peer);
++			if (original && original !== session) throw new OwnershipError("ownership_unresolved");
++			if (!original && this.#sessions.size >= OWNERSHIP_LIMITS.helperGenerations) throw new OwnershipError("ownership_limit");
++			this.#sessions.set(peer, session);
++			await this.registerHelperPeer(peer, request.operation.generation);
++		}
 +		else {
-+			if (this.#helpers.get(peer) !== request.operation.generation) throw new OwnershipError("ownership_unresolved");
-+			await this.completeHelper(peer);
++			if (this.#sessions.get(peer) !== session || this.#helpers.get(peer) !== request.operation.generation) throw new OwnershipError("ownership_unresolved");
++			await this.completeHelper(peer, session);
 +		}
 +		return session.acknowledge(request);
 +	}
@@ -2613,14 +2734,19 @@ index 0000000000..772af6b6aa
 +	}
 +
 +	/** Failed/unavailable extinction proof remains incomplete and cannot be reset through the client protocol. */
-+	async completeHelper(helper: StablePeer): Promise<void> {
++	async completeHelper(helper: StablePeer, session?: HelperWireSession): Promise<void> {
 +		return this.#serial(async () => {
 +			const generation = this.#helpers.get(helper);
++			if (this.#system.helperTerminalPolicy && (!session || this.#sessions.get(helper) !== session)) {
++				throw new OwnershipError("ownership_unresolved");
++			}
 +			if (!generation) throw new OwnershipError("ownership_unresolved");
 +			try { await this.#system.completeHelper(helper, generation); }
 +			catch (error) { this.#blocked = true; throw error; }
++			const control = this.#helperControllers.get(generation);
++			if (!control) { this.#blocked = true; throw new OwnershipError("ownership_unresolved"); }
++			this.#completed.set(generation, { helper, control, session: this.#sessions.get(helper), terminal: false });
 +			this.#helpers.delete(helper);
-+			this.#helperControllers.delete(generation);
 +		});
 +	}
 +
@@ -2738,6 +2864,50 @@ index 0000000000..772af6b6aa
 +		this.#busy = true;
 +		try { return await operation(); } finally { this.#busy = false; }
 +	}
++}
+diff --git a/packages/coding-agent/src/launch/ownership/drain.ts b/packages/coding-agent/src/launch/ownership/drain.ts
+new file mode 100644
+index 0000000000..9974e366e8
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/drain.ts
+@@ -0,0 +1,38 @@
++import { OwnershipError } from "./protocol";
++
++/** Pure lifecycle seam. Hooks carry no transport, module-loading or approval authority. */
++export interface OwnershipDrainHooks {
++  stopAdmission(): void;
++  stable(): Promise<void>;
++  terminal(): Promise<boolean>;
++  quiescent(): boolean;
++  wait(): Promise<void>;
++  stopPolling(): void;
++  quiesce(): Promise<void>;
++  dispose(): Promise<void>;
++}
++/** A failed/uncertain shutdown remains retained. No timeout, EOF or close request supplies terminal authority. */
++export class OwnershipDrain {
++  readonly #hooks: OwnershipDrainHooks;
++  #closing: Promise<void> | undefined;
++  constructor(hooks: OwnershipDrainHooks) { this.#hooks = hooks; }
++  close(): Promise<void> {
++    if (this.#closing) return this.#closing;
++    const result = Promise.withResolvers<void>(); this.#closing = result.promise;
++    try { this.#hooks.stopAdmission(); void this.#run().then(result.resolve, result.reject); }
++    catch (error) { result.reject(error); }
++    return this.#closing;
++  }
++  async #run(): Promise<void> {
++    for (;;) {
++      await this.#hooks.stable();
++      if (await this.#hooks.terminal() && this.#hooks.quiescent()) break;
++      await this.#hooks.wait();
++    }
++    this.#hooks.stopPolling();
++    await this.#hooks.quiesce();
++    await this.#hooks.stable();
++    if (!await this.#hooks.terminal() || !this.#hooks.quiescent()) throw new OwnershipError("ownership_unresolved");
++    await this.#hooks.dispose();
++  }
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/entry.ts b/packages/coding-agent/src/launch/ownership/entry.ts
 new file mode 100644
@@ -2965,6 +3135,163 @@ index 0000000000..3affc084ed
 +		if (this.#used !== 0) throw new OwnershipError("ownership_protocol");
 +	}
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/helper-fences.ts b/packages/coding-agent/src/launch/ownership/helper-fences.ts
+new file mode 100644
+index 0000000000..ebf47ca810
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/helper-fences.ts
+@@ -0,0 +1,112 @@
++import type { OwnershipDirectoryApproval, OwnershipHelperFenceApproval } from "./approval";
++import { OWNERSHIP_LIMITS, OwnershipError, ownershipGeneration } from "./protocol";
++
++/** Descriptor-relative storage boundary. All handles are opaque; Native never unlinks helper-owned fences. */
++export interface HelperFenceStorage {
++  verifySelection(): Promise<void>;
++  openDirectory(directory: OwnershipDirectoryApproval): object;
++  verifyDirectory(handle: object, directory: OwnershipDirectoryApproval): void;
++  pinFile(directory: object, generation: string, pid: number): object;
++  /** Validate held identity/content/mode and exact named identity; ENOENT alone returns false. */
++  filePresent(directory: object, file: object, generation: string, pid: number): boolean;
++  syncDirectory(directory: object): void;
++  names(directory: object): readonly string[];
++  closeFile(file: object): void;
++  closeDirectory(directory: object): void;
++}
++interface HeldFence { readonly file: object; readonly pid: number; terminal: boolean }
++// Failed opens/checks/close retain original descriptors and sticky uncertainty for process lifetime.
++const retained = new Set<OwnershipHelperFences>();
++
++/** V4's helper-owned fence owner. Absence establishes Native eligibility, never Host delivery/reap/status. */
++export class OwnershipHelperFences {
++  readonly #approval: OwnershipHelperFenceApproval;
++  readonly #storage: HelperFenceStorage;
++  readonly #directory: object;
++  readonly #files = new Map<string, HeldFence>();
++  #blocked = false;
++  #busy = false;
++  #closed = false;
++  #closing: Promise<void> | undefined;
++  constructor(approval: OwnershipHelperFenceApproval, storage: HelperFenceStorage, directory: object) {
++    this.#approval = Object.freeze({ ...approval, directory: Object.freeze({ ...approval.directory }) });
++    this.#storage = storage; this.#directory = directory;
++  }
++  static async open(approval: OwnershipHelperFenceApproval, storage: HelperFenceStorage): Promise<OwnershipHelperFences> {
++    if (approval.policy !== "omp-private-helper-fence/1") throw new OwnershipError("dispatcher_mismatch");
++    await storage.verifySelection();
++    const owner = new OwnershipHelperFences(approval, storage, storage.openDirectory(approval.directory));
++    retained.add(owner);
++    await owner.#operation(async () => { await owner.#verify();
++      if (storage.names(owner.#directory).length) throw new OwnershipError("maintenance_fenced");
++    });
++    return owner;
++  }
++  assertCurrent(): void {
++    if (this.#blocked || this.#closed) throw new OwnershipError("maintenance_fenced");
++  }
++  async pin(generation: string, pid: number): Promise<void> {
++    await this.#operation(async () => {
++      ownershipGeneration(generation); await this.#verify();
++      if (!Number.isSafeInteger(pid) || pid <= 0 || this.#files.has(generation)
++        || this.#files.size >= OWNERSHIP_LIMITS.helperGenerations) throw new OwnershipError("ownership_unresolved");
++      const file = this.#storage.pinFile(this.#directory, generation, pid);
++      this.#files.set(generation, { file, pid, terminal: false });
++      if (!this.#present(generation)) throw new OwnershipError("ownership_unresolved");
++      await this.#verify();
++    });
++  }
++  /** Caller must first accept trusted COMPLETE and observe exact original retained peer exit. */
++  async terminal(generation: string): Promise<boolean> {
++    return this.#operation(async () => {
++      await this.#verify();
++      const held = this.#files.get(ownershipGeneration(generation));
++      if (!held) throw new OwnershipError("ownership_unresolved");
++      if (this.#present(generation)) {
++        if (held.terminal) throw new OwnershipError("ownership_unresolved");
++        await this.#verify(); return false;
++      }
++      this.#storage.syncDirectory(this.#directory);
++      await this.#verify();
++      if (this.#present(generation)) throw new OwnershipError("ownership_unresolved");
++      held.terminal = true; return true;
++    });
++  }
++  async assertDrained(): Promise<void> {
++    await this.#operation(async () => {
++      await this.#verify();
++      if ([...this.#files.values()].some(file => !file.terminal)
++        || this.#storage.names(this.#directory).length) throw new OwnershipError("ownership_unresolved");
++      for (const generation of this.#files.keys()) if (this.#present(generation)) throw new OwnershipError("ownership_unresolved");
++      this.#storage.syncDirectory(this.#directory); await this.#verify();
++      if (this.#storage.names(this.#directory).length) throw new OwnershipError("ownership_unresolved");
++    });
++  }
++  close(): Promise<void> {
++    if (this.#closing) return this.#closing;
++    this.#closing = this.#dispose(); return this.#closing;
++  }
++  async #dispose(): Promise<void> {
++    await this.assertDrained();
++    await this.#operation(async () => {
++      for (const held of this.#files.values()) this.#storage.closeFile(held.file);
++      this.#storage.closeDirectory(this.#directory); this.#closed = true; retained.delete(this);
++    });
++  }
++  #present(generation: string): boolean {
++    const held = this.#files.get(generation);
++    if (!held) throw new OwnershipError("ownership_unresolved");
++    return this.#storage.filePresent(this.#directory, held.file, generation, held.pid);
++  }
++  async #verify(): Promise<void> {
++    this.assertCurrent(); await this.#storage.verifySelection();
++    this.#storage.verifyDirectory(this.#directory, this.#approval.directory); this.assertCurrent();
++  }
++  async #operation<T>(run: () => Promise<T>): Promise<T> {
++    this.assertCurrent();
++    if (this.#busy) { this.#blocked = true; throw new OwnershipError("ownership_unresolved"); }
++    this.#busy = true;
++    try { return await run(); } catch (error) { this.#blocked = true; throw error; }
++    finally { this.#busy = false; }
++  }
++}
+diff --git a/packages/coding-agent/src/launch/ownership/helper-policy.ts b/packages/coding-agent/src/launch/ownership/helper-policy.ts
+new file mode 100644
+index 0000000000..fc425ffab9
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/helper-policy.ts
+@@ -0,0 +1,33 @@
++import type { LoadedOwnershipApproval, OwnershipDirectoryApproval, OwnershipHelperFenceApproval } from "./approval";
++import { OwnershipError } from "./protocol";
++
++interface HelperConfiguration {
++  readonly releaseRoot: string;
++  readonly installation: string;
++  readonly endpoint: string;
++  readonly control: OwnershipDirectoryApproval;
++  readonly helperFence?: OwnershipHelperFenceApproval;
++}
++/**
++ * Match the actual public-adapter build-private-helper.ts generated header conventions. Signed inventory binds
++ * reviewed source/configuration/build inputs to helper bytes; this does not decode compiler inputs from a binary.
++ */
++export function assertOwnershipHelperConfiguration(approval: HelperConfiguration, bytes: string): void {
++  const policy = approval.helperFence;
++  if (!policy) throw new OwnershipError("dispatcher_mismatch");
++  const expected = `#define OMP_DISPATCHER_PATH ${JSON.stringify(approval.endpoint)}\n`
++    + `#define OMP_INSTALLATION_ID ${JSON.stringify(approval.installation)}\n`
++    + `#define OMP_NATIVE_ENTRY ${JSON.stringify(approval.releaseRoot + "/bin/omp")}\n`
++    + `#define OMP_CONTROL_PATH ${JSON.stringify(approval.control.path)}\n`
++    + `#define OMP_CONTROL_DEVICE UINTMAX_C(${approval.control.device})\n`
++    + `#define OMP_CONTROL_INODE UINTMAX_C(${approval.control.inode})\n`
++    + `#define OMP_FENCE_PATH ${JSON.stringify(policy.directory.path)}\n`
++    + `#define OMP_FENCE_DEVICE UINTMAX_C(${policy.directory.device})\n`
++    + `#define OMP_FENCE_INODE UINTMAX_C(${policy.directory.inode})\n`;
++  if (policy.policy !== "omp-private-helper-fence/1" || bytes !== expected) throw new OwnershipError("dispatcher_mismatch");
++}
++/** Signed inventory must include all actual helper build inputs, separately from public control-I/O provenance. */
++export function ownershipHelperProvenance(approval: LoadedOwnershipApproval): readonly string[] {
++  return approval.helperFence ? ["provenance/private-helper.c", "provenance/private-helper-configuration.h",
++    "provenance/candidates.h", "provenance/control.h", "provenance/build-private-helper.ts"] : [];
++}
 diff --git a/packages/coding-agent/src/launch/ownership/helper-protocol.ts b/packages/coding-agent/src/launch/ownership/helper-protocol.ts
 new file mode 100644
 index 0000000000..5f7910ccd6
@@ -3049,16 +3376,17 @@ index 0000000000..5f7910ccd6
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.c b/packages/coding-agent/src/launch/ownership/linux-bridge.c
 new file mode 100644
-index 0000000000..f2952b794f
+index 0000000000..068268cbe2
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.c
-@@ -0,0 +1,339 @@
+@@ -0,0 +1,466 @@
 +/* Native execution ownership ABI 1. COMPILE-ONLY PREPARATION: no kernel-validated capability.
 + * No Agent, Session, provider, arbitrary executable, environment or signal operation lives here.
 + * All descriptors stay inside this library. Callers receive checked table handles, never raw fds.
 + */
 +#define _GNU_SOURCE
 +#include <errno.h>
++#include <dirent.h>
 +#include <fcntl.h>
 +#include <limits.h>
 +#include <poll.h>
@@ -3084,8 +3412,8 @@ index 0000000000..f2952b794f
 +#define OWNERSHIP_HELPERS 64
 +#define OWNERSHIP_FRAME 16384
 +
-+enum handle_kind { UNUSED = 0, LISTENER = 1, CONNECTION = 2, IDENTITY = 3, CONNECTING = 4 };
-+struct handle { enum handle_kind kind; int fd; int peerfd; pid_t pid; uint64_t start; int key; };
++enum handle_kind { UNUSED = 0, LISTENER = 1, CONNECTION = 2, IDENTITY = 3, CONNECTING = 4, FENCE_DIRECTORY = 5, FENCE_FILE = 6 };
++struct handle { enum handle_kind kind; int fd; int peerfd; pid_t pid; uint64_t start; int key; struct stat fence; };
 +struct task { int fd; pid_t pid; pid_t parent; uint64_t start; };
 +static struct handle handles[OWNERSHIP_HANDLES];
 +static unsigned descriptor_count;
@@ -3093,11 +3421,12 @@ index 0000000000..f2952b794f
 +static unsigned handle_serial;
 +
 +static int failure(void) { return -(errno ? errno : EIO); }
-+static void drop_fd(int fd) {
-+	if (fd < 0) return;
++static int drop_fd(int fd) {
++	if (fd < 0) return 0;
 +	/* Retrying close after EINTR can close a reused Linux fd. Ownership ends after this close. */
-+	(void)close(fd);
++	int result = close(fd);
 +	if (descriptor_count) descriptor_count--;
++	return result < 0 ? failure() : 0;
 +}
 +static int own_fd(int fd) {
 +	if (fd < 0) return failure();
@@ -3124,7 +3453,7 @@ index 0000000000..f2952b794f
 +	for (unsigned i = 0; i < OWNERSHIP_HANDLES; i++) {
 +		if (handles[i].kind != UNUSED) continue;
 +		int key = (int)(++handle_serial * OWNERSHIP_HANDLES + i + 1);
-+		handles[i] = (struct handle){ kind, fd, peerfd, pid, start, key };
++		handles[i] = (struct handle){ .kind = kind, .fd = fd, .peerfd = peerfd, .pid = pid, .start = start, .key = key };
 +		if (kind == CONNECTION || kind == CONNECTING) connection_count++;
 +		return key;
 +	}
@@ -3386,18 +3715,143 @@ index 0000000000..f2952b794f
 +	struct handle value = *source;
 +	*source = (struct handle){0};
 +	if ((value.kind == CONNECTION || value.kind == CONNECTING) && connection_count) connection_count--;
-+	drop_fd(value.fd); drop_fd(value.peerfd);
++	int result = drop_fd(value.fd), peer_result = drop_fd(value.peerfd);
++	return result < 0 ? result : peer_result;
++}
++int omp_ownership_close_all_checked(void) {
++	for (unsigned i = 0; i < OWNERSHIP_HANDLES; i++) if (handles[i].kind != UNUSED) {
++		int result = omp_ownership_close(handles[i].key);
++		if (result < 0) return result;
++	}
 +	return 0;
 +}
-+void omp_ownership_close_all(void) {
-+	for (unsigned i = 0; i < OWNERSHIP_HANDLES; i++) if (handles[i].kind != UNUSED) (void)omp_ownership_close(handles[i].key);
++void omp_ownership_close_all(void) { (void)omp_ownership_close_all_checked(); }
++
++
++/* Signed helper fence policy /1. These are read-only metadata operations; no unlink/wait/signal authority. */
++static int fence_directory_stat(int fd, struct stat *value) {
++	if (fstat(fd, value)) return failure();
++	if (!S_ISDIR(value->st_mode) || value->st_uid != geteuid() || (value->st_mode & 07777) != 0700) return -ESTALE;
++	return 0;
++}
++int omp_ownership_fence_directory_current(int key, const char *path) {
++	struct handle *held = lookup(key, FENCE_DIRECTORY);
++	struct stat opened, named;
++	char canonical[PATH_MAX];
++	if (!held || !path || !realpath(path, canonical) || strcmp(path, canonical)) return -ESTALE;
++	int result = fence_directory_stat(held->fd, &opened);
++	if (result < 0) return result;
++	if (lstat(path, &named)) return failure();
++	if (!S_ISDIR(named.st_mode) || named.st_dev != opened.st_dev || named.st_ino != opened.st_ino
++		|| named.st_uid != opened.st_uid || named.st_mode != opened.st_mode) return -ESTALE;
++	return 0;
++}
++int omp_ownership_fence_directory(const char *path, uint64_t device, uint64_t inode) {
++	if (!path || strnlen(path, PATH_MAX) >= PATH_MAX) return -EINVAL;
++	int fd = own_fd(open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC | O_NONBLOCK));
++	if (fd < 0) return fd;
++	struct stat stat;
++	int result = fence_directory_stat(fd, &stat);
++	if (result < 0 || (uint64_t)stat.st_dev != device || (uint64_t)stat.st_ino != inode) {
++		drop_fd(fd); return result < 0 ? result : -ESTALE;
++	}
++	int key = keep(FENCE_DIRECTORY, fd, -1, 0, 0);
++	if (key < 0) return key;
++	result = omp_ownership_fence_directory_current(key, path);
++	/* On verification failure retain the descriptor until process exit, with no grant to the caller. */
++	return result < 0 ? result : key;
++}
++static int fence_name(const char *generation, char name[71]) {
++	if (!generation || strnlen(generation, 65) != 64) return -EINVAL;
++	for (unsigned i = 0; i < 64; i++) if (!((generation[i] >= 'a' && generation[i] <= 'f')
++		|| (generation[i] >= '0' && generation[i] <= '9'))) return -EINVAL;
++	memcpy(name, generation, 64); memcpy(name + 64, ".fence", 7); return 0;
++}
++static int fence_file_stat(int fd, const char *generation, int pid, struct stat *stat) {
++	char bytes[160], expected[160];
++	if (pid <= 0 || fstat(fd, stat)) return -ESTALE;
++	if (!S_ISREG(stat->st_mode) || stat->st_uid != geteuid() || (stat->st_mode & 07777) != 0600
++		|| stat->st_nlink > 1 || stat->st_size <= 0 || stat->st_size >= (off_t)sizeof(bytes)) return -ESTALE;
++	int size = snprintf(expected, sizeof(expected), "omp-private-incomplete/1 %s %d\n", generation, pid);
++	if (size <= 0 || size >= (int)sizeof(expected)) return -EOVERFLOW;
++	ssize_t count = pread(fd, bytes, sizeof(bytes), 0);
++	if (count < 0) return failure();
++	if (count != size || stat->st_size != size || memcmp(bytes, expected, (size_t)size)) return -ESTALE;
++	return 0;
++}
++static int same_fence(const struct stat *left, const struct stat *right) {
++	return left->st_dev == right->st_dev && left->st_ino == right->st_ino && left->st_uid == right->st_uid
++		&& left->st_gid == right->st_gid && left->st_mode == right->st_mode && left->st_size == right->st_size
++		&& left->st_mtim.tv_sec == right->st_mtim.tv_sec && left->st_mtim.tv_nsec == right->st_mtim.tv_nsec;
++}
++int omp_ownership_fence_pin(int directory, const char *generation, int pid) {
++	struct handle *dir = lookup(directory, FENCE_DIRECTORY);
++	char name[71]; struct stat opened, named;
++	if (!dir || fence_name(generation, name) < 0) return -EINVAL;
++	int fd = own_fd(openat(dir->fd, name, O_RDONLY | O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC));
++	if (fd < 0) return fd;
++	int result = fence_file_stat(fd, generation, pid, &opened);
++	if (result >= 0 && fstatat(dir->fd, name, &named, AT_SYMLINK_NOFOLLOW)) result = failure();
++	if (result >= 0 && (!same_fence(&opened, &named) || opened.st_nlink != 1 || named.st_nlink != 1)) result = -ESTALE;
++	if (result < 0) { drop_fd(fd); return result; }
++	int key = keep(FENCE_FILE, fd, -1, pid, 0);
++	struct handle *file = lookup(key, FENCE_FILE);
++	if (!file) return key < 0 ? key : -ESTALE;
++	file->fence = opened; return key;
++}
++/* 1 = same present file; 0 = exact-name ENOENT; negative = uncertainty. Caller seals absence with fsync/recheck. */
++int omp_ownership_fence_present(int directory, int file, const char *generation) {
++	struct handle *dir = lookup(directory, FENCE_DIRECTORY), *held = lookup(file, FENCE_FILE);
++	char name[71]; struct stat opened, named;
++	if (!dir || !held || fence_name(generation, name) < 0) return -EINVAL;
++	int result = fence_file_stat(held->fd, generation, held->pid, &opened);
++	if (result < 0 || !same_fence(&opened, &held->fence)) return result < 0 ? result : -ESTALE;
++	if (fstatat(dir->fd, name, &named, AT_SYMLINK_NOFOLLOW)) {
++		if (errno != ENOENT) return failure();
++		return opened.st_nlink == 0 ? 0 : -ESTALE;
++	}
++	if (opened.st_nlink != 1 || named.st_nlink != 1 || !same_fence(&opened, &named)
++		|| opened.st_ctim.tv_sec != held->fence.st_ctim.tv_sec
++		|| opened.st_ctim.tv_nsec != held->fence.st_ctim.tv_nsec) return -ESTALE;
++	return 1;
++}
++int omp_ownership_fence_sync(int directory) {
++	struct handle *dir = lookup(directory, FENCE_DIRECTORY);
++	if (!dir) return -EINVAL;
++	return fsync(dir->fd) ? failure() : 0;
++}
++int omp_ownership_fence_names(int directory, char *bytes, unsigned capacity) {
++	struct handle *dir = lookup(directory, FENCE_DIRECTORY);
++	if (!dir || !bytes || capacity != 512U * 71U) return -EINVAL;
++	/* openat a new description: readdir must not share/advance the held directory's offset. */
++	int fd = own_fd(openat(dir->fd, ".", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC));
++	if (fd < 0) return fd;
++	DIR *stream = fdopendir(fd);
++	if (!stream) { int result = failure(); drop_fd(fd); return result; }
++	unsigned size = 0, count = 0;
++	int result = 0;
++	for (;;) {
++		errno = 0;
++		struct dirent *entry = readdir(stream);
++		if (!entry) { if (errno) result = failure(); break; }
++		if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
++		size_t length = strnlen(entry->d_name, 72);
++		if (++count > 512 || length != 70 || memcmp(entry->d_name + 64, ".fence", 6)) { result = -ESTALE; break; }
++		for (unsigned i = 0; i < 64; i++) if (!((entry->d_name[i] >= 'a' && entry->d_name[i] <= 'f')
++			|| (entry->d_name[i] >= '0' && entry->d_name[i] <= '9'))) { result = -ESTALE; break; }
++		if (result < 0) break;
++		memcpy(bytes + size, entry->d_name, length); size += (unsigned)length; bytes[size++] = '\n';
++	}
++	if (closedir(stream) && result >= 0) result = failure();
++	if (descriptor_count) descriptor_count--;
++	return result < 0 ? result : (int)size;
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 new file mode 100644
-index 0000000000..2d12fe8588
+index 0000000000..ef35ab0ff4
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
-@@ -0,0 +1,231 @@
+@@ -0,0 +1,303 @@
 +/** Loaded only by the explicit Linux execution-ownership backend, never catalog/preflight. */
 +import type { FFIFunction, Library, ptr as nativePointer } from "bun:ffi";
 +import * as fs from "node:fs/promises";
@@ -3406,6 +3860,9 @@ index 0000000000..2d12fe8588
 +import type { LoadedOwnershipControlApproval, OwnershipControlSelection } from "./control-selection";
 +import { assertOwnershipControlSelection } from "./selected-control-release";
 +import { assertOwnershipControlIoOwner, type OwnershipControlIoOwner } from "./control-io-owner";
++import type { HelperFenceStorage } from "./helper-fences";
++import type { OwnershipFileApproval } from "./approval";
++import { constants } from "node:fs";
 +import type { StablePeer } from "./dispatcher";
 +
 +const nativeFunctions = {
@@ -3425,8 +3882,15 @@ index 0000000000..2d12fe8588
 +	omp_ownership_classify: { args: ["i32", "ptr", "u32"], returns: "i32" },
 +	omp_ownership_read: { args: ["i32", "ptr", "u32"], returns: "i32" },
 +	omp_ownership_write: { args: ["i32", "ptr", "u32"], returns: "i32" },
++	omp_ownership_fence_directory: { args: ["ptr", "u64", "u64"], returns: "i32" },
++  omp_ownership_fence_directory_current: { args: ["i32", "ptr"], returns: "i32" },
++  omp_ownership_fence_pin: { args: ["i32", "ptr", "i32"], returns: "i32" },
++  omp_ownership_fence_present: { args: ["i32", "i32", "ptr"], returns: "i32" },
++  omp_ownership_fence_sync: { args: ["i32"], returns: "i32" },
++  omp_ownership_fence_names: { args: ["i32", "ptr", "u32"], returns: "i32" },
 +	omp_ownership_close: { args: ["i32"], returns: "i32" },
 +	omp_ownership_close_all: { args: [], returns: "void" },
++  omp_ownership_close_all_checked: { args: [], returns: "i32" },
 +} as const satisfies Record<string, FFIFunction>;
 +
 +export interface OwnershipBridgeSelection {
@@ -3459,6 +3923,8 @@ index 0000000000..2d12fe8588
 +	readonly #sockets = new Map<OwnershipSocket, number>();
 +	readonly #listeners = new Map<OwnershipSocket, number>();
 +	readonly #peers = new Map<StablePeer, number>();
++  readonly #fenceDirectories = new Map<object, number>();
++  readonly #fenceFiles = new Map<object, number>();
 +	#closed = false;
 +
 +	constructor(library: Library<typeof nativeFunctions>, authority: symbol, pointer: typeof nativePointer) {
@@ -3565,6 +4031,20 @@ index 0000000000..2d12fe8588
 +		if (pid <= 0 || start === 0n) throw new OwnershipError("ownership_unresolved");
 +		return { pid, startTime: String(start) };
 +	}
++  /** Active-helper executable check only. Never used for a completed peer after kernel exit. */
++  async verifyHelperExecutable(peer: StablePeer, approved: OwnershipFileApproval): Promise<void> {
++    const target = `/proc/${this.peerHints(peer).pid}/exe`;
++    if (!this.peerAlive(peer) || await fs.readlink(target) !== approved.file) throw new OwnershipError("ownership_unresolved");
++    const file = await fs.open(target, constants.O_RDONLY);
++    try {
++      const stat = await file.stat();
++      if (!stat.isFile() || stat.size > 1_048_576) throw new OwnershipError("ownership_unresolved");
++      const bytes = Buffer.alloc(1_048_577), read = await file.read(bytes, 0, bytes.length, 0);
++      if (read.bytesRead > 1_048_576 || new Bun.CryptoHasher("sha256").update(bytes.subarray(0, read.bytesRead)).digest("hex") !== approved.sha256
++        || !this.peerAlive(peer) || await fs.readlink(target) !== approved.file) throw new OwnershipError("ownership_unresolved");
++    } finally { await file.close(); }
++  }
++
 +	/** Returns a verified registered helper, or undefined only for a complete stable external chain. */
 +	classify(peer: StablePeer, helpers: readonly StablePeer[]): StablePeer | undefined {
 +		if (helpers.length > OWNERSHIP_LIMITS.helpers) throw new OwnershipError("ownership_limit");
@@ -3592,6 +4072,51 @@ index 0000000000..2d12fe8588
 +		return count;
 +	}
 +
++  /** Read-only helper fence primitives backed by openat/fstatat against retained authenticated directory handles. */
++  helperFenceStorage(approval: LoadedOwnershipControlApproval, selection: OwnershipControlSelection,
++    owner: OwnershipControlIoOwner): HelperFenceStorage {
++    assertOwnershipControlIoOwner(owner, selection, approval);
++    const checked = (result: number): number => {
++      if (result < 0) throw new OwnershipError("ownership_unresolved", -result);
++      return result;
++    };
++    const text = (value: string): Buffer => {
++      if (value.includes("\0") || value.length > 4096) throw new OwnershipError("ownership_unresolved");
++      return Buffer.from(value + "\0");
++    };
++    return {
++      verifySelection: async () => { await owner.ready(); await approval.verify(); owner.assertReady(); },
++      openDirectory: directory => {
++        const bytes = text(directory.path);
++        return this.#store(this.#fenceDirectories, this.#library.symbols.omp_ownership_fence_directory(
++          this.#ptr(bytes), BigInt(directory.device), BigInt(directory.inode)));
++      },
++      verifyDirectory: (handle, directory) => {
++        const bytes = text(directory.path);
++        checked(this.#library.symbols.omp_ownership_fence_directory_current(this.#handle(this.#fenceDirectories, handle), this.#ptr(bytes)));
++      },
++      pinFile: (directory, generation, pid) => {
++        const bytes = text(generation);
++        return this.#store(this.#fenceFiles, this.#library.symbols.omp_ownership_fence_pin(
++          this.#handle(this.#fenceDirectories, directory), this.#ptr(bytes), pid));
++      },
++      filePresent: (directory, file, generation) => {
++        const bytes = text(generation);
++        return checked(this.#library.symbols.omp_ownership_fence_present(this.#handle(this.#fenceDirectories, directory),
++          this.#handle(this.#fenceFiles, file), this.#ptr(bytes))) === 1;
++      },
++      syncDirectory: directory => { checked(this.#library.symbols.omp_ownership_fence_sync(this.#handle(this.#fenceDirectories, directory))); },
++      names: directory => {
++        const bytes = Buffer.alloc(512 * 71);
++        const size = checked(this.#library.symbols.omp_ownership_fence_names(this.#handle(this.#fenceDirectories, directory), this.#ptr(bytes), bytes.length));
++        if (size > bytes.length) throw new OwnershipError("ownership_unresolved");
++        return size ? bytes.subarray(0, size).toString("ascii").trimEnd().split("\n") : [];
++      },
++      closeFile: file => this.#release(this.#fenceFiles, file),
++      closeDirectory: directory => this.#release(this.#fenceDirectories, directory),
++    };
++  }
++
 +	releaseSocket(socket: OwnershipSocket): void { this.#release(this.#sockets.has(socket) ? this.#sockets : this.#listeners, socket); }
 +	releasePeer(peer: StablePeer): void { this.#release(this.#peers, peer); }
 +	ownedDescriptorCount(): number { this.#assertOpen(); return this.#library.symbols.omp_ownership_fd_count(); }
@@ -3599,8 +4124,9 @@ index 0000000000..2d12fe8588
 +	close(): void {
 +		if (this.#closed) return;
 +		this.#closed = true;
-+		this.#library.symbols.omp_ownership_close_all();
-+		this.#library.close(); this.#sockets.clear(); this.#listeners.clear(); this.#peers.clear();
++		const result = this.#library.symbols.omp_ownership_close_all_checked();
++    if (result < 0) throw new OwnershipError("ownership_unresolved", -result);
++		this.#library.close(); this.#sockets.clear(); this.#listeners.clear(); this.#peers.clear(); this.#fenceDirectories.clear(); this.#fenceFiles.clear();
 +		if (activeBridge === this) activeBridge = undefined;
 +	}
 +
@@ -3631,40 +4157,56 @@ index 0000000000..2d12fe8588
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-system.ts b/packages/coding-agent/src/launch/ownership/linux-system.ts
 new file mode 100644
-index 0000000000..00a6777371
+index 0000000000..6942447d42
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-system.ts
-@@ -0,0 +1,95 @@
+@@ -0,0 +1,112 @@
 +import * as fs from "node:fs";
 +import type { LoadedOwnershipApproval } from "./approval";
 +import type { OwnershipSystem, PublicationPermit, StablePeer } from "./dispatcher";
-+import { OwnershipFences } from "./fences";
++import type { OwnershipFences } from "./fences";
 +import type { LinuxOwnershipBridge } from "./linux-bridge";
++import type { OwnershipHelperFences } from "./helper-fences";
 +import type { OwnershipControlIoOwner } from "./control-io-owner";
 +import { OwnershipError, ownershipGeneration, type OwnershipScope } from "./protocol";
++
++/** OS seam keeps exact retained peer identity and executable verification testable without FFI or /proc. */
++export type OwnershipHelperPeers = Pick<LinuxOwnershipBridge,
++  "classify" | "isDirectChild" | "peerAlive" | "peerHints" | "verifyHelperExecutable">;
++type FenceStore = Pick<OwnershipFences, "assertCurrent" | "verify" | "create" | "retireCompleted">;
++type RuntimeOwner = Pick<OwnershipControlIoOwner, "ready" | "assertReady">;
 +
 +/** Concrete Linux peer/helper spine. Broker creation/publication remains unavailable until protector integration. */
 +export class LinuxOwnershipSystem implements OwnershipSystem {
 +	readonly dispatcher: string;
-+	readonly #owner: OwnershipControlIoOwner;
++	readonly #owner: RuntimeOwner;
 +	readonly #approval: LoadedOwnershipApproval;
-+	readonly #bridge: LinuxOwnershipBridge;
-+	readonly #fences: OwnershipFences;
++	readonly #bridge: OwnershipHelperPeers;
++	readonly #fences: FenceStore;
++	readonly #helperFences: OwnershipHelperFences | undefined;
++	readonly #completed = new Map<StablePeer, string>();
++	readonly helperTerminalPolicy?: "omp-private-helper-fence/1";
 +	readonly #helpers = new Map<StablePeer, string>();
 +	#unresolved = false;
-+	constructor(approval: LoadedOwnershipApproval, bridge: LinuxOwnershipBridge, fences: OwnershipFences, generation: string, owner: OwnershipControlIoOwner) {
++	constructor(approval: LoadedOwnershipApproval, bridge: OwnershipHelperPeers, fences: FenceStore, generation: string, owner: RuntimeOwner, helperFences?: OwnershipHelperFences) {
++		this.#helperFences = helperFences;
++		if (approval.helperFence) {
++			if (!helperFences) throw new OwnershipError("ownership_unresolved");
++			this.helperTerminalPolicy = approval.helperFence.policy;
++		}
 +		this.#owner = owner; this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.dispatcher = ownershipGeneration(generation);
 +	}
 +	async ready(): Promise<void> { await this.#verify(); }
 +	assertReady(): void {
 +		if (this.#unresolved) throw new OwnershipError("maintenance_fenced");
-+		this.#owner.assertReady(); this.#fences.assertCurrent();
++		this.#owner.assertReady(); this.#fences.assertCurrent(); this.#helperFences?.assertCurrent();
 +	}
 +	async classify(peer: StablePeer) {
 +		await this.#verify();
-+		const helper = this.#bridge.classify(peer, [...this.#helpers.keys()]);
++		const completedAlive = [...this.#completed.keys()].filter(value => this.#bridge.peerAlive(value));
++		const helper = this.#bridge.classify(peer, [...this.#helpers.keys(), ...completedAlive]);
 +		if (!helper) return { kind: "external" as const };
-+		const generation = this.#helpers.get(helper);
++		const generation = this.#helpers.get(helper) ?? this.#completed.get(helper);
 +		if (!generation) throw new OwnershipError("ownership_unresolved");
 +		return { kind: "private" as const, generation };
 +	}
@@ -3674,22 +4216,40 @@ index 0000000000..00a6777371
 +			if (!this.#bridge.isDirectChild(helper, control) || (await this.classify(control)).kind !== "external") {
 +				throw new OwnershipError("ownership_unresolved");
 +			}
-+			await this.#verifyHelper(helper);
++			await this.#bridge.verifyHelperExecutable(helper, this.#approval.helper);
 +			await this.#fences.create(generation, "private-helper");
++			if (this.#helperFences) await this.#helperFences.pin(generation, this.#bridge.peerHints(helper).pid);
 +			this.#helpers.set(helper, generation);
-+			await this.#verifyHelper(helper); await this.#verify();
++			await this.#bridge.verifyHelperExecutable(helper, this.#approval.helper); await this.#verify();
 +			if (!this.#bridge.isDirectChild(helper, control)) throw new OwnershipError("ownership_unresolved");
 +		} catch (error) { this.#unresolved = true; throw error; }
 +	}
 +	async markUnresolved(_generation: string): Promise<void> { this.#unresolved = true; }
 +	async completeHelper(helper: StablePeer, generation: string): Promise<void> {
 +		try {
-+			await this.#verify(); await this.#verifyHelper(helper);
++			await this.#verify(); await this.#bridge.verifyHelperExecutable(helper, this.#approval.helper);
 +			if (this.#helpers.get(helper) !== generation) throw new OwnershipError("ownership_unresolved");
 +			// Only the approved helper on its original held socket can assert its trusted P_ALL/ECHILD completion.
-+			await this.#fences.retireCompleted(generation); this.#helpers.delete(helper);
++			await this.#fences.retireCompleted(generation);
++			this.#completed.set(helper, generation); this.#helpers.delete(helper);
 +		} catch (error) { this.#unresolved = true; throw error; }
 +	}
++	async checkHelperTerminal(helper: StablePeer, generation: string): Promise<"pending" | "terminal"> {
++		try {
++			await this.#verify();
++			if (!this.#helperFences || this.#completed.get(helper) !== generation) throw new OwnershipError("ownership_unresolved");
++			// No executable, numeric PID, ancestry or /proc lookup after this exact retained pidfd reports exit.
++			if (this.#bridge.peerAlive(helper)) return "pending";
++			const terminal = await this.#helperFences.terminal(generation);
++			await this.#verify();
++			return terminal ? "terminal" : "pending";
++		} catch (error) { this.#unresolved = true; throw error; }
++	}
++	async verifyTerminalState(): Promise<void> {
++		try { await this.#verify(); await this.#helperFences?.assertDrained(); }
++		catch (error) { this.#unresolved = true; throw error; }
++	}
++
 +	async canonicalScope(scope: OwnershipScope): Promise<OwnershipScope> {
 +		await this.#verify();
 +		if (scope.kind === "global") return scope;
@@ -3711,23 +4271,6 @@ index 0000000000..00a6777371
 +			if (!this.#bridge.peerAlive(helper)) { this.#unresolved = true; throw new OwnershipError("maintenance_fenced"); }
 +		}
 +		this.#owner.assertReady();
-+	}
-+	async #verifyHelper(peer: StablePeer): Promise<void> {
-+		const hints = this.#bridge.peerHints(peer), approved = this.#approval.helper;
-+		const target = `/proc/${hints.pid}/exe`;
-+		if (!this.#bridge.peerAlive(peer) || await fs.promises.readlink(target) !== approved.file) {
-+			throw new OwnershipError("ownership_unresolved");
-+		}
-+		const file = await fs.promises.open(target, fs.constants.O_RDONLY);
-+		try {
-+			const stat = await file.stat();
-+			if (!stat.isFile() || stat.size > 1_048_576) throw new OwnershipError("ownership_unresolved");
-+			const bytes = Buffer.alloc(1_048_577), read = await file.read(bytes, 0, bytes.length, 0);
-+			if (read.bytesRead > 1_048_576 || new Bun.CryptoHasher("sha256").update(bytes.subarray(0, read.bytesRead)).digest("hex") !== approved.sha256
-+				|| !this.#bridge.peerAlive(peer) || await fs.promises.readlink(target) !== approved.file) {
-+				throw new OwnershipError("ownership_unresolved");
-+			}
-+		} finally { await file.close(); }
 +	}
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/maintenance-handoff.ts b/packages/coding-agent/src/launch/ownership/maintenance-handoff.ts
@@ -4442,11 +4985,14 @@ index 0000000000..9710a568b8
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/selected-control-release.ts b/packages/coding-agent/src/launch/ownership/selected-control-release.ts
 new file mode 100644
-index 0000000000..23db637cc6
+index 0000000000..6a32ef3f45
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/selected-control-release.ts
-@@ -0,0 +1,76 @@
+@@ -0,0 +1,92 @@
 +import * as path from "node:path";
++import * as fs from "node:fs/promises";
++import { constants } from "node:fs";
++import { assertOwnershipHelperConfiguration, ownershipHelperProvenance } from "./helper-policy";
 +import type { ControlReleaseManifest } from "@omp-webui/control-io";
 +import { assertOwnershipControlApproval, readOwnershipPinnedFile, type LoadedOwnershipApproval } from "./approval";
 +import type { LoadedOwnershipControlApproval, OwnershipControlSelection } from "./control-selection";
@@ -4466,7 +5012,7 @@ index 0000000000..23db637cc6
 +      throw new OwnershipError("dispatcher_mismatch");
 +    }
 +  }
-+  const required = ["control-io/index.js", "control-io/package.json", "provenance/control-io/package.json",
++  const required = [...ownershipHelperProvenance(approval), "control-io/index.js", "control-io/package.json", "provenance/control-io/package.json",
 +    "provenance/build-control-io.ts", "provenance/build-control-io-public.ts", "provenance/control-io-build.json",
 +    "provenance/control-io-toolchain-package.json", "provenance/control-io-toolchain-bun.lock",
 +    ...["index", "loader", "socket", "selection", "errors"].flatMap(name =>
@@ -4475,6 +5021,18 @@ index 0000000000..23db637cc6
 +    || manifest.assets.some(asset => /^control-io\/testing\./.test(asset.path))) {
 +    throw new OwnershipError("dispatcher_mismatch");
 +  }
++}
++async function helperConfiguration(approval: LoadedOwnershipApproval): Promise<void> {
++  if (!approval.helperFence) return;
++  const location = path.join(approval.releaseRoot, "provenance/private-helper-configuration.h");
++  const file = await fs.open(location, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
++  try {
++    const before = await file.stat();
++    if (!before.isFile() || before.nlink !== 1 || before.size > 16_384) throw new OwnershipError("dispatcher_mismatch");
++    const bytes = Buffer.alloc(16_385), read = await file.read(bytes, 0, bytes.length, 0);
++    if (read.bytesRead !== before.size) throw new OwnershipError("dispatcher_mismatch");
++    assertOwnershipHelperConfiguration(approval, new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(0, read.bytesRead)));
++  } finally { await file.close(); }
 +}
 +/**
 + * Concrete Native adapter to the public package's existing selection contract. It loads no library.
@@ -4489,7 +5047,7 @@ index 0000000000..23db637cc6
 +  assertLauncherMaintenanceGuard(guard, approval.control);
 +  await approval.verify(); await readOwnershipPinnedFile(approval.control);
 +  const inventory = await inspectOwnershipInventory(approval.releaseRoot, approval.controlIo.inventory);
-+  roles(approval, inventory.manifest);
++  roles(approval, inventory.manifest); await helperConfiguration(approval); await inventory.verify();
 +  await approval.verify(); assertLauncherMaintenanceGuard(guard, approval.control);
 +  let released = false, failed = false, tail = Promise.resolve();
 +  const assertCurrent = (): void => {
@@ -4502,6 +5060,7 @@ index 0000000000..23db637cc6
 +      try {
 +        assertCurrent(); await approval.verify(); await readOwnershipPinnedFile(approval.control);
 +        await inventory.verify(); roles(approval, inventory.manifest);
++        await helperConfiguration(approval); await inventory.verify();
 +        await approval.verify(); assertCurrent();
 +      } catch { failed = true; throw new OwnershipError("dispatcher_mismatch"); }
 +    });
@@ -4554,14 +5113,16 @@ index 0000000000..566fa7141f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/server.ts b/packages/coding-agent/src/launch/ownership/server.ts
 new file mode 100644
-index 0000000000..5f645e22b5
+index 0000000000..853422c337
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/server.ts
-@@ -0,0 +1,220 @@
+@@ -0,0 +1,254 @@
 +import * as fs from "node:fs/promises";
 +import { assertOwnershipControlApproval, type LoadedOwnershipApproval, type OwnershipApprovalPin } from "./approval";
 +import { decodeOwnershipChallenge, signOwnershipReply } from "./authentication";
 +import { OwnershipDispatcher, type StablePeer } from "./dispatcher";
++import { OwnershipDrain } from "./drain";
++import { OwnershipHelperFences } from "./helper-fences";
 +import { OwnershipFences } from "./fences";
 +import { OwnershipFrames } from "./framing";
 +import { HELPER_OWNERSHIP_VERSION, HelperWireSession } from "./helper-protocol";
@@ -4588,7 +5149,7 @@ index 0000000000..5f645e22b5
 +}
 +
 +// Failed starts retain all known handles and selection through ambiguous bridge initialization/disposal.
-+const retainedStarts = new Set<{ owner: OwnershipControlIoOwner; bridge?: LinuxOwnershipBridge; fences?: OwnershipFences }>();
++const retainedStarts = new Set<{ owner: OwnershipControlIoOwner; bridge?: LinuxOwnershipBridge; fences?: OwnershipFences; helperFences?: OwnershipHelperFences }>();
 +const retainedServers = new Set<LinuxOwnershipServer>();
 +
 +/** Main-thread Linux server. Poll callbacks never block; only this independent dispatcher loads ownership FFI. */
@@ -4598,6 +5159,11 @@ index 0000000000..5f645e22b5
 +	readonly #approval: LoadedOwnershipControlApproval;
 +	readonly #bridge: LinuxOwnershipBridge;
 +	readonly #fences: OwnershipFences;
++  readonly #helperFences: OwnershipHelperFences | undefined;
++  readonly #drain: OwnershipDrain;
++  #wake = Promise.withResolvers<void>();
++  #draining = false;
++  #polling = false;
 +	readonly #dispatcher: OwnershipDispatcher;
 +	readonly #key: CryptoKey;
 +	readonly #generation: string;
@@ -4607,14 +5173,37 @@ index 0000000000..5f645e22b5
 +	#tail = Promise.resolve();
 +	#timer: Timer | undefined;
 +	#closed = false;
-+	#closing: Promise<void> | undefined;
 +	#uncertain = false;
 +	#endpointIdentity: { device: bigint; inode: bigint } | undefined;
 +
 +	private constructor(approval: LoadedOwnershipControlApproval, bridge: LinuxOwnershipBridge, fences: OwnershipFences,
-+		dispatcher: OwnershipDispatcher, key: CryptoKey, generation: string, listener: OwnershipSocket, owner: OwnershipControlIoOwner, selection: OwnershipControlSelection) {
++		dispatcher: OwnershipDispatcher, key: CryptoKey, generation: string, listener: OwnershipSocket, owner: OwnershipControlIoOwner, selection: OwnershipControlSelection, helperFences?: OwnershipHelperFences) {
 +		this.#owner = owner; this.#selection = selection; this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.#dispatcher = dispatcher;
-+		this.#key = key; this.#generation = generation; this.#listener = listener;
++		this.#key = key; this.#generation = generation; this.#listener = listener; this.#helperFences = helperFences;
++    this.#drain = new OwnershipDrain({
++      stopAdmission: () => {
++        this.#draining = true; this.#dispatcher.stopAdmission();
++        try { this.#bridge.releaseSocket(this.#listener); } catch { this.#uncertain = true; }
++        for (const connection of this.#connections) if (!connection.helperRegistered) {
++          try { this.#drop(connection); } catch { this.#uncertain = true; }
++        }
++      },
++      stable: () => this.#stableTail(),
++      terminal: async () => {
++        if (this.#uncertain) throw new OwnershipError("ownership_unresolved");
++        const check = this.#tail.then(() => this.#dispatcher.checkDrained());
++        this.#tail = check.then(() => undefined, () => { this.#uncertain = true; });
++        return check;
++      },
++      quiescent: () => !this.#polling && [...this.#connections].every(value => !value.active && !value.output.pending),
++      wait: () => this.#wake.promise,
++      stopPolling: () => { this.#closed = true; clearTimeout(this.#timer); },
++      quiesce: async () => {
++        for (const connection of this.#connections) this.#drop(connection);
++        await this.#stableTail();
++      },
++      dispose: () => this.#dispose(),
++    });
 +	}
 +
 +	/** Explicit synthetic/selected operator start; no ordinary client can invoke this as a fallback. */
@@ -4623,7 +5212,7 @@ index 0000000000..5f645e22b5
 +    // Mandatory before even importing the bridge/FFI graph; historical v2 and structural fakes cannot enter.
 +    assertOwnershipControlApproval(approval); assertOwnershipControlSelection(selection, approval);
 +    const owner = await OwnershipControlIoOwner.open(approval, selection);
-+    const resources: { owner: OwnershipControlIoOwner; bridge?: LinuxOwnershipBridge; fences?: OwnershipFences } = { owner };
++    const resources: { owner: OwnershipControlIoOwner; bridge?: LinuxOwnershipBridge; fences?: OwnershipFences; helperFences?: OwnershipHelperFences } = { owner };
 +    retainedStarts.add(resources);
 +    try {
 +      const key = await loadOwnershipSigningKey(keyPin, approval);
@@ -4636,12 +5225,15 @@ index 0000000000..5f645e22b5
 +      const fences = await OwnershipFences.open({ directory: approval.fenceDirectory, releaseRoot: approval.releaseRoot,
 +        installation: approval.installation, identity: approval.identity });
 +      resources.fences = fences;
++      const helperFences = approval.helperFence ? await OwnershipHelperFences.open(approval.helperFence,
++        bridge.helperFenceStorage(approval, selection, owner)) : undefined;
++      if (helperFences) resources.helperFences = helperFences;
 +      const generation = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("hex");
-+      const system = new LinuxOwnershipSystem(approval, bridge, fences, generation, owner);
++      const system = new LinuxOwnershipSystem(approval, bridge, fences, generation, owner, helperFences);
 +      const dispatcher = await OwnershipDispatcher.open(approval.identity, system);
 +      await owner.ready(); owner.assertReady();
 +      const listener = bridge.listen(approval.endpoint);
-+      const server = new LinuxOwnershipServer(approval, bridge, fences, dispatcher, key, generation, listener, owner, selection);
++      const server = new LinuxOwnershipServer(approval, bridge, fences, dispatcher, key, generation, listener, owner, selection, helperFences);
 +      retainedServers.add(server);
 +      const stat = await fs.lstat(approval.endpoint, { bigint: true });
 +      if (!stat.isSocket()) throw new OwnershipError("dispatcher_mismatch");
@@ -4649,36 +5241,34 @@ index 0000000000..5f645e22b5
 +      await owner.ready(); owner.assertReady();
 +      server.#schedule(); retainedStarts.delete(resources); return server;
 +    } catch (error) {
-+      // No admission was scheduled. Best-effort descriptor disposal supplies no library/extinction receipt.
-+      try { resources.bridge?.close(); } catch { /* Retained above: never retry uncertain native close. */ }
-+      try { await resources.fences?.close(); } catch { /* Preserve fence descriptors/files and generation owner. */ }
++      // Retain all known descriptors/owners on uncertain initialization; process exit remains the outer owner.
 +      throw error;
 +    }
 +  }
 +
-+  /** Stops admission immediately. No COMPLETE, EOF or server close substitutes for the Host original reap. */
-+  close(): Promise<void> {
-+    if (this.#closing) return this.#closing;
-+    this.#closed = true; this.#dispatcher.stopAdmission(); clearTimeout(this.#timer);
-+    this.#closing = this.#shutdown(); return this.#closing;
++  /** Stops admissions, retaining registered helpers/COMPLETE ACK polling until Native terminal eligibility. */
++  close(): Promise<void> { return this.#drain.close(); }
++  async #stableTail(): Promise<void> {
++    for (;;) { const tail = this.#tail; await tail; if (tail === this.#tail) return; }
 +  }
-+  async #shutdown(): Promise<void> {
-+    try { this.#bridge.releaseSocket(this.#listener); } catch { this.#uncertain = true; }
-+    for (const connection of this.#connections) {
-+      try { this.#drop(connection); } catch { this.#uncertain = true; }
++  async #dispose(): Promise<void> {
++    // Owner remains ready through all terminal/fence checks. Enter stopping only after callbacks/output quiesce.
++    if (this.#uncertain || this.#connections.size || this.#polling) throw new OwnershipError("ownership_unresolved");
++    this.#dispatcher.assertDrained();
++    await this.#fences.verify(); this.#fences.assertDrained();
++    await this.#helperFences?.assertDrained(); this.#dispatcher.assertDrained();
++    await this.#owner.ready(); this.#owner.assertReady();
++    const stat = await fs.lstat(this.#approval.endpoint, { bigint: true });
++    if (!stat.isSocket() || stat.dev !== this.#endpointIdentity?.device || stat.ino !== this.#endpointIdentity.inode) {
++      throw new OwnershipError("ownership_unresolved");
 +    }
-+    // Closing a connection can append uncertainty work while an older response is suspended.
-+    for (;;) { const tail = this.#tail; await tail; if (tail === this.#tail) break; }
++    this.#owner.assertReady();
++    await fs.unlink(this.#approval.endpoint);
++    await this.#helperFences?.close();
++    this.#bridge.close(); await this.#fences.close();
 +    await this.#owner.close(async () => {
-+      if (this.#uncertain || this.#connections.size) throw new OwnershipError("ownership_unresolved");
++      if (this.#uncertain || this.#connections.size || this.#polling) throw new OwnershipError("ownership_unresolved");
 +      this.#dispatcher.assertDrained();
-+      await this.#fences.verify(); this.#fences.assertDrained(); this.#dispatcher.assertDrained();
-+      const stat = await fs.lstat(this.#approval.endpoint, { bigint: true });
-+      if (!stat.isSocket() || stat.dev !== this.#endpointIdentity?.device || stat.ino !== this.#endpointIdentity.inode) {
-+        throw new OwnershipError("ownership_unresolved");
-+      }
-+      await fs.unlink(this.#approval.endpoint);
-+      this.#bridge.close(); await this.#fences.close();
 +    });
 +    retainedServers.delete(this);
 +  }
@@ -4687,8 +5277,9 @@ index 0000000000..5f645e22b5
 +	#schedule(): void { this.#timer = setTimeout(() => this.#poll(), 5); }
 +	#poll(): void {
 +		if (this.#closed) return;
++    this.#polling = true;
 +		try {
-+			for (let count = this.#connections.size; count < OWNERSHIP_LIMITS.connections; count++) {
++			for (let count = this.#connections.size; !this.#draining && count < OWNERSHIP_LIMITS.connections; count++) {
 +				const socket = this.#bridge.accept(this.#listener, process.getuid?.() ?? -1);
 +				if (!socket) break;
 +				try { this.#admit(socket); } catch { this.#bridge.releaseSocket(socket); }
@@ -4696,8 +5287,9 @@ index 0000000000..5f645e22b5
 +			for (const connection of this.#connections) {
 +				try { this.#advance(connection); } catch { this.#drop(connection); }
 +			}
-+		} catch { void this.close().catch(() => undefined); return; }
-+		this.#schedule();
++		} catch { this.#uncertain = true; void this.close().catch(() => undefined); }
++    finally { this.#polling = false; const wake = this.#wake; this.#wake = Promise.withResolvers<void>(); wake.resolve(); }
++		if (!this.#closed) this.#schedule();
 +	}
 +	#admit(socket: OwnershipSocket): void {
 +		const captured = this.#bridge.capturePeer(socket);
@@ -4731,7 +5323,8 @@ index 0000000000..5f645e22b5
 +		}
 +	}
 +	async #respond(connection: Connection, frame: string): Promise<void> {
-+		if (connection.closed || this.#closed || performance.now() >= connection.deadline) return;
++		if (connection.closed || this.#closed || (this.#draining && !connection.helperRegistered)
++      || performance.now() >= connection.deadline) return;
 +		await this.#owner.ready();
 +		await this.#approval.verify();
 +		const value: unknown = JSON.parse(frame);
@@ -6517,15 +7110,15 @@ index 0fe343ff21..600abd9d92 100644
  	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-approval.test.ts b/packages/coding-agent/test/execution-ownership-approval.test.ts
 new file mode 100644
-index 0000000000..e7839c3dc1
+index 0000000000..4a4ca135a9
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-approval.test.ts
-@@ -0,0 +1,341 @@
+@@ -0,0 +1,372 @@
 +import { expect, test, spyOn } from "bun:test";
 +import * as fs from "node:fs/promises";
 +import * as nodeFs from "node:fs";
 +import * as path from "node:path";
-+import { loadOwnershipApproval, loadOwnershipControlApproval, OwnershipApprovalGeneration, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
++import { loadOwnershipApproval, loadOwnershipControlApproval, loadOwnershipTerminalApproval, OwnershipApprovalGeneration, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
 +import { selectOwnershipControlRelease, assertOwnershipControlSelection } from "../src/launch/ownership/selected-control-release";
 +import { OwnershipReplyVerifier } from "../src/launch/ownership/authentication";
 +import { connectApprovedOwnershipClient } from "../src/launch/ownership/uds-client";
@@ -6860,6 +7453,37 @@ index 0000000000..e7839c3dc1
 +    expect(() => assertOwnershipControlSelection(forgedSelection, approval)).toThrow("maintenance_fenced");
 +    expect(invoked).toBe(0);
 +    await expect(selectOwnershipControlRelease(approval, fake)).rejects.toMatchObject({ code: "ownership_limit" });
++  } finally { await f.cleanup(); }
++});
++
++
++test("v4 requires its own anchor and binds the private helper fence policy to exact helper bytes", async () => {
++  const f = await fixture(true);
++  try {
++    const helperDirectory = path.join(f.root, "helper-fences");
++    await fs.mkdir(helperDirectory, { mode: 0o700 });
++    await fs.writeFile(f.anchorFile, JSON.stringify({ ...f.anchor, version: "omp-execution-approval-anchor/3",
++      approvalVersion: "omp-execution-approval/4" }));
++    const selected = await pin(f.anchorFile);
++    const helperFence = { policy: "omp-private-helper-fence/1" as const, directory: await directory(helperDirectory),
++      helperSha256: f.payload.helper.sha256 };
++    const payload = { ...f.payload, version: "omp-execution-approval/4", helperFence };
++    await f.publish(payload, "omp-execution-release-approval/4\0");
++    expect((await loadOwnershipTerminalApproval(selected)).helperFence).toEqual(helperFence);
++    await expect(loadOwnershipControlApproval(selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++    for (const bad of [undefined, { directory: helperFence.directory, helperSha256: helperFence.helperSha256 },
++      { ...helperFence, helperSha256: "0".repeat(64) },
++      { ...helperFence, policy: "controller-asserted" }, { ...helperFence, extra: true },
++      { ...helperFence, directory: f.payload.fenceDirectory },
++      { ...helperFence, directory: f.payload.releaseDirectory }]) {
++      await f.publish({ ...payload, helperFence: bad }, "omp-execution-release-approval/4\0");
++      await expect(loadOwnershipTerminalApproval(selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++    }
++    await f.publish(payload, "omp-execution-release-approval/3\0");
++    await expect(loadOwnershipTerminalApproval(selected)).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++    await fs.writeFile(f.anchorFile, JSON.stringify(f.anchor));
++    await f.publish({ ...f.payload, helperFence }, "omp-execution-release-approval/3\0");
++    await expect(loadOwnershipControlApproval(await pin(f.anchorFile))).rejects.toMatchObject({ code: "dispatcher_mismatch" });
 +  } finally { await f.cleanup(); }
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
@@ -7466,10 +8090,10 @@ index 0000000000..9ea245d6ad
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000..7215eab567
+index 0000000000..818ab33740
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
-@@ -0,0 +1,333 @@
+@@ -0,0 +1,414 @@
 +import { expect, test } from "bun:test";
 +import { decodeOwnershipChallenge, OwnershipReplyVerifier, signOwnershipReply } from "../src/launch/ownership/authentication";
 +import { OwnershipReplyQueue } from "../src/launch/ownership/reply-queue";
@@ -7803,6 +8427,148 @@ index 0000000000..7215eab567
 +  expect(writes.join("")).toBe(encoded + encoded.slice(0, 7));
 +  expect(output.pending).toBe(false);
 +});
++
++test("explicit Native terminal policy drains only after trusted COMPLETE and terminal observation", async () => {
++  const system = new SyntheticSystem(), helper = {}, host = {}, installation = "f".repeat(64);
++  system.policies.set(host, "external");
++  system.completeHelper = async () => {};
++  Object.assign(system, { helperTerminalPolicy: "omp-private-helper-fence/1", checkHelperTerminal: async () => "pending" });
++  const dispatcher = await OwnershipDispatcher.open(identity, system), session = new HelperWireSession(installation);
++  await dispatcher.handle(host, frame({ op: "prepare_helper", generation }));
++  const request = { version: "omp-execution-helper/1", id: "a".repeat(64), installation,
++    operation: { op: "register_helper", generation } };
++  await dispatcher.handleHelper(helper, session, JSON.stringify(request));
++  dispatcher.stopAdmission();
++  await dispatcher.handleHelper(helper, session, JSON.stringify({ ...request, id: "b".repeat(64),
++    operation: { op: "complete_helper", generation } }));
++  expect(await dispatcher.checkDrained()).toBe(false);
++  Object.assign(system, { checkHelperTerminal: async () => "terminal" });
++  expect(await dispatcher.checkDrained()).toBe(true);
++  dispatcher.assertDrained();
++});
++
++
++test("a completed original helper cannot register a second generation", async () => {
++  const system = new SyntheticSystem(), helper = {}, host = {};
++  system.policies.set(host, "external");
++  system.completeHelper = async () => {};
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  await register(dispatcher, system, helper);
++  await dispatcher.completeHelper(helper);
++  const next = "f".repeat(64);
++  expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation: next }))).toMatchObject({ ok: true });
++  await expect(dispatcher.registerHelper(host, helper, next)).rejects.toThrow("ownership_protocol");
++});
++
++test("v4 cannot accept COMPLETE outside the original registered helper wire session", async () => {
++  const system = new SyntheticSystem(), helper = {};
++  Object.assign(system, { helperTerminalPolicy: "omp-private-helper-fence/1", checkHelperTerminal: async () => "terminal" });
++  system.completeHelper = async () => {};
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  await register(dispatcher, system, helper);
++  await expect(dispatcher.completeHelper(helper)).rejects.toThrow("ownership_unresolved");
++});
++
++test("a committed prepare remains unresolved if its reply is discarded or REGISTER never arrives", async () => {
++  const system = new SyntheticSystem(), host = {};
++  system.policies.set(host, "external");
++  Object.assign(system, { helperTerminalPolicy: "omp-private-helper-fence/1", checkHelperTerminal: async () => "terminal" });
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  await dispatcher.handle(host, frame({ op: "prepare_helper", generation })); // Simulate a lost output reply.
++  expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation })))
++    .toMatchObject({ ok: false, error: "ownership_protocol" });
++  dispatcher.stopAdmission();
++  expect(await dispatcher.checkDrained()).toBe(false);
++  expect(() => dispatcher.assertDrained()).toThrow("ownership_unresolved");
++});
++
++test("surviving broker scopes remain blocking under the explicit Native terminal policy", async () => {
++  const system = new SyntheticSystem(), host = {};
++  system.policies.set(host, "external");
++  Object.assign(system, { helperTerminalPolicy: "omp-private-helper-fence/1", checkHelperTerminal: async () => "terminal" });
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  expect(await dispatcher.handle(host, frame({ op: "broker", scope: { kind: "project", directory: "/work" } })))
++    .toMatchObject({ ok: true });
++  dispatcher.stopAdmission();
++  expect(await dispatcher.checkDrained()).toBe(false);
++  expect(() => dispatcher.assertDrained()).toThrow("ownership_unresolved");
++});
++
++test("used generation tombstones remain bounded and cannot be evicted to admit reuse", async () => {
++  const system = new SyntheticSystem(), host = {};
++  system.policies.set(host, "external"); system.completeHelper = async () => {};
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  for (let index = 0; index < 512; index++) {
++    const value = index.toString(16).padStart(64, "0"), helper = {};
++    expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation: value }))).toMatchObject({ ok: true });
++    await dispatcher.registerHelper(host, helper, value); await dispatcher.completeHelper(helper);
++  }
++  expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation: "0".repeat(64) })))
++    .toMatchObject({ ok: false, error: "ownership_protocol" });
++  expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation: "f".repeat(64) })))
++    .toMatchObject({ ok: false, error: "ownership_limit" });
++});
+diff --git a/packages/coding-agent/test/execution-ownership-drain.test.ts b/packages/coding-agent/test/execution-ownership-drain.test.ts
+new file mode 100644
+index 0000000000..411b005cb2
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-drain.test.ts
+@@ -0,0 +1,55 @@
++import { expect, test } from "bun:test";
++import { OwnershipDrain } from "../src/launch/ownership/drain";
++
++test("draining retains polling and public readiness until terminal peers and queued COMPLETE output settle", async () => {
++  const events: string[] = [], wake = Promise.withResolvers<void>();
++  let terminal = false, output = true;
++  const drain = new OwnershipDrain({
++    stopAdmission() { events.push("admission-stopped"); },
++    async stable() {}, async terminal() { return terminal; },
++    quiescent() { return !output; }, async wait() { await wake.promise; },
++    stopPolling() { events.push("poll-stopped"); }, async quiesce() { events.push("connections-closed"); },
++    async dispose() { events.push("bridge-fences-module-selection"); },
++  });
++  const close = drain.close();
++  await Promise.resolve(); await Promise.resolve();
++  expect(events).toEqual(["admission-stopped"]);
++  terminal = true; output = false; wake.resolve(); await close;
++  expect(events).toEqual(["admission-stopped", "poll-stopped", "connections-closed", "bridge-fences-module-selection"]);
++});
++
++test("a callback appended while quiescing cannot release resources and a failed close is never retried", async () => {
++  let busy = false, disposed = false;
++  const drain = new OwnershipDrain({ stopAdmission() {}, async stable() {}, async terminal() { return true; },
++    quiescent() { return !busy; }, async wait() {}, stopPolling() {},
++    async quiesce() { busy = true; }, async dispose() { disposed = true; } });
++  const close = drain.close();
++  await expect(close).rejects.toThrow("ownership_unresolved");
++  expect(disposed).toBe(false);
++  busy = false;
++  expect(drain.close()).toBe(close);
++  await expect(drain.close()).rejects.toThrow("ownership_unresolved");
++});
++
++test("uncertain resource disposal remains failed for every concurrent or later close", async () => {
++  let attempts = 0;
++  const drain = new OwnershipDrain({ stopAdmission() {}, async stable() {}, async terminal() { return true; },
++    quiescent() { return true; }, async wait() {}, stopPolling() {}, async quiesce() {},
++    async dispose() { attempts++; throw new Error("uncertain close"); } });
++  const first = drain.close(), second = drain.close();
++  await expect(first).rejects.toThrow("uncertain close"); await expect(second).rejects.toThrow("uncertain close");
++  await expect(drain.close()).rejects.toThrow("uncertain close");
++  expect(attempts).toBe(1);
++});
++
++test("an admission-stop failure retains the first close result without repeating descriptor actions", async () => {
++  let attempts = 0;
++  const drain = new OwnershipDrain({ stopAdmission() { attempts++; throw new Error("listener close failed"); },
++    async stable() {}, async terminal() { return true; }, quiescent() { return true; }, async wait() {},
++    stopPolling() {}, async quiesce() {}, async dispose() {} });
++  const first = drain.close();
++  await expect(first).rejects.toThrow("listener close failed");
++  expect(drain.close()).toBe(first);
++  await expect(drain.close()).rejects.toThrow("listener close failed");
++  expect(attempts).toBe(1);
++});
 diff --git a/packages/coding-agent/test/execution-ownership-fences.test.ts b/packages/coding-agent/test/execution-ownership-fences.test.ts
 new file mode 100644
 index 0000000000..578168af2d
@@ -7873,6 +8639,233 @@ index 0000000000..578168af2d
 +		await fences.verify();
 +		expect(await fs.readdir(directory)).toEqual([`dispatcher-${"e".repeat(64)}.json`]);
 +	} finally { await fences?.close(); await fs.rm(root, { recursive: true, force: true }); }
++});
+diff --git a/packages/coding-agent/test/execution-ownership-helper-fences.test.ts b/packages/coding-agent/test/execution-ownership-helper-fences.test.ts
+new file mode 100644
+index 0000000000..fcea70e898
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-helper-fences.test.ts
+@@ -0,0 +1,68 @@
++import { expect, test } from "bun:test";
++import { OwnershipHelperFences, type HelperFenceStorage } from "../src/launch/ownership/helper-fences";
++const generation = "e".repeat(64), helper = {};
++const policy = { policy: "omp-private-helper-fence/1" as const,
++  directory: { path: "/non-authorizing/helper-fences", device: "1", inode: "2" }, helperSha256: "a".repeat(64) };
++class Storage implements HelperFenceStorage {
++  present = false;
++  synced = false;
++  async verifySelection() {}
++  openDirectory() { return {}; }
++  verifyDirectory() {}
++  pinFile() { return helper; }
++  filePresent() { return this.present; }
++  syncDirectory() { this.synced = true; }
++  names() { return this.present ? [generation + ".fence"] : []; }
++  closeFile() {}
++  closeDirectory() {}
++}
++test("helper fence absence is sealed by directory fsync after pinned registration", async () => {
++  const storage = new Storage(), fences = await OwnershipHelperFences.open(policy, storage);
++  storage.present = true;
++  await fences.pin(generation, 37);
++  expect(await fences.terminal(generation)).toBe(false);
++  storage.present = false;
++  expect(await fences.terminal(generation)).toBe(true);
++  expect(storage.synced).toBe(true);
++  await fences.assertDrained();
++});
++
++test("concurrent helper fence disposal shares the original descriptor close and never retries", async () => {
++  const storage = new Storage(), fences = await OwnershipHelperFences.open(policy, storage);
++  storage.present = true; await fences.pin(generation, 37);
++  storage.present = false; await fences.terminal(generation);
++  let closedFiles = 0;
++  storage.closeFile = () => { closedFiles++; };
++  const first = fences.close(), second = fences.close();
++  await Promise.all([first, second]); await fences.close();
++  expect(closedFiles).toBe(1);
++});
++
++for (const failure of ["directory", "record-or-replacement", "fsync", "selection", "unknown-entry", "close"]) {
++  test(`helper fence ${failure} failure permanently retains Native uncertainty`, async () => {
++    const storage = new Storage(), fences = await OwnershipHelperFences.open(policy, storage);
++    storage.present = true; await fences.pin(generation, 37); storage.present = false;
++    if (failure === "directory") storage.verifyDirectory = () => { throw new Error("directory replaced"); };
++    if (failure === "record-or-replacement") storage.filePresent = () => { throw new Error("file replaced"); };
++    if (failure === "fsync") storage.syncDirectory = () => { throw new Error("fsync failure"); };
++    if (failure === "selection") storage.verifySelection = async () => { throw new Error("selection changed"); };
++    if (failure === "unknown-entry" || failure === "close") await fences.terminal(generation);
++    if (failure === "unknown-entry") storage.names = () => ["unknown-entry"];
++    if (failure === "close") storage.closeFile = () => { throw new Error("fd close failure"); };
++    const result = failure === "close" ? fences.close()
++      : failure === "unknown-entry" ? fences.assertDrained() : fences.terminal(generation);
++    await expect(result).rejects.toThrow();
++    storage.verifyDirectory = () => {}; storage.filePresent = () => false; storage.syncDirectory = () => {};
++    storage.verifySelection = async () => {}; storage.names = () => [];
++    await expect(fences.terminal(generation)).rejects.toThrow("maintenance_fenced");
++  });
++}
++
++test("a fence reappearing after the unlink-fsync window is sticky uncertainty", async () => {
++  const storage = new Storage(), fences = await OwnershipHelperFences.open(policy, storage);
++  storage.present = true; await fences.pin(generation, 37); storage.present = false;
++  storage.syncDirectory = () => { storage.present = true; };
++  await expect(fences.terminal(generation)).rejects.toThrow("ownership_unresolved");
++  storage.present = false;
++  await expect(fences.terminal(generation)).rejects.toThrow("maintenance_fenced");
++});
+diff --git a/packages/coding-agent/test/execution-ownership-helper-policy.test.ts b/packages/coding-agent/test/execution-ownership-helper-policy.test.ts
+new file mode 100644
+index 0000000000..c3452a5967
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-helper-policy.test.ts
+@@ -0,0 +1,21 @@
++import { expect, test } from "bun:test";
++import { assertOwnershipHelperConfiguration } from "../src/launch/ownership/helper-policy";
++
++test("signed v4 helper policy must match the inventoried generated C configuration exactly", () => {
++  const input = { releaseRoot: "/release", installation: "a".repeat(64), endpoint: "/state/socket",
++    control: { path: "/control", device: "9", inode: "10" },
++    helperFence: { policy: "omp-private-helper-fence/1" as const,
++      directory: { path: "/helper-fences", device: "11", inode: "12" }, helperSha256: "b".repeat(64) } };
++  const bytes = '#define OMP_DISPATCHER_PATH "/state/socket"\n'
++    + '#define OMP_INSTALLATION_ID "' + "a".repeat(64) + '"\n'
++    + '#define OMP_NATIVE_ENTRY "/release/bin/omp"\n'
++    + '#define OMP_CONTROL_PATH "/control"\n'
++    + '#define OMP_CONTROL_DEVICE UINTMAX_C(9)\n#define OMP_CONTROL_INODE UINTMAX_C(10)\n'
++    + '#define OMP_FENCE_PATH "/helper-fences"\n'
++    + '#define OMP_FENCE_DEVICE UINTMAX_C(11)\n#define OMP_FENCE_INODE UINTMAX_C(12)\n';
++  assertOwnershipHelperConfiguration(input, bytes);
++  for (const changed of [bytes.replace('"/helper-fences"', '"/controller-input"'),
++    bytes.replace("UINTMAX_C(12)", "UINTMAX_C(13)"), bytes + "#undef OMP_FENCE_PATH\n"]) {
++    expect(() => assertOwnershipHelperConfiguration(input, changed)).toThrow("dispatcher_mismatch");
++  }
++});
+diff --git a/packages/coding-agent/test/execution-ownership-helper-terminal.test.ts b/packages/coding-agent/test/execution-ownership-helper-terminal.test.ts
+new file mode 100644
+index 0000000000..6d1c94fd3b
+--- /dev/null
++++ b/packages/coding-agent/test/execution-ownership-helper-terminal.test.ts
+@@ -0,0 +1,120 @@
++import { expect, test } from "bun:test";
++import { OwnershipDispatcher } from "../src/launch/ownership/dispatcher";
++import { OwnershipDrain } from "../src/launch/ownership/drain";
++import { OwnershipReplyQueue } from "../src/launch/ownership/reply-queue";
++import { HelperWireSession, verifyHelperAcknowledgement } from "../src/launch/ownership/helper-protocol";
++import type { LoadedOwnershipApproval } from "../src/launch/ownership/approval";
++import { OwnershipHelperFences, type HelperFenceStorage } from "../src/launch/ownership/helper-fences";
++import { LinuxOwnershipSystem, type OwnershipHelperPeers } from "../src/launch/ownership/linux-system";
++const generation = "e".repeat(64), helper = {}, host = {};
++const file = { file: "/fixture/component", sha256: "a".repeat(64) };
++const directory = { path: "/fixture/helper-fences", device: "1", inode: "2" };
++const approval: LoadedOwnershipApproval = {
++  installation: "b".repeat(64), identity: { closure: "c".repeat(64), schema: "d".repeat(64) }, publicKey: "fixture",
++  releaseRoot: "/fixture/release", releaseDirectory: directory,
++  entry: { ...directory, sha256: file.sha256 }, control: { ...directory, sha256: file.sha256 },
++  controlIo: file, validator: file, endpoint: "/fixture/socket", stateDirectory: directory, fenceDirectory: directory,
++  bridge: file, helper: file, helperFence: { policy: "omp-private-helper-fence/1", directory, helperSha256: file.sha256 },
++  async verify() {},
++};
++class Storage implements HelperFenceStorage {
++  present = false;
++  failObserve = false;
++  synced = false;
++  async verifySelection() {}
++  openDirectory() { return {}; }
++  verifyDirectory() {}
++  pinFile() { return {}; }
++  filePresent() { if (this.failObserve) throw new Error("fence identity failure"); return this.present; }
++  syncDirectory() { this.synced = true; }
++  names() { return this.present ? [generation + ".fence"] : []; }
++  closeFile() {}
++  closeDirectory() {}
++}
++async function fixture(protect = true) {
++  const storage = new Storage(), fences = await OwnershipHelperFences.open(approval.helperFence!, storage);
++  storage.present = true;
++  const facts = { alive: true, broken: false, retired: false };
++  const peers: OwnershipHelperPeers = {
++    classify(peer, helpers) { if (!facts.alive) throw new Error("classification after exit"); return helpers.includes(peer) ? peer : undefined; },
++    isDirectChild() { return true; },
++    peerAlive(peer) { if (peer !== helper || facts.broken) throw new Error("original pidfd failure"); return facts.alive; },
++    peerHints() { if (!facts.alive) throw new Error("numeric PID lookup after exit"); return { pid: 37, startTime: "1" }; },
++    async verifyHelperExecutable() { if (!facts.alive) throw new Error("executable lookup after exit"); },
++  };
++  const system = new LinuxOwnershipSystem(approval, peers, { assertCurrent() {}, async verify() {}, async create() {},
++    async retireCompleted() { facts.retired = true; } }, generation, { async ready() {}, assertReady() {} }, fences);
++  if (protect) await system.protectHelper(host, helper, generation);
++  return { system, facts, storage };
++}
++
++test("COMPLETE with a live original peer remains pending, including lost ACK and absent helper fence", async () => {
++  const f = await fixture();
++  await f.system.completeHelper(helper, generation);
++  expect(f.facts.retired).toBe(true);
++  f.storage.present = false; f.storage.failObserve = true;
++  expect(await f.system.checkHelperTerminal(helper, generation)).toBe("pending");
++});
++
++test("original peer exit plus COMPLETE seals fence absence without reclassifying or rediscovering its PID", async () => {
++  const f = await fixture();
++  await f.system.completeHelper(helper, generation);
++  f.facts.alive = false;
++  expect(await f.system.checkHelperTerminal(helper, generation)).toBe("pending");
++  f.storage.present = false;
++  expect(await f.system.checkHelperTerminal(helper, generation)).toBe("terminal");
++  expect(f.storage.synced).toBe(true);
++});
++
++test("peer exit or EOF without trusted COMPLETE cannot establish terminal eligibility", async () => {
++  const f = await fixture(); f.facts.alive = false; f.storage.present = false;
++  await expect(f.system.checkHelperTerminal(helper, generation)).rejects.toThrow("maintenance_fenced");
++  f.facts.alive = true;
++  expect(() => f.system.assertReady()).toThrow("maintenance_fenced");
++});
++
++test("an original pidfd error latches uncertainty even if subsequent observations become readable", async () => {
++  const f = await fixture(); await f.system.completeHelper(helper, generation);
++  f.facts.broken = true;
++  await expect(f.system.checkHelperTerminal(helper, generation)).rejects.toThrow("original pidfd failure");
++  f.facts.broken = false; f.facts.alive = false; f.storage.present = false;
++  await expect(f.system.checkHelperTerminal(helper, generation)).rejects.toThrow("maintenance_fenced");
++});
++
++
++test("registered helper COMPLETE ACK can drain under backpressure after admission stops, before terminal Native disposal", async () => {
++  const f = await fixture(false), dispatcher = await OwnershipDispatcher.open(approval.identity, f.system);
++  const request = { version: "omp-execution-ownership/1", id: "request-00000001", identity: approval.identity,
++    operation: { op: "prepare_helper", generation } };
++  expect(await dispatcher.handle(host, JSON.stringify(request))).toMatchObject({ ok: true });
++  const session = new HelperWireSession(approval.installation);
++  const register = { version: "omp-execution-helper/1" as const, id: "a".repeat(64), installation: approval.installation,
++    operation: { op: "register_helper" as const, generation } };
++  verifyHelperAcknowledgement(await dispatcher.handleHelper(helper, session, JSON.stringify(register)), register);
++  const output = new OwnershipReplyQueue(authority => { if (authority) dispatcher.assertPublication(); });
++  const events: string[] = [], wake = Promise.withResolvers<void>();
++  let tail = Promise.resolve();
++  const drain = new OwnershipDrain({ stopAdmission() { dispatcher.stopAdmission(); }, async stable() {},
++    terminal: () => { const check = tail.then(() => dispatcher.checkDrained()); tail = check.then(() => {}); return check; }, quiescent: () => !output.pending, async wait() { await wake.promise; },
++    stopPolling() { events.push("poll-stopped"); }, async quiesce() {}, async dispose() {
++      dispatcher.assertDrained(); events.push("disposed");
++    } });
++  const close = drain.close();
++  // Let the first pending check complete before emulating the server's serialized helper response callback.
++  await tail;
++  const complete = { ...register, id: "b".repeat(64), operation: { op: "complete_helper" as const, generation } };
++  const response = tail.then(() => dispatcher.handleHelper(helper, session, JSON.stringify(complete)));
++  tail = response.then(() => {});
++  const ack = await response;
++  output.enqueue(ack, false);
++  output.write(() => 0);
++  expect(events).toEqual([]);
++  let bytes = "";
++  output.write(value => { bytes += new TextDecoder().decode(value.subarray(0, 7)); return 7; });
++  expect(await dispatcher.checkDrained()).toBe(false);
++  while (output.pending) output.write(value => { bytes += new TextDecoder().decode(value); return value.length; });
++  verifyHelperAcknowledgement(bytes, complete);
++  f.facts.alive = false; f.storage.present = false; wake.resolve();
++  await close;
++  expect(events).toEqual(["poll-stopped", "disposed"]);
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-helper-wire.test.ts b/packages/coding-agent/test/execution-ownership-helper-wire.test.ts
 new file mode 100644

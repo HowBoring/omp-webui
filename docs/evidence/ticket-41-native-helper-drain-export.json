@@ -1,0 +1,115 @@
+{
+  "format": "omp-native-helper-drain-export-v1",
+  "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+  "hostBase": "c17750add9c7599cac906f3ef8eaa18783c416e6",
+  "mergedIntegration": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
+  "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "stablePrefixTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
+  "supersededPreparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "preparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
+  "patchSha256": "d9aae7f5ec83f7f9e13f44be487b1c920a126513402b251ee3a6986e0d09d9ea",
+  "preparedSourceSha256": "11912fcb60102ee44c03b38ea0a6134af04bcc672f26725eb383f29f8fe2ba7f",
+  "sourceChanges": [
+    {
+      "path": "packages/coding-agent/docs/execution-ownership.md",
+      "sha256": "e545ae9fc35ef25bcaacaf1084321d03949e3c4958336c9f7009178ad35227df"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/approval.ts",
+      "sha256": "2cf45e270a6fc119b14dc5e3761fe4f349c33ee5d000a63e6ec8dd388fec18ce"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/dispatcher.ts",
+      "sha256": "9c1b9223f3081494e8bbfd360d58a756c8393bc2251b3c29cbd96b496f480d7d"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/drain.ts",
+      "sha256": "2195cf738b397dc5967b6492187a6e2e663661ff25bf225fe2ada2f244fd8bfc"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/helper-fences.ts",
+      "sha256": "aa9195047eedb41582043e2a23e8a0ec2bdabf1042b6d0530b498386d5d8a40b"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/helper-policy.ts",
+      "sha256": "a934d11de0e3485daa047c0d21f31f2cf148e37c9b47573d9264abd9d921e06e"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-bridge.c",
+      "sha256": "0a07096d6e168540d5f63417da62410597ac67c8ec298b4b435b959e234033f0"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+      "sha256": "9b4868ab30a430d5ee231a41c5e9f86d2e78b31b39fe4f6d224f46b84443001b"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-system.ts",
+      "sha256": "8efc7c6ba9a843df2741ef3d5e4ec950dcf9eca9134e6d85e22490b56f46c5f3"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+      "sha256": "3e5374b9347756143d41880701ad270d1bd3647091ada6ebd83eca6e6ec117c6"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/server.ts",
+      "sha256": "d23aad2b2d839f79c0ec7c3e14163873438d74875936bd4da1ccde6384bceba7"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
+      "sha256": "d21aed19332b89f2e98416ef906e012c7f8e36aab0a1a82a0f1b81805f2f8f20"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+      "sha256": "645399a8d754c19af6c674de7963644d98f11f35e58d01410fbb9fe58c894157"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-drain.test.ts",
+      "sha256": "68fb2b25e97fcc05d93951cf06bcff878b469a591d45cdd60713dcc10aa3770d"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-helper-fences.test.ts",
+      "sha256": "9d5e32b5097c4b3f8d8c81fab2421c0926a93cb1a2e6435fa6a9760a21d7adff"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-helper-policy.test.ts",
+      "sha256": "356bfe254bd7866f92e6250280c04a728cd2d37484159b5ba02bde63492b1ae8"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-helper-terminal.test.ts",
+      "sha256": "69135aa210a8630f970e25cc830ff53666cd9e1736f09366e5fed9eae924cb5e"
+    }
+  ],
+  "preservation": "/workspace/work/mvp-implementation/research/restore7-41-helper-drain",
+  "originalNativeChangedFiles": 130,
+  "originalNativeFilesUnchanged": 120,
+  "originalModifiedFiles": 10,
+  "newFiles": 7,
+  "nativeHead": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "nativeIndexSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+  "nativeHeadIndexStagedExact": true,
+  "changedSourcePreimagesMatchPreviousInactiveTree": true,
+  "privateIndexPrefixReplayExact": true,
+  "privateIndexApplyExact": true,
+  "immutableFiles": {
+    "compatibility/omp/0003-explicit-interactions.patch": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03",
+    "compatibility/omp/0005-strict-continuation.patch": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382",
+    "compatibility/omp/0002-readonly-catalog.patch": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7",
+    "compatibility/omp/0006-live-settlement.patch": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4",
+    "compatibility/omp/0001-safe-preflight.patch": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550",
+    "compatibility/omp/0004-coherent-history.patch": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3",
+    "compatibility/omp/0010-execution-ownership-consumers.delta.patch": "08b24d8aa006da8afb8edd25785bc4c057ada451e8637c5400b59cc55dced164",
+    "compatibility/dsh/patches/0002-semantic-drafts.patch": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+    "compatibility/dsh/patches/0003-projection-rebuild.patch": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+    "compatibility/dsh/patches/0001-navigation-policy.patch": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+    "upstreams.lock.json": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+    "compatibility/omp/execution-ownership-consumers.preparation.json": "104a01a34af51701654d7c5b606f2d8773412bb1402f687998d93a602f684b4d"
+  },
+  "activePatchListChanged": false,
+  "consumerDeltaChanged": false,
+  "finalPatches1Through10Composed": false,
+  "currentSourceActualComposition": "NOT_RUN",
+  "actualHelperDrain": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "freshStandardsAndSpecReviews": "PENDING_ROOT"
+}
