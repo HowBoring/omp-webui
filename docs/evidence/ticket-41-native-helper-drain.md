@@ -30,7 +30,7 @@ Helper-fence descriptors close before their containing bridge; dispatcher-fence 
 public-module close and selection release last. The C maintenance descriptor remains process-owned until exit.
 Failed or uncertain shutdown never becomes successful through a timeout or a second close call.
 
-[Checks](ticket-41-native-helper-drain-checks.json): 105 pure tests / 949 assertions, strict nominal types for 53 files,
+[Checks](ticket-41-native-helper-drain-checks.json): 107 pure tests / 956 assertions, strict nominal types for 53 files,
 strict C shared compilation with zero diagnostics, and build-only AST checks with zero eager FFI imports. Pure
 fixtures use approved System/Storage/Peer/public-module interfaces under a preimport no-provider/no-process/listener
 guard and synthetic env-i HOME/profile/cwd. The real public JS/library, Native CLI/SDK/Agent, actual helpers,
@@ -41,6 +41,22 @@ The original Native HEAD/index/staged bytes are unchanged: 120 of its original 1
 to the prior inactive tree, and the 10 intentional edits have exact bounded preimages. Seven new source/test files
 were added. A private index replayed unchanged first1–6 and only inactive0010 to the exported tree. Active patch
 selection, consumer delta and 7–9 composition were unchanged; full1–10 was not activated or claimed.
+
+The source standards follow-up fixes the two findings at reviewed Host `3822cf9`: Node filesystem constants use
+namespace imports, and initial helper-configuration open/stat/read/close or fatal UTF-8 failures now return the bounded
+`OwnershipError("dispatcher_mismatch")`. A failed first construction still consumes its immutable generation;
+a second attempt returns `ownership_limit`. The existing later verification normalization and v3/v4 policies remain.
+The public selection regression first passed real synthetic inventory checks, then reproduced the escaped decoder
+`TypeError` before the fix and passed afterward. A valid synthetic selection/verify/release precondition and injected
+filesystem EIO also pass without exposing the underlying platform message. Fixture metadata bytes are never loaded.
+No architectural boundary changed; ADR0018 and the optional repeated-ledger heuristic remain unchanged.
+
+The follow-up preserves all 137 Native dirty-path identities and bounded affected preimages at
+`/workspace/work/mvp-implementation/research/restore8-41-helper-drain-standards`. Exactly three source/test files changed
+and 134 stayed byte-identical; Native HEAD, real index and staged bytes remain exact. A private index replayed the
+unchanged first six patches plus only regenerated inactive0010. The export retains all 17 cumulative helper-drain
+source digests and distinguishes this three-file follow-up. Fresh focused paired reviews of the updated source remain
+pending; the earlier narrow Spec GO and two Standards findings reviewed the preceding source only.
 
 The c17750a signed C→Bun no-prepare proof remains historical and exercised no helper. Its consumed stageB keys/runtime
 were retired and were not reused. This source's actual helper drainage is **NOT RUN**. Fresh paired source review,

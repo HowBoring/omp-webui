@@ -3848,7 +3848,7 @@ index 0000000000..068268cbe2
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-bridge.ts b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 new file mode 100644
-index 0000000000..ef35ab0ff4
+index 0000000000..16a38d6aae
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-bridge.ts
 @@ -0,0 +1,303 @@
@@ -3862,7 +3862,7 @@ index 0000000000..ef35ab0ff4
 +import { assertOwnershipControlIoOwner, type OwnershipControlIoOwner } from "./control-io-owner";
 +import type { HelperFenceStorage } from "./helper-fences";
 +import type { OwnershipFileApproval } from "./approval";
-+import { constants } from "node:fs";
++import * as nodeFs from "node:fs";
 +import type { StablePeer } from "./dispatcher";
 +
 +const nativeFunctions = {
@@ -4035,7 +4035,7 @@ index 0000000000..ef35ab0ff4
 +  async verifyHelperExecutable(peer: StablePeer, approved: OwnershipFileApproval): Promise<void> {
 +    const target = `/proc/${this.peerHints(peer).pid}/exe`;
 +    if (!this.peerAlive(peer) || await fs.readlink(target) !== approved.file) throw new OwnershipError("ownership_unresolved");
-+    const file = await fs.open(target, constants.O_RDONLY);
++    const file = await fs.open(target, nodeFs.constants.O_RDONLY);
 +    try {
 +      const stat = await file.stat();
 +      if (!stat.isFile() || stat.size > 1_048_576) throw new OwnershipError("ownership_unresolved");
@@ -4985,13 +4985,13 @@ index 0000000000..9710a568b8
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/selected-control-release.ts b/packages/coding-agent/src/launch/ownership/selected-control-release.ts
 new file mode 100644
-index 0000000000..6a32ef3f45
+index 0000000000..593bb55753
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/selected-control-release.ts
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,95 @@
 +import * as path from "node:path";
 +import * as fs from "node:fs/promises";
-+import { constants } from "node:fs";
++import * as nodeFs from "node:fs";
 +import { assertOwnershipHelperConfiguration, ownershipHelperProvenance } from "./helper-policy";
 +import type { ControlReleaseManifest } from "@omp-webui/control-io";
 +import { assertOwnershipControlApproval, readOwnershipPinnedFile, type LoadedOwnershipApproval } from "./approval";
@@ -5025,7 +5025,8 @@ index 0000000000..6a32ef3f45
 +async function helperConfiguration(approval: LoadedOwnershipApproval): Promise<void> {
 +  if (!approval.helperFence) return;
 +  const location = path.join(approval.releaseRoot, "provenance/private-helper-configuration.h");
-+  const file = await fs.open(location, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
++  const file = await fs.open(location,
++    nodeFs.constants.O_RDONLY | nodeFs.constants.O_NOFOLLOW | nodeFs.constants.O_NONBLOCK);
 +  try {
 +    const before = await file.stat();
 +    if (!before.isFile() || before.nlink !== 1 || before.size > 16_384) throw new OwnershipError("dispatcher_mismatch");
@@ -5047,7 +5048,9 @@ index 0000000000..6a32ef3f45
 +  assertLauncherMaintenanceGuard(guard, approval.control);
 +  await approval.verify(); await readOwnershipPinnedFile(approval.control);
 +  const inventory = await inspectOwnershipInventory(approval.releaseRoot, approval.controlIo.inventory);
-+  roles(approval, inventory.manifest); await helperConfiguration(approval); await inventory.verify();
++  roles(approval, inventory.manifest);
++  try { await helperConfiguration(approval); } catch { throw new OwnershipError("dispatcher_mismatch"); }
++  await inventory.verify();
 +  await approval.verify(); assertLauncherMaintenanceGuard(guard, approval.control);
 +  let released = false, failed = false, tail = Promise.resolve();
 +  const assertCurrent = (): void => {
@@ -7110,16 +7113,20 @@ index 0fe343ff21..600abd9d92 100644
  	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-approval.test.ts b/packages/coding-agent/test/execution-ownership-approval.test.ts
 new file mode 100644
-index 0000000000..4a4ca135a9
+index 0000000000..6b28ab9d7e
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-approval.test.ts
-@@ -0,0 +1,372 @@
+@@ -0,0 +1,537 @@
 +import { expect, test, spyOn } from "bun:test";
 +import * as fs from "node:fs/promises";
 +import * as nodeFs from "node:fs";
 +import * as path from "node:path";
-+import { loadOwnershipApproval, loadOwnershipControlApproval, loadOwnershipTerminalApproval, OwnershipApprovalGeneration, readOwnershipPinnedFile } from "../src/launch/ownership/approval";
++import { loadOwnershipApproval, loadOwnershipControlApproval, loadOwnershipTerminalApproval, OwnershipApprovalGeneration, readOwnershipPinnedFile, type OwnershipApprovalPin } from "../src/launch/ownership/approval";
 +import { selectOwnershipControlRelease, assertOwnershipControlSelection } from "../src/launch/ownership/selected-control-release";
++import type { ControlReleaseMember } from "@omp-webui/control-io";
++import { captureLauncherMaintenanceHandoff } from "../src/launch/ownership/maintenance-handoff";
++import { inspectOwnershipInventory } from "../src/launch/ownership/release-inventory";
++import { OwnershipError } from "../src/launch/ownership/protocol";
 +import { OwnershipReplyVerifier } from "../src/launch/ownership/authentication";
 +import { connectApprovedOwnershipClient } from "../src/launch/ownership/uds-client";
 +
@@ -7485,6 +7492,167 @@ index 0000000000..4a4ca135a9
 +    await f.publish({ ...f.payload, helperFence }, "omp-execution-release-approval/3\0");
 +    await expect(loadOwnershipControlApproval(await pin(f.anchorFile))).rejects.toMatchObject({ code: "dispatcher_mismatch" });
 +  } finally { await f.cleanup(); }
++});
++
++/** Read-only synthetic ELF metadata, never a runtime or loadable library. */
++function selectionElf(dependencies = true): Buffer {
++  const bytes = Buffer.alloc(512), names = Buffer.from(dependencies ? "\0libc.so.6\0ld-linux-fixture.so\0" : "\0");
++  bytes.set([127, 69, 76, 70, 2, 1, 1]); bytes.writeUInt16LE(3, 16);
++  bytes.writeUInt16LE(process.arch === "x64" ? 62 : 183, 18); bytes.writeUInt32LE(1, 20);
++  bytes.writeBigUInt64LE(64n, 32); bytes.writeUInt16LE(64, 52); bytes.writeUInt16LE(56, 54); bytes.writeUInt16LE(2, 56);
++  bytes.writeUInt32LE(1, 64); bytes.writeBigUInt64LE(512n, 96);
++  bytes.writeUInt32LE(2, 120); bytes.writeBigUInt64LE(256n, 128); bytes.writeBigUInt64LE(80n, 152);
++  const entries = [[5, 384], [10, names.length], ...(dependencies ? [[1, 1], [1, 11]] : []), [0, 0]];
++  for (const [index, [tag, value]] of entries.entries()) {
++    bytes.writeBigUInt64LE(BigInt(tag!), 256 + index * 16); bytes.writeBigUInt64LE(BigInt(value!), 264 + index * 16);
++  }
++  names.copy(bytes, 384); return bytes;
++}
++async function selectionInventory(release: string, root: string) {
++  const dependencies: ControlReleaseMember[] = [];
++  for (const name of ["libc.so.6", "ld-linux-fixture.so"]) {
++    const location = path.join(root, "platform", name), bytes = selectionElf(false);
++    await fs.writeFile(location, bytes, { mode: 0o600 });
++    dependencies.push({ path: location, kind: "file", identity: hash(bytes), mode: 0o600 });
++  }
++  const assets: ControlReleaseMember[] = [];
++  async function visit(name: string): Promise<void> {
++    const location = path.resolve(release, name), stat = await fs.stat(location);
++    const children = stat.isDirectory() ? (await fs.readdir(location)).sort() : undefined;
++    assets.push({ path: name, kind: children ? "directory" : "file", mode: stat.mode & 0o7777,
++      identity: hash(children ? JSON.stringify(children) : await fs.readFile(location)) });
++    if (children) for (const child of children) await visit(name === "." ? child : `${name}/${child}`);
++  }
++  await visit(".");
++  const manifest = JSON.stringify({ format: "omp-webui-release-inventory-v1", stage: "unaccepted-artifact",
++    platform: process.platform, arch: process.arch, assets, platformDependencies: dependencies }, null, 2) + "\n";
++  const file = path.join(release, "release.json"); await fs.writeFile(file, manifest, { mode: 0o600 });
++  return { file, sha256: hash(manifest) };
++}
++function selectionConfiguration(payload: { endpoint: string; installation: string; releaseRoot: string;
++  control: OwnershipApprovalPin;
++  helperFence: { directory: { path: string; device: string; inode: string } } }): string {
++  return `#define OMP_DISPATCHER_PATH ${JSON.stringify(payload.endpoint)}\n`
++    + `#define OMP_INSTALLATION_ID ${JSON.stringify(payload.installation)}\n`
++    + `#define OMP_NATIVE_ENTRY ${JSON.stringify(payload.releaseRoot + "/bin/omp")}\n`
++    + `#define OMP_CONTROL_PATH ${JSON.stringify(payload.control.path)}\n`
++    + `#define OMP_CONTROL_DEVICE UINTMAX_C(${payload.control.device})\n`
++    + `#define OMP_CONTROL_INODE UINTMAX_C(${payload.control.inode})\n`
++    + `#define OMP_FENCE_PATH ${JSON.stringify(payload.helperFence.directory.path)}\n`
++    + `#define OMP_FENCE_DEVICE UINTMAX_C(${payload.helperFence.directory.device})\n`
++    + `#define OMP_FENCE_INODE UINTMAX_C(${payload.helperFence.directory.inode})\n`;
++}
++async function terminalSelectionFixture(configuration?: Uint8Array) {
++  const f = await fixture(true), release = f.payload.releaseRoot;
++  const controlFile = path.join(f.root, "control"), helperDirectory = path.join(f.root, "helper-fences");
++  await fs.writeFile(controlFile, "synthetic retained control", { mode: 0o600 });
++  await fs.mkdir(helperDirectory, { mode: 0o700 }); await fs.mkdir(path.join(f.root, "platform"), { mode: 0o700 });
++  const content = "synthetic inventoried file\n";
++  const member = (name: string) => ({ file: path.join(release, name), sha256: hash(content) });
++  const controlIo = { ...f.payload.controlIo, source: member("provenance/owned-control-io.c"),
++    header: member("provenance/owned-control-io.h"),
++    file: path.join(release, "lib/libomp-control-io.so"), sha256: hash(content),
++    package: { entry: member("control-io/index.js"), types: member("control-io/index.d.ts"),
++      manifest: member("control-io/package.json"), build: member("provenance/control-io-build.json") },
++    native: { dispatcher: member("provenance/native/dispatcher.ts"), client: member("provenance/native/client.ts"),
++      bundle: member("worker/cli.js"), schema: member("contracts/wire.schema.json") } };
++  const helperFence = { policy: "omp-private-helper-fence/1",
++    directory: await directory(helperDirectory), helperSha256: hash(content) };
++  const payload = { ...f.payload, version: "omp-execution-approval/4", control: await pin(controlFile), controlIo,
++    bridge: member("bridge.so"), helper: member("helper"), validator: member("validator.js"), helperFence };
++  const files = [controlIo, controlIo.source, controlIo.header, ...Object.values(controlIo.package),
++    ...Object.values(controlIo.native), payload.bridge, payload.helper, payload.validator];
++  const names = [...files.map(value => path.relative(release, value.file)), "provenance/private-helper.c",
++    "provenance/private-helper-configuration.h", "provenance/candidates.h",
++    "provenance/control.h", "provenance/build-private-helper.ts",
++    "provenance/control-io/package.json", "provenance/build-control-io.ts", "provenance/build-control-io-public.ts",
++    "provenance/control-io-toolchain-package.json", "provenance/control-io-toolchain-bun.lock",
++    ...["index", "loader", "socket", "selection", "errors"].flatMap(name =>
++      [`control-io/${name}.d.ts`, `provenance/control-io/${name}.ts`])];
++  for (const name of new Set(names)) {
++    await fs.mkdir(path.dirname(path.join(release, name)), { recursive: true, mode: 0o700 });
++    await fs.writeFile(path.join(release, name), content, { mode: 0o600 });
++  }
++  await fs.writeFile(path.join(release, "provenance/private-helper-configuration.h"),
++    configuration ?? selectionConfiguration(payload));
++  await fs.writeFile(path.join(release, "metadata"), selectionElf(), { mode: 0o600 });
++  const inventory = await selectionInventory(release, f.root);
++  await fs.writeFile(f.anchorFile, JSON.stringify({ ...f.anchor, version: "omp-execution-approval-anchor/3",
++    approvalVersion: "omp-execution-approval/4" }));
++  await f.publish({ ...payload, controlIo: { ...controlIo, inventory } },
++    "omp-execution-release-approval/4\0");
++  return { ...f, approval: await loadOwnershipTerminalApproval(await pin(f.anchorFile)) };
++}
++
++async function mockSelectionGuard(control: OwnershipApprovalPin) {
++  const stat = await fs.stat(control.path, { bigint: true });
++  const device = stat.dev, major = ((device >> 8n) & 0xfffn) | ((device >> 32n) & 0xfffff000n);
++  const minor = (device & 0xffn) | ((device >> 12n) & 0xffffff00n);
++  const info = Buffer.from(`pos:\t0\nflags:\t0500000\nmnt_id:\t1\nino:\t${stat.ino}\n`
++    + `lock:\t1: FLOCK  ADVISORY  READ ${process.pid} ${major.toString(16)}:${minor.toString(16)}:${stat.ino} 0 EOF\n`);
++  const mocks = [spyOn(nodeFs, "fstatSync").mockReturnValue(stat), spyOn(nodeFs, "lstatSync").mockReturnValue(stat),
++    spyOn(nodeFs, "realpathSync").mockReturnValue(control.path),
++    spyOn(nodeFs, "openSync").mockImplementation(location => {
++      if (location !== "/proc/self/fdinfo/7") throw new Error("UNEXPECTED_SYNTHETIC_DESCRIPTOR"); return 101;
++    }), spyOn(nodeFs, "readSync").mockImplementation(
++      (_fd, buffer, offset = 0, length = buffer.byteLength, position = 0) => {
++      if (typeof offset !== "number" || typeof length !== "number") throw new Error("PURE_READ_ARGUMENTS");
++      const bytes = info.subarray(Number(position), Number(position) + length);
++      new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength).set(bytes, offset); return bytes.length;
++    }), spyOn(nodeFs, "closeSync").mockImplementation(() => {})];
++  return { guard: captureLauncherMaintenanceHandoff(["--omp-maintenance-handoff=1:7"]).claim({ control }),
++    restore() { for (const mock of mocks) mock.mockRestore(); } };
++}
++
++/** Approved public selection/filesystem seam; no actual inherited descriptor, /proc read, FFI or process probe. */
++test("initial helper configuration decoding returns a bounded refusal and consumes its generation", async () => {
++  const f = await terminalSelectionFixture(new Uint8Array([0xff]));
++  try { await inspectOwnershipInventory(f.approval.releaseRoot, f.approval.controlIo.inventory); }
++  catch (error) { await f.cleanup(); throw error; }
++  const synthetic = await mockSelectionGuard(f.approval.control);
++  try {
++    const guard = synthetic.guard;
++    const error = await selectOwnershipControlRelease(f.approval, guard).catch((error: unknown) => error);
++    expect(error).toBeInstanceOf(OwnershipError);
++    expect(error).toMatchObject({ code: "dispatcher_mismatch", message: "dispatcher_mismatch" });
++    expect(error).toMatchObject({ name: "OwnershipError", nativeErrno: undefined });
++    await expect(selectOwnershipControlRelease(f.approval, guard)).rejects.toMatchObject({ code: "ownership_limit" });
++  } finally { synthetic.restore(); await f.cleanup(); }
++});
++
++
++test("initial helper configuration I/O failure returns a bounded refusal and consumes its generation", async () => {
++  const f = await terminalSelectionFixture();
++  const synthetic = await mockSelectionGuard(f.approval.control), open = fs.open;
++  const valid = await selectOwnershipControlRelease(f.approval, synthetic.guard);
++  await valid.verify(); await valid.release();
++  const approval = await loadOwnershipTerminalApproval(await pin(f.anchorFile));
++  const fault = spyOn(fs, "open").mockImplementation(async (...args) => {
++    const file = await open(...args);
++    if (args[0] === path.join(f.approval.releaseRoot, "provenance/private-helper-configuration.h")
++      && typeof args[1] === "number") {
++      const heldStat = file.stat.bind(file);
++      function stat(options?: nodeFs.StatOptions & { bigint?: false }): Promise<nodeFs.Stats>;
++      function stat(options: nodeFs.StatOptions & { bigint: true }): Promise<nodeFs.BigIntStats>;
++      function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats>;
++      async function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats> {
++        if (options === undefined) {
++          throw Object.assign(new Error("private filesystem detail /synthetic/configuration"), { code: "EIO" });
++        }
++        return heldStat(options);
++      }
++      spyOn(file, "stat").mockImplementation(stat);
++    }
++    return file;
++  });
++  try {
++    const error = await selectOwnershipControlRelease(approval, synthetic.guard).catch((error: unknown) => error);
++    expect(error).toBeInstanceOf(OwnershipError);
++    expect(error).toMatchObject({ code: "dispatcher_mismatch", message: "dispatcher_mismatch",
++      nativeErrno: undefined });
++    await expect(selectOwnershipControlRelease(approval, synthetic.guard))
++      .rejects.toMatchObject({ code: "ownership_limit" });
++  } finally { fault.mockRestore(); synthetic.restore(); await f.cleanup(); }
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644

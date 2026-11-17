@@ -5,10 +5,10 @@
   "mergedIntegration": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
   "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
   "stablePrefixTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
-  "supersededPreparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
-  "preparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
-  "patchSha256": "d9aae7f5ec83f7f9e13f44be487b1c920a126513402b251ee3a6986e0d09d9ea",
-  "preparedSourceSha256": "11912fcb60102ee44c03b38ea0a6134af04bcc672f26725eb383f29f8fe2ba7f",
+  "supersededPreparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
+  "preparedTree": "2f22ca7c93c5d8b987b9ec5ed8eaa28e904b2911",
+  "patchSha256": "0ed5fb7278a4e2c4667e7521fe1752d7cc7565f5160857e7ec2de19dbe50bc06",
+  "preparedSourceSha256": "9b52c1ed7ff12858aee4b28beca20100dcb8916b4e9ac2d6daf3b4776f1d51c3",
   "sourceChanges": [
     {
       "path": "packages/coding-agent/docs/execution-ownership.md",
@@ -40,7 +40,7 @@
     },
     {
       "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
-      "sha256": "9b4868ab30a430d5ee231a41c5e9f86d2e78b31b39fe4f6d224f46b84443001b"
+      "sha256": "2c15dcc4ba3033148d462bdacb21292065d5e002954bbc6940caa4ef4ac00f94"
     },
     {
       "path": "packages/coding-agent/src/launch/ownership/linux-system.ts",
@@ -48,7 +48,7 @@
     },
     {
       "path": "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
-      "sha256": "3e5374b9347756143d41880701ad270d1bd3647091ada6ebd83eca6e6ec117c6"
+      "sha256": "143c1aaf7b53ecc28147c2219a3fc56c18e5ece2a204acfaf4f2aa98618a5147"
     },
     {
       "path": "packages/coding-agent/src/launch/ownership/server.ts",
@@ -56,7 +56,7 @@
     },
     {
       "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
-      "sha256": "d21aed19332b89f2e98416ef906e012c7f8e36aab0a1a82a0f1b81805f2f8f20"
+      "sha256": "620e961c40ffbceb01cebb1aaece360653685f69387ac261cae165a00758133c"
     },
     {
       "path": "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
@@ -111,5 +111,31 @@
   "actualHelperDrain": "NOT_RUN",
   "actualGlobal": "BLOCKED",
   "privateAdmission": "BLOCKED",
-  "freshStandardsAndSpecReviews": "PENDING_ROOT"
+  "freshStandardsAndSpecReviews": "PENDING_ROOT",
+  "standardsFix": {
+    "reviewedHostHead": "3822cf991fd7a7187c1d475b589474c3f88d0c07",
+    "preservation": "/workspace/work/mvp-implementation/research/restore8-41-helper-drain-standards",
+    "nativeChangedPathsBefore": 137,
+    "unchangedPaths": 134,
+    "changedPaths": 3,
+    "addedPaths": 0,
+    "affectedPreimagesMatchReviewedPreparedTree": true,
+    "nativeHeadIndexStagedExact": true,
+    "privateIndexPrefixReplayExact": true,
+    "privateIndexApplyExact": true,
+    "sourceChanges": [
+      {
+        "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+        "sha256": "2c15dcc4ba3033148d462bdacb21292065d5e002954bbc6940caa4ef4ac00f94"
+      },
+      {
+        "path": "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+        "sha256": "143c1aaf7b53ecc28147c2219a3fc56c18e5ece2a204acfaf4f2aa98618a5147"
+      },
+      {
+        "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
+        "sha256": "620e961c40ffbceb01cebb1aaece360653685f69387ac261cae165a00758133c"
+      }
+    ]
+  }
 }

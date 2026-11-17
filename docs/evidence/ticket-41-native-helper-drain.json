@@ -14,22 +14,22 @@
   ],
   "hostBase": "c17750add9c7599cac906f3ef8eaa18783c416e6",
   "mergedIntegration": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
-  "preparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
-  "patchSha256": "d9aae7f5ec83f7f9e13f44be487b1c920a126513402b251ee3a6986e0d09d9ea",
-  "preparedSourceSha256": "11912fcb60102ee44c03b38ea0a6134af04bcc672f26725eb383f29f8fe2ba7f",
+  "preparedTree": "2f22ca7c93c5d8b987b9ec5ed8eaa28e904b2911",
+  "patchSha256": "0ed5fb7278a4e2c4667e7521fe1752d7cc7565f5160857e7ec2de19dbe50bc06",
+  "preparedSourceSha256": "9b52c1ed7ff12858aee4b28beca20100dcb8916b4e9ac2d6daf3b4776f1d51c3",
   "sourceExport": "docs/evidence/ticket-41-native-helper-drain-export.json",
   "checks": {
     "record": "docs/evidence/ticket-41-native-helper-drain-checks.json",
-    "sha256": "dd5f13f6e37d3b2277583daacfbd80d31fe5b7349014db1b7ff76e5bd1cb0791",
-    "tests": 105,
-    "assertions": 949,
+    "sha256": "8f6d5d75eab13383665bd8034e806a11707422b9200a5088283ad07db44d2653",
+    "tests": 107,
+    "assertions": 956,
     "typeCheckedFiles": 53,
     "workerClientGraphModules": 11,
     "strictC": "PASS_SHARED_COMPILE_ONLY_ZERO_DIAGNOSTICS",
     "emittedBuild": {
       "status": "PASS_BUILD_ONLY",
-      "bytes": 87956,
-      "sha256": "ccc25dc489fcf9b21de8f0f11c949a942b5826c2a6f49aba01bcbfc6d9868107",
+      "bytes": 86802,
+      "sha256": "a5d70c8e4a8a276293a95dd4288c8c33a8e24fee9a4c086e8102cc2446f6b6e4",
       "eagerFfiImports": 0,
       "emittedNativeExecuted": false
     },
@@ -212,5 +212,80 @@
   "privateAdmission": "BLOCKED",
   "freshStandardsAndSpecReviews": "PENDING_ROOT",
   "issue41Complete": false,
-  "issue61Complete": false
+  "issue61Complete": false,
+  "standardsFix": {
+    "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+    "reviewedHostHead": "3822cf991fd7a7187c1d475b589474c3f88d0c07",
+    "reviewResults": [
+      {
+        "path": "/workspace/work/mvp-implementation/reviews/ticket-41-helper-drain-source-spec.md",
+        "sha256": "03a13fc217f2924d07379b7c5cf3487e07355f5acfdd510206ea0ecc9cf96bde"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/reviews/ticket-41-helper-drain-source-standards.md",
+        "sha256": "0d65a83b93bf591180223a1ec9b37f41d94d2392ed1d2cf3fbf196a17f3fc872"
+      }
+    ],
+    "fixed": [
+      "NODE_FS_NAMESPACE_IMPORTS",
+      "INITIAL_HELPER_CONFIGURATION_TYPED_BOUNDED_DISPATCHER_MISMATCH"
+    ],
+    "generation": "INITIAL_FAILED_SELECTION_REMAINS_CONSUMED; REPEAT_OWNERSHIP_LIMIT",
+    "testSeam": "PUBLIC_SELECT_OWNERSHIP_CONTROL_RELEASE_WITH_SYNTHETIC_FILESYSTEM_AND_NOMINAL_APPROVAL_GUARD; NO_MODULE_MOCKS",
+    "regression": "INVENTORIED_INVALID_UTF8_INITIAL_SELECTION_PREVIOUSLY_ESCAPED_RAW_TYPE_ERROR; NOW_OWNERSHIP_ERROR_DISPATCHER_MISMATCH",
+    "additionalCoverage": "VALID_SELECTION_VERIFY_RELEASE_PRECONDITION_THEN_SYNTHETIC_STAT_EIO_FAILS_WITHOUT_EXPOSING_PLATFORM_MESSAGE_OR_ERRNO",
+    "tdd": {
+      "directory": "/workspace/work/mvp-implementation/research/restore8-41-helper-drain-standards",
+      "rawRecords": [
+        {
+          "file": "01-selection-red.txt",
+          "sha256": "feab1e5b66908525bfb0f30bd74a908a180aa8f67f22da4f0f9f0a16e0ed8263"
+        },
+        {
+          "file": "01-selection-green.txt",
+          "sha256": "10188042ec367952fb4eaf83051afba994fcf88bd87dd064c1142b37eb1d601c"
+        },
+        {
+          "file": "source-check.txt",
+          "sha256": "76d3ea6950418d0bb05d838179f2717da8afc0e2641ba6afa9aad4db554f4552"
+        },
+        {
+          "file": "source-check.json",
+          "sha256": "8f6d5d75eab13383665bd8034e806a11707422b9200a5088283ad07db44d2653"
+        }
+      ]
+    },
+    "preservation": {
+      "reviewedHostHead": "3822cf991fd7a7187c1d475b589474c3f88d0c07",
+      "preservation": "/workspace/work/mvp-implementation/research/restore8-41-helper-drain-standards",
+      "nativeChangedPathsBefore": 137,
+      "unchangedPaths": 134,
+      "changedPaths": 3,
+      "addedPaths": 0,
+      "affectedPreimagesMatchReviewedPreparedTree": true,
+      "nativeHeadIndexStagedExact": true,
+      "privateIndexPrefixReplayExact": true,
+      "privateIndexApplyExact": true,
+      "sourceChanges": [
+        {
+          "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+          "sha256": "2c15dcc4ba3033148d462bdacb21292065d5e002954bbc6940caa4ef4ac00f94"
+        },
+        {
+          "path": "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+          "sha256": "143c1aaf7b53ecc28147c2219a3fc56c18e5ece2a204acfaf4f2aa98618a5147"
+        },
+        {
+          "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
+          "sha256": "620e961c40ffbceb01cebb1aaece360653685f69387ac261cae165a00758133c"
+        }
+      ]
+    },
+    "architectureBoundaryChanged": false,
+    "adrChanged": false,
+    "ledgerHeuristicRefactored": false,
+    "legacyV3RetentionChanged": false,
+    "strictV4PolicyChanged": false,
+    "sourceOnly": true
+  }
 }
