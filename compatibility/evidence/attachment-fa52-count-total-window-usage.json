@@ -1,0 +1,88 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "e6bd168773446506d1a9dff98b7ff7cab23a861a",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-launch-source-ready.json",
+    "bytes": 12644,
+    "sha256": "b458e55414cad835026c1a2853a0f0895e6d2e23941528476258898e996e1d69"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117/final-inputs.json",
+    "bytes": 4480,
+    "sha256": "cb5202918ad156d09e95e15e4dba250fc4116e9ae5c8d0651fc4b516fe663614"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-count-total-owned-source-20261117/final-inputs.json",
+    "bytes": 4233,
+    "sha256": "170a5473a62faad0d6568d8c66d148573bb12af17f2940309e54b171159e1538"
+  },
+  "case": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects",
+  "attempts": 1,
+  "retry": "NONE",
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-count-total-runtime-success.json",
+    "bytes": 23166,
+    "sha256": "3b99deaea3f4ad496b2d57925540b2085c973003a6f6a9e303bc8c83ddcda4ff"
+  },
+  "rawArchive": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-count-total-launch-evidencepack-20261117/raw.tar.gz",
+    "bytes": 4874,
+    "sha256": "2e1337ca057287f0daaaf69365cfeac9f1267a36046172509b3f3c3b1daf4f8f"
+  },
+  "rawManifest": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-count-total-launch-evidencepack-20261117/manifest.json",
+    "bytes": 3271,
+    "sha256": "455512187b6818dd95a91ffaa4564c2fea3565030a2fb74831e43ea7906d6b69"
+  },
+  "originalTools": {
+    "preAndRun": {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-tool.json",
+      "bytes": 7088,
+      "sha256": "20bca8807a6bcb291a9ee367e917c582a2652dc39e0b2cf38dd21c0d044ce820"
+    },
+    "post": {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-post-tool.json",
+      "bytes": 3404,
+      "sha256": "c769ffedab81f6b340f5b6a4e4d2bf89438839b2d99a18deec648d28f5268ce5"
+    },
+    "pre": {
+      "initialChunk": "9f4651",
+      "session": 73048,
+      "completionChunk": "416e1e",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "c25fd9",
+      "session": 25153,
+      "completionChunk": "f40023",
+      "exitCode": 0
+    },
+    "postcheck": {
+      "initialChunk": "5df7bc",
+      "session": 97551,
+      "completionChunk": "3e83e1",
+      "exitCode": 0
+    }
+  },
+  "usedOnceRecord": {
+    "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/used-once.json",
+    "bytes": 104,
+    "sha256": "2886169f6e0cb407668dd9a9e15ac2d61084ccb0285a43626d522a417d77885b"
+  },
+  "actualRunnerPid": 626710,
+  "actualRunnerWaitStatus": 0,
+  "originalWaitAndBothReaderJoinsAndEofObserved": true,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/postcheck.json",
+    "bytes": 3083,
+    "sha256": "2b08f02cd2e69732271fcf4b35fe369d5cfad17c2a36f333180a8d5d7e41f68f"
+  },
+  "window": "RELEASED after actual result/original wait/readers, before read-only postcheck/evidencepack. Source readiness is consumed and must never be rerun as pristine or reused for another ONE.",
+  "limitations": "Two provider-known28B spans only; dynamic IDs/individual helper metadata not retained; no P_ALL/ECHILD/descendant-extinction claim. Constructor/lifecycle/capture fault cases SOURCE-only. Whole29/38/53/54 open."
+}
