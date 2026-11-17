@@ -1,0 +1,28 @@
+{
+  "integrationRef": "mvp/spec-29",
+  "integrationTip": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "componentBase": "7e018e8eaf391a1b9ab9ee9bafbe52c8e7166344",
+  "integrationAncestor": true,
+  "normalHostAndPins": {
+    "apps/host/src/main.ts": {
+      "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+      "equalsIntegration": true
+    },
+    "apps/host/src/http.ts": {
+      "sha256": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+      "equalsIntegration": true
+    },
+    "upstreams.lock.json": {
+      "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+      "equalsIntegration": true
+    },
+    "bun.lock": {
+      "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+      "equalsIntegration": true
+    },
+    "package.json": {
+      "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+      "equalsIntegration": true
+    }
+  }
+}

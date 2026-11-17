@@ -91,6 +91,13 @@ Session admission is enabled; #44 and umbrella #29 remain OPEN.
 
 Explicit Open keeps a stable failed attempt for a missing/replaced cwd or an
 owned worker still draining, after the native reference is durably registered.
+Each persisted attempt has a monotonic revision. Worker lifecycle observations
+commit atomically only against the revision they own, so an older idle drain,
+shutdown, lost-worker or startup completion cannot replace a newer explicit Open
+reason, including operations at the same clock value. Worker exit diagnostics
+and slot release remain independent of that latest registration attempt; an idle
+exit also retains its drain diagnostic when saving the attempt is unavailable.
+The revision is internal metadata and does not change the browser contract.
 Native/adapter error codes come from an explicit bounded vocabulary. Unknown and
 oversized failures remain bounded unknown outcomes. If saving a failure itself
 fails, definite refusals still release the owned worker; unknown outcomes retain
@@ -112,3 +119,8 @@ FS/SQLite and public native ports plus the actual shared carrier and DSH
 Gateway/Connection in memory. The root UI, browser-only logout and one shared
 worker/generation remain covered. All historical Native/browser results and
 #41 cleanup/admission limits above remain unchanged.
+
+The subsequent [attempt-order evidence delta](../../docs/implementation/ticket-44-attempt-order-evidence.json)
+covers completed idle retirement, stale startup completion, same-clock revision
+ownership and independent exit diagnostics. The selected pure checks pass;
+fresh independent source/spec and Standards review remain required before Root merge.

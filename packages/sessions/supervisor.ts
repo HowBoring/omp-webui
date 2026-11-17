@@ -10,7 +10,7 @@ import type { SessionWorker } from "../compatibility/session-worker.ts";
 import type { DrainResult } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
-import { SessionIndex, type RegisteredSession } from "./index.ts";
+import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./index.ts";
 
 /** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
 export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
@@ -78,6 +78,18 @@ export class SessionSupervisor {
   }
   get starts(): number { return this.#starts; }
   exits(): WorkerExit[] { return structuredClone(this.#exits); }
+  #observe(active: Active, attempt: SessionAttempt): void {
+    if (!active.record) return;
+    const observed = this.options.index.observeCurrent(active.record, attempt);
+    if (observed) active.record = observed;
+  }
+  #observeExit(active: Active, attempt: SessionAttempt, openOnly = false): WorkerExit["indexFailure"] {
+    try {
+      if (openOnly && active.record && this.options.index.get(active.record.id)?.attempt.state !== "open") return;
+      this.#observe(active, attempt);
+    }
+    catch { return "SESSION_ATTEMPT_UNAVAILABLE"; }
+  }
   async open(identity: BrowserAccess, selected: CatalogDescriptor): Promise<SessionView> {
     this.#browser(identity);
     const record = this.options.index.register(selected); // durable before describe/start, including later rejection
@@ -124,7 +136,7 @@ export class SessionSupervisor {
   async #perform(identity: BrowserAccess, active: Active, intent: "continue" | "new"): Promise<void> {
     const record = active.record;
     try {
-      if (record) this.options.index.observe(record.id, { state: "opening" });
+      if (record) this.#observe(active, { state: "opening" });
       this.#current(identity, active);
       if (active.selected) {
         const described = await this.options.catalog.describe(active.selected.reference); this.#current(identity, active);
@@ -143,8 +155,7 @@ export class SessionSupervisor {
         active.exited = true;
         if (!active.retired) {
           active.state = "outcome_unknown";
-          if (active.record) this.options.index.observe(active.record.id,
-            { state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" });
+          this.#observe(active, { state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" });
         }
       }).catch(() => {});
       this.#current(identity, active); active.startupAttempted = true;
@@ -159,7 +170,7 @@ export class SessionSupervisor {
       const unknown = code.startsWith("RPC_") || code.includes("UNKNOWN") || code.includes("LOST");
       let recorded = true;
       try {
-        if (active.record) this.options.index.observe(active.record.id, { state: unknown ? "outcome_unknown" : "failed", code });
+        this.#observe(active, { state: unknown ? "outcome_unknown" : "failed", code });
       } catch { recorded = false; }
       // An uncertain result is observed manually, never retried. A definite refusal releases only our worker.
       if (!active.worker || !unknown || active.retired) await this.#stop(active, "open-failed");
@@ -170,15 +181,17 @@ export class SessionSupervisor {
     if (result.phase !== "open") {
       const code = result.code && isNativeSessionErrorCode(result.code) ? result.code : "SESSION_OPEN_NOT_CONFIRMED";
       active.state = "outcome_unknown";
-      if (active.record) this.options.index.observe(active.record.id, { state: "outcome_unknown", code });
+      this.#observe(active, { state: "outcome_unknown", code });
       throw new Error(code);
     }
     const binding = result.binding;
     if (!binding || result.cwd !== active.cwd || binding.cwd.canonical !== active.cwd
       || binding.ownership.state !== "held" || result.nativeSessionId !== binding.nativeSessionId
       || (active.selected && !same(binding, active.selected))) throw new Error("SESSION_FINAL_BINDING_REJECTED");
-    active.key = key(binding); active.record = this.options.index.register(binding);
-    this.options.index.observe(active.record.id, { state: "open" }); active.state = "open";
+    active.key = key(binding);
+    const registered = this.options.index.register(binding);
+    active.record ??= registered;
+    this.#observe(active, { state: "open" }); active.state = "open";
     active.bridge!.bindSession(binding.nativeSessionId);
   }
   #view(active: Active): SessionView {
@@ -221,8 +234,7 @@ export class SessionSupervisor {
     const state = await active.worker.state(); this.#current(identity, active);
     if (!nativeSettled(state) || active.bridge?.snapshot().pending.length) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
     active.retired = true; active.idlePending = true; active.state = "outcome_unknown";
-    if (active.record) this.options.index.observe(active.record.id,
-      { state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" });
+    this.#observe(active, { state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" });
     const start = performance.now(), atStop = active.worker.notificationCount;
     const retired = await active.worker.retireIdle();
     if (retired.status === "pending") {
@@ -234,10 +246,11 @@ export class SessionSupervisor {
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
     active.exited = true; active.idlePending = false; active.state = "closed"; active.bridge?.dispose();
-    if (active.record) this.options.index.observe(active.record.id, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
+    const indexFailure = this.#observeExit(active, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
       ...(cleanDrain(drain) ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
     this.#exits.push({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
-      queuedInputsWithdrawn: false, uiCancelled: true, drain, notificationCount: active.worker?.notificationCount ?? 0,
+      queuedInputsWithdrawn: false, uiCancelled: true, ...(indexFailure ? { indexFailure } : {}),
+      drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) });
     if (this.#exits.length > 32) this.#exits.shift();
   }
@@ -322,13 +335,8 @@ export class SessionSupervisor {
     const drain = active.worker ? await active.worker.close({ cooperativeMs: remaining, terminationGraceMs: 5000, readerGraceMs: 1000 })
       : { code: 0, forced: false, stderrBytes: 0 };
     active.exited = true; active.idlePending = false; active.state = "closed";
-    let indexFailure: WorkerExit["indexFailure"];
-    try {
-      if (active.record && this.options.index.get(active.record.id)?.attempt.state === "open") {
-        this.options.index.observe(active.record.id, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
-          ...(cleanDrain(drain) ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) });
-      }
-    } catch { indexFailure = "SESSION_ATTEMPT_UNAVAILABLE"; }
+    const indexFailure = this.#observeExit(active, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
+      ...(cleanDrain(drain) ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true);
     const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
       queuedInputsWithdrawn, uiCancelled, ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) };

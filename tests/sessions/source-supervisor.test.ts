@@ -14,8 +14,9 @@ test("explicit Open retains a stable prelaunch failure when its selected cwd dis
   } finally { await f.close(); }
 });
 
-test("Open during pending idle retirement retains its prelaunch reason", async () => {
-  const f = await sourceFixture(), completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
+test.each([undefined, "RPC_PROTOCOL"])("Open failure survives older idle completion with tail %s at the same clock", async protocolFailure => {
+  const f = await sourceFixture(() => 1_794_787_200_000);
+  const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
   try {
     await f.supervisor.open(f.identity, f.selected);
     f.controls.retirement = { status: "pending", completion: completion.promise, stdoutEOF: false, stderrEOF: false };
@@ -23,6 +24,13 @@ test("Open during pending idle retirement retains its prelaunch reason", async (
     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
     expect(f.supervisor.starts).toBe(1);
+    const drain = { ...f.controls.drain, ...(protocolFailure ? { protocolFailure } : {}) };
+    completion.resolve(drain); await completion.promise;
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: expect.any(String), reason: "explicit-new", drain }]);
+    // The old worker is released even though its terminal observation no longer owns the UI attempt.
+    expect(await f.supervisor.open(f.identity, f.selected)).toMatchObject({ state: "open" });
+    expect(f.supervisor.starts).toBe(2);
   } finally { completion.resolve(f.controls.drain); await f.close(); }
 });
 
@@ -35,6 +43,47 @@ test("zero exit with a failed final protocol tail persists an unknown shutdown o
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
     expect(f.supervisor.exits()[0]?.drain).toMatchObject({ code: 0, forced: false, protocolFailure: "RPC_PROTOCOL" });
   } finally { await f.close(); }
+});
+
+test("retired startup completion preserves a newer refused Open after the worker slot is released", async () => {
+  const f = await sourceFixture(() => 1_794_787_200_000);
+  const reached = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  let first: Promise<unknown> | undefined;
+  try {
+    const start = f.controls.start;
+    f.controls.start = async () => { reached.resolve(); await release.promise; return start(); };
+    first = f.supervisor.open(f.identity, f.selected); void first.catch(() => {});
+    await reached.promise;
+    f.grants.revoke(f.grant.id); await f.supervisor.permissionsChanged();
+    expect(f.controls.closed).toBe(true);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_DIRECTORY_DENIED");
+    release.resolve(); await expect(first).rejects.toThrow("SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN");
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_DIRECTORY_DENIED" });
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked" }, { reason: "open-failed" }]);
+  } finally { release.resolve(); await first?.catch(() => {}); await f.close(); }
+});
+
+test("idle completion records actual cleanup even when the index cannot save its outcome", async () => {
+  const f = await sourceFixture();
+  const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
+  let replaced = false;
+  try {
+    await f.supervisor.open(f.identity, f.selected);
+    f.controls.retirement = { status: "pending", completion: completion.promise, stdoutEOF: false, stderrEOF: false };
+    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48");
+    await rename(f.dataDir, f.dataDir + ".original"); replaced = true; await mkdir(f.dataDir);
+    completion.resolve(f.controls.drain); await completion.promise;
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "explicit-new", indexFailure: "SESSION_ATTEMPT_UNAVAILABLE",
+      drain: { code: 0, forced: false } }]);
+    await rm(f.dataDir, { recursive: true }); await rename(f.dataDir + ".original", f.dataDir); replaced = false;
+    expect(await f.supervisor.open(f.identity, f.selected)).toMatchObject({ state: "open" });
+    expect(f.supervisor.starts).toBe(2);
+  } finally {
+    completion.resolve(f.controls.drain);
+    if (replaced) { await rm(f.dataDir, { recursive: true }); await rename(f.dataDir + ".original", f.dataDir); }
+    await f.close();
+  }
 });
 
 test("an oversized adapter code remains bounded and its unknown worker is available for manual observation", async () => {

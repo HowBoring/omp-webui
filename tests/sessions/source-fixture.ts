@@ -20,11 +20,11 @@ interface NativeFixtureControls {
   drain: DrainResult; retirement: GracefulDrainResult | undefined;
 }
 
-export async function sourceFixture() {
+export async function sourceFixture(now: () => number = Date.now) {
   const home = await mkdtemp(join(tmpdir(), "session-source-")), cwd = join(home, "project"), dataDir = join(home, "state");
   await mkdir(cwd);
   const origin = "http://127.0.0.1:4321", authority = openBrowserAccess({ dataDir, origin });
-  const grants = new DirectoryGrants(dataDir), index = new SessionIndex(dataDir);
+  const grants = new DirectoryGrants(dataDir), index = new SessionIndex(dataDir, now);
   const grant = grants.confirm(grants.preview(cwd).confirmation);
   const selected: CatalogDescriptor = { sourceId: "source", instanceId: "instance", reference: "opaque-reference",
     nativeSessionId: "native-session", aliases: [], cwd: { status: "known", recorded: cwd, canonical: cwd },

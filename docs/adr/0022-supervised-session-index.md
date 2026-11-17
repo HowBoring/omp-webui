@@ -57,6 +57,16 @@ retention of a worker with an unknown outcome. Exit diagnostics retain a separat
 Both idle retirement and shutdown require zero exit, no force and no protocol
 failure before persisting `closed`.
 
+Attempt-order correction (2026-11-17): the metadata record carries a monotonic
+attempt revision, defaulting legacy records to zero. An immediate SQLite
+transaction compares the worker's last owned revision before replacing an
+attempt. Explicit refusals advance the revision; stale startup, worker-loss,
+idle-retirement and shutdown observations cannot erase a newer attempt even if
+states or timestamps coincide. Actual worker cleanup, slot release and bounded
+exit diagnostics proceed independently, including an unavailable idle-exit write.
+Only the latest metadata attempt is stored; no transcript or attempt history is
+introduced. Internal revisions are omitted from the unchanged DSH contract.
+
 The isolated Session carrier now preserves recognized typed lifecycle failures,
 request correlation and constant recovery instructions through the public DSH
 Remote contract. It rebuilds errors without native exception text, paths, details

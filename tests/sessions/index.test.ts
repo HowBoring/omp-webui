@@ -51,3 +51,19 @@ test("replacement of the Host state directory fails closed", () => {
   expect(() => index.get("unknown")).toThrow("INDEX_UNAVAILABLE");
   index.close();
 });
+
+test("a stale observation cannot replace a later identical attempt at the same clock after reopen", () => {
+  const data = directory(), now = () => 1_794_787_200_000;
+  let index = new SessionIndex(data, now);
+  const registered = index.register(descriptor), earlier = index.observe(registered.id, { state: "closed" });
+  index.observe(registered.id, { state: "failed", code: "SESSION_WORKER_DRAINING" });
+  const latest = index.observe(registered.id, { state: "closed" });
+  expect(latest.observedAt).toBe(earlier.observedAt);
+  index.close(); index = new SessionIndex(data, now);
+  try {
+    expect(index.observeCurrent(earlier, { state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" })).toBeUndefined();
+    expect(index.get(registered.id)?.attempt).toEqual({ state: "closed" });
+    expect(index.observeCurrent(latest, { state: "failed", code: "SESSION_WORKER_DRAINING" })?.attempt)
+      .toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+  } finally { index.close(); }
+});

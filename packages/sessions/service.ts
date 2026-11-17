@@ -13,7 +13,8 @@ import type { SessionSupervisor, SessionView } from "./supervisor.ts";
 import type { CatalogPageInput } from "../contracts/catalog.ts";
 export const sessionCaller = new AsyncLocalStorage<BrowserAccess>();
 interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor }
-const publicView = (view: SessionView) => { const { reference: _reference, ...registration } = view.registration;
+const publicView = (view: SessionView) => {
+  const { reference: _reference, attemptRevision: _revision, ...registration } = view.registration;
   return sessionViewSchema.parse({ ...view, registration }); };
 /** Cordis dispatches through a receiver proxy; service helpers intentionally use TypeScript privacy. */
 /** All public invocations get a fresh authenticated BrowserAccess from the carrier, never browser-supplied authority. */
@@ -50,7 +51,7 @@ export class SessionsService extends TypertRemoteService {
   }
   @Remote("index") async index(options: CatalogPageInput) {
     this.identity(); const page = await this.options.index.page({ ...(options.cursor ? { cursor: options.cursor } : {}), ...(options.pageSize ? { pageSize: options.pageSize } : {}) }); this.identity();
-    return { ...page, records: page.records.map(({ reference: _reference, ...record }) => record) };
+    return { ...page, records: page.records.map(({ reference: _reference, attemptRevision: _revision, ...record }) => record) };
   }
   @Remote("open") async open(selectionId: SessionSelectionId) {
     return publicView(await this.options.supervisor.open(this.identity(), this.selection(selectionId)));

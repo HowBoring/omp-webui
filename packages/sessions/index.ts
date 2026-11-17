@@ -12,7 +12,8 @@ import { sessionAttempt, type SessionAttempt } from "../contracts/session-index.
 export type { SessionAttempt } from "../contracts/session-index.ts";
 const recordSchema = z.strictObject({ id: z.string().uuid(), reference: text, nativeSessionId: text,
   sourceId: text, instanceId: text, cwd: text.optional(), title: z.string().max(8192).optional(),
-  registeredAt: z.string().datetime(), observedAt: z.string().datetime(), attempt: sessionAttempt });
+  registeredAt: z.string().datetime(), observedAt: z.string().datetime(), attempt: sessionAttempt,
+  attemptRevision: z.number().int().nonnegative().safe().default(0) });
 export type RegisteredSession = z.infer<typeof recordSchema>;
 interface Row { body: string }
 interface Snapshot { records: RegisteredSession[]; offset: number; expires: number; size: number }
@@ -48,6 +49,7 @@ export class SessionIndex implements SessionIndexReader {
     for (const record of this.#records()) {
       if (["opening", "open"].includes(record.attempt.state)) {
         record.attempt = { state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" };
+        ++record.attemptRevision;
         this.#write(record);
       }
     }
@@ -85,7 +87,7 @@ export class SessionIndex implements SessionIndexReader {
         throw new Error("INDEX_RECORD_LIMIT");
       }
       const record: RegisteredSession = { ...(existing ?? { id: randomUUID(), registeredAt: new Date(this.now()).toISOString(),
-        attempt: { state: "registered" } }), reference: descriptor.reference, nativeSessionId: descriptor.nativeSessionId,
+        attempt: { state: "registered" }, attemptRevision: 0 }), reference: descriptor.reference, nativeSessionId: descriptor.nativeSessionId,
         sourceId: descriptor.sourceId, instanceId: descriptor.instanceId, observedAt: descriptor.observedAt,
         ...(descriptor.cwd.canonical ? { cwd: descriptor.cwd.canonical } : {}), ...(descriptor.title ? { title: descriptor.title } : {}) };
       this.#write(record); return structuredClone(record);
@@ -96,8 +98,20 @@ export class SessionIndex implements SessionIndexReader {
     return row ? this.#decode(row) : undefined;
   }
   observe(id: string, attempt: SessionAttempt): RegisteredSession {
-    this.#current(); const record = this.get(id); if (!record) throw new Error("INDEX_REFERENCE_UNKNOWN");
-    record.attempt = sessionAttempt.parse(attempt); record.observedAt = new Date(this.now()).toISOString(); this.#write(record); return record;
+    return this.#observe(id, attempt)!;
+  }
+  /** Commit only while this observation still owns the latest attempt, independent of wall-clock resolution. */
+  observeCurrent(expected: RegisteredSession, attempt: SessionAttempt): RegisteredSession | undefined {
+    return this.#observe(expected.id, attempt, expected.attemptRevision);
+  }
+  #observe(id: string, attempt: SessionAttempt, expectedRevision?: number): RegisteredSession | undefined {
+    this.#current();
+    return this.#db.transaction(() => {
+      const record = this.get(id); if (!record) throw new Error("INDEX_REFERENCE_UNKNOWN");
+      if (expectedRevision !== undefined && record.attemptRevision !== expectedRevision) return undefined;
+      record.attempt = sessionAttempt.parse(attempt); ++record.attemptRevision;
+      record.observedAt = new Date(this.now()).toISOString(); this.#write(record); return record;
+    }).immediate();
   }
   async page(options: CatalogPageInput): Promise<{ records: RegisteredSession[]; nextCursor?: string }> {
     this.#current();

@@ -1,0 +1,194 @@
+{
+  "ticket": 44,
+  "scope": "Remaining P2 attempt-order source correction; isolated unregistered Session component only",
+  "reviewedBase": "7e018e8eaf391a1b9ab9ee9bafbe52c8e7166344",
+  "integrationRefresh": {
+    "integrationRef": "mvp/spec-29",
+    "integrationTip": "42769489183eedb20b371083c49f915fda2bb8cf",
+    "componentBase": "7e018e8eaf391a1b9ab9ee9bafbe52c8e7166344",
+    "integrationAncestor": true,
+    "normalHostAndPins": {
+      "apps/host/src/main.ts": {
+        "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+        "equalsIntegration": true
+      },
+      "apps/host/src/http.ts": {
+        "sha256": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+        "equalsIntegration": true
+      },
+      "upstreams.lock.json": {
+        "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+        "equalsIntegration": true
+      },
+      "bun.lock": {
+        "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+        "equalsIntegration": true
+      },
+      "package.json": {
+        "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+        "equalsIntegration": true
+      }
+    }
+  },
+  "priorEvidence": {
+    "path": "docs/implementation/ticket-44-review-fix-evidence.json",
+    "sha256": "f8140958799b82338ea29969da15b972e36b910df84a72da643570589847a117",
+    "unchanged": true
+  },
+  "finding": "Older pending idle completion replaced the newer failed explicit Open reason. Both clean and protocol-failed completion reproduced before implementation at a fixed Index clock.",
+  "change": [
+    "Persist one monotonic attemptRevision on metadata records, with legacy default zero; use an immediate SQLite transaction for conditional observation. No attempt history or transcript is stored.",
+    "Bind active startup, confirmation, worker-loss, idle-exit and shutdown writes to their last owned revision. Explicit refusal observes unconditionally and advances the revision; stale lifecycle writes cannot take it back.",
+    "Preserve actual cleanup, slot release, drain and separate index-failure diagnostics independently of the latest UI attempt. Internal revisions are omitted from the unchanged public DSH schemas."
+  ],
+  "regressions": [
+    "Both clean and uncertain idle completion preserve SESSION_WORKER_DRAINING after completion at the same clock; actual exit is retained and a fresh explicit Open can acquire the released slot.",
+    "Retired startup completion cannot overwrite a newer prelaunch refusal after directory revocation and owned-worker cleanup.",
+    "Stale observation is rejected after closed/failed/closed at an identical timestamp and SQLite reopen; the latest observation can still write.",
+    "Idle completion keeps its actual exit/index-failure diagnostic and releases the worker slot during a real Index directory-replacement fault."
+  ],
+  "validation": {
+    "strictTypeScript": "PASS",
+    "fsSqliteInMemoryDsh": {
+      "tests": 63,
+      "assertions": 327,
+      "files": 11,
+      "log": "pure-fs-sqlite-dsh.txt"
+    },
+    "guardedBrokerStop": {
+      "tests": 42,
+      "assertions": 291,
+      "files": 2,
+      "log": "pure-broker-stop.txt"
+    },
+    "guardedTree": {
+      "tests": 20,
+      "assertions": 73,
+      "log": "pure-tree-source.txt"
+    },
+    "guardedTreeStaticMarkup": {
+      "tests": 2,
+      "assertions": 13,
+      "log": "pure-tree-ssr.txt"
+    },
+    "selectedTotal": {
+      "tests": 127,
+      "assertions": 704,
+      "failures": 0
+    },
+    "redGreen": {
+      "before": "01-idle-red.txt: both requested completions fail after resolving and awaiting completion",
+      "after": "01-idle-green.txt: both completions pass after revision ownership is enforced"
+    },
+    "notRun": [
+      "Native/OMP/SDK/serializer/runtime execution",
+      "FFI/kernel/socket/listener/browser/probe or owned process under test",
+      "unfiltered tests, Native/DSH builds, package install, GitHub, merge or push"
+    ]
+  },
+  "preservation": {
+    "baselinePath": "/workspace/work/mvp-implementation/research/ticket-44-source-reconcile/preservation-before.json",
+    "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+    "repositories": {
+      "native": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 10668,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      },
+      "dsh": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 21061,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      }
+    },
+    "artifactsCount": 21,
+    "artifactsMismatches": [],
+    "historicalRawCount": 18,
+    "historicalRawMismatches": [],
+    "pass": true
+  },
+  "boundedPreimages": {
+    "path": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/preimages.json",
+    "sha256": "fdbf6d7738dbf365f6ef57f053b0fd89ec6ae3d863eac8121baeaf86e7760f99",
+    "files": 8,
+    "includesNativeOrDshCopies": false
+  },
+  "logs": {
+    "01-idle-red.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/01-idle-red.txt",
+      "sha256": "2a467e58f745f1d96b1c3f92bd428ef0c05a4f8178e353891d936fc87d92b6cf",
+      "bytes": 2228,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/01-idle-red.txt"
+    },
+    "01-idle-green.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/01-idle-green.txt",
+      "sha256": "36f977120700d59e16dd9db3069c84dde60151e4c2f4f05e976cf0d4791675ae",
+      "bytes": 355,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/01-idle-green.txt"
+    },
+    "pure-fs-sqlite-dsh.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/pure-fs-sqlite-dsh.txt",
+      "sha256": "004d993e829e130bdc319c57a8827c6f06d2a45cca94f273b1bddb6e4a915114",
+      "bytes": 7041,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/pure-fs-sqlite-dsh.txt"
+    },
+    "pure-broker-stop.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/pure-broker-stop.txt",
+      "sha256": "416d9cd18be3dddd37c66f93ca03bc5973829b980d1227f98a6407af94ae61f0",
+      "bytes": 4775,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/pure-broker-stop.txt"
+    },
+    "pure-tree-source.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/pure-tree-source.txt",
+      "sha256": "6740002e6c820762a117078ee5107d9a18046e6062969036758b2c8450a5b166",
+      "bytes": 2184,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/pure-tree-source.txt"
+    },
+    "pure-tree-ssr.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/pure-tree-ssr.txt",
+      "sha256": "0cc05d778c38edbaedccd0a284a19b809160ad27abd41bb9e12b78b593bd6518",
+      "bytes": 373,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/pure-tree-ssr.txt"
+    },
+    "typecheck.txt": {
+      "path": "docs/evidence/ticket-44-attempt-order/typecheck.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/typecheck.txt"
+    },
+    "preservation.json": {
+      "path": "docs/evidence/ticket-44-attempt-order/preservation.json",
+      "sha256": "ec6963e9f92cbbeb7e7d943bf686cb8e20eb61255036366ea857ef0b117b1ccf",
+      "bytes": 923,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/preservation.json"
+    },
+    "integration-refresh.json": {
+      "path": "docs/evidence/ticket-44-attempt-order/integration-refresh.json",
+      "sha256": "1032ba3d34b941d19973a3a3397882e2102781291ce7edf751b18a1c6f7294fe",
+      "bytes": 971,
+      "externalRaw": "/workspace/work/mvp-implementation/research/ticket-44-attempt-order/integration-refresh.json"
+    }
+  },
+  "historicalResults": "All prior Native/browser/TUI results remain historical; broad result remains FAIL: 268 pass, 15 fail, 1 error. No final matched tuple or whole-ticket PASS.",
+  "boundaries": {
+    "whole44And29": "OPEN",
+    "forceAndDescendantCleanup41": "BLOCKED/not_attested",
+    "globalPrivateAdmission": "BLOCKED/unchanged",
+    "component": "unregistered"
+  },
+  "next": "STOP after cohesive commit for fresh focused independent source/spec and Standards review; Root merger only."
+}
