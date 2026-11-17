@@ -18,6 +18,7 @@
     "packages/coding-agent/src/launch/ownership/protocol.ts",
     "packages/coding-agent/src/launch/ownership/release-inventory.ts",
     "packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+    "packages/coding-agent/src/launch/ownership/strict-record.ts",
     "packages/coding-agent/src/launch/ownership/uds-client.ts",
     "packages/coding-agent/src/launch/ownership/worker-bootstrap.ts",
     "packages/coding-agent/test/execution-ownership-approval.test.ts",
@@ -25,7 +26,7 @@
     "packages/coding-agent/test/execution-ownership-inventory.test.ts",
     "packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts"
   ],
-  "typeCheckedFiles": 38,
+  "typeCheckedFiles": 39,
   "results": [
     {
       "argv": [
@@ -40,7 +41,7 @@
       ],
       "exitCode": 0,
       "stdout": "bun test v1.4.4 (38afee6c8)\n",
-      "stderr": "\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts:\n(pass) stable anchor authenticates final approval and rejects requests for another release tuple [16.13ms]\n(pass) pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions [2.64ms]\n(pass) ambiguous duplicate fields cannot enter the exact signed approval format [4.85ms]\n(pass) approval key, installation and signing domain cannot be substituted by dispatcher authority [10.40ms]\n(pass) every final tuple and endpoint field is authenticated without trusting unsigned envelope additions [29.94ms]\n(pass) absent or replaced anchor cannot discover trust from the approval record [7.52ms]\n(pass) stable anchor refuses tuple-dependent fields, release-local trust and replaced approval parent [9.67ms]\n(pass) record replacement permanently invalidates its generation and a new approval requires explicit selection [19.64ms]\n(pass) same-inode record rewrite and initial selection failure cannot silently recover [11.42ms]\n(pass) record replacement after open cannot authenticate different named bytes [4.23ms]\n(pass) approval replacement while signature verification is pending fails the post-verification admission check [4.23ms]\n(pass) final compiled bytes can be exhaustively inventoried before signing approval without rebuilding the anchor [27.97ms]\n(pass) approved client refuses a replaced approval before any public socket admission [12.36ms]\n(pass) composed server approval refuses historical v2 even when its signature and snapshot are valid [2.47ms]\n(pass) composed v3 requires its own anchor, signing domain and complete frozen inventory approval [21.07ms]\n(pass) callbacks cannot promote a legacy approval, forged approval or forged guard into the server selection [6.80ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts:\n(pass) reserved locator is exact, first, single and versioned; absent locator cannot claim protection [0.38ms]\n(pass) only the explicit descriptor's shared whole-file FLOCK can protect the signed stable inode [3.48ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts:\n(pass) composed control selection requires the complete versioned signed inventory and public package roles [0.35ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts:\n(pass) signed inventory cannot omit real directory members or accept a self-declared identity [3.73ms]\n(pass) complete fixture protects real rosters, modes, direct links and the exhaustive ELF metadata closure [37.45ms]\n(pass) signed platform dependencies cannot drift, omit a DT_NEEDED provider or name the wrong architecture [15.43ms]\n(pass) interpreter aliases require every signed link and reject omission, replacement and unused aliases [29.53ms]\n\n 23 pass\n 0 fail\n 144 expect() calls\nRan 23 tests across 4 files. [354.00ms]\n"
+      "stderr": "\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts:\n(pass) stable anchor authenticates final approval and rejects requests for another release tuple [35.01ms]\n(pass) pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions [4.07ms]\n(pass) ambiguous duplicate fields cannot enter the exact signed approval format [34.68ms]\n(pass) approval key, installation and signing domain cannot be substituted by dispatcher authority [24.72ms]\n(pass) every final tuple and endpoint field is authenticated without trusting unsigned envelope additions [81.71ms]\n(pass) absent or replaced anchor cannot discover trust from the approval record [11.96ms]\n(pass) stable anchor refuses tuple-dependent fields, release-local trust and replaced approval parent [19.82ms]\n(pass) record replacement permanently invalidates its generation and a new approval requires explicit selection [28.71ms]\n(pass) same-inode record rewrite and initial selection failure cannot silently recover [45.09ms]\n(pass) record replacement after open cannot authenticate different named bytes [2.81ms]\n(pass) approval replacement while signature verification is pending fails the post-verification admission check [6.15ms]\n(pass) final compiled bytes can be exhaustively inventoried before signing approval without rebuilding the anchor [87.50ms]\n(pass) approved client refuses a replaced approval before any public socket admission [30.74ms]\n(pass) composed server approval refuses historical v2 even when its signature and snapshot are valid [3.40ms]\n(pass) composed v3 requires its own anchor, signing domain and complete frozen inventory approval [68.21ms]\n(pass) callbacks cannot promote a legacy approval, forged approval or forged guard into the server selection [15.20ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts:\n(pass) reserved locator is exact, first, single and versioned; absent locator cannot claim protection [0.41ms]\n(pass) only the explicit descriptor's shared whole-file FLOCK can protect the signed stable inode [6.45ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts:\n(pass) composed control selection requires the complete versioned signed inventory and public package roles [0.45ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts:\n(pass) signed inventory cannot omit real directory members or accept a self-declared identity [12.99ms]\n(pass) complete fixture protects real rosters, modes, direct links and the exhaustive ELF metadata closure [120.43ms]\n(pass) signed platform dependencies cannot drift, omit a DT_NEEDED provider or name the wrong architecture [88.65ms]\n(pass) interpreter aliases require every signed link and reject omission, replacement and unused aliases [291.84ms]\n\n 23 pass\n 0 fail\n 144 expect() calls\nRan 23 tests across 4 files. [1170.00ms]\n"
     },
     {
       "argv": [
@@ -48,7 +49,7 @@
         "/workspace/work/omp-webui-ticket-41/node_modules/typescript/bin/tsc",
         "--noEmit",
         "-p",
-        "/tmp/native-control-selection-check-EXTzUG/tsconfig.json"
+        "/tmp/native-control-selection-check-qzvd73/tsconfig.json"
       ],
       "exitCode": 0,
       "stdout": "",
@@ -68,7 +69,7 @@
         "-c",
         "/workspace/work/omp-webui-ticket-41/compatibility/launcher/omp-entry.c",
         "-o",
-        "/tmp/native-control-selection-check-EXTzUG/entry.o"
+        "/tmp/native-control-selection-check-qzvd73/entry.o"
       ],
       "exitCode": 0,
       "stdout": "",

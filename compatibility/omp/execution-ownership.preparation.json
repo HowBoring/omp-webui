@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "8ed1a76f62520805d5d29956f47537ffa8aba979052e2a76dcf122904d724cb8"
+    "sha256": "78656e73322631de224ac5ba517b281406aa2ec5e39cf857ed6e6ab090b88cce"
   },
-  "preparedTree": "72137ab067b40845625152aa2d0c276a6256b654",
-  "preparedSourceSha256": "02b06297e123d73a3e34d49ec6bd967fbbb236616754379a108454b8e7d6212d",
+  "preparedTree": "4dc7455feacffd217410e6fc1e6bd111bd3e5922",
+  "preparedSourceSha256": "ef3f716026332d3a5af3f040c4b2c6c620f7421c48ee4638b04680f2c5a7db23",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -88,16 +88,41 @@
     "completeComposedSelectionNominal": "NOT_RUN",
     "tests": 23,
     "assertions": 144,
-    "typeCheckedFiles": 38,
-    "pureGraphModules": 16,
+    "typeCheckedFiles": 39,
+    "pureGraphModules": 17,
     "strictCCompile": "PASS",
     "elfActualBytesMetadata": "PASS_READ_ONLY_METADATA_ONLY",
     "actualGlobal": "BLOCKED",
     "privateAdmission": "BLOCKED",
     "consumerDeltaRecomposed": false,
     "finalPublishedCumulativeCandidates": 1,
-    "authoringCandidateExports": 2,
+    "authoringCandidateExports": 3,
     "supersededCandidateSha256": "ab4942b579a9e26c31de90f78b7b9dbdb8f03dbd1d8c97dded640453fe1b25bb",
-    "bridgeAdmission": "NOMINAL_COMPLETE_APPROVAL_SELECTION_EXACT_APPROVED_BRIDGE_MEMBER_BEFORE_DLOPEN"
+    "bridgeAdmission": "NOMINAL_COMPLETE_APPROVAL_SELECTION_EXACT_APPROVED_BRIDGE_MEMBER_BEFORE_DLOPEN",
+    "reviewFix": {
+      "finding": "Native Central Utilities P3: duplicated strict-record decoder",
+      "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-selection-fix-preserve-20261117T022742Z",
+      "replacedHostHead": "05ce438460f66ed9e8c28cba209b8951f38b6f91",
+      "replacedPreparedTree": "72137ab067b40845625152aa2d0c276a6256b654",
+      "replacedPatchSha256": "8ed1a76f62520805d5d29956f47537ffa8aba979052e2a76dcf122904d724cb8",
+      "replacedPreparedSourceSha256": "02b06297e123d73a3e34d49ec6bd967fbbb236616754379a108454b8e7d6212d",
+      "changedNativeFiles": [
+        "packages/coding-agent/src/launch/ownership/approval.ts",
+        "packages/coding-agent/src/launch/ownership/control-selection.ts",
+        "packages/coding-agent/src/launch/ownership/release-inventory.ts",
+        "packages/coding-agent/src/launch/ownership/strict-record.ts"
+      ],
+      "policy": "OWNERSHIP_LOCAL_PURE_HELPER_SHARED_BY_APPROVAL_CONTROL_SELECTION_RELEASE_INVENTORY",
+      "behavior": "UNCHANGED_DISPATCHER_MISMATCH_EXACT_OWN_KEYS_ARRAY_NULL_REJECTION",
+      "privateIndexApplyVerified": true,
+      "nativeHeadIndexStagedPreserved": true,
+      "nativeCliExecuted": false,
+      "actualLauncherHandoff": "NOT_RUN",
+      "publicModuleNativeIntegration": "BLOCKED_NOT_RUN",
+      "actualGlobal": "BLOCKED",
+      "privateAdmission": "BLOCKED",
+      "issue41Complete": false,
+      "issue61Complete": false
+    }
   }
 }
