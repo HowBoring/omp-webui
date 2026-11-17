@@ -1,0 +1,92 @@
+{
+  "fixture": "tests/attachments/fixtures/minimal-workbook.xlsx",
+  "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+  "authoring": "Python stdlib ZIP_STORED, fixed1980 timestamps/member order/create_system3/regular0100644 permissions. Five UTF8 XML/OPC members, one Evidence sheet, one Source header cell and one independently chosen inline-string body cell. No styles/formulas/shared-strings/media/external relationships.",
+  "bytes": 2372,
+  "originalSha256": "94807b10285705fa5ea6c6c2a145f5cc81e0add726970438691279d7f6ef5617",
+  "memberCount": 5,
+  "sheetCount": 1,
+  "sheetName": "Evidence",
+  "cells": [
+    {
+      "reference": "A1",
+      "type": "inlineStr",
+      "text": "Source"
+    },
+    {
+      "reference": "A2",
+      "type": "inlineStr",
+      "text": "Controlled prepared document"
+    }
+  ],
+  "relationships": [
+    {
+      "part": "_rels/.rels",
+      "id": "rId1",
+      "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+      "target": "xl/workbook.xml"
+    },
+    {
+      "part": "xl/_rels/workbook.xml.rels",
+      "id": "rId1",
+      "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+      "target": "xl/worksheets/sheet1.xml"
+    }
+  ],
+  "members": [
+    {
+      "memberPath": "[Content_Types].xml",
+      "bytes": 557,
+      "sha256": "68df920c7a1ce7d882e2fbc6decf71b4c5fbae01312d76a426368d142835f7ad",
+      "crc32": "0db8616e",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>"
+    },
+    {
+      "memberPath": "_rels/.rels",
+      "bytes": 295,
+      "sha256": "f2f3948a1b6f661f2a5169a86b7029166acd4b79d7abfd37fa2b646fe302bfd6",
+      "crc32": "8bebda98",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>"
+    },
+    {
+      "memberPath": "xl/workbook.xml",
+      "bytes": 285,
+      "sha256": "b34b898f5f12d14dc9364b94be0d854bb8bfffa67f90375ef13a0fec5b009be6",
+      "crc32": "183d7028",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Evidence\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
+    },
+    {
+      "memberPath": "xl/_rels/workbook.xml.rels",
+      "bytes": 296,
+      "sha256": "62e4000e34e65f9a8d5f6af30f676a870db552afd3bd0b9e300175b6edd2c235",
+      "crc32": "6b82fd5a",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>"
+    },
+    {
+      "memberPath": "xl/worksheets/sheet1.xml",
+      "bytes": 347,
+      "sha256": "d3d57e605c87d6a4bd52b94405b640c31c941a305b85cfe8e51b82f02feb0f28",
+      "crc32": "f1485709",
+      "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:A2\"/><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Source</t></is></c></row><row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>Controlled prepared document</t></is></c></row></sheetData></worksheet>"
+    }
+  ],
+  "independentValidation": "Stdlib ZIP CRC/member hashes/metadata and every UTF8 XML document parsed independently by ElementTree; all OPC relationships resolve; workbook main content type, sheet identity, row/cell references/types/text independently verified. No full OOXML XSD/application rendering or Native converter invoked.",
+  "expectedNativePreparation": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "degradations": [
+      "document_structure_changed"
+    ],
+    "omittedImages": 0,
+    "expectedText": "## Evidence\n\n| Source |\n| --- |\n| Controlled prepared document |",
+    "expectedTextBytes": 64,
+    "expectedTextSha256": "06f69c982c70cdbea1d395c14a7564fd6683e2c53437e6d488032e86f015ce6e",
+    "expectedRepresentationSha256": "cae9f008d29403adfdba540bf8bb3e2e8771de2cff76e081b910c0ef11d6c91f",
+    "basis": "Worked explicit-source contract, NOT observed conversion: XlsxConverter resolves Evidence sheet, preserves inlineStr text using parseTagValue:false, emits ## sheet name then blank line and one-column header/separator/body table. sections joins LF-LF without final LF. No xl/media members gives omittedImages0; document wrapper declares document_structure_changed. Short plain text does not truncate. Native source unit test asserts the same exact formatting shape for inline strings.",
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+    },
+    "limits": "Exact plain Markdown expectation is independently worked/hashlib-pinned from explicit source, unexecuted. Full OOXML XSD/rendering/styles/formula/layout fidelity unvalidated. Unchanged provider witnesses known28B only, not full Markdown/provider wrapper delivery."
+  }
+}
