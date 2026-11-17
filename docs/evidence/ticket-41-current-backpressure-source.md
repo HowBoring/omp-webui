@@ -60,7 +60,9 @@ and enters HOLD. No timeout alone drops owners or releases protection.
 
 Every operation has a finite attempt budget. HOLD itself intentionally has no automatic expiry: dropping
 owners while termination is unproven would be unsafe. Reporting, JSON serialization, waits and interrupts
-cannot escape the retention loop. Root must preserve the original tool session and its owner processes.
+cannot escape the retention loop. TERM/INT/HUP handlers only set a sticky session flag; the next journal
+checkpoint permanently refuses further control intent. HOLD has enclosing exception protection and
+non-throwing signal handlers. Root must preserve the original tool session and its owner processes.
 
 Manual recovery is eligible only after all of: the original guardian Popen and original pidfd were bound;
 exact START/running was received; the fixed synthetic broker was naturally reaped as exact ROOT_EXIT0;
@@ -70,7 +72,7 @@ pidfd, changed identity, failed journal, missing fence, unknown lease or an alre
 mean HOLD with no signal, lookup or reconstruction. Ineligible phases have no executable recovery proposal.
 
 On an eligible retained failure only, the adapter mints and durably records a fresh challenge and emits an
-exact `ROOT_KILL_ONLY_ORIGINAL <original-pid> <pidfd-device> <pidfd-inode> <challenge>` command. Root must
+exact `ROOT_KILL_ONLY_ORIGINAL <original-pid> <original-fd> <pidfd-device> <pidfd-inode> <challenge>` command. Root must
 explicitly send this fresh command after inspecting the failure and original-handle proof. A durable signal
 intent precedes one SIGKILL syscall through that original pidfd. External TERM is intentionally ignored,
 so no TERM attempt, retry or guessed escalation exists. An uncertain signal/journal outcome consumes the
@@ -86,12 +88,13 @@ not an implemented product shutdown policy. No signal is sent during source work
 ## Source validation
 
 The pre-agreed seams are existing public fd3/control frames, fake dispatcher protocol and supervisor OS
-callbacks. `python3 -B tests/supervision/fixtures/external_backpressure_policy_test.py` runs21 pure tests:
+callbacks. `python3 -B tests/supervision/fixtures/external_backpressure_policy_test.py` runs22 pure tests:
 constructor interruption, expiry before ECHILD and crossing expiry, partial writes/actual EAGAIN requirement,
 strict size bound, exact filler/COMPLETE/EOF, durable-intent failure, recovery identity/phase/single use,
 reporter/interrupt retention, exact START/root-zero grammar, unknown-constructor HOLD, dispatcher exact ACK
 and duplicate-ID refusal, file+directory fsync failure, bounded reader overflow, sampled outer late drainage
-and clock failure. AST-selected definitions execute only with fake OS/clock/socket/process callbacks.
+and clock failure, and non-throwing sticky interruption blocking the next control checkpoint.
+AST-selected definitions execute only with fake OS/clock/socket/process callbacks.
 Runtime adapters and staging modules are not imported or invoked. All new Python sources AST-parse; no ELF,
 build, actor, proc observation, pidfd acquisition, Native import, key or signal operation is performed here.
 

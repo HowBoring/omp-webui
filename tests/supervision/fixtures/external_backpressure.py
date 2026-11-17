@@ -40,13 +40,21 @@ def identity(fd):
     return metadata.st_dev, metadata.st_ino
 
 
-def interrupted(_number, _frame):
-    raise KeyboardInterrupt()
+def interrupted(session):
+    # POSIX interrupts never throw across an owner/exception/HOLD transition.
+    # The next durable checkpoint refuses continuation, retaining every owner.
+    session.interrupted = True
 
 
 def hold():
     while True:
-        hold_tick(lambda: None, lambda: select.select([], [], [], 0.25))
+        try:
+            for number in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
+                signal.signal(number, lambda _number, _frame: None)
+            while True:
+                hold_tick(lambda: None, lambda: select.select([], [], [], 0.25))
+        except BaseException:
+            pass  # Includes interruption at callback setup/call/loop boundaries.
 
 
 def proof_original(session, process, journal, role):
@@ -72,7 +80,8 @@ def gate(session, journal):
     token = os.urandom(24).hex()  # Minted only with the original live guardian already held.
     bound = {"pid": session.protector.pid, "fd": session.pidfd, "pidfdIdentity": session.identity,
              "generation": GENERATION, "marker": MARKER, "challenge": token}
-    raw = f"ROOT_START_ORIGINAL {session.protector.pid} {session.identity[0]} {session.identity[1]} {token}\n"
+    raw = (f"ROOT_START_ORIGINAL {session.protector.pid} {session.pidfd} "
+           f"{session.identity[0]} {session.identity[1]} {token}\n")
     journal.save("ROOT_BEFORE_BUSINESS_GATE", **bound)
     require(report({"ROOT_BEFORE_BUSINESS_GATE": bound, "exactCommand": raw.rstrip()}), "GATE_REPORT_FAILED")
     require(input_line(0) == raw.encode(), "ROOT_BEFORE_BUSINESS_GATE_REFUSED")
@@ -192,7 +201,8 @@ def manual_recovery(session, journal, owned):
     control = session.keep(os.open(STAGE / "maintenance", os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW))
     before = protected(session.pidfd, fence, control, GENERATION, journal)
     token = os.urandom(24).hex()  # Never stored in the stage or preapproved before failure.
-    command = f"ROOT_KILL_ONLY_ORIGINAL {session.protector.pid} {session.identity[0]} {session.identity[1]} {token}\n"
+    command = (f"ROOT_KILL_ONLY_ORIGINAL {session.protector.pid} {session.pidfd} "
+               f"{session.identity[0]} {session.identity[1]} {token}\n")
     journal.save("MANUAL_RECOVERY_CHALLENGE", command=command.rstrip(), normalPass=False)
     require(report({"HOLD": True, "freshManualCommand": command.rstrip(), "normalPass": False}),
             "RECOVERY_REPORT_FAILED")
@@ -315,7 +325,7 @@ def main():
                 and sys.argv[2] == MARKER and len(sys.argv[3]) == 64, "SOURCE_ONLY_EXACT_ROOT_WINDOW")
         verify(sys.argv[3])
         for number in (signal.SIGTERM, signal.SIGINT, signal.SIGHUP):
-            signal.signal(number, interrupted)
+            signal.signal(number, lambda _number, _frame: interrupted(session))
         if sys.argv[1] == "--controller":
             require(len(sys.argv) == 5 and int(sys.argv[4]) > 3, "ORIGINAL_BOOTSTRAP_DESCRIPTOR_REQUIRED")
             bootstrap = session.keep(int(sys.argv[4]))

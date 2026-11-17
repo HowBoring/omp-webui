@@ -90,6 +90,7 @@ class Session:
         self.started = False
         self.root_zero = False
         self.failed = False
+        self.interrupted = False
         self.signal_attempted = False
 
     def keep(self, owner):
@@ -102,5 +103,5 @@ class Session:
         return owner
 
     def recovery_eligible(self):
-        return (self.failed and self.started and self.root_zero and self.protector is not None
+        return (self.failed and not self.interrupted and self.started and self.root_zero and self.protector is not None
                 and self.pidfd is not None and self.identity is not None and not self.signal_attempted)

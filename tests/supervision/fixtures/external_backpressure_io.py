@@ -26,6 +26,7 @@ def report(value):
 class Journal:
     """Held descriptor; every record and directory entry durable before side effects."""
     def __init__(self, session, path):
+        self.session = session
         self.fd = session.keep(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL
                                        | os.O_NOFOLLOW | os.O_CLOEXEC, 0o600))
         self.directory = session.keep(os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY
@@ -38,6 +39,7 @@ class Journal:
         try:
             with self.lock:
                 require(not self.failed, "JOURNAL_ALREADY_FAILED")
+                require(not self.session.interrupted, "INTERRUPTED_HOLD")
                 raw = (json.dumps({"event": event, "monotonic": time.monotonic(), **fields},
                                   separators=(",", ":")) + "\n").encode()
                 require(len(raw) <= 262144, "JOURNAL_RECORD_LIMIT")

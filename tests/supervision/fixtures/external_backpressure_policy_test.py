@@ -205,6 +205,26 @@ class PublicProtocolTests(unittest.TestCase):
 
 
 class SystemBoundaryTests(unittest.TestCase):
+    def test_interrupt_is_sticky_nonthrowing_and_blocks_control_checkpoint(self):
+        session = policy.Session()
+        owner = session.keep(object())
+        handler = source_function("interrupted", {})
+        handler(session)
+        handler(session)  # A second interrupt cannot escape a reporting/HOLD transition.
+        self.assertTrue(session.interrupted)
+        class Lock:
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+        journal_type = io_class("Journal", {"require": policy.require})
+        journal = journal_type.__new__(journal_type)
+        journal.lock, journal.failed, journal.session = Lock(), False, session
+        with self.assertRaisesRegex(policy.Refusal, "INTERRUPTED_HOLD"):
+            journal.save("START_INTENT")
+        self.assertTrue(journal.failed)
+        self.assertIs(session.owners[0], owner)
+
     def test_dispatcher_exact_ack_and_unique_request_ids(self):
         for duplicate in (False, True):
             generation, installation = "g" * 64, "f" * 64
