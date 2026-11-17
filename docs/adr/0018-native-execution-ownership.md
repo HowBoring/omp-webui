@@ -129,3 +129,13 @@ or disposal remains singleton-owned. The inherited C maintenance descriptor rema
 The ordinary dispatcher entry and broker/consumer/global/private admission remain unavailable. These are source-only
 mechanisms; actual signed Native load/prepare/drain and the new C argv handoff still require separate authorized proof.
 See [module-owner source evidence](../evidence/ticket-41-native-control-owner.md).
+
+
+Queued response bytes are a publication boundary, including every continuation after a partial write or backpressure.
+Immediately before each bridge write, the server synchronously rechecks the exact nominal loaded owner/selection,
+connection/server closing and deadline state. Admission-bearing replies also recheck the current dispatcher, known
+system uncertainty and fence state. A failed barrier drops the whole queued remainder; bytes already sent cannot be
+retracted. Signed negative inspection replies and trusted COMPLETE acknowledgements retain separate drain semantics,
+while an invalid owner forbids all output. These checks reject detected invalidation; they make no timing claim about
+undetected external changes. The extracted pure reply queue creates no production owner, transport or RPC authority.
+See [publication-barrier source fix](../evidence/ticket-41-native-control-publication.md); actual composition is NOT RUN.

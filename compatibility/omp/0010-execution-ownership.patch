@@ -128,10 +128,10 @@ index 0000000000..749ace4466
 +旧 Native 或外部工具不可逆效果可被撤销。
 diff --git a/packages/coding-agent/docs/execution-ownership.md b/packages/coding-agent/docs/execution-ownership.md
 new file mode 100644
-index 0000000000..735f184d26
+index 0000000000..dc128dddef
 --- /dev/null
 +++ b/packages/coding-agent/docs/execution-ownership.md
-@@ -0,0 +1,369 @@
+@@ -0,0 +1,376 @@
 +# Execution ownership — source preparation
 +
 +The `0010-execution-ownership.patch` preparation is **incomplete and unaccepted**. It is authored after patches
@@ -484,7 +484,14 @@ index 0000000000..735f184d26
 +
 +Dispatcher preparation awaits current readiness and rechecks the synchronous owner/shutdown barrier before recording
 +any generation. It is a binding operation; it does not return/create a control descriptor. Queued replies repeat full
-+readiness verification before committing response bytes. No spawn/backend/publication support is added.
++readiness verification before queueing response bytes. Immediately before EVERY bridge write, including zero-progress
++retries and partial-frame continuation, the queue checks the exact nominal loaded owner/selection and current
++connection/server closing/deadline state. Admission-bearing replies additionally check dispatcher admission, known
++system uncertainty and fence state. A failed check discards the queued remainder and drops the connection; an earlier
++partial prefix cannot be retracted, but no tail is transmitted after detected invalidation. Signed negative inspection
++replies and trusted COMPLETE ACKs retain separate drain semantics; an invalid owner forbids all output. The synchronous
++check does not claim to discover every external change before asynchronous verification observes it. The pure queue
++seam itself grants no production selection, loader or transport authority. No spawn/backend/publication backend is added.
 +
 +Close stops admission and polling, closes the listener/connections, and awaits queued responses and appended
 +uncertainty work. It awaits in-flight owner verification before disposal. Concurrent close shares one result. A pure
@@ -2461,10 +2468,10 @@ index 0000000000..e7318acaa0
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/dispatcher.ts b/packages/coding-agent/src/launch/ownership/dispatcher.ts
 new file mode 100644
-index 0000000000..fb27261e8f
+index 0000000000..772af6b6aa
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/dispatcher.ts
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,267 @@
 +import {
 +	decodeOwnershipRequest, OWNERSHIP_LIMITS, OWNERSHIP_VERSION, OwnershipError,
 +	ownershipBrokerScope, ownershipGeneration, ownershipIdentity, ownershipToken, sameOwnershipScope,
@@ -2544,6 +2551,9 @@ index 0000000000..fb27261e8f
 +
 +	/** Synchronous admission barrier. Queued operations must recheck it after every await before commit. */
 +	stopAdmission(): void { this.#stopping = true; }
++
++	/** Queued admission replies must recheck current dispatcher/system authority before every transport write. */
++	assertPublication(): void { this.#assertAvailable(); }
 +
 +	/**
 +	 * Native owns no original Host wait handle. Once ANY prepare commits, even COMPLETE/EOF cannot prove that
@@ -2747,10 +2757,10 @@ index 0000000000..b00b709cc8
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/fences.ts b/packages/coding-agent/src/launch/ownership/fences.ts
 new file mode 100644
-index 0000000000..846fdc3d2f
+index 0000000000..32932abf24
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/fences.ts
-@@ -0,0 +1,155 @@
+@@ -0,0 +1,160 @@
 +import * as fs from "node:fs";
 +import * as path from "node:path";
 +import { OWNERSHIP_LIMITS, OwnershipError, ownershipGeneration, ownershipIdentity,
@@ -2799,6 +2809,11 @@ index 0000000000..846fdc3d2f
 +		const fences = new OwnershipFences(approval, directory);
 +		try { await fences.verify(); return fences; }
 +		catch (error) { await fences.close(); throw error; }
++	}
++
++	/** Synchronous known-failure barrier; asynchronous verification still authenticates on-disk metadata. */
++	assertCurrent(): void {
++		if (this.#closed || this.#blocked) throw new OwnershipError("maintenance_fenced");
 +	}
 +
 +	async verify(): Promise<void> { await this.#operation(() => this.#verify()); }
@@ -3616,10 +3631,10 @@ index 0000000000..2d12fe8588
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/linux-system.ts b/packages/coding-agent/src/launch/ownership/linux-system.ts
 new file mode 100644
-index 0000000000..940f50083e
+index 0000000000..00a6777371
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/linux-system.ts
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,95 @@
 +import * as fs from "node:fs";
 +import type { LoadedOwnershipApproval } from "./approval";
 +import type { OwnershipSystem, PublicationPermit, StablePeer } from "./dispatcher";
@@ -3641,7 +3656,10 @@ index 0000000000..940f50083e
 +		this.#owner = owner; this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.dispatcher = ownershipGeneration(generation);
 +	}
 +	async ready(): Promise<void> { await this.#verify(); }
-+	assertReady(): void { this.#owner.assertReady(); }
++	assertReady(): void {
++		if (this.#unresolved) throw new OwnershipError("maintenance_fenced");
++		this.#owner.assertReady(); this.#fences.assertCurrent();
++	}
 +	async classify(peer: StablePeer) {
 +		await this.#verify();
 +		const helper = this.#bridge.classify(peer, [...this.#helpers.keys()]);
@@ -4390,6 +4408,38 @@ index 0000000000..c25d1a1ec9
 +    await verify(); return Object.freeze({ manifest, verify });
 +  } catch { return fail(); }
 +}
+diff --git a/packages/coding-agent/src/launch/ownership/reply-queue.ts b/packages/coding-agent/src/launch/ownership/reply-queue.ts
+new file mode 100644
+index 0000000000..9710a568b8
+--- /dev/null
++++ b/packages/coding-agent/src/launch/ownership/reply-queue.ts
+@@ -0,0 +1,26 @@
++import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
++
++/** One bounded server reply, including its partial-write tail. No socket or production authority is created here. */
++export class OwnershipReplyQueue {
++  #pending: { bytes: Uint8Array; authority: boolean } | undefined;
++  readonly #assertCurrent: (authority: boolean) => void;
++  constructor(assertCurrent: (authority: boolean) => void) { this.#assertCurrent = assertCurrent; }
++  get pending(): boolean { return this.#pending !== undefined; }
++  enqueue(response: string, authority: boolean): void {
++    if (this.#pending) throw new OwnershipError("ownership_limit");
++    this.#pending = { bytes: new TextEncoder().encode(response), authority };
++  }
++  clear(): void { this.#pending = undefined; }
++  write(transport: (bytes: Uint8Array) => number): void {
++    const pending = this.#pending;
++    if (!pending) return;
++    const bytes = pending.bytes.subarray(0, OWNERSHIP_LIMITS.frameBytes);
++    let count: number;
++    try { this.#assertCurrent(pending.authority); count = transport(bytes); }
++    catch (error) { this.clear(); throw error; }
++    if (!Number.isInteger(count) || count < 0 || count > bytes.length) {
++      this.clear(); throw new OwnershipError("ownership_protocol");
++    }
++    this.#pending = count === pending.bytes.length ? undefined : { ...pending, bytes: pending.bytes.subarray(count) };
++  }
++}
 diff --git a/packages/coding-agent/src/launch/ownership/selected-control-release.ts b/packages/coding-agent/src/launch/ownership/selected-control-release.ts
 new file mode 100644
 index 0000000000..23db637cc6
@@ -4504,10 +4554,10 @@ index 0000000000..566fa7141f
 +}
 diff --git a/packages/coding-agent/src/launch/ownership/server.ts b/packages/coding-agent/src/launch/ownership/server.ts
 new file mode 100644
-index 0000000000..db3ee3fe70
+index 0000000000..5f645e22b5
 --- /dev/null
 +++ b/packages/coding-agent/src/launch/ownership/server.ts
-@@ -0,0 +1,205 @@
+@@ -0,0 +1,220 @@
 +import * as fs from "node:fs/promises";
 +import { assertOwnershipControlApproval, type LoadedOwnershipApproval, type OwnershipApprovalPin } from "./approval";
 +import { decodeOwnershipChallenge, signOwnershipReply } from "./authentication";
@@ -4518,7 +4568,8 @@ index 0000000000..db3ee3fe70
 +import type { LinuxOwnershipBridge, OwnershipSocket } from "./linux-bridge";
 +import type { LoadedOwnershipControlApproval, OwnershipControlSelection } from "./control-selection";
 +import { assertOwnershipControlSelection } from "./selected-control-release";
-+import { OwnershipControlIoOwner } from "./control-io-owner";
++import { OwnershipReplyQueue } from "./reply-queue";
++import { assertOwnershipControlIoOwner, OwnershipControlIoOwner } from "./control-io-owner";
 +import { LinuxOwnershipSystem } from "./linux-system";
 +import { loadOwnershipSigningKey } from "./server-key";
 +import { OWNERSHIP_LIMITS, OwnershipError } from "./protocol";
@@ -4533,7 +4584,7 @@ index 0000000000..db3ee3fe70
 +	helperRegistered: boolean;
 +	helperCompleted: boolean;
 +	deadline: number;
-+	output: Uint8Array | undefined;
++	readonly output: OwnershipReplyQueue;
 +}
 +
 +// Failed starts retain all known handles and selection through ambiguous bridge initialization/disposal.
@@ -4543,6 +4594,7 @@ index 0000000000..db3ee3fe70
 +/** Main-thread Linux server. Poll callbacks never block; only this independent dispatcher loads ownership FFI. */
 +export class LinuxOwnershipServer {
 +	readonly #owner: OwnershipControlIoOwner;
++	readonly #selection: OwnershipControlSelection;
 +	readonly #approval: LoadedOwnershipControlApproval;
 +	readonly #bridge: LinuxOwnershipBridge;
 +	readonly #fences: OwnershipFences;
@@ -4560,8 +4612,8 @@ index 0000000000..db3ee3fe70
 +	#endpointIdentity: { device: bigint; inode: bigint } | undefined;
 +
 +	private constructor(approval: LoadedOwnershipControlApproval, bridge: LinuxOwnershipBridge, fences: OwnershipFences,
-+		dispatcher: OwnershipDispatcher, key: CryptoKey, generation: string, listener: OwnershipSocket, owner: OwnershipControlIoOwner) {
-+		this.#owner = owner; this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.#dispatcher = dispatcher;
++		dispatcher: OwnershipDispatcher, key: CryptoKey, generation: string, listener: OwnershipSocket, owner: OwnershipControlIoOwner, selection: OwnershipControlSelection) {
++		this.#owner = owner; this.#selection = selection; this.#approval = approval; this.#bridge = bridge; this.#fences = fences; this.#dispatcher = dispatcher;
 +		this.#key = key; this.#generation = generation; this.#listener = listener;
 +	}
 +
@@ -4589,7 +4641,7 @@ index 0000000000..db3ee3fe70
 +      const dispatcher = await OwnershipDispatcher.open(approval.identity, system);
 +      await owner.ready(); owner.assertReady();
 +      const listener = bridge.listen(approval.endpoint);
-+      const server = new LinuxOwnershipServer(approval, bridge, fences, dispatcher, key, generation, listener, owner);
++      const server = new LinuxOwnershipServer(approval, bridge, fences, dispatcher, key, generation, listener, owner, selection);
 +      retainedServers.add(server);
 +      const stat = await fs.lstat(approval.endpoint, { bigint: true });
 +      if (!stat.isSocket()) throw new OwnershipError("dispatcher_mismatch");
@@ -4656,16 +4708,17 @@ index 0000000000..db3ee3fe70
 +			if (!existing) this.#peers.push(peer);
 +		} catch (error) { this.#bridge.releasePeer(captured); throw error; }
 +		if (peer !== captured) this.#bridge.releasePeer(captured);
-+		this.#connections.add({ socket, peer, frames: new OwnershipFrames(), helper: new HelperWireSession(this.#approval.installation),
-+			active: false, closed: false, helperRegistered: false, helperCompleted: false,
-+			deadline: performance.now() + OWNERSHIP_LIMITS.idleMs, output: undefined });
++		const connection: Connection = { socket, peer, frames: new OwnershipFrames(),
++			helper: new HelperWireSession(this.#approval.installation), active: false, closed: false,
++			helperRegistered: false, helperCompleted: false, deadline: performance.now() + OWNERSHIP_LIMITS.idleMs,
++			output: new OwnershipReplyQueue(authority => this.#assertReplyCurrent(connection, authority)) };
++		this.#connections.add(connection);
 +	}
 +	#advance(connection: Connection): void {
 +		if (performance.now() >= connection.deadline) { this.#drop(connection); return; }
-+		if (connection.output) {
-+			const bytes = connection.output, count = this.#bridge.write(connection.socket, bytes.subarray(0, OWNERSHIP_LIMITS.frameBytes));
-+			connection.output = count === bytes.length ? undefined : bytes.subarray(count);
-+			if (!connection.output) { connection.active = false; connection.deadline = performance.now() + OWNERSHIP_LIMITS.idleMs; }
++		if (connection.output.pending) {
++			connection.output.write(bytes => this.#bridge.write(connection.socket, bytes));
++			if (!connection.output.pending) { connection.active = false; connection.deadline = performance.now() + OWNERSHIP_LIMITS.idleMs; }
 +		}
 +		const bytes = this.#bridge.read(connection.socket);
 +		if (bytes === undefined) return;
@@ -4682,16 +4735,18 @@ index 0000000000..db3ee3fe70
 +		await this.#owner.ready();
 +		await this.#approval.verify();
 +		const value: unknown = JSON.parse(frame);
-+		let response: string;
++		let response: string, authority = true;
 +		if (typeof value === "object" && value !== null && "version" in value && value.version === HELPER_OWNERSHIP_VERSION) {
 +			response = await this.#dispatcher.handleHelper(connection.peer, connection.helper, frame);
-+			if (!connection.helperRegistered) connection.helperRegistered = true; else connection.helperCompleted = true;
++			if (!connection.helperRegistered) connection.helperRegistered = true;
++			else { connection.helperCompleted = true; authority = false; } // COMPLETE drains; it grants no new admission.
 +			if ((connection.closed || this.#closed) && !connection.helperCompleted) {
 +				await this.#dispatcher.helperUncertain(connection.peer); return;
 +			}
 +		} else {
 +			const challenge = await decodeOwnershipChallenge(frame, this.#approval);
 +			const result = await this.#dispatcher.handle(connection.peer, JSON.stringify(challenge.request));
++			authority = result.ok; // Signed refusals remain inspectable after a dispatcher fence.
 +			response = await signOwnershipReply(challenge, JSON.stringify(result), { installation: this.#approval.installation,
 +				identity: this.#approval.identity, serverGeneration: this.#generation, privateKey: this.#key }) + "\n";
 +		}
@@ -4699,11 +4754,21 @@ index 0000000000..db3ee3fe70
 +		await this.#approval.verify();
 +		if (connection.closed || this.#closed || performance.now() >= connection.deadline) return;
 +		this.#owner.assertReady();
-+		connection.output = new TextEncoder().encode(response);
++		connection.output.enqueue(response, authority);
++	}
++	#assertReplyCurrent(connection: Connection, authority: boolean): void {
++		if (connection.closed || this.#closed || performance.now() >= connection.deadline) {
++			throw new OwnershipError("maintenance_fenced");
++		}
++		assertOwnershipControlIoOwner(this.#owner, this.#selection, this.#approval);
++		if (authority) {
++			if (this.#uncertain) throw new OwnershipError("maintenance_fenced");
++			this.#dispatcher.assertPublication();
++		}
 +	}
 +	#drop(connection: Connection): void {
 +		if (connection.closed) return;
-+		connection.closed = true; connection.output = undefined; this.#connections.delete(connection);
++		connection.closed = true; connection.output.clear(); this.#connections.delete(connection);
 +		if (connection.helperRegistered && !connection.helperCompleted) {
 +			// Set the dispatcher fence synchronously, before any already queued external request can resume.
 +			const uncertainty = this.#dispatcher.helperUncertain(connection.peer).catch(() => { this.#uncertain = true; });
@@ -7203,12 +7268,13 @@ index 0000000000..c345643593
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-control-owner.test.ts b/packages/coding-agent/test/execution-ownership-control-owner.test.ts
 new file mode 100644
-index 0000000000..d7ae0d439b
+index 0000000000..da4848cdf0
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-control-owner.test.ts
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,162 @@
 +import { expect, test } from "bun:test";
 +import type { ControlIoErrorCode, OwnedControlApproval } from "@omp-webui/control-io";
++import { OwnershipReplyQueue } from "../src/launch/ownership/reply-queue";
 +import { OwnershipControlIoGeneration } from "../src/launch/ownership/control-io-generation";
 +
 +const approval: OwnedControlApproval = { abi: 1, binaryDigest: "a".repeat(64), sourceDigest: "b".repeat(64),
@@ -7350,6 +7416,24 @@ index 0000000000..d7ae0d439b
 +  await expect(owner.close(async () => {})).rejects.toThrow("maintenance_fenced");
 +  expect(events).not.toContain("release");
 +});
++
++
++test("queued reply and partial tail refuse an owner invalidated by another readiness check", async () => {
++  for (const [partial, authority] of [[false, true], [true, true], [false, false], [true, false]] as const) {
++    const { selection } = fixture();
++    const owner = new OwnershipControlIoGeneration(selection, approval, async () => publicModule(async () => {}));
++    await owner.load();
++    const output = new OwnershipReplyQueue(() => owner.assertReady()), writes: string[] = [];
++    output.enqueue(authority ? '{"ok":true}\n' : '{"ok":false}\n', authority);
++    const write = (bytes: Uint8Array): number => { writes.push(new TextDecoder().decode(bytes)); return bytes.length; };
++    if (partial) output.write(bytes => { writes.push(new TextDecoder().decode(bytes.subarray(0, 4))); return 4; });
++    selection.verify = async () => { throw new Error("selection drift from another request"); };
++    await expect(owner.ready()).rejects.toThrow("selection drift from another request");
++    expect(() => output.write(write)).toThrow("maintenance_fenced");
++    expect(writes).toEqual(partial ? ['{"ok'] : []);
++    expect(output.pending).toBe(false);
++  }
++});
 diff --git a/packages/coding-agent/test/execution-ownership-control-selection.test.ts b/packages/coding-agent/test/execution-ownership-control-selection.test.ts
 new file mode 100644
 index 0000000000..9ea245d6ad
@@ -7382,11 +7466,13 @@ index 0000000000..9ea245d6ad
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-dispatcher.test.ts b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
 new file mode 100644
-index 0000000000..b289408a5d
+index 0000000000..7215eab567
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-dispatcher.test.ts
-@@ -0,0 +1,267 @@
+@@ -0,0 +1,333 @@
 +import { expect, test } from "bun:test";
++import { decodeOwnershipChallenge, OwnershipReplyVerifier, signOwnershipReply } from "../src/launch/ownership/authentication";
++import { OwnershipReplyQueue } from "../src/launch/ownership/reply-queue";
 +import { OwnershipClient } from "../src/launch/ownership/client";
 +import { ExecutionOwnershipContext } from "../src/launch/ownership/context";
 +import { HelperWireSession, verifyHelperAcknowledgement, type HelperOwnershipRequest } from "../src/launch/ownership/helper-protocol";
@@ -7652,6 +7738,70 @@ index 0000000000..b289408a5d
 +  await dispatcher.completeHelper(helper);
 +  dispatcher.stopAdmission();
 +  expect(() => dispatcher.assertDrained()).toThrow("ownership_unresolved");
++});
++
++
++test("another helper-status request fences queued grants and partial tails while signed refusals can drain", async () => {
++  for (const partial of [false, true]) {
++    const system = new SyntheticSystem(), host = {}, helper = {};
++    system.policies.set(host, "external");
++    const dispatcher = await OwnershipDispatcher.open(identity, system);
++    expect(await dispatcher.handle(host, frame({ op: "prepare_helper", generation }))).toMatchObject({ ok: true });
++    await dispatcher.registerHelper(host, helper, generation);
++    const reply = await dispatcher.handle(host, frame({ op: "helper_status", generation }));
++    expect(reply).toMatchObject({ ok: true, result: { op: "helper_status", status: "registered" } });
++    const output = new OwnershipReplyQueue(authority => { if (authority) dispatcher.assertPublication(); });
++    const encoded = JSON.stringify(reply) + "\n", writes: string[] = [];
++    output.enqueue(encoded, reply.ok);
++    if (partial) output.write(bytes => { writes.push(new TextDecoder().decode(bytes.subarray(0, 8))); return 8; });
++    system.policies.set(helper, "unresolved");
++    expect(await dispatcher.handle(host, frame({ op: "helper_status", generation })))
++      .toMatchObject({ ok: false, error: "ownership_unresolved" });
++    expect(() => output.write(bytes => { writes.push(new TextDecoder().decode(bytes)); return bytes.length; }))
++      .toThrow("maintenance_fenced");
++    expect(writes).toEqual(partial ? [encoded.slice(0, 8)] : []);
++    expect(output.pending).toBe(false);
++    const request = frame({ op: "inspect_broker", scope: { kind: "project", directory: "/work/owned" },
++      generation: "missing-generation" });
++    const refusal = await dispatcher.handle(host, request);
++    expect(refusal).toMatchObject({ ok: false, error: "maintenance_fenced" });
++    // RFC 8032 fixture material, never generated or enrolled as production trust.
++    const installation = "c".repeat(64), publicKey = "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo";
++    const key = await crypto.subtle.importKey("pkcs8", Buffer.from(
++      "302e020100300506032b6570042204209d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60", "hex"),
++      "Ed25519", false, ["sign"]);
++    const verifier = new OwnershipReplyVerifier({ installation, identity, publicKey });
++    const challenge = await verifier.challenge(request);
++    const decoded = await decodeOwnershipChallenge(challenge.frame, { installation, identity });
++    const signed = await signOwnershipReply(decoded, JSON.stringify(refusal),
++      { installation, identity, serverGeneration: "d".repeat(64), privateKey: key });
++    output.enqueue(signed + "\n", refusal.ok);
++    output.write(bytes => { writes.push(new TextDecoder().decode(bytes)); return bytes.length; });
++    const transmitted = writes.at(-1);
++    if (!transmitted) throw new Error("missing signed refusal");
++    expect(await verifier.verify(transmitted.trimEnd(), challenge)).toBe(JSON.stringify(refusal));
++  }
++});
++
++test("a live queued grant drains partial writes but stopAdmission refuses its remaining tail", async () => {
++  const system = new SyntheticSystem(), host = {};
++  system.policies.set(host, "external");
++  const dispatcher = await OwnershipDispatcher.open(identity, system);
++  const reply = await dispatcher.handle(host, frame({ op: "prepare_helper", generation }));
++  expect(reply).toMatchObject({ ok: true, result: { op: "prepare_helper", generation } });
++  const output = new OwnershipReplyQueue(authority => { if (authority) dispatcher.assertPublication(); });
++  const encoded = JSON.stringify(reply) + "\n", writes: string[] = [];
++  output.enqueue(encoded, reply.ok);
++  const write = (bytes: Uint8Array): number => {
++    const count = Math.min(7, bytes.length); writes.push(new TextDecoder().decode(bytes.subarray(0, count))); return count;
++  };
++  while (output.pending) output.write(write);
++  expect(writes.join("")).toBe(encoded);
++  output.enqueue(encoded, reply.ok); output.write(write);
++  dispatcher.stopAdmission();
++  expect(() => output.write(write)).toThrow("maintenance_fenced");
++  expect(writes.join("")).toBe(encoded + encoded.slice(0, 7));
++  expect(output.pending).toBe(false);
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-fences.test.ts b/packages/coding-agent/test/execution-ownership-fences.test.ts
 new file mode 100644

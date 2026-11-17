@@ -1,0 +1,82 @@
+{
+  "format": "omp-native-control-owner-source-check-v1",
+  "status": "PASS_SOURCE_ONLY",
+  "native": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership",
+  "publicContract": {
+    "package": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io",
+    "files": {
+      "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    "runtimeImported": false,
+    "typeMapping": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+    "resolution": "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT"
+  },
+  "workerClientGraph": [
+    "packages/coding-agent/src/launch/ownership/approval.ts",
+    "packages/coding-agent/src/launch/ownership/authentication.ts",
+    "packages/coding-agent/src/launch/ownership/bootstrap.ts",
+    "packages/coding-agent/src/launch/ownership/client.ts",
+    "packages/coding-agent/src/launch/ownership/context.ts",
+    "packages/coding-agent/src/launch/ownership/control-selection.ts",
+    "packages/coding-agent/src/launch/ownership/framing.ts",
+    "packages/coding-agent/src/launch/ownership/protocol.ts",
+    "packages/coding-agent/src/launch/ownership/strict-record.ts",
+    "packages/coding-agent/src/launch/ownership/uds-client.ts",
+    "packages/coding-agent/src/launch/ownership/worker-bootstrap.ts"
+  ],
+  "typeCheckedFiles": 46,
+  "sourceTests": 5,
+  "testScope": "AFFECTED_PUBLICATION_PATH_ONLY",
+  "results": [
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "test",
+        "--no-env-file",
+        "--preload=/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/no-provider.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-fences.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-authentication.test.ts",
+        "/workspace/work/omp-webui-ticket-41/tests/ownership/import-gate.test.ts"
+      ],
+      "exitCode": 0,
+      "stdout": "bun test v1.4.4 (38afee6c8)\n",
+      "stderr": "\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-owner.test.ts:\n(pass) missing public module fails readiness and retains the generation selection [0.67ms]\n(pass) concurrent close shares disposal and releases selection only after awaited module close [0.47ms]\n(pass) unproven drain retains the module and permits retry only before disposal begins [0.23ms]\n(pass) shutdown waits for an in-flight readiness check and rejects its stale admission result [0.25ms]\n(pass) synchronous readiness drift permanently fences the loaded generation [0.12ms]\n(pass) entry drift after import denies the public loader and cannot be retried or released [0.12ms]\n(pass) prepare readiness is refused during loading and duplicate load cannot enter a second public loader [0.19ms]\n(pass) public busy close is retryable while uncertain disposal permanently retains protection [0.21ms]\n(pass) failed public load with no returned module preserves disposal uncertainty and selection [0.34ms]\n(pass) queued reply and partial tail refuse an owner invalidated by another readiness check [0.49ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-dispatcher.test.ts:\n(pass) Host prepares before helper registration and another authenticated Host cannot claim its generation [2.93ms]\n(pass) ordinary Native administration lists only dispatcher-owned scopes and private callers cannot inspect them [0.82ms]\n(pass) administration and consumer acquisition share bounded process serialization without inspecting legacy roots [1.15ms]\n(pass) an administration reconnect after a listed broker exits refuses without creating its replacement [0.73ms]\n(pass) helper REGISTER is acknowledged after durable registration and COMPLETE stays fenced without extinction proof [0.78ms]\n(pass) peers classified private or unresolved by the OS adapter cannot publish shared execution [0.21ms]\n(pass) matched external client and server negotiate a fixed canonical broker scope through the public wire [0.29ms]\n(pass) helper uncertainty during an awaited broker prepare invalidates its publication barrier [0.72ms]\n(pass) uncertain helper death globally blocks a new unrelated external registration and maintenance remains fenced [0.20ms]\n(pass) durability failure never releases worker admission and failed extinction cannot retire its fence [0.32ms]\n(pass) no client can bypass actual backend readiness by constructing an uninitialized dispatcher [1.05ms]\n(pass) prepare awaits current module readiness before consuming a helper generation [0.26ms]\n(pass) shutdown during awaited prepare denies the stale ACK and leaves an unconsumed generation [0.34ms]\n(pass) completed helper and transport EOF cannot prove the Host original helper was reaped [0.23ms]\n(pass) another helper-status request fences queued grants and partial tails while signed refusals can drain [4.50ms]\n(pass) a live queued grant drains partial writes but stopAdmission refuses its remaining tail [0.59ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-fences.test.ts:\n(pass) dispatcher state loss preserves a durable helper fence and reopening cannot silently admit another generation [11.87ms]\n(pass) only an owned completed generation can retire its durable record and leave the directory reusable [9.05ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-authentication.test.ts:\n(pass) operator-pinned signed reply authenticates one fresh request and refuses replayed authority [0.97ms]\n(pass) any altered signed field fails closed without a fresh challenge or fallback [4.77ms]\n(pass) fresh requests refuse concurrent challenges and an authentically signed replacement dispatcher [1.25ms]\n(pass) closing during asynchronous signature verification cannot restore authenticated authority [0.62ms]\n(pass) a well-formed response signed by another key cannot enroll new operator trust [0.75ms]\n(pass) bounded administration responses exceed request budget without expanding the request allowance [11.27ms]\n(pass) oversized or exceptionally escaped responses fail with an explicit limit instead of partial metadata [17.12ms]\n\n../../../workspace/work/omp-webui-ticket-41/tests/ownership/import-gate.test.ts:\n(pass) client/worker rule rejects runtime FFI, server, public loader and nonliteral module imports [6.90ms]\n(pass) bundled dispatcher rejects hoisted FFI imports while allowing guarded dynamic loading [1.77ms]\n\n 37 pass\n 0 fail\n 156 expect() calls\nRan 37 tests across 5 files. [832.00ms]\n"
+    },
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "check",
+        "--no-script",
+        "-p",
+        "/tmp/native-control-owner-check-EoLDTF/tsconfig.json"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "✓ No type errors in 46 files [115.36ms]\n"
+    }
+  ],
+  "build": {
+    "status": "PASS_BUILD_ONLY",
+    "bytes": 73259,
+    "sha256": "43b2ea7ad6868782b75e4c04d5719879e10ac1245cc7ff8d8dda0f74179ed08c",
+    "eagerFfiImports": 0,
+    "emittedNativeExecuted": false
+  },
+  "nativeCliExecuted": false,
+  "ffiImported": false,
+  "librariesLoaded": false,
+  "socketsOpened": false,
+  "kernelLockAcquired": false,
+  "productionApprovalCreated": false,
+  "actualNativeComposition": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}

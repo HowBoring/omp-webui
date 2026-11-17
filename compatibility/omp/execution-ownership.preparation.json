@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2"
+    "sha256": "a14b65661d079f668352fb60ef21713bd2789ae8579704769f991d59e5395f7b"
   },
-  "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
-  "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
+  "preparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "preparedSourceSha256": "0cbb8454f6ba4dd686025d6445d63a441f0afcc18df98e1806700bbb1f16cabd",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -144,5 +144,19 @@
     "finalExportsThisSlice": 1,
     "actualGlobal": "BLOCKED",
     "privateAdmission": "BLOCKED"
+  },
+  "nativeControlPublication": {
+    "status": "SOURCE_ONLY_INACTIVE_NOT_RUN",
+    "evidence": "docs/evidence/ticket-41-native-control-publication.json",
+    "reviewFinding": "P1_QUEUED_SUCCESS_SURVIVES_DETECTED_INVALIDATION",
+    "perWriteAuthorityBarrier": true,
+    "partialRemainderDiscarded": true,
+    "signedRefusalDrainPreserved": true,
+    "completionDrainSemanticsSeparate": true,
+    "processOwnedCDescriptor": "NEVER_CLOSED_OR_UNLOCKED",
+    "actualNativeComposition": "NOT_RUN",
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED",
+    "finalExportsThisFix": 1
   }
 }

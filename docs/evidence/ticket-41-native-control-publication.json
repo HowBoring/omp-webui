@@ -1,0 +1,185 @@
+{
+  "format": "omp-native-control-publication-source-fix-v1",
+  "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+  "hostBase": "eea3a2f162901e1a7607e965631d8d0fb7273750",
+  "review": {
+    "spec": "/workspace/work/mvp-implementation/reviews/ticket-41-native-control-owner-spec.md",
+    "standards": "/workspace/work/mvp-implementation/reviews/ticket-41-native-control-owner-standards.md",
+    "standardsFindings": 0,
+    "specFinding": "P1 queued success ACK survives subsequently detected invalidation",
+    "freshReviews": "PENDING_ROOT"
+  },
+  "preparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "patchSha256": "a14b65661d079f668352fb60ef21713bd2789ae8579704769f991d59e5395f7b",
+  "preparedSourceSha256": "0cbb8454f6ba4dd686025d6445d63a441f0afcc18df98e1806700bbb1f16cabd",
+  "superseded": {
+    "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
+    "patchSha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2",
+    "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
+    "actual": "NOT_RUN",
+    "reason": "P1 queued success survives subsequently detected authority invalidation"
+  },
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z",
+  "originalNativeChangedFiles": 129,
+  "originalNativeFilesUnchanged": 122,
+  "nativeHeadIndexStagedExact": true,
+  "currentNativeChangedFiles": 130,
+  "sourceChanges": [
+    {
+      "path": "packages/coding-agent/docs/execution-ownership.md",
+      "sha256": "491483c60aa893129a2976bb2b8b46f3a5c136d355826e77224f8971dff29f4e"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/dispatcher.ts",
+      "sha256": "a26af1417804e739a9c27a24633eda5b8f3b6fbba57b49901ed204a465300e4d"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/fences.ts",
+      "sha256": "f1edf897d94bc52637f1c33549052565475c8c19a4434fcafe573962b1a5a882"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-system.ts",
+      "sha256": "2576956ef7cf8b2e7804f8d4344111b25aaae6efc95d344f191b0e7e199ed95e"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/reply-queue.ts",
+      "sha256": "d8e98d62e69d46bf9cec2fce7225fe37805cac100a0e44a222fa6900b69db0a7"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/server.ts",
+      "sha256": "8e21b2b25bd147e097da160f2014cc86a591e3e33cb2813b00c7f7555e262e3d"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+      "sha256": "f9e2783f39923ef5ad676f8b8cf1b998cdc9c28b5919ed952ad19078b87f5baf"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+      "sha256": "2de87a8f272cc1b5f5fe197ab583d41e010494d037153c1ee5242b1581ea4ca9"
+    }
+  ],
+  "mechanism": {
+    "actualTransportPath": "server.#advance -> connection.output.write -> synchronous #assertReplyCurrent -> bridge.write, no await",
+    "owner": "EXACT_NOMINAL_LOADED_OWNER_SELECTION_APPROVAL_ON_EVERY_WRITE",
+    "admission": "CURRENT_DISPATCHER_SYSTEM_KNOWN_UNCERTAINTY_FENCE_SERVER_CONNECTION_DEADLINE",
+    "staleQueue": "DISCARD_ENTIRE_REMAINDER_AND_DROP_CONNECTION",
+    "negativeInspection": "SIGNED_REFUSALS_DRAIN_WHEN_OWNER_CURRENT_EVEN_IF_DISPATCHER_BLOCKED",
+    "helperComplete": "SEPARATE_DRAIN_ACK_NO_NEW_ADMISSION",
+    "ownerInvalid": "ALL_OUTPUT_REFUSED_INCLUDING_NEGATIVE_AND_COMPLETION",
+    "timingLimit": "DETECTED_INVALIDATION_ONLY_PREVIOUSLY_SENT_BYTES_CANNOT_BE_RETRACTED",
+    "noNewProductionAuthority": "PURE_EXTRACTED_REPLY_QUEUE_NOT_LOADER_OR_RPC",
+    "drainRetention": "ANY_PREPARE_STILL_RETAINS_WITHOUT_HOST_ORIGINAL_REAP",
+    "processCDescriptor": "NEVER_CLOSED_OR_UNLOCKED"
+  },
+  "validation": {
+    "scope": "AFFECTED_SOURCE_ONLY",
+    "tests": 37,
+    "assertions": 156,
+    "testFiles": 5,
+    "typeCheckedFiles": 46,
+    "build": {
+      "status": "PASS_BUILD_ONLY",
+      "bytes": 73259,
+      "sha256": "43b2ea7ad6868782b75e4c04d5719879e10ac1245cc7ff8d8dda0f74179ed08c",
+      "eagerFfiImports": 0,
+      "emittedNativeExecuted": false
+    },
+    "workerClientGraphModules": 11,
+    "fullHistorical76SuiteRepeated": false,
+    "checks": "docs/evidence/ticket-41-native-control-publication-checks.json",
+    "checksSha256": "12a3434385e6904e301855ebb5f964ad33c49f4a36bb7088ca0690b16613b086",
+    "tddStages": [
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/owner-red.json",
+        "sha256": "cbd0d80798f205601b4b5a10a916e4f7a2b877d93a08033d6adfcdd8462730bd",
+        "exitCode": 1,
+        "note": "Meaningful RED: queue without final write barrier transmits stale output."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/owner-green.json",
+        "sha256": "ac57bfbbdc92fe913f28153d62360d001fbebe1c6e9f3c17c229289ee5b4eedd",
+        "exitCode": 0,
+        "note": "Owner invalidation and partial tail GREEN."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/dispatcher-red.json",
+        "sha256": "a40ed33a7c420e54d4cc026f5193fffe252056c3c2ae88214010bddfdf00584b",
+        "exitCode": 1,
+        "note": "Preserved initial harness error: test used a different prepare controller; also reproduced stopAdmission failure."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/dispatcher-red-corrected.json",
+        "sha256": "7c81ad91f9406f6f1fbf178822220775bee3414c0eacd74a818f81bf5dc41ff5",
+        "exitCode": 1,
+        "note": "Meaningful corrected RED: helper-status request fences globally but old publication guard permits bytes; stopAdmission also permits stale tail."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/dispatcher-green.json",
+        "sha256": "40c7b6130e6e165ab8f9604721dcb764cb0461077bca0498955e1844ea52b48c",
+        "exitCode": 1,
+        "note": "Preserved first GREEN attempt with invalid global scope in the negative-inspection test; 15 pass/1 protocol fixture error."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/combined-green.json",
+        "sha256": "da9d575abd663f137689fb0cb79c25b76f9b3501a86a025b881dd42ec49ed643",
+        "exitCode": 0,
+        "note": "35 affected source tests/147 assertions passed, including corrected signed inspection refusal."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/affected-check-runner.json",
+        "sha256": "b15244f3eca5203f2469e341e3ea66a77353a5f16fa4de4e89987c20adb80c35",
+        "exitCode": 0,
+        "note": "Final affected checker: 37 tests/156 assertions, 46 strict files, build-only 73,259 bytes, no eager FFI."
+      },
+      {
+        "record": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z/owner-final.json",
+        "sha256": "ae53bca0edf9a270eb66068680456a68d55e95209893fb27ff2d4621ce7ff615",
+        "exitCode": 0,
+        "note": "After replacing only the owner-negative test literal with ok:false, affected owner file rechecked: 10 tests/49 assertions. Runtime/types signatures unchanged; type/build results above remain applicable."
+      }
+    ],
+    "finalOwnerTestLiteralOnlyRecheck": {
+      "tests": 10,
+      "assertions": 49,
+      "exitCode": 0
+    }
+  },
+  "publicArtifact": {
+    "root": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release",
+    "unchanged": {
+      "control-io/index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "lib/libomp-control-io.so": "d97a49a02167da8ad4d07d7bd0eb3a921e486696041e7d0512bd9d728a7222f2"
+    },
+    "imported": false,
+    "libraryLoaded": false
+  },
+  "export": {
+    "evidence": "docs/evidence/ticket-41-native-control-publication-export.json",
+    "sha256": "dac925545f9b41e2755717e6a5569c3b19f2d7a9e8bfed280ab7c1e044615f03",
+    "finalExportsThisFix": 1,
+    "privateIndexPreimageExact": true,
+    "privateIndexReplayExact": true,
+    "activePatchListChanged": false,
+    "consumerDeltaChanged": false,
+    "patches7Through9Activated": false,
+    "finalPatches1Through10Composed": false
+  },
+  "actual": {
+    "nativeCliSdkAgentHostExecuted": false,
+    "ffiImported": false,
+    "libraryLoaded": false,
+    "listenerOpened": false,
+    "kernelLockAcquired": false,
+    "browserStarted": false,
+    "productionKeyOrApprovalCreated": false,
+    "globalPathSelected": false,
+    "nativeSignedComposition": "NOT_RUN",
+    "newCArgvHandoff": "NOT_RUN",
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED",
+    "orphan444480OrFencesTouched": false
+  },
+  "ticket41Complete": false,
+  "ticket61Complete": false,
+  "spec29Complete": false
+}

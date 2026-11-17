@@ -1,0 +1,39 @@
+{
+  "format": "omp-native-control-publication-export-v1",
+  "status": "SOURCE_ONLY_INACTIVE_NOT_RUN",
+  "hostBase": "eea3a2f162901e1a7607e965631d8d0fb7273750",
+  "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "stablePrefixTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
+  "superseded": {
+    "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
+    "patchSha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2",
+    "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
+    "actual": "NOT_RUN",
+    "reason": "P1 queued success survives subsequently detected authority invalidation"
+  },
+  "preparedTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "patchSha256": "a14b65661d079f668352fb60ef21713bd2789ae8579704769f991d59e5395f7b",
+  "preparedSourceSha256": "0cbb8454f6ba4dd686025d6445d63a441f0afcc18df98e1806700bbb1f16cabd",
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-owner-ack-preserve-20261117T044407Z",
+  "changedNativeSource": [
+    "packages/coding-agent/docs/execution-ownership.md",
+    "packages/coding-agent/src/launch/ownership/dispatcher.ts",
+    "packages/coding-agent/src/launch/ownership/fences.ts",
+    "packages/coding-agent/src/launch/ownership/linux-system.ts",
+    "packages/coding-agent/src/launch/ownership/reply-queue.ts",
+    "packages/coding-agent/src/launch/ownership/server.ts",
+    "packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+    "packages/coding-agent/test/execution-ownership-dispatcher.test.ts"
+  ],
+  "privateIndexPreimageExact": true,
+  "privateIndexReapplyExact": true,
+  "finalExportsThisFix": 1,
+  "nativeHeadIndexStagedExact": true,
+  "activePatchListChanged": false,
+  "consumerDeltaChanged": false,
+  "finalPatches1Through10Composed": false,
+  "nativeCliSdkAgentHostFfiLibraryListenerKernelBrowserExecuted": false,
+  "actualNativeComposition": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}

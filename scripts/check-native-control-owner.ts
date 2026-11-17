@@ -7,8 +7,10 @@ import { assertOwnershipFfiDeferred, ownershipClientImports } from "./ownership-
 const args = process.argv.slice(2);
 const option = (name: string) => args.find(value => value.startsWith(`--${name}=`))?.slice(name.length + 3);
 const source = option("source"), publicPackage = option("public-package"), output = option("output");
-if (!source || !publicPackage || !output || args.length !== 3) {
-  throw new Error("USAGE --source=<owned Native> --public-package=<immutable nominal control-io> --output=<record>");
+const affected = args.includes("--affected");
+if (!source || !publicPackage || !output || args.length !== (affected ? 4 : 3)) {
+  throw new Error("USAGE --source=<owned Native> --public-package=<immutable nominal control-io> "
+    + "--output=<record> [--affected]");
 }
 const repository = path.resolve(import.meta.dir, ".."), native = await fs.realpath(source);
 const base = path.join(native, "packages/coding-agent"), directory = path.join(base, "src/launch/ownership");
@@ -41,9 +43,10 @@ async function visit(file: string): Promise<void> {
   }
 }
 for (const name of ["bootstrap", "context", "uds-client", "worker-bootstrap"]) await visit(path.join(directory, name + ".ts"));
-const tests = ["approval", "maintenance-handoff", "control-selection", "inventory", "control-owner", "dispatcher",
-  "authentication", "client", "context", "contract", "helper-wire", "fences", "worker"]
-  .map(name => path.join(base, `test/execution-ownership-${name}.test.ts`));
+const testNames = affected ? ["control-owner", "dispatcher", "fences", "authentication"] : [
+  "approval", "maintenance-handoff", "control-selection", "inventory", "control-owner", "dispatcher",
+  "authentication", "client", "context", "contract", "helper-wire", "fences", "worker"];
+const tests = testNames.map(name => path.join(base, `test/execution-ownership-${name}.test.ts`));
 tests.push(path.join(repository, "tests/ownership/import-gate.test.ts"));
 const temporary = await fs.mkdtemp("/tmp/native-control-owner-check-");
 try {
@@ -89,7 +92,8 @@ try {
     publicContract: { package: publicRoot, files: expected, runtimeImported: false,
       typeMapping: path.join(publicRoot, "index.d.ts"), resolution: "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT" },
     workerClientGraph: [...visited].sort().map(file => path.relative(native, file)), typeCheckedFiles: files.length,
-    sourceTests: tests.length, results, build: { status: "PASS_BUILD_ONLY", bytes: Buffer.byteLength(bundle),
+    sourceTests: tests.length, testScope: affected ? "AFFECTED_PUBLICATION_PATH_ONLY" : "OWNER_SOURCE_SUITE", results,
+    build: { status: "PASS_BUILD_ONLY", bytes: Buffer.byteLength(bundle),
       sha256: digest(Buffer.from(bundle)), eagerFfiImports: 0, emittedNativeExecuted: false },
     nativeCliExecuted: false, ffiImported: false, librariesLoaded: false, socketsOpened: false,
     kernelLockAcquired: false, productionApprovalCreated: false, actualNativeComposition: "NOT_RUN",
