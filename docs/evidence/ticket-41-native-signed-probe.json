@@ -1,0 +1,165 @@
+{
+  "format": "omp-native-signed-probe-source-evidence/1",
+  "status": "PASS_SOURCE_CHECKS_ONLY_NOT_READY_NOT_RUN",
+  "hostBase": "8988a5afd71c38f91fb188362aff174f6a4d31c9",
+  "inactiveNativeTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z",
+  "native": {
+    "headIndexStagedStatusExact": true,
+    "originalChangedFilesByteIdentical": 130,
+    "sourceEdited": false,
+    "inactivePatchReexported": false,
+    "activePatchListChanged": false,
+    "consumerDeltaChanged": false,
+    "patches7Through9Activated": false,
+    "final1Through10Composed": false
+  },
+  "sourceInputs": [
+    {
+      "path": "compatibility/omp/fixtures/native-signed-probe-bootstrap.ts",
+      "sha256": "70f133e9b8229bbb71d7d967f77d098a0f450af6697e79da6348fd430b9313d6",
+      "bytes": 794
+    },
+    {
+      "path": "compatibility/omp/fixtures/native-signed-probe-checks.ts",
+      "sha256": "ceb5597ba5feefad74f72734622c1c6ca4babfedc76369072106f2c71b1d8cb7",
+      "bytes": 1191
+    },
+    {
+      "path": "compatibility/omp/fixtures/native-signed-probe-launch.ts",
+      "sha256": "3bd020e6ab1bf9213d0aa729eb583fb67b82d0233e9e0f3481bfef45e0482537",
+      "bytes": 9991
+    },
+    {
+      "path": "compatibility/omp/fixtures/native-signed-probe.ts",
+      "sha256": "66419955329f4d6e842b3bc581608006dbfb6d9cfc0ec77bad24d1df518d7cbf",
+      "bytes": 2891
+    },
+    {
+      "path": "scripts/prepare-native-signed-probe.ts",
+      "sha256": "05fa2a4f6455123b195ad2b251d29536b351948395aec7091af07425bbae7109",
+      "bytes": 14502
+    },
+    {
+      "path": "scripts/retain-native-signed-probe.py",
+      "sha256": "23ac9d1c730e3daa1c747a7d153737e23dcba9216704bf69604c6bfcdd945b82",
+      "bytes": 14738
+    },
+    {
+      "path": "tests/ownership/native-signed-probe.test.ts",
+      "sha256": "e6a24cc73db3ede178f72ae8560190e845100ec49a05e4e502a3aaf434349140",
+      "bytes": 4422
+    },
+    {
+      "path": "tests/ownership/native_signed_probe_ready_test.py",
+      "sha256": "13050bb1f36c6ed10a4d05eefa9cd30cdb251a3e9e2954cbdac5e29ffd72ae0d",
+      "bytes": 3756
+    }
+  ],
+  "prerequisites": {
+    "publicationSpecReview": "/workspace/work/mvp-implementation/reviews/ticket-41-control-publication-spec.md",
+    "publicationSpecFindings": 0,
+    "publicationStandardsReview": "/workspace/work/mvp-implementation/reviews/ticket-41-control-publication-standards.md",
+    "publicationStandardsFindings": 0,
+    "CEntrySourceSha256": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b",
+    "publicJsSha256": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+    "publicLibrarySha256": "d97a49a02167da8ad4d07d7bd0eb3a921e486696041e7d0512bd9d728a7222f2"
+  },
+  "checks": {
+    "publicSdkAndSignedProvenanceFaultTests": 4,
+    "publicReadyManifestFaultTests": 2,
+    "assertions": 6,
+    "strictTypeCheckedFiles": 29,
+    "CCompile": "PASS_OBJECT_ONLY_WALL_WEXTRA_WERROR",
+    "pythonSyntax": "PASS_AST_PARSE_NO_RETAINER_IMPORT",
+    "buildOnly": [
+      {
+        "name": "native-signed-probe-bootstrap",
+        "bytes": 180225,
+        "sha256": "6a9b6579722818fce42033cff50e4023d064935d88544794a29ae26b678e0417",
+        "eagerFfiImports": 0,
+        "executed": false
+      },
+      {
+        "name": "native-signed-probe",
+        "bytes": 126575,
+        "sha256": "6390bdf7047a31e416f92deead612011070aee74c312f192f224cceb79497839",
+        "eagerFfiImports": 0,
+        "executed": false
+      },
+      {
+        "name": "no-provider",
+        "bytes": 2443,
+        "sha256": "803201814486e47e6b85280fa4c7de8bd4f49c79a6a7dcbbf7b91b5d99588147",
+        "eagerFfiImports": 0,
+        "executed": false
+      }
+    ],
+    "records": [
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-tests-final.json",
+        "sha256": "0d95fb81764893e9e4f6b704ec6097bbbd9c65533b73f205f5770c153408f1ea"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-types-initial.json",
+        "sha256": "913e5c8496d2f0a290b135c811abd9e3aac9a30346757679b2e285781d58c6bb"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-types-final.json",
+        "sha256": "8b6b325f2d7cdcb0113af4e33422f5aa67f96eff1c65c440109dba5736e0f1e7"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-build-only.json",
+        "sha256": "8d3777e6e14641ecc5b265d39a36bcb404f677340d1ebddaf3c3da7161a0d124"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-c-compile.json",
+        "sha256": "0ec581aa22bfdae1cc381c2a9639dbb153bd9939ae3dbc4b5971946bc9fe3954"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-ready-owner-red.json",
+        "sha256": "2d1b0d819c626cf57f2a2fdf5988e087a1df0465ca8446257e5b7cf19543c4e4"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-ready-owner-green.json",
+        "sha256": "43d7987f8dce9293a702c9e8612ff9a4722a7a93ed957b898f140a2e22ea8eeb"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-preservation-final.json",
+        "sha256": "76b0200c71d54c229a3b2cb07024f80b0aaee15badff81b907ea27d866db9ad7"
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z/probe-python-syntax.json",
+        "sha256": "a2e151ae756116282864d4c1f44a36d668a1c68e068a76a209d76831978fa1b3"
+      }
+    ]
+  },
+  "tdd": {
+    "initialTypeCheck": "FAILED_REQUIRED_GLOBAL_SCOPE_SERVICE; corrected to browser-relay; raw preserved",
+    "readyOwnershipRed": "Real readonly system UID mismatch prevented public READY admission",
+    "readyOwnershipGreen": "Explicit expected UID pins; fixed readonly system allowlist only; stage/operator remain current-UID and strict 0600",
+    "readyHarnessNote": "Corrected pure test closure fixture paths before GREEN; original RED was the real owner rejection before closure inspection",
+    "noInventedRuntimeRedGreen": true
+  },
+  "actual": {
+    "sourcePreparerExecuted": false,
+    "runtimeCopied": false,
+    "operatorKeyOrApprovalCreated": false,
+    "unitTestInMemorySyntheticSignatures": true,
+    "retainerImportedOrExecuted": false,
+    "nativeApplicationOrSdkOrTuiExecuted": false,
+    "nativeRuntimeModuleImported": false,
+    "emittedNativeExecuted": false,
+    "ffiImported": false,
+    "libraryLoaded": false,
+    "socketOpened": false,
+    "processLockAcquired": false,
+    "kernelFixtureRun": false,
+    "processCensusRun": false,
+    "newCArgvSignedV3Composition": "NOT_RUN",
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED"
+  },
+  "request": "docs/evidence/ticket-41-native-signed-probe-request.json",
+  "ready": "docs/evidence/ticket-41-native-signed-probe-not-ready.json"
+}

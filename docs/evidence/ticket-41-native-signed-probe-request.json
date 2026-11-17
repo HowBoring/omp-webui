@@ -1,0 +1,79 @@
+{
+  "format": "omp-native-signed-probe-source-approval-request/1",
+  "status": "UNSIGNED_NOT_APPROVED_NOT_READY",
+  "hostBase": "8988a5afd71c38f91fb188362aff174f6a4d31c9",
+  "inactiveNativeTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
+  "sourcePreparationExecuted": false,
+  "operatorConfigurationCreated": false,
+  "finalArtifactPins": null,
+  "signedPayload": null,
+  "signature": null,
+  "configurationContract": {
+    "stage": "A fresh /tmp/native-signed-probe-<short-attempt> directory owned by current UID with mode 0700; endpoint length <108 bytes",
+    "installation": "Root-supplied 64 lowercase hex characters",
+    "anchor": {
+      "path": "<stage>/operator/anchor.json",
+      "device": "exact decimal",
+      "inode": "exact positive decimal",
+      "sha256": "exact stable anchor bytes digest"
+    },
+    "key": {
+      "path": "<stage>/operator/key.json",
+      "device": "exact decimal",
+      "inode": "exact positive decimal",
+      "sha256": "exact separate dispatcher signing record bytes digest"
+    }
+  },
+  "operatorRecords": {
+    "directoryMode": "0700",
+    "fileMode": "0600",
+    "owner": "current UID",
+    "anchorVersion": "omp-execution-approval-anchor/2",
+    "approvalVersion": "omp-execution-approval/3",
+    "recordBytes": 16384,
+    "approvalRecord": "<stage>/operator/approval.json",
+    "replyKeyVersion": "omp-execution-signing-key/1",
+    "replyKeyFields": [
+      "version",
+      "installation",
+      "publicKey",
+      "privateKey"
+    ],
+    "anchorAndReplyKeysMustDiffer": true,
+    "canonicalOperatorJson": "compact JSON.stringify(value), without trailing newline",
+    "builderCreatesKeysOrSignature": false
+  },
+  "rootNextSteps": [
+    "Independent source review at committed branch SHA",
+    "Root creates ephemeral distinct synthetic approval/reply keys, stable anchor and exact configuration",
+    "Root runs guarded source/build preparer for fresh attempt; one canonical runtime via forced CoW then exact copy if necessary",
+    "Independently verify source provenance, both complete inventories and both ELF graphs; prepared bytes remain unsigned NOT_READY",
+    "Root signs exact prepared v3 payload and preserves final operator pins",
+    "Root creates exact frozen READY inputs including uid, supplies READY digest, and separately authorizes one actual run"
+  ],
+  "preparationCommandTemplate": [
+    "<pinned Bun 1.4.4>",
+    "--no-env-file",
+    "<repository>/scripts/prepare-native-signed-probe.ts",
+    "<Root-owned-configuration.json>",
+    "--materialize-one-runtime"
+  ],
+  "runtimeCommandTemplate": [
+    "<pinned Python>",
+    "-B",
+    "<repository>/scripts/retain-native-signed-probe.py",
+    "<fresh-stage>/READY.json",
+    "<Root-frozen-READY-sha256>"
+  ],
+  "allowedOperations": [
+    "classify",
+    "list_scopes empty",
+    "inspect_broker missing global browser-relay with signed dispatcher_unavailable",
+    "list_scopes empty after refusal"
+  ],
+  "prepareAuthorized": false,
+  "helperAuthorized": false,
+  "nativeAgentAuthorized": false,
+  "globalAdmission": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}
