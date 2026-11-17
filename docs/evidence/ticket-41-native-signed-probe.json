@@ -1,6 +1,6 @@
 {
   "format": "omp-native-signed-probe-source-evidence/1",
-  "status": "PASS_SOURCE_CHECKS_ONLY_NOT_READY_NOT_RUN",
+  "status": "PASS_PURE_SOURCE_CHECKS_ACTUAL_ATTEMPT_FAILED_BEFORE_NATIVE_IMPORT_NOT_READY",
   "hostBase": "8988a5afd71c38f91fb188362aff174f6a4d31c9",
   "inactiveNativeTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
   "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-signed-probe-preserve-20261117T051354Z",
@@ -27,8 +27,8 @@
     },
     {
       "path": "compatibility/omp/fixtures/native-signed-probe-launch.ts",
-      "sha256": "3bd020e6ab1bf9213d0aa729eb583fb67b82d0233e9e0f3481bfef45e0482537",
-      "bytes": 9991
+      "sha256": "c6bcfb9acc325db237fac5f4a28a26340c39be7e19358593795241f83587b905",
+      "bytes": 10161
     },
     {
       "path": "compatibility/omp/fixtures/native-signed-probe.ts",
@@ -47,8 +47,8 @@
     },
     {
       "path": "tests/ownership/native-signed-probe.test.ts",
-      "sha256": "e6a24cc73db3ede178f72ae8560190e845100ec49a05e4e502a3aaf434349140",
-      "bytes": 4422
+      "sha256": "b99c309124dc8f6f73f533706fce19c68bfca7892fa27d5c669ce9682952cfde",
+      "bytes": 5279
     },
     {
       "path": "tests/ownership/native_signed_probe_ready_test.py",
@@ -191,9 +191,9 @@
     "retainerHarnessCorrection": "Initial fake boundary mislabeled child-side stdin read end as output reader; corrected before preserved corrected RED"
   },
   "actual": {
-    "sourcePreparerExecuted": false,
-    "runtimeCopied": false,
-    "operatorKeyOrApprovalCreated": false,
+    "sourcePreparerExecuted": true,
+    "runtimeCopied": true,
+    "operatorKeyOrApprovalCreated": true,
     "unitTestInMemorySyntheticSignatures": true,
     "nativeApplicationOrSdkOrTuiExecuted": false,
     "nativeRuntimeModuleImported": false,
@@ -201,14 +201,19 @@
     "ffiImported": false,
     "libraryLoaded": false,
     "socketOpened": false,
-    "processLockAcquired": false,
+    "processLockAcquired": true,
     "kernelFixtureRun": false,
     "processCensusRun": false,
-    "newCArgvSignedV3Composition": "NOT_RUN",
+    "newCArgvSignedV3Composition": "ACTUAL_FAIL_BEFORE_FIRST_NATIVE_IMPORT",
     "actualGlobal": "BLOCKED",
     "privateAdmission": "BLOCKED",
-    "retainerModuleImportedOrMainExecuted": false,
-    "retainerClassExecutedOnlyWithInertOsAdapters": true
+    "retainerModuleImportedOrMainExecuted": true,
+    "retainerClassExecutedOnlyWithInertOsAdapters": false,
+    "actualEvidence": "docs/evidence/ticket-41-native-signed-probe-actual-fail.json",
+    "rootOriginalKernelObservation": true,
+    "noNewRuntimeInSourceFix": true,
+    "historicalRuntimeNote": "Root owned old 107MB stage runtime reclaimed only after evidence commit; consumed READY intentionally historical/incomplete/nonrerunnable",
+    "scope": "Includes Root historical one actual failed attempt; roster repair itself only pure source checks"
   },
   "request": "docs/evidence/ticket-41-native-signed-probe-request.json",
   "ready": "docs/evidence/ticket-41-native-signed-probe-not-ready.json",
@@ -227,5 +232,46 @@
     "unresolvedObservation": "Retain wait ownership with no timeout release authority",
     "sourcePreparerExecuted": false,
     "ready": "UNSIGNED_NOT_READY_NOT_RUN"
+  },
+  "rosterOrderFix": {
+    "sourceBase": "5a445183d7d3880a7ef4cefefb5078f81eb8283a",
+    "evidenceFirstCommit": "96e9812e451aaf1906e316bab48bb00363b08a83",
+    "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117",
+    "seam": "public Native-free authenticateProbeLaunch",
+    "red": "unchanged genuinely signed roster rejects with PROBE_LAUNCH_CLOSURE_CHANGED",
+    "green": "same strict schema parses authenticated and observed roster before ordered exact JSON comparison",
+    "testBoundary": "Only process.execPath substituted to inert fixture path; real filesystem, strict parsing, canonical operator JSON and Ed25519 signature checks",
+    "negative": "changed bootstrap bytes still reject before any Native import",
+    "pureTypeCheckedFiles": 29,
+    "publicSdkAndLaunchTests": 5,
+    "records": [
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117/roster-red.log",
+        "sha256": "4ed024b9b656d3b8920af2000f1c08cd73387567879e481980b5d78b5d8df5c1",
+        "bytes": 1553
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117/roster-red-diagnostic.log",
+        "sha256": "15fda5e0cbbb3e0688f9008f9ab8797848a5e4e51e8853525a35056e294cc38b",
+        "bytes": 1367
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117/roster-green.log",
+        "sha256": "56ac29150c3d81cece502b4395864e0eae004ef52c381e34dfa739079d9ee657",
+        "bytes": 554
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117/roster-final.log",
+        "sha256": "56934d7bfa8088be16fd30c120ff1cf8e42992f519a328214bf0b48fe6322824",
+        "bytes": 645
+      },
+      {
+        "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-roster-fix-preserve-20261117/roster-types.log",
+        "sha256": "c7f74cf6afd8a0a09d04e0f059dbee906718ae9b83d7ec2b06b72ca124d54b72",
+        "bytes": 41
+      }
+    ],
+    "sourceBuildOrActualProbeRepeated": false,
+    "scope": "SOURCE_ONLY_UNSIGNED_NOT_READY_FRESH_ATTEMPT_REQUIRED"
   }
 }

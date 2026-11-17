@@ -123,7 +123,9 @@ export async function authenticateProbeLaunch(input: ProbeConfiguration): Promis
   const bytes = await fs.readFile(`${root}/launch-closure.json`);
   if (sha256(bytes) !== approved.identity.closure) throw new Error("PROBE_UNSIGNED_LAUNCH_CLOSURE");
   const inventory = closure.parse(JSON.parse(bytes.toString("utf8")));
-  if (JSON.stringify(inventory.members) !== JSON.stringify(await probeLaunchMembers(root))) {
+  // Parse both rosters into the same strict field order; producer insertion order is not identity.
+  const currentMembers = closure.shape.members.parse(await probeLaunchMembers(root));
+  if (JSON.stringify(inventory.members) !== JSON.stringify(currentMembers)) {
     throw new Error("PROBE_LAUNCH_CLOSURE_CHANGED");
   }
   if (JSON.stringify(inventory.platformDependencies) !== JSON.stringify(await probePlatformMembers())) {

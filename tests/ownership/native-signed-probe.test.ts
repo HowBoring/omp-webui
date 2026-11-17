@@ -26,13 +26,19 @@ test("read-only probe detects a scope created by inspection", async () => {
   })).rejects.toThrow("PROBE_UNEXPECTED_SCOPE");
 });
 
-test("signed launch provenance rejects changed bootstrap bytes before any Native import", async () => {
+test.each([["accepts unchanged", false], ["rejects changed", true]] as const)(
+  "signed launch provenance %s bootstrap bytes before any Native import", async (_description, changed) => {
   const stage = await fs.mkdtemp("/tmp/native-signed-probe-unit-");
+  const originalExecPath = Object.getOwnPropertyDescriptor(process, "execPath");
   try {
-    for (const name of ["operator", "launch", "launch/worker"]) await fs.mkdir(`${stage}/${name}`, { mode: 0o700 });
+    for (const name of ["operator", "launch", "launch/worker", "launch/runtime", "launch/bin", "launch/components"]) {
+      await fs.mkdir(`${stage}/${name}`, { mode: 0o700 });
+    }
     const pin = async (file: string) => { const stat = await fs.lstat(file, { bigint: true });
       return { path: file, device: String(stat.dev), inode: String(stat.ino), sha256: sha256(await fs.readFile(file)) }; };
     await fs.writeFile(`${stage}/launch/worker/cli.js`, "// original bootstrap\n", { mode: 0o600 });
+    await fs.writeFile(`${stage}/launch/runtime/bun`, "inert runtime identity fixture\n", { mode: 0o600 });
+    await fs.writeFile(`${stage}/launch/bin/omp`, "inert entry identity fixture\n", { mode: 0o600 });
     const inventory = JSON.stringify({ format: "omp-native-signed-probe-launch/1", members: await probeLaunchMembers(`${stage}/launch`),
       platformDependencies: await probePlatformMembers() });
     await fs.writeFile(`${stage}/launch/launch-closure.json`, inventory, { mode: 0o600 });
@@ -47,13 +53,21 @@ test("signed launch provenance rejects changed bootstrap bytes before any Native
     await fs.writeFile(`${stage}/operator/key.json`, "{}", { mode: 0o600 });
     const payload = JSON.stringify({ version: "omp-execution-approval/3", installation,
       identity: { closure: sha256(inventory), schema: "b".repeat(64) }, releaseRoot: `${stage}/launch/components`,
-      entry: { path: `${stage}/launch/bin/omp`, device: "1", inode: "1", sha256: "c".repeat(64) },
+      entry: await pin(`${stage}/launch/bin/omp`),
       dispatcherReplyPublicKey: "test-distinct-reply-key" });
     const signature = Buffer.from(await crypto.subtle.sign("Ed25519", keys.privateKey,
       new TextEncoder().encode(`omp-execution-release-approval/3\0${payload}`))).toString("base64url");
     await fs.writeFile(record, JSON.stringify({ version: "omp-execution-signed-approval/1", payload, signature }), { mode: 0o600 });
-    await fs.writeFile(`${stage}/launch/worker/cli.js`, "// substituted bootstrap\n");
-    await expect(authenticateProbeLaunch({ stage, installation, anchor: await pin(`${stage}/operator/anchor.json`),
-      key: await pin(`${stage}/operator/key.json`) })).rejects.toThrow("PROBE_LAUNCH_CLOSURE_CHANGED");
-  } finally { await fs.rm(stage, { recursive: true, force: true }); }
+    // Only the external process identity is substituted. Filesystem, strict parsing and Ed25519 checks are real.
+    Object.defineProperty(process, "execPath", { configurable: true, value: `${stage}/launch/runtime/bun` });
+    const configuration = { stage, installation, anchor: await pin(`${stage}/operator/anchor.json`),
+      key: await pin(`${stage}/operator/key.json`) };
+    if (changed) {
+      await fs.writeFile(`${stage}/launch/worker/cli.js`, "// substituted bootstrap\n");
+      await expect(authenticateProbeLaunch(configuration)).rejects.toThrow("PROBE_LAUNCH_CLOSURE_CHANGED");
+    } else expect(await authenticateProbeLaunch(configuration)).toBeUndefined();
+  } finally {
+    if (originalExecPath) Object.defineProperty(process, "execPath", originalExecPath);
+    await fs.rm(stage, { recursive: true, force: true });
+  }
 });

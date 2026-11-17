@@ -1,6 +1,9 @@
 # First C argv / signed Native public-module probe source
 
-Status: **SOURCE ONLY — UNSIGNED, NOT APPROVED, NOT READY, NOT RUN**. Based on clean Host
+Status: **CORRECTED SOURCE ONLY — UNSIGNED, NOT APPROVED, NOT READY**. The prior signed
+attempt actually **FAILED before the first Native-bearing import** and fully drained;
+see [the preserved actual FAIL](ticket-41-native-signed-probe-actual-fail.md).
+The corrected source has no new build, signature, READY or runtime attempt. Original source preparation was based on clean Host
 `8988a5afd71c38f91fb188362aff174f6a4d31c9` and the existing inactive0010 tree
 `12f724d5f69471f2e91317475caac3bb911b50d2`. The fresh publication Spec and Standards reviews each found zero issues.
 This change does not alter Native authoring bytes, active patches, patches1–6/7–9, consumer delta, or final1–10 composition.
@@ -86,7 +89,7 @@ reads and unresolved wait/observer failures remain pending. A deadline never aut
 
 ## Preparation and readiness handoff
 
-`scripts/prepare-native-signed-probe.ts` is an **unexecuted** source/build action. It requires Root to supply a protected
+`scripts/prepare-native-signed-probe.ts` is a source/build action; the corrected source is **unexecuted**. It requires Root to supply a protected
 configuration with `stage`, `installation`, stable `anchor` pin and separate dispatcher `key` pin. Root creates these
 synthetic operator records independently; the builder creates no keys, trust, signature or READY authorization.
 
@@ -142,5 +145,32 @@ they never import the retainer module, ctypes, main, Native, or execute real spa
 Checks and exact hashes are in [source evidence](ticket-41-native-signed-probe.json). C compilation and bundled outputs
 are build evidence only. No emitted module, C entry, Native application, library, FFI, socket, process lock, kernel
 fixture, SDK/TUI application, browser or process census ran. Unit test signing used fresh in-memory synthetic test keys;
-no operator/production key or signed approval was created. Actual C argv/v3 Native composition remains **NOT RUN**;
-global/private admission remains **BLOCKED**. No #29/#41/#61 completion, publication, push, PR, merge or closure is claimed.
+no operator/production key or signed approval was created by those source checks.
+Root subsequently built and signed one actual C/Bun attempt; it failed in Native-free
+launch authentication before Native composition. Global/private admission remains
+**BLOCKED**. No #29/#41/#61 completion, publication, push, PR, merge or closure is claimed.
+
+## Launch roster order repair
+
+The actual failure exposed an insertion-order defect. The scanner emits
+`path,kind,mode,identity`, while strict parsing emits `path,kind,identity,mode`.
+The comparison now validates the observed roster with the same strict schema before
+comparing both ordered arrays. Only record field insertion order is normalized:
+array order, counts, duplicates, paths, kinds, modes and content identities remain
+exact. Signature/closure digest, operator pin, alias, platform and runtime checks
+are unchanged; no Native, C, guard, API, schema or vendor source changed.
+
+The public Native-free `authenticateProbeLaunch` test first reproduced the actual
+`PROBE_LAUNCH_CLOSURE_CHANGED` on an unchanged genuinely signed fixture. It now
+accepts that fixture and still rejects changed bootstrap bytes. Only external
+`process.execPath` is substituted to an inert fixture runtime path and restored
+afterward; filesystem traversal, strict schema parsing, canonical operator records
+and Ed25519 authentication are real. Neither inert entry nor runtime fixture is
+executed, and no Bun copy is made. Five focused tests and strict type checking of 29 files pass. Raw RED,
+GREEN and final records are linked in the source evidence JSON.
+
+The previous consumed READY is historical and cannot authorize a retry. Root
+reclaimed its old owned stage runtime after the evidence-first commit. A fresh
+attempt requires independent focused source review, new configuration/build,
+independent final closure review, signature, frozen READY and separate one-run
+authorization. This source repair executes none of those steps.

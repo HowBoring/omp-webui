@@ -1,7 +1,7 @@
 {
   "format": "omp-native-signed-probe-source-approval-request/1",
   "status": "UNSIGNED_NOT_APPROVED_NOT_READY",
-  "hostBase": "8988a5afd71c38f91fb188362aff174f6a4d31c9",
+  "hostBase": "96e9812e451aaf1906e316bab48bb00363b08a83",
   "inactiveNativeTree": "12f724d5f69471f2e91317475caac3bb911b50d2",
   "sourcePreparationExecuted": false,
   "operatorConfigurationCreated": false,
@@ -44,7 +44,7 @@
     "builderCreatesKeysOrSignature": false
   },
   "rootNextSteps": [
-    "Independent source review at committed branch SHA",
+    "Independent focused source review of roster-order fix at committed branch SHA",
     "Root creates ephemeral distinct synthetic approval/reply keys, stable anchor and exact configuration",
     "Root runs guarded source/build preparer for fresh attempt; one canonical runtime via forced CoW then exact copy if necessary",
     "Independently verify source provenance, both complete inventories and both ELF graphs; prepared bytes remain unsigned NOT_READY",
@@ -75,5 +75,12 @@
   "helperAuthorized": false,
   "nativeAgentAuthorized": false,
   "globalAdmission": "BLOCKED",
-  "privateAdmission": "BLOCKED"
+  "privateAdmission": "BLOCKED",
+  "scope": "Fresh corrected-source attempt only; prior consumed signed attempt failed before Native import",
+  "supersededConsumedAttempt": {
+    "stage": "/tmp/native-signed-probe-restore7-a",
+    "status": "FAIL_DRAINED_BEFORE_NATIVE_IMPORT",
+    "evidence": "docs/evidence/ticket-41-native-signed-probe-actual-fail.json",
+    "reusable": false
+  }
 }

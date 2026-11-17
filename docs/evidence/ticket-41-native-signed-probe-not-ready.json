@@ -19,5 +19,7 @@
     "ROOT_EXPLICIT_ONE_RUN_AUTHORIZATION"
   ],
   "request": "docs/evidence/ticket-41-native-signed-probe-request.json",
-  "retainerBehavior": "This file is deliberately rejected; it is not a runnable READY manifest."
+  "retainerBehavior": "This file is deliberately rejected; it is not a runnable READY manifest.",
+  "scope": "Fresh corrected-source attempt; consumed restore7-a READY cannot authorize it",
+  "priorAttempt": "ACTUAL_FAIL_BEFORE_NATIVE_IMPORT_DRAINED_NONRERUNNABLE"
 }
