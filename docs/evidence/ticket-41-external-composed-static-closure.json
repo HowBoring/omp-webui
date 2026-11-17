@@ -1,0 +1,815 @@
+{
+  "format": "ticket-41-external-composed-static-closure-v1",
+  "method": "TypeScript 6.0.3 AST and SHA-256 only; selected sources never evaluated",
+  "files": [
+    "packages/compatibility/installation.ts",
+    "packages/control-io/errors.ts",
+    "packages/control-io/index.ts",
+    "packages/control-io/loader.ts",
+    "packages/control-io/selection.ts",
+    "packages/control-io/socket.ts",
+    "packages/control-io/testing.ts",
+    "packages/delivery/artifact.ts",
+    "packages/delivery/coordinator.ts",
+    "packages/delivery/elf.ts",
+    "packages/delivery/maintenance.ts",
+    "packages/delivery/observation.ts",
+    "packages/delivery/platform.ts",
+    "packages/delivery/resolver.ts",
+    "packages/supervision/adapter.ts",
+    "packages/supervision/control-io-selection.ts",
+    "packages/supervision/control.ts",
+    "packages/supervision/controller.ts",
+    "packages/supervision/errors.ts",
+    "packages/supervision/external-launch.ts",
+    "packages/supervision/external.ts",
+    "packages/supervision/input.ts",
+    "packages/supervision/owner.ts",
+    "packages/supervision/session.ts",
+    "packages/supervision/testing.ts",
+    "scripts/build-external-protector.ts",
+    "scripts/build-private-helper.ts",
+    "scripts/supervisor-build.ts",
+    "tests/supervision/approved-helper-owner.test.ts",
+    "tests/supervision/control-io-public.test.ts",
+    "tests/supervision/control.test.ts",
+    "tests/supervision/controller.test.ts",
+    "tests/supervision/external/build.test.ts",
+    "tests/supervision/external/controller.test.ts",
+    "tests/supervision/external/launch.test.ts",
+    "tests/supervision/owned-control-io.test.ts",
+    "tests/supervision/session.test.ts"
+  ],
+  "edges": [
+    {
+      "from": "packages/supervision/external-launch.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/external-launch.ts",
+      "to": "packages/supervision/external.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/external.ts",
+      "to": "packages/supervision/control.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/control.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/external.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "bun",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "packages/control-io/index.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/index.ts",
+      "to": "packages/control-io/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/index.ts",
+      "to": "packages/control-io/loader.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "node:crypto",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "node:fs",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "node:worker_threads",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "packages/control-io/selection.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "packages/control-io/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "packages/control-io/socket.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/socket.ts",
+      "to": "packages/control-io/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/loader.ts",
+      "to": "bun:ffi",
+      "typeOnly": false,
+      "dynamic": true
+    },
+    {
+      "from": "packages/control-io/index.ts",
+      "to": "packages/control-io/selection.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/index.ts",
+      "to": "packages/control-io/socket.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "packages/supervision/control.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "packages/supervision/session.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/session.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/session.ts",
+      "to": "packages/supervision/control.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/controller.ts",
+      "to": "packages/supervision/input.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/input.ts",
+      "to": "bun",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/input.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-external-protector.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-external-protector.ts",
+      "to": "packages/supervision/external.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-external-protector.ts",
+      "to": "scripts/supervisor-build.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/supervisor-build.ts",
+      "to": "node:fs",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/supervisor-build.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/supervisor-build.ts",
+      "to": "node:os",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/supervisor-build.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/supervisor-build.ts",
+      "to": "packages/delivery/maintenance.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/maintenance.ts",
+      "to": "bun:ffi",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/maintenance.ts",
+      "to": "node:fs",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/maintenance.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/maintenance.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-private-helper.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-private-helper.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "scripts/build-private-helper.ts",
+      "to": "scripts/supervisor-build.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/build.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/build.test.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/build.test.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/build.test.ts",
+      "to": "scripts/build-external-protector.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/controller.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/controller.test.ts",
+      "to": "node:events",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/controller.test.ts",
+      "to": "packages/supervision/external.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/launch.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/external/launch.test.ts",
+      "to": "packages/supervision/external-launch.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/control-io-public.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/control-io-public.test.ts",
+      "to": "packages/control-io/index.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/control.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/control.test.ts",
+      "to": "packages/supervision/control.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/session.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/session.test.ts",
+      "to": "packages/supervision/session.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/controller.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/controller.test.ts",
+      "to": "bun",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/controller.test.ts",
+      "to": "node:events",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/controller.test.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/owned-control-io.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/owned-control-io.test.ts",
+      "to": "packages/control-io/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/owned-control-io.test.ts",
+      "to": "packages/control-io/socket.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "bun:test",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "bun",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "packages/supervision/adapter.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "node:crypto",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "node:fs",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/control-io/index.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/delivery/coordinator.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/coordinator.ts",
+      "to": "packages/delivery/maintenance.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/coordinator.ts",
+      "to": "packages/delivery/resolver.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/resolver.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/resolver.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/resolver.ts",
+      "to": "packages/delivery/artifact.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "zod",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "packages/compatibility/installation.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/compatibility/installation.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/compatibility/installation.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/compatibility/installation.ts",
+      "to": "zod",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "packages/delivery/observation.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/observation.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/observation.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/observation.ts",
+      "to": "node:fs",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/observation.ts",
+      "to": "node:crypto",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/observation.ts",
+      "to": "packages/compatibility/installation.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/artifact.ts",
+      "to": "packages/delivery/platform.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/platform.ts",
+      "to": "node:fs/promises",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/platform.ts",
+      "to": "node:path",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/platform.ts",
+      "to": "packages/compatibility/installation.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/platform.ts",
+      "to": "packages/delivery/elf.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/elf.ts",
+      "to": "node:fs/promises",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/elf.ts",
+      "to": "packages/delivery/observation.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/delivery/platform.ts",
+      "to": "packages/delivery/observation.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/control.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/owner.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/control-io/index.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/delivery/coordinator.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/supervision/adapter.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/supervision/control-io-selection.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/control-io-selection.ts",
+      "to": "packages/control-io/index.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/control-io-selection.ts",
+      "to": "packages/delivery/coordinator.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/control-io-selection.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/owner.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/control-io-selection.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/errors.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/adapter.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "packages/supervision/testing.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/supervision/testing.ts",
+      "to": "packages/supervision/owner.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "packages/control-io/testing.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/testing.ts",
+      "to": "packages/control-io/socket.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "packages/control-io/testing.ts",
+      "to": "packages/control-io/loader.ts",
+      "typeOnly": false,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "packages/delivery/coordinator.ts",
+      "typeOnly": true,
+      "dynamic": false
+    },
+    {
+      "from": "tests/supervision/approved-helper-owner.test.ts",
+      "to": "packages/supervision/controller.ts",
+      "typeOnly": true,
+      "dynamic": false
+    }
+  ],
+  "pureStaticRuntime": [
+    "packages/control-io/errors.ts",
+    "packages/control-io/index.ts",
+    "packages/control-io/loader.ts",
+    "packages/control-io/socket.ts",
+    "packages/control-io/testing.ts",
+    "packages/supervision/adapter.ts",
+    "packages/supervision/control-io-selection.ts",
+    "packages/supervision/control.ts",
+    "packages/supervision/controller.ts",
+    "packages/supervision/errors.ts",
+    "packages/supervision/external-launch.ts",
+    "packages/supervision/external.ts",
+    "packages/supervision/input.ts",
+    "packages/supervision/owner.ts",
+    "packages/supervision/session.ts",
+    "packages/supervision/testing.ts",
+    "tests/supervision/approved-helper-owner.test.ts",
+    "tests/supervision/control-io-public.test.ts",
+    "tests/supervision/control.test.ts",
+    "tests/supervision/controller.test.ts",
+    "tests/supervision/external/controller.test.ts",
+    "tests/supervision/external/launch.test.ts",
+    "tests/supervision/owned-control-io.test.ts",
+    "tests/supervision/session.test.ts"
+  ],
+  "limits": [
+    "Dynamic imports require separate source path inspection; graph does not establish runtime unreachability",
+    "Builder and build-refusal suite reach maintenance static FFI and are not executed",
+    "C includes/configuration and maintenance semantics require the manifest and ADR manual source analysis",
+    "No runtime, Native, artifact approval or admission proof"
+  ]
+}
