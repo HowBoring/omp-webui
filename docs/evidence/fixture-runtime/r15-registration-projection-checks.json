@@ -1,0 +1,110 @@
+{
+  "status": "PASS_SOURCE_ONLY_RUNTIME_GREEN_NOT_RUN",
+  "parent": "8d3738c61570fc33ccc43430823af55cdbd06c19",
+  "seam": "Existing agreed actual public two-process fixture wire/run seam; R15 is the actual RED; future fresh Root nominal run supplies GREEN",
+  "newTestsAdded": false,
+  "validation": {
+    "existingPureTests": {
+      "name": "existingPureTests",
+      "cmd": "env -i HOME=/tmp/ticket41-r15-projection-pure/home PI_CODING_AGENT_DIR=/tmp/ticket41-r15-projection-pure/profile XDG_CONFIG_HOME=/tmp/ticket41-r15-projection-pure/config XDG_DATA_HOME=/tmp/ticket41-r15-projection-pure/data XDG_STATE_HOME=/tmp/ticket41-r15-projection-pure/state XDG_CACHE_HOME=/tmp/ticket41-r15-projection-pure/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test --no-env-file --preload=/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/preferences/no-provider.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-compiler.test.ts",
+      "chunk_id": "1444c2",
+      "wall_time_seconds": 1.63859621,
+      "exit_code": 0,
+      "original_token_count": 520,
+      "output": "bun test v1.4.4 (38afee6c8)\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts:\n(pass) only the exact pinned Root platform runtime variant can authenticate [9.88ms]\n(pass) aliases, mutable files, replacement and incomplete runtime observations fail closed [3.59ms]\n(pass) other executable, argv, config root, missing guard arguments and handoff injections are rejected [0.43ms]\n(pass) the external runtime is independently pinned in the exhaustive signed platform roster [21.96ms]\n(pass) launch configuration requires an explicit runtime variant and canonical new stage scope [1.98ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts:\n(pass) launch roster equality normalizes observed field order and still rejects a changed mode [0.78ms]\n(pass) Host START registration stays held after signed status until original parent continues [0.44ms]\n(pass) pending Native status cannot announce registered or release the Host START callback [0.16ms]\n(pass) HELLO from another generation or helper cannot reach signed-status or parent release [0.16ms]\n(pass) uncertain prepare cannot be retried or converted into a held START [0.08ms]\n(pass) a pending registration owns the sole parent START gate [0.20ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts:\n(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.52ms]\n(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.40ms]\n(pass) untrusted phase values cannot become diagnostic payloads [0.05ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-compiler.test.ts:\n(pass) failed compiler result is retained before the stable build failure reaches the caller [15.38ms]\n(pass) successful compiler keeps the existing success receipt contract [1.43ms]\n\n 16 pass\n 0 fail\n 92 expect() calls\nRan 16 tests across 4 files. [1.62s]\n"
+    },
+    "existingPureSourceChecker": {
+      "name": "existingPureSourceChecker",
+      "cmd": "env -i HOME=/tmp/ticket41-r15-projection-pure/home PI_CODING_AGENT_DIR=/tmp/ticket41-r15-projection-pure/profile XDG_CONFIG_HOME=/tmp/ticket41-r15-projection-pure/config XDG_DATA_HOME=/tmp/ticket41-r15-projection-pure/data XDG_STATE_HOME=/tmp/ticket41-r15-projection-pure/state XDG_CACHE_HOME=/tmp/ticket41-r15-projection-pure/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --no-env-file --preload=/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/preferences/no-provider.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/check-native-helper-two-process.ts --runtime-source-only",
+      "chunk_id": "2d36a2",
+      "wall_time_seconds": 2.172706727,
+      "exit_code": 0,
+      "original_token_count": 140,
+      "output": "{\"status\":\"PASS_PURE_SOURCE_ONLY\",\"plannedInputs\":123,\"imports\":{\"compatibility/omp/fixtures/native-helper-drain-launch.ts\":[\"node:fs/promises\",\"node:path\",\"zod\",\"./native-signed-probe-launch\",\"./native-helper-drain-runtime\"],\"compatibility/omp/fixtures/native-helper-drain-runtime.ts\":[\"node:fs/promises\",\"node:fs\",\"node:crypto\",\"zod\"],\"compatibility/omp/fixtures/native-signed-probe-launch.ts\":[\"node:fs/promises\",\"node:path\",\"node:crypto\",\"zod\"]},\"nativeImported\":false,\"built\":false,\"emittedExecuted\":false,\"actualProof\":\"NOT_RUN\",\"admission\":\"BLOCKED\"}\n"
+    },
+    "existingTargetedTypes": {
+      "name": "existingTargetedTypes",
+      "cmd": "env -i HOME=/tmp/ticket41-r15-projection-pure/home PI_CODING_AGENT_DIR=/tmp/ticket41-r15-projection-pure/profile XDG_CONFIG_HOME=/tmp/ticket41-r15-projection-pure/config XDG_DATA_HOME=/tmp/ticket41-r15-projection-pure/data XDG_STATE_HOME=/tmp/ticket41-r15-projection-pure/state XDG_CACHE_HOME=/tmp/ticket41-r15-projection-pure/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun check --no-script -p /workspace/work/omp-webui-ticket-41-fixture-recovery/docs/evidence/fixture-runtime/tsconfig.json",
+      "chunk_id": "67a1ae",
+      "wall_time_seconds": 0.479129941,
+      "exit_code": 0,
+      "original_token_count": 11,
+      "output": "✓ No type errors in 15 files [490.45ms]\n"
+    },
+    "existingRetainerPureTests": {
+      "name": "existingRetainerPureTests",
+      "cmd": "env -i HOME=/tmp/ticket41-r15-projection-pure/home PI_CODING_AGENT_DIR=/tmp/ticket41-r15-projection-pure/profile XDG_CONFIG_HOME=/tmp/ticket41-r15-projection-pure/config XDG_DATA_HOME=/tmp/ticket41-r15-projection-pure/data XDG_STATE_HOME=/tmp/ticket41-r15-projection-pure/state XDG_CACHE_HOME=/tmp/ticket41-r15-projection-pure/cache PATH=/usr/bin:/bin TMPDIR=/tmp /usr/bin/python3 -B /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py",
+      "chunk_id": "08cae7",
+      "wall_time_seconds": 0.470486039,
+      "exit_code": 0,
+      "original_token_count": 32,
+      "output": "..........................\n----------------------------------------------------------------------\nRan 26 tests in 0.066s\n\nOK\n"
+    }
+  },
+  "nominalEventSourceAudit": {
+    "contract": "scripts/retain-native-helper-drain.py:validate_nominal_fields and accept_event; unchanged exact keys, types, identity and sequence",
+    "commonFields": [
+      "event",
+      "scope",
+      "pid",
+      "generation"
+    ],
+    "events": {
+      "NATIVE_READY": {
+        "extraFields": {},
+        "result": "MATCH"
+      },
+      "NATIVE_DRAINING": {
+        "extraFields": {},
+        "result": "MATCH"
+      },
+      "NATIVE_CLOSED": {
+        "extraFields": {
+          "awaitedServerClose": true,
+          "selectionReleased": true,
+          "inheritedCGuardCurrent": true,
+          "hostReceiptOrReapObserved": false
+        },
+        "result": "MATCH"
+      },
+      "HOST_REGISTERED_HELD": {
+        "extraFields": {
+          "helperPid": "positive integer <= 2147483647 from parsed public PrivateHello",
+          "helperStartTime": "positive decimal string <= 20 digits from parsed public PrivateHello",
+          "nativePid": "positive integer <= 2147483647 from parsed public PrivateHello",
+          "nativeStartTime": "positive decimal string <= 20 digits from parsed public PrivateHello",
+          "startReleased": false
+        },
+        "result": "EXPLICIT_FIVE_IDENTITY_FIELD_PROJECTION_EXCLUDES_KIND"
+      },
+      "HOST_CLEAN_REAP_EOF": {
+        "extraFields": {
+          "helperPid": "original handle.helperPid",
+          "helperExit": 0,
+          "decodedControlTailClean": true
+        },
+        "result": "MATCH"
+      },
+      "HOST_CLOSED": {
+        "extraFields": {
+          "moduleCloseAwaitedBeforeLeaseRelease": true,
+          "nativeTerminalAuthorityInferred": false
+        },
+        "result": "MATCH"
+      }
+    },
+    "evidenceLimit": "Source audit only; no emitted runtime frame, retainer acceptance, Host START, lifecycle or cleanup GREEN claimed."
+  },
+  "actual": {
+    "built": false,
+    "nativeHostImported": false,
+    "actorsRun": false,
+    "staged": false,
+    "keysUsed": false,
+    "rootStageChanged": false,
+    "originalRetainerChanged": false,
+    "runtimeGreen": "NOT_RUN",
+    "productAdmission": "BLOCKED"
+  },
+  "nextGate": "FRESH_JOINT_ROOT_PACKET_AND_SOURCE_SPEC_AND_STANDARDS_PAIR"
+}

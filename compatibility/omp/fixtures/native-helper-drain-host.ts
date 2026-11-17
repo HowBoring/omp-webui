@@ -36,7 +36,9 @@ export async function runHelperDrainFixture(config: HelperDrainConfiguration): P
   let handle: PrivateHelperHandle | undefined;
   const gate = new HelperDrainHostGate({ generation: config.generation, client,
     originalHelperPid: () => handle?.helperPid,
-    registered: hello => drainFact("HOST_REGISTERED_HELD", { pid: process.pid, ...hello, startReleased: false }),
+    registered: hello => drainFact("HOST_REGISTERED_HELD", { pid: process.pid, generation: hello.generation,
+      helperPid: hello.helperPid, helperStartTime: hello.helperStartTime, nativePid: hello.nativePid,
+      nativeStartTime: hello.nativeStartTime, startReleased: false }),
     continueStart: () => parentCommand(`START ${config.generation}`) });
   const provenance = async (name: string): Promise<string> => new Bun.CryptoHasher("sha256")
     .update(await fs.readFile(`${approval.releaseRoot}/provenance/${name}`)).digest("hex");

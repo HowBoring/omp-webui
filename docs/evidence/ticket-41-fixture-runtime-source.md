@@ -150,3 +150,35 @@ The runtime behavior GREEN remains NOT RUN and requires fresh paired Source revi
 fresh signing and one separately cleared actual run through the same public seam. This correction performs no
 Native/Host import, C compilation, producer execution, key operation, staging or actor launch. Product admission
 remains BLOCKED.
+
+## R15 Host registration event projection correction
+
+R15 reached `NATIVE_READY` and then failed the existing public fixture wire/run seam with
+`RETAINER_EVENT_FIELDS` at `HOST_AWAIT_REGISTERED`. The unchanged public `PrivateHello` parser returns
+enumerable `kind: "hello"`; the gate's frozen spread preserves that field at runtime. The Host emitter now
+projects exactly generation, helperPid, helperStartTime, nativePid and nativeStartTime, alongside its own
+pid and literal `startReleased: false`. No extra private HELLO fields enter the fixture event. Retainer
+exact-key/type/identity/sequence checks and public control-I/O APIs are unchanged.
+
+The original actual RED is preserved at
+`/workspace/work/mvp-implementation/recovery/restore13-r15-root-actual-initial-tool.json` and
+`/workspace/work/mvp-implementation/recovery/restore13-r15-root-actual-poll1-tool.json`; the source diagnosis is
+`/workspace/work/mvp-implementation/research/ticket41-r15-host-event-mismatch.md`. The rejected frame was not
+preserved, so its extra key is a deterministic source diagnosis, not recovered wire bytes. The later unrecognized
+`DRAIN_UNRESOLVED` cause is not established. Held registration must complete before the public controller writes
+START; the fixture callback still awaits the original parent's exact START command and clean EOF. This correction
+does not release or repair R15. Its actual scope remains FAIL, fixture and automatic-cleanup acceptance false.
+
+Source audit compared all six nominal emits with the unchanged retainer contract: NATIVE_READY/NATIVE_DRAINING
+have only the four common fields; NATIVE_CLOSED has the four exact boolean facts; HOST_CLEAN_REAP_EOF has the
+original helperPid, literal helperExit 0 and decodedControlTailClean true; HOST_CLOSED has its two exact boolean
+facts. The explicit HOST_REGISTERED_HELD projection preserves the public parser's numeric PID and decimal tick
+types. This is source evidence, not runtime acceptance of those frames.
+
+The source plan retains all 123 canonical paths and refreshes only the Host fixture record. Existing guarded pure
+checks pass 16 Bun tests/92 assertions, 26 Python retainer boundary tests, targeted strict no-emit types (15 files)
+and the 123-input source checker. Exact commands and tool outputs are retained in
+`fixture-runtime/r15-registration-projection-checks.json`. No new AST/wiring or private-function test was added.
+Runtime GREEN remains NOT RUN and requires a fresh joint Root packet and Source review followed by a separately
+cleared fresh nominal run. No original retainer, R15 stage, original Native/public source, key, actor or held
+session was changed or controlled here. Real global/private product admission remains BLOCKED.
