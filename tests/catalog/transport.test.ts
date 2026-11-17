@@ -124,7 +124,8 @@ test("catalog rejects a duplicate generated ID without replacing its pending wai
     const first = client.catalog.describe("first");
     await expect(client.catalog.describe("second")).rejects.toThrow("RPC_DUPLICATE_ID");
     expect((await first).status).toBe("missing");
-    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0 });
+    expect(await client.close()).toEqual({ code: 0, forced: false, stderrBytes: 0,
+      terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true });
   } finally { uuid.mockRestore(); await client.close(); }
 });
 
