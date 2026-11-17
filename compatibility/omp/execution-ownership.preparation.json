@@ -30,14 +30,14 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "78656e73322631de224ac5ba517b281406aa2ec5e39cf857ed6e6ab090b88cce"
+    "sha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2"
   },
-  "preparedTree": "4dc7455feacffd217410e6fc1e6bd111bd3e5922",
-  "preparedSourceSha256": "ef3f716026332d3a5af3f040c4b2c6c620f7421c48ee4638b04680f2c5a7db23",
+  "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
+  "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
-  "nativeBackend": "SOURCE_ONLY_COMPOSED_SERVER_REFUSES_PENDING_PUBLIC_CONTROL_IO_OWNER",
+  "nativeBackend": "SOURCE_ONLY_NOMINAL_PUBLIC_MODULE_OWNER_COMPOSED_ACTUAL_NOT_RUN",
   "cBridgeCompile": "PASS_STRICT_ZERO_DIAGNOSTICS",
   "socketPidfdPrimitive": "PASS_SCOPED_ONLY",
   "backendCapabilityGranted": false,
@@ -124,5 +124,25 @@
       "issue41Complete": false,
       "issue61Complete": false
     }
+  },
+  "nativeControlOwner": {
+    "status": "SOURCE_ONLY_INACTIVE_NOT_RUN",
+    "evidence": "docs/evidence/ticket-41-native-control-owner.json",
+    "publicModuleResolution": "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT",
+    "publicTypeMapping": "EXACT_IMMUTABLE_NOMINAL_INDEX_DTS",
+    "ownerAuthority": "NOMINAL_SELECTION_AND_REAL_PUBLIC_EXPORT_ONLY",
+    "bridgeFfiImport": "GUARDED_DYNAMIC_NO_BUNDLE_HOIST",
+    "prepareReadiness": "ASYNC_RECHECK_BEFORE_GENERATION_COMMIT",
+    "drainPolicy": "ANY_COMMITTED_PREPARE_RETAINS_WITHOUT_HOST_ORIGINAL_REAP",
+    "tests": 76,
+    "assertions": 328,
+    "typeCheckedFiles": 45,
+    "workerClientGraphModules": 11,
+    "actualNativeComposition": "NOT_RUN",
+    "newCArgvHandoffActual": "NOT_RUN",
+    "processOwnedCDescriptor": "NEVER_GENERATION_CLOSE_OR_UNLOCK",
+    "finalExportsThisSlice": 1,
+    "actualGlobal": "BLOCKED",
+    "privateAdmission": "BLOCKED"
   }
 }

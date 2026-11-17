@@ -1,0 +1,40 @@
+{
+  "format": "omp-native-control-owner-export-v1",
+  "status": "SOURCE_ONLY_INACTIVE_NOT_RUN",
+  "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "stablePrefixTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
+  "superseded": {
+    "hostHead": "d16ea9e813fdee5c98361c300f7e735a94802021",
+    "preparedTree": "4dc7455feacffd217410e6fc1e6bd111bd3e5922",
+    "patchSha256": "78656e73322631de224ac5ba517b281406aa2ec5e39cf857ed6e6ab090b88cce",
+    "sourceSha256": "ef3f716026332d3a5af3f040c4b2c6c620f7421c48ee4638b04680f2c5a7db23"
+  },
+  "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
+  "patchSha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2",
+  "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
+  "changedSource": [
+    "packages/coding-agent/docs/execution-ownership.md",
+    "packages/coding-agent/src/launch/ownership/control-io-generation.ts",
+    "packages/coding-agent/src/launch/ownership/control-io-owner.ts",
+    "packages/coding-agent/src/launch/ownership/dispatcher.ts",
+    "packages/coding-agent/src/launch/ownership/fences.ts",
+    "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+    "packages/coding-agent/src/launch/ownership/linux-system.ts",
+    "packages/coding-agent/src/launch/ownership/server.ts",
+    "packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+    "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+    "packages/coding-agent/test/execution-ownership-fences.test.ts"
+  ],
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-module-owner-preserve-20261117T023552Z",
+  "privateIndexPreimageExact": true,
+  "privateIndexReapplyExact": true,
+  "finalExportsThisSlice": 1,
+  "nativeHeadIndexStagedExact": true,
+  "activePatchListChanged": false,
+  "consumerDeltaChanged": false,
+  "finalPatches1Through10Composed": false,
+  "publicModuleNativeActual": "NOT_RUN",
+  "newCArgvHandoffActual": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}

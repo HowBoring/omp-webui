@@ -107,6 +107,25 @@ Composed selection has a separate strict anchor/2 + approval/3 signature domain 
 with signed public-package/native roles, directory/link/mode verification and bounded ELF dependency/alias closure.
 The concrete Native adapter implements the existing public `@omp-webui/control-io` selection contract using only
 filesystem inspection; Host runtime code and I/O algorithms are not imported/copied. Historical v2 UDS approvals
-cannot be promoted. Production package resolution, actual public module load/lifetime, later authenticated preparation
-and actual new handoff evidence remain missing. Server open therefore stays unavailable before any library import.
+cannot be promoted. At that prerequisite stage, production package resolution, public module load/lifetime and later
+authenticated preparation remained absent, so server open refused before any library import. The follow-on source
+slice below adds the public module owner; actual signed composition and new handoff evidence remain missing.
 See [source prerequisite evidence](../evidence/ticket-41-native-control-selection.md); this is no production admission.
+
+
+The next inactive source slice composes a Native-owned public control-I/O singleton. It uses an authenticated dynamic
+import of the signed canonical public JS entry after complete selection verification, rather than an uninstalled bare
+package lookup or copied Host owner. Compile-time types map to the exact immutable nominal package declarations;
+release inventory and outside approval still bind final build bytes separately. Full checks bracket import/load and
+asynchronous preparation; the final synchronous barrier precedes generation commit. Bridge loading additionally
+requires the exact loaded public owner and defers its FFI import to prevent bundler hoisting before public loading.
+This deliberately narrow main-only dynamic-import exception implements the authenticated release boundary.
+
+Shutdown stops admission/polling, drains queued response/uncertainty work and requires empty, certain lifetime before
+bridge/fence cleanup, awaited public module close and generation release. Native lacks the Host's original helper
+wait handle: ANY committed prepare therefore conservatively prevents module/selection disposal, even after COMPLETE
+or EOF. Unknown helper peers and durable fences remain retained; shutdown does not clear fences. Failed/uncertain load
+or disposal remains singleton-owned. The inherited C maintenance descriptor remains process-owned until actual exit.
+The ordinary dispatcher entry and broker/consumer/global/private admission remain unavailable. These are source-only
+mechanisms; actual signed Native load/prepare/drain and the new C argv handoff still require separate authorized proof.
+See [module-owner source evidence](../evidence/ticket-41-native-control-owner.md).

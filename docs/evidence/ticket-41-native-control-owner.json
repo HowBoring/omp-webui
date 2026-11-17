@@ -1,0 +1,141 @@
+{
+  "format": "omp-native-control-owner-source-evidence-v1",
+  "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+  "hostBase": "d16ea9e813fdee5c98361c300f7e735a94802021",
+  "preparedTree": "e68927bf88110913b1bc7902293454eb194823af",
+  "patchSha256": "c745997759036212c3ae631741b3158cde37ee9cd8b9b2a55f950e3947919cd2",
+  "preparedSourceSha256": "74d1b9d43be6e2d365880b47778a0e4b44adaf82cd136558e30907cba54ef783",
+  "sourceChanges": [
+    {
+      "path": "packages/coding-agent/docs/execution-ownership.md",
+      "sha256": "0721a27bfe2bcd79fbb5a982d3de14b465108a5f9fb128c5af5ebcbd5a753f0b"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/control-io-generation.ts",
+      "sha256": "c45102a7abbfb4dee884763397d2451a5abf892da59a2cdacbf1b7a3581cbd67"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/control-io-owner.ts",
+      "sha256": "89b9d1a9ec87b9b4c4691b7a0dbd2e997ae086c5ea6e217e47b4dd73b826242a"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/dispatcher.ts",
+      "sha256": "279bdf5b689b1368188b8579a3f999f497643aedb583c905e29b304269baca4b"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/fences.ts",
+      "sha256": "308bc73bb13c99ff44ba0bda78500c4edce75c48d83868e20fd08e60cb010dd6"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+      "sha256": "808c833c821f06d73c2dae3f86165b8bbb3412e1bd70a9556fbd49731ec31b45"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/linux-system.ts",
+      "sha256": "92178021dba734beb0ebdb6238cff9b20903693f50d28bb56f6d6772a1ad390f"
+    },
+    {
+      "path": "packages/coding-agent/src/launch/ownership/server.ts",
+      "sha256": "8adbae6a0b3ce31e9e3c8635014fc4b4948fbb519665dfb86203c0f1bccbd478"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+      "sha256": "da1a43e6e65693d801e17276a8fc2b4bd415624df7fb168d5c7ab4cae1452928"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+      "sha256": "c26df00dc4cacf8398cb424c9af6a3e860988cae892c8e5bf6d063c7137ec369"
+    },
+    {
+      "path": "packages/coding-agent/test/execution-ownership-fences.test.ts",
+      "sha256": "d25f646d07f34d77285b746bd5dee969a0d4ad6d017f23f1efe85a5b90b76b29"
+    }
+  ],
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-native-module-owner-preserve-20261117T023552Z",
+  "originalNativeChangedFilesPreserved": 126,
+  "nativeChangedFilesAfter": 129,
+  "originalNativeFilesUnchanged": 118,
+  "nativeHeadIndexStagedExact": true,
+  "publicContract": {
+    "package": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io",
+    "files": {
+      "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    "runtimeImported": false,
+    "typeMapping": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+    "resolution": "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT"
+  },
+  "independentPublicAdapterNominal": {
+    "hostCommit": "a259d6c",
+    "evidence": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/docs/evidence/ticket-41-public-adapter-nominal.json",
+    "scope": "ACTUAL_PUBLIC_MODULE_PLUS_HOST_PRODUCTION_ADAPTER_MECHANICAL_FAKE_ACK_ONLY_NOT_SIGNED_NATIVE"
+  },
+  "mechanism": {
+    "runtime": "VERIFY_COMPLETE_NOMINAL_SELECTION_IMPORT_SIGNED_CANONICAL_PUBLIC_ENTRY_VERIFY_CALL_REAL_PUBLIC_LOADER_VERIFY",
+    "typeMapping": "EXACT_IMMUTABLE_NOMINAL_INDEX_DTS_NOT_SOURCE_STUB",
+    "runtimeFactoryInjection": false,
+    "pureLifecycleSeamProductionAuthority": false,
+    "singleton": "STRONG_FIRST_GENERATION_INCLUDING_FAILED_LOAD_WITH_NO_MODULE_AND_DISPOSAL_UNCERTAINTY",
+    "bridge": "EXACT_LOADED_PUBLIC_OWNER_REQUIRED_BEFORE_GUARDED_DYNAMIC_FFI_IMPORT_AND_DLOPEN",
+    "prepare": "ASYNC_READY_RECHECK_BEFORE_COMMIT_NO_FD_API",
+    "close": "STOP_ADMISSION_POLLING_DRAIN_QUEUED_RESPONSE_UNCERTAINTY_AND_OWNER_CHECKS_THEN_BRIDGE_FENCES_THEN_AWAIT_PUBLIC_MODULE_CLOSE_THEN_SELECTION_RELEASE",
+    "nativeDrain": "ANY_COMMITTED_PREPARE_PREVENTS_RELEASE_NATIVE_HAS_NO_HOST_ORIGINAL_REAP_HANDLE",
+    "processCGuard": "NEVER_CLOSED_OR_UNLOCKED_BY_GENERATION_RELEASE"
+  },
+  "validation": {
+    "tests": 76,
+    "assertions": 328,
+    "sourceTestFiles": 14,
+    "typeCheckedFiles": 45,
+    "workerClientGraphModules": 11,
+    "catalogOrConsumerSourcesChanged": false,
+    "buildBytes": 71089,
+    "buildSha256": "f9a1b435fb130ccbedd4fdeb5c44a4e2259f10ed15f0832e8dde1da379293a0a",
+    "eagerFfiImports": 0,
+    "checksSha256": "11d77865be426db25350190f8e1e407cbfdea5f2f5f7386406c1a12d2c7027b8",
+    "tddSha256": "dfdfc761e3ef5ef2be08a122804e7b0433e6469f05e73b3a6930f535c162fd5f",
+    "exportSha256": "e5c5a76f2a976ff828850a0b725ae52bed177a096510a114a7fcddc070f3ab20"
+  },
+  "buildOrderingDefectFixedBeforeOnlyExport": "Bun hoisted the former static bun:ffi import while bundling the deferred bridge. Bridge now uses a guarded dynamic FFI import; emitted-ESM AST rule rejects eager static or top-level dynamic FFI imports.",
+  "export": {
+    "countThisSlice": 1,
+    "privateIndexPreimageExact": true,
+    "privateIndexReapplyExact": true,
+    "activePatchListChanged": false,
+    "consumerDeltaChanged": false,
+    "patches7Through9Activated": false,
+    "finalPatches1Through10Composed": false
+  },
+  "actual": {
+    "nativeCliSdkAgentHostExecuted": false,
+    "ffiImported": false,
+    "libraryLoaded": false,
+    "listenerOpened": false,
+    "browserStarted": false,
+    "kernelLockAcquired": false,
+    "productionKeyOrApprovalCreated": false,
+    "globalTargetSelected": false,
+    "nativeSignedComposition": "NOT_RUN",
+    "newCArgvHandoff": "NOT_RUN_SEPARATE_ROOT_PROOF_PENDING",
+    "oldV2UdsOrC581aPromoted": false
+  },
+  "freshStandardsReview": "PENDING_ROOT",
+  "freshSpecReview": "PENDING_ROOT",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "ticket41Complete": false,
+  "ticket61Complete": false,
+  "spec29Complete": false,
+  "finishProvenance": {
+    "evidence": "docs/evidence/ticket-41-native-control-owner-finish.json",
+    "sha256": "645e84c65cd0171bb4d2207f09365e79051561147bad492158c1be760bb074ef",
+    "sourceTestsOrBuildRepeated": false,
+    "existingFinalExportRetained": true
+  }
+}

@@ -1,0 +1,90 @@
+{
+  "format": "omp-native-control-owner-source-check-v1",
+  "status": "PASS_SOURCE_ONLY",
+  "native": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership",
+  "publicContract": {
+    "package": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io",
+    "files": {
+      "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    "runtimeImported": false,
+    "typeMapping": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+    "resolution": "SIGNED_CANONICAL_PUBLIC_ENTRY_DYNAMIC_IMPORT"
+  },
+  "workerClientGraph": [
+    "packages/coding-agent/src/launch/ownership/approval.ts",
+    "packages/coding-agent/src/launch/ownership/authentication.ts",
+    "packages/coding-agent/src/launch/ownership/bootstrap.ts",
+    "packages/coding-agent/src/launch/ownership/client.ts",
+    "packages/coding-agent/src/launch/ownership/context.ts",
+    "packages/coding-agent/src/launch/ownership/control-selection.ts",
+    "packages/coding-agent/src/launch/ownership/framing.ts",
+    "packages/coding-agent/src/launch/ownership/protocol.ts",
+    "packages/coding-agent/src/launch/ownership/strict-record.ts",
+    "packages/coding-agent/src/launch/ownership/uds-client.ts",
+    "packages/coding-agent/src/launch/ownership/worker-bootstrap.ts"
+  ],
+  "typeCheckedFiles": 45,
+  "sourceTests": 14,
+  "results": [
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "test",
+        "--no-env-file",
+        "--preload=/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/no-provider.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-owner.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-authentication.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-client.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-context.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-contract.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-helper-wire.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-fences.test.ts",
+        "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-worker.test.ts",
+        "/workspace/work/omp-webui-ticket-41/tests/ownership/import-gate.test.ts"
+      ],
+      "exitCode": 0,
+      "stdout": "bun test v1.4.4 (38afee6c8)\n",
+      "stderr": "\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-approval.test.ts:\n(pass) stable anchor authenticates final approval and rejects requests for another release tuple [28.68ms]\n(pass) pinned operator file refuses symlink substitution, same-inode byte changes and writable permissions [1.77ms]\n(pass) ambiguous duplicate fields cannot enter the exact signed approval format [1.81ms]\n(pass) approval key, installation and signing domain cannot be substituted by dispatcher authority [8.77ms]\n(pass) every final tuple and endpoint field is authenticated without trusting unsigned envelope additions [22.41ms]\n(pass) absent or replaced anchor cannot discover trust from the approval record [6.03ms]\n(pass) stable anchor refuses tuple-dependent fields, release-local trust and replaced approval parent [8.03ms]\n(pass) record replacement permanently invalidates its generation and a new approval requires explicit selection [14.81ms]\n(pass) same-inode record rewrite and initial selection failure cannot silently recover [6.10ms]\n(pass) record replacement after open cannot authenticate different named bytes [24.78ms]\n(pass) approval replacement while signature verification is pending fails the post-verification admission check [3.08ms]\n(pass) final compiled bytes can be exhaustively inventoried before signing approval without rebuilding the anchor [30.27ms]\n(pass) approved client refuses a replaced approval before any public socket admission [8.59ms]\n(pass) composed server approval refuses historical v2 even when its signature and snapshot are valid [1.46ms]\n(pass) composed v3 requires its own anchor, signing domain and complete frozen inventory approval [16.20ms]\n(pass) callbacks cannot promote a legacy approval, forged approval or forged guard into the server selection [5.89ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-maintenance-handoff.test.ts:\n(pass) reserved locator is exact, first, single and versioned; absent locator cannot claim protection [0.47ms]\n(pass) only the explicit descriptor's shared whole-file FLOCK can protect the signed stable inode [2.98ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-selection.test.ts:\n(pass) composed control selection requires the complete versioned signed inventory and public package roles [0.39ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-inventory.test.ts:\n(pass) signed inventory cannot omit real directory members or accept a self-declared identity [3.17ms]\n(pass) complete fixture protects real rosters, modes, direct links and the exhaustive ELF metadata closure [75.44ms]\n(pass) signed platform dependencies cannot drift, omit a DT_NEEDED provider or name the wrong architecture [15.16ms]\n(pass) interpreter aliases require every signed link and reject omission, replacement and unused aliases [14.89ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-control-owner.test.ts:\n(pass) missing public module fails readiness and retains the generation selection [0.44ms]\n(pass) concurrent close shares disposal and releases selection only after awaited module close [0.37ms]\n(pass) unproven drain retains the module and permits retry only before disposal begins [0.15ms]\n(pass) shutdown waits for an in-flight readiness check and rejects its stale admission result [0.23ms]\n(pass) synchronous readiness drift permanently fences the loaded generation [0.12ms]\n(pass) entry drift after import denies the public loader and cannot be retried or released [0.12ms]\n(pass) prepare readiness is refused during loading and duplicate load cannot enter a second public loader [0.14ms]\n(pass) public busy close is retryable while uncertain disposal permanently retains protection [0.16ms]\n(pass) failed public load with no returned module preserves disposal uncertainty and selection [0.09ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-dispatcher.test.ts:\n(pass) Host prepares before helper registration and another authenticated Host cannot claim its generation [2.28ms]\n(pass) ordinary Native administration lists only dispatcher-owned scopes and private callers cannot inspect them [1.04ms]\n(pass) administration and consumer acquisition share bounded process serialization without inspecting legacy roots [1.11ms]\n(pass) an administration reconnect after a listed broker exits refuses without creating its replacement [0.72ms]\n(pass) helper REGISTER is acknowledged after durable registration and COMPLETE stays fenced without extinction proof [0.67ms]\n(pass) peers classified private or unresolved by the OS adapter cannot publish shared execution [0.21ms]\n(pass) matched external client and server negotiate a fixed canonical broker scope through the public wire [0.34ms]\n(pass) helper uncertainty during an awaited broker prepare invalidates its publication barrier [0.37ms]\n(pass) uncertain helper death globally blocks a new unrelated external registration and maintenance remains fenced [0.17ms]\n(pass) durability failure never releases worker admission and failed extinction cannot retire its fence [0.24ms]\n(pass) no client can bypass actual backend readiness by constructing an uninitialized dispatcher [0.18ms]\n(pass) prepare awaits current module readiness before consuming a helper generation [0.20ms]\n(pass) shutdown during awaited prepare denies the stale ACK and leaves an unconsumed generation [0.26ms]\n(pass) completed helper and transport EOF cannot prove the Host original helper was reaped [0.15ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-authentication.test.ts:\n(pass) operator-pinned signed reply authenticates one fresh request and refuses replayed authority [1.66ms]\n(pass) any altered signed field fails closed without a fresh challenge or fallback [2.08ms]\n(pass) fresh requests refuse concurrent challenges and an authentically signed replacement dispatcher [0.69ms]\n(pass) closing during asynchronous signature verification cannot restore authenticated authority [0.46ms]\n(pass) a well-formed response signed by another key cannot enroll new operator trust [0.49ms]\n(pass) bounded administration responses exceed request budget without expanding the request allowance [13.90ms]\n(pass) oversized or exceptionally escaped responses fail with an explicit limit instead of partial metadata [38.29ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-client.test.ts:\n(pass) private Native registration rejects shared broker use before another wire request [0.48ms]\n(pass) private Native registration rejects the publication handshake without any completion or control request [0.18ms]\n(pass) a replacement dispatcher registration permanently refuses further operations without spawning a fallback [0.48ms]\n(pass) a broker grant stays bound to the requested project while process reclassification is pending [0.33ms]\n(pass) closing before a queued request reaches the transport prevents its dispatch [0.18ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-context.test.ts:\n(pass) process normalization is single-flight and private policy refuses shared factories before another request [0.34ms]\n(pass) unconfigured process context stays unavailable across pure reads and refused initialization [0.25ms]\n(pass) a mismatched broker grant revokes the registered context before subsequent shared effects [0.34ms]\n(pass) concurrent shared consumers receive their own matched broker grants without revoking process policy [0.28ms]\n(pass) a full process broker queue refuses only unstarted excess work and preserves admitted consumers [2.52ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-contract.test.ts:\n(pass) Native client rejects a valid-looking reply for a different request, release or operation [0.25ms]\n(pass) dispatcher framing rejects invalid UTF-8, oversized partial frames and incomplete EOF [2.41ms]\n(pass) dispatcher rejects claimed process identity and executable choices before admission [0.12ms]\n(pass) response framing permits exactly one MiB while request framing retains its smaller allowance [74.16ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-helper-wire.test.ts:\n(pass) helper registration accepts only the pinned installation and generation-bound fixed operations [0.26ms]\n(pass) late REGISTER acknowledgements cannot complete cleanup and duplicate helper requests cannot reopen a phase [0.15ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-fences.test.ts:\n(pass) dispatcher state loss preserves a durable helper fence and reopening cannot silently admit another generation [25.20ms]\n(pass) only an owned completed generation can retire its durable record and leave the directory reusable [4.30ms]\n\n../../../workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/test/execution-ownership-worker.test.ts:\n(pass) early parent-port messages survive ownership registration and hand off once to the central inbox [0.62ms]\n(pass) early stats messages replay to the installed global handler and a cancelled bootstrap retains no handler [0.12ms]\n(pass) message-count and payload budgets refuse startup before unbounded early work can accumulate [0.21ms]\n\n../../../workspace/work/omp-webui-ticket-41/tests/ownership/import-gate.test.ts:\n(pass) client/worker rule rejects runtime FFI, server, public loader and nonliteral module imports [28.17ms]\n(pass) bundled dispatcher rejects hoisted FFI imports while allowing guarded dynamic loading [2.13ms]\n\n 76 pass\n 0 fail\n 328 expect() calls\nRan 76 tests across 14 files. [1478.00ms]\n"
+    },
+    {
+      "argv": [
+        "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+        "check",
+        "--no-script",
+        "-p",
+        "/tmp/native-control-owner-check-TJj0od/tsconfig.json"
+      ],
+      "exitCode": 0,
+      "stdout": "",
+      "stderr": "✓ No type errors in 45 files [213.43ms]\n"
+    }
+  ],
+  "build": {
+    "status": "PASS_BUILD_ONLY",
+    "bytes": 71089,
+    "sha256": "f9a1b435fb130ccbedd4fdeb5c44a4e2259f10ed15f0832e8dde1da379293a0a",
+    "eagerFfiImports": 0,
+    "emittedNativeExecuted": false
+  },
+  "nativeCliExecuted": false,
+  "ffiImported": false,
+  "librariesLoaded": false,
+  "socketsOpened": false,
+  "kernelLockAcquired": false,
+  "productionApprovalCreated": false,
+  "actualNativeComposition": "NOT_RUN",
+  "actualGlobal": "BLOCKED",
+  "privateAdmission": "BLOCKED"
+}
