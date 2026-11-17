@@ -1,6 +1,6 @@
 # ADR 0007: Share Interaction answering and preserve workers across browser disconnects
 
-- Status: Accepted policy; Broker and RPC compatibility guarantee unimplemented
+- Status: Accepted policy; Broker source vertical exists, product integration and final RPC guarantee validation pending
 - Date: 2026-11-15
 - Decision: [原生会话 MVP 的交互所有权与取消、断线策略](https://github.com/HowBoring/omp-webui/issues/22)
 
@@ -21,3 +21,11 @@ requires a publicly verifiable server guarantee of explicit-answer-only submissi
 a Host timer alone cannot supply it. This is a deliberate compatibility requirement, not permission to
 change upstream pins silently or bypass RPC. The [Interaction lifecycle contract](../interaction-lifecycle-contract.md)
 records the policy, source evidence and real validation gates; existing history remains OMP-owned.
+
+The [#47 Broker source vertical](../interaction-broker-source-status.md) adds an
+in-memory implementation and a typed public Host Remote boundary. Its trusted
+page binding is supplied by Host admission, with current resource checks on read,
+answer and delayed result application. It reuses generated Native `respond_ui`
+types and the effective explicit-answer policy; host tool/URI contracts remain
+separate. This is isolated source/fixture evidence. It does not install a product
+route or change the required real browser/Native/final-tuple acceptance gates.
