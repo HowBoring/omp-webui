@@ -7113,10 +7113,10 @@ index 0fe343ff21..600abd9d92 100644
  	if (inFlight) return inFlight;
 diff --git a/packages/coding-agent/test/execution-ownership-approval.test.ts b/packages/coding-agent/test/execution-ownership-approval.test.ts
 new file mode 100644
-index 0000000000..6b28ab9d7e
+index 0000000000..afb7a8e902
 --- /dev/null
 +++ b/packages/coding-agent/test/execution-ownership-approval.test.ts
-@@ -0,0 +1,537 @@
+@@ -0,0 +1,587 @@
 +import { expect, test, spyOn } from "bun:test";
 +import * as fs from "node:fs/promises";
 +import * as nodeFs from "node:fs";
@@ -7590,69 +7590,119 @@ index 0000000000..6b28ab9d7e
 +  const minor = (device & 0xffn) | ((device >> 12n) & 0xffffff00n);
 +  const info = Buffer.from(`pos:\t0\nflags:\t0500000\nmnt_id:\t1\nino:\t${stat.ino}\n`
 +    + `lock:\t1: FLOCK  ADVISORY  READ ${process.pid} ${major.toString(16)}:${minor.toString(16)}:${stat.ino} 0 EOF\n`);
-+  const mocks = [spyOn(nodeFs, "fstatSync").mockReturnValue(stat), spyOn(nodeFs, "lstatSync").mockReturnValue(stat),
-+    spyOn(nodeFs, "realpathSync").mockReturnValue(control.path),
-+    spyOn(nodeFs, "openSync").mockImplementation(location => {
++  const mocks: { mockRestore(): void }[] = [];
++  const track = <T extends { mockRestore(): void }>(mock: T): T => { mocks.push(mock); return mock; };
++  const restore = () => { for (const mock of mocks) mock.mockRestore(); };
++  try {
++    track(spyOn(nodeFs, "fstatSync")).mockReturnValue(stat);
++    track(spyOn(nodeFs, "lstatSync")).mockReturnValue(stat);
++    track(spyOn(nodeFs, "realpathSync")).mockReturnValue(control.path);
++    track(spyOn(nodeFs, "openSync")).mockImplementation(location => {
 +      if (location !== "/proc/self/fdinfo/7") throw new Error("UNEXPECTED_SYNTHETIC_DESCRIPTOR"); return 101;
-+    }), spyOn(nodeFs, "readSync").mockImplementation(
++    });
++    track(spyOn(nodeFs, "readSync")).mockImplementation(
 +      (_fd, buffer, offset = 0, length = buffer.byteLength, position = 0) => {
 +      if (typeof offset !== "number" || typeof length !== "number") throw new Error("PURE_READ_ARGUMENTS");
 +      const bytes = info.subarray(Number(position), Number(position) + length);
 +      new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.byteLength).set(bytes, offset); return bytes.length;
-+    }), spyOn(nodeFs, "closeSync").mockImplementation(() => {})];
-+  return { guard: captureLauncherMaintenanceHandoff(["--omp-maintenance-handoff=1:7"]).claim({ control }),
-+    restore() { for (const mock of mocks) mock.mockRestore(); } };
++    });
++    track(spyOn(nodeFs, "closeSync")).mockImplementation(() => {});
++    return { guard: captureLauncherMaintenanceHandoff(["--omp-maintenance-handoff=1:7"]).claim({ control }), restore };
++  } catch (error) { restore(); throw error; }
 +}
 +
 +/** Approved public selection/filesystem seam; no actual inherited descriptor, /proc read, FFI or process probe. */
 +test("initial helper configuration decoding returns a bounded refusal and consumes its generation", async () => {
 +  const f = await terminalSelectionFixture(new Uint8Array([0xff]));
-+  try { await inspectOwnershipInventory(f.approval.releaseRoot, f.approval.controlIo.inventory); }
-+  catch (error) { await f.cleanup(); throw error; }
-+  const synthetic = await mockSelectionGuard(f.approval.control);
 +  try {
-+    const guard = synthetic.guard;
-+    const error = await selectOwnershipControlRelease(f.approval, guard).catch((error: unknown) => error);
-+    expect(error).toBeInstanceOf(OwnershipError);
-+    expect(error).toMatchObject({ code: "dispatcher_mismatch", message: "dispatcher_mismatch" });
-+    expect(error).toMatchObject({ name: "OwnershipError", nativeErrno: undefined });
-+    await expect(selectOwnershipControlRelease(f.approval, guard)).rejects.toMatchObject({ code: "ownership_limit" });
-+  } finally { synthetic.restore(); await f.cleanup(); }
++    await inspectOwnershipInventory(f.approval.releaseRoot, f.approval.controlIo.inventory);
++    const synthetic = await mockSelectionGuard(f.approval.control);
++    try {
++      const guard = synthetic.guard;
++      const error = await selectOwnershipControlRelease(f.approval, guard).catch((error: unknown) => error);
++      expect(error).toBeInstanceOf(OwnershipError);
++      expect(error).toMatchObject({ code: "dispatcher_mismatch", message: "dispatcher_mismatch" });
++      expect(error).toMatchObject({ name: "OwnershipError", nativeErrno: undefined });
++      await expect(selectOwnershipControlRelease(f.approval, guard)).rejects.toMatchObject({ code: "ownership_limit" });
++    } finally { synthetic.restore(); }
++  } finally { await f.cleanup(); }
 +});
 +
 +
-+test("initial helper configuration I/O failure returns a bounded refusal and consumes its generation", async () => {
++async function initialConfigurationIoFailure() {
 +  const f = await terminalSelectionFixture();
-+  const synthetic = await mockSelectionGuard(f.approval.control), open = fs.open;
-+  const valid = await selectOwnershipControlRelease(f.approval, synthetic.guard);
-+  await valid.verify(); await valid.release();
-+  const approval = await loadOwnershipTerminalApproval(await pin(f.anchorFile));
-+  const fault = spyOn(fs, "open").mockImplementation(async (...args) => {
-+    const file = await open(...args);
-+    if (args[0] === path.join(f.approval.releaseRoot, "provenance/private-helper-configuration.h")
-+      && typeof args[1] === "number") {
-+      const heldStat = file.stat.bind(file);
-+      function stat(options?: nodeFs.StatOptions & { bigint?: false }): Promise<nodeFs.Stats>;
-+      function stat(options: nodeFs.StatOptions & { bigint: true }): Promise<nodeFs.BigIntStats>;
-+      function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats>;
-+      async function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats> {
-+        if (options === undefined) {
-+          throw Object.assign(new Error("private filesystem detail /synthetic/configuration"), { code: "EIO" });
-+        }
-+        return heldStat(options);
-+      }
-+      spyOn(file, "stat").mockImplementation(stat);
-+    }
-+    return file;
-+  });
++  let restoreGuard = () => {}, restoreFault = () => {};
 +  try {
++    const synthetic = await mockSelectionGuard(f.approval.control), open = fs.open;
++    restoreGuard = synthetic.restore;
++    const valid = await selectOwnershipControlRelease(f.approval, synthetic.guard);
++    await valid.verify(); await valid.release();
++    const approval = await loadOwnershipTerminalApproval(await pin(f.anchorFile));
++    const fault = spyOn(fs, "open");
++    restoreFault = () => { fault.mockRestore(); };
++    fault.mockImplementation(async (...args) => {
++      const file = await open(...args);
++      if (args[0] === path.join(f.approval.releaseRoot, "provenance/private-helper-configuration.h")
++        && typeof args[1] === "number") {
++        const heldStat = file.stat.bind(file);
++        function stat(options?: nodeFs.StatOptions & { bigint?: false }): Promise<nodeFs.Stats>;
++        function stat(options: nodeFs.StatOptions & { bigint: true }): Promise<nodeFs.BigIntStats>;
++        function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats>;
++        async function stat(options?: nodeFs.StatOptions): Promise<nodeFs.Stats | nodeFs.BigIntStats> {
++          if (options === undefined) {
++            throw Object.assign(new Error("private filesystem detail /synthetic/configuration"), { code: "EIO" });
++          }
++          return heldStat(options);
++        }
++        spyOn(file, "stat").mockImplementation(stat);
++      }
++      return file;
++    });
 +    const error = await selectOwnershipControlRelease(approval, synthetic.guard).catch((error: unknown) => error);
 +    expect(error).toBeInstanceOf(OwnershipError);
 +    expect(error).toMatchObject({ code: "dispatcher_mismatch", message: "dispatcher_mismatch",
 +      nativeErrno: undefined });
 +    await expect(selectOwnershipControlRelease(approval, synthetic.guard))
 +      .rejects.toMatchObject({ code: "ownership_limit" });
-+  } finally { fault.mockRestore(); synthetic.restore(); await f.cleanup(); }
++  } finally { restoreFault(); restoreGuard(); await f.cleanup(); }
++}
++
++test("initial helper configuration I/O failure returns a bounded refusal and consumes its generation",
++  initialConfigurationIoFailure);
++
++const selectionGuardMethods = ["fstatSync", "lstatSync", "realpathSync", "openSync", "readSync", "closeSync"] as const;
++
++test("selection guard setup failure restores filesystem functions for later tests", async () => {
++  const f = await terminalSelectionFixture();
++  const original = selectionGuardMethods.map(name => [name, nodeFs[name]] as const);
++  try {
++    await expect(mockSelectionGuard({ ...f.approval.control, sha256: "invalid" }))
++      .rejects.toMatchObject({ code: "maintenance_fenced" });
++    for (const [name, implementation] of original) expect(nodeFs[name]).toBe(implementation);
++  } finally {
++    for (const name of selectionGuardMethods) spyOn(nodeFs, name).mockRestore();
++    await f.cleanup();
++  }
++});
++
++test("selection baseline failure restores filesystem functions for later tests", async () => {
++  const original = selectionGuardMethods.map(name => [name, nodeFs[name]] as const), open = fs.open;
++  let failedReads = 0;
++  const fault = spyOn(fs, "open");
++  try {
++    fault.mockImplementation(async (...args) => {
++      if (String(args[0]).endsWith("/provenance/private-helper-configuration.h") && typeof args[1] === "number") {
++        failedReads++; throw new Error("CONTROLLED_BASELINE_CONFIGURATION_FAILURE");
++      }
++      return open(...args);
++    });
++    await expect(initialConfigurationIoFailure()).rejects.toMatchObject({ code: "dispatcher_mismatch" });
++    expect(failedReads).toBe(1);
++    for (const [name, implementation] of original) expect(nodeFs[name]).toBe(implementation);
++  } finally {
++    fault.mockRestore();
++    for (const name of selectionGuardMethods) spyOn(nodeFs, name).mockRestore();
++  }
 +});
 diff --git a/packages/coding-agent/test/execution-ownership-authentication.test.ts b/packages/coding-agent/test/execution-ownership-authentication.test.ts
 new file mode 100644

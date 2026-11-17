@@ -30,10 +30,10 @@
   ],
   "patch": {
     "file": "0010-execution-ownership.patch",
-    "sha256": "0ed5fb7278a4e2c4667e7521fe1752d7cc7565f5160857e7ec2de19dbe50bc06"
+    "sha256": "d243a44147da99e00306884ff5094f224aacd059f25ec17648074bd9d2e61eba"
   },
-  "preparedTree": "2f22ca7c93c5d8b987b9ec5ed8eaa28e904b2911",
-  "preparedSourceSha256": "9b52c1ed7ff12858aee4b28beca20100dcb8916b4e9ac2d6daf3b4776f1d51c3",
+  "preparedTree": "8ef8e13ed337a70c15cdc7ff8d799fe99f2a9911",
+  "preparedSourceSha256": "9d37ecf2ef2f6b1c60cf93a2526d50ab702f41d2bad0f729aa0cc290b674c787",
   "ownershipWireSchemaSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
   "activePatchListChanged": false,
   "finalPatches1Through10Composed": false,
@@ -178,6 +178,12 @@
       "reviewedHostHead": "3822cf991fd7a7187c1d475b589474c3f88d0c07",
       "nodeFilesystemImports": "NAMESPACE_QUALIFIED_CONSTANTS",
       "initialHelperConfigurationFailure": "BOUNDED_OWNERSHIP_ERROR_DISPATCHER_MISMATCH_GENERATION_REMAINS_CONSUMED"
+    },
+    "testCleanupFix": {
+      "status": "SOURCE_ONLY_INACTIVE_AWAITING_FRESH_REVIEWS",
+      "reviewedHostHead": "1edb706bf2b0dcb1e99d225e37f25082a3a1ac46",
+      "globalFilesystemSpyLifetime": "RESTORE_PARTIAL_INSTALLATION_GUARD_CONSTRUCTION_AND_ALL_BASELINE_PRECONDITION_FAILURES",
+      "productionSourceChanged": false
     }
   }
 }

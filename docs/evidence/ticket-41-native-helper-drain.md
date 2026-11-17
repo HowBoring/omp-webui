@@ -30,7 +30,7 @@ Helper-fence descriptors close before their containing bridge; dispatcher-fence 
 public-module close and selection release last. The C maintenance descriptor remains process-owned until exit.
 Failed or uncertain shutdown never becomes successful through a timeout or a second close call.
 
-[Checks](ticket-41-native-helper-drain-checks.json): 107 pure tests / 956 assertions, strict nominal types for 53 files,
+[Checks](ticket-41-native-helper-drain-checks.json): 109 pure tests / 971 assertions, strict nominal types for 53 files,
 strict C shared compilation with zero diagnostics, and build-only AST checks with zero eager FFI imports. Pure
 fixtures use approved System/Storage/Peer/public-module interfaces under a preimport no-provider/no-process/listener
 guard and synthetic env-i HOME/profile/cwd. The real public JS/library, Native CLI/SDK/Agent, actual helpers,
@@ -51,12 +51,32 @@ The public selection regression first passed real synthetic inventory checks, th
 filesystem EIO also pass without exposing the underlying platform message. Fixture metadata bytes are never loaded.
 No architectural boundary changed; ADR0018 and the optional repeated-ledger heuristic remain unchanged.
 
-The follow-up preserves all 137 Native dirty-path identities and bounded affected preimages at
+The preceding production standards follow-up preserved all 137 Native dirty-path identities and bounded affected preimages at
 `/workspace/work/mvp-implementation/research/restore8-41-helper-drain-standards`. Exactly three source/test files changed
 and 134 stayed byte-identical; Native HEAD, real index and staged bytes remain exact. A private index replayed the
-unchanged first six patches plus only regenerated inactive0010. The export retains all 17 cumulative helper-drain
-source digests and distinguishes this three-file follow-up. Fresh focused paired reviews of the updated source remain
-pending; the earlier narrow Spec GO and two Standards findings reviewed the preceding source only.
+unchanged first six patches plus only regenerated inactive0010. The export retained all 17 cumulative helper-drain
+source/test digests and distinguished that three-file follow-up. Paired review at `1edb706` reported zero Spec findings
+and confirmed both production Standards findings resolved, while identifying one test-cleanup P2.
+
+This test-only follow-up fixes that P2. `mockSelectionGuard()` tracks each global filesystem spy before configuring
+it and restores partial installation or guard-construction failures while rethrowing the original error. All work
+after successful installation, including baseline select/verify/release and fresh approval loading, now runs under
+guaranteed cleanup. The positive selection precondition and bounded decoder/EIO assertions remain intact.
+
+Two regressions first failed against the reviewed test code because guard-construction and real public-selection
+baseline failures left `fstatSync` mocked. Both now confirm restoration of all six filesystem functions. The baseline
+case injects a configuration-open failure through the existing filesystem seam; it reaches the real exported selection
+and receives its bounded refusal. It does not mock selection or create a production API. The focused approval file
+passes 21 tests / 101 assertions; the complete permitted source suite passes 109 / 971. An initial strict check caught
+possibly undefined regression snapshot indexing; keyed tuples corrected it, and all final strict checks pass.
+
+Preservation at `/workspace/work/mvp-implementation/research/restore8-41-helper-drain-test-cleanup` records all 137
+Native path bytes, HEAD, real index, status, staged/worktree diffs, exact affected preimage and the `1edb706` export.
+Exactly one test changed and 136 paths stayed byte-identical. All production bytes and the other 16 cumulative export
+entries remain unchanged; the 17-entry export updates only the approval-test hash. A private index replayed the same
+first six patches and regenerated only inactive0010, with exact apply/tree verification. The emitted server bundle
+remains byte-identical. Fresh focused review of this test-cleanup change remains pending; source checks establish no
+new runtime gate. No Native CLI, FFI, actual helper, socket, kernel, listener, process discovery or runtime probe ran.
 
 The c17750a signed C→Bun no-prepare proof remains historical and exercised no helper. Its consumed stageB keys/runtime
 were retired and were not reused. This source's actual helper drainage is **NOT RUN**. Fresh paired source review,

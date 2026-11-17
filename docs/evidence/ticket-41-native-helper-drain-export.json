@@ -5,10 +5,10 @@
   "mergedIntegration": "67eaa749ac0493a1b4a769b828939a9484cb03b4",
   "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
   "stablePrefixTree": "ed51aa3c695b9e227395be13927ffbbe8682b06c",
-  "supersededPreparedTree": "561787ca94754f44d02caf8bdfedfd848af97f49",
-  "preparedTree": "2f22ca7c93c5d8b987b9ec5ed8eaa28e904b2911",
-  "patchSha256": "0ed5fb7278a4e2c4667e7521fe1752d7cc7565f5160857e7ec2de19dbe50bc06",
-  "preparedSourceSha256": "9b52c1ed7ff12858aee4b28beca20100dcb8916b4e9ac2d6daf3b4776f1d51c3",
+  "supersededPreparedTree": "2f22ca7c93c5d8b987b9ec5ed8eaa28e904b2911",
+  "preparedTree": "8ef8e13ed337a70c15cdc7ff8d799fe99f2a9911",
+  "patchSha256": "d243a44147da99e00306884ff5094f224aacd059f25ec17648074bd9d2e61eba",
+  "preparedSourceSha256": "9d37ecf2ef2f6b1c60cf93a2526d50ab702f41d2bad0f729aa0cc290b674c787",
   "sourceChanges": [
     {
       "path": "packages/coding-agent/docs/execution-ownership.md",
@@ -56,7 +56,7 @@
     },
     {
       "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
-      "sha256": "620e961c40ffbceb01cebb1aaece360653685f69387ac261cae165a00758133c"
+      "sha256": "610b874e983c4917eb9657c98a29faa8a6a39acb59b8d69353c41eb1f044ba11"
     },
     {
       "path": "packages/coding-agent/test/execution-ownership-dispatcher.test.ts",
@@ -135,6 +135,27 @@
       {
         "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
         "sha256": "620e961c40ffbceb01cebb1aaece360653685f69387ac261cae165a00758133c"
+      }
+    ]
+  },
+  "testCleanupFix": {
+    "reviewedHostHead": "1edb706bf2b0dcb1e99d225e37f25082a3a1ac46",
+    "preservation": "/workspace/work/mvp-implementation/research/restore8-41-helper-drain-test-cleanup",
+    "nativeChangedPathsBefore": 137,
+    "unchangedPaths": 136,
+    "changedPaths": 1,
+    "addedPaths": 0,
+    "affectedPreimageMatchesReviewedPreparedTree": true,
+    "nativeHeadIndexStagedExact": true,
+    "privateIndexPrefixReplayExact": true,
+    "privateIndexApplyExact": true,
+    "productionSourceChanged": false,
+    "cumulativeExportEntries": 17,
+    "unchangedCumulativeExportEntries": 16,
+    "sourceChanges": [
+      {
+        "path": "packages/coding-agent/test/execution-ownership-approval.test.ts",
+        "sha256": "610b874e983c4917eb9657c98a29faa8a6a39acb59b8d69353c41eb1f044ba11"
       }
     ]
   }
