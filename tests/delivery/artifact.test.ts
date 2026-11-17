@@ -1,4 +1,5 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
+import * as fs from "node:fs/promises";
 import { cp, link, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -8,6 +9,69 @@ import { inspectRelease, writeReleaseManifest } from "../../packages/delivery/ar
 /** Approved seam: real filesystem release enrollment/verification; no executable or native Session is opened. */
 
 const enroll = (root: string) => writeReleaseManifest({ root, platformDependencies: [] });
+
+test("held release remains valid after an unrelated sibling directory is created", async () => {
+  const parent = await mkdtemp(join(tmpdir(), "delivery-sibling-"));
+  try {
+    const root = await fixtureRelease(parent);
+    const expectedIdentity = await enroll(root);
+    const release = await inspectRelease({ root, expectedIdentity });
+    await fs.mkdir(join(parent, "unrelated-sibling"));
+    await release.verify();
+  } finally { await rm(parent, { recursive: true, force: true }); }
+});
+
+test("a release directory gains a full snapshot when first inventoried and retains it during parent checks", async () => {
+  const parent = await mkdtemp(join(tmpdir(), "delivery-member-role-"));
+  try {
+    const root = await fixtureRelease(parent), transient = join(root, "transient");
+    const expectedIdentity = await enroll(root);
+    const original = fs.open;
+    let changed = false;
+    const mock = spyOn(fs, "open").mockImplementation(async (location, flags, mode) => {
+      if (!changed && location === join(root, "release.json")) {
+        changed = true;
+        // Before inventory, root is only a canonical ancestor of the manifest.
+        await fs.mkdir(transient); await rm(transient, { recursive: true });
+      }
+      return original(location, flags, mode);
+    });
+    let release;
+    try { release = await inspectRelease({ root, expectedIdentity }); }
+    finally { mock.mockRestore(); }
+    await release.verify();
+    // The same final child roster after enrollment must not erase a member's changed full snapshot.
+    await fs.mkdir(transient); await rm(transient, { recursive: true });
+    await expect(release.verify()).rejects.toThrow("RELEASE_UNVERIFIED");
+    await expect(release.verify()).rejects.toThrow("RELEASE_UNVERIFIED");
+  } finally { await rm(parent, { recursive: true, force: true }); }
+});
+
+for (const mutation of ["parent-mode", "parent-replacement", "parent-symlink", "parent-file", "member-entry"] as const) {
+  test(`held public release permanently refuses ${mutation}`, async () => {
+    const outer = await mkdtemp(join(tmpdir(), "delivery-parent-control-")), parent = join(outer, "owned");
+    try {
+      const root = await fixtureRelease(parent);
+      await fs.chmod(parent, 0o755);
+      const expectedIdentity = await enroll(root);
+      const release = await inspectRelease({ root, expectedIdentity });
+      if (mutation === "parent-mode") await fs.chmod(parent, 0o700);
+      if (["parent-replacement", "parent-symlink", "parent-file"].includes(mutation)) {
+        const retained = join(outer, "retained");
+        await rename(parent, retained);
+        if (mutation === "parent-replacement") {
+          await fs.mkdir(parent); await rename(join(retained, "release"), root);
+        }
+        if (mutation === "parent-symlink") await symlink("retained", parent);
+        if (mutation === "parent-file") await writeFile(parent, "not a traversal directory");
+      }
+      if (mutation === "member-entry") await fs.mkdir(join(root, "worker/unlisted"));
+      await expect(release.verify()).rejects.toThrow("RELEASE_UNVERIFIED");
+      if (mutation === "parent-mode") await fs.chmod(parent, 0o755);
+      await expect(release.verify()).rejects.toThrow("RELEASE_UNVERIFIED");
+    } finally { await rm(outer, { recursive: true, force: true }); }
+  });
+}
 
 test("independently approved exhaustive release inventory survives relocation", async () => {
   const parent = await mkdtemp(join(tmpdir(), "delivery-release-"));

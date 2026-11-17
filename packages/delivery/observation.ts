@@ -17,17 +17,29 @@ export function canonical(location: string): void {
 function stamp(stat: BigIntStats): string {
   return [stat.dev, stat.ino, stat.uid, stat.gid, stat.mode, stat.nlink, stat.size, stat.mtimeNs, stat.ctimeNs].join(":");
 }
-interface Observation { stamp: string; link: string | undefined }
+function directoryIdentity(stat: BigIntStats): string {
+  return [stat.dev, stat.ino, stat.uid, stat.gid, stat.mode].join(":");
+}
+type ObservationRole = "ancestor" | "member";
+interface Observation { role: ObservationRole; identity: string; stamp: string; link: string | undefined }
 /** Retained generation stability facts, not authenticated owner/inode enrollment. */
 export class ReleaseObservation {
   #observed = new Map<string, Observation>();
 
-  async observe(location: string): Promise<BigIntStats> {
+  async observe(location: string, requested: ObservationRole = "member"): Promise<BigIntStats> {
     const stat = await fs.lstat(location, { bigint: true });
+    const previous = this.#observed.get(location);
+    // Only nonmember traversal directories ignore metadata changed by unrelated children.
+    // A member observation dominates forever; upgrading an ancestor first checks its retained identity.
+    const role: ObservationRole = requested === "ancestor" && stat.isDirectory() && previous?.role !== "member"
+      ? "ancestor" : "member";
+    const snapshot = role === "ancestor" ? directoryIdentity : stamp;
+    if (role === "ancestor" && await fs.realpath(location) !== location) refuse();
     const link = stat.isSymbolicLink() ? await fs.readlink(location) : undefined;
-    if (stamp(await fs.lstat(location, { bigint: true })) !== stamp(stat)) refuse();
-    const value = { stamp: stamp(stat), link }, previous = this.#observed.get(location);
-    if (previous && (previous.stamp !== value.stamp || previous.link !== value.link)) refuse();
+    if (snapshot(await fs.lstat(location, { bigint: true })) !== snapshot(stat)) refuse();
+    const value = { role, identity: directoryIdentity(stat), stamp: snapshot(stat), link };
+    if (previous && (previous.identity !== value.identity || previous.link !== value.link
+      || (previous.role === "member" && previous.stamp !== value.stamp))) refuse();
     if (this.#observed.size >= 220_000 && !previous) refuse();
     this.#observed.set(location, value);
     return stat;
@@ -42,12 +54,12 @@ export class ReleaseObservation {
       if (current === "/") break;
       current = path.dirname(current);
     }
-    for (const parent of parents.reverse()) if (!(await this.observe(parent)).isDirectory()) refuse();
+    for (const parent of parents.reverse()) if (!(await this.observe(parent, "ancestor")).isDirectory()) refuse();
     if (await fs.realpath(path.dirname(location)) !== path.dirname(location)) refuse();
   }
 
   async recheck(): Promise<void> {
-    for (const location of this.#observed.keys()) await this.observe(location);
+    for (const [location, value] of this.#observed) await this.observe(location, value.role);
   }
 
   /** All reads are positioned, bounded and bracketed against both descriptor and named identity. */

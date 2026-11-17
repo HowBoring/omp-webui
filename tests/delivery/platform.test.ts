@@ -43,6 +43,7 @@ async function fixture() {
   const parent = await fs.mkdtemp("/tmp/host-platform-");
   const root = await fixtureRelease(parent), platform = path.join(parent, "platform");
   await fs.mkdir(path.join(platform, "real"), { recursive: true });
+  await fs.chmod(path.join(platform, "real"), 0o755);
   const loader = path.join(platform, "real/ld-linux-vector.so.2");
   const libc = path.join(platform, "real/libc.so.6");
   const directoryAlias = path.join(platform, "lib64");
@@ -63,6 +64,21 @@ test("public release inspection verifies recursively required relative interpret
     const release = await inspectRelease({ root: value.root, expectedIdentity });
     expect(release.manifest.platformDependencies.filter(value => value.kind === "link").length).toBe(2);
     await release.verify();
+  } finally { await fs.rm(value.parent, { recursive: true, force: true }); }
+});
+
+test("held selected release tolerates unrelated children of interpreter traversal directories", async () => {
+  const value = await fixture();
+  try {
+    const expectedIdentity = await writeReleaseManifest({ root: value.root, platformDependencies: value.dependencies });
+    const selected = await resolveGlobalSelection({ root: value.root, expectedIdentity, entry: path.join(value.root, "bin/omp") });
+    const sibling = path.join(path.dirname(value.loader), "unrelated-sibling");
+    await fs.mkdir(sibling);
+    await selected.verify();
+    await fs.writeFile(path.join(sibling, "unrelated-file"), "outside release and platform members");
+    await selected.verify();
+    await fs.rm(sibling, { recursive: true });
+    await selected.verify();
   } finally { await fs.rm(value.parent, { recursive: true, force: true }); }
 });
 

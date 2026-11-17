@@ -19,7 +19,7 @@ async function interpreter(observation: ReleaseObservation, location: string, me
   while (pending.length) {
     if (++components > 256) refuse();
     const candidate = path.join(current, pending.shift()!);
-    const stat = await observation.observe(candidate);
+    const stat = await observation.observe(candidate, "ancestor");
     if (stat.isSymbolicLink()) {
       if (++hops > 16) refuse();
       const link = await fs.readlink(candidate), member = members.get(candidate);

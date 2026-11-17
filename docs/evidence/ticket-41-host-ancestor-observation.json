@@ -1,0 +1,119 @@
+{
+  "format": "omp-host-ancestor-observation-source-v1",
+  "status": "SOURCE_ONLY_AWAITING_FRESH_PAIRED_REVIEW",
+  "base": "3517c80a44d05104f089c889055adca005ea611e",
+  "source": {
+    "packages/delivery/observation.ts": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370",
+    "packages/delivery/platform.ts": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482",
+    "tests/delivery/artifact.test.ts": "78987d0fdb45f467b1ced199cb3e819a22d89b135b5aed20bd37938af64022d1",
+    "tests/delivery/platform.test.ts": "240543ea3a436ee7b0296eb97d6aaafec216cc0529b65dc0d2cc4f69465092bf"
+  },
+  "roles": {
+    "nonmemberAncestorDirectory": [
+      "dev",
+      "ino",
+      "uid",
+      "gid",
+      "full-mode-and-type",
+      "canonical-path"
+    ],
+    "fullMember": [
+      "dev",
+      "ino",
+      "uid",
+      "gid",
+      "full-mode-and-type",
+      "nlink",
+      "size",
+      "mtimeNs",
+      "ctimeNs",
+      "link-text-when-applicable"
+    ],
+    "promotion": "Ancestor identity must match before capturing full member snapshot; member role permanently dominates; recheck preserves retained role."
+  },
+  "checks": {
+    "seams": [
+      "inspectRelease/VerifiedRelease.verify",
+      "resolveGlobalSelection/selection.verify"
+    ],
+    "testFiles": [
+      "tests/delivery/artifact.test.ts",
+      "tests/delivery/platform.test.ts",
+      "tests/delivery/resolver.test.ts"
+    ],
+    "testCommand": "bun test --no-env-file --preload ./compatibility/omp/fixtures/no-provider.ts tests/delivery/platform.test.ts tests/delivery/artifact.test.ts tests/delivery/resolver.test.ts",
+    "environment": "Allowlisted PATH; synthetic HOME/XDG; TMPDIR=/tmp; no-provider preload before test imports",
+    "tests": 58,
+    "assertions": 73,
+    "strictRepositoryTypes": "PASS",
+    "results": [
+      {
+        "check": "parent-sibling-red",
+        "exitCode": 1,
+        "rawSha256": "2457ed524ca0aecddc9cae4f0b66f7eaaddf7b849e455b6f16c3f851e47fa08b"
+      },
+      {
+        "check": "parent-sibling-green",
+        "exitCode": 0,
+        "rawSha256": "a811e8dc1ef0f072dc86809c8bc728e67cfab0adb3900b051d2d646673d75146"
+      },
+      {
+        "check": "interpreter-sibling-red",
+        "exitCode": 1,
+        "rawSha256": "a0793f0638d4117d68da246855d66c5d5736412ddb5324b33b49a1b9089d741b"
+      },
+      {
+        "check": "interpreter-sibling-green",
+        "exitCode": 0,
+        "rawSha256": "2c03c665561dc5628950cfff8cba8f0a29ed6782fcce532c21e4590d22fde15b"
+      },
+      {
+        "check": "final-guarded-tests",
+        "exitCode": 0,
+        "rawSha256": "ea85354cd7d4d1132eadd3ff499928c39e3343ef7cb04bf1a645dfffeca2a96b"
+      },
+      {
+        "check": "full-repository-types",
+        "exitCode": 0,
+        "rawSha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+      }
+    ]
+  },
+  "preservation": {
+    "nativeDirtyPaths": 137,
+    "nativeChecks": {
+      "head": true,
+      "status": true,
+      "indexListing": true,
+      "staged": true,
+      "patch": true,
+      "paths": true,
+      "exports": true,
+      "index": true
+    },
+    "nativeIndexSha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+    "nativeExports": {
+      "compatibility/omp/0010-execution-ownership.patch": "d243a44147da99e00306884ff5094f224aacd059f25ec17648074bd9d2e61eba",
+      "docs/evidence/ticket-41-native-helper-drain-export.json": "58a889860d581e3fe808159b01dc34d69efe3a80c6261e63ebafb8fdb6bb0664"
+    },
+    "publicPackageFilesExact": {
+      "index.js": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "index.d.ts": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "loader.d.ts": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "socket.d.ts": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "selection.d.ts": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "errors.d.ts": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "package.json": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    "publicRebuildPerformed": false,
+    "producerDraftsExact": 15
+  },
+  "pausedProducerManifestSha256": "9b30818729ba56ce6dce2ba632cf333f0ed0c8d697649731062c8101b90c7b86",
+  "actualHelperNative": "NOT_RUN",
+  "twoProcessPlan": "HOLD",
+  "globalAdmission": "BLOCKED",
+  "privateAdmission": "BLOCKED",
+  "publicApiOrBinaryChanged": false,
+  "sourceReconciliationAndRebuild": "REQUIRED_AFTER_REVIEW",
+  "actualSameManifestProof": "REQUIRED_SEPARATELY_AUTHORIZED"
+}
