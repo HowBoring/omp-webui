@@ -33,3 +33,9 @@ The exact path allowlist audit selected 52 files; all implementation/test/build/
 Read the public adapter pair (`87182bb...f30936d`), nominal-preparation pair (`f30936d...416a0c2`), earlier C-I/O lifetime pair (`3e11e6b...b8a00ea`) and external clean-EOF pair (`5608b676...285eeb8`) from the outside review archive. Their coverage is historical and scoped. The current H verifier is selected exactly; the new H/P composition requires a fresh two-axis full-delta review. No review result is relabeled as covering this tuple.
 
 `bun run check` and the full test suite are **NOT RUN** because they include Native/Host/runtime families outside the assignment. Actual C execution, library/FFI loading, maintenance locking, kernel/process/signal/socket/fence inspection, native actors, seed/browser/staging/keys/global install and GitHub/push/integration mutation were not performed. No external-controller files, Native patches, vendor, emitted artifacts, signed inventory or root registration were selected. Product Session admission stays blocked.
+
+## Integration reconciliation
+
+Merged actual integration `a88059a9fe211a4e62d1d1c78e86cb04c0fc432a` (tree `5afc6653e596a85832a2c22ba62300289b079f84`) after the original source candidate. The original base above remains the selection/preimage provenance. Before this metadata update, all 52 candidate paths were byte-identical to `e5e708309ad3846094728656314d94bec5b0703d`; only the five independently reviewed stdio transport/drain-metadata baseline paths evolved. The manifest records that reconciliation separately. No H/P behavior changed. Fresh final pin confirmation is required.
+
+Post-merge `bun run typecheck` using the normal full `tsconfig.json`: **PASS**. No actual test/runtime family was invoked for reconciliation.

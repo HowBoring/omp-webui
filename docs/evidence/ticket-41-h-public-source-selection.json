@@ -481,5 +481,20 @@
     "docs/evidence/ticket-41-h-public-static-closure.json",
     "docs/evidence/source-checks/ticket-41-h-public-static.ts",
     "docs/evidence/source-checks/ticket-41-private-helper-configuration.h"
-  ]
+  ],
+  "reconciledIntegration": {
+    "commit": "a88059a9fe211a4e62d1d1c78e86cb04c0fc432a",
+    "tree": "5afc6653e596a85832a2c22ba62300289b079f84",
+    "originalCandidate": "e5e708309ad3846094728656314d94bec5b0703d",
+    "mergeCommit": "9ae6d9b1e7c5ad611329680a8921d9c6f89f12ad",
+    "changedBasePaths": [
+      "packages/compatibility/stdio-transport.ts",
+      "tests/catalog/native-layout.test.ts",
+      "tests/catalog/transport.test.ts",
+      "tests/compatibility/stdio-drain-metadata.test.ts",
+      "tests/compatibility/transport.test.ts"
+    ],
+    "selectedCandidatePaths": "52/52 byte-identical through merge before metadata reconciliation",
+    "semantics": "reviewed stdio drain metadata baseline only; selected H/P implementation unchanged"
+  }
 }
