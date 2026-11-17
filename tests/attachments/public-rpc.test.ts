@@ -470,3 +470,102 @@ test("actual public WebP requires transformation consent before indexed saved im
     expect(await fixture.effects()).toEqual(after);
   });
 }, 45_000);
+
+async function prepareGif(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
+  // Independent Pillow/hashlib pins describe BOTH original frames, never a predicted Native encoder output.
+  const original = await fs.readFile(new URL("./fixtures/animated-200.gif", import.meta.url));
+  const originalSha256 = "9fc83392f6ac16f708340fc43181bdb9469390402bf7054c8e2d46f26289051b";
+  const originalCarrierSha256 = "7f011bc0cc9aae1cdea6ce39accaaf28164362331282f3c4ded6f137f6e87df5";
+  expect(original.byteLength).toBe(2263); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const carrier = { kind: "image", mimeType: "image/gif", data: original.toBase64(), width: 200, height: 200 };
+  expect(Bun.SHA256.hash(JSON.stringify(carrier), "hex")).toBe(originalCarrierSha256);
+  const receipt = await fixture.client.prepare({ preparationId: "prepared-gif", draftId: "draft-gif",
+    draftRevision: "1", authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "image", format: "gif", sha256: originalSha256, data: original.toBase64() },
+    ] });
+  expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-gif", draftId: "draft-gif",
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId, imageCapable: true } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0], prepared = preparedImage(receipt);
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_GIF_NOT_READY");
+  expect(item.originalSha256).toBe(originalSha256);
+  expect(item.degradations).toEqual(["image_transformed", "animation_first_frame_only"]);
+  expect(["image/png", "image/jpeg"]).toContain(prepared.mimeType);
+  expect({ width: prepared.width, height: prepared.height }).toEqual({ width: 200, height: 200 });
+  const preparedBytes = Buffer.from(prepared.data, "base64");
+  expect(preparedBytes.byteLength).toBeGreaterThan(0);
+  expect(preparedBytes.byteLength).toBeLessThanOrEqual(500 * 1024);
+  expect(Bun.SHA256.hash(preparedBytes, "hex")).not.toBe(originalSha256);
+  // Consistency only: neither prepared pixels/first-frame fidelity nor exact encoder bytes/hash are predicted.
+  const representation = { kind: "image", mimeType: prepared.mimeType, data: prepared.data,
+    width: prepared.width, height: prepared.height };
+  expect(item.preparedSha256).toBe(Bun.SHA256.hash(JSON.stringify(representation), "hex"));
+  expect(item.preparedSha256).not.toBe(originalCarrierSha256);
+  expect(item.facts).toEqual({ originalBytes: 2263, preparedBytes: preparedBytes.byteLength,
+    sourceWidth: 200, sourceHeight: 200, frames: 2, decodedBytes: 320000 });
+  return receipt;
+}
+
+async function refuseGifWithoutExactConsent(fixture: Awaited<ReturnType<typeof openWorker>>,
+  receipt: AttachmentReceipt, acceptedDegradations: string[]) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  expect(await fixture.worker.request(submission(fixture, receipt, "gif-success", acceptedDegradations)))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "gif-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [],
+    nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+}
+
+async function verifyGifSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult): Promise<void> {
+  const image = savedLink(result, "image", "input"), prepared = preparedImage(receipt);
+  expect(image.link).toMatchObject(expectedLink(receipt, "image", "image"));
+  expect(image.locator.kind).toBe("content");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === image.entryId);
+  expect(matches).toHaveLength(1);
+  const input = z.object({ role: z.literal("user"), content: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ type: z.literal("image"), data: z.string(), mimeType: z.string() })
+    .parse(input.content[image.locator.index]);
+  expect(part).toEqual({ type: "image", data: prepared.data, mimeType: prepared.mimeType });
+  // Causal joins use only public relation.entryId and actual indexed body, never text/hash/order matching.
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === image.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("input");
+    expect(row.submission?.attachments).toContainEqual(image.link);
+  }
+}
+
+test("actual public animated GIF requires exact loss consent before indexed saved image and provider delivery", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await prepareGif(fixture), prepared = preparedImage(receipt);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    await refuseGifWithoutExactConsent(fixture, receipt, []);
+    await refuseGifWithoutExactConsent(fixture, receipt, ["image_transformed"]);
+    const accepted = ["image_transformed", "animation_first_frame_only"];
+    expect(await worker.request(submission(fixture, receipt, "gif-success", accepted)))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "gif-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "gif-success" },
+      preparation: consent(receipt, accepted) });
+    await verifyGifSavedPart(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([{ mimeType: prepared.mimeType,
+      bytes: Buffer.byteLength(prepared.data, "base64"), sha256: Bun.SHA256.hash(Buffer.from(prepared.data, "base64"), "hex") }]);
+    expect(after.requests.at(-1)?.attachmentText).toEqual([]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "gif-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
