@@ -162,7 +162,8 @@
     },
     "host-build.txt": {
       "path": "docs/evidence/ticket-44-source-reconcile/host-build.txt",
-      "sha256": "6d8bd3294d4ea557db164119add458a556fa78c3d1272f596f2a1e2a0bf44edd"
+      "sha256": "71643b79dd276102599a3e49b5f1c823539c00e9e2c5f03bac17e4d3d3911ee7",
+      "normalization": "Trailing empty line removed; original external host-build.txt retained."
     },
     "preservation-after.json": {
       "path": "docs/evidence/ticket-44-source-reconcile/preservation-after.json",
