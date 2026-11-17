@@ -1,0 +1,21 @@
+{
+  "kind": "actual-native-readonly-catalog-file-process-and-socket-trace",
+  "result": "PASS",
+  "fixture": "two actual pinned SessionManager-authored files in isolated temporary HOME/cwd; deliberate fixture writes precede the traced readonly child; no user profile",
+  "actualNativeFiles": 2,
+  "frames": [
+    "ready",
+    "response",
+    "response",
+    "response"
+  ],
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "traceLines": 229,
+  "unsafeWriteOrOrdinarySessionImportObservations": [],
+  "bindSyscalls": 0,
+  "nonUnixConnectSyscalls": 0,
+  "nativeLeaseObservationConnects": 2,
+  "execveCount": 1,
+  "traceSha256": "5573cddfe0db16ff129c9637877d9ad610083fe6232c30785845ab69c8911b62"
+}

@@ -25,3 +25,16 @@ for fewer login and directory-configuration steps. Every operation still require
 request-source and resource checks. The [local access contract](../local-access-contract.md) defines
 those boundaries. Host admission controls do not sandbox OMP tools or contain malicious local code
 running with the same operating-system privileges.
+
+## Historical isolated implementation evidence (2026-11-16)
+
+Ticket #42 implements the persistent browser authority; ticket #43 adds canonical directory preview, explicit
+confirmation, persistent revoke and current-rights readonly catalog/Session Index metadata mapping in an isolated
+authenticated acceptance executable. See [the component evidence](../evidence/ticket-43-workspaces.md).
+The ordinary Host still denies private Session capabilities. Product composition waits for #41's combined/global
+admission gates and #44's registration/protected open and supervised worker revocation; this evidence changes no
+Session Source scope and does not claim those future capabilities.
+
+The 2026-11-17 reconciliation admits only the unregistered source under parent #29 Decision 26. The prior
+browser/native tuple remains historical; [current source checks](../implementation/ticket-43-source-evidence.json)
+leave normal Host Workspace registration and private/product/global admission closed. #43 and #29 remain OPEN.
