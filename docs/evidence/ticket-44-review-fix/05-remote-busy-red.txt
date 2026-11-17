@@ -1,0 +1,32 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+44 |   const f = await fixture();
+45 |   try {
+46 |     expect((await f.remote.open(f.first.selectionId)).ok).toBe(true);
+47 |     f.controls.busy = true;
+48 |     for (const result of [await f.remote.new(f.grant.id), await f.remote.switch(f.second.selectionId)]) {
+49 |       expect(result).toMatchObject({ ok: false, error: { code: "SESSION_WORKER_BUSY_STOP_REQUIRED", details: {},
+                          ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "error": {
+-     "code": "SESSION_WORKER_BUSY_STOP_REQUIRED",
+-     "details": {},
+-     "message": "Stop the active Session and wait for confirmed quiescence, then explicitly retry New or Switch.",
+-   },
++   "error": [RemoteError: Session operation unavailable. Inspect the registered reference status.],
+    "ok": false,
+  }
+
+- Expected  - 5
++ Received  + 1
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-remote.test.ts:49:22)
+(fail) busy New and Switch return correlated typed lifecycle failures with an explicit recovery action [92.87ms]
+
+ 0 pass
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [288.00ms]

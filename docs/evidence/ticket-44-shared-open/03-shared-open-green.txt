@@ -1,0 +1,10 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+(pass) a fresh explicit Open clears an expired selection failure while sharing the same worker [96.09ms]
+
+ 1 pass
+ 4 filtered out
+ 0 fail
+ 6 expect() calls
+Ran 1 test across 1 file. [303.00ms]

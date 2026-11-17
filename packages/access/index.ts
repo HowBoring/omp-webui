@@ -21,6 +21,9 @@ export class BrowserAuthority {
   private readonly store: AccessStore;
   private readonly now: () => number;
   private readonly identities = new WeakMap<BrowserAccess, Credential>();
+  private unavailable = false;
+  private revoking = false;
+  private readonly revocationListeners = new Set<() => void>();
   private readonly peers = new Set<{ identity: BrowserAccess; invalidate: () => void }>();
   private readonly timer: ReturnType<typeof setInterval>;
 
@@ -38,6 +41,7 @@ export class BrowserAuthority {
   get hostId() { return this.store.identity(); }
 
   admit(request: Request, kind: AdmissionKind): BrowserAccess | Response {
+    if (this.unavailable || this.revoking) return failure("ACCESS_STATE_UNAVAILABLE", 503);
     try { return this.admitCurrent(request, kind); }
     catch { return failure("ACCESS_STATE_UNAVAILABLE", 503); }
   }
@@ -59,6 +63,7 @@ export class BrowserAuthority {
   }
 
   revalidate(identity: BrowserAccess): boolean {
+    if (this.unavailable || this.revoking) return false;
     const credential = this.identities.get(identity);
     try { return !!credential && !!this.store.current(credential, this.now()); }
     catch { return false; }
@@ -139,7 +144,28 @@ export class BrowserAuthority {
       + (this.origin.protocol === "https:" ? "; Secure" : "");
   }
 
+  /** Trusted lifecycle observer. Called synchronously so supervised admission closes before asynchronous draining. */
+  onRevokeAll(listener: () => void): () => void {
+    this.revocationListeners.add(listener); return () => { this.revocationListeners.delete(listener); };
+  }
+
+  /** Trusted local control only. No secret is returned and no generic browser route invokes this operation. */
+  revokeAll(): void {
+    this.revoking = true;
+    let listenerFailed = false;
+    try {
+      for (const listener of this.revocationListeners) { try { listener(); } catch { listenerFailed = true; } }
+      this.store.revokeAll();
+      if (listenerFailed) throw new Error("ACCESS_REVOCATION_FAILED");
+    } catch (error) { this.unavailable = true; throw error; }
+    finally {
+      for (const peer of this.peers) { try { peer.invalidate(); } catch {} }
+      this.peers.clear(); this.revoking = false;
+    }
+  }
+
   close() {
+    this.revocationListeners.clear();
     clearInterval(this.timer);
     for (const peer of this.peers) { try { peer.invalidate(); } catch { /* close all */ } }
     this.peers.clear();

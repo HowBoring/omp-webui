@@ -1,0 +1,141 @@
+{
+  "status": "FAIL_UNFROZEN_NOT_FINAL_ACCEPTANCE",
+  "command": "bun run check",
+  "exitCode": 1,
+  "counts": {
+    "passed": 268,
+    "failed": 15,
+    "errors": 1,
+    "assertions": 2106,
+    "tests": 283,
+    "files": 67
+  },
+  "elapsedSeconds": 1072.86,
+  "matchedTuple": false,
+  "provenance": {
+    "sourceFrozen": false,
+    "limitation": "Source was edited during the run. Later idle test definitions used new APIs against an older cached carrier module. Results cannot establish final matched-tuple acceptance; no blanket contention diagnosis is asserted.",
+    "ownedCleanup": "No live owned44 native/test process remained in the completion process snapshot. The log reports dangling-process cleanup after timed-out fixtures.",
+    "currentState": "PAUSED. Root32 owns the heavy validation slot. Native vendor and bundles intentionally remain old until the scheduled clean rebuild."
+  },
+  "rawLog": {
+    "tracked": false,
+    "path": "vendor/session-full-check.txt",
+    "sha256": "05cb8db929720dec2ad77057d2b936aa8c69fdbebdfa372b1e2cf267dc0fe15f",
+    "bytes": 47617
+  },
+  "failures": [
+    {
+      "file": "tests/compatibility/dsh-source.test.ts",
+      "name": "the declared complete source is accepted through the public DSH build gate",
+      "elapsedMs": 0.54,
+      "observedError": "ENOENT",
+      "detail": "Required owned vendor/dsh fault-test checkout was absent"
+    },
+    {
+      "file": "tests/compatibility/dsh-source.test.ts",
+      "name": "an undeclared edit to a consumed DSH module blocks the build gate",
+      "elapsedMs": 0.27,
+      "observedError": "ENOENT",
+      "detail": "Required owned vendor/dsh fault-test checkout was absent"
+    },
+    {
+      "file": "tests/compatibility/dsh-source.test.ts",
+      "name": "ignored startup environment files and undeclared untracked source cannot evade the gate",
+      "elapsedMs": 0.28,
+      "observedError": "ENOENT",
+      "detail": "Required owned vendor/dsh fault-test checkout was absent"
+    },
+    {
+      "file": "tests/compatibility/catalog-build.test.ts",
+      "name": "catalog rejects baseline, partial patches, wrong base and unrecorded resolved source before publishing assets",
+      "elapsedMs": 60006.7,
+      "observedError": "TEST_TIMEOUT",
+      "detail": "Test deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/live/settlement.test.ts",
+      "name": "native empty-error produces one legal DSH final or explicit abandonment",
+      "elapsedMs": 20013.06,
+      "observedError": "TEST_TIMEOUT",
+      "detail": "Test deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/nested-artifacts.test.ts",
+      "name": "native branch preserves valid nested generation history using complete fresh files",
+      "elapsedMs": 17180.34,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/nested-artifacts.test.ts",
+      "name": "an occupied native child refuses parent fork before publishing another parent or copying incomplete artifacts",
+      "elapsedMs": 12154.33,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/nested-artifacts.test.ts",
+      "name": "native logical copy refuses corrupt-child before publishing final files",
+      "elapsedMs": 20654.98,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/nested-artifacts.test.ts",
+      "name": "native logical copy refuses occupied-destination before publishing final files",
+      "elapsedMs": 11099.68,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/nested-artifacts.test.ts",
+      "name": "actual short write to an anonymous nested copy cannot publish a partial native child",
+      "elapsedMs": 30008.01,
+      "observedError": "TEST_TIMEOUT",
+      "detail": "Test deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/startup-order.test.ts",
+      "name": "owned bucket namespace replacement cannot redirect a native rewrite",
+      "elapsedMs": 12736.24,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/continuation/faults.test.ts",
+      "name": "passthrough verifies the actual kernel write boundary and retains truthful native outcome",
+      "elapsedMs": 13447.86,
+      "observedError": "STRICT_FIXTURE_TIMEOUT",
+      "detail": "Public native fixture response deadline expired; underlying cause not established"
+    },
+    {
+      "file": "tests/catalog/catalog.test.ts",
+      "name": "native ownership observations see another process without acquiring or writing a lease",
+      "elapsedMs": 44.71,
+      "observedError": "ASSERTION_FAILURE",
+      "detail": "Expected lease-holder stdout to contain held; received empty stdout; underlying cause not established"
+    },
+    {
+      "file": "tests/sessions/supervisor.test.ts",
+      "name": "explicit New retires a confirmed idle worker and confirms a distinct identity; Switch returns to the original",
+      "elapsedMs": 2122.78,
+      "observedError": "TypeError",
+      "detail": "closeGracefully missing on cached carrier module; source changed during this run"
+    },
+    {
+      "file": "tests/sessions/drain.test.ts",
+      "name": "ordinary idle retirement times out without background signals and retains its handle for later authorized shutdown",
+      "elapsedMs": 55.57,
+      "observedError": "TypeError",
+      "detail": "closeGracefully missing on cached carrier module; source changed during this run"
+    }
+  ],
+  "betweenTestErrors": [
+    {
+      "file": "tests/live/settlement.test.ts",
+      "observedError": "RPC_READY_TIMEOUT",
+      "detail": "Unhandled error between tests following the empty-error timeout; underlying cause not established"
+    }
+  ]
+}

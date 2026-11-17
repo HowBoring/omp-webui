@@ -1,0 +1,29 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/tree/remote.test.ts:
+(pass) complete native pages keep active path and abandoned-node preview separate without mutation [86.37ms]
+(pass) an overlapping refused read cannot release another in-flight page's exclusion [10.04ms]
+(pass) full-page parent continuity, leaf membership and active flags fail closed [39.25ms]
+(pass) every native source-cut field fences subsequent pages, including same-shape retained rewrites [95.63ms]
+(pass) unknown content and continuity types block preview without returning their payload [45.85ms]
+(pass) internal configuration/state records use fixed presentation and never serialize native payload fields [10.00ms]
+(pass) split native entries assemble across pages and missing or reordered parts explicitly invalidate [37.28ms]
+(pass) native pruning remains explicit readable text and preview makes no model-input claim [6.84ms]
+(pass) revocation or external writer occupation refuses open before any native history read [8.21ms]
+(pass) authority revoked during native read withholds all returned history and destroys its cached selection [3.13ms]
+(pass) changed broker/projection binding refuses preview even with a previously complete tree [24.82ms]
+(pass) native cursor expiry during preview clears the public component instead of returning cached text [11.76ms]
+(pass) stale client cursors cannot rewind paging or revive an invalidated snapshot [6.85ms]
+(pass) a late page after public view invalidation cannot restore old nodes or preview [6.43ms]
+(pass) canceled invocation authority cannot start a native tree read [3.63ms]
+(pass) native diagnostics are reduced to stable read errors without private error text [6.95ms]
+(pass) a second authorized Browser View cannot read or evict another view's snapshot [10.97ms]
+(pass) preview rereads a strict native cursor and refuses changed source content rather than cached text [7.40ms]
+(pass) an empty nonterminal native page cannot grow an unbounded cursor chain [6.17ms]
+(pass) an oversized advertised snapshot is refused before any native page allocation [6.95ms]
+
+ 20 pass
+ 2 filtered out
+ 0 fail
+ 73 expect() calls
+Ran 20 tests across 1 file. [729.00ms]

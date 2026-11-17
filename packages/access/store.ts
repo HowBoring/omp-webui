@@ -99,6 +99,14 @@ export class AccessStore {
   csrf(credential: Credential) { return this.digest(`csrf:${credential.id}`)!; }
   identity() { return createHmac("sha256", this.generation).update(`host:${this.scope}`).digest("base64url"); }
   revoke(credential: Credential) { this.db.query("DELETE FROM credentials WHERE id=?").run(credential.id); }
+  /** Trusted local revocation: preserve this authority generation, rotate the one-use bootstrap capability. */
+  revokeAll(): void {
+    this.db.transaction(() => {
+      if (typeof this.liveMaterial() === "string") throw new Error("ACCESS_STATE_UNAVAILABLE");
+      this.db.exec("DELETE FROM credentials");
+      this.db.query("UPDATE material SET bootstrap=? WHERE id=1").run(random());
+    }).immediate();
+  }
   close() { if (!this.closed) { this.closed = true; this.db.close(); } }
 
   private present() {

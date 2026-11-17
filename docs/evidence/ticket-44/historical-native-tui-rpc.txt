@@ -1,0 +1,20 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/continuation/ownership.test.ts:
+(pass) missing native instance cannot become empty or a sibling [218.19ms]
+(pass) replaced native instance cannot become empty or a sibling [227.17ms]
+(pass) two genuine rpc-ui processes race for one native lease and only its owner continues [8730.54ms]
+(pass) cancellation before ownership cannot create native effects or replay the open [402.79ms]
+
+tests/continuation/transport.test.ts:
+(pass) the same-source strict client uses bounded shared transport against the actual deferred worker [4615.00ms]
+(pass) a dropped successful native start result is unknown until a readonly query verifies the same live worker [6421.23ms]
+
+tests/continuation/native-tui.test.ts:
+(pass) baseline TUI refuses the new carrier and matched TUI renders and continues the same native data [34773.40ms]
+(pass) a genuine native TUI retains ownership when strict public continuation is refused [23667.00ms]
+
+ 8 pass
+ 0 fail
+ 45 expect() calls
+Ran 8 tests across 3 files. [79.18s]

@@ -1,0 +1,393 @@
+{
+  "status": "SOURCE_REVIEW_FIX_ONLY_NOT_FINAL_ACCEPTANCE",
+  "ticket": 44,
+  "parentTicket": 29,
+  "ticketsRemainOpen": true,
+  "decision": 26,
+  "fixBase": "7cdf565cbdac269e923387704d8960799c46045c",
+  "integrationSource": "42769489183eedb20b371083c49f915fda2bb8cf",
+  "priorSourceEvidence": {
+    "commit": "7cdf565cbdac269e923387704d8960799c46045c",
+    "path": "docs/implementation/ticket-44-source-evidence.json",
+    "sha256": "49350c88b478de400b440a67868211e061bf65025fa5d5108513813ec25d36d3",
+    "unchanged": true,
+    "interpretation": "Immutable pre-fix source snapshot; its runtimeBehaviorChanges=false and prior checks describe that earlier reconciliation, not this correction."
+  },
+  "reviews": {
+    "spec": {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket-44-source-spec.md",
+      "sha256": "cd18e3a52a05832420112bfb2cd6cdcb0a7a4b956ab39f23ba4a1c50ef45a156"
+    },
+    "standards": {
+      "path": "/workspace/work/mvp-implementation/reviews/ticket-44-source-standards.md",
+      "sha256": "858b8b14993ede692512b8e3ae8f7a7094ad570deed21556bc5f0735193feaa9"
+    }
+  },
+  "authoredBehaviorChanges": [
+    "Durable-first Open records stable prelaunch failure for a missing cwd or a draining prior owned worker; replaced-directory refusal remains durable and launches no worker.",
+    "The actual isolated carrier and in-memory Remote fixture share one dispatch function, preserving recognized typed lifecycle codes, rpcId and constant recovery messages; malformed envelopes reject before invocation. Public New resolves the service method new so the Gateway can reach supervisor policy.",
+    "Idle retirement and shutdown share the zero-exit/no-force/no-protocol-failure closed classifier.",
+    "Native worker errors use explicit bounded strict/generation/history code sets. Supervisor accepts bounded known persistence codes, falls back safely for oversized/unknown errors and honors cleanup versus manual retention even if the failure write fails. Shutdown diagnostics separately retain attempt-storage failure."
+  ],
+  "boundaries": {
+    "normalHostPrivateAdmission": "blocked_unchanged",
+    "globalAdmission": "blocked_unchanged",
+    "sessionComponent": "unregistered",
+    "sharedStartup": "Root UI before Session binding; browser-only logout preserves other authorized waiter and one worker/generation.",
+    "forceAndDescendantCleanup": "BLOCKED/not_attested pending #41 helper ownership binding; no direct Bun or automatic fallback cleanup capability attested."
+  },
+  "validation": {
+    "strictTypeScript": {
+      "status": "PASS",
+      "command": "/workspace/work/tooling/node_modules/bun/bin/bun.exe run typecheck",
+      "log": "typecheck-commit.txt"
+    },
+    "fsSqliteInMemoryDsh": {
+      "status": "PASS",
+      "tests": 59,
+      "assertions": 301,
+      "files": 11,
+      "includesNewRegressionTests": 13,
+      "newRegressionAssertions": 110,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/sessions/error-contract.test.ts ./tests/sessions/source-supervisor.test.ts ./tests/sessions/source-remote.test.ts ./tests/sessions/index.test.ts ./tests/sessions/revoke-all.test.ts ./tests/workspaces/grants.test.ts ./tests/interactions/bridge.test.ts ./tests/browser/interactions-remote.test.ts ./tests/preferences/remote.test.ts ./tests/attachments/store.test.ts ./tests/attachments/remote.test.ts",
+      "log": "pure-fs-sqlite-dsh-commit.txt"
+    },
+    "guardedBrokerStop": {
+      "status": "PASS",
+      "tests": 42,
+      "assertions": 291,
+      "files": 2,
+      "command": "bun test --no-env-file ./tests/interactions/broker-remote.fixture.ts ./tests/interactions/stop-remote.fixture.ts"
+    },
+    "guardedTreeRemote": {
+      "status": "PASS",
+      "tests": 20,
+      "assertions": 73,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/tree/remote.test.ts -t '^(?!public Tree component|a larger synthetic tree)'"
+    },
+    "guardedTreeReactStaticMarkup": {
+      "status": "PASS",
+      "tests": 2,
+      "assertions": 13,
+      "command": "bun test --no-env-file --preload ./tests/preferences/no-provider.ts ./tests/tree/remote.test.ts -t '^(public Tree component|a larger synthetic tree)'"
+    },
+    "selectedTotal": {
+      "tests": 123,
+      "assertions": 678,
+      "failures": 0
+    },
+    "notRun": [
+      "Native/OMP/SDK/runtime or Native serializer",
+      "FFI/kernel/socket/listener/browser/probe or owned process under test",
+      "full bun test or bun run check",
+      "Native/DSH build, dependency/global install, GitHub, merge or push"
+    ],
+    "redGreen": {
+      "specPrelaunch": "01-missing-cwd-red.txt followed by 01-missing-cwd-green.txt; pending drain and replaced-directory follow-up regressions also pass.",
+      "standardsProtocolTail": "02-protocol-tail-red.txt followed by 02-protocol-tail-green.txt.",
+      "standardsOversizedCode": "03-oversized-code-red.txt followed by 03-oversized-code-green.txt; shared public native error mapper additionally rejects oversized/unknown wire codes.",
+      "standardsIndexFailure": "04-index-failure-red.txt followed by 04-index-failure-green.txt; storage outage retention/manual recovery also passes.",
+      "specRemoteCarrier": "05-remote-busy-red.txt followed by 05-remote-busy-green-final.txt. An intermediate green-named run still failed because New had no service method; that exact raw remains retained.",
+      "typedSanitization": "06-remote-sanitization-red.txt followed by 06-remote-sanitization-green.txt; malformed/invocation distinction and unconfirmed New pass.",
+      "typedCodePriority": "09-typed-code-priority-red.txt followed by 09-typed-code-priority-green.txt: recognized typed code takes precedence over diagnostic message text."
+    }
+  },
+  "preservation": {
+    "baselinePath": "/workspace/work/mvp-implementation/research/ticket-44-source-reconcile/preservation-before.json",
+    "baselineSha256": "4524c531c84be50bc6a9a7be919f0695f91d36ad6645c0a38794fc37df5915c1",
+    "repositories": {
+      "native": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 10668,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      },
+      "dsh": {
+        "checks": {
+          "head": true,
+          "status": true,
+          "indexSha256": true,
+          "stagedDiffSha256": true,
+          "workingDiffSha256": true
+        },
+        "authoredCount": 21061,
+        "fileMismatches": [],
+        "addedAuthoredPaths": []
+      }
+    },
+    "artifactsCount": 21,
+    "artifactsMismatches": [],
+    "historicalRawCount": 18,
+    "historicalRawMismatches": [],
+    "pass": true
+  },
+  "preservationBookkeeping": "The first new comparison accidentally rendered NUL status separators and counted pre-existing DSH symlinks as added regular authored files. preservation-before-validation.json retains that false comparison; corrected comparison uses the original regular-file/NUL scope and passes, as does preservation-final.json. No source, index, bundle or historical raw mismatch occurred.",
+  "boundedPreimages": {
+    "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/preimages.json",
+    "sha256": "03572fa3f5759c6b317cb409ffa727c06dbb8fc9ff0667b49cc91f9d81ae17d5",
+    "files": 7,
+    "includesNativeOrDshCopies": false
+  },
+  "normalHostAndPins": {
+    "apps/host/src/main.ts": {
+      "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace",
+      "equalsIntegration": true
+    },
+    "apps/host/src/http.ts": {
+      "sha256": "33692606f79a9b955804aaf66e9c1980ced417bf95cec832308aa66480c7c21f",
+      "equalsIntegration": true
+    },
+    "upstreams.lock.json": {
+      "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+      "equalsIntegration": true
+    },
+    "bun.lock": {
+      "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+      "equalsIntegration": true
+    },
+    "package.json": {
+      "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3",
+      "equalsIntegration": true
+    }
+  },
+  "sourceChecks": {
+    "explicitErrorCodes": 147,
+    "longestCodeCharacters": 43,
+    "newNativeCommands": false,
+    "generatedSchemasChanged": false
+  },
+  "logs": {
+    "01-missing-cwd-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/01-missing-cwd-red.txt",
+      "sha256": "7ece57c705d02804bd1377f75a8935495e43afe0c2a4d38fc18aa1a761f63fdc",
+      "bytes": 919,
+      "normalization": "Trailing whitespace removed only in committed transcript; exact external raw retained and hashed under externalRawRecords."
+    },
+    "02-protocol-tail-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/02-protocol-tail-red.txt",
+      "sha256": "e1a6fedc11e6911c91ccfc0d7ae3eb73bf577a3d3e8ecc5d70fd9bca63979178",
+      "bytes": 1185
+    },
+    "03-oversized-code-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/03-oversized-code-red.txt",
+      "sha256": "7bd90c36c19c3607155140c8a49bba24aba42271c7732e15c5f657441c1ffb49",
+      "bytes": 1463,
+      "normalization": "Trailing whitespace removed only in committed transcript; exact external raw retained and hashed under externalRawRecords."
+    },
+    "04-index-failure-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/04-index-failure-red.txt",
+      "sha256": "700cdadf1d473319d1bd5bcf9b645f371e2e6e6766c2f218358cae0dbf122559",
+      "bytes": 1267
+    },
+    "05-remote-busy-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/05-remote-busy-red.txt",
+      "sha256": "27671643212345b84154c465ae16e669de744da577ef92ee4c087a46a38b02ae",
+      "bytes": 1185
+    },
+    "06-remote-sanitization-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/06-remote-sanitization-red.txt",
+      "sha256": "e99c1a8a4965728a9120783d672e4d5440d1455208e3ff3a694e8b9f2474a0ab",
+      "bytes": 1416
+    },
+    "pure-broker-stop.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/pure-broker-stop.txt",
+      "sha256": "2f49ec68b677953b4ed8bf18b8cc42db36dca2e36e255eda8e617ba338da417d",
+      "bytes": 4780
+    },
+    "pure-tree-source.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/pure-tree-source.txt",
+      "sha256": "40152b9ded5e0eba11079b572ab0c5ca40df8c0f6ee9677c1365224eb7bfe1e8",
+      "bytes": 2175
+    },
+    "pure-tree-ssr.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/pure-tree-ssr.txt",
+      "sha256": "e937cdb4f1c8efd8923f5ec33449e9acbb66dc1769ebfe0e0b84d008558098ed",
+      "bytes": 373
+    },
+    "preservation-final.json": {
+      "path": "docs/evidence/ticket-44-review-fix/preservation-final.json",
+      "sha256": "ec6963e9f92cbbeb7e7d943bf686cb8e20eb61255036366ea857ef0b117b1ccf",
+      "bytes": 923
+    },
+    "integration-refresh.json": {
+      "path": "docs/evidence/ticket-44-review-fix/integration-refresh.json",
+      "sha256": "629ba936bd0987bc6b4fee02578e5e979f259a2601f6efc70af4eabe37e940cd",
+      "bytes": 966
+    },
+    "09-typed-code-priority-red.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/09-typed-code-priority-red.txt",
+      "sha256": "70ed99683d94d14867c19c04b5f84e5e4e96f159ca6f9bfdc9b6dc1053c477da",
+      "bytes": 1503
+    },
+    "09-typed-code-priority-green.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/09-typed-code-priority-green.txt",
+      "sha256": "5af919db8ab3209f961f8d554847c65416ed2055b9ef3534a9c97526a421740a",
+      "bytes": 603
+    },
+    "pure-fs-sqlite-dsh-commit.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/pure-fs-sqlite-dsh-commit.txt",
+      "sha256": "3ee0965841e56765a41bcdc3a3d6cbe5a788421031be6aa8c28599bf0b69b7a1",
+      "bytes": 6630
+    },
+    "typecheck-commit.txt": {
+      "path": "docs/evidence/ticket-44-review-fix/typecheck-commit.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    }
+  },
+  "externalRawRecords": {
+    "01-missing-cwd-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/01-missing-cwd-green.txt",
+      "sha256": "76bd2124d1dfafaf0fbc568c1ba65a231075a0b948b066e6fc460621b1424fba",
+      "bytes": 243
+    },
+    "01-missing-cwd-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/01-missing-cwd-red.txt",
+      "sha256": "5509e11465793f9eaf573745e2aa2b4ea9cffca3bbfc1d8e5e3616afb453dba8",
+      "bytes": 920
+    },
+    "02-protocol-tail-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/02-protocol-tail-green.txt",
+      "sha256": "264e254c38d0e2dfe8439e35cabddf54dad6ae127da42cb70739444f190004db",
+      "bytes": 424
+    },
+    "02-protocol-tail-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/02-protocol-tail-red.txt",
+      "sha256": "e1a6fedc11e6911c91ccfc0d7ae3eb73bf577a3d3e8ecc5d70fd9bca63979178",
+      "bytes": 1185
+    },
+    "03-oversized-code-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/03-oversized-code-green.txt",
+      "sha256": "8be82162e8b12fc40bd977e6379b953595463473d6bd3667c5972b2c3fe33f24",
+      "bytes": 543
+    },
+    "03-oversized-code-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/03-oversized-code-red.txt",
+      "sha256": "a7adcfd95b50130e2e7d609f5493e902640d565c88a6157297877467ae5147bc",
+      "bytes": 1464
+    },
+    "04-index-failure-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/04-index-failure-green.txt",
+      "sha256": "cee2f1789b8be164bcc7cf281596720531da8cc97325a4e08eebf3a9f4556939",
+      "bytes": 642
+    },
+    "04-index-failure-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/04-index-failure-red.txt",
+      "sha256": "700cdadf1d473319d1bd5bcf9b645f371e2e6e6766c2f218358cae0dbf122559",
+      "bytes": 1267
+    },
+    "05-remote-busy-green-final.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/05-remote-busy-green-final.txt",
+      "sha256": "0a4906c0912d85342e52f5d76604cf68b4ed8c815627c21a7ddbc232ea30a39f",
+      "bytes": 252
+    },
+    "05-remote-busy-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/05-remote-busy-green.txt",
+      "sha256": "28f658b27bd1fdc5c8de02f0d8123a8d350f3f791c19992d6fa3ca203cac15f1",
+      "bytes": 1138
+    },
+    "05-remote-busy-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/05-remote-busy-red.txt",
+      "sha256": "27671643212345b84154c465ae16e669de744da577ef92ee4c087a46a38b02ae",
+      "bytes": 1185
+    },
+    "06-remote-sanitization-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/06-remote-sanitization-green.txt",
+      "sha256": "c65693dde1166d02d6fc8093f619695c9947c91a285d9d4f3142964f705940b4",
+      "bytes": 602
+    },
+    "06-remote-sanitization-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/06-remote-sanitization-red.txt",
+      "sha256": "e99c1a8a4965728a9120783d672e4d5440d1455208e3ff3a694e8b9f2474a0ab",
+      "bytes": 1416
+    },
+    "07-regressions.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/07-regressions.txt",
+      "sha256": "08e75e04af69e6913eac83a08361c47e7a1af7f9351e0f2077c97a9e552e662d",
+      "bytes": 1443
+    },
+    "08-boundary-regressions.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/08-boundary-regressions.txt",
+      "sha256": "e84571a995398030412e6509f9456351d7446a670cba9b2711cb4ca476c4d460",
+      "bytes": 1604
+    },
+    "09-typed-code-priority-green.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/09-typed-code-priority-green.txt",
+      "sha256": "5af919db8ab3209f961f8d554847c65416ed2055b9ef3534a9c97526a421740a",
+      "bytes": 603
+    },
+    "09-typed-code-priority-red.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/09-typed-code-priority-red.txt",
+      "sha256": "70ed99683d94d14867c19c04b5f84e5e4e96f159ca6f9bfdc9b6dc1053c477da",
+      "bytes": 1503
+    },
+    "pure-broker-stop.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-broker-stop.txt",
+      "sha256": "2f49ec68b677953b4ed8bf18b8cc42db36dca2e36e255eda8e617ba338da417d",
+      "bytes": 4780
+    },
+    "pure-fs-sqlite-dsh-commit.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-fs-sqlite-dsh-commit.txt",
+      "sha256": "3ee0965841e56765a41bcdc3a3d6cbe5a788421031be6aa8c28599bf0b69b7a1",
+      "bytes": 6630
+    },
+    "pure-fs-sqlite-dsh-final.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-fs-sqlite-dsh-final.txt",
+      "sha256": "99cbaabba51e4a7d5d7f437ab129a567292f425ec6877949149f2f8efb69c057",
+      "bytes": 6616
+    },
+    "pure-fs-sqlite-dsh.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-fs-sqlite-dsh.txt",
+      "sha256": "dcdc25d4d90af6c3d20a2200ef8aee3c4d184d79c0d7c31a3ab0648b1552b90c",
+      "bytes": 6618
+    },
+    "pure-tree-source.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-tree-source.txt",
+      "sha256": "40152b9ded5e0eba11079b572ab0c5ca40df8c0f6ee9677c1365224eb7bfe1e8",
+      "bytes": 2175
+    },
+    "pure-tree-ssr.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/pure-tree-ssr.txt",
+      "sha256": "e937cdb4f1c8efd8923f5ec33449e9acbb66dc1769ebfe0e0b84d008558098ed",
+      "bytes": 373
+    },
+    "typecheck-after-source-review.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-after-source-review.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    },
+    "typecheck-clean-source.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-clean-source.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    },
+    "typecheck-commit.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-commit.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    },
+    "typecheck-final.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-final.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    },
+    "typecheck-initial.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-initial.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    },
+    "typecheck-middle.txt": {
+      "path": "/workspace/work/mvp-implementation/research/ticket-44-review-fix/typecheck-middle.txt",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39",
+      "bytes": 32
+    }
+  },
+  "historicalResults": "All prior Native/browser/TUI results remain historical; the unfrozen broad run remains FAIL (268 pass, 15 fail, 1 error). No final matched tuple or whole-ticket PASS.",
+  "next": "Refresh exact integration tip and clean committed source, then STOP for fresh independent source/spec + Standards review pair and Root merge. #44/#29 remain OPEN; #41 descendant cleanup and global/private admission remain BLOCKED."
+}
