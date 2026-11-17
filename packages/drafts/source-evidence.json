@@ -1,0 +1,31 @@
+{
+  "status": "UNREGISTERED_SOURCE_CANDIDATE_REQUIRES_FRESH_PAIR_REVIEW",
+  "ticket": 57,
+  "baseCommit": "49c437cc69ecfb1e7f83ea234dc054baf9dc4ecf",
+  "dshBaseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "dshActivePatchedTree": "1e1207058448079f0c7e45287c4fd39dca7d2de2",
+  "dshActivePatches": [1, 2, 3],
+  "runtime": "bun 1.4.4 (38afee6c8)",
+  "seam": "Actual public ConversationDraftProvider methods and public semantic parser/constructors; storage/authority/clock resolver fixtures only",
+  "sourceEntrypoints": [
+    "@deepseek-ai/dsh-client-ui-conversation/client",
+    "@deepseek-ai/dsh-api-session-controller/client"
+  ],
+  "sourceTypecheck": "PASS with exact source graph, root strict options and upstream CSS declaration; no public type stubs",
+  "publicProviderTests": { "passed": 14, "failed": 0, "assertions": 72 },
+  "tdd": [
+    "RED missing provider module; GREEN full semantic/ordered-invalid round trip",
+    "RED ownsDraft false independent newer draft refused; GREEN marker snapshot retained",
+    "RED explicit recovery gate ignored; GREEN only exact external authoritative gate permits marker removal",
+    "RED injected synthetic File resolver ignored; GREEN ordered fixture results and late authority refusal",
+    "RED copied DSH scope rejected; GREEN public scope copy accepted and ready generation exact"
+  ],
+  "networkGuard": "Existing tests/interactions/no-provider.ts preloaded before all public DSH imports",
+  "retention": "Zero renewal surface; clock-driven resolver is synthetic and no readiness is cached across expiry",
+  "actualHostRestart": "NOT RUN",
+  "browserAndOwnershipLock": "NOT RUN",
+  "publicClientAtomicHydrationComposition": "NOT RUN; existing DSH engine retained",
+  "nativePreparationOrOutcome": "BLOCKED external capability; default originals remain invalid",
+  "productAdmissionAndWholeTicket": "NOT CLAIMED",
+  "externalExecEvidence": "/workspace/work/mvp-implementation/recovery/ticket57-source/exec-results.json"
+}
