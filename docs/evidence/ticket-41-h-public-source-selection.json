@@ -1,0 +1,485 @@
+{
+  "format": "ticket-41-source-selection-v1",
+  "integrationBase": "f604c2d3f9473ec22ffd98956d87c0c86d5d2e50",
+  "hSource": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+  "publicPSource": "a259d6cfcffbcb967124d57a733fbff07305e765",
+  "admission": "unregistered-source-only",
+  "selected": [
+    {
+      "path": "packages/delivery/README.md",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "149f205196514405247b0f7ddb519c39ce72abeb",
+      "sourceSha256": "0a98d19c97fc1064d63a6f59067f39ab3e4b6ebc747fffb5b128b62db48bc174",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "418f9ad3dbc59e4ac7dfe387832b637e283320e884b1c36323dbf60d56aeb261",
+      "transformation": "prepend source-only normalization/historical-evidence scope notice; original source text retained"
+    },
+    {
+      "path": "packages/delivery/artifact.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "90868b5e762b97617dc41d30276f03d9c55d6e0f",
+      "sourceSha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a"
+    },
+    {
+      "path": "packages/delivery/coordinator.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "72c0b3bbe58f0d0dc16b1b2d86d908182e48d815",
+      "sourceSha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae"
+    },
+    {
+      "path": "packages/delivery/elf.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "28c68957b31aae793f902dc10884d75e6febc0f1",
+      "sourceSha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e"
+    },
+    {
+      "path": "packages/delivery/gate.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "0c35721bddcd86018f77fe4aa04406bb02d82ab0",
+      "sourceSha256": "37f31ca2850344db23300cb7ab9c163bfc9aa6a4a811c82c101a5e39c879cd26",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "37f31ca2850344db23300cb7ab9c163bfc9aa6a4a811c82c101a5e39c879cd26"
+    },
+    {
+      "path": "packages/delivery/maintenance.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "1548347934267a06b6974d2eaf229c4d5229b751",
+      "sourceSha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba"
+    },
+    {
+      "path": "packages/delivery/observation.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "b5516f28e8ca7817e2343ca53649755e287613e1",
+      "sourceSha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370"
+    },
+    {
+      "path": "packages/delivery/platform.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "da40112c2399ca261c7ae8817a99a517a2ae3a71",
+      "sourceSha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482"
+    },
+    {
+      "path": "packages/delivery/resolver.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "8c4609441b2f7dfc85af32be8323368d01fd7471",
+      "sourceSha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d",
+      "integrationPreimageBlob": null,
+      "reason": "current-H exhaustive verifier, retained maintenance and blocked operator report",
+      "selectedSha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d"
+    },
+    {
+      "path": "packages/control-io/README.md",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "960d08257ab52906664b644f6680f92cf3614d9a",
+      "sourceSha256": "56484479d496dfa938ad7ecfae74fd9b4f069fc4fe1902d4eaf3c314f81eed73",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "66017b2fcb868e11b3e2912d59615bef47755d897bb655a17bdb8483da8ee6d0",
+      "transformation": "prepend source-only normalization/historical-evidence scope notice; original source text retained"
+    },
+    {
+      "path": "packages/control-io/errors.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "93c8899474caa9956f918ad11de3bd39e7beb7cf",
+      "sourceSha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b"
+    },
+    {
+      "path": "packages/control-io/index.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "0360535ccd2dd2ee71de2015e7216464f4d22643",
+      "sourceSha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9"
+    },
+    {
+      "path": "packages/control-io/loader.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "fbfd4354272b8db9b3638104a0bb3c371abdec50",
+      "sourceSha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8"
+    },
+    {
+      "path": "packages/control-io/socket.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "bc27d12d475ae8c68f8a042551b6ec510f1213e1",
+      "sourceSha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600"
+    },
+    {
+      "path": "packages/control-io/selection.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "6a2da712be00fb821f3993a1972c655160799047",
+      "sourceSha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4"
+    },
+    {
+      "path": "packages/control-io/testing.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "0dfc96671b83c5d450318c41c6d4616e669fe348",
+      "sourceSha256": "b97c1790ac5bcff04d7d1922296e7a599bf4aa9baf0d266eda1c6bab2d9f5fc3",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "b97c1790ac5bcff04d7d1922296e7a599bf4aa9baf0d266eda1c6bab2d9f5fc3"
+    },
+    {
+      "path": "packages/control-io/package.json",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "4a8d6e10f9b452eeb8fc1ac841c1e2ecc605ae34",
+      "sourceSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+      "integrationPreimageBlob": null,
+      "reason": "authoritative public C-I/O ABI1 loader, byte stream and non-authorizing test seams",
+      "selectedSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    {
+      "path": "packages/supervision/README.md",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "e1819cb423acc2ce5fbbed56c667ca495c6f77db",
+      "sourceSha256": "e867cd84f3173f01fe5b6d62d4eafe65a1846cfc957646140756458b14dd1f23",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "89450ad09bab0c33148fe5e623c20fad11e43d50f55920e34cfdf859e694ee8f",
+      "transformation": "prepend source-only normalization/historical-evidence scope notice; original source text retained"
+    },
+    {
+      "path": "packages/supervision/adapter.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "2628c4aa0b98f5330fc6e1ab2436c5390a84d1e9",
+      "sourceSha256": "8f51436141dfcbe9973900f4fca2c0de6d710a58fd06921fe9031ed7d498eaaa",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "8f51436141dfcbe9973900f4fca2c0de6d710a58fd06921fe9031ed7d498eaaa"
+    },
+    {
+      "path": "packages/supervision/control-io-selection.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "11b27129aff778c7dca919253d5c2b8108dbd23c",
+      "sourceSha256": "3f1d95f15d09194e817119f972ceab7ee0199d64816bf3ab3f9ea8bd6c95333f",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "3f1d95f15d09194e817119f972ceab7ee0199d64816bf3ab3f9ea8bd6c95333f"
+    },
+    {
+      "path": "packages/supervision/control.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "66fda39f585f22b22bbbfb84c8db4095ac1b1ed2",
+      "sourceSha256": "c7f807fd1f2eeed7e43ed447ce046f8b281fbb8f038f8293ba850e61f30192ec",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "c7f807fd1f2eeed7e43ed447ce046f8b281fbb8f038f8293ba850e61f30192ec"
+    },
+    {
+      "path": "packages/supervision/controller.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "93572aaf48202f9b0549764c149a649fb9d003c1",
+      "sourceSha256": "f280fdb75af1d79aa883ec4b92da1e5b3b4eee3dbb075e75cfbdaaeba7222f44",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "f280fdb75af1d79aa883ec4b92da1e5b3b4eee3dbb075e75cfbdaaeba7222f44"
+    },
+    {
+      "path": "packages/supervision/errors.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "62edde5b6ff84c5d2d98a4b16fbe2e215590a040",
+      "sourceSha256": "2c86986ff3ae8f15bd43e37f6cad474f9e4da3a64a65993d5bf309c5fc23c5e5",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "2c86986ff3ae8f15bd43e37f6cad474f9e4da3a64a65993d5bf309c5fc23c5e5"
+    },
+    {
+      "path": "packages/supervision/input.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "7e6f9a8d3794787f4259a05115a4ef06ed2d5049",
+      "sourceSha256": "5952682f7f8fbdc0792dc68e61daa73e7e99f423f1082382fd9fbffb53db1805",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "5952682f7f8fbdc0792dc68e61daa73e7e99f423f1082382fd9fbffb53db1805"
+    },
+    {
+      "path": "packages/supervision/owner.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "ec93bad3c053eb5cfab19e6700672344cd6a43db",
+      "sourceSha256": "e6730bb103396237e0c087c7289d738edd40673c94b0f043f7389215d66e5881",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "e6730bb103396237e0c087c7289d738edd40673c94b0f043f7389215d66e5881"
+    },
+    {
+      "path": "packages/supervision/session.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "d7a484d7de18ba3cf9d31941cab2bea54c9cd9da",
+      "sourceSha256": "3b29f56df9b941052290b54b0beed29231d054b1b24351f5baca50b7b9bac7b5",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "3b29f56df9b941052290b54b0beed29231d054b1b24351f5baca50b7b9bac7b5"
+    },
+    {
+      "path": "packages/supervision/testing.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "69c2056c55add06a3629df5b99e3a259ce32cea3",
+      "sourceSha256": "227bff2891ddef99e49eac0f7a3b2f0f31a9ef38bf7bf7f827e74d6abdbc3e3e",
+      "integrationPreimageBlob": null,
+      "reason": "private controller and retained owner composition with clean serialized EOF and one-attempt raw close",
+      "selectedSha256": "227bff2891ddef99e49eac0f7a3b2f0f31a9ef38bf7bf7f827e74d6abdbc3e3e"
+    },
+    {
+      "path": "compatibility/control-io/owned-control-io.c",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "75d3b922ab8494d9c79bebeea6dcb463f4ca5d65",
+      "sourceSha256": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816"
+    },
+    {
+      "path": "compatibility/control-io/owned-control-io.h",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "aea82c6bc8ad9018dcde865d03e3fb5866908f04",
+      "sourceSha256": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c"
+    },
+    {
+      "path": "compatibility/supervision/candidates.h",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "ced3a27457579673efaade0aa78187e42b895b5a",
+      "sourceSha256": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893"
+    },
+    {
+      "path": "compatibility/supervision/private-helper.c",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "af95d4e72c81ca14a8021db5c940ce1fa4c22150",
+      "sourceSha256": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f"
+    },
+    {
+      "path": "compatibility/launcher/control.h",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
+      "sourceSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    {
+      "path": "scripts/build-control-io.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "1a5bd1abbdfbaedcbb9e5615acaaf4befe544e84",
+      "sourceSha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b"
+    },
+    {
+      "path": "scripts/build-control-io-public.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "fbb285141a6ea506c48cbef1136523c8fb8db277",
+      "sourceSha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab"
+    },
+    {
+      "path": "scripts/build-private-helper.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "867e1ffc436011a5d79bc5a5867de70b00188076",
+      "sourceSha256": "c34860192c5adb8245ab119579a09bc3fa2e39970e7aa3b00bd1529b0480e2dd",
+      "integrationPreimageBlob": null,
+      "reason": "private C helper and public C-I/O build/header/provenance closure; source only",
+      "selectedSha256": "c34860192c5adb8245ab119579a09bc3fa2e39970e7aa3b00bd1529b0480e2dd"
+    },
+    {
+      "path": "docs/adr/0020-owned-control-socket-io.md",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "ccffaec7d7a5a7d57e1c5cb161c323122c3895ce",
+      "sourceSha256": "f12ca24196e700cc08ccf0dba3e89a5a96c6b44b30f521b23620f7df88b59520",
+      "integrationPreimageBlob": null,
+      "reason": "historical public C-I/O source direction; historical proof is not new tuple evidence",
+      "selectedSha256": "3534772a322750775eff4248039545765f33dc4833f942de7d62de84a70c43ea",
+      "transformation": "prepend source-only normalization/historical-evidence scope notice; original source text retained"
+    },
+    {
+      "path": "tests/supervision/approved-helper-owner.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "88308b450fafeec0f20b4beb872ae1e7be5dfbe0",
+      "sourceSha256": "04fc7899abb42be73a942dfca8c687af2c501a54e104a92363fa87f00e4d2074",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "04fc7899abb42be73a942dfca8c687af2c501a54e104a92363fa87f00e4d2074"
+    },
+    {
+      "path": "tests/supervision/control-io-public.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "1940cdb07616e786392b2f017935be06e6b493d8",
+      "sourceSha256": "170121ba83c2aae19c2d5e979c6441fdad9a80cd167d708d11effcadee346d34",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "170121ba83c2aae19c2d5e979c6441fdad9a80cd167d708d11effcadee346d34"
+    },
+    {
+      "path": "tests/supervision/control.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "d344a44406ad3503ba7b6336d01ace29f36cbb57",
+      "sourceSha256": "eb7b267a02c00754a0b399e53500f4e98d5f45c73c43c847186266defa4b10a2",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "eb7b267a02c00754a0b399e53500f4e98d5f45c73c43c847186266defa4b10a2"
+    },
+    {
+      "path": "tests/supervision/controller.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "6dcc8c837b072066aa19797598a03dd9604f6ca2",
+      "sourceSha256": "0305d0ca4e86bd3577288927bbcdaaae32795dfc7f8de7f65ceb6bf3eebfbbc7",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "0305d0ca4e86bd3577288927bbcdaaae32795dfc7f8de7f65ceb6bf3eebfbbc7"
+    },
+    {
+      "path": "tests/supervision/session.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "b563468e88ec375d32a9cb301edf6b281556685d",
+      "sourceSha256": "b8c1afa3abf8e7e02d66f7cafa6e5bc5a6a660143ae44464dfe78a901cb30edf",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "b8c1afa3abf8e7e02d66f7cafa6e5bc5a6a660143ae44464dfe78a901cb30edf"
+    },
+    {
+      "path": "tests/supervision/owned-control-io.test.ts",
+      "sourceCommit": "a259d6cfcffbcb967124d57a733fbff07305e765",
+      "sourceBlob": "915ee39af37300f92cd9326ac9edd88a0563df47",
+      "sourceSha256": "e8c6a765f11ad3f6ad23305484e7c10b012ea267c1d8304e7eebe601ee5cef4a",
+      "integrationPreimageBlob": null,
+      "reason": "reviewed pure controlled public tests",
+      "selectedSha256": "e8c6a765f11ad3f6ad23305484e7c10b012ea267c1d8304e7eebe601ee5cef4a"
+    },
+    {
+      "path": "tests/delivery/artifact.test.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "c1f3a448bec6c8197bf81e68b3a63b4d04eea9c6",
+      "sourceSha256": "78987d0fdb45f467b1ced199cb3e819a22d89b135b5aed20bd37938af64022d1",
+      "integrationPreimageBlob": null,
+      "reason": "current-H verifier regression source; filesystem suites not executed in source-only window",
+      "selectedSha256": "78987d0fdb45f467b1ced199cb3e819a22d89b135b5aed20bd37938af64022d1"
+    },
+    {
+      "path": "tests/delivery/platform.test.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "c87dd73ac9ff47b46462dae52f793b9fe334bb48",
+      "sourceSha256": "240543ea3a436ee7b0296eb97d6aaafec216cc0529b65dc0d2cc4f69465092bf",
+      "integrationPreimageBlob": null,
+      "reason": "current-H verifier regression source; filesystem suites not executed in source-only window",
+      "selectedSha256": "240543ea3a436ee7b0296eb97d6aaafec216cc0529b65dc0d2cc4f69465092bf"
+    },
+    {
+      "path": "tests/delivery/resolver.test.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "9d1298edf679abc8a0e892f443a4222ae33b1d80",
+      "sourceSha256": "507fd03078c0977f7153f858c4b4bbe9972306723d77ac027530db2fa9d56495",
+      "integrationPreimageBlob": null,
+      "reason": "current-H verifier regression source; filesystem suites not executed in source-only window",
+      "selectedSha256": "507fd03078c0977f7153f858c4b4bbe9972306723d77ac027530db2fa9d56495"
+    },
+    {
+      "path": "tests/delivery/fixtures.ts",
+      "sourceCommit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "sourceBlob": "161d00e654483f5bc72b723f9e76278aaec01d0e",
+      "sourceSha256": "a7064bc3e8f7043b407f9dd4bb9333622b815e40d18c1a8bf51054cd594cf2a3",
+      "integrationPreimageBlob": null,
+      "reason": "current-H verifier regression source; filesystem suites not executed in source-only window",
+      "selectedSha256": "a7064bc3e8f7043b407f9dd4bb9333622b815e40d18c1a8bf51054cd594cf2a3"
+    }
+  ],
+  "unchangedDependencies": [
+    "packages/compatibility/installation.ts",
+    "package.json",
+    "bun.lock",
+    "tsconfig.json"
+  ],
+  "excluded": [
+    "external controller and external C policies",
+    "Host/root imports and registrations",
+    "Native patches and vendor",
+    "built artifacts and signed inventories",
+    "runtime fixture stages and keys"
+  ],
+  "reviewCoverage": {
+    "publicP": "f30936d, diff 87182bb...f30936d: public adapter spec/standards; earlier lifetime b8a00ea, diff 3e11e6b...b8a00ea",
+    "composed": "fresh paired full-delta review required; no historical review certifies this tuple",
+    "publicPNominal": "416a0c2, diff f30936d...416a0c2: selection verification/fixture refactor source review; later a259d6c staging/evidence is not copied"
+  },
+  "unchangedDependencyBlobs": {
+    "packages/compatibility/installation.ts": {
+      "integration": "984a14b4ca36584156eab6980c7bd7785b2f14e3",
+      "currentH": "984a14b4ca36584156eab6980c7bd7785b2f14e3",
+      "publicP": "984a14b4ca36584156eab6980c7bd7785b2f14e3"
+    },
+    "package.json": {
+      "integration": "10ade346c5658a8a54cf1bc792e2de386348fb74",
+      "currentH": "6edea0bc0cbe20d937c2c968478acef6ed4fa9a8",
+      "publicP": "6edea0bc0cbe20d937c2c968478acef6ed4fa9a8"
+    },
+    "bun.lock": {
+      "integration": "c726e4801fcb52709ea28238b44788f59f793b2d",
+      "currentH": "c726e4801fcb52709ea28238b44788f59f793b2d",
+      "publicP": "c726e4801fcb52709ea28238b44788f59f793b2d"
+    },
+    "tsconfig.json": {
+      "integration": "e82b813bbbf686ac01b5fc2bc5817a8391c46ab5",
+      "currentH": "e82b813bbbf686ac01b5fc2bc5817a8391c46ab5",
+      "publicP": "e82b813bbbf686ac01b5fc2bc5817a8391c46ab5"
+    }
+  },
+  "dependencyNotes": [
+    "H delivery runtime closure: gate -> coordinator -> maintenance/resolver -> artifact -> observation/platform -> elf. installation.ts and zod are unchanged integration dependencies. maintenance statically imports bun:ffi; never execute/import that closure in this source-only task.",
+    "Public package closure: index -> errors/loader/socket; selection imports are type-only. loader dynamically imports bun:ffi only on explicit loading. No delivery/supervision reverse imports.",
+    "Host owner closure: adapter -> public entry/owner/control/errors/control-io-selection; owner -> controller -> control/session/input/errors. InspectedSelection is type-only, preserving current H verifier delegate. Test factories are excluded from public package exports/build publication.",
+    "C helper closure: private-helper.c -> candidates.h and ../launcher/control.h. Configuration macro definitions are generated by selected build-private-helper.ts. Public C-I/O source includes its selected ABI header. Standard Linux/system headers are compiler dependencies, not selected runtime provenance.",
+    "Build closure: build-control-io.ts -> build-control-io-public.ts and dynamic current-H maintenance; public builder stages five TS modules, metadata, both builder scripts, unchanged root package.json/bun.lock and recorded Bun1.4.4/TypeScript6.0.3. Private builder -> current-H maintenance/errors and publishes helper C/candidates/control/configuration provenance. No builder invoked.",
+    "Current H inventories the complete root, so public lib/control-io paths are included even though they are not required releaseComponents. No weakening of required components, platform aliases, recursive ELF checks, observations, immutable manifest or sticky verification is introduced.",
+    "Unchanged base compatibility/omp/fixtures was sparsely materialized only so full normal TypeScript can resolve existing live-worker imports. None was edited or executed.",
+    "Root installation.ts, bun.lock and tsconfig.json match both source commits exactly. Root package.json differs only by four existing workspaces fixture/build scripts; dependencies and toolchain pins are identical. The builder would record the integration package.json bytes and therefore create new provenance, never inherit historical publication identity."
+  ],
+  "authoredFiles": [
+    "docs/adr/0026-unregistered-supervision-prerequisites.md",
+    "docs/evidence/ticket-41-h-public-source-selection.json",
+    "docs/evidence/ticket-41-h-public-source-validation.md",
+    "docs/evidence/ticket-41-h-public-static-closure.json",
+    "docs/evidence/source-checks/ticket-41-h-public-static.ts",
+    "docs/evidence/source-checks/ticket-41-private-helper-configuration.h"
+  ]
+}
