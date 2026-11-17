@@ -36,3 +36,8 @@ operations. Joint Native/Host idle, unsent-only recovery, and one-use current-wo
 force offers are explicit. Actual public transport/product dispatch and original
 supervisor-handle force integration remain required; the source capability cannot
 resolve or kill a PID and supplies no automatic ordinary-Stop kill deadline.
+Unknown UI cancellation remains Host busy work, including UI arriving while Stop
+is closing. Joint idle requires public terminal evidence for each known UI; a
+Native settled observation or elapsed time cannot erase that uncertainty. The
+bounded source ledger fails closed on tracking overflow and permanently respects
+scope revocation. These source rules do not replace real cancellation/cleanup tests.

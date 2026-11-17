@@ -30,6 +30,10 @@ interface Pending { card: PendingInteraction; deadline: number; cancelTimer: () 
   state: "pending" | "settling"; deliveries: Map<string, string>; cancellation?: Promise<BrokerResult> }
 type Outcome = BrokerSnapshot["outcomes"][number];
 const interactive = new Set(["ask", "select", "input", "editor", "confirm"]);
+/** Cancellation is unresolved; only the Broker's live public-evidence ledger may clear this failure. */
+export class InteractionCancellationUnknownError extends Error {
+  readonly code = "INTERACTION_CANCELLATION_UNKNOWN";
+}
 
 /** One in-memory worker incarnation. Disconnect removes page rights, never stops admitted execution. */
 export class InteractionBroker {
@@ -38,6 +42,9 @@ export class InteractionBroker {
   #pages = new Map<string, PageBinding>();
   #pending = new Map<string, Pending>();
   #seen = new Set<string>();
+  #unresolved = new Set<string>();
+  #uncertain = new Set<string>();
+  #overflow = false;
   #outcomes: Outcome[] = [];
   #policy = false;
   #accepting = true;
@@ -129,8 +136,11 @@ export class InteractionBroker {
   async beginStop(): Promise<void> {
     this.#accepting = false;
     await Promise.all([...this.#pending.keys()].map(id => this.#cancel(id, "worker-stopping")));
+    if (this.cancellationUncertain) throw new InteractionCancellationUnknownError("UI cancellation remains unresolved");
   }
-  get pendingCount(): number { return this.#pending.size + this.#inFlight; }
+  /** Includes unresolved Native UI even after a failed cancellation removed its answer rights. */
+  get pendingCount(): number { return this.#unresolved.size + this.#inFlight + Number(this.#overflow); }
+  get cancellationUncertain(): boolean { return this.#overflow || this.#uncertain.size > 0; }
   /** Called only after the coordinator observes joint Native/Host quiescence. */
   resumeAfterStop(): void {
     if (this.#closed || this.#revoked || this.pendingCount) throw new Error("INTERACTION_NOT_QUIESCENT");
@@ -151,11 +161,15 @@ export class InteractionBroker {
   }
   #open(request: Interactive): void {
     if (this.#seen.has(request.id)) return;
-    if (!this.#accepting || !this.#policy || this.#pending.size >= 16 || this.#seen.size >= 4096) {
-      void this.#respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
+    // Never evict unresolved evidence to admit more UI or produce a false zero busy count.
+    if (this.#seen.size >= 4096) {
+      this.#overflow = true; this.#requestStop("ui-tracking-overflow"); return;
+    }
+    this.#seen.add(request.id); this.#unresolved.add(request.id);
+    if (!this.#accepting || !this.#policy || this.#pending.size >= 16) {
+      void this.#settle(request.id, undefined, { type: "cancel" }, "ui-not-admitted");
       this.#requestStop("ui-not-admitted"); return;
     }
-    this.#seen.add(request.id);
     const wait = Math.max(0, Math.min(this.#wait, request.timeout ?? this.#wait)), createdAt = this.time.wall();
     const questions = request.method === "ask" ? request.questions.map(question => ({
       id: question.id, question: question.question, options: question.options.map(option => ({ label: option.label })),
@@ -166,7 +180,7 @@ export class InteractionBroker {
       title: "title" in request ? request.title : "Native ask", createdAt, deadline: createdAt + wait,
       reason: "explicit-answer-required" });
     if (!parsed.success) {
-      void this.#respondUi({ targetId: request.id, answer: { type: "cancel" } }).catch(() => {});
+      void this.#settle(request.id, undefined, { type: "cancel" }, "ui-presentation-incompatible");
       this.#requestStop("ui-presentation-incompatible"); return;
     }
     const card = parsed.data;
@@ -183,17 +197,18 @@ export class InteractionBroker {
     if (reason === "expired") this.#requestStop(reason);
     return entry.cancellation;
   }
-  async #settle(id: string, entry: Pending, answer: UIAnswer, reason: string): Promise<BrokerResult> {
-    entry.state = "settling";
-    if (answer.type === "cancel") { entry.deliveries.clear(); entry.cancelTimer(); }
+  async #settle(id: string, entry: Pending | undefined, answer: UIAnswer, reason: string): Promise<BrokerResult> {
+    if (entry) entry.state = "settling";
+    if (entry && answer.type === "cancel") { entry.deliveries.clear(); entry.cancelTimer(); }
     try {
       const result = interactionReplySchema.parse(await this.#respondUi({ targetId: id,
         answer: nativeAnswer(answer) }));
-      if (result.status === "invalid" && !this.#closed && this.#pending.get(id) === entry) {
+      if (result.status === "invalid") {
         if (answer.type === "cancel") {
           this.#retire(id, "unknown", "native-cancel-incompatible"); this.#requestStop("native-cancel-incompatible");
           return { status: "unknown" };
         }
+        if (!entry || this.#closed || this.#pending.get(id) !== entry) return result;
         if (!entry.cancellation && this.time.now() >= entry.deadline) void this.#cancel(id, "expired");
         else if (!entry.cancellation && this.#accepting) { entry.state = "pending"; entry.deliveries.clear(); }
       } else this.#retire(id, result.status, reason);
@@ -205,8 +220,11 @@ export class InteractionBroker {
     }
   }
   #retire(id: string, status: string, reason: string): void {
-    const entry = this.#pending.get(id); if (!entry) return;
-    entry.cancelTimer(); this.#pending.delete(id);
+    if (!this.#unresolved.has(id)) return;
+    const entry = this.#pending.get(id);
+    entry?.cancelTimer(); this.#pending.delete(id);
+    if (status === "unknown") this.#uncertain.add(id);
+    else { this.#unresolved.delete(id); this.#uncertain.delete(id); }
     this.#outcomes.push({ id, status, reason, stop: "none" });
     if (this.#outcomes.length > 64) this.#outcomes.shift();
   }

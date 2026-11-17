@@ -3,7 +3,7 @@ import type { AbortAndRestoreQueueResult, PromptResultEvent, RpcWireCommands,
   SessionSettledEvent, SessionState } from "../contracts/generated/omp-wire.ts";
 import { brokerScopeSchema, type BrokerScope } from "../contracts/interaction-broker.ts";
 import { restoredQueueSchema, type ForceOffer, type StopSnapshot } from "../contracts/stop.ts";
-import type { PageIdentity } from "./broker.ts";
+import { InteractionCancellationUnknownError, type PageIdentity } from "./broker.ts";
 
 /** Implement using the matched public abort_branch_summary and abort_and_restore_queue RPC operations. */
 export interface StopNativePort {
@@ -24,6 +24,8 @@ export function createStopNativePort(rpc: PublicStopRpc): StopNativePort {
 export interface StopHostPort {
   /** Synchronously fence answers; cancel known UI without recursively requesting Stop. */
   beginStop(): Promise<void>;
+  /** Live Broker uncertainty, including UI arriving after beginStop completed. Only public terminal evidence clears it. */
+  cancellationUncertain(): boolean;
   pending(): StopSnapshot["pending"];
   resume(): void;
 }
@@ -50,6 +52,7 @@ export class StopCoordinator {
   #controlsDone = false;
   #controls: Promise<void> = Promise.resolve();
   #failures: StopSnapshot["failures"] = [];
+  #uiControlFailed = false;
   #restored: StopSnapshot["restored"] = null;
   #offer: { token: string; page: StopPage; expires: number } | undefined;
   #ownedInvalid = false;
@@ -94,6 +97,7 @@ export class StopCoordinator {
     if (this.#status !== "idle") return;
     this.#status = "stopping"; this.#started = this.now(); this.#settled = false;
     this.#controlsDone = false; this.#offer = undefined; this.#failures = []; this.#restored = null;
+    this.#uiControlFailed = false;
     // Start cancellation synchronously. No held UI/summary response can prevent the other interrupt from dispatching.
     const ui = this.#control("ui-cancel-failed", () => this.host.beginStop());
     const summary = this.#control("summary-cancel-failed", () => this.native.abortBranchSummary());
@@ -165,13 +169,24 @@ export class StopCoordinator {
       !this.#ownedInvalid && this.owned?.workerGeneration === this.workerGeneration;
   }
   #reconcile(): void {
-    if (this.#status !== "stopping" || !this.#settled || !this.#controlsDone || this.#failures.length) return;
+    if (this.#status !== "stopping") return;
+    if (this.host.cancellationUncertain()) {
+      if (!this.#failures.includes("ui-cancel-failed")) this.#failures.push("ui-cancel-failed");
+    } else if (this.#controlsDone && !this.#uiControlFailed) {
+      this.#failures = this.#failures.filter(failure => failure !== "ui-cancel-failed");
+    }
+    if (!this.#settled || !this.#controlsDone || this.#failures.length) return;
     if (Object.values(this.host.pending()).some(value => value !== 0)) return;
-    try { this.host.resume(); } catch { this.#failures.push("ui-cancel-failed"); return; }
+    try { this.host.resume(); } catch {
+      this.#uiControlFailed = true; this.#failures.push("ui-cancel-failed"); return;
+    }
     this.#status = "idle"; this.#offer = undefined;
   }
   async #control(failure: StopSnapshot["failures"][number], action: () => Promise<void>): Promise<void> {
-    try { await action(); } catch { this.#failures.push(failure); }
+    try { await action(); } catch (error) {
+      if (failure === "ui-cancel-failed") this.#uiControlFailed = !(error instanceof InteractionCancellationUnknownError);
+      if (!this.#failures.includes(failure)) this.#failures.push(failure);
+    }
   }
   #snapshot(status: StopSnapshot["status"], pending: StopSnapshot["pending"], draftConflict: boolean): StopSnapshot {
     return { generation: this.generation, workerGeneration: this.workerGeneration, scope: this.scope, status,

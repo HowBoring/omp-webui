@@ -66,6 +66,15 @@ generated public contracts. The candidate declares explicit-answer-only native
 and tool expiry semantics before UI admission. Stock pinned OMP without that
 effective guarantee remains incompatible; an earlier Host timer cannot supply it.
 This vertical needs no additional Native command for its extension-UI subset.
+The combined #47/#48 source correction retains unresolved Native UI independently
+of visible answer cards. Invalid, rejected or incompatible cancellation (including
+late UI during Stop) records unknown and blocks Broker resume; settled or elapsed
+time cannot clear it. Only a validated same-UI terminal result or Native cancel
+notice resolves it. Tracking shares the 4,096 seen-UI bound, and overflow latches a
+worker-lifetime blocker without evicting unresolved evidence. The Stop adapter must
+read both `pendingCount` and the required live `cancellationUncertain` signal;
+[Stop source status](stop-coordinator-source-status.md) documents that composition
+and its 30 controlled public Remote fixtures. Public Remote/RPC schemas are unchanged.
 It does still need an admitted, provenance-verified worker transport wired to
 public `respond_ui`, validated notification dispatch, and the actual #48 Stop
 coordinator before product use. `requestStop(reason)` is that injected coordinator
