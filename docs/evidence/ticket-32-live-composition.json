@@ -1,0 +1,9 @@
+{
+  "kind": "mechanical-accepted-0006-rebase-after-owned-0005",
+  "acceptedPatchSha256": "537a90d0ecb91d554977f23e1562909d4e2b54f6a90d1b9dc802bd998d6831ea",
+  "rebasedPatchSha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4",
+  "nonemptyAddedDeletedPayloadIdentical": true,
+  "difference": "patch context/index hashes/line positions plus one added blank line; union of independent first imports",
+  "semanticOwner": "ticket35",
+  "integration": "d22a908b2b6b8a53093af70c347b92cc5e69869b"
+}

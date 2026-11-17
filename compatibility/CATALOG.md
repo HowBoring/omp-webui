@@ -32,7 +32,7 @@ A descriptor contains native Session ID, sourceId, instanceId, durable scoped re
 current native title-slot title, or legacy header title (optional, at most 512 characters), header timestamp as createdAt, **filesystem mtime** as modifiedAt,
 actual recorded/canonical cwd or unknown/missing/inaccessible/invalid status, observation timestamp, native
 held/free/unknown ownership observation with timestamp, and optional parentSession/continuationOf relations.
-It exposes no transcript, prompt, exact message count, model state or title-generation request. The authoritative optional leading title slot and immediately following header share one
+It exposes no transcript, prompt, exact message count, model state or title-generation request. For legacy records, the authoritative optional leading title slot and immediately following header share one
 16 KiB metadata prefix; bytes beyond that prefix are not read. A corrupt slot/header is an explicit partial failure,
 never skipped to search later records. An empty current slot removes a stale header title. Missing title is honest; no current worker cwd substitutes for a missing header cwd.
 
@@ -41,7 +41,7 @@ instanceId = SHA256(dev:ino:birthtimeNs:nativeSessionId). Native Session ID is a
 The reference is base64url JSON `{sourceId,locator,instanceId,nativeSessionId}`; it is an identifier, **not authorization**.
 Native descriptor verification merges proven same-physical-file aliases, while same-ID copies remain distinct.
 Different source scopes remain distinct even when nested authorized roots contain the same physical file or hard links connect them.
-Directory traversal deduplicates canonical directories within each source identity. Authorization never expands a source's fixed traversal depth. Physical replacement/atomic rewrite
+Directory traversal deduplicates canonical directories within each source identity. Authorization never expands a source's fixed traversal depth. A physical replacement or legacy rename rewrite
 invalidates the old instance binding; a fresh descriptor can reissue it while retaining the logical native ID.
 Move/rewrite is never silently followed. Ticket 32 must revalidate these exact facts while holding the real native
 lease, maintain first-write protection and recheck current directory authority; this readonly observation is no reservation.
@@ -118,3 +118,20 @@ upstream types; unrelated full-upstream diagnostics are outside that narrow chec
 The [typed DSH fixture](../apps/catalog/README.md) and [Linux evidence](../docs/evidence/ticket-31-catalog.md)
 record the real browser/native path, exact tuple, clean patch reproduction, fixed corpus and remaining product gates.
 Only the isolated readonly component is delivered; it does not admit private Sessions or implement protected open.
+
+## Additive generation metadata support (#32)
+
+The ordered0005 native adapter recognizes `ompgen1` carriers while preserving the same source/instance/native-ID
+reference fields. Generation publication retains the selected carrier inode; a fresh verified owned binding is
+required after publication. The original0002/31 evidence remains a historical legacy-format checkpoint.
+
+Current `catalog_sources.budgets` additionally reports `generationControlBytes:6144` and
+`generationHeaderBytes:16384`. Extended discovery reads the original16384-byte carrier prefix, bounded fd xattr/
+commit/immutable metadata controls within6144 bytes, and at most16384 bytes from the winning logical generation.
+Committed metadata authenticates that exact prefix length/hash, body size, carrier identity and native ID. Discovery
+does not load/hash full history. The authoritative fd head identifies the current commit directly, so a missing
+newest committed manifest cannot fall back to an older descriptor after a large tail. Missing/corrupt committed
+controls and aliases lacking bound controls are explicit partial failures; the original valid reference remains
+independently discoverable. Full continuation separately verifies complete logical data under a real owned lease.
+See [strict continuation and format contract](STRICT-CONTINUATION.md) for incomplete preannouncement/commit,
+copy-loss detection, platform support, budgets and conditional rollback.

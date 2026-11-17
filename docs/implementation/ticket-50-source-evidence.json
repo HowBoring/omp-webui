@@ -1,0 +1,145 @@
+{
+  "ticket": 50,
+  "date": "2026-11-17",
+  "status": "unregistered_source_slice_only",
+  "integration_base": "367e18fef61199a4846f551cd069cdc1a7545b44",
+  "production_admission": "closed",
+  "native_execution": false,
+  "browser_execution": false,
+  "listeners_sockets_processes_ffi": false,
+  "dependency_changes": false,
+  "seam": "actual DSH Client Remote -> synthetic in-memory Connection -> actual public Host Gateway -> ReadonlyTree -> actual generated HistoryClient -> synthetic typed native DTO port; public TreeBrowser and React SSR",
+  "fixture_is_native_evidence": false,
+  "source_sha256": {
+    "packages/contracts/tree.ts": "8ed2aeaad46bbb326cc13105d6a901f00cf5f1a95fcfe0226fbb8058ea06476f",
+    "packages/tree/service.ts": "62d76c878fc8684f99ab9f597113887d0031fc570f498102c6ae99f48ecb4ef0",
+    "packages/tree/browser.ts": "2dbe6b26b4385d50d7fd3a52b6ad8e831fe30483a15dea7e42e43a3aadb39bb5",
+    "packages/tree/panel.tsx": "f79b2bd27e2377e9105106689cfa622cf5fdc44df98d3f61b9e001a7114f9098",
+    "tests/tree/remote.test.ts": "17d639614fd634b300e97dfc90d462b9f2e5c4471f722bd073f96c43b4802c0b"
+  },
+  "existing_contract_sha256": {
+    "packages/contracts/generated/omp-wire.ts": "967bff28825d494a15adc0d846f1a7054a0d6d0e6ff791a3ae410104c45a6582",
+    "packages/contracts/generated/history-client.ts": "35e8a750e3edd4bd3725aa8ff4a37cbeaf7cf9f9a3ff82e2f125c29896601227",
+    "packages/contracts/generated/history.generated.ts": "3f2f46eb79b03ae987d288b95b26d1b8b5d55e37a22b0281e97c10d7fe874225",
+    "compatibility/omp/0004-coherent-history.patch": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3",
+    "compatibility/omp/0006-live-settlement.patch": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4",
+    "tests/preferences/no-provider.ts": "287bff06c8649fe523f9ecaefd79ea6bb02811bb36f7b21bba90b930503d078b"
+  },
+  "upstreams": {
+    "omp_reviewed_base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "dsh_reviewed_base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "final_tuple_attested": false
+  },
+  "verification": {
+    "bun": "1.4.4 (38afee6c8)",
+    "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "environment": {
+      "mode": "env -i",
+      "PATH": "/usr/bin:/bin",
+      "HOME": "/tmp/omp-tree-source-home",
+      "PI_CODING_AGENT_DIR": "/tmp/omp-tree-source-profile",
+      "TMPDIR": "/tmp",
+      "cwd": "/tmp/omp-tree-source-cwd"
+    },
+    "bun_arguments": [
+      "test",
+      "--no-env-file",
+      "--preload",
+      "/workspace/work/omp-webui-ticket-50/tests/preferences/no-provider.ts",
+      "/workspace/work/omp-webui-ticket-50/tests/tree/remote.test.ts",
+      "/workspace/work/omp-webui-ticket-50/tests/preferences/remote.test.ts",
+      "/workspace/work/omp-webui-ticket-50/tests/history/remote.test.ts"
+    ],
+    "focused": {
+      "tests": 22,
+      "assertions": 86,
+      "passed": true
+    },
+    "combined_public_remote_regression": {
+      "tests": 31,
+      "assertions": 124,
+      "passed": true
+    },
+    "strict_typescript": {
+      "passed": true,
+      "scope": "full repository tsconfig.json",
+      "runtime_native_imports": false
+    }
+  },
+  "red_traces": [
+    "first public Remote test: missing tree contract",
+    "component tracer: missing browser component",
+    "concurrent reads: refused read released another read exclusion",
+    "oversized advertised snapshot: open accepted 60001 native parts",
+    "empty nonterminal native page: returned partial continuation"
+  ],
+  "synthetic_reachability": {
+    "nodes": 2048,
+    "native_pages": 64,
+    "rendered_node_buttons": 96,
+    "native_or_browser_performance_claim": false
+  },
+  "safety_budgets": {
+    "snapshots": 8,
+    "nodes_per_snapshot": 20000,
+    "parts_per_snapshot": 60000,
+    "cached_encoded_node_text_bytes_per_snapshot": 16777216,
+    "cached_encoded_node_text_bytes_total": 33554432,
+    "preview_utf16_units": 2097152,
+    "native_page_items": 1024,
+    "rendered_nodes_per_active_segment_initial": 64
+  },
+  "known_contract_limitations": [
+    "No typed per-entry pruning metadata; preserve native textual notices without inferring model-input membership",
+    "Safe rich content remains flattened by the current public history DTO; ticket 46 remains open",
+    "No source/live subscription or product broker/auth wiring is registered by this source slice"
+  ],
+  "remaining_gates": [
+    "actual global OMP compatibility and Native tree reads",
+    "actual authorized Linux DSH Browser Views and source/live invalidation",
+    "retained/pruned Native data and original attachment rendering",
+    "full source-cut/expiry/occupation/revocation/browser negative matrix",
+    "accepted corpus performance and memory measurements",
+    "final supported tuple and broader MVP matrix"
+  ],
+  "issues_remain_open": [
+    50,
+    29
+  ],
+  "integration_reverification": {
+    "date": "2026-11-17",
+    "historical_reviewed_source_tip": "80441af6ecc42fa2dc72ecd100011d6b7ff5751c",
+    "historical_integration_base_unchanged": true,
+    "integration_tip_merged_into_source": "4097b82d9c56f0fe39bf1ede48019042c9564985",
+    "tested_source_merge": "a81c47158e570a20f24cfce8383eafaebc163f0f",
+    "source_and_test_hashes_unchanged": true,
+    "adr": "docs/adr/0020-readonly-tree-preview.md",
+    "historical_adr_path": "docs/adr/0016-readonly-tree-preview.md",
+    "housekeeping": "Rename ADR 0016 to 0020; 0016-0019 are reserved for other source branches. Only docs changed after the tested source merge.",
+    "environment": "Same env -i, executable, synthetic HOME/profile/cwd and TMPDIR as original verification; --no-env-file; existing preferences no-provider preload for tests and TypeScript.",
+    "focused": {
+      "tests": 22,
+      "assertions": 86,
+      "passed": true
+    },
+    "combined_public_remote_regression": {
+      "tests": 31,
+      "assertions": 124,
+      "passed": true
+    },
+    "strict_typescript": {
+      "passed": true,
+      "scope": "full repository tsconfig.json",
+      "runtime_native_imports": false
+    },
+    "host_build": {
+      "passed": true,
+      "modules": 5,
+      "output": "/tmp/omp-tree-source-cwd/tree-merge-host-build.js",
+      "command": "bun build --no-env-file /workspace/work/omp-webui-ticket-50/apps/host/src/main.ts --target=bun --outfile=/tmp/omp-tree-source-cwd/tree-merge-host-build.js",
+      "output_evaluated": false
+    },
+    "native_browser_private_runtime_or_product_admission": false,
+    "accepted_corpus_reachability_gap": "16 MiB per-snapshot and 32 MiB total retained-text budgets do not establish the 10,000-entry/100 MiB native-history target; whole #50 and #29 remain open."
+  }
+}
