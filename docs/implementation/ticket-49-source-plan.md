@@ -29,3 +29,25 @@ target and revision admission. Do not claim those missing guarantees exist.
 No build manifest, Native dependency, actual runtime/private data, remote
 publication, ticket closure or integration merge. Merge integration tip into
 this branch before report; ticket49 and the full MVP remain open.
+
+## Preferences review fix
+
+Fresh branch `mvp/ticket-49-preferences-review-fix` starts at reviewed source
+`3d917dc0a22967ceada879fd690abb4cda6c82e4`. The spec review found no bounded-slice
+issue; the standards review requested meaningful invocation/Peer cancellation
+coverage and line wrapping, with a clearer authority-check name as a judgment call.
+
+Keep the accepted public seam. Supply a canceled carrier signal through public
+Gateway.invoke; separately dispose the real public Peer after Gateway admission
+while receiver preparation yields. A subsequent authorized Remote describe must
+show both namespace values/revisions unchanged and no Host-local public settings
+notification. Prove sensitivity one trace at a time by temporarily removing only
+the corresponding service guard (RED: mutation accepted), then restoring it
+(GREEN). Preserve the reviewed preimage identity and original evidence in Git.
+
+Wrap the source import/schema expression and rename the private check to
+`assertCurrentAuthority`. Run the eight focused tests and full strict TypeScript
+with the dedicated preferences preimport guard, env -i, synthetic HOME/profile/cwd
+under /tmp and TMPDIR=/tmp. No durable preferences, Session settings API, product
+registration, Native/browser runtime, dependency/schema/build work, publishing or
+ticket closure is included. Commit and stop for a fresh focused source review.

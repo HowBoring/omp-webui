@@ -4,7 +4,9 @@ import Schema from "@deepseek-ai/schemastery";
 import { TYPERT_REMOTE } from "@deepseek-ai/dsh-api-settings-controller/remote";
 import { Remote, RemoteError, TypertRemoteService, type PeerScope } from "@deepseek-ai/dsh-typert-protocol";
 import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
-import type { SettingsDescribeValue, SettingsNamespaceView, SettingsPathOpView, SettingsNamespace } from "@deepseek-ai/dsh-settings/types";
+import type {
+  SettingsDescribeValue, SettingsNamespaceView, SettingsPathOpView, SettingsNamespace,
+} from "@deepseek-ai/dsh-settings/types";
 import { z } from "zod";
 
 /** Existing DSH DTOs, restricted to presentation preferences; never mount the stock credentials owner. */
@@ -32,7 +34,7 @@ export class WebPreferences extends TypertRemoteService {
   constructor(ctx: Context, private readonly authorize: (peer: PeerScope) => void) {
     super(ctx, "settingsController", { namespace: "settings" });
   }
-  private current(): void {
+  private assertCurrentAuthority(): void {
     const invocation = this.ctx.invocation;
     if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) {
       throw new RemoteError("gateway/bad-request", "WebUI preference authority is unavailable.", {});
@@ -44,19 +46,24 @@ export class WebPreferences extends TypertRemoteService {
     const section = this.sections[ns];
     const value = section.preference === undefined
       ? (ns === "ui-theme" ? { preference: "system" } : {}) : { preference: section.preference };
-    return { ns, autoGenerate: false, schema: z.json().parse(JSON.parse(JSON.stringify(ns === "ui-theme" ? themeSchema : localeSchema))),
+    const schema = z.json().parse(JSON.parse(JSON.stringify(ns === "ui-theme" ? themeSchema : localeSchema)));
+    return { ns, autoGenerate: false, schema,
       value, user: section.preference === undefined ? {} : { preference: section.preference },
       applies: "live", secrets: [], revision: section.revision };
   }
   @Remote("describe") describe(): SettingsDescribeValue {
-    this.current();
+    this.assertCurrentAuthority();
     return { writable: true, hasDocument: false, namespaces: [this.view("ui-theme"), this.view("locale")] };
   }
   /** One preference per CAS write. No generic profile patch, config document or native call exists here. */
-  @Remote("mutate") mutate(ns: string, ops: SettingsPathOpView[], expectedRevision: number | undefined): SettingsNamespaceView {
-    this.current();
-    if (!namespace(ns) || !Number.isSafeInteger(expectedRevision) || expectedRevision === undefined || expectedRevision < 0) {
-      throw new RemoteError("gateway/bad-request", "A known WebUI namespace and its current revision are required.", {});
+  @Remote("mutate") mutate(
+    ns: string, ops: SettingsPathOpView[], expectedRevision: number | undefined,
+  ): SettingsNamespaceView {
+    this.assertCurrentAuthority();
+    if (!namespace(ns) || !Number.isSafeInteger(expectedRevision)
+      || expectedRevision === undefined || expectedRevision < 0) {
+      throw new RemoteError("gateway/bad-request",
+        "A known WebUI namespace and its current revision are required.", {});
     }
     const section = this.sections[ns];
     if (section.revision !== expectedRevision) {
@@ -71,7 +78,7 @@ export class WebPreferences extends TypertRemoteService {
       this.reject(ns);
     }
     // Synchronous admission and commit: invalidation cannot interleave after this final authority check.
-    this.current();
+    this.assertCurrentAuthority();
     if (op.op === "unset") delete section.preference;
     else section.preference = String(op.value);
     section.revision++;

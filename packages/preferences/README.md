@@ -76,9 +76,19 @@ Host Gateway invocation → real `WebPreferences`, plus the public Host settings
 notification contract. No private service access or mocked internal collaborator.
 The first theme test failed with the missing service, then passed; the public
 notification test failed with an empty event list, then passed after event emission.
-Six affected tests pass (30 assertions); full repository strict TypeScript passes.
+Eight affected tests pass (36 assertions); full repository strict TypeScript passes.
+The review fix adds canceled invocation and disposed Peer traces. Each refuses a
+mutation, then reads unchanged preference values and revisions through the same
+public Client Remote and observes no Host-local invalidation. The Peer trace uses
+public `Peer.dispose()` after Gateway admission, before service dispatch, and a
+fresh authorized Peer for readback. Removing either respective service signal
+guard made its trace fail (the mutation was accepted); restoring it passed.
+These are synthetic carrier/Peer lifetime checks, not browser cancellation proof.
 
 All Bun runs used `env -i`, synthetic HOME/profile/cwd, TMPDIR=/tmp,
-`--no-env-file` and `--preload tests/interactions/no-provider.ts` before test imports.
+`--no-env-file` and a preimport guard. Initial source runs used
+`tests/interactions/no-provider.ts`; the review fix uses the dedicated
+`tests/preferences/no-provider.ts`, which refuses network dispatch, socket/listen
+and child-process launch without a local-socket exception.
 Dependencies are read-only links to the existing integration installation; no
 package install, vendor copy, build or Native dependency mutation occurred.
