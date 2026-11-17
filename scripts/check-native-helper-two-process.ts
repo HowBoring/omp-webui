@@ -44,7 +44,9 @@ try {
   }
   const files = (await fs.readdir(fixtures)).filter(name => /^native-helper-drain-.*\.ts$/.test(name))
     .map(name => `${fixtures}/${name}`);
-  files.push(`${root}/scripts/prepare-native-helper-drain.ts`, import.meta.path, `${root}/tests/ownership/native-helper-two-process.test.ts`);
+  files.push(`${root}/scripts/prepare-native-helper-drain.ts`, import.meta.path,
+    `${root}/tests/ownership/native-helper-two-process.test.ts`,
+    `${root}/tests/ownership/native-helper-drain-diagnostics.test.ts`);
   const config = `${temporary}/tsconfig.json`;
   await fs.writeFile(config, JSON.stringify({ compilerOptions: { target: "ESNext", module: "Preserve", moduleResolution: "Bundler",
     strict: true, noEmit: true, skipLibCheck: true, types: ["bun"], noUncheckedIndexedAccess: true,
@@ -56,7 +58,10 @@ try {
     XDG_DATA_HOME: `${temporary}/data`, XDG_STATE_HOME: `${temporary}/state`, XDG_CACHE_HOME: `${temporary}/cache`,
     PATH: "/usr/bin:/bin", TMPDIR: "/tmp" };
   for (const argv of [[process.execPath, "test", "--no-env-file", `--preload=${root}/tests/preferences/no-provider.ts`,
-    `${root}/tests/ownership/native-helper-two-process.test.ts`], [process.execPath, "check", "--no-script", "-p", config]]) {
+    `${root}/tests/ownership/native-helper-two-process.test.ts`,
+    `${root}/tests/ownership/native-helper-drain-diagnostics.test.ts`],
+    ["/usr/bin/python3", "-B", `${root}/tests/ownership/native_helper_drain_retainer_test.py`],
+    [process.execPath, "check", "--no-script", "-p", config]]) {
     const result = Bun.spawnSync(argv, { cwd: `${temporary}/cwd`, env, stdout: "pipe", stderr: "pipe", timeout: 30_000 });
     process.stdout.write(result.stdout); process.stderr.write(result.stderr);
     commands.push({ argv, exitCode: result.exitCode, stdout: result.stdout.toString(), stderr: result.stderr.toString() });
@@ -64,7 +69,8 @@ try {
   }
   await verifyHelperDrainPublicInputs();
   const record = { status: "PASS_SOURCE_ONLY", builds: records, commands, emittedExecuted: false,
-    producerExecuted: false, retainerExecuted: false, nativeImported: false, ffiLoaded: false,
+    producerExecuted: false, retainerExecuted: false, retainerPolicyTested: "PURE_FAKE_OS_BOUNDARIES",
+    nativeImported: false, ffiLoaded: false,
     helperStarted: false, socketsOpened: false, signatureKeysUsed: false, actualProof: "NOT_RUN", admission: "BLOCKED" };
   const output = process.argv[2];
   if (output) await fs.writeFile(output, JSON.stringify(record, null, 2) + "\n");

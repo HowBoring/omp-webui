@@ -1,0 +1,150 @@
+{
+  "format": "omp-native-helper-fixture-recovery-source/1",
+  "status": "SOURCE_READY_FOR_FRESH_PAIRED_REVIEW",
+  "base": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+  "scope": "TEST_HARNESS_DIAGNOSTICS_AND_ORIGINAL_STDIN_EARLY_NATIVE_RECOVERY_ONLY",
+  "sourceInputs": {
+    "compatibility/omp/fixtures/native-helper-drain-bootstrap.ts": "0991db4f2d079aaad81d7d51f5982e266720a660b1addf8e63b75bfe1cea0c77",
+    "compatibility/omp/fixtures/native-helper-drain-diagnostics.ts": "8a05c256dc117d6c4f86f29ccd83df89e6d5c56ec16eda348f9a1c992e111a43",
+    "compatibility/omp/fixtures/native-helper-drain-native.ts": "5f2293def632adb4ccd6f33155c8f5ee13565c567ea9bfbbd8bf67a52719f071",
+    "scripts/retain-native-helper-drain.py": "f58e6d66ef8495109c76885f68770f26db9cf41f9eaaa89c700278125d232612",
+    "scripts/check-native-helper-two-process.ts": "87a20c543d4b9b7faac88e3741b3f2cdd257483eaba10413f7ca2f55be9bb656",
+    "tests/ownership/native-helper-drain-diagnostics.test.ts": "981e870d3fbcb5de670b18b3f4a34909b7009256cc57b818b5c524d7c93a4ab0",
+    "tests/ownership/native_helper_drain_retainer_test.py": "18361ba699ab216c843db47fc0c85e6c2715856caa0819e5465c7745c964396b",
+    "docs/evidence/ticket-41-fixture-recovery-source.md": "750f8ce7b818b5436871fd93151a4d3c23b7a1ad609d9de954eab17f27a30ff7"
+  },
+  "pureEvidence": {
+    "docs/evidence/fixture-recovery/acquisition-green.txt": "670a39115e7523a8984e4842e16547cb2094b03fad392b037b4b9dc8b2656e62",
+    "docs/evidence/fixture-recovery/acquisition-red.txt": "deb62d61d73418f0c67ece70a17ace63b05e2a13c4990b722c05f8457ce29137",
+    "docs/evidence/fixture-recovery/buffered-events-green.txt": "60bb849356ffbc091f601e17fc6ae0b2eb5e26d734d433da020c6e775efbf97f",
+    "docs/evidence/fixture-recovery/buffered-events-red.txt": "0ab12903105e05f3d166070cd2b04925e0a08f2c4cfedf533784bdd7758b6d3a",
+    "docs/evidence/fixture-recovery/checks.json": "dd8f9cebdfec06e1ce1c0efdae890812e61371d8b947e0ad2794d292b382021d",
+    "docs/evidence/fixture-recovery/constructor-green.txt": "fb184ea57734512b1f088f9181209901b9cd46df3eb7eaa2500ea9e48dde20b5",
+    "docs/evidence/fixture-recovery/constructor-red.txt": "4e269f57be14e63891ecec5b722e766c27c8e847c57d61b5c558a5d3969b7f0d",
+    "docs/evidence/fixture-recovery/diagnostics-green.txt": "4b68102fdd1d5039cf4294aa5ea275e4bfa3d8cc5bf7925a99b1b704291a60d5",
+    "docs/evidence/fixture-recovery/diagnostics-red.txt": "f88b94590d53caa9a45f180893606027f3039b709f62ea8c5e444477e74d8223",
+    "docs/evidence/fixture-recovery/diagnostics-scrub-green.txt": "64b4aa109c8d3d06613b7d4ccf4cedef1140b8fa0c44a699bb39a133093b16ad",
+    "docs/evidence/fixture-recovery/diagnostics-scrub-red.txt": "59388d6f0507550f6c2b1e951fb7c2a9595e8ad330b955cf97069dd2d7b886e5",
+    "docs/evidence/fixture-recovery/drain-green.txt": "62cfbeb2911bb226088bfb0918eb4b05008ea70b20bce854ee2ca8a564bd37a5",
+    "docs/evidence/fixture-recovery/drain-red.txt": "d7342312f3de5e92e81d9ab30e3fbadf3466266aa8b34a62b069cc952bbbc977",
+    "docs/evidence/fixture-recovery/event-green.txt": "d03ce458f2a6cd2b4f27522f3aacad03ce1872c028853507c3ad02ca621bdcad",
+    "docs/evidence/fixture-recovery/event-red.txt": "451dd22303670c9e656f0d869c5dda9ded6e0eb6741daffdccb18d5c0c6ed227",
+    "docs/evidence/fixture-recovery/first-failure-green.txt": "35183794784a293116669bf0e27fedb2cb6efff4c5a4ac0ad88b97a0e1136ef0",
+    "docs/evidence/fixture-recovery/first-failure-red.txt": "8cfc4aaa19318e167b90d7d20b44a2a5117e59a7b86b696ca2e821afcec486ae",
+    "docs/evidence/fixture-recovery/journal-green.txt": "feabb4add9e2ca3374e538560634d1ec97dc4f4ce89aab12f3d726e36ea9b2f6",
+    "docs/evidence/fixture-recovery/journal-red.txt": "6c870a4506f7330a9c0ca6d9b750e4279b8d3b699cb3e04c8be91fd483ccb7d0",
+    "docs/evidence/fixture-recovery/parent-diagnostic-green.txt": "fe008aab760eb03ccac7578e2b84665b1b50b0d7f855b17a0c7a8d039435b658",
+    "docs/evidence/fixture-recovery/parent-diagnostic-red.txt": "70006938e970c0bc8b771f44822827645bf24d94b6bfb77faf80834c5ad82ce6",
+    "docs/evidence/fixture-recovery/phase-green.txt": "763a358cf83373ad67cc00e8b66a90c71d98228129b6fd2742c5ef049af9efd3",
+    "docs/evidence/fixture-recovery/phase-red.txt": "256bd259fdc2a27ef8b2a577ee9ed70e0c5e0ebf0346cf4a24964601105ddb3f",
+    "docs/evidence/fixture-recovery/retainer-final.txt": "82430634fc6c4fd8ddbe290d9a159882f24a52f6c6389b69c574e28f8d127d2c",
+    "docs/evidence/fixture-recovery/retainer-usr-bin.txt": "eac0c40ab5af81d1f0eca32a9cacb506a48ceae5a089cecacb826c9df723b112",
+    "docs/evidence/fixture-recovery/root-recovery-green.txt": "921b60a7fd52e978fbb551cacd29df2d6708879400278e1fcc70fceeb0c6f8e0",
+    "docs/evidence/fixture-recovery/root-recovery-red.txt": "e4417bc4320d46058cce2dd5cd240c4c5941036742801e41186aadea7dc830b3",
+    "docs/evidence/fixture-recovery/syntax.txt": "72cbdc38579443f02ab392a13889cfe7e9cae2fa10070b6304a45b96d46dffb2",
+    "docs/evidence/fixture-recovery/typecheck.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/evidence/fixture-recovery/typescript-tests.txt": "911ca99e46eea8efabdaf7dbd6386713ab3001ac4383af746661421e2e65755d"
+  },
+  "preimages": {
+    "scripts/retain-native-helper-drain.py": {
+      "commit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "gitBlob": "0ebb6eb197a005c623413c4d39911b08327d5804",
+      "sha256": "cdb97e4952494278d5952b02ce347ff1d84a97168efd3fe716345b6ea26d3f9c",
+      "immutableReference": "bb607004a391247981e7fced92cf5fcbc09e3bbe:scripts/retain-native-helper-drain.py"
+    },
+    "compatibility/omp/fixtures/native-helper-drain-bootstrap.ts": {
+      "commit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "gitBlob": "6d5d827b7b8c48643a589093534f75b41c8d4d0d",
+      "sha256": "18eafd3211bcd9d9c4db0e8f393ed8a3e58ae6f76f3834a80aaf456885f1f56d",
+      "immutableReference": "bb607004a391247981e7fced92cf5fcbc09e3bbe:compatibility/omp/fixtures/native-helper-drain-bootstrap.ts"
+    },
+    "compatibility/omp/fixtures/native-helper-drain-native.ts": {
+      "commit": "bb607004a391247981e7fced92cf5fcbc09e3bbe",
+      "gitBlob": "af3aa56ce5ec68c68c93a976e8c9a9f01aa97ba7",
+      "sha256": "6a95cf5b99092b4e270e1e3e2cfa1587f98f3cb7c1d7fe0f702fd7d654686dd1",
+      "immutableReference": "bb607004a391247981e7fced92cf5fcbc09e3bbe:compatibility/omp/fixtures/native-helper-drain-native.ts"
+    }
+  },
+  "preservedOriginalReceipts": {
+    "/workspace/work/mvp-implementation/recovery/helper-drain-authorized-root-tool.json": {
+      "sha256": "92049dc4885f0b55c1508728ae4b9525765e0c1155302f0fc434318fd8fbe7a9",
+      "bytes": 728
+    },
+    "/workspace/work/mvp-implementation/recovery/helper-drain-original-session-final-tool.json": {
+      "sha256": "6c5afc561e584d5ac5b33be455bf8c600db1d9f158eeff41e2d29c9d2fa8ee27",
+      "bytes": 1279
+    },
+    "/workspace/work/mvp-implementation/recovery/helper-drain-manual-recovery-root-tool.json": {
+      "sha256": "f9845ed0eec51ad4caaf345177c45daadfe1f0b1e6f1cb1ffb78ba236ef55b74",
+      "bytes": 237
+    },
+    "/workspace/work/mvp-implementation/recovery/helper-drain-manual-recovery-result.json": {
+      "sha256": "fd7d746e8261fa10cfad972661a1d9756ff13835d6f73f83c2b2cf911f1dd195",
+      "bytes": 3435
+    },
+    "/workspace/work/mvp-implementation/recovery/helper-drain-original-handle-audit.json": {
+      "sha256": "29b59c4246bbaf0cb34e3b67833e569c2406ef80eb80dbffccd68d651df84201",
+      "bytes": 1819
+    },
+    "/workspace/work/mvp-implementation/recovery/helper-drain-failed-stage-runtime-retirement.json": {
+      "sha256": "fa070d0c3faf11fda4728eeb4cac224116e2b20f42fe985fdae8cebe33a3236c",
+      "bytes": 1239
+    }
+  },
+  "originalAttempt": {
+    "toolSession": 85655,
+    "outcome": "FAIL_NATIVE_DRAIN_UNRESOLVED",
+    "originalToolExit": 130,
+    "stage": "CONSUMED_FAIL_NONRERUNNABLE",
+    "automaticCleanupAcceptance": false,
+    "stageEdited": false,
+    "rerun": false
+  },
+  "policy": {
+    "publicCodes": [
+      "ownership_protocol",
+      "ownership_limit",
+      "dispatcher_unavailable",
+      "dispatcher_mismatch",
+      "ownership_unresolved",
+      "maintenance_fenced",
+      "shared_service_unsupported",
+      "ownership_backend_unavailable"
+    ],
+    "recoveryCommand": "RECOVER_EARLY_NATIVE <exact-generation>\\n",
+    "signal": "ONE_SIGTERM_ORIGINAL_RETAINED_NATIVE_PIDFD_ONLY_AFTER_ROOT_COMMAND",
+    "requires": [
+      "FIRST_HOLD_AUTHENTICATED_NATIVE_FAILURE_WHILE_AWAITING_READY",
+      "NO_HOST_OBJECT",
+      "ORIGINAL_CONSTRUCTOR_RETURNED",
+      "ORIGINAL_PIDFD",
+      "BOTH_ORIGINAL_READERS_REGISTERED",
+      "ORIGINAL_WAIT",
+      "BOTH_ACTUAL_EOF",
+      "ORIGINAL_PIDFD_TERMINAL",
+      "ORIGINAL_P_ALL_ECHILD"
+    ],
+    "unknownAdoptedOrUnresolved": "HOLD",
+    "automaticRetry": false,
+    "laterNativeOrHostRecovery": "NOT_IMPLEMENTED_HOLD",
+    "processDrainageNeverFixturePass": true,
+    "fences": "NOT_INSPECTED_NO_RETAINER_MUTATION"
+  },
+  "actual": {
+    "nativeImported": false,
+    "kernelExperiments": false,
+    "network": false,
+    "ffi": false,
+    "producer": false,
+    "build": false,
+    "staging": false,
+    "keys": false,
+    "retainerOneRunEntry": false,
+    "nominal": "NOT_RUN",
+    "runtimeFaultMatrix": "NOT_RUN",
+    "fullNativeGraphTypes": "NOT_RUN",
+    "fullBuildGraphs": "NOT_RUN",
+    "productAdmission": "BLOCKED"
+  },
+  "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_PAIR"
+}

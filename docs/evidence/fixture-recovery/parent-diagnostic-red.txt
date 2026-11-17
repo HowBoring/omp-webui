@@ -1,0 +1,18 @@
+F.
+======================================================================
+FAIL: test_authenticated_lowercase_failure_preserves_phase_and_source_in_hold_receipt (__main__.RetainerOwnershipTests.test_authenticated_lowercase_failure_preserves_phase_and_source_in_hold_receipt)
+----------------------------------------------------------------------
+RuntimeError: RETAINER_FAILURE_CODE
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 66, in test_authenticated_lowercase_failure_preserves_phase_and_source_in_hold_receipt
+    with self.assertRaisesRegex(RuntimeError, "RETAINER_CHILD_RETAINED_FAILURE"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: "RETAINER_CHILD_RETAINED_FAILURE" does not match "RETAINER_FAILURE_CODE"
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+FAILED (failures=1)

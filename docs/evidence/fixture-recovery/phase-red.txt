@@ -1,0 +1,33 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/ownership/native-helper-drain-diagnostics.test.ts:
+(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.45ms]
+(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.38ms]
+26 |   expect(getterReads).toBe(0);
+27 | });
+28 | 
+29 | test("untrusted phase values cannot become diagnostic payloads", () => {
+30 |   const unknownPhase = { payload: "SECRET phase" } as unknown as "native_server_open";
+31 |   expect(helperDrainFailure({ code: "ownership_unresolved" }, unknownPhase)).toEqual({
+                                                                                  ^
+error: expect(received).toEqual(expected)
+
+  {
+    "code": "ownership_unresolved",
+    "codeSource": "public_code",
+-   "phase": "unrecognized",
++   "phase": {
++     "payload": "SECRET phase",
++   },
+  }
+
+- Expected  - 1
++ Received  + 3
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts:31:78)
+(fail) untrusted phase values cannot become diagnostic payloads [0.39ms]
+
+ 2 pass
+ 1 fail
+ 18 expect() calls
+Ran 3 tests across 1 file. [47.00ms]

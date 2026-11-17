@@ -1,0 +1,24 @@
+....F...
+======================================================================
+FAIL: test_hold_drains_and_journals_already_buffered_original_events (__main__.RetainerOwnershipTests.test_hold_drains_and_journals_already_buffered_original_events)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 181, in test_hold_drains_and_journals_already_buffered_original_events
+    self.assertEqual(retainer.history, [{"role": "native", **event}])
+AssertionError: Lists differ: [] != [{'role': 'native', 'event': 'NATIVE_READY[136 chars]LY'}]
+
+Second list contains 1 additional elements.
+First extra element 0:
+{'role': 'native', 'event': 'NATIVE_READY', 'pid': 123, 'generation': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 'scope': 'TWO_PROCESS_HELPER_FIXTURE_ONLY'}
+
+- []
++ [{'event': 'NATIVE_READY',
++   'generation': 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
++   'pid': 123,
++   'role': 'native',
++   'scope': 'TWO_PROCESS_HELPER_FIXTURE_ONLY'}]
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.003s
+
+FAILED (failures=1)

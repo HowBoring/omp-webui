@@ -1,0 +1,31 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/ownership/native-helper-drain-diagnostics.test.ts:
+(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.53ms]
+19 |   const inherited = Object.create({ code: "ownership_unresolved", message: "DRAIN_NATIVE_ARGUMENTS" });
+20 |   const errors: unknown[] = [getter, inherited, { code: "SECRET_CODE", message: "SECRET_PAYLOAD" },
+21 |     { code: "ownership_unresolved\nSECRET", message: "SECRET text" },
+22 |     Object.defineProperty({}, "message", { get() { getterReads++; return "DRAIN_NATIVE_ARGUMENTS"; } }),
+23 |     new Proxy({}, { getOwnPropertyDescriptor() { throw new Error("SECRET proxy"); } }), "ownership_unresolved"];
+24 |   for (const error of errors) expect(helperDrainFailure(error, "native_server_open")).toEqual({
+                                                                                           ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "code": "DRAIN_UNRESOLVED",
+-   "codeSource": "unrecognized",
++   "code": "SECRET_PAYLOAD",
++   "codeSource": "fixture_message",
+    "phase": "native_server_open",
+  }
+
+- Expected  - 2
++ Received  + 2
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts:24:87)
+(fail) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.44ms]
+
+ 1 pass
+ 1 fail
+ 10 expect() calls
+Ran 2 tests across 1 file. [10.00ms]

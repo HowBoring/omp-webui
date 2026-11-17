@@ -1,0 +1,33 @@
+..E.
+======================================================================
+ERROR: test_failed_final_journal_never_releases_original_owner (__main__.RetainerOwnershipTests.test_failed_final_journal_never_releases_original_owner)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/retain-native-helper-drain.py", line 168, in recovery_step
+    self.note("RECOVERY_COMPLETE_RUN_STILL_FAILED")
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/retain-native-helper-drain.py", line 90, in note
+    self.emit(self.receipt())  # Flush the original tool journal BEFORE any recovery action.
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 113, in broken_final_journal
+    raise OSError("fake journal failure")
+OSError: fake journal failure
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 119, in test_failed_final_journal_never_releases_original_owner
+    self.assertFalse(retainer.recovery_step())
+                     ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/retain-native-helper-drain.py", line 172, in recovery_step
+    self.note("RECOVERY_UNRESOLVED")
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/retain-native-helper-drain.py", line 90, in note
+    self.emit(self.receipt())  # Flush the original tool journal BEFORE any recovery action.
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 113, in broken_final_journal
+    raise OSError("fake journal failure")
+OSError: fake journal failure
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.008s
+
+FAILED (errors=1)

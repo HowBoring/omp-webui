@@ -1,0 +1,10 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/ownership/native-helper-drain-diagnostics.test.ts:
+(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.66ms]
+(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.24ms]
+
+ 2 pass
+ 0 fail
+ 17 expect() calls
+Ran 2 tests across 1 file. [9.00ms]

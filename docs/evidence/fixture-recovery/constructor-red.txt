@@ -1,0 +1,13 @@
+F
+======================================================================
+FAIL: test_constructor_baseexception_retains_exact_preallocated_original (__main__.RetainerOwnershipTests.test_constructor_baseexception_retains_exact_preallocated_original)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 51, in test_constructor_baseexception_retains_exact_preallocated_original
+    self.assertIs(retainer.children.get("native"), allocated[0])
+AssertionError: None is not <__main__.RetainerOwnershipTests.test_constructor_baseexception_retains_exact_preallocated_original.<locals>.InterruptedPopen object at 0x7f3c34e682c0>
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+FAILED (failures=1)
