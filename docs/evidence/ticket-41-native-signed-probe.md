@@ -1,13 +1,22 @@
 # First C argv / signed Native public-module probe source
 
-Status: **CORRECTED SOURCE ONLY — UNSIGNED, NOT APPROVED, NOT READY**. The prior signed
-attempt actually **FAILED before the first Native-bearing import** and fully drained;
-see [the preserved actual FAIL](ticket-41-native-signed-probe-actual-fail.md).
-The corrected source has no new build, signature, READY or runtime attempt. Original source preparation was based on clean Host
-`8988a5afd71c38f91fb188362aff174f6a4d31c9` and the existing inactive0010 tree
-`12f724d5f69471f2e91317475caac3bb911b50d2`. The fresh publication Spec and Standards reviews each found zero issues.
-This change does not alter Native authoring bytes, active patches, patches1–6/7–9, consumer delta, or final1–10 composition.
-Normal dispatcher entry and broker creation remain unavailable. Every committed prepare still prevents generation disposal.
+Status: **ACTUAL SYNTHETIC PASS — NO PREPARE; PRIVATE/GLOBAL ADMISSION BLOCKED**.
+The corrected source at `d0a1cb756a1e5517c8e09dc98d217e55a0ca8df6` subsequently
+received independent final artifact review, a fresh v3 signature, frozen 102-input
+READY and separate Root one-run authorization. The real C argv / nominal Native
+public-module attempt passed and independently drained. See
+[the actual GREEN proof and limits](ticket-41-native-signed-probe-actual-green.md)
+and [exact identities](ticket-41-native-signed-probe-actual-green.json).
+The earlier [actual bootstrap FAIL](ticket-41-native-signed-probe-actual-fail.md)
+remains separate historical evidence. The consumed stage identities authorize no
+retry. Native authoring bytes and inactive source
+`12f724d5f69471f2e91317475caac3bb911b50d2` remain unchanged; ordinary entry and
+broker creation remain unavailable. Every committed prepare still prevents
+generation disposal.
+
+The remaining sections preserve the historical source-preparation/check record.
+Their source-only, unsigned and not-run statements describe those earlier steps;
+the linked actual proof records the later bounded execution and its limits.
 
 The fixture source is an explicit independent operator bootstrap, not a normal Native entry or a hidden production
 installation. It performs **no prepare, helper, Native Agent, provider, broker creation, or product Session operation**.

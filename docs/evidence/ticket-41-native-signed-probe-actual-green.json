@@ -1,0 +1,619 @@
+{
+  "format": "omp-native-signed-probe-actual-evidence/1",
+  "status": "ACTUAL_PASS_SYNTHETIC_ONLY_NO_PREPARE",
+  "sourceHead": "d0a1cb756a1e5517c8e09dc98d217e55a0ca8df6",
+  "stage": "/tmp/native-signed-probe-restore7-b",
+  "preservation": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117",
+  "preservationManifestSha256": "b9dc533cba3909bc2a469d82bb2511775c0ae31527b5b46cbce4e01239fc8820",
+  "consumedReadySha256": "b9cde11bae81c732c4ae673e367fec77320fda1ed293eeaa9e55ae6e273e600f",
+  "frozenInputs": 102,
+  "frozenInputHashesAndOriginalStatVerified": true,
+  "frozenInputSizesRecorded": true,
+  "sourceProvidersVerified": 78,
+  "nativeChangedFilesByteIdentical": 130,
+  "nativeHeadIndexStatusStagedWorkingExact": true,
+  "nativeIndexSnapshot": {
+    "sha256": "bd7f72091e2a8ada55857c52c03d16f8ca55c8e16758ae1317e7cd500adb867c",
+    "reusedArchive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-launch-fix-preserve-20261117/native/index"
+  },
+  "preservationScope": "Independent bounded post-run filesystem hash/stat preservation. Original tool history and Root postcheck are explicitly labeled transcriptions.",
+  "preserved": [
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/READY.json",
+        "bytes": 30876,
+        "device": "27",
+        "inode": "359468",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "b9cde11bae81c732c4ae673e367fec77320fda1ed293eeaa9e55ae6e273e600f"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/READY.json",
+      "archiveSha256": "b9cde11bae81c732c4ae673e367fec77320fda1ed293eeaa9e55ae6e273e600f"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/approval-request.json",
+        "bytes": 8316,
+        "device": "27",
+        "inode": "359440",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "ce73df56cba022b53b5a3b8eda0761afdd478ce1fb077652a04cda964c0edbbd"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/approval-request.json",
+      "archiveSha256": "ce73df56cba022b53b5a3b8eda0761afdd478ce1fb077652a04cda964c0edbbd"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/operator/approval.json",
+        "bytes": 4336,
+        "device": "27",
+        "inode": "359466",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "cb69033d92bf05463717bd0767bbb76d8c034086fd92ca5102990ec2e7000f3b"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/operator/approval.json",
+      "archiveSha256": "cb69033d92bf05463717bd0767bbb76d8c034086fd92ca5102990ec2e7000f3b"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/operator/anchor.json",
+        "bytes": 441,
+        "device": "27",
+        "inode": "359291",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "16e1bab47ff35b391348a045b74570bc5d1fab820a11ae228952077f35900673"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/operator/anchor.json",
+      "archiveSha256": "16e1bab47ff35b391348a045b74570bc5d1fab820a11ae228952077f35900673"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/operator/configuration.json",
+        "bytes": 491,
+        "device": "27",
+        "inode": "359292",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "14fe72bfa1a8c8b54c2dffb7123bf09ca42c6b00b55a667168e7f937cdd395fe"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/operator/configuration.json",
+      "archiveSha256": "14fe72bfa1a8c8b54c2dffb7123bf09ca42c6b00b55a667168e7f937cdd395fe"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/root-artifact-review.json",
+        "bytes": 459,
+        "device": "27",
+        "inode": "359455",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/root-artifact-review.json",
+      "archiveSha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/root-signing-metadata.json",
+        "bytes": 525,
+        "device": "27",
+        "inode": "359467",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "7950c208803002a283319eeb6ca8c563ea21c17a45e18d673385df7379bcf970"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/root-signing-metadata.json",
+      "archiveSha256": "7950c208803002a283319eeb6ca8c563ea21c17a45e18d673385df7379bcf970"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/source-inputs.json",
+        "bytes": 14561,
+        "device": "27",
+        "inode": "359441",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "41cf2dcc67f6096f528624a2ac343fc793a38dfe60fdf73f1ff14f4d0b72a0cc"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/source-inputs.json",
+      "archiveSha256": "41cf2dcc67f6096f528624a2ac343fc793a38dfe60fdf73f1ff14f4d0b72a0cc"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/stdout.log",
+        "bytes": 280,
+        "device": "27",
+        "inode": "360212",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "ac20dacaae362a8b1acbf6f16b2c275c3d2f63f7b372190e28b885ce3fd0c545"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/stdout.log",
+      "archiveSha256": "ac20dacaae362a8b1acbf6f16b2c275c3d2f63f7b372190e28b885ce3fd0c545"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/stderr.log",
+        "bytes": 0,
+        "device": "27",
+        "inode": "360213",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/stderr.log",
+      "archiveSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/result.json",
+        "bytes": 555,
+        "device": "27",
+        "inode": "360214",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "da2dfa4b3fd679a9fd2ac1e4758f2f955e36d125bacb1ab35888d68ff3e3abd0"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/result.json",
+      "archiveSha256": "da2dfa4b3fd679a9fd2ac1e4758f2f955e36d125bacb1ab35888d68ff3e3abd0"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/one-run-started",
+        "bytes": 0,
+        "device": "27",
+        "inode": "360207",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/one-run-started",
+      "archiveSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/launch/launch-closure.json",
+        "bytes": 9794,
+        "device": "27",
+        "inode": "359439",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "43e886a9acb0a59beac186db419be0d7c8223b7dc1976bf9a0096b4cbc5ae03b"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/launch/launch-closure.json",
+      "archiveSha256": "43e886a9acb0a59beac186db419be0d7c8223b7dc1976bf9a0096b4cbc5ae03b"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/launch/components/release.json",
+        "bytes": 7197,
+        "device": "27",
+        "inode": "359438",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "6f0ccaed7fc862b9ce9e9135e228692f4b29864b9594cc43b0fa3a23758067fd"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/launch/components/release.json",
+      "archiveSha256": "6f0ccaed7fc862b9ce9e9135e228692f4b29864b9594cc43b0fa3a23758067fd"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/control-build.h",
+        "bytes": 156,
+        "device": "27",
+        "inode": "359317",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "a71e373e35c6dda68b22f6fdfe282ed3d9e0b3b53b03a1f514f4446468c26879"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/control-build.h",
+      "archiveSha256": "a71e373e35c6dda68b22f6fdfe282ed3d9e0b3b53b03a1f514f4446468c26879"
+    },
+    {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/home/fixture-marker.json",
+        "bytes": 52,
+        "device": "27",
+        "inode": "359315",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "2e7ceac4b939c31a04c245fc7c5403aaa3fe98a1356dd86e91a61105dfcfe8ff"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/home/fixture-marker.json",
+      "archiveSha256": "2e7ceac4b939c31a04c245fc7c5403aaa3fe98a1356dd86e91a61105dfcfe8ff"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/mvp-implementation/recovery/signed-probe-b-root-tool.json",
+        "bytes": 2143,
+        "device": "27",
+        "inode": "360252",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "9093a2e12ae5dd60090414094f399c356f03f5127083b05d287874bc72669c21"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/root-transcription/signed-probe-b-root-tool.json",
+      "archiveSha256": "9093a2e12ae5dd60090414094f399c356f03f5127083b05d287874bc72669c21"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/mvp-implementation/recovery/signed-probe-b-root-post.json",
+        "bytes": 883,
+        "device": "27",
+        "inode": "360251",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "4ec4024f7fb9ebf7d183cd678e2b4814a56eafd2ecb2bf4af9cda579ced43c28"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/root-transcription/signed-probe-b-root-post.json",
+      "archiveSha256": "4ec4024f7fb9ebf7d183cd678e2b4814a56eafd2ecb2bf4af9cda579ced43c28"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/omp-webui-ticket-41/scripts/retain-native-signed-probe.py",
+        "bytes": 16038,
+        "device": "27",
+        "inode": "353219",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "0dfef852a291efedcf71f208ae713326df524d1199334553de95d39108ea77a7"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/usage-source/retain-native-signed-probe.py",
+      "archiveSha256": "0dfef852a291efedcf71f208ae713326df524d1199334553de95d39108ea77a7"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/omp-webui-ticket-41/scripts/prepare-native-signed-probe.ts",
+        "bytes": 14502,
+        "device": "27",
+        "inode": "353269",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "05fa2a4f6455123b195ad2b251d29536b351948395aec7091af07425bbae7109"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/usage-source/prepare-native-signed-probe.ts",
+      "archiveSha256": "05fa2a4f6455123b195ad2b251d29536b351948395aec7091af07425bbae7109"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/mvp-implementation/recovery/finalize-signed-probe-b.mjs",
+        "bytes": 2158,
+        "device": "27",
+        "inode": "359454",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "744e1b0d2613edbb068b904c486c1559eb4132c0a4580d073d6f8652bf465688"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/usage-source/finalize-signed-probe-b.mjs",
+      "archiveSha256": "744e1b0d2613edbb068b904c486c1559eb4132c0a4580d073d6f8652bf465688"
+    },
+    {
+      "source": {
+        "path": "/workspace/work/mvp-implementation/recovery/verify-signed-probe-final-b.py",
+        "bytes": 6673,
+        "device": "27",
+        "inode": "359453",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "88c195449350f6b0952a49e8691084318a562c834a2a04c10690b6c719b634c5"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/usage-source/verify-signed-probe-final-b.py",
+      "archiveSha256": "88c195449350f6b0952a49e8691084318a562c834a2a04c10690b6c719b634c5"
+    }
+  ],
+  "privateRecordsMetadataOnly": [
+    {
+      "path": "/tmp/native-signed-probe-restore7-b/operator/key.json",
+      "bytes": 261,
+      "device": "27",
+      "inode": "359290",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "b189281ba8cc8df1b253a8d67af62ed9e9cdf6d721c75c80998244ffd7fc6ffd"
+    },
+    {
+      "path": "/tmp/native-signed-probe-restore7-b/operator/approval-signing-key.pkcs8",
+      "bytes": 48,
+      "device": "27",
+      "inode": "359289",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "b869d3686cf1788f67c3d2adf94ab2074253260adb86a5701b40d396a610fc4e"
+    }
+  ],
+  "privateKeyArchivedOrCommitted": false,
+  "binariesArchived": false,
+  "stageOrNativeVendorCopied": false,
+  "actualRerun": false,
+  "staticArtifactReview": {
+    "artifact": {
+      "source": {
+        "path": "/tmp/native-signed-probe-restore7-b/root-artifact-review.json",
+        "bytes": 459,
+        "device": "27",
+        "inode": "359455",
+        "uid": 1000,
+        "mode": 384,
+        "sha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a"
+      },
+      "archive": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/text/root-artifact-review.json",
+      "archiveSha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a"
+    },
+    "outerMembers": 45,
+    "innerAssets": 35,
+    "sourceInputs": 78,
+    "outerDependencyFiles": 5,
+    "innerDependencyFiles": 2,
+    "signedAliases": 2,
+    "scope": "Root independent final static artifact review; finisher independently verified hashes/stat/providers/alias targets without executing artifacts",
+    "mapping": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/static-final-artifact-mapping.json",
+      "sha256": "6764b5569f43489c2d3047ea62e1b705eeb01d5ecc4bf349549b489f7df27207"
+    }
+  },
+  "identities": {
+    "cSourceSha256": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b",
+    "actualCEntry": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/bin/omp",
+      "bytes": 759568,
+      "device": "27",
+      "inode": "359323",
+      "uid": 1000,
+      "mode": 448,
+      "sha256": "79b593ba3086dc9e8994d497a2caade61726c3c08756af6ea051cf38c115bae5"
+    },
+    "actualCanonicalBun": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/runtime/bun",
+      "bytes": 107308936,
+      "device": "27",
+      "inode": "359434",
+      "uid": 1000,
+      "mode": 448,
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "existingBunProvider": {
+      "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "bytes": 107308936,
+      "device": "27",
+      "inode": "162910",
+      "uid": 1000,
+      "mode": 493,
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "publicControlIoModule": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/components/control-io/index.js",
+      "bytes": 13644,
+      "device": "27",
+      "inode": "359411",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef"
+    },
+    "publicControlIoLibrary": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/components/lib/libomp-control-io.so",
+      "bytes": 15848,
+      "device": "27",
+      "inode": "359412",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "d97a49a02167da8ad4d07d7bd0eb3a921e486696041e7d0512bd9d728a7222f2"
+    },
+    "nativeBridge": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/components/lib/ownership-bridge.so",
+      "bytes": 21824,
+      "device": "27",
+      "inode": "359437",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "043fc16ba55271ab2284ab580c8270ce1c47d3c13c1a88803f7ec0ee6215151d"
+    },
+    "outerClosure": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/launch-closure.json",
+      "bytes": 9794,
+      "device": "27",
+      "inode": "359439",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "43e886a9acb0a59beac186db419be0d7c8223b7dc1976bf9a0096b4cbc5ae03b"
+    },
+    "innerInventory": {
+      "path": "/tmp/native-signed-probe-restore7-b/launch/components/release.json",
+      "bytes": 7197,
+      "device": "27",
+      "inode": "359438",
+      "uid": 1000,
+      "mode": 384,
+      "sha256": "6f0ccaed7fc862b9ce9e9135e228692f4b29864b9594cc43b0fa3a23758067fd"
+    }
+  },
+  "signing": {
+    "status": "ROOT_SIGNED_SYNTHETIC_READ_ONLY_NO_PREPARE_PROBE_ONLY",
+    "payloadSha256": "70d911a04c7aa52e3d1ba2728a88cc0b8f1b544c0e7d27f9aaa4cbb8834bc285",
+    "approvalSha256": "cb69033d92bf05463717bd0767bbb76d8c034086fd92ca5102990ec2e7000f3b",
+    "artifactReviewSha256": "c0e7a9b1602e4e7a8d38675beaeadf27b17426baa55fc10c754d2bc42137b18a",
+    "prepareAuthorized": false,
+    "helperAuthorized": false,
+    "nativeAgentAuthorized": false,
+    "privateAdmission": "BLOCKED",
+    "globalAdmission": "BLOCKED",
+    "actualRuntime": false
+  },
+  "rootToolTranscription": {
+    "scope": "Root original tools transcription, not independent archive",
+    "prepareInitial": {
+      "chunk_id": "946065",
+      "wall_time_seconds": 1.001129423,
+      "session_id": 38010,
+      "original_token_count": 0,
+      "output": ""
+    },
+    "prepareFinal": {
+      "chunk_id": "e195bc",
+      "wall_time_seconds": 1.775e-05,
+      "exit_code": 0,
+      "original_token_count": 41,
+      "output": "{\"stage\":\"/tmp/native-signed-probe-restore7-b\",\"request\":\"/tmp/native-signed-probe-restore7-b/approval-request.json\",\"status\":\"UNSIGNED_NOT_APPROVED_NOT_READY\"}\n"
+    },
+    "actualInitial": {
+      "chunk_id": "6f9f38",
+      "wall_time_seconds": 1.001820378,
+      "session_id": 4461,
+      "original_token_count": 31,
+      "output": "{\"stage\":\"RETAINING_LAUNCHED\",\"rootPid\":570619,\"originalPidfd\":true,\"initialKernelEndpoint\":\"P_ALL/ECHILD\",\"signalsSent\":0}\n"
+    },
+    "actualFinal": {
+      "chunk_id": "845c75",
+      "wall_time_seconds": 1.6832e-05,
+      "exit_code": 0,
+      "original_token_count": 108,
+      "output": "{\"stage\":\"DRAINED\",\"status\":\"PASS_SYNTHETIC_ONLY\",\"kernelEndpoint\":\"P_ALL/ECHILD\",\"rootStatus\":{\"pid\":570619,\"code\":1,\"status\":0},\"reaped\":[{\"pid\":570619,\"code\":1,\"status\":0}],\"originalReadersEof\":true,\"originalReaderOutcomes\":{\"stdout\":\"EOF\",\"stderr\":\"EOF\"},\"originalPidfdKernelExit\":true,\"signalsSent\":0,\"prepareInvoked\":false,\"exclusiveControlAvailableAfterExit\":true,\"privateAdmission\":\"BLOCKED\",\"globalAdmission\":\"BLOCKED\"}\n"
+    },
+    "precheck": {
+      "artifactReviewChunk": "b9b414",
+      "signingChunk": "fe3e8b",
+      "finalFrozenGateChunk": "1fead7",
+      "readySha256": "b9cde11bae81c732c4ae673e367fec77320fda1ed293eeaa9e55ae6e273e600f"
+    },
+    "runtimeWindow": "RELEASED originalC/Bun570619 actualexit0+originalpidfdKernelExit+bothEOF+independentP_ALL/ECHILD, no signals, no prepare/helper/Agent",
+    "limits": [
+      "Synthetic selected no-prepare NativeServer/client fixture, not global OMP or product",
+      "Awaited module/selection close is contract observation, not independent all-DSO-unmapping proof",
+      "No helper lifecycle or broker backend"
+    ]
+  },
+  "rootPostcheckTranscription": {
+    "inputs": 102,
+    "bad": [],
+    "allInputsExact": true,
+    "result": {
+      "stage": "DRAINED",
+      "status": "PASS_SYNTHETIC_ONLY",
+      "kernelEndpoint": "P_ALL/ECHILD",
+      "rootStatus": {
+        "pid": 570619,
+        "code": 1,
+        "status": 0
+      },
+      "reaped": [
+        {
+          "pid": 570619,
+          "code": 1,
+          "status": 0
+        }
+      ],
+      "originalReadersEof": true,
+      "originalReaderOutcomes": {
+        "stdout": "EOF",
+        "stderr": "EOF"
+      },
+      "originalPidfdKernelExit": true,
+      "signalsSent": 0,
+      "prepareInvoked": false,
+      "exclusiveControlAvailableAfterExit": true,
+      "privateAdmission": "BLOCKED",
+      "globalAdmission": "BLOCKED"
+    },
+    "ownedMarkerPresent": true,
+    "endpointAbsent": true,
+    "fencesEmpty": true,
+    "scope": "Root read-only postcheck; original actual retainer endpoints in result separate from filesystem observations"
+  },
+  "result": {
+    "stage": "DRAINED",
+    "status": "PASS_SYNTHETIC_ONLY",
+    "kernelEndpoint": "P_ALL/ECHILD",
+    "rootStatus": {
+      "pid": 570619,
+      "code": 1,
+      "status": 0
+    },
+    "reaped": [
+      {
+        "pid": 570619,
+        "code": 1,
+        "status": 0
+      }
+    ],
+    "originalReadersEof": true,
+    "originalReaderOutcomes": {
+      "stdout": "EOF",
+      "stderr": "EOF"
+    },
+    "originalPidfdKernelExit": true,
+    "signalsSent": 0,
+    "prepareInvoked": false,
+    "exclusiveControlAvailableAfterExit": true,
+    "privateAdmission": "BLOCKED",
+    "globalAdmission": "BLOCKED"
+  },
+  "originalRootPIDScope": "570619 is original direct C entry and same-PID Bun, not independent retainer PID",
+  "originalStdoutRecords": [
+    {
+      "stage": "PROBE_READY",
+      "pid": 570619,
+      "emptyScopesBeforeAndAfter": true,
+      "signedMissingInspection": true,
+      "prepareInvoked": false
+    },
+    {
+      "stage": "PROBE_CLOSED",
+      "pid": 570619,
+      "awaitedServerClose": true,
+      "selectionRejectsAfterClose": true,
+      "inheritedCGuardStillCurrent": true,
+      "prepareInvoked": false
+    }
+  ],
+  "runtimeReached": [
+    "unchanged real C argv entry and stable shared FLOCK",
+    "same-PID exact canonical Bun and no-provider guard",
+    "Native-free signed full-launch authentication before first Native import",
+    "nominal Native approval, inherited C descriptor guard, release selection",
+    "real signed public control-I/O module/library and Native bridge/server",
+    "public client empty scopes, signed missing inspection, empty scopes",
+    "original stdin EOF followed by awaited server close, selection rejection, current C guard",
+    "actual original root status0, pidfd kernel exit, both reader EOF, independent P_ALL/ECHILD",
+    "exclusive control available after exit"
+  ],
+  "limits": [
+    "No prepare/helper/Native Agent/ordinary entry/broker backend/global installation/product Session",
+    "Module close and selection rejection are contract observations, not independent all-DSO-unmapping proof",
+    "Native committed prepare still prevents disposal",
+    "Private/global admission BLOCKED",
+    "No patch0010 activation/export or final1\u201310 composition",
+    "No source changes, further runtime probes, build, retry, publication, push, PR, merge or closure"
+  ],
+  "postRunKeyHandling": {
+    "error": "Finisher printed ephemeral dispatcher private key in tool transcript after actual run completed",
+    "secretBytesInEvidence": false,
+    "approvalPrivateKeyPrinted": false,
+    "productionCredentialsOrPrivateSessionsInvolved": false,
+    "stageIdentityMustNeverBeReused": true,
+    "retirement": "Root may retire both original stage private key records and owned stage runtime after this proof commit; finisher leaves stage untouched"
+  },
+  "priorAttempt": "Separate stage-A actual FAIL/key-order records remain historical; Root reclaimed old owned runtime after evidence-first commit; no reuse",
+  "nextCriticalGaps": [
+    "Native terminal ledger retaining original helper peer/COMPLETE correlation and unmatched committed prepares",
+    "Exact retained-peer kernel exit and authenticated durable helper-owned fence finalization",
+    "Admission-stop/output/callback/resource drain before ordered bridge/fence/module/selection release",
+    "Independent Host original reap/control EOF",
+    "Unavailable broker backend, ordinary entry, global provenance and final matched release gates"
+  ],
+  "generatedProofUsageLimits": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket41-signed-probe-green-preserve-20261117/proof-usage-limits.md",
+    "bytes": 5711,
+    "sha256": "ae91cb5f12cd271d9099372c5131483ecbfccc26df63f5dbd52f9f7b5d195d22",
+    "scope": "Finisher report of retained historical evidence, not new independent runtime observations"
+  },
+  "freshSourceReadinessReview": {
+    "path": "/workspace/work/mvp-implementation/reviews/ticket-41-signed-probe-order-readiness.md",
+    "sha256": "07ac34564bc8f33ab72563d1d04e974f52dcb51e8d36d14c922759af756e020d",
+    "standardsFindings": 0,
+    "specFindings": 0,
+    "scope": "Focused source repair GO; actual execution HOLD until subsequent Root artifact/signing/READY/one-run gates"
+  }
+}
