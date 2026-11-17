@@ -569,3 +569,104 @@ test("actual public animated GIF requires exact loss consent before indexed save
     expect(await fixture.effects()).toEqual(after);
   });
 }, 45_000);
+
+function pdfText(receipt: AttachmentReceipt): string {
+  const item = receipt.items.find(item => item.originalId === "pdf");
+  if (!item || item.status !== "ready" || item.representation.kind !== "text") {
+    throw Error("ATTACHMENT_PUBLIC_PDF_READY_TEXT_MISSING");
+  }
+  return item.representation.text;
+}
+
+async function preparePdf(fixture: Awaited<ReturnType<typeof openWorker>>): Promise<AttachmentReceipt> {
+  // Independent standard PDF objects/xref/ASCII Tj literals; no Native extraction supplied these known facts.
+  const original = await fs.readFile(new URL("./fixtures/minimal-text.pdf", import.meta.url));
+  const originalSha256 = "e30ca8235d4595eb5a7d5f99b41f12e32c10375a8a78b199577737f15d48dff3";
+  expect(original.byteLength).toBe(706); expect(Bun.SHA256.hash(original, "hex")).toBe(originalSha256);
+  const receipt = await fixture.client.prepare({ preparationId: "prepared-pdf", draftId: "draft-pdf",
+    draftRevision: "1", authorityGeneration: "grant", message: "ordinary @missing-path prose", objects: [
+      { originalId: "pdf", format: "pdf", sha256: originalSha256, data: original.toBase64() },
+    ] });
+  expect(receipt).toMatchObject({ status: "ready", preparationId: "prepared-pdf", draftId: "draft-pdf",
+    draftRevision: "1", authorityGeneration: "grant", binding: { sourceId: fixture.selected.sourceId,
+      instanceId: fixture.selected.instanceId, nativeSessionId: fixture.selected.nativeSessionId } });
+  expect(receipt.items).toHaveLength(1);
+  const item = receipt.items[0], prepared = pdfText(receipt);
+  if (!item || item.status !== "ready") throw Error("ATTACHMENT_PUBLIC_PDF_NOT_READY");
+  expect(item.originalSha256).toBe(originalSha256);
+  expect(item.degradations).toEqual(["document_structure_changed"]);
+  for (const literal of ["Controlled prepared document", "Independent PDF line two.", "End of one PDF page."]) {
+    expect(prepared.split(literal)).toHaveLength(2);
+  }
+  expect(prepared.match(/<!-- Page \d+ -->/g)).toEqual(["<!-- Page 1 -->"]);
+  const bytes = Buffer.byteLength(prepared);
+  expect(bytes).toBeGreaterThan(28); expect(bytes).toBeLessThanOrEqual(50 * 1024);
+  // Full Markdown formatting/hash is deliberately unpredicted; this checks public digest consistency only.
+  expect(item.preparedSha256).toBe(Bun.SHA256.hash(JSON.stringify({ kind: "text", text: prepared }), "hex"));
+  expect(item.preparedSha256).not.toBe(originalSha256);
+  expect(item.facts).toEqual({ originalBytes: 706, convertedBytes: bytes,
+    pagesNeedingOcr: [], hasEncodingIssues: false, emptyText: false });
+  return receipt;
+}
+
+async function refusePdfWithoutConsent(fixture: Awaited<ReturnType<typeof openWorker>>, receipt: AttachmentReceipt) {
+  const before = await entries(fixture.worker), effects = await fixture.effects();
+  expect(await fixture.worker.request(submission(fixture, receipt, "pdf-success", [])))
+    .toMatchObject({ success: false, code: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED",
+      error: "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED" });
+  const missing = decodeSubmission(await fixture.worker.request({ type: "submission_query",
+    clientSubmissionId: "pdf-success" }));
+  expect(missing).toMatchObject({ found: false, reservation: "absent", admission: "absent", terminal: false,
+    operationOutcome: "unknown", inputOutcome: "unresolved", persistence: "unresolved", relations: [],
+    nextOffset: null });
+  expect(await entries(fixture.worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+}
+
+async function verifyPdfSavedPart(worker: Worker, receipt: AttachmentReceipt, result: SubmissionResult): Promise<void> {
+  const document = savedLink(result, "pdf", "prepared"), prepared = pdfText(receipt);
+  expect(document.link).toMatchObject(expectedLink(receipt, "pdf", "text"));
+  expect(document.locator.kind).toBe("files");
+  const saved = await entries(worker), matches = saved.entries.filter(entry => entry.id === document.entryId);
+  expect(matches).toHaveLength(1);
+  const companion = z.object({ role: z.literal("fileMention"), files: z.array(z.unknown()) }).parse(matches[0]?.message);
+  const part = z.object({ path: z.string(), content: z.string(), byteSize: z.number() })
+    .parse(companion.files[document.locator.index]);
+  expect(part).toEqual({ path: `attachment-prepared://${document.link.preparedId}`,
+    content: prepared, byteSize: Buffer.byteLength(prepared) });
+  // Only returned public entryId and actual indexed body establish causality, never text/hash/order joins.
+  const history = await submissionHistory(worker), rows = history.filter(row => row.entryId === document.entryId);
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    expect(row.submission?.origin).toEqual(result.origin); expect(row.submission?.role).toBe("prepared");
+    expect(row.submission?.attachments).toContainEqual(document.link);
+  }
+}
+
+test("actual public PDF requires structure consent before indexed saved text and provider witness", async () => {
+  await withWorker(async fixture => {
+    const { worker } = fixture, before = await entries(worker), effects = await fixture.effects();
+    const receipt = await preparePdf(fixture);
+    expect(await entries(worker)).toEqual(before); expect(await fixture.effects()).toEqual(effects);
+    await refusePdfWithoutConsent(fixture, receipt);
+    expect(await worker.request(submission(fixture, receipt, "pdf-success", ["document_structure_changed"])))
+      .toMatchObject({ success: true });
+    const result = await terminalSubmission(worker, "pdf-success");
+    const { sourceId, instanceId, nativeSessionId } = fixture.selected;
+    expect(result).toMatchObject({ found: true, terminal: true, operationOutcome: "succeeded", inputOutcome: "generated",
+      persistence: "committed", reservation: "committed", target: { sourceId, instanceId, nativeSessionId },
+      origin: { sourceId, instanceId, nativeSessionId, clientSubmissionId: "pdf-success" },
+      preparation: consent(receipt, ["document_structure_changed"]) });
+    await verifyPdfSavedPart(worker, receipt, result);
+    const after = await fixture.effects();
+    expect(after).toMatchObject({ inputCalls: effects.inputCalls + 1, modelAttempts: effects.modelAttempts + 1,
+      modelDispatches: effects.modelDispatches + 1, toolCalls: effects.toolCalls, blockedPayloads: effects.blockedPayloads });
+    expect(after.requests).toHaveLength(effects.requests.length + 1);
+    expect(after.requests.at(-1)?.images).toEqual([]);
+    // Unchanged provider witnesses these independent28B, not the full generated Markdown/wrapper formatting.
+    expect(after.requests.at(-1)?.attachmentText).toEqual([{ role: "developer", bytes: 28, occurrences: 1,
+      sha256: "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419" }]);
+    expect(decodeSubmission(await worker.request({ type: "submission_query", clientSubmissionId: "pdf-success" })))
+      .toEqual(result);
+    expect(await fixture.effects()).toEqual(after);
+  });
+}, 45_000);
