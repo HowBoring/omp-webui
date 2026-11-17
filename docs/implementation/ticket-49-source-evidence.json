@@ -1,0 +1,27 @@
+{
+  "status": "SOURCE_FIXTURE_ONLY",
+  "integrationBase": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "dshSourceBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "reviewedSourceSha256": {
+    "packages/api/session-controller/src/types.ts (ticket45 candidate)": "3afaf55365f38d46bca70ae5c175dc4b9571c935c0ad8c558f00b831b3328022",
+    "packages/api/session-controller/src/commands.ts": "d387517e345d444e2ebf15c1af0c74e0ac59b55774cbebfba03f4037946b185a",
+    "packages/settings/settings/src/types.ts": "fde8e28bde0fc1ffe390b53a2975832e1501e55b74b862e1e6c9be7824f97833",
+    "packages/api/settings-controller/src/index.ts": "73d05b8340fbcc93a814a19aaecb53b81a777b0af08f10271f4ff6dd415d3a53",
+    "packages/client/locale/src/locale-settings.ts": "bb563ce8a6cf56d8e8676cd3604f413c66d5e5b517a87641638647fa9ccff1c5",
+    "packages/client/ui-theme/src/theme-settings.ts": "f767181d6eed53034cee90c92a2a63f4b4b0875a1383edc9296cb78e184dd633"
+  },
+  "usedPublicDependencySha256": {
+    "dsh-api-settings-controller/lib/typert.remote-client.js": "b05d27b44055a9c785fcc39b2ea80698444ad5699102703d18883b2b2ac37908",
+    "dsh-settings/lib/types/types.d.ts": "1ad03f47c7b354a9e95fd5f96f86a455491fa64d7be6c87e4584d1533bcac322"
+  },
+  "tests": { "file": "tests/preferences/remote.test.ts", "passed": 6, "assertions": 30,
+    "themeRed": "missing production service module", "notificationRed": "expected revision 1 public event, received []",
+    "strictTypeScript": "PASS", "bun": "1.4.4 (38afee6c8)", "typescript": "6.0.3" },
+  "guards": { "allowlistedEnvironment": true, "syntheticHomeProfileCwd": true, "tmpdir": "/tmp",
+    "noEnvFile": true, "preimportGuard": "tests/interactions/no-provider.ts" },
+  "notRun": ["actual browser", "actual Host process", "Native/SDK/Agent runtime", "model/thinking RPC mutation",
+    "restart persistence", "cross-view event carrier", "Windows/WSL2"],
+  "productAdmission": "BLOCKED",
+  "ticket49": "OPEN",
+  "ticket29": "OPEN"
+}
