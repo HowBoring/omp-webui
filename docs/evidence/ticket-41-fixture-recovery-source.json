@@ -7,11 +7,11 @@
     "compatibility/omp/fixtures/native-helper-drain-bootstrap.ts": "0991db4f2d079aaad81d7d51f5982e266720a660b1addf8e63b75bfe1cea0c77",
     "compatibility/omp/fixtures/native-helper-drain-diagnostics.ts": "8a05c256dc117d6c4f86f29ccd83df89e6d5c56ec16eda348f9a1c992e111a43",
     "compatibility/omp/fixtures/native-helper-drain-native.ts": "5f2293def632adb4ccd6f33155c8f5ee13565c567ea9bfbbd8bf67a52719f071",
-    "scripts/retain-native-helper-drain.py": "f91d6ed2b952f636c77055b199375ff1810ecfac16dc56a40e1b638d09679109",
+    "scripts/retain-native-helper-drain.py": "04610030f46ec4e32ea067c2457590e84e2bbf010c25758150f113772e49ae15",
     "scripts/check-native-helper-two-process.ts": "87a20c543d4b9b7faac88e3741b3f2cdd257483eaba10413f7ca2f55be9bb656",
     "tests/ownership/native-helper-drain-diagnostics.test.ts": "981e870d3fbcb5de670b18b3f4a34909b7009256cc57b818b5c524d7c93a4ab0",
-    "tests/ownership/native_helper_drain_retainer_test.py": "83ae1aad5c0779f6d882360e0fb671df58ed5433bedf09cc575857eeaf400ef3",
-    "docs/evidence/ticket-41-fixture-recovery-source.md": "11d4a28d9685ddfdccfba5e2ac70ded4f1a6e281907a45814c0a03aa617685c6"
+    "tests/ownership/native_helper_drain_retainer_test.py": "835366bef04e2a8959cd6352da1eaf3e3044481b372d6d7d899ebddf43ac670e",
+    "docs/evidence/ticket-41-fixture-recovery-source.md": "a186b23c52d206056daed7a175db16125c7f6e8e9ec683e866a4d3e636b8a5bb"
   },
   "pureEvidence": {
     "docs/evidence/fixture-recovery/acquisition-green.txt": "670a39115e7523a8984e4842e16547cb2094b03fad392b037b4b9dc8b2656e62",
@@ -58,7 +58,21 @@
     "docs/evidence/fixture-recovery/control-journal-red.txt": "8e32233b0449e92bdf42a75afcf82a00facfb43a5272e239b5ec7379e38e7abe",
     "docs/evidence/fixture-recovery/partial-observation-green.txt": "d10ffbd9f0faa72cd6837063279524e199b59fbc3d035051302a1e8dbc4b36ad",
     "docs/evidence/fixture-recovery/scope-fix-python.txt": "64dae1244ed0fb876274a5066823cf80a9cd073552151c5ca4d3c12decdaf268",
-    "docs/evidence/fixture-recovery/scope-fix-checks.json": "f5da0f9986b2b6c7c596bf2bdd8413f5d346c9945c51e7db4a55f96a30299a53"
+    "docs/evidence/fixture-recovery/scope-fix-checks.json": "f5da0f9986b2b6c7c596bf2bdd8413f5d346c9945c51e7db4a55f96a30299a53",
+    "docs/evidence/fixture-recovery/final-journal-counterexample.py": "b972e383e6d639339b90eca4f20636447cc1472ae6aba3ba09cc82a93add69c5",
+    "docs/evidence/fixture-recovery/final-close-uncertainty-red.txt": "6ec3ad13b074b632e80460987482fc8a3c33a0cc755438699f3bc02803e12269",
+    "docs/evidence/fixture-recovery/final-journal-typescript-tests.txt": "7d22dda00aa7682537f3696bc9055baf4986fe0ce769e884b864d0152537beaf",
+    "docs/evidence/fixture-recovery/final-journal-release-green.txt": "af55efa5c3ceb122f8184c380aa405d3f3b4e7e0c1e892773d0eff31d0645c8a",
+    "docs/evidence/fixture-recovery/final-journal-python-ast.txt": "0361fb487c530faac8875c87ebfe59c61a01f26b770f7b7db3f9811ece169a1b",
+    "docs/evidence/fixture-recovery/final-journal-tool-objects.json": "d409793e600de243e0092f20d25b1eacbddbc74a0e87e5ca692ff16339b7bcae",
+    "docs/evidence/fixture-recovery/final-journal-counterexample-green.txt": "a216dcbad87b6433e60db550f9e17ca56b2bd333356516e5488be59cd862b357",
+    "docs/evidence/fixture-recovery/final-journal-typecheck.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/evidence/fixture-recovery/final-journal-checks.json": "212a01711ca3b8e34bd9bc9651efe0dafd255616954acac9b17dddeebf1022df",
+    "docs/evidence/fixture-recovery/final-journal-python-usr-bin.txt": "aa30f3ad75f0cd7e20529a52482a68e4b5b7bef11b2fcc9cb286e2ef8773bce3",
+    "docs/evidence/fixture-recovery/final-close-uncertainty-green.txt": "c346f1228fe88f4ab3cb336ffa610dc3a34ec7c7bb7d05df7a1c222f2d928881",
+    "docs/evidence/fixture-recovery/final-journal-release-red.txt": "4fe4a72e3df014e684c1ff731c84158e3ade87712c0fcb46c6e05f45bab7e5da",
+    "docs/evidence/fixture-recovery/final-journal-counterexample-red.txt": "9fcf73d31c0201cf6f9415113f2d3639676e27aee38a563371e6aeb3253c7e95",
+    "docs/evidence/fixture-recovery/final-journal-python.txt": "5491ed2140dd7f01cbd671f22a864a005ca81341f5079ddae4bbba88bcdb1983"
   },
   "preimages": {
     "scripts/retain-native-helper-drain.py": {
@@ -141,7 +155,8 @@
       "FRESH_POST_HOLD_JOURNALED_CHALLENGE",
       "ORIGINAL_CHILD_OBSERVATIONS_BEFORE_ROOT_CONTROL",
       "NO_UNCERTAIN_BUFFERED_OUTPUT",
-      "CONTINUOUS_PINNED_EARLY_NATIVE_SCOPE_BEFORE_SIGNAL_AND_COMPLETION"
+      "CONTINUOUS_PINNED_EARLY_NATIVE_SCOPE_BEFORE_SIGNAL_AND_COMPLETION",
+      "SUCCESSFULLY_FLUSHED_FINAL_FAILED_JOURNAL_BEFORE_ORIGINAL_PIDFD_RELEASE"
     ],
     "unknownAdoptedOrUnresolved": "HOLD",
     "automaticRetry": false,
@@ -150,7 +165,13 @@
     "fences": "NOT_INSPECTED_NO_RETAINER_MUTATION",
     "holdChallenge": "FRESH_OS_URANDOM_128_BITS_ONLY_IN_FIRST_ELIGIBLE_HOLD_FLUSHED_ORIGINAL_JOURNAL_BEFORE_CONTROL",
     "rootOpportunity": "FIRST_COMPLETE_BOUNDED_COMMAND_OVERSIZE_OR_EOF_CONSUMES_NO_REFRESH_OR_RECONNECT_RETRY",
-    "scopeDisqualification": "PERMANENT_ON_LATER_EVENT_FAILURE_HOST_OBJECT_CHANGED_FIRST_FAILURE_PHASE_OR_ORIGINAL_AUTHORITY"
+    "scopeDisqualification": "PERMANENT_ON_LATER_EVENT_FAILURE_HOST_OBJECT_CHANGED_FIRST_FAILURE_PHASE_OR_ORIGINAL_AUTHORITY",
+    "recoveryCommandTerminator": "ONE_ASCII_LF_BYTE_NOT_LITERAL_BACKSLASH_N",
+    "originalPidfdRelease": {
+      "NOT_ATTEMPTED": "ORIGINAL_DESCRIPTOR_RETAINED_ON_FINAL_JOURNAL_FAILURE",
+      "UNCERTAIN": "ORIGINAL_CLOSE_RAISED_NO_ASSUMPTION_OF_OPEN_DESCRIPTOR_NO_RETRY_NEW_SCOPE_OR_CONTROL",
+      "CLOSED": "ORIGINAL_CLOSE_RETURNED_ONCE_AFTER_FINAL_FAILED_JOURNAL"
+    }
   },
   "actual": {
     "nativeImported": false,
@@ -169,24 +190,29 @@
     "productAdmission": "BLOCKED"
   },
   "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_PAIR",
-  "repairBase": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef",
+  "repairBase": "075fc364e4409d9df2e5a2046f3aceee09962857",
   "sourceReadiness": "NOT_BUILT_NOT_RUN",
   "supersedesSource": {
-    "commit": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef",
-    "tree": "b6c4b35a7af495377a3fff5ec83a9456cb3d5304",
-    "descriptorSha256": "66c713477ada0bc14996b09e172fded7fa5709b71a10f5700215a1ddc9e7eae0",
-    "descriptorGitBlob": "b7becda40a73d09a6d52b5663c46dc15dc52cb4e",
-    "immutableDescriptor": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef:docs/evidence/ticket-41-fixture-recovery-source.json",
-    "immutableEvidenceTree": "499bd23b200a7f4bdf27cb8e26c8bf58fd887fef:docs/evidence/fixture-recovery",
-    "specReview": "HOLD_P1_LATE_EVENT_SCOPE_P2_PRE_HOLD_CONTROL",
-    "standardsReview": "GO_SOURCE_ONLY"
+    "commit": "075fc364e4409d9df2e5a2046f3aceee09962857",
+    "tree": "8404f33bc22340d6f9194e51fef370a055e983f6",
+    "descriptorSha256": "9808c966a50d8dd68f9ca8eae5f46de241a364fae200cab1923d46392fa7470f",
+    "descriptorGitBlob": "87a306c624d406bce65633b52320290d41c4aef2",
+    "evidenceGitTree": "08389d4157c293a3f7f7efd96844e99651b7244e",
+    "immutableDescriptor": "075fc364e4409d9df2e5a2046f3aceee09962857:docs/evidence/ticket-41-fixture-recovery-source.json",
+    "immutableEvidenceTree": "075fc364e4409d9df2e5a2046f3aceee09962857:docs/evidence/fixture-recovery",
+    "specReview": "HOLD_P2_FINAL_JOURNAL_RELEASE_ORDER_MASKED_REGRESSION",
+    "standardsReview": "HOLD_P2_MASKED_FINAL_JOURNAL_REGRESSION"
   },
   "repairValidation": {
-    "pythonTests": 25,
+    "pythonTests": 26,
+    "preservedPriorPythonTests": 25,
     "pythonInterpreters": 2,
     "bunTests": 9,
     "bunAssertions": 33,
-    "checks": "docs/evidence/fixture-recovery/scope-fix-checks.json",
+    "checks": "docs/evidence/fixture-recovery/final-journal-checks.json",
+    "toolObjects": "docs/evidence/fixture-recovery/final-journal-tool-objects.json",
+    "independentCounterexample": "OLD_SOURCE_RED_CORRECTED_SOURCE_GREEN_FINAL_JOURNAL_REACHED_ONCE_SAME_ORIGINAL_CHILD",
+    "exit1": "AST_ONLY_ONE_RUN_ENTRY_NOT_EXECUTED",
     "pureOnly": true,
     "fullNativeTypes": "NOT_RUN",
     "fullBuildGraphs": "NOT_RUN"

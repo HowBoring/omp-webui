@@ -1,0 +1,14 @@
+E
+======================================================================
+ERROR: test_failed_original_close_is_uncertain_and_never_retried_or_reauthorized (__main__.RetainerOwnershipTests.test_failed_original_close_is_uncertain_and_never_retried_or_reauthorized)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native_helper_drain_retainer_test.py", line 170, in test_failed_original_close_is_uncertain_and_never_retried_or_reauthorized
+    self.assertEqual(retainer.receipt()["originalPidfdRelease"], "UNCERTAIN_NO_RETRY")
+                     ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'originalPidfdRelease'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (errors=1)

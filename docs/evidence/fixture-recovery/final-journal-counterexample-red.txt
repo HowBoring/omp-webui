@@ -1,0 +1,8 @@
+{"finalJournalFailures": 1, "closeCalls": [99], "sameOriginalChild": true, "status": "HOLD_ORIGINAL_LIFETIMES_RETAINED"}
+Traceback (most recent call last):
+  File "/workspace/work/omp-webui-ticket-41-fixture-recovery/docs/evidence/fixture-recovery/final-journal-counterexample.py", line 49, in <module>
+    close.assert_not_called()
+  File "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/unittest/mock.py", line 910, in assert_not_called
+    raise AssertionError(msg)
+AssertionError: Expected 'close' to not have been called. Called 1 times.
+Calls: [call(99)].

@@ -128,6 +128,7 @@ class Retainer:
         self.recovery_fault = False
         self.drain_fault = False
         self.recovered = False
+        self.original_pidfd_release = "NOT_ATTEMPTED"
         self.recovery_disqualified = False
         self.recovery_scope = None
         self.challenge_factory = challenge_factory if challenge_factory is not None else lambda: os.urandom(16).hex()
@@ -144,7 +145,8 @@ class Retainer:
                 "originalObjects": sorted(self.children), "launchAttempted": sorted(self.launch_attempted),
                 "initializersReturned": sorted(self.launch_returned), "originalReaders": sorted(self.reader_channels),
                 "originalWaits": self.waits, "originalEof": sorted([list(channel) for channel in self.eof]),
-                "pAll": self.p_all, "fixtureAcceptance": False, "automaticCleanupAcceptance": False,
+                "pAll": self.p_all, "originalPidfdRelease": self.original_pidfd_release,
+                "fixtureAcceptance": False, "automaticCleanupAcceptance": False,
                 "fences": "NOT_INSPECTED_NO_RETAINER_MUTATION", "productAdmission": "BLOCKED"}
 
     def note(self, event, **facts):
@@ -272,9 +274,12 @@ class Retainer:
             self.p_all = "ECHILD"
             self.note("RECOVERY_TERMINAL_FACTS")
             require(self.recovery_eligible(), "RETAINER_RECOVERY_SCOPE_CHANGED")
-            os.close(self.pidfds["native"])
             self.recovered = True
             self.note("RECOVERY_COMPLETE_RUN_STILL_FAILED")
+            require(self.recovery_eligible(), "RETAINER_RECOVERY_SCOPE_CHANGED")
+            self.original_pidfd_release = "UNCERTAIN"
+            os.close(self.pidfds["native"])
+            self.original_pidfd_release = "CLOSED"
             return True
         except BaseException:
             self.recovered = False

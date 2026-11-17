@@ -1,0 +1,124 @@
+{
+  "format": "omp-native-helper-fixture-recovery-final-journal-checks/1",
+  "status": "PASS_PURE_SOURCE_ONLY",
+  "repairBase": "075fc364e4409d9df2e5a2046f3aceee09962857",
+  "commands": [
+    {
+      "label": "python",
+      "command": "python3 -B tests/ownership/native_helper_drain_retainer_test.py > docs/evidence/fixture-recovery/final-journal-python.txt 2>&1",
+      "chunk_id": "022dc4",
+      "wall_time_seconds": 0.247430785,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "python_usr_bin",
+      "command": "/usr/bin/python3 -B tests/ownership/native_helper_drain_retainer_test.py > docs/evidence/fixture-recovery/final-journal-python-usr-bin.txt 2>&1",
+      "chunk_id": "fdc642",
+      "wall_time_seconds": 0.287334711,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "bun",
+      "command": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test --no-env-file --preload=./tests/preferences/no-provider.ts tests/ownership/native-helper-drain-diagnostics.test.ts tests/ownership/native-helper-two-process.test.ts > docs/evidence/fixture-recovery/final-journal-typescript-tests.txt 2>&1",
+      "chunk_id": "51f218",
+      "wall_time_seconds": 0.125637821,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "types",
+      "command": "/workspace/work/omp-webui-ticket-41/node_modules/.bin/tsc --ignoreConfig --noEmit --strict --skipLibCheck --target ESNext --module Preserve --moduleResolution Bundler --types bun --noUncheckedIndexedAccess --exactOptionalPropertyTypes --allowImportingTsExtensions compatibility/omp/fixtures/native-helper-drain-diagnostics.ts compatibility/omp/fixtures/native-helper-drain-bootstrap.ts tests/ownership/native-helper-drain-diagnostics.test.ts tests/ownership/native-helper-two-process.test.ts > docs/evidence/fixture-recovery/final-journal-typecheck.txt 2>&1",
+      "chunk_id": "179f13",
+      "wall_time_seconds": 2.221997647,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "python_ast_exit1",
+      "command": "python3 -B - <<'PY' > docs/evidence/fixture-recovery/final-journal-python-ast.txt 2>&1\nimport ast\nimport json\nfrom pathlib import Path\npaths = [\"scripts/retain-native-helper-drain.py\", \"tests/ownership/native_helper_drain_retainer_test.py\", \"docs/evidence/fixture-recovery/final-journal-counterexample.py\"]\ntrees = [ast.parse(Path(path).read_text(), filename=path) for path in paths]\nretainer = next(node for node in trees[0].body if isinstance(node, ast.ClassDef) and node.name == \"Retainer\")\nrecovery = next(node for node in retainer.body if isinstance(node, ast.FunctionDef) and node.name == \"recovery_step\")\ncalls = [node for node in ast.walk(recovery) if isinstance(node, ast.Call)]\nfinal = next(node for node in calls if isinstance(node.func, ast.Attribute) and node.func.attr == \"note\" and node.args and isinstance(node.args[0], ast.Constant) and node.args[0].value == \"RECOVERY_COMPLETE_RUN_STILL_FAILED\")\nclose = next(node for node in calls if isinstance(node.func, ast.Attribute) and node.func.attr == \"close\")\nassert final.lineno < close.lineno\nentry = trees[0].body[-1]\nassert isinstance(entry, ast.If) and isinstance(entry.test, ast.Compare)\nassert ast.literal_eval(entry.test.comparators[0]) == \"__main__\"\nhandler = entry.body[1].handlers[0]\nloop, exit_statement = handler.body[-2:]\nassert isinstance(loop, ast.While) and isinstance(loop.test, ast.UnaryOp) and isinstance(loop.test.op, ast.Not)\nassert isinstance(loop.test.operand, ast.Call) and loop.test.operand.func.attr == \"hold_step\"\nassert isinstance(exit_statement, ast.Expr) and isinstance(exit_statement.value, ast.Call)\nassert ast.unparse(exit_statement.value.func) == \"sys.exit\"\nassert [ast.literal_eval(arg) for arg in exit_statement.value.args] == [1]\nprint(json.dumps({\"status\":\"PASS_PYTHON_AST_ONLY\",\"files\":paths,\"finalFailedJournalBeforeOriginalClose\":True,\"completedHoldThenExit\":1,\"oneRunEntryExecuted\":False}))\nPY",
+      "chunk_id": "ca5d3d",
+      "wall_time_seconds": 0.005784114,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    },
+    {
+      "label": "tool_objects",
+      "command": "python3 -B - <<'PY' > docs/evidence/fixture-recovery/final-journal-tool-objects.json\nimport hashlib\nimport json\nimport sys\nfrom pathlib import Path\npaths = [sys.executable, \"/usr/bin/python3\", \"/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun\", \"/workspace/work/omp-webui-ticket-41/node_modules/.bin/tsc\", \"/workspace/work/omp-webui-current/node_modules/typescript/lib/tsc.js\"]\nobjects = []\nfor name in paths:\n    path = Path(name).resolve()\n    data = path.read_bytes()\n    objects.append({\"invokedPath\": name, \"resolvedPath\": str(path), \"bytes\": len(data), \"sha256\": hashlib.sha256(data).hexdigest()})\nprint(json.dumps({\"objects\": objects, \"primaryPythonVersion\": sys.version, \"typescriptVersion\": json.loads(Path(\"/workspace/work/omp-webui-current/node_modules/typescript/package.json\").read_text())[\"version\"], \"bunVersionFromTestReceipt\": \"1.4.4 (38afee6c8)\"}, indent=2))\nPY",
+      "chunk_id": "89a799",
+      "wall_time_seconds": 0.403676657,
+      "exit_code": 0,
+      "original_token_count": 0,
+      "output": ""
+    }
+  ],
+  "tdd": [
+    {
+      "label": "same_original_final_journal_red",
+      "command": "python3 -B tests/ownership/native_helper_drain_retainer_test.py RetainerOwnershipTests.test_failed_final_journal_never_releases_original_owner > docs/evidence/fixture-recovery/final-journal-release-red.txt 2>&1",
+      "toolResult": {
+        "chunk_id": "41dafb",
+        "wall_time_seconds": 0.084255662,
+        "exit_code": 1,
+        "original_token_count": 0,
+        "output": ""
+      },
+      "expected": "RED_CLOSE_99_AFTER_INJECTED_FINAL_JOURNAL_FAILURE"
+    },
+    {
+      "label": "close_uncertainty_red",
+      "command": "python3 -B tests/ownership/native_helper_drain_retainer_test.py RetainerOwnershipTests.test_failed_original_close_is_uncertain_and_never_retried_or_reauthorized > docs/evidence/fixture-recovery/final-close-uncertainty-red.txt 2>&1",
+      "toolResult": {
+        "chunk_id": "8582ab",
+        "wall_time_seconds": 0.076718167,
+        "exit_code": 1,
+        "original_token_count": 0,
+        "output": ""
+      },
+      "expected": "RED_MISSING_EXPLICIT_RELEASE_UNCERTAINTY"
+    },
+    {
+      "label": "independent_old_source_counterexample",
+      "source": "075fc364e4409d9df2e5a2046f3aceee09962857:scripts/retain-native-helper-drain.py",
+      "command": "python3 -B docs/evidence/fixture-recovery/final-journal-counterexample.py /tmp/ticket-41-final-journal-old-retainer.py > docs/evidence/fixture-recovery/final-journal-counterexample-red.txt 2>&1",
+      "toolResult": {
+        "chunk_id": "3055c6",
+        "wall_time_seconds": 0.091683159,
+        "exit_code": 1,
+        "original_token_count": 0,
+        "output": ""
+      },
+      "expected": "RED_ONE_FINAL_JOURNAL_FAILURE_SAME_ORIGINAL_CHILD_CLOSE_99"
+    }
+  ],
+  "counterexampleGreenToolObject": {
+    "label": "independent_corrected_counterexample",
+    "command": "python3 -B docs/evidence/fixture-recovery/final-journal-counterexample.py scripts/retain-native-helper-drain.py > docs/evidence/fixture-recovery/final-journal-counterexample-green.txt 2>&1",
+    "chunk_id": "38096a",
+    "wall_time_seconds": 0.091211135,
+    "exit_code": 0,
+    "original_token_count": 0,
+    "output": ""
+  },
+  "pythonTests": 26,
+  "preservedPriorPythonTests": 25,
+  "pythonInterpreters": 2,
+  "bunTests": 9,
+  "bunAssertions": 33,
+  "toolObjects": "docs/evidence/fixture-recovery/final-journal-tool-objects.json",
+  "fullNativeTypes": "NOT_RUN",
+  "fullBuildGraphs": "NOT_RUN",
+  "oneRunRetainerEntryExecuted": false,
+  "nativeImported": false,
+  "nativeFfiLoaded": false,
+  "kernelExperiments": false,
+  "stageOperations": false,
+  "actualProof": "NOT_RUN",
+  "productAdmission": "BLOCKED"
+}

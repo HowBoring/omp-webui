@@ -1,0 +1,1 @@
+{"status": "PASS_PYTHON_AST_ONLY", "files": ["scripts/retain-native-helper-drain.py", "tests/ownership/native_helper_drain_retainer_test.py", "docs/evidence/fixture-recovery/final-journal-counterexample.py"], "finalFailedJournalBeforeOriginalClose": true, "completedHoldThenExit": 1, "oneRunEntryExecuted": false}

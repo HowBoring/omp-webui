@@ -81,7 +81,11 @@ class RetainerOwnershipTests(unittest.TestCase):
     def test_only_root_generation_command_can_recover_original_early_native_after_hold(self):
         retainer = self.make_retainer()
         receipts, operations = [], []
-        retainer.emit = lambda value: receipts.append(json.loads(json.dumps(value)))
+        def journal(value):
+            receipts.append(json.loads(json.dumps(value)))
+            if value["journal"][-1]["event"] == "RECOVERY_COMPLETE_RUN_STILL_FAILED":
+                operations.append("final_failed_journal")
+        retainer.emit = journal
         retainer.generation, retainer.phase = "a" * 64, "NATIVE_AWAIT_READY"
         retainer.children["native"] = SimpleNamespace(wait=lambda **_options: operations.append("original_wait") or -15)
         retainer.pidfds["native"] = 99
@@ -105,7 +109,10 @@ class RetainerOwnershipTests(unittest.TestCase):
                 patch.object(module.os, "close", side_effect=lambda descriptor: operations.append(("close", descriptor))):
             retainer.root_control(("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode())
             self.assertTrue(retainer.recovery_step())
-        self.assertEqual(operations, ["original_pidfd_signal", "original_wait", ("close", 99)])
+            self.assertTrue(retainer.recovery_step())
+            self.assertTrue(retainer.hold_step())
+        self.assertEqual(operations, ["original_pidfd_signal", "original_wait", "final_failed_journal", ("close", 99)])
+        self.assertEqual(retainer.receipt()["originalPidfdRelease"], "CLOSED")
         self.assertEqual(receipts[-1]["status"], "FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED")
         self.assertEqual(receipts[-1]["failurePhase"], "NATIVE_AWAIT_READY")
         self.assertFalse(receipts[-1]["fixtureAcceptance"])
@@ -115,21 +122,66 @@ class RetainerOwnershipTests(unittest.TestCase):
 
     def test_failed_final_journal_never_releases_original_owner(self):
         retainer = self.early_retainer()
+        original = retainer.children["native"]
+        waits, failed_emissions = [], []
+        original.wait = lambda **_options: waits.append("original_wait") or -15
         retainer.recovery_attempted = True
-        retainer.children["native"] = SimpleNamespace(wait=lambda **_options: -15)
-        retainer.pidfds["native"] = 99
-        retainer.eof = {("native", "stdout"), ("native", "stderr")}
+        retainer.eof = set(retainer.buffers)
         def broken_final_journal(value):
-            if value["status"] == "FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED":
+            if value["journal"][-1]["event"] == "RECOVERY_COMPLETE_RUN_STILL_FAILED":
+                failed_emissions.append(value["status"])
                 raise OSError("fake journal failure")
         retainer.emit = broken_final_journal
         poll = SimpleNamespace(register=lambda *_args: None, poll=lambda _timeout: [(99, module.select.POLLIN)])
         with patch.object(module.select, "poll", return_value=poll), \
                 patch.object(module.os, "waitid", side_effect=ChildProcessError), \
-                patch.object(module.os, "close"):
+                patch.object(module.os, "close") as close:
             self.assertFalse(retainer.recovery_step())
             self.assertFalse(retainer.hold_step())
+            self.assertEqual(failed_emissions, ["FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED"])
+            self.assertEqual(waits, ["original_wait"])
+            close.assert_not_called()
+        self.assertIs(retainer.children["native"], original)
         self.assertEqual(retainer.receipt()["status"], "HOLD_ORIGINAL_LIFETIMES_RETAINED")
+        self.assertEqual(retainer.receipt()["code"], "RETAINER_CHILD_RETAINED_FAILURE")
+        self.assertEqual(retainer.receipt()["originalPidfdRelease"], "NOT_ATTEMPTED")
+
+    def test_failed_original_close_is_uncertain_and_never_retried_or_reauthorized(self):
+        retainer = self.early_retainer()
+        original, scope = retainer.children["native"], retainer.recovery_scope
+        operations = []
+        original.wait = lambda **_options: operations.append("original_wait") or -15
+        retainer.eof = set(retainer.buffers)
+        def journal(value):
+            if value["journal"][-1]["event"] == "RECOVERY_COMPLETE_RUN_STILL_FAILED":
+                operations.append("final_failed_journal")
+        def uncertain_close(descriptor):
+            operations.append(("original_close", descriptor))
+            raise OSError("fake ambiguous close")
+        retainer.emit = journal
+        command = ("RECOVER_EARLY_NATIVE " + "a" * 64 + " " + "c" * 32 + "\n").encode()
+        poll = SimpleNamespace(register=lambda *_args: None, poll=lambda _timeout: [(99, module.select.POLLIN)])
+        with patch.object(module.signal, "pidfd_send_signal") as deliver, \
+                patch.object(module.select, "poll", return_value=poll), \
+                patch.object(module.os, "waitid", side_effect=ChildProcessError), \
+                patch.object(module.os, "close", side_effect=uncertain_close) as close:
+            retainer.root_control(command)
+            self.assertFalse(retainer.recovery_step())
+            self.assertFalse(retainer.hold_step())
+            retainer.root_control(command)
+            retainer.enter_hold(RuntimeError("RETAINER_UNRESOLVED"))
+            self.assertFalse(retainer.hold_step())
+            retainer.root_control(command)
+            close.assert_called_once_with(99)
+            deliver.assert_called_once_with(99, module.signal.SIGTERM, None, 0)
+        self.assertEqual(operations, ["original_wait", "final_failed_journal", ("original_close", 99)])
+        self.assertEqual(retainer.receipt()["originalPidfdRelease"], "UNCERTAIN")
+        self.assertEqual(retainer.receipt()["status"], "HOLD_ORIGINAL_LIFETIMES_RETAINED")
+        self.assertEqual(retainer.receipt()["code"], "RETAINER_CHILD_RETAINED_FAILURE")
+        self.assertIs(retainer.children["native"], original)
+        self.assertIs(retainer.recovery_scope, scope)
+        self.assertTrue(retainer.root_consumed)
+        self.assertTrue(retainer.recovery_fault)
 
     def test_unknown_nominal_event_payload_cannot_enter_retained_journal(self):
         retainer = self.make_retainer()
@@ -352,7 +404,7 @@ class RetainerOwnershipTests(unittest.TestCase):
                 self.assertEqual(retainer.history, [{"role": "native", **event}])
 
     def test_scope_is_rechecked_after_intent_and_terminal_journal_before_authority_release(self):
-        for observation in ["RECOVERY_SIGNAL_INTENT", "RECOVERY_TERMINAL_FACTS"]:
+        for observation in ["RECOVERY_SIGNAL_INTENT", "RECOVERY_TERMINAL_FACTS", "RECOVERY_COMPLETE_RUN_STILL_FAILED"]:
             with self.subTest(observation=observation):
                 retainer = self.early_retainer()
                 retainer.children["native"].pid = 123

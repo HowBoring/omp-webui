@@ -1,0 +1,2 @@
+{"finalJournalFailures": 1, "closeCalls": [], "sameOriginalChild": true, "status": "HOLD_ORIGINAL_LIFETIMES_RETAINED"}
+PASS_FINAL_JOURNAL_FAILURE_RETAINS_ORIGINAL_PIDFD

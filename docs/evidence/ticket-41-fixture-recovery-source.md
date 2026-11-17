@@ -6,10 +6,12 @@ worktree. It does not fix or rerun the consumed signed attempt. Original session
 exact-pidfd recovery. Its fixture and automatic cleanup acceptance remain false. The JSON source record preserves
 hash references to the original Git preimages and original FAIL/final/manual receipts; no original stage is edited.
 
-The source repair supersedes `499bd23b200a7f4bdf27cb8e26c8bf58fd887fef` (tree
-`b6c4b35a7af495377a3fff5ec83a9456cb3d5304`). That source and its original evidence remain available at their
-immutable Git references. Its Spec review found late-event scope and pre-HOLD authority defects; this revision
-closes those source findings and is ready only for a fresh independent paired source review. It is NOT BUILT/NOT RUN.
+The source repair supersedes `075fc364e4409d9df2e5a2046f3aceee09962857` (tree
+`8404f33bc22340d6f9194e51fef370a055e983f6`). That source, descriptor and evidence remain available at their
+immutable Git references. Both source reviews held its final-journal failure ordering and masked regression.
+This revision changes only that P2 release ordering, its regression evidence and this source descriptor. The earlier
+scope latch and fresh HOLD challenge remain in place. It is ready only for a fresh independent paired source review
+and remains NOT BUILT/NOT RUN.
 
 The agreed test seams are the public fixture diagnostic function and original retainer lifecycle/control methods,
 with fake OS/process/selector boundaries. There is no Native import, preflight, actor, pidfd, `/proc`, signal,
@@ -66,9 +68,15 @@ failures remain HOLD and require a separate reviewed policy.
 The one Root request journals intent, sends one SIGTERM through the already retained Native pidfd, and journals the
 result. It never reopens an authority handle or signals a numeric PID/group. Subsequent finite HOLD ticks only drain
 original readers and observe terminal facts. The original Native Popen wait, both original clean EOFs, terminal
-original pidfd and actual original-parent `P_ALL`/ECHILD are all required before closing that pidfd and returning
-exit 1 with `FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED`. Unknown adopted children, a live domain, adopted zombies,
-nonterminal/missing pidfd, incomplete wait/readers or failed journaling remain HOLD. No adopted child is enumerated,
+original pidfd and actual original-parent `P_ALL`/ECHILD are all required. The final
+`RECOVERY_COMPLETE_RUN_STILL_FAILED` receipt must flush successfully before the original pidfd can close;
+eligibility is rechecked after that flush. Successful completion closes it once and reaches the existing exit 1 with
+`FAILED_EARLY_NATIVE_ORIGINAL_DOMAIN_DRAINED`. The final journal describes terminal domain facts while release is
+still `NOT_ATTEMPTED`; after close returns, the in-memory receipt records `originalPidfdRelease: CLOSED`.
+A final-journal failure keeps release `NOT_ATTEMPTED` and preserves the original descriptor. An exception from close
+records `originalPidfdRelease: UNCERTAIN`, preserves the first failure, and permanently prevents another close,
+signal or control opportunity; it cannot claim that descriptor remains open. Unknown adopted children, a live domain,
+adopted zombies, nonterminal/missing pidfd, incomplete wait/readers or failed journaling remain HOLD. No adopted child is enumerated,
 signaled or reaped by a fabricated recovery authority.
 
 That status describes process-domain facts after Root's request. `fixtureAcceptance` and
@@ -78,12 +86,21 @@ lease/fence disposal, product admission, nominal handshake or the runtime fault 
 ## Verification and limits
 
 The original vertical RED/GREEN transcripts under `fixture-recovery/` cover lowercase diagnosis, secret scrubbing, constructor
-ambiguity, parent validation, original Root recovery, failed final journaling, event payload rejection, failed drain,
+ambiguity, parent validation, original Root recovery, event payload rejection, failed drain,
 partial reader acquisition, already buffered event drainage and phase scrubbing. The source repair adds vertical
 RED/GREEN transcripts for late-event scope, fresh HOLD challenge, partial pending output and control-journal failure.
 New tests also cover stale queued/fragmented generation/challenge commands, consumed EOF/malformed input, permanent
-scope invalidation and no challenge refresh. Final verification is 25 pure Python
-tests and 9 Bun tests (the 3 diagnostic tests plus the unchanged 6 public handshake tests), with 33 Bun assertions.
+scope invalidation and no challenge refresh. The earlier final-journal regression replaced the pinned child and
+therefore did not reach its injected failure. The repaired regression keeps that exact original child, changes its
+wait behavior in place, reaches the final-journal failure once and asserts no close across later ticks. An independent
+pure-fake counterexample against immutable `075fc364` also reaches that failure once with the same child and proves
+the old close occurred; the corrected source passes the same counterexample. The positive path verifies one final
+FAILED journal before one original close. A close-failure test proves explicit uncertainty, no second attempt, no new
+scope or Root control; scope changes during the final journal also block release. AST inspection alone verifies the
+completed HOLD path reaches exit 1; the ONE-run entry is never executed. New P2 RED/GREEN receipts and exact command
+tool objects are pinned by `fixture-recovery/final-journal-checks.json`.
+Final verification passes all 25 prior pure Python tests plus one close-uncertainty test (26 total),
+and 9 Bun tests (the 3 diagnostic tests plus the unchanged 6 public handshake tests), with 33 Bun assertions.
 Both supplied Python interpreters pass. Targeted strict no-emit TypeScript checks cover diagnostics/bootstrap and
 both test files; Native fixture and source-checker syntax are parsed as text. The full Native type/build graphs and
 all actual runtime/kernel cases are NOT RUN here. The source checker includes the new tests for a future explicitly
