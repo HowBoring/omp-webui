@@ -3,10 +3,14 @@ import * as path from "node:path";
 import { z } from "zod";
 import { probePin, probeLaunchMembers, probePlatformMembers, readProbePin, sha256 } from "./native-signed-probe-launch";
 
+import { helperDrainRuntime, readHelperDrainRuntime, assertHelperDrainExecution,
+  type HelperDrainRuntime } from "./native-helper-drain-runtime";
+
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 const absolute = z.string().max(4096).refine(value => path.isAbsolute(value) && path.resolve(value) === value);
 const directory = z.strictObject({ path: absolute, device: z.string().regex(/^\d+$/), inode: z.string().regex(/^[1-9]\d*$/) });
 export const helperDrainConfiguration = z.strictObject({
+  runtime: helperDrainRuntime,
   stage: absolute.refine(value => /^\/tmp\/native-helper-drain-[A-Za-z0-9-]+$/.test(value)),
   installation: hash, generation: hash, anchor: probePin, replyKey: probePin,
   dispatcherReplyPublicKey: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
@@ -14,9 +18,23 @@ export const helperDrainConfiguration = z.strictObject({
 export type HelperDrainConfiguration = z.infer<typeof helperDrainConfiguration>;
 const member = z.strictObject({ path: z.string(), kind: z.enum(["file", "directory"]), identity: hash,
   mode: z.number().int().min(0).max(0o777) });
-const closure = z.strictObject({ format: z.literal("omp-native-helper-drain-launch/1"),
-  members: z.array(member).min(1).max(2048), platformDependencies: z.array(member.extend({
-    kind: z.enum(["file", "link"]), identity: z.string() })).length(7) });
+const members = z.array(member).min(1).max(2048);
+const dependencies = z.array(member.extend({ kind: z.enum(["file", "link"]), identity: z.string() }));
+const closure = z.discriminatedUnion("format", [
+  z.strictObject({ format: z.literal("omp-native-helper-drain-launch/1"), members,
+    platformDependencies: dependencies.length(7) }),
+  z.strictObject({ format: z.literal("omp-native-helper-drain-launch/2"), members,
+    runtime: helperDrainRuntime.options[1], platformDependencies: dependencies.length(8) }),
+]);
+/** Fixed seven platform libraries/aliases plus, only for the explicit variant, the independently pinned runtime. */
+export async function helperDrainPlatformMembers(runtime: HelperDrainRuntime) {
+  const selected = helperDrainRuntime.parse(runtime), platform = await probePlatformMembers();
+  if (selected.kind === "root-platform-runtime/1") {
+    await readHelperDrainRuntime(selected);
+    platform.push({ path: selected.path, kind: "file", identity: selected.sha256, mode: selected.mode });
+  }
+  return platform;
+}
 function canonical(bytes: string): unknown {
   const value: unknown = JSON.parse(bytes);
   if (JSON.stringify(value) !== bytes) throw new Error("DRAIN_NONCANONICAL_APPROVAL");
@@ -25,11 +43,15 @@ function canonical(bytes: string): unknown {
 
 /** Compare semantic rosters after the same strict schema normalization; object insertion order grants no identity. */
 export function assertHelperDrainLaunchRoster(signed: unknown, members: unknown,
-  platformDependencies: unknown): z.infer<typeof closure> {
+  platformDependencies: unknown, runtime: HelperDrainRuntime): z.infer<typeof closure> {
   const inventory = closure.parse(signed);
-  if (JSON.stringify(inventory.members) !== JSON.stringify(closure.shape.members.parse(members))
+  const selected = helperDrainRuntime.parse(runtime);
+  if ((inventory.format === "omp-native-helper-drain-launch/1" && selected.kind !== "staged-runtime/1")
+    || (inventory.format === "omp-native-helper-drain-launch/2"
+      && JSON.stringify(inventory.runtime) !== JSON.stringify(selected))) throw new Error("DRAIN_RUNTIME_VARIANT");
+  if (JSON.stringify(inventory.members) !== JSON.stringify(z.array(member).parse(members))
     || JSON.stringify(inventory.platformDependencies)
-      !== JSON.stringify(closure.shape.platformDependencies.parse(platformDependencies))) throw new Error("DRAIN_LAUNCH_CHANGED");
+      !== JSON.stringify(dependencies.parse(platformDependencies))) throw new Error("DRAIN_LAUNCH_CHANGED");
   return inventory;
 }
 
@@ -72,8 +94,11 @@ export async function authenticateHelperDrainLaunch(input: HelperDrainConfigurat
   const bytes = await fs.readFile(`${root}/launch-closure.json`);
   if (sha256(bytes) !== approved.identity.closure) throw new Error("DRAIN_LAUNCH_DIGEST");
   const inventory = assertHelperDrainLaunchRoster(JSON.parse(bytes.toString("utf8")),
-    await probeLaunchMembers(root), await probePlatformMembers());
-  if (process.execPath !== `${root}/runtime/bun` || Bun.version !== "1.4.4") throw new Error("DRAIN_RUNTIME_CHANGED");
+    await probeLaunchMembers(root), await helperDrainPlatformMembers(config.runtime), config.runtime);
+  const executable = await fs.stat("/proc/self/exe", { bigint: true });
+  assertHelperDrainExecution(config.stage, config.runtime, { execPath: process.execPath,
+    executable: { path: await fs.realpath("/proc/self/exe"), device: String(executable.dev), inode: String(executable.ino) },
+    uid: process.getuid?.() ?? -1, version: Bun.version, execArgv: process.execArgv, argv: process.argv });
   const entry = await fs.lstat(approved.entry.path, { bigint: true });
   if (String(entry.dev) !== approved.entry.device || String(entry.ino) !== approved.entry.inode
     || inventory.members.find(value => value.path === "bin/omp")?.identity !== approved.entry.sha256) throw new Error("DRAIN_ENTRY_CHANGED");

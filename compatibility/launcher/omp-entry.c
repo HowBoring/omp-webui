@@ -21,6 +21,24 @@ static int canonical_member(char *out, size_t size, const char *root, const char
     return lstat(out, &metadata) == 0 && S_ISREG(metadata.st_mode) && metadata.st_nlink == 1;
 }
 
+/* Explicit fixture build contract only; ordinary launchers retain their stage-local runtime. */
+#ifdef OMP_TEST_HARNESS_RUNTIME_PATH
+static int test_harness_runtime(char *out, size_t size) {
+    const char *file = OMP_TEST_HARNESS_RUNTIME_PATH;
+    char canonical[PATH_MAX];
+    struct stat metadata;
+    if (strcmp(file, "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun") != 0 ||
+        !realpath(file, canonical) || strcmp(file, canonical) != 0 || lstat(file, &metadata) != 0 ||
+        !S_ISREG(metadata.st_mode) || metadata.st_nlink != 1 || metadata.st_size != 107308936 ||
+        metadata.st_uid != getuid() || (metadata.st_mode & 07777) != 0755 ||
+        (uintmax_t)metadata.st_dev != OMP_TEST_HARNESS_RUNTIME_DEVICE ||
+        (uintmax_t)metadata.st_ino != OMP_TEST_HARNESS_RUNTIME_INODE ||
+        (uintmax_t)metadata.st_uid != OMP_TEST_HARNESS_RUNTIME_UID) return 0;
+    int written = snprintf(out, size, "%s", file);
+    return written >= 0 && (size_t)written < size;
+}
+#endif
+
 int main(int argc, char **argv) {
     const char *injections[] = {"BUN_OPTIONS", "NODE_OPTIONS", "BUN_INSPECT", "LD_PRELOAD", "LD_LIBRARY_PATH", "LD_AUDIT"};
     for (size_t index = 0; index < sizeof(injections) / sizeof(injections[0]); index++) {
@@ -41,8 +59,12 @@ int main(int argc, char **argv) {
     root[length] = '\0';
     if (strcmp(root + length - strlen(suffix), suffix) != 0) return 74;
     root[length - strlen(suffix)] = '\0';
-    if (!canonical_member(runtime, sizeof(runtime), root, "runtime/bun") ||
-        !canonical_member(target, sizeof(target), root, "worker/cli.js") ||
+#ifdef OMP_TEST_HARNESS_RUNTIME_PATH
+    if (!test_harness_runtime(runtime, sizeof(runtime))) return 74;
+#else
+    if (!canonical_member(runtime, sizeof(runtime), root, "runtime/bun")) return 74;
+#endif
+    if (!canonical_member(target, sizeof(target), root, "worker/cli.js") ||
         !canonical_member(config, sizeof(config), root, "runtime/bunfig.toml")) return 74;
     if (snprintf(config_flag, sizeof(config_flag), "--config=%s", config) < 0) return 74;
     /* Shared lock stays open across exec. Children/shared services require separate native ownership proof. */

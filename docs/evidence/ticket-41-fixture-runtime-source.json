@@ -1,0 +1,58 @@
+{
+  "status": "NOT_BUILT_NOT_RUN_SOURCE_ONLY",
+  "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+  "testHarnessOnly": true,
+  "sourceHashes": {
+    "compatibility/launcher/omp-entry.c": "1047cd482e26895ec95abd170c8c8505e8338ee901822ab1b7cdfbce96d4094e",
+    "compatibility/omp/fixtures/native-helper-drain-launch.ts": "4a86eb3d28d2ceb9599fb07c705fef4009e8671557607ca3ab3df7feb78b64bb",
+    "compatibility/omp/fixtures/native-helper-drain-runtime.ts": "213ec9819cbce0f980b090c1715f7b7f540c6d2a44962f8ead53fbc66e08abf4",
+    "compatibility/omp/fixtures/native-helper-drain-source-plan.ts": "4f5ece507e911da3d81be4a26e873e224fa474148e9a5da80f11d699d881e2a3",
+    "compatibility/omp/fixtures/native-helper-drain-source-plan.json": "bf76d7385156f9a0b8ef77f0521b9a427adeefccb85c4d9ca17e486e1a0f6577",
+    "scripts/check-native-helper-two-process.ts": "4df9d5d87d8839aa1c947117f19680834122c01e20d52498578cd4347e6ac7a2",
+    "scripts/prepare-native-helper-drain.ts": "8b1a33e51c191052daf639987c1729cf6e2e6a8f43495fc6574f15070899f4f7",
+    "tests/ownership/native-helper-drain-runtime.test.ts": "fd5462236f3be320c6bfa45ff08648782d610444a463e6712c8fc1d64a72af50",
+    "tests/ownership/native-helper-two-process.test.ts": "869f11800c9e98248f2dbb573f9b632f7675f7c351440e6d28e357b55bfb2ea4",
+    "docs/adr/0018-native-execution-ownership.md": "67dfd0c852a7da5eae192b47669f75bacb9399b87b643efef0aac6959aeb2b62",
+    "docs/evidence/ticket-41-fixture-runtime-source.md": "fd633232cc4a0de88ec9ee34b2edee4833ca5609aa099bd06d95acd818510c2c"
+  },
+  "evidenceHashes": {
+    "docs/evidence/fixture-runtime/checks.json": "773d0aa572fcccf75204197aeba096264604df886244fe7a45feb783c03fa8c9",
+    "docs/evidence/fixture-runtime/historical-source-map.json": "688810e9da4a6df991d39649195e4aa0ed32a5dea705a29554ea936c61321ad3",
+    "docs/evidence/fixture-runtime/materialized.json": "9270c94b8cfc32dcb87d4dc00b3861116cd6db74b816b3de551f6ab49772b674",
+    "docs/evidence/fixture-runtime/native-preservation.json": "dfb7d53068a3b6271a0ec9551fe8a705cf4072cfd3c8aeb8c91b7bc385da65ec",
+    "docs/evidence/fixture-runtime/root-proposal.json": "aa44380956bf3755d6924ca0bd85867034be9027617dcaf1d45e815374c03af8",
+    "docs/evidence/fixture-runtime/tsconfig.json": "281212b6a220e00dc514ecac63939859259d04a306e47aa504ab4c0b9b101cf1"
+  },
+  "historicalSourceClaimsRewritten": false,
+  "originalRetainerChanged": false,
+  "nonceJournalPoliciesChanged": false,
+  "nativeOrPublicApiChanged": false,
+  "sourcePlanInputs": 123,
+  "historicalInputsAccountedFor": 109,
+  "trackedSparseInputsMaterialized": 10,
+  "nativePreservation": {
+    "nativeRoot": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership",
+    "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "statusPaths": 137,
+    "indexEntriesSha256": "6da1963a408f62a53c478da5bb2986f5817d5073cbdf7bfe3675c75671e6b343",
+    "authoredDiffSha256": "fed8f0e990423eb2cf75c9928f19dee939512333f0d9e548b6e23d5afc69f503",
+    "sourceOrIndexAuthoredHere": false
+  },
+  "pureValidation": {
+    "tests": 14,
+    "assertions": 82,
+    "strictNoEmitTypes": "PASS_TARGETED_NO_NATIVE_GRAPH",
+    "filesystemAst": "PASS_123_PINNED_INPUTS_NO_IMPORTS_OR_BUILDS"
+  },
+  "actual": {
+    "emittedBuilt": false,
+    "emittedExecuted": false,
+    "nativeImported": false,
+    "ffiLoaded": false,
+    "cCompilerInvoked": false,
+    "staged": false,
+    "keysUsed": false,
+    "productAdmission": "BLOCKED"
+  },
+  "nextGate": "FRESH_INDEPENDENT_SPEC_AND_STANDARDS_SOURCE_REVIEW"
+}

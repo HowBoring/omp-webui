@@ -1,0 +1,682 @@
+{
+  "historicalInventory": "/tmp/native-helper-drain-r9-20261117/source-inputs.json",
+  "historicalSha256": "4cd814d541bf19f22092d0647a5c3ba69f8b69a80bdee7fc181242a2b99e25d7",
+  "originalInputCount": 109,
+  "excluded": [
+    {
+      "path": "/tmp/native-helper-drain-r9-20261117/operator/configuration.json",
+      "sha256": "ed352ced5d849248adfe0d8a18cc0e270c382d4e0822909c0dffc09d9b026a4b",
+      "reason": "Consumed operator configuration is replaced by a fresh Root configuration; file never opened",
+      "underlyingFileOpened": false
+    },
+    {
+      "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "reason": "Runtime is an independently pinned Root platform artifact; executable file not read by Source validation",
+      "underlyingFileOpened": false
+    }
+  ],
+  "inputs": [
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/launcher/omp-entry.c",
+      "historicalSha256": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/launcher/omp-entry.c",
+      "successorSha256": "1047cd482e26895ec95abd170c8c8505e8338ee901822ab1b7cdfbce96d4094e"
+    },
+    {
+      "historical": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "historicalSha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f",
+      "successor": "/usr/bin/x86_64-linux-gnu-gcc-14",
+      "successorSha256": "a23ecab8ff08f09ad8c80602c2c5df7f49e09c25905cb8975902e101bf72635f"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/private-helper.c",
+      "historicalSha256": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/private-helper.c",
+      "successorSha256": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/tests/supervision/fixtures/worker.c",
+      "historicalSha256": "807728d22c8caf6c180e2d55a11c2bf11f67fa972848a5a6f07853fac14b1a0a",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/tests/supervision/fixtures/worker.c",
+      "successorSha256": "807728d22c8caf6c180e2d55a11c2bf11f67fa972848a5a6f07853fac14b1a0a"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.c",
+      "historicalSha256": "0a07096d6e168540d5f63417da62410597ac67c8ec298b4b435b959e234033f0",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.c",
+      "successorSha256": "0a07096d6e168540d5f63417da62410597ac67c8ec298b4b435b959e234033f0"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/no-provider.ts",
+      "historicalSha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/no-provider.ts",
+      "successorSha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-bootstrap.ts",
+      "historicalSha256": "18eafd3211bcd9d9c4db0e8f393ed8a3e58ae6f76f3834a80aaf456885f1f56d",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-bootstrap.ts",
+      "successorSha256": "0991db4f2d079aaad81d7d51f5982e266720a660b1addf8e63b75bfe1cea0c77"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-launch.ts",
+      "historicalSha256": "da045799890828b8a4694aa1a35be32d076cb96eea5a9dfe793ec7bd0bffef88",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-launch.ts",
+      "successorSha256": "4a86eb3d28d2ceb9599fb07c705fef4009e8671557607ca3ab3df7feb78b64bb"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/index.js",
+      "historicalSha256": "32e7efd49a94a765f6d10a1a0a3c02c50c246def17c80c6f0225f85525d98505",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/index.js",
+      "successorSha256": "32e7efd49a94a765f6d10a1a0a3c02c50c246def17c80c6f0225f85525d98505"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-signed-probe-launch.ts",
+      "historicalSha256": "c6bcfb9acc325db237fac5f4a28a26340c39be7e19358593795241f83587b905",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-signed-probe-launch.ts",
+      "successorSha256": "c6bcfb9acc325db237fac5f4a28a26340c39be7e19358593795241f83587b905"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/index.js",
+      "historicalSha256": "2a0e452323aa5b75b7d7de4879289e2579b9dd2d6af291c0416ba6806ca2199d",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/index.js",
+      "successorSha256": "2a0e452323aa5b75b7d7de4879289e2579b9dd2d6af291c0416ba6806ca2199d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/json-schema-processors.js",
+      "historicalSha256": "b6d2aee72212c076b9cde38da6333591c76a24eb049a4ee4e7bd2b7825d8b817",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/json-schema-processors.js",
+      "successorSha256": "b6d2aee72212c076b9cde38da6333591c76a24eb049a4ee4e7bd2b7825d8b817"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/schemas.js",
+      "historicalSha256": "2bf4a631a18f734a9a7ab7fc11bcf919214774d2235a312dcec0dd53d0324c32",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/schemas.js",
+      "successorSha256": "2bf4a631a18f734a9a7ab7fc11bcf919214774d2235a312dcec0dd53d0324c32"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/parse.js",
+      "historicalSha256": "11941573401bbef138842c7a523dff554873343fccbf0e8b0a144259d2d703f1",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/parse.js",
+      "successorSha256": "11941573401bbef138842c7a523dff554873343fccbf0e8b0a144259d2d703f1"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/checks.js",
+      "historicalSha256": "7543391a9ad5e7df287bbfecaa79844d46af44c75c1de0d43a411d65795d9dd1",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/checks.js",
+      "successorSha256": "7543391a9ad5e7df287bbfecaa79844d46af44c75c1de0d43a411d65795d9dd1"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/errors.js",
+      "historicalSha256": "d32f7c1ef8e2c70072f6f0ec8ba7081bbc331353cc3a7cb4429e5ece91409543",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/errors.js",
+      "successorSha256": "d32f7c1ef8e2c70072f6f0ec8ba7081bbc331353cc3a7cb4429e5ece91409543"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/util.js",
+      "historicalSha256": "bb08133b11b478c8e715038fff26ebea204d7fd5443fba31fe138b142d202efb",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/util.js",
+      "successorSha256": "bb08133b11b478c8e715038fff26ebea204d7fd5443fba31fe138b142d202efb"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/memoizer.js",
+      "historicalSha256": "18a3188c51229d9189a5408b0b7fbc3e121b55c2b4c3c406d79cb9b77e7ad964",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/memoizer.js",
+      "successorSha256": "18a3188c51229d9189a5408b0b7fbc3e121b55c2b4c3c406d79cb9b77e7ad964"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/registries.js",
+      "historicalSha256": "f04d4b2c0bc5b4ac2d6610ea34edf2e5260eade18f20976b79916dcdbeb9fa4d",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/registries.js",
+      "successorSha256": "f04d4b2c0bc5b4ac2d6610ea34edf2e5260eade18f20976b79916dcdbeb9fa4d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/parse.js",
+      "historicalSha256": "fb05b91ec260f3f484f7c00a177b6126ceb8fd1b09dc90b1200afdffd4d98efd",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/parse.js",
+      "successorSha256": "fb05b91ec260f3f484f7c00a177b6126ceb8fd1b09dc90b1200afdffd4d98efd"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/to-json-schema.js",
+      "historicalSha256": "85b883eb8f05e9f060c71a39fce7df9345b566af29d5bc9c8fa477fe616a051d",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/to-json-schema.js",
+      "successorSha256": "85b883eb8f05e9f060c71a39fce7df9345b566af29d5bc9c8fa477fe616a051d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/schemas.js",
+      "historicalSha256": "0ee56e8afbae28eeb1060a162ad7e56f0675ee6fb83f0ae56bea2e088f6cdbc0",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/schemas.js",
+      "successorSha256": "0ee56e8afbae28eeb1060a162ad7e56f0675ee6fb83f0ae56bea2e088f6cdbc0"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/versions.js",
+      "historicalSha256": "c0f09e5bb7e9dd7712138a22096e0884bd2df3d5d8cfcd2a1bcad7086fc8dfc5",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/versions.js",
+      "successorSha256": "c0f09e5bb7e9dd7712138a22096e0884bd2df3d5d8cfcd2a1bcad7086fc8dfc5"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/doc.js",
+      "historicalSha256": "be4c1b1a1ad247cc70f360a572060edd7e0cea24252c3a319f33d247899c5643",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/doc.js",
+      "successorSha256": "be4c1b1a1ad247cc70f360a572060edd7e0cea24252c3a319f33d247899c5643"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/checks.js",
+      "historicalSha256": "bc42543274218aa7ef72192b3218d2a4a399e53df8de240a04d9ff275096f563",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/checks.js",
+      "successorSha256": "bc42543274218aa7ef72192b3218d2a4a399e53df8de240a04d9ff275096f563"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/core.js",
+      "historicalSha256": "c7ce485c97263e42568d16b11bb4a90133221c7e807498a9273d70f41ba16ef6",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/core.js",
+      "successorSha256": "c7ce485c97263e42568d16b11bb4a90133221c7e807498a9273d70f41ba16ef6"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/regexes.js",
+      "historicalSha256": "24fc98f6fc9175e50ff29d28b040e3b4ac5650de19914d45ee27b853d367ecc6",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/regexes.js",
+      "successorSha256": "24fc98f6fc9175e50ff29d28b040e3b4ac5650de19914d45ee27b853d367ecc6"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/api.js",
+      "historicalSha256": "03ae6016abc9585e3f3481d6b8d775a95ae4ee65badbde73ca1ed953ff14c0e7",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/api.js",
+      "successorSha256": "03ae6016abc9585e3f3481d6b8d775a95ae4ee65badbde73ca1ed953ff14c0e7"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/errors.js",
+      "historicalSha256": "a0c95ef2f7085b5bc2931f7b566f524b26a0360c8df741e3f87f923745cf9792",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/errors.js",
+      "successorSha256": "a0c95ef2f7085b5bc2931f7b566f524b26a0360c8df741e3f87f923745cf9792"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/locales/en.js",
+      "historicalSha256": "d5930e10d137b048b37823e168e4177947e1f696ada8419c71bb0d32da4333c0",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/locales/en.js",
+      "successorSha256": "d5930e10d137b048b37823e168e4177947e1f696ada8419c71bb0d32da4333c0"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-native.ts",
+      "historicalSha256": "6a95cf5b99092b4e270e1e3e2cfa1587f98f3cb7c1d7fe0f702fd7d654686dd1",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-native.ts",
+      "successorSha256": "5f2293def632adb4ccd6f33155c8f5ee13565c567ea9bfbbd8bf67a52719f071"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/server.ts",
+      "historicalSha256": "d23aad2b2d839f79c0ec7c3e14163873438d74875936bd4da1ccde6384bceba7",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/server.ts",
+      "successorSha256": "d23aad2b2d839f79c0ec7c3e14163873438d74875936bd4da1ccde6384bceba7"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-io.ts",
+      "historicalSha256": "9d408915daab6b1f13c5dc0b4e9a8a87c5d25c140d1f5c0d6cefe76da59de818",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-io.ts",
+      "successorSha256": "9d408915daab6b1f13c5dc0b4e9a8a87c5d25c140d1f5c0d6cefe76da59de818"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/maintenance-handoff.ts",
+      "historicalSha256": "265706e57636e4fa43047bacbdd1d90579fe041d53dc7adba9cc3e25a693db69",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/maintenance-handoff.ts",
+      "successorSha256": "265706e57636e4fa43047bacbdd1d90579fe041d53dc7adba9cc3e25a693db69"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval.ts",
+      "historicalSha256": "2cf45e270a6fc119b14dc5e3761fe4f349c33ee5d000a63e6ec8dd388fec18ce",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/approval.ts",
+      "successorSha256": "2cf45e270a6fc119b14dc5e3761fe4f349c33ee5d000a63e6ec8dd388fec18ce"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+      "historicalSha256": "143c1aaf7b53ecc28147c2219a3fc56c18e5ece2a204acfaf4f2aa98618a5147",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/selected-control-release.ts",
+      "successorSha256": "143c1aaf7b53ecc28147c2219a3fc56c18e5ece2a204acfaf4f2aa98618a5147"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/protocol.ts",
+      "historicalSha256": "f036420bf9aa37ffe855bf7d765f82212d2eed379523077d059fb7488c496763",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/protocol.ts",
+      "successorSha256": "f036420bf9aa37ffe855bf7d765f82212d2eed379523077d059fb7488c496763"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/strict-record.ts",
+      "historicalSha256": "d6b494a2d371678cd39ec522acde041cb80000349f69c5dbf284c11b982f8a2e",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/strict-record.ts",
+      "successorSha256": "d6b494a2d371678cd39ec522acde041cb80000349f69c5dbf284c11b982f8a2e"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-selection.ts",
+      "historicalSha256": "45f828a158028a3cc679d8b9673a22c1d07cd6ef5663dcf38abc95be76425f90",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-selection.ts",
+      "successorSha256": "45f828a158028a3cc679d8b9673a22c1d07cd6ef5663dcf38abc95be76425f90"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-policy.ts",
+      "historicalSha256": "a934d11de0e3485daa047c0d21f31f2cf148e37c9b47573d9264abd9d921e06e",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-policy.ts",
+      "successorSha256": "a934d11de0e3485daa047c0d21f31f2cf148e37c9b47573d9264abd9d921e06e"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/release-inventory.ts",
+      "historicalSha256": "70e8e4ec0b5af388a3c7486b32cda35b9eb239a19676dbd0ba811a464ae2e795",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/release-inventory.ts",
+      "successorSha256": "70e8e4ec0b5af388a3c7486b32cda35b9eb239a19676dbd0ba811a464ae2e795"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/platform-closure.ts",
+      "historicalSha256": "5eae8b40bc533d293a55ea6908aed5bb970192e331e22189accc8bad5d2c3923",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/platform-closure.ts",
+      "successorSha256": "5eae8b40bc533d293a55ea6908aed5bb970192e331e22189accc8bad5d2c3923"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-system.ts",
+      "historicalSha256": "8efc7c6ba9a843df2741ef3d5e4ec950dcf9eca9134e6d85e22490b56f46c5f3",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-system.ts",
+      "successorSha256": "8efc7c6ba9a843df2741ef3d5e4ec950dcf9eca9134e6d85e22490b56f46c5f3"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/dispatcher.ts",
+      "historicalSha256": "9c1b9223f3081494e8bbfd360d58a756c8393bc2251b3c29cbd96b496f480d7d",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/dispatcher.ts",
+      "successorSha256": "9c1b9223f3081494e8bbfd360d58a756c8393bc2251b3c29cbd96b496f480d7d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-io-owner.ts",
+      "historicalSha256": "89b9d1a9ec87b9b4c4691b7a0dbd2e997ae086c5ea6e217e47b4dd73b826242a",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-io-owner.ts",
+      "successorSha256": "89b9d1a9ec87b9b4c4691b7a0dbd2e997ae086c5ea6e217e47b4dd73b826242a"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-fences.ts",
+      "historicalSha256": "aa9195047eedb41582043e2a23e8a0ec2bdabf1042b6d0530b498386d5d8a40b",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-fences.ts",
+      "successorSha256": "aa9195047eedb41582043e2a23e8a0ec2bdabf1042b6d0530b498386d5d8a40b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/framing.ts",
+      "historicalSha256": "13ce652cc57030983fd7abe4bd228d100f1cb2ffcde1a7c7586f2b73f081f748",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/framing.ts",
+      "successorSha256": "13ce652cc57030983fd7abe4bd228d100f1cb2ffcde1a7c7586f2b73f081f748"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/authentication.ts",
+      "historicalSha256": "5799cc86eccec8f433ec3ea209afdcf448083002d9384751bfb98e2d50f3672b",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/authentication.ts",
+      "successorSha256": "5799cc86eccec8f433ec3ea209afdcf448083002d9384751bfb98e2d50f3672b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+      "historicalSha256": "2c15dcc4ba3033148d462bdacb21292065d5e002954bbc6940caa4ef4ac00f94",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/linux-bridge.ts",
+      "successorSha256": "2c15dcc4ba3033148d462bdacb21292065d5e002954bbc6940caa4ef4ac00f94"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/reply-queue.ts",
+      "historicalSha256": "d8e98d62e69d46bf9cec2fce7225fe37805cac100a0e44a222fa6900b69db0a7",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/reply-queue.ts",
+      "successorSha256": "d8e98d62e69d46bf9cec2fce7225fe37805cac100a0e44a222fa6900b69db0a7"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/drain.ts",
+      "historicalSha256": "2195cf738b397dc5967b6492187a6e2e663661ff25bf225fe2ada2f244fd8bfc",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/drain.ts",
+      "successorSha256": "2195cf738b397dc5967b6492187a6e2e663661ff25bf225fe2ada2f244fd8bfc"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/fences.ts",
+      "historicalSha256": "f1edf897d94bc52637f1c33549052565475c8c19a4434fcafe573962b1a5a882",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/fences.ts",
+      "successorSha256": "f1edf897d94bc52637f1c33549052565475c8c19a4434fcafe573962b1a5a882"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-protocol.ts",
+      "historicalSha256": "4db6737a050a6b3f20d31fffc8d4de0a0aba54378027fb555f0f60867760d3bd",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/helper-protocol.ts",
+      "successorSha256": "4db6737a050a6b3f20d31fffc8d4de0a0aba54378027fb555f0f60867760d3bd"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/server-key.ts",
+      "historicalSha256": "c63f0868b937b1c8d689be85dbd9543214a9187b85ecbb559e6446a4d2fb7fc6",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/server-key.ts",
+      "successorSha256": "c63f0868b937b1c8d689be85dbd9543214a9187b85ecbb559e6446a4d2fb7fc6"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-io-generation.ts",
+      "historicalSha256": "c45102a7abbfb4dee884763397d2451a5abf892da59a2cdacbf1b7a3581cbd67",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/control-io-generation.ts",
+      "successorSha256": "c45102a7abbfb4dee884763397d2451a5abf892da59a2cdacbf1b7a3581cbd67"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-host.ts",
+      "historicalSha256": "79738a941ac685c742a0eae3fb0f39bb1e6fd7ed102fec7de4fd5cee643ba886",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-host.ts",
+      "successorSha256": "79738a941ac685c742a0eae3fb0f39bb1e6fd7ed102fec7de4fd5cee643ba886"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/coordinator.ts",
+      "historicalSha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/coordinator.ts",
+      "successorSha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/omp/fixtures/native-helper-drain-gate.ts",
+      "historicalSha256": "033ba6250f4953a3028bc96f7847c85773288a2eaabafda9d4e2c6c1544c1484",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-gate.ts",
+      "successorSha256": "033ba6250f4953a3028bc96f7847c85773288a2eaabafda9d4e2c6c1544c1484"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/adapter.ts",
+      "historicalSha256": "8f51436141dfcbe9973900f4fca2c0de6d710a58fd06921fe9031ed7d498eaaa",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/adapter.ts",
+      "successorSha256": "8f51436141dfcbe9973900f4fca2c0de6d710a58fd06921fe9031ed7d498eaaa"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/uds-client.ts",
+      "historicalSha256": "967dd72c8cded462dd2a63d01e46b8691ca7e36a2d17fcd794952553ba1cfbdd",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/uds-client.ts",
+      "successorSha256": "967dd72c8cded462dd2a63d01e46b8691ca7e36a2d17fcd794952553ba1cfbdd"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/external.js",
+      "historicalSha256": "c6b584ae70ba4e7132b2cd78c23ea4ecedc9828abf999edee312372e1fb453d6",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/external.js",
+      "successorSha256": "c6b584ae70ba4e7132b2cd78c23ea4ecedc9828abf999edee312372e1fb453d6"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/client.ts",
+      "historicalSha256": "c9c4b314d289ddd703a1bd8d573ef481c7511551a136784d9cd0b4d723311318",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/client.ts",
+      "successorSha256": "c9c4b314d289ddd703a1bd8d573ef481c7511551a136784d9cd0b4d723311318"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/resolver.ts",
+      "historicalSha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/resolver.ts",
+      "successorSha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/maintenance.ts",
+      "historicalSha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/maintenance.ts",
+      "successorSha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/locales/index.js",
+      "historicalSha256": "7ea85250d1e7bd9459cda61f38c78757a410d561a5421bb3f08019bba79c9849",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/locales/index.js",
+      "successorSha256": "7ea85250d1e7bd9459cda61f38c78757a410d561a5421bb3f08019bba79c9849"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/compat.js",
+      "historicalSha256": "0e948b101771cc0e7b753e54b3f5b486929d3db9bd4c09d98fe4ce86271bcf7b",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/compat.js",
+      "successorSha256": "0e948b101771cc0e7b753e54b3f5b486929d3db9bd4c09d98fe4ce86271bcf7b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/coerce.js",
+      "historicalSha256": "fb2efe3b6eacc475c77cbb571b5fb8650d92a10f316dc869e49b722973d83c3c",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/coerce.js",
+      "successorSha256": "fb2efe3b6eacc475c77cbb571b5fb8650d92a10f316dc869e49b722973d83c3c"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/iso.js",
+      "historicalSha256": "deaa026b7c5302e59719f401248e7866691d8d8a892884dd2b6868b1cb7252d8",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/classic/iso.js",
+      "successorSha256": "deaa026b7c5302e59719f401248e7866691d8d8a892884dd2b6868b1cb7252d8"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/artifact.ts",
+      "historicalSha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/artifact.ts",
+      "successorSha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/compile.js",
+      "historicalSha256": "53fcf24821f50ecf42492ab7101abe8a50ead8286a53567d71648fe5ca346b99",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/compile.js",
+      "successorSha256": "53fcf24821f50ecf42492ab7101abe8a50ead8286a53567d71648fe5ca346b99"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/json-schema.js",
+      "historicalSha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881",
+      "successor": "/workspace/work/omp-webui-current/node_modules/zod/v4/core/json-schema.js",
+      "successorSha256": "8e609bb71c20b858c77f0e9f90bb1319db8477b13f9f965f1a1e18524bf50881"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/owner.ts",
+      "historicalSha256": "e6730bb103396237e0c087c7289d738edd40673c94b0f043f7389215d66e5881",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/owner.ts",
+      "successorSha256": "e6730bb103396237e0c087c7289d738edd40673c94b0f043f7389215d66e5881"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/control.ts",
+      "historicalSha256": "c7f807fd1f2eeed7e43ed447ce046f8b281fbb8f038f8293ba850e61f30192ec",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/control.ts",
+      "successorSha256": "c7f807fd1f2eeed7e43ed447ce046f8b281fbb8f038f8293ba850e61f30192ec"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/control-io-selection.ts",
+      "historicalSha256": "3f1d95f15d09194e817119f972ceab7ee0199d64816bf3ab3f9ea8bd6c95333f",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/control-io-selection.ts",
+      "successorSha256": "3f1d95f15d09194e817119f972ceab7ee0199d64816bf3ab3f9ea8bd6c95333f"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/errors.ts",
+      "historicalSha256": "2c86986ff3ae8f15bd43e37f6cad474f9e4da3a64a65993d5bf309c5fc23c5e5",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/errors.ts",
+      "successorSha256": "2c86986ff3ae8f15bd43e37f6cad474f9e4da3a64a65993d5bf309c5fc23c5e5"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/controller.ts",
+      "historicalSha256": "f280fdb75af1d79aa883ec4b92da1e5b3b4eee3dbb075e75cfbdaaeba7222f44",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/controller.ts",
+      "successorSha256": "f280fdb75af1d79aa883ec4b92da1e5b3b4eee3dbb075e75cfbdaaeba7222f44"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/observation.ts",
+      "historicalSha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/observation.ts",
+      "successorSha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/platform.ts",
+      "historicalSha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/platform.ts",
+      "successorSha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/compatibility/installation.ts",
+      "historicalSha256": "01c806d97d7b20ec0f8f9eb84a2df615f5de7ab07efde2921d45c996c093f96a",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/compatibility/installation.ts",
+      "successorSha256": "01c806d97d7b20ec0f8f9eb84a2df615f5de7ab07efde2921d45c996c093f96a"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/input.ts",
+      "historicalSha256": "5952682f7f8fbdc0792dc68e61daa73e7e99f423f1082382fd9fbffb53db1805",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/input.ts",
+      "successorSha256": "5952682f7f8fbdc0792dc68e61daa73e7e99f423f1082382fd9fbffb53db1805"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/session.ts",
+      "historicalSha256": "3b29f56df9b941052290b54b0beed29231d054b1b24351f5baca50b7b9bac7b5",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/packages/supervision/session.ts",
+      "successorSha256": "3b29f56df9b941052290b54b0beed29231d054b1b24351f5baca50b7b9bac7b5"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/packages/delivery/elf.ts",
+      "historicalSha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/packages/delivery/elf.ts",
+      "successorSha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/wire.schema.json",
+      "historicalSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780",
+      "successor": "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/src/launch/ownership/wire.schema.json",
+      "successorSha256": "7233cf7850fe3ff63764f401953836e94699104999646dee8b93362c32d9f780"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/candidates.h",
+      "historicalSha256": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/supervision/candidates.h",
+      "successorSha256": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/launcher/control.h",
+      "historicalSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/compatibility/launcher/control.h",
+      "successorSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/scripts/prepare-native-helper-drain.ts",
+      "historicalSha256": "e550a35917a7f7625edb5bb9b4e8c701d831f5f26758174a782ae1ddd136026d",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/prepare-native-helper-drain.ts",
+      "successorSha256": "8b1a33e51c191052daf639987c1729cf6e2e6a8f43495fc6574f15070899f4f7"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/package.json",
+      "historicalSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/package.json",
+      "successorSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.js",
+      "historicalSha256": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.js",
+      "successorSha256": "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/owned-control-io.c",
+      "historicalSha256": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/owned-control-io.c",
+      "successorSha256": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/owned-control-io.h",
+      "historicalSha256": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/owned-control-io.h",
+      "successorSha256": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/package.json",
+      "historicalSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/package.json",
+      "successorSha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/build-control-io.ts",
+      "historicalSha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/build-control-io.ts",
+      "successorSha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/build-control-io-public.ts",
+      "historicalSha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/build-control-io-public.ts",
+      "successorSha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-build.json",
+      "historicalSha256": "1e778e1b9c1846fbf2e34747d7947d3aa78c6474a701f88c5bc6feb91f2ef539",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-build.json",
+      "successorSha256": "1e778e1b9c1846fbf2e34747d7947d3aa78c6474a701f88c5bc6feb91f2ef539"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-toolchain-package.json",
+      "historicalSha256": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-toolchain-package.json",
+      "successorSha256": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-toolchain-bun.lock",
+      "historicalSha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io-toolchain-bun.lock",
+      "successorSha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+      "historicalSha256": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/index.d.ts",
+      "successorSha256": "382399a7f2031331ab3cd7351d4435d03c22ca13339265c53f0038ede0120d27"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/index.ts",
+      "historicalSha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/index.ts",
+      "successorSha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/loader.d.ts",
+      "historicalSha256": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/loader.d.ts",
+      "successorSha256": "4854f57b450fc705d2a2e4cd01a5283279fe59e5e0f10e7797665b67d169dd8b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/loader.ts",
+      "historicalSha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/loader.ts",
+      "successorSha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/socket.d.ts",
+      "historicalSha256": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/socket.d.ts",
+      "successorSha256": "50d2cf2a4a94cc2f2f6222407f382c4aac592d81c3afbd834b13d1017e0c1506"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/socket.ts",
+      "historicalSha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/socket.ts",
+      "successorSha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/selection.d.ts",
+      "historicalSha256": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/selection.d.ts",
+      "successorSha256": "290111ebaffda7c21e2a381067e2291a0fac42176fce9c07f9dc1643579cd4f8"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/selection.ts",
+      "historicalSha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/selection.ts",
+      "successorSha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/errors.d.ts",
+      "historicalSha256": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/control-io/errors.d.ts",
+      "successorSha256": "bd309ebbb659418643ce5c22e8c79e10582262a04cd4eed0bff49febc1e1e413"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/errors.ts",
+      "historicalSha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b",
+      "successor": "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/vendor/public-adapter-nominal-v1/release/provenance/control-io/errors.ts",
+      "successorSha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b"
+    },
+    {
+      "historical": "/workspace/work/omp-webui-ticket-41/compatibility/launcher/control.h",
+      "historicalSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+      "successor": "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/launcher/control.h",
+      "successorSha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    }
+  ],
+  "newInputs": [
+    "/workspace/work/omp-webui-current/node_modules/typescript/lib/typescript.js",
+    "/workspace/work/omp-webui-current/node_modules/typescript/package.json",
+    "/workspace/work/omp-webui-current/node_modules/zod/package.json",
+    "/workspace/work/omp-webui-ticket-41-controlio-public-adapter/package.json",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/bun.lock",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-diagnostics.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-public-pins.json",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-public.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-runtime.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-source-plan.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/package.json",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/check-native-helper-two-process.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/ownership-import-gate.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tsconfig.json",
+    "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/package.json",
+    "/workspace/work/omp-webui-ticket-41/vendor/omp-ownership/packages/coding-agent/package.json"
+  ],
+  "successorInputCount": 123
+}

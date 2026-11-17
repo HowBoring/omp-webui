@@ -1,0 +1,42 @@
+{
+  "status": "PROPOSED_ONLY_NOT_BUILT_NOT_RUN_NOT_APPROVAL",
+  "runtime": {
+    "kind": "root-platform-runtime/1",
+    "path": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "device": "27",
+    "inode": "162910",
+    "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+    "size": 107308936,
+    "uid": 1000,
+    "mode": 493
+  },
+  "runtimeDigestObservation": "Expected exact Source contract; no fresh executable digest/read/proof performed by this Source task",
+  "producerArgv": [
+    "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "--no-env-file",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/prepare-native-helper-drain.ts",
+    "/tmp/native-helper-drain-<new-approved-scope>/operator/configuration.json"
+  ],
+  "launcherRoleArgv": [
+    [
+      "/tmp/native-helper-drain-<new-approved-scope>/launch/bin/omp",
+      "--fixture-native"
+    ],
+    [
+      "/tmp/native-helper-drain-<new-approved-scope>/launch/bin/omp",
+      "--fixture-host"
+    ]
+  ],
+  "cExecvArgv": [
+    "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+    "--no-env-file",
+    "--config=/tmp/native-helper-drain-<new-approved-scope>/launch/runtime/bunfig.toml",
+    "/tmp/native-helper-drain-<new-approved-scope>/launch/worker/cli.js",
+    "--omp-maintenance-handoff=1:<original-shared-lock-fd>",
+    "<exact-one-fixture-role>"
+  ],
+  "freshRootScopeRequired": true,
+  "oldOperatorFilesOpened": false,
+  "retainerCommandGenerationChanged": false,
+  "holdNoncePolicyChanged": false
+}

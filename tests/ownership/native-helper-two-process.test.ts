@@ -12,9 +12,11 @@ test("launch roster equality normalizes observed field order and still rejects a
   const signed = { format: "omp-native-helper-drain-launch/1", members: files, platformDependencies: platform };
   const reordered = platform.map(({ path, kind, identity, mode }) => ({ mode, identity, kind, path }));
   expect(() => assertHelperDrainLaunchRoster(signed,
-    files.map(({ path, kind, identity, mode }) => ({ mode, path, identity, kind })), reordered)).not.toThrow();
+    files.map(({ path, kind, identity, mode }) => ({ mode, path, identity, kind })), reordered,
+    { kind: "staged-runtime/1" })).not.toThrow();
   expect(() => assertHelperDrainLaunchRoster(signed, files,
-    reordered.map((member, index) => index === 0 ? { ...member, mode: 0o700 } : member))).toThrow("DRAIN_LAUNCH_CHANGED");
+    reordered.map((member, index) => index === 0 ? { ...member, mode: 0o700 } : member),
+    { kind: "staged-runtime/1" })).toThrow("DRAIN_LAUNCH_CHANGED");
 });
 
 test("Host START registration stays held after signed status until original parent continues", async () => {

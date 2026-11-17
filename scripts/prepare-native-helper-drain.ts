@@ -1,11 +1,16 @@
 /** UNSIGNED SOURCE/BUILD producer. Never runs output, imports Native, loads FFI, listens, signs or copies ELF/runtime. */
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
-import { helperDrainConfiguration } from "../compatibility/omp/fixtures/native-helper-drain-launch";
-import { probeLaunchMembers, probePlatformMembers, readProbePin, sha256 } from "../compatibility/omp/fixtures/native-signed-probe-launch";
+import { helperDrainConfiguration,
+  helperDrainPlatformMembers } from "../compatibility/omp/fixtures/native-helper-drain-launch";
+import { probeLaunchMembers, readProbePin, sha256 } from "../compatibility/omp/fixtures/native-signed-probe-launch";
 import { assertOwnershipFfiDeferred } from "./ownership-import-gate";
 import { helperDrainAdapter, helperDrainPublicRoot, helperDrainPublicMembers,
   verifyHelperDrainPublicInputs } from "../compatibility/omp/fixtures/native-helper-drain-public";
+
+import { readHelperDrainRuntime } from "../compatibility/omp/fixtures/native-helper-drain-runtime";
+import { helperDrainNativeRoot, helperDrainNativeAlias, readHelperDrainSourcePlan,
+  assertHelperDrainSourceInput } from "../compatibility/omp/fixtures/native-helper-drain-source-plan";
 
 const repository = path.resolve(import.meta.dir, ".."), args = process.argv.slice(2);
 if (args.length !== 1 || !args[0]) throw new Error("USAGE <Root-owned-fresh-public-build-configuration.json>");
@@ -13,7 +18,8 @@ const configurationBytes = await fs.readFile(args[0]);
 const config = helperDrainConfiguration.parse(JSON.parse(configurationBytes.toString("utf8")));
 const root = `${config.stage}/launch`, release = `${root}/components`;
 const adapter = helperDrainAdapter, publicRoot = helperDrainPublicRoot;
-const native = `${repository}/vendor/omp-ownership/packages/coding-agent/src/launch/ownership`;
+const native = `${helperDrainNativeRoot}/packages/coding-agent/src/launch/ownership`;
+const sourcePlan = await readHelperDrainSourcePlan(repository);
 const inputs = new Map<string, string>();
 inputs.set(path.resolve(args[0]), sha256(configurationBytes));
 async function write(file: string, bytes: string | Uint8Array): Promise<void> {
@@ -22,6 +28,7 @@ async function write(file: string, bytes: string | Uint8Array): Promise<void> {
 async function directory(file: string): Promise<void> { await fs.mkdir(file, { mode: 0o700, recursive: true }); }
 async function pin(file: string): Promise<void> { inputs.set(file, sha256(await fs.readFile(file))); }
 async function copySource(source: string, destination: string): Promise<void> {
+  if (source !== `${config.stage}/control-build.h`) await assertHelperDrainSourceInput(sourcePlan, source);
   const bytes = await fs.readFile(source);
   if (bytes.subarray(0, 4).equals(Buffer.from([127, 69, 76, 70]))) throw new Error("DRAIN_ELF_COPY_FORBIDDEN");
   await directory(path.dirname(destination)); await write(destination, bytes); inputs.set(source, sha256(bytes));
@@ -38,18 +45,22 @@ async function approvedFile(file: string) { return { file, sha256: sha256(await 
 async function compile(source: string, output: string, extra: string[] = []): Promise<void> {
   try { await fs.lstat(output); throw new Error("DRAIN_BUILD_DESTINATION_EXISTS"); }
   catch (error) { if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") throw error; }
+  await assertHelperDrainSourceInput(sourcePlan, source);
   const argv = ["/usr/bin/gcc", "-std=c11", "-Wall", "-Wextra", "-Werror", "-O2", ...extra, source, "-o", output];
   const result = Bun.spawnSync(argv, { env: { PATH: "/usr/bin:/bin", TMPDIR: "/tmp" }, stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) throw new Error("DRAIN_C_BUILD_FAILED");
+  await assertHelperDrainSourceInput(sourcePlan, source);
   await pin(source); await pin(await fs.realpath("/usr/bin/gcc"));
   await write(`${output}.build.json`, JSON.stringify({ argv, source: inputs.get(source), diagnostics: result.stderr.toString(),
     status: "COMPILED_NEVER_LOADED_OR_EXECUTED" }, null, 2) + "\n");
 }
 async function bundle(source: string, output: string, host = false, define?: Record<string, string>): Promise<void> {
-  const result = await Bun.build({ entrypoints: [source], target: "bun", format: "esm", packages: "bundle", metafile: true,
-    ...(define ? { define } : {}), plugins: host ? [{ name: "one-selected-public-control-io", setup(build) {
+  const result = await Bun.build({ entrypoints: [source], tsconfig: `${repository}/tsconfig.json`,
+    target: "bun", format: "esm", packages: "bundle", metafile: true,
+    ...(define ? { define } : {}), plugins: [helperDrainNativeAlias(repository, sourcePlan), ...(host ? [{
+      name: "one-selected-public-control-io", setup(build: Parameters<import("bun").BunPlugin["setup"]>[0]) {
       build.onResolve({ filter: /control-io\/index\.ts$/ }, () => ({ path: `${release}/control-io/index.js`, external: true }));
-    } }] : [] });
+    } }] : [])] });
   if (!result.success || result.outputs.length !== 1 || !result.outputs[0] || !result.metafile) throw new Error("DRAIN_BUILD_FAILED");
   const bytes = await result.outputs[0].text();
   if (!host) assertOwnershipFfiDeferred(bytes);
@@ -57,7 +68,9 @@ async function bundle(source: string, output: string, host = false, define?: Rec
   const metadata: unknown = typeof result.metafile === "string" ? JSON.parse(result.metafile) : result.metafile;
   if (typeof metadata !== "object" || metadata === null || !("inputs" in metadata)
     || typeof metadata.inputs !== "object" || metadata.inputs === null) throw new Error("DRAIN_BUILD_METADATA");
-  for (const name of Object.keys(metadata.inputs)) await pin(path.resolve(repository, name));
+  for (const name of Object.keys(metadata.inputs)) {
+    await pin(await assertHelperDrainSourceInput(sourcePlan, path.resolve(repository, name)));
+  }
 }
 
 if (Bun.version !== "1.4.4" || process.platform !== "linux" || process.arch !== "x64"
@@ -68,7 +81,9 @@ await readProbePin(config.anchor); // Public anchor only. Never open/derive a fi
 await verifyHelperDrainPublicInputs();
 // Root must supply ONE canonical runtime and the exact nominal public library before this explicit producer.
 // There is deliberately no Bun/Python/compiler/library/ELF copy or fallback/materialize option.
-const runtime = `${root}/runtime/bun`, library = `${release}/lib/libomp-control-io.so`;
+const runtime = config.runtime.kind === "root-platform-runtime/1" ? config.runtime.path : `${root}/runtime/bun`;
+if (config.runtime.kind === "root-platform-runtime/1") await readHelperDrainRuntime(config.runtime);
+const library = `${release}/lib/libomp-control-io.so`;
 for (const file of [runtime, library]) {
   const stat = await fs.lstat(file);
   if (!stat.isFile() || stat.nlink !== 1 || await fs.realpath(file) !== file) throw new Error("DRAIN_ROOT_ARTIFACT_REQUIRED");
@@ -87,7 +102,13 @@ const controlPin = await pinned(control), helperFences = await directoryPin(`${c
 const endpoint = `${config.stage}/home/state/socket`, helperHeader = `${release}/provenance/private-helper-configuration.h`;
 const controlConstants = `#define OMP_CONTROL_PATH ${JSON.stringify(control)}\n`
   + `#define OMP_CONTROL_DEVICE UINTMAX_C(${controlPin.device})\n#define OMP_CONTROL_INODE UINTMAX_C(${controlPin.inode})\n`;
-await write(`${config.stage}/control-build.h`, controlConstants);
+const runtimeConstants = config.runtime.kind === "root-platform-runtime/1"
+  ? `#define OMP_TEST_HARNESS_RUNTIME_PATH ${JSON.stringify(runtime)}\n`
+    + `#define OMP_TEST_HARNESS_RUNTIME_DEVICE UINTMAX_C(${config.runtime.device})\n`
+    + `#define OMP_TEST_HARNESS_RUNTIME_INODE UINTMAX_C(${config.runtime.inode})\n`
+    + `#define OMP_TEST_HARNESS_RUNTIME_UID UINTMAX_C(${config.runtime.uid})\n` : "";
+await write(`${config.stage}/control-build.h`, controlConstants + runtimeConstants);
+await copySource(`${config.stage}/control-build.h`, `${release}/provenance/fixture-launcher-configuration.h`);
 await write(helperHeader, `#define OMP_DISPATCHER_PATH ${JSON.stringify(endpoint)}\n`
   + `#define OMP_INSTALLATION_ID ${JSON.stringify(config.installation)}\n`
   + `#define OMP_NATIVE_ENTRY ${JSON.stringify(`${release}/bin/omp`)}\n` + controlConstants
@@ -119,17 +140,23 @@ await verifyHelperDrainPublicInputs();
 if (sha256(await fs.readFile(`${release}/control-io/index.js`)) !== "868251d0086139ca00b3e85fcf8401da2a445f3f4b77b4b5c8d5422946fd9cef") {
   throw new Error("DRAIN_PUBLIC_ENTRY_CHANGED");
 }
-const platformDependencies = await probePlatformMembers();
+await readHelperDrainSourcePlan(repository);
+const platformDependencies = await helperDrainPlatformMembers(config.runtime);
 const innerDependencies = platformDependencies.filter(member => member.kind === "link" || /\/(?:libc\.so\.6|ld-linux-x86-64\.so\.2)$/.test(member.path));
 await pin(import.meta.path); await pin(`${repository}/compatibility/launcher/control.h`); await pin(process.execPath);
+await pin(helperHeader);
+await pin(`${repository}/compatibility/omp/fixtures/native-helper-drain-source-plan.json`);
 const sourceInputs = JSON.stringify({ status: "SOURCE_BUILD_ONLY_NOT_APPROVAL", inputs: Object.fromEntries(inputs),
+  sourcePlan, runtimeVariant: config.runtime,
   rootSuppliedArtifacts: { runtime: await pinned(runtime), publicLibrary: await approvedFile(library) },
   finiteWorker: "C_IDENTITY_ONLY_NO_NATIVE_AGENT_OR_RUNTIME_CLAIM" }, null, 2) + "\n";
 // Bind the source/build input record into BOTH final inventories; Root still independently reviews final bytes.
 await write(`${release}/provenance/native-helper-drain-source-inputs.json`, sourceInputs);
 await write(`${release}/release.json`, JSON.stringify({ format: "omp-webui-release-inventory-v1", stage: "unaccepted-artifact",
   platform: "linux", arch: "x64", assets: await probeLaunchMembers(release, "release.json"), platformDependencies: innerDependencies }, null, 2) + "\n");
-await write(`${root}/launch-closure.json`, JSON.stringify({ format: "omp-native-helper-drain-launch/1",
+await write(`${root}/launch-closure.json`, JSON.stringify({ ...(config.runtime.kind === "root-platform-runtime/1"
+    ? { format: "omp-native-helper-drain-launch/2", runtime: config.runtime }
+    : { format: "omp-native-helper-drain-launch/1" }),
   members: await probeLaunchMembers(root), platformDependencies }, null, 2) + "\n");
 const nativeRoles = { dispatcher: await approvedFile(`${release}/native/dispatcher.ts`), client: await approvedFile(`${release}/client/client.ts`),
   bundle: await approvedFile(`${release}/native/fixture.js`), schema: await approvedFile(`${release}/contracts/ownership.schema.json`) };

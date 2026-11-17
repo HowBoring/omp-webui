@@ -1,0 +1,68 @@
+{
+  "status": "PASS_SOURCE_ONLY_NOT_BUILT_NOT_RUN",
+  "cwd": "/tmp/ticket41-runtime-source-check/cwd",
+  "checks": [
+    {
+      "command": "env -i HOME=/tmp/ticket41-runtime-source-check/home PI_CODING_AGENT_DIR=/tmp/ticket41-runtime-source-check/profile XDG_CONFIG_HOME=/tmp/ticket41-runtime-source-check/config XDG_DATA_HOME=/tmp/ticket41-runtime-source-check/data XDG_STATE_HOME=/tmp/ticket41-runtime-source-check/state XDG_CACHE_HOME=/tmp/ticket41-runtime-source-check/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test --no-env-file --preload=/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/preferences/no-provider.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "dc7d38",
+          "wall_time_seconds": 0.292123125,
+          "exit_code": 0,
+          "original_token_count": 446,
+          "output": "bun test v1.4.4 (38afee6c8)\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts:\n(pass) only the exact pinned Root platform runtime variant can authenticate [26.45ms]\n(pass) aliases, mutable files, replacement and incomplete runtime observations fail closed [0.83ms]\n(pass) other executable, argv, config root, missing guard arguments and handoff injections are rejected [0.45ms]\n(pass) the external runtime is independently pinned in the exhaustive signed platform roster [22.95ms]\n(pass) launch configuration requires an explicit runtime variant and canonical new stage scope [6.42ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts:\n(pass) launch roster equality normalizes observed field order and still rejects a changed mode [0.54ms]\n(pass) Host START registration stays held after signed status until original parent continues [0.43ms]\n(pass) pending Native status cannot announce registered or release the Host START callback [0.16ms]\n(pass) HELLO from another generation or helper cannot reach signed-status or parent release [0.21ms]\n(pass) uncertain prepare cannot be retried or converted into a held START [0.10ms]\n(pass) a pending registration owns the sole parent START gate [0.23ms]\n\n../../../workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts:\n(pass) public OwnershipError codes survive without exposing arbitrary error payloads [0.35ms]\n(pass) unknown codes, inherited properties, getters, proxies and messages stay scrubbed [0.26ms]\n(pass) untrusted phase values cannot become diagnostic payloads [0.02ms]\n\n 14 pass\n 0 fail\n 82 expect() calls\nRan 14 tests across 3 files. [266.00ms]\n"
+        }
+      }
+    },
+    {
+      "command": "env -i HOME=/tmp/ticket41-runtime-source-check/home PI_CODING_AGENT_DIR=/tmp/ticket41-runtime-source-check/profile XDG_CONFIG_HOME=/tmp/ticket41-runtime-source-check/config XDG_DATA_HOME=/tmp/ticket41-runtime-source-check/data XDG_STATE_HOME=/tmp/ticket41-runtime-source-check/state XDG_CACHE_HOME=/tmp/ticket41-runtime-source-check/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --no-env-file --preload=/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/preferences/no-provider.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/node_modules/typescript/bin/tsc --noEmit -p /workspace/work/omp-webui-ticket-41-fixture-recovery/docs/evidence/fixture-runtime/tsconfig.json",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "6e5a84",
+          "wall_time_seconds": 3.146055735,
+          "exit_code": 0,
+          "original_token_count": 0,
+          "output": ""
+        }
+      }
+    },
+    {
+      "command": "env -i HOME=/tmp/ticket41-runtime-source-check/home PI_CODING_AGENT_DIR=/tmp/ticket41-runtime-source-check/profile XDG_CONFIG_HOME=/tmp/ticket41-runtime-source-check/config XDG_DATA_HOME=/tmp/ticket41-runtime-source-check/data XDG_STATE_HOME=/tmp/ticket41-runtime-source-check/state XDG_CACHE_HOME=/tmp/ticket41-runtime-source-check/cache PATH=/usr/bin:/bin TMPDIR=/tmp /workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun --no-env-file --preload=/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/preferences/no-provider.ts /workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/check-native-helper-two-process.ts --runtime-source-only",
+      "result": {
+        "status": "fulfilled",
+        "value": {
+          "chunk_id": "33d9c4",
+          "wall_time_seconds": 0.681288537,
+          "exit_code": 0,
+          "original_token_count": 140,
+          "output": "{\"status\":\"PASS_PURE_SOURCE_ONLY\",\"plannedInputs\":123,\"imports\":{\"compatibility/omp/fixtures/native-helper-drain-launch.ts\":[\"node:fs/promises\",\"node:path\",\"zod\",\"./native-signed-probe-launch\",\"./native-helper-drain-runtime\"],\"compatibility/omp/fixtures/native-helper-drain-runtime.ts\":[\"node:fs/promises\",\"node:fs\",\"node:crypto\",\"zod\"],\"compatibility/omp/fixtures/native-signed-probe-launch.ts\":[\"node:fs/promises\",\"node:path\",\"node:crypto\",\"zod\"]},\"nativeImported\":false,\"built\":false,\"emittedExecuted\":false,\"actualProof\":\"NOT_RUN\",\"admission\":\"BLOCKED\"}\n"
+        }
+      }
+    }
+  ],
+  "redObservations": [
+    {
+      "stage": "runtime identity public seam before implementation",
+      "exitCode": 1,
+      "reason": "Cannot find module native-helper-drain-runtime",
+      "observedToolChunk": "23aedb"
+    },
+    {
+      "stage": "external signed roster before implementation",
+      "exitCode": 1,
+      "reason": "Existing strict closure rejects /2 format, eighth dependency and runtime pin",
+      "observedToolChunk": "97090a"
+    }
+  ],
+  "actual": {
+    "nativeImported": false,
+    "emittedExecuted": false,
+    "bunBuildInvoked": false,
+    "cCompilerInvoked": false,
+    "staged": false,
+    "keysUsed": false,
+    "admission": "BLOCKED"
+  }
+}

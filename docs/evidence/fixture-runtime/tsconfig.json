@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": [
+      "bun"
+    ],
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "allowImportingTsExtensions": true,
+    "typeRoots": [
+      "/workspace/work/omp-webui-ticket-41-fixture-recovery/node_modules/@types",
+      "/workspace/work/omp-webui-ticket-41-fixture-recovery/node_modules"
+    ]
+  },
+  "files": [
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-runtime.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-launch.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-source-plan.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/prepare-native-helper-drain.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/scripts/check-native-helper-two-process.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-runtime.test.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-two-process.test.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/compatibility/omp/fixtures/native-helper-drain-bootstrap.ts",
+    "/workspace/work/omp-webui-ticket-41-fixture-recovery/tests/ownership/native-helper-drain-diagnostics.test.ts"
+  ]
+}

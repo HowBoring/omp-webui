@@ -1,0 +1,56 @@
+{
+  "status": "SOURCE_MATERIALIZATION_ONLY",
+  "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+  "inputs": [
+    {
+      "path": "compatibility/launcher/control.h",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    {
+      "path": "compatibility/launcher/omp-entry.c",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "4660a3ca0fa21633eed7015182b4e1e9b7f3d67b63355734bbb6555b3596088b"
+    },
+    {
+      "path": "packages/compatibility/installation.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "01c806d97d7b20ec0f8f9eb84a2df615f5de7ab07efde2921d45c996c093f96a"
+    },
+    {
+      "path": "packages/delivery/artifact.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a"
+    },
+    {
+      "path": "packages/delivery/coordinator.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae"
+    },
+    {
+      "path": "packages/delivery/elf.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e"
+    },
+    {
+      "path": "packages/delivery/maintenance.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba"
+    },
+    {
+      "path": "packages/delivery/observation.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370"
+    },
+    {
+      "path": "packages/delivery/platform.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482"
+    },
+    {
+      "path": "packages/delivery/resolver.ts",
+      "base": "2be90aa5555964f4a0a598e4a20fbfc89fefa50b",
+      "sha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d"
+    }
+  ]
+}

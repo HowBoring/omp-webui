@@ -171,3 +171,13 @@ canonical file digests. No additional manifest, approval field or release RPC is
 remains HOLD until fresh paired review and a fresh same-manifest actual proof; the public adapter must first receive
 this reviewed production Host change through its normal source/build provenance. No generated package is rebuilt
 or substituted here. See [source evidence](../evidence/ticket-41-host-platform-alias.md).
+
+The two-process TEST HARNESS can explicitly select one externally located Root platform runtime through a strict
+fixture configuration. Its only external variant pins the canonical public-module-probe Bun path, SHA-256, exact
+size, device/inode, owner and mode. The signed outer launch closure exhaustively includes that dependency and binds
+its full pin; preimport authentication rechecks the regular single-link file, actual executable identity, launcher
+argv, stage config and reserved handoff. A fixture-only C build macro fixes that path while preserving the original
+maintenance descriptor across exec. No operator/browser argument selects an executable. The historical stage-local
+variant requires an explicit selection and its historical seven-member closure. Approval v4, its signature domain,
+Native/public ownership APIs and the original retainer remain unchanged. This is SOURCE only, NOT BUILT/NOT RUN;
+see [runtime source proposal](../evidence/ticket-41-fixture-runtime-source.md).
