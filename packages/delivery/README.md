@@ -36,14 +36,18 @@ Inventory limits are 200,000 members, depth 64, 8 GiB total package files, 1 GiB
 names. Interpreter resolution permits at most 16 links and 256 components. Exceeding a budget refuses inspection.
 These are artifact-control budgets, not Native scan/RPC budgets.
 
-A retained generation observes aliases, target files and traversed ancestors: device/inode, uid/gid, full mode,
-link count, size and nanosecond change/modify timestamps, plus exact link text. These are observed stability facts,
-not owner/device/inode fields authenticated by v1. File reads use O_NOFOLLOW and compare held-descriptor and named
-identity before and after reads; traversal/hashing ends with an observation recheck. Same-content replacement
-refuses verification. Verification is serialized and any failure permanently latches bounded, typed
+A retained generation observes nonmember ancestor/traversal directories by device/inode, uid/gid, full mode/type
+and canonical path. Unrelated child changes to their link count, size or timestamps do not invalidate selection.
+Release members, inventoried platform aliases and target files retain full snapshots, including link count, size,
+nanosecond change/modify timestamps and exact link text where applicable; release directories also retain exhaustive
+child rosters. Promotion from ancestor to member first checks retained identity, and full member observations
+permanently dominate later ancestor requests and rechecks. These are observed stability facts, not owner/device/inode
+fields authenticated by v1. File reads use O_NOFOLLOW and compare held-descriptor and named identity before and after
+reads; traversal/hashing ends with an observation recheck. Same-content replacement refuses verification.
+Verification is serialized and any failure permanently latches bounded, typed
 `RELEASE_UNVERIFIED` for that generation. The exposed manifest is frozen. A failed held verification does not
-automatically release the caller's retained maintenance lease. Ancestor changes can conservatively refuse even
-when unrelated directory membership changed. Independently pinned approval and cooperative maintenance remain
+automatically release the caller's retained maintenance lease. Ancestor replacement, ownership, permission, type
+or canonical-path changes still refuse. Independently pinned approval and cooperative maintenance remain
 necessary; this does not defend against hostile same-UID/root writers.
 
 `resolveGlobalSelection({ entry, root, expectedIdentity })` accepts only an explicitly selected absolute entry:
