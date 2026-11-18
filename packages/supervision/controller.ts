@@ -24,11 +24,14 @@ export interface PrivateHelperSystem {
 export interface PrivateHelperControl {
   generation: string;
   registerHeldHelper(hello: Readonly<PrivateHello>): Promise<void>;
+  readHostMonotonic?: () => bigint;
 }
 export type PrivateRootExit = Extract<PrivateEvent, { kind: "rootExit" }>;
 
 export interface PrivateHelperHandle {
   control: PrivateControlSession;
+  /** Synchronous Host-local sample from the original owner's selection. */
+  readonly readHostMonotonic?: () => bigint;
   helperPid: number;
   /** Retain this handle and the selected lease even when startup fails. */
   ready: Promise<Readonly<PrivateHello>>;
@@ -108,6 +111,7 @@ class RetainedHelper {
     void this.#rootExit.promise.catch(() => {});
     void completed.catch(error => this.fail(error));
     this.handle = { control: this.#session, helperPid: process.pid, ready: ready.promise,
+      ...(input.readHostMonotonic && { readHostMonotonic: input.readHostMonotonic }),
       rootExit: this.#rootExit.promise, helperExited, stdin: this.#nativeInput, stdout: process.stdout, stderr: process.stderr,
       completed, disconnectControl: () => this.fail(new PrivateHelperError("PRIVATE_DOMAIN_UNRESOLVED")) };
   }

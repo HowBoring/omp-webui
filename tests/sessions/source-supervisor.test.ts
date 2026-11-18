@@ -556,7 +556,7 @@ test("shared startup retains root UI and one generation when one waiting browser
   } finally { release.resolve(); await f.close(); }
 });
 
-function pendingOwnedConnection() {
+function pendingOwnedConnection(readHostMonotonic?: () => bigint) {
   const ready = Promise.withResolvers<Awaited<OwnedSessionConnection["ready"]>>();
   const completed = Promise.withResolvers<void>();
   const rootExit = Promise.withResolvers<Awaited<OwnedSessionConnection["rootExit"]>>();
@@ -564,7 +564,7 @@ function pendingOwnedConnection() {
   const cutoffs: number[] = [];
   const connection: OwnedSessionConnection = {
     ready: ready.promise, rootExit: rootExit.promise, completed: completed.promise, output: output.promise,
-    interactionCleanup: Promise.resolve([]),
+    interactionCleanup: Promise.resolve([]), ...(readHostMonotonic && { readHostMonotonic }),
     beginCleanup(cutoff) { cutoffs.push(cutoff); return undefined; },
   };
   for (const deferred of [ready, completed, rootExit, output]) void deferred.promise.catch(() => {});
@@ -679,7 +679,9 @@ test("shutdown fences the retained connection while readiness is pending and wai
 });
 
 test("a connection delivered after the shutdown observation is fenced with the original cutoff", async () => {
-  const owned = pendingOwnedConnection(), delivery = Promise.withResolvers<OwnedSessionConnection>();
+  let clockSamples = 0;
+  const owned = pendingOwnedConnection(() => { clockSamples++; return 9_007_199_254_740_993n; });
+  const delivery = Promise.withResolvers<OwnedSessionConnection>();
   let retirement: AbortSignal | undefined;
   const f = await sourceFixture(Date.now, (_cwd, signal) => { retirement = signal; return delivery.promise; });
   const clock = shutdownClock();
@@ -720,6 +722,8 @@ test("a connection delivered after the shutdown observation is fenced with the o
       status: "owned-completed", rootExit: { exitCode: 0, signal: 15 },
     } });
     expect(f.supervisor.starts).toBe(1);
+    expect(clockSamples).toBe(0);
+    expect(f.supervisor.exits().at(-1)?.drain).not.toHaveProperty("hostMonotonicCleanupMs");
   } finally {
     delivery.resolve(owned.connection);
     owned.ready.reject(new Error("RPC_SESSION_RETIRED"));

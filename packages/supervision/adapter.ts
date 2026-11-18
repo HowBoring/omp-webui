@@ -9,6 +9,7 @@ import type { PrivateHelperHandle } from "./controller.ts";
 import { openPrivateHelperOwner } from "./owner.ts";
 import { verifyHelperSelection } from "./control-io-selection.ts";
 import { PrivateHelperError, helperError } from "./errors.ts";
+import { retainHostMonotonic, type HostMonotonicApproval } from "./host-monotonic.ts";
 
 export type { PrivateHelperHandle, PrivateRootExit } from "./controller.ts";
 
@@ -74,12 +75,14 @@ function validateLaunch(input: PrivateHelperLaunch): void {
 export interface PrivateHelperOwnerInput {
   selection: InspectedSelection;
   controlIoApproval: OwnedControlApproval;
+  /** Optional independent approval for a Host-local clock from this same selected release. */
+  hostMonotonicApproval?: HostMonotonicApproval;
 }
 export interface PrivateHelperOwner {
   /** A trusted Host retirement signal can cause `HELPER_LAUNCH_RETIRED` before spawn.
    * Post-spawn startup failure returns an owning handle whose ready rejects; retain it through unresolved reap. */
   launch(input: PrivateHelperLaunch, retirement?: AbortSignal): Promise<PrivateHelperHandle>;
-  /** Stop launching, await every clean COMPLETE/EOF/reap, then await module disposal before releasing the lease.
+  /** Stop launching, await every clean COMPLETE/EOF/reap, then dispose retained native modules before releasing the lease.
    * A rejected close is sticky and retains all protection. Completion alone never unloads the module. */
   close(): Promise<void>;
 }
@@ -99,7 +102,7 @@ async function verifyLaunch(input: PrivateHelperLaunch, selection: InspectedSele
 /** Explicit Host construction only, still outside product admission. Loads and validates before prepare or any spawn.
  * No supplied loader/test factory, Socket/fs fallback, automatic enrollment or self-derived approval is accepted. */
 export function createPrivateHelperOwner(input: PrivateHelperOwnerInput): Promise<PrivateHelperOwner> {
-  return openPrivateHelperOwner(input, { load: loadOwnedControlIo, verifyLaunch,
+  return openPrivateHelperOwner(input, { load: loadOwnedControlIo, verifyLaunch, retainHostMonotonic,
     spawn: (launch, selection) => Bun.spawn([
       join(selection.selected.release.root, "bin/omp-private-helper"), launch.generation, "--", ...launch.arguments,
     ], { cwd: launch.cwd, env: launch.environment, stdin: "pipe", stdout: "pipe", stderr: "pipe",
