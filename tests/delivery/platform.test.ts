@@ -1,6 +1,7 @@
 import { expect, spyOn, test } from "bun:test";
 import * as fs from "node:fs/promises";
 import type { BigIntStats, StatOptions, Stats } from "node:fs";
+import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { createHash } from "node:crypto";
 import { resolveGlobalSelection } from "../../packages/delivery/resolver.ts";
@@ -40,7 +41,7 @@ function elf(input: { needed?: string; interpreter?: string } = {}): Buffer {
 }
 
 async function fixture() {
-  const parent = await fs.mkdtemp("/tmp/host-platform-");
+  const parent = await fs.mkdtemp(path.join(tmpdir(), "host-platform-"));
   const root = await fixtureRelease(parent), platform = path.join(parent, "platform");
   await fs.mkdir(path.join(platform, "real"), { recursive: true });
   await fs.chmod(path.join(platform, "real"), 0o755);
