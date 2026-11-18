@@ -1,12 +1,15 @@
 import { expect, spyOn, test } from "bun:test";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
 import * as fs from "node:fs/promises";
-import { readFile, mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
 import { createHostMonotonicObserver } from "../../packages/supervision/host-monotonic.ts";
 
+const linuxTest = test.skipIf(process.platform !== "linux");
+const procFdTest = test.skipIf(process.platform !== "linux" || !existsSync("/proc/self/fd"));
 const digest = (value: string): string => createHash("sha256").update(value).digest("hex");
 
 function controlledObserver(system: Omit<Parameters<typeof createHostMonotonicObserver>[0], "isSupportedRuntime">) {
@@ -14,7 +17,7 @@ function controlledObserver(system: Omit<Parameters<typeof createHostMonotonicOb
 }
 
 async function fixture<T>(run: (selection: InspectedSelection) => Promise<T>): Promise<T> {
-  const root = await mkdtemp(join(tmpdir(), "host-monotonic-"));
+  const root = await mkdtemp(join(await fs.realpath(tmpdir()), "host-monotonic-"));
   try {
     await mkdir(join(root, "lib")); await mkdir(join(root, "provenance"));
     await writeFile(join(root, "lib/libomp-shutdown-clock.so"), "clock bytes");
@@ -40,7 +43,7 @@ async function fixture<T>(run: (selection: InspectedSelection) => Promise<T>): P
 
 const approval = { abi: 1 as const, binaryDigest: digest("clock bytes"), sourceDigest: digest("clock source") };
 
-test("observes one full-width Host monotonic value through the independently approved descriptor", async () => {
+procFdTest("observes one full-width Host monotonic value through the independently approved descriptor", async () => {
   await fixture(async selection => {
     const calls: string[] = [];
     let libraryPath = "";
@@ -63,7 +66,7 @@ test("observes one full-width Host monotonic value through the independently app
   });
 });
 
-test("does not call a mapped clock after the borrowed selection is invalidated", async () => {
+linuxTest("does not call a mapped clock after the borrowed selection is invalidated", async () => {
   await fixture(async selection => {
     let active = true;
     selection.verify = async () => { if (!active) throw new Error("released"); };
@@ -86,7 +89,7 @@ test("does not call a mapped clock after the borrowed selection is invalidated",
 
 const library = { abi: () => 1, milliseconds: () => 0n, close: () => {} };
 
-test("requires independent approval and matching regular-file provenance before opening the binary", async () => {
+linuxTest("requires independent approval and matching regular-file provenance before opening the binary", async () => {
   await fixture(async selection => {
     let loads = 0;
     const observe = controlledObserver({
@@ -106,7 +109,7 @@ test("requires independent approval and matching regular-file provenance before 
   });
 });
 
-test("refuses pathname replacement after mapping even while the original approved descriptor is open", async () => {
+procFdTest("refuses pathname replacement after mapping even while the original approved descriptor is open", async () => {
   await fixture(async selection => {
     const binary = join(selection.selected.release.root, "lib/libomp-shutdown-clock.so");
     const calls: string[] = [];
@@ -125,7 +128,7 @@ test("refuses pathname replacement after mapping even while the original approve
   });
 });
 
-test("refuses missing, different and changed Host time namespace proof", async () => {
+linuxTest("refuses missing, different and changed Host time namespace proof", async () => {
   await fixture(async selection => {
     const calls: string[] = [];
     let own: string | undefined;
@@ -152,7 +155,7 @@ test("refuses missing, different and changed Host time namespace proof", async (
   });
 });
 
-test("refuses a mismatched ABI, the reserved failure value, and out-of-width samples", async () => {
+linuxTest("refuses a mismatched ABI, the reserved failure value, and out-of-width samples", async () => {
   await fixture(async selection => {
     let abi = 2;
     let samples = 0;
@@ -177,7 +180,7 @@ test("refuses a mismatched ABI, the reserved failure value, and out-of-width sam
   });
 });
 
-test("reserves loading and keeps the original descriptor through uncertain native unload", async () => {
+procFdTest("reserves loading and keeps the original descriptor through uncertain native unload", async () => {
   await fixture(async selection => {
     const entered = Promise.withResolvers<string>();
     const finish = Promise.withResolvers<void>();
@@ -236,7 +239,7 @@ test("rejects an unsupported runtime before verifying selection, pinning or load
   });
 });
 
-test("parks an unverified newly opened pin when its first close is uncertain", async () => {
+linuxTest("parks an unverified newly opened pin when its first close is uncertain", async () => {
   await fixture(async selection => {
     const binary = join(selection.selected.release.root, "lib/libomp-shutdown-clock.so");
     let closes = 0;
