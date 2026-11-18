@@ -1,0 +1,58 @@
+{
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceReview": "FRESH_PAIRED_REVIEW_REQUIRED",
+  "baseCommit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+  "baseTree": "c817c96c5a003fbd4347a3957774a4e39a8e6273",
+  "marker": "external-current-602f498-backpressure-r17-v1",
+  "stage": "/tmp/omp-external-current-backpressure-r17-20261117",
+  "generation": "37ac51764927b879cc9bf0256b629ae013f64400803424d2eb8ef35e2bf26c91b",
+  "case": "backpressure-only",
+  "productionChanges": false,
+  "runtime": "NOT_RUN",
+  "epipe": "NOT_IMPLEMENTED_NOT_RUN",
+  "productAdmission": "BLOCKED",
+  "sourceSha256": {
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "tests/supervision/fixtures/external_backpressure.py": "9b7786bc2f47dc250a9b88047cfe725ff4d37cbe4960bd1971794e4d951e2239",
+    "tests/supervision/fixtures/external_backpressure_io.py": "4376f52c4b12b970fc58e339575f97669e4dddbb97fdbe6d8a4b831cd165499e",
+    "tests/supervision/fixtures/external_backpressure_policy.py": "203ea55963d9cfdf5fce2c9d62f6e0af7424e21b8a2ca44c31ef13f02a773d32",
+    "tests/supervision/fixtures/external_backpressure_policy_test.py": "0e57a8a23509ef441a1c3430e9b74da33548df3503504a7245f950658b261500",
+    "tests/supervision/fixtures/external_backpressure_stage.py": "03286c6b50bbc48c331a9cfebe2b8b45639c80631bb1cd82c74f0de4415f9e7e",
+    "tests/supervision/fixtures/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+    "docs/evidence/ticket-41-current-backpressure-source.md": "14d6a5eaf7aed646f1946c5e232a98232a7ca07322f31229285e8dad750c09c2"
+  },
+  "cInputs": {
+    "compatibility/launcher/control.h": {
+      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+      "blob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
+      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    "compatibility/supervision/candidates.h": {
+      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+      "blob": "12637556c77aa1c3cd6fe5722eaa7bba21ee195c",
+      "sha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f"
+    },
+    "compatibility/supervision/external-protector.c": {
+      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+      "blob": "c48a10f7c90d1ff36c6521c33afbb8f0cde89049",
+      "sha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c"
+    },
+    "compatibility/supervision/private-helper.c": {
+      "commit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a",
+      "blob": "6939247d6defa1c80fc4a079dfa9aceb4deefd29",
+      "sha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
+    }
+  },
+  "validation": {
+    "purePythonTests": 22,
+    "ast": "PASS",
+    "runtimeAdapterImports": false,
+    "compiledTargets": false,
+    "actors": false,
+    "nativeImports": false,
+    "signals": false
+  }
+}
