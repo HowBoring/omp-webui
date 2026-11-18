@@ -130,6 +130,57 @@ including the full reader behavior and the policy for an invalid stored marker. 
 requires an explicit decision if the change keeps the existing writer version. Generated
 persistence files and refreshed pairing records stayed in scratch.
 
+## Required parsed-call reader follow-up
+
+Dormant patch 10 rejects `tool/parsed-call` with `ignorable: true` once the V4
+reader recognizes the event type. It reports `SessionFormatError` with the type
+and sequence number. The existing unknown-event gate still controls admission
+and opaque retention for events outside the reader's vocabulary.
+[Patch 10](../../compatibility/dsh/candidates/chat-and-tool-preflight/0010-required-parsed-call-restore.patch)
+
+| Source input or result | Identity |
+| --- | --- |
+| Patch 10 SHA-256 | `e635170e56d5c6b54a4644fce70f8ec5c799e24d87d9f4dc05a2756584a3d1b4` |
+| DSH tree after patch 10 | `ab953b9e2c3a9f5e1ede44d6b583a9f54a4945ad` |
+| Retained generated vocabulary SHA-256 | `ed28bfd0a7f2f43cb371aa99a7ba9ec4789f6b8b69acb527f0f0ca8e48d683ed` |
+| Staged legacy vocabulary SHA-256 | `6583955525dd8b6869be2c476821f66c837519b7001ba134ab2fb2ecb57ecba9` |
+
+Git verified patches 1–10 in order in a private index with a read-only object
+alternate. Reversing patch 10 returned the exact tree after patch 9. Its sole
+DSH source change is in `session-format-v3-to-v4/src/validation.ts`.
+
+The [reader fixture](../../compatibility/dsh/candidates/chat-and-tool-preflight/required-parsed-call.fixture.ts)
+feeds stored JSON rows through `sessionFormatCatalog.createRestore` with strict
+recovery and current validation. Bun 1.4.4 reproduced one failure and three
+passes with the generated vocabulary and patch 9. With patch 10 all four
+passed. The fixture verifies that the same standalone parsed row retains nested
+JSON without the marker and fails with it. An unknown ignorable row remains
+opaque, and the original raw argument string survives restore. With the staged
+legacy vocabulary, all three checks passed both before and after patch 10. The
+same unmarked parsed row fails as unknown, its externally marked form remains
+opaque, and the raw spelling survives restore.
+
+To replay the fixture, resolve the DSH workspace paths from `tsconfig.base.json`
+to absolute source paths in an owned preparation. For each run, direct the
+`@deepseek-ai/dsh-session` and `@deepseek-ai/dsh-session-format-v3-to-v4` aliases
+to the corresponding source copies with the vocabulary and validator selected
+above. Set `DSH_READER_TSCONFIG` to that config and `DSH_READER_TEST_VOCABULARY`
+to `dormant` or `legacy`, matching the selected vocabulary.
+
+```bash
+BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 bun test --no-env-file \
+  --tsconfig-override "$DSH_READER_TSCONFIG" \
+  --test-name-pattern "$DSH_READER_TEST_VOCABULARY vocabulary|both vocabularies" \
+  ./compatibility/dsh/candidates/chat-and-tool-preflight/required-parsed-call.fixture.ts
+```
+
+Scoped strict TypeScript 6.0.3 checked the validator and fixture against the
+prepared dependency declarations. Oxlint 1.81.0 produced zero diagnostics on
+both files. Patch 10 remains outside the active and dormant manifests. Upstream
+persistence acknowledgement, generated catalog and pairing review, durable
+parsed tool and result ordering, matched build and browser proof, and Native
+ownership after reopen remain pending.
+
 ## Reproduce
 
 Reconstruct patches 1–7 in an owned, complete DSH checkout by following the
