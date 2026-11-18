@@ -134,10 +134,20 @@ unresolved. Only the same connection's confirmed domain completion and natural
 EOF on both readers release the slot. Root status, domain status and validated output
 tails are reported as they are observed. Counts remain lower bounds when a published
 counter or observed stdout EOF is unavailable or the transport records a protocol
-failure. Late completion can release the slot
-after the Session Index closes. The retirement records an unknown Session outcome
-because proof of ownership release does not establish Native settlement or the
-physical shutdown policy.
+failure. Late completion can release the slot after the Session Index closes.
+
+When the original connection grants authenticated cleanup, the Supervisor
+requests strict startup cancellation for an unconfirmed StrictStart. A
+cancellation reply with an open binding leaves that retired startup unknown.
+For an already verified Session, the Supervisor issues the fixed summary,
+retry, bash and queue aborts without waiting on the Bridge. It records queue
+withdrawal from the validated public result and Native settlement from a
+separate decoded state for the verified Session. A confirmed lane with no
+tracked UI or only cancelled or expired outcomes establishes the UI observation.
+The cutoff still applies to each correlated reply. These observations are
+independent of root status, domain completion, EOF and slot release. The durable
+Session attempt stays unknown pending composition of the physical shutdown
+policy.
 
 Owned idle Switch and New remain unavailable while an owned generation occupies
 the slot. Production registration, the helper's absolute deadline handoff and

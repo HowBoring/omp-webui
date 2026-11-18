@@ -3,15 +3,11 @@ import { createTypertRemoteInfo } from "@deepseek-ai/dsh-typert-protocol/remote-
 import type { RemoteResult } from "@deepseek-ai/dsh-typert-protocol";
 import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import { brokerScopeSchema } from "./interaction-broker.ts";
+import { restoredQueueSchema } from "./queue-withdrawal.ts";
+
+export { restoredQueueSchema };
 
 const id = z.string().min(1).max(128);
-const image = z.strictObject({ type: z.literal("image"), data: z.string(), mimeType: z.string(),
-  detail: z.enum(["auto", "low", "high", "original"]).optional(), url: z.string().optional(),
-  providerFile: z.record(z.string(), z.unknown()).optional() });
-const restoredMessage = z.strictObject({ text: z.string(), images: z.array(image).optional() });
-/** Exact public Native queue withdrawal result, with an explicit unsent-only presentation rule. */
-export const restoredQueueSchema = z.strictObject({ steering: z.array(restoredMessage), followUp: z.array(restoredMessage),
-  imagesDropped: z.literal(true).optional(), truncated: z.literal(true).optional(), unsentOnly: z.literal(true) });
 export const stopSnapshotSchema = z.strictObject({ generation: id, workerGeneration: id, scope: brokerScopeSchema,
   status: z.enum(["idle", "stopping", "terminating", "ended", "unknown", "forbidden"]),
   nativeSettled: z.boolean(), acceptingWork: z.boolean(), pending: z.strictObject({ interactions: z.number().int().nonnegative(),

@@ -58,10 +58,16 @@ reported notification count as a lower bound. The published count includes start
 notifications, and the transport separately counts validated tail frames after
 its admission fence.
 
+An authenticated v2 cleanup lane can cancel an unconfirmed StrictStart or send
+the summary, retry, bash and queue aborts for an already verified Session. A
+validated queue reply records withdrawal, and a separate decoded state for that
+Session can establish Native settlement. These operations do not wait for the UI
+reply. The Bridge confirms cancellation when every tracked request is cancelled
+or expired, or when a confirmed lane has no tracked requests.
+
 Ownership proof permits slot reuse while the durable Session attempt records an
-unknown outcome. Native settlement, queue withdrawal and the helper's physical
-shutdown deadline require further composition. Owned idle Switch and New and
-production registration remain pending.
+unknown outcome. The helper's physical shutdown deadline, owned idle Switch and
+New, and production registration remain pending.
 
 The read-only DSH SessionController adapts the public native `LiveJournal` cut.
 It reports `not_attested` recoverability and explicit unsupported native content.
