@@ -1,9 +1,10 @@
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
 import { z } from "zod";
 import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
-import { BoundedStdioTransport, attachOwnedStdio, type ProcessSelection, type DrainPolicy, type StdioOutput,
+import { BoundedStdioTransport, attachOwnedStdio, OwnedRpcError, type ProcessSelection, type DrainPolicy, type StdioOutput,
   type StdioPolicy } from "./stdio-transport.ts";
 import type { PrivateHelperHandle } from "../supervision/adapter.ts";
+import { PrivateHelperError } from "../supervision/errors.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import { HistoryClient } from "../contracts/generated/history-client.ts";
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
@@ -133,11 +134,15 @@ export class SessionWorker extends SessionRpc {
     try {
       const notifications = new SessionNotifications();
       const transport = attachOwnedStdio(helper, options, sessionPolicy(notifications));
-      const ready = transport.ready.then(core => new SessionRpc(core, notifications, options));
+      const ready = transport.ready.then(core => new SessionRpc(core, notifications, options)).catch(error => {
+        throw error instanceof OwnedRpcError || error instanceof PrivateHelperError
+          ? error : new OwnedRpcError("RPC_STARTUP_FAILED");
+      });
       void ready.catch(() => {});
       return { ready, rootExit, completed, output: transport.output };
     } catch (error) {
-      const unavailable = Promise.reject<never>(error);
+      const unavailable = Promise.reject<never>(error instanceof OwnedRpcError
+        ? error : new OwnedRpcError("RPC_PIPE_ATTACH_FAILED"));
       void unavailable.catch(() => {});
       return { ready: unavailable, rootExit, completed, output: unavailable };
     }

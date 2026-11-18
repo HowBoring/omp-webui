@@ -69,10 +69,12 @@ on the retained Native pipes. A failed HELLO, negotiation or pipe attachment pre
 the caller's access to those original lifecycle promises.
 
 Root exit and control loss fence RPC requests and queued writes. The readers still
-check post-exit frames and report actual EOF on each pipe. A malformed stdout frame
-records a protocol failure while subsequent bytes drain without publication. A reader
-failure can leave its EOF unobserved. Domain completion comes from the helper's
-validated COMPLETE, control EOF and reap.
+check post-exit frames and report actual EOF on each pipe. A dispatched request can
+consume one correlated late response. A malformed stdout frame records a protocol
+failure while subsequent bytes drain without publication. Stderr overflow caps the
+diagnostic count and continues draining. A reader failure can leave its EOF
+unobserved. Domain completion comes from the helper's validated COMPLETE, control
+EOF and reap.
 
 SessionSupervisor still needs an owned launch path that saves the handle before
 awaiting RPC readiness, reserves its slot through uncertain domain completion, and

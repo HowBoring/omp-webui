@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import type { FileSink } from "bun";
 import { EventEmitter } from "node:events";
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
@@ -32,7 +32,7 @@ function pipe() {
   let writer!: ReadableStreamDefaultController<Uint8Array>;
   const stream = new ReadableStream<Uint8Array>({ start(controller) { writer = controller; } });
   return { stream, send: (value: object) => writer.enqueue(Buffer.from(JSON.stringify(value) + "\n")),
-    close: () => writer.close() };
+    bytes: (size: number) => writer.enqueue(new Uint8Array(size)), close: () => writer.close() };
 }
 
 interface Command { id: string; type: string; protocolVersion?: number }
@@ -43,15 +43,19 @@ function ownedPeer() {
   let written = Promise.withResolvers<Command>();
   let inputEnded = false;
   let blockedFlush: Promise<number> | undefined;
+  let nextWriteResult: Promise<number> | undefined;
+  let flushes = 0;
   const stdin: FileSink = {
     write(chunk) {
       if (inputEnded) throw new Error("TEST_PIPE_CLOSED");
       if (typeof chunk !== "string") throw new Error("TEST_INVALID_CHUNK");
       const command = JSON.parse(chunk) as Command;
       commands.push(command); written.resolve(command); written = Promise.withResolvers<Command>();
-      return Buffer.byteLength(chunk);
+      const result = nextWriteResult;
+      nextWriteResult = undefined;
+      return result ?? Buffer.byteLength(chunk);
     },
-    flush: () => blockedFlush ?? 0, end() { inputEnded = true; return 0; }, start() {}, ref() {}, unref() {},
+    flush() { ++flushes; return blockedFlush ?? 0; }, end() { inputEnded = true; return 0; }, start() {}, ref() {}, unref() {},
   };
   const controller = new PrivateHelperController({
     spawn: () => ({ pid: 41, stdin, stdout: stdout.stream, stderr: stderr.stream, exited: reap.promise,
@@ -61,6 +65,12 @@ function ownedPeer() {
   const helper = controller.launch({ generation, registerHeldHelper: async () => {} });
   return { helper, stdout, stderr, control, commands, reap: reap.resolve,
     get inputEnded() { return inputEnded; },
+    get flushes() { return flushes; },
+    holdWrite() {
+      const pending = Promise.withResolvers<number>();
+      nextWriteResult = pending.promise;
+      return pending;
+    },
     nextCommand: () => written.promise,
     holdFlush() {
       const pending = Promise.withResolvers<number>();
@@ -161,7 +171,7 @@ test("failed RPC negotiation fences Native stdin while the original helper remai
     peer.stdout.send(ready);
     peer.respond(await negotiating, { protocolVersion: 1 });
 
-    await expect(connected.ready).rejects.toThrow("RPC_NEGOTIATION");
+    await expect(connected.ready).rejects.toMatchObject({ code: "RPC_NEGOTIATION" });
     expect(() => peer.helper.stdin.write("stale")).toThrow("NATIVE_ADMISSION_CLOSED");
     expect(connected.completed).toBe(peer.helper.completed);
     const root = connected.rootExit;
@@ -230,12 +240,165 @@ test("an unavailable pipe returns a failed attachment with the retained helper o
     const connected = SessionWorker.attachOwned(peer.helper);
     expect(connected.rootExit).toBe(peer.helper.rootExit);
     expect(connected.completed).toBe(peer.helper.completed);
-    await expect(connected.ready).rejects.toThrow("RPC_PIPES_IN_USE");
-    await expect(connected.output).rejects.toThrow("RPC_PIPES_IN_USE");
+    await expect(connected.ready).rejects.toMatchObject({ code: "RPC_PIPES_IN_USE" });
+    await expect(connected.output).rejects.toMatchObject({ code: "RPC_PIPES_IN_USE" });
     expect(peer.stdout.stream.locked).toBe(false);
     expect(peer.inputEnded).toBe(false);
   } finally {
     reader.releaseLock();
     peer.stdout.close(); peer.stderr.close(); peer.helper.disconnectControl(); peer.reap(0);
   }
+});
+
+test("owned stderr overflow fences RPC, caps diagnostics and drains to actual EOF", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const reading = peer.nextCommand();
+    const pending = session.startup.state();
+    void pending.catch(() => {});
+    await reading;
+
+    peer.stderr.bytes(65_536);
+    peer.stderr.bytes(1);
+    await expect(pending).rejects.toMatchObject({ code: "RPC_STDERR_LIMIT" });
+    expect(peer.inputEnded).toBe(true);
+    peer.stdout.close();
+
+    let outputDone = false;
+    void connected.output.then(() => { outputDone = true; });
+    await Bun.sleep(0);
+    expect(outputDone).toBe(false);
+    peer.stderr.bytes(8192);
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 65_536, protocolFailure: "RPC_STDERR_LIMIT",
+    });
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each([
+  ["root exit", "undispatched"],
+  ["root exit", "duplicate"],
+  ["request timeout", "undispatched"],
+  ["request timeout", "duplicate"],
+] as const)("%s rejects the %s late response as a protocol failure", async (boundary, invalid) => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper, {
+      readyTimeoutMs: 2000, timeoutMs: boundary === "request timeout" ? 50 : 1000,
+    });
+    const session = await negotiate(peer, connected);
+    const releaseFlush = peer.holdFlush();
+    const reading = peer.nextCommand();
+    const pending = session.startup.state();
+    void pending.catch(() => {});
+    const dispatched = await reading;
+    const queuedId = "00000000-0000-4000-8000-000000000020";
+    const uuid = spyOn(crypto, "randomUUID").mockReturnValueOnce(queuedId);
+    const queued = session.startup.state();
+    uuid.mockRestore();
+    void queued.catch(() => {});
+
+    if (boundary === "root exit") {
+      peer.rootExit();
+      await connected.rootExit;
+    }
+    const expected = boundary === "root exit" ? "RPC_ROOT_EXITED" : "RPC_REQUEST_TIMEOUT";
+    await expect(pending).rejects.toThrow(expected);
+    await expect(queued).rejects.toThrow(expected);
+    releaseFlush();
+
+    const state = { version: "strict-start-v1", phase: "waiting" };
+    peer.respond(dispatched, state);
+    peer.respond(invalid === "duplicate" ? dispatched : { id: queuedId, type: dispatched.type }, state);
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(peer.commands).toHaveLength(2);
+    expect(await connected.output).toMatchObject({
+      stdoutEOF: true, stderrEOF: true, protocolFailure: "RPC_PROTOCOL",
+    });
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("a successful late negotiation ack still needs a valid v2 payload", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const negotiating = peer.nextCommand();
+    peer.hello();
+    peer.stdout.send(ready);
+    const command = await negotiating;
+    peer.rootExit();
+    await expect(connected.ready).rejects.toMatchObject({ code: "RPC_ROOT_EXITED" });
+
+    peer.respond(command, { protocolVersion: 1 });
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toMatchObject({
+      stdoutEOF: true, stderrEOF: true, protocolFailure: "RPC_NEGOTIATION",
+    });
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each(["aliased pipes", "throwing stderr reader"] as const)(
+  "%s rolls back the acquired stdout lock and keeps the helper lifecycle", async fault => {
+    const peer = ownedPeer();
+    const reader = fault === "throwing stderr reader"
+      ? spyOn(peer.stderr.stream, "getReader").mockImplementation(() => { throw new Error("test-only private path"); })
+      : undefined;
+    if (fault === "aliased pipes") peer.helper.stderr = peer.helper.stdout;
+    try {
+      const failed = SessionWorker.attachOwned(peer.helper);
+      expect(failed.rootExit).toBe(peer.helper.rootExit);
+      expect(failed.completed).toBe(peer.helper.completed);
+      expect(peer.stdout.stream.locked).toBe(false);
+      expect(peer.inputEnded).toBe(false);
+      const error = { code: "RPC_PIPE_ATTACH_FAILED", message: "RPC_PIPE_ATTACH_FAILED" };
+      await expect(failed.ready).rejects.toMatchObject(error);
+      await expect(failed.output).rejects.toMatchObject(error);
+
+      reader?.mockRestore();
+      peer.helper.stderr = peer.stderr.stream;
+      const connected = SessionWorker.attachOwned(peer.helper);
+      await negotiate(peer, connected);
+      peer.stdout.close();
+      peer.stderr.close();
+      expect(await connected.output).toEqual({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0 });
+    } finally {
+      reader?.mockRestore();
+      peer.helper.disconnectControl(); peer.reap(0);
+    }
+  },
+);
+
+test("an asynchronous Native write rejection flushes and fences the owned RPC connection", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const previousFlushes = peer.flushes;
+    const write = peer.holdWrite();
+    const reading = peer.nextCommand();
+    const pending = session.startup.state();
+    void pending.catch(() => {});
+    await reading;
+    expect(peer.flushes).toBe(previousFlushes + 1);
+
+    write.reject(new Error("private sink failure"));
+    await expect(pending).rejects.toMatchObject({ code: "RPC_STDIN", message: "RPC_STDIN" });
+    expect(() => peer.helper.stdin.write("stale")).toThrow("NATIVE_ADMISSION_CLOSED");
+
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, protocolFailure: "RPC_STDIN",
+    });
+    peer.rootExit();
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
 });
