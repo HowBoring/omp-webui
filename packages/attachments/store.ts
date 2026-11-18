@@ -246,8 +246,11 @@ export class OriginalStore {
 
   async read(access: OriginalAccess, objectId: string, signal?: AbortSignal): Promise<StagedOriginal & { bytes: Uint8Array }> {
     const scope = this.current(access, undefined, signal);
-    const row = this.stagedObject(objectId, scope);
-    const bytes = this.payload(row);
+    // Hold the SQLite read lock until the file closes so removal cannot reclaim its charge early.
+    const { row, bytes } = this.db.transaction(() => {
+      const row = this.stagedObject(objectId, scope);
+      return { row, bytes: this.payload(row) };
+    }).deferred();
     this.current(access, scope, signal);
     if (bytes.length !== row.size || createHash("sha256").update(bytes).digest("hex") !== row.sha256) {
       fail("original_corrupt");
