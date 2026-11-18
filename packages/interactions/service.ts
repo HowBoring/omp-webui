@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Context } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
+import { brokerSnapshotSchema, type BrokerSnapshot } from "../contracts/interaction-broker.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
 import { InteractionBroker, type PageBinding } from "./broker.ts";
 
@@ -21,6 +22,9 @@ export class InteractionBrokerService extends TypertRemoteService {
     return caller.page;
   }
   @Remote("pending") pending() { return this.broker.pending(this.caller()); }
+  @Remote({ mode: "stream" }) async *pendingSnapshot(): AsyncGenerator<BrokerSnapshot> {
+    yield brokerSnapshotSchema.parse(this.broker.pendingSnapshot(this.caller()));
+  }
   @Remote("answer") answer(generation: string, interactionId: string, deliveryId: string, answer: UIAnswer) {
     return this.broker.answer(this.caller(), generation, interactionId, deliveryId, answer);
   }

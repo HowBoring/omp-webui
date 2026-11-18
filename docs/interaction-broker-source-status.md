@@ -36,13 +36,34 @@ Broker. Unary bodies have a 16 KiB limit and a five-second deadline. Terminal
 authority loss also ends a body read. A valid invocation failure retains its
 DSH request correlation and uses a fixed public error.
 
-The fixture uses a distinct credential for each Browser View. Ordinary DSH
-unary envelopes carry no Connection clientId. A future shared-cookie product
-carrier needs independent proof of page identity. The caller supplies current
+The unary fixture uses a distinct credential for each Browser View. Ordinary
+DSH unary envelopes carry no Connection clientId. The caller supplies current
 scope authorization as part of the Broker. Trusted revoke-all closes Broker
 admission before waiting for Native cancellation and supervisor drainage.
 The carrier owns the supplied Broker's lifetime until Host stop. Worker/Native
 wiring and composed Browser acceptance are separate gates.
+
+The isolated `interactionBrokerMode: "shared-cookie-snapshot"` option exposes
+`ompInteractionBroker/pendingSnapshot` on the standard DSH Remote mux. In this
+mode the fixture exposes only the snapshot Broker Remote. The Host binds the
+snapshot to the admitted socket Peer and its one live Gateway `$events` ready
+stream. The snapshot takes zero arguments. Authority is checked when admitting
+the read and again before publishing. A successful read emits one exact
+`BrokerSnapshot` and a terminal `end`. Rejected reads receive a fixed typed error
+on the logical stream. A dropped or backpressured fixture write closes the
+affected socket so a Client cannot wait indefinitely for a terminal frame.
+The Client validates the item, reads the terminal, and disposes the handle.
+An overdue card is omitted even when its expiry timer is late. The snapshot
+read leaves expiry cancellation and Stop to the existing timer.
+
+The loopback regression uses independent pinned DSH Clients sharing one issued
+cookie. Their ready client, Peer, and delivery identifiers are distinct.
+Canceling the first Client's logical `$events` stream withdraws its snapshot
+admission while the second Client keeps its existing delivery. A ready physical
+reconnect receives a new delivery with the original deadline. A controlled
+monotonic clock and synthetic Native port verify zero answer and Stop calls.
+Shared-cookie answering and composed product-browser verification are separate
+work.
 
 Ordinary disconnect retires only that page's deliveries. A current reauthorized
 page receives only pending UI and the original deadline. Refresh, reconnect and
@@ -108,8 +129,8 @@ real timer/worker races and the final matched tuple are not delivered here.
 Validation on Bun 1.4.4 (`38afee6c8`) and Node 24.22.1:
 
 - The guarded public Client Connection/Remote path through the upstream Host
-  Typert Gateway and Broker to the synthetic Native boundary passes 12 fixtures
-  with 76 assertions.
+  Typert Gateway and Broker to the synthetic Native boundary passes 14 fixtures
+  with 80 assertions.
 - A shared barrier releases two request arrivals from independently bound
   synthetic Peers. One matching answer reaches the Native boundary, and the
   losing Remote returns stale while the winner's acknowledgement is held. After
@@ -163,8 +184,8 @@ delivery for the same pending question with the original deadline. Its old
 delivery stayed stale. The unaffected page remained authorized. The fixture
 recorded zero worker launches and zero Stop requests. It uses a synthetic
 Native port and a minimal browser page, so the evidence covers this isolated
-carrier. Shared-cookie page binding and the composed product UI require
-separate verification.
+carrier. Shared-cookie operation in a product browser and the composed UI
+require separate verification.
 
 | Evidence | Identity |
 | --- | --- |

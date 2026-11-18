@@ -79,11 +79,18 @@ export class InteractionBroker {
     for (const page of this.#pages.values()) if (page.credentialId === credentialId) this.disconnect(page);
   }
   pending(page: PageBinding): BrokerSnapshot {
+    return this.#projectPending(page, id => { void this.#cancel(id, "expired"); });
+  }
+  /** Read pending UI without settling it, even when the expiry timer is late. */
+  pendingSnapshot(page: PageBinding): BrokerSnapshot {
+    return this.#projectPending(page);
+  }
+  #projectPending(page: PageBinding, onExpired?: (id: string) => void): BrokerSnapshot {
     const allowed = this.#current(page);
     const pending: BrokerSnapshot["pending"] = [];
     if (allowed && this.#accepting) for (const [id, entry] of this.#pending) {
       if (entry.state !== "pending") continue;
-      if (this.time.now() >= entry.deadline) { void this.#cancel(id, "expired"); continue; }
+      if (this.time.now() >= entry.deadline) { onExpired?.(id); continue; }
       let deliveryId = entry.deliveries.get(page.pageGeneration);
       if (!deliveryId) { deliveryId = randomUUID(); entry.deliveries.set(page.pageGeneration, deliveryId); }
       pending.push({ deliveryId, card: structuredClone(entry.card) });

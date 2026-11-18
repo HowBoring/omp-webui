@@ -1,8 +1,9 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import { apply as gateway } from "@deepseek-ai/dsh-api-gateway/client";
 import {
   isRemoteEventClientId, parseRemoteStreamServerMessage, REMOTE_EVENT_STREAM_ENDPOINT, REMOTE_EVENT_STREAM_PAYLOAD,
+  type RemoteStreamServerMessage,
 } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
 import { installConnection } from "@deepseek-ai/dsh-client-connection/client";
 import { apply as registry } from "@deepseek-ai/dsh-typert-registry/client";
@@ -13,7 +14,9 @@ import { z } from "zod";
 import { startSessionComponentServer } from "../../apps/host/src/session-component-server.ts";
 import { CatalogClient } from "../../packages/contracts/generated/catalog-client.ts";
 import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
-import { brokerContribution } from "../../packages/contracts/interaction-broker.ts";
+import {
+  brokerContribution, brokerSnapshotContribution, readBrokerSnapshot,
+} from "../../packages/contracts/interaction-broker.ts";
 import { InteractionBroker, type PageIdentity } from "../../packages/interactions/broker.ts";
 
 type Carrier = Awaited<ReturnType<typeof startSessionComponentServer>>;
@@ -37,9 +40,10 @@ function connect(url: string, cookie: string, origin: string): WebSocket {
   return new WebSocket(url, { headers: { cookie, origin } });
 }
 
-function observeReady(socket: WebSocket, ready: (info: Ready) => void): void {
+function observeReady(socket: WebSocket, ready: (info: Ready) => void, frames: RemoteStreamServerMessage[]): void {
   socket.addEventListener("message", event => {
     const frame = parseRemoteStreamServerMessage(String(event.data));
+    frames.push(frame);
     if (frame.type !== "item") return;
     const value = frame.value;
     if (value && typeof value === "object" && "type" in value && value.type === "ready" &&
@@ -58,17 +62,21 @@ function post(host: Carrier, access: Credential, path: string, body?: unknown, o
 
 const pending = { type: "client-request", rpcId: "pending", method: "ompInteractionBroker/pending", payload: { args: {} } };
 
-async function openPage(host: Carrier, access: Credential, contexts: Context[]) {
+async function openPage(host: Carrier, access: Credential, contexts: Context[],
+  sharedSnapshot: boolean, interactions: "answer" | "none") {
   const ctx = new Context();
   contexts.push(ctx);
   const ready = Promise.withResolvers<Ready>();
   const responses: number[] = [];
+  const sockets: WebSocket[] = [];
+  const frames: RemoteStreamServerMessage[] = [];
   const origin = host.server.url.origin;
-  installConnection(ctx, { interactions: "answer", transport: {
+  installConnection(ctx, { interactions, transport: {
     streamBaseUrl: host.server.url.href,
     createWebSocket(url) {
       const socket = connect(url, access.cookie, origin);
-      observeReady(socket, ready.resolve);
+      sockets.push(socket);
+      observeReady(socket, ready.resolve, frames);
       return socket;
     },
     async fetch(url, init) {
@@ -83,8 +91,8 @@ async function openPage(host: Carrier, access: Credential, contexts: Context[]) 
   } });
   registry(ctx);
   gateway(ctx);
-  await ctx.remote.$mount(brokerContribution);
-  return { ready: ready.promise, remote: ctx.remote.ompInteractionBroker, responses,
+  await ctx.remote.$mount(sharedSnapshot ? brokerSnapshotContribution : brokerContribution);
+  return { ready: ready.promise, remote: ctx.remote.ompInteractionBroker, responses, sockets, frames,
     dispose: () => ctx.fiber.dispose() };
 }
 
@@ -96,12 +104,14 @@ async function delivery(page: Awaited<ReturnType<typeof openPage>>) {
   return result.value.pending[0]!;
 }
 
-async function fixture() {
+async function fixture(sharedSnapshot = false) {
   const home = await mkdtemp(join(tmpdir(), "omp-broker-carrier-"));
   const contexts: Context[] = [];
   const pages = new Map<string, PageIdentity>();
   const reply = Promise.withResolvers<{ status: "answered" | "cancelled" }>();
-  let clockFault = false, scopeCurrent = true;
+  let clockFault = false, scopeCurrent = true, revokeOnRead = false;
+  let monotonic = 0;
+  const timers = new Map<() => void, number>();
   const entered = Promise.withResolvers<RespondUiParams>();
   const commands: RespondUiParams[] = [], stops: string[] = [];
   const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
@@ -110,10 +120,15 @@ async function fixture() {
   }, page => { pages.set(page.clientId, page); return scopeCurrent; }, {
     now() {
       if (clockFault) throw new Error("fixture private clock failure");
-      return performance.now();
+      if (revokeOnRead) scopeCurrent = false;
+      return sharedSnapshot ? monotonic : performance.now();
     },
-    wall: Date.now,
+    wall: sharedSnapshot ? () => 10_000 + monotonic : Date.now,
     schedule(delay, callback) {
+      if (sharedSnapshot) {
+        timers.set(callback, monotonic + delay);
+        return () => { timers.delete(callback); };
+      }
       const timer = setTimeout(callback, delay);
       return () => clearTimeout(timer);
     },
@@ -125,6 +140,7 @@ async function fixture() {
   try {
     host = await startSessionComponentServer({ dataDir: join(home, "state"), port: 0,
       manifest: join(home, "absent-manifest"), launcher: join(home, "absent-launcher"), interactionBroker: broker,
+      ...(sharedSnapshot ? { interactionBrokerMode: "shared-cookie-snapshot" as const } : {}),
       catalog: new CatalogClient(async () => { throw new Error("UNEXPECTED_CATALOG_REQUEST"); }),
       launch: async () => { throw new Error("UNEXPECTED_WORKER_LAUNCH"); } });
   } catch (error) {
@@ -136,7 +152,17 @@ async function fixture() {
     reply: (status: "answered" | "cancelled" = "answered") => reply.resolve({ status }),
     failClock: () => { clockFault = true; },
     loseScope: () => { scopeCurrent = false; },
-    openPage: (access: Credential) => openPage(host, access, contexts),
+    advance: (elapsed: number) => { monotonic += elapsed; },
+    runDueTimers() {
+      for (const [callback, deadline] of timers) {
+        if (deadline > monotonic) continue;
+        timers.delete(callback);
+        callback();
+      }
+    },
+    loseScopeOnRead: () => { revokeOnRead = true; },
+    openPage: (access: Credential, interactions: "answer" | "none" = "answer") =>
+      openPage(host, access, contexts, sharedSnapshot, interactions),
     async close() {
       reply.resolve({ status: "answered" });
       for (const ctx of contexts) await ctx.fiber.dispose();
@@ -179,9 +205,182 @@ test("the isolated carrier binds each admitted Broker Remote to its own ready DS
   } finally { await f.close(); }
 });
 
+const snapshotFailure = { code: "gateway/internal", message: "Interaction snapshot failed.", details: {} };
+
+function snapshot(page: Awaited<ReturnType<typeof openPage>>) {
+  return readBrokerSnapshot(page.remote.pendingSnapshot());
+}
+
+test("shared-cookie Browser Views retain separate Broker snapshots across a logical end and reconnect", async () => {
+  const f = await fixture(true);
+  try {
+    const access = await login(f.host);
+    const unready = await f.openPage(access, "none");
+    await expect(snapshot(unready)).rejects.toMatchObject(snapshotFailure);
+    expect(unready.sockets).toHaveLength(1);
+    expect(unready.sockets[0]?.readyState).toBe(WebSocket.OPEN);
+    expect(f.pages.size).toBe(0);
+    await unready.dispose();
+
+    const first = await f.openPage(access);
+    const firstReady = await first.ready;
+    f.receive("shared");
+    f.advance(600_000);
+    const firstRead = first.frames.length;
+    const initial = await snapshot(first);
+    expect(initial.pending).toHaveLength(1);
+    const firstItem = first.frames[firstRead];
+    if (firstItem?.type !== "item") throw new Error("Expected a Broker snapshot item");
+    const { streamId } = firstItem;
+    expect(streamId).not.toBe(firstReady.streamId);
+    expect(first.frames.slice(firstRead)).toEqual([
+      { type: "item", streamId, value: initial }, { type: "end", streamId },
+    ]);
+
+    const second = await f.openPage(access);
+    const secondReady = await second.ready;
+    expect(secondReady.clientId).not.toBe(firstReady.clientId);
+    const firstBinding = f.pages.get(firstReady.clientId), secondBinding = f.pages.get(secondReady.clientId);
+    expect(firstBinding?.credentialId).toBeString();
+    expect(secondBinding?.credentialId).toBe(firstBinding?.credentialId);
+    expect(firstBinding?.peerId).toBeString();
+    expect(secondBinding?.peerId).toBeString();
+    expect(secondBinding?.peerId).not.toBe(firstBinding?.peerId);
+    const other = await snapshot(second);
+    expect(other.pending).toHaveLength(1);
+    expect(other.pending[0]?.card).toEqual(initial.pending[0]?.card);
+    expect(other.pending[0]?.card.deadline).toBe(1_810_000);
+    expect(other.pending[0]?.deliveryId).not.toBe(initial.pending[0]?.deliveryId);
+
+    const duplicate = "duplicate-events";
+    firstReady.socket.send(JSON.stringify({ type: "open", streamId: duplicate,
+      endpoint: REMOTE_EVENT_STREAM_ENDPOINT, payload: REMOTE_EVENT_STREAM_PAYLOAD }));
+    expect(await snapshot(first)).toEqual(initial);
+    expect(first.frames.filter(frame => frame.streamId === duplicate)).toEqual([
+      { type: "error", streamId: duplicate,
+        error: { ...snapshotFailure, message: "Interaction event stream failed." } },
+    ]);
+
+    firstReady.socket.send(JSON.stringify({ type: "cancel", streamId: firstReady.streamId }));
+    await expect(snapshot(first)).rejects.toMatchObject(snapshotFailure);
+    expect(firstReady.socket.readyState).toBe(WebSocket.OPEN);
+    expect(secondReady.socket.readyState).toBe(WebSocket.OPEN);
+    expect(await snapshot(second)).toEqual(other);
+    expect(first.sockets).toEqual([firstReady.socket]);
+    expect(second.sockets).toEqual([secondReady.socket]);
+    expect([...first.responses, ...second.responses]).toEqual([]);
+    expect((await post(f.host, access, "/api/ompInteractionBroker/pending", pending)).status).toBe(501);
+
+    const closed = waitForClose(firstReady.socket);
+    await first.dispose();
+    await closed;
+    f.advance(600_000);
+    const replacement = await f.openPage(access);
+    const replacementReady = await replacement.ready;
+    const reoffered = await snapshot(replacement);
+    expect(replacementReady.clientId).not.toBe(firstReady.clientId);
+    expect(f.pages.get(replacementReady.clientId)?.peerId).not.toBe(firstBinding?.peerId);
+    expect(replacement.sockets).toEqual([replacementReady.socket]);
+    expect(reoffered.pending).toHaveLength(1);
+    expect(reoffered.pending[0]?.card).toEqual(initial.pending[0]?.card);
+    expect(reoffered.pending[0]?.deliveryId).not.toBe(initial.pending[0]?.deliveryId);
+    expect(reoffered.pending[0]?.deliveryId).not.toBe(other.pending[0]?.deliveryId);
+    expect(await snapshot(second)).toEqual(other);
+
+    const denied = replacement.frames.length;
+    f.loseScopeOnRead();
+    await expect(snapshot(replacement)).rejects.toMatchObject(snapshotFailure);
+    expect(replacement.frames.slice(denied)).toEqual([
+      { type: "error", streamId: expect.any(String), error: snapshotFailure },
+    ]);
+    expect(replacementReady.socket.readyState).toBe(WebSocket.OPEN);
+    expect(f.commands).toEqual([]);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("an overdue Broker snapshot omits the card while expiry waits for its timer", async () => {
+  const f = await fixture(true);
+  try {
+    const page = await f.openPage(await login(f.host));
+    await page.ready;
+    f.receive("overdue");
+    expect((await snapshot(page)).pending[0]?.card.deadline).toBe(1_810_000);
+
+    f.advance(1_800_001);
+    const start = page.frames.length;
+    const overdue = await snapshot(page);
+    expect(overdue).toMatchObject({ accepting: true, pending: [], outcomes: [] });
+    const frames = page.frames.slice(start);
+    expect(frames).toEqual([
+      { type: "item", streamId: expect.any(String), value: overdue },
+      { type: "end", streamId: frames[0]?.streamId ?? "" },
+    ]);
+    expect(f.commands).toEqual([]);
+    expect(f.stops).toEqual([]);
+
+    f.runDueTimers();
+    const cancellation: RespondUiParams = { targetId: "overdue", answer: { type: "cancel", timedOut: true } };
+    expect(await f.entered).toEqual(cancellation);
+    expect(f.commands).toEqual([cancellation]);
+    expect(f.stops).toEqual(["expired"]);
+    f.reply("cancelled");
+  } finally { await f.close(); }
+});
+
 function waitForClose(socket: WebSocket): Promise<number> {
   return new Promise(resolve => socket.addEventListener("close", event => resolve(event.code), { once: true }));
 }
+
+test.each([
+  { terminal: "end", status: 0 }, { terminal: "end", status: -1 },
+  { terminal: "error", status: 0 }, { terminal: "error", status: -1 },
+] as const)("a Broker $terminal write returning $status closes the affected carrier once", async ({ terminal, status }) => {
+  const wire: RemoteStreamServerMessage["type"][] = [];
+  const closures: (number | undefined)[] = [];
+  let armed = false, intercept = true;
+  const serve = Bun.serve;
+  const stub = spyOn(Bun, "serve").mockImplementation(options => {
+    const websocket = options.websocket;
+    if (!websocket) throw new Error("Expected the Broker WebSocket adapter");
+    const open = websocket.open;
+    websocket.open = function (socket) {
+      if (intercept) {
+        intercept = false;
+        const send = socket.send.bind(socket);
+        socket.send = (message, compress) => {
+          if (!armed || typeof message !== "string") return send(message, compress);
+          const frame = parseRemoteStreamServerMessage(message);
+          wire.push(frame.type);
+          return frame.type === terminal ? status : send(message, compress);
+        };
+        const close = socket.close.bind(socket);
+        socket.close = (code, reason) => {
+          if (armed) closures.push(code);
+          close(code, reason);
+        };
+      }
+      return open?.call(this, socket);
+    };
+    return serve(options);
+  });
+  const f = await fixture(true).finally(() => { stub.mockRestore(); });
+  try {
+    const page = await f.openPage(await login(f.host));
+    const { socket } = await page.ready;
+    const closed = waitForClose(socket);
+    if (terminal === "error") f.loseScope();
+    armed = true;
+
+    const failure = snapshot(page).catch((error: unknown) => error);
+    expect(await Promise.race([closed, Bun.sleep(1_000).then(() => "socket remained open")])).toBe(1011);
+    expect(await failure).toMatchObject({ name: "RemoteStreamCarrierError" });
+    expect(wire).toEqual(terminal === "end" ? ["item", "end"] : ["error"]);
+    expect(closures).toEqual([1011]);
+    expect(f.commands).toEqual([]);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
 
 test("a logical end fences a held answer and allows redelivery after physical reconnect", async () => {
   const f = await fixture();
