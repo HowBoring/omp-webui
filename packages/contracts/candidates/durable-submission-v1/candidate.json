@@ -1,0 +1,19 @@
+{
+  "status": "source-only",
+  "sourceTicket": 36,
+  "fixtureReference": 45,
+  "hostSourceCommit": "54545e62489ce13c2328f14c0882abc0c1c7d87c",
+  "nativeBaseCommit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "nativePatch": "compatibility/omp/0007-durable-submission.patch",
+  "generator": "scripts/build-submission-contracts.ts",
+  "nativeSourceSchemaSha256": "fd06eb5801eae6d8c93f835b5cb09edffa291bbb1a3982ab5e9dca01e57bee11",
+  "referenceArtifactSchemaSha256": "0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501",
+  "files": {
+    "omp-wire.ts": "ace452cb8dd1441605e56914907cce8cc9f608152aecf22037201d2973990525",
+    "submission-client.ts": "7c7387be35357ecce31544631a4e76062a46b430e06fe38af9082f2c8fda7565",
+    "submission-command.d.ts": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9",
+    "submission-command.js": "90c64b0b517fa8f62176e3f22429e20a21f98ccf9241bf549788220ba1085271",
+    "submission-result.d.ts": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9",
+    "submission-result.js": "da2abd60c58c97e1809e0fd83adbe914696fb3ac9d979a9fc57a5df53c33601a"
+  }
+}
