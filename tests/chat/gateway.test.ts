@@ -116,8 +116,7 @@ test("a synchronous builtin can settle with a complete paged no-input proof for 
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(1);
 });
 
-test("the DSH Gateway exposes only authorized state and exact lookup", async () => {
-  const f = fixture();
+async function mountGateway(f: ReturnType<typeof fixture>) {
   await f.host.plugin(TypertRegistry);
   await f.host.plugin(RemoteAccessService);
   await f.host.plugin(TypertGatewayService, {});
@@ -128,21 +127,36 @@ test("the DSH Gateway exposes only authorized state and exact lookup", async () 
   new ChatLookupService(f.host, id => id === sessionId ? f.gateway : undefined);
   const method = sessionContribution.methods["session/prompt"];
   if (!method) throw new Error("Missing DSH session/prompt");
-  const args = method.input({ strict: true }).create().parse({ request: prompt("visible") }) as Record<string, unknown>;
-  const invokePrompt = () => f.host.typertGateway.invoke({ namespace: "session", method: "prompt", args, peer: f.peer.peer });
-  await expect(invokePrompt()).rejects.toThrow();
+  const unboundPrompt = (caller: ChatCaller, request: SessionPromptRequest) => {
+    const args = method.input({ strict: true }).create().parse({ request }) as Record<string, unknown>;
+    return f.host.typertGateway.invoke({ namespace: "session", method: "prompt", args, peer: caller.peer });
+  };
+  return {
+    unboundPrompt,
+    prompt: (caller: ChatCaller, request: SessionPromptRequest) => chatViewCaller.run(caller.view, () =>
+      unboundPrompt(caller, request)),
+    lookup: (caller: ChatCaller, requestId: string) => chatViewCaller.run(caller.view, () =>
+      f.host.typertGateway.invoke({
+        namespace: "ompChat", method: "lookup", args: { sessionId, requestId }, peer: caller.peer,
+      })),
+    state: (caller: ChatCaller) => chatViewCaller.run(caller.view, () =>
+      f.host.typertGateway.invoke({ namespace: "ompChat", method: "state", args: { sessionId }, peer: caller.peer })),
+  };
+}
+
+test("the DSH Gateway exposes only authorized state and exact lookup", async () => {
+  const f = fixture(), remote = await mountGateway(f);
+  await expect(remote.unboundPrompt(f.peer, prompt("visible"))).rejects.toThrow();
   expect(f.commands).toEqual([]);
-  expect(await chatViewCaller.run(f.peer.view, invokePrompt)).toEqual({ accepted: true });
-  const lookup = (caller: ChatCaller, requestId: string) => chatViewCaller.run(caller.view, () =>
-    f.host.typertGateway.invoke({ namespace: "ompChat", method: "lookup", args: { sessionId, requestId }, peer: caller.peer }));
+  expect(await remote.prompt(f.peer, prompt("visible"))).toEqual({ accepted: true });
   const otherTab = f.reconnect("browser-a/tab-b/draft-b", f.peer.peer);
   expect(otherTab.peer).toBe(f.peer.peer);
-  expect(await Promise.all([lookup(f.peer, "visible"), lookup(otherTab, "visible")]))
+  expect(await Promise.all([remote.lookup(f.peer, "visible"), remote.lookup(otherTab, "visible")]))
     .toEqual([{ outcome: "accepted" }, { outcome: "unknown" }]);
-  expect(await lookup(f.peer, "never-issued")).toEqual({ outcome: "unknown" });
+  expect(await remote.lookup(f.peer, "never-issued")).toEqual({ outcome: "unknown" });
   expect(f.commands.some(command => command.clientSubmissionId === "never-issued")).toBe(false);
   f.authority.abort();
-  await expect(lookup(f.peer, "visible")).rejects.toThrow();
+  await expect(remote.lookup(f.peer, "visible")).rejects.toThrow();
 });
 
 test("joint host or Native busy refuses queue and steer without a dispatch and consumes that refusal key", async () => {
@@ -436,4 +450,64 @@ test("the public no-input recovery descriptor preserves the full DSH projection 
     outcome: "completed-without-input",
     noInput: { requestId: "wide-projection", projection: { ...binding, source: "s".repeat(513) } },
   }).success).toBe(false);
+});
+
+test.each(["admitted", "conflict"] as const)(
+  "an early lifecycle frame stays private until Native responds with %s", async outcome => {
+    const f = fixture(), remote = await mountGateway(f);
+    const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+    f.raw(async command => {
+      if (command.type === "submission_submit") {
+        entered.resolve();
+        await release.promise;
+        if (outcome === "conflict") {
+          return { type: "response", id: command.id, command: command.type, success: false,
+            error: "SUBMISSION_CONFLICT", code: "SUBMISSION_CONFLICT" };
+        }
+      }
+      return { type: "response", id: command.id, command: command.type, success: true,
+        data: receipt(command.clientSubmissionId, command.type === "submission_query"
+          ? { inputOutcome: "generated", relations: [input] } : {}) };
+    });
+    const submitted = remote.prompt(f.peer, prompt("early")).catch(() => "rejected");
+    await entered.promise;
+    f.gateway.observe({ type: "prompt_result", id: "early", agentInvoked: true, status: "completed", sessionSettled: true });
+    const during = await remote.state(f.peer);
+    release.resolve();
+    expect(await submitted).toEqual(outcome === "admitted" ? { accepted: true } : "rejected");
+    expect(during).toEqual({ requestId: "early", phase: "dispatching", settled: false });
+    const after = await remote.state(f.peer);
+    if (outcome === "admitted") {
+      expect(after).toMatchObject({ phase: "admitted", result: { status: "completed", agentInvoked: true } });
+    } else {
+      expect(after).toEqual({ requestId: "early", phase: "unknown", settled: false });
+      expect(await remote.lookup(f.peer, "early")).toEqual({ outcome: "unknown" });
+    }
+  },
+);
+
+test("after a terminal conflict a fresh Gateway request still needs current Native and Host idle", async () => {
+  const f = fixture(), remote = await mountGateway(f);
+  f.raw(async command => {
+    if (command.clientSubmissionId === "conflict-key") {
+      return { type: "response", id: command.id, command: command.type, success: false,
+        error: "SUBMISSION_CONFLICT", code: "SUBMISSION_CONFLICT" };
+    }
+    return { type: "response", id: command.id, command: command.type, success: true,
+      data: receipt(command.clientSubmissionId, command.type === "submission_query"
+        ? { inputOutcome: "generated", relations: [input] } : {}) };
+  });
+  await expect(remote.prompt(f.peer, prompt("conflict-key"))).rejects.toThrow();
+  expect(f.gateway.blocksAdmission).toBe(false);
+  f.stop.pending.interactions = 1;
+  await expect(remote.prompt(f.peer, prompt("host-busy"))).rejects.toThrow("busy");
+  f.stop.pending.interactions = 0;
+  f.state(async () => ({ ...idle, isStreaming: true, isSettled: false }));
+  await expect(remote.prompt(f.peer, prompt("native-busy"))).rejects.toThrow("busy");
+  f.state(async () => idle);
+  expect(await remote.prompt(f.peer, prompt("fresh-key"))).toEqual({ accepted: true });
+  expect(await remote.lookup(f.peer, "conflict-key")).toEqual({ outcome: "unknown" });
+  expect(f.commands.map(command => [command.type, command.clientSubmissionId])).toEqual([
+    ["submission_submit", "conflict-key"], ["submission_submit", "fresh-key"], ["submission_query", "fresh-key"],
+  ]);
 });

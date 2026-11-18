@@ -28,7 +28,8 @@ through the Native command boundary for ordinary Chat input.
 The reply must match the exact command, request ID, target, durable submission ID, local reservation
 and origin. Only a valid nonduplicate acknowledgement binds this dispatch to a reservation. A key
 lookup exposes no Native fingerprint, so a missing acknowledgement leaves even matching query facts
-unbound. A committed input relation from an acknowledged reservation supplies
+unbound. Matching early lifecycle frames stay private until acknowledgement and are discarded on
+a failed or ambiguous dispatch. A committed input relation from an acknowledged reservation supplies
 acceptance, including when the matching generation fails or is cancelled. An input history row can
 carry the request ID only through its exact validated Native origin and input role. A successful
 terminal committed operation with a complete consistent no-input receipt supplies the alternative
@@ -40,8 +41,10 @@ result and fresh idle checks before settlement or positive no-input evidence. An
 causality and uses the current `get_state` observation for reconciliation.
 
 Transport errors, uncertain receipts, duplicate Native reservations, and absent query results
-provide no replay authority. A correlated Native conflict stops recovery for that attempt. A
-repeated same-worker request can observe an acknowledged key without a second mutation. A stable `not-submitted` receipt requires a Host-owned proof of refusal
+provide no replay authority. A correlated Native conflict permanently fences recovery for that key
+and releases its admission hold. A different key still requires ordinary current authority and
+Native and joint Host idle checks. An ambiguous dispatch keeps its admission hold. A repeated
+same-worker request can observe an acknowledged key without a second mutation. A stable `not-submitted` receipt requires a Host-owned proof of refusal
 before RPC dispatch for a permanently consumed key. The Native may have created a reservation
 before a reported busy failure. Another draft or worker cannot obtain a prior attempt's recovery
 proof merely by knowing its ID. View cancellation or reconnect ends publication to the old invocation

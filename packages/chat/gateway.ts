@@ -96,7 +96,10 @@ export class ChatGateway {
   }
 
   /** A future shared admission gate must consult this for other input and history work. */
-  get blocksAdmission(): boolean { return !this.#workerCurrent() || !!this.#latest && !this.#latest.settled; }
+  get blocksAdmission(): boolean {
+    const attempt = this.#latest;
+    return !this.#workerCurrent() || !!attempt && attempt.phase !== "conflict" && !attempt.settled;
+  }
 
   #view(caller: ChatCaller, sessionId: string): View {
     if (!this.#workerCurrent() || caller.peer.signal.aborted || sessionId !== this.#sessionId) {
@@ -275,6 +278,7 @@ export class ChatGateway {
     const { id, agentInvoked, status, sessionSettled } = frame as PromptResultEvent;
     const attempt = this.#latest;
     if (!attempt || id !== attempt.id || (attempt.phase !== "dispatching" && attempt.phase !== "admitted")) return;
+    // An early frame stays private until the same dispatch has a verified nonduplicate acknowledgement.
     attempt.result ??= { agentInvoked, status, sessionSettled };
   }
 
@@ -291,7 +295,7 @@ export class ChatGateway {
     return { requestId: attempt.id, phase: phase === "conflict" ? "unknown" : phase, settled, ...(receipt ? { terminal: receipt.terminal,
       persistence: receipt.persistence, operationOutcome: receipt.operationOutcome,
       inputOutcome: receipt.inputOutcome } : {}),
-      ...(result ? { result: { ...result } } : {}) };
+      ...(phase === "admitted" && result ? { result: { ...result } } : {}) };
   }
 
   async #reconcile<T>(read: () => Promise<T>): Promise<T | undefined> {
