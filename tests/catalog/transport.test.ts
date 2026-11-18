@@ -75,7 +75,10 @@ test("catalog requests that expire while queued are not published when a real bl
       if(status==="missing")suppressed++;
     }
     expect(suppressed).toBeGreaterThan(0);
-    expect(await client.close()).toEqual({code:0,forced:false,stderrBytes:0});
+    expect(await client.close()).toEqual({
+      code: 0, forced: false, stderrBytes: 0,
+      terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true,
+    });
   }finally{await client.close();}
 },10000);
 
