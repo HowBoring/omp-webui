@@ -14,9 +14,9 @@ and parsed argument types.
 | --- | --- |
 | Host source descriptor commit | `45797ee830593435e58601e727617dcff8c7e2d7` |
 | DSH tree after patches 1–7 | `e011120c10c66dc067e2787054d21b52b2a15de1` |
-| Patch 8 SHA-256 | `f8eef2826ac2f0341b186267e382ab890e0417d9b773ee6696f950059cc4af3c` |
+| Patch 8 SHA-256 | `3d3dd8512a7ae80a94e71ef5f0d0e73b9ef60818da8bb9048128a1f20d093ac2` |
 | DSH source tree after patch 8 | `d9d6463ba9db6340fcf7202621b1591ceba34915` |
-| Patch 9 SHA-256 | `2adf7b80f01d822a3953eb7effcd695c9b68211aab8487a632e2ddd390bffa6f` |
+| Patch 9 SHA-256 | `afc955558426f461303cf17d06f745fe411af629999f3c00cedf8bcf40bdd88b` |
 | DSH source tree after patch 9 | `1959e66066b7ddd6fc40c8f54c89afd48aa789d9` |
 | Frozen DSH lockfile SHA-256 | `e32cb5d1bcf3c48c7570fc6b2014d3b2f0a65025031ee489b29173da8137cf6f` |
 
@@ -46,7 +46,8 @@ the `PartialArguments` value from each settled record's actual representation, a
 fail-loud reconciliation stub. The source-only tree then passed all five upstream typecheck
 steps with TypeScript 6.0.3. The 16 changed Client suites passed all 452 existing tests.
 In a second scratch checkout, the previously generated persistence files stayed fresh after
-applying patch 9 in order.
+applying patch 9 in order. Generating the catalog in the compiler checkout and running the
+five typecheck steps again also passed. Its generated schema matched the reviewed inventory.
 
 ## Persistence review still required
 
@@ -120,6 +121,7 @@ test "$(git write-tree)" = 1959e66066b7ddd6fc40c8f54c89afd48aa789d9
 node --import tsx/esm scripts/build.ts --scope typecheck --serial
 node --import tsx/esm scripts/gen-persistence-catalog.ts
 node --import tsx/esm scripts/gen-persistence-catalog.ts --check
+node --import tsx/esm scripts/build.ts --scope typecheck --serial
 node --import tsx/esm scripts/persistence-changes.ts --check --json
 node --import tsx/esm scripts/verify-translation-pairing.ts
 ```

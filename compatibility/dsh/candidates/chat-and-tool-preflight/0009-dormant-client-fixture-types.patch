@@ -5,7 +5,7 @@ index d5aa99599d16f762f9e746111cc40130d7fdce44..813381755d024e66e0aafc7a70d48e62
 @@ -33,11 +33,20 @@ function assistant(text: string, response = ''): ChatNode<'assistant-step'> {
    }
  }
- 
+
 -function tool(key: string, seq: number, name = 'bash', owner = turn): ChatNode<'tool-call'> {
 +function tool(
 +  key: string,
@@ -24,7 +24,7 @@ index d5aa99599d16f762f9e746111cc40130d7fdce44..813381755d024e66e0aafc7a70d48e62
 +    } },
    }
  }
- 
+
 @@ -82,10 +91,8 @@ describe('Definition-owned Chat process groups', () => {
      ['emoji overflow', '👩‍💻'.repeat(161), `${'👩‍💻'.repeat(159)}…`],
      ['sealed unpaired surrogate', 'x'.repeat(159) + '\ud83d', 'x'.repeat(159) + '\ud83d'],
@@ -36,7 +36,7 @@ index d5aa99599d16f762f9e746111cc40130d7fdce44..813381755d024e66e0aafc7a70d48e62
 +    const node = tool('call', 2, 'bash', turn, JSON.stringify({ command }))
 +    expect(processActivity([node]).runningDetail).toBe(expected)
    })
- 
+
    it('names a group by its Context only when no tool or Assistant evidence exists', () => {
 diff --git a/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts b/packages/client/ui-conversation/tests/conversation-registry.client.spec.ts
 index 94de82991c9f3f0b2ec78371b006ad13fd39bfe1..292b6b0613d89f13b7585724839795878bd86486 100644
@@ -56,7 +56,7 @@ index 29b95aaa3a91bab26b966d653a9faba679ccbc4f..38cbb23a73db88b3ffeb41533d9c17d3
 +++ b/packages/client/ui-skill/tests/skill-row.client.spec.tsx
 @@ -17,13 +17,16 @@ const t: SkillRowProps['t'] = makeTranslate(zh, commonZh)
  afterEach(cleanup)
- 
+
  function settled(over: Partial<ToolResultNode> = {}): ToolResultNode {
 -  const call = over.call === undefined ? { name: 'skill', argsRaw: '{"name":"dsh-manage-issues"}' } : over.call
 +  const call: ToolResultNode['call'] = over.call === undefined ? { name: 'skill', argsRaw: '{"name":"dsh-manage-issues"}' } : over.call
@@ -79,7 +79,7 @@ index 80b4d7c4627fdacf70ee3fdf28e4bb72b550cdcd..db3c223b5baa23727557fcdb75f6af63
 +++ b/packages/client/ui-tool/tests/ask-question-row.client.spec.tsx
 @@ -32,10 +32,13 @@ const READABLE_ARGS = JSON.stringify({ questions: [
  const PENDING_RESULT = JSON.stringify({ pending: true, callId: 'c1' })
- 
+
  const resultNode = (argsRaw: string, resultText: string | null, over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'ask_user_question', argsRaw } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'ask_user_question', argsRaw } : over.call
@@ -99,7 +99,7 @@ index 5dc1711ca428ac467e956a3c19d551e493338ee3..a5f9f0e44f47b2a7a57feccb884f07ec
 +++ b/packages/client/ui-tool/tests/assembly-surfaces.client.spec.tsx
 @@ -60,10 +60,13 @@ const todoResult = (seq: number): ToolResultNode => ({
  })
- 
+
  const bashResult = (seq: number, callId: string, over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
@@ -118,9 +118,9 @@ index 0458bf33bce574f0945ecda76209bbfe9b624040..de25bb364fb34ce28d8ad9aad688fd0a
 --- a/packages/client/ui-tool/tests/diff-card.client.spec.tsx
 +++ b/packages/client/ui-tool/tests/diff-card.client.spec.tsx
 @@ -29,7 +29,7 @@ const ARGS = '{"file_path":"notes/demo.txt","old_string":"hello","new_string":"h
- 
+
  const DIFFS = [{ path: 'notes/demo.txt', oldText: 'hello', newText: 'hello fixture' }]
- 
+
 -const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const running = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? ARGS
@@ -128,7 +128,7 @@ index 0458bf33bce574f0945ecda76209bbfe9b624040..de25bb364fb34ce28d8ad9aad688fd0a
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'edit', argsRaw,
 @@ -38,10 +38,13 @@ const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'edit', argsRaw: ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'edit', argsRaw: ARGS } : over.call
@@ -149,7 +149,7 @@ index 943220addc4ff296486cd69399a827c231b8692e..9efdb408a9485011239fb546886c704e
 @@ -58,7 +58,7 @@ const withImage = (attachment: unknown) => [
    { type: 'image', attachment },
  ]
- 
+
 -const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const running = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? ARGS
@@ -176,9 +176,9 @@ index 20be4da39565373bb59383386ffc41f8b9b37345..6ad24d759ecbfd441875e00fdf4d9a8b
 --- a/packages/client/ui-tool/tests/read-card.client.spec.tsx
 +++ b/packages/client/ui-tool/tests/read-card.client.spec.tsx
 @@ -55,7 +55,7 @@ const readMeta = (over?: Partial<ReadMetaFixture>): ReadMetaFixture => ({
- 
+
  const readContent = (body = 'export const a = 1'): string => `<path>src/a.ts</path>\n<type>file</type>\n<content>\n${body}\n</content>`
- 
+
 -const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const running = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? ARGS
@@ -186,7 +186,7 @@ index 20be4da39565373bb59383386ffc41f8b9b37345..6ad24d759ecbfd441875e00fdf4d9a8b
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'read', argsRaw,
 @@ -64,10 +64,13 @@ const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'read', argsRaw: ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'read', argsRaw: ARGS } : over.call
@@ -207,7 +207,7 @@ index bdb0d861ff492bb471edcdc2942cb345b7ad9541..af3778cad4008af108a040eb3553df74
 @@ -63,7 +63,7 @@ const pathsMeta = (over?: Partial<PathsMeta>): PathsMeta => ({
    shape: 'paths', paths: ['src/a.ts', 'src/b.ts'], truncated: false, total: 2, ...over,
  })
- 
+
 -const runningGrep = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const runningGrep = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? GREP_ARGS
@@ -215,7 +215,7 @@ index bdb0d861ff492bb471edcdc2942cb345b7ad9541..af3778cad4008af108a040eb3553df74
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'grep', argsRaw,
 @@ -72,10 +72,13 @@ const runningGrep = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const settledGrep = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'grep', argsRaw: GREP_ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'grep', argsRaw: GREP_ARGS } : over.call
@@ -231,7 +231,7 @@ index bdb0d861ff492bb471edcdc2942cb345b7ad9541..af3778cad4008af108a040eb3553df74
      content: [{ type: 'text', text: 'a.ts\n  Line 12: const foo = 1' }], isError: false,
 @@ -84,10 +87,13 @@ const settledGrep = (over?: Partial<ToolResultNode>): ToolResultNode => {
  }
- 
+
  const settledGlob = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'glob', argsRaw: GLOB_ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'glob', argsRaw: GLOB_ARGS } : over.call
@@ -252,7 +252,7 @@ index 426170379fc15a269b96fdaece18ccd9de884111..ca4803da2877f02f898ba2826127ea43
 @@ -46,7 +46,7 @@ const shellArgs = (over: Record<string, unknown> = {}): string => JSON.stringify
    command: 'ls -la', description: 'List files', ...over,
  })
- 
+
 -const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const running = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? ARGS
@@ -260,7 +260,7 @@ index 426170379fc15a269b96fdaece18ccd9de884111..ca4803da2877f02f898ba2826127ea43
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'bash', argsRaw,
 @@ -55,10 +55,13 @@ const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'bash', argsRaw: ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'bash', argsRaw: ARGS } : over.call
@@ -280,7 +280,7 @@ index d2a608d8ad26e2a7216e2a8bd8bf4f2321070fca..d1560bf58674c539e6cfc4ba49f14d63
 +++ b/packages/client/ui-tool/tests/todo-row.client.spec.tsx
 @@ -62,10 +62,13 @@ describe('planSummary', () => {
  })
- 
+
  const resultNode = (argsRaw: string, over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'todo_write', argsRaw } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'todo_write', argsRaw } : over.call
@@ -299,7 +299,7 @@ index ab63e54639b650ba662703ea437f162f27f6468e..d840d984adfed0247c51f5f9d0e5c106
 --- a/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx
 +++ b/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx
 @@ -19,7 +19,10 @@ const t: ToolTreeProps['t'] = makeTranslate(zh, commonZh)
- 
+
  const root = (callId: string, call: ToolResultNode['call']): ToolResultNode => ({
    kind: 'tool-result', seq: 3, time: 3_000, callId, call, callTime: 2_000,
 -  name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
@@ -309,15 +309,15 @@ index ab63e54639b650ba662703ea437f162f27f6468e..d840d984adfed0247c51f5f9d0e5c106
 +    : PartialArguments.fromText(call.argsRaw),
    content: [], isError: false, subCalls: [],
  })
- 
+
 diff --git a/packages/client/ui-tool/tests/tool-row.client.spec.tsx b/packages/client/ui-tool/tests/tool-row.client.spec.tsx
 index beadba5f5ef0a844437ff05c02861f217d00278a..f699b8cfe36222e6cf1f33e475d42d14388cd660 100644
 --- a/packages/client/ui-tool/tests/tool-row.client.spec.tsx
 +++ b/packages/client/ui-tool/tests/tool-row.client.spec.tsx
 @@ -24,7 +24,7 @@ afterEach(() => {
- 
+
  const t: GenericToolCardProps['t'] = makeTranslate(zh, commonZh)
- 
+
 -const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const running = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? '{"command":"ls -la","description":"List files"}'
@@ -325,7 +325,7 @@ index beadba5f5ef0a844437ff05c02861f217d00278a..f699b8cfe36222e6cf1f33e475d42d14
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'bash', argsRaw,
 @@ -33,10 +33,13 @@ const running = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const result = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
@@ -366,7 +366,7 @@ index 9ec915030d5ffa99eedc36efd75fb8910d402530..887a5a139f48000de8efe68c02026773
 @@ -50,7 +50,7 @@ const fetchMeta = (over?: Partial<FetchMeta>): FetchMeta => ({
    url: 'https://example.com/page', statusCode: 200, truncated: false, ...over,
  })
- 
+
 -const runningSearch = (over?: Partial<StartedToolCall>): StartedToolCall => {
 +const runningSearch = (over?: Partial<Extract<StartedToolCall, { argsRaw: string }>>): StartedToolCall => {
    const argsRaw = over?.argsRaw ?? SEARCH_ARGS
@@ -374,7 +374,7 @@ index 9ec915030d5ffa99eedc36efd75fb8910d402530..887a5a139f48000de8efe68c02026773
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'c1', name: 'web_search', argsRaw,
 @@ -59,10 +59,13 @@ const runningSearch = (over?: Partial<StartedToolCall>): StartedToolCall => {
  }
- 
+
  const settledSearch = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'web_search', argsRaw: SEARCH_ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'web_search', argsRaw: SEARCH_ARGS } : over.call
@@ -390,7 +390,7 @@ index 9ec915030d5ffa99eedc36efd75fb8910d402530..887a5a139f48000de8efe68c02026773
      content: [{ type: 'text', text: 'search text' }], isError: false,
 @@ -71,10 +74,13 @@ const settledSearch = (over?: Partial<ToolResultNode>): ToolResultNode => {
  }
- 
+
  const settledFetch = (over?: Partial<ToolResultNode>): ToolResultNode => {
 -  const call = over?.call === undefined ? { name: 'web_fetch', argsRaw: FETCH_ARGS } : over.call
 +  const call: ToolResultNode['call'] = over?.call === undefined ? { name: 'web_fetch', argsRaw: FETCH_ARGS } : over.call
@@ -409,9 +409,9 @@ index 14a81de6b679c469858c94d8f7ebe29471bca2bf..bb9822ee82ff2c20b1848c48cac50d0d
 --- a/packages/extensions/ui-cordis/tests/card-model.client.spec.ts
 +++ b/packages/extensions/ui-cordis/tests/card-model.client.spec.ts
 @@ -8,7 +8,7 @@ import { cordisActionCard, cordisDefineCard } from '../src/client/card-model.ts'
- 
+
  const ARGS = '{"name":"clock","purpose":"顶栏时钟","code":{"client":"return {}","host":"harness.handle(\'now\', () => Date.now())"}}'
- 
+
 -function running(over: Partial<StartedToolCall> = {}): StartedToolCall {
 +function running(over: Partial<Extract<StartedToolCall, { argsRaw: string }>> = {}): StartedToolCall {
    const argsRaw = over.argsRaw ?? ARGS
@@ -419,7 +419,7 @@ index 14a81de6b679c469858c94d8f7ebe29471bca2bf..bb9822ee82ff2c20b1848c48cac50d0d
      phase: 'start' as const, args: PartialArguments.fromText(argsRaw), callId: 'call-1', name: 'cordis_define', argsRaw, turn: 1, step: 1, time: 1_000,
 @@ -17,10 +17,13 @@ function running(over: Partial<StartedToolCall> = {}): StartedToolCall {
  }
- 
+
  function settled(over: Partial<ToolResultNode> = {}): ToolResultNode {
 -  const call = over.call === undefined ? { name: 'cordis_define', argsRaw: ARGS } : over.call
 +  const call: ToolResultNode['call'] = over.call === undefined ? { name: 'cordis_define', argsRaw: ARGS } : over.call
