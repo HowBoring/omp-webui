@@ -21,61 +21,34 @@ python3 -B "$recipe" verify /path/to/catalog-stage /path/to/bun /path/to/strict-
 
 Use a fresh registry directory containing the archives under their manifest `archive` names. The public npm
 archive URL for each entry uses `https://registry.npmjs.org/NAME/-/BASENAME-VERSION.tgz`, where `BASENAME` is
-the last component of `NAME`. Extract the patch from the pinned Native tree. The commands below check sizes
-and hashes before extracting, preserve scoped names such as `@puppeteer/browsers` under `node_modules`, and
-verify the patched `ElementHandle.js` Git blob.
+the last component of `NAME`. Extract the patch from the pinned Native tree and prepare the expansion locally.
 
 ```bash
+recipe=compatibility/omp/candidates/native-cohort-38/stage-strict-runtime.py
 registry=/path/to/registry
 native_git=/path/to/compiler-stage/vendor/omp
-manifest=compatibility/omp/candidates/native-cohort-38/strict-runtime-inputs.json
 tree=b102d9db2b9b91e7baa1de484ca901705785993b
 git -C "$native_git" show "$tree:patches/puppeteer-core@25.3.0.patch" > "$registry/puppeteer-core.patch"
-python3 -B - "$registry" "$manifest" <<'PYCODE'
-import base64
-import hashlib
-import json
-from pathlib import Path
-import subprocess
-import sys
-
-registry, manifest = (Path(value).resolve(strict=True) for value in sys.argv[1:])
-pins = json.loads(manifest.read_text(encoding="utf-8"))
-patch_pin = pins["puppeteerPatch"]
-patch = registry / patch_pin["path"]
-if patch.stat().st_size != patch_pin["bytes"] or hashlib.sha256(patch.read_bytes()).hexdigest() != patch_pin["sha256"]:
-    raise SystemExit("Puppeteer patch identity differs")
-for pin in pins["registry"]["archives"]:
-    archive = registry / pin["archive"]
-    if archive.stat().st_size != pin["bytes"]:
-        raise SystemExit(f"Archive byte count differs: {archive}")
-    digest = base64.b64encode(hashlib.sha512(archive.read_bytes()).digest()).decode("ascii")
-    if "sha512-" + digest != pin["integrity"]:
-        raise SystemExit(f"Archive integrity differs: {archive}")
-
-modules = registry / "node_modules"
-modules.mkdir()
-for pin in pins["registry"]["archives"]:
-    package = modules / pin["name"]
-    package.mkdir(parents=True)
-    subprocess.run(["tar", "-xzf", registry / pin["archive"], "--strip-components=1", "-C", package], check=True)
-puppeteer = modules / "puppeteer-core"
-subprocess.run(["git", "apply", patch], cwd=puppeteer, check=True)
-blob = subprocess.check_output(["git", "hash-object", "lib/puppeteer/api/ElementHandle.js"], cwd=puppeteer, text=True)
-if blob.strip() != "ee6b042c87861f00d7fcbb6e3eb6e87af232ebbd":
-    raise SystemExit("Puppeteer ElementHandle postimage differs")
-PYCODE
+python3 -B "$recipe" prepare-registry "$registry"
 ```
 
-Staging checks each of the 38 archives against the frozen Native Bun lock and hashes the 6,361-entry
-expansion with a 47,958,074-byte regular-file bound and a maximum depth of nine. Readback of the existing
-expansion matched every archive member outside the 12 locked Puppeteer patch targets. Git reverse patch
-validation and the `ElementHandle.js` blob check passed. The archives total 6,734,034 bytes. No lifecycle scripts run.
-The staging and rebuild here reused that verified expansion.
+Preparation checks the pinned archive sizes and SHA-512 values and the patch SHA-256 before extraction.
+It stages scoped names such as `@puppeteer/browsers` beneath a private `node_modules`, applies the patch
+with explicitly isolated Git metadata, and publishes the expansion after the complete inventory matches.
+A small local fixture nested under a Git checkout checked scoped extraction, patch application, refusal on
+inventory mismatch, and refusal to overwrite an existing expansion.
+
+Staging checks the 38 archives against the frozen Native Bun lock and hashes the 6,361-entry expansion with
+a 47,958,074-byte regular-file bound and a maximum depth of nine. Readback of the existing expansion matched
+every archive member outside the 12 locked Puppeteer patch targets. Git reverse patch validation and the
+`ElementHandle.js` blob check (`ee6b042c87861f00d7fcbb6e3eb6e87af232ebbd`) passed. The archives total
+6,734,034 bytes. The staging and rebuild here reused that verified expansion. No lifecycle scripts run.
 
 The staging command verifies the Catalog inventory and exact compiler receipt and checks the 25 generated
 files before using them. Bun uses the pinned upstream legacy Pi module plugin, the two verified Puppeteer
-exports, a fresh build home and both disabled compile caches. The compile-only predecessor produced
+exports, a fresh build home and both disabled compile caches. A build refuses competing ancestor
+`node_modules` along the Catalog Native root, registry root and private build entry paths. It uses the workspace
+links in the verified Catalog tree and the verified expanded registry. The compile-only predecessor produced
 37,234,507 and 203,402 in-memory bytes from the StrictStart source entry point. Its report SHA-256 was
 `4bc8c73ee05c780854edfabe450ec4c8e748ce100aa3fe37f25fb6bab2803284`.
 Bun's split CLI build returned duplicate chunk names. The staged build uses one whitespace-minified CLI file and
@@ -96,6 +69,7 @@ The StrictStart receipt binds both links to that Catalog stage's absolute path. 
 Bun, the Catalog inventory, the staged files, the exact link targets and the receipt. A rebuild in fresh scratch
 produced the same output file hashes and passed independent readback. Run `strict-runtime-stage.test.py` with
 the Catalog stage, compiler stage, registry, Bun and a scratch parent to repeat this check.
+The test also checks that changing the disposable launcher link from `cli.js` to `cli.js/` fails verification.
 
 ## Ordinary public RPC observations
 
@@ -126,6 +100,12 @@ skills, rules, tools, context files, judge, spotlight, LSP and title generation,
   recorded 0 denials and 0 dispatches, and the journal bytes and Session file list were unchanged.
   The sanitized 474-byte result SHA-256 was
   `28f72a0c455fc7984ba609361ac0ed06d983f502d0c8ca5db174a850567d615e`.
+
+- The staged `bundle/omp --rpc-preflight` negotiated v2 and reported the expected build, patch and schema
+  identities. The matched validator rejected a report with a null submission policy. Private Session admission
+  remained blocked. The child exited 0 with stdout and stderr EOF, no stderr or termination, and zero guard
+  denials and dispatches. Cwd and HOME stayed empty. The sanitized 726-byte result SHA-256 was
+  `a40d4952ec6cc29a81a0e7561f1d60d6ade3e3d66d0f20efe8bf5797fa305d66`.
 
 The worker accepted 1,048,576-byte physical and 67,108,864-byte reassembled frame limits with a
 16,384-byte outbound command bound. These ordinary exchanges exercised small frames.

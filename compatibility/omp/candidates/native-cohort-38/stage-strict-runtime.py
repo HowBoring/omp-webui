@@ -40,25 +40,56 @@ def digest(path, algorithm, bytes_):
     return hasher
 
 
-def verify_registry(registry, inputs, lock):
+def verify_registry_lock(lock, archives):
     locked = set(re.findall(r'^\s*"[^"]+": \["([^"]+)", .*?, "(sha512-[^"]+)"\],$', lock, re.MULTILINE))
-    for pin in inputs["registry"]["archives"]:
+    for pin in archives:
         if (f'{pin["name"]}@{pin["version"]}', pin["integrity"]) not in locked:
             raise ValueError(f"Archive disagrees with the Native lock: {pin['name']}")
+
+
+def verify_registry_inputs(registry, inputs):
+    for pin in inputs["registry"]["archives"]:
         archive = registry / pin["archive"]
         require_regular(archive, pin["bytes"])
-        integrity = "sha512-" + base64.b64encode(digest(archive, "sha512", pin["bytes"]).digest()).decode("ascii")
+        archive_hash = digest(archive, "sha512", pin["bytes"])
+        integrity = "sha512-" + base64.b64encode(archive_hash.digest()).decode("ascii")
         if integrity != pin["integrity"]:
             raise ValueError(f"Archive SHA-512 differs: {pin['archive']}")
     verify_regular_file(registry / inputs["puppeteerPatch"]["path"], inputs["puppeteerPatch"])
-    expanded = registry / "node_modules"
-    if not expanded.is_dir() or expanded.is_symlink():
-        raise ValueError("The expanded registry must be a real directory")
-    verify_registry_tree(expanded, inputs["registry"]["expanded"])
-    return expanded
+
+
+def prepare_registry(registry, inputs):
+    output = registry / "node_modules"
+    if os.path.lexists(output):
+        raise ValueError(f"Registry expansion already exists: {output}")
+    verify_registry_inputs(registry, inputs)
+    with tempfile.TemporaryDirectory(dir=registry) as directory:
+        private = Path(directory)
+        expanded = private / "node_modules"
+        env = {"PATH": os.defpath, "HOME": directory, "TMPDIR": directory,
+               "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull}
+        for pin in inputs["registry"]["archives"]:
+            package = expanded / pin["name"]
+            package.mkdir(parents=True)
+            subprocess.run(["tar", "-xzf", registry / pin["archive"], "--strip-components=1", "-C", package],
+                           cwd=private, env=env, check=True)
+        git = private / "patch.git"
+        subprocess.run(["git", "init", "-q", "--bare", "--template=", git], cwd=private, env=env, check=True)
+        puppeteer = expanded / "puppeteer-core"
+        patch = registry / inputs["puppeteerPatch"]["path"]
+        subprocess.run(["git", f"--git-dir={git}", f"--work-tree={puppeteer}", "apply", patch],
+                       cwd=puppeteer, env=env, check=True)
+        verify_registry_tree(expanded, inputs["registry"]["expanded"])
+        if os.path.lexists(output):
+            raise ValueError(f"Registry expansion already exists: {output}")
+        expanded.rename(output)
+    return {"status": "STRICT_RUNTIME_REGISTRY_PREPARED", "path": str(output),
+            "sha256": inputs["registry"]["expanded"]["sha256"]}
 
 
 def verify_registry_tree(root, expected):
+    if not stat.S_ISDIR(root.lstat().st_mode):
+        raise ValueError("The expanded registry must be a real directory")
     rows, stack = {}, [root]
     size = depth = 0
     while stack:
@@ -120,7 +151,11 @@ def stage_inputs(catalog, compiler, registry, inputs, catalog_inputs, identity):
         raise ValueError("Compiler and Catalog identity differ")
     for expected in inputs["generatedOutputs"]:
         verify_regular_file(compiler / NATIVE / expected["path"], expected)
-    return verify_registry(registry, inputs, lock)
+    verify_registry_lock(lock, inputs["registry"]["archives"])
+    verify_registry_inputs(registry, inputs)
+    expanded = registry / "node_modules"
+    verify_registry_tree(expanded, inputs["registry"]["expanded"])
+    return expanded
 
 
 def stage_paths(catalog):
@@ -167,7 +202,7 @@ def verify_outputs(output, catalog, inputs, candidate):
     bundle = output / "bundle"
     verify_layout(bundle, ("omp", *(item["path"] for item in inputs["bundleOutputs"])))
     for link, target in stage_paths(catalog).items():
-        if (output / link).readlink() != target:
+        if os.readlink(output / link) != os.fspath(target):
             raise ValueError(f"Unexpected StrictStart link target: {link}")
     for expected in inputs["bundleOutputs"]:
         verify_regular_file(bundle / expected["path"], expected)
@@ -175,9 +210,23 @@ def verify_outputs(output, catalog, inputs, candidate):
     verify_regular_file(output / "rpc-wire.schema.json", inputs["schema"])
 
 
+def reject_ancestor_dependencies(*roots):
+    for root in roots:
+        for parent in root.parents:
+            path = parent / "node_modules"
+            try:
+                path.lstat()
+            except FileNotFoundError:
+                continue
+            raise ValueError(f"Competing dependency directory: {path}")
+
+
 def write_stage(args, inputs, catalog_inputs, candidate, identity, env):
     catalog, compiler, registry, bun, output = args.catalog, args.compiler, args.registry, args.bun, args.output
     expanded = stage_inputs(catalog, compiler, registry, inputs, catalog_inputs, identity)
+    build = Path(env["HOME"]) / "strict-runtime-build.ts"
+    shutil.copyfile(CANDIDATE / build.name, build)
+    shutil.copyfile(CANDIDATE / "strict-runtime-inputs.json", build.parent / "strict-runtime-inputs.json")
     output.mkdir(mode=0o700)
     try:
         bundle = output / "bundle"
@@ -188,7 +237,7 @@ def write_stage(args, inputs, catalog_inputs, candidate, identity, env):
         shutil.copyfile(catalog / inputs["schema"]["path"], output / "rpc-wire.schema.json")
         subprocess.run(
             [bun, "--no-env-file", "--no-install", "--preload", output / "no-provider.ts",
-             CANDIDATE / "strict-runtime-build.ts", catalog / NATIVE, compiler / NATIVE, expanded, bundle],
+             build, catalog / NATIVE, compiler / NATIVE, expanded, bundle],
             cwd=catalog / NATIVE, env={**env, "NODE_PATH": str(expanded)}, check=True,
         )
         expected = record(catalog, identity, inputs, catalog_inputs, candidate)
@@ -203,6 +252,8 @@ def write_stage(args, inputs, catalog_inputs, candidate, identity, env):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
+    prepare = commands.add_parser("prepare-registry")
+    prepare.add_argument("registry", type=Path)
     stage = commands.add_parser("stage")
     verify = commands.add_parser("verify")
     for command in (stage, verify):
@@ -214,21 +265,27 @@ def main():
     args = parser.parse_args()
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise ValueError("The StrictStart runtime pin is for Linux x64")
+    os.umask(0o077)
+    inputs = load_json(CANDIDATE / "strict-runtime-inputs.json")
+    if args.command == "prepare-registry":
+        print(json.dumps(prepare_registry(args.registry.resolve(strict=True), inputs)))
+        return
     args.catalog, args.bun = (value.resolve(strict=True) for value in (args.catalog, args.bun))
     args.output = args.output.parent.resolve(strict=True) / args.output.name
     protected = [args.catalog, args.bun.parent, CANDIDATE.parents[3]]
     if args.command == "stage":
         args.compiler, args.registry = (value.resolve(strict=True) for value in (args.compiler, args.registry))
         protected.extend((args.compiler, args.registry))
+        reject_ancestor_dependencies(args.catalog / NATIVE, args.registry)
     if any(args.output.is_relative_to(path) for path in protected):
         raise ValueError("Choose scratch outside the frozen inputs")
 
-    inputs = load_json(CANDIDATE / "strict-runtime-inputs.json")
     catalog_inputs = load_json(CANDIDATE / "catalog-runtime-inputs.json")
     candidate = load_json(CANDIDATE / "candidate.json")
     verify_regular_file(args.bun, catalog_inputs["bun"])
-    os.umask(0o077)
     with tempfile.TemporaryDirectory(dir=args.output.parent) as home:
+        if args.command == "stage":
+            reject_ancestor_dependencies(Path(home) / "strict-runtime-build.ts")
         env = {"PATH": os.defpath, "LANG": "C.UTF-8", "HOME": home, "TMPDIR": home,
                "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0", "NODE_DISABLE_COMPILE_CACHE": "1"}
         catalog = verify_catalog(args.catalog, args.bun, env)
