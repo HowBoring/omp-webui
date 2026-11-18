@@ -30,6 +30,12 @@ types and the effective explicit-answer policy; host tool/URI contracts remain
 separate. This is isolated source/fixture evidence. It does not install a product
 route or change the required real browser/Native/final-tuple acceptance gates.
 
+The isolated Session component can bind Broker Remotes to an authenticated
+Gateway `$events` Peer. One logical Peer per independently issued fixture
+credential permits standard DSH unary requests to resolve that Peer. Product
+admission for multiple Browser Views sharing a credential still needs an
+authenticated page binding.
+
 The [#48 Stop source vertical](../stop-coordinator-source-status.md) adds a typed
 public Host Remote/coordinator using existing queue withdrawal and summary abort
 operations. Joint Native/Host idle, unsent-only recovery, and one-use current-worker

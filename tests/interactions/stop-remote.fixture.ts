@@ -25,8 +25,8 @@ async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: 
   const clients: InstanceType<typeof Context>[] = [], peers: InstanceType<typeof Peer>[] = [];
   async function page(clientId: string) {
     const binding = stop.attach({ credentialId: "credential", clientId, peerId: clientId });
-    const uiBinding = broker?.attach({ credentialId: "credential", clientId, peerId: clientId });
     const peer = new Peer(host, { principal: { kind: "owner" } }); peers.push(peer);
+    const uiBinding = broker?.attach({ credentialId: "credential", clientId, peerId: peer.id });
     const ctx = new Context(); clients.push(ctx);
     installConnection(ctx, { interactions: "none", transport: { fetch: async (_url, init) => {
       const envelope = clientRequestSchema.parse(JSON.parse(String(init.body)));
@@ -39,7 +39,7 @@ async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: 
       const invoke = () => host.typertGateway.invoke({ namespace: namespace ?? "", method, args, peer,
         signal: new AbortController().signal });
       const value = namespace === "ompStop" ? await stopCaller.run(binding, invoke)
-        : uiBinding ? await interactionCaller.run(uiBinding, invoke) : (() => { throw new Error("UNKNOWN_REMOTE"); })();
+        : uiBinding ? await interactionCaller.run({ page: uiBinding, current: () => true }, invoke) : (() => { throw new Error("UNKNOWN_REMOTE"); })();
       return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
     }, openStream: async function* () {} } });
     registry(ctx); gateway(ctx); await ctx.remote.$mount(stopContribution);

@@ -20,14 +20,16 @@ afterAll(restoreFixture);
 
 async function publicPages(broker: InstanceType<typeof InteractionBroker>,
   beforeInvoke: (method: string, args: Readonly<Record<string, unknown>>, binding: PageBinding) =>
-    Promise<void> = async () => {}) {
+    Promise<void> = async () => {},
+  afterInvoke: (method: string) => void = () => {},
+  current: () => boolean = () => true) {
   const host = new Context();
   await host.plugin(HostRegistry); await host.plugin(RemoteAccess); await host.plugin(TypertGatewayService, {});
   host.typert.register(brokerHostContribution); new InteractionBrokerService(host, broker);
   const clients: InstanceType<typeof Context>[] = [], peers: InstanceType<typeof Peer>[] = [];
-  async function page(clientId: string, credentialId = "credential") {
-    const binding = broker.attach({ credentialId, clientId, peerId: clientId });
+  async function page(clientId: string, credentialId = "credential", bindingPeerId?: string) {
     const peer = new Peer(host, { principal: { kind: "owner" } }); peers.push(peer);
+    const binding = broker.attach({ credentialId, clientId, peerId: bindingPeerId ?? peer.id });
     const ctx = new Context(); clients.push(ctx);
     installConnection(ctx, { interactions: "none", transport: { fetch: async (_url, init) => {
       const envelope = clientRequestSchema.parse(JSON.parse(String(init.body)));
@@ -37,8 +39,11 @@ async function publicPages(broker: InstanceType<typeof InteractionBroker>,
       const args = z.record(z.string(), z.unknown()).parse(descriptor.input({ strict: true }).create().parse(payload.args));
       const method = envelope.method.split("/")[1]; if (!method) throw new Error("UNKNOWN_REMOTE");
       await beforeInvoke(method, args, binding);
-      const value = await interactionCaller.run(binding, () => host.typertGateway.invoke({ namespace: "ompInteractionBroker",
-        method, args, peer, signal: new AbortController().signal }));
+      const dispatched = interactionCaller.run({ page: binding, current }, () => host.typertGateway.invoke({
+        namespace: "ompInteractionBroker", method, args, peer, signal: new AbortController().signal,
+      }));
+      afterInvoke(method);
+      const value = await dispatched;
       return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
     }, openStream: async function* () {} } });
     registry(ctx); gateway(ctx); await ctx.remote.$mount(brokerContribution);
@@ -60,6 +65,43 @@ async function within<T>(promise: Promise<T>, phase: string): Promise<T> {
     return await Promise.race([promise, timeout.promise]);
   } finally { clearTimeout(timer); }
 }
+
+test("a credential expiring during Gateway preparation cannot settle the pending Interaction", async () => {
+  let current = true;
+  const commands: RespondUiParams[] = [];
+  const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
+    respondUi: async command => { commands.push(command); return { status: "answered" }; }, requestStop: async () => {},
+  }, () => true);
+  ready(broker);
+  const fixture = await publicPages(broker, undefined, method => {
+    // During receiver preparation the Peer and request signals are still live, as before the expiry sweep.
+    if (method === "answer") current = false;
+  }, () => current);
+  try {
+    const page = await fixture.page("credential-expiry");
+    broker.receive({ type: "extension_ui_request", id: "question", method: "input", title: "Explicit" });
+    const snapshot = await page.remote.pending();
+    if (!snapshot.ok) throw snapshot.error;
+    const delivery = snapshot.value.pending[0]!;
+    expect(await page.remote.answer(delivery.card.generation, delivery.card.id, delivery.deliveryId,
+      { type: "value", value: "expired authority" })).toMatchObject({ ok: false });
+    expect(commands).toEqual([]);
+  } finally { await fixture.dispose(); }
+});
+
+test("a current Broker page cannot be used by a different Gateway Peer", async () => {
+  const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
+    respondUi: async () => { throw new Error("UNEXPECTED_NATIVE_COMMAND"); }, requestStop: async () => {},
+  }, () => true);
+  ready(broker);
+  const fixture = await publicPages(broker);
+  try {
+    const current = await fixture.page("current");
+    const mismatched = await fixture.page("mismatched", "other-credential", current.binding.peerId);
+    expect(await current.remote.pending()).toMatchObject({ ok: true });
+    expect(await mismatched.remote.pending()).toMatchObject({ ok: false });
+  } finally { await fixture.dispose(); }
+});
 
 test("two current public Remote pages race: the loser is stale before the winner receives its Native acknowledgement", async () => {
   const arrived = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
@@ -102,7 +144,7 @@ test("two current public Remote pages race: the loser is stale before the winner
     // Attach an observer even if an arrival failure exits before the completion phase.
     void firstCompletion.catch(() => {});
     await within(arrived.promise, "two authenticated Remote arrivals");
-    expect(arrivals.toSorted()).toEqual(["page-a", "page-b"]);
+    expect(arrivals.toSorted()).toEqual([first.binding.peerId, second.binding.peerId].toSorted());
     expect(commands).toEqual([]);
     release.resolve();
 

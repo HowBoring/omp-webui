@@ -1,6 +1,6 @@
 # Interaction Broker source vertical (#47)
 
-Status: SOURCE / public Remote fixture only. This does not admit private Sessions,
+Status: SOURCE / public Remote and isolated loopback carrier fixtures. This does not admit private Sessions,
 complete #47, or satisfy its #46/#41 dependencies. Linux product-browser and real
 Native evidence are pending; actual Windows Chrome/WSL2 is deferred by the owner.
 
@@ -20,6 +20,28 @@ credential, directory, Session/startup context and resource rights on every read
 and answer. Broker generation, worker generation, Native UI id, Agent scope,
 page generation and delivery id remain separate. The delivery id is a Host Remote
 token; it is not a DSH source eventId or evidence of a source waterfall invocation.
+
+The isolated Session component can opt in by supplying an `interactionBroker`
+instance from trusted Host startup. It binds one logical `$events` stream per
+independently issued BrowserAuthority credential. The existing Gateway generates
+the ready frame's `clientId` and its physical Peer supplies `Peer.id`. The Host
+requires the same current Peer for the generated `pending` and `answer` Remotes.
+These requests retain the existing BrowserAuthority, exact Origin and CSRF
+checks. Stream cancellation, socket closure or credential loss retire the
+binding. Each request retains its admitted binding through parsing, invocation
+and result publication, so reconnect cannot inherit a prior request's result.
+The service rechecks authority after Gateway preparation before using the
+Broker. Unary bodies have a 16 KiB limit and a five-second deadline. Terminal
+authority loss also ends a body read. A valid invocation failure retains its
+DSH request correlation and uses a fixed public error.
+
+The fixture uses a distinct credential for each Browser View. Ordinary DSH
+unary envelopes carry no Connection clientId. A future shared-cookie product
+carrier needs independent proof of page identity. The caller supplies current
+scope authorization as part of the Broker. Trusted revoke-all closes Broker
+admission before waiting for Native cancellation and supervisor drainage.
+The carrier owns the supplied Broker's lifetime until Host stop. Worker/Native
+wiring and composed Browser acceptance are separate gates.
 
 Ordinary disconnect retires only that page's deliveries. A current reauthorized
 page receives only pending UI and the original deadline. Refresh, reconnect and

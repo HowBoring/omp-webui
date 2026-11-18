@@ -23,8 +23,12 @@ import type { InstallationSelection } from "../../../packages/compatibility/inst
 import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.ts";
 import { openBrowserAccess, type BrowserAccess } from "../../../packages/access/index.ts";
 import { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
+import type { InteractionBroker } from "../../../packages/interactions/broker.ts";
+import { InteractionBrokerCarrier } from "./interaction-broker-carrier.ts";
 type Options = InstallationSelection & SessionLaunchOptions & {
   port?: number; assets?: string; catalog: CatalogClient; dataDir: string;
+  /** Opt-in lifecycle owned by this isolated carrier. Use one fixture Browser View per credential. */
+  interactionBroker?: InteractionBroker;
 };
 interface SocketData { peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController> }
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
@@ -61,6 +65,8 @@ export async function startSessionComponentServer(options: Options) {
   let supervisor: SessionSupervisor;
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
+  let interactionCarrier: InteractionBrokerCarrier | undefined;
+  const interactionBroker = options.interactionBroker;
   const server = Bun.serve<SocketData>({
     hostname: "127.0.0.1", port: options.port ?? 3180, maxRequestBodySize: 16_384,
     async fetch(request, carrier) {
@@ -90,13 +96,16 @@ export async function startSessionComponentServer(options: Options) {
         return new Response("Upgrade required", { status: 426 });
       }
       const registeredWorkspace = path === "/api/ompWorkspaces/registered";
-      if ((registeredWorkspace || [...unary].some(method => path === `/api/${method}`)) && request.method === "POST") {
-        if (request.headers.get("origin") !== carrier.url.origin) return new Response("Forbidden", { status: 403 });
+      const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
+      if ((brokerRoute || registeredWorkspace || [...unary].some(method => path === `/api/${method}`))
+        && request.method === "POST") {
+        if (request.headers.get("origin") !== server.url.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
         if (identity instanceof Response) return identity;
         if (inflight >= 32) return Response.json({ error: { code: "SESSION_REQUEST_LIMIT" } }, { status: 429 });
         ++inflight;
         try {
+          if (brokerRoute) return await brokerRoute.dispatch(request, identity);
           const current = () => access.revalidate(identity);
           const response = registeredWorkspace ? await dispatchWorkspaceRequest(request, ctx, owner, current)
             : await sessionCaller.run(identity, () => dispatch(request, ctx, owner, current));
@@ -117,7 +126,10 @@ export async function startSessionComponentServer(options: Options) {
       maxPayloadLength: 16_384, idleTimeout: 60,
       open(socket) {
         sockets.add(socket);
-        socket.data.detach = access.attachPeer(socket.data.identity, () => socket.close(4001, "Access invalidated"));
+        socket.data.detach = access.attachPeer(socket.data.identity, () => {
+          abortStreams(socket);
+          socket.close(4001, "Access invalidated");
+        });
       },
       message(socket, bytes) {
         if (!access.revalidate(socket.data.identity)) { socket.close(4001, "Access invalidated"); return; }
@@ -130,35 +142,49 @@ export async function startSessionComponentServer(options: Options) {
           }
           const control = new AbortController();
           socket.data.streams.set(frame.streamId, control);
+          const eventsBroker = frame.endpoint === "$events" ? interactionCarrier : undefined;
+          const onReady = eventsBroker ? (value: unknown) =>
+            eventsBroker.ready(value, socket.data.peer, socket.data.identity, control.signal) : undefined;
           void sessionCaller.run(socket.data.identity, () => pump(socket, frame.streamId, frame.endpoint, frame.payload, control, ctx, () => {
             if (!access.revalidate(socket.data.identity)) return false;
             if (frame.endpoint === "session/follow") { try { supervisor.assertObjectAccess(socket.data.identity); } catch { return false; } }
             return true;
-          })).catch(() => socket.close(1011, "stream failed"));
+          }, onReady)).catch(() => socket.close(1011, "stream failed"));
         } catch { socket.close(1008, "invalid stream frame"); }
       },
       close(socket) {
         sockets.delete(socket); socket.data.detach?.();
-        for (const control of socket.data.streams.values()) control.abort();
+        abortStreams(socket);
         peers.delete(socket.data.peer);
         void socket.data.peer.dispose();
       },
     },
   });
   access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
+  if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker);
   const { launch, launchOwned } = options;
   supervisor = new SessionSupervisor({ authority: access, grants: directories, index, catalog: options.catalog,
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);
-  const detachRevocation = access.onRevokeAll(() => { revokedStop = supervisor.revokeAll(); void revokedStop.catch(() => {}); });
+  const detachRevocation = access.onRevokeAll(() => {
+    const brokerStop = interactionCarrier?.revokeAll();
+    revokedStop = Promise.allSettled([supervisor.revokeAll(), brokerStop]).then(results => {
+      for (const result of results) if (result.status === "rejected") throw result.reason;
+    });
+    void revokedStop.catch(() => {});
+  });
   return {
     server, supervisor, index,
-    async revokeAll(): Promise<void> { access.revokeAll(); await revokedStop; },
+    async revokeAll(): Promise<void> {
+      try { access.revokeAll(); }
+      finally { await revokedStop; }
+    },
     bootstrapLink: () => access.bootstrapLink(),
     async stop(): Promise<void> {
       stopping = true;
       const draining = supervisor.close(); access.close(); detachRevocation();
+      interactionBroker?.close();
       await draining; directories.close(); index.close();
       for (const socket of sockets) socket.close(1001, "Host shutdown");
       await unregister();
@@ -169,15 +195,23 @@ export async function startSessionComponentServer(options: Options) {
 }
 
 
+function abortStreams(socket: ServerWebSocket<SocketData>): void {
+  for (const control of socket.data.streams.values()) control.abort();
+}
+
 async function pump(socket: ServerWebSocket<SocketData>, streamId: string, endpoint: string, payload: unknown,
-  control: AbortController, ctx: Context, current: () => boolean): Promise<void> {
+  control: AbortController, ctx: Context, current: () => boolean, onReady?: (value: unknown) => void): Promise<void> {
   try {
     if (!current()) throw new Error("SESSION_AUTH_REQUIRED");
     const stream = await ctx.typertGateway.wireStream.open(endpoint, payload, idle(control.signal),
       socket.data.peer, control.signal);
     for await (const value of stream) {
       if (!current() || control.signal.aborted) throw new Error("SESSION_AUTH_REQUIRED");
+      if (onReady) { onReady(value); onReady = undefined; }
       if (socket.send(JSON.stringify({ type: "item", streamId, value })) < 0) throw new Error("slow diagnostic viewer");
     }
-  } finally { socket.data.streams.delete(streamId); }
+  } finally {
+    control.abort();
+    socket.data.streams.delete(streamId);
+  }
 }
