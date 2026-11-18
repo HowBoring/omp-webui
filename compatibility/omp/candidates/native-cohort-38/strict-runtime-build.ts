@@ -1,4 +1,4 @@
-/** Compile the pinned upstream CLI in the build process. Never load the resulting worker here. */
+/** Compile the pinned upstream CLI and attachment worker without loading the resulting artifacts. */
 import { strict as assert } from "node:assert";
 import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { basename, dirname, relative, resolve } from "node:path";
@@ -52,9 +52,22 @@ const built = await Bun.build({
 });
 assert.deepEqual(built.logs, []);
 assert.deepEqual([...used].sort(), [...generated].sort());
-assert.equal(built.outputs.length, inputs.bundleOutputs.length);
+// The flat CLI resolves the worker from its own directory using the upstream filename.
+const worker = await Bun.build({
+  entrypoints: [resolve(native, inputs.attachmentWorkerSource.path)],
+  root: native,
+  target: "bun",
+  minify: { whitespace: true },
+  naming: { entry: "worker.ts" },
+});
+assert.deepEqual(worker.logs, []);
+assert.equal(worker.outputs.length, 1);
+assert.equal(worker.outputs[0]?.path, "./worker.ts");
 
-for (const artifact of built.outputs) {
+const artifacts = [...built.outputs, ...worker.outputs];
+assert.equal(artifacts.length, inputs.bundleOutputs.length);
+
+for (const artifact of artifacts) {
   const name = basename(artifact.path);
   const expected = inputs.bundleOutputs.find(item => item.path === name);
   assert.ok(expected && artifact.path === `./${name}`, `Unexpected bundle output: ${artifact.path}`);
