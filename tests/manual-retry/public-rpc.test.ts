@@ -354,20 +354,71 @@ test.each(["backward cursor", "mismatched origin", "changed outcome"] as const)(
   },
 );
 
-test("recovery stops at its page budget and cannot authorize another submission", async () => {
+test.each([true, false])("recovery resumes beyond the per-call page budget (early marker: %s)", async earlyMarker => {
   const f = fixture();
   const offer = f.service.offer(f.identity);
   if (offer.status !== "confirmation") throw Error("expected confirmation");
   const { requestId } = offer;
   await f.service.confirm(f.identity, requestId);
+  const invoked = { relationId: "builtin-slot", role: "input", status: "no_entry",
+    persistence: "committed", reason: "native_builtin_consumed" } as const;
   f.reply(async command => {
     if (command.type !== "submission_query") throw Error("UNEXPECTED_DISPATCH");
-    return toolReceiptPage(requestId, command.offset ?? 0);
+    const offset = command.offset ?? 0;
+    const page = toolReceiptPage(requestId, offset, offset === 4096 ? null : offset + 128);
+    if (earlyMarker && offset === 0) page.relations[127] = invoked;
+    if (earlyMarker && offset > 0) {
+      page.relations = page.relations.map((_, index) => ({
+        relationId: `no-entry:${offset + index}`, role: "execution", status: "no_entry", persistence: "committed",
+      }));
+    }
+    if (offset === 4096) page.relations = earlyMarker ? page.relations.slice(0, 1) : [invoked];
+    return page;
   });
   expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
   expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(32);
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(1);
   expect(f.service.offer(f.otherView)).toEqual({ status: "refused", reason: "busy" });
+  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "succeeded", requestId, settled: false });
+  expect(f.commands.slice(33)).toEqual([{ type: "submission_query", id: expect.any(String),
+    clientSubmissionId: requestId, offset: 4096, limit: 128 }]);
+});
+
+test("a resumed page cannot reuse a relation from a previous lookup", async () => {
+  const f = fixture();
+  const offer = f.service.offer(f.identity);
+  if (offer.status !== "confirmation") throw Error("expected confirmation");
+  const { requestId } = offer;
+  const invoked = { relationId: "builtin-slot", role: "input", status: "no_entry",
+    persistence: "committed", reason: "native_builtin_consumed" } as const;
+  await f.service.confirm(f.identity, requestId);
+  f.reply(async command => {
+    if (command.type !== "submission_query") throw Error("UNEXPECTED_DISPATCH");
+    const page = toolReceiptPage(requestId, command.offset ?? 0);
+    if (command.offset === 4096) return { ...page, relations: [invoked], nextOffset: null };
+    if (command.offset === undefined) page.relations[127] = invoked;
+    return page;
+  });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(33);
+  expect(f.service.blocksAdmission()).toBe(true);
+});
+
+test("contradictory committed input evidence fails through submit and query alike", async () => {
+  const f = fixture();
+  const offer = f.service.offer(f.identity);
+  if (offer.status !== "confirmation") throw Error("expected confirmation");
+  const { requestId } = offer;
+  f.reply(async command => receipt(command.clientSubmissionId, { terminal: true, persistence: "committed",
+    inputOutcome: "no_input", operationOutcome: "succeeded", relations: [
+      { relationId: "builtin-slot", role: "input", status: "no_entry", persistence: "committed",
+        reason: "native_builtin_consumed" },
+      { relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" },
+    ] }));
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_query"]);
 });
 
 test("a revoked View cannot finish paged recovery", async () => {

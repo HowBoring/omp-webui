@@ -7,7 +7,7 @@ import validateLiveNotification from "../contracts/generated/live-notification.j
 import type { PromptResultEvent } from "../contracts/generated/omp-wire.ts";
 import { validResponse } from "../contracts/preflight.ts";
 import type { StopSnapshot } from "../contracts/stop.ts";
-import { consumedBuiltin, queryReceipt } from "./native-results.ts";
+import { ReceiptLookup, validateSubmitReceipt } from "./native-results.ts";
 
 const confirmationMs = 30_000;
 const nativeBusy = Symbol("native busy");
@@ -57,6 +57,7 @@ interface Confirmation {
 interface Attempt {
   readonly requestId: string;
   readonly stopGeneration: string;
+  readonly receiptLookup: ReceiptLookup;
   status: Result["status"];
   reason?: Result["reason"];
   reading: boolean;
@@ -116,7 +117,8 @@ export class ManualRetry {
     this.#confirmations.clear();
     if (this.blocksAdmission() || !this.#idle(access.stop)) return { status: "refused", reason: "busy" };
 
-    const attempt: Attempt = { requestId, stopGeneration: saved.stopGeneration, status: "unknown",
+    const attempt: Attempt = { requestId, stopGeneration: saved.stopGeneration, receiptLookup: new ReceiptLookup(),
+      status: "unknown",
       reading: true, settled: false,
       nativeSettled: false, receiptInvoked: false, conflict: false };
     this.#attempt = attempt;
@@ -125,7 +127,10 @@ export class ManualRetry {
         ...this.#worker.target, preparationId: `manual-retry-v1:${requestId}`,
         inputType: "prompt", idleOnly: true, message: "/retry" });
       if (reply === nativeBusy) attempt.reason = "native_busy";
-      else this.#acceptReceipt(attempt, reply, consumedBuiltin(reply), true);
+      else {
+        const facts = validateSubmitReceipt(reply);
+        this.#acceptReceipt(attempt, facts?.receipt, facts?.invoked ?? false, true);
+      }
     } catch { /* A possibly delivered request stays unknown, including rejected submissions with effects. */ }
     finally { attempt.reading = false; this.#reconcile(attempt); }
     return this.#result(view, attempt, saved.authority);
@@ -146,7 +151,7 @@ export class ManualRetry {
       };
       attempt.reading = true;
       try {
-        const facts = await queryReceipt(requestId, async command => {
+        const facts = await attempt.receiptLookup.read(requestId, async command => {
           const reply = await this.#request(command);
           if (reply !== nativeBusy) return reply;
         }, current);

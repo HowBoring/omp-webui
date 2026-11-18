@@ -1,57 +1,79 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { SubmissionClientCommand } from "../contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionResult } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
 
-const pageSize = 128;
-const pageLimit = 32;
+const submitPageSize = 64;
+const queryPageSize = 128;
+const pagesPerLookup = 32;
+// Native submission policy allows 100,000 committed entry facts plus 4,096 no-entry facts.
+const maxRelations = 100_000 + 4096;
+
 interface ReceiptFacts {
   readonly receipt: SubmissionResult;
   readonly invoked: boolean;
 }
-
-export function consumedBuiltin(receipt: SubmissionResult | undefined): boolean {
-  return receipt?.relations.some(relation => relation.role === "input" && relation.status === "no_entry"
-    && relation.persistence === "committed" && relation.entryId === undefined
-    && relation.reason === "native_builtin_consumed") ?? false;
+interface Continuation {
+  readonly offset: number;
+  readonly publication: string;
+  readonly invoked: boolean;
+  readonly seen: Set<string>;
 }
 
-/** The caller verifies the exact committed reservation, target and origin for every page. */
-export async function queryReceipt(requestId: string,
-  request: (command: SubmissionClientCommand) => Promise<SubmissionResult | undefined>,
-  current: () => boolean): Promise<ReceiptFacts | undefined> {
-  let first: SubmissionResult | undefined;
-  let offset = 0;
-  let invoked = false;
-  const seen = new Set<string>();
-  for (let read = 0; read < pageLimit && current(); read++) {
-    const page = await request({ type: "submission_query", id: randomUUID(), clientSubmissionId: requestId,
-      limit: pageSize, ...(offset === 0 ? {} : { offset }) });
-    if (!current() || !page || !validPage(page, offset, seen)
-      || (first && !samePublication(first, page))) return;
-    first ??= { ...page };
-    if (!page.terminal || page.persistence !== "committed" || page.inputOutcome !== "no_input"
-      || page.operationOutcome === "unknown") return { receipt: first, invoked: false };
-    if (page.relations.some(relation => relation.role === "input"
-      && (relation.status === "observed" || relation.entryId !== undefined))) return;
-    invoked ||= consumedBuiltin(page);
-    if (page.nextOffset === null) return { receipt: first, invoked };
-    offset = page.nextOffset;
+export function validateSubmitReceipt(receipt: SubmissionResult | undefined): ReceiptFacts | undefined {
+  if (!receipt) return;
+  const invoked = inspectPage(receipt, 0, submitPageSize, new Set());
+  if (invoked !== undefined) return { receipt, invoked };
+}
+
+/** Retain only bounded, verified facts for one attempt. The caller verifies the exact reservation, target and origin. */
+export class ReceiptLookup {
+  #continuation: Continuation | undefined;
+
+  async read(requestId: string, request: (command: SubmissionClientCommand) => Promise<SubmissionResult | undefined>,
+    current: () => boolean): Promise<ReceiptFacts | undefined> {
+    for (let read = 0; read < pagesPerLookup && current(); read++) {
+      const saved = this.#continuation;
+      const offset = saved?.offset ?? 0;
+      const page = await request({ type: "submission_query", id: randomUUID(), clientSubmissionId: requestId,
+        limit: queryPageSize, ...(offset === 0 ? {} : { offset }) });
+      if (!current()) return;
+      this.#continuation = undefined;
+      if (!page) return;
+      const publication = publicationKey(page);
+      if (saved && publication !== saved.publication) return;
+      const seen = saved?.seen ?? new Set<string>();
+      const pageInvoked = inspectPage(page, offset, queryPageSize, seen);
+      if (pageInvoked === undefined) return;
+      if (!page.terminal || page.persistence !== "committed" || page.inputOutcome !== "no_input"
+        || page.operationOutcome === "unknown") return { receipt: page, invoked: false };
+      const invoked = (saved?.invoked ?? false) || pageInvoked;
+      if (page.nextOffset === null) return { receipt: page, invoked };
+      this.#continuation = { offset: page.nextOffset, publication, invoked, seen };
+    }
   }
 }
 
-function validPage(page: SubmissionResult, offset: number, seen: Set<string>): boolean {
+function inspectPage(page: SubmissionResult, offset: number, limit: number, seen: Set<string>): boolean | undefined {
   const { relations, nextOffset } = page;
-  if (relations.length > pageSize || (offset !== 0 && relations.length === 0)
-    || (nextOffset !== null && (relations.length !== pageSize || nextOffset !== offset + pageSize))) return false;
+  const end = offset + relations.length;
+  if (relations.length > limit || end > maxRelations || (offset !== 0 && relations.length === 0)
+    || (nextOffset !== null && (relations.length !== limit || nextOffset !== end || end >= maxRelations))) return;
+  let invoked = false;
   for (const relation of relations) {
-    if (seen.has(relation.relationId)) return false;
-    seen.add(relation.relationId);
+    if (page.inputOutcome === "no_input" && relation.role === "input"
+      && (relation.status === "observed" || relation.entryId !== undefined)) return;
+    // Retain fixed-size digests independent of the lengths of Native relation IDs.
+    const id = createHash("sha256").update(relation.relationId).digest("base64");
+    if (seen.has(id)) return;
+    seen.add(id);
+    invoked ||= relation.role === "input" && relation.status === "no_entry" && relation.persistence === "committed"
+      && relation.entryId === undefined && relation.reason === "native_builtin_consumed";
   }
-  return true;
+  return invoked;
 }
 
-function samePublication(first: SubmissionResult, page: SubmissionResult): boolean {
-  return page.version === first.version && page.duplicate === first.duplicate && page.terminal === first.terminal
-    && page.persistence === first.persistence && page.inputOutcome === first.inputOutcome
-    && page.operationOutcome === first.operationOutcome && page.code === first.code;
+function publicationKey(page: SubmissionResult): string {
+  const facts = [page.version, page.duplicate, page.terminal, page.persistence, page.inputOutcome,
+    page.operationOutcome, page.code];
+  return createHash("sha256").update(JSON.stringify(facts)).digest("base64");
 }

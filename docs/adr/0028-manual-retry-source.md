@@ -56,13 +56,15 @@ Native no-input and invocation evidence for success. A completed local frame con
 Native builtin invocation marker and leaves the attempt unknown. A successful primary outcome gives no
 guarantee about every tool effect.
 
-On lost or incomplete results, recover the current worker's key with `submission_query`. The read follows at
-most 32 pages of 128 relations using strictly increasing Native offsets. Every page must preserve the full
-receipt identity and committed outcome facts. Invalid, inconsistent or oversized page sequences remain
-unknown. Current View and worker authority are checked before and after each request. The coordinator sends
-one submission, tracks the most recent attempt in memory, and holds further admission while its quiescence
-remains unknown. The tracked key survives a View reconnect to the same worker. Recovery after Host restart
-or worker replacement remains unavailable in this source component.
+On lost or incomplete results, recover the current worker's key with `submission_query`. Each lookup reads at
+most 32 pages of 128 relations. The next lookup resumes from the verified Native offset through the candidate
+bound of 100,000 committed entry facts and 4,096 no-entry facts. Every page must preserve the full receipt
+identity and committed outcome facts. It must also advance the cursor and introduce only unseen relations.
+The coordinator keeps fixed-size hashes and the invocation fact for the most recent attempt in memory.
+Invalid or inconsistent page sequences clear that continuation and leave the outcome unknown. The initial
+Native reply and subsequent pages both reject a claimed no-input result that contains an initiating entry.
+Current View and worker authority are checked before and after each request. The tracked key survives a View
+reconnect to the same worker. Recovery after Host restart or worker replacement remains unavailable.
 
 ## Product acceptance still required
 
@@ -77,6 +79,6 @@ or worker replacement remains unavailable in this source component.
   reconciliation if the terminal notifications are lost and a recoverable Native receipt is still available.
   Verify false/busy, confirmation loss and worker replacement with actual authority and worker lifecycle.
 - Run the required matched public Native RPC and real DSH browser cases with a genuine failed tool, state
-  refusal, cancellation, lost outcome and side-effect accounting. The 24 deterministic public submission
+  refusal, cancellation, lost outcome and side-effect accounting. The 27 deterministic public submission
   codec fixtures use synthetic Native responses and Stop, clock and authority observations. Native/runtime,
   browser and product acceptance are **NOT RUN** for this source slice.
