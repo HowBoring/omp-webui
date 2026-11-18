@@ -8,6 +8,11 @@ all six exact source patches under `UNREGISTERED_SOURCE_ONLY`; no current script
 reads that descriptor. Patches 4–5 are inert source prerequisites of patch 6, an unregistered
 ticket 46 source proposal. No upstream pin floats or active source cohort changes.
 
+[`chat-and-tool-source-candidate.json`](chat-and-tool-source-candidate.json) records a
+separate dormant cohort for tickets 45 and 46. Patch 7 is the byte-identical Source45
+prompt-notice patch, ordered after parsed Tool presentation. The [composition evidence](../../docs/evidence/ticket-45-dsh-source-composition.md)
+records both patch orders and the exact scope of the earlier browser evidence.
+
 Patch 6 adds required `tool/parsed-call` presentation while preserving the existing
 `tool/call.arguments: string` and raw LLM blocks. Public display records distinguish
 `argsRaw` from `argumentRepresentation: 'parsed-json'` plus `argsParsed`. Chat and
