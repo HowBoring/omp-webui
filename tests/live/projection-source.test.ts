@@ -11,19 +11,27 @@ const initialCut: HistoryCut = {
 };
 const item = (id: string, parentId: string | null, text: string): HistoryItem =>
   ({id, parentId, active: true, kind: 'message', role: 'user', text});
+const prefixMarker: HistoryItem = {id: 'running-prefix', parentId: null, active: false, kind: 'running_prefix',
+  text: "[Running prefix content is available through this snapshot's running cursor]"};
+const prefixLive = {workerId: initialCut.workerId, sourceId: initialCut.sourceId, sessionId: initialCut.sessionId,
+  contextId: initialCut.contextId, branchLeafId: 'last', messageId: 'msg-1'};
+const prefixRow: HistoryItem = {...prefixMarker, entryId: prefixMarker.id, partIndex: 0, partCount: 1,
+  role: 'assistant', live: prefixLive, livePhase: 'streaming', text: 'In flight'};
 
 function fixture(active: HistoryItem[][], options: {
   cut?: HistoryCut;
   page?: (page: HistoryPage, index: number) => HistoryPage;
   refusePage?: number;
   live?: HistoryItem[][];
+  prefix?: HistoryItem;
 } = {}) {
   const cut = options.cut ?? initialCut;
   const opened: HistoryOpen = {
     version: 'coherent-history-v1', handoff: 'live', snapshot: 'snapshot', cursor: 'active-0', scope: 'active', cut,
     cursors: {active: 'active-0', live: 'live-0', tree: 'tree-0', running: 'running-0'},
     expiresAt: Date.now() + 10_000, count: active.reduce((sum, page) => sum + page.length, 0),
-    prefix: null, streaming: false, compacting: false, scannedBytes: 0, scanMs: 0, snapshotMs: 0,
+    prefix: options.prefix ?? null, streaming: options.prefix !== undefined, compacting: false,
+    scannedBytes: 0, scanMs: 0, snapshotMs: 0,
     limits: {entries: 20_000, runningMessages: 10_000, scanItems: 60_000, bytes: 320 * 1024 * 1024,
       nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 10_000, snapshotBytes: 256 * 1024 * 1024,
       cacheBytes: 512 * 1024 * 1024, snapshots: 2, pageItems: 128, pageBytes: 768 * 1024,
@@ -65,6 +73,32 @@ test('opening refuses an oversized active record before asking for more native p
   await assert.rejects(LiveJournal.open(fixture(pages, {refusePage: 17})), /live_event_bytes/);
 });
 
+for (const [label, text, refusePage] of [['escaped', '\u0000', 3], ['multibyte', '界', 6]] as const) {
+  test(`opening limits ${label} record text before asking for more native pages`, async () => {
+    const pages = Array.from({length: 20}, (_, partIndex) => [{
+      ...item(partIndex === 0 ? 'last' : `last:part:${partIndex}`, null, text.repeat(32 * 1024)),
+      entryId: 'last', partIndex, partCount: 20,
+    }]);
+    await assert.rejects(LiveJournal.open(fixture(pages, {refusePage})), /live_event_bytes/);
+  });
+}
+
+test('opening counts paired surrogates once when parts split them near the event byte limit', async () => {
+  const emojiCount = 40;
+  const ascii = 'a'.repeat(512 * 1024 - 256 - 4 * emojiCount);
+  const asciiParts = ascii.match(/.{1,32768}/g) ?? [];
+  const splitPairs = Array.from({length: emojiCount}, () => ['\ud83d', '\ude42']).flat();
+  const textParts = [...asciiParts, ...splitPairs];
+  const pages = textParts.map((text, partIndex) => [{
+    ...item(partIndex === 0 ? 'last' : `last:part:${partIndex}`, null, text),
+    entryId: 'last', partIndex, partCount: textParts.length,
+  }]);
+  const journal = await LiveJournal.open(fixture(pages));
+  assert.deepEqual(journal.page({maxMessages: 1}).records[1]?.event.data, {
+    id: 'last', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: ascii + '🙂'.repeat(emojiCount)}],
+  });
+});
+
 test('opening rejects a page with a different Native revision under the same content revision', async () => {
   const history = fixture([[item('first', null, 'Older')], [item('last', 'first', 'Current')]], {
     page: (page, index) => index === 0 ? page : {...page, cut: {...page.cut, nativeRevision: 2}},
@@ -83,16 +117,40 @@ test('opening rejects a changed record role between parts across native pages', 
   await assert.rejects(LiveJournal.open(fixture([[first], [second]])), /live_open_parts/);
 });
 
+test('opening refuses a singleton with conflicting Native row and entry IDs', async () => {
+  const conflicting = {...item('foreign', null, 'From another record'), entryId: 'last', partIndex: 0, partCount: 1};
+  await assert.rejects(LiveJournal.open(fixture([[conflicting]])), /live_open_parts/);
+});
+
+test('opening refuses a continuation with another Native record’s part ID', async () => {
+  const first = {...item('last', null, 'One'), entryId: 'last', partIndex: 0, partCount: 2};
+  const second = {...first, id: 'foreign:part:1', partIndex: 1, text: 'Two'};
+  await assert.rejects(LiveJournal.open(fixture([[first], [second]])), /live_open_parts/);
+});
+
+test('a streaming row requires the same Native prefix marker in its opening cut', async () => {
+  const active = [[item('last', null, 'Current')]];
+  await assert.rejects(LiveJournal.open(fixture(active, {live: [[prefixRow]]})), /live_prefix_identity_unavailable/);
+  const wrong = {...prefixMarker, id: 'foreign-prefix'};
+  await assert.rejects(LiveJournal.open(fixture(active, {prefix: wrong, live: [[prefixRow]]})),
+    /live_prefix_identity_unavailable/);
+  await assert.rejects(LiveJournal.open(fixture(active, {prefix: prefixMarker})), /live_prefix_identity_unavailable/);
+});
+
+test('opening refuses a Native live row without a phase', async () => {
+  const {livePhase, ...row} = prefixRow;
+  await assert.rejects(LiveJournal.open(fixture([[item('last', null, 'Current')]], {live: [[row]]})), /live_open_phase/);
+});
+
 test('multipart opening keeps older pages and the in-flight assistant settlement on one journal', async () => {
   const cut = initialCut;
   const user = {...item('first', null, 'Old \ud83d'), entryId: 'first', partIndex: 0, partCount: 2};
   const userTail = {...user, id: 'first:part:1', partIndex: 1, text: '\ude42 question'};
   const assistant = {...item('last', 'first', 'Earlier answer'), role: 'assistant', provider: 'provider', model: 'model'};
-  const live = {workerId: cut.workerId, sourceId: cut.sourceId, sessionId: cut.sessionId, contextId: cut.contextId,
-    branchLeafId: 'last', messageId: 'msg-1'};
-  const prefix: HistoryItem = {id: 'running-prefix', parentId: null, active: false, kind: 'running_prefix',
-    role: 'assistant', live, livePhase: 'streaming', text: 'In flight'};
-  const journal = await LiveJournal.open(fixture([[user], [userTail, assistant]], {live: [[prefix]]}));
+  const live = prefixLive;
+  const journal = await LiveJournal.open(fixture([[user], [userTail, assistant]], {
+    prefix: prefixMarker, live: [[prefixRow]],
+  }));
   const opening = journal.snapshot();
   assert.deepEqual(opening.records.map(record => [record.event.seq, record.event.type]), [
     [0, 'turn/start'], [1, 'user/message'], [2, 'step/start'], [3, 'assistant/message'], [4, 'step/end'], [5, 'step/start'],

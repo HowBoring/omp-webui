@@ -28,9 +28,12 @@ independent DOM draft. Coordinated multi-holder rebuild, Interaction ownership a
 preservation remain #39/#40 integration obligations; no private resync or surface replacement implements them.
 
 The #60 Host opening reads each Native page of the same complete cut and assembles one contiguous record
-at a time. The active rows must form the parent chain ending at the cut’s leaf. The Host records each DSH
-event’s byte count once and uses it to size later group pages. The complete derived journal still has a
-32-MiB encoded-record budget and visibly invalidates if it exceeds that budget.
+at a time. It verifies part IDs and measures the joined text’s UTF-8 JSON bytes before assembly. The active
+rows must form the parent chain ending at the cut’s leaf. A streaming row must match the opening cut’s
+prefix marker. The Host records each DSH event’s byte count once and uses it to size later group pages.
+The complete derived journal still has a 32-MiB encoded-record budget and visibly invalidates at overflow.
+An invalidated journal refuses reads. Detecting a reused numeric sequence at its successor depends on the
+caller routing pages with the projection generation binding.
 
 Older payload eviction requires asynchronous Host page and snapshot reads with an immutable DSH seq/group
 index and a current-source check before publication. The opening hands off and closes its Native snapshot.

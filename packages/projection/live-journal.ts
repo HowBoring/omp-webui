@@ -27,24 +27,39 @@ interface OpeningBudget { bytes: number; items: number }
 /** Opening pages contain contiguous Native record parts, including across page boundaries. */
 class OpeningRecord {
   readonly #parts: string[] = [];
-  #units = 0;
+  #textBytes = 0;
+  #trailingHighSurrogate = '';
   #nextPart = 0;
   constructor(readonly first: HistoryItem, readonly count: number, readonly keepText: boolean) {}
 
   append(item: HistoryItem, index: number): HistoryItem | undefined {
-    if (index !== this.#nextPart++ || (item.partCount ?? 1) !== this.count
+    const entryId = item.entryId;
+    const expectedId = index === 0 ? entryId ?? item.id : `${entryId}:part:${index}`;
+    if (index !== this.#nextPart || (item.partCount ?? 1) !== this.count || item.id !== expectedId
+      || (this.count > 1 && !entryId)
       || (index > 0 && !isDeepStrictEqual(this.#metadata(this.first), this.#metadata(item)))) {
       throw Error('live_open_parts');
     }
-    if (this.keepText) {
-      this.#units += item.text.length;
-      // Each UTF-16 unit costs at least one encoded JSON byte. The final event or prefix has an exact byte check.
-      if (this.#units > MAX_ITEM_BYTES) {
-        throw Error(item.livePhase === 'streaming' ? 'live_attempt_evicted' : 'live_event_bytes');
-      }
-      this.#parts.push(item.text);
-    }
+    this.#nextPart++;
+    if (this.keepText) this.#appendText(item.text);
     if (this.#nextPart === this.count) return {...this.first, text: this.#parts.join('')};
+  }
+
+  #appendText(text: string): void {
+    let measured = this.#trailingHighSurrogate + text;
+    this.#trailingHighSurrogate = '';
+    const lastUnit = measured.charCodeAt(measured.length - 1);
+    // Native can split a surrogate pair between parts. Measure the trailing high unit with the next part.
+    if (this.#nextPart < this.count && lastUnit >= 0xd800 && lastUnit <= 0xdbff) {
+      this.#trailingHighSurrogate = measured.slice(-1);
+      measured = measured.slice(0, -1);
+    }
+    this.#textBytes += Buffer.byteLength(JSON.stringify(measured)) - 2;
+    // An unfinished pair will cost at least four bytes. The final DSH envelope is checked separately.
+    if (this.#textBytes + (this.#trailingHighSurrogate ? 4 : 0) > MAX_ITEM_BYTES) {
+      throw Error(this.first.livePhase === 'streaming' ? 'live_attempt_evicted' : 'live_event_bytes');
+    }
+    this.#parts.push(text);
   }
 
   #metadata(item: HistoryItem) {
@@ -73,7 +88,7 @@ async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'a
       if (scope === 'active' && budget.items - start > opened.count) throw Error('live_open_count');
       if (!pending) {
         const count = item.partCount ?? 1;
-        if (count < 1 || count > MAX_EVENTS || (count > 1 && item.id !== item.entryId)) throw Error('live_open_parts');
+        if (count < 1 || count > MAX_EVENTS) throw Error('live_open_parts');
         pending = new OpeningRecord({...item, text: ''}, count, scope === 'active' || item.livePhase === 'streaming');
       }
       const record = pending.append(item, item.partIndex ?? 0);
@@ -129,7 +144,7 @@ export class LiveJournal {
       if (this.#settled.size > ASSOCIATIONS) throw Error('live_settlement_evicted');
     }
     if (leaf !== this.opened.cut.leafId) throw Error('live_open_active_path');
-    const {workerId, sourceId, sessionId, contextId} = this.opened.cut;
+    const {cut: {workerId, sourceId, sessionId, contextId}, prefix} = this.opened;
     const seen = new Set<string>();
     for await (const item of readItems(history, this.opened, 'live', budget)) {
       const id = item.entryId ?? item.id;
@@ -138,6 +153,11 @@ export class LiveJournal {
       const live = item.live;
       if (!live || live.workerId !== workerId || live.sourceId !== sourceId || live.sessionId !== sessionId
         || live.contextId !== contextId) throw Error('live_open_identity');
+      if (!item.livePhase) throw Error('live_open_phase');
+      if (item.livePhase === 'streaming' && (prefix?.id !== id || prefix.kind !== 'running_prefix'
+        || prefix.kind !== item.kind || prefix.parentId !== item.parentId || prefix.active !== item.active)) {
+        throw Error('live_prefix_identity_unavailable');
+      }
       const key = identity(live);
       if (this.#settled.has(key)) continue;
       if (item.livePhase === 'streaming') {
