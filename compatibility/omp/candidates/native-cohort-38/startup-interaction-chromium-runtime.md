@@ -47,3 +47,20 @@ Source and asset verification compared 350 Host paths against Git and checked th
 before launch. Run `cfc27a` (session `35076`) exited zero. Driver artifacts are under
 `/dev/shm/omp-source38-chromium47.j8zDv3xZ` and the result, screenshot and guard reports are under
 `/dev/shm/omp-source38-chromium47-run.ezy79Ote`.
+
+## Regression run on the integrated Bridge
+
+After the retained Interaction Bridge changes landed, the same browser script and trusted fixture
+extension ran against Host commit `0ffc83ccd62824f6d0c32f05eb148228a11fffa2`, tree
+`6872446a757eb9291ba482e497d52489c726b0df`. Verification matched 360 tracked Host paths
+and the scoped TypeScript check passed. The same DSH, Chromium and Source38 artifacts were used.
+
+The direct Session path again reported one `answered` and one `overloaded` with
+`INTERACTION_ANSWER_LIMIT`. Native received only the accepted value. The two tabs and warm View
+shared one worker, and the Host recorded a closed registration after both original Native processes
+reached stdout and stderr EOF and exited zero. Both egress guards reported zero denials and dispatches.
+
+Run `ed4f81` (session `80017`) exited zero. The result SHA-256 was
+`e3b861f640387aadd6acde9b4cf5f465426df4b94cb8584b75eceaff4290d581`. The proof driver and results
+are under `/dev/shm/omp-source38-chromium47-current.oN4UYgn2` and
+`/dev/shm/omp-source38-chromium47-run.upfQIx0O`, respectively.

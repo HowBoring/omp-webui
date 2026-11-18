@@ -32,7 +32,8 @@ a separate staged launcher from the same source and records an ordinary syntheti
 The attachment records cover [format preparation](attachment-formats-runtime.md),
 [consent and delivery](attachment-consent-runtime.md),
 [original budgets and mixed preparation failure](attachment-budgets-runtime.md), and
-[elapsed receipt expiry](attachment-expiry-runtime.md). The submission records include
+[elapsed receipt expiry](attachment-expiry-runtime.md). A separate run checked
+[consent binding and explicit cancellation](attachment-revision-runtime.md). The submission records include
 [lost acknowledgement recovery](submission-loss-runtime.md) and
 [write refusal before reservation](submission-write-refusal-runtime.md). The isolated
 [Linux Chromium record](session-chromium-runtime.md) covers authenticated Session opening and warm refresh.
