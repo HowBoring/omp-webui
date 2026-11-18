@@ -140,7 +140,7 @@ test("owned Interaction tracking preserves notification replay until a Session s
     peer.stdout.send(after, { type: "response", id: state.id, command: state.type, success: true,
       data: { version: "strict-start-v1", phase: "waiting" } });
     await observing;
-    expect(session.frames).toEqual([ready, before, after]);
+    expect(session.frames).toEqual([{ ...ready }, before, after]);
     expect(session.interactions.snapshot().pending.map(card => card.id)).toEqual([before.id, after.id]);
 
     const delivered = Promise.withResolvers<unknown>();
@@ -148,7 +148,7 @@ test("owned Interaction tracking preserves notification replay until a Session s
     const notice = { type: "session_settled" };
     peer.stdout.send(notice);
     expect(await delivered.promise).toEqual(notice);
-    expect(session.frames).toEqual([ready, before, after]);
+    expect(session.frames).toEqual([{ ...ready }, before, after]);
 
     peer.rootExit();
     await connected.rootExit;
@@ -326,7 +326,7 @@ test("owned UI cleanup preserves an answer acknowledged before retirement in the
   } finally { peer.helper.disconnectControl(); peer.reap(0); }
 });
 
-test.each(["before", "after"] as const)("owned UI records same-card decisive replies only %s the fence", async when => {
+test.each(["before", "after"] as const)("owned UI cleanup with a same-card decisive reply %s the fence", async when => {
   const peer = ownedPeer();
   try {
     const connected = SessionWorker.attachOwned(peer.helper);
@@ -359,7 +359,7 @@ test.each(["before", "after"] as const)("owned UI records same-card decisive rep
     const status = when === "before" ? "answered" : "stale";
     expect(await cancel).toEqual({ status: "stale" });
     expect(await answer).toEqual({ status });
-    const outcome = { id: "same-card", status, reason: "explicit-native-acknowledgement" };
+    const outcome = { id: "same-card", status, reason: "explicit-native-acknowledgement" } as const;
     expect(await connected.interactionCleanup).toEqual([outcome]);
     expect(interactions.snapshot()).toMatchObject({ pending: [], outcomes: [outcome] });
     expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "respond_ui", "respond_ui"]);
