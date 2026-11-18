@@ -13,7 +13,8 @@ const generation = "a".repeat(64);
 const clockApproval = { abi: 1 as const, binaryDigest: "e".repeat(64), sourceDigest: "f".repeat(64) };
 function controlledChild(index: number) {
   const exited = Promise.withResolvers<number>();
-  const stdin: FileSink = { write: () => 1, end: () => 0, flush: () => 0,
+  let inputEnded = false;
+  const stdin: FileSink = { write: () => 1, end: () => { inputEnded = true; return 0; }, flush: () => 0,
     start: () => {}, ref: () => {}, unref: () => {} };
   const stdout = new TransformStream<Uint8Array, Uint8Array>();
   const stderr = new TransformStream<Uint8Array, Uint8Array>();
@@ -21,7 +22,7 @@ function controlledChild(index: number) {
     stdout: stdout.readable, stderr: stderr.readable, exited: exited.promise, stdio: [null, null, null, 17 + index] };
   const bytes: Buffer[] = [];
   const closeOutput = () => Promise.all([stdout.writable.close(), stderr.writable.close()]);
-  return { process, reap: exited.resolve, bytes, closeOutput };
+  return { process, reap: exited.resolve, bytes, closeOutput, get inputEnded() { return inputEnded; } };
 }
 
 function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string; headerDigest: string },
@@ -325,6 +326,61 @@ test("the original helper handles share an optional Host clock while their owner
     await owner.close();
   }
 });
+
+test.each(["readable", "unavailable"] as const)(
+  "the original owned connection samples a %s Host clock once before cleanup and abort", async kind => {
+    const f = fixture();
+    const events: string[] = [];
+    let retirement: AbortSignal | undefined;
+    const owner = await f.open(clockApproval, async () => ({
+      read() {
+        events.push(!retirement?.aborted && !f.children[0]?.inputEnded ? "sample-before-fence" : "late-sample");
+        if (kind === "unavailable") throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
+        return 9_007_199_254_740_993n;
+      },
+      async close() {},
+    }));
+    const attached = Promise.withResolvers<PrivateHelperHandle>();
+    const session = await sourceFixture(Date.now, async (cwd, signal) => {
+      retirement = signal;
+      const handle = await owner.launch({ ...f.launch, cwd }, signal);
+      const connection = SessionWorker.attachOwned(handle);
+      signal.addEventListener("abort", () => {
+        events.push(f.children[0]?.inputEnded ? "abort-after-fence" : "abort-before-fence");
+      });
+      attached.resolve(handle);
+      return connection;
+    });
+    const opening = session.supervisor.open(session.identity, session.selected);
+    void opening.catch(() => {});
+    const handle = await attached.promise;
+    let completion: Promise<void> | undefined;
+    const finish = () => completion ??= (async () => {
+      await ready(f, 0);
+      await handle.ready;
+      complete(f, 0);
+      await f.children[0]?.closeOutput();
+    })();
+    try {
+      await Bun.sleep(0); // Let the Supervisor retain the attachment while HELLO is still held.
+      expect(events).toEqual([]);
+      const shutdown = session.supervisor.close();
+      const repeated = session.supervisor.revokeAll();
+      expect(events).toEqual(["sample-before-fence", "abort-after-fence"]);
+      await finish();
+      await Promise.all([shutdown, repeated]);
+      expect(events).toHaveLength(2);
+      const drain = session.supervisor.exits()[0]?.drain;
+      expect(drain).toMatchObject({ status: "owned-completed" });
+      if (kind === "readable") expect(drain).toMatchObject({ hostMonotonicCleanupMs: 9_007_199_254_740_993n });
+      else expect(drain).not.toHaveProperty("hostMonotonicCleanupMs");
+    } finally {
+      await finish();
+      await session.close();
+      await owner.close();
+    }
+  },
+);
 
 test("a bounded clock refusal rolls back loaded control I/O before releasing selection", async () => {
   const f = fixture();

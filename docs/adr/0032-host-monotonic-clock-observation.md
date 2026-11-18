@@ -43,7 +43,11 @@ protection even if construction returns an error. The owner waits for all origin
 handles to reach clean completion before closing the clock, closing control I/O and
 releasing the selection in order. Disposal failures remain sticky.
 
-The actual first-Stop deadline needs a sample from the original generation fence.
+At first owned retirement, the Supervisor reads the attached original connection's
+clock before fencing and aborting. The optional bigint remains in the in-memory Host exit
+observation. A late attachment still receives the first cleanup cutoff. An unavailable
+sample leaves the existing relative cleanup policy in effect.
+
 The Host must independently verify the same time namespace against the original,
 authenticated held helper and obtain an exact private arm/acknowledgement before
 treating the 30+5 policy as handed off. Controlled tests exercise Host refusal,

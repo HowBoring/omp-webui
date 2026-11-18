@@ -188,6 +188,8 @@ export interface OwnedSessionConnection {
    * The first cutoff is in the local performance.now() time domain, at most 30s away.
    * An invalid or expired cutoff leaves regular work fenced and grants no cleanup access. */
   beginCleanup(cutoff: number): OwnedSessionCleanup | undefined;
+  /** Synchronous Host-local reader inherited from the original owning helper handle. */
+  readonly readHostMonotonic?: () => bigint;
   readonly rootExit: PrivateHelperHandle["rootExit"];
   readonly completed: PrivateHelperHandle["completed"];
   /** Settles after the attached readers finish. A failed pipe attachment rejects this observation. */
@@ -210,6 +212,8 @@ export class SessionWorker extends SessionRpc {
   /** The caller retains the original helper and its cleanup authority, including when RPC startup rejects. */
   static attachOwned(helper: PrivateHelperHandle, options: OwnedSessionOptions = {}): OwnedSessionConnection {
     const { control, rootExit, completed } = helper;
+    const readHostMonotonic = helper.readHostMonotonic?.bind(helper);
+    const hostClock = readHostMonotonic && { readHostMonotonic };
     const interactionCleanup = Promise.withResolvers<readonly InteractionCleanupOutcome[]>();
     try {
       const notifications = new SessionNotifications();
@@ -236,7 +240,7 @@ export class SessionWorker extends SessionRpc {
       void ready.catch(() => {});
       let cleanup: OwnedSessionCleanup | undefined;
       return {
-        ready, rootExit, completed, output: transport.output, interactionCleanup: interactionCleanup.promise,
+        ready, rootExit, completed, output: transport.output, interactionCleanup: interactionCleanup.promise, ...hostClock,
         beginCleanup: cutoff => {
           control.fenceStart();
           notifications.retire();
@@ -256,6 +260,7 @@ export class SessionWorker extends SessionRpc {
       void unavailable.catch(() => {});
       return {
         ready: unavailable, rootExit, completed, output: unavailable, interactionCleanup: interactionCleanup.promise,
+        ...hostClock,
         beginCleanup: () => {
           control.fenceStart();
           interactionCleanup.resolve([]);
