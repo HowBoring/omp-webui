@@ -26,38 +26,9 @@ The report must carry these four exact fields.
 
 ## Bounded public check
 
-Use the current `PreflightTransport` directly. `open()` validates `ready`, enforces the 1 MiB physical and 64 MiB reassembly budgets, negotiates v2 and correlates the response. `inspect()` sends only `get_compatibility`. `close()` drains stdin and reports the original child status and both reader EOFs. The active and compiled candidate copies of the public `rpc-frame.ts` are byte-identical at SHA-256 `9592c30c7bf12660584f67860f7abd64b752aeea15d1ce58430cfa3e5795bef3`. [Public transport](../../../../packages/compatibility/transport.ts)
+The actual [Host transport proof](preflight-transport-proof.ts) uses the repository’s `BoundedStdioTransport` and the preflight command validator. It validates `ready`, enforces the 1 MiB physical and 64 MiB reassembly budgets, negotiates v2, and sends only `get_compatibility`. It validates the matched report and reads the original child’s exit, output EOF and guard audit. The active and compiled candidate copies of the public `rpc-frame.ts` are byte-identical at SHA-256 `9592c30c7bf12660584f67860f7abd64b752aeea15d1ce58430cfa3e5795bef3`. [Bounded transport](../../../../packages/compatibility/stdio-transport.ts)
 
-Give both the driver and its original child an allowlisted environment. Launch the driver with the exact no-provider guard preloaded before it imports `PreflightTransport`. Use a separate driver directory for capture files so the child profile can remain empty.
-
-```ts
-const childEnv = {
-  PATH: "/usr/bin:/bin",
-  HOME: profile,
-  PI_CODING_AGENT_DIR: profile,
-  TMPDIR: profile,
-  BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
-  NODE_DISABLE_COMPILE_CACHE: "1",
-};
-const client = await PreflightTransport.open({
-  argv: [bun, "--no-env-file", "--no-install", "--preload", guard, cli, "--rpc-preflight"],
-  env: childEnv, cwd: profile, timeoutMs: 3000, readyTimeoutMs: 3000,
-});
-const childPid = client.processId;
-const report = await (async () => {
-  try {
-    return await client.inspect();
-  } finally {
-    const drain = await client.close();
-    assert.deepEqual(drain, {
-      code: 0, forced: false, stderrBytes: 0, terminationSent: false, forceSent: false,
-      stdoutEOF: true, stderrEOF: true,
-    });
-  }
-})();
-```
-
-Validate the returned report with the matched `report.js`. Require both new policy objects, the four pinned identity values, `safePreflight: true`, `sessionAdmission: "blocked"`, the capabilities `safe-preflight-v1` and `rpc-framing-v2`, and Linux x64 Bun `1.4.4`. Record the original child PID and cooperative drain, the outer tool’s original EOF status, and the empty before/after profile. For the application trace, follow the driver’s original child and keep the trace outside the profile. Confirm that the preflight child opens no deferred Native entry, executes no child command, creates no profile/configuration/Session files, and dispatches no Internet-family socket activity. Recheck the compiler artifact hashes after the run. [Side-effect expectations](../../../../docs/adr/0011-diagnostic-public-preflight.md)
+Run the proof driver with the exact no-provider preload, both cache flags, and an allowlisted environment. Its arguments are the verified compiler root and an existing empty scratch directory outside that root. The driver creates separate child HOME and cwd directories and writes the audit beside them. The child receives the exact no-provider preload first. The separate [captured POSIX readback](preflight-captured-readback.ts) takes the compiler root and an existing capture directory containing `stdout.jsonl`, `stderr.bin`, `guard.json` and `home/`. It validates the captured exchange without opening an application process. [Actual observed outcomes](preflight-evidence.md)
 
 ## Matched validators and active gate
 

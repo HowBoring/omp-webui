@@ -23,7 +23,7 @@ python3 -B compatibility/omp/candidates/native-cohort-38/replay.py \
 
 The [verification record](verification.md) gives the successful individual commands, the successful independent wrapper run and the interrupted first wrapper attempt. Generated wire artifacts stay in scratch.
 
-The [compiler-only recipe](compiler.md) uses the same replay to generate runtime validators and compile the isolated preflight launcher. Its [preflight handoff](preflight-handoff.md) identifies the build and the bounded public transport for runtime review.
+The [compiler-only recipe](compiler.md) uses the same replay to generate runtime validators and compile the isolated preflight launcher. The [isolated preflight evidence](preflight-evidence.md) records the actual bounded public RPC exchange and cooperative child drain. [Artifact identities and proof entrypoints](preflight-handoff.md)
 
 ## Admission boundary
 
