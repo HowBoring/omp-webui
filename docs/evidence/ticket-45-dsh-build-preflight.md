@@ -1,0 +1,143 @@
+# Ticket 45 and 46 DSH build preflight
+
+The combined [source candidate](../../compatibility/dsh/chat-and-tool-source-candidate.json)
+at DSH tree `e011120c10c66dc067e2787054d21b52b2a15de1` failed persistence generation and
+Client compilation. The [first inactive follow-up](../../compatibility/dsh/candidates/chat-and-tool-preflight/0008-dormant-cohort-preflight-fixes.patch)
+removes a Cordis dispatch tag from the persisted event declaration and adds the missing
+`FixtureSession.reconcilePromptError` method. Its default throws, matching the fixture's
+existing convention. Tests can supply an override when they need to exercise the method.
+The [second follow-up](../../compatibility/dsh/candidates/chat-and-tool-preflight/0009-dormant-client-fixture-types.patch)
+updates existing Client test fixtures to implement the Session face and use the public raw
+and parsed argument types.
+
+| Source input | Identity |
+| --- | --- |
+| Host source descriptor commit | `45797ee830593435e58601e727617dcff8c7e2d7` |
+| DSH tree after patches 1–7 | `e011120c10c66dc067e2787054d21b52b2a15de1` |
+| Patch 8 SHA-256 | `f8eef2826ac2f0341b186267e382ab890e0417d9b773ee6696f950059cc4af3c` |
+| DSH source tree after patch 8 | `d9d6463ba9db6340fcf7202621b1591ceba34915` |
+| Patch 9 SHA-256 | `2adf7b80f01d822a3953eb7effcd695c9b68211aab8487a632e2ddd390bffa6f` |
+| DSH source tree after patch 9 | `1959e66066b7ddd6fc40c8f54c89afd48aa789d9` |
+| Frozen DSH lockfile SHA-256 | `e32cb5d1bcf3c48c7570fc6b2014d3b2f0a65025031ee489b29173da8137cf6f` |
+
+## Exact candidate results
+
+Git verified the bytes of all seven patches and each declared tree in a complete scratch
+checkout. Node 24.22.1 and pnpm 11.28.5 installed the frozen lock across 398 workspace
+projects with 1,433 packages and zero downloads. Source files and the package store lived
+in isolated writable copies. The original Git objects were read through an alternate.
+
+| Check | Result |
+| --- | --- |
+| Upstream persistence catalog generator | Exit 1. `tool/parsed-call` at `packages/core/session/src/types.ts:378` carries an `@mode` tag, which the persisted-event catalog rejects. |
+| Upstream bundle-free typecheck | Two passes, one failure, two skips. Host Typert and Host package compilation passed. Client package compilation failed. Serial scheduling skipped both aggregate checks. |
+| Direct Client compiler diagnosis | TS2420 and two TS2322 errors at `packages/test-support/client-runtime/src/sessions.ts:39,632,797`. The public `ISession` interface requires `reconcilePromptError` on its implementing fixture. |
+
+The usual `tsx` CLI launcher hit `EPERM` while opening its local IPC server. The Node
+`tsx/esm` hook ran the same upstream script with the same locked loader and no listener.
+
+## Corrected Client consumers
+
+Patch 8 passed Typert generation, both package compilers and the Host aggregate check.
+The Client aggregate exposed 26 strict errors across 16 existing fixtures. Some fixtures
+assumed every Tool call had raw arguments. The Conversation registry fixture lacked the
+new Session method. Patch 9 restricts raw fixture constructors to the raw variant, builds
+the `PartialArguments` value from each settled record's actual representation, and adds a
+fail-loud reconciliation stub. The source-only tree then passed all five upstream typecheck
+steps with TypeScript 6.0.3. The 16 changed Client suites passed all 452 existing tests.
+In a second scratch checkout, the previously generated persistence files stayed fresh after
+applying patch 9 in order.
+
+## Persistence review still required
+
+With the invalid tag removed, the upstream generator wrote both language catalogs, their
+pairing records, the schema inventory, and the runtime event vocabulary. Its freshness
+check passed. The persistence checker then reported `unacknowledged-changes` for two roots.
+The structural review found 635 unchanged type fingerprints and one added envelope variant.
+
+| Root | Previous digest | Generated digest | Classification |
+| --- | --- | --- | --- |
+| `SessionEventEnvelope` | `5776e5553ff2dfe3f5bc202dbb1e7c9f93e35a531aebb7764c23b2b6153b2ccc` | `078337812ffcc2bbbb598955524742eafd935b3f99e58ec22e27e434835d0c36` | Union variants changed, compatibility review required |
+| `event:tool/parsed-call` | New root | `da19de2a7701b28ddf2ff3e6088989b08b5b6b6e33dcf842e39951054ac0e281` | Root added, same-version allowed |
+
+In a diagnostic copy, reverting only the event-specific `ignorable` restriction reproduced
+the previous envelope digest. The restriction removes the optional marker from the parsed
+event's generated envelope arm. The new event root remained and its digest changed to
+`f6d3c37650e3fdfb10701c4fd6545598676fe31200797987ccba24ceabb28875`.
+Restoring the required-event type and running the generator again reproduced the inventory
+byte for byte with SHA-256 `1d78dc44704be9d768e427bb74c64e814d6917d432166ad9e6940879d0bb021a`.
+
+A public `sessionFormatCatalog.createRestore` probe read an ordinary V4 turn-start event
+with both vocabularies. The older vocabulary refused the required `tool/parsed-call` event.
+The generated vocabulary retained the exact nested JSON object. It also accepted a synthetic
+stored parsed event marked `ignorable: true` at runtime, even though the TypeScript event
+type forbids that marker. The probe used a display event and exercised no Native tool
+lifecycle. The existing V4 lifecycle rules still require a matching raw tool-call lifecycle
+for ordinary `tool/result` records.
+
+Bilingual verification reported five stale package README pairs after catalog generation.
+The named pairs are `ui-chat`, `ui-conversation`, `ui-tool`, `ui-trajectory`, and `core/session`.
+Refreshing those five records in scratch made the repository-wide check pass for all
+1,255 pairs. The README content was already paired.
+The next persistence step is the upstream compatibility review for the envelope change,
+including the full reader behavior and the policy for an invalid stored marker. The tool
+requires an explicit decision if the change keeps the existing writer version. Generated
+persistence files and refreshed pairing records stayed in scratch. The acknowledgement,
+matched artifact build and runtime admission remain pending.
+
+## Reproduce
+
+Reconstruct patches 1–7 in an owned, complete DSH checkout by following the
+[source composition replay](ticket-45-dsh-source-composition.md#reproduce-the-source-check).
+Use the checked-out source from the reconstructed index. Use isolated copies of the package
+store, pnpm cache and Corepack cache with the existing locked dependency bytes. Run the
+following from the DSH root in an `env -i` shell with scratch `HOME`, `TMPDIR` and XDG paths,
+Node 24.22.1 and Corepack on `PATH`, pnpm 11.28.5 in `COREPACK_HOME`, and
+`PNPM_CONFIG_STORE_DIR` pointing to the scratch store.
+
+```bash
+export COREPACK_ENABLE_NETWORK=0 PNPM_CONFIG_OFFLINE=true
+export BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 NODE_DISABLE_COMPILE_CACHE=1
+corepack pnpm install --offline --frozen-lockfile --ignore-scripts
+test "$(git write-tree)" = e011120c10c66dc067e2787054d21b52b2a15de1
+git diff --exit-code
+node --import tsx/esm scripts/gen-persistence-catalog.ts
+node --import tsx/esm scripts/build.ts --scope typecheck --serial
+node --import tsx/esm scripts/compile-referenced-projects.ts client
+```
+
+Run the checks separately to collect both failures. Set `DSH_PREFLIGHT_PATCH` and
+`DSH_FIXTURE_PATCH` to the absolute paths of patches 8 and 9 and verify both SHA-256 values.
+Apply the patches in order. The generator writes checkout-local files. The subsequent
+preview and pairing checks are
+expected to fail with the findings above.
+
+```bash
+git apply --index --whitespace=error "$DSH_PREFLIGHT_PATCH"
+test "$(git write-tree)" = d9d6463ba9db6340fcf7202621b1591ceba34915
+git apply --index --whitespace=error "$DSH_FIXTURE_PATCH"
+test "$(git write-tree)" = 1959e66066b7ddd6fc40c8f54c89afd48aa789d9
+node --import tsx/esm scripts/build.ts --scope typecheck --serial
+node --import tsx/esm scripts/gen-persistence-catalog.ts
+node --import tsx/esm scripts/gen-persistence-catalog.ts --check
+node --import tsx/esm scripts/persistence-changes.ts --check --json
+node --import tsx/esm scripts/verify-translation-pairing.ts
+```
+
+Run the existing Client suites affected by patch 9 against the corrected source.
+
+```bash
+mapfile -t tests < <(git diff --name-only d9d6463ba9db6340fcf7202621b1591ceba34915 \
+  1959e66066b7ddd6fc40c8f54c89afd48aa789d9)
+node node_modules/vitest/vitest.mjs run --project thread-safe --maxWorkers 1 "${tests[@]}"
+```
+
+In the scratch checkout, refresh the five paired READMEs and repeat the pairing check.
+
+```bash
+node --import tsx/esm scripts/verify-translation-pairing.ts --write \
+  packages/client/ui-chat/README.md packages/client/ui-conversation/README.md \
+  packages/client/ui-tool/README.md packages/client/ui-trajectory/README.md \
+  packages/core/session/README.md
+node --import tsx/esm scripts/verify-translation-pairing.ts
+```
