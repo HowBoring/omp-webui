@@ -35,6 +35,31 @@ test.each([undefined, "RPC_PROTOCOL"])("Open failure survives older idle complet
   } finally { completion.resolve(f.controls.drain); await f.close(); }
 });
 
+test("idle Switch retains the owned worker when one reader has no EOF observation", async () => {
+  const f = await sourceFixture();
+  const drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    const start = f.controls.start;
+    f.controls.start = async () => ({ ...await start(), nativeSessionId: f.other.nativeSessionId,
+      binding: { ...f.other, ownership: { ...f.other.ownership, state: "held" } } });
+    f.controls.retirement = { status: "closed", drain };
+
+    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48",
+    });
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "explicit-switch", drain }]);
+
+    await f.supervisor.close();
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect(f.supervisor.exits().at(-1)).toMatchObject({ workerId: opened.workerId, reason: "host-shutdown",
+      drain: f.controls.drain });
+  } finally { await f.close(); }
+});
+
 test("a lost worker fences its view and keeps the slot until both owned readers finish", async () => {
   const f = await sourceFixture();
   const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();

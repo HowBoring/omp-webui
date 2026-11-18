@@ -59,10 +59,9 @@ const directoryIdentity = (cwd: string): string => {
   } catch {}
   throw new Error("SESSION_CWD_CHANGED");
 };
-const incompleteReaders = (drain: DrainResult): boolean => drain.stdoutEOF === false || drain.stderrEOF === false;
 const observedEOF = (drain: DrainResult): boolean => drain.stdoutEOF === true && drain.stderrEOF === true;
 const cleanDrain = (drain: DrainResult): boolean =>
-  drain.code === 0 && !drain.forced && !drain.protocolFailure && !incompleteReaders(drain);
+  drain.code === 0 && !drain.forced && !drain.protocolFailure && observedEOF(drain);
 const terminationGraceMs = 5_000;
 const readerGraceMs = 1_000;
 const remainingTerminationGrace = (deadline: number, now: number) =>
@@ -326,7 +325,8 @@ export class SessionSupervisor {
   }
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
-    active.exited = true; active.released = !incompleteReaders(drain); active.state = "closed"; active.bridge?.dispose();
+    active.exited = true; active.released = observedEOF(drain);
+    active.state = active.released ? "closed" : "outcome_unknown"; active.bridge?.dispose();
     const clean = cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
@@ -438,7 +438,7 @@ export class SessionSupervisor {
     const now = performance.now();
     const drain = await this.#closeWorker(active, worker, { cooperativeMs: alreadyExited ? 0 : Math.max(0, deadline - now),
       terminationGraceMs: remainingTerminationGrace(deadline + terminationGraceMs, now), readerGraceMs });
-    const clean = !alreadyExited && !("status" in drain) && active.released && cleanDrain(drain);
+    const clean = !alreadyExited && !("status" in drain) && cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true) ?? active.exitIndexFailure;
     return this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
