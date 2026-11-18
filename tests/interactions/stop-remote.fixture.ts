@@ -39,7 +39,7 @@ async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: 
       const invoke = () => host.typertGateway.invoke({ namespace: namespace ?? "", method, args, peer,
         signal: new AbortController().signal });
       const value = namespace === "ompStop" ? await stopCaller.run(binding, invoke)
-        : uiBinding ? await interactionCaller.run(uiBinding, invoke) : (() => { throw new Error("UNKNOWN_REMOTE"); })();
+        : uiBinding ? await interactionCaller.run({ page: uiBinding, current: () => true }, invoke) : (() => { throw new Error("UNKNOWN_REMOTE"); })();
       return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
     }, openStream: async function* () {} } });
     registry(ctx); gateway(ctx); await ctx.remote.$mount(stopContribution);

@@ -99,7 +99,7 @@ export async function startSessionComponentServer(options: Options) {
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
       if ((brokerRoute || registeredWorkspace || [...unary].some(method => path === `/api/${method}`))
         && request.method === "POST") {
-        if (request.headers.get("origin") !== carrier.url.origin) return new Response("Forbidden", { status: 403 });
+        if (request.headers.get("origin") !== server.url.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
         if (identity instanceof Response) return identity;
         if (inflight >= 32) return Response.json({ error: { code: "SESSION_REQUEST_LIMIT" } }, { status: 429 });
@@ -167,10 +167,19 @@ export async function startSessionComponentServer(options: Options) {
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);
-  const detachRevocation = access.onRevokeAll(() => { revokedStop = supervisor.revokeAll(); void revokedStop.catch(() => {}); });
+  const detachRevocation = access.onRevokeAll(() => {
+    const brokerStop = interactionCarrier?.revokeAll();
+    revokedStop = Promise.allSettled([supervisor.revokeAll(), brokerStop]).then(results => {
+      for (const result of results) if (result.status === "rejected") throw result.reason;
+    });
+    void revokedStop.catch(() => {});
+  });
   return {
     server, supervisor, index,
-    async revokeAll(): Promise<void> { access.revokeAll(); await revokedStop; },
+    async revokeAll(): Promise<void> {
+      try { access.revokeAll(); }
+      finally { await revokedStop; }
+    },
     bootstrapLink: () => access.bootstrapLink(),
     async stop(): Promise<void> {
       stopping = true;

@@ -9,6 +9,7 @@ import { apply as registry } from "@deepseek-ai/dsh-typert-registry/client";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { z } from "zod";
 import { startSessionComponentServer } from "../../apps/host/src/session-component-server.ts";
 import { CatalogClient } from "../../packages/contracts/generated/catalog-client.ts";
 import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
@@ -18,13 +19,15 @@ import { InteractionBroker, type PageIdentity } from "../../packages/interaction
 type Carrier = Awaited<ReturnType<typeof startSessionComponentServer>>;
 type Credential = { cookie: string; csrf: string };
 type Ready = { clientId: string; streamId: string; socket: WebSocket };
+const statusSchema = z.object({ csrf: z.string().min(1) });
 
 async function login(host: Carrier): Promise<Credential> {
   const exchange = await fetch(host.bootstrapLink(), { redirect: "manual" });
   expect(exchange.status).toBe(303);
   const cookie = exchange.headers.get("set-cookie")!.split(";")[0]!;
   const status = await fetch(new URL("/auth/status", host.server.url), { headers: { cookie } });
-  const { csrf } = await status.json() as { csrf: string };
+  expect(status.status).toBe(200);
+  const { csrf } = statusSchema.parse(await status.json());
   return { cookie, csrf };
 }
 
@@ -97,13 +100,24 @@ async function fixture() {
   const home = await mkdtemp(join(tmpdir(), "omp-broker-carrier-"));
   const contexts: Context[] = [];
   const pages = new Map<string, PageIdentity>();
-  const reply = Promise.withResolvers<{ status: "answered" }>();
+  const reply = Promise.withResolvers<{ status: "answered" | "cancelled" }>();
+  let clockFault = false, scopeCurrent = true;
   const entered = Promise.withResolvers<RespondUiParams>();
   const commands: RespondUiParams[] = [], stops: string[] = [];
   const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
     respondUi: async command => { commands.push(command); entered.resolve(command); return reply.promise; },
     requestStop: async reason => { stops.push(reason); },
-  }, page => { pages.set(page.clientId, page); return true; });
+  }, page => { pages.set(page.clientId, page); return scopeCurrent; }, {
+    now() {
+      if (clockFault) throw new Error("fixture private clock failure");
+      return performance.now();
+    },
+    wall: Date.now,
+    schedule(delay, callback) {
+      const timer = setTimeout(callback, delay);
+      return () => clearTimeout(timer);
+    },
+  });
   broker.receive({ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true,
     nativeExpiry: "cancel", toolExpiry: "cancel", invalidAnswer: "pending" } });
   const receive = (id: string) => broker.receive({ type: "extension_ui_request", id, method: "input", title: "Explicit" });
@@ -118,7 +132,10 @@ async function fixture() {
     await rm(home, { recursive: true, force: true });
     throw error;
   }
-  return { host, pages, receive, entered: entered.promise, reply: () => reply.resolve({ status: "answered" }), commands, stops,
+  return { host, pages, receive, entered: entered.promise, commands, stops,
+    reply: (status: "answered" | "cancelled" = "answered") => reply.resolve({ status }),
+    failClock: () => { clockFault = true; },
+    loseScope: () => { scopeCurrent = false; },
     openPage: (access: Credential) => openPage(host, access, contexts),
     async close() {
       reply.resolve({ status: "answered" });
@@ -234,3 +251,99 @@ async function waitForUnbound(host: Carrier, access: Credential): Promise<void> 
     await Bun.sleep(5);
   }
 }
+
+test("a valid invocation failure retains DSH correlation and redacts the Host exception", async () => {
+  const f = await fixture();
+  try {
+    const page = await f.openPage(await login(f.host));
+    await page.ready;
+    f.receive("query");
+    f.failClock();
+    expect(await page.remote.pending()).toMatchObject({ ok: false, error: {
+      code: "gateway/internal", message: "Interaction request failed.", details: {},
+    } });
+    expect(page.responses.at(-1)).toBe(200);
+  } finally { await f.close(); }
+});
+
+test("trusted revoke-all fences the current Broker before awaiting its Native cancellation", async () => {
+  const f = await fixture();
+  try {
+    const access = await login(f.host), page = await f.openPage(access);
+    await page.ready;
+    f.receive("revoke");
+    await delivery(page);
+
+    let returned = false;
+    const revoked = f.host.revokeAll().then(() => { returned = true; });
+    await Promise.race([f.entered, revoked.then(() => { throw new Error("revoke-all skipped Broker cancellation"); })]);
+    expect(f.commands).toEqual([{ targetId: "revoke", answer: { type: "cancel" } }]);
+    expect(f.stops).toEqual(["all-browser-access-revoked"]);
+    const fresh = await f.openPage(await login(f.host));
+    await fresh.ready;
+    expect(await fresh.remote.pending()).toMatchObject({ ok: false });
+    expect(fresh.responses.at(-1)).toBe(401);
+    expect(returned).toBe(false);
+    f.reply("cancelled");
+    await revoked;
+    expect(returned).toBe(true);
+  } finally { await f.close(); }
+});
+
+function brokerRequest(host: Carrier, access: Credential, body: BodyInit, signal?: AbortSignal) {
+  const request = new Request(new URL("/api/ompInteractionBroker/pending", host.server.url), {
+    method: "POST", body, ...(signal ? { signal } : {}), headers: {
+      host: host.server.url.host, origin: host.server.url.origin, cookie: access.cookie,
+      "x-omp-csrf": access.csrf, "content-type": "application/json",
+    },
+  });
+  return host.server.fetch(request);
+}
+
+test("the carrier bounds actual bytes through the same fetch handler before invocation", async () => {
+  const f = await fixture();
+  try {
+    const access = await login(f.host), page = await f.openPage(access);
+    await page.ready;
+    const body = JSON.stringify(pending) + " ".repeat(16_384);
+    expect((await brokerRequest(f.host, access, body)).status).toBe(413);
+  } finally { await f.close(); }
+});
+
+test.each(["request", "logical", "scope", "deadline"] as const)("the %s boundary cuts off a stalled Broker body", async ended => {
+  const f = await fixture();
+  const entered = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  let sent = false, cancelled = false;
+  let finishBody: (() => void) | undefined;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) { finishBody = () => controller.close(); },
+    pull(controller) {
+      if (!sent) {
+        sent = true;
+        controller.enqueue(new TextEncoder().encode(JSON.stringify(pending)));
+        return;
+      }
+      entered.resolve();
+      return release.promise;
+    },
+    cancel() { cancelled = true; return release.promise; },
+  }, { highWaterMark: 0 });
+  try {
+    const access = await login(f.host), page = await f.openPage(access);
+    const { socket, streamId } = await page.ready;
+    const controller = new AbortController();
+    const reply = brokerRequest(f.host, access, body, controller.signal);
+    await entered.promise;
+    if (ended === "request") controller.abort();
+    if (ended === "logical") socket.send(JSON.stringify({ type: "cancel", streamId }));
+    if (ended === "scope") f.loseScope();
+    const outerDeadline = ended === "deadline" ? 6500 : 1000;
+    const result = await Promise.race([reply, Bun.sleep(outerDeadline).then(() => null)]);
+    expect(result?.status).toBe(ended === "deadline" ? 408 : 401);
+    // This assertion runs while the source's pull and cancel are still held.
+  } finally {
+    if (!cancelled) finishBody?.();
+    release.resolve();
+    await f.close();
+  }
+}, 7500);
