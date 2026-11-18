@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTypertRemoteInfo } from "@deepseek-ai/dsh-typert-protocol/remote-info";
-import type { RemoteResult } from "@deepseek-ai/dsh-typert-protocol";
+import { RemoteError, type RemoteResult, type RemoteStreamHandle } from "@deepseek-ai/dsh-typert-protocol";
 import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import { pendingInteractionSchema, uiAnswerSchema, type UIAnswer } from "./interactions.ts";
 
@@ -35,13 +35,39 @@ export const brokerContribution = createTypertRemoteInfo({ package: "@omp-webui/
     parameter("deliveryId", id, "string"), parameter("answer", uiAnswerSchema, "UIAnswer"),
   ], result: codec(brokerResultSchema, "BrokerResult") },
 } }, z);
+export const brokerPendingSnapshotEndpoint = "ompInteractionBroker/pendingSnapshot";
+export const brokerSnapshotContribution = createTypertRemoteInfo({ package: brokerContribution.package, methods: {
+  [brokerPendingSnapshotEndpoint]: { service: "ompInteractionBroker", invocation: { kind: "direct" },
+    mode: "stream", parameters: [], result: codec(brokerSnapshotSchema, "BrokerSnapshot") },
+} }, z);
+
+/** Read a complete one-item Remote snapshot before publishing it to the Browser View. */
+export async function readBrokerSnapshot(handle: RemoteStreamHandle<BrokerSnapshot, never>): Promise<BrokerSnapshot> {
+  try {
+    const stream = handle[Symbol.asyncIterator]();
+    const first = await stream.next();
+    const snapshot = brokerSnapshotSchema.safeParse(first.value);
+    if (first.done || !snapshot.success || !(await stream.next()).done) {
+      throw new RemoteError("gateway/protocol", "Invalid Interaction snapshot stream.", {
+        endpoint: brokerPendingSnapshotEndpoint,
+      });
+    }
+    return snapshot.data;
+  } finally {
+    handle.dispose();
+  }
+}
 export const brokerHostContribution: TypertContribution = { package: brokerContribution.package, face: "host",
   schemas: [{ name: "BrokerSnapshot", create: () => brokerSnapshotSchema },
     { name: "BrokerResult", create: () => brokerResultSchema }],
   model: { services: [], events: [], objects: [] }, invocations: brokerContribution.descriptors };
+export const brokerSnapshotHostContribution: TypertContribution = {
+  ...brokerHostContribution, invocations: brokerSnapshotContribution.descriptors,
+};
 declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompInteractionBroker: { pending(): Promise<RemoteResult<BrokerSnapshot>>;
+      pendingSnapshot(): RemoteStreamHandle<BrokerSnapshot, never>;
       answer(generation: string, interactionId: string, deliveryId: string,
         answer: UIAnswer): Promise<RemoteResult<BrokerResult>> };
   }

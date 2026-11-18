@@ -1,10 +1,12 @@
 import type { Context } from "@deepseek-ai/cordis";
-import { isRemoteEventClientId } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
+import { isRemoteEventClientId, type RemoteEventClientId } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
 import { clientRequestSchema, type Peer } from "@deepseek-ai/dsh-client-connection";
 import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import { z } from "zod";
 import type { BrowserAccess, BrowserAuthority } from "../../../packages/access/index.ts";
-import { brokerContribution, brokerHostContribution } from "../../../packages/contracts/interaction-broker.ts";
+import {
+  brokerContribution, brokerHostContribution, brokerSnapshotHostContribution,
+} from "../../../packages/contracts/interaction-broker.ts";
 import type { InteractionBroker, PageBinding } from "../../../packages/interactions/broker.ts";
 import { InteractionBrokerService, interactionCaller } from "../../../packages/interactions/service.ts";
 import { readBoundedRequestBody, RequestBodyError } from "./request-body.ts";
@@ -17,6 +19,11 @@ const invalidated = () => refused("Interaction access invalidated", 401);
 const invalidRequest = () => refused("Invalid Interaction request", 400);
 const argsRecord = z.record(z.string(), z.unknown());
 const payloadSchema = z.strictObject({ args: argsRecord });
+const readyFrame = z.strictObject({
+  type: z.literal("ready"),
+  clientId: z.custom<RemoteEventClientId>(isRemoteEventClientId),
+  host: z.strictObject({ home: z.string() }),
+});
 
 interface ReadyPage {
   readonly identity: BrowserAccess;
@@ -25,18 +32,18 @@ interface ReadyPage {
   readonly lifetime: AbortSignal;
 }
 
-/** Isolated fixture only. Each independently issued credential is used by one Browser View. */
+/** Isolated fixture admission for credential-keyed unary or Peer-bound snapshot reads. */
 export class InteractionBrokerCarrier {
   readonly #pages = new Map<string, ReadyPage>();
   #revocation?: Promise<void>;
 
   constructor(private readonly ctx: Context, private readonly authority: BrowserAuthority,
-    private readonly broker: InteractionBroker) {
-    ctx.typert.register(brokerHostContribution);
+    private readonly broker: InteractionBroker, readonly sharedSnapshot: boolean) {
+    ctx.typert.register(sharedSnapshot ? brokerSnapshotHostContribution : brokerHostContribution);
     new InteractionBrokerService(ctx, broker);
   }
 
-  handles(path: string): boolean { return endpoints.has(path); }
+  handles(path: string): boolean { return !this.sharedSnapshot && endpoints.has(path); }
 
   /** Fence synchronously, then join the same cancellation until it completes. */
   revokeAll(): Promise<void> {
@@ -49,25 +56,36 @@ export class InteractionBrokerCarrier {
 
   /** The first item from the Host Gateway's actual $events stream. */
   ready(value: unknown, peer: Peer, identity: BrowserAccess, stream: AbortSignal): void {
-    if (this.#revocation) return;
-    if (typeof value !== "object" || value === null || !("type" in value) || value.type !== "ready" ||
-      !("clientId" in value) || !isRemoteEventClientId(value.clientId)) {
-      throw new Error("DSH event readiness required");
+    if (this.#revocation) {
+      if (this.sharedSnapshot) throw new Error("Interaction page unavailable");
+      return;
     }
+    const { clientId } = readyFrame.parse(value);
     const lifetime = AbortSignal.any([stream, peer.signal]);
-    const { credentialId } = identity;
-    if (lifetime.aborted || !this.authority.revalidate(identity) || this.#pages.has(credentialId)) {
+    const key = this.sharedSnapshot ? peer.id : identity.credentialId;
+    if (lifetime.aborted || !this.authority.revalidate(identity) || this.#pages.has(key)) {
       throw new Error("Interaction page unavailable");
     }
-    const binding = this.broker.attach({ credentialId, clientId: value.clientId, peerId: peer.id });
+    const binding = this.broker.attach({ credentialId: identity.credentialId, clientId, peerId: peer.id });
     const page = { identity, peer, binding, lifetime };
     const detach = () => {
-      if (this.#pages.get(credentialId) === page) this.#pages.delete(credentialId);
+      if (this.#pages.get(key) === page) this.#pages.delete(key);
       this.broker.disconnect(binding);
     };
     if (lifetime.aborted) { detach(); throw new Error("Interaction page ended"); }
-    this.#pages.set(credentialId, page);
+    this.#pages.set(key, page);
     lifetime.addEventListener("abort", detach, { once: true });
+  }
+
+  async runSnapshot(peer: Peer, identity: BrowserAccess, signal: AbortSignal,
+    run: (current: () => boolean) => Promise<void>): Promise<void> {
+    const page = this.#pages.get(peer.id);
+    if (!this.sharedSnapshot || page?.peer !== peer || page.identity !== identity) {
+      throw new Error("Interaction page unavailable");
+    }
+    const current = () => this.#current(page, identity, signal);
+    if (!current()) throw new Error("Interaction page unavailable");
+    await interactionCaller.run({ page: page.binding, current }, () => run(current));
   }
 
   async dispatch(request: Request, identity: BrowserAccess): Promise<Response> {
@@ -117,8 +135,9 @@ export class InteractionBrokerCarrier {
 
   #current(page: ReadyPage, identity: BrowserAccess, signal: AbortSignal): boolean {
     try {
-      return !this.#revocation && !signal.aborted && this.#pages.get(identity.credentialId) === page &&
-        this.authority.revalidate(identity) && this.authority.revalidate(page.identity) &&
+      const key = this.sharedSnapshot ? page.peer.id : identity.credentialId;
+      return !this.#revocation && !signal.aborted && !page.lifetime.aborted && this.#pages.get(key) === page &&
+        this.authority.revalidate(identity) && (identity === page.identity || this.authority.revalidate(page.identity)) &&
         this.broker.authorized(page.binding, this.broker.scope);
     } catch { return false; }
   }

@@ -3,7 +3,10 @@ import TypertRegistry from "@deepseek-ai/dsh-typert-registry";
 import RemoteAccessService from "@deepseek-ai/dsh-api-remote-access";
 import { TypertGatewayService } from "@deepseek-ai/dsh-api-gateway";
 import { Peer } from "@deepseek-ai/dsh-client-connection";
-import { parseRemoteStreamClientMessage } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
+import {
+  parseRemoteStreamClientMessage, type RemoteStreamClientMessage, type RemoteStreamServerMessage,
+} from "@deepseek-ai/dsh-api-gateway/stream-protocol";
+import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import type { ServerWebSocket } from "bun";
 import { resolve } from "node:path";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
@@ -24,13 +27,19 @@ import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.
 import { openBrowserAccess, type BrowserAccess } from "../../../packages/access/index.ts";
 import { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
 import type { InteractionBroker } from "../../../packages/interactions/broker.ts";
+import { brokerPendingSnapshotEndpoint } from "../../../packages/contracts/interaction-broker.ts";
 import { InteractionBrokerCarrier } from "./interaction-broker-carrier.ts";
 type Options = InstallationSelection & SessionLaunchOptions & {
   port?: number; assets?: string; catalog: CatalogClient; dataDir: string;
-  /** Opt-in lifecycle owned by this isolated carrier. Use one fixture Browser View per credential. */
+  /** Opt-in lifecycle owned by this isolated carrier. Unary mode uses one Browser View per credential. */
   interactionBroker?: InteractionBroker;
+  interactionBrokerMode?: "shared-cookie-snapshot";
 };
-interface SocketData { peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController> }
+interface SocketData {
+  peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController>;
+  brokerEvents?: AbortController;
+}
+type StreamOpen = Extract<RemoteStreamClientMessage, { type: "open" }>;
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   const done = Promise.withResolvers<void>();
   const abort = () => { done.resolve(); };
@@ -137,19 +146,22 @@ export async function startSessionComponentServer(options: Options) {
           const text = typeof bytes === "string" ? bytes : new TextDecoder("utf-8", { fatal: true }).decode(bytes);
           const frame = parseRemoteStreamClientMessage(text);
           if (frame.type === "cancel") { socket.data.streams.get(frame.streamId)?.abort(); return; }
-          if (frame.type !== "open" || !streams.has(frame.endpoint) || socket.data.streams.size >= 4 || socket.data.streams.has(frame.streamId)) {
+          const snapshot = frame.type === "open" && frame.endpoint === brokerPendingSnapshotEndpoint &&
+            interactionCarrier?.sharedSnapshot ? interactionCarrier : undefined;
+          if (frame.type !== "open" || (!streams.has(frame.endpoint) && !snapshot) ||
+            socket.data.streams.size >= 4 || socket.data.streams.has(frame.streamId)) {
             socket.close(1008, "diagnostics streams only"); return;
           }
-          const control = new AbortController();
-          socket.data.streams.set(frame.streamId, control);
-          const eventsBroker = frame.endpoint === "$events" ? interactionCarrier : undefined;
-          const onReady = eventsBroker ? (value: unknown) =>
-            eventsBroker.ready(value, socket.data.peer, socket.data.identity, control.signal) : undefined;
-          void sessionCaller.run(socket.data.identity, () => pump(socket, frame.streamId, frame.endpoint, frame.payload, control, ctx, () => {
+          const events = frame.endpoint === "$events" ? interactionCarrier : undefined;
+          const current = () => {
             if (!access.revalidate(socket.data.identity)) return false;
-            if (frame.endpoint === "session/follow") { try { supervisor.assertObjectAccess(socket.data.identity); } catch { return false; } }
+            if (frame.endpoint === "session/follow") {
+              try { supervisor.assertObjectAccess(socket.data.identity); } catch { return false; }
+            }
             return true;
-          }, onReady)).catch(() => socket.close(1011, "stream failed"));
+          };
+          void runFixtureStream(socket, frame, ctx, current, events, snapshot)
+            .catch(() => socket.close(1011, "stream failed"));
         } catch { socket.close(1008, "invalid stream frame"); }
       },
       close(socket) {
@@ -161,7 +173,8 @@ export async function startSessionComponentServer(options: Options) {
     },
   });
   access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
-  if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker);
+  if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker,
+    options.interactionBrokerMode === "shared-cookie-snapshot");
   const { launch, launchOwned } = options;
   supervisor = new SessionSupervisor({ authority: access, grants: directories, index, catalog: options.catalog,
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
@@ -199,19 +212,52 @@ function abortStreams(socket: ServerWebSocket<SocketData>): void {
   for (const control of socket.data.streams.values()) control.abort();
 }
 
-async function pump(socket: ServerWebSocket<SocketData>, streamId: string, endpoint: string, payload: unknown,
-  control: AbortController, ctx: Context, current: () => boolean, onReady?: (value: unknown) => void): Promise<void> {
+async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: StreamOpen, ctx: Context,
+  current: () => boolean, events?: InteractionBrokerCarrier, snapshot?: InteractionBrokerCarrier): Promise<void> {
+  const { peer, identity, streams } = socket.data;
+  const control = new AbortController();
+  const sharedEvents = events?.sharedSnapshot === true;
+  const duplicateEvents = sharedEvents && socket.data.brokerEvents !== undefined;
+  if (sharedEvents && !duplicateEvents) socket.data.brokerEvents = control;
+  streams.set(frame.streamId, control);
+  const terminal = sharedEvents || snapshot !== undefined;
   try {
-    if (!current()) throw new Error("SESSION_AUTH_REQUIRED");
-    const stream = await ctx.typertGateway.wireStream.open(endpoint, payload, idle(control.signal),
-      socket.data.peer, control.signal);
-    for await (const value of stream) {
-      if (!current() || control.signal.aborted) throw new Error("SESSION_AUTH_REQUIRED");
-      if (onReady) { onReady(value); onReady = undefined; }
-      if (socket.send(JSON.stringify({ type: "item", streamId, value })) < 0) throw new Error("slow diagnostic viewer");
+    if (duplicateEvents) throw new Error("Interaction event stream already admitted");
+    await sessionCaller.run(identity, () => snapshot
+      ? snapshot.runSnapshot(peer, identity, control.signal, authorized => pump(socket, frame, control, ctx, authorized, true))
+      : pump(socket, frame, control, ctx, current, terminal,
+        events && (value => events.ready(value, peer, identity, control.signal))));
+  } catch (error) {
+    if (!terminal) throw error;
+    if (!control.signal.aborted && socket.readyState === WebSocket.OPEN) {
+      const failure = new RemoteError("gateway/internal", snapshot
+        ? "Interaction snapshot failed." : "Interaction event stream failed.", {});
+      sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) });
     }
   } finally {
     control.abort();
-    socket.data.streams.delete(streamId);
+    streams.delete(frame.streamId);
+    if (socket.data.brokerEvents === control) delete socket.data.brokerEvents;
+  }
+}
+
+function sendFrame(socket: ServerWebSocket<SocketData>, frame: RemoteStreamServerMessage): void {
+  if (socket.send(JSON.stringify(frame)) < 0) throw new Error("slow diagnostic viewer");
+}
+
+async function pump(socket: ServerWebSocket<SocketData>, { streamId, endpoint, payload }: StreamOpen,
+  control: AbortController, ctx: Context, current: () => boolean, terminal: boolean,
+  onReady?: (value: unknown) => void): Promise<void> {
+  if (!current()) throw new Error("SESSION_AUTH_REQUIRED");
+  const stream = await ctx.typertGateway.wireStream.open(endpoint, payload, idle(control.signal),
+    socket.data.peer, control.signal);
+  for await (const value of stream) {
+    if (!current() || control.signal.aborted) throw new Error("SESSION_AUTH_REQUIRED");
+    if (onReady) { onReady(value); onReady = undefined; }
+    sendFrame(socket, { type: "item", streamId, value });
+  }
+  if (terminal && !control.signal.aborted) {
+    if (!current()) throw new Error("SESSION_AUTH_REQUIRED");
+    sendFrame(socket, { type: "end", streamId });
   }
 }
