@@ -12,6 +12,9 @@ ticket 46 source proposal. No upstream pin floats or active source cohort change
 separate dormant cohort for tickets 45 and 46. Patch 7 is the byte-identical Source45
 prompt-notice patch, ordered after parsed Tool presentation. The [composition evidence](../../docs/evidence/ticket-45-dsh-source-composition.md)
 records both patch orders and the exact scope of the earlier browser evidence.
+The [build preflight](../../docs/evidence/ticket-45-dsh-build-preflight.md) records the
+exact candidate's generator and Client compiler failures, inactive corrective patches,
+and the remaining persistence compatibility review.
 
 Patch 6 adds required `tool/parsed-call` presentation while preserving the existing
 `tool/call.arguments: string` and raw LLM blocks. Public display records distinguish
