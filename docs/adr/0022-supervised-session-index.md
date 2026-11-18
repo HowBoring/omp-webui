@@ -102,6 +102,8 @@ and retain the worker slot through uncertain domain completion. Mandatory cleanu
 needs explicit handoff to the helper's absolute deadline and Native input fence.
 
 The retained connection can synchronously retire regular RPCs and stop live publication.
+If a subscriber retires the connection during delivery, the frame counts as published and
+delivery stops before the next subscriber.
 After authenticated HELLO and v2 negotiation, its Host caller can obtain fixed strict-start
 cancellation, abort and state operations on those same pipes. The first retirement fixes
 the local monotonic cutoff, with a valid cutoff granting at most 30 seconds. Requests check

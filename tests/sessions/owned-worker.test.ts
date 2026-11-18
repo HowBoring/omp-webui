@@ -120,6 +120,7 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
 
 test("owned cleanup fences regular work while fixed cleanup RPCs still drain on the same pipes", async () => {
   const peer = ownedPeer();
+  const clock = spyOn(performance, "now").mockReturnValue(1000);
   try {
     const connected = SessionWorker.attachOwned(peer.helper);
     const session = await negotiate(peer, connected);
@@ -133,7 +134,7 @@ test("owned cleanup fences regular work while fixed cleanup RPCs still drain on 
     const queued = session.startup.state();
     void queued.catch(() => {});
 
-    const cleanup = connected.beginCleanup(performance.now() + 1000);
+    const cleanup = connected.beginCleanup(2000);
     expect(cleanup).toBeDefined();
     if (!cleanup) throw new Error("TEST_CLEANUP_UNAVAILABLE");
     await expect(dispatched).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
@@ -179,7 +180,7 @@ test("owned cleanup fences regular work while fixed cleanup RPCs still drain on 
     expect(stopSummary.type).toBe("abort_branch_summary");
     peer.rootExit();
     await connected.rootExit;
-    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
+    expect(connected.beginCleanup(2000)).toBeUndefined();
     await expect(summary).rejects.toMatchObject({ code: "RPC_ROOT_EXITED" });
     await expect(cleanup.state()).rejects.toMatchObject({ code: "RPC_ROOT_EXITED" });
     peer.respond(stopSummary, {});
@@ -188,6 +189,38 @@ test("owned cleanup fences regular work while fixed cleanup RPCs still drain on 
     expect(await connected.output).toEqual({
       stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
     });
+    peer.complete();
+    await connected.completed;
+  } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("owned cleanup stops delivery to later subscribers of the current notification", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const first: unknown[] = [];
+    const second: unknown[] = [];
+    const retired = Promise.withResolvers<boolean>();
+    session.subscribe(frame => {
+      first.push(frame);
+      retired.resolve(connected.beginCleanup(performance.now() + 10_000) !== undefined);
+    });
+    session.subscribe(frame => second.push(frame));
+
+    const settled = { type: "session_settled" };
+    peer.stdout.send(settled);
+    expect(await retired.promise).toBe(true);
+    peer.stdout.send(settled);
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
+    });
+    expect(first).toEqual([settled]);
+    expect(second).toEqual([]);
+    expect(session.notificationCount).toBe(1);
+    peer.rootExit();
     peer.complete();
     await connected.completed;
   } finally { peer.helper.disconnectControl(); peer.reap(0); }

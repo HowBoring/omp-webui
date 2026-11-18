@@ -30,8 +30,12 @@ class SessionNotifications {
   readonly subscribers = new Set<(frame: SessionWorkerFrame) => void>();
   count = 0;
   #bufferedBytes = 0;
+  #retired = false;
+
+  retire(): void { this.#retired = true; }
 
   publish(value: object): void {
+    if (this.#retired) return;
     const frame = frameSchema.parse(value);
     ++this.count;
     if (this.subscribers.size === 0) {
@@ -39,7 +43,10 @@ class SessionNotifications {
       if (this.frames.length >= 32 || this.#bufferedBytes > 262_144) throw new Error("SESSION_STARTUP_BUFFER_LIMIT");
       this.frames.push(frame);
     }
-    for (const subscriber of this.subscribers) subscriber(frame);
+    for (const subscriber of this.subscribers) {
+      if (this.#retired) break;
+      subscriber(frame);
+    }
   }
 }
 
@@ -175,6 +182,7 @@ export class SessionWorker extends SessionRpc {
       return {
         ready, rootExit, completed, output: transport.output,
         beginCleanup: cutoff => {
+          notifications.retire();
           const request = transport.beginCleanup(cutoff);
           if (request) return cleanup ??= ownedCleanup(request);
         },
