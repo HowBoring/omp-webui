@@ -84,8 +84,7 @@ function validatePart(item: HistoryItem, entry: ActiveHistoryEntry, partIndex: n
   if (count > MAX_PARTS) throw Error('live_event_bytes');
   if (!item.active || item.livePhase !== undefined || item.settlement !== undefined || item.entryId !== entry.entryId
     || item.parentId !== entry.parentId || item.kind !== entry.kind || item.role !== entry.role
-    || item.provider !== entry.provider || item.model !== entry.model
-    || (entry.role === 'assistant' && item.stopReason !== entry.stopReason)
+    || item.provider !== entry.provider || item.model !== entry.model || item.stopReason !== entry.stopReason
     || !isDeepStrictEqual(item.live, entry.live)) {
     throw Error('live_archive_part');
   }

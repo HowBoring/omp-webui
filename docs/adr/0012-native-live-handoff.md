@@ -43,7 +43,7 @@ prefix and its projected records before returning them. The admitted public API 
 history cursors.
 
 The dormant Host archived reader uses the authored Native active history index at
-`e36cb0551a288b1512b268cda9ef231a127a1cf8`. The projection owner provides a trusted joint Native and
+`4b032a949cb40764dfa803b7d5ce1ba1f314f214`. The projection owner provides a trusted joint Native and
 Broker Stop snapshot for the exact worker, Session and cut. A running or unverified opening refuses this
 path. A Browser View supplies its own generation and authority check for each request. The reader
 rechecks authority after I/O and requires the original snapshot, cut, expiry, contiguous ordinals and

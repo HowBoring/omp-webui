@@ -267,3 +267,20 @@ test('a single archived DSH event that exceeds the encoded budget fails before p
   }
   await archive.close();
 });
+
+test('archived user rows require the same stop reason in Native metadata and payload', async () => {
+  const { source, owner, envelope } = fixture(1);
+  const user = { ...metadata(0), stopReason: 'native-stop' };
+  const [body] = partsFor(user, 'retained user text');
+  source.index = async () => ({ ...envelope, items: [user] });
+  source.range = async () => ({ ...envelope, items: [body!] });
+
+  const eager = await LiveJournal.open(eagerFixture(envelope, [body!]));
+  const archive = await ArchivedJournal.open(source, owner);
+  const view = { generation: archive.generation, current: () => true };
+  expect(await archive.page(view, {})).toEqual(eager.page({}));
+
+  source.range = async () => ({ ...envelope, items: [{ ...body!, stopReason: 'changed' }] });
+  await expect(archive.page(view, {})).rejects.toThrow('live_archive_part');
+  await archive.close();
+});
