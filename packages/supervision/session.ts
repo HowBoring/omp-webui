@@ -18,6 +18,7 @@ export class PrivateControlSession {
   readonly #generation: string;
   #hello: Readonly<PrivateHello> | undefined;
   #registered = false;
+  #startFenced = false;
   #closing = false;
   #rootReaped = false;
   #complete = false;
@@ -34,6 +35,8 @@ export class PrivateControlSession {
   get forceAvailable(): boolean {
     return this.#ordinaryAt !== undefined && this.#system.now() - this.#ordinaryAt >= 30_000 && !this.#complete;
   }
+  /** Prevents a future START submission while preserving registration and cleanup observations. */
+  fenceStart(): void { this.#startFenced = true; }
   /** Caller serializes incoming events; asynchronous registration cannot release a concurrently revoked barrier. */
   async accept(event: PrivateEvent): Promise<void> {
     if (event.generation !== this.#generation || this.#complete) throw new PrivateHelperError("CONTROL_SEQUENCE");
@@ -43,7 +46,7 @@ export class PrivateControlSession {
       try { await this.#system.registerHeldHelper(this.#hello); }
       catch (error) { throw helperError("HELPER_REGISTRATION_FAILED", error); }
       this.#registered = true;
-      if (!this.#closing) await this.write("START");
+      if (!this.#startFenced && !this.#closing) await this.write("START");
       return;
     }
     if (!this.#hello) throw new PrivateHelperError("CONTROL_SEQUENCE");

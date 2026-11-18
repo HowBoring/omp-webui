@@ -21,6 +21,25 @@ test("Native exec remains held until independently authenticated dispatcher regi
   expect(session.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
 });
 
+test("the START fence preserves an already submitted control write", async () => {
+  const submitted = Promise.withResolvers<string>();
+  const flushed = Promise.withResolvers<void>();
+  const session = new PrivateControlSession({ generation, now: () => 0,
+    registerHeldHelper: async () => {}, closeNativeAdmission: async () => {},
+    write: async bytes => {
+      submitted.resolve(new TextDecoder().decode(bytes));
+      await flushed.promise;
+    },
+  });
+  const admission = session.accept(hello);
+  const command = await submitted.promise;
+  session.fenceStart();
+  flushed.resolve();
+  await admission;
+  expect(command).toBe(`START ${generation}\n`);
+  expect(session.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
+});
+
 test("ordinary Stop and early Native exit never automatically force descendants", async () => {
   let now = 0;
   const written: string[] = [];
