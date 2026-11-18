@@ -1,18 +1,32 @@
-# Host attachment originals: ticket 54 source slice
+# Host attachment originals for tickets 54 and 55
 
 This is an opt-in Host-owned original store and proposed public intake contract.
-No product Host registers it. Ticket 54 and umbrella ticket 29 remain open.
+No product Host registers it. Tickets 54 and 55 and umbrella ticket 29 remain open.
 Native preparation, Native commit associations and browser upload controls remain
 gated by tickets 36/38/41/45 and the matched-combination acceptance requirements.
 
 `OriginalStore` stores exact supplied bytes, an independently calculated SHA-256,
 display metadata, a staged timestamp and only the minimum Host scope/index data.
-Its acknowledgement always says `staged-unprepared`, `signature-only` and
-`unassociated`. It is neither a DSH prepared attachment receipt, a Native model
-representation nor a Sent Attachment. No transcript, Native Session file parser,
-Native runtime import, worker, prompt, send, queue or implicit Session creation
-surface exists here. A busy, already explicitly opened Session can stage a draft;
-this component cannot enqueue execution.
+Its acknowledgement says `staged-unprepared` and `unassociated`, with the
+validation described below. It acknowledges exact-byte staging. A busy, already
+explicitly opened Session can stage a draft.
+
+## Supported declarations and intake checks
+
+The upload descriptor uses canonical media types. Declare UTF-8 text or source
+as `text/plain`, PDF as `application/pdf`, DOCX/PPTX/XLSX with their OpenXML media
+types, and EPUB as `application/epub+zip`. The image declarations are `image/png`,
+`image/jpeg`, `image/webp` and `image/gif`. The display name does not affect this
+selection. A future browser carrier must supply the applicable declaration.
+
+`utf8-only` means the stream decoded as UTF-8, including at EOF. The store writes
+and hashes the supplied bytes, preserving the BOM and line endings if present.
+Invalid encoding returns `attachment_invalid_utf8`. `signature-only` means the
+image, `%PDF-` or ZIP local file header matched the declaration. A mismatch
+returns `attachment_media_mismatch`. ZIP headers are shared by DOCX, PPTX, XLSX
+and EPUB. The Host does not inspect containers or identify their internal format.
+Native preparation must establish document integrity and package type, perform
+conversion, and report truncation or other degradations before consumption.
 
 ## Trusted authority and public ports
 
@@ -20,8 +34,8 @@ this component cannot enqueue execution.
 a caller admitted by the Host carrier, a Session/draft target, display metadata,
 the exact declared byte length, an async byte stream and a cancellation signal.
 Its `read` returns bytes and metadata, never a filesystem path. Both methods
-reject asynchronously with a stable `attachment_*` error message of at most
-96 characters. Invalid targets/descriptors use `attachment_invalid_target` /
+reject asynchronously with a known, stable `attachment_*` error code.
+Invalid targets/descriptors use `attachment_invalid_target` /
 `attachment_invalid_descriptor`; unexpected storage failures, including SQLite
 reservation failures, use `attachment_storage_unavailable`. Existing authority,
 cancellation and quota refusal codes retain their meaning. The Host callback
@@ -46,9 +60,11 @@ authorized original read; it does not restore a prepared receipt or execute inpu
 `ompOriginals/exchange` Remote, with `stage-base64` and `read-base64`. The actual
 public DSH Client, synthetic Connection carrier and Host Gateway are exercised in
 the fixture. This is a new Host contract, not an invented existing Native API or
-stock DSH upload method. Base64 must round-trip canonically; decoding happens only
-after authority and reservation. The schema bounds encoded data for a 10 MiB
-original. It does not establish acceptable Native/RPC or renderer budgets.
+stock DSH upload method. After authorization and reservation, the Remote checks
+that the encoded length matches the reserved byte length before decoding. Base64
+must round-trip canonically, and the decoded bytes must match the reservation.
+The schema bounds encoded data for a 10 MiB original. Native/RPC and renderer
+budgets require separate checks.
 
 No HTTP/WS route is provided. Before mounting either port the carrier must admit
 Host/Origin, current credentials, CSRF for writes and exact resource rights before
@@ -69,9 +85,12 @@ never select a destination or overwrite project files. Reads refuse symlinks,
 hard links, missing files, size mismatch and digest mismatch. No browser response
 contains an internal storage path or raw filesystem error.
 
-Defaults are 10 MiB per image, 8 originals / 32 MiB per page/Session draft and
-10 GiB of total original payload storage, including in-flight/failed-cleanup
-temporary bytes. A transaction with `BEGIN IMMEDIATE` reserves the entire
+Defaults are 10 MiB per image, 5 MiB per text or document, 8 originals / 32 MiB
+per page/Session draft and 10 GiB of total original payload storage, including
+in-flight and failed-cleanup temporary bytes. Text, documents, and images share
+the same reservations and every draft/store limit. The fixed text/document
+ceiling also applies when the Store's `objectBytes` image limit is overridden.
+A transaction with `BEGIN IMMEDIATE` reserves the entire
 declared size before body iteration. Chunk limits prevent writing past that
 reservation; under-length streams also fail. SQLite transactions serialize
 reservations across connections. The same persisted limit configuration is
@@ -124,13 +143,17 @@ caps; partial/aborted/mismatched streams; midstream revocation and authority-epo
 changes; current scope and same-hash isolation; missing/corrupt payloads; display
 traversal/project non-overwrite; private permissions; unknown payload startup
 refusal; typed public Remote base64 stage/read; and unverified/revoked scopes.
+Text/document coverage includes exact split UTF-8 byte round trips across Store
+reopen, independent size admission at 5 and 10 MiB, mixed-format draft and store
+reservations, document signature-only results, and Remote encoding, signature
+and quota refusals. The size tests exercise declared boundaries before body
+consumption. They use small files for successful byte round trips.
 
-Only image magic signatures are checked here. A corrupt image with a valid
-signature remains explicitly unprepared. Native bounded decoding, model/complete
-encoded RPC budgets, all real selected formats, actual prepare/consume,
-degradation confirmation, native durable entry associations, draft restoration,
-read/download renderer safety, protected lifecycle/GC/deletion, actual Linux and
-Windows Chrome/WSL2 product browser results and performance remain open gates.
+Native bounded decoding, model and complete encoded RPC budgets, valid and
+malformed selected files through actual prepare and consume, degradation
+confirmation, durable Native entry associations, draft restoration, safe
+download and rendering, protected lifecycle and deletion, and actual Linux and
+Windows Chrome/WSL2 product browser results and performance remain open.
 
 See [ADR 0021](../../docs/adr/0021-host-original-intake.md) and the
 [source evidence](../../docs/implementation/ticket-54-source-evidence.json).

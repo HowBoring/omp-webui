@@ -2,6 +2,7 @@ import type { Context } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService, type PeerScope } from "@deepseek-ai/dsh-typert-protocol";
 import { attachmentRequest, type AttachmentRequest, type AttachmentResult,
   type AttachmentTarget } from "../contracts/attachments.ts";
+import { isAttachmentError } from "./errors.ts";
 import { OriginalIntake } from "./intake.ts";
 import { OriginalStore, type OriginalScope } from "./store.ts";
 
@@ -28,17 +29,17 @@ export class AttachmentRemote extends TypertRemoteService {
         return { status: "read", original, base64: Buffer.from(bytes).toString("base64") };
       }
       // The generator is evaluated only after live authorization and atomic reservation by the store.
+      const { base64, descriptor } = request;
       async function* decode() {
-        if (request.operation !== "stage-base64") return;
-        const value = Buffer.from(request.base64, "base64");
-        if (value.toString("base64") !== request.base64) throw Error("attachment_invalid_base64");
+        if (base64.length !== 4 * Math.ceil(descriptor.byteLength / 3)) throw Error("attachment_size_mismatch");
+        const value = Buffer.from(base64, "base64");
+        if (value.toString("base64") !== base64) throw Error("attachment_invalid_base64");
         yield value;
       }
-      const original = await intake.stage(invocation.peer, request.target, request.descriptor, decode(), signal);
+      const original = await intake.stage(invocation.peer, request.target, descriptor, decode(), signal);
       return { status: "staged", original };
     } catch (error) {
-      const code = error instanceof Error && /^attachment_[a-z_]+$/.test(error.message) && error.message.length <= 96
-        ? error.message : "attachment_intake_failed";
+      const code = isAttachmentError(error) ? error.message : "attachment_intake_failed";
       return { status: "error", code };
     }
   }

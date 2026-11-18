@@ -25,7 +25,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
 });
 
-test("two SQLite connections reserve a shared budget before reading concurrent bodies", async () => {
+test("two SQLite connections reserve a shared image and document budget before reading concurrent bodies", async () => {
   const limits = { totalBytes: 20 };
   const { store, dataDir } = open(limits);
   const second = new OriginalStore({ dataDir, recovery: "shared-connection", limits }); stores.push(second);
@@ -36,8 +36,10 @@ test("two SQLite connections reserve a shared budget before reading concurrent b
   const first = store.stage(access, descriptor, stalled());
   await waiting;
   let read = false;
-  async function* untouched() { read = true; yield image; }
-  await expect(second.stage(access, descriptor, untouched())).rejects.toThrow("attachment_store_full");
+  const pdf = new TextEncoder().encode("%PDF-1.7\n");
+  async function* untouched() { read = true; yield pdf; }
+  await expect(second.stage(access, { displayName: "notes.pdf", mediaType: "application/pdf",
+    byteLength: pdf.length }, untouched())).rejects.toThrow("attachment_store_full");
   expect(read).toBe(false);
   expect(second.usage(access).chargedBytes).toBe(14);
   release();
@@ -260,6 +262,52 @@ test("raw intake rejects an invalid target with one bounded code before body con
   await expect(pending).rejects.toThrow(/^attachment_invalid_target$/);
 });
 
+test("raw intake stages UTF-8 source byte for byte across chunk boundaries and store reopen", async () => {
+  const { store, dataDir } = open();
+  const intake = new OriginalIntake(store, access);
+  const target = { sessionId: "native", draftId: "draft" };
+  const source = new TextEncoder().encode("\uFEFFconst label = '🧪';\r\n");
+  async function* split() { for (let index = 0; index < source.length; index++) yield source.subarray(index, index + 1); }
+  const original = await intake.stage({}, target, {
+    displayName: "../../project/@ref.ts", mediaType: "text/plain", byteLength: source.byteLength,
+  }, split());
+  expect(original).toMatchObject({ displayName: "../../project/@ref.ts", mediaType: "text/plain",
+    state: "staged-unprepared", validation: "utf8-only", nativeAssociation: "unassociated" });
+  store.close();
+  const reopened = new OriginalStore({ dataDir, recovery: "exclusive-host-startup" }); stores.push(reopened);
+  const read = await new OriginalIntake(reopened, access).read({}, target, original.objectId);
+  expect(read).toEqual({ ...original, bytes: source });
+});
+
+test("raw intake applies distinct image and text/document byte ceilings before reading the body", async () => {
+  const { store } = open();
+  const intake = new OriginalIntake(store, access);
+  const target = { sessionId: "native", draftId: "draft" };
+  const MiB = 1024 ** 2;
+  async function* emptyBody() {}
+  for (const mediaType of ["text/plain", "application/pdf", "image/gif"] as const) {
+    const ceiling = (mediaType === "image/gif" ? 10 : 5) * MiB;
+    const info = { displayName: "sample", mediaType, byteLength: ceiling };
+    await expect(intake.stage({}, target, info, emptyBody())).rejects.toThrow(/^attachment_size_mismatch$/);
+    // The carrier bounds >10 MiB before the store. Test the Store's own limit at that boundary too.
+    await expect(store.stage(access, { ...info, byteLength: ceiling + 1 }, emptyBody()))
+      .rejects.toThrow(/^attachment_object_budget$/);
+  }
+  expect(store.usage(access)).toMatchObject({ chargedBytes: 0, objects: 0 });
+});
+
+test("an existing draft image shares its attachment count and bytes with files", async () => {
+  const source = new TextEncoder().encode("source\r\n");
+  const sourceDescriptor = { displayName: "source.ts", mediaType: "text/plain" as const, byteLength: source.length };
+  for (const limits of [{ draftObjects: 1 }, { draftBytes: image.length + source.length - 1 }]) {
+    const { store } = open(limits);
+    const original = await store.stage(access, descriptor, bytes());
+    await expect(store.stage(access, sourceDescriptor, bytes(source))).rejects.toThrow(/^attachment_draft_budget$/);
+    expect(store.usage(access)).toMatchObject({ chargedBytes: image.length, objects: 1 });
+    expect((await store.read(access, original.objectId)).bytes).toEqual(image);
+  }
+});
+
 test("raw intake rejects invalid descriptors without exposing schema details or consuming bytes", async () => {
   const { store } = open();
   const intake = new OriginalIntake(store, () => access());
@@ -315,11 +363,13 @@ test("raw intake retains revocation, binding, cancellation and quota refusal cod
   await expect(intake.read({}, target, original.objectId)).rejects.toThrow(/^attachment_authority_unavailable$/);
 });
 
-test("raw intake bounds oversized attachment-like producer errors and releases the reservation", async () => {
+test("raw intake normalizes unknown attachment-like producer errors and releases the reservation", async () => {
   const { store } = open();
   const intake = new OriginalIntake(store, () => access());
-  async function* failed(): AsyncGenerator<Uint8Array> { throw Error(`attachment_${"x".repeat(100)}`); }
-  await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, descriptor, failed()))
-    .rejects.toThrow(/^attachment_storage_unavailable$/);
-  expect(store.usage(access).chargedBytes).toBe(0);
+  for (const error of [`attachment_${"x".repeat(100)}`, "attachment_foo_834"]) {
+    async function* failed(): AsyncGenerator<Uint8Array> { throw Error(error); }
+    await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, descriptor, failed()))
+      .rejects.toThrow(/^attachment_storage_unavailable$/);
+    expect(store.usage(access).chargedBytes).toBe(0);
+  }
 });
