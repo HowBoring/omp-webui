@@ -165,7 +165,7 @@ test('real native bounded pages explicitly refuse a derived journal that exceeds
   for(let i=0;i<1800;i++)manager.appendMessage({role:'user',content:'x'.repeat(20000),timestamp:i});
   const observation=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
   const client=new HistoryClient(async command=>{
-    if(command.type==='history_snapshot_open')return observation.open(command.scope);
+    if(command.type==='history_snapshot_open')return observation.open(command.scope,command.handoff);
     if(command.type==='history_snapshot_page')return observation.page(command.cursor);
     if(command.type==='history_snapshot_close')return observation.close(command.snapshot);
     throw Error('unexpected_native_read');
