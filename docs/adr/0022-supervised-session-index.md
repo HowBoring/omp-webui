@@ -96,10 +96,9 @@ promises, including after setup or startup failure. Root exit or control loss cl
 RPC admission and fences pending writes. The retained pipes continue reporting validated
 tail framing and observed EOF independently of domain completion.
 
-The Host caller retains the original helper control and cleanup authority. Future
-SessionSupervisor composition must save that handle before awaiting RPC readiness
-and retain the worker slot through uncertain domain completion. Mandatory cleanup
-needs explicit handoff to the helper's absolute deadline and Native input fence.
+The Host caller retains the original helper control and cleanup authority.
+Mandatory cleanup needs explicit handoff to the helper's absolute deadline and
+Native input fence.
 
 The retained connection can synchronously retire regular RPCs and stop live publication.
 If a subscriber retires the connection during delivery, the frame counts as published and
@@ -126,6 +125,20 @@ an invalid or missing reply, and the cutoff. Only `cancelled` and `expired` affi
 cancellation for a tracked request. Tail notifications, Native settlement, pipe
 EOF and domain completion remain separate observations.
 
-Coordination with the helper's START barrier, retained SessionSupervisor handoff
-and the separate S2 Broker integration remain pending. The retained path remains
-unregistered.
+The isolated SessionSupervisor can reserve a generation and retain its original
+owned RPC connection before awaiting readiness. Retirement calls that connection's
+cleanup fence once with the original Host-local cutoff, including when the launcher
+hands it over after that cutoff. Late readiness cannot start or bind the retired
+generation. The bounded shutdown observation can return with ownership still
+unresolved. Only the same connection's confirmed domain completion and natural
+EOF on both readers release the slot. Root status, domain status and validated output
+tails are reported as they are observed. Counts remain lower bounds when a published
+counter or observed stdout EOF is unavailable or the transport records a protocol
+failure. Late completion can release the slot
+after the Session Index closes. The retirement records an unknown Session outcome
+because proof of ownership release does not establish Native settlement or the
+physical shutdown policy.
+
+Owned idle Switch and New remain unavailable while an owned generation occupies
+the slot. Production registration, the helper's absolute deadline handoff and
+the separate S2 Broker integration remain pending.

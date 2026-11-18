@@ -6,6 +6,7 @@ import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
 import type { ReadyEvent } from "../../packages/contracts/preflight.ts";
 import { PrivateHelperController } from "../../packages/supervision/controller.ts";
+import { sourceFixture } from "./source-fixture.ts";
 
 const generation = "a".repeat(64);
 const ready: ReadyEvent = {
@@ -123,6 +124,117 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   peer.respond(await negotiating, { protocolVersion: 2 });
   return connected.ready;
 }
+
+test("a retired generation receiving its connection late reports a lower bound for notifications", async () => {
+  const peer = ownedPeer();
+  const connection = SessionWorker.attachOwned(peer.helper);
+  const launching = Promise.withResolvers<void>();
+  const delivery = Promise.withResolvers<typeof connection>();
+  const readiness = Promise.withResolvers<Awaited<typeof connection.ready>>();
+  const owned = { ...connection, ready: readiness.promise };
+  const fenced = Promise.withResolvers<void>();
+  const fence = spyOn(owned, "beginCleanup").mockImplementation(cutoff => {
+    const cleanup = connection.beginCleanup(cutoff);
+    fenced.resolve();
+    return cleanup;
+  });
+  const f = await sourceFixture(Date.now, () => { launching.resolve(); return delivery.promise; });
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  let closeOutputs = () => { peer.stdout.close(); peer.stderr.close(); };
+  const clock = spyOn(performance, "now").mockReturnValue(1_000);
+  try {
+    await launching.promise;
+    const readySession = await negotiate(peer, connection);
+    const published = Promise.withResolvers<void>();
+    readySession.subscribe(() => published.resolve());
+    peer.stdout.send({ type: "session_settled" });
+    await published.promise;
+    expect(readySession.notificationCount).toBe(1);
+    const shutdown = f.supervisor.close(), revocation = f.supervisor.revokeAll();
+    expect(fence).not.toHaveBeenCalled();
+    delivery.resolve(owned);
+    await fenced.promise;
+    expect(fence).toHaveBeenCalledTimes(1);
+    expect(fence).toHaveBeenCalledWith(31_000);
+    readiness.resolve(readySession);
+    await expect(opening).rejects.toThrow("SESSION_HOST_CLOSING");
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol"]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
+
+    peer.stdout.send({ type: "session_settled" });
+    peer.rootExit();
+    peer.complete();
+    closeOutputs();
+    closeOutputs = () => {};
+    await Promise.all([shutdown, revocation]);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.exits()).toMatchObject([{
+      notificationCount: 1, tailNotifications: 1, tailNotificationsLowerBound: true,
+    }]);
+  } finally {
+    clock.mockRestore();
+    delivery.resolve(owned);
+    readiness.reject(new Error("RPC_STARTUP_FAILED"));
+    closeOutputs();
+    peer.helper.disconnectControl();
+    peer.reap(0);
+    await opening.catch(() => {});
+    await f.close();
+  }
+});
+
+test.each([true, false])("owned exit counts startup, live and tail notifications with clean framing=%s", async clean => {
+  const peer = ownedPeer();
+  const connection = SessionWorker.attachOwned(peer.helper);
+  const f = await sourceFixture(Date.now, () => connection);
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  let closeOutputs = () => { peer.stdout.close(); peer.stderr.close(); };
+  try {
+    const negotiating = peer.nextCommand();
+    peer.hello();
+    peer.stdout.send(ready);
+    const negotiation = await negotiating;
+    const starting = peer.nextCommand();
+    peer.stdout.send({ type: "session_settled" });
+    peer.respond(negotiation, { protocolVersion: 2 });
+    const start = await starting;
+    expect(start.type).toBe("strict_start");
+    const binding = { ...f.selected, ownership: { ...f.selected.ownership, state: "held" } };
+    peer.respond(start, { version: "strict-start-v1", phase: "open", intent: "continue", cwd: f.cwd,
+      nativeSessionId: f.selected.nativeSessionId, binding });
+    expect(await opening).toMatchObject({ state: "open" });
+
+    const worker = await connection.ready;
+    const published = Promise.withResolvers<void>();
+    worker.subscribe(() => published.resolve());
+    peer.stdout.send({ type: "session_settled" });
+    await published.promise;
+
+    const shutdown = f.supervisor.close();
+    peer.stdout.send({ type: "session_settled" });
+    if (!clean) peer.stdout.send({ type: "synthetic_invalid" }, { type: "session_settled" });
+    peer.rootExit();
+    peer.complete();
+    closeOutputs();
+    closeOutputs = () => {};
+    await shutdown;
+    const exit = f.supervisor.exits()[0];
+    expect(exit).toMatchObject({ notificationCount: 3, tailNotifications: 1, drain: { status: "owned-completed" } });
+    expect(exit?.tailNotificationsLowerBound).toBe(clean ? undefined : true);
+  } finally {
+    closeOutputs();
+    peer.helper.disconnectControl();
+    peer.reap(0);
+    await opening.catch(() => {});
+    await f.close();
+  }
+});
 
 test("owned Interaction tracking preserves notification replay until a Session subscriber attaches", async () => {
   const peer = ownedPeer();
