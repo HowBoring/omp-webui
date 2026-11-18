@@ -1,0 +1,26 @@
+{
+  "compilerReceipt": {
+    "path": "compiler-receipt.json",
+    "bytes": 6232,
+    "sha256": "f6fe0fbaa86d596da52df2de94c4f1d8b4af404f1c343c222fcad3faf017ded6"
+  },
+  "catalogValidatorModule": {
+    "path": "vendor/omp/packages/coding-agent/src/modes/rpc/catalog.generated.ts",
+    "bytes": 853,
+    "sha256": "5f72bc8c5811151805c084565ef892c188de3fb9c6fa468efdb2e9f732f62035"
+  },
+  "bun": {
+    "bytes": 107308936,
+    "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+  },
+  "ajv": {
+    "version": "8.17.1",
+    "files": 466,
+    "treeSha256": "d76528d0eb29ba3edfc02622ee3d65ef45c6550be33f417cef42ee32e672392d"
+  },
+  "linuxX64BaselineAddon": {
+    "path": "@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
+    "bytes": 129937064,
+    "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+  }
+}
