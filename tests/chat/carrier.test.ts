@@ -26,6 +26,9 @@ const prompt = (sessionId: SessionId, id = "draft-a") => ({ sessionId,
   requestId: brandString<SessionRequestId>(id), projection, mode: "queue" as const,
   content: [{ type: "text" as const, text: "fixture text" }] });
 
+const promptEnvelope = (sessionId: SessionId) => JSON.stringify({ type: "client-request", rpcId: "body-check",
+  method: "session/prompt", payload: { args: { request: prompt(sessionId) } } });
+
 async function fixture() {
   const source = await sourceFixture();
   const host = new Context();
@@ -88,13 +91,27 @@ async function fixture() {
       if (!view) throw new Error("Fixture view unavailable");
       return { view, lifetime };
     }
-    async function connect(view?: ChatViewEnrollment, cookie = source.cookie, extraHeaders: HeadersInit = {}) {
-      const ctx = new Context();
-      clients.add(ctx);
+    async function getCsrf(cookie: string): Promise<string> {
       const status = await source.authority.handle(new Request(`${source.origin}/auth/status`, {
         headers: { host: new URL(source.origin).host, cookie },
       }));
-      const csrf: string = (await status!.json()).csrf;
+      return (await status!.json()).csrf;
+    }
+    async function chatRequest(view: ChatViewEnrollment, init: RequestInit) {
+      const headers = new Headers(init.headers);
+      headers.set("host", new URL(source.origin).host);
+      headers.set("origin", source.origin);
+      headers.set("cookie", source.cookie);
+      headers.set("x-omp-csrf", await getCsrf(source.cookie));
+      headers.set("content-type", "application/json");
+      const request = new Request(`${source.origin}/api/session/prompt`, { ...init, method: "POST", headers });
+      attached.set(request, view);
+      return dispatch(request, host, peer);
+    }
+    async function connect(view?: ChatViewEnrollment, cookie = source.cookie, extraHeaders: HeadersInit = {}) {
+      const ctx = new Context();
+      clients.add(ctx);
+      const csrf = await getCsrf(cookie);
       const responses: number[] = [];
       const transport: Parameters<typeof installConnection>[1] = { interactions: "none", transport: {
         fetch: async (url, init) => {
@@ -118,7 +135,7 @@ async function fixture() {
       await ctx.remote.$mount(chatContribution);
       return { remote: ctx.remote, responses };
     }
-    return { source, host, peer, worker, sessionId, admissions, openView, connect, close,
+    return { source, host, peer, worker, sessionId, admissions, openView, connect, chatRequest, close,
       setState: (callback: typeof state) => { state = callback; }, readIdle,
       beforeReceipt: (callback: typeof beforeReceipt) => { beforeReceipt = callback; } };
   } catch (error) { await close(); throw error; }
@@ -231,3 +248,93 @@ test("Native busy returns the Chat Remote draft-retention error through the unar
     expect(f.admissions).toEqual([]);
   } finally { await f.close(); }
 });
+
+test("Chat refuses an oversized declared length before interpreting an otherwise valid DSH prompt", async () => {
+  const f = await fixture();
+  try {
+    const response = await f.chatRequest(f.openView().view, {
+      headers: { "content-length": String(2 * 1024 * 1024 + 1) }, body: promptEnvelope(f.sessionId),
+    });
+    expect(response.status).toBe(413);
+    expect(f.admissions).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test.each(["chunked", "underreported"] as const)("Chat caps actual bytes in a %s Request body", async mode => {
+  const f = await fixture();
+  try {
+    const text = new TextEncoder().encode(promptEnvelope(f.sessionId));
+    const padding = new Uint8Array(1024 * 1024).fill(0x20);
+    const parts = [text, padding, padding].values();
+    const body = new ReadableStream<Uint8Array>({ pull(controller) {
+      const chunk = parts.next();
+      if (chunk.done) controller.close();
+      else controller.enqueue(chunk.value);
+    } });
+    const headers: HeadersInit = mode === "underreported" ? { "content-length": String(text.byteLength) } : {};
+    const response = await f.chatRequest(f.openView().view, { headers, body });
+    expect(response.status).toBe(413);
+    expect(f.admissions).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("Chat rejects malformed wire UTF-8 inside otherwise valid JSON", async () => {
+  const f = await fixture();
+  try {
+    const envelope = promptEnvelope(f.sessionId);
+    const body = new TextEncoder().encode(envelope);
+    body[envelope.indexOf("fixture text")] = 0xff;
+    expect((await f.chatRequest(f.openView().view, { body })).status).toBe(400);
+    expect(f.admissions).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("the body limit admits a fully escaped maximum-length Chat input", async () => {
+  const f = await fixture();
+  try {
+    const body = promptEnvelope(f.sessionId).replace("fixture text", "\\u0061".repeat(256 * 1024));
+    const response = await f.chatRequest(f.openView().view, { body });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ result: { ok: true, value: { accepted: true } } });
+    expect(f.admissions).toEqual(["draft-a"]);
+  } finally { await f.close(); }
+});
+
+function stalledBody(prefix: string) {
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  let sent = false, cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (!sent) {
+        sent = true;
+        controller.enqueue(new TextEncoder().encode(prefix));
+        return;
+      }
+      entered.resolve();
+      return release.promise;
+    },
+    cancel() { cancelled = true; return release.promise; },
+  }, { highWaterMark: 0 });
+  return { body, entered: entered.promise, release: release.resolve, cancelled: () => cancelled };
+}
+
+test.each(["view", "grant", "request", "deadline"] as const)(
+  "Chat drops a stalled request body on %s without awaiting stream cancellation", async cause => {
+    const f = await fixture();
+    const stream = stalledBody(promptEnvelope(f.sessionId));
+    try {
+      const { view } = f.openView();
+      const abort = new AbortController();
+      const pending = f.chatRequest(view, { body: stream.body, signal: abort.signal });
+      await Promise.race([stream.entered, pending.then(() => { throw new Error("Body read did not reach the stall"); })]);
+      if (cause === "view") view.revoke();
+      if (cause === "grant") f.source.grants.revoke(f.source.grant.id);
+      if (cause === "request") abort.abort();
+      const response = await pending;
+      expect(response.status).toBe(cause === "deadline" ? 408 : 401);
+      expect(stream.cancelled()).toBe(true);
+      expect(f.admissions).toEqual([]);
+    } finally { stream.release(); await f.close(); }
+  }, 7000,
+);

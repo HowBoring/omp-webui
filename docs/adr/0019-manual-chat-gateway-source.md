@@ -21,8 +21,10 @@ A resolver supplies the original server-side handle. A fresh invocation capabili
 admitted credential, enrollment and exact worker and grant on every authorization and before reply
 publication. An invocation captures one projection and combines Request, Peer and enrollment cancellation.
 Enrollment lives in memory and is limited to 128 Views. The opt-in dispatch accepts at most 32 concurrent
-calls through the existing public DSH unary parser. The size-bounded HTTP listener and the matched Native
-and UI composition still own route activation. The diagnostics server keeps its existing unary allowlist.
+calls through the existing public DSH unary parser. It reads up to 2 MiB of wire JSON within five seconds,
+with strict UTF-8 decoding and current authority checks during upload. The byte allowance covers up to
+six wire bytes per byte of a 256 KiB text prompt plus the DSH envelope. The matched Native and UI
+composition still owns route activation. The diagnostics server keeps its existing unary allowlist.
 
 The public DSH `session/prompt` delegate accepts manual non-empty text and captures its exact request
 identity, UTF-8 bytes, mode and original projection before an await. A fresh prompt checks whether

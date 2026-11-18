@@ -7,6 +7,7 @@ import { chatRequestFailure } from "../../../packages/chat/service.ts";
 import { chatContribution } from "../../../packages/contracts/chat.ts";
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
+import { ChatBodyError, readChatRequestBody } from "./chat-request-body.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods };
@@ -26,7 +27,7 @@ const invalidated = () => new Response("Access invalidated", { status: 401, head
 type ResolveChatView = (request: Request, identity: BrowserAccess) => ChatViewEnrollment | undefined;
 type ChatBinding = NonNullable<ReturnType<ChatViewAdmission["bind"]>>;
 
-/** Opt-in unary dispatch for a trusted View resolver on a size-bounded HTTP carrier. */
+/** Opt-in unary dispatch with an authenticated View resolver and a bounded body read. */
 export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView) {
   let inflight = 0;
   return async (request: Request, ctx: Context, peer: Peer): Promise<Response> => {
@@ -59,14 +60,21 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, current: () 
   }
   let decoded;
   try {
-    const envelope = clientRequestSchema.parse(await request.json());
+    const data = chat ? await readChatRequestBody(request, chat.signal, current) : await request.json();
+    const envelope = clientRequestSchema.parse(data);
     const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
     if (!method || (!chat && !sessionUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
     const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(payload.args));
     decoded = { envelope, method, args };
-  } catch { return new Response("Invalid Session request", { status: 400 }); }
+  } catch (error) {
+    if (chat) {
+      if (!current()) return invalidated();
+      if (error instanceof ChatBodyError) return new Response(error.message, { status: error.status, headers: noStore });
+    }
+    return new Response("Invalid Session request", { status: 400 });
+  }
   const { envelope, method, args } = decoded;
   if (!current()) return invalidated();
   const options = chat ? { headers: noStore } : undefined;
