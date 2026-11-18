@@ -118,7 +118,9 @@ Busy-worker shutdown, contention, writes and history migration, TUI, paired DSH 
 global installation remain pending. [Candidate admission #41](https://github.com/HowBoring/omp-webui/issues/41)
 and [supervised Session delivery #44](https://github.com/HowBoring/omp-webui/issues/44)
 
-## UTF-8 attachment preparation
+## Attachment preparation
+
+### UTF-8 text
 
 An isolated comparison used the earlier stage and the stage built at
 `27978cf524b9142f8ffdd5fb50b26f7694b655e9`. The two stages had identical CLI and schema hashes.
@@ -140,4 +142,22 @@ directories remained empty. Both Catalog and Session processes in each run exite
 stderr EOF, empty stderr, and no termination or force. Each provider audit recorded zero denials and
 zero dispatches. The retained driver SHA-256 is
 `f86173833e5378526c4fa2f099d88782ff44ad4de21ebc398205cfa00891b585`.
+
+### PNG
+
+A fresh synthetic Session on the stage with the worker prepared a 72-byte, 2 × 2 PNG over public RPC v2.
+The ready receipt contained a 591-byte, 200 × 200 PNG. The SHA-256 of the serialized representation was
+`8290c8bb2f0b95d5d070becfa0f3844cf10a18a2f6eb19f2f3d258369407eab5`. The receipt reported the original
+2 × 2 dimensions separately and included `image_transformed`. Cancellation returned `{cancelled: true}`.
+The History tree readback matched, and the working directory remained empty. Catalog and Session
+both exited 0 with stdout and stderr EOF, empty stderr, and no termination or force. Both audits
+recorded zero denials and zero dispatches. The sanitized result SHA-256 was
+`9a9bac04ecd54c619cace0de7e5f5878209a2952911e31af64e24257189c1179` and the driver SHA-256 was
+`612dbe0e2766d64b5b51ff9dfbfd92832e80837c84d3139822e138b9a2b094c1`.
+
+The first driver stopped after the ready receipt when its assertion expected unchanged dimensions.
+That log has SHA-256 `6b914da3289e5ca707bf0d6f057c1ae29bc08806c59aa1eb46a897c952ea3640`.
+The successful run used Source38's 200-pixel minimum as the expected result.
+
+Consumption of prepared inputs, consent handling and the full attachment format matrix remain open.
 [Attachment preparation #38](https://github.com/HowBoring/omp-webui/issues/38)
