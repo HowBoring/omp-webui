@@ -35,7 +35,8 @@ const opened: HistoryOpen = { version: "coherent-history-v1", handoff: "current"
     pageItems: 32, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 100000, contentItems: 64,
     contentPageBytes: 10000, liveEvents: 1024, liveBytes: 1000000, pollItems: 100 } };
 
-async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<HistoryCut>; nativeError?: string; emptyContinuation?: boolean; advertisedParts?: number } = {}) {
+async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<HistoryCut>; nativeError?: string;
+  emptyContinuation?: boolean; advertisedParts?: number; openMetadata?: Partial<Pick<HistoryOpen, "snapshot" | "cut">> } = {}) {
   const host = new Context(), client = new Context();
   await host.plugin(TypertRegistry); await host.plugin(RemoteAccessService); await host.plugin(TypertGatewayService, {});
   host.typert.register(treeHostContribution);
@@ -51,20 +52,21 @@ async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<
   let releasePage: (() => void) | undefined;
   let enteredPage: (() => void) | undefined;
   const pages = structuredClone(options.pages ?? rows);
+  const currentOpen = { ...opened, ...options.openMetadata };
   const history = new HistoryClient(async command => {
     commands.push(command.type);
     if (command.type === "history_snapshot_close") return { closed: true };
     if (command.type === "history_snapshot_open") {
       if (command.scope !== "tree" || command.handoff !== "current") throw Error("UNEXPECTED_NATIVE_SCOPE");
-      return structuredClone({ ...opened,
+      return structuredClone({ ...currentOpen,
         count: options.advertisedParts ?? pages.reduce((sum, page) => sum + page.length, 0) });
     }
     if (command.type !== "history_snapshot_page") throw Error("UNEXPECTED_NATIVE_OPERATION");
     if (failPage) throw Error(options.nativeError ?? "history_stale_cursor");
     if (pageBarrier) { enteredPage?.(); await pageBarrier; pageBarrier = undefined; }
     const index = Number(command.cursor.slice("cursor-".length));
-    const page: HistoryPage = { snapshot: opened.snapshot, scope: "tree", cut: { ...cut,
-      ...(index > 0 ? options.changedCut : {}), ...(rewritten ? { contentRevision: "rewritten-current-cut" } : {}) }, expiresAt: opened.expiresAt,
+    const page: HistoryPage = { snapshot: currentOpen.snapshot, scope: "tree", cut: { ...currentOpen.cut,
+      ...(index > 0 ? options.changedCut : {}), ...(rewritten ? { contentRevision: "rewritten-current-cut" } : {}) }, expiresAt: currentOpen.expiresAt,
       items: pages[index] ?? [], complete: true,
       ...(index < pages.length - 1 || options.emptyContinuation ? { nextCursor: `cursor-${index + 1}` } : {}) };
     afterRead?.(); afterRead = undefined;
@@ -224,6 +226,18 @@ test("every native source-cut field fences subsequent pages, including same-shap
       expect(JSON.stringify(start)).not.toContain("SYNTHETIC_PRIVATE_REFERENCE");
     } finally { await f.dispose(); }
   }
+});
+
+test("the exact catalog reference fences reads while staying private to the Host", async () => {
+  const catalogBinding = { sourceId: "source", instanceId: "instance", nativeSessionId: "session",
+    reference: "SYNTHETIC_PRIVATE_REFERENCE" };
+  const f = await fixture({ openMetadata: { cut: { ...cut, sourceBindingStatus: "catalog", catalogBinding } },
+    changedCut: { catalogBinding: { ...catalogBinding, reference: "SYNTHETIC_CHANGED_REFERENCE" } } });
+  try {
+    const { start, last } = await complete(f);
+    expect(JSON.stringify(start)).not.toContain(catalogBinding.reference);
+    expect(last).toEqual({ status: "error", code: "tree_source_changed" });
+  } finally { await f.dispose(); }
 });
 
 test("unknown content and continuity types block preview without returning their payload", async () => {
@@ -468,31 +482,34 @@ test("tree pages and old previews remain reachable past the former aggregate tex
   } finally { await f.dispose(); }
 });
 
-test("an excessively fragmented entry cannot force an unbounded native preview scan", async () => {
-  const pages = Array.from({ length: 65 }, (_, index) => [{ ...item(`e:part:${index}`, null, true, "x"),
-    entryId: "e", partIndex: index, partCount: 65 }]);
-  const f = await fixture({ pages });
-  try {
-    const { start, last } = await complete(f);
-    expect(last.status === "page" && last.continuity).toBe("complete");
-    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
-      .toEqual({ status: "error", code: "tree_preview_budget" });
-    expect(f.commands.filter(type => type === "history_snapshot_page")).toHaveLength(65);
-  } finally { await f.dispose(); }
-});
-
-test("one split entry exceeding the text budget invalidates its snapshot", async () => {
-  const text = "x".repeat(32 * 1024);
-  const pages = Array.from({ length: 65 }, (_, index) => [{ ...item(`e:part:${index}`, null, true, text),
-    entryId: "e", partIndex: index, partCount: 65 }]);
-  const f = await fixture({ pages });
-  try {
-    const { start, last } = await complete(f);
-    expect(last).toEqual({ status: "error", code: "tree_cache_budget" });
-    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
-      .toEqual({ status: "error", code: "tree_snapshot_unavailable" });
-  } finally { await f.dispose(); }
-});
+const previewBudgetCases = [
+  { name: "too many preview pages", partsPerPage: 1, partText: "x" },
+  { name: "too much preview text", partsPerPage: 16, partText: "x".repeat(32 * 1024) },
+];
+for (const { name, partsPerPage, partText } of previewBudgetCases) {
+  test(`refusing ${name} leaves other Tree selections available`, async () => {
+    const { TreeBrowser } = await import("../../packages/tree/browser.ts");
+    const pages = [[item("a", null, true, "Small question")]];
+    for (let index = 0; index < 65; index++) {
+      if (index % partsPerPage === 0) pages.push([]);
+      pages.at(-1)?.push({ ...item(`e:part:${index}`, "a", true, partText),
+        entryId: "e", partIndex: index, partCount: 65 });
+    }
+    const f = await fixture({ pages }), browser = new TreeBrowser("session", f.read);
+    try {
+      await browser.open();
+      while (browser.getSnapshot().phase === "partial") await browser.nextPage();
+      expect(browser.getSnapshot().phase).toBe("complete");
+      await browser.select("e");
+      expect(browser.getSnapshot()).toMatchObject({ phase: "complete", error: "tree_preview_budget" });
+      expect(browser.getSnapshot().preview).toBeUndefined();
+      expect(f.commands.filter(type => type === "history_snapshot_page")).toHaveLength(pages.length);
+      await browser.select("a");
+      expect(browser.getSnapshot().preview?.text).toBe("Small question");
+      expect(browser.getSnapshot().error).toBeUndefined();
+    } finally { browser.dispose(); await f.dispose(); }
+  });
+}
 
 
 test("an empty nonterminal native page cannot grow an unbounded cursor chain", async () => {
@@ -512,4 +529,18 @@ test("an oversized advertised snapshot is refused before any native page allocat
       .toEqual({ status: "error", code: "tree_cache_budget" });
     expect(f.commands).toEqual(["history_snapshot_open", "history_snapshot_close"]);
   } finally { await f.dispose(); }
+});
+
+test("oversized native snapshot metadata is refused and closed before reading any page", async () => {
+  const catalogBinding = { sourceId: "source", instanceId: "instance", nativeSessionId: "session",
+    reference: "x".repeat(4097) };
+  for (const openMetadata of [{ snapshot: "x".repeat(257) },
+    { cut: { ...cut, sourceBindingStatus: "catalog" as const, catalogBinding } }]) {
+    const f = await fixture({ openMetadata });
+    try {
+      expect(await f.read({ operation: "open", sessionId: "session" }))
+        .toEqual({ status: "error", code: "tree_cache_budget" });
+      expect(f.commands).toEqual(["history_snapshot_open", "history_snapshot_close"]);
+    } finally { await f.dispose(); }
+  }
 });

@@ -71,11 +71,15 @@ export class TreeBrowser {
     if (this.disposed || this.state.pending || this.state.phase !== "complete" || !this.snapshot) return;
     const generation = this.generation, snapshot = this.snapshot;
     // Clear the previous preview immediately; a slow response cannot mislabel it as the new selection.
-    const { preview: _preview, ...state } = this.state;
+    const { preview: _preview, error: _error, ...state } = this.state;
     this.publish({ ...state, selectedId: entryId, pending: true });
     try {
       const result = await this.read({ operation: "preview", snapshot, entryId });
       if (generation !== this.generation || this.disposed) return;
+      if (result.status === "error" && result.code === "tree_preview_budget") {
+        this.publish({ ...this.state, pending: false, error: result.code });
+        return;
+      }
       if (result.status !== "preview") { this.refuse(result); return; }
       this.publish({ ...this.state, pending: false, preview: result });
     } catch { if (generation === this.generation && !this.disposed) this.invalidate("tree_remote_unavailable"); }

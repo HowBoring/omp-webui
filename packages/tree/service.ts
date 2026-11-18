@@ -22,6 +22,7 @@ interface Snapshot {
 const MAX_SNAPSHOTS = 8, MAX_NODES = 20_000, MAX_PARTS = 60_000;
 const MAX_INDEX_BYTES = 16 * 1024 * 1024, MAX_TOTAL_INDEX_BYTES = 32 * 1024 * 1024;
 const MAX_PREVIEW_TEXT_UNITS = 2 * 1024 * 1024;
+const MAX_CATALOG_REFERENCE_UNITS = 4096;
 // Current Native splits at 32 Ki UTF-16 units. Even one part per page fits this reread budget.
 const MAX_PREVIEW_PAGES = 64;
 const PAGE_INDEX_OVERHEAD = 32, PART_INDEX_OVERHEAD = 32;
@@ -49,6 +50,20 @@ const position = (cut: HistoryCut): TreePosition => ({ sourceId: cut.sourceId, s
   retainedRevision: cut.retainedRevision, nativeRevision: cut.nativeRevision, observationSeq: cut.observationSeq,
   leafId: cut.leafId, durability: "not_attested" });
 
+function retainedCut(cut: HistoryCut): HistoryCut {
+  const { sourceId, sessionId, workerId, contextId, contentRevision, retainedRevision, leafId,
+    catalogBinding, sourceBindingStatus } = cut;
+  const tokens = [sourceId, sessionId, workerId, contextId, contentRevision, retainedRevision];
+  if (leafId !== null) tokens.push(leafId);
+  if (catalogBinding) tokens.push(catalogBinding.sourceId, catalogBinding.instanceId, catalogBinding.nativeSessionId);
+  if (!tokens.every(validToken) || (catalogBinding && (!catalogBinding.reference
+    || catalogBinding.reference.length > MAX_CATALOG_REFERENCE_UNITS))) fail("tree_cache_budget");
+  return { ...position(cut), sourceBindingStatus, ...(catalogBinding ? { catalogBinding: {
+    sourceId: catalogBinding.sourceId, instanceId: catalogBinding.instanceId,
+    nativeSessionId: catalogBinding.nativeSessionId, reference: catalogBinding.reference,
+  } } : {}) };
+}
+
 /** Disposable bounded read-only adapter. It is intentionally unregistered in the product Host. */
 export class ReadonlyTree extends TypertRemoteService {
   private readonly snapshots = new Map<string, Snapshot>();
@@ -62,9 +77,10 @@ export class ReadonlyTree extends TypertRemoteService {
     const invocation = this.ctx.invocation;
     if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) fail("tree_authority_unavailable");
     try {
-      const access = this.authorize(invocation.peer, sessionId);
-      if (access.sessionId !== sessionId || !access.epoch) fail("tree_authority_unavailable");
-      return { owner: invocation.peer, access: { ...access } };
+      const { epoch, sourceId, sessionId: admittedSessionId, workerId, contextId, history }
+        = this.authorize(invocation.peer, sessionId);
+      if (admittedSessionId !== sessionId || !validToken(epoch)) fail("tree_authority_unavailable");
+      return { owner: invocation.peer, access: { epoch, sourceId, sessionId, workerId, contextId, history } };
     } catch { return fail("tree_authority_unavailable"); }
   }
   private recheck(snapshot: Snapshot): void {
@@ -115,19 +131,21 @@ export class ReadonlyTree extends TypertRemoteService {
       opened = await binding.access.history.open("tree", "current");
       if (opened.count > MAX_PARTS) fail("tree_cache_budget");
       if (!validToken(opened.cursor)) fail("tree_invalid_page");
-      const { snapshot: nativeId, cursor, cut, count, expiresAt } = opened;
-      const snapshot: Snapshot = { ...binding, opened: { snapshot: nativeId, cursor, cut, count, expiresAt },
-        cursor, nodes: new Map(), cursors: new Set(), parts: 0, indexBytes: 0, complete: false,
-        activePath: [], busy: false };
+      const { snapshot: nativeId, cursor, count, expiresAt } = opened;
+      if (!validToken(nativeId)) fail("tree_cache_budget");
+      const retained = { snapshot: nativeId, cursor, cut: retainedCut(opened.cut), count, expiresAt };
+      const indexBytes = Buffer.byteLength(JSON.stringify(retained)) + Buffer.byteLength(binding.access.epoch);
+      const snapshot: Snapshot = { ...binding, opened: retained, cursor, nodes: new Map(), cursors: new Set(),
+        parts: 0, indexBytes, complete: false, activePath: [], busy: false };
       this.recheck(snapshot);
       if (opened.scope !== "tree" || opened.handoff !== "current" || opened.cursor !== opened.cursors.tree
         || opened.cut.sourceId !== binding.access.sourceId || opened.cut.sessionId !== sessionId
         || opened.cut.workerId !== binding.access.workerId || opened.cut.contextId !== binding.access.contextId) {
         fail("tree_binding_changed");
       }
+      this.checkIndexBudget(snapshot);
       const id = crypto.randomUUID(); this.snapshots.set(id, snapshot);
-      return { status: "opened", snapshot: id, cursor: opened.cursor, position: position(opened.cut),
-        expiresAt: opened.expiresAt, nativeParts: opened.count };
+      return { status: "opened", snapshot: id, cursor, position: position(retained.cut), expiresAt, nativeParts: count };
     } catch (error) {
       if (opened) await binding.access.history.close(opened.snapshot).catch(() => {});
       throw error;
@@ -150,7 +168,7 @@ export class ReadonlyTree extends TypertRemoteService {
     }
     snapshot.cursors.add(cursor);
     const location = { cursor, nextCursor: page.nextCursor, itemCount: page.items.length };
-    snapshot.indexBytes += Buffer.byteLength(cursor) + PAGE_INDEX_OVERHEAD;
+    snapshot.indexBytes += Buffer.byteLength(page.nextCursor ?? "") + PAGE_INDEX_OVERHEAD;
     const nodes: TreeNode[] = [];
     for (const [offset, item] of page.items.entries()) {
       const entry = this.adopt(snapshot, item, location, offset);
@@ -177,9 +195,8 @@ export class ReadonlyTree extends TypertRemoteService {
       fail("tree_invalid_parts");
     }
     if (node.contentState === "readable") entry.textUnits += item.text.length;
-    if (entry.textUnits > MAX_PREVIEW_TEXT_UNITS) fail("tree_cache_budget");
-    const digest = node.contentState === "readable" ? textDigest(item.text) : undefined;
     if (entry.parts.at(-1)?.page !== page) entry.pageCount++;
+    const digest = node.contentState === "readable" && this.previewFits(entry) ? textDigest(item.text) : undefined;
     entry.parts.push({ page, offset, textDigest: digest });
     snapshot.indexBytes += PART_INDEX_OVERHEAD + (digest?.length ?? 0);
     if (!prior) {
@@ -190,9 +207,13 @@ export class ReadonlyTree extends TypertRemoteService {
     return entry;
   }
   private checkIndexBudget(snapshot: Snapshot): void {
-    const total = [...this.snapshots.values()].reduce((sum, value) => sum + value.indexBytes, 0);
+    let total = snapshot.indexBytes;
+    for (const current of this.snapshots.values()) if (current !== snapshot) total += current.indexBytes;
     if (snapshot.nodes.size > MAX_NODES || snapshot.parts > MAX_PARTS || snapshot.indexBytes > MAX_INDEX_BYTES
       || total > MAX_TOTAL_INDEX_BYTES) fail("tree_cache_budget");
+  }
+  private previewFits(entry: Entry): boolean {
+    return entry.textUnits <= MAX_PREVIEW_TEXT_UNITS && entry.pageCount <= MAX_PREVIEW_PAGES;
   }
   private async preview(snapshot: Snapshot, id: string): Promise<TreeResult> {
     const entry = snapshot.nodes.get(id);
@@ -201,7 +222,7 @@ export class ReadonlyTree extends TypertRemoteService {
       this.checkPage(snapshot, page);
       return { status: "error", code: "tree_entry_unavailable" };
     }
-    if (entry.pageCount > MAX_PREVIEW_PAGES) fail("tree_preview_budget");
+    if (!this.previewFits(entry)) return { status: "error", code: "tree_preview_budget" };
     const text: string[] = [];
     for (let index = 0; index < entry.parts.length;) {
       const location = entry.parts[index]!.page;

@@ -80,13 +80,14 @@ this slice does not claim that flattening satisfies that ticket.
 
 ## Bounds and evidence
 
-The Host retains topology, cursor and part locations, and readable-part digests in
-disposable memory. The index allows 8 concurrent snapshots with up to 20,000 nodes,
-60,000 parts and 16 MiB of accounted index data per snapshot, and 32 MiB across the
-service. Native frames and snapshots retain their own bounds and expiry. A page
-holds up to 1,024 items, and a preview assembles up to 2 Mi UTF-16 units from at
-most 64 native pages. A budget breach returns an explicit error. The Host stores
-no history on disk.
+The Host retains the bounded snapshot identity and source cut, topology, cursor
+and part locations, and previewable text digests in disposable memory. The index
+allows 8 concurrent snapshots with up to 20,000 nodes, 60,000 parts and 16 MiB of
+accounted index data per snapshot, and 32 MiB across the service. Native frames
+and snapshots retain their own bounds and expiry. A page holds up to 1,024 items.
+A preview assembles up to 2 Mi UTF-16 units from at most 64 native pages. An entry
+over either preview limit reports `tree_preview_budget` and the Tree stays
+available for other selections. The Host stores no history on disk.
 
 Tree completion still reads each native page while indexing the parent graph.
 Preview reads only the indexed pages for its selection. Native current-mode
