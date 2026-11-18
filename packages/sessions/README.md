@@ -102,10 +102,11 @@ diagnostic count and continues draining. A reader failure can leave its EOF
 unobserved. Domain completion comes from the helper's validated COMPLETE, control
 EOF and reap.
 
-SessionSupervisor still needs an owned launch path that saves the handle before
-awaiting RPC readiness, reserves its slot through uncertain domain completion, and
-hands mandatory cleanup to the helper's absolute deadline. This attachment is covered
-with in-memory streams and leaves product admission blocked.
+The opt-in `launchOwned` constructor option connects this attachment to the
+supervisor's early retention path described above. The supervisor fences the
+connection at retirement using the original Host-local cutoff. The helper still
+needs an acknowledged handoff of the absolute deadline for physical shutdown.
+Controlled streams cover attachment and retention. Product admission remains blocked.
 
 ## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)
 
