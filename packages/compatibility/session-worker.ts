@@ -177,7 +177,8 @@ export interface OwnedSessionConnection {
   }>;
   /** Settles after beginCleanup with the outcomes for UI tracked at its fence. Separate from exit and EOF. */
   readonly interactionCleanup: Promise<readonly InteractionCleanupOutcome[]>;
-  /** Irreversibly fences regular work. Cleanup requires authenticated v2 and an open transport.
+  /** Irreversibly fences regular work and future helper START submission.
+   * Cleanup RPCs require authenticated v2 and an open transport.
    * The first cutoff is in the local performance.now() time domain, at most 30s away.
    * An invalid or expired cutoff leaves regular work fenced and grants no cleanup access. */
   beginCleanup(cutoff: number): OwnedSessionCleanup | undefined;
@@ -202,7 +203,7 @@ export class SessionWorker extends SessionRpc {
 
   /** The caller retains the original helper and its cleanup authority, including when RPC startup rejects. */
   static attachOwned(helper: PrivateHelperHandle, options: OwnedSessionOptions = {}): OwnedSessionConnection {
-    const { rootExit, completed } = helper;
+    const { control, rootExit, completed } = helper;
     const interactionCleanup = Promise.withResolvers<readonly InteractionCleanupOutcome[]>();
     try {
       const notifications = new SessionNotifications();
@@ -230,6 +231,7 @@ export class SessionWorker extends SessionRpc {
       return {
         ready, rootExit, completed, output: transport.output, interactionCleanup: interactionCleanup.promise,
         beginCleanup: cutoff => {
+          control.fenceStart();
           notifications.retire();
           const request = transport.beginCleanup(cutoff);
           if (!retireInteractions) {
@@ -245,8 +247,13 @@ export class SessionWorker extends SessionRpc {
       const unavailable = Promise.reject<never>(error instanceof OwnedRpcError
         ? error : new OwnedRpcError("RPC_PIPE_ATTACH_FAILED"));
       void unavailable.catch(() => {});
-      return { ready: unavailable, rootExit, completed, output: unavailable,
-        interactionCleanup: interactionCleanup.promise, beginCleanup: () => { interactionCleanup.resolve([]); } };
+      return {
+        ready: unavailable, rootExit, completed, output: unavailable, interactionCleanup: interactionCleanup.promise,
+        beginCleanup: () => {
+          control.fenceStart();
+          interactionCleanup.resolve([]);
+        },
+      };
     }
   }
 
