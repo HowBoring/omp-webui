@@ -45,7 +45,7 @@ function sourceIdentity(manager: BranchInspection): BranchInspectSource {
 	}
 }
 
-function readTarget(manager: BranchInspection, entryId: string) {
+function readTarget(manager: BranchInspection, entryId: string, source: BranchInspectSource) {
 	const entry = manager.getEntry(entryId);
 	if (!entry) return refuse("BRANCH_TARGET_MISSING");
 	if (entry.type !== "message" || entry.message?.role !== "user") return refuse("BRANCH_TARGET_NOT_USER");
@@ -55,10 +55,11 @@ function readTarget(manager: BranchInspection, entryId: string) {
 		const target = manager.navigationTarget(entryId);
 		if (target.entryId === entryId && target.parentId === entry.parentId) return target;
 	} catch (failure) {
-		// The Native target reader checks protected storage again before reading the entry.
 		const code = failure instanceof Error ? failure.message : undefined;
 		if (code === "NAVIGATION_ENTRY_NOT_FOUND") return refuse("BRANCH_TARGET_MISSING");
-		if (code !== "NAVIGATION_TARGET_TOO_LARGE") return refuse("BRANCH_SOURCE_UNAVAILABLE");
+		// An unexpected failure can come from the protected read or from encoding the target.
+		if (code !== "NAVIGATION_TARGET_TOO_LARGE" && !sameBranchSource(sourceIdentity(manager), source))
+			return refuse("BRANCH_SOURCE_CHANGED");
 	}
 	return refuse("BRANCH_TARGET_UNAVAILABLE");
 }
@@ -75,7 +76,7 @@ export function inspectBranch(
 	if (!sameBranchSource(source, value.source)) return refuse("BRANCH_SOURCE_CHANGED");
 	const { entryId, expected } = value;
 	if (expected && (outstandingBuiltinCount > 0 || isBusy())) return refuse("session_busy");
-	const target = readTarget(manager, entryId);
+	const target = readTarget(manager, entryId, source);
 	const contextRevision = sourceContext(manager);
 	const preview = { version: "branch-inspect-v1", source, ...target, contextRevision };
 	if (!validBranchInspectPreview(preview)) return refuse("BRANCH_TARGET_UNAVAILABLE");

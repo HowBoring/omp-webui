@@ -51,19 +51,36 @@ busy = false;
 await assert.rejects(client.inspect({ source, entryId, expected: { ...expected, parentId: null } }),
 	{ code: "BRANCH_STALE_TARGET" });
 
-function clientWithLostTarget(message: string): BranchInspectClient {
+function clientWithLostTarget(failure: Error, sourceDrifts = false): BranchInspectClient {
+	let targetReadStarted = false;
+	function assertNavigationSource() {
+		if (sourceDrifts && targetReadStarted) throw failure;
+	}
 	return new BranchInspectClient(async command => roundTrip(respondBranchInspect(roundTrip(command), {
 		...manager,
-		navigationTarget() { throw new Error(message); },
+		assertNavigationSource,
+		navigationTarget() {
+			targetReadStarted = true;
+			assertNavigationSource();
+			throw failure;
+		},
 	}, () => false, 0)));
 }
 
-await assert.rejects(clientWithLostTarget("STRICT_SOURCE_DRIFT_OUTCOME_UNKNOWN").inspect({ source, entryId, expected }),
+const storageDrift = new Error("STRICT_SOURCE_DRIFT_OUTCOME_UNKNOWN");
+await assert.rejects(clientWithLostTarget(storageDrift, true).inspect({ source, entryId, expected }),
 	{ code: "BRANCH_SOURCE_UNAVAILABLE" });
-await assert.rejects(clientWithLostTarget("NAVIGATION_ENTRY_NOT_FOUND").inspect({ source, entryId, expected }),
-	{ code: "BRANCH_TARGET_MISSING" });
-await assert.rejects(clientWithLostTarget("NAVIGATION_TARGET_TOO_LARGE").inspect({ source, entryId, expected }),
+const serializationFailure = new RangeError("Maximum call stack size exceeded");
+await assert.rejects(clientWithLostTarget(serializationFailure).inspect({ source, entryId, expected }),
 	{ code: "BRANCH_TARGET_UNAVAILABLE" });
+await assert.rejects(
+	clientWithLostTarget(new Error("NAVIGATION_ENTRY_NOT_FOUND")).inspect({ source, entryId, expected }),
+	{ code: "BRANCH_TARGET_MISSING" },
+);
+await assert.rejects(
+	clientWithLostTarget(new Error("NAVIGATION_TARGET_TOO_LARGE")).inspect({ source, entryId, expected }),
+	{ code: "BRANCH_TARGET_UNAVAILABLE" },
+);
 
 const wrongReply = new BranchInspectClient(async command => ({
 	id: command.id, type: "response", command: command.type, success: true,
