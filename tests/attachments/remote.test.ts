@@ -70,6 +70,52 @@ test("proposed Host Remote stages and reads exact originals without preparation 
   } finally { await f.dispose(); }
 });
 
+test("typed Host Remote retains selected document bytes and reports only signature checks", async () => {
+  const f = await fixture();
+  try {
+    const documents = [
+      ["application/pdf", "JVBERi0xLjcK"],
+      ["application/vnd.openxmlformats-officedocument.wordprocessingml.document", "UEsDBAE="],
+      ["application/vnd.openxmlformats-officedocument.presentationml.presentation", "UEsDBAI="],
+      ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "UEsDBAM="],
+      ["application/epub+zip", "UEsDBAQ="],
+    ] as const;
+    for (const [mediaType, encoded] of documents) {
+      const document = { mediaType, displayName: "@other.gif", byteLength: Buffer.from(encoded, "base64").length };
+      const result = await f.remote.exchange({ operation: "stage-base64", target, descriptor: document, base64: encoded });
+      expect(result).toMatchObject({ ok: true, value: { status: "staged", original: { ...document,
+        state: "staged-unprepared", nativeAssociation: "unassociated", validation: "signature-only" } } });
+      if (!result.ok || result.value.status !== "staged") throw Error("stage refused");
+      const read = await f.remote.exchange({ operation: "read-base64", target, objectId: result.value.original.objectId });
+      expect(read.ok && read.value).toEqual({ status: "read", original: result.value.original, base64: encoded });
+    }
+  } finally { await f.dispose(); }
+});
+
+test("typed Host Remote reports document quota, signature and UTF-8 refusals without losing a staged original", async () => {
+  const f = await fixture();
+  try {
+    const source = { displayName: "source.ts", mediaType: "text/plain" as const, byteLength: 3 };
+    const accepted = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "w6kK" });
+    if (!accepted.ok || accepted.value.status !== "staged") throw Error("stage refused");
+    expect(accepted.value.original.validation).toBe("utf8-only");
+    const invalidUtf8 = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "YXjh" });
+    expect(invalidUtf8.ok && invalidUtf8.value).toEqual({ status: "error", code: "attachment_invalid_utf8" });
+    const mislabeled = await f.remote.exchange({ operation: "stage-base64", target,
+      descriptor: { ...descriptor, mediaType: "application/pdf" }, base64 });
+    expect(mislabeled.ok && mislabeled.value).toEqual({ status: "error", code: "attachment_media_mismatch" });
+    const oversized = await f.remote.exchange({ operation: "stage-base64", target, base64: "w6kK",
+      descriptor: { ...source, byteLength: 5 * 1024 ** 2 + 1 } });
+    expect(oversized.ok && oversized.value).toEqual({ status: "error", code: "attachment_object_budget" });
+    const unsupported = await f.remote.exchange({ operation: "stage-base64", target, base64: "UEsDBAE=",
+      // @ts-expect-error The public codec must refuse unsupported media declared by a runtime caller.
+      descriptor: { displayName: "package.zip", mediaType: "application/zip", byteLength: 5 } });
+    expect(unsupported.ok).toBe(false);
+    const read = await f.remote.exchange({ operation: "read-base64", target, objectId: accepted.value.original.objectId });
+    expect(read.ok && read.value).toEqual({ status: "read", original: accepted.value.original, base64: "w6kK" });
+  } finally { await f.dispose(); }
+});
+
 test("revoked or unopened scopes and noncanonical base64 never stage originals through an owner Peer", async () => {
   for (const change of ["revoke", "unopen", "malformed"] as const) {
     const f = await fixture();

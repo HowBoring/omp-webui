@@ -3,6 +3,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync,
   readFileSync, readdirSync, realpathSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { isAttachmentError } from "./errors.ts";
+import { documentOriginalBytes, imageOriginalBytes, isOriginalMediaType, type OriginalMediaType } from "./media.ts";
+
+export type { ImageMediaType } from "./media.ts";
 
 /** Trusted Host authority, never decoded from browser JSON. No Native access is performed by this store. */
 export interface OriginalScope {
@@ -11,17 +15,19 @@ export interface OriginalScope {
 }
 /** Recheck live browser, directory, exact native identity and trusted page binding on every invocation. */
 export type OriginalAccess = () => OriginalScope;
-export type ImageMediaType = "image/png" | "image/jpeg" | "image/webp" | "image/gif";
-export interface OriginalDescriptor { displayName: string; mediaType: ImageMediaType; byteLength: number }
+export interface OriginalDescriptor { displayName: string; mediaType: OriginalMediaType; byteLength: number }
 export interface StagedOriginal extends OriginalDescriptor {
   objectId: string; sha256: string; state: "staged-unprepared"; nativeAssociation: "unassociated";
-  validation: "signature-only"; stagedAt: number;
+  validation: "signature-only" | "utf8-only"; stagedAt: number;
 }
 export interface OriginalLimits {
-  totalBytes: number; objectBytes: number; draftBytes: number; draftObjects: number; objects: number; intakes: number;
+  totalBytes: number;
+  /** Per-image ceiling. Text and documents have an independent 5 MiB ceiling. */
+  objectBytes: number;
+  draftBytes: number; draftObjects: number; objects: number; intakes: number;
 }
 export const originalLimits: Readonly<OriginalLimits> = Object.freeze({ totalBytes: 10 * 1024 ** 3,
-  objectBytes: 10 * 1024 ** 2, draftBytes: 32 * 1024 ** 2, draftObjects: 8, objects: 100_000, intakes: 16 });
+  objectBytes: imageOriginalBytes, draftBytes: 32 * 1024 ** 2, draftObjects: 8, objects: 100_000, intakes: 16 });
 export interface OriginalStoreOptions {
   dataDir: string;
   /** Only the exclusive Host startup owner may recover interrupted writes; other connections must join. */
@@ -29,7 +35,7 @@ export interface OriginalStoreOptions {
   limits?: Partial<OriginalLimits>;
 }
 interface Row {
-  id: string; scope: string; size: number; displayName: string; mediaType: ImageMediaType;
+  id: string; scope: string; size: number; displayName: string; mediaType: OriginalMediaType;
   state: "receiving" | "staged-unprepared"; sha256: string | null; stagedAt: number;
 }
 function fail(code: string): never { throw new Error(`attachment_${code}`); }
@@ -108,10 +114,10 @@ export class OriginalStore {
   }
 
   private reserve(scope: OriginalScope, descriptor: OriginalDescriptor): Row {
-    if (!Number.isSafeInteger(descriptor.byteLength) || descriptor.byteLength < 1
-      || descriptor.byteLength > this.limits.objectBytes) fail("object_budget");
     if (!descriptor.displayName || descriptor.displayName.length > 255 || /[\u0000-\u001f\u007f]/.test(descriptor.displayName)
-      || !["image/png", "image/jpeg", "image/webp", "image/gif"].includes(descriptor.mediaType)) fail("invalid_descriptor");
+      || !isOriginalMediaType(descriptor.mediaType)) fail("invalid_descriptor");
+    if (!Number.isSafeInteger(descriptor.byteLength) || descriptor.byteLength < 1
+      || descriptor.byteLength > this.objectCeiling(descriptor.mediaType)) fail("object_budget");
     return this.db.transaction(() => {
       const total = this.db.query<{ bytes: number; count: number; intakes: number }, []>(
         "SELECT coalesce(sum(size),0) AS bytes, count(*) AS count, "
@@ -134,6 +140,10 @@ export class OriginalStore {
     }).immediate();
   }
 
+  private objectCeiling(mediaType: OriginalMediaType): number {
+    return mediaType.startsWith("image/") ? this.limits.objectBytes : documentOriginalBytes;
+  }
+
   async stage(access: OriginalAccess, descriptor: OriginalDescriptor, body: AsyncIterable<Uint8Array>,
     signal?: AbortSignal): Promise<StagedOriginal> {
     const scope = this.current(access, undefined, signal);
@@ -144,18 +154,21 @@ export class OriginalStore {
       fd = openSync(this.path(row.id, "partial"), constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL
         | constants.O_NOFOLLOW, 0o600);
       const hash = createHash("sha256"), prefix: number[] = [];
+      const utf8 = row.mediaType === "text/plain" ? new TextDecoder("utf-8", { fatal: true }) : undefined;
       let written = 0;
       for await (const chunk of cancelableChunks(body, signal)) {
         this.current(access, scope, signal);
         if (!(chunk instanceof Uint8Array) || chunk.byteLength > row.size - written) fail("size_mismatch");
-        for (const byte of chunk.subarray(0, 12 - prefix.length)) prefix.push(byte);
+        if (utf8) checkUtf8(utf8, chunk);
+        else for (const byte of chunk.subarray(0, 12 - prefix.length)) prefix.push(byte);
         let offset = 0;
         while (offset < chunk.length) offset += writeSync(fd, chunk, offset);
         hash.update(chunk); written += chunk.byteLength;
       }
       this.current(access, scope, signal);
       if (written !== row.size) fail("size_mismatch");
-      if (!matchesSignature(row.mediaType, prefix)) fail("media_mismatch");
+      if (utf8) checkUtf8(utf8);
+      else if (!matchesSignature(row.mediaType, prefix)) fail("media_mismatch");
       fsyncSync(fd); closeSync(fd); fd = undefined;
       renameSync(this.path(row.id, "partial"), this.path(row.id, "original"));
       this.syncDirectory();
@@ -166,7 +179,7 @@ export class OriginalStore {
     } catch (error) {
       if (fd !== undefined) { closeSync(fd); fd = undefined; }
       this.cleanup(row.id);
-      if (error instanceof Error && /^attachment_[a-z_]+$/.test(error.message)) throw error;
+      if (isAttachmentError(error)) throw error;
       fail("storage_unavailable");
     } finally { this.pending.delete(row.id); }
   }
@@ -190,7 +203,7 @@ export class OriginalStore {
     try {
       fd = openSync(this.path(row.id, "original"), constants.O_RDONLY | constants.O_NOFOLLOW);
       const file = fstatSync(fd);
-      if (!file.isFile() || file.nlink !== 1 || file.size !== row.size || file.size > this.limits.objectBytes) {
+      if (!file.isFile() || file.nlink !== 1 || file.size !== row.size || file.size > this.objectCeiling(row.mediaType)) {
         fail("original_corrupt");
       }
       return readFileSync(fd);
@@ -211,7 +224,7 @@ export class OriginalStore {
     if (row.state !== "staged-unprepared" || !row.sha256) fail("object_unavailable");
     return { objectId: row.id, displayName: row.displayName, mediaType: row.mediaType, byteLength: row.size,
       sha256: row.sha256, state: "staged-unprepared", nativeAssociation: "unassociated",
-      validation: "signature-only", stagedAt: row.stagedAt };
+      validation: row.mediaType === "text/plain" ? "utf8-only" : "signature-only", stagedAt: row.stagedAt };
   }
 
   private syncDirectory(): void {
@@ -256,12 +269,26 @@ export class OriginalStore {
   }
 }
 
-function matchesSignature(type: ImageMediaType, prefix: number[]): boolean {
+function matchesSignature(type: OriginalMediaType, prefix: number[]): boolean {
   const starts = (values: number[]) => values.every((value, index) => prefix[index] === value);
-  if (type === "image/png") return starts([137, 80, 78, 71, 13, 10, 26, 10]);
-  if (type === "image/jpeg") return starts([255, 216, 255]);
-  if (type === "image/gif") return starts([71, 73, 70, 56, 55, 97]) || starts([71, 73, 70, 56, 57, 97]);
-  return starts([82, 73, 70, 70]) && prefix.slice(8, 12).join(",") === "87,69,66,80";
+  switch (type) {
+    case "image/png": return starts([137, 80, 78, 71, 13, 10, 26, 10]);
+    case "image/jpeg": return starts([255, 216, 255]);
+    case "image/gif": return starts([71, 73, 70, 56, 55, 97]) || starts([71, 73, 70, 56, 57, 97]);
+    case "image/webp": return starts([82, 73, 70, 70]) && prefix.slice(8, 12).join(",") === "87,69,66,80";
+    case "application/pdf": return starts([37, 80, 68, 70, 45]); // %PDF-
+    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    case "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
+    case "application/epub+zip": return starts([80, 75, 3, 4]); // ZIP local file header
+    case "text/plain": return false; // UTF-8 has no required byte signature.
+  }
+}
+
+function checkUtf8(decoder: TextDecoder, chunk?: Uint8Array): void {
+  // Decode only to validate the stream, including any unfinished character at EOF. Store bytes unchanged.
+  try { decoder.decode(chunk, { stream: chunk !== undefined }); }
+  catch { fail("invalid_utf8"); }
 }
 
 async function* cancelableChunks(body: AsyncIterable<Uint8Array>, signal?: AbortSignal): AsyncGenerator<Uint8Array> {

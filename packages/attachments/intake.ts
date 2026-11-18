@@ -1,4 +1,5 @@
 import { attachmentTarget, originalDescriptor, type AttachmentTarget } from "../contracts/attachments.ts";
+import { isAttachmentError } from "./errors.ts";
 import { OriginalStore, type OriginalDescriptor, type OriginalScope } from "./store.ts";
 
 /** Proposed Host raw-stream port. The carrier supplies a currently admitted caller, never a browser path. */
@@ -35,6 +36,5 @@ export class OriginalIntake<Caller> {
 }
 
 function intakeError(error: unknown): Error {
-  if (error instanceof Error && error.message.length <= 96 && /^attachment_[a-z_]+$/.test(error.message)) return error;
-  return Error("attachment_storage_unavailable");
+  return isAttachmentError(error) ? error : Error("attachment_storage_unavailable");
 }

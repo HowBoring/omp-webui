@@ -2,6 +2,7 @@ import type { Context } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService, type PeerScope } from "@deepseek-ai/dsh-typert-protocol";
 import { attachmentRequest, type AttachmentRequest, type AttachmentResult,
   type AttachmentTarget } from "../contracts/attachments.ts";
+import { isAttachmentError } from "./errors.ts";
 import { OriginalIntake } from "./intake.ts";
 import { OriginalStore, type OriginalScope } from "./store.ts";
 
@@ -37,8 +38,7 @@ export class AttachmentRemote extends TypertRemoteService {
       const original = await intake.stage(invocation.peer, request.target, request.descriptor, decode(), signal);
       return { status: "staged", original };
     } catch (error) {
-      const code = error instanceof Error && /^attachment_[a-z_]+$/.test(error.message) && error.message.length <= 96
-        ? error.message : "attachment_intake_failed";
+      const code = isAttachmentError(error) ? error.message : "attachment_intake_failed";
       return { status: "error", code };
     }
   }
