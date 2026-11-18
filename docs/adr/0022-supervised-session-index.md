@@ -100,3 +100,16 @@ The Host caller retains the original helper control and cleanup authority. Futur
 SessionSupervisor composition must save that handle before awaiting RPC readiness
 and retain the worker slot through uncertain domain completion. Mandatory cleanup
 needs explicit handoff to the helper's absolute deadline and Native input fence.
+
+The retained connection can synchronously retire regular RPCs and stop live publication.
+After authenticated HELLO and v2 negotiation, its Host caller can obtain fixed strict-start
+cancellation, abort and state operations on those same pipes. The first retirement fixes
+the local monotonic cutoff, with a valid cutoff granting at most 30 seconds. Requests check
+it before enqueue, at dispatch and when a correlated reply arrives. Pending regular replies retain bounded
+correlation while validated notifications remain visible in the tail count. Abort receipt,
+native settlement, helper completion and pipe EOF are separate observations.
+
+The cutoff bounds the Host RPC capability. The helper still owns process control and requires
+its own absolute-deadline handoff. Retirement during startup fences RPC and Native stdin.
+Coordinating that retirement with the helper's START barrier and cancelling Broker-managed
+Interactions require additional composition. The retained path remains unregistered.
