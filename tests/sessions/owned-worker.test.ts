@@ -118,6 +118,187 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   return connected.ready;
 }
 
+test("owned cleanup fences regular work while fixed cleanup RPCs still drain on the same pipes", async () => {
+  const peer = ownedPeer();
+  const clock = spyOn(performance, "now").mockReturnValue(1000);
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const notices: unknown[] = [];
+    session.subscribe(frame => notices.push(frame));
+    const releaseFlush = peer.holdFlush();
+    const reading = peer.nextCommand();
+    const dispatched = session.startup.state();
+    void dispatched.catch(() => {});
+    const read = await reading;
+    const queued = session.startup.state();
+    void queued.catch(() => {});
+
+    const cleanup = connected.beginCleanup(2000);
+    expect(cleanup).toBeDefined();
+    if (!cleanup) throw new Error("TEST_CLEANUP_UNAVAILABLE");
+    await expect(dispatched).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
+    await expect(queued).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
+    await expect(session.state()).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
+    expect(peer.inputEnded).toBe(false);
+
+    const cancelling = peer.nextCommand();
+    const cancelled = cleanup.cancelStrictStart();
+    releaseFlush();
+    const cancel = await cancelling;
+    expect(cancel.type).toBe("cancel_strict_start");
+    const withdrawing = peer.nextCommand();
+    const withdrawn = cleanup.abortAndRestoreQueue();
+    const withdraw = await withdrawing;
+    expect(withdraw.type).toBe("abort_and_restore_queue");
+
+    peer.respond(withdraw, { steering: [], followUp: [] });
+    await withdrawn;
+    const strictState = { version: "strict-start-v1", phase: "waiting" } as const;
+    peer.respond(read, strictState);
+    peer.stdout.send({ type: "session_settled" });
+    peer.respond(cancel, strictState);
+    expect(await cancelled).toEqual(strictState);
+
+    const querying = peer.nextCommand();
+    const queried = cleanup.state();
+    const query = await querying;
+    expect(query.type).toBe("get_state");
+    const settled = { sessionId: "session", isSettled: true, isStreaming: false, isCompacting: false,
+      hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } };
+    peer.respond(query, settled);
+    expect(await queried).toEqual(settled);
+    expect(notices).toEqual([]);
+    expect(peer.commands.map(command => command.type)).toEqual([
+      "negotiate_protocol", "get_strict_state", "cancel_strict_start", "abort_and_restore_queue", "get_state",
+    ]);
+
+    const summarizing = peer.nextCommand();
+    const summary = cleanup.abortBranchSummary();
+    void summary.catch(() => {});
+    const stopSummary = await summarizing;
+    expect(stopSummary.type).toBe("abort_branch_summary");
+    peer.rootExit();
+    await connected.rootExit;
+    expect(connected.beginCleanup(2000)).toBeUndefined();
+    await expect(summary).rejects.toMatchObject({ code: "RPC_ROOT_EXITED" });
+    await expect(cleanup.state()).rejects.toMatchObject({ code: "RPC_ROOT_EXITED" });
+    peer.respond(stopSummary, {});
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
+    });
+    peer.complete();
+    await connected.completed;
+  } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("owned cleanup stops delivery to later subscribers of the current notification", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const first: unknown[] = [];
+    const second: unknown[] = [];
+    const retired = Promise.withResolvers<boolean>();
+    session.subscribe(frame => {
+      first.push(frame);
+      retired.resolve(connected.beginCleanup(performance.now() + 10_000) !== undefined);
+    });
+    session.subscribe(frame => second.push(frame));
+
+    const settled = { type: "session_settled" };
+    peer.stdout.send(settled);
+    expect(await retired.promise).toBe(true);
+    peer.stdout.send(settled);
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
+    });
+    expect(first).toEqual([settled]);
+    expect(second).toEqual([]);
+    expect(session.notificationCount).toBe(1);
+    peer.rootExit();
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("owned cleanup keeps the first cutoff for pending replies and writes behind a flush", async () => {
+  const peer = ownedPeer();
+  let now = 1000;
+  const clock = spyOn(performance, "now").mockImplementation(() => now);
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    await negotiate(peer, connected);
+    const cleanup = connected.beginCleanup(6000);
+    expect(cleanup).toBeDefined();
+    if (!cleanup) throw new Error("TEST_CLEANUP_UNAVAILABLE");
+    expect(connected.beginCleanup(9000)).toBe(cleanup);
+
+    const releaseFlush = peer.holdFlush();
+    const aborting = peer.nextCommand();
+    const dispatched = cleanup.abortRetry();
+    void dispatched.catch(() => {});
+    const retry = await aborting;
+    expect(retry.type).toBe("abort_retry");
+    const queued = cleanup.abortBash();
+    void queued.catch(() => {});
+
+    now = 6000;
+    expect(connected.beginCleanup(9000)).toBeUndefined();
+    await expect(cleanup.abortBranchSummary()).rejects.toMatchObject({ code: "RPC_CLEANUP_CLOSED" });
+    peer.respond(retry, {});
+    releaseFlush();
+    await expect(dispatched).rejects.toMatchObject({ code: "RPC_CLEANUP_CLOSED" });
+    await expect(queued).rejects.toMatchObject({ code: "RPC_CLEANUP_CLOSED" });
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "abort_retry"]);
+
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0,
+    });
+    peer.rootExit();
+    peer.complete();
+    await connected.completed;
+  } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each(["before HELLO", "before the v2 ack"] as const)("owned retirement %s cannot later admit cleanup", async when => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const negotiating = peer.nextCommand();
+    peer.stdout.send(ready);
+    let command: Command | undefined;
+    if (when === "before the v2 ack") {
+      peer.hello();
+      command = await negotiating;
+    }
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
+    expect(peer.inputEnded).toBe(true);
+    await expect(connected.ready).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
+    if (command) peer.respond(command, { protocolVersion: 2 });
+    else peer.hello();
+    await peer.helper.ready;
+
+    peer.stdout.send({ type: "session_settled" });
+    peer.stdout.close();
+    peer.stderr.close();
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
+    });
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
+    expect(peer.commands).toHaveLength(command ? 1 : 0);
+    peer.rootExit();
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
 test("Native root exit fences pending RPC while valid EOF tails and helper completion stay observable", async () => {
   const peer = ownedPeer();
   try {
@@ -182,6 +363,7 @@ test("failed RPC negotiation fences Native stdin while the original helper remai
     await expect(connected.ready).rejects.toMatchObject({ code: "RPC_NEGOTIATION" });
     expect(() => peer.helper.stdin.write("stale")).toThrow("NATIVE_ADMISSION_CLOSED");
     expect(connected.completed).toBe(peer.helper.completed);
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
     const root = connected.rootExit;
     peer.rootExit();
     expect(await root).toMatchObject({ exitCode: 0 });
@@ -231,6 +413,7 @@ test("control loss fences RPC and malformed stdout tail fails validation without
     peer.control.emit("close");
     await expect(connected.rootExit).rejects.toMatchObject({ code: "PRIVATE_ROOT_EXIT_UNOBSERVED" });
     await expect(session.startup.state()).rejects.toThrow("RPC_ROOT_EXIT_UNOBSERVED");
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
 
     peer.stdout.send({ type: "session_settled" });
     peer.stdout.send({ type: "unexpected_public_frame" });
@@ -276,6 +459,7 @@ test("owned stderr overflow fences RPC, caps diagnostics and drains to actual EO
     peer.stderr.bytes(1);
     await expect(pending).rejects.toMatchObject({ code: "RPC_STDERR_LIMIT" });
     expect(peer.inputEnded).toBe(true);
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
     peer.stdout.close();
 
     let outputDone = false;

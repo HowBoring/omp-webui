@@ -2,7 +2,7 @@ import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-cod
 import { z } from "zod";
 import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
 import { BoundedStdioTransport, attachOwnedStdio, OwnedRpcError, type ProcessSelection, type DrainPolicy, type StdioOutput,
-  type StdioPolicy } from "./stdio-transport.ts";
+  type StdioCommand, type StdioPolicy } from "./stdio-transport.ts";
 import type { PrivateHelperHandle } from "../supervision/adapter.ts";
 import { PrivateHelperError } from "../supervision/errors.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
@@ -30,8 +30,12 @@ class SessionNotifications {
   readonly subscribers = new Set<(frame: SessionWorkerFrame) => void>();
   count = 0;
   #bufferedBytes = 0;
+  #retired = false;
+
+  retire(): void { this.#retired = true; }
 
   publish(value: object): void {
+    if (this.#retired) return;
     const frame = frameSchema.parse(value);
     ++this.count;
     if (this.subscribers.size === 0) {
@@ -39,19 +43,22 @@ class SessionNotifications {
       if (this.frames.length >= 32 || this.#bufferedBytes > 262_144) throw new Error("SESSION_STARTUP_BUFFER_LIMIT");
       this.frames.push(frame);
     }
-    for (const subscriber of this.subscribers) subscriber(frame);
+    for (const subscriber of this.subscribers) {
+      if (this.#retired) break;
+      subscriber(frame);
+    }
   }
 }
 
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
     validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value) || controls(value),
-    acceptReady: frame => {
+    acceptReady: (frame, publish) => {
       if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
         || frame.strictStartup !== "strict-start-v1" || !strictPolicy(frame.strictStartupPolicy)
         || !interactionPolicy(frame.interactionPolicy)) return false;
-      notifications.publish(frame);
+      if (publish) notifications.publish(frame);
       return true;
     },
     remoteError: nativeWorkerFailureCode,
@@ -63,6 +70,14 @@ function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
       return true;
     },
   };
+}
+
+type Request = (command: StdioCommand) => Promise<unknown>;
+
+async function readSessionState(request: Request): Promise<SessionState> {
+  const value = await request({ type: "get_state", id: crypto.randomUUID() });
+  if (!liveState(value)) throw new Error("SESSION_STATE_SCHEMA");
+  return value as SessionState;
 }
 
 /** Fixed public Session RPC operations shared across the two construction paths. */
@@ -98,17 +113,41 @@ class SessionRpc {
     }
     return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
   }
-  async state(): Promise<SessionState> {
-    const value = await this.core.request({ type: "get_state", id: crypto.randomUUID() });
-    if (!liveState(value)) throw new Error("SESSION_STATE_SCHEMA"); return value as SessionState;
-  }
+  state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
   control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
   protected retire(): void { this.#retired = true; }
+}
+
+/** Fixed Host operations on a retired, retained Session. Abort acknowledgements do not establish settlement. */
+export interface OwnedSessionCleanup {
+  cancelStrictStart(): Promise<StrictStartState>;
+  abortAndRestoreQueue(): Promise<void>;
+  abortBranchSummary(): Promise<void>;
+  abortRetry(): Promise<void>;
+  abortBash(): Promise<void>;
+  state(): Promise<SessionState>;
+}
+
+function ownedCleanup(request: Request): OwnedSessionCleanup {
+  const startup = new StrictStartClient(request, (value): value is StrictStartState => strictState(value));
+  const abort = async (type: Control): Promise<void> => { await request({ type, id: crypto.randomUUID() }); };
+  return Object.freeze({
+    cancelStrictStart: () => startup.cancel(),
+    abortAndRestoreQueue: () => abort("abort_and_restore_queue"),
+    abortBranchSummary: () => abort("abort_branch_summary"),
+    abortRetry: () => abort("abort_retry"),
+    abortBash: () => abort("abort_bash"),
+    state: () => readSessionState(request),
+  });
 }
 
 export interface OwnedSessionConnection {
   /** Resolves after helper HELLO and correlated public RPC negotiation. */
   readonly ready: Promise<SessionRpc>;
+  /** Irreversibly fences regular work. Cleanup requires authenticated v2 and an open transport.
+   * The first cutoff is in the local performance.now() time domain, at most 30s away.
+   * An invalid or expired cutoff leaves regular work fenced and grants no cleanup access. */
+  beginCleanup(cutoff: number): OwnedSessionCleanup | undefined;
   readonly rootExit: PrivateHelperHandle["rootExit"];
   readonly completed: PrivateHelperHandle["completed"];
   /** Settles after the attached readers finish. A failed pipe attachment rejects this observation. */
@@ -139,12 +178,20 @@ export class SessionWorker extends SessionRpc {
           ? error : new OwnedRpcError("RPC_STARTUP_FAILED");
       });
       void ready.catch(() => {});
-      return { ready, rootExit, completed, output: transport.output };
+      let cleanup: OwnedSessionCleanup | undefined;
+      return {
+        ready, rootExit, completed, output: transport.output,
+        beginCleanup: cutoff => {
+          notifications.retire();
+          const request = transport.beginCleanup(cutoff);
+          if (request) return cleanup ??= ownedCleanup(request);
+        },
+      };
     } catch (error) {
       const unavailable = Promise.reject<never>(error instanceof OwnedRpcError
         ? error : new OwnedRpcError("RPC_PIPE_ATTACH_FAILED"));
       void unavailable.catch(() => {});
-      return { ready: unavailable, rootExit, completed, output: unavailable };
+      return { ready: unavailable, rootExit, completed, output: unavailable, beginCleanup: () => undefined };
     }
   }
 

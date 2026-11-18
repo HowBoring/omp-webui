@@ -17,6 +17,7 @@ interface Pending {
   reject(reason: Error): void;
   timer: Timer;
   dispatched: boolean;
+  cleanup: boolean;
 }
 export interface DrainPolicy {
   /** Cooperative stdin EOF/drain before SIGTERM. This does not attest native quiescence. */
@@ -38,7 +39,8 @@ export interface StdioCommand { id: string; type: string }
 /** Only the mode adapter decides which commands, ready capabilities and notifications are admissible. */
 export interface StdioPolicy {
   validateCommand(value: unknown): boolean;
-  acceptReady(frame: ReadyEvent): boolean;
+  /** Validate ready even after a retained Session fence, when publication is disabled. */
+  acceptReady(frame: ReadyEvent, publish: boolean): boolean;
   remoteError(error: string | undefined): string;
   physicalFrameBytes: number;
   allowChunks: boolean;
@@ -54,11 +56,11 @@ export interface StdioPolicy {
 }
 
 type OwnedRpcCode =
-  | "RPC_CANCELLED" | "RPC_CLOSED" | "RPC_COMMAND_LIMIT" | "RPC_COMMAND_SCHEMA"
+  | "RPC_CANCELLED" | "RPC_CLEANUP_CLOSED" | "RPC_CLOSED" | "RPC_COMMAND_LIMIT" | "RPC_COMMAND_SCHEMA"
   | "RPC_DRAIN_TIMEOUT" | "RPC_DUPLICATE_ID" | "RPC_NEGOTIATION" | "RPC_PENDING_LIMIT"
   | "RPC_PIPE_ATTACH_FAILED" | "RPC_PIPES_IN_USE" | "RPC_PROTOCOL" | "RPC_READY_TIMEOUT"
   | "RPC_REQUEST_TIMEOUT" | "RPC_ROOT_EXITED" | "RPC_ROOT_EXIT_UNOBSERVED" | "RPC_STARTUP_FAILED"
-  | "RPC_STDERR_LIMIT" | "RPC_STDIN" | "RPC_STDOUT_CLOSED" | "RPC_UNEXPECTED_EOF";
+  | "RPC_SESSION_RETIRED" | "RPC_STDERR_LIMIT" | "RPC_STDIN" | "RPC_STDOUT_CLOSED" | "RPC_UNEXPECTED_EOF";
 
 /** Stable local transport error for the retained Session attachment. */
 export class OwnedRpcError extends Error {
@@ -81,6 +83,7 @@ class BoundedStdioRpc {
   protected admitting = true;
   private fault: Error | undefined;
   private admissionFailure: Error | undefined;
+  private retirement: { error: Error; cutoff: number } | undefined;
   private stderrBytes = 0;
   protected stdoutEOF = false;
   protected stderrEOF = false;
@@ -127,7 +130,34 @@ class BoundedStdioRpc {
   }
 
   request<Command extends StdioCommand>(command: Command, timeoutMs = this.timeout): Promise<unknown> {
+    return this.sendRequest(command, timeoutMs, false);
+  }
+
+  protected retireForCleanup(cutoff: number): boolean {
+    if (!this.admitting) return false;
+    if (this.retirement === undefined) {
+      const now = performance.now();
+      this.retirement = { error: this.rpcError("RPC_SESSION_RETIRED"),
+        cutoff: Number.isFinite(cutoff) && cutoff - now <= 30_000 ? cutoff : now };
+      // Cleanup can only enqueue after this transition, so existing requests are all regular work.
+      this.rejectPending(this.retirement.error);
+    }
+    return this.cleanupRemaining() > 0;
+  }
+
+  protected requestCleanup(command: StdioCommand): Promise<unknown> {
+    return this.sendRequest(command, this.timeout, true);
+  }
+
+  private cleanupRemaining(): number {
+    return this.retirement === undefined ? 0 : Math.max(0, this.retirement.cutoff - performance.now());
+  }
+
+  private sendRequest(command: StdioCommand, timeoutMs: number, cleanup: boolean): Promise<unknown> {
     if (!this.admitting) return Promise.reject(this.admissionFailure ?? this.rpcError("RPC_CLOSED"));
+    if (!cleanup && this.retirement !== undefined) return Promise.reject(this.retirement.error);
+    const remaining = cleanup ? this.cleanupRemaining() : Infinity;
+    if (remaining <= 0) return Promise.reject(this.rpcError("RPC_CLEANUP_CLOSED"));
     if (!this.policy.validateCommand(command)) return Promise.reject(this.rpcError("RPC_COMMAND_SCHEMA"));
     if (this.pending.has(command.id) || this.settled.has(command.id)) return Promise.reject(this.rpcError("RPC_DUPLICATE_ID"));
     const line = JSON.stringify(command) + "\n";
@@ -137,20 +167,36 @@ class BoundedStdioRpc {
       return Promise.reject(this.rpcError("RPC_PENDING_LIMIT"));
     }
     const result = Promise.withResolvers<unknown>();
-    const timer = setTimeout(() => {
-      this.pending.delete(command.id);
-      this.remember(command.id, command.type, !this.ownedPipes || pending.dispatched);
-      result.reject(this.rpcError("RPC_REQUEST_TIMEOUT"));
-    }, timeoutMs);
+    const timeoutCode = remaining <= timeoutMs ? "RPC_CLEANUP_CLOSED" : "RPC_REQUEST_TIMEOUT";
+    const timer = setTimeout(() => this.expireRequest(command.id, pending, timeoutCode),
+      Math.min(timeoutMs, Math.ceil(remaining)));
     const pending: Pending = { command: command.type, resolve: result.resolve, reject: result.reject,
-      timer, dispatched: false };
+      timer, dispatched: false, cleanup };
     this.pending.set(command.id, pending);
-    void this.writes.enqueue(line, () => this.pending.get(command.id) === pending, () => {
+    void this.writes.enqueue(line, () => this.canDispatch(command.id, pending), () => {
       pending.dispatched = true;
     }).catch(() => {
       if (this.admissionFailure === undefined) this.fail("RPC_STDIN");
     });
     return result.promise;
+  }
+
+  private canDispatch(id: string, request: Pending): boolean {
+    if (this.pending.get(id) !== request) return false;
+    if (!request.cleanup || this.cleanupRemaining() > 0) return true;
+    this.expireRequest(id, request, "RPC_CLEANUP_CLOSED");
+    return false;
+  }
+
+  private expireRequest(id: string, request: Pending, code: OwnedRpcCode): void {
+    this.pending.delete(id);
+    clearTimeout(request.timer);
+    this.remember(id, request.command, !this.ownedPipes || request.dispatched);
+    request.reject(this.rpcError(code));
+  }
+
+  private get publish(): boolean {
+    return !this.ownedPipes || (this.admissionFailure === undefined && this.retirement === undefined);
   }
 
   private async readStdout(): Promise<void> {
@@ -175,7 +221,7 @@ class BoundedStdioRpc {
 
   private accept(frame: object): void {
     if (validReady(frame)) {
-      if (this.readySeen || !this.policy.acceptReady(frame)) {
+      if (this.readySeen || !this.policy.acceptReady(frame, this.publish)) {
         throw new Error("RPC_READY");
       }
       this.readySeen = true;
@@ -184,7 +230,7 @@ class BoundedStdioRpc {
     }
     if (!this.readySeen) throw new Error("RPC_ENVELOPE_SCHEMA");
     if (!validResponse(frame)) {
-      const publish = this.admissionFailure === undefined || !this.ownedPipes;
+      const publish = this.publish;
       if (!this.policy.notification?.(frame, publish)) throw new Error("RPC_ENVELOPE_SCHEMA");
       if (!publish) {
         this.observedTailNotifications = Math.min(this.observedTailNotifications + 1, Number.MAX_SAFE_INTEGER);
@@ -209,7 +255,8 @@ class BoundedStdioRpc {
     this.pending.delete(frame.id);
     clearTimeout(pending.timer);
     this.remember(frame.id, frame.command, false);
-    if (!frame.success) pending.reject(new Error(this.policy.remoteError(frame.error)));
+    if (pending.cleanup && this.cleanupRemaining() <= 0) pending.reject(this.rpcError("RPC_CLEANUP_CLOSED"));
+    else if (!frame.success) pending.reject(new Error(this.policy.remoteError(frame.error)));
     else {
       // Transition synchronously at the validated correlated ack, before another line in this read is decoded.
       this.acceptNegotiation(frame);
@@ -254,6 +301,10 @@ class BoundedStdioRpc {
     this.admitting = false;
     this.admissionFailure ??= error;
     this.unavailable.reject(error);
+    this.rejectPending(error);
+  }
+
+  private rejectPending(error: Error): void {
     for (const [id, item] of this.pending) {
       clearTimeout(item.timer);
       if (this.ownedPipes) this.remember(id, item.command, item.dispatched);
@@ -389,6 +440,8 @@ export class BoundedStdioTransport extends BoundedStdioRpc {
 class OwnedStdioRpc extends BoundedStdioRpc {
   readonly output: Promise<StdioOutput>;
   readonly negotiated: Promise<void>;
+  private readonly closeInput: () => void;
+  private negotiatedV2 = false;
 
   constructor(helper: PrivateHelperHandle, timing: StdioTiming, policy: StdioPolicy) {
     const closeInput = () => {
@@ -396,22 +449,36 @@ class OwnedStdioRpc extends BoundedStdioRpc {
       catch { /* The Native input fence closes before the underlying pipe. */ }
     };
     super(helper, timing, policy, closeInput, true);
-    const fence = (code: OwnedRpcCode) => { this.fence(code); closeInput(); };
+    this.closeInput = closeInput;
     // The HELLO promise supplies the startup verdict. After HELLO, observe root exit and control loss directly.
     void helper.ready.then(() => {
-      void helper.rootExit.then(() => fence("RPC_ROOT_EXITED"), () => fence("RPC_ROOT_EXIT_UNOBSERVED"));
+      void helper.rootExit.then(
+        () => this.fenceInput("RPC_ROOT_EXITED"), () => this.fenceInput("RPC_ROOT_EXIT_UNOBSERVED"));
     }, () => {});
     void this.stdout.then(() => {
-      if (this.stdoutEOF) fence("RPC_STDOUT_CLOSED");
+      if (this.stdoutEOF) this.fenceInput("RPC_STDOUT_CLOSED");
     });
     this.output = Promise.all([this.stdout, this.stderr]).then(() => {
       this.detachSignal();
       return { ...this.outputFacts(), observedTailNotifications: this.observedTailNotifications };
     });
-    this.negotiated = this.negotiate(timing, helper.ready).catch(error => {
-      fence("RPC_STARTUP_FAILED");
+    this.negotiated = this.negotiate(timing, helper.ready).then(() => { this.negotiatedV2 = true; }, error => {
+      this.fenceInput("RPC_STARTUP_FAILED");
       throw error;
     });
+  }
+
+  beginCleanup(cutoff: number): ((command: StdioCommand) => Promise<unknown>) | undefined {
+    if (!this.negotiatedV2) {
+      this.fenceInput("RPC_SESSION_RETIRED");
+      return;
+    }
+    if (this.retireForCleanup(cutoff)) return command => this.requestCleanup(command);
+  }
+
+  private fenceInput(code: OwnedRpcCode): void {
+    this.fence(code);
+    this.closeInput();
   }
 }
 
@@ -428,6 +495,8 @@ export interface StdioOutput {
 export function attachOwnedStdio(helper: PrivateHelperHandle, timing: StdioTiming, policy: StdioPolicy) {
   if (helper.stdout.locked || helper.stderr.locked) throw new OwnedRpcError("RPC_PIPES_IN_USE");
   const core = new OwnedStdioRpc(helper, timing, policy);
-  const ready: Promise<Pick<BoundedStdioRpc, "request">> = core.negotiated.then(() => core);
-  return { ready, output: core.output };
+  const ready: Promise<Pick<BoundedStdioRpc, "request">> = core.negotiated.then(() => ({
+    request: (command, timeoutMs) => core.request(command, timeoutMs),
+  }));
+  return { ready, output: core.output, beginCleanup: (cutoff: number) => core.beginCleanup(cutoff) };
 }
