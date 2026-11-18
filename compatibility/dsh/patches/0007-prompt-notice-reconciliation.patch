@@ -1,0 +1,187 @@
+diff --git a/packages/api/session-controller/src/client/contract/snapshot.ts b/packages/api/session-controller/src/client/contract/snapshot.ts
+--- a/packages/api/session-controller/src/client/contract/snapshot.ts
++++ b/packages/api/session-controller/src/client/contract/snapshot.ts
+@@ -3,7 +3,7 @@
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { SubagentAddress } from '@deepseek-ai/dsh-subagent/client'
+ import type { RemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
+-import type { SessionProjectionGeneration } from '../../types.ts'
++import type { SessionProjectionBinding, SessionProjectionGeneration } from '../../types.ts'
+ import type { SessionRequestId } from '../../types.ts'
+ 
+ /** One image displayed by a local submission echo before durable admission. */
+@@ -60,9 +60,19 @@
+ /** History-open lifecycle of a Session event window. */
+ export type OpenState = 'cold' | 'loading' | 'open' | 'error'
+ 
++/** Exact Client attempt identity for reconciling an uncertain Remote send notice. */
++export interface PromptErrorSubmission {
++  readonly sessionId: SessionId
++  readonly requestId: SessionRequestId
++  readonly projection?: SessionProjectionBinding
++  /** Monotonic within this retained Session; protects repeated calls using the same request. */
++  readonly attempt: number
++}
++
+ /** Send/stop failure surfaced by Session consumers. */
+ export interface PromptError {
+   readonly op: 'send' | 'stop'
++  readonly submission?: PromptErrorSubmission
+   readonly error: RemoteFailure
+ }
+ 
+diff --git a/packages/api/session-controller/src/client/contract/session.ts b/packages/api/session-controller/src/client/contract/session.ts
+--- a/packages/api/session-controller/src/client/contract/session.ts
++++ b/packages/api/session-controller/src/client/contract/session.ts
+@@ -15,7 +15,7 @@
+ import type {
+   PromptContentPart, QueueAction, SessionRequestId, SessionPromptValue, SessionNoInputSettlement, SessionProjectionBinding,
+ } from '../../types.ts'
+-import type { PendingSubmissionAttachment, SessionSnapshot } from './snapshot.ts'
++import type { PendingSubmissionAttachment, SessionSnapshot, PromptErrorSubmission } from './snapshot.ts'
+ 
+ /**
+  * Why a local submission echo left the snapshot: `observed` when its durable
+@@ -103,6 +103,15 @@
+    */
+   beginSubmission(input: BeginSubmissionInput): SubmissionHandle
+   /**
++   * Clear only the exact current Remote-send notice after authoritative input acceptance or successful
++   * no-input settlement. This is presentation reconciliation, never provider success, echo/draft recovery,
++   * non-dispatch proof or permission to replay. Unknown/absent input cannot supply this proof.
++   * @returns false for stale attempts, other Sessions/projections, stop errors or an absent notice.
++   */
++  reconcilePromptError(proof: PromptErrorSubmission & {
++    readonly outcome: 'accepted' | 'completed-without-input'
++  }): boolean
++  /**
+    * Retire only the echo named by an authoritative terminal no-input proof. Generic acceptance is insufficient;
+    * an observed inbox/input cannot be contradicted. Original projection identity scopes old echoes independently
+    * of newer drafts or presentation generations. This operation never sends input or changes a draft.
+diff --git a/packages/api/session-controller/src/client/index.ts b/packages/api/session-controller/src/client/index.ts
+--- a/packages/api/session-controller/src/client/index.ts
++++ b/packages/api/session-controller/src/client/index.ts
+@@ -80,6 +80,7 @@
+   PendingSubmissionImageAttachment,
+   PendingSubmissionPlacement,
+   PromptError,
++  PromptErrorSubmission,
+   SessionSnapshot,
+ } from './contract/snapshot.ts'
+ 
+diff --git a/packages/api/session-controller/src/client/sessions/session.ts b/packages/api/session-controller/src/client/sessions/session.ts
+--- a/packages/api/session-controller/src/client/sessions/session.ts
++++ b/packages/api/session-controller/src/client/sessions/session.ts
+@@ -30,7 +30,7 @@
+   BeginSubmissionInput, PendingSubmissionRetirement, SessionFace, SubmissionHandle, SessionPromptResult,
+ } from '../contract/session.ts'
+ import type {
+-  OpenState, PendingSubmission, PromptError, SessionSnapshot,
++  OpenState, PendingSubmission, PromptError, PromptErrorSubmission, SessionSnapshot,
+ } from '../contract/snapshot.ts'
+ import { MutableSessionEventSource } from '../contract/events.ts'
+ import type {
+@@ -147,6 +147,7 @@
+   private removed = false
+   private disposed = false
+   private promptError: PromptError | null = null
++  private promptAttempt = 0
+   private lastAgentError: string | null = null
+   /** Local submission echoes, insertion-ordered, including those the Host has not accepted yet. */
+   private pendingSubmissions: readonly PendingSubmission[] = []
+@@ -379,6 +380,7 @@
+       return { ok: false, error, ...(notDispatched === undefined ? {} : { notDispatched }) }
+     }
+     // Before the first await, so a turn observed ahead of the receipt clears it.
++    const attempt = ++this.promptAttempt
+     const actualRequestId = requestId ?? randomUUID() as SessionRequestId
+     const originalEcho = this.submissionSettlements.get(actualRequestId)
+     const firstPrompt = this.blankBit && !this.firstPromptPendingTurn
+@@ -424,7 +426,12 @@
+       // Rejection must leave a first prompt blank and eligible for workspace reuse.
+       if (firstPrompt) this.firstPromptPendingTurn = false
+       if (requestId !== undefined) this.retireFailedSubmission(requestId)
+-      this.promptError = { op: 'send', error: result.error }
++      if (attempt === this.promptAttempt) {
++        this.promptError = { op: 'send', error: result.error, submission: {
++          sessionId: this.sessionId, requestId: actualRequestId, attempt,
++          ...(requestedProjection === undefined ? {} : { projection: { ...requestedProjection } }),
++        } }
++      }
+       this.notifier.markDirty()
+       return result
+     }
+@@ -444,6 +451,20 @@
+       }
+     } else this.acceptPrompt(requestId)
+     return result
++  }
++
++  reconcilePromptError(
++    proof: PromptErrorSubmission & { readonly outcome: 'accepted' | 'completed-without-input' },
++  ): boolean {
++    const error = this.promptError, submission = error?.submission
++    if (this.disposed || error?.op !== 'send' || submission === undefined
++      || (proof.outcome !== 'accepted' && proof.outcome !== 'completed-without-input')
++      || proof.sessionId !== this.sessionId || submission.sessionId !== proof.sessionId
++      || submission.requestId !== proof.requestId || submission.attempt !== proof.attempt
++      || !sameProjection(submission.projection, proof.projection)) return false
++    this.promptError = null
++    this.notifier.markDirty()
++    return true
+   }
+ 
+   settleSubmissionNoInput(proof: SessionNoInputSettlement): boolean {
+diff --git a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+--- a/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
++++ b/packages/client/ui-conversation/src/client/skeleton/InputBar.tsx
+@@ -27,6 +27,7 @@
+ // The `imageLimits` projection key merge (intake pre-check) arrives with the
+ // wire types: apiproxy's sessions contract declares it, and client-runtime's
+ // api-remotes import already places it in every client program.
++import type { PromptError } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { ComposerBarProps } from '../contract/slots.ts'
+ import { DraftEditor } from '../input/editor/DraftEditor.tsx'
+@@ -105,11 +106,11 @@
+   // Transient error banner (machine notices, image-intake rejections, and
+   // prompt failures): the seq keys the Toast so an identical repeated message
+   // restarts the hold-then-fade cycle instead of reusing the faded one.
+-  const [toast, setToast] = useState<{ seq: number; text: string } | null>(null)
++  const [toast, setToast] = useState<{ seq: number; text: string; promptError?: PromptError } | null>(null)
+   const toastSeq = useRef(0)
+-  const showToast = useCallback((text: string) => {
++  const showToast = useCallback((text: string, promptError?: PromptError) => {
+     toastSeq.current += 1
+-    setToast({ seq: toastSeq.current, text })
++    setToast({ seq: toastSeq.current, text, ...(promptError === undefined ? {} : { promptError }) })
+   }, [])
+   const dismissToast = useCallback(() => { setToast(null) }, [])
+   // The deployment's image-intake limits (absent while no attachment service
+@@ -129,19 +130,22 @@
+   // refused them. Writer contention has localized recovery guidance; other
+   // failures retain the diagnostic message and code.
+   useEffect(() => {
+-    if (promptError === null) return
++    if (promptError === null) {
++      setToast(previous => previous?.promptError === undefined ? previous : null)
++      return
++    }
+     const { error } = promptError
+     if (error.code === 'client/session-busy' || error.code === 'client/session-action-unavailable') {
+-      showToast(t(error.code === 'client/session-busy' ? 'error.sessionBusy' : 'error.actionUnavailable'))
++      showToast(t(error.code === 'client/session-busy' ? 'error.sessionBusy' : 'error.actionUnavailable'), promptError)
+       return
+     }
+     if (error.code === 'session/writer-held') {
+-      showToast(t('error.sessionInUse'))
++      showToast(t('error.sessionInUse'), promptError)
+       return
+     }
+     showToast(error.code === 'session/attachment-invalid' || error.code === 'subagent/attachment-invalid'
+       ? attachmentErrorText(t, error.details.reason, imageLimits)
+-      : `${error.message} (${error.code})`)
++      : `${error.message} (${error.code})`, promptError)
+   }, [promptError, showToast, t, imageLimits])
+   useEffect(() => {
+     if (notice?.level === 'error') showToast(notice.text)
