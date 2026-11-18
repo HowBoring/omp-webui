@@ -66,6 +66,7 @@ export class BoundedStdioTransport {
   private stderrBytes = 0;
   private stdoutEOF = false;
   private stderrEOF = false;
+  private readersCancelled = false;
   private processExited = false;
   private terminationObserved = false;
   private forceObserved = false;
@@ -143,6 +144,7 @@ export class BoundedStdioTransport {
       if (next.done) break;
       this.frames.push(next.value, frame => this.accept(frame));
     }
+    if (this.readersCancelled) return;
     this.stdoutEOF = true;
     this.frames.finish();
     if (!this.readySeen || this.pending.size !== 0) this.fail("RPC_UNEXPECTED_EOF");
@@ -194,11 +196,12 @@ export class BoundedStdioTransport {
   private async readStderr(): Promise<void> {
     while (true) {
       const next = await this.stderrReader.read();
-      if (next.done) { this.stderrEOF = true; break; }
+      if (next.done) break;
       this.stderrBytes += next.value.byteLength;
       if (this.stderrBytes > (this.policy.stderrBytes ?? 65_536)) throw new Error("RPC_STDERR_LIMIT");
       // Never retain or return stderr content. Only the bounded byte count is diagnostic data.
     }
+    this.stderrEOF = !this.readersCancelled;
   }
 
   private fail(code: string): void {
@@ -264,6 +267,8 @@ export class BoundedStdioTransport {
     }, cooperative + grace);
     const stopReaders = setTimeout(() => {
       this.fail("RPC_DRAIN_TIMEOUT");
+      // Cancellation resolves pending reads with done: true.
+      this.readersCancelled = true;
       void this.stdoutReader.cancel();
       void this.stderrReader.cancel();
     }, cooperative + grace + readerGrace);
