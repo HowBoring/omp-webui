@@ -42,7 +42,7 @@ export async function sourceFixture(now: () => number = Date.now) {
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
     close: async () => controls.drain,
-    drain: { code: 0, forced: false, stderrBytes: 0 },
+    drain: { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: true },
     retirement: undefined,
   };
   const worker: Omit<SupervisedSessionWorker, "exited" | "close" | "notificationCount"> = {

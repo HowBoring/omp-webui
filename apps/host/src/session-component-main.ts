@@ -29,14 +29,12 @@ const host = await startSessionComponentServer({ manifest: resolve("vendor/omp-c
 console.info(JSON.stringify({ stage: "S1-isolated-sessions", sessionAdmission: "blocked", origin: host.server.url.origin }));
 process.on("SIGUSR1", () => { void host.revokeAll().catch(() => {}); });
 async function stop(): Promise<void> {
-  try {
-    await host.stop();
-    await catalog.close();
-    if (!host.supervisor.hasOwnedReservation) process.exit(0);
-    console.error(JSON.stringify({ stage: "S1-isolated-sessions", shutdown: "worker-ownership-unresolved" }));
-  } catch {
-    console.error(JSON.stringify({ stage: "S1-isolated-sessions", shutdown: "failed" }));
-  }
+  const hostStopped = await host.stop().then(() => true, () => false);
+  const catalogClosed = await catalog.close().then(() => true, () => false);
+  const failed = !hostStopped || !catalogClosed;
+  if (!failed && !host.supervisor.hasOwnedReservation) process.exit(0);
+  console.error(JSON.stringify({ stage: "S1-isolated-sessions",
+    shutdown: failed ? "failed" : "worker-ownership-unresolved", hostStopped, catalogClosed }));
   // Keep the event loop available for outstanding cleanup on the same owned worker.
   process.exitCode = 1;
 }

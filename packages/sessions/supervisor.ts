@@ -8,7 +8,7 @@ import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/sessi
 import type { UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { SessionWorker } from "../compatibility/session-worker.ts";
-import type { DrainResult } from "../compatibility/stdio-transport.ts";
+import type { DrainPolicy, DrainResult } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
 import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./index.ts";
@@ -38,6 +38,8 @@ export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
   uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain | NoWorkerDrain;
   notificationCount: number; tailNotifications: number;
+  /** The handle was unavailable at Stop, so its counter cannot account for pre-handle notifications. */
+  tailNotificationsLowerBound?: true;
 }
 type LaunchResult = { status: "ready"; worker: SupervisedSessionWorker; settledAt: number }
   | { status: "rejected"; error: unknown; settledAt: number };
@@ -47,6 +49,7 @@ interface Active {
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal;
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
+  exitCode?: number;
   cooperativeDeadline?: number;
 }
 const directoryIdentity = (cwd: string): string => {
@@ -229,6 +232,7 @@ export class SessionSupervisor {
   }
   async #workerExited(active: Active, worker: SupervisedSessionWorker, code: number): Promise<void> {
     active.exited = true;
+    active.exitCode = code;
     if (active.retired) return;
     active.state = "outcome_unknown";
     const start = performance.now(), atExit = worker.notificationCount;
@@ -399,8 +403,21 @@ export class SessionSupervisor {
       nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, drain: { status: "not-launched" },
       notificationCount: 0, tailNotifications: 0 });
   }
+  async #closeWorker(active: Active, worker: SupervisedSessionWorker, policy: DrainPolicy): Promise<DrainResult | UnresolvedWorkerDrain> {
+    try {
+      const drain = await worker.close(policy);
+      active.exited = true;
+      active.released = observedEOF(drain);
+      active.state = active.released ? "closed" : "outcome_unknown";
+      return drain;
+    } catch {
+      active.state = "outcome_unknown";
+      return { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE",
+        ...(active.exitCode === undefined ? {} : { code: active.exitCode }) };
+    }
+  }
   async #drainWorker(active: Active, worker: SupervisedSessionWorker, reason: string,
-    start: number, deadline: number, notificationsAtStop: number): Promise<WorkerExit> {
+    start: number, deadline: number, notificationsAtStop?: number): Promise<WorkerExit> {
     const alreadyExited = active.exited;
     let settled = false, queuedInputsWithdrawn = false, uiCancelled = false;
     const priorUIOutcomes = new Set(active.bridge?.snapshot().outcomes.map(outcome => outcome.id) ?? []);
@@ -419,23 +436,21 @@ export class SessionSupervisor {
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
     active.bridge?.dispose();
     const now = performance.now();
-    const drain = await worker.close({ cooperativeMs: alreadyExited ? 0 : Math.max(0, deadline - now),
+    const drain = await this.#closeWorker(active, worker, { cooperativeMs: alreadyExited ? 0 : Math.max(0, deadline - now),
       terminationGraceMs: remainingTerminationGrace(deadline + terminationGraceMs, now), readerGraceMs });
-    active.exited = true;
-    active.released = alreadyExited ? observedEOF(drain) : !incompleteReaders(drain);
-    active.state = "closed";
-    const clean = !alreadyExited && cleanDrain(drain);
+    const clean = !alreadyExited && !("status" in drain) && active.released && cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true) ?? active.exitIndexFailure;
     return this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
       queuedInputsWithdrawn, uiCancelled, ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: worker.notificationCount,
-      tailNotifications: Math.max(0, worker.notificationCount - notificationsAtStop) });
+      tailNotifications: Math.max(0, worker.notificationCount - (notificationsAtStop ?? 0)),
+      ...(notificationsAtStop === undefined ? { tailNotificationsLowerBound: true } : {}) });
   }
   async #drainStarting(active: Active, launch: Promise<LaunchResult>, reason: string,
     start: number, deadline: number): Promise<WorkerExit> {
     const first = await beforeDeadline(launch, deadline);
     if (first?.status === "ready" && first.settledAt < deadline) {
-      return this.#drainWorker(active, first.worker, reason, start, deadline, 0);
+      return this.#drainWorker(active, first.worker, reason, start, deadline);
     }
     active.state = "outcome_unknown";
     const indexFailure = this.#observeExit(active, { state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
@@ -443,7 +458,8 @@ export class SessionSupervisor {
     const result = first ?? await beforeDeadline(launch, forceDeadline);
     const unresolved: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start,
       nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
-      drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED" }, notificationCount: 0, tailNotifications: 0 };
+      drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED" },
+      notificationCount: 0, tailNotifications: 0, tailNotificationsLowerBound: true };
     if (result && result.settledAt < forceDeadline) {
       return this.#finishLateLaunch(active, result, unresolved, start, forceDeadline);
     }
@@ -458,13 +474,8 @@ export class SessionSupervisor {
       // Negotiation can fail after spawn and a launcher rejection does not attest that its readers drained.
       drain = { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" };
     } else {
-      try {
-        drain = await launch.worker.close({ cooperativeMs: 0,
-          terminationGraceMs: remainingTerminationGrace(forceDeadline, performance.now()), readerGraceMs });
-        active.exited = true;
-        active.released = observedEOF(drain);
-        if (active.released) active.state = "closed";
-      } catch { drain = { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" }; }
+      drain = await this.#closeWorker(active, launch.worker, { cooperativeMs: 0,
+        terminationGraceMs: remainingTerminationGrace(forceDeadline, performance.now()), readerGraceMs });
     }
     const notificationCount = launch.status === "ready" ? launch.worker.notificationCount : 0;
     return this.#appendExit({ ...observation, drain, elapsedMs: performance.now() - start, notificationCount,

@@ -165,7 +165,7 @@ test("mandatory directory revocation retains a launch past the shutdown deadline
     await clock.advance(40_000);
     expect(closeCalls).toBe(1);
     expect(f.supervisor.exits().at(-1)).toMatchObject({ reason: "directory-revoked", drain,
-      notificationCount: 3, tailNotifications: 3 });
+      notificationCount: 3, tailNotifications: 3, tailNotificationsLowerBound: true });
     expect(f.supervisor.hasOwnedReservation).toBe(false);
     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
     expect(await f.supervisor.open(f.identity, f.selected)).toMatchObject({ state: "open" });
@@ -245,6 +245,7 @@ test.each(["launch rejection", "close rejection", "missing EOF"])(
     try {
       await launch.reached;
       if (outcome === "close rejection") f.controls.close = async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); };
+      if (outcome === "missing EOF") f.controls.drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
       f.grants.revoke(f.grant.id);
       const revocation = f.supervisor.permissionsChanged();
       void revocation.catch(() => {});
@@ -272,6 +273,39 @@ test.each(["launch rejection", "close rejection", "missing EOF"])(
     }
   },
 );
+
+test.each(["missing EOF", "rejected close"])("%s retains a worker delivered at 29,999ms", async outcome => {
+  const f = await sourceFixture(), launch = pendingLaunch(f.controls);
+  const closing = Promise.withResolvers<DrainPolicy>(), completion = Promise.withResolvers<DrainResult>();
+  const partial = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
+  f.controls.close = async policy => { closing.resolve(policy); return completion.promise; };
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  const clock = shutdownClock();
+  try {
+    await launch.reached;
+    f.grants.revoke(f.grant.id);
+    const revocation = f.supervisor.permissionsChanged();
+    void revocation.catch(() => {});
+    await clock.advance(29_999);
+    launch.release();
+    expect(await closing.promise).toEqual({ cooperativeMs: 1, terminationGraceMs: 5_000, readerGraceMs: 1_000 });
+    f.grants.confirm(f.grants.preview(f.cwd).confirmation);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    const [latest] = (await f.index.page({})).records;
+    if (outcome === "missing EOF") completion.resolve(partial);
+    else completion.reject(new Error("SYNTHETIC_DRAIN_FAILED"));
+    await revocation;
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.index.get(latest!.id)).toEqual(latest);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.starts).toBe(1);
+    const drain = outcome === "missing EOF" ? partial : { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked", tailNotificationsLowerBound: true, drain }]);
+  } finally {
+    launch.release(); completion.resolve(partial); await opening.catch(() => {}); clock.restore(); await f.close();
+  }
+});
 
 test("a launch delivered after the force deadline cannot hold the bounded shutdown observation", async () => {
   const f = await sourceFixture(), launch = pendingLaunch(f.controls);
@@ -336,11 +370,30 @@ test("mandatory shutdown retains the root exit's failed index observation during
   }
 });
 
+test("Host shutdown can proceed after close rejects and records only the observed root exit", async () => {
+  const f = await sourceFixture();
+  const readers = Promise.withResolvers<DrainResult>();
+  f.controls.retirement = { status: "pending", completion: readers.promise, stdoutEOF: false, stderrEOF: false };
+  f.controls.close = async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); };
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.exitWorker(7);
+    await f.supervisor.close();
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "host-shutdown",
+      drain: { status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" } }]);
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
+    });
+    f.index.close();
+  } finally { readers.resolve(f.controls.drain); await f.close(); }
+});
+
 test("zero exit with a failed final protocol tail persists an unknown shutdown outcome", async () => {
   const f = await sourceFixture();
   try {
     const opened = await f.supervisor.open(f.identity, f.selected);
-    f.controls.drain = { code: 0, forced: false, stderrBytes: 0, protocolFailure: "RPC_PROTOCOL" };
+    f.controls.drain = { ...f.controls.drain, protocolFailure: "RPC_PROTOCOL" };
     await f.supervisor.close();
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
     expect(f.supervisor.exits()[0]?.drain).toMatchObject({ code: 0, forced: false, protocolFailure: "RPC_PROTOCOL" });
