@@ -17,6 +17,11 @@
       "path": "patches/0003-projection-rebuild.patch",
       "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
       "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+    },
+    {
+      "path": "patches/semantic-draft-esm.patch",
+      "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
+      "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
     }
   ]
 }

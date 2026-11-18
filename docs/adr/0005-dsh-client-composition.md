@@ -26,3 +26,11 @@ identity separately; this is not an already available API or permission to float
 
 The [client composition contract](../client-composition.md) records selected scope and gates. The
 navigation experiment and attachment contract must complete before implementation handoff.
+
+## Semantic draft package
+
+DSH's Conversation browser loader runs the `./client` factory. Node and Bun
+consumers load the codec and identity constructors through the public ESM export
+`./client/semantic-draft`. Both build targets compile the same draft implementation.
+DSH preparation checks the emitted ESM in Node and Bun before recording the
+source identity. [DSH package evidence](../evidence/ticket-45-dsh-semantic-draft-package.md)

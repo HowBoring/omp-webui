@@ -1,12 +1,26 @@
 # DSH compatibility source
 
 The exact release base is `38a6a5c965aa99ab525161efb7cc5cf1fe62fced`
-(tree `77ab54bbce37988207baa603b1d39aa9db9aeaaa`). The active `patches.json` remains
-unchanged from integration and contains only patches 1–3.
+(tree `77ab54bbce37988207baa603b1d39aa9db9aeaaa`). The active [manifest](patches.json)
+applies patches 1–3 followed by the semantic draft package patch. It builds
+`@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft` as native ESM for
+the shared draft decoder and identity constructors. The browser loader uses the
+`./client` factory. `bun run dsh:prepare` builds DSH with Node 24.22.1 and
+pnpm 11.28.5, then checks the compiled public draft entry in Node and Bun.
+
+To move from the previous patches 1–3 checkout, set `DSH_SOURCE` to a fresh owned
+path under `vendor/`. Use that path for both preparation and linking.
+
+```sh
+export DSH_SOURCE=vendor/dsh-semantic-draft
+bun run dsh:prepare
+bun run dsh:link "$DSH_SOURCE"
+```
+
 [`parsed-tool-source-candidate.json`](parsed-tool-source-candidate.json) separately records
 all six exact source patches under `UNREGISTERED_SOURCE_ONLY`; no current script or runtime
 reads that descriptor. Patches 4–5 are inert source prerequisites of patch 6, an unregistered
-ticket 46 source proposal. No upstream pin floats or active source cohort changes.
+ticket 46 source proposal.
 
 [`chat-and-tool-source-candidate.json`](chat-and-tool-source-candidate.json) records a
 separate dormant cohort for tickets 45 and 46. Patch 7 is the byte-identical Source45

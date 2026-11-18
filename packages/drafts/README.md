@@ -66,29 +66,26 @@ service remain tickets 57/58 integration work. A clock-driven resolver test only
 proves that previously returned synthetic Files are not cached after expiry;
 it does not implement or validate a real Host expiry service.
 
-## Source validation
+## Package validation
 
 The tests use the public provider methods, actual DSH public record decoder and
 constructors, synchronous in-memory storage, controlled ownership/authority and
-deferred resolver promises. The source typecheck maps the public Conversation
-and SessionController client entrypoints to exact active patches 1–3 under an
-ignored, read-only `vendor/dsh` link. It includes the upstream CSS declaration;
-there are no replacement public declarations or copied dependencies.
+deferred resolver promises. The provider imports the draft codec from
+`@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft`. The test reads
+projection bindings from SessionController's public `/projection` export.
 
-The focused scope-mutation fix passes 17 provider tests with 79 assertions and
-the exact-source strict typecheck. Its three deterministic regressions each
-failed before the corresponding entry snapshot was added: queued A writes must
+The focused scope-mutation fix added three deterministic regressions. Queued A writes must
 not publish into B, pending A reads must not return B, and deferred A Files must
 not return after replacement with B. Same-identity controls remain successful.
-The original 14-test/72-assertion run is historical evidence for the earlier
-candidate, not an additional suite or product acceptance.
 
-With that exact source tree and the repository dependency links available:
+Prepare the active DSH build and dependency links using the
+[DSH setup instructions](../../compatibility/dsh/README.md). Then run the checks
+from the Host repository root.
 
 ```sh
-bun test --tsconfig-override tests/drafts/tsconfig.json \
+bun test --no-env-file \
   --preload ./tests/interactions/no-provider.ts ./tests/drafts/provider.test.ts
-node node_modules/typescript/bin/tsc --noEmit -p tests/drafts/tsconfig.json
+bun run typecheck
 ```
 
 The preload runs before DSH imports. It denies provider/network dispatch. No
@@ -103,5 +100,4 @@ fixture and future composition gates, not claims of this provider-only suite.
 
 Native preparation/consume, authoritative durable outcomes, matched private
 admission, real retention clocks/GC/deletion, selected formats, product browser
-and Windows acceptance remain open. Active patch manifests, locks, generated
-assets, application entrypoints, admission and package scripts are unchanged.
+and Windows acceptance remain open.

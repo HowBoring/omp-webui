@@ -1,8 +1,8 @@
 import { DraftTabOwner, DraftHostContext, DraftSourceContext, DraftNativeSessionId,
   DraftProjectionGeneration, DraftStorageKey, parseSemanticDraftRecord,
-  type ConversationDraftProvider, type DraftScope, type SemanticDraftRecord,
-  type UnresolvedDraftSubmission,
-} from "@deepseek-ai/dsh-client-ui-conversation/client";
+} from "@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft";
+import type { ConversationDraftProvider, DraftScope, SemanticDraftRecord,
+  UnresolvedDraftSubmission } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import type { SessionBinding } from "@deepseek-ai/dsh-api-session-controller/client";
 
 /** Trusted explicit verified selection, never browser assertions. Revoke/reacquire must use a fresh epoch. */
