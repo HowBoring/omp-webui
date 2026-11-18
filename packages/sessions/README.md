@@ -108,9 +108,13 @@ diagnostic count and continues draining. A reader failure can leave its EOF
 unobserved. Domain completion comes from the helper's validated COMPLETE, control
 EOF and reap.
 
-The opt-in `launchOwned` constructor option connects this attachment to the
-supervisor's early retention path described above. The supervisor fences the
-connection at retirement using the original Host-local cutoff. The helper still
+The opt-in `launchOwned(cwd, retirement)` port supplies the generation's Host-owned
+`AbortSignal` before launch preparation. A trusted adapter can forward it to
+`PrivateHelperOwner.launch(input, retirement)`. Once a helper exists, the adapter
+attaches and returns the original connection before awaiting RPC readiness, even if
+retirement has already aborted the signal. The first retirement fences any attached
+connection with the original Host-local cutoff and aborts launch preparation in the
+same call. The reservation survives an unconfirmed launch rejection. The helper still
 needs an acknowledged handoff of the absolute deadline for physical shutdown.
 Controlled streams cover attachment and retention. Product admission remains blocked.
 

@@ -16,14 +16,15 @@ import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./ind
 /** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
 export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
 type OwnedSessionWorker = Awaited<OwnedSessionConnection["ready"]>;
-type OwnedLauncher = (cwd: string) => OwnedSessionConnection | Promise<OwnedSessionConnection>;
+type OwnedLauncher = (cwd: string, retirement: AbortSignal) => OwnedSessionConnection | Promise<OwnedSessionConnection>;
 interface DirectLaunchOptions {
   launch(cwd: string): Promise<SupervisedSessionWorker>;
   launchOwned?: never;
 }
 interface OwnedLaunchOptions {
   launch?: never;
-  /** Trusted source seam. Return the original connection as soon as it exists, before waiting for readiness. */
+  /** Trusted Host port. Forward retirement to pre-spawn preparation. Once a helper exists,
+   * return its original connection before waiting for readiness, even after retirement. */
   launchOwned: OwnedLauncher;
 }
 type Options = {
@@ -68,6 +69,7 @@ type LaunchResult = { status: "ready"; worker: SupervisedSessionWorker; settledA
   | { status: "rejected"; error: unknown; settledAt: number };
 type OwnedCleanupFacts = Pick<WorkerExit, "nativeSettled" | "queuedInputsWithdrawn" | "uiCancelled">;
 interface RetainedLaunch {
+  retirement: AbortController;
   observations: Promise<void>;
   connection?: OwnedSessionConnection;
   launchRejected?: boolean;
@@ -222,6 +224,7 @@ export class SessionSupervisor {
   #launchOwned(active: Active, options: OwnedLaunchOptions): Promise<OwnedSessionWorker> {
     const delivery = Promise.withResolvers<OwnedSessionConnection>();
     const retained: RetainedLaunch = {
+      retirement: new AbortController(),
       facts: { domain: "pending" },
       cleanupFacts: { nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false },
       observations: delivery.promise.then(async connection => {
@@ -237,6 +240,7 @@ export class SessionSupervisor {
         ]);
       }, () => {}),
     };
+    // Reserve the original launch before the adapter can re-enter shutdown.
     active.retained = retained;
     const observeExit = () => {
       if (!active.retired) void this.#stop(active, "worker-lost");
@@ -266,7 +270,7 @@ export class SessionSupervisor {
     };
     ++this.#starts;
     try {
-      const connection = options.launchOwned(active.cwd);
+      const connection = options.launchOwned(active.cwd, retained.retirement.signal);
       if ("ready" in connection) retain(connection);
       else void connection.then(retain, reject);
     } catch (error) { reject(error); }
@@ -559,6 +563,7 @@ export class SessionSupervisor {
   }
   async #drainOwned(active: Active, retained: RetainedLaunch, reason: string, start: number, deadline: number): Promise<WorkerExit> {
     this.#fenceOwned(active, retained);
+    retained.retirement.abort();
     const published = active.worker?.notificationCount;
     active.state = "outcome_unknown";
     const indexFailure = reason === "open-failed" ? active.exitIndexFailure

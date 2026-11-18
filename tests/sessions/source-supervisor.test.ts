@@ -571,17 +571,60 @@ function pendingOwnedConnection() {
   return { connection, ready, completed, rootExit, output, cutoffs };
 }
 
+test("reentrant retirement aborts the reserved owned launch and shares its unconfirmed rejection", async () => {
+  const delivery = Promise.withResolvers<OwnedSessionConnection>();
+  const reentered = Promise.withResolvers<{ aborted: boolean | undefined; shutdown: Promise<void> }>();
+  let abortCount = 0, repeated: Promise<void> | undefined;
+  const f = await sourceFixture(Date.now, (_cwd, signal): Promise<OwnedSessionConnection> => {
+    signal?.addEventListener("abort", () => { ++abortCount; repeated = f.supervisor.close(); });
+    const shutdown = f.supervisor.revokeAll();
+    reentered.resolve({ aborted: signal?.aborted, shutdown });
+    return delivery.promise;
+  });
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  try {
+    const { aborted, shutdown } = await reentered.promise;
+    expect(aborted).toBe(true);
+    expect(abortCount).toBe(1);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+
+    delivery.reject(new Error("HELPER_LAUNCH_RETIRED"));
+    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+    await Promise.all([shutdown, repeated, f.supervisor.close()]);
+    expect(abortCount).toBe(1);
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "all-browser-access-revoked",
+      drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" } }]);
+  } finally {
+    delivery.reject(new Error("SYNTHETIC_LAUNCH_REJECTED"));
+    await opening.catch(() => {});
+    await f.close();
+  }
+});
+
 test("shutdown fences the retained connection while readiness is pending and waits for domain completion and both EOFs", async () => {
   const owned = pendingOwnedConnection();
   const launched: string[] = [];
-  const f = await sourceFixture(Date.now, cwd => { launched.push(cwd); return owned.connection; });
+  const cutoffsAtAbort: number[] = [];
+  let retirement: AbortSignal | undefined;
+  const f = await sourceFixture(Date.now, (cwd, signal) => {
+    launched.push(cwd);
+    retirement = signal;
+    signal?.addEventListener("abort", () => { cutoffsAtAbort.push(...owned.cutoffs); });
+    return owned.connection;
+  });
   const clock = shutdownClock();
   const opening = f.supervisor.open(f.identity, f.selected);
   void opening.catch(() => {});
   try {
     await clock.advance(100);
     expect(launched).toEqual([f.cwd]);
+    expect(retirement?.aborted).toBe(false);
     const shutdown = f.supervisor.close();
+    expect(retirement?.aborted).toBe(true);
+    expect(cutoffsAtAbort).toEqual([30_100]);
     expect(owned.cutoffs).toEqual([30_100]);
     expect(f.supervisor.starts).toBe(1);
     expect(f.supervisor.hasOwnedReservation).toBe(true);
@@ -622,13 +665,16 @@ test("shutdown fences the retained connection while readiness is pending and wai
 
 test("a connection delivered after the shutdown observation is fenced with the original cutoff", async () => {
   const owned = pendingOwnedConnection(), delivery = Promise.withResolvers<OwnedSessionConnection>();
-  const f = await sourceFixture(Date.now, () => delivery.promise);
+  let retirement: AbortSignal | undefined;
+  const f = await sourceFixture(Date.now, (_cwd, signal) => { retirement = signal; return delivery.promise; });
   const clock = shutdownClock();
   const opening = f.supervisor.open(f.identity, f.selected);
   void opening.catch(() => {});
   try {
     await clock.advance(0);
+    expect(retirement?.aborted).toBe(false);
     const shutdown = f.supervisor.close();
+    expect(retirement?.aborted).toBe(true);
     await clock.advance(35_000);
     await shutdown;
     expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown",
@@ -640,6 +686,7 @@ test("a connection delivered after the shutdown observation is fenced with the o
     delivery.resolve(owned.connection);
     await clock.advance(40_000);
     expect(owned.cutoffs).toEqual([30_000]);
+    expect(retirement?.aborted).toBe(true);
     owned.ready.reject(new Error("RPC_STARTUP_FAILED"));
     await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
     owned.rootExit.resolve({ kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 15 });
