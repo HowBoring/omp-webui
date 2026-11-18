@@ -15,6 +15,15 @@ export class HostMonotonicError extends Error {
   }
 }
 
+// An exact BUSY refusal can carry the existing selection borrower’s disposal observation.
+const busyBorrowDisposals = new WeakMap<HostMonotonicError, { selection: InspectedSelection; disposed: Promise<void> }>();
+
+/** Recognize only a busy refusal carrying a borrow of this exact selection. */
+export function busyClockBorrowDisposal(error: unknown, selection: InspectedSelection): Promise<void> | undefined {
+  const borrow = error instanceof HostMonotonicError ? busyBorrowDisposals.get(error) : undefined;
+  return borrow?.selection === selection ? borrow.disposed : undefined;
+}
+
 /** Independent approval of the exact fixed artifacts. The observer never enrolls an inventory or computes approval. */
 export interface HostMonotonicApproval {
   readonly abi: 1;
@@ -46,6 +55,7 @@ type Pin = Awaited<ReturnType<ReleaseObservation["pin"]>>;
 interface Lifetime {
   selection: InspectedSelection;
   pins: Pin[];
+  disposed: Promise<void>;
   native?: ClockNative;
 }
 
@@ -149,18 +159,26 @@ export function createHostMonotonicSources(system: ClockSystem) {
   function use(input: HostMonotonicInput, mode: "retain"): Promise<RetainedHostMonotonic>;
   async function use({ selection, approval }: HostMonotonicInput, mode: "observe" | "retain") {
     if (!system.isSupportedRuntime()) throw new HostMonotonicError("HOST_MONOTONIC_UNSUPPORTED");
-    if (reserved) throw new HostMonotonicError("HOST_MONOTONIC_BUSY");
+    if (reserved) {
+      const busy = new HostMonotonicError("HOST_MONOTONIC_BUSY");
+      if (reserved.selection === selection) busyBorrowDisposals.set(busy, { selection, disposed: reserved.disposed });
+      throw busy;
+    }
     const [binaryMember, sourceMember] = approvedMembers(selection, approval);
     const namespace = hostNamespace(system);
     const observation = new ReleaseObservation();
-    const lifetime: Lifetime = { selection, pins: [] };
+    const disposed = Promise.withResolvers<void>();
+    const lifetime: Lifetime = { selection, pins: [], disposed: disposed.promise };
     reserved = lifetime;
     let closing: Promise<void> | undefined;
     const close = (): Promise<void> => {
       if (closing) return closing;
       const closed = Promise.withResolvers<void>();
       closing = closed.promise;
-      closed.resolve(dispose(lifetime).then(() => { reserved = undefined; }));
+      closed.resolve(dispose(lifetime).then(() => {
+        reserved = undefined;
+        disposed.resolve();
+      }));
       return closing;
     };
     let retained = false;

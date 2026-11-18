@@ -5,7 +5,9 @@ import type { PrivateHelperLaunch, PrivateHelperOwner, PrivateHelperOwnerInput }
 import { selectedControlIo, verifyHelperSelection } from "./control-io-selection.ts";
 import { PrivateHelperController, type PrivateHelperHandle, type PrivateHelperProcess } from "./controller.ts";
 import { PrivateHelperError, helperError } from "./errors.ts";
-import { HostMonotonicError, type RetainedHostMonotonic, type retainHostMonotonic } from "./host-monotonic.ts";
+import {
+  busyClockBorrowDisposal, HostMonotonicError, type RetainedHostMonotonic, type retainHostMonotonic,
+} from "./host-monotonic.ts";
 
 /** External loading/filesystem/process seam. Controlled implementations never confer production authorization. */
 export interface PrivateHelperOwnerSystem {
@@ -27,6 +29,8 @@ export function confirmsPreSpawnRefusal(signal: AbortSignal, error: unknown): bo
 
 // Strong retention includes owners whose callers lose their reference, and failed loads without a returned owner.
 const retained = new Set<OwnerLifetime>();
+// A failed construction with confirmed rollback can defer the selection to its existing clock borrower.
+const borrowedByClock = new WeakSet<InspectedSelection>();
 interface OwnerLifetime {
   selection: InspectedSelection;
   module?: OwnedControlIo;
@@ -38,7 +42,9 @@ export async function openPrivateHelperOwner(
   input: PrivateHelperOwnerInput, system: PrivateHelperOwnerSystem,
 ): Promise<PrivateHelperOwner> {
   const selection = input.selection;
-  if ([...retained].some(owner => owner.selection === selection)) throw new ControlIoError("CONTROL_IO_BUSY");
+  if (borrowedByClock.has(selection) || [...retained].some(owner => owner.selection === selection)) {
+    throw new ControlIoError("CONTROL_IO_BUSY");
+  }
   const lifetime: OwnerLifetime = { selection, handles: new Set() };
   retained.add(lifetime);
   try {
@@ -55,7 +61,14 @@ export async function openPrivateHelperOwner(
     if (retainsProtection(error)) throw error;
     await lifetime.clock?.close();
     await lifetime.module?.close();
-    await releaseOwnerSelection(lifetime);
+    const clockDisposal = busyClockBorrowDisposal(error, selection);
+    if (clockDisposal) {
+      borrowedByClock.add(selection);
+      retained.delete(lifetime);
+      void clockDisposal.then(() => { borrowedByClock.delete(selection); });
+    } else {
+      await releaseOwnerSelection(lifetime);
+    }
     throw error;
   }
 }
@@ -64,8 +77,7 @@ function retainsProtection(error: unknown): boolean {
   if (error instanceof ControlIoError) {
     return error.code === "CONTROL_IO_DISPOSAL_UNCERTAIN" || error.code === "CONTROL_IO_BUSY";
   }
-  return error instanceof HostMonotonicError
-    && (error.code === "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" || error.code === "HOST_MONOTONIC_BUSY");
+  return error instanceof HostMonotonicError && error.code === "HOST_MONOTONIC_DISPOSAL_UNCERTAIN";
 }
 
 async function releaseOwnerSelection(lifetime: OwnerLifetime): Promise<void> {

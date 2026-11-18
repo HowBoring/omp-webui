@@ -1,16 +1,24 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import type { FileSink } from "bun";
+import { createHash } from "node:crypto";
+import * as fs from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import { createPrivateHelperOwner } from "../../packages/supervision/adapter.ts";
 import { createPrivateHelperOwnerForTesting, type PrivateHelperOwnerSystem } from "../../packages/supervision/testing.ts";
 import { createOwnedControlIoLoader, type ControlIoNativeLibrary } from "../../packages/control-io/testing.ts";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
-import { HostMonotonicError, type HostMonotonicApproval } from "../../packages/supervision/host-monotonic.ts";
+import { createHostMonotonicSources, HostMonotonicError, type HostMonotonicApproval } from "../../packages/supervision/host-monotonic.ts";
 import type { PrivateHelperHandle, PrivateHelperProcess } from "../../packages/supervision/controller.ts";
 import { sourceFixture } from "../sessions/source-fixture.ts";
 
 const generation = "a".repeat(64);
-const clockApproval = { abi: 1 as const, binaryDigest: "e".repeat(64), sourceDigest: "f".repeat(64) };
+const clockBinary = "controlled clock binary";
+const clockSource = "controlled clock source";
+const digest = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+const clockApproval = { abi: 1 as const, binaryDigest: digest(clockBinary), sourceDigest: digest(clockSource) };
 function controlledChild(index: number) {
   const exited = Promise.withResolvers<number>();
   let inputEnded = false;
@@ -26,8 +34,7 @@ function controlledChild(index: number) {
 }
 
 function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string; headerDigest: string },
-  verify: () => Promise<void>) {
-  const root = "/synthetic/release";
+  verify: () => Promise<void>, root: string) {
   const release = { root, identity: "d".repeat(64), runtime: `${root}/runtime/bun`, target: `${root}/worker/cli.js`,
     launcher: `${root}/bin/omp`, verify, manifest: { format: "omp-webui-release-inventory-v1" as const,
       stage: "unaccepted-artifact" as const, platform: "linux", arch: process.arch, assets: [
@@ -40,14 +47,14 @@ function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string
   return release;
 }
 
-function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) {
+function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {}, root = "/synthetic/release" } = {}) {
   let leased = true, nativeOpens = 0, nativeCloses = 0, rawCloses = 0, prepares = 0;
   let abi = 1, unloadFails = false, adoptionFails = false, socketCloseFails = false, verifyFails = false;
   const children: ReturnType<typeof controlledChild>[] = [];
   const approval = { abi: 1 as const, binaryDigest: "a".repeat(64), sourceDigest: "b".repeat(64),
     headerDigest: "c".repeat(64) };
   const verify = async () => { if (!leased || verifyFails) throw new Error("secret selection path"); };
-  const release = syntheticRelease(approval, verify);
+  const release = syntheticRelease(approval, verify, root);
   const selection: InspectedSelection = { selected: { release, entry: release.launcher,
     sessionAdmission: "blocked", verify }, sessionAdmission: "blocked", verify,
     release: async () => { leased = false; } };
@@ -401,6 +408,76 @@ test("failure to verify the assembled selection disposes the clock before contro
   })).rejects.toMatchObject({ code: "HELPER_SELECTION_UNVERIFIED" });
   expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
 });
+
+test.skipIf(process.platform !== "linux").each([
+  ["independent", "loading"], ["borrowed", "loading"], ["independent", "parked"], ["borrowed", "parked"],
+] as const)(
+  "owner creation rolls back new control I/O with selection %s and clock %s", async (relationship, reservation) => {
+    const borrowed = relationship === "borrowed", parked = reservation === "parked";
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clock-busy-"));
+    const entered = Promise.withResolvers<void>(), continueLoad = Promise.withResolvers<void>();
+    const pins: fs.FileHandle[] = [];
+    const originalOpen = fs.open;
+    const mock = parked ? spyOn(fs, "open").mockImplementation(async (path, flags, mode) => {
+      const file = await originalOpen(path, flags, mode);
+      if (typeof path === "string" && path.startsWith(`${root}/`)) pins.push(file);
+      return file;
+    }) : undefined;
+    try {
+      await mkdir(join(root, "lib")); await mkdir(join(root, "provenance"));
+      await writeFile(join(root, "lib/libomp-shutdown-clock.so"), clockBinary);
+      await writeFile(join(root, "provenance/shutdown-clock.c"), clockSource);
+      const observer = fixture({ root });
+      observer.selection.selected.release.manifest.assets.push(
+        { path: "lib/libomp-shutdown-clock.so", identity: clockApproval.binaryDigest, kind: "file", mode: 0o444 },
+        { path: "provenance/shutdown-clock.c", identity: clockApproval.sourceDigest, kind: "file", mode: 0o444 },
+      );
+      let opens = 0;
+      const clock = createHostMonotonicSources({
+        isSupportedRuntime: () => true,
+        namespace: () => "12:34",
+        async openNative() {
+          opens++;
+          entered.resolve();
+          await continueLoad.promise;
+          return { abi: () => 1, milliseconds: () => 37n, close() {
+            if (parked) throw new Error("controlled unload uncertainty");
+          } };
+        },
+      });
+      const observing = clock.observe({ selection: observer.selection, approval: clockApproval });
+      try {
+        await Promise.race([entered.promise, observing]);
+        if (parked) {
+          continueLoad.resolve();
+          await expect(observing).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+        }
+        const candidate = borrowed ? observer : fixture();
+        await expect(candidate.open(clockApproval, clock.retain)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased]).toEqual([1, 1, borrowed]);
+        expect([candidate.prepares, candidate.children.length, opens, observer.leased]).toEqual([0, 0, 1, true]);
+        if (borrowed) await expect(candidate.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+        if (parked) return;
+
+        continueLoad.resolve();
+        expect(await observing).toBe(37n);
+        if (borrowed) {
+          const retry = await candidate.open(clockApproval, clock.retain);
+          await retry.close();
+          expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased, opens]).toEqual([2, 2, false, 2]);
+        }
+      } finally {
+        continueLoad.resolve();
+        await observing.catch(() => {});
+      }
+    } finally {
+      mock?.mockRestore();
+      // The controlled library did not map native code, so the fixture can close parked descriptors.
+      await Promise.all(pins.map(file => file.close()));
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
 
 test("uncertain clock setup parks the loaded control I/O and original lease before any launch", async () => {
   const f = fixture();

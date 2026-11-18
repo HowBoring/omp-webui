@@ -38,8 +38,11 @@ the exact bigint clock while the binding is open. Each read verifies the origina
 Host time namespace around the sample.
 
 A bounded clock load refusal rolls back the already loaded control I/O before the
-owner releases the selection. Uncertain clock setup or rollback retains maintenance
-protection even if construction returns an error. The owner waits for all original
+owner releases the selection. A busy reservation preserves only its exact borrowed
+selection. The new owner closes its independently acquired control I/O even when
+the clock already borrows the same selection. It can retry that selection once the
+existing clock confirms disposal. Uncertain clock setup or rollback retains
+maintenance protection even if construction returns an error. The owner waits for all original
 handles to reach clean completion before closing the clock, closing control I/O and
 releasing the selection in order. Disposal failures remain sticky.
 
