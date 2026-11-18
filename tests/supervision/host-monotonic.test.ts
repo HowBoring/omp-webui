@@ -6,7 +6,7 @@ import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
-import { createHostMonotonicObserver } from "../../packages/supervision/host-monotonic.ts";
+import { createHostMonotonicObserver, createHostMonotonicSources } from "../../packages/supervision/host-monotonic.ts";
 
 const linuxTest = test.skipIf(process.platform !== "linux");
 const procFdTest = test.skipIf(process.platform !== "linux" || !existsSync("/proc/self/fd"));
@@ -63,6 +63,41 @@ procFdTest("observes one full-width Host monotonic value through the independent
     expect(await observe({ selection, approval })).toBe(9_007_199_254_740_993n);
     expect(calls).toEqual(["sample", "unload"]);
     await expect(readFile(libraryPath)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+});
+
+procFdTest("the retained source reserves the approved clock across synchronous reads until disposal", async () => {
+  await fixture(async selection => {
+    let namespace = "12:34";
+    let libraryPath = "";
+    const calls: string[] = [];
+    const sources = createHostMonotonicSources({
+      isSupportedRuntime: () => true,
+      namespace: () => namespace,
+      async openNative(path) {
+        libraryPath = path;
+        return { abi: () => 1,
+          milliseconds: () => { calls.push("sample"); return 9_007_199_254_740_993n; },
+          close: () => { calls.push("unload"); },
+        };
+      },
+    });
+    const input = { selection, approval };
+    const clock = await sources.retain(input);
+    try {
+      expect(calls).toEqual([]);
+      expect(await readFile(libraryPath, "utf8")).toBe("clock bytes");
+      await expect(sources.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+      expect(clock.read()).toBe(9_007_199_254_740_993n);
+      namespace = "12:35";
+      expect(() => clock.read()).toThrow("HOST_MONOTONIC_UNAVAILABLE");
+      expect(calls).toEqual(["sample"]);
+    } finally { await clock.close(); }
+    expect(() => clock.read()).toThrow("HOST_MONOTONIC_CLOSED");
+    expect(calls).toEqual(["sample", "unload"]);
+    await expect(readFile(libraryPath)).rejects.toMatchObject({ code: "ENOENT" });
+    namespace = "12:34";
+    expect(await sources.observe(input)).toBe(9_007_199_254_740_993n);
   });
 });
 

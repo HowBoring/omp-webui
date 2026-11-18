@@ -1,17 +1,28 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import type { FileSink } from "bun";
+import { createHash } from "node:crypto";
+import * as fs from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import { createPrivateHelperOwner } from "../../packages/supervision/adapter.ts";
-import { createPrivateHelperOwnerForTesting } from "../../packages/supervision/testing.ts";
+import { createPrivateHelperOwnerForTesting, type PrivateHelperOwnerSystem } from "../../packages/supervision/testing.ts";
 import { createOwnedControlIoLoader, type ControlIoNativeLibrary } from "../../packages/control-io/testing.ts";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
+import { createHostMonotonicSources, HostMonotonicError, type HostMonotonicApproval } from "../../packages/supervision/host-monotonic.ts";
 import type { PrivateHelperHandle, PrivateHelperProcess } from "../../packages/supervision/controller.ts";
 import { sourceFixture } from "../sessions/source-fixture.ts";
 
 const generation = "a".repeat(64);
+const clockBinary = "controlled clock binary";
+const clockSource = "controlled clock source";
+const digest = (bytes: string) => createHash("sha256").update(bytes).digest("hex");
+const clockApproval = { abi: 1 as const, binaryDigest: digest(clockBinary), sourceDigest: digest(clockSource) };
 function controlledChild(index: number) {
   const exited = Promise.withResolvers<number>();
-  const stdin: FileSink = { write: () => 1, end: () => 0, flush: () => 0,
+  let inputEnded = false;
+  const stdin: FileSink = { write: () => 1, end: () => { inputEnded = true; return 0; }, flush: () => 0,
     start: () => {}, ref: () => {}, unref: () => {} };
   const stdout = new TransformStream<Uint8Array, Uint8Array>();
   const stderr = new TransformStream<Uint8Array, Uint8Array>();
@@ -19,12 +30,11 @@ function controlledChild(index: number) {
     stdout: stdout.readable, stderr: stderr.readable, exited: exited.promise, stdio: [null, null, null, 17 + index] };
   const bytes: Buffer[] = [];
   const closeOutput = () => Promise.all([stdout.writable.close(), stderr.writable.close()]);
-  return { process, reap: exited.resolve, bytes, closeOutput };
+  return { process, reap: exited.resolve, bytes, closeOutput, get inputEnded() { return inputEnded; } };
 }
 
 function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string; headerDigest: string },
-  verify: () => Promise<void>) {
-  const root = "/synthetic/release";
+  verify: () => Promise<void>, root: string) {
   const release = { root, identity: "d".repeat(64), runtime: `${root}/runtime/bun`, target: `${root}/worker/cli.js`,
     launcher: `${root}/bin/omp`, verify, manifest: { format: "omp-webui-release-inventory-v1" as const,
       stage: "unaccepted-artifact" as const, platform: "linux", arch: process.arch, assets: [
@@ -37,17 +47,31 @@ function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string
   return release;
 }
 
-function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) {
+interface FixtureOptions {
+  verifyLaunch?(): Promise<void>;
+  afterSpawn?(): void;
+  root?: string;
+  beforeControlLoad?(): Promise<void>;
+  beforeControlClose?(): Promise<void>;
+  beforeRelease?(): Promise<void>;
+}
+function fixture({
+  verifyLaunch = async () => {}, afterSpawn = () => {}, root = "/synthetic/release",
+  beforeControlLoad, beforeControlClose, beforeRelease,
+}: FixtureOptions = {}) {
   let leased = true, nativeOpens = 0, nativeCloses = 0, rawCloses = 0, prepares = 0;
   let abi = 1, unloadFails = false, adoptionFails = false, socketCloseFails = false, verifyFails = false;
   const children: ReturnType<typeof controlledChild>[] = [];
   const approval = { abi: 1 as const, binaryDigest: "a".repeat(64), sourceDigest: "b".repeat(64),
     headerDigest: "c".repeat(64) };
   const verify = async () => { if (!leased || verifyFails) throw new Error("secret selection path"); };
-  const release = syntheticRelease(approval, verify);
+  const release = syntheticRelease(approval, verify, root);
   const selection: InspectedSelection = { selected: { release, entry: release.launcher,
     sessionAdmission: "blocked", verify }, sessionAdmission: "blocked", verify,
-    release: async () => { leased = false; } };
+    release: async () => {
+      if (beforeRelease) await beforeRelease();
+      leased = false;
+    } };
   const library: ControlIoNativeLibrary = { symbols: {
     omp_control_io_abi: () => abi, omp_control_io_live: () => 0,
     omp_control_io_adopt: (fd) => adoptionFails ? 0 : fd,
@@ -60,15 +84,27 @@ function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) 
     omp_control_io_send: (_fd, _bytes, size) => size,
     omp_control_io_close: () => socketCloseFails ? -1 : 0,
   }, close: () => { nativeCloses++; if (unloadFails) throw new Error("unknown unload"); } };
-  const load = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
+  const loadControl = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
     openNative: async () => { nativeOpens++; return library; } });
-  const open = () => createPrivateHelperOwnerForTesting({ selection, controlIoApproval: approval }, {
-    load, verifyLaunch,
-    spawn: () => {
-      const child = controlledChild(children.length);
-      children.push(child); afterSpawn(); return child.process;
-    }, closeControl: () => { rawCloses++; },
-  });
+  const open = (hostMonotonicApproval?: HostMonotonicApproval,
+    retainHostMonotonic?: PrivateHelperOwnerSystem["retainHostMonotonic"]) =>
+    createPrivateHelperOwnerForTesting({
+      selection, controlIoApproval: approval, ...(hostMonotonicApproval && { hostMonotonicApproval }),
+    }, {
+      async load(input) {
+        if (beforeControlLoad) await beforeControlLoad();
+        const module = await loadControl(input);
+        return beforeControlClose ? { openControl: fd => module.openControl(fd), async close() {
+          await beforeControlClose();
+          await module.close();
+        } } : module;
+      },
+      verifyLaunch, ...(retainHostMonotonic && { retainHostMonotonic }),
+      spawn: () => {
+        const child = controlledChild(children.length);
+        children.push(child); afterSpawn(); return child.process;
+      }, closeControl: () => { rawCloses++; },
+    });
   const launch = { generation, cwd: "/synthetic", arguments: ["--mode", "rpc-ui"], environment: {},
     approval: { binaryDigest: "1".repeat(64), sourceDigest: "2".repeat(64),
       controlSourceDigest: "3".repeat(64), candidateSourceDigest: "4".repeat(64) },
@@ -279,6 +315,7 @@ test("concurrent helpers reuse one approved module and retain selection until ex
   await ready(f, 0); await ready(f, 1);
   await Promise.all([a.ready, b.ready]);
   expect([f.nativeOpens, f.prepares, f.children.length]).toEqual([1, 2, 2]);
+  expect(a.readHostMonotonic).toBeUndefined();
   complete(f, 0, 19); await a.completed;
   expect(await a.rootExit).toEqual({ kind: "rootExit", generation, exitCode: 19, signal: 0 });
   expect([f.nativeCloses, f.leased]).toEqual([0, true]);
@@ -289,6 +326,314 @@ test("concurrent helpers reuse one approved module and retain selection until ex
   complete(f, 1); await b.completed; await closing;
   expect([f.nativeCloses, f.leased, f.rawCloses]).toEqual([1, false, 0]);
   await owner.close(); expect(f.nativeCloses).toBe(1);
+});
+
+test("the original helper handles share an optional Host clock while their owner retains selection", async () => {
+  const f = fixture();
+  const clockOpens: InspectedSelection[] = [];
+  let closed = 0;
+  const owner = await f.open(clockApproval, async ({ selection, approval }) => {
+    clockOpens.push(selection);
+    expect(selection).toBe(f.selection);
+    expect(approval).toEqual(clockApproval);
+    return { read: () => 9_007_199_254_740_993n, close: async () => { closed++; } };
+  });
+  const [first, second] = await Promise.all([owner.launch(f.launch), owner.launch(f.launch)]);
+  try {
+    await ready(f, 0); await ready(f, 1);
+    await Promise.all([first.ready, second.ready]);
+    expect(first.readHostMonotonic?.()).toBe(9_007_199_254_740_993n);
+    expect(second.readHostMonotonic?.()).toBe(9_007_199_254_740_993n);
+    expect(clockOpens).toHaveLength(1);
+    const closing = owner.close();
+    complete(f, 0); await first.completed;
+    expect([closed, f.nativeCloses, f.leased]).toEqual([0, 0, true]);
+    complete(f, 1); await closing;
+    expect([closed, f.nativeCloses, f.leased]).toEqual([1, 1, false]);
+  } finally {
+    complete(f, 0); complete(f, 1);
+    await owner.close();
+  }
+});
+
+test.each(["readable", "unavailable"] as const)(
+  "the original owned connection samples a %s Host clock once before cleanup and abort", async kind => {
+    const f = fixture();
+    const events: string[] = [];
+    let retirement: AbortSignal | undefined;
+    const owner = await f.open(clockApproval, async () => ({
+      read() {
+        events.push(!retirement?.aborted && !f.children[0]?.inputEnded ? "sample-before-fence" : "late-sample");
+        if (kind === "unavailable") throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
+        return 9_007_199_254_740_993n;
+      },
+      async close() {},
+    }));
+    const attached = Promise.withResolvers<PrivateHelperHandle>();
+    const session = await sourceFixture(Date.now, async (cwd, signal) => {
+      retirement = signal;
+      const handle = await owner.launch({ ...f.launch, cwd }, signal);
+      const connection = SessionWorker.attachOwned(handle);
+      signal.addEventListener("abort", () => {
+        events.push(f.children[0]?.inputEnded ? "abort-after-fence" : "abort-before-fence");
+      });
+      attached.resolve(handle);
+      return connection;
+    });
+    const opening = session.supervisor.open(session.identity, session.selected);
+    void opening.catch(() => {});
+    const handle = await attached.promise;
+    let completion: Promise<void> | undefined;
+    const finish = () => completion ??= (async () => {
+      await ready(f, 0);
+      await handle.ready;
+      complete(f, 0);
+      await f.children[0]?.closeOutput();
+    })();
+    try {
+      await Bun.sleep(0); // Let the Supervisor retain the attachment while HELLO is still held.
+      expect(events).toEqual([]);
+      const shutdown = session.supervisor.close();
+      const repeated = session.supervisor.revokeAll();
+      expect(events).toEqual(["sample-before-fence", "abort-after-fence"]);
+      await finish();
+      await Promise.all([shutdown, repeated]);
+      expect(events).toHaveLength(2);
+      const drain = session.supervisor.exits()[0]?.drain;
+      expect(drain).toMatchObject({ status: "owned-completed" });
+      if (kind === "readable") expect(drain).toMatchObject({ hostMonotonicCleanupMs: 9_007_199_254_740_993n });
+      else expect(drain).not.toHaveProperty("hostMonotonicCleanupMs");
+    } finally {
+      await finish();
+      await session.close();
+      await owner.close();
+    }
+  },
+);
+
+test("a bounded clock refusal rolls back loaded control I/O before releasing selection", async () => {
+  const f = fixture();
+  await expect(f.open(clockApproval, async () => { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); }))
+    .rejects.toMatchObject({ code: "HOST_MONOTONIC_UNAPPROVED" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
+});
+
+test("failure to verify the assembled selection disposes the clock before control I/O", async () => {
+  const f = fixture();
+  let closes = 0;
+  await expect(f.open(clockApproval, async () => {
+    f.failVerification();
+    return { read: () => 0n, async close() {
+      expect([f.nativeCloses, f.leased]).toEqual([0, true]);
+      closes++;
+    } };
+  })).rejects.toMatchObject({ code: "HELPER_SELECTION_UNVERIFIED" });
+  expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
+});
+
+async function stageClock(root: string): Promise<void> {
+  await mkdir(join(root, "lib"));
+  await mkdir(join(root, "provenance"));
+  await writeFile(join(root, "lib/libomp-shutdown-clock.so"), clockBinary);
+  await writeFile(join(root, "provenance/shutdown-clock.c"), clockSource);
+}
+
+function clockFixture(root: string, options?: FixtureOptions) {
+  const f = fixture({ ...options, root });
+  f.selection.selected.release.manifest.assets.push(
+    { path: "lib/libomp-shutdown-clock.so", identity: clockApproval.binaryDigest, kind: "file", mode: 0o444 },
+    { path: "provenance/shutdown-clock.c", identity: clockApproval.sourceDigest, kind: "file", mode: 0o444 },
+  );
+  return f;
+}
+
+function fixtureClock(openNative?: Parameters<typeof createHostMonotonicSources>[0]["openNative"]) {
+  return createHostMonotonicSources({
+    isSupportedRuntime: () => true,
+    namespace: () => "12:34",
+    openNative: openNative ?? (async () => ({ abi: () => 1, milliseconds: () => 37n, close() {} })),
+  });
+}
+
+function gate() {
+  const entered = Promise.withResolvers<void>(), opened = Promise.withResolvers<void>();
+  return {
+    entered: entered.promise,
+    async wait() { entered.resolve(); await opened.promise; },
+    open: opened.resolve,
+  };
+}
+
+test.skipIf(process.platform !== "linux").each([
+  ["independent", "loading"], ["borrowed", "loading"], ["independent", "parked"], ["borrowed", "parked"],
+] as const)(
+  "owner creation rolls back new control I/O with selection %s and clock %s", async (relationship, reservation) => {
+    const borrowed = relationship === "borrowed", parked = reservation === "parked";
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clock-busy-"));
+    const entered = Promise.withResolvers<void>(), continueLoad = Promise.withResolvers<void>();
+    const pins: fs.FileHandle[] = [];
+    const originalOpen = fs.open;
+    const mock = parked ? spyOn(fs, "open").mockImplementation(async (path, flags, mode) => {
+      const file = await originalOpen(path, flags, mode);
+      if (typeof path === "string" && path.startsWith(`${root}/`)) pins.push(file);
+      return file;
+    }) : undefined;
+    try {
+      await stageClock(root);
+      const observer = clockFixture(root);
+      let opens = 0;
+      const clock = fixtureClock(async () => {
+        opens++;
+        entered.resolve();
+        await continueLoad.promise;
+        return { abi: () => 1, milliseconds: () => 37n, close() {
+          if (parked) throw new Error("controlled unload uncertainty");
+        } };
+      });
+      const observing = clock.observe({ selection: observer.selection, approval: clockApproval });
+      try {
+        await Promise.race([entered.promise, observing]);
+        if (parked) {
+          continueLoad.resolve();
+          await expect(observing).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+        }
+        const candidate = borrowed ? observer : fixture();
+        if (borrowed) await expect(candidate.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+        await expect(candidate.open(clockApproval, clock.retain)).rejects.toMatchObject({
+          code: borrowed ? "CONTROL_IO_BUSY" : "HOST_MONOTONIC_BUSY",
+        });
+        expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased]).toEqual(
+          borrowed ? [0, 0, true] : [1, 1, false]);
+        expect([candidate.prepares, candidate.children.length, opens, observer.leased]).toEqual([0, 0, 1, true]);
+        if (parked) return;
+
+        continueLoad.resolve();
+        expect(await observing).toBe(37n);
+        if (borrowed) {
+          const retry = await candidate.open(clockApproval, clock.retain);
+          await retry.close();
+          expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased, opens]).toEqual([1, 1, false, 2]);
+        }
+      } finally {
+        continueLoad.resolve();
+        await observing.catch(() => {});
+      }
+    } finally {
+      mock?.mockRestore();
+      // The controlled library did not map native code, so the fixture can close parked descriptors.
+      await Promise.all(pins.map(file => file.close()));
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
+
+test.skipIf(process.platform !== "linux").each(["rollback", "shutdown"] as const)(
+  "owner %s excludes a new clock borrow through control close and lease release", async operation => {
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clock-disposal-"));
+    const controlClose = gate(), leaseRelease = gate(), nativeLoad = gate();
+    try {
+      await stageClock(root);
+      const f = clockFixture(root, { beforeControlClose: controlClose.wait, beforeRelease: leaseRelease.wait });
+      const other = clockFixture(root);
+      const clock = fixtureClock(async () => {
+        if (operation === "rollback") await nativeLoad.wait();
+        return { abi: () => 1, milliseconds: () => 41n, close() {} };
+      });
+      const input = { selection: f.selection, approval: clockApproval };
+      const observing = operation === "rollback"
+        ? clock.observe({ selection: other.selection, approval: clockApproval }) : undefined;
+      void observing?.catch(() => {});
+      let disposal: Promise<unknown> | undefined;
+      try {
+        if (observing) {
+          await Promise.race([nativeLoad.entered, observing]);
+          disposal = f.open(clockApproval, clock.retain);
+          void disposal.catch(() => {});
+          await Promise.race([controlClose.entered, disposal]);
+          nativeLoad.open();
+          expect(await observing).toBe(41n);
+        } else {
+          const owner = await f.open(clockApproval, async (input, ownerToken) => {
+            await expect(clock.retain(input, Symbol())).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+            return clock.retain(input, ownerToken);
+          });
+          disposal = owner.close();
+          void disposal.catch(() => {});
+          await Promise.race([controlClose.entered, disposal]);
+        }
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        controlClose.open();
+        await Promise.race([leaseRelease.entered, disposal]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        leaseRelease.open();
+        if (operation === "rollback") await expect(disposal).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        else await disposal;
+        expect([f.nativeCloses, f.leased]).toEqual([1, false]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_SELECTION_CHANGED" });
+      } finally {
+        nativeLoad.open(); controlClose.open(); leaseRelease.open();
+        await Promise.allSettled([observing, disposal]);
+      }
+    } finally { await rm(root, { recursive: true, force: true }); }
+  },
+);
+
+test.skipIf(process.platform !== "linux")(
+  "a clockless owner keeps the exact lease exclusive through a gated control refusal", async () => {
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clockless-"));
+    const controlLoad = gate();
+    try {
+      await stageClock(root);
+      const f = clockFixture(root, { beforeControlLoad: controlLoad.wait });
+      const clock = fixtureClock();
+      const input = { selection: f.selection, approval: clockApproval };
+      f.wrongAbi();
+      const opening = f.open();
+      try {
+        await Promise.race([controlLoad.entered, opening]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        controlLoad.open();
+        await expect(opening).rejects.toMatchObject({ code: "CONTROL_IO_ABI" });
+        expect(f.leased).toBe(false);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_SELECTION_CHANGED" });
+      } finally { controlLoad.open(); await opening.catch(() => {}); }
+    } finally { await rm(root, { recursive: true, force: true }); }
+  },
+);
+
+test("uncertain clock setup parks the loaded control I/O and original lease before any launch", async () => {
+  const f = fixture();
+  await expect(f.open(clockApproval, async () => {
+    throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN");
+  })).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 0, true, 0, 0]);
+});
+
+test("uncertain control I/O rollback retains selection after a safe clock refusal", async () => {
+  const f = fixture();
+  f.failUnload();
+  await expect(f.open(clockApproval, async () => { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); }))
+    .rejects.toMatchObject({ code: "CONTROL_IO_LOAD_FAILED" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, true, 0, 0]);
+});
+
+test("uncertain retained clock disposal parks the owner and is never retried", async () => {
+  const f = fixture();
+  let closes = 0;
+  const owner = await f.open(clockApproval, async () => ({
+    read: () => 0n,
+    async close() { closes++; throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN"); },
+  }));
+  const closing = owner.close();
+  await expect(closing).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+  expect(owner.close()).toBe(closing);
+  await expect(owner.launch(f.launch)).rejects.toMatchObject({ code: "CONTROL_IO_CLOSED" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  await expect(fixtureClock().observe({ selection: f.selection, approval: clockApproval })).rejects
+    .toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+  expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 0, true, 0, 0]);
 });
 
 test("failed validation refuses preparation and spawn and safely releases its selected lifetime", async () => {

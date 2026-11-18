@@ -52,6 +52,8 @@ interface NoWorkerDrain {
 type OwnedRootExit = Pick<Awaited<OwnedSessionConnection["rootExit"]>, "exitCode" | "signal">;
 interface OwnedWorkerFacts {
   domain: "pending" | "completed" | "unresolved";
+  /** Host-local sample at first retirement, kept in the in-memory exit observation. */
+  hostMonotonicCleanupMs?: bigint;
   rootExit?: OwnedRootExit;
   rootExitUnobserved?: true;
   output?: StdioOutput;
@@ -539,10 +541,17 @@ export class SessionSupervisor {
     if (this.#active && !this.#active.released) await this.#stop(this.#active, "host-shutdown");
   }
   #stop(active: Active, reason: string): Promise<WorkerExit> {
-    active.retired = true;
     if (!active.stopping) {
       const stopping = Promise.withResolvers<WorkerExit>();
       active.stopping = stopping.promise;
+      const retained = active.retained;
+      if (retained) {
+        try {
+          const sample = retained.connection?.readHostMonotonic?.();
+          if (sample !== undefined) retained.facts.hostMonotonicCleanupMs = sample;
+        } catch { /* Keep fencing and observing the original ownership when the Host clock is unavailable. */ }
+      }
+      active.retired = true;
       stopping.resolve(this.#drain(active, reason));
     }
     return active.stopping;
