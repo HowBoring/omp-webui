@@ -111,12 +111,13 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
  }
  function textContent(value: unknown): string {
    if (typeof value === "string") return value;
-@@ -87,9 +179,22 @@
+@@ -87,9 +179,25 @@
      throw new Error("history_unknown_content");
    }).join("\n");
  }
-+const KNOWN_MESSAGE_ROLES = new Set(["developer", "fileMention", "branchSummary", "compactionSummary", "user",
-+  "assistant", "toolResult", "custom", "hookMessage", "bashExecution", "pythonExecution"]);
++const CONTENT_MESSAGE_ROLES = new Set(["user", "assistant", "toolResult", "custom", "hookMessage"]);
++const KNOWN_MESSAGE_ROLES = new Set(["developer", "fileMention", "branchSummary", "compactionSummary",
++  ...CONTENT_MESSAGE_ROLES, "bashExecution", "pythonExecution"]);
 +function readableRole(message: Record<string, unknown>): string | undefined {
 +  const role = message.role;
 +  if (typeof role !== "string" || !KNOWN_MESSAGE_ROLES.has(role)) throw new Error("history_unknown_message");
@@ -124,8 +125,10 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
 +  return role;
 +}
 +function messageProjectionMetadata(message: Record<string, unknown>, role: string | undefined) {
-+  return role === "assistant" && typeof message.provider === "string" && typeof message.model === "string"
++  const source = role === "assistant" && typeof message.provider === "string" && typeof message.model === "string"
 +    ? { provider: message.provider, model: message.model } : {};
++  if (role === undefined || !CONTENT_MESSAGE_ROLES.has(role) || typeof message.stopReason !== "string") return source;
++  return { ...source, stopReason: message.stopReason };
 +}
  function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "provider" | "model" | "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
    const message = record(value);
@@ -135,40 +138,68 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
    if (role === "developer") return { role, text: "[Native developer context record]" };
    if (role === "fileMention") {
      const files = Array.isArray(message.files) ? message.files.map(record) : [];
-@@ -101,8 +206,7 @@
+@@ -100,15 +208,13 @@
+       ...(content ? { contents: content(files.flatMap(file => file.image ? [file.image] : [])) } : {}) };
    }
    if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
-   if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
+-  if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
 -    if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
 -    return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: (textContent(message.content) || `[${role}]`) +
++  if (CONTENT_MESSAGE_ROLES.has(role)) {
 +    return { role, ...messageProjectionMetadata(message, role), text: (textContent(message.content) || `[${role}]`) +
        (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
        (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
        ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
-@@ -144,12 +248,68 @@
+       ...(typeof message.toolName === "string" ? {toolName:message.toolName} : {}),
+       ...(typeof message.isError === "boolean" ? {isError:message.isError} : {}),
+-      ...(typeof message.stopReason === "string" ? {stopReason:message.stopReason} : {}),
+       ...(content ? { contents: content(message.content) } : {}) };
+   }
+   if (role === "bashExecution" || role === "pythonExecution") return { role,
+@@ -144,12 +250,88 @@
    return item;
  }
  
 +type ObservedEntries = ReturnType<SessionManager["captureHistoryObservation"]>["entries"];
++interface HistoryEntryShape { id: string; parentId: string | null; type: string }
++interface ActiveGraphEntry extends HistoryEntryShape {
++  visibleCustom: boolean; message?: Record<string, unknown>;
++}
 +
 +/** Match the eager snapshot's canonical JSON view without retaining its record bodies. */
 +function materializeActiveEntry(entry: ObservedEntries[number], fingerprint: string): Record<string, unknown> {
 +  const encoded = stringifyJson(entry);
 +  if (encoded === undefined || Buffer.byteLength(encoded) > HISTORY_LIMITS.nativeItemBytes ||
 +    Bun.SHA256.hash(encoded, "hex") !== fingerprint) throw new Error("history_handoff_changed");
-+  const canonical = record(JSON.parse(encoded));
-+  if (canonical.id !== entry.id || canonical.parentId !== entry.parentId || canonical.type !== entry.type) {
-+    throw new Error("history_invalid_entry");
-+  }
-+  return canonical;
++  return record(JSON.parse(encoded));
 +}
 +
-+function activeHistoryPath(entries: ObservedEntries, leafId: string | null) {
-+  for (const entry of entries) {
-+    if (!KNOWN_ENTRY_TYPES.has(entry.type)) throw new Error("history_unknown_entry");
-+    if (typeof entry.id !== "string" || entry.id.length > 256 || entry.id.length === 0 ||
-+      (entry.parentId !== null && typeof entry.parentId !== "string")) throw new Error("history_invalid_entry");
++function assertHistoryEntryShape(value: unknown): asserts value is HistoryEntryShape {
++  const { id, parentId, type } = record(value);
++  if (typeof type !== "string" || !KNOWN_ENTRY_TYPES.has(type)) throw new Error("history_unknown_entry");
++  if (typeof id !== "string" || id.length > 256 || id.length === 0 || (parentId !== null && typeof parentId !== "string")) {
++    throw new Error("history_invalid_entry");
 +  }
++}
++
++function activeGraphEntry(entry: Record<string, unknown>): ActiveGraphEntry {
++  assertHistoryEntryShape(entry);
++  // An oversized parent cannot match any valid ID. Preserve the missing-parent result without retaining it.
++  const parentId = typeof entry.parentId === "string" && entry.parentId.length > 256 ? "" : entry.parentId;
++  const row = { id: entry.id, parentId, type: entry.type, visibleCustom: entry.display === true };
++  if (entry.type !== "message") return row;
++  const { role, display, provider, model, stopReason } = record(entry.message);
++  const compact = { role: typeof role === "string" ? role : undefined, display: display === true,
++    provider: typeof provider === "string" ? provider : undefined, model: typeof model === "string" ? model : undefined,
++    stopReason: typeof stopReason === "string" ? stopReason : undefined };
++  // A long field can be read again after path selection. Keep the graph independent of those sizes.
++  const units = (compact.role?.length ?? 0) + (compact.provider?.length ?? 0) + (compact.model?.length ?? 0)
++    + (compact.stopReason?.length ?? 0);
++  return units <= 256 ? { ...row, message: compact } : row;
++}
++
++function activeHistoryPath(entries: readonly HistoryEntryShape[], leafId: string | null) {
++  for (const entry of entries) assertHistoryEntryShape(entry);
 +  const indexed = new Map(entries.map((entry, ordinal) => [entry.id, ordinal]));
 +  if (indexed.size !== entries.length) throw new Error("history_duplicate_entry");
 +  for (const entry of entries) {
@@ -214,7 +245,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
    readonly #events: HistoryChange[] = [];
    #seq = 0;
    #liveBytes = 0;
-@@ -283,65 +443,27 @@
+@@ -283,65 +465,27 @@
      if (!["tree", "active", "running", "live"].includes(scope)) throw new Error("history_invalid_scope");
      if (handoff !== undefined && handoff !== "current" && handoff !== "live") throw new Error("history_invalid_handoff");
      const value = this.#capture();
@@ -288,7 +319,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
      };
      const encodedById = new Map(value.entries.map(entry => [entry.id, split({ ...readableEntry(entry, active, registerContent),
        ...(this.#entryLive.has(`${value.sourceId}:${value.sessionId}:${entry.id}`) ? { live: this.#entryLive.get(`${value.sourceId}:${value.sessionId}:${entry.id}`) } : {}) })]));
-@@ -375,10 +497,7 @@
+@@ -375,10 +519,7 @@
        expiresAt: Date.now() + HISTORY_LIMITS.ttlMs, count: rows[scope].length, streaming: value.runtime.streaming,
        compacting: value.runtime.compacting, prefix, scannedBytes: value.scannedBytes, scanMs: value.scanMs, snapshotMs: performance.now() - started, limits: HISTORY_LIMITS };
      if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
@@ -300,7 +331,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
      const timer = setTimeout(() => { this.#snapshots.delete(snapshot); }, HISTORY_LIMITS.ttlMs);
      timer.unref();
      const positions = new Map<string, {scope: HistoryScope; offset: number}>([
-@@ -388,13 +507,230 @@
+@@ -388,13 +529,234 @@
      this.#snapshots.set(snapshot, { runtimeFingerprints: value.runtimeFingerprints, handoffHeaderRevision: value.handoffHeaderRevision, handoffEntryRevisions: value.handoffEntryRevisions, timer, contents, open: structuredClone(open), rows, bytes, cursors: positions });
      return structuredClone(open);
    }
@@ -331,8 +362,13 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
 +    const started = performance.now();
 +    const value = this.#capture(false);
 +    if (value.runtime.compacting) throw new Error("history_handoff_changed");
-+    const { active, indexed } = activeHistoryPath(value.entries, value.cut.leafId);
 +    const { runtimeFingerprints, handoffHeaderRevision, handoffEntryRevisions } = value;
++    const graph = value.entries.map((entry, ordinal) => {
++      const row = activeGraphEntry(materializeActiveEntry(entry, handoffEntryRevisions[ordinal]!));
++      if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
++      return row;
++    });
++    const { active, indexed } = activeHistoryPath(graph, value.cut.leafId);
 +    const snapshot = crypto.randomUUID();
 +    let bytes = handoffEntryRevisions.length * 64 + (handoffHeaderRevision?.length ?? 0);
 +    for (const fingerprint of runtimeFingerprints) {
@@ -341,18 +377,17 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
 +    }
 +    const entries = [...active].reverse().map((id, ordinal) => {
 +      const retainedOrdinal = indexed.get(id)!;
-+      const entry = value.entries[retainedOrdinal]!;
++      const row = graph[retainedOrdinal]!;
 +      const fingerprint = handoffEntryRevisions[retainedOrdinal]!;
-+      const canonical = materializeActiveEntry(entry, fingerprint);
 +      const live = this.#entryLive.get(`${value.sourceId}:${value.sessionId}:${id}`);
-+      const message = entry.type === "message" ? record(canonical.message) : {};
-+      const role = entry.type === "message" ? readableRole(message)
-+        : entry.type === "custom_message" && canonical.display === true ? "custom" : undefined;
-+      const metadata: HistoryActiveEntry = { ordinal, entryId: id, parentId: entry.parentId, kind: entry.type,
++      const message = row.type === "message"
++        ? row.message ?? record(materializeActiveEntry(value.entries[retainedOrdinal]!, fingerprint).message) : {};
++      const role = row.type === "message" ? readableRole(message)
++        : row.type === "custom_message" && row.visibleCustom ? "custom" : undefined;
++      const metadata: HistoryActiveEntry = { ordinal, entryId: id, parentId: row.parentId, kind: row.type,
 +        digest: this.#authenticateActive(`entry.${snapshot}.${ordinal}.${fingerprint}`),
 +        ...(role !== undefined ? { role } : {}),
 +        ...messageProjectionMetadata(message, role),
-+        ...(role === "assistant" && typeof message.stopReason === "string" ? { stopReason: message.stopReason } : {}),
 +        ...(live ? { live: structuredClone(live) } : {}) };
 +      const size = Buffer.byteLength(JSON.stringify({ metadata, retainedOrdinal }));
 +      if (size > HISTORY_LIMITS.itemBytes) throw new Error("history_item_bytes");
@@ -532,7 +567,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
      if (value.cut.sourceId !== cut.sourceId || value.cut.sessionId !== cut.sessionId || value.cut.contextId !== cut.contextId ||
        value.handoffHeaderRevision !== snapshot.handoffHeaderRevision || value.handoffEntryRevisions.length < snapshot.handoffEntryRevisions.length ||
        snapshot.handoffEntryRevisions.some((revision, index) => value.handoffEntryRevisions[index] !== revision)) {
-@@ -415,12 +751,17 @@
+@@ -415,12 +777,17 @@
        }
      }
      if (leafId !== value.cut.leafId) throw new Error("history_handoff_changed");
@@ -550,7 +585,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/codin
    }
    page(cursor: string): HistoryPage {
      this.#expire();
-@@ -451,6 +792,7 @@
+@@ -451,6 +818,7 @@
    }
    contentPage(cursor: string): HistoryContentPage {
      this.#expire();

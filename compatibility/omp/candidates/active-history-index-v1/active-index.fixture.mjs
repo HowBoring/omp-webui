@@ -92,6 +92,63 @@ assert.equal(canonical.activePayloadRange(canonicalBinding, [canonicalKey], 0).i
   'canonical source payload');
 assert.equal(canonical.closeActiveIndex(canonicalBinding).closed, true);
 
+const graphManager = SessionManager.inMemory(profile);
+const graphRoot = graphManager.appendMessage({ role: 'user', content: 'graph root', timestamp: 1 });
+const graphSibling = graphManager.appendMessage({ role: 'user', content: 'off branch', timestamp: 2 });
+graphManager.branch(graphRoot);
+const graphLeaf = graphManager.appendMessage({ role: 'user', content: 'on branch', timestamp: 3 });
+const offBranchEntry = graphManager.getEntry(graphSibling);
+const originalOffBranch = { ...offBranchEntry };
+const graph = new RpcHistoryObservation(graphManager, () => ({ messages: [], streaming: false, compacting: false }));
+for (const [change, message] of [
+  [{ id: graphLeaf }, 'history_duplicate_entry'],
+  [{ parentId: 'missing' }, 'history_missing_parent'],
+  [{ parentId: 'x'.repeat(257) }, 'history_missing_parent'],
+  [{ parentId: graphSibling }, 'history_parent_cycle'],
+  [{ type: 'unknown_native_category' }, 'history_unknown_entry'],
+]) {
+  offBranchEntry.toJSON = () => ({ ...originalOffBranch, ...change });
+  assert.throws(() => graph.open('tree'), { message });
+  assert.throws(() => graph.openActiveIndex(), { message });
+}
+offBranchEntry.toJSON = () => originalOffBranch;
+const relocatedEntry = graphManager.getEntry(graphLeaf);
+const originalRelocated = { ...relocatedEntry };
+relocatedEntry.toJSON = () => ({ ...originalRelocated, parentId: graphSibling });
+const graphIndex = graph.openActiveIndex();
+const graphBinding = { snapshot: graphIndex.snapshot, contentRevision: graphIndex.cut.contentRevision };
+const graphRows = graph.activeIndexPage(graphBinding, 0).items;
+assert.deepEqual(graphRows.map(({entryId, parentId}) => [entryId, parentId]), [
+  [graphRoot, null], [graphSibling, graphRoot], [graphLeaf, graphSibling],
+]);
+const graphKeys = graphRows.map(({ordinal, entryId, digest}) => ({ ordinal, entryId, digest }));
+const graphPayload = graph.activePayloadRange(graphBinding, graphKeys, 0);
+assert.deepEqual(graphPayload.items.map(({id, parentId}) => [id, parentId]), [
+  [graphRoot, null], [graphSibling, graphRoot], [graphLeaf, graphSibling],
+]);
+assert.equal(graph.closeActiveIndex(graphBinding).closed, true);
+
+const rolesManager = SessionManager.inMemory(profile);
+const longStop = 'fixture-native-stop-'.repeat(19);
+for (const message of [
+  { role: 'user', content: 'user text', stopReason: longStop, timestamp: 1 },
+  { role: 'toolResult', content: 'tool text', stopReason: 'tool-stop', timestamp: 2 },
+  { role: 'custom', display: true, content: 'visible', stopReason: 'custom-stop', timestamp: 3 },
+  { role: 'hookMessage', display: false, content: 'hidden', stopReason: 'hidden-stop', timestamp: 4 },
+  { role: 'developer', content: 'developer text', stopReason: 'developer-stop', timestamp: 5 },
+]) rolesManager.appendMessage(message);
+const roles = new RpcHistoryObservation(rolesManager, () => ({ messages: [], streaming: false, compacting: false }));
+const rolesIndex = roles.openActiveIndex();
+const rolesBinding = { snapshot: rolesIndex.snapshot, contentRevision: rolesIndex.cut.contentRevision };
+const rolesMetadata = roles.activeIndexPage(rolesBinding, 0).items;
+const rolesEagerIndex = roles.open('active');
+const rolesEager = roles.page(rolesEagerIndex.cursor).items;
+const projectionFields = ({role, provider, model, stopReason}) => ({ role, provider, model, stopReason });
+assert.deepEqual(rolesEager.map(({stopReason}) => stopReason), [longStop, 'tool-stop', 'custom-stop', undefined, undefined]);
+assert.deepEqual(rolesMetadata.map(projectionFields), rolesEager.map(projectionFields));
+assert.equal(roles.close(rolesEagerIndex.snapshot).closed, true);
+assert.equal(roles.closeActiveIndex(rolesBinding).closed, true);
+
 const multipartManager = SessionManager.inMemory(profile);
 const wholeText = 'escaped 😀\\\n"'.repeat(110000);
 const imageBytes = Buffer.alloc(300_001, 91);
