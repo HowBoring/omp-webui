@@ -15,7 +15,7 @@ import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packag
 import type { SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 
 interface NativeFixtureControls {
-  catalogFailure: unknown; busy: boolean; launches: number; closed: boolean;
+  catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
   close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
@@ -37,7 +37,7 @@ export async function sourceFixture(now: () => number = Date.now) {
   const listeners = new Set<(frame: SessionWorkerFrame) => void>();
   let exited: PromiseWithResolvers<number>;
   const controls: NativeFixtureControls = {
-    catalogFailure: undefined, busy: false, launches: 0, closed: false,
+    catalogFailure: undefined, busy: false, launches: 0, closed: false, notificationCount: 0,
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
@@ -45,9 +45,9 @@ export async function sourceFixture(now: () => number = Date.now) {
     drain: { code: 0, forced: false, stderrBytes: 0 },
     retirement: undefined,
   };
-  const worker: Omit<SupervisedSessionWorker, "exited" | "close"> = {
+  const worker: Omit<SupervisedSessionWorker, "exited" | "close" | "notificationCount"> = {
     frames: [{ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true, nativeExpiry: "cancel",
-      toolExpiry: "cancel", invalidAnswer: "pending" } }], notificationCount: 0,
+      toolExpiry: "cancel", invalidAnswer: "pending" } }],
     startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start()
       : command.type === "get_strict_state" ? controls.observe() : opened,
       (value): value is StrictStartState => validState(value)),
@@ -70,7 +70,7 @@ export async function sourceFixture(now: () => number = Date.now) {
       ++controls.launches; await controls.launch();
       const childExit = Promise.withResolvers<number>();
       exited = childExit;
-      return { ...worker, exited: childExit.promise,
+      return { ...worker, exited: childExit.promise, notificationCount: controls.notificationCount,
         async close(policy) {
           const drain = await controls.close(policy);
           controls.closed = true; childExit.resolve(drain.code); return drain;
