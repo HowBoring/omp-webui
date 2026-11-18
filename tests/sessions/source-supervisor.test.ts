@@ -587,8 +587,17 @@ test("shutdown fences the retained connection while readiness is pending and wai
     expect(f.supervisor.hasOwnedReservation).toBe(true);
     owned.ready.reject(new Error("RPC_SESSION_RETIRED"));
     owned.rootExit.resolve({ kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 0 });
+    await clock.advance(150);
+    expect(f.supervisor.exits()).toMatchObject([{ drain: {
+      status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 0 },
+    } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
     owned.completed.resolve();
     await clock.advance(200);
+    expect(f.supervisor.exits()).toMatchObject([{ drain: {
+      status: "owned-unresolved", domain: "completed", rootExit: { exitCode: 0, signal: 0 },
+    } }]);
+    expect(f.supervisor.exits()[0]?.drain).not.toHaveProperty("output");
     expect(f.supervisor.hasOwnedReservation).toBe(true);
     owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 12, observedTailNotifications: 2 });
     await shutdown;
@@ -636,7 +645,10 @@ test("a connection delivered after the shutdown observation is fenced with the o
     owned.rootExit.resolve({ kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 15 });
     owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1 });
     await clock.advance(40_000);
-    expect(f.supervisor.exits()).toHaveLength(1);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown", tailNotifications: 1, drain: {
+      status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 15 },
+      output: { stdoutEOF: true, stderrEOF: true },
+    } }]);
     expect(f.supervisor.hasOwnedReservation).toBe(true);
 
     owned.completed.resolve();
