@@ -1,5 +1,7 @@
 import { expect, test } from "bun:test";
-import { DraftOriginalId, DraftSubmissionId, DraftProjectionGeneration } from "@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft";
+import {
+  DraftOriginalId, DraftSubmissionId, DraftProjectionGeneration,
+} from "@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft";
 import type { SemanticDraftRecord } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { createSnapshotStore } from "@deepseek-ai/dsh-client-store";
 import type { SessionProjectionState } from "@deepseek-ai/dsh-api-session-controller/client";

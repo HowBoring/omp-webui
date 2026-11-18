@@ -78,11 +78,11 @@ The focused scope-mutation fix added three deterministic regressions. Queued A w
 not publish into B, pending A reads must not return B, and deferred A Files must
 not return after replacement with B. Same-identity controls remain successful.
 
-With the active DSH build and dependency links prepared:
+Prepare the active DSH build and dependency links using the
+[DSH setup instructions](../../compatibility/dsh/README.md). Then run the checks
+from the Host repository root.
 
 ```sh
-bun run dsh:prepare
-bun run dsh:link
 bun test --no-env-file \
   --preload ./tests/interactions/no-provider.ts ./tests/drafts/provider.test.ts
 bun run typecheck
