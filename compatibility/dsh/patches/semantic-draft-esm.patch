@@ -1,0 +1,54 @@
+diff --git a/packages/client/ui-conversation/package.json b/packages/client/ui-conversation/package.json
+index c228e27c..717f5ed7 100644
+--- a/packages/client/ui-conversation/package.json
++++ b/packages/client/ui-conversation/package.json
+@@ -22,6 +22,10 @@
+       "types": "./lib/types/client/index.d.ts",
+       "default": "./lib/client.js"
+     },
++    "./client/semantic-draft": {
++      "types": "./lib/types/client/semantic-draft.d.ts",
++      "default": "./lib/client.node.semantic-draft.js"
++    },
+     "./src/*": "./src/*",
+     "./package.json": "./package.json",
+     "./locale/*.json": "./locale/*.json"
+@@ -106,6 +110,7 @@
+     "locale/*.json",
+     "lib/index.js",
+     "lib/client.js",
++    "lib/client.node.semantic-draft.js",
+     "lib/types/**/*.d.ts",
+     "lib/types/**/*.d.ts.map",
+     "lib/**/*.js.map",
+diff --git a/packages/client/ui-conversation/tsdown.config.ts b/packages/client/ui-conversation/tsdown.config.ts
+index 7aa03ceb..ecbbed42 100644
+--- a/packages/client/ui-conversation/tsdown.config.ts
++++ b/packages/client/ui-conversation/tsdown.config.ts
+@@ -1,3 +1,13 @@
++import { fileURLToPath } from 'node:url'
+ import { clientBundle } from '../tsdown.client.ts'
+ 
+-export default clientBundle(import.meta.dirname, ['lib/types/index.js'])
++const index = 'lib/types/index.js'
++const quoteText = fileURLToPath(new URL('../ui-primitives/lib/types/markdown/quote-text.js', import.meta.url))
++
++export default clientBundle(import.meta.dirname, [index], {
++  lib: {
++    entry: { index, 'client.node.semantic-draft': 'lib/types/client/semantic-draft.js' },
++    // The draft parser uses only the pure quote formatter from the UI Primitives barrel.
++    inputOptions: { resolve: { alias: { '@deepseek-ai/dsh-client-ui-primitives$': quoteText } } },
++  },
++})
+diff --git a/scripts/check-workspace-constraints.ts b/scripts/check-workspace-constraints.ts
+index f759eca7..2310590f 100644
+--- a/scripts/check-workspace-constraints.ts
++++ b/scripts/check-workspace-constraints.ts
+@@ -183,6 +183,7 @@ export function readWorkspaceManifests(repositoryRoot: string): WorkspaceManifes
+ }
+ 
+ const packageFileExtras: Readonly<Record<string, readonly string[]>> = {
++  '@deepseek-ai/dsh-client-ui-conversation': ['lib/client.node.semantic-draft.js'],
+   // Tools entry points share error classes and invocation stages through runtime chunks.
+   '@deepseek-ai/dsh-tools': ['lib/pipeline.js', 'lib/shared-*.js'],
+   // The embedded OAR implementation retains its upstream license.
