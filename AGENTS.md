@@ -48,6 +48,7 @@ The Host is an adapter and process supervisor, not a second Agent implementation
 ## Engineering conventions
 
 - TypeScript strict mode; avoid `any`, unchecked casts, and implicit protocol assumptions.
+- Use repository TypeScript for editor diagnostics and apply Oxlint and the strict typecheck to TypeScript changes.
 - Prefer small modules with explicit interfaces and one responsibility.
 - Target 120 characters per line, 50 lines per method, cyclomatic complexity <=15, and nesting depth <=4.
 - Keep public types documented where their semantics are not obvious.
@@ -60,6 +61,7 @@ The Host is an adapter and process supervisor, not a second Agent implementation
 
 ~~~bash
 bun run dev
+bun run lint
 bun run typecheck
 bun test
 bun run check

@@ -20,6 +20,12 @@ and build checks must finish in a later matched cohort before any producer can e
 No generated catalog or release version is changed here, and no alternate Host protocol
 or native data path is introduced.
 
+The dormant combined source candidate places the exact ticket 45 prompt-notice patch
+after parsed Tool presentation. These patches affect disjoint paths and both orders
+produce the same tree. They retain their existing Session and Conversation boundaries.
+The combined tree requires its own matched build and admission checks.
+[Source composition evidence](../evidence/ticket-45-dsh-source-composition.md)
+
 Native durable source/session/context/owner association after reopen remains a separate
 unimplemented prerequisite. DSH call-ID matching does not establish it. The Host emits
 no new event and gains no capability admission from these source fixtures. Whole tickets

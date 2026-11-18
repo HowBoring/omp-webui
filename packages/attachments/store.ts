@@ -3,10 +3,13 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync,
   readFileSync, readdirSync, realpathSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { originalPreparation, originalSubmissionAssociation, type OriginalEntryAssociation,
+  type OriginalSubmissionAssociation, type OriginalSubmissionAttempt } from "./association-evidence.ts";
 import { isAttachmentError, type AttachmentErrorName } from "./errors.ts";
 import { documentOriginalBytes, imageOriginalBytes, isOriginalMediaType, type OriginalMediaType } from "./media.ts";
 
 export type { ImageMediaType } from "./media.ts";
+export type { OriginalSubmissionAttempt } from "./association-evidence.ts";
 
 /** Trusted Host authority, never decoded from browser JSON. No Native access is performed by this store. */
 export interface OriginalScope {
@@ -29,6 +32,10 @@ export type StagedOriginal = Omit<OriginalDescriptor, "mediaType"> & {
   stagedAt: number;
 } & ({ mediaType: "text/plain"; validation: "utf8-only" }
   | { mediaType: Exclude<OriginalMediaType, "text/plain">; validation: "signature-only" });
+export type AssociatedOriginal = OriginalDescriptor & {
+  objectId: string; sha256: string; state: "native-associated";
+  nativeAssociation: Omit<OriginalEntryAssociation, "objectId"> & { clientSubmissionId: string };
+};
 export interface OriginalDeletionPreview {
   original: StagedOriginal;
   impact: { draftId: string; losesOriginalAccess: true; laterToolReadsMayFail: true };
@@ -54,8 +61,10 @@ export interface OriginalStoreOptions {
 }
 interface Row {
   id: string; scope: string; size: number; displayName: string; mediaType: OriginalMediaType;
-  state: "receiving" | "staged-unprepared" | "deleting"; sha256: string | null; stagedAt: number; activityAt: number;
+  state: "receiving" | "staged-unprepared" | "native-associated" | "deleting";
+  sha256: string | null; stagedAt: number; activityAt: number;
 }
+interface SubmissionRow { scope: string; preparationId: string; preparation: string; associations: string | null }
 interface PendingDeletion {
   objectId: string; scope: OriginalScope; revision: string; reviewedAt: number; expiresAt: number;
 }
@@ -65,6 +74,9 @@ const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a
 const bindingFields = ["hostId", "browserId", "pageId", "profileId", "sourceId", "instanceId", "sessionId",
   "canonicalCwd", "draftId"] as const;
 const scopeKey = (scope: OriginalBinding) => JSON.stringify(bindingFields.map(field => scope[field]));
+const submissionTarget = (scope: OriginalBinding) => ({ sourceId: scope.sourceId, instanceId: scope.instanceId,
+  nativeSessionId: scope.sessionId });
+const submissionTargetKey = (scope: OriginalBinding) => JSON.stringify(submissionTarget(scope));
 const scopeFields = [...bindingFields, "authorityEpoch"] as const;
 const validIdentity = (value: unknown): value is string => typeof value === "string" && value.length > 0
   && value.length <= 4096;
@@ -81,7 +93,7 @@ function storedBinding(key: string): Readonly<OriginalBinding> | undefined {
   return Object.freeze({ hostId, browserId, pageId, profileId, sourceId, instanceId, sessionId, canonicalCwd, draftId });
 }
 
-/** Exact-byte private store. Its only publication state is staged-unprepared, never a Native receipt. */
+/** Exact-byte private store. Staging and locally evidenced Native associations use separate read ports. */
 export class OriginalStore {
   private readonly db: Database;
   private readonly root: string;
@@ -112,12 +124,18 @@ export class OriginalStore {
     chmodSync(path, 0o600);
     this.db = new Database(path, { strict: true });
     try {
-      this.db.exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL;
+      this.db.exec(`PRAGMA busy_timeout=5000; PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;
         CREATE TABLE IF NOT EXISTS budget (id INTEGER PRIMARY KEY CHECK(id=1), limits TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS originals (id TEXT PRIMARY KEY, scope TEXT NOT NULL, size INTEGER NOT NULL,
           displayName TEXT NOT NULL, mediaType TEXT NOT NULL, state TEXT NOT NULL,
           sha256 TEXT, stagedAt INTEGER NOT NULL, activityAt INTEGER NOT NULL);
-        CREATE INDEX IF NOT EXISTS original_scope ON originals(scope);`);
+        CREATE INDEX IF NOT EXISTS original_scope ON originals(scope);
+        CREATE TABLE IF NOT EXISTS original_submissions (target TEXT NOT NULL, submissionId TEXT NOT NULL,
+          scope TEXT NOT NULL, preparationId TEXT NOT NULL, preparation TEXT NOT NULL, associations TEXT,
+          PRIMARY KEY(target, submissionId));
+        CREATE TABLE IF NOT EXISTS original_submission_holds (objectId TEXT PRIMARY KEY REFERENCES originals(id),
+          target TEXT NOT NULL, submissionId TEXT NOT NULL,
+          FOREIGN KEY(target, submissionId) REFERENCES original_submissions(target, submissionId));`);
       this.db.transaction(() => {
         const saved = this.db.query<{ limits: string }, []>("SELECT limits FROM budget WHERE id=1").get();
         if (saved && saved.limits !== JSON.stringify(this.limits)) fail("limits_changed");
@@ -180,7 +198,8 @@ export class OriginalStore {
         "SELECT coalesce(sum(size),0) AS bytes, count(*) AS count, "
           + "coalesce(sum(state='receiving'),0) AS intakes FROM originals").get()!;
       const draft = this.db.query<{ bytes: number; count: number }, [string]>(
-        "SELECT coalesce(sum(size),0) AS bytes, count(*) AS count FROM originals WHERE scope=?").get(scopeKey(scope))!;
+        "SELECT coalesce(sum(size),0) AS bytes, count(*) AS count FROM originals WHERE scope=? AND state<>'native-associated'")
+        .get(scopeKey(scope))!;
       if (total.bytes + descriptor.byteLength > this.limits.totalBytes || total.count >= this.limits.objects) {
         fail("store_full");
       }
@@ -256,23 +275,128 @@ export class OriginalStore {
     }).deferred();
     this.requireStagingView(row);
     this.current(access, scope, signal);
-    if (bytes.length !== row.size || createHash("sha256").update(bytes).digest("hex") !== row.sha256) {
-      fail("original_corrupt");
-    }
-    this.stagedObject(objectId, scope);
+    this.checkBytes(row, bytes);
+    // The final authority check can admit a hold on another connection. Read eligibility in one snapshot.
+    const staged = this.db.query<{ held: number }, [string, string]>(`SELECT EXISTS (
+        SELECT 1 FROM original_submission_holds WHERE objectId=staged.id
+      ) AS held FROM originals AS staged WHERE id=? AND scope=? AND state='staged-unprepared'`)
+      .get(objectId, scopeKey(scope));
+    if (!staged) fail("object_unavailable");
+    if (staged.held) fail("original_protected");
     return { ...this.metadata(row), bytes };
   }
 
   private requireStagingView(row: Row): void {
-    if (this.protection && this.unreferencedRevision(row) === undefined) fail("original_protected");
+    if (this.protection ? this.unreferencedRevision(row) === undefined : this.associationHeld(row.id)) {
+      fail("original_protected");
+    }
   }
 
   private stagedObject(objectId: string, scope: OriginalBinding): Row {
+    return this.scopedObject(objectId, scope, "staged-unprepared");
+  }
+
+  private scopedObject(objectId: string, scope: OriginalBinding, state: "staged-unprepared" | "native-associated"): Row {
     if (!idPattern.test(objectId)) fail("object_unavailable");
-    const row = this.db.query<Row, [string, string]>(
-      "SELECT * FROM originals WHERE id=? AND scope=? AND state='staged-unprepared'").get(objectId, scopeKey(scope));
+    const row = this.db.query<Row, [string, string, string]>(
+      "SELECT * FROM originals WHERE id=? AND scope=? AND state=?").get(objectId, scopeKey(scope), state);
     if (!row) fail("object_unavailable");
     return row;
+  }
+
+  /** Before dispatch, keep exact Originals from an authenticated, correlated preparation for this trusted attempt. */
+  reserveForSubmission(access: OriginalAccess, attempt: OriginalSubmissionAttempt, objectIds: readonly string[],
+    receipt: unknown): void {
+    const scope = this.current(access), key = scopeKey(scope), target = submissionTargetKey(scope);
+    const { clientSubmissionId, preparationId } = attempt;
+    const prepared = originalPreparation(receipt, attempt, submissionTarget(scope), scope.draftId, objectIds);
+    if (!prepared) fail("association_evidence_invalid");
+    const saved = JSON.stringify(prepared.evidence);
+    this.db.transaction(() => {
+      this.current(access, scope);
+      if (prepared.expiresAt <= this.now()) fail("association_evidence_invalid");
+      const previous = this.submission(scope, clientSubmissionId);
+      if (previous) {
+        if (previous.scope !== key || previous.preparationId !== preparationId || previous.preparation !== saved
+          || previous.associations !== null) {
+          fail("association_conflict");
+        }
+        return;
+      }
+      const insert = this.db.query("INSERT INTO original_submission_holds VALUES (?, ?, ?)");
+      this.db.query("INSERT INTO original_submissions VALUES (?, ?, ?, ?, ?, NULL)")
+        .run(target, clientSubmissionId, key, preparationId, saved);
+      for (const item of prepared.evidence.attachments) {
+        const row = this.stagedObject(item.originalId, scope);
+        if (this.associationHeld(row.id)) fail("association_conflict");
+        const kind = row.mediaType.startsWith("image/") ? "image" : "text";
+        if (row.sha256 !== item.originalSha256 || kind !== item.representationKind) fail("association_evidence_invalid");
+        insert.run(row.id, target, clientSubmissionId);
+      }
+    }).immediate();
+  }
+
+  /** Record a complete query from the matching Native worker for an already held submission. */
+  recordSubmission(access: OriginalAccess, clientSubmissionId: string, query: unknown): void {
+    const scope = this.current(access);
+    this.db.transaction(() => {
+      this.current(access, scope);
+      const record = this.submission(scope, clientSubmissionId);
+      const association = this.verifyAssociation(scope, clientSubmissionId, record, query);
+      if (!record || record.associations !== null) return;
+      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND state='staged-unprepared'");
+      for (const { objectId } of association.links) if (mark.run(objectId).changes !== 1) fail("association_conflict");
+      this.db.query("UPDATE original_submissions SET associations=? WHERE target=? AND submissionId=?")
+        .run(JSON.stringify(association), submissionTargetKey(scope), clientSubmissionId);
+    }).immediate();
+  }
+
+  /** The caller supplies current Native query evidence and current rights to this exact staged binding. */
+  async readAssociated(access: OriginalAccess, entryId: string, objectId: string, query: unknown,
+    signal?: AbortSignal): Promise<AssociatedOriginal & { bytes: Uint8Array }> {
+    const scope = this.current(access, undefined, signal);
+    const { association, clientSubmissionId, row, bytes } = this.db.transaction(() => {
+      const row = this.scopedObject(objectId, scope, "native-associated");
+      const hold = this.db.query<{ submissionId: string }, [string, string]>(
+        "SELECT submissionId FROM original_submission_holds WHERE objectId=? AND target=?")
+        .get(objectId, submissionTargetKey(scope));
+      if (!hold) fail("object_unavailable");
+      const { submissionId: clientSubmissionId } = hold;
+      const record = this.submission(scope, clientSubmissionId);
+      if (!record?.associations) fail("object_unavailable");
+      const { links } = this.verifyAssociation(scope, clientSubmissionId, record, query);
+      const association = links.find(link => link.objectId === objectId && link.entryId === entryId);
+      if (!association) fail("object_unavailable");
+      return { association, clientSubmissionId, row, bytes: this.payload(row) };
+    }).deferred();
+    this.current(access, scope, signal);
+    this.checkBytes(row, bytes);
+    if (!row.sha256) fail("original_corrupt");
+    return { objectId, sha256: row.sha256, mediaType: row.mediaType, displayName: row.displayName, byteLength: row.size,
+      state: "native-associated", nativeAssociation: { clientSubmissionId, entryId, entryPart: association.entryPart }, bytes };
+  }
+
+  private submission(scope: OriginalBinding, clientSubmissionId: string): SubmissionRow | null {
+    return this.db.query<SubmissionRow, [string, string]>(
+      "SELECT scope, preparationId, preparation, associations FROM original_submissions WHERE target=? AND submissionId=?")
+      .get(submissionTargetKey(scope), clientSubmissionId);
+  }
+
+  private verifyAssociation(scope: OriginalBinding, clientSubmissionId: string, record: SubmissionRow | null,
+    query: unknown): OriginalSubmissionAssociation {
+    if (!record || record.scope !== scopeKey(scope)) fail("object_unavailable");
+    const association = originalSubmissionAssociation(query, submissionTarget(scope), clientSubmissionId, record.preparation);
+    if (!association) fail("association_evidence_invalid");
+    if (record.associations !== null && record.associations !== JSON.stringify(association)) fail("association_conflict");
+    return association;
+  }
+
+  private associationHeld(objectId: string): boolean {
+    return this.db.query("SELECT 1 FROM original_submission_holds WHERE objectId=?").get(objectId) !== null;
+  }
+
+  private checkBytes(row: Row, bytes: Uint8Array): void {
+    if (bytes.length !== row.size || createHash("sha256").update(bytes).digest("hex") !== row.sha256) fail("original_corrupt");
   }
 
   /** The trusted draft coordinator calls this only after accepting a deliberate action for the current draft. */
@@ -289,7 +413,7 @@ export class OriginalStore {
       this.current(access, scope);
       const at = this.now(), key = scopeKey(scope), renewed: string[] = [], unavailable: string[] = [];
       const touch = this.db.query(`UPDATE originals SET activityAt=max(activityAt, ?) WHERE id=? AND scope=?
-        AND state='staged-unprepared' AND activityAt>?`);
+        AND state='staged-unprepared' AND activityAt>? AND id NOT IN (SELECT objectId FROM original_submission_holds)`);
       for (const id of ids) {
         const accepted = idPattern.test(id) && touch.run(at, id, key, at - unsentLifetimeMs).changes === 1;
         (accepted ? renewed : unavailable).push(id);
@@ -372,6 +496,7 @@ export class OriginalStore {
   }
 
   private unreferencedRevision(row: Row): string | undefined {
+    if (this.associationHeld(row.id)) return;
     try {
       const binding = storedBinding(row.scope);
       if (!binding) return;

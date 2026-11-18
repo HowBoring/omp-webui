@@ -1,4 +1,6 @@
 const attachmentErrors = [
+  "association_conflict",
+  "association_evidence_invalid",
   "authority_unavailable",
   "binding_changed",
   "canceled",
