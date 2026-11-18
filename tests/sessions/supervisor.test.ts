@@ -249,6 +249,7 @@ test("root revocation cancels genuine unbound startup UI and retains an honest u
     expect((await f.index.page({})).records[0]).toMatchObject({ nativeSessionId: "native-0000", attempt: { state: "outcome_unknown" } });
     expect(f.supervisor.exits()[0]).toMatchObject({ reason: "directory-revoked", uiCancelled: true,
       drain: { forced: false, stdoutEOF: true, stderrEOF: true } });
-    expect([0, 1]).toContain(f.supervisor.exits()[0]!.drain.code);
+    const code = f.supervisor.exits()[0]?.drain.code;
+    expect(code === 0 || code === 1).toBe(true);
   } finally { await f.close(); }
 }, 45_000);

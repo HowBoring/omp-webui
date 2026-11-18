@@ -11,13 +11,13 @@ import { StrictStartClient } from "../../packages/contracts/generated/strict-cli
 import { HistoryClient } from "../../packages/contracts/generated/history-client.ts";
 import validState from "../../packages/contracts/generated/strict-state.js";
 import type { CatalogDescriptor, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
-import type { DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
+import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
 import type { SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
-  drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
+  close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
 
 export async function sourceFixture(now: () => number = Date.now) {
@@ -41,6 +41,7 @@ export async function sourceFixture(now: () => number = Date.now) {
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
+    close: async () => controls.drain,
     drain: { code: 0, forced: false, stderrBytes: 0 },
     retirement: undefined,
   };
@@ -70,7 +71,10 @@ export async function sourceFixture(now: () => number = Date.now) {
       const childExit = Promise.withResolvers<number>();
       exited = childExit;
       return { ...worker, exited: childExit.promise,
-        async close() { controls.closed = true; childExit.resolve(controls.drain.code); return controls.drain; } };
+        async close(policy) {
+          const drain = await controls.close(policy);
+          controls.closed = true; childExit.resolve(drain.code); return drain;
+        } };
     } });
   async function browser() {
     const exchange = await authority.handle(new Request(authority.bootstrapLink(), { headers: { host: "127.0.0.1:4321" } }));
