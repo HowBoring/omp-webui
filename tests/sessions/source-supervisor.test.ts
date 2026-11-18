@@ -34,6 +34,58 @@ test.each([undefined, "RPC_PROTOCOL"])("Open failure survives older idle complet
   } finally { completion.resolve(f.controls.drain); await f.close(); }
 });
 
+test("a lost worker fences its view and keeps the slot until both owned readers finish", async () => {
+  const f = await sourceFixture();
+  const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
+  const drain = { code: 7, forced: false, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
+  f.controls.retirement = { status: "pending", completion: completion.promise, stdoutEOF: false, stderrEOF: false };
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.exitWorker(drain.code);
+    expect(() => f.supervisor.view(f.identity, opened.workerId)).toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
+    });
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+    expect(f.supervisor.starts).toBe(1);
+
+    completion.resolve(drain); await completion.promise;
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, drain }]);
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+    const reopened = await f.supervisor.open(f.identity, f.selected);
+    expect(reopened.state).toBe("open");
+    expect(reopened.workerId).not.toBe(opened.workerId);
+    expect(reopened.generation).not.toBe(opened.generation);
+  } finally { completion.resolve(drain); await f.close(); }
+});
+
+test.each(["incomplete", "rejected"])("a lost worker remains owned after a %s drain", async outcome => {
+  const f = await sourceFixture();
+  const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
+  const drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: false };
+  f.controls.retirement = { status: "pending", completion: completion.promise, stdoutEOF: false, stderrEOF: false };
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.exitWorker(drain.code);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+
+    if (outcome === "rejected") completion.reject(new Error("SYNTHETIC_DRAIN_FAILED"));
+    else completion.resolve(drain);
+    await completion.promise.catch(() => {});
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.starts).toBe(1);
+
+    f.controls.drain = { ...drain, stderrEOF: true };
+    await f.supervisor.close();
+    expect(f.supervisor.exits().at(-1)).toMatchObject({
+      workerId: opened.workerId, reason: "host-shutdown", drain: f.controls.drain,
+    });
+  } finally { completion.resolve(drain); await f.close(); }
+});
+
 test("zero exit with a failed final protocol tail persists an unknown shutdown outcome", async () => {
   const f = await sourceFixture();
   try {

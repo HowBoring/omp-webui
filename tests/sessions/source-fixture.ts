@@ -34,7 +34,8 @@ export async function sourceFixture(now: () => number = Date.now) {
   const binding = { ...selected, ownership: { ...selected.ownership, state: "held" as const } };
   const opened: StrictStartState = { version: "strict-start-v1", phase: "open", intent: "continue", cwd,
     nativeSessionId: selected.nativeSessionId, binding };
-  const listeners = new Set<(frame: SessionWorkerFrame) => void>(), exited = Promise.withResolvers<number>();
+  const listeners = new Set<(frame: SessionWorkerFrame) => void>();
+  let exited: PromiseWithResolvers<number>;
   const controls: NativeFixtureControls = {
     catalogFailure: undefined, busy: false, launches: 0, closed: false,
     start: async (): Promise<StrictStartState> => opened,
@@ -43,9 +44,9 @@ export async function sourceFixture(now: () => number = Date.now) {
     drain: { code: 0, forced: false, stderrBytes: 0 },
     retirement: undefined,
   };
-  const worker: SupervisedSessionWorker = {
+  const worker: Omit<SupervisedSessionWorker, "exited" | "close"> = {
     frames: [{ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true, nativeExpiry: "cancel",
-      toolExpiry: "cancel", invalidAnswer: "pending" } }], exited: exited.promise, notificationCount: 0,
+      toolExpiry: "cancel", invalidAnswer: "pending" } }], notificationCount: 0,
     startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start()
       : command.type === "get_strict_state" ? controls.observe() : opened,
       (value): value is StrictStartState => validState(value)),
@@ -55,7 +56,6 @@ export async function sourceFixture(now: () => number = Date.now) {
     async state() { return { sessionId: selected.nativeSessionId, isSettled: !controls.busy, isStreaming: controls.busy,
       isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } }; },
     async retireIdle() { return controls.retirement ?? { status: "closed", drain: controls.drain }; },
-    async close() { controls.closed = true; exited.resolve(controls.drain.code); return controls.drain; },
   };
   const catalog = new CatalogClient(async command => {
     if (controls.catalogFailure !== undefined) throw controls.catalogFailure;
@@ -65,7 +65,13 @@ export async function sourceFixture(now: () => number = Date.now) {
       expiresAt: "2099-11-16T00:00:00.000Z", examined: 2, failures: [], items: [selected, other] };
   });
   const supervisor = new SessionSupervisor({ authority, grants, index, catalog,
-    async launch() { ++controls.launches; await controls.launch(); return worker; } });
+    async launch() {
+      ++controls.launches; await controls.launch();
+      const childExit = Promise.withResolvers<number>();
+      exited = childExit;
+      return { ...worker, exited: childExit.promise,
+        async close() { controls.closed = true; childExit.resolve(controls.drain.code); return controls.drain; } };
+    } });
   async function browser() {
     const exchange = await authority.handle(new Request(authority.bootstrapLink(), { headers: { host: "127.0.0.1:4321" } }));
     const cookie = exchange!.headers.get("set-cookie")!.split(";")[0]!;
@@ -75,6 +81,8 @@ export async function sourceFixture(now: () => number = Date.now) {
   }
   const browserView = await browser();
   return { home, cwd, dataDir, origin, authority, grants, grant, index, catalog, selected, other, supervisor, controls,
-    ...browserView, browser, emit(frame: SessionWorkerFrame) { for (const listener of listeners) listener(frame); },
+    ...browserView, browser,
+    exitWorker(code: number) { exited.resolve(code); return exited.promise; },
+    emit(frame: SessionWorkerFrame) { for (const listener of listeners) listener(frame); },
     async close() { await supervisor.close(); authority.close(); grants.close(); index.close(); await rm(home, { recursive: true, force: true }); } };
 }
