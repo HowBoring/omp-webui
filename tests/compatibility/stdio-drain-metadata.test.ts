@@ -70,3 +70,17 @@ test("default close does not infer stderr EOF from a successful exit when its re
       protocolFailure: "RPC_STDERR_LIMIT" });
   } finally { peer.restore(); }
 });
+
+test.each(["stdout", "stderr"] as const)("drain timeout preserves observed %s EOF", async closed => {
+  const peer = fakeProcess();
+  try {
+    const transport = await open();
+    peer.exited.resolve(0);
+    await transport.exited;
+    peer[closed].close();
+    const completion = transport.close({ cooperativeMs: 0, terminationGraceMs: 0, readerGraceMs: 10 });
+    expect(await completion).toEqual({ code: 0, forced: false, stderrBytes: 0,
+      terminationSent: false, forceSent: false, stdoutEOF: closed === "stdout", stderrEOF: closed === "stderr",
+      protocolFailure: "RPC_DRAIN_TIMEOUT" });
+  } finally { peer.restore(); }
+});
