@@ -40,6 +40,7 @@ interface SocketData {
   brokerEvents?: AbortController;
 }
 type StreamOpen = Extract<RemoteStreamClientMessage, { type: "open" }>;
+class FixtureStreamWriteError extends Error {}
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   const done = Promise.withResolvers<void>();
   const abort = () => { done.resolve(); };
@@ -229,10 +230,14 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
         events && (value => events.ready(value, peer, identity, control.signal))));
   } catch (error) {
     if (!terminal) throw error;
-    if (!control.signal.aborted && socket.readyState === WebSocket.OPEN) {
+    if (control.signal.aborted || socket.readyState !== WebSocket.OPEN) return;
+    try {
+      if (error instanceof FixtureStreamWriteError) throw error;
       const failure = new RemoteError("gateway/internal", snapshot
         ? "Interaction snapshot failed." : "Interaction event stream failed.", {});
-      sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) });
+      sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) }, true);
+    } catch {
+      socket.close(1011, "stream failed");
     }
   } finally {
     control.abort();
@@ -241,8 +246,18 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
   }
 }
 
-function sendFrame(socket: ServerWebSocket<SocketData>, frame: RemoteStreamServerMessage): void {
-  if (socket.send(JSON.stringify(frame)) < 0) throw new Error("slow diagnostic viewer");
+function sendFrame(socket: ServerWebSocket<SocketData>, frame: RemoteStreamServerMessage,
+  requireDelivery: boolean): void {
+  const message = JSON.stringify(frame);
+  let sent: number;
+  try { sent = socket.send(message); }
+  catch (error) {
+    if (!requireDelivery) throw error;
+    throw new FixtureStreamWriteError("Diagnostic stream write failed", { cause: error });
+  }
+  // A nonempty 0 is dropped. A -1 may already be queued, so close the socket without sending another terminal.
+  if (requireDelivery && sent <= 0) throw new FixtureStreamWriteError("Diagnostic stream delivery failed");
+  if (sent < 0) throw new Error("slow diagnostic viewer");
 }
 
 async function pump(socket: ServerWebSocket<SocketData>, { streamId, endpoint, payload }: StreamOpen,
@@ -254,10 +269,10 @@ async function pump(socket: ServerWebSocket<SocketData>, { streamId, endpoint, p
   for await (const value of stream) {
     if (!current() || control.signal.aborted) throw new Error("SESSION_AUTH_REQUIRED");
     if (onReady) { onReady(value); onReady = undefined; }
-    sendFrame(socket, { type: "item", streamId, value });
+    sendFrame(socket, { type: "item", streamId, value }, terminal);
   }
   if (terminal && !control.signal.aborted) {
     if (!current()) throw new Error("SESSION_AUTH_REQUIRED");
-    sendFrame(socket, { type: "end", streamId });
+    sendFrame(socket, { type: "end", streamId }, terminal);
   }
 }

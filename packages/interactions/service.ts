@@ -23,7 +23,7 @@ export class InteractionBrokerService extends TypertRemoteService {
   }
   @Remote("pending") pending() { return this.broker.pending(this.caller()); }
   @Remote({ mode: "stream" }) async *pendingSnapshot(): AsyncGenerator<BrokerSnapshot> {
-    yield brokerSnapshotSchema.parse(this.broker.pending(this.caller()));
+    yield brokerSnapshotSchema.parse(this.broker.pendingSnapshot(this.caller()));
   }
   @Remote("answer") answer(generation: string, interactionId: string, deliveryId: string, answer: UIAnswer) {
     return this.broker.answer(this.caller(), generation, interactionId, deliveryId, answer);

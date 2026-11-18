@@ -50,8 +50,11 @@ snapshot to the admitted socket Peer and its one live Gateway `$events` ready
 stream. The snapshot takes zero arguments. Authority is checked when admitting
 the read and again before publishing. A successful read emits one exact
 `BrokerSnapshot` and a terminal `end`. Rejected reads receive a fixed typed error
-on the logical stream. The Client validates the item, reads the terminal, and
-disposes the handle.
+on the logical stream. A dropped or backpressured fixture write closes the
+affected socket so a Client cannot wait indefinitely for a terminal frame.
+The Client validates the item, reads the terminal, and disposes the handle.
+An overdue card is omitted even when its expiry timer is late. The snapshot
+read leaves expiry cancellation and Stop to the existing timer.
 
 The loopback regression uses independent pinned DSH Clients sharing one issued
 cookie. Their ready client, Peer, and delivery identifiers are distinct.

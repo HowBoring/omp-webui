@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import { apply as gateway } from "@deepseek-ai/dsh-api-gateway/client";
 import {
@@ -111,6 +111,7 @@ async function fixture(sharedSnapshot = false) {
   const reply = Promise.withResolvers<{ status: "answered" | "cancelled" }>();
   let clockFault = false, scopeCurrent = true, revokeOnRead = false;
   let monotonic = 0;
+  const timers = new Map<() => void, number>();
   const entered = Promise.withResolvers<RespondUiParams>();
   const commands: RespondUiParams[] = [], stops: string[] = [];
   const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
@@ -124,6 +125,10 @@ async function fixture(sharedSnapshot = false) {
     },
     wall: sharedSnapshot ? () => 10_000 + monotonic : Date.now,
     schedule(delay, callback) {
+      if (sharedSnapshot) {
+        timers.set(callback, monotonic + delay);
+        return () => { timers.delete(callback); };
+      }
       const timer = setTimeout(callback, delay);
       return () => clearTimeout(timer);
     },
@@ -148,6 +153,13 @@ async function fixture(sharedSnapshot = false) {
     failClock: () => { clockFault = true; },
     loseScope: () => { scopeCurrent = false; },
     advance: (elapsed: number) => { monotonic += elapsed; },
+    runDueTimers() {
+      for (const [callback, deadline] of timers) {
+        if (deadline > monotonic) continue;
+        timers.delete(callback);
+        callback();
+      }
+    },
     loseScopeOnRead: () => { revokeOnRead = true; },
     openPage: (access: Credential, interactions: "answer" | "none" = "answer") =>
       openPage(host, access, contexts, sharedSnapshot, interactions),
@@ -287,9 +299,88 @@ test("shared-cookie Browser Views retain separate Broker snapshots across a logi
   } finally { await f.close(); }
 });
 
+test("an overdue Broker snapshot omits the card while expiry waits for its timer", async () => {
+  const f = await fixture(true);
+  try {
+    const page = await f.openPage(await login(f.host));
+    await page.ready;
+    f.receive("overdue");
+    expect((await snapshot(page)).pending[0]?.card.deadline).toBe(1_810_000);
+
+    f.advance(1_800_001);
+    const start = page.frames.length;
+    const overdue = await snapshot(page);
+    expect(overdue).toMatchObject({ accepting: true, pending: [], outcomes: [] });
+    const frames = page.frames.slice(start);
+    expect(frames).toEqual([
+      { type: "item", streamId: expect.any(String), value: overdue },
+      { type: "end", streamId: frames[0]?.streamId ?? "" },
+    ]);
+    expect(f.commands).toEqual([]);
+    expect(f.stops).toEqual([]);
+
+    f.runDueTimers();
+    const cancellation: RespondUiParams = { targetId: "overdue", answer: { type: "cancel", timedOut: true } };
+    expect(await f.entered).toEqual(cancellation);
+    expect(f.commands).toEqual([cancellation]);
+    expect(f.stops).toEqual(["expired"]);
+    f.reply("cancelled");
+  } finally { await f.close(); }
+});
+
 function waitForClose(socket: WebSocket): Promise<number> {
   return new Promise(resolve => socket.addEventListener("close", event => resolve(event.code), { once: true }));
 }
+
+test.each([
+  { terminal: "end", status: 0 }, { terminal: "end", status: -1 },
+  { terminal: "error", status: 0 }, { terminal: "error", status: -1 },
+] as const)("a Broker $terminal write returning $status closes the affected carrier once", async ({ terminal, status }) => {
+  const wire: RemoteStreamServerMessage["type"][] = [];
+  const closures: (number | undefined)[] = [];
+  let armed = false, intercept = true;
+  const serve = Bun.serve;
+  const stub = spyOn(Bun, "serve").mockImplementation(options => {
+    const websocket = options.websocket;
+    if (!websocket) throw new Error("Expected the Broker WebSocket adapter");
+    const open = websocket.open;
+    websocket.open = function (socket) {
+      if (intercept) {
+        intercept = false;
+        const send = socket.send.bind(socket);
+        socket.send = (message, compress) => {
+          if (!armed || typeof message !== "string") return send(message, compress);
+          const frame = parseRemoteStreamServerMessage(message);
+          wire.push(frame.type);
+          return frame.type === terminal ? status : send(message, compress);
+        };
+        const close = socket.close.bind(socket);
+        socket.close = (code, reason) => {
+          if (armed) closures.push(code);
+          close(code, reason);
+        };
+      }
+      return open?.call(this, socket);
+    };
+    return serve(options);
+  });
+  const f = await fixture(true).finally(() => { stub.mockRestore(); });
+  try {
+    const page = await f.openPage(await login(f.host));
+    const { socket } = await page.ready;
+    const closed = waitForClose(socket);
+    if (terminal === "error") f.loseScope();
+    armed = true;
+
+    const failure = snapshot(page).catch((error: unknown) => error);
+    expect(await Promise.race([closed, Bun.sleep(1_000).then(() => "socket remained open")])).toBe(1011);
+    expect(await failure).toMatchObject({ name: "RemoteStreamCarrierError" });
+    expect(wire).toEqual(terminal === "end" ? ["item", "end"] : ["error"]);
+    expect(closures).toEqual([1011]);
+    expect(f.commands).toEqual([]);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
 
 test("a logical end fences a held answer and allows redelivery after physical reconnect", async () => {
   const f = await fixture();
