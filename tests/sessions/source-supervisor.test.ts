@@ -1,7 +1,8 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { z } from "zod";
 import { rm, rename, mkdir } from "node:fs/promises";
 import { sourceFixture } from "./source-fixture.ts";
+import type { DrainPolicy, DrainResult } from "../../packages/compatibility/stdio-transport.ts";
 
 test("explicit Open retains a stable prelaunch failure when its selected cwd disappeared", async () => {
   const f = await sourceFixture();
@@ -89,6 +90,253 @@ test.each(["incomplete", "rejected"])("a lost worker remains owned when its drai
   } finally { completion.resolve(drain); await f.close(); }
 });
 
+function pendingLaunch(controls: { launch(): Promise<void> }) {
+  const reached = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  controls.launch = async () => { reached.resolve(); await release.promise; };
+  return { reached: reached.promise, release: release.resolve, reject: release.reject };
+}
+
+function shutdownClock() {
+  let time = 0;
+  const now = spyOn(performance, "now").mockImplementation(() => time);
+  const schedule = globalThis.setTimeout;
+  const deadlines = new Map<number, () => void>();
+  function scheduleDeadline(handler: Bun.TimerHandler, delay?: number, ...args: unknown[]) {
+    if (typeof handler !== "function" || (delay !== 30_000 && delay !== 5_000)) return schedule(handler, delay, ...args);
+    deadlines.set(time + delay, () => handler(...args));
+    return schedule(() => {}, delay).unref();
+  }
+  Object.defineProperty(globalThis, "setTimeout", { value: scheduleDeadline });
+  return {
+    async advance(to: number, deliverTimers = true) {
+      time = to;
+      for (const [at, resolve] of deadlines) {
+        if (!deliverTimers) break;
+        if (at > time) continue;
+        deadlines.delete(at);
+        resolve();
+      }
+      await new Promise<void>(resolve => setImmediate(resolve));
+    },
+    restore() {
+      Object.defineProperty(globalThis, "setTimeout", { value: schedule });
+      now.mockRestore();
+    },
+  };
+}
+
+test("mandatory directory revocation retains a launch past the shutdown deadline until actual owned drain", async () => {
+  const f = await sourceFixture();
+  const launch = pendingLaunch(f.controls);
+  const drain = { code: 7, forced: true, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
+  const closing = Promise.withResolvers<DrainPolicy>(), waitAndEOF = Promise.withResolvers<DrainResult>();
+  let closeCalls = 0;
+  f.controls.close = async policy => { closeCalls++; closing.resolve(policy); return waitAndEOF.promise; };
+  const first = f.supervisor.open(f.identity, f.selected);
+  void first.catch(() => {});
+  const clock = shutdownClock();
+  try {
+    await launch.reached;
+    f.grants.revoke(f.grant.id);
+    const revocation = f.supervisor.permissionsChanged();
+    await clock.advance(30_000);
+    await clock.advance(35_000);
+    await revocation;
+    f.grants.confirm(f.grants.preview(f.cwd).confirmation);
+    const replacement = f.supervisor.open(f.identity, f.selected);
+    void replacement.catch(() => {});
+    // Sample this while the original launcher is unresolved; a second launch also waits on the fixture gate.
+    await clock.advance(35_000);
+    expect(f.supervisor.starts).toBe(1);
+    await expect(replacement).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked", drain: {
+      status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED",
+    } }]);
+    expect(f.supervisor.exits()[0]?.drain.code).toBeUndefined();
+
+    await clock.advance(40_000);
+    f.controls.notificationCount = 3;
+    launch.release();
+    await expect(first).rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+    expect(await closing.promise).toEqual({ cooperativeMs: 0, terminationGraceMs: 0, readerGraceMs: 1_000 });
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.exits()).toHaveLength(1);
+    waitAndEOF.resolve(drain);
+    await clock.advance(40_000);
+    expect(closeCalls).toBe(1);
+    expect(f.supervisor.exits().at(-1)).toMatchObject({ reason: "directory-revoked", drain,
+      notificationCount: 3, tailNotifications: 3, tailNotificationsLowerBound: true });
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+    expect(await f.supervisor.open(f.identity, f.selected)).toMatchObject({ state: "open" });
+    expect(f.supervisor.starts).toBe(2);
+  } finally {
+    launch.release(); waitAndEOF.resolve(drain); await first.catch(() => {}); clock.restore(); await f.close();
+  }
+});
+
+test("concurrent Host shutdown and revoke-all share the remaining grace for one late worker", async () => {
+  const f = await sourceFixture();
+  const launch = pendingLaunch(f.controls);
+  const start = spyOn(f.controls, "start");
+  const closeWorker = spyOn(f.controls, "close");
+  f.controls.drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: true };
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  const clock = shutdownClock();
+  try {
+    await launch.reached;
+    const shutdown = f.supervisor.close(), revocation = f.supervisor.revokeAll();
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_HOST_CLOSING");
+    await clock.advance(30_000);
+    await clock.advance(32_000);
+    launch.release();
+    await Promise.all([shutdown, revocation]);
+    await expect(opening).rejects.toThrow("SESSION_HOST_CLOSING");
+    expect(closeWorker).toHaveBeenCalledTimes(1);
+    expect(closeWorker).toHaveBeenCalledWith({ cooperativeMs: 0, terminationGraceMs: 3_000, readerGraceMs: 1_000 });
+    expect(start).not.toHaveBeenCalled();
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown", elapsedMs: 32_000, nativeSettled: false,
+      queuedInputsWithdrawn: false, uiCancelled: false, drain: f.controls.drain }]);
+  } finally {
+    launch.release(); await opening.catch(() => {}); clock.restore(); await f.close();
+  }
+});
+
+test("a launch rejected after bounded Host shutdown leaves ownership unknown with the index closed", async () => {
+  const f = await sourceFixture();
+  const launch = pendingLaunch(f.controls);
+  const closeWorker = spyOn(f.controls, "close");
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  const clock = shutdownClock();
+  try {
+    await launch.reached;
+    const shutdown = f.supervisor.close();
+    await clock.advance(30_000);
+    await clock.advance(35_000);
+    await shutdown;
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
+    f.index.close();
+    launch.reject(new Error("STRICT_OCCUPIED"));
+    await expect(opening).rejects.toThrow("STRICT_OCCUPIED");
+    await clock.advance(35_000);
+    expect(closeWorker).not.toHaveBeenCalled();
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.exits()).toMatchObject([
+      { reason: "host-shutdown", drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED" } },
+      { reason: "host-shutdown", drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" } },
+    ]);
+    expect(f.supervisor.exits().at(-1)?.drain.code).toBeUndefined();
+  } finally {
+    launch.release(); await opening.catch(() => {}); clock.restore(); await f.close();
+  }
+});
+
+test.each(["launch rejection", "close rejection", "missing EOF"])(
+  "late %s retains the reservation when the overdue timer has yet to run", async outcome => {
+    const f = await sourceFixture(), launch = pendingLaunch(f.controls);
+    const opening = f.supervisor.open(f.identity, f.selected);
+    void opening.catch(() => {});
+    const clock = shutdownClock();
+    try {
+      await launch.reached;
+      if (outcome === "close rejection") f.controls.close = async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); };
+      if (outcome === "missing EOF") f.controls.drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
+      f.grants.revoke(f.grant.id);
+      const revocation = f.supervisor.permissionsChanged();
+      void revocation.catch(() => {});
+      await clock.advance(32_000, false);
+      if (outcome === "launch rejection") launch.reject(new Error("STRICT_OCCUPIED"));
+      else launch.release();
+      await clock.advance(32_000, false);
+      await revocation;
+      f.grants.confirm(f.grants.preview(f.cwd).confirmation);
+      expect(await f.index.page({})).toMatchObject({ records: [{ attempt: {
+        state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+      } }] });
+      const replacement = f.supervisor.open(f.identity, f.selected);
+      void replacement.catch(() => {});
+      await clock.advance(32_000, false);
+      expect(f.supervisor.starts).toBe(1);
+      await expect(replacement).rejects.toThrow("SESSION_WORKER_DRAINING");
+      const expectedDrain = outcome === "launch rejection"
+        ? { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" }
+        : outcome === "close rejection" ? { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" }
+          : f.controls.drain;
+      expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked", drain: expectedDrain }]);
+    } finally {
+      launch.release(); await opening.catch(() => {}); clock.restore(); await f.close();
+    }
+  },
+);
+
+test.each(["missing EOF", "rejected close"])("%s retains a worker delivered at 29,999ms", async outcome => {
+  const f = await sourceFixture(), launch = pendingLaunch(f.controls);
+  const closing = Promise.withResolvers<DrainPolicy>(), completion = Promise.withResolvers<DrainResult>();
+  const partial = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
+  f.controls.close = async policy => { closing.resolve(policy); return completion.promise; };
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  const clock = shutdownClock();
+  try {
+    await launch.reached;
+    f.grants.revoke(f.grant.id);
+    const revocation = f.supervisor.permissionsChanged();
+    void revocation.catch(() => {});
+    await clock.advance(29_999);
+    launch.release();
+    expect(await closing.promise).toEqual({ cooperativeMs: 1, terminationGraceMs: 5_000, readerGraceMs: 1_000 });
+    f.grants.confirm(f.grants.preview(f.cwd).confirmation);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    const [latest] = (await f.index.page({})).records;
+    if (outcome === "missing EOF") completion.resolve(partial);
+    else completion.reject(new Error("SYNTHETIC_DRAIN_FAILED"));
+    await revocation;
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.index.get(latest!.id)).toEqual(latest);
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.starts).toBe(1);
+    const drain = outcome === "missing EOF" ? partial : { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked", tailNotificationsLowerBound: true, drain }]);
+  } finally {
+    launch.release(); completion.resolve(partial); await opening.catch(() => {}); clock.restore(); await f.close();
+  }
+});
+
+test("a launch delivered after the force deadline cannot hold the bounded shutdown observation", async () => {
+  const f = await sourceFixture(), launch = pendingLaunch(f.controls);
+  const completion = Promise.withResolvers<DrainResult>();
+  const drain = { code: 7, forced: true, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
+  f.controls.close = () => completion.promise;
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  const clock = shutdownClock();
+  let shutdownObserved = false;
+  try {
+    await launch.reached;
+    const shutdown = f.supervisor.close().then(() => { shutdownObserved = true; });
+    await clock.advance(36_000, false);
+    launch.release();
+    await clock.advance(36_000, false);
+    expect(shutdownObserved).toBe(true);
+    await shutdown;
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown", drain: {
+      status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED",
+    } }]);
+    f.index.close();
+    completion.resolve(drain);
+    await clock.advance(36_000, false);
+    expect(f.supervisor.exits().at(-1)).toMatchObject({ reason: "host-shutdown", drain });
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+  } finally {
+    launch.release(); completion.resolve(drain); await opening.catch(() => {}); clock.restore(); await f.close();
+  }
+});
+
 test("mandatory shutdown retains the root exit's failed index observation during passive drain", async () => {
   const f = await sourceFixture();
   const retirement = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").GracefulDrainResult>();
@@ -122,11 +370,30 @@ test("mandatory shutdown retains the root exit's failed index observation during
   }
 });
 
+test("Host shutdown can proceed after close rejects and records only the observed root exit", async () => {
+  const f = await sourceFixture();
+  const readers = Promise.withResolvers<DrainResult>();
+  f.controls.retirement = { status: "pending", completion: readers.promise, stdoutEOF: false, stderrEOF: false };
+  f.controls.close = async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); };
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.exitWorker(7);
+    await f.supervisor.close();
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "host-shutdown",
+      drain: { status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" } }]);
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
+    });
+    f.index.close();
+  } finally { readers.resolve(f.controls.drain); await f.close(); }
+});
+
 test("zero exit with a failed final protocol tail persists an unknown shutdown outcome", async () => {
   const f = await sourceFixture();
   try {
     const opened = await f.supervisor.open(f.identity, f.selected);
-    f.controls.drain = { code: 0, forced: false, stderrBytes: 0, protocolFailure: "RPC_PROTOCOL" };
+    f.controls.drain = { ...f.controls.drain, protocolFailure: "RPC_PROTOCOL" };
     await f.supervisor.close();
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
     expect(f.supervisor.exits()[0]?.drain).toMatchObject({ code: 0, forced: false, protocolFailure: "RPC_PROTOCOL" });
@@ -226,6 +493,9 @@ test("a replaced directory is a durable prelaunch refusal without a worker", asy
     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_DIRECTORY_DENIED");
     expect((await f.index.page({})).records[0]?.attempt).toEqual({ state: "failed", code: "SESSION_DIRECTORY_DENIED" });
     expect(f.supervisor.starts).toBe(0);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "open-failed", drain: { status: "not-launched" } }]);
+    expect(f.supervisor.exits()[0]?.drain.code).toBeUndefined();
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
   } finally { await f.close(); }
 });
 

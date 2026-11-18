@@ -11,13 +11,13 @@ import { StrictStartClient } from "../../packages/contracts/generated/strict-cli
 import { HistoryClient } from "../../packages/contracts/generated/history-client.ts";
 import validState from "../../packages/contracts/generated/strict-state.js";
 import type { CatalogDescriptor, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
-import type { DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
+import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
 import type { SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 
 interface NativeFixtureControls {
-  catalogFailure: unknown; busy: boolean; launches: number; closed: boolean;
+  catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
-  drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
+  close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
 
 export async function sourceFixture(now: () => number = Date.now) {
@@ -37,16 +37,17 @@ export async function sourceFixture(now: () => number = Date.now) {
   const listeners = new Set<(frame: SessionWorkerFrame) => void>();
   let exited: PromiseWithResolvers<number>;
   const controls: NativeFixtureControls = {
-    catalogFailure: undefined, busy: false, launches: 0, closed: false,
+    catalogFailure: undefined, busy: false, launches: 0, closed: false, notificationCount: 0,
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
-    drain: { code: 0, forced: false, stderrBytes: 0 },
+    close: async () => controls.drain,
+    drain: { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: true },
     retirement: undefined,
   };
-  const worker: Omit<SupervisedSessionWorker, "exited" | "close"> = {
+  const worker: Omit<SupervisedSessionWorker, "exited" | "close" | "notificationCount"> = {
     frames: [{ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true, nativeExpiry: "cancel",
-      toolExpiry: "cancel", invalidAnswer: "pending" } }], notificationCount: 0,
+      toolExpiry: "cancel", invalidAnswer: "pending" } }],
     startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start()
       : command.type === "get_strict_state" ? controls.observe() : opened,
       (value): value is StrictStartState => validState(value)),
@@ -69,8 +70,11 @@ export async function sourceFixture(now: () => number = Date.now) {
       ++controls.launches; await controls.launch();
       const childExit = Promise.withResolvers<number>();
       exited = childExit;
-      return { ...worker, exited: childExit.promise,
-        async close() { controls.closed = true; childExit.resolve(controls.drain.code); return controls.drain; } };
+      return { ...worker, exited: childExit.promise, notificationCount: controls.notificationCount,
+        async close(policy) {
+          const drain = await controls.close(policy);
+          controls.closed = true; childExit.resolve(drain.code); return drain;
+        } };
     } });
   async function browser() {
     const exchange = await authority.handle(new Request(authority.bootstrapLink(), { headers: { host: "127.0.0.1:4321" } }));

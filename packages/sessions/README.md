@@ -37,6 +37,18 @@ stored Bun child handle is signalled and awaited; arbitrary PIDs and external TU
 owners are never kill targets. General extension-created descendant containment
 is not attested.
 
+A launch still negotiating at shutdown keeps its reserved slot across the same
+absolute deadlines. Once the cooperative deadline passes, only the same returned
+worker can be drained using the remaining termination grace. A launcher can reject
+after spawning, so an unconfirmed rejection retains the reservation. If the handle
+is still unavailable at the force deadline, the supervisor reports unresolved
+ownership and keeps the original completion available for cleanup. A mandatory
+drain releases the slot only after both EOFs and a worker exit are observed.
+When Stop precedes handle delivery, its tail notification count is a lower bound
+because the worker counter does not account for notifications before delivery.
+The isolated CLI reports unsuccessful shutdown when ownership is unresolved and
+lets pending cleanup continue after server teardown.
+
 The read-only DSH SessionController adapts the public native `LiveJournal` cut.
 It reports `not_attested` recoverability and explicit unsupported native content.
 There is no native history mutation, prompt replay, or claimed same-holder rebuild.

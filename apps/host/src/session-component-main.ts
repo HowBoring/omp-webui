@@ -28,7 +28,19 @@ const host = await startSessionComponentServer({ manifest: resolve("vendor/omp-c
     env, cwd, readyTimeoutMs: 20_000 }) });
 console.info(JSON.stringify({ stage: "S1-isolated-sessions", sessionAdmission: "blocked", origin: host.server.url.origin }));
 process.on("SIGUSR1", () => { void host.revokeAll().catch(() => {}); });
+async function stop(): Promise<void> {
+  const hostStopped = await host.stop().then(() => true, () => false);
+  const catalogClosed = await catalog.close().then(() => true, () => false);
+  const failed = !hostStopped || !catalogClosed;
+  if (!failed && !host.supervisor.hasOwnedReservation) process.exit(0);
+  console.error(JSON.stringify({ stage: "S1-isolated-sessions",
+    shutdown: failed ? "failed" : "worker-ownership-unresolved", hostStopped, catalogClosed }));
+  // Keep the event loop available for outstanding cleanup on the same owned worker.
+  process.exitCode = 1;
+}
 let closing = false;
 for (const signal of ["SIGTERM", "SIGINT"] as const) process.once(signal, () => {
-  if (closing) return; closing = true; void host.stop().then(() => catalog.close()).then(() => process.exit(0));
+  if (closing) return;
+  closing = true;
+  void stop();
 });
