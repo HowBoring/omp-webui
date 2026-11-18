@@ -29,9 +29,11 @@ interface OwnedLaunchOptions {
    * Propagate any pre-spawn refusal from the owner unchanged. */
   launchOwned: OwnedLauncher;
 }
+/** Exactly one trusted worker launcher for a SessionSupervisor. */
+export type SessionLaunchOptions = DirectLaunchOptions | OwnedLaunchOptions;
 type Options = {
   authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; catalog: CatalogClient;
-} & (DirectLaunchOptions | OwnedLaunchOptions);
+} & SessionLaunchOptions;
 export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
   state: "opening" | "open" | "outcome_unknown" | "closed";

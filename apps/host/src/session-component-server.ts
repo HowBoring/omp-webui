@@ -10,10 +10,9 @@ import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote"
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
-import { SessionSupervisor } from "../../../packages/sessions/supervisor.ts";
+import { SessionSupervisor, type SessionLaunchOptions } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
-import type { SessionWorker } from "../../../packages/compatibility/session-worker.ts";
 import { dispatchSessionRequest as dispatch, sessionUnary as unary, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
@@ -24,10 +23,9 @@ import type { InstallationSelection } from "../../../packages/compatibility/inst
 import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.ts";
 import { openBrowserAccess, type BrowserAccess } from "../../../packages/access/index.ts";
 import { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
-interface Options extends InstallationSelection {
+type Options = InstallationSelection & SessionLaunchOptions & {
   port?: number; assets?: string; catalog: CatalogClient; dataDir: string;
-  launch(cwd: string): Promise<SessionWorker>;
-}
+};
 interface SocketData { peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController> }
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   const done = Promise.withResolvers<void>();
@@ -148,7 +146,9 @@ export async function startSessionComponentServer(options: Options) {
     },
   });
   access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
-  supervisor = new SessionSupervisor({ authority: access, grants: directories, index, catalog: options.catalog, launch: options.launch });
+  const { launch, launchOwned } = options;
+  supervisor = new SessionSupervisor({ authority: access, grants: directories, index, catalog: options.catalog,
+    ...(launchOwned === undefined ? { launch } : { launchOwned }) });
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);
   const detachRevocation = access.onRevokeAll(() => { revokedStop = supervisor.revokeAll(); void revokedStop.catch(() => {}); });
