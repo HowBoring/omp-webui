@@ -27,9 +27,11 @@ changes, canceled invocations and disposed peers refuse content.
 The only native port methods are snapshot open/page/close; the port has no prompt,
 mutation, configuration, file, binary-content or process surface. Host snapshot
 handles belong to their Browser View's public Peer; another authorized Peer
-cannot consume or evict them. A preview rereads the original strict native cursor
-to validate freshness before returning its cached text. It does not advance the
-native leaf, issue input, update Conversation or navigate history.
+cannot consume or evict them. To preview a node, the Host rereads the strict
+native cursors for its parts and verifies the source cut, indexed positions and
+readable text digests before returning the complete text. Native keeps these
+cursors valid for rereads until the snapshot changes, expires or closes. Preview
+leaves the native leaf and Conversation position untouched.
 
 On the client, `registerReadonlyTree(ctx)` registers the public opt-in
 `omp.history` slot through DSH's actual slot API and mounts the typed `ompTree/read`
@@ -78,18 +80,22 @@ this slice does not claim that flattening satisfies that ticket.
 
 ## Bounds and evidence
 
-Disposable memory only: 8 concurrent snapshots, 20,000 nodes and 60,000 parts per
-snapshot, 16 MiB encoded cached node/text data per snapshot and 32 MiB across the
-service. Preview text is capped at 2 Mi UTF-16 units; a native page at 1,024 items.
-Limits fail explicitly, never silently truncate a tree or claim completion. Native
-frame, snapshot and expiry bounds still apply through the actual transport. These
-are source safety budgets, not measured accepted performance targets. No tree or
-transcript is written to disk.
+The Host retains the bounded snapshot identity and source cut, topology, cursor
+and part locations, and previewable text digests in disposable memory. The index
+allows 8 concurrent snapshots with up to 20,000 nodes, 60,000 parts and 16 MiB of
+accounted index data per snapshot, and 32 MiB across the service. Native frames
+and snapshots retain their own bounds and expiry. A page holds up to 1,024 items.
+A preview assembles up to 2 Mi UTF-16 units from at most 64 native pages. An entry
+over either preview limit reports `tree_preview_budget` and the Tree stays
+available for other selections. The Host stores no history on disk.
 
-The 16/32 MiB retained-text limits do not establish reachability of the parent
-specification's 10,000-entry/100 MiB serialized native-history corpus. That target
-remains a whole-ticket gap requiring measurement and implementation work; the
-limits have not been raised to imply acceptance.
+Tree completion still reads each native page while indexing the parent graph.
+Preview reads only the indexed pages for its selection. Native current-mode
+page reads recheck source freshness. The synthetic tests cross the former Host
+16 MiB text ceiling and verify rejection of changed split text, revocation during
+preview, and fragmented entries that exceed the reread budget. The 10,000-entry /
+100 MiB corpus, Conversation Projection initialization, latency and peak RSS
+remain open for ticket 60.
 
 The tests exercise actual public DSH Client Remote → synthetic in-memory
 Connection carrier → public Host Gateway → `ReadonlyTree` → actual generated
