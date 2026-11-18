@@ -149,11 +149,10 @@ Git verified patches 1–10 in order in a private index with a read-only object
 alternate. Reversing patch 10 returned the exact tree after patch 9. Its sole
 DSH source change is in `session-format-v3-to-v4/src/validation.ts`.
 
-The [reader fixture](../../compatibility/dsh/candidates/chat-and-tool-preflight/required-parsed-call.fixture.ts)
-feeds stored JSON rows through `sessionFormatCatalog.createRestore` with strict
+At patch 10, the reader fixture fed stored JSON rows through `sessionFormatCatalog.createRestore` with strict
 recovery and current validation. Bun 1.4.4 reproduced one failure and three
 passes with the generated vocabulary and patch 9. With patch 10 all four
-passed. The fixture verifies that the same standalone parsed row retains nested
+passed. The fixture verified that the same standalone parsed row retains nested
 JSON without the marker and fails with it. An unknown ignorable row remains
 opaque, and the original raw argument string survives restore. With the staged
 legacy vocabulary, all three checks passed both before and after patch 10. The
@@ -180,6 +179,41 @@ both files. Patch 10 remains outside the active and dormant manifests. Upstream
 persistence acknowledgement, generated catalog and pairing review, durable
 parsed tool and result ordering, matched build and browser proof, and Native
 ownership after reopen remain pending.
+
+## Stored parsed-call arguments
+
+Dormant patch 11 requires a JSON object in stored `tool/parsed-call` arguments
+after the V4 reader recognizes the event type and checks its ignorable marker.
+The reader reports a `SessionFormatError` with the event type and sequence
+number for malformed arguments.
+[Patch 11](../../compatibility/dsh/candidates/chat-and-tool-preflight/0011-parsed-call-arguments-object.patch)
+
+| Source input or result | Identity |
+| --- | --- |
+| Patch 11 SHA-256 | `cf3b93f672394b2adbc7cc9dff32895651d1d2839588edbecd4838357e4c90be` |
+| DSH tree after patch 11 | `f30cf60987e5227dc095bdba2a1669da57a86f85` |
+
+A private Git index replayed patches 1–11 in order, verifying each patch
+digest and resulting tree. Reversing patch 11 restored the exact patch 10
+tree. Patch 11 changes only `session-format-v3-to-v4/src/validation.ts` and
+remains an inactive source candidate.
+
+The expanded reader fixture uses both vocabularies above at the strict
+current restore boundary. With
+Bun 1.4.4, the dormant run at patch 10 passed five cases and failed the four
+new rejection cases for string, array, null, and absent arguments. At patch
+11 all nine passed. The parsed row retains nested JSON, the marker is still
+rejected for a known parsed row, and an unknown ignorable row retains opaque
+data. An ordinary result still requires an advertised tool lifecycle. The
+ordinary raw call and result restore together with the raw string spelling
+intact. The three legacy cases passed at both patch levels, including opaque
+retention of an ignorable parsed tag with string arguments.
+[Expanded reader fixture](../../compatibility/dsh/candidates/chat-and-tool-preflight/required-parsed-call.fixture.ts)
+
+Repeat the reader command above with the validator alias pointed at the
+sources after patch 10, then after patch 11, selecting each vocabulary in
+turn. Scoped strict TypeScript 6.0.3 and Oxlint 1.81.0 passed on the changed
+validator and fixture.
 
 ## Reproduce
 
