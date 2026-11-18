@@ -89,9 +89,14 @@ Replaced references retain cached metadata with unknown ownership and access.
 The registered page performs no worker action and keeps the other Workspace
 endpoints on the standalone fixture carrier.
 
-The private helper handle makes the validated Native root outcome available independently
-of helper reap and domain completion. A SessionWorker binding still needs to negotiate RPC
-on the retained pipes, fence requests on root loss, and retain the domain through failed
-startup or uncertain completion. SessionSupervisor must use authoritative domain completion
-when deciding whether to release the worker slot. Mandatory cleanup needs an explicit
-handoff to the helper's absolute deadline and Native input fence.
+The retained helper path in `SessionWorker.attachOwned` reads the helper's actual public
+RPC pipes and gates v2 negotiation on authenticated HELLO. It exposes readiness, Native
+root exit, private domain completion and actual output observations through distinct
+promises, including after setup or startup failure. Root exit or control loss closes
+RPC admission and fences pending writes. The retained pipes continue reporting validated
+tail framing and observed EOF independently of domain completion.
+
+The Host caller retains the original helper control and cleanup authority. Future
+SessionSupervisor composition must save that handle before awaiting RPC readiness
+and retain the worker slot through uncertain domain completion. Mandatory cleanup
+needs explicit handoff to the helper's absolute deadline and Native input fence.
