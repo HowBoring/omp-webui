@@ -31,7 +31,12 @@ test("all 1000 native Sessions remain reachable in bounded stable pages and read
       expect(ids).toEqual(Array.from({length:1000},(_,index)=>`native-${String(index).padStart(4,"0")}`));
       expect(examined).toBe(2001);
       expect(await filesystemManifest(home)).toEqual(before);
-    } finally { expect(await client.close()).toEqual({code:0,forced:false,stderrBytes:0}); }
+    } finally {
+      expect(await client.close()).toEqual({
+        code: 0, forced: false, stderrBytes: 0,
+        terminationSent: false, forceSent: false, stdoutEOF: true, stderrEOF: true,
+      });
+    }
   } finally { await rm(home,{recursive:true,force:true}); }
 },15000);
 

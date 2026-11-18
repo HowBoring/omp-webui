@@ -17,6 +17,21 @@ test("catalog cursors have an absolute real-time TTL and cannot cross child gene
     await expect(second.catalog.page({cursor:page.nextCursor!})).rejects.toThrow("CATALOG_CURSOR_INVALID_OR_EXPIRED");
     await Bun.sleep(60500);
     await expect(first.catalog.page({cursor:page.nextCursor!})).rejects.toThrow("CATALOG_CURSOR_INVALID_OR_EXPIRED");
-    expect((await first.catalog.page()).items.length).toBe(32);
+    const expectedIds = Array.from({ length: 40 }, (_, index) => `native-${String(index).padStart(4, "0")}`);
+    const ids: string[] = [];
+    let fresh = await first.catalog.page();
+    expect(fresh.snapshot).not.toBe(page.snapshot);
+    const snapshot = fresh.snapshot;
+    // A scan window may return no items before the snapshot can serve its first page.
+    for (let pages = 1; ; pages++) {
+      expect(fresh.snapshot).toBe(snapshot);
+      expect(fresh.failures).toEqual([]);
+      ids.push(...fresh.items.map(item => item.nativeSessionId));
+      if (!fresh.nextCursor || pages >= 100) break;
+      fresh = await first.catalog.page({ cursor: fresh.nextCursor });
+    }
+    expect(fresh.nextCursor).toBeUndefined();
+    expect(fresh.status).toBe("complete");
+    expect(ids).toEqual(expectedIds);
   } finally {await first?.close();await second?.close();await rm(home,{recursive:true,force:true});}
 },70000);
