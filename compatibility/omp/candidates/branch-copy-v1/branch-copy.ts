@@ -95,25 +95,37 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function assertCompactionReferences(body: Record<string, unknown>, omittedLabels: Set<string>): void {
-  if (body.type !== "compaction") return;
-  for (const reference of [body.firstKeptEntryId, body.providerReplayThroughEntryId]) {
-    if (typeof reference === "string" && omittedLabels.has(reference)) throw new BranchCopyError("BRANCH_COPY_INVALID_ENTRY");
+/** Preserve labels in the parent chain, even when their target is on a different branch. */
+function retainLabelEffect(body: Record<string, unknown>, retainedIds: Set<string>, labels: Map<string, string>): boolean {
+  if (body.type !== "label") return false;
+  const { targetId, label } = body;
+  if (!entryId(targetId) || (label != null && typeof label !== "string")) {
+    throw new BranchCopyError("BRANCH_COPY_INVALID_ENTRY");
   }
+  if (!label) {
+    labels.delete(targetId);
+    return false;
+  }
+  if (retainedIds.has(targetId)) {
+    labels.set(targetId, label);
+    return false;
+  }
+  // An off-cut target must never leave an effective label in the new index.
+  delete body.label;
+  return true;
 }
 
-function copyRow(entry: BranchCopyEntry, parentId: string | null, omittedLabels: Set<string>, encode: EncodeEntry) {
+function copyRow(entry: BranchCopyEntry, retainedIds: Set<string>, labels: Map<string, string>, encode: EncodeEntry) {
   const { activeLeafId } = entry;
   if (activeLeafId !== undefined && activeLeafId !== null && !entryId(activeLeafId)) {
     throw new BranchCopyError("BRANCH_COPY_INVALID_ENTRY");
   }
   const { json, body } = encodeRow(entry, encode);
-  assertCompactionReferences(body, omittedLabels);
-  const transformed = activeLeafId !== undefined || entry.parentId !== parentId;
+  const clearedLabelEffect = retainLabelEffect(body, retainedIds, labels);
+  const transformed = activeLeafId !== undefined || clearedLabelEffect;
   const sourceEntryRevision = hash(json);
   let destinationJson = json;
   if (transformed) {
-    body.parentId = parentId;
     delete body.activeLeafId;
     destinationJson = JSON.stringify(body);
     if (Buffer.byteLength(destinationJson) + 1 > maxEntryBytes) throw new BranchCopyError("BRANCH_COPY_LIMIT");
@@ -123,47 +135,54 @@ function copyRow(entry: BranchCopyEntry, parentId: string | null, omittedLabels:
     destinationEntryId: entry.id,
     relation: transformed ? "native_transformed" as const : "copied" as const,
     sourceParentId: entry.parentId,
-    destinationParentId: parentId,
+    destinationParentId: entry.parentId,
     ...(activeLeafId === undefined ? {} : { removedActiveLeafId: activeLeafId }),
+    ...(clearedLabelEffect ? { clearedLabelEffect: true as const } : {}),
     sourceEntryRevision,
     destinationEntryRevision: transformed ? hash(destinationJson) : sourceEntryRevision,
     destinationJson,
   });
 }
 
-function labelFor(index: BranchCopyIndex, targetId: string) {
-  const label = index.getLabel(targetId);
-  if (!label) return;
-  if (Buffer.byteLength(label) > maxLabelBytes) throw new BranchCopyError("BRANCH_COPY_LIMIT");
-  return Object.freeze({ targetId, label });
+function labelOverlay(index: BranchCopyIndex, targetId: string, copiedLabel: string | undefined, leafId: string) {
+  const label = index.getLabel(targetId) || null;
+  if (label === (copiedLabel ?? null)) return;
+  if (label !== null && typeof label !== "string") throw new BranchCopyError("BRANCH_COPY_INVALID_ENTRY");
+  if (label !== null && Buffer.byteLength(label) > maxLabelBytes) throw new BranchCopyError("BRANCH_COPY_LIMIT");
+  // Native labels update the resolved map globally. Keep this metadata off the selected path.
+  return Object.freeze({ targetId, label, parentId: leafId, activeLeafId: leafId });
 }
 
 function readEntries(cut: BranchCopyCut, index: BranchCopyIndex, encode: EncodeEntry) {
   const path = parentPath(cut, index);
-  const omittedLabels = new Set(path.filter(entry => entry.type === "label").map(entry => entry.id));
+  const retainedIds = new Set(path.map(entry => entry.id));
+  const copiedLabels = new Map<string, string>();
   const entries: ReturnType<typeof copyRow>[] = [];
-  const labels: NonNullable<ReturnType<typeof labelFor>>[] = [];
-  let parentId: string | null = null;
+  const labels: NonNullable<ReturnType<typeof labelOverlay>>[] = [];
   let bytes = 0;
   for (const entry of path) {
-    if (omittedLabels.has(entry.id)) continue;
-    const row = copyRow(entry, parentId, omittedLabels, encode);
-    const label = labelFor(index, entry.id);
+    const row = copyRow(entry, retainedIds, copiedLabels, encode);
     bytes += Buffer.byteLength(row.destinationJson) + 1;
-    if (label) bytes += Buffer.byteLength(JSON.stringify(label)) + 1;
     if (bytes > maxCopyBytes) throw new BranchCopyError("BRANCH_COPY_LIMIT");
     entries.push(row);
-    if (label) labels.push(label);
-    parentId = row.destinationEntryId;
   }
-  return { entries, labels, omittedLabelEntryIds: [...omittedLabels], retainedLeafId: parentId };
+  if (cut.parentId !== null) {
+    for (const id of retainedIds) {
+      const label = labelOverlay(index, id, copiedLabels.get(id), cut.parentId);
+      if (!label) continue;
+      bytes += Buffer.byteLength(JSON.stringify(label)) + 1;
+      if (bytes > maxCopyBytes) throw new BranchCopyError("BRANCH_COPY_LIMIT");
+      labels.push(label);
+    }
+  }
+  return { entries, labels };
 }
 
 /** Internal Native plan for an already revalidated cut. Entry bodies are private Native data. */
 export function buildBranchCopyIntent(cut: BranchCopyCut, index: BranchCopyIndex, encode: EncodeEntry) {
   const sourceLeafId = index.getLeafId();
   if (sourceLeafId !== null && !entryId(sourceLeafId)) throw new BranchCopyError("BRANCH_COPY_INVALID_PATH");
-  const { entries, labels, omittedLabelEntryIds, retainedLeafId } = readEntries(cut, index, encode);
+  const { entries, labels } = readEntries(cut, index, encode);
   const { sourceId, instanceId, nativeSessionId } = cut.source;
   const facts = {
     version: "branch-copy-intent-v1" as const,
@@ -173,8 +192,7 @@ export function buildBranchCopyIntent(cut: BranchCopyCut, index: BranchCopyIndex
     targetRevision: cut.targetRevision,
     contextRevision: cut.contextRevision,
     sourceLeafId,
-    retainedLeafId,
-    omittedLabelEntryIds: Object.freeze(omittedLabelEntryIds),
+    retainedLeafId: cut.parentId,
     labels: Object.freeze(labels),
   };
   const copyRevision = hash(JSON.stringify({ ...facts, entries: entries.map(({ destinationJson, ...entry }) => entry) }));

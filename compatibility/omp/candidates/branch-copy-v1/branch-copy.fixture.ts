@@ -28,16 +28,17 @@ entries.set(transformed.id, transformed);
 const transformedIntent = buildBranchCopyIntent(cut, { ...index, getLabel: id => id === "root" ? "current" : undefined },
   JSON.stringify);
 assert.deepEqual(transformedIntent.entries.map(row => [row.sourceEntryId, row.destinationEntryId, row.relation]), [
-  ["root", "root", "copied"], ["prior", "prior", "native_transformed"],
+  ["root", "root", "copied"], ["prior-label", "prior-label", "copied"], ["prior", "prior", "native_transformed"],
 ]);
-assert.deepEqual(transformedIntent.entries.map(row => JSON.parse(row.destinationJson)), [root, prior]);
-assert.deepEqual(transformedIntent.omittedLabelEntryIds, ["prior-label"]);
-assert.deepEqual(transformedIntent.labels, [{ targetId: "root", label: "current" }]);
+assert.deepEqual(transformedIntent.entries.map(row => JSON.parse(row.destinationJson)), [
+  root, priorLabel, { ...prior, parentId: "prior-label" },
+]);
+assert.deepEqual(transformedIntent.labels, [{ targetId: "root", label: "current", parentId: "prior", activeLeafId: "prior" }]);
 assert.deepEqual(entries.get("prior"), transformed);
-assert.equal(transformedIntent.entries[1]?.sourceParentId, "prior-label");
-assert.equal(transformedIntent.entries[1]?.destinationParentId, "root");
-assert.equal(transformedIntent.entries[1]?.removedActiveLeafId, null);
-assert.notEqual(transformedIntent.entries[1]?.sourceEntryRevision, transformedIntent.entries[1]?.destinationEntryRevision);
+assert.equal(transformedIntent.entries[2]?.sourceParentId, "prior-label");
+assert.equal(transformedIntent.entries[2]?.destinationParentId, "prior-label");
+assert.equal(transformedIntent.entries[2]?.removedActiveLeafId, null);
+assert.notEqual(transformedIntent.entries[2]?.sourceEntryRevision, transformedIntent.entries[2]?.destinationEntryRevision);
 assert.notEqual(transformedIntent.copyRevision, intent.copyRevision);
 
 const empty = buildBranchCopyIntent({ ...cut, parentId: null }, {
@@ -48,7 +49,6 @@ const empty = buildBranchCopyIntent({ ...cut, parentId: null }, {
 assert.equal(empty.retainedLeafId, null);
 assert.deepEqual(empty.entries, []);
 assert.deepEqual(empty.labels, []);
-assert.deepEqual(empty.omittedLabelEntryIds, []);
 
 entries.set(prior.id, { ...prior, parentId: "absent" });
 assert.throws(() => buildBranchCopyIntent(cut, index, JSON.stringify), { code: "BRANCH_COPY_INVALID_PATH" });
@@ -78,4 +78,17 @@ assert.throws(() => buildBranchCopyIntent({ ...cut, parentId: "10000" }, { ...in
 
 const compaction = { ...prior, type: "compaction", parentId: priorLabel.id, firstKeptEntryId: priorLabel.id };
 entries.set(prior.id, compaction);
-assert.throws(() => buildBranchCopyIntent(cut, index, JSON.stringify), { code: "BRANCH_COPY_INVALID_ENTRY" });
+const compacted = buildBranchCopyIntent(cut, index, JSON.stringify);
+assert.deepEqual(compacted.entries.map(row => JSON.parse(row.destinationJson)), [root, priorLabel, compaction]);
+assert.deepEqual(compacted.labels, [{ targetId: "root", label: null, parentId: "prior", activeLeafId: "prior" }]);
+
+const offCutLabel = { ...priorLabel, targetId: excluded.id };
+entries.set(priorLabel.id, offCutLabel);
+const crossBranchLabel = buildBranchCopyIntent(cut, index, JSON.stringify);
+const archived = crossBranchLabel.entries.find(row => row.destinationEntryId === priorLabel.id);
+assert.ok(archived);
+assert.equal(archived.relation, "native_transformed");
+assert.equal(archived.clearedLabelEffect, true);
+const { label: _removed, ...archivedLabel } = priorLabel;
+assert.deepEqual(JSON.parse(archived.destinationJson), { ...archivedLabel, targetId: excluded.id });
+assert.deepEqual(crossBranchLabel.labels, []);

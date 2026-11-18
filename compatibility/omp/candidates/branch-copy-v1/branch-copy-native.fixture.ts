@@ -18,6 +18,14 @@ const priorOwnersDir = process.env.PI_TEST_SESSION_OWNERS_DIR;
 process.env.PI_CODING_AGENT_DIR = testAgentDir;
 process.env.PI_TEST_SESSION_OWNERS_DIR = join(temp, "owners");
 
+function plannedRows(intent: BranchCopyIntent, timestamp: string) {
+  const entries = intent.entries.map(row => JSON.parse(row.destinationJson));
+  const labels = intent.labels.map(({ label, ...descriptor }, index) => ({
+    ...descriptor, id: `destination-label-${index}`, type: "label", timestamp, label: label ?? undefined,
+  }));
+  return [...entries, ...labels];
+}
+
 try {
   mkdirSync(workspace);
   mkdirSync(overlay);
@@ -59,10 +67,25 @@ try {
   const selected = user("selected", kept.id);
   const other = user("other", root.id);
   const rename = { ...label, id: "later-label", parentId: other.id, activeLeafId: other.id, label: "current" };
+  const rewindSummary = { id: "rewind-summary", type: "branch_summary", parentId: root.id, timestamp,
+    fromId: root.id, summary: "rewind transcript summary" };
+  const rewindLabel = { ...label, id: "rewind-label", parentId: rewindSummary.id, targetId: rewindSummary.id };
+  const rewindReport = { ...kept, id: "rewind-report", parentId: rewindLabel.id, customType: "rewind-report",
+    content: "rewind provider framing" };
+  const afterRewind = user("selected-after-rewind", rewindReport.id);
+  const firstCompaction = { id: "snap-first", type: "compaction", parentId: root.id, timestamp, method: "snapcompact",
+    firstKeptEntryId: root.id, tokensBefore: 101, summary: "first summary" };
+  const snapLabel = { ...label, id: "snap-label", parentId: firstCompaction.id };
+  const laterCompaction = { ...firstCompaction, id: "snap-later", parentId: snapLabel.id, summary: "later summary" };
+  const afterCompaction = user("selected-after-compaction", laterCompaction.id);
+  const clearRewindLabel = { ...rename, id: "clear-rewind-label", targetId: rewindSummary.id, label: undefined };
   const control = { ...submissionRecord({ origin, fingerprint: "0".repeat(64), preparationId: "text-input",
     terminal: true, inputOutcome: "generated", noEntries: [], entryFacts: [{ entryId: root.id, role: "input" }] }),
     parentId: other.id, activeLeafId: other.id };
-  const sourceText = `${[header, root, label, kept, selected, other, rename, control].map(row => JSON.stringify(row)).join("\n")}\n`;
+  const afterLabel = user("selected-after-label", label.id);
+  const rows = [header, root, label, kept, selected, afterLabel, rewindSummary, rewindLabel, rewindReport, afterRewind,
+    firstCompaction, snapLabel, laterCompaction, afterCompaction, other, rename, clearRewindLabel, control];
+  const sourceText = `${rows.map(row => JSON.stringify(row)).join("\n")}\n`;
   writeFileSync(sourcePath, sourceText);
 
   const reservation = await StrictReservation.acquire(source, sourcePath, selectedSource, workspace, new AbortController().signal);
@@ -79,6 +102,22 @@ try {
       const { parentId, targetRevision, contextRevision } = preview(entryId);
       return { source: target, entryId, expected: { parentId, targetRevision, contextRevision } };
     };
+    for (const [selectedId, parentId, transcript, expectedRole, expectedCount] of [
+      [afterRewind.id, rewindReport.id, false, "branchSummary", 1],
+      [afterCompaction.id, laterCompaction.id, true, "compactionSummary", 2],
+    ] as const) {
+      const replay = buildSessionContext(manager.getEntries(), parentId, undefined, { transcript });
+      assert.equal(replay.messages.filter(({ role }: { role: string }) => role === expectedRole).length, expectedCount);
+      const plan: BranchCopyIntent = prepareBranchCopy(confirmed(selectedId), manager, () => false, 0);
+      const entries = plannedRows(plan, timestamp);
+      const copiedIndex = new SessionEntryIndex();
+      copiedIndex.rebuild(entries);
+      assert.equal(copiedIndex.leafId(), parentId);
+      assert.equal(copiedIndex.labelFor(root.id), "current");
+      for (const row of plan.entries) assert.equal(copiedIndex.labelFor(row.destinationEntryId), manager.getLabel(row.sourceEntryId));
+      const plannedReplay = buildSessionContext(entries, copiedIndex.leafId(), copiedIndex.entriesById(), { transcript });
+      assert.deepEqual(plannedReplay, replay);
+    }
     const request = confirmed("selected");
     const intent: BranchCopyIntent = prepareBranchCopy(request, manager, () => false, 0);
     assert.deepEqual(intent.source, target);
@@ -86,16 +125,16 @@ try {
     assert.equal(intent.parentId, "kept");
     assert.equal(intent.sourceLeafId, "other");
     assert.equal(intent.retainedLeafId, "kept");
-    assert.deepEqual(intent.omittedLabelEntryIds, ["checkpoint"]);
-    assert.deepEqual(intent.labels, [{ targetId: "root", label: "current" }]);
+    assert.deepEqual(intent.labels, [{ targetId: "root", label: "current", parentId: "kept", activeLeafId: "kept" }]);
     const { activeLeafId: _removed, ...keptBody } = kept;
     const plannedEntries = intent.entries.map(row => JSON.parse(row.destinationJson));
     assert.deepEqual(plannedEntries, [
-      root, { ...keptBody, parentId: "root" },
+      root, label, keptBody,
     ]);
-    const [rootCopy, keptCopy] = intent.entries;
+    const [rootCopy, labelCopy, keptCopy] = intent.entries;
     assert.ok(rootCopy && keptCopy);
     assert.equal(rootCopy.relation, "copied");
+    assert.equal(labelCopy?.relation, "copied");
     assert.equal(rootCopy.sourceEntryRevision, manager.navigationTarget(root.id).targetRevision);
     assert.equal(keptCopy.relation, "native_transformed");
     assert.equal(keptCopy.removedActiveLeafId, "other");
@@ -112,6 +151,12 @@ try {
     assert.equal(empty.retainedLeafId, null);
     assert.deepEqual(empty.entries, []);
     assert.deepEqual(empty.labels, []);
+    const labelCut: BranchCopyIntent = prepareBranchCopy(confirmed(afterLabel.id), manager, () => false, 0);
+    const labelCutIndex = new SessionEntryIndex();
+    labelCutIndex.rebuild(plannedRows(labelCut, timestamp));
+    assert.equal(labelCut.retainedLeafId, label.id);
+    assert.equal(labelCutIndex.leafId(), label.id);
+    assert.equal(labelCutIndex.labelFor(root.id), "current");
 
     assert.throws(() => prepareBranchCopy({ source: target, entryId: "selected" }, manager, () => false, 0), {
       code: "BRANCH_COPY_CUT_REQUIRED",
