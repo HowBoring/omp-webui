@@ -10,7 +10,7 @@ import liveNotification from "../contracts/generated/live-notification.js";
 import { chatRequestId, chatSessionId, type ChatRecovery, type ChatState } from "../contracts/chat.ts";
 import { stopSnapshotSchema } from "../contracts/stop.ts";
 import { inspectSubmissionPage, requestLocalSubmission, sameSubmissionTarget,
-  submissionBusy } from "../contracts/submission-reply.ts";
+  submissionConflict } from "../contracts/submission-reply.ts";
 import { readChatReceipt, receiptFacts, type ChatReceipt } from "./receipt.ts";
 
 interface View {
@@ -21,6 +21,12 @@ interface View {
   readonly projection: SessionProjectionBinding;
 }
 
+/** The authenticated carrier supplies the invocation-specific View capability. */
+export interface ChatCaller {
+  readonly peer: PeerScope;
+  readonly view: object;
+}
+
 /** The supervised worker owner supplies each port and verifies the candidate cohort independently. */
 export interface ChatWorkerPort {
   readonly sessionId: string;
@@ -28,7 +34,7 @@ export interface ChatWorkerPort {
   readonly target: SubmissionTarget;
   readonly lifetime: AbortSignal;
   readonly matchedCohort: string;
-  authorize(peer: PeerScope, sessionId: string): View | undefined;
+  authorize(caller: ChatCaller, sessionId: string): View | undefined;
   stop(): unknown;
   /** Current public get_state reply, already validated at the worker boundary. */
   state(): Promise<Partial<SessionState>>;
@@ -41,9 +47,8 @@ interface Attempt {
   readonly owner: string;
   readonly projection: SessionProjectionBinding;
   readonly fingerprint: string;
-  phase: "checking" | "refused" | "dispatching" | "admitted" | "unknown";
+  phase: "checking" | "refused" | "dispatching" | "admitted" | "unknown" | "conflict";
   settled: boolean;
-  foreignReservation?: true;
   receipt?: ChatReceipt;
   result?: NonNullable<NonNullable<ChatState>["result"]>;
 }
@@ -58,8 +63,8 @@ const unknown = { outcome: "unknown" } as const;
 const limit = 1024;
 const waitAttempts = 40;
 
-function isNativeIdle(state: Partial<SessionState>): boolean {
-  return state.isSettled === true && state.isStreaming === false && state.isCompacting === false
+function isNativeIdle(state: Partial<SessionState>, nativeSessionId: string): boolean {
+  return state.sessionId === nativeSessionId && state.isSettled === true && state.isStreaming === false && state.isCompacting === false
     && state.hasPendingAsyncWork === false && state.queuedMessageCount === 0
     && state.queuedMessages?.steering.length === 0 && state.queuedMessages.followUp.length === 0;
 }
@@ -73,6 +78,7 @@ export class ChatGateway {
   readonly #lifetime: AbortSignal;
   readonly #cohort: string;
   #latest: Attempt | undefined;
+  #reconciling = false;
 
   constructor(private readonly port: ChatWorkerPort) {
     this.#target = Object.freeze({ ...port.target });
@@ -92,19 +98,20 @@ export class ChatGateway {
   /** A future shared admission gate must consult this for other input and history work. */
   get blocksAdmission(): boolean { return !this.#workerCurrent() || !!this.#latest && !this.#latest.settled; }
 
-  #view(peer: PeerScope, sessionId: string): View {
-    if (!this.#workerCurrent() || peer.signal.aborted || sessionId !== this.#sessionId) {
+  #view(caller: ChatCaller, sessionId: string): View {
+    if (!this.#workerCurrent() || caller.peer.signal.aborted || sessionId !== this.#sessionId) {
       throw new ChatError("authority");
     }
-    const view = this.port.authorize(peer, sessionId);
+    const view = this.port.authorize(caller, sessionId);
     if (!view || view.lifetime.aborted || !view.owner || view.owner.length > 4096) throw new ChatError("authority");
     return { owner: view.owner, lifetime: view.lifetime, projection: parseProjectionBinding(view.projection) };
   }
 
-  #current(peer: PeerScope, sessionId: string, signal: AbortSignal) {
-    const saved = this.#view(peer, sessionId);
+  #current(caller: ChatCaller, sessionId: string, signal: AbortSignal) {
+    const invocation = { peer: caller.peer, view: caller.view };
+    const saved = this.#view(invocation, sessionId);
     const current = () => {
-      const view = this.#view(peer, sessionId);
+      const view = this.#view(invocation, sessionId);
       if (signal.aborted || view.lifetime !== saved.lifetime || view.owner !== saved.owner
         || !sameProjection(view.projection, saved.projection)) throw new ChatError("authority");
     };
@@ -121,7 +128,7 @@ export class ChatGateway {
       && state.acceptingWork && state.failures.length === 0 && Object.values(state.pending).every(count => count === 0);
   }
 
-  async prompt(peer: PeerScope, request: SessionPromptRequest, signal: AbortSignal) {
+  async prompt(caller: ChatCaller, request: SessionPromptRequest, signal: AbortSignal) {
     const { sessionId, mode, content } = request;
     const id = chatRequestId.safeParse(request.requestId);
     if (!id.success || (mode !== "queue" && mode !== "steer") || !Array.isArray(content)
@@ -130,14 +137,20 @@ export class ChatGateway {
     }
     const text = content.map(part => part.type === "text" ? part.text : "").join("");
     if (!text.trim() || Buffer.byteLength(text) > 262_144) throw new ChatError("invalid");
-    const { saved, current } = this.#current(peer, sessionId, signal);
+    const { saved, current } = this.#current(caller, sessionId, signal);
     if (!sameProjection(request.projection, saved.projection)) throw new ChatError("authority");
     const fingerprint = createHash("sha256").update(JSON.stringify([mode, text])).digest("hex");
+    const active = this.#latest;
+    if (!this.#attempts.has(id.data) && active?.phase === "admitted" && !active.settled) {
+      await this.#reconcile(() => this.#refresh(active, current));
+      current();
+    }
     const previous = this.#attempts.get(id.data);
     if (previous) {
       if (previous.owner !== saved.owner || previous.fingerprint !== fingerprint
         || !sameProjection(previous.projection, saved.projection)) throw new ChatError("conflict");
       if (previous.phase === "checking" || previous.phase === "refused") throw new ChatError("busy");
+      if (previous.phase === "conflict") throw new ChatError("conflict");
       return this.#accept(previous, current, signal);
     }
     if (this.#attempts.size >= limit) throw new ChatError("limit");
@@ -155,7 +168,7 @@ export class ChatGateway {
     try {
       const native = await this.port.state();
       current();
-      if (!isNativeIdle(native) || !this.#idle()) throw new ChatError("busy");
+      if (!isNativeIdle(native, this.#target.nativeSessionId) || !this.#idle()) throw new ChatError("busy");
       current();
     } catch (error) {
       // Native submission has never been called for this request, and this key can never dispatch again.
@@ -168,18 +181,17 @@ export class ChatGateway {
       const reply = await this.#request({ type: "submission_submit", id: attempt.id, ...this.#target,
         clientSubmissionId: attempt.id, preparationId: `text-v1:${attempt.id}`, inputType: "prompt",
         idleOnly: true, message: text });
-      if (!reply || reply === submissionBusy) throw new ChatError("unknown");
-      if (reply.duplicate) {
-        attempt.foreignReservation = true;
-        delete attempt.result;
-        throw new ChatError("unknown");
-      }
-      if (!inspectSubmissionPage(reply, 0, 64, new Set())) throw new ChatError("unknown");
-      if (attempt.phase === "dispatching") this.#record(attempt, receiptFacts(reply));
-    } catch {
-      if (attempt.phase === "dispatching") attempt.phase = "unknown";
+      if (reply === submissionConflict) throw new ChatError("conflict");
+      if (typeof reply !== "object" || reply.duplicate) throw new ChatError("unknown");
+      const facts = inspectSubmissionPage(reply, 0, 64, new Set());
+      if (!facts) throw new ChatError("unknown");
+      this.#record(attempt, receiptFacts(reply, facts.invoked));
+      attempt.phase = "admitted";
+    } catch (error) {
+      attempt.phase = error instanceof ChatError && error.code === "conflict" ? "conflict" : "unknown";
+      delete attempt.result;
       current();
-      throw new ChatError("unknown");
+      throw new ChatError(attempt.phase);
     }
     current();
   }
@@ -190,14 +202,17 @@ export class ChatGateway {
 
   #record(attempt: Attempt, receipt: ChatReceipt): boolean {
     const previous = attempt.receipt;
-    if ((previous?.committedInput && receipt.inputOutcome === "no_input")
-      || (previous?.completeNoInput && receipt.inputOutcome === "generated")) return false;
+    if ((receipt.committedInput && (receipt.invoked || previous?.invoked))
+      || (previous?.committedInput && (receipt.inputOutcome === "no_input" || receipt.invoked))
+      || (previous?.completeNoInput && receipt.inputOutcome === "generated")
+      || (receipt.completeNoInput && previous?.invoked && !receipt.invoked)
+      || (previous?.completeNoInput && !previous.invoked && receipt.invoked)) return false;
     if (previous?.terminal && (previous.terminal !== receipt.terminal
       || previous.inputOutcome !== receipt.inputOutcome || previous.operationOutcome !== receipt.operationOutcome
       || previous.persistence !== receipt.persistence)) return false;
     attempt.receipt = { ...receipt, committedInput: receipt.committedInput || previous?.committedInput === true,
-      completeNoInput: receipt.completeNoInput || previous?.completeNoInput === true };
-    attempt.phase = "admitted";
+      completeNoInput: receipt.completeNoInput || previous?.completeNoInput === true,
+      invoked: receipt.invoked || previous?.invoked === true };
     return true;
   }
 
@@ -206,6 +221,15 @@ export class ChatGateway {
   }
 
   async #accept(attempt: Attempt, current: () => void, signal: AbortSignal) {
+    if (attempt.phase === "admitted") {
+      const accepted = await this.#reconcile(() => this.#pollAcceptance(attempt, current, signal));
+      current();
+      if (accepted) return accepted;
+    }
+    throw new ChatError("unknown");
+  }
+
+  async #pollAcceptance(attempt: Attempt, current: () => void, signal: AbortSignal) {
     for (let i = 0; i < waitAttempts; ++i) {
       const outcome = await this.#recover(attempt, current);
       if (!outcome) break;
@@ -215,23 +239,25 @@ export class ChatGateway {
       await wait(100, undefined, { signal }).catch(() => { throw new ChatError("authority"); });
       current();
     }
-    throw new ChatError("unknown");
   }
 
-  async lookup(peer: PeerScope, sessionId: string, requestId: string, signal: AbortSignal): Promise<ChatRecovery> {
-    const { saved, current } = this.#current(peer, sessionId, signal);
+  async lookup(caller: ChatCaller, sessionId: string, requestId: string, signal: AbortSignal): Promise<ChatRecovery> {
+    const { saved, current } = this.#current(caller, sessionId, signal);
     const attempt = this.#attempts.get(chatRequestId.parse(requestId));
     if (!attempt || attempt.owner !== saved.owner) return unknown;
-    return await this.#recover(attempt, current) ?? unknown;
+    if (attempt.phase === "refused") return { outcome: "not-submitted" };
+    if (attempt.phase !== "admitted") return unknown;
+    const recovered = await this.#reconcile(() => this.#recover(attempt, current));
+    current();
+    return recovered ?? unknown;
   }
 
   async #recover(attempt: Attempt, current: () => void): Promise<ChatRecovery | undefined> {
-    if (attempt.phase === "refused") return { outcome: "not-submitted" };
-    if (attempt.foreignReservation || attempt.phase === "checking" || attempt.phase === "dispatching") return;
     const receipt = await this.#query(attempt, current);
     if (!receipt || !this.#record(attempt, receipt)) return;
     if (receipt.committedInput) return { outcome: "accepted" };
     if (!receipt.completeNoInput || receipt.operationOutcome !== "succeeded") return unknown;
+    if (receipt.invoked && !await this.#settle(attempt, receipt, current)) return unknown;
     return { outcome: "completed-without-input", noInput: { requestId: attempt.id, projection: attempt.projection } };
   }
 
@@ -248,37 +274,52 @@ export class ChatGateway {
       || !("type" in frame) || frame.type !== "prompt_result") return;
     const { id, agentInvoked, status, sessionSettled } = frame as PromptResultEvent;
     const attempt = this.#latest;
-    if (!attempt || id !== attempt.id || attempt.foreignReservation
-      || attempt.phase === "refused" || attempt.phase === "checking") return;
+    if (!attempt || id !== attempt.id || (attempt.phase !== "dispatching" && attempt.phase !== "admitted")) return;
     attempt.result ??= { agentInvoked, status, sessionSettled };
   }
 
-  async state(peer: PeerScope, sessionId: string, signal: AbortSignal): Promise<ChatState> {
-    const { current } = this.#current(peer, sessionId, signal);
+  async state(caller: ChatCaller, sessionId: string, signal: AbortSignal): Promise<ChatState> {
+    const { current } = this.#current(caller, sessionId, signal);
     const attempt = this.#latest;
     if (!attempt || attempt.phase === "refused" || attempt.phase === "checking") return;
-    if (!attempt.settled && !attempt.foreignReservation && attempt.phase !== "dispatching") {
-      await this.#refresh(attempt, current);
+    if (!attempt.settled && attempt.phase === "admitted") {
+      await this.#reconcile(() => this.#refresh(attempt, current));
     }
     current();
     if (attempt !== this.#latest) throw new ChatError("authority");
     const { phase, receipt, result, settled } = attempt;
-    return { requestId: attempt.id, phase, settled, ...(receipt ? { terminal: receipt.terminal,
+    return { requestId: attempt.id, phase: phase === "conflict" ? "unknown" : phase, settled, ...(receipt ? { terminal: receipt.terminal,
       persistence: receipt.persistence, operationOutcome: receipt.operationOutcome,
       inputOutcome: receipt.inputOutcome } : {}),
       ...(result ? { result: { ...result } } : {}) };
   }
 
+  async #reconcile<T>(read: () => Promise<T>): Promise<T | undefined> {
+    if (this.#reconciling) return;
+    this.#reconciling = true;
+    try { return await read(); }
+    finally { this.#reconciling = false; }
+  }
+
   async #refresh(attempt: Attempt, current: () => void): Promise<void> {
     const receipt = await this.#query(attempt, current);
-    if (!receipt || !this.#record(attempt, receipt)) return;
-    if (!receipt.terminal || receipt.persistence !== "committed" || receipt.operationOutcome === "unknown") return;
+    if (receipt && this.#record(attempt, receipt)) await this.#settle(attempt, receipt, current);
+  }
+
+  async #settle(attempt: Attempt, receipt: ChatReceipt, current: () => void): Promise<boolean> {
+    if (attempt.settled) return true;
+    if (!receipt.terminal || receipt.persistence !== "committed" || receipt.operationOutcome === "unknown") return false;
     const result = attempt.result;
     const expected = { completed: "succeeded", error: "failed", aborted: "cancelled" } as const;
-    const local = receipt.completeNoInput && !result;
-    if (!local && (!result || expected[result.status] !== receipt.operationOutcome)) return;
-    const state = await this.port.state();
+    const local = receipt.completeNoInput && !receipt.invoked && !result;
+    if (!local && (!result || expected[result.status] !== receipt.operationOutcome
+      || (receipt.invoked && !result.agentInvoked))) return false;
+    const state = await this.port.state().catch(() => undefined);
     current();
-    if (attempt === this.#latest && isNativeIdle(state) && this.#idle()) attempt.settled = true;
+    if (attempt === this.#latest && state && isNativeIdle(state, this.#target.nativeSessionId) && this.#idle()) {
+      current();
+      attempt.settled = true;
+    }
+    return attempt.settled;
   }
 }

@@ -5,7 +5,7 @@ import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 
 export const chatSessionId = z.string().min(1).max(128);
 export const chatRequestId = z.string().regex(/^[A-Za-z0-9_-]{1,80}$/);
-const projection = z.strictObject({ source: z.string().min(1).max(256), generation: z.string().min(1).max(256) });
+const projection = z.strictObject({ source: z.string().min(1).max(512), generation: z.string().min(1).max(512) });
 export const chatRecovery = z.discriminatedUnion("outcome", [
   z.strictObject({ outcome: z.literal("accepted") }),
   z.strictObject({ outcome: z.literal("not-submitted") }),

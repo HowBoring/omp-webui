@@ -6,6 +6,8 @@ import type { SubmissionResult, SubmissionTarget } from "./candidates/durable-su
 import { validResponse } from "./preflight.ts";
 
 export const submissionBusy = Symbol("native submission busy");
+export const submissionConflict = Symbol("native submission conflict");
+export type SubmissionReply = SubmissionResult | typeof submissionBusy | typeof submissionConflict | undefined;
 
 export const sameSubmissionTarget = (a: SubmissionTarget, b: SubmissionTarget) =>
   a.sourceId === b.sourceId && a.instanceId === b.instanceId && a.nativeSessionId === b.nativeSessionId;
@@ -14,12 +16,15 @@ export const sameSubmissionTarget = (a: SubmissionTarget, b: SubmissionTarget) =
 export async function requestLocalSubmission(
   target: SubmissionTarget, command: SubmissionClientCommand,
   request: (command: SubmissionClientCommand) => Promise<unknown>,
-): Promise<SubmissionResult | typeof submissionBusy | undefined> {
+): Promise<SubmissionReply> {
   if (!validateCommand(command)) return;
   const response = await request(command);
   if (!validResponse(response) || response.id !== command.id || response.command !== command.type) return;
   if (!response.success) {
-    if (command.type === "submission_submit" && response.code === "SUBMISSION_BUSY") return submissionBusy;
+    if (command.type === "submission_submit") {
+      if (response.code === "SUBMISSION_BUSY") return submissionBusy;
+      if (response.code === "SUBMISSION_CONFLICT") return submissionConflict;
+    }
     return;
   }
   if (!validateResult(response.data)) return;

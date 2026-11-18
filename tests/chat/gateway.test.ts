@@ -3,14 +3,14 @@ import { Context } from "@deepseek-ai/cordis";
 import TypertRegistry from "@deepseek-ai/dsh-typert-registry";
 import RemoteAccessService from "@deepseek-ai/dsh-api-remote-access";
 import { TypertGatewayService } from "@deepseek-ai/dsh-api-gateway";
-import { chatHostContribution } from "../../packages/contracts/chat.ts";
-import { ChatLookupService, ChatPromptService } from "../../packages/chat/service.ts";
+import { chatHostContribution, chatRecovery } from "../../packages/contracts/chat.ts";
+import { chatViewCaller, ChatLookupService, ChatPromptService } from "../../packages/chat/service.ts";
 import { Peer } from "@deepseek-ai/dsh-client-connection";
 import { parseProjectionBinding } from "@deepseek-ai/dsh-api-session-controller/projection";
 import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
-import { ChatGateway, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
+import { ChatGateway, type ChatCaller, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
 import type { SubmissionClientCommand } from "../../packages/contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionResult } from "../../packages/contracts/candidates/durable-submission-v1/omp-wire.ts";
 import type { StopSnapshot } from "../../packages/contracts/stop.ts";
@@ -19,7 +19,7 @@ const target = { sourceId: "a".repeat(64), instanceId: "b".repeat(64), nativeSes
 const sessionId = SessionId("native");
 const projection = parseProjectionBinding({ source: "projection-source", generation: "projection-1" });
 const pending = { interactions: 0, history: 0, queued: 0, other: 0 };
-const idle = { isSettled: true, isStreaming: false, isCompacting: false, hasPendingAsyncWork: false,
+const idle = { sessionId: target.nativeSessionId, isSettled: true, isStreaming: false, isCompacting: false, hasPendingAsyncWork: false,
   queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } };
 
 function prompt(id: string, text = "  /help\n@literal  "): SessionPromptRequest {
@@ -40,28 +40,29 @@ const input = { relationId: "entry:real-input", role: "input", status: "observed
 function fixture() {
   const commands: SubmissionClientCommand[] = [];
   const host = new Context();
-  const peer = new Peer(host, { principal: { kind: "owner" }, interactions: "none" });
+  const newPeer = () => new Peer(host, { principal: { kind: "owner" }, interactions: "none" });
   const authority = new AbortController(), worker = new AbortController();
   const stop: StopSnapshot = { generation: "stop-1", workerGeneration: "worker-1",
     scope: { kind: "session", sessionId }, status: "idle", nativeSettled: true, acceptingWork: true,
     pending: { ...pending }, failures: [], forceAvailable: false, restored: null, draftConflict: false };
   let readState: ChatWorkerPort["state"] = async () => idle;
   let currentProjection = projection;
-  const views = new Map([[peer, "browser-a/tab-a/draft-a"]]);
-  function reconnect(owner = "browser-a/tab-a/draft-a") {
-    const next = new Peer(host, { principal: { kind: "owner" }, interactions: "none" });
-    views.set(next, owner);
-    return next;
+  const views = new Map<object, { peer: Peer; owner: string }>();
+  function reconnect(owner = "browser-a/tab-a/draft-a", peer = newPeer()) {
+    const view = {};
+    views.set(view, { peer, owner });
+    return { peer, view } satisfies ChatCaller;
   }
+  const peer = reconnect();
   let reply = async (command: SubmissionClientCommand): Promise<unknown> => receipt(command.clientSubmissionId,
     command.type === "submission_query" ? { inputOutcome: "generated", relations: [input] } : {});
   let raw: ((command: SubmissionClientCommand) => Promise<unknown>) | undefined;
   const ports: ChatWorkerPort = {
     sessionId, generation: "worker-1", target, lifetime: worker.signal, matchedCohort: "SYNTHETIC_SOURCE_FIXTURE",
     authorize: (caller, requested) => {
-      if (!(caller instanceof Peer) || requested !== sessionId) return;
-      const owner = views.get(caller);
-      if (owner) return { owner, lifetime: authority.signal, projection: currentProjection };
+      const bound = views.get(caller.view);
+      if (!bound || bound.peer !== caller.peer || requested !== sessionId) return;
+      return { owner: bound.owner, lifetime: authority.signal, projection: currentProjection };
     },
     stop: () => stop,
     state: () => readState(),
@@ -75,7 +76,9 @@ function fixture() {
     state: (callback: typeof readState) => { readState = callback; },
     reply: (callback: typeof reply) => { reply = callback; },
     raw: (callback: typeof raw) => { raw = callback; },
-    changeProjection: () => { currentProjection = parseProjectionBinding({ ...projection, generation: "projection-2" }); } };
+    changeProjection: () => { currentProjection = parseProjectionBinding({ ...projection, generation: "projection-2" }); },
+    setProjection: (next: typeof projection) => { currentProjection = next; },
+  };
 }
 
 test("the Chat Gateway accepts an exact committed input through public idle-only RPC", async () => {
@@ -126,12 +129,16 @@ test("the DSH Gateway exposes only authorized state and exact lookup", async () 
   const method = sessionContribution.methods["session/prompt"];
   if (!method) throw new Error("Missing DSH session/prompt");
   const args = method.input({ strict: true }).create().parse({ request: prompt("visible") }) as Record<string, unknown>;
-  expect(await f.host.typertGateway.invoke({ namespace: "session", method: "prompt", args, peer: f.peer }))
-    .toEqual({ accepted: true });
-  const lookup = (peer: Peer, requestId: string) => f.host.typertGateway.invoke({
-    namespace: "ompChat", method: "lookup", args: { sessionId, requestId }, peer,
-  });
-  expect(await lookup(f.peer, "visible")).toEqual({ outcome: "accepted" });
+  const invokePrompt = () => f.host.typertGateway.invoke({ namespace: "session", method: "prompt", args, peer: f.peer.peer });
+  await expect(invokePrompt()).rejects.toThrow();
+  expect(f.commands).toEqual([]);
+  expect(await chatViewCaller.run(f.peer.view, invokePrompt)).toEqual({ accepted: true });
+  const lookup = (caller: ChatCaller, requestId: string) => chatViewCaller.run(caller.view, () =>
+    f.host.typertGateway.invoke({ namespace: "ompChat", method: "lookup", args: { sessionId, requestId }, peer: caller.peer }));
+  const otherTab = f.reconnect("browser-a/tab-b/draft-b", f.peer.peer);
+  expect(otherTab.peer).toBe(f.peer.peer);
+  expect(await Promise.all([lookup(f.peer, "visible"), lookup(otherTab, "visible")]))
+    .toEqual([{ outcome: "accepted" }, { outcome: "unknown" }]);
   expect(await lookup(f.peer, "never-issued")).toEqual({ outcome: "unknown" });
   expect(f.commands.some(command => command.clientSubmissionId === "never-issued")).toBe(false);
   f.authority.abort();
@@ -300,4 +307,133 @@ test("a repeated identical request only observes the original Native key", async
   Object.assign(f.ports, { target: { ...target, instanceId: "c".repeat(64) } });
   expect(f.gateway.requestForOrigin({ ...target, clientSubmissionId: "repeat" }, "input")).toBeUndefined();
   await expect(f.gateway.lookup(f.reconnect(), sessionId, "repeat", signal)).rejects.toThrow("chat_authority");
+});
+
+test("a conflicting reused key never adopts the older entry under changed text", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  f.raw(async command => command.type === "submission_submit"
+    ? { type: "response", id: command.id, command: command.type, success: false,
+      error: "SUBMISSION_CONFLICT", code: "SUBMISSION_CONFLICT" }
+    : { type: "response", id: command.id, command: command.type, success: true,
+      data: receipt(command.clientSubmissionId, { inputOutcome: "generated", relations: [input] }) });
+  await expect(f.gateway.prompt(f.peer, prompt("reused", "different Native input"), signal)).rejects
+    .toThrow("chat_conflict");
+  expect(await f.gateway.lookup(f.peer, sessionId, "reused", signal)).toEqual({ outcome: "unknown" });
+  await expect(f.gateway.prompt(f.peer, prompt("reused", "different Native input"), signal)).rejects
+    .toThrow("chat_conflict");
+  expect(f.gateway.requestForOrigin({ ...target, clientSubmissionId: "reused" }, "input")).toBeUndefined();
+  expect(f.commands.map(command => command.type)).toEqual(["submission_submit"]);
+});
+
+test("losing a possible duplicate acknowledgement leaves same-key Native facts unbound", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  f.reply(async command => {
+    if (command.type === "submission_submit") throw new Error("RPC_TIMEOUT");
+    return receipt(command.clientSubmissionId, { inputOutcome: "generated", relations: [input] });
+  });
+  await expect(f.gateway.prompt(f.peer, prompt("unproved"), signal)).rejects.toThrow("chat_unknown");
+  f.gateway.observe({ type: "prompt_result", id: "unproved", agentInvoked: true, status: "completed", sessionSettled: true });
+  expect(await f.gateway.lookup(f.reconnect(), sessionId, "unproved", signal)).toEqual({ outcome: "unknown" });
+  expect(await f.gateway.state(f.peer, sessionId, signal)).toEqual({
+    requestId: "unproved", phase: "unknown", settled: false,
+  });
+  expect(f.gateway.requestForOrigin({ ...target, clientSubmissionId: "unproved" }, "input")).toBeUndefined();
+  expect(f.commands.map(command => command.type)).toEqual(["submission_submit"]);
+});
+
+test("a paged agent-invoking builtin waits for its own result and fresh quiescence", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  const effect = { role: "effect", status: "no_entry", persistence: "committed" } as const;
+  const invoked = { relationId: "request-input:invoked", role: "input", status: "no_entry",
+    persistence: "committed", reason: "native_builtin_consumed" } as const;
+  f.reply(async command => receipt(command.clientSubmissionId, {
+    terminal: true, persistence: "committed", operationOutcome: "succeeded", inputOutcome: "no_input",
+    ...(command.type === "submission_query" && command.offset === undefined
+      ? { relations: Array.from({ length: 128 }, (_, i) => ({ ...effect, relationId: `effect:${i}` })), nextOffset: 128 }
+      : command.type === "submission_query" ? { relations: [invoked] } : {}),
+  }));
+  await expect(f.gateway.prompt(f.peer, prompt("invoked"), signal)).rejects.toThrow("chat_unknown");
+  f.gateway.observe({ type: "prompt_result", id: "other", agentInvoked: true, status: "completed", sessionSettled: true });
+  expect(await f.gateway.state(f.peer, sessionId, signal)).toMatchObject({ settled: false });
+  expect(await f.gateway.lookup(f.peer, sessionId, "invoked", signal)).toEqual({ outcome: "unknown" });
+  f.gateway.observe({ type: "prompt_result", id: "invoked", agentInvoked: true, status: "completed", sessionSettled: false });
+  f.state(async () => ({ ...idle, hasPendingAsyncWork: true }));
+  expect(await f.gateway.lookup(f.peer, sessionId, "invoked", signal)).toEqual({ outcome: "unknown" });
+  f.state(async () => idle);
+  expect(await f.gateway.lookup(f.peer, sessionId, "invoked", signal)).toEqual({
+    outcome: "completed-without-input", noInput: { requestId: "invoked", projection },
+  });
+  expect(await f.gateway.state(f.peer, sessionId, signal)).toMatchObject({ settled: true, result: { agentInvoked: true } });
+});
+
+test("a normal next prompt refreshes exact completion without a separate browser state call", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  let terminal = false;
+  f.reply(async command => receipt(command.clientSubmissionId, command.type === "submission_submit" ? {} : {
+    inputOutcome: "generated", relations: [input], terminal, operationOutcome: terminal ? "succeeded" : "unknown",
+    persistence: terminal ? "committed" : "unresolved",
+  }));
+  expect(await f.gateway.prompt(f.peer, prompt("first"), signal)).toEqual({ accepted: true });
+  terminal = true;
+  f.gateway.observe({ type: "prompt_result", id: "first", agentInvoked: true, status: "completed", sessionSettled: true });
+  expect(await f.gateway.prompt(f.peer, prompt("second"), signal)).toEqual({ accepted: true });
+  expect(f.commands.filter(command => command.type === "submission_submit").map(command => command.clientSubmissionId))
+    .toEqual(["first", "second"]);
+});
+
+test("parallel duplicate observations cannot start another Native lookup or poll chain", async () => {
+  const f = fixture(), signal = new AbortController().signal, queryEntered = Promise.withResolvers<void>();
+  const queryRelease = Promise.withResolvers<void>();
+  f.reply(async command => {
+    if (command.type === "submission_submit") return receipt(command.clientSubmissionId);
+    queryEntered.resolve();
+    await queryRelease.promise;
+    return receipt(command.clientSubmissionId, { inputOutcome: "generated", relations: [input] });
+  });
+  const first = f.gateway.prompt(f.peer, prompt("parallel"), signal);
+  await queryEntered.promise;
+  const lookup = f.gateway.lookup(f.reconnect(), sessionId, "parallel", signal);
+  const repeated = f.gateway.prompt(f.reconnect(), prompt("parallel"), signal).catch(() => "unknown");
+  const observed = f.commands.map(command => command.type);
+  queryRelease.resolve();
+  expect(await first).toEqual({ accepted: true });
+  expect(await lookup).toEqual({ outcome: "unknown" });
+  expect(await repeated).toBe("unknown");
+  expect(observed).toEqual(["submission_submit", "submission_query"]);
+});
+
+test("Native quiescence from a different Session cannot admit input or settle an existing attempt", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  f.state(async () => ({ ...idle, sessionId: "foreign" }));
+  await expect(f.gateway.prompt(f.peer, prompt("mismatched"), signal)).rejects.toThrow("chat_busy");
+  expect(f.commands).toEqual([]);
+  f.state(async () => idle);
+  f.reply(async command => receipt(command.clientSubmissionId, {
+    inputOutcome: "no_input", operationOutcome: "succeeded", persistence: "committed", terminal: true,
+  }));
+  expect(await f.gateway.prompt(f.peer, prompt("current"), signal)).toMatchObject({ accepted: true });
+  f.state(async () => ({ ...idle, sessionId: "foreign" }));
+  expect(await f.gateway.state(f.peer, sessionId, signal)).toMatchObject({ settled: false });
+  f.state(async () => idle);
+  expect(await f.gateway.state(f.peer, sessionId, signal)).toMatchObject({ settled: true });
+});
+
+test("the public no-input recovery descriptor preserves the full DSH projection limit", async () => {
+  const f = fixture(), signal = new AbortController().signal;
+  const binding = { source: "s".repeat(512), generation: "g".repeat(512) };
+  const original = parseProjectionBinding(binding);
+  f.setProjection(original);
+  f.reply(async command => receipt(command.clientSubmissionId, {
+    inputOutcome: "no_input", operationOutcome: "succeeded", persistence: "committed", terminal: true,
+  }));
+  expect(await f.gateway.prompt(f.peer, { ...prompt("wide-projection"), projection: original }, signal))
+    .toMatchObject({ accepted: true });
+  const lookup = await f.gateway.lookup(f.peer, sessionId, "wide-projection", signal);
+  expect(chatRecovery.parse(lookup)).toEqual({
+    outcome: "completed-without-input", noInput: { requestId: "wide-projection", projection: binding },
+  });
+  expect(chatRecovery.safeParse({
+    outcome: "completed-without-input",
+    noInput: { requestId: "wide-projection", projection: { ...binding, source: "s".repeat(513) } },
+  }).success).toBe(false);
 });

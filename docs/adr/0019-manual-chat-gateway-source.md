@@ -8,13 +8,16 @@ current public RPC transport, joint Stop state, and current Browser View and dra
 An authority lifetime ends synchronously when the credential, grant, canonical working directory,
 or worker authority changes. The draft owner identity must be assigned by the Host, remain stable
 across reconnects of the same draft, and differ for another browser, tab, draft, or authority scope.
-The binding also supplies the current projection. A shared transport peer needs the separately
-authenticated per-invocation View authority to implement this port.
+The binding also supplies the current projection. The authenticated carrier installs an opaque
+server-side View capability in `chatViewCaller` for each invocation. Shared Peer identity or request
+JSON cannot supply this capability. With no carrier binding, both Gateway services refuse access.
 
 The public DSH `session/prompt` delegate accepts manual non-empty text and captures its exact request
-identity, UTF-8 bytes, mode and original projection before an await. Concurrent requests are refused
-while admission or execution is pending. After a valid Native `get_state` observation, the delegate
-checks complete Native and joint Host quiescence and current View and projection authority. Both
+identity, UTF-8 bytes, mode and original projection before an await. A fresh prompt checks whether
+the last acknowledged attempt has already settled, so admission can proceed without a separate View
+state poll. Pending admission or execution still fences new input. The delegate requires exact
+Session identity on each Native `get_state` observation and rechecks Native and joint Host
+quiescence, View authority and projection. Both
 accepted DSH modes use `submission_submit` with `inputType: "prompt"` and `idleOnly: true`. The DSH
 request ID is also the Native submission ID and RPC request ID. The Native candidate owns the final
 idle check. The future shared gate must account for Stop, Interactions, Retry, History Navigation and
@@ -23,25 +26,31 @@ matched composition also has to enforce [Manual Retry confirmation](0028-manual-
 through the Native command boundary for ordinary Chat input.
 
 The reply must match the exact command, request ID, target, durable submission ID, local reservation
-and origin. The acknowledgement establishes reservation. A committed input relation supplies
+and origin. Only a valid nonduplicate acknowledgement binds this dispatch to a reservation. A key
+lookup exposes no Native fingerprint, so a missing acknowledgement leaves even matching query facts
+unbound. A committed input relation from an acknowledged reservation supplies
 acceptance, including when the matching generation fails or is cancelled. An input history row can
 carry the request ID only through its exact validated Native origin and input role. A successful
 terminal committed operation with a complete consistent no-input receipt supplies the alternative
 settlement for an exact original projection. The correlated `prompt_result` and current Native and
-joint Host quiescence determine execution settlement separately. Synchronous terminal builtins may
-settle without a later result notification. An unkeyed `session_settled` frame has no per-request
+joint Host quiescence determine execution settlement separately. Synchronous terminal builtins
+without an invocation marker may settle without a later result notification. An exact committed
+`native_builtin_consumed` marker on any receipt page requires the matching agent-invoked prompt
+result and fresh idle checks before settlement or positive no-input evidence. An unkeyed `session_settled` frame has no per-request
 causality and uses the current `get_state` observation for reconciliation.
 
-Matching transport errors, uncertain receipts, duplicate Native reservations, and absent query
-results provide no replay authority. A repeated same-worker request can observe a previously issued
-key without a second mutation. A stable `not-submitted` receipt requires a Host-owned proof of refusal
+Transport errors, uncertain receipts, duplicate Native reservations, and absent query results
+provide no replay authority. A correlated Native conflict stops recovery for that attempt. A
+repeated same-worker request can observe an acknowledged key without a second mutation. A stable `not-submitted` receipt requires a Host-owned proof of refusal
 before RPC dispatch for a permanently consumed key. The Native may have created a reservation
 before a reported busy failure. Another draft or worker cannot obtain a prior attempt's recovery
 proof merely by knowing its ID. View cancellation or reconnect ends publication to the old invocation
 while admitted work remains owned by the same worker. A replaced worker starts with no Host attempts.
 The gateway retains up to 1,024 metadata records and no prompt body. An observation checks up to
-32 pages of 128 relations for one consistent publication. Requests beyond that read budget may
-remain unknown, with the worker's admission fence held when settlement remains unproved.
+32 pages of 128 relations for one consistent publication. One reconciliation runs per worker at a
+time. Concurrent recovery can return unknown and concurrent state reads can return the latest
+observation without starting another poll or query chain. Requests beyond the read budget may remain
+unknown, with the worker's admission fence held when settlement remains unproved.
 
 The existing semantic draft provider in `packages/drafts` remains the owner of current revision and
 scope checks and storage publication. A Chat outcome is evidence only. The browser composition

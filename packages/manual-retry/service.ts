@@ -3,7 +3,7 @@ import type { SubmissionClientCommand } from "../contracts/candidates/durable-su
 import type { SubmissionResult, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
 import validateLiveNotification from "../contracts/generated/live-notification.js";
 import type { PromptResultEvent } from "../contracts/generated/omp-wire.ts";
-import { requestLocalSubmission, submissionBusy as nativeBusy } from "../contracts/submission-reply.ts";
+import { requestLocalSubmission, submissionBusy as nativeBusy, submissionConflict } from "../contracts/submission-reply.ts";
 import type { StopSnapshot } from "../contracts/stop.ts";
 import { ReceiptLookup, validateSubmitReceipt } from "./native-results.ts";
 
@@ -272,6 +272,7 @@ export class ManualRetry {
   async #request(command: SubmissionClientCommand): Promise<SubmissionResult | typeof nativeBusy | undefined> {
     const host = this.host;
     if (!host) return;
-    return requestLocalSubmission(this.#worker.target, command, value => host.request(value));
+    const reply = await requestLocalSubmission(this.#worker.target, command, value => host.request(value));
+    if (reply !== submissionConflict) return reply;
   }
 }

@@ -1,18 +1,25 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Context } from "@deepseek-ai/cordis";
 import { Remote, RemoteError, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
 import { chatRecovery, chatSessionId, chatState } from "../contracts/chat.ts";
-import { ChatError, type ChatGateway } from "./gateway.ts";
+import { ChatError, type ChatCaller, type ChatGateway } from "./gateway.ts";
 
 /** The Host resolves only an explicitly open, retained worker. */
 type ResolveChat = (sessionId: string) => ChatGateway | undefined;
 
+/** Only an authenticated carrier can install the server-side capability for a Gateway invocation. */
+export const chatViewCaller = new AsyncLocalStorage<ChatCaller["view"]>();
+
 function binding(ctx: Context, resolve: ResolveChat, sessionId: string) {
   const invocation = ctx.invocation;
-  if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) throw new ChatError("authority");
+  const view = chatViewCaller.getStore();
+  if (!view || !invocation || invocation.signal.aborted || invocation.peer.signal.aborted) {
+    throw new ChatError("authority");
+  }
   const worker = resolve(chatSessionId.parse(sessionId));
   if (!worker) throw new ChatError("authority");
-  return { worker, peer: invocation.peer, signal: invocation.signal };
+  return { worker, caller: { view, peer: invocation.peer }, signal: invocation.signal };
 }
 
 function publicError(error: unknown): never {
@@ -34,8 +41,8 @@ export class ChatPromptService extends TypertRemoteService {
 
   @Remote("prompt") async prompt(request: SessionPromptRequest) {
     try {
-      const { worker, peer, signal } = binding(this.ctx, this.resolve, request.sessionId);
-      return await worker.prompt(peer, request, signal);
+      const { worker, caller, signal } = binding(this.ctx, this.resolve, request.sessionId);
+      return await worker.prompt(caller, request, signal);
     } catch (error) { return publicError(error); }
   }
 }
@@ -48,15 +55,15 @@ export class ChatLookupService extends TypertRemoteService {
 
   @Remote("lookup") async lookup(sessionId: string, requestId: string) {
     try {
-      const { worker, peer, signal } = binding(this.ctx, this.resolve, sessionId);
-      return chatRecovery.parse(await worker.lookup(peer, sessionId, requestId, signal));
+      const { worker, caller, signal } = binding(this.ctx, this.resolve, sessionId);
+      return chatRecovery.parse(await worker.lookup(caller, sessionId, requestId, signal));
     } catch (error) { return publicError(error); }
   }
 
   @Remote("state") async state(sessionId: string) {
     try {
-      const { worker, peer, signal } = binding(this.ctx, this.resolve, sessionId);
-      return chatState.parse(await worker.state(peer, sessionId, signal));
+      const { worker, caller, signal } = binding(this.ctx, this.resolve, sessionId);
+      return chatState.parse(await worker.state(caller, sessionId, signal));
     } catch (error) { return publicError(error); }
   }
 }
