@@ -11,6 +11,7 @@ import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { SessionIndex } from "./index.ts";
 import type { SessionSupervisor, SessionView } from "./supervisor.ts";
 import type { CatalogPageInput } from "../contracts/catalog.ts";
+import { sameNativeSession } from "../contracts/catalog-identity.ts";
 export const sessionCaller = new AsyncLocalStorage<BrowserAccess>();
 interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor }
 const publicView = (view: SessionView) => {
@@ -39,8 +40,7 @@ export class SessionsService extends TypertRemoteService {
     this.identity(); const page = await this.options.catalog.page({ ...(options.cursor ? { cursor: options.cursor } : {}), ...(options.pageSize ? { pageSize: options.pageSize } : {}) }); this.identity();
     for (const [id, choice] of this.choices) if (choice.expires <= Date.now()) this.choices.delete(id);
     const choices = page.items.map(descriptor => {
-      let id = [...this.choices].find(([, choice]) => choice.descriptor.sourceId === descriptor.sourceId
-        && choice.descriptor.instanceId === descriptor.instanceId && choice.descriptor.nativeSessionId === descriptor.nativeSessionId)?.[0];
+      let id = [...this.choices].find(([, choice]) => sameNativeSession(choice.descriptor, descriptor))?.[0];
       if (!id) { if (this.choices.size >= 1024) throw new Error("SESSION_SELECTION_LIMIT"); id = brandString<SessionSelectionId>(crypto.randomUUID()); }
       this.choices.set(id, { descriptor, expires: Date.now() + 60_000 });
       return { selectionId: id, nativeSessionId: descriptor.nativeSessionId, sourceId: descriptor.sourceId, instanceId: descriptor.instanceId,

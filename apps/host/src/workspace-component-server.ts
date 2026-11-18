@@ -20,7 +20,7 @@ import { workspacePage } from "../../../packages/workspaces/catalog.ts";
 import { registeredPage, emptySessionIndex, type SessionIndexReader } from "../../../packages/workspaces/index.ts";
 interface Options extends InstallationSelection { port?: number; assets?: string; catalog: CatalogClient; dataDir: string; index?: SessionIndexReader }
 interface SocketData { peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController> }
-class WorkspaceService extends TypertRemoteService {
+export class WorkspaceService extends TypertRemoteService {
   constructor(ctx: Context, private readonly catalog: CatalogClient, private readonly directories: DirectoryGrants, private readonly index: SessionIndexReader) {
     super(ctx, "ompWorkspaces");
   }
@@ -97,7 +97,7 @@ export async function startWorkspaceComponentServer(options: Options) {
         if (inflight >= 32) return Response.json({ error: { code: "WORKSPACE_REQUEST_LIMIT" } }, { status: 429 });
         ++inflight;
         try {
-          const response = await dispatch(request, ctx, owner, () => access.revalidate(identity));
+          const response = await dispatchWorkspaceRequest(request, ctx, owner, () => access.revalidate(identity));
           return access.revalidate(identity) ? response : new Response("Access invalidated", { status: 401 });
         } finally { --inflight; }
       }
@@ -150,7 +150,8 @@ export async function startWorkspaceComponentServer(options: Options) {
   };
 }
 
-async function dispatch(request: Request, ctx: Context, peer: Peer, current: () => boolean): Promise<Response> {
+export async function dispatchWorkspaceRequest(request: Request, ctx: Context, peer: Peer,
+  current: () => boolean): Promise<Response> {
   if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
     return new Response("JSON required", { status: 415 });
   }

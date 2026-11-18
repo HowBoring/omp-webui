@@ -25,11 +25,14 @@ pagination or counts. Native scan/response/snapshot/deadline budgets remain thos
 Host access metadata adds at most 32 short records to a bounded native page; one HTTP body/WS frame is at most
 16 KiB, with eight Peers and one `$events` stream per Peer. No raw native RPC browser tunnel exists.
 
-`SessionIndexReader` is a separate read-only metadata provider for #44's future index owner. Independently paged
-registered references are re-described through public RPC and retain explicit missing, replaced, invalid, inaccessible
-or source-unavailable outcomes. Failed descriptions never imply permission. Each page has at most 32 records;
-errors display `index_unavailable`, never an empty successful index. This component never writes the Session Index.
+`SessionIndexReader` exposes read-only metadata from the isolated Session carrier's SQLite Session Index. Independently
+paged registered references are re-described through public RPC. Current metadata, ownership and directory access
+require a matching native source, instance and Session ID. Missing, replaced, invalid, inaccessible and source-unavailable
+references retain cached metadata and report unknown access and ownership. Each page has at most 32 records.
+The registered page never writes the Session Index.
 `fixture-index.ts` supplies only deliberately authored synthetic reference metadata to the isolated executable.
+Legacy fixture rows without the source and instance retain explicit catalog failures and show `invalid_reference`
+if the catalog returns a verified description. Regenerating fixture data records the full native identity.
 
 No protected Session/history/attachment/execution admission exists here. Every view reports `blocked_pending_41_44`
 even after a valid grant. Normal Host admission remains closed. #44 must compose this current-rights policy with

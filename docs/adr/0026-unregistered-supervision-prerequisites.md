@@ -16,4 +16,8 @@ Selected builders describe source/build/provenance closure only. They are never 
 
 This is an unregistered source component. Existing Host transport and entrypoints, Native patches, schema/admission, root scripts/dependencies and global installation remain at integration. No external controller or external C policy is selected. Actual composition with Native ownership/preparation, authenticated dispatcher, ordinary entry, final source/schema/asset inventory, actual loaded libc/loader mappings, maintenance/fence lifetime and OS fault proofs remain unresolved. No actual compatibility, completed #41/#61 or private/product admission claim follows from types, pure tests or syntax checks.
 
+Operators can explicitly run `bun --no-env-file scripts/inspect-delivery.ts`. Its optional trusted startup file
+selects inputs to the existing delivery inspection gate. The report keeps Session admission blocked and launches
+no OMP process. See the [operator report documentation](../../packages/delivery/README.md#operator-report).
+
 The next source step is fresh Spec and Standards review of the entire delta against the integration base. Only then can a separate external source composition reconcile shared C policy/build provenance and raw-close semantics. Runtime/Native/global work is a separate authorization and evidence boundary.

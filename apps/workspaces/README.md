@@ -29,8 +29,9 @@ The public DSH `installConnection` fetch hook adds only the Host CSRF header; st
 correlation, HTTP, native browser Cookie/WebSocket and mux logic are unchanged. There is no private instance override.
 The page presents canonical preview + explicit confirmation + revoke, durable grant status, native pages grouped by
 cwd within that page, current cwd rights, native ownership and partial/error states. All content uses `textContent`.
-The separate registered-reference panel is labelled synthetic metadata input and calls actual public descriptions;
-real Session Index registration and protected open remain #44. The normal Host never imports this executable.
+The separate registered-reference panel is labelled synthetic metadata input and calls actual public descriptions.
+The isolated Session carrier uses its SQLite Session Index for the same registered-page Remote. The normal Host
+never imports this executable.
 
 The earlier matched fixture used Bun 1.4.4 and fixed Node/Corepack tools from `compatibility/README.md` on PATH.
 The following is its historical procedure, not a verified procedure for the reconciled combination or authorization

@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import type { BrowserAccess, BrowserAuthority } from "../access/index.ts";
+import { sameNativeSession } from "../contracts/catalog-identity.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
@@ -32,8 +33,6 @@ interface Active {
   opening: Promise<void>; launching?: Promise<SupervisedSessionWorker>; worker?: SupervisedSessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; retired: boolean; exited: boolean; idlePending?: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
 }
-const same = (left: CatalogDescriptor, right: CatalogDescriptor) => left.sourceId === right.sourceId
-  && left.instanceId === right.instanceId && left.nativeSessionId === right.nativeSessionId;
 const directoryIdentity = (cwd: string): string => {
   try {
     const stat = fs.statSync(cwd, { bigint: true });
@@ -141,7 +140,7 @@ export class SessionSupervisor {
       if (active.selected) {
         const described = await this.options.catalog.describe(active.selected.reference); this.#current(identity, active);
         if (described.status !== "verified" || !described.item) throw new Error(`SESSION_NATIVE_${described.status.toUpperCase()}`);
-        if (!same(described.item, active.selected)) throw new Error("SESSION_NATIVE_REPLACED");
+        if (!sameNativeSession(described.item, active.selected)) throw new Error("SESSION_NATIVE_REPLACED");
         if (described.item.cwd.status !== "known" || described.item.cwd.canonical !== active.cwd) throw new Error("SESSION_CWD_CHANGED");
         if (described.item.ownership.state !== "free") throw new Error(described.item.ownership.state === "held"
           ? "SESSION_EXTERNAL_OWNER" : "SESSION_OWNERSHIP_UNKNOWN");
@@ -187,7 +186,7 @@ export class SessionSupervisor {
     const binding = result.binding;
     if (!binding || result.cwd !== active.cwd || binding.cwd.canonical !== active.cwd
       || binding.ownership.state !== "held" || result.nativeSessionId !== binding.nativeSessionId
-      || (active.selected && !same(binding, active.selected))) throw new Error("SESSION_FINAL_BINDING_REJECTED");
+      || (active.selected && !sameNativeSession(binding, active.selected))) throw new Error("SESSION_FINAL_BINDING_REJECTED");
     active.key = key(binding);
     const registered = this.options.index.register(binding);
     active.record ??= registered;
