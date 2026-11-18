@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
-import { DraftOriginalId, DraftSubmissionId, DraftProjectionGeneration } from "@deepseek-ai/dsh-client-ui-conversation/client";
+import { DraftOriginalId, DraftSubmissionId, DraftProjectionGeneration } from "@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft";
 import type { SemanticDraftRecord } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { createSnapshotStore } from "@deepseek-ai/dsh-client-store";
-import { parseProjectionBinding, type SessionProjectionState } from "@deepseek-ai/dsh-api-session-controller/client";
+import type { SessionProjectionState } from "@deepseek-ai/dsh-api-session-controller/client";
+import { parseProjectionBinding } from "@deepseek-ai/dsh-api-session-controller/projection";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
 import { createDraftProvider } from "../../packages/drafts/provider.ts";
 

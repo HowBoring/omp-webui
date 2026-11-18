@@ -26,4 +26,18 @@ bun --no-env-file "$repo_root/scripts/dsh-source.ts" "$dsh_source"
 corepack pnpm run build:artifacts --serial
 corepack pnpm run build:check --serial
 
+draft_contract_check='
+  import { DraftTabOwner, parseSemanticDraftRecord } from "@deepseek-ai/dsh-client-ui-conversation/client/semantic-draft";
+  const owner = "omp-webui-package-check";
+  const record = parseSemanticDraftRecord({ draft: { text: owner, references: [] }, originals: [] });
+  if (DraftTabOwner(owner) !== owner || record?.draft.text !== owner) {
+    throw new Error("DSH_SEMANTIC_DRAFT_EXPORT_CHECK_FAILED");
+  }
+'
+(
+  cd packages/client/ui-conversation
+  node --input-type=module --eval "$draft_contract_check"
+  bun --no-env-file --eval "$draft_contract_check"
+)
+
 bun --no-env-file "$repo_root/scripts/dsh-source.ts" "$dsh_source" > "$dsh_source/.dsh-build/omp-webui-source.json"

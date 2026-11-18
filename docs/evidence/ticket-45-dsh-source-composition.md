@@ -3,7 +3,7 @@
 The [dormant source manifest](../../compatibility/dsh/chat-and-tool-source-candidate.json)
 pins DSH `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` and seven ordered patches.
 The reconstructed tree is `e011120c10c66dc067e2787054d21b52b2a15de1`.
-The active manifest used by `scripts/dsh-source.ts` still lists only patches 1–3.
+The active manifest at the time of this evidence listed patches 1–3.
 
 Patches 1–5 have identical bytes in both donors and integration. The sixth patch is
 the existing parsed Tool proposal, which projects parsed arguments into typed
@@ -36,7 +36,7 @@ for replay. Historical donor commits, when present locally, add byte comparisons
   integration=$(jq -er '.integrationBase' "$candidate")
   parsed="$dir/patches/0006-parsed-tool-presentation.patch"
   notice="$dir/patches/0007-prompt-notice-reconciliation.patch"
-  for path in compatibility/dsh/patches.json compatibility/dsh/parsed-tool-source-candidate.json upstreams.lock.json; do
+  for path in compatibility/dsh/parsed-tool-source-candidate.json upstreams.lock.json; do
     git show "$integration:$path" | cmp - "$path"
   done
   for file in "$dir"/patches/000[1-6]-*.patch; do
@@ -59,7 +59,7 @@ for replay. Historical donor commits, when present locally, add byte comparisons
   notice_path=$(jq -er '.donors.promptNotices.patch' "$candidate")
   compare_local_donor "$source45" "$notice_path" "$notice"
   compare_local_donor "$source46" "compatibility/dsh/patches/${parsed##*/}" "$parsed"
-  jq -e --slurpfile active "$dir/patches.json" \
+  jq -e --slurpfile active <(git show "$integration:compatibility/dsh/patches.json") \
     --slurpfile parsed_only "$dir/parsed-tool-source-candidate.json" \
     '(.sourceManifest | .patches = .patches[:3]) == $active[0]
       and (.sourceManifest | .patches = .patches[:6]) == $parsed_only[0].sourceManifest' "$candidate" >/dev/null
