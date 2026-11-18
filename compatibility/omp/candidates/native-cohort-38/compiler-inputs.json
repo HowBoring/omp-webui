@@ -1,0 +1,63 @@
+{
+  "source38Commit": "c98b7a5cf61f58636decef1d9b8265df83262d24",
+  "recipeFiles": [
+    {
+      "path": "package.json",
+      "bytes": 1769,
+      "sha256": "b304a6c2183b76af1ee7ecadb33e30c3efe3a795582996efa5d2d046d91c033d"
+    },
+    {
+      "path": "packages/compatibility/installation.ts",
+      "bytes": 4408,
+      "sha256": "01c806d97d7b20ec0f8f9eb84a2df615f5de7ab07efde2921d45c996c093f96a"
+    },
+    {
+      "path": "scripts/omp-source.ts",
+      "bytes": 10156,
+      "sha256": "b174fcc58a896fbf55337592fc7051b6c570531c30824b143846519c0f7c3b91"
+    },
+    {
+      "path": "scripts/build-compatibility.ts",
+      "bytes": 16245,
+      "sha256": "37563d09d39042d75c64a98833ed3146c4b21f8dec893dd69169910b685f7ef7"
+    },
+    {
+      "path": "scripts/command-schemas.ts",
+      "bytes": 1264,
+      "sha256": "566fe6ee8a254f58a6e9f1abccbaa883517b604a993defa24b08fb54b7244a76"
+    },
+    {
+      "path": "scripts/build-history-contracts.ts",
+      "bytes": 3541,
+      "sha256": "5eecbc7c3027d6f8e8d8cf4594284f766407cecf0fc78f996bc26097e5743d25"
+    },
+    {
+      "path": "scripts/build-live-contracts.ts",
+      "bytes": 1226,
+      "sha256": "6c7612d8d5c42d739808a0ca83b214480f8c50ec9183194bdf6457b4fa90b88b"
+    },
+    {
+      "path": "scripts/build-submission-contracts.ts",
+      "bytes": 2286,
+      "sha256": "b5161d0b630e9a0f81944213e23a5842a2f719b55189d96a67ab1ff10c521a2d"
+    },
+    {
+      "path": "scripts/build-navigation-contracts.ts",
+      "bytes": 2423,
+      "sha256": "b4352965071974540634a64d5d40c17ba3e2aa6f65103ef8897507433e4be651"
+    },
+    {
+      "path": "scripts/build-attachment-contracts.ts",
+      "bytes": 2301,
+      "sha256": "db495e5f5f4b364f052f26920ed28aa4ede32411e4cb3bf350f0e90c797bf89a"
+    }
+  ],
+  "compilerDependencies": {
+    "ajv": "8.17.1",
+    "fast-deep-equal": "3.1.3",
+    "fast-uri": "3.1.9",
+    "json-schema-traverse": "1.0.0",
+    "require-from-string": "2.0.2",
+    "zod": "4.6.6"
+  }
+}
