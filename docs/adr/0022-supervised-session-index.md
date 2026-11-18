@@ -113,5 +113,19 @@ native settlement, helper completion and pipe EOF are separate observations.
 
 The cutoff bounds the Host RPC capability. The helper still owns process control and requires
 its own absolute-deadline handoff. Retirement during startup fences RPC and Native stdin.
-Coordinating that retirement with the helper's START barrier and cancelling Broker-managed
-Interactions require additional composition. The retained path remains unregistered.
+The retained connection creates one InteractionBridge after authenticated v2
+negotiation. Its first cleanup fence withdraws existing answer rights and timers,
+then attempts a fixed public `respond_ui` cancellation for tracked extension UI on
+the same connection. Root startup UI uses the same tracking before a Session
+binding exists. The Bridge observes live notifications while the Session retains
+replay before its first subscriber. An ACK already correlated before the fence
+stays authoritative. A stale reply withdraws answer rights while other in-flight
+commands can still supply a decisive ACK for the same Interaction.
+The result distinguishes Native status from an unavailable lane, a failed request,
+an invalid or missing reply, and the cutoff. Only `cancelled` and `expired` affirm
+cancellation for a tracked request. Tail notifications, Native settlement, pipe
+EOF and domain completion remain separate observations.
+
+Coordination with the helper's START barrier, retained SessionSupervisor handoff
+and the separate S2 Broker integration remain pending. The retained path remains
+unregistered.

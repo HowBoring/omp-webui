@@ -3,6 +3,7 @@ import type { FileSink } from "bun";
 import { EventEmitter } from "node:events";
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
 import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
+import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
 import type { ReadyEvent } from "../../packages/contracts/preflight.ts";
 import { PrivateHelperController } from "../../packages/supervision/controller.ts";
 
@@ -31,11 +32,12 @@ class ControlSocket extends EventEmitter {
 function pipe() {
   let writer!: ReadableStreamDefaultController<Uint8Array>;
   const stream = new ReadableStream<Uint8Array>({ start(controller) { writer = controller; } });
-  return { stream, send: (value: object) => writer.enqueue(Buffer.from(JSON.stringify(value) + "\n")),
+  return { stream,
+    send: (...values: object[]) => writer.enqueue(Buffer.from(values.map(value => JSON.stringify(value) + "\n").join(""))),
     bytes: (size: number) => writer.enqueue(new Uint8Array(size)), close: () => writer.close() };
 }
 
-interface Command { id: string; type: string; protocolVersion?: number }
+interface Command extends Partial<RespondUiParams> { id: string; type: string; protocolVersion?: number }
 function ownedPeer() {
   const control = new ControlSocket(), stdout = pipe(), stderr = pipe();
   const reap = Promise.withResolvers<number>();
@@ -118,6 +120,45 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   return connected.ready;
 }
 
+test("owned Interaction tracking preserves notification replay until a Session subscriber attaches", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const negotiation = peer.nextCommand();
+    peer.hello();
+    peer.stdout.send(ready);
+    const command = await negotiation;
+    const before = { type: "extension_ui_request", method: "input", id: "before-negotiation", title: "Synthetic UI" };
+    const after = { type: "extension_ui_request", method: "input", id: "after-negotiation", title: "Synthetic UI" };
+    peer.stdout.send(before,
+      { type: "response", id: command.id, command: command.type, success: true, data: { protocolVersion: 2 } });
+    const session = await connected.ready;
+
+    const stateCommand = peer.nextCommand();
+    const observing = session.startup.state();
+    const state = await stateCommand;
+    peer.stdout.send(after, { type: "response", id: state.id, command: state.type, success: true,
+      data: { version: "strict-start-v1", phase: "waiting" } });
+    await observing;
+    expect(session.frames).toEqual([{ ...ready }, before, after]);
+    expect(session.interactions.snapshot().pending.map(card => card.id)).toEqual([before.id, after.id]);
+
+    const delivered = Promise.withResolvers<unknown>();
+    session.subscribe(frame => delivered.resolve(frame));
+    const notice = { type: "session_settled" };
+    peer.stdout.send(notice);
+    expect(await delivered.promise).toEqual(notice);
+    expect(session.frames).toEqual([{ ...ready }, before, after]);
+
+    peer.rootExit();
+    await connected.rootExit;
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).protocolFailure).toBeUndefined();
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
 test("owned cleanup fences regular work while fixed cleanup RPCs still drain on the same pipes", async () => {
   const peer = ownedPeer();
   const clock = spyOn(performance, "now").mockReturnValue(1000);
@@ -189,6 +230,193 @@ test("owned cleanup fences regular work while fixed cleanup RPCs still drain on 
     expect(await connected.output).toEqual({
       stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1,
     });
+    peer.complete();
+    await connected.completed;
+  } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("owned cleanup withdraws tracked extension UI and sends only a fixed Native cancellation", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(frame => { if (frame.id === "notify") delivered.resolve(); });
+    peer.stdout.send({ type: "extension_ui_request", method: "input", id: "pending-root", title: "Synthetic UI" });
+    peer.stdout.send({ type: "extension_ui_request", method: "notify", id: "notify", message: "Synthetic notice" });
+    await delivered.promise;
+    const { interactions } = session;
+    expect(interactions.snapshot().pending).toMatchObject([{ id: "pending-root", scope: { kind: "startup" } }]);
+
+    const cancelling = peer.nextCommand();
+    const cutoff = performance.now() + 10_000;
+    const cleanup = connected.beginCleanup(cutoff);
+    expect(cleanup).toBeDefined();
+    expect(connected.beginCleanup(cutoff)).toBe(cleanup);
+    expect(interactions.snapshot().pending).toEqual([]);
+    expect(await interactions.answer(interactions.generation, "pending-root", { type: "value", value: "late" }))
+      .toEqual({ status: "stale" });
+    expect(await interactions.answer(interactions.generation, "forged", { type: "cancel" })).toEqual({ status: "stale" });
+    await expect(session.command({ type: "respond_ui", targetId: "forged", answer: { type: "cancel" } }))
+      .rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
+
+    const command = await cancelling;
+    expect(command).toEqual({ type: "respond_ui", id: expect.any(String), targetId: "pending-root",
+      answer: { type: "cancel" } });
+    peer.stdout.send({ type: "extension_ui_request", method: "input", id: "after-fence", title: "Synthetic late UI" });
+    peer.respond(command, { status: "cancelled" });
+    expect(await connected.interactionCleanup).toEqual([
+      { id: "pending-root", status: "cancelled", reason: "explicit-native-acknowledgement" },
+    ]);
+    expect(interactions.snapshot().pending).toEqual([]);
+    expect(peer.commands.map(item => item.type)).toEqual(["negotiate_protocol", "respond_ui"]);
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).observedTailNotifications).toBe(1);
+    peer.rootExit(); peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test("owned UI cleanup preserves an answer acknowledged before retirement in the same stdout read", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const { interactions } = session;
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(frame => {
+      if (frame.id === "fenced-answer") delivered.resolve();
+      if (frame.type === "session_settled") connected.beginCleanup(performance.now() + 10_000);
+    });
+    peer.stdout.send(
+      { type: "extension_ui_request", method: "input", id: "confirmed-answer", title: "Synthetic first UI" },
+      { type: "extension_ui_request", method: "input", id: "fenced-answer", title: "Synthetic second UI" },
+    );
+    await delivered.promise;
+
+    const firstWrite = peer.nextCommand();
+    const first = interactions.answer(interactions.generation, "confirmed-answer", { type: "value", value: "first" });
+    const firstCommand = await firstWrite;
+    const secondWrite = peer.nextCommand();
+    const second = interactions.answer(interactions.generation, "fenced-answer", { type: "value", value: "second" });
+    const secondCommand = await secondWrite;
+    const cancelling = peer.nextCommand();
+    peer.stdout.send(
+      { type: "response", id: firstCommand.id, command: "respond_ui", success: true, data: { status: "answered" } },
+      { type: "session_settled" },
+      { type: "response", id: secondCommand.id, command: "respond_ui", success: true, data: { status: "answered" } },
+    );
+    expect(await first).toEqual({ status: "answered" });
+    expect(await second).toEqual({ status: "stale" });
+
+    const cancel = await cancelling;
+    expect(cancel).toMatchObject({ type: "respond_ui", targetId: "fenced-answer", answer: { type: "cancel" } });
+    // The fenced answer could have reached Native. Its stale cancellation does not prove a cancellation happened.
+    peer.respond(cancel, { status: "stale" });
+    expect(await connected.interactionCleanup).toEqual([
+      { id: "confirmed-answer", status: "answered", reason: "explicit-native-acknowledgement" },
+      { id: "fenced-answer", status: "stale", reason: "explicit-native-acknowledgement" },
+    ]);
+    expect(interactions.snapshot().outcomes).toHaveLength(2);
+    expect(peer.commands).toHaveLength(4);
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).protocolFailure).toBeUndefined();
+    peer.rootExit(); peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each(["before", "after"] as const)("owned UI cleanup with a same-card decisive reply %s the fence", async when => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const { interactions } = session;
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(frame => {
+      if (frame.type === "extension_ui_request") delivered.resolve();
+      if (frame.type === "session_settled") connected.beginCleanup(performance.now() + 10_000);
+    });
+    peer.stdout.send({ type: "extension_ui_request", method: "input", id: "same-card", title: "Synthetic UI" });
+    await delivered.promise;
+
+    const answering = peer.nextCommand();
+    const answer = interactions.answer(interactions.generation, "same-card", { type: "value", value: "winner" });
+    const answerCommand = await answering;
+    const cancelling = peer.nextCommand();
+    const cancel = interactions.answer(interactions.generation, "same-card", { type: "cancel" });
+    const cancelCommand = await cancelling;
+    expect(answerCommand.targetId).toBe("same-card");
+    expect(cancelCommand.targetId).toBe("same-card");
+
+    const decisive = { type: "response", id: answerCommand.id, command: "respond_ui", success: true,
+      data: { status: "answered" } };
+    const fence = { type: "session_settled" };
+    peer.stdout.send(
+      { type: "response", id: cancelCommand.id, command: "respond_ui", success: true, data: { status: "stale" } },
+      ...(when === "before" ? [decisive, fence] : [fence, decisive]),
+    );
+    const status = when === "before" ? "answered" : "stale";
+    expect(await cancel).toEqual({ status: "stale" });
+    expect(await answer).toEqual({ status });
+    const outcome = { id: "same-card", status, reason: "explicit-native-acknowledgement" } as const;
+    expect(await connected.interactionCleanup).toEqual([outcome]);
+    expect(interactions.snapshot()).toMatchObject({ pending: [], outcomes: [outcome] });
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "respond_ui", "respond_ui"]);
+
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).protocolFailure).toBeUndefined();
+    peer.rootExit(); peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each([
+  ["Native rejection", "cleanup-request-failed"],
+  ["incompatible acknowledgement", "cleanup-reply-invalid"],
+  ["acknowledgement at the cutoff", "cleanup-cutoff"],
+  ["root exit with no acknowledgement", "cleanup-reply-lost"],
+  ["unavailable cleanup lane", "cleanup-unavailable"],
+] as const)("owned UI cleanup records uncertainty after %s", async (fault, reason) => {
+  const peer = ownedPeer();
+  const clock = spyOn(performance, "now").mockReturnValue(1000);
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(() => delivered.resolve());
+    peer.stdout.send({ type: "extension_ui_request", method: "input", id: "unresolved", title: "Synthetic UI" });
+    await delivered.promise;
+    const cancelling = peer.nextCommand();
+    const unavailable = fault === "unavailable cleanup lane";
+    const cleanup = connected.beginCleanup(unavailable ? 1000 : 6000);
+    if (unavailable) {
+      expect(cleanup).toBeUndefined();
+      expect(connected.beginCleanup(9000)).toBeUndefined();
+    } else {
+      expect(cleanup).toBeDefined();
+      const command = await cancelling;
+      if (fault === "Native rejection") {
+        peer.stdout.send({ type: "response", id: command.id, command: command.type, success: false,
+          error: "Synthetic Native rejection" });
+      } else if (fault === "incompatible acknowledgement") {
+        peer.respond(command, { status: "answered" });
+      } else if (fault === "acknowledgement at the cutoff") {
+        clock.mockReturnValue(6000);
+        peer.respond(command, { status: "cancelled" });
+      } else {
+        peer.rootExit();
+        await connected.rootExit;
+      }
+    }
+    const cancellation = { id: "unresolved", status: "unknown", reason } as const;
+    expect(await connected.interactionCleanup).toEqual([cancellation]);
+    expect(session.interactions.snapshot()).toMatchObject({ pending: [], outcomes: [cancellation] });
+    expect(peer.commands.map(command => command.type)).toEqual(unavailable
+      ? ["negotiate_protocol"] : ["negotiate_protocol", "respond_ui"]);
+    peer.stdout.close(); peer.stderr.close();
+    expect(await connected.output).toMatchObject({ stdoutEOF: true, stderrEOF: true });
+    if (fault !== "root exit with no acknowledgement") peer.rootExit();
     peer.complete();
     await connected.completed;
   } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
