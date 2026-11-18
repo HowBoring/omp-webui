@@ -36,3 +36,31 @@ Strict TypeScript, guarded input checks and standalone matched RPC schema checks
 launch. Run `cf193f` (session `45876`) exited zero. The driver and results are under
 `/dev/shm/omp-source38-attachment-revision.SZDzRS07` and
 `/dev/shm/omp-source38-png-revision-run.sbea2lvg`, respectively.
+
+## Receipt preparation after worker reopen
+
+The guarded Source38 fixture selected the same free Catalog reference and native identity before
+and after replacing its StrictStart worker. It left the first ready preparation live through
+stdin EOF. The replacement worker returned `cancelled: false` for that preparation ID with
+297,494 ms remaining before its advertised expiry. It then issued a different ready receipt
+for the same draft revision under the new authority generation, and cancelled the fresh
+preparation successfully. The RPC allowlist admitted Continue, state, History, preparation and
+cancellation. The old preparation observation comes from the public cancellation lookup.
+
+The test closed and reopened the Host SQLite OriginalStore, then read the same original bytes
+and metadata through the new authority. A foreign draft scope could not read that object.
+The Host draft adapter restored the text and logical original reference using synthetic same-tab
+storage. It rejected the prior authority scope. The public one-entry Tree and the synthetic
+seed stayed unchanged. This checks separately composed Native and Host storage behavior.
+Browser hydration and full Host restart acceptance remain pending. [Draft recovery #57](https://github.com/HowBoring/omp-webui/issues/57)
+
+The two Catalog children and two StrictStart workers all exited zero with stdout and stderr
+EOF and empty stderr. Each guard recorded zero denied calls. The Host transport, OriginalStore
+and draft adapter matched `ed1ea07579793f3f3d86695864056fb49d801841`, using the same Source38
+runtime and schema listed above and DSH patched tree `d05468939bcb06446ace47045d138f716406c788`.
+
+Strict TypeScript and the guarded input check passed before run `414cbe` (session `52619`).
+The driver SHA-256 is `451f06042096dc79bc7469c76a4859c6a923a8b910077ca00a950939603a6a48`.
+The result SHA-256 is `f5b67e90a5217197073c380353c63acbff570330dfa45518d23b40a4f7114120`.
+The driver and output are under `/dev/shm/omp-source38-attachment-reopen.r3le7NxZ` and
+`/dev/shm/omp-source38-reopen-run.bUX4o6mq`, respectively.
