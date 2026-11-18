@@ -14,7 +14,7 @@ seam correlates the Session, request, original projection and invocation attempt
 It clears only the associated send notice when the caller has exact accepted or
 completed-without-input evidence. It leaves provider failure presentation and the
 newer editable draft in place. The patches touch 25 and five disjoint paths respectively.
-[Notice donor](https://github.com/HowBoring/omp-webui/blob/54545e62489ce13c2328f14c0882abc0c1c7d87c/compatibility/dsh/patches/0006-prompt-notice-reconciliation.patch)
+[Tracked notice patch](../../compatibility/dsh/patches/0007-prompt-notice-reconciliation.patch)
 [Parsed Tool source evidence](ticket-46-parsed-source-candidate.md)
 
 ## Reproduce the source check
@@ -22,8 +22,9 @@ newer editable draft in place. The patches touch 25 and five disjoint paths resp
 From the Host repository root, set `DSH_READONLY_OBJECTS` to the absolute Git objects
 directory of an existing DSH checkout containing the base commit. The commands use
 Git, Bash, and `jq`. The temporary index and new objects live in a scratch repository
-with the existing objects as a read-only alternate. Both donor commits must be in the
-Host repository to compare their tracked patch bytes.
+with the existing objects as a read-only alternate. Use integration history containing
+`0ce71bffe2db2bd0a19cdf02d72af41a26abbcfb`. The tracked hashes and DSH objects suffice
+for replay. Historical donor commits, when present locally, add byte comparisons.
 
 ```bash
 (
@@ -38,15 +39,26 @@ Host repository to compare their tracked patch bytes.
   for path in compatibility/dsh/patches.json compatibility/dsh/parsed-tool-source-candidate.json upstreams.lock.json; do
     git show "$integration:$path" | cmp - "$path"
   done
-  for file in "$dir"/patches/000[1-5]-*.patch; do
+  for file in "$dir"/patches/000[1-6]-*.patch; do
     path="compatibility/dsh/patches/${file##*/}"
-    for donor in "$integration" "$source45" "$source46"; do
+    git show "$integration:$path" | cmp - "$file"
+  done
+  compare_local_donor() {
+    local donor=$1 donor_patch=$2 tracked_patch=$3 file path
+    if ! git cat-file -e "$donor^{commit}" 2>/dev/null; then
+      printf 'Local donor byte comparison skipped for %s\n' "$donor"
+      return
+    fi
+    for file in "$dir"/patches/000[1-5]-*.patch; do
+      path="compatibility/dsh/patches/${file##*/}"
       git show "$donor:$path" | cmp - "$file"
     done
-  done
-  git show "$source46:compatibility/dsh/patches/${parsed##*/}" | cmp - "$parsed"
+    git show "$donor:$donor_patch" | cmp - "$tracked_patch"
+    printf 'Local donor patch bytes verified for %s\n' "$donor"
+  }
   notice_path=$(jq -er '.donors.promptNotices.patch' "$candidate")
-  git show "$source45:$notice_path" | cmp - "$notice"
+  compare_local_donor "$source45" "$notice_path" "$notice"
+  compare_local_donor "$source46" "compatibility/dsh/patches/${parsed##*/}" "$parsed"
   jq -e --slurpfile active "$dir/patches.json" \
     --slurpfile parsed_only "$dir/parsed-tool-source-candidate.json" \
     '(.sourceManifest | .patches = .patches[:3]) == $active[0]
@@ -94,7 +106,8 @@ Host repository to compare their tracked patch bytes.
 ```
 
 Git 2.52.0 verified all seven intermediate trees, both postimages, and the reverse
-deltas. The parsed-only tree `2440ab8cdd85b85013aff36d3af60edb1b311e27` failed to
+deltas with and without the historical Host donor objects. The parsed-only tree
+`2440ab8cdd85b85013aff36d3af60edb1b311e27` failed to
 reverse-apply the notice patch. The notice-only tree `ff9cb83a99a9b969057ca74771210c66d67f5df5`
 failed to reverse-apply the parsed Tool patch. These are source checks. The patches
 retain their original hunks, so this slice adds no behavioral fixture.
@@ -112,8 +125,15 @@ The unresolved send notice was absent, the draft stayed editable, and the one-se
 observation found no retry or additional Native input. The original catalog and worker
 exited 0, both readers reached EOF, and the retained wait domain reached ECHILD. The guard
 reported zero denials or dispatches and the Native traces had zero Internet-family calls.
-[Local browser receipt](../../../omp-webui-ticket-45/vendor/chat-evidence/provider-error-restore18-offline-startup-v1/provider-error.json)
-[Local retainer receipt](../../../omp-webui-ticket-45/vendor/chat-evidence/provider-error-restore18-offline-startup-v1/original-retainer.json)
+[Tracked offline candidate evidence](../../compatibility/omp/candidates/offline-model-discovery-v1/evidence.json)
+
+The raw receipts are local to the historical checkout at
+`omp-webui-ticket-45/vendor/chat-evidence/provider-error-restore18-offline-startup-v1/`.
+
+| Local file | Verified SHA-256 |
+| --- | --- |
+| `provider-error.json` | `545ec10201d7c4dc577070597531d20e2ea28666fda8017bd372df62eca687a5` |
+| `original-retainer.json` | `5813bd00094321b03848716173a5bc775ce491ba5d816e3124cb82bf7805cdab` |
 
 The prior artifact readback describes the notice-only DSH source SHA-256
 `23524489262ef157efbf34705bebc67f1cb26f6c8cb4038a10fa9ef487c00675`. The older default
