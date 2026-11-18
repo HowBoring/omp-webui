@@ -2,7 +2,8 @@
 
 - Status: Accepted source boundary; unregistered and not product acceptance
 - Date: 2026-11-17
-- Implements Host staging for portions of tickets 54 and 55 under ADRs 0006 and 0009
+- Implements Host staging for portions of tickets 54 and 55 and staged Original lifecycle
+  for portions of ticket 58 under ADRs 0006 and 0009
 
 The Host needs exact originals independent from Native model representations.
 Staging may proceed for an explicitly opened verified Session, including while
@@ -29,7 +30,7 @@ Published metadata reports `staged-unprepared` and `unassociated`. Validation
 reports `utf8-only` for text or `signature-only` for images and documents. The
 Host checks a PDF or ZIP prefix and leaves package identity, parsing, conversion,
 and degradation reporting to Native preparation. Native decode/model/RPC
-preparation, durable associations, draft lifecycle and product-browser admission
+preparation, durable associations, draft hydration and product-browser admission
 remain open.
 
 An exclusive startup owner performs interrupted-write recovery before accepting
@@ -38,9 +39,24 @@ This precondition does not implement a Host-process ownership lock. Ordinary
 temporary failure/reopen is tested with real filesystem/SQLite; abrupt process,
 power-loss and supported-platform durability acceptance remain unexecuted.
 
-Consequences: no deduplication merges independent objects or rights; retries can
-create distinct charged originals. All staged originals remain retained until
-the later protected lifecycle/confirmed-deletion work exists. The Host carrier
-still owes source/auth/CSRF admission, deadlines, full encoded-body and output
-limits, safe download rendering and real matched Native/browser acceptance before
-registering this source against private product Sessions.
+Each Original stores its last authorized draft activity separately from its
+intake timestamp. Initial activity is recorded with publication. The prior
+schema's stored timestamp initializes existing rows during migration. An
+explicit edit or active recovery can renew exact Original IDs in the current
+draft before their 24-hour deadline. A Host collector can mark eligible rows
+in bounded batches. Reads and background hydration leave activity unchanged.
+
+Both collection and confirmed deletion require a trusted unreferenced
+determination for the exact object and its complete persisted binding. The gate
+must coordinate reference admission with removal commits across connections.
+Absent evidence and known occupied, executing, unresolved or Native-associated
+objects remain protected. Manual confirmation is scoped, short-lived and
+single-use. A changed protection revision requires a fresh impact review.
+Logical removal commits before unlink, and disk accounting clears after unlink
+and directory sync. Exclusive startup retries interrupted physical cleanup.
+
+Independent objects retain independent rights and accounting even if their
+bytes match. Retries can create distinct charged Originals. Product use still
+requires the #56 Native association and reference-admission coordinator, #57
+draft integration, the authenticated carrier, safe download rendering and real
+matched Native/browser acceptance.

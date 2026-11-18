@@ -1,4 +1,4 @@
-# Host attachment originals for tickets 54 and 55
+# Host attachment Originals for tickets 54, 55 and 58
 
 This is an opt-in Host-owned original store and proposed public intake contract.
 No product Host registers it. Tickets 54 and 55 and umbrella ticket 29 remain open.
@@ -119,13 +119,38 @@ not silently ignored or evicted. Missing/corrupt staged originals remain charged
 and fail reads rather than being misrepresented as good data. Abrupt power-loss,
 kill/restart and filesystem durability acceptance are still unexecuted.
 
-There is no derived-data writer in this slice. Any future prepared/derived sink
-must reserve its temporary and durable payload in this same total ledger before
-writing; a separate unaccounted derived directory would violate the contract.
-There is no GC, delete, sent-state, execution-protection or uncertain-commit
-transition here. All published objects remain retained and charged. Tickets
-57/58 must add draft clocks, protected lifecycle states and confirmed deletion
-without automatically evicting history or trusting browser-supplied flags.
+Any future prepared or derived sink must reserve its temporary and durable
+payload in this same total ledger before writing.
+
+## Staged Original lifecycle
+
+`OriginalStore.touchDraft` records deliberate edits and active recovery after a
+trusted draft coordinator accepts the action. The store rechecks exact authority
+and updates the listed, still-eligible staged IDs in that draft. The result
+identifies unavailable references alongside successfully renewed IDs. The first
+clock starts at publication, with existing rows initialized from their persisted
+staging timestamp. Reads, refreshes and reopening the Store preserve the clock.
+
+The Host can call `collectExpired` at 24 hours after the last activity. It checks
+at most 128 eligible candidates per pass and returns a continuation when more
+candidates remain. Eligible staged bytes are readable until logical removal.
+Both collection and explicit deletion require a trusted, current unreferenced
+determination for the exact Original and its full binding. Missing or unknown
+evidence and occupied, executing, unresolved or Native-associated references
+retain the Original. The gate must coordinate reference admission and removal
+commits on every connection. Native reference evidence and coordination remain
+product integration dependencies.
+
+`previewDeletion` shows the current staged draft impact and issues a five-minute
+confirmation scoped to its Store connection, Original, binding, authority epoch
+and protection revision. The revision must change whenever protection or known
+references change. `confirmDeletion` consumes the confirmation on the first
+attempt and rechecks current authority and the protection revision before
+committing logical removal. A refusal requires a new preview. Exact reads fail
+after removal. Independent same-hash objects keep their own rights and quota.
+Physical cleanup unlinks the exact payload and syncs the directory before
+releasing the charge. Failed cleanup keeps the tombstoned bytes charged until
+exclusive recovery completes.
 
 ## Evidence and remaining gates
 
@@ -147,13 +172,16 @@ Text/document coverage includes exact split UTF-8 byte round trips across Store
 reopen, independent size admission at 5 and 10 MiB, mixed-format draft and store
 reservations, document signature-only results, and Remote encoding, signature
 and quota refusals. The size tests exercise declared boundaries before body
-consumption. They use small files for successful byte round trips.
+consumption. They use small files for successful byte round trips. Lifecycle
+tests cover the 24-hour boundary across reopen, migration from the previous
+schema, a dropped upload reply, scoped renewal, protection states, stale or
+revoked confirmations, concurrent read invalidation and physical-cleanup recovery.
 
 Native bounded decoding, model and complete encoded RPC budgets, valid and
 malformed selected files through actual prepare and consume, degradation
 confirmation, durable Native entry associations, draft restoration, safe
-download and rendering, protected lifecycle and deletion, and actual Linux and
-Windows Chrome/WSL2 product browser results and performance remain open.
+download and rendering, product lifecycle integration and actual Linux and
+Windows Chrome/WSL2 browser results and performance remain open.
 
 See [ADR 0021](../../docs/adr/0021-host-original-intake.md) and the
 [source evidence](../../docs/implementation/ticket-54-source-evidence.json).
