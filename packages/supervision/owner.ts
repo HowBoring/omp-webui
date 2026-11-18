@@ -5,9 +5,8 @@ import type { PrivateHelperLaunch, PrivateHelperOwner, PrivateHelperOwnerInput }
 import { selectedControlIo, verifyHelperSelection } from "./control-io-selection.ts";
 import { PrivateHelperController, type PrivateHelperHandle, type PrivateHelperProcess } from "./controller.ts";
 import { PrivateHelperError, helperError } from "./errors.ts";
-import {
-  busyClockBorrowDisposal, HostMonotonicError, type RetainedHostMonotonic, type retainHostMonotonic,
-} from "./host-monotonic.ts";
+import { HostMonotonicError, type RetainedHostMonotonic, type retainHostMonotonic } from "./host-monotonic.ts";
+import { claimSelection, type SelectionClaim } from "./selection-claim.ts";
 
 /** External loading/filesystem/process seam. Controlled implementations never confer production authorization. */
 export interface PrivateHelperOwnerSystem {
@@ -29,10 +28,9 @@ export function confirmsPreSpawnRefusal(signal: AbortSignal, error: unknown): bo
 
 // Strong retention includes owners whose callers lose their reference, and failed loads without a returned owner.
 const retained = new Set<OwnerLifetime>();
-// A failed construction with confirmed rollback can defer the selection to its existing clock borrower.
-const borrowedByClock = new WeakSet<InspectedSelection>();
 interface OwnerLifetime {
   selection: InspectedSelection;
+  claim: SelectionClaim;
   module?: OwnedControlIo;
   clock?: RetainedHostMonotonic;
   handles: Set<PrivateHelperHandle>;
@@ -42,10 +40,9 @@ export async function openPrivateHelperOwner(
   input: PrivateHelperOwnerInput, system: PrivateHelperOwnerSystem,
 ): Promise<PrivateHelperOwner> {
   const selection = input.selection;
-  if (borrowedByClock.has(selection) || [...retained].some(owner => owner.selection === selection)) {
-    throw new ControlIoError("CONTROL_IO_BUSY");
-  }
-  const lifetime: OwnerLifetime = { selection, handles: new Set() };
+  const claim = claimSelection(selection);
+  if (!claim) throw new ControlIoError("CONTROL_IO_BUSY");
+  const lifetime: OwnerLifetime = { selection, claim, handles: new Set() };
   retained.add(lifetime);
   try {
     const clockApproval = input.hostMonotonicApproval && Object.freeze({ ...input.hostMonotonicApproval });
@@ -53,7 +50,7 @@ export async function openPrivateHelperOwner(
       approval: Object.freeze({ ...input.controlIoApproval }) });
     if (clockApproval) {
       if (!system.retainHostMonotonic) throw new HostMonotonicError("HOST_MONOTONIC_UNSUPPORTED");
-      lifetime.clock = await system.retainHostMonotonic({ selection, approval: clockApproval });
+      lifetime.clock = await system.retainHostMonotonic({ selection, approval: clockApproval }, claim.token);
       await verifyHelperSelection(selection);
     }
     return new RetainedOwner(lifetime, lifetime.module, system);
@@ -61,14 +58,7 @@ export async function openPrivateHelperOwner(
     if (retainsProtection(error)) throw error;
     await lifetime.clock?.close();
     await lifetime.module?.close();
-    const clockDisposal = busyClockBorrowDisposal(error, selection);
-    if (clockDisposal) {
-      borrowedByClock.add(selection);
-      retained.delete(lifetime);
-      void clockDisposal.then(() => { borrowedByClock.delete(selection); });
-    } else {
-      await releaseOwnerSelection(lifetime);
-    }
+    await releaseOwnerSelection(lifetime);
     throw error;
   }
 }
@@ -81,7 +71,9 @@ function retainsProtection(error: unknown): boolean {
 }
 
 async function releaseOwnerSelection(lifetime: OwnerLifetime): Promise<void> {
-  await lifetime.selection.release().catch(error => { throw helperError("HELPER_SELECTION_UNVERIFIED", error); });
+  try { await lifetime.selection.release(); }
+  catch (error) { throw helperError("HELPER_SELECTION_UNVERIFIED", error); }
+  lifetime.claim.release();
   retained.delete(lifetime);
 }
 

@@ -47,7 +47,18 @@ function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string
   return release;
 }
 
-function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {}, root = "/synthetic/release" } = {}) {
+interface FixtureOptions {
+  verifyLaunch?(): Promise<void>;
+  afterSpawn?(): void;
+  root?: string;
+  beforeControlLoad?(): Promise<void>;
+  beforeControlClose?(): Promise<void>;
+  beforeRelease?(): Promise<void>;
+}
+function fixture({
+  verifyLaunch = async () => {}, afterSpawn = () => {}, root = "/synthetic/release",
+  beforeControlLoad, beforeControlClose, beforeRelease,
+}: FixtureOptions = {}) {
   let leased = true, nativeOpens = 0, nativeCloses = 0, rawCloses = 0, prepares = 0;
   let abi = 1, unloadFails = false, adoptionFails = false, socketCloseFails = false, verifyFails = false;
   const children: ReturnType<typeof controlledChild>[] = [];
@@ -57,7 +68,10 @@ function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {}, root = 
   const release = syntheticRelease(approval, verify, root);
   const selection: InspectedSelection = { selected: { release, entry: release.launcher,
     sessionAdmission: "blocked", verify }, sessionAdmission: "blocked", verify,
-    release: async () => { leased = false; } };
+    release: async () => {
+      if (beforeRelease) await beforeRelease();
+      leased = false;
+    } };
   const library: ControlIoNativeLibrary = { symbols: {
     omp_control_io_abi: () => abi, omp_control_io_live: () => 0,
     omp_control_io_adopt: (fd) => adoptionFails ? 0 : fd,
@@ -70,14 +84,22 @@ function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {}, root = 
     omp_control_io_send: (_fd, _bytes, size) => size,
     omp_control_io_close: () => socketCloseFails ? -1 : 0,
   }, close: () => { nativeCloses++; if (unloadFails) throw new Error("unknown unload"); } };
-  const load = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
+  const loadControl = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
     openNative: async () => { nativeOpens++; return library; } });
   const open = (hostMonotonicApproval?: HostMonotonicApproval,
     retainHostMonotonic?: PrivateHelperOwnerSystem["retainHostMonotonic"]) =>
     createPrivateHelperOwnerForTesting({
       selection, controlIoApproval: approval, ...(hostMonotonicApproval && { hostMonotonicApproval }),
     }, {
-      load, verifyLaunch, ...(retainHostMonotonic && { retainHostMonotonic }),
+      async load(input) {
+        if (beforeControlLoad) await beforeControlLoad();
+        const module = await loadControl(input);
+        return beforeControlClose ? { openControl: fd => module.openControl(fd), async close() {
+          await beforeControlClose();
+          await module.close();
+        } } : module;
+      },
+      verifyLaunch, ...(retainHostMonotonic && { retainHostMonotonic }),
       spawn: () => {
         const child = controlledChild(children.length);
         children.push(child); afterSpawn(); return child.process;
@@ -409,6 +431,39 @@ test("failure to verify the assembled selection disposes the clock before contro
   expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
 });
 
+async function stageClock(root: string): Promise<void> {
+  await mkdir(join(root, "lib"));
+  await mkdir(join(root, "provenance"));
+  await writeFile(join(root, "lib/libomp-shutdown-clock.so"), clockBinary);
+  await writeFile(join(root, "provenance/shutdown-clock.c"), clockSource);
+}
+
+function clockFixture(root: string, options?: FixtureOptions) {
+  const f = fixture({ ...options, root });
+  f.selection.selected.release.manifest.assets.push(
+    { path: "lib/libomp-shutdown-clock.so", identity: clockApproval.binaryDigest, kind: "file", mode: 0o444 },
+    { path: "provenance/shutdown-clock.c", identity: clockApproval.sourceDigest, kind: "file", mode: 0o444 },
+  );
+  return f;
+}
+
+function fixtureClock(openNative?: Parameters<typeof createHostMonotonicSources>[0]["openNative"]) {
+  return createHostMonotonicSources({
+    isSupportedRuntime: () => true,
+    namespace: () => "12:34",
+    openNative: openNative ?? (async () => ({ abi: () => 1, milliseconds: () => 37n, close() {} })),
+  });
+}
+
+function gate() {
+  const entered = Promise.withResolvers<void>(), opened = Promise.withResolvers<void>();
+  return {
+    entered: entered.promise,
+    async wait() { entered.resolve(); await opened.promise; },
+    open: opened.resolve,
+  };
+}
+
 test.skipIf(process.platform !== "linux").each([
   ["independent", "loading"], ["borrowed", "loading"], ["independent", "parked"], ["borrowed", "parked"],
 ] as const)(
@@ -424,26 +479,16 @@ test.skipIf(process.platform !== "linux").each([
       return file;
     }) : undefined;
     try {
-      await mkdir(join(root, "lib")); await mkdir(join(root, "provenance"));
-      await writeFile(join(root, "lib/libomp-shutdown-clock.so"), clockBinary);
-      await writeFile(join(root, "provenance/shutdown-clock.c"), clockSource);
-      const observer = fixture({ root });
-      observer.selection.selected.release.manifest.assets.push(
-        { path: "lib/libomp-shutdown-clock.so", identity: clockApproval.binaryDigest, kind: "file", mode: 0o444 },
-        { path: "provenance/shutdown-clock.c", identity: clockApproval.sourceDigest, kind: "file", mode: 0o444 },
-      );
+      await stageClock(root);
+      const observer = clockFixture(root);
       let opens = 0;
-      const clock = createHostMonotonicSources({
-        isSupportedRuntime: () => true,
-        namespace: () => "12:34",
-        async openNative() {
-          opens++;
-          entered.resolve();
-          await continueLoad.promise;
-          return { abi: () => 1, milliseconds: () => 37n, close() {
-            if (parked) throw new Error("controlled unload uncertainty");
-          } };
-        },
+      const clock = fixtureClock(async () => {
+        opens++;
+        entered.resolve();
+        await continueLoad.promise;
+        return { abi: () => 1, milliseconds: () => 37n, close() {
+          if (parked) throw new Error("controlled unload uncertainty");
+        } };
       });
       const observing = clock.observe({ selection: observer.selection, approval: clockApproval });
       try {
@@ -453,10 +498,13 @@ test.skipIf(process.platform !== "linux").each([
           await expect(observing).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
         }
         const candidate = borrowed ? observer : fixture();
-        await expect(candidate.open(clockApproval, clock.retain)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
-        expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased]).toEqual([1, 1, borrowed]);
-        expect([candidate.prepares, candidate.children.length, opens, observer.leased]).toEqual([0, 0, 1, true]);
         if (borrowed) await expect(candidate.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+        await expect(candidate.open(clockApproval, clock.retain)).rejects.toMatchObject({
+          code: borrowed ? "CONTROL_IO_BUSY" : "HOST_MONOTONIC_BUSY",
+        });
+        expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased]).toEqual(
+          borrowed ? [0, 0, true] : [1, 1, false]);
+        expect([candidate.prepares, candidate.children.length, opens, observer.leased]).toEqual([0, 0, 1, true]);
         if (parked) return;
 
         continueLoad.resolve();
@@ -464,7 +512,7 @@ test.skipIf(process.platform !== "linux").each([
         if (borrowed) {
           const retry = await candidate.open(clockApproval, clock.retain);
           await retry.close();
-          expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased, opens]).toEqual([2, 2, false, 2]);
+          expect([candidate.nativeOpens, candidate.nativeCloses, candidate.leased, opens]).toEqual([1, 1, false, 2]);
         }
       } finally {
         continueLoad.resolve();
@@ -476,6 +524,80 @@ test.skipIf(process.platform !== "linux").each([
       await Promise.all(pins.map(file => file.close()));
       await rm(root, { recursive: true, force: true });
     }
+  },
+);
+
+test.skipIf(process.platform !== "linux").each(["rollback", "shutdown"] as const)(
+  "owner %s excludes a new clock borrow through control close and lease release", async operation => {
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clock-disposal-"));
+    const controlClose = gate(), leaseRelease = gate(), nativeLoad = gate();
+    try {
+      await stageClock(root);
+      const f = clockFixture(root, { beforeControlClose: controlClose.wait, beforeRelease: leaseRelease.wait });
+      const other = clockFixture(root);
+      const clock = fixtureClock(async () => {
+        if (operation === "rollback") await nativeLoad.wait();
+        return { abi: () => 1, milliseconds: () => 41n, close() {} };
+      });
+      const input = { selection: f.selection, approval: clockApproval };
+      const observing = operation === "rollback"
+        ? clock.observe({ selection: other.selection, approval: clockApproval }) : undefined;
+      void observing?.catch(() => {});
+      let disposal: Promise<unknown> | undefined;
+      try {
+        if (observing) {
+          await Promise.race([nativeLoad.entered, observing]);
+          disposal = f.open(clockApproval, clock.retain);
+          void disposal.catch(() => {});
+          await Promise.race([controlClose.entered, disposal]);
+          nativeLoad.open();
+          expect(await observing).toBe(41n);
+        } else {
+          const owner = await f.open(clockApproval, async (input, ownerToken) => {
+            await expect(clock.retain(input, Symbol())).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+            return clock.retain(input, ownerToken);
+          });
+          disposal = owner.close();
+          void disposal.catch(() => {});
+          await Promise.race([controlClose.entered, disposal]);
+        }
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        controlClose.open();
+        await Promise.race([leaseRelease.entered, disposal]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        leaseRelease.open();
+        if (operation === "rollback") await expect(disposal).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        else await disposal;
+        expect([f.nativeCloses, f.leased]).toEqual([1, false]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_SELECTION_CHANGED" });
+      } finally {
+        nativeLoad.open(); controlClose.open(); leaseRelease.open();
+        await Promise.allSettled([observing, disposal]);
+      }
+    } finally { await rm(root, { recursive: true, force: true }); }
+  },
+);
+
+test.skipIf(process.platform !== "linux")(
+  "a clockless owner keeps the exact lease exclusive through a gated control refusal", async () => {
+    const root = await mkdtemp(join(await realpath(tmpdir()), "owned-clockless-"));
+    const controlLoad = gate();
+    try {
+      await stageClock(root);
+      const f = clockFixture(root, { beforeControlLoad: controlLoad.wait });
+      const clock = fixtureClock();
+      const input = { selection: f.selection, approval: clockApproval };
+      f.wrongAbi();
+      const opening = f.open();
+      try {
+        await Promise.race([controlLoad.entered, opening]);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
+        controlLoad.open();
+        await expect(opening).rejects.toMatchObject({ code: "CONTROL_IO_ABI" });
+        expect(f.leased).toBe(false);
+        await expect(clock.observe(input)).rejects.toMatchObject({ code: "HOST_MONOTONIC_SELECTION_CHANGED" });
+      } finally { controlLoad.open(); await opening.catch(() => {}); }
+    } finally { await rm(root, { recursive: true, force: true }); }
   },
 );
 
@@ -509,6 +631,8 @@ test("uncertain retained clock disposal parks the owner and is never retried", a
   expect(owner.close()).toBe(closing);
   await expect(owner.launch(f.launch)).rejects.toMatchObject({ code: "CONTROL_IO_CLOSED" });
   await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  await expect(fixtureClock().observe({ selection: f.selection, approval: clockApproval })).rejects
+    .toMatchObject({ code: "HOST_MONOTONIC_BUSY" });
   expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 0, true, 0, 0]);
 });
 

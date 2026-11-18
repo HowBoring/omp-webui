@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { isMainThread } from "node:worker_threads";
 import type { InspectedSelection } from "../delivery/coordinator.ts";
 import { ReleaseObservation, canonical, readRange } from "../delivery/observation.ts";
+import { claimSelection, matchesSelectionClaim } from "./selection-claim.ts";
 
 type ClockErrorCode = "HOST_MONOTONIC_UNSUPPORTED" | "HOST_MONOTONIC_UNAPPROVED" | "HOST_MONOTONIC_SELECTION_CHANGED"
   | "HOST_MONOTONIC_UNAVAILABLE" | "HOST_MONOTONIC_ABI" | "HOST_MONOTONIC_BUSY" | "HOST_MONOTONIC_LOAD_FAILED"
@@ -13,15 +14,6 @@ export class HostMonotonicError extends Error {
   constructor(readonly code: ClockErrorCode) {
     super(code); this.name = "HostMonotonicError";
   }
-}
-
-// An exact BUSY refusal can carry the existing selection borrower’s disposal observation.
-const busyBorrowDisposals = new WeakMap<HostMonotonicError, { selection: InspectedSelection; disposed: Promise<void> }>();
-
-/** Recognize only a busy refusal carrying a borrow of this exact selection. */
-export function busyClockBorrowDisposal(error: unknown, selection: InspectedSelection): Promise<void> | undefined {
-  const borrow = error instanceof HostMonotonicError ? busyBorrowDisposals.get(error) : undefined;
-  return borrow?.selection === selection ? borrow.disposed : undefined;
 }
 
 /** Independent approval of the exact fixed artifacts. The observer never enrolls an inventory or computes approval. */
@@ -55,7 +47,6 @@ type Pin = Awaited<ReturnType<ReleaseObservation["pin"]>>;
 interface Lifetime {
   selection: InspectedSelection;
   pins: Pin[];
-  disposed: Promise<void>;
   native?: ClockNative;
 }
 
@@ -156,19 +147,15 @@ export function createHostMonotonicSources(system: ClockSystem) {
   // An uncertain unload parks this reservation, with the native object, pins and borrowed selection intact.
   let reserved: Lifetime | undefined;
   function use(input: HostMonotonicInput, mode: "observe"): Promise<bigint>;
-  function use(input: HostMonotonicInput, mode: "retain"): Promise<RetainedHostMonotonic>;
-  async function use({ selection, approval }: HostMonotonicInput, mode: "observe" | "retain") {
-    if (!system.isSupportedRuntime()) throw new HostMonotonicError("HOST_MONOTONIC_UNSUPPORTED");
-    if (reserved) {
-      const busy = new HostMonotonicError("HOST_MONOTONIC_BUSY");
-      if (reserved.selection === selection) busyBorrowDisposals.set(busy, { selection, disposed: reserved.disposed });
-      throw busy;
+  function use(input: HostMonotonicInput, mode: "retain", ownerToken?: symbol): Promise<RetainedHostMonotonic>;
+  async function use({ selection, approval }: HostMonotonicInput, mode: "observe" | "retain", ownerToken?: symbol) {
+    if (reserved) throw new HostMonotonicError("HOST_MONOTONIC_BUSY");
+    const claim = ownerToken === undefined ? claimSelection(selection) : undefined;
+    const token = ownerToken ?? claim?.token;
+    if (token === undefined || !matchesSelectionClaim(selection, token)) {
+      throw new HostMonotonicError("HOST_MONOTONIC_BUSY");
     }
-    const [binaryMember, sourceMember] = approvedMembers(selection, approval);
-    const namespace = hostNamespace(system);
-    const observation = new ReleaseObservation();
-    const disposed = Promise.withResolvers<void>();
-    const lifetime: Lifetime = { selection, pins: [], disposed: disposed.promise };
+    const lifetime: Lifetime = { selection, pins: [] };
     reserved = lifetime;
     let closing: Promise<void> | undefined;
     const close = (): Promise<void> => {
@@ -177,12 +164,16 @@ export function createHostMonotonicSources(system: ClockSystem) {
       closing = closed.promise;
       closed.resolve(dispose(lifetime).then(() => {
         reserved = undefined;
-        disposed.resolve();
+        claim?.release();
       }));
       return closing;
     };
     let retained = false;
     try {
+      if (!system.isSupportedRuntime()) throw new HostMonotonicError("HOST_MONOTONIC_UNSUPPORTED");
+      const [binaryMember, sourceMember] = approvedMembers(selection, approval);
+      const namespace = hostNamespace(system);
+      const observation = new ReleaseObservation();
       await verifySelection(lifetime.selection);
       const binaryPin = await pinApproved(observation, lifetime.pins, binaryMember);
       const sourcePin = await pinApproved(observation, lifetime.pins, sourceMember);
@@ -211,7 +202,7 @@ export function createHostMonotonicSources(system: ClockSystem) {
   }
   return {
     observe: (input: HostMonotonicInput) => use(input, "observe"),
-    retain: (input: HostMonotonicInput) => use(input, "retain"),
+    retain: (input: HostMonotonicInput, ownerToken?: symbol) => use(input, "retain", ownerToken),
   };
 }
 
@@ -250,4 +241,7 @@ const production = createHostMonotonicSources({ isSupportedRuntime, namespace: n
 export const observeHostMonotonic = production.observe;
 
 /** @internal The owner holds maintenance protection even if loading or closing leaves disposal uncertain. */
-export const retainHostMonotonic = production.retain;
+export async function retainHostMonotonic(input: HostMonotonicInput, ownerToken: symbol): Promise<RetainedHostMonotonic> {
+  if (typeof ownerToken !== "symbol") throw new HostMonotonicError("HOST_MONOTONIC_BUSY");
+  return production.retain(input, ownerToken);
+}
