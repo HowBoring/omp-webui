@@ -19,6 +19,8 @@ interface Pending {
   timer: Timer;
   answering?: Promise<InteractionAnswerResult>;
   controlWaiting: boolean;
+  inFlight: number;
+  provisional?: "stale" | "unknown";
   cancellation?: Promise<InteractionAnswerResult>;
   outcome?: InteractionCleanupOutcome;
 }
@@ -31,6 +33,7 @@ export interface InteractionCleanupOutcome {
   readonly reason: string;
 }
 type CancelTracked = (id: string) => Promise<InteractionCleanupReply>;
+const nativeAcknowledgement = "explicit-native-acknowledgement";
 
 const interactive=new Set(["ask","select","input","editor","confirm"]);
 const presentation=new Set(["notify","setStatus","setWidget","setTitle","set_editor_text","open_url"]);
@@ -72,7 +75,8 @@ export class InteractionBridge {
   snapshot():InteractionSnapshot {
     return {stage:"S0-isolated-interactions",sessionAdmission:"blocked",generation:this.generation,
       policyVerified:this.#policy,
-      pending:this.#closed ? [] : [...this.#pending.values()].map(entry=>structuredClone(entry.card)),
+      pending:this.#closed ? [] : [...this.#pending.values()].filter(entry => !entry.provisional)
+        .map(entry => structuredClone(entry.card)),
       outcomes:structuredClone(this.#outcomes)};
   }
   /** Bind only the identity read back through the public native state response. */
@@ -81,7 +85,7 @@ export class InteractionBridge {
   }
   answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);
-    if(this.#closed || generation !== this.generation || !entry) return Promise.resolve({status:"stale"});
+    if(this.#closed || generation !== this.generation || !entry || entry.provisional) return Promise.resolve({status:"stale"});
     const expired=answer.type !== "cancel" && performance.now()>=entry.deadlineMono;
     if(answer.type === "cancel" || expired) {
       // Bound retained Remote/HTTP callers independently of the coalesced native command.
@@ -97,7 +101,7 @@ export class InteractionBridge {
     // No browser answer queue: reserve capacity before retaining payloads or creating continuations.
     if(entry.answering || entry.cancellation || this.#answers>=8) return this.#overloaded();
     this.#answers++;
-    entry.answering = this.#send(id, answer).finally(() => { delete entry.answering; this.#answers--; });
+    entry.answering = this.#send(id, entry, answer).finally(() => { delete entry.answering; this.#answers--; });
     return entry.answering;
   }
   #cancel(id:string,entry:Pending,answer:UIAnswer):Promise<InteractionAnswerResult> {
@@ -105,23 +109,36 @@ export class InteractionBridge {
     if(this.#controls>=16)return this.#overloaded();
     // Internal expiry coalesces independently of external caller admission.
     this.#controls++;
-    entry.cancellation=this.#send(id,answer).finally(()=>{this.#controls--;});
+    entry.cancellation=this.#send(id,entry,answer).finally(()=>{this.#controls--;});
     return entry.cancellation;
   }
   #overloaded():Promise<InteractionAnswerResult> {
     return Promise.resolve({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"});
   }
-  async #send(id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
+  async #send(id: string, entry: Pending, answer: UIAnswer): Promise<InteractionAnswerResult> {
+    ++entry.inFlight;
     try {
-      const reply=await this.port.command({type:"respond_ui",targetId:id,answer});
-      const result=interactionReplySchema.parse(reply);
-      if(result.status !== "invalid") this.#retire(id,result.status,"explicit-native-acknowledgement");
-      if(result.status === "expired") this.#stop();
+      const reply = await this.port.command({ type: "respond_ui", targetId: id, answer });
+      const result = interactionReplySchema.parse(reply);
+      if (result.status === "stale") {
+        entry.provisional = "stale";
+        clearTimeout(entry.timer);
+      } else if (result.status !== "invalid") this.#retire(id, result.status, nativeAcknowledgement);
+      if (result.status === "expired") this.#stop();
       // A delayed acknowledgement remains the native result, even if a notice arrived first.
       return result;
     } catch {
-      if (!this.#closed) this.#retire(id, "unknown", "worker-reply-lost");
+      if (!this.#closed && !entry.provisional) {
+        entry.provisional = "unknown";
+        clearTimeout(entry.timer);
+      }
       return { status: "stale" };
+    } finally {
+      // A losing stale reply withdraws the card, but another command can carry the decisive Native ACK.
+      const status = entry.provisional;
+      if (--entry.inFlight === 0 && status && (status === "stale" || !this.#closed)) {
+        this.#retire(id, status, status === "stale" ? nativeAcknowledgement : "worker-reply-lost");
+      }
     }
   }
   /** Withdraw answer rights synchronously. The caller has already fenced unresolved regular RPCs. */
@@ -136,7 +153,7 @@ export class InteractionBridge {
       if (entry.outcome) return { ...entry.outcome };
       const result: InteractionCleanupReply = cancel
         ? await cancel(id) : { status: "unknown", reason: "cleanup-unavailable" };
-      const reason = "reason" in result ? result.reason : "explicit-native-acknowledgement";
+      const reason = "reason" in result ? result.reason : nativeAcknowledgement;
       this.#retire(id, result.status, reason);
       return { id, status: result.status, reason };
     }));
@@ -179,7 +196,7 @@ export class InteractionBridge {
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
       method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
-    const entry:Pending={deadlineMono:performance.now()+wait,card,controlWaiting:false,timer:setTimeout(()=>{
+    const entry:Pending={deadlineMono:performance.now()+wait,card,controlWaiting:false,inFlight:0,timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.
       void this.#cancel(card.id,entry,{type:"cancel",timedOut:true});
       this.#stop();

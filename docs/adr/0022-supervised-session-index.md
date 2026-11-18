@@ -117,7 +117,10 @@ The retained connection creates one InteractionBridge after authenticated v2
 negotiation. Its first cleanup fence withdraws existing answer rights and timers,
 then attempts a fixed public `respond_ui` cancellation for tracked extension UI on
 the same connection. Root startup UI uses the same tracking before a Session
-binding exists. An ACK already correlated before the fence stays authoritative.
+binding exists. The Bridge observes live notifications while the Session retains
+replay before its first subscriber. An ACK already correlated before the fence
+stays authoritative. A stale reply withdraws answer rights while other in-flight
+commands can still supply a decisive ACK for the same Interaction.
 The result distinguishes Native status from an unavailable lane, a failed request,
 an invalid or missing reply, and the cutoff. Only `cancelled` and `expired` affirm
 cancellation for a tracked request. Tail notifications, Native settlement, pipe

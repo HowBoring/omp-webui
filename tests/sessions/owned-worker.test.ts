@@ -120,6 +120,45 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   return connected.ready;
 }
 
+test("owned Interaction tracking preserves notification replay until a Session subscriber attaches", async () => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const negotiation = peer.nextCommand();
+    peer.hello();
+    peer.stdout.send(ready);
+    const command = await negotiation;
+    const before = { type: "extension_ui_request", method: "input", id: "before-negotiation", title: "Synthetic UI" };
+    const after = { type: "extension_ui_request", method: "input", id: "after-negotiation", title: "Synthetic UI" };
+    peer.stdout.send(before,
+      { type: "response", id: command.id, command: command.type, success: true, data: { protocolVersion: 2 } });
+    const session = await connected.ready;
+
+    const stateCommand = peer.nextCommand();
+    const observing = session.startup.state();
+    const state = await stateCommand;
+    peer.stdout.send(after, { type: "response", id: state.id, command: state.type, success: true,
+      data: { version: "strict-start-v1", phase: "waiting" } });
+    await observing;
+    expect(session.frames).toEqual([ready, before, after]);
+    expect(session.interactions.snapshot().pending.map(card => card.id)).toEqual([before.id, after.id]);
+
+    const delivered = Promise.withResolvers<unknown>();
+    session.subscribe(frame => delivered.resolve(frame));
+    const notice = { type: "session_settled" };
+    peer.stdout.send(notice);
+    expect(await delivered.promise).toEqual(notice);
+    expect(session.frames).toEqual([ready, before, after]);
+
+    peer.rootExit();
+    await connected.rootExit;
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).protocolFailure).toBeUndefined();
+    peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
 test("owned cleanup fences regular work while fixed cleanup RPCs still drain on the same pipes", async () => {
   const peer = ownedPeer();
   const clock = spyOn(performance, "now").mockReturnValue(1000);
@@ -280,6 +319,51 @@ test("owned UI cleanup preserves an answer acknowledged before retirement in the
     ]);
     expect(interactions.snapshot().outcomes).toHaveLength(2);
     expect(peer.commands).toHaveLength(4);
+    peer.stdout.close(); peer.stderr.close();
+    expect((await connected.output).protocolFailure).toBeUndefined();
+    peer.rootExit(); peer.complete();
+    await connected.completed;
+  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+});
+
+test.each(["before", "after"] as const)("owned UI records same-card decisive replies only %s the fence", async when => {
+  const peer = ownedPeer();
+  try {
+    const connected = SessionWorker.attachOwned(peer.helper);
+    const session = await negotiate(peer, connected);
+    const { interactions } = session;
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(frame => {
+      if (frame.type === "extension_ui_request") delivered.resolve();
+      if (frame.type === "session_settled") connected.beginCleanup(performance.now() + 10_000);
+    });
+    peer.stdout.send({ type: "extension_ui_request", method: "input", id: "same-card", title: "Synthetic UI" });
+    await delivered.promise;
+
+    const answering = peer.nextCommand();
+    const answer = interactions.answer(interactions.generation, "same-card", { type: "value", value: "winner" });
+    const answerCommand = await answering;
+    const cancelling = peer.nextCommand();
+    const cancel = interactions.answer(interactions.generation, "same-card", { type: "cancel" });
+    const cancelCommand = await cancelling;
+    expect(answerCommand.targetId).toBe("same-card");
+    expect(cancelCommand.targetId).toBe("same-card");
+
+    const decisive = { type: "response", id: answerCommand.id, command: "respond_ui", success: true,
+      data: { status: "answered" } };
+    const fence = { type: "session_settled" };
+    peer.stdout.send(
+      { type: "response", id: cancelCommand.id, command: "respond_ui", success: true, data: { status: "stale" } },
+      ...(when === "before" ? [decisive, fence] : [fence, decisive]),
+    );
+    const status = when === "before" ? "answered" : "stale";
+    expect(await cancel).toEqual({ status: "stale" });
+    expect(await answer).toEqual({ status });
+    const outcome = { id: "same-card", status, reason: "explicit-native-acknowledgement" };
+    expect(await connected.interactionCleanup).toEqual([outcome]);
+    expect(interactions.snapshot()).toMatchObject({ pending: [], outcomes: [outcome] });
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "respond_ui", "respond_ui"]);
+
     peer.stdout.close(); peer.stderr.close();
     expect((await connected.output).protocolFailure).toBeUndefined();
     peer.rootExit(); peer.complete();

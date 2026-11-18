@@ -34,8 +34,15 @@ class SessionNotifications {
   count = 0;
   #bufferedBytes = 0;
   #retired = false;
+  #interactionSubscriber: ((frame: SessionWorkerFrame) => void) | undefined;
 
   retire(): void { this.#retired = true; }
+
+  /** Internal observation leaves the pre-subscriber replay buffer available to the Session caller. */
+  observeInteractions(listener: (frame: SessionWorkerFrame) => void): () => void {
+    this.#interactionSubscriber = listener;
+    return () => { this.#interactionSubscriber = undefined; };
+  }
 
   publish(value: object): void {
     if (this.#retired) return;
@@ -46,6 +53,7 @@ class SessionNotifications {
       if (this.frames.length >= 32 || this.#bufferedBytes > 262_144) throw new Error("SESSION_STARTUP_BUFFER_LIMIT");
       this.frames.push(frame);
     }
+    this.#interactionSubscriber?.(frame);
     for (const subscriber of this.subscribers) {
       if (this.#retired) break;
       subscriber(frame);
@@ -203,7 +211,11 @@ export class SessionWorker extends SessionRpc {
       let retireInteractions: ((bridge: InteractionBridge) => void) | undefined;
       const ready = transport.ready.then(core => {
         const session = new SessionRpc(core, notifications, options);
-        const bridge = new InteractionBridge(session);
+        const bridge = new InteractionBridge({
+          frames: session.frames,
+          subscribe: listener => notifications.observeInteractions(listener),
+          command: command => session.command(command),
+        });
         interactions = bridge;
         const dispose = () => bridge.dispose();
         void rootExit.then(dispose, dispose);
