@@ -1,5 +1,8 @@
 import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
 import { z } from "zod";
+import { InteractionBridge, type InteractionCleanupOutcome,
+  type InteractionCleanupReply } from "../interactions/bridge.ts";
+import { interactionReplySchema } from "../contracts/interactions.ts";
 import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
 import { BoundedStdioTransport, attachOwnedStdio, OwnedRpcError, type ProcessSelection, type DrainPolicy, type StdioOutput,
   type StdioCommand, type StdioPolicy } from "./stdio-transport.ts";
@@ -17,7 +20,7 @@ import interactionRequest from "../contracts/generated/interaction-request.js";
 import liveNotification from "../contracts/generated/live-notification.js";
 import liveState from "../contracts/generated/live-state.js";
 import controls from "../contracts/generated/session-controls.js";
-import type { StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
+import type { StrictStartState, SessionState, RespondUiParams } from "../contracts/generated/omp-wire.ts";
 const frameSchema = z.object({ type: z.string() }).catchall(z.unknown());
 export type SessionWorkerFrame = z.infer<typeof frameSchema>;
 type Control = "abort_and_restore_queue" | "abort_branch_summary" | "abort_retry" | "abort_bash";
@@ -141,9 +144,31 @@ function ownedCleanup(request: Request): OwnedSessionCleanup {
   });
 }
 
+const unsentCleanupErrors = new Set(["RPC_COMMAND_LIMIT", "RPC_COMMAND_SCHEMA", "RPC_DUPLICATE_ID", "RPC_PENDING_LIMIT"]);
+
+async function cancelOwnedInteraction(request: Request, targetId: string): Promise<InteractionCleanupReply> {
+  const command: StdioCommand & RespondUiParams = {
+    id: crypto.randomUUID(), type: "respond_ui", targetId, answer: { type: "cancel" },
+  };
+  try {
+    const reply = interactionReplySchema.safeParse(await request(command));
+    if (reply.success && reply.data.status !== "answered") return reply.data;
+    return { status: "unknown", reason: "cleanup-reply-invalid" };
+  } catch (error) {
+    if (!(error instanceof OwnedRpcError) || unsentCleanupErrors.has(error.code)) {
+      return { status: "unknown", reason: "cleanup-request-failed" };
+    }
+    return { status: "unknown", reason: error.code === "RPC_CLEANUP_CLOSED" ? "cleanup-cutoff" : "cleanup-reply-lost" };
+  }
+}
+
 export interface OwnedSessionConnection {
   /** Resolves after helper HELLO and correlated public RPC negotiation. */
-  readonly ready: Promise<SessionRpc>;
+  readonly ready: Promise<SessionRpc & {
+    readonly interactions: Pick<InteractionBridge, "generation" | "snapshot" | "answer" | "bindSession">;
+  }>;
+  /** Settles after beginCleanup with the outcomes for UI tracked at its fence. Separate from exit and EOF. */
+  readonly interactionCleanup: Promise<readonly InteractionCleanupOutcome[]>;
   /** Irreversibly fences regular work. Cleanup requires authenticated v2 and an open transport.
    * The first cutoff is in the local performance.now() time domain, at most 30s away.
    * An invalid or expired cutoff leaves regular work fenced and grants no cleanup access. */
@@ -170,20 +195,37 @@ export class SessionWorker extends SessionRpc {
   /** The caller retains the original helper and its cleanup authority, including when RPC startup rejects. */
   static attachOwned(helper: PrivateHelperHandle, options: OwnedSessionOptions = {}): OwnedSessionConnection {
     const { rootExit, completed } = helper;
+    const interactionCleanup = Promise.withResolvers<readonly InteractionCleanupOutcome[]>();
     try {
       const notifications = new SessionNotifications();
       const transport = attachOwnedStdio(helper, options, sessionPolicy(notifications));
-      const ready = transport.ready.then(core => new SessionRpc(core, notifications, options)).catch(error => {
+      let interactions: InteractionBridge | undefined;
+      let retireInteractions: ((bridge: InteractionBridge) => void) | undefined;
+      const ready = transport.ready.then(core => {
+        const session = new SessionRpc(core, notifications, options);
+        const bridge = new InteractionBridge(session);
+        interactions = bridge;
+        const dispose = () => bridge.dispose();
+        void rootExit.then(dispose, dispose);
+        retireInteractions?.(bridge);
+        return Object.assign(session, { interactions: bridge });
+      }).catch(error => {
         throw error instanceof OwnedRpcError || error instanceof PrivateHelperError
           ? error : new OwnedRpcError("RPC_STARTUP_FAILED");
       });
       void ready.catch(() => {});
       let cleanup: OwnedSessionCleanup | undefined;
       return {
-        ready, rootExit, completed, output: transport.output,
+        ready, rootExit, completed, output: transport.output, interactionCleanup: interactionCleanup.promise,
         beginCleanup: cutoff => {
           notifications.retire();
           const request = transport.beginCleanup(cutoff);
+          if (!retireInteractions) {
+            retireInteractions = bridge => interactionCleanup.resolve(
+              bridge.retireForCleanup(request && (targetId => cancelOwnedInteraction(request, targetId))));
+            if (interactions) retireInteractions(interactions);
+            else void ready.catch(() => interactionCleanup.resolve([]));
+          }
           if (request) return cleanup ??= ownedCleanup(request);
         },
       };
@@ -191,7 +233,8 @@ export class SessionWorker extends SessionRpc {
       const unavailable = Promise.reject<never>(error instanceof OwnedRpcError
         ? error : new OwnedRpcError("RPC_PIPE_ATTACH_FAILED"));
       void unavailable.catch(() => {});
-      return { ready: unavailable, rootExit, completed, output: unavailable, beginCleanup: () => undefined };
+      return { ready: unavailable, rootExit, completed, output: unavailable,
+        interactionCleanup: interactionCleanup.promise, beginCleanup: () => { interactionCleanup.resolve([]); } };
     }
   }
 

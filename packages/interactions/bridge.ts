@@ -3,7 +3,8 @@ import { z } from "zod";
 import validPolicy from "../contracts/generated/interaction-policy.js";
 import validRequest from "../contracts/generated/interaction-request.js";
 import { interactionReplySchema, pendingInteractionSchema, type UIAnswer,
-  type PendingInteraction, type InteractionSnapshot, type InteractionAnswerResult } from "../contracts/interactions.ts";
+  type PendingInteraction, type InteractionSnapshot, type InteractionAnswerResult,
+  type InteractionReply } from "../contracts/interactions.ts";
 
 interface NativeFrame { type:string; [key:string]:unknown }
 export interface InteractionPort {
@@ -12,7 +13,25 @@ export interface InteractionPort {
   subscribe(listener:(frame:NativeFrame)=>void):()=>void;
   command(command:object):Promise<unknown>;
 }
-interface Pending { deadlineMono:number; card:PendingInteraction; timer:Timer; answering:boolean; controlWaiting:boolean; cancellation?:Promise<InteractionAnswerResult>; retired:boolean }
+interface Pending {
+  deadlineMono: number;
+  card: PendingInteraction;
+  timer: Timer;
+  answering?: Promise<InteractionAnswerResult>;
+  controlWaiting: boolean;
+  cancellation?: Promise<InteractionAnswerResult>;
+  outcome?: InteractionCleanupOutcome;
+}
+type CleanupFailure = "cleanup-unavailable" | "cleanup-cutoff" | "cleanup-request-failed"
+  | "cleanup-reply-lost" | "cleanup-reply-invalid";
+export type InteractionCleanupReply = InteractionReply | { status: "unknown"; reason: CleanupFailure };
+export interface InteractionCleanupOutcome {
+  readonly id: string;
+  readonly status: InteractionCleanupReply["status"];
+  readonly reason: string;
+}
+type CancelTracked = (id: string) => Promise<InteractionCleanupReply>;
+
 const interactive=new Set(["ask","select","input","editor","confirm"]);
 const presentation=new Set(["notify","setStatus","setWidget","setTitle","set_editor_text","open_url"]);
 const sourceRequest=z.object({id:z.string(),method:z.string(),message:z.string().max(32768).optional(),promptStyle:z.boolean().optional(),secret:z.boolean().optional(),prefill:z.string().max(65536).optional(),title:z.string().max(32768).optional(),timeout:z.number().optional(),
@@ -42,12 +61,18 @@ export class InteractionBridge {
     this.#target=options.waitMs ?? 30*60*1000;
     if(!Number.isFinite(this.#target) || this.#target<=0 || this.#target>86_400_000) throw new Error("INVALID_INTERACTION_WAIT");
     this.#dispose=port.subscribe(frame=>this.#receive(frame));
-    for(const frame of port.frames) this.#receive(frame);
+    try {
+      for (const frame of port.frames) this.#receive(frame);
+    } catch (error) {
+      this.dispose();
+      throw error;
+    }
     void port.exited?.then(()=>this.dispose(),()=>this.dispose());
   }
   snapshot():InteractionSnapshot {
     return {stage:"S0-isolated-interactions",sessionAdmission:"blocked",generation:this.generation,
-      policyVerified:this.#policy,pending:[...this.#pending.values()].map(entry=>structuredClone(entry.card)),
+      policyVerified:this.#policy,
+      pending:this.#closed ? [] : [...this.#pending.values()].map(entry=>structuredClone(entry.card)),
       outcomes:structuredClone(this.#outcomes)};
   }
   /** Bind only the identity read back through the public native state response. */
@@ -56,7 +81,7 @@ export class InteractionBridge {
   }
   answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);
-    if(generation !== this.generation || !entry || entry.retired) return Promise.resolve({status:"stale"});
+    if(this.#closed || generation !== this.generation || !entry) return Promise.resolve({status:"stale"});
     const expired=answer.type !== "cancel" && performance.now()>=entry.deadlineMono;
     if(answer.type === "cancel" || expired) {
       // Bound retained Remote/HTTP callers independently of the coalesced native command.
@@ -71,8 +96,9 @@ export class InteractionBridge {
     }
     // No browser answer queue: reserve capacity before retaining payloads or creating continuations.
     if(entry.answering || entry.cancellation || this.#answers>=8) return this.#overloaded();
-    entry.answering=true;this.#answers++;
-    return this.#send(id,answer).finally(()=>{entry.answering=false;this.#answers--;});
+    this.#answers++;
+    entry.answering = this.#send(id, answer).finally(() => { delete entry.answering; this.#answers--; });
+    return entry.answering;
   }
   #cancel(id:string,entry:Pending,answer:UIAnswer):Promise<InteractionAnswerResult> {
     if(entry.cancellation)return entry.cancellation;
@@ -94,11 +120,35 @@ export class InteractionBridge {
       // A delayed acknowledgement remains the native result, even if a notice arrived first.
       return result;
     } catch {
-      this.#retire(id,"unknown","worker-reply-lost");return {status:"stale"};
+      if (!this.#closed) this.#retire(id, "unknown", "worker-reply-lost");
+      return { status: "stale" };
     }
   }
+  /** Withdraw answer rights synchronously. The caller has already fenced unresolved regular RPCs. */
+  retireForCleanup(cancel?: CancelTracked): Promise<InteractionCleanupOutcome[]> {
+    if (this.#closed) return Promise.resolve([]);
+    this.#close();
+    return Promise.all([...this.#pending].map(async ([id, entry]) => {
+      clearTimeout(entry.timer);
+      // An ACK correlated before the transport fence may still be settling the regular promise.
+      // Fenced requests reject without retiring the card. Only a recorded outcome can skip cleanup.
+      if (entry.answering || entry.cancellation) await Promise.all([entry.answering, entry.cancellation]);
+      if (entry.outcome) return { ...entry.outcome };
+      const result: InteractionCleanupReply = cancel
+        ? await cancel(id) : { status: "unknown", reason: "cleanup-unavailable" };
+      const reason = "reason" in result ? result.reason : "explicit-native-acknowledgement";
+      this.#retire(id, result.status, reason);
+      return { id, status: result.status, reason };
+    }));
+  }
+  #close(): void {
+    this.#closed = true;
+    this.#policy = false;
+    this.#dispose();
+  }
   dispose():void {
-    this.#closed=true;this.#policy=false;this.#dispose();
+    if (this.#closed) return;
+    this.#close();
     for(const [id] of this.#pending) this.#retire(id,"unknown","worker-ended");
   }
   #receive(frame:NativeFrame):void {
@@ -129,17 +179,19 @@ export class InteractionBridge {
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
       method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
-    const entry:Pending={deadlineMono:performance.now()+wait,card,retired:false,answering:false,controlWaiting:false,timer:setTimeout(()=>{
+    const entry:Pending={deadlineMono:performance.now()+wait,card,controlWaiting:false,timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.
       void this.#cancel(card.id,entry,{type:"cancel",timedOut:true});
       this.#stop();
     },wait)};
     this.#pending.set(card.id,entry);
   }
-  #retire(id:string,status:string,reason:string):void {
-    const entry=this.#pending.get(id);if(!entry || entry.retired)return;
-    entry.retired=true;clearTimeout(entry.timer);this.#pending.delete(id);
-    this.#outcomes.push({id,status,reason});if(this.#outcomes.length>64)this.#outcomes.shift();
+  #retire(id:string,status:InteractionCleanupOutcome["status"],reason:string):void {
+    const entry=this.#pending.get(id);if(!entry)return;
+    entry.outcome = { id, status, reason };
+    clearTimeout(entry.timer);this.#pending.delete(id);
+    this.#outcomes.push(entry.outcome);
+    if (this.#outcomes.length > 64) this.#outcomes.shift();
   }
   #stop():void {
     if(this.#aborting || this.#closed)return;
