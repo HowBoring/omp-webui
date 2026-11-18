@@ -22,15 +22,22 @@ function binding(ctx: Context, resolve: ResolveChat, sessionId: string) {
   return { worker, caller: { view, peer: invocation.peer }, signal: invocation.signal };
 }
 
+class ChatRemoteError extends RemoteError<"gateway/bad-request"> {}
+
+/** The carrier may publish these fixed, content-free service failures. */
+export function chatRequestFailure(error: unknown): RemoteError | undefined {
+  return error instanceof ChatRemoteError ? error : undefined;
+}
+
 function publicError(error: unknown): never {
   const code = error instanceof ChatError ? error.code : "unknown";
   if (code === "busy") {
-    throw new RemoteError("gateway/bad-request", "Native Session is busy. Your draft is retained.", {});
+    throw new ChatRemoteError("gateway/bad-request", "Native Session is busy. Your draft is retained.", {});
   }
   if (code === "unknown") {
-    throw new RemoteError("gateway/bad-request", "Submission outcome is unresolved. Check Native recovery.", {});
+    throw new ChatRemoteError("gateway/bad-request", "Submission outcome is unresolved. Check Native recovery.", {});
   }
-  throw new RemoteError("gateway/bad-request", "Chat request is unavailable for this Session view.", {});
+  throw new ChatRemoteError("gateway/bad-request", "Chat request is unavailable for this Session view.", {});
 }
 
 /** Unregistered prompt delegate for the public DSH session/prompt method. */

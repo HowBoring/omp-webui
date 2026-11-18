@@ -12,6 +12,20 @@ The binding also supplies the current projection. The authenticated carrier inst
 server-side View capability in `chatViewCaller` for each invocation. Shared Peer identity or request
 JSON cannot supply this capability. With no carrier binding, both Gateway services refuse access.
 
+The opt-in unary carrier uses `BrowserAuthority.admit` with write protection, then asks a trusted
+Host resolver for the View's enrolled handle. Enrollment records the exact browser credential,
+canonical cwd, grant identity, supervised worker generation and Native source, instance and Session.
+The composition supplies the View and draft attachment lifetime and current projection, and keeps the
+same enrollment when that draft reconnects. The Host assigns a distinct owner to every enrollment.
+A resolver supplies the original server-side handle. A fresh invocation capability checks the
+admitted credential, enrollment and exact worker and grant on every authorization and before reply
+publication. An invocation captures one projection and combines Request, Peer and enrollment cancellation.
+Enrollment lives in memory and is limited to 128 Views. The opt-in dispatch accepts at most 32 concurrent
+calls through the existing public DSH unary parser. It reads up to 2 MiB of wire JSON within five seconds,
+with strict UTF-8 decoding and current authority checks during upload. The byte allowance covers up to
+six wire bytes per byte of a 256 KiB text prompt plus the DSH envelope. The matched Native and UI
+composition still owns route activation. The diagnostics server keeps its existing unary allowlist.
+
 The public DSH `session/prompt` delegate accepts manual non-empty text and captures its exact request
 identity, UTF-8 bytes, mode and original projection before an await. A fresh prompt checks whether
 the last acknowledged attempt has already settled, so admission can proceed without a separate View
