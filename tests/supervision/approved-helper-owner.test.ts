@@ -2,13 +2,15 @@ import { expect, test } from "bun:test";
 import type { FileSink } from "bun";
 import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import { createPrivateHelperOwner } from "../../packages/supervision/adapter.ts";
-import { createPrivateHelperOwnerForTesting } from "../../packages/supervision/testing.ts";
+import { createPrivateHelperOwnerForTesting, type PrivateHelperOwnerSystem } from "../../packages/supervision/testing.ts";
 import { createOwnedControlIoLoader, type ControlIoNativeLibrary } from "../../packages/control-io/testing.ts";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
+import { HostMonotonicError, type HostMonotonicApproval } from "../../packages/supervision/host-monotonic.ts";
 import type { PrivateHelperHandle, PrivateHelperProcess } from "../../packages/supervision/controller.ts";
 import { sourceFixture } from "../sessions/source-fixture.ts";
 
 const generation = "a".repeat(64);
+const clockApproval = { abi: 1 as const, binaryDigest: "e".repeat(64), sourceDigest: "f".repeat(64) };
 function controlledChild(index: number) {
   const exited = Promise.withResolvers<number>();
   const stdin: FileSink = { write: () => 1, end: () => 0, flush: () => 0,
@@ -62,13 +64,17 @@ function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) 
   }, close: () => { nativeCloses++; if (unloadFails) throw new Error("unknown unload"); } };
   const load = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
     openNative: async () => { nativeOpens++; return library; } });
-  const open = () => createPrivateHelperOwnerForTesting({ selection, controlIoApproval: approval }, {
-    load, verifyLaunch,
-    spawn: () => {
-      const child = controlledChild(children.length);
-      children.push(child); afterSpawn(); return child.process;
-    }, closeControl: () => { rawCloses++; },
-  });
+  const open = (hostMonotonicApproval?: HostMonotonicApproval,
+    retainHostMonotonic?: PrivateHelperOwnerSystem["retainHostMonotonic"]) =>
+    createPrivateHelperOwnerForTesting({
+      selection, controlIoApproval: approval, ...(hostMonotonicApproval && { hostMonotonicApproval }),
+    }, {
+      load, verifyLaunch, ...(retainHostMonotonic && { retainHostMonotonic }),
+      spawn: () => {
+        const child = controlledChild(children.length);
+        children.push(child); afterSpawn(); return child.process;
+      }, closeControl: () => { rawCloses++; },
+    });
   const launch = { generation, cwd: "/synthetic", arguments: ["--mode", "rpc-ui"], environment: {},
     approval: { binaryDigest: "1".repeat(64), sourceDigest: "2".repeat(64),
       controlSourceDigest: "3".repeat(64), candidateSourceDigest: "4".repeat(64) },
@@ -279,6 +285,7 @@ test("concurrent helpers reuse one approved module and retain selection until ex
   await ready(f, 0); await ready(f, 1);
   await Promise.all([a.ready, b.ready]);
   expect([f.nativeOpens, f.prepares, f.children.length]).toEqual([1, 2, 2]);
+  expect(a.readHostMonotonic).toBeUndefined();
   complete(f, 0, 19); await a.completed;
   expect(await a.rootExit).toEqual({ kind: "rootExit", generation, exitCode: 19, signal: 0 });
   expect([f.nativeCloses, f.leased]).toEqual([0, true]);
@@ -289,6 +296,87 @@ test("concurrent helpers reuse one approved module and retain selection until ex
   complete(f, 1); await b.completed; await closing;
   expect([f.nativeCloses, f.leased, f.rawCloses]).toEqual([1, false, 0]);
   await owner.close(); expect(f.nativeCloses).toBe(1);
+});
+
+test("the original helper handles share an optional Host clock while their owner retains selection", async () => {
+  const f = fixture();
+  const clockOpens: InspectedSelection[] = [];
+  let closed = 0;
+  const owner = await f.open(clockApproval, async ({ selection, approval }) => {
+    clockOpens.push(selection);
+    expect(selection).toBe(f.selection);
+    expect(approval).toEqual(clockApproval);
+    return { read: () => 9_007_199_254_740_993n, close: async () => { closed++; } };
+  });
+  const [first, second] = await Promise.all([owner.launch(f.launch), owner.launch(f.launch)]);
+  try {
+    await ready(f, 0); await ready(f, 1);
+    await Promise.all([first.ready, second.ready]);
+    expect(first.readHostMonotonic?.()).toBe(9_007_199_254_740_993n);
+    expect(second.readHostMonotonic?.()).toBe(9_007_199_254_740_993n);
+    expect(clockOpens).toHaveLength(1);
+    const closing = owner.close();
+    complete(f, 0); await first.completed;
+    expect([closed, f.nativeCloses, f.leased]).toEqual([0, 0, true]);
+    complete(f, 1); await closing;
+    expect([closed, f.nativeCloses, f.leased]).toEqual([1, 1, false]);
+  } finally {
+    complete(f, 0); complete(f, 1);
+    await owner.close();
+  }
+});
+
+test("a bounded clock refusal rolls back loaded control I/O before releasing selection", async () => {
+  const f = fixture();
+  await expect(f.open(clockApproval, async () => { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); }))
+    .rejects.toMatchObject({ code: "HOST_MONOTONIC_UNAPPROVED" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
+});
+
+test("failure to verify the assembled selection disposes the clock before control I/O", async () => {
+  const f = fixture();
+  let closes = 0;
+  await expect(f.open(clockApproval, async () => {
+    f.failVerification();
+    return { read: () => 0n, async close() {
+      expect([f.nativeCloses, f.leased]).toEqual([0, true]);
+      closes++;
+    } };
+  })).rejects.toMatchObject({ code: "HELPER_SELECTION_UNVERIFIED" });
+  expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, false, 0, 0]);
+});
+
+test("uncertain clock setup parks the loaded control I/O and original lease before any launch", async () => {
+  const f = fixture();
+  await expect(f.open(clockApproval, async () => {
+    throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN");
+  })).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 0, true, 0, 0]);
+});
+
+test("uncertain control I/O rollback retains selection after a safe clock refusal", async () => {
+  const f = fixture();
+  f.failUnload();
+  await expect(f.open(clockApproval, async () => { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); }))
+    .rejects.toMatchObject({ code: "CONTROL_IO_LOAD_FAILED" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  expect([f.nativeOpens, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 1, true, 0, 0]);
+});
+
+test("uncertain retained clock disposal parks the owner and is never retried", async () => {
+  const f = fixture();
+  let closes = 0;
+  const owner = await f.open(clockApproval, async () => ({
+    read: () => 0n,
+    async close() { closes++; throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN"); },
+  }));
+  const closing = owner.close();
+  await expect(closing).rejects.toMatchObject({ code: "HOST_MONOTONIC_DISPOSAL_UNCERTAIN" });
+  expect(owner.close()).toBe(closing);
+  await expect(owner.launch(f.launch)).rejects.toMatchObject({ code: "CONTROL_IO_CLOSED" });
+  await expect(f.open()).rejects.toMatchObject({ code: "CONTROL_IO_BUSY" });
+  expect([closes, f.nativeCloses, f.leased, f.prepares, f.children.length]).toEqual([1, 0, true, 0, 0]);
 });
 
 test("failed validation refuses preparation and spawn and safely releases its selected lifetime", async () => {

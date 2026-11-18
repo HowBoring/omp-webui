@@ -7,9 +7,9 @@ import { ReleaseObservation, canonical, readRange } from "../delivery/observatio
 
 type ClockErrorCode = "HOST_MONOTONIC_UNSUPPORTED" | "HOST_MONOTONIC_UNAPPROVED" | "HOST_MONOTONIC_SELECTION_CHANGED"
   | "HOST_MONOTONIC_UNAVAILABLE" | "HOST_MONOTONIC_ABI" | "HOST_MONOTONIC_BUSY" | "HOST_MONOTONIC_LOAD_FAILED"
-  | "HOST_MONOTONIC_DISPOSAL_UNCERTAIN";
+  | "HOST_MONOTONIC_CLOSED" | "HOST_MONOTONIC_DISPOSAL_UNCERTAIN";
 
-class ClockError extends Error {
+export class HostMonotonicError extends Error {
   constructor(readonly code: ClockErrorCode) {
     super(code); this.name = "HostMonotonicError";
   }
@@ -21,10 +21,15 @@ export interface HostMonotonicApproval {
   readonly binaryDigest: string;
   readonly sourceDigest: string;
 }
-interface ObserveInput {
+interface HostMonotonicInput {
   /** Borrowed from a caller retaining maintenance through observation and any uncertain disposal. */
   selection: InspectedSelection;
   approval: HostMonotonicApproval;
+}
+/** A Host-local reader that borrows the exact selection through awaited disposal. */
+export interface RetainedHostMonotonic {
+  read(): bigint;
+  close(): Promise<void>;
 }
 interface ClockNative {
   abi(): number;
@@ -60,7 +65,7 @@ function isSupportedRuntime(): boolean {
 function approvedMembers(selection: InspectedSelection, approval: HostMonotonicApproval) {
   const { identity, manifest, root } = selection.selected.release;
   try { canonical(root); }
-  catch { throw new ClockError("HOST_MONOTONIC_UNAPPROVED"); }
+  catch { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); }
   const members = [
     { path: join(root, binary), name: binary, digest: approval.binaryDigest, maximum: maximumBinaryBytes },
     { path: join(root, source), name: source, digest: approval.sourceDigest, maximum: maximumSourceBytes },
@@ -71,14 +76,14 @@ function approvedMembers(selection: InspectedSelection, approval: HostMonotonicA
       asset.path === member.name && asset.kind === "file" && asset.identity === member.digest))
     || !manifest.platformDependencies.some(asset =>
       asset.kind === "file" && /\/libc(?:-[^/]+)?\.so(?:\.\d+)*$/.test(asset.path))) {
-    throw new ClockError("HOST_MONOTONIC_UNAPPROVED");
+    throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED");
   }
   return members;
 }
 
 async function verifySelection(selection: InspectedSelection): Promise<void> {
   try { await selection.verify(); }
-  catch { throw new ClockError("HOST_MONOTONIC_SELECTION_CHANGED"); }
+  catch { throw new HostMonotonicError("HOST_MONOTONIC_SELECTION_CHANGED"); }
 }
 
 type ApprovedMember = ReturnType<typeof approvedMembers>[number];
@@ -92,12 +97,12 @@ async function verifyPin(pin: Pin, member: ApprovedMember): Promise<void> {
       return;
     }
   } catch { /* Bound path, descriptor and filesystem failures to the approval refusal. */ }
-  throw new ClockError("HOST_MONOTONIC_UNAPPROVED");
+  throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED");
 }
 
 async function pinApproved(observation: ReleaseObservation, pins: Pin[], member: ApprovedMember): Promise<Pin> {
   const pin = await observation.pin(member.path, member.maximum)
-    .catch(() => { throw new ClockError("HOST_MONOTONIC_UNAPPROVED"); });
+    .catch(() => { throw new HostMonotonicError("HOST_MONOTONIC_UNAPPROVED"); });
   pins.push(pin);
   await verifyPin(pin, member);
   return pin;
@@ -107,59 +112,93 @@ function hostNamespace(system: ClockSystem): string {
   try {
     const own = system.namespace("time");
     if (own && own === system.namespace("time_for_children")) return own;
-  } catch { throw new ClockError("HOST_MONOTONIC_UNAVAILABLE"); }
-  throw new ClockError("HOST_MONOTONIC_UNAVAILABLE");
+  } catch { throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE"); }
+  throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
+}
+
+function verifyAbi(native: ClockNative, system: ClockSystem, namespace: string): void {
+  if (hostNamespace(system) !== namespace) throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
+  if (native.abi() !== 1) throw new HostMonotonicError("HOST_MONOTONIC_ABI");
 }
 
 function readSample(native: ClockNative, system: ClockSystem, namespace: string): bigint {
-  if (hostNamespace(system) !== namespace) throw new ClockError("HOST_MONOTONIC_UNAVAILABLE");
-  if (native.abi() !== 1) throw new ClockError("HOST_MONOTONIC_ABI");
+  verifyAbi(native, system, namespace);
   const sample = native.milliseconds();
   if (typeof sample !== "bigint" || sample < 0n || sample >= clockFailure || hostNamespace(system) !== namespace) {
-    throw new ClockError("HOST_MONOTONIC_UNAVAILABLE");
+    throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
   }
   return sample;
 }
 
 async function dispose(lifetime: Lifetime): Promise<void> {
   try { lifetime.native?.close(); }
-  catch { throw new ClockError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN"); }
+  catch { throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN"); }
   const closures = await Promise.allSettled(lifetime.pins.map(pin => pin.file.close()));
-  if (closures.some(result => result.status === "rejected")) throw new ClockError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN");
+  if (closures.some(result => result.status === "rejected")) throw new HostMonotonicError("HOST_MONOTONIC_DISPOSAL_UNCERTAIN");
+}
+
+function loadFailure(error: unknown): HostMonotonicError {
+  return error instanceof HostMonotonicError ? error : new HostMonotonicError("HOST_MONOTONIC_LOAD_FAILED");
 }
 
 /** Controlled OS seam. Injected implementations convey no production authorization. */
-export function createHostMonotonicObserver(system: ClockSystem): (input: ObserveInput) => Promise<bigint> {
-  // Retain the native object, pins and borrowed selection on uncertain unload; do not retry or release the selection.
+export function createHostMonotonicSources(system: ClockSystem) {
+  // An uncertain unload parks this reservation, with the native object, pins and borrowed selection intact.
   let reserved: Lifetime | undefined;
-  return async ({ selection, approval }) => {
-    if (!system.isSupportedRuntime()) throw new ClockError("HOST_MONOTONIC_UNSUPPORTED");
-    if (reserved) throw new ClockError("HOST_MONOTONIC_BUSY");
+  function use(input: HostMonotonicInput, mode: "observe"): Promise<bigint>;
+  function use(input: HostMonotonicInput, mode: "retain"): Promise<RetainedHostMonotonic>;
+  async function use({ selection, approval }: HostMonotonicInput, mode: "observe" | "retain") {
+    if (!system.isSupportedRuntime()) throw new HostMonotonicError("HOST_MONOTONIC_UNSUPPORTED");
+    if (reserved) throw new HostMonotonicError("HOST_MONOTONIC_BUSY");
     const [binaryMember, sourceMember] = approvedMembers(selection, approval);
     const namespace = hostNamespace(system);
     const observation = new ReleaseObservation();
     const lifetime: Lifetime = { selection, pins: [] };
     reserved = lifetime;
+    let closing: Promise<void> | undefined;
+    const close = (): Promise<void> => {
+      if (closing) return closing;
+      const closed = Promise.withResolvers<void>();
+      closing = closed.promise;
+      closed.resolve(dispose(lifetime).then(() => { reserved = undefined; }));
+      return closing;
+    };
+    let retained = false;
     try {
       await verifySelection(lifetime.selection);
       const binaryPin = await pinApproved(observation, lifetime.pins, binaryMember);
       const sourcePin = await pinApproved(observation, lifetime.pins, sourceMember);
       await verifySelection(lifetime.selection);
-      if (hostNamespace(system) !== namespace) throw new ClockError("HOST_MONOTONIC_UNAVAILABLE");
-      lifetime.native = await system.openNative(`/proc/self/fd/${binaryPin.file.fd}`);
+      if (hostNamespace(system) !== namespace) throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
+      const native = lifetime.native = await system.openNative(`/proc/self/fd/${binaryPin.file.fd}`);
       await verifyPin(binaryPin, binaryMember);
       await verifyPin(sourcePin, sourceMember);
       await verifySelection(lifetime.selection);
-      const sample = readSample(lifetime.native, system, namespace);
-      await verifySelection(lifetime.selection);
-      return sample;
-    } catch (error) {
-      throw error instanceof ClockError ? error : new ClockError("HOST_MONOTONIC_LOAD_FAILED");
-    } finally {
-      await dispose(lifetime);
-      reserved = undefined;
-    }
+      const read = (): bigint => {
+        if (closing) throw new HostMonotonicError("HOST_MONOTONIC_CLOSED");
+        try { return readSample(native, system, namespace); }
+        catch (error) { throw loadFailure(error); }
+      };
+      if (mode === "observe") {
+        const sample = read();
+        await verifySelection(selection);
+        return sample;
+      }
+      verifyAbi(native, system, namespace);
+      await verifySelection(selection);
+      retained = true;
+      return { read, close };
+    } catch (error) { throw loadFailure(error); }
+    finally { if (!retained) await close(); }
+  }
+  return {
+    observe: (input: HostMonotonicInput) => use(input, "observe"),
+    retain: (input: HostMonotonicInput) => use(input, "retain"),
   };
+}
+
+export function createHostMonotonicObserver(system: ClockSystem): (input: HostMonotonicInput) => Promise<bigint> {
+  return createHostMonotonicSources(system).observe;
 }
 
 function namespaceIdentity(name: TimeNamespaceName): string {
@@ -168,7 +207,7 @@ function namespaceIdentity(name: TimeNamespaceName): string {
     const stat = fstatSync(fd, { bigint: true });
     const nsfsMagic = 0x6e736673n;
     if (!stat.isFile() || statfsSync(`/proc/self/fd/${fd}`, { bigint: true }).type !== nsfsMagic) {
-      throw new ClockError("HOST_MONOTONIC_UNAVAILABLE");
+      throw new HostMonotonicError("HOST_MONOTONIC_UNAVAILABLE");
     }
     return `${stat.dev}:${stat.ino}`;
   } finally { closeSync(fd); }
@@ -187,5 +226,10 @@ async function openNative(path: string): Promise<ClockNative> {
   };
 }
 
+const production = createHostMonotonicSources({ isSupportedRuntime, namespace: namespaceIdentity, openNative });
+
 /** One Host-local sample only. This operation confers no cross-process time or shutdown authority. */
-export const observeHostMonotonic = createHostMonotonicObserver({ isSupportedRuntime, namespace: namespaceIdentity, openNative });
+export const observeHostMonotonic = production.observe;
+
+/** @internal The owner holds maintenance protection even if loading or closing leaves disposal uncertain. */
+export const retainHostMonotonic = production.retain;

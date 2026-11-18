@@ -29,10 +29,23 @@ Host clock proof yields a bounded error. The observed Linux environment lacks th
 The runtime version gate and inventory are source checks. Actual loaded Bun, clock library, libc and loader
 mappings require separate evidence.
 
-This operation yields one Host-local sample after verification and unload, with no reusable clock binding.
-The actual first-Stop deadline later needs a synchronous sample from a retained, approved source at the
-original generation fence. It also needs the same time namespace independently verified against the original,
-authenticated held helper and an exact private arm/acknowledgement before treating the 30+5 policy as handed
-off. The existing direct and owned runtime paths have no dependency on this observer. Controlled tests
-exercise Host refusal, pin and lifetime behavior without mapping native code. Syntax-only C checks do not
-establish clock or deadline behavior on a real selected installation.
+The one-shot operation unloads after verifying its single Host-local sample.
+An explicitly constructed private helper owner can also supply independent clock approval.
+The owner retains a single clock binding and its pinned files under the same original
+`InspectedSelection` as its approved control I/O module. Both clock operations share
+the production reservation. Helper handles from that owner can synchronously read
+the exact bigint clock while the binding is open. Each read verifies the original
+Host time namespace around the sample.
+
+A bounded clock load refusal rolls back the already loaded control I/O before the
+owner releases the selection. Uncertain clock setup or rollback retains maintenance
+protection even if construction returns an error. The owner waits for all original
+handles to reach clean completion before closing the clock, closing control I/O and
+releasing the selection in order. Disposal failures remain sticky.
+
+The actual first-Stop deadline needs a sample from the original generation fence.
+The Host must independently verify the same time namespace against the original,
+authenticated held helper and obtain an exact private arm/acknowledgement before
+treating the 30+5 policy as handed off. Controlled tests exercise Host refusal,
+pin and lifetime behavior without mapping native code. Syntax-only C checks do
+not establish clock or deadline behavior on a real selected installation.
