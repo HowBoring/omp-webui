@@ -39,9 +39,36 @@ Older payload eviction requires asynchronous Host page and snapshot reads with a
 index and a current-source check before publication. The opening hands off and closes its Native snapshot.
 The existing forward-only cursors are scoped to that snapshot and depend on its expiration, shared snapshot
 quota and retained observation coverage. Rereading under a fresh cut would require verifying the old active
-prefix and its projected records before returning them. The current public API has no coherent seek or
-metadata-only active-path read to bound that verification to the requested records. First-screen latency,
-old-page latency, full corpus reachability and Host RSS remain open #60 acceptance work.
+prefix and its projected records before returning them. The admitted public API still has forward-only
+history cursors.
+
+The dormant Host archived reader uses the authored Native active history index at
+`4b032a949cb40764dfa803b7d5ce1ba1f314f214`. The projection owner provides a trusted joint Native and
+Broker Stop snapshot for the exact worker, Session and cut. A running or unverified opening refuses this
+path. A Browser View supplies its own generation and authority check for each request. The reader
+rechecks authority after I/O and requires the original snapshot, cut, expiry, contiguous ordinals and
+matching part identities. Native authenticates request keys using an opaque digest of the source entry
+for that handle. The contract provides no independent readable body hash or byte length. The Host checks
+encoded bounds and assembles text from validated parts, preserving the existing DSH text representation.
+Original verification stays at its public attachment boundary.
+
+The index retains metadata and DSH sequence coordinates under the Native 8-MiB encoded index bound.
+A page hydrates at most 128 candidate groups. Each read retains a bounded Native page, one assembling row
+and the newest projected groups that fit the DSH page budget. Up to four reads per archived generation may
+be in flight. The source may scan retained Native fingerprints on every call. Expiry or failed source
+proof requires the projection owner to obtain a new protected cut and retire the prior generation.
+Live appends, matched SDK/codec generation and product composition remain open. The current product and
+fixture routes still use the eager journal.
+
+The isolated Host fixture represents 10,000 rows with over 100 MiB of text and checks the initial and split
+old page, exact DSH output at mixed-role and encoded-byte boundaries, and unsettled, cut-change and
+revocation failures. Reference-hardware first-screen latency, old-page latency, full corpus reachability
+and Host RSS remain open #60 acceptance work.
+
+One isolated in-memory Source38 sample paired that exact Native commit with Host `860995f` and a synthetic
+joint Stop snapshot (`eddb44`, session `90979`, `eec36c` EOF 0). For 10,000 entries and 107,278,884 bytes,
+it read five index pages accounting for 2,657,838 bytes and returned 32 recent and two older groups. The
+older read took 204 ms in this sample. Formal p95 latency, RSS, stdio and browser evidence remain open.
 
 The [dormant Active History Index candidate](../../compatibility/omp/candidates/active-history-index-v1/README.md)
 proposes bounded Native active-path metadata and an exact-cut seek by ordinal, entry ID and digest.
