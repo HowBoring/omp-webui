@@ -54,19 +54,27 @@ function readTarget(manager: BranchInspection, entryId: string) {
 	try {
 		const target = manager.navigationTarget(entryId);
 		if (target.entryId === entryId && target.parentId === entry.parentId) return target;
-	} catch {
-		// The native target may exceed its content revision budget or become unreadable.
+	} catch (failure) {
+		// The Native target reader checks protected storage again before reading the entry.
+		const code = failure instanceof Error ? failure.message : undefined;
+		if (code === "NAVIGATION_ENTRY_NOT_FOUND") return refuse("BRANCH_TARGET_MISSING");
+		if (code !== "NAVIGATION_TARGET_TOO_LARGE") return refuse("BRANCH_SOURCE_UNAVAILABLE");
 	}
 	return refuse("BRANCH_TARGET_UNAVAILABLE");
 }
 
 /** Synchronous preview or revalidation using the current protected Native Session. */
-export function inspectBranch(value: unknown, manager: BranchInspection, isBusy: () => boolean): BranchInspectPreview {
+export function inspectBranch(
+	value: unknown,
+	manager: BranchInspection,
+	isBusy: () => boolean,
+	outstandingBuiltinCount: number,
+): BranchInspectPreview {
 	if (!validBranchInspectCommand(value)) return refuse("BRANCH_INSPECT_COMMAND_SCHEMA");
 	const source = sourceIdentity(manager);
 	if (!sameBranchSource(source, value.source)) return refuse("BRANCH_SOURCE_CHANGED");
 	const { entryId, expected } = value;
-	if (expected && isBusy()) return refuse("session_busy");
+	if (expected && (outstandingBuiltinCount > 0 || isBusy())) return refuse("session_busy");
 	const target = readTarget(manager, entryId);
 	const contextRevision = sourceContext(manager);
 	const preview = { version: "branch-inspect-v1", source, ...target, contextRevision };
@@ -85,11 +93,16 @@ function sourceContext(manager: BranchInspection): string {
 	}
 }
 
-export function respondBranchInspect(value: unknown, manager: BranchInspection, isBusy: () => boolean): BranchInspectResponse {
+export function respondBranchInspect(
+	value: unknown,
+	manager: BranchInspection,
+	isBusy: () => boolean,
+	outstandingBuiltinCount: number,
+): BranchInspectResponse {
 	const id = branchInspectRequestId(value);
 	const envelope = { ...(id === undefined ? {} : { id }), type: "response", command: "branch_inspect" } as const;
 	try {
-		return { ...envelope, success: true, data: inspectBranch(value, manager, isBusy) };
+		return { ...envelope, success: true, data: inspectBranch(value, manager, isBusy, outstandingBuiltinCount) };
 	} catch (failure) {
 		const code = failure instanceof BranchInspectionError ? failure.code : "BRANCH_SOURCE_UNAVAILABLE";
 		return { ...envelope, success: false, code, error: code };

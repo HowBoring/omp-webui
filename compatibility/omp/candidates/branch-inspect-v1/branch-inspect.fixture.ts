@@ -31,7 +31,7 @@ const native = {
 const request = { type: "branch_inspect", id: "request-1", source, entryId: "chosen-user" };
 const cut = { parentId: "prior-assistant", targetRevision, contextRevision };
 const preview = { version: "branch-inspect-v1", source, entryId: "chosen-user", ...cut };
-const send = (value: unknown) => inspectBranch(value, native, () => false);
+const send = (value: unknown) => inspectBranch(value, native, () => false, 0);
 
 assert.deepEqual(send(request), preview, "preview identifies the selected user's prior native parent");
 assert.deepEqual(send({ ...request, expected: cut }), preview, "same cut can be revalidated read-only");
@@ -45,15 +45,15 @@ assert.throws(() => send({ ...request, expected: { ...cut, targetRevision: "f".r
 	{ message: "BRANCH_STALE_TARGET" });
 assert.throws(() => inspectBranch({ ...request, expected: cut }, {
 	...native, navigationContextRevision: () => "e".repeat(64),
-}, () => false), { message: "BRANCH_STALE_CONTEXT" });
+}, () => false, 0), { message: "BRANCH_STALE_CONTEXT" });
 assert.throws(() => inspectBranch({ ...request, expected: cut }, {
 	...native, getSubmissionTarget: () => ({ ...source, instanceId: "f".repeat(64) }),
-}, () => false), { message: "BRANCH_SOURCE_CHANGED" });
+}, () => false, 0), { message: "BRANCH_SOURCE_CHANGED" });
 assert.throws(() => inspectBranch(request, {
 	...native, assertNavigationSource() { throw new Error("STRICT_SOURCE_REPLACED"); },
-}, () => false), { message: "BRANCH_SOURCE_UNAVAILABLE" });
-assert.throws(() => inspectBranch({ ...request, expected: cut }, native, () => true), { message: "session_busy" });
-assert.deepEqual(inspectBranch(request, native, () => true), preview, "inspection can still read while busy");
+}, () => false, 0), { message: "BRANCH_SOURCE_UNAVAILABLE" });
+assert.throws(() => inspectBranch({ ...request, expected: cut }, native, () => true, 0), { message: "session_busy" });
+assert.deepEqual(inspectBranch(request, native, () => true, 0), preview, "inspection can still read while busy");
 assert.throws(() => send({ ...request, expected: { parentId: cut.parentId } }), { message: "BRANCH_INSPECT_COMMAND_SCHEMA" });
 assert.throws(() => send({ ...request, source: { ...source, path: "/fixture/private" } }),
 	{ message: "BRANCH_INSPECT_COMMAND_SCHEMA" });

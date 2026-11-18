@@ -1,13 +1,24 @@
 import {
 	type BranchInspectCommand,
+	type BranchInspectErrorCode,
 	type BranchInspectParams,
 	type BranchInspectPreview,
 	sameBranchSource,
-	validBranchInspectCommand,
+	validBranchInspectParams,
 	validBranchInspectResponse,
 } from "./branch-inspect-wire";
 
 type Request = (command: BranchInspectCommand & { id: string }) => Promise<unknown>;
+export type BranchInspectClientErrorCode = BranchInspectErrorCode | "BRANCH_INSPECT_RESPONSE_SCHEMA";
+
+export class BranchInspectClientError extends Error {
+	readonly code: BranchInspectClientErrorCode;
+	constructor(code: BranchInspectClientErrorCode) {
+		super(code);
+		this.name = "BranchInspectClientError";
+		this.code = code;
+	}
+}
 
 /** Unregistered public JSONL callback client for the read-only branch inspection candidate. */
 export class BranchInspectClient {
@@ -18,17 +29,18 @@ export class BranchInspectClient {
 	}
 
 	async inspect(params: BranchInspectParams): Promise<BranchInspectPreview> {
-		const { source, entryId, expected } = structuredClone(params);
+		if (!validBranchInspectParams(params)) throw new BranchInspectClientError("BRANCH_INSPECT_COMMAND_SCHEMA");
 		const id = crypto.randomUUID();
-		const command = { id, type: "branch_inspect", source, entryId, ...(expected === undefined ? {} : { expected }) } as const;
-		if (!validBranchInspectCommand(command)) throw new Error("BRANCH_INSPECT_COMMAND_SCHEMA");
+		const command = { ...structuredClone(params), id, type: "branch_inspect" } as const;
+		const { source, entryId, expected } = command;
 		const reply = await this.#request(structuredClone(command));
-		if (!validBranchInspectResponse(reply) || reply.id !== id) throw new Error("BRANCH_INSPECT_RESPONSE_SCHEMA");
-		if (!reply.success) throw new Error(reply.code);
+		if (!validBranchInspectResponse(reply) || reply.id !== id)
+			throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
+		if (!reply.success) throw new BranchInspectClientError(reply.code);
 		const { data } = reply;
 		if (data.entryId !== entryId || !sameBranchSource(data.source, source) ||
 			(expected && (data.parentId !== expected.parentId || data.targetRevision !== expected.targetRevision ||
-				data.contextRevision !== expected.contextRevision))) throw new Error("BRANCH_INSPECT_RESPONSE_SCHEMA");
+				data.contextRevision !== expected.contextRevision))) throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
 		return data;
 	}
 }

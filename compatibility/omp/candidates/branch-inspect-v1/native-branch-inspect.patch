@@ -2,17 +2,28 @@ diff --git a/packages/coding-agent/src/modes/rpc/branch-inspect-client.ts b/pack
 new file mode 100644
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/branch-inspect-client.ts
-@@ -0,0 +1,34 @@
+@@ -0,0 +1,46 @@
 +import {
 +	type BranchInspectCommand,
++	type BranchInspectErrorCode,
 +	type BranchInspectParams,
 +	type BranchInspectPreview,
 +	sameBranchSource,
-+	validBranchInspectCommand,
++	validBranchInspectParams,
 +	validBranchInspectResponse,
 +} from "./branch-inspect-wire";
 +
 +type Request = (command: BranchInspectCommand & { id: string }) => Promise<unknown>;
++export type BranchInspectClientErrorCode = BranchInspectErrorCode | "BRANCH_INSPECT_RESPONSE_SCHEMA";
++
++export class BranchInspectClientError extends Error {
++	readonly code: BranchInspectClientErrorCode;
++	constructor(code: BranchInspectClientErrorCode) {
++		super(code);
++		this.name = "BranchInspectClientError";
++		this.code = code;
++	}
++}
 +
 +/** Unregistered public JSONL callback client for the read-only branch inspection candidate. */
 +export class BranchInspectClient {
@@ -23,17 +34,18 @@ new file mode 100644
 +	}
 +
 +	async inspect(params: BranchInspectParams): Promise<BranchInspectPreview> {
-+		const { source, entryId, expected } = structuredClone(params);
++		if (!validBranchInspectParams(params)) throw new BranchInspectClientError("BRANCH_INSPECT_COMMAND_SCHEMA");
 +		const id = crypto.randomUUID();
-+		const command = { id, type: "branch_inspect", source, entryId, ...(expected === undefined ? {} : { expected }) } as const;
-+		if (!validBranchInspectCommand(command)) throw new Error("BRANCH_INSPECT_COMMAND_SCHEMA");
++		const command = { ...structuredClone(params), id, type: "branch_inspect" } as const;
++		const { source, entryId, expected } = command;
 +		const reply = await this.#request(structuredClone(command));
-+		if (!validBranchInspectResponse(reply) || reply.id !== id) throw new Error("BRANCH_INSPECT_RESPONSE_SCHEMA");
-+		if (!reply.success) throw new Error(reply.code);
++		if (!validBranchInspectResponse(reply) || reply.id !== id)
++			throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
++		if (!reply.success) throw new BranchInspectClientError(reply.code);
 +		const { data } = reply;
 +		if (data.entryId !== entryId || !sameBranchSource(data.source, source) ||
 +			(expected && (data.parentId !== expected.parentId || data.targetRevision !== expected.targetRevision ||
-+				data.contextRevision !== expected.contextRevision))) throw new Error("BRANCH_INSPECT_RESPONSE_SCHEMA");
++				data.contextRevision !== expected.contextRevision))) throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
 +		return data;
 +	}
 +}
@@ -41,7 +53,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/branch-inspect-wire.ts b/packag
 new file mode 100644
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/branch-inspect-wire.ts
-@@ -0,0 +1,108 @@
+@@ -0,0 +1,118 @@
 +/** Protected current Native Session identity, using the public SubmissionTarget fields. */
 +export interface BranchInspectSource {
 +	sourceId: string;
@@ -93,11 +105,14 @@ new file mode 100644
 +);
 +
 +function record(value: unknown): value is Record<string, unknown> {
-+	return typeof value === "object" && value !== null && !Array.isArray(value);
++	if (typeof value !== "object" || value === null) return false;
++	const prototype = Object.getPrototypeOf(value);
++	return prototype === Object.prototype || prototype === null;
 +}
 +
 +function only(value: Record<string, unknown>, fields: readonly string[]): boolean {
-+	return Object.keys(value).every(key => fields.includes(key));
++	return Reflect.ownKeys(value).every(key => typeof key === "string" && fields.includes(key) &&
++		Object.prototype.propertyIsEnumerable.call(value, key));
 +}
 +
 +function bounded(value: unknown, max: number): value is string {
@@ -127,13 +142,20 @@ new file mode 100644
 +		left.nativeSessionId === right.nativeSessionId;
 +}
 +
++function hasBranchInspectParams(value: Record<string, unknown>): boolean {
++	if (!validSource(value.source) || !bounded(value.entryId, 128)) return false;
++	return !Object.hasOwn(value, "expected") || (record(value.expected) &&
++		only(value.expected, ["parentId", "targetRevision", "contextRevision"]) && hasCut(value.expected));
++}
++
++export function validBranchInspectParams(value: unknown): value is BranchInspectParams {
++	return record(value) && only(value, ["source", "entryId", "expected"]) && hasBranchInspectParams(value);
++}
++
 +export function validBranchInspectCommand(value: unknown): value is BranchInspectCommand {
 +	if (!record(value) || value.type !== "branch_inspect" || !only(value, ["id", "type", "source", "entryId", "expected"]))
 +		return false;
-+	if ((Object.hasOwn(value, "id") && branchInspectRequestId(value) === undefined) ||
-+		!validSource(value.source) || !bounded(value.entryId, 128)) return false;
-+	return !Object.hasOwn(value, "expected") || (record(value.expected) &&
-+		only(value.expected, ["parentId", "targetRevision", "contextRevision"]) && hasCut(value.expected));
++	return (!Object.hasOwn(value, "id") || branchInspectRequestId(value) !== undefined) && hasBranchInspectParams(value);
 +}
 +
 +export function validBranchInspectPreview(value: unknown): value is BranchInspectPreview {
@@ -154,7 +176,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-branch-inspect.ts b/package
 new file mode 100644
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-branch-inspect.ts
-@@ -0,0 +1,97 @@
+@@ -0,0 +1,110 @@
 +import {
 +	branchInspectRequestId,
 +	type BranchInspectErrorCode,
@@ -211,19 +233,27 @@ new file mode 100644
 +	try {
 +		const target = manager.navigationTarget(entryId);
 +		if (target.entryId === entryId && target.parentId === entry.parentId) return target;
-+	} catch {
-+		// The native target may exceed its content revision budget or become unreadable.
++	} catch (failure) {
++		// The Native target reader checks protected storage again before reading the entry.
++		const code = failure instanceof Error ? failure.message : undefined;
++		if (code === "NAVIGATION_ENTRY_NOT_FOUND") return refuse("BRANCH_TARGET_MISSING");
++		if (code !== "NAVIGATION_TARGET_TOO_LARGE") return refuse("BRANCH_SOURCE_UNAVAILABLE");
 +	}
 +	return refuse("BRANCH_TARGET_UNAVAILABLE");
 +}
 +
 +/** Synchronous preview or revalidation using the current protected Native Session. */
-+export function inspectBranch(value: unknown, manager: BranchInspection, isBusy: () => boolean): BranchInspectPreview {
++export function inspectBranch(
++	value: unknown,
++	manager: BranchInspection,
++	isBusy: () => boolean,
++	outstandingBuiltinCount: number,
++): BranchInspectPreview {
 +	if (!validBranchInspectCommand(value)) return refuse("BRANCH_INSPECT_COMMAND_SCHEMA");
 +	const source = sourceIdentity(manager);
 +	if (!sameBranchSource(source, value.source)) return refuse("BRANCH_SOURCE_CHANGED");
 +	const { entryId, expected } = value;
-+	if (expected && isBusy()) return refuse("session_busy");
++	if (expected && (outstandingBuiltinCount > 0 || isBusy())) return refuse("session_busy");
 +	const target = readTarget(manager, entryId);
 +	const contextRevision = sourceContext(manager);
 +	const preview = { version: "branch-inspect-v1", source, ...target, contextRevision };
@@ -242,11 +272,16 @@ new file mode 100644
 +	}
 +}
 +
-+export function respondBranchInspect(value: unknown, manager: BranchInspection, isBusy: () => boolean): BranchInspectResponse {
++export function respondBranchInspect(
++	value: unknown,
++	manager: BranchInspection,
++	isBusy: () => boolean,
++	outstandingBuiltinCount: number,
++): BranchInspectResponse {
 +	const id = branchInspectRequestId(value);
 +	const envelope = { ...(id === undefined ? {} : { id }), type: "response", command: "branch_inspect" } as const;
 +	try {
-+		return { ...envelope, success: true, data: inspectBranch(value, manager, isBusy) };
++		return { ...envelope, success: true, data: inspectBranch(value, manager, isBusy, outstandingBuiltinCount) };
 +	} catch (failure) {
 +		const code = failure instanceof BranchInspectionError ? failure.code : "BRANCH_SOURCE_UNAVAILABLE";
 +		return { ...envelope, success: false, code, error: code };
@@ -284,14 +319,49 @@ diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-a
  import { nativeNavigationPolicy } from "../../session/navigation-policy";
  import { attachmentInputPolicy, assertPreparedInputPolicy } from "../../attachments/input-policy";
  import { nativeSubmissionPolicy } from "../../session/submission-policy";
-@@ -2069,6 +2070,11 @@
+@@ -1996,8 +1997,9 @@
+ 						: undefined,
+ 					signal: builtinAbort.signal,
+ 					runCommandInBackground: task => {
++						const work = task();
+ 						backgroundedBuiltin = true;
+-						shutdownCoordinator.track(task().finally(() => builtinCommandAborts.delete(builtinAbort)));
++						shutdownCoordinator.track(work.finally(() => builtinCommandAborts.delete(builtinAbort)));
+ 					},
+ 					notifyTitleChanged: async () => {
+ 						output({ type: "session_info_update", title: session.sessionName, sessionId: session.sessionId });
+@@ -2005,8 +2007,9 @@
+ 					notifyConfigChanged: async () => {
+ 						output({ type: "config_update", model: session.model, thinkingLevel: session.thinkingLevel });
+ 					},
++				}).finally(() => {
++					if (!backgroundedBuiltin) builtinCommandAborts.delete(builtinAbort);
+ 				});
+-				if (!backgroundedBuiltin) builtinCommandAborts.delete(builtinAbort);
+ 				if (!isCurrent()) return "cancelled";
+ 				if (builtinResult !== false) {
+ 					if (!("prompt" in builtinResult)) {
+@@ -2051,8 +2054,8 @@
+ 	// and can persist credentials after the client asked to abort.
+ 	const builtinCommandAborts = new Set<AbortController>();
+ 	const abortBuiltinCommands = (reason: string): void => {
++		// Cancellation requests leave the work outstanding until its completion cleanup.
+ 		for (const controller of builtinCommandAborts) controller.abort(reason);
+-		builtinCommandAborts.clear();
+ 	};
+ 
+ 	// Handle a single command
+@@ -2069,6 +2072,14 @@
  			// Prompting
  			// =================================================================
  
 +			case "branch_inspect":
-+				return respondBranchInspect(command, session.sessionManager, () =>
-+					shutdownState.requested || session.isBusyForSnapshot || session.isSessionTransitioning ||
-+					pendingUserInputs.size > 0 || pendingExtensionRequests.size > 0 || !isSessionSettled(session, goalTurnScheduled),
++				return respondBranchInspect(
++					command,
++					session.sessionManager,
++					() => shutdownState.requested || session.isBusyForSnapshot || session.isSessionTransitioning ||
++						pendingUserInputs.size > 0 || pendingExtensionRequests.size > 0 || !isSessionSettled(session, goalTurnScheduled),
++					builtinCommandAborts.size,
 +				);
        case "navigation_inspect": {
          try { navigation.validate(command); return success(id, command.type, navigation.inspect(command.entryId)); }

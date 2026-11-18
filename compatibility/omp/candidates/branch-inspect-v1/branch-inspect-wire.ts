@@ -49,11 +49,14 @@ export type BranchInspectResponse = { id?: string; type: "response"; command: "b
 );
 
 function record(value: unknown): value is Record<string, unknown> {
-	return typeof value === "object" && value !== null && !Array.isArray(value);
+	if (typeof value !== "object" || value === null) return false;
+	const prototype = Object.getPrototypeOf(value);
+	return prototype === Object.prototype || prototype === null;
 }
 
 function only(value: Record<string, unknown>, fields: readonly string[]): boolean {
-	return Object.keys(value).every(key => fields.includes(key));
+	return Reflect.ownKeys(value).every(key => typeof key === "string" && fields.includes(key) &&
+		Object.prototype.propertyIsEnumerable.call(value, key));
 }
 
 function bounded(value: unknown, max: number): value is string {
@@ -83,13 +86,20 @@ export function sameBranchSource(left: BranchInspectSource, right: BranchInspect
 		left.nativeSessionId === right.nativeSessionId;
 }
 
+function hasBranchInspectParams(value: Record<string, unknown>): boolean {
+	if (!validSource(value.source) || !bounded(value.entryId, 128)) return false;
+	return !Object.hasOwn(value, "expected") || (record(value.expected) &&
+		only(value.expected, ["parentId", "targetRevision", "contextRevision"]) && hasCut(value.expected));
+}
+
+export function validBranchInspectParams(value: unknown): value is BranchInspectParams {
+	return record(value) && only(value, ["source", "entryId", "expected"]) && hasBranchInspectParams(value);
+}
+
 export function validBranchInspectCommand(value: unknown): value is BranchInspectCommand {
 	if (!record(value) || value.type !== "branch_inspect" || !only(value, ["id", "type", "source", "entryId", "expected"]))
 		return false;
-	if ((Object.hasOwn(value, "id") && branchInspectRequestId(value) === undefined) ||
-		!validSource(value.source) || !bounded(value.entryId, 128)) return false;
-	return !Object.hasOwn(value, "expected") || (record(value.expected) &&
-		only(value.expected, ["parentId", "targetRevision", "contextRevision"]) && hasCut(value.expected));
+	return (!Object.hasOwn(value, "id") || branchInspectRequestId(value) !== undefined) && hasBranchInspectParams(value);
 }
 
 export function validBranchInspectPreview(value: unknown): value is BranchInspectPreview {
