@@ -25,8 +25,8 @@ async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: 
   const clients: InstanceType<typeof Context>[] = [], peers: InstanceType<typeof Peer>[] = [];
   async function page(clientId: string) {
     const binding = stop.attach({ credentialId: "credential", clientId, peerId: clientId });
-    const uiBinding = broker?.attach({ credentialId: "credential", clientId, peerId: clientId });
     const peer = new Peer(host, { principal: { kind: "owner" } }); peers.push(peer);
+    const uiBinding = broker?.attach({ credentialId: "credential", clientId, peerId: peer.id });
     const ctx = new Context(); clients.push(ctx);
     installConnection(ctx, { interactions: "none", transport: { fetch: async (_url, init) => {
       const envelope = clientRequestSchema.parse(JSON.parse(String(init.body)));

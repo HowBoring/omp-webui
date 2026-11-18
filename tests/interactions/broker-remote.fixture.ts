@@ -25,9 +25,9 @@ async function publicPages(broker: InstanceType<typeof InteractionBroker>,
   await host.plugin(HostRegistry); await host.plugin(RemoteAccess); await host.plugin(TypertGatewayService, {});
   host.typert.register(brokerHostContribution); new InteractionBrokerService(host, broker);
   const clients: InstanceType<typeof Context>[] = [], peers: InstanceType<typeof Peer>[] = [];
-  async function page(clientId: string, credentialId = "credential") {
-    const binding = broker.attach({ credentialId, clientId, peerId: clientId });
+  async function page(clientId: string, credentialId = "credential", bindingPeerId?: string) {
     const peer = new Peer(host, { principal: { kind: "owner" } }); peers.push(peer);
+    const binding = broker.attach({ credentialId, clientId, peerId: bindingPeerId ?? peer.id });
     const ctx = new Context(); clients.push(ctx);
     installConnection(ctx, { interactions: "none", transport: { fetch: async (_url, init) => {
       const envelope = clientRequestSchema.parse(JSON.parse(String(init.body)));
@@ -60,6 +60,20 @@ async function within<T>(promise: Promise<T>, phase: string): Promise<T> {
     return await Promise.race([promise, timeout.promise]);
   } finally { clearTimeout(timer); }
 }
+
+test("a current Broker page cannot be used by a different Gateway Peer", async () => {
+  const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
+    respondUi: async () => { throw new Error("UNEXPECTED_NATIVE_COMMAND"); }, requestStop: async () => {},
+  }, () => true);
+  ready(broker);
+  const fixture = await publicPages(broker);
+  try {
+    const current = await fixture.page("current");
+    const mismatched = await fixture.page("mismatched", "other-credential", current.binding.peerId);
+    expect(await current.remote.pending()).toMatchObject({ ok: true });
+    expect(await mismatched.remote.pending()).toMatchObject({ ok: false });
+  } finally { await fixture.dispose(); }
+});
 
 test("two current public Remote pages race: the loser is stale before the winner receives its Native acknowledgement", async () => {
   const arrived = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
@@ -102,7 +116,7 @@ test("two current public Remote pages race: the loser is stale before the winner
     // Attach an observer even if an arrival failure exits before the completion phase.
     void firstCompletion.catch(() => {});
     await within(arrived.promise, "two authenticated Remote arrivals");
-    expect(arrivals.toSorted()).toEqual(["page-a", "page-b"]);
+    expect(arrivals.toSorted()).toEqual([first.binding.peerId, second.binding.peerId].toSorted());
     expect(commands).toEqual([]);
     release.resolve();
 
