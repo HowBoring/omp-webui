@@ -1,4 +1,6 @@
 import { afterAll, expect, test } from "bun:test";
+import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
+import type { PageBinding } from "../../packages/interactions/broker.ts";
 import { restoreFixture } from "./broker-fixture-guard.ts";
 
 // No Native/SDK/Host process, sockets or browser; the import guard precedes the whole public graph.
@@ -17,7 +19,8 @@ const { InteractionBrokerService, interactionCaller } = await import("../../pack
 afterAll(restoreFixture);
 
 async function publicPages(broker: InstanceType<typeof InteractionBroker>,
-  beforeInvoke: (method: string, args: Readonly<Record<string, unknown>>) => Promise<void> = async () => {}) {
+  beforeInvoke: (method: string, args: Readonly<Record<string, unknown>>, binding: PageBinding) =>
+    Promise<void> = async () => {}) {
   const host = new Context();
   await host.plugin(HostRegistry); await host.plugin(RemoteAccess); await host.plugin(TypertGatewayService, {});
   host.typert.register(brokerHostContribution); new InteractionBrokerService(host, broker);
@@ -33,7 +36,7 @@ async function publicPages(broker: InstanceType<typeof InteractionBroker>,
       const payload = z.object({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
       const args = z.record(z.string(), z.unknown()).parse(descriptor.input({ strict: true }).create().parse(payload.args));
       const method = envelope.method.split("/")[1]; if (!method) throw new Error("UNKNOWN_REMOTE");
-      await beforeInvoke(method, args);
+      await beforeInvoke(method, args, binding);
       const value = await interactionCaller.run(binding, () => host.typertGateway.invoke({ namespace: "ompInteractionBroker",
         method, args, peer, signal: new AbortController().signal }));
       return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
@@ -50,31 +53,77 @@ function ready(broker: InstanceType<typeof InteractionBroker>) {
   broker.receive({ type: "ready", interactionPolicy: { version: "1", explicitAnswersOnly: true,
     nativeExpiry: "cancel", toolExpiry: "cancel", invalidAnswer: "pending" } });
 }
-test("two current public Remote pages race: invalid never wins, one valid answer crosses Native, refresh fences old delivery", async () => {
-  const commands: unknown[] = [], reply = Promise.withResolvers<{ status: "answered" }>();
+async function within<T>(promise: Promise<T>, phase: string): Promise<T> {
+  const timeout = Promise.withResolvers<never>();
+  const timer = setTimeout(() => timeout.reject(new Error(`Timed out waiting for ${phase}`)), 2_000);
+  try {
+    return await Promise.race([promise, timeout.promise]);
+  } finally { clearTimeout(timer); }
+}
+
+test("two current public Remote pages race: the loser is stale before the winner receives its Native acknowledgement", async () => {
+  const arrived = Promise.withResolvers<void>(), release = Promise.withResolvers<void>();
+  const entered = Promise.withResolvers<void>(), reply = Promise.withResolvers<{ status: "answered" }>();
+  const arrivals: string[] = [], completions: string[] = [], commands: RespondUiParams[] = [];
+  let racing = false;
   const broker = new InteractionBroker({ kind: "session", sessionId: "native-session" }, "worker-1", "agent-scope", {
-    respondUi: async command => { commands.push(command); return reply.promise; }, requestStop: async () => {},
+    respondUi: async command => {
+      commands.push(command);
+      entered.resolve();
+      return reply.promise;
+    }, requestStop: async () => {},
   }, () => true);
   ready(broker);
-  const fixture = await publicPages(broker), { page } = fixture;
+  const fixture = await publicPages(broker, async (method, _args, binding) => {
+    if (method !== "answer" || !racing) return;
+    arrivals.push(binding.peerId);
+    if (arrivals.length === 2) arrived.resolve();
+    await release.promise;
+  });
+  const { page } = fixture;
   try {
     const first = await page("page-a"), second = await page("page-b");
     broker.receive({ type: "extension_ui_request", id: "ui-1", method: "select", title: "Approve", options: ["Allow", "Deny"] });
     const a = await first.remote.pending(), b = await second.remote.pending();
     if (!a.ok || !b.ok) throw new Error("PENDING_FAILED");
     const one = a.value.pending[0]!, two = b.value.pending[0]!;
-    expect(await second.remote.answer(one.card.generation, one.card.id, one.deliveryId, { type: "value", value: "Allow" }))
-      .toEqual({ ok: true, value: { status: "stale" } });
-    expect(await first.remote.answer(one.card.generation, one.card.id, one.deliveryId, { type: "value", value: "unknown" }))
-      .toEqual({ ok: true, value: { status: "invalid" } });
-    const race = [first.remote.answer(one.card.generation, one.card.id, one.deliveryId, { type: "value", value: "Allow" }),
-      second.remote.answer(two.card.generation, two.card.id, two.deliveryId, { type: "value", value: "Deny" })];
-    // Both Remote invocations are in flight together while Native acknowledgement is held.
-    await Promise.resolve(); await Promise.resolve();
+    const crossPage = second.remote.answer(one.card.generation, one.card.id, one.deliveryId,
+      { type: "value", value: "Allow" });
+    expect(await within(crossPage, "cross-page delivery rejection")).toEqual({ ok: true, value: { status: "stale" } });
+    const invalid = first.remote.answer(one.card.generation, one.card.id, one.deliveryId,
+      { type: "value", value: "unknown" });
+    expect(await within(invalid, "invalid answer rejection")).toEqual({ ok: true, value: { status: "invalid" } });
+    racing = true;
+    const submissions = [[first.remote, one, "Allow"], [second.remote, two, "Deny"]] as const;
+    const answers = submissions.map(([remote, delivery, value]) =>
+      remote.answer(delivery.card.generation, delivery.card.id, delivery.deliveryId, { type: "value", value })
+        .then(result => { completions.push(value); return { value, result }; }));
+    const firstCompletion = Promise.race(answers);
+    // Attach an observer even if an arrival failure exits before the completion phase.
+    void firstCompletion.catch(() => {});
+    await within(arrived.promise, "two authenticated Remote arrivals");
+    expect(arrivals.toSorted()).toEqual(["page-a", "page-b"]);
+    expect(commands).toEqual([]);
+    release.resolve();
+
+    const [, loser] = await within(Promise.all([entered.promise, firstCompletion]), "Native entry and stale Remote");
+    expect(loser.result).toEqual({ ok: true, value: { status: "stale" } });
+    expect(completions).toEqual([loser.value]);
+    const winningValue = loser.value === "Allow" ? "Deny" : "Allow";
+    expect(commands).toEqual([{ targetId: "ui-1", answer: { type: "value", value: winningValue } }]);
+
     reply.resolve({ status: "answered" });
-    expect((await Promise.all(race)).map(result => result.ok && result.value.status).sort()).toEqual(["answered", "stale"]);
+    const settled = await within(Promise.all(answers), "winning Native acknowledgement");
+    expect(settled.find(answer => answer.value === winningValue)?.result)
+      .toEqual({ ok: true, value: { status: "answered" } });
     expect(commands).toHaveLength(1);
-    expect(commands[0]).toEqual({ targetId: "ui-1", answer: { type: "value", value: "Allow" } });
+    for (const pending of await Promise.all([first.remote.pending(), second.remote.pending()])) {
+      if (!pending.ok) throw new Error("PENDING_FAILED");
+      expect(pending.value.pending).toEqual([]);
+      expect(pending.value.outcomes).toEqual([
+        { id: "ui-1", status: "answered", reason: "explicit-answer", stop: "none" },
+      ]);
+    }
     broker.receive({ type: "extension_ui_request", id: "ui-2", method: "input", title: "Explicit" });
     const old = await first.remote.pending(); if (!old.ok) throw new Error("PENDING_FAILED");
     const oldDelivery = old.value.pending[0]!;
@@ -83,8 +132,12 @@ test("two current public Remote pages race: invalid never wins, one valid answer
       { type: "value", value: "old peer" })).toEqual({ ok: true, value: { status: "stale" } });
     const current = await refreshed.remote.pending(); if (!current.ok) throw new Error("PENDING_FAILED");
     expect(current.value.pending[0]!.card.deadline).toBe(oldDelivery.card.deadline);
-  } finally { await fixture.dispose(); }
-});
+  } finally {
+    release.resolve();
+    reply.resolve({ status: "answered" });
+    await fixture.dispose();
+  }
+}, 12_000);
 
 test("Native invalid acknowledgement re-presents with a fresh delivery and original deadline; timer cancels without a default", async () => {
   let now = 0, permitted = true;
