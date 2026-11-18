@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import TypertRegistry from "@deepseek-ai/dsh-typert-registry";
 import RemoteAccessService from "@deepseek-ai/dsh-api-remote-access";
@@ -338,3 +338,32 @@ test.each(["view", "grant", "request", "deadline"] as const)(
     } finally { stream.release(); await f.close(); }
   }, 7000,
 );
+
+test("a throwing authority check invalidates a stalled Chat body before the read deadline", async () => {
+  const f = await fixture();
+  const stream = stalledBody(promptEnvelope(f.sessionId));
+  const revalidate = f.source.authority.revalidate.bind(f.source.authority);
+  const check = spyOn(f.source.authority, "revalidate");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const pending = f.chatRequest(f.openView().view, { body: stream.body });
+    await Promise.race([stream.entered, pending.then(() => { throw new Error("Body read did not reach the stall"); })]);
+    check.mockImplementation(identity => {
+      if (identity === f.source.identity) return revalidate(identity);
+      throw new Error("Synthetic authority failure");
+    });
+    const bound = new Promise<never>((_resolve, reject) => {
+      timer = setTimeout(() => reject(new Error("Authority failure did not stop the body read")), 2000);
+    });
+    const response = await Promise.race([pending, bound]);
+    expect(response.status).toBe(401);
+    expect(await response.text()).toBe("Access invalidated");
+    expect(stream.cancelled()).toBe(true);
+    expect(f.admissions).toEqual([]);
+  } finally {
+    clearTimeout(timer);
+    check.mockRestore();
+    stream.release();
+    await f.close();
+  }
+});

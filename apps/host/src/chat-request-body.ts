@@ -8,9 +8,15 @@ export class ChatBodyError extends Error {
   constructor(readonly status: keyof typeof failures) { super(failures[status]); }
 }
 
+/** An unavailable authority check invalidates the opt-in Chat request. */
+export function hasCurrentChatAuthority(current: () => boolean): boolean {
+  try { return current() === true; }
+  catch { return false; }
+}
+
 /** Bound bytes actually read, even when the Request has no trusted outer HTTP carrier. */
 export async function readChatRequestBody(request: Request, signal: AbortSignal, current: () => boolean): Promise<unknown> {
-  if (signal.aborted || !current()) throw new ChatBodyError(401);
+  if (signal.aborted || !hasCurrentChatAuthority(current)) throw new ChatBodyError(401);
   const length = declaredLength(request);
   const reader = request.body?.getReader();
   if (!reader) throw new Error("Chat request body required");
@@ -20,11 +26,11 @@ export async function readChatRequestBody(request: Request, signal: AbortSignal,
   const invalidate = () => interrupted.reject(new ChatBodyError(401));
   signal.addEventListener("abort", invalidate, { once: true });
   const timer = setTimeout(() => interrupted.reject(new ChatBodyError(408)), timeoutMs);
-  const check = setInterval(() => { if (!current()) invalidate(); }, authorityCheckMs);
+  const check = setInterval(() => { if (!hasCurrentChatAuthority(current)) invalidate(); }, authorityCheckMs);
   try {
     if (signal.aborted) invalidate();
     const bytes = await Promise.race([readBytes(reader, deadline), interrupted.promise]);
-    if (!current()) throw new ChatBodyError(401);
+    if (!hasCurrentChatAuthority(current)) throw new ChatBodyError(401);
     if (length !== undefined && length !== bytes.byteLength) throw new Error("Invalid Chat request length");
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } finally {

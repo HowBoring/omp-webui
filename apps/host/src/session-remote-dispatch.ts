@@ -7,7 +7,7 @@ import { chatRequestFailure } from "../../../packages/chat/service.ts";
 import { chatContribution } from "../../../packages/contracts/chat.ts";
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
-import { ChatBodyError, readChatRequestBody } from "./chat-request-body.ts";
+import { ChatBodyError, hasCurrentChatAuthority, readChatRequestBody } from "./chat-request-body.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods };
@@ -54,13 +54,15 @@ export function dispatchSessionRequest(request: Request, ctx: Context, peer: Pee
 }
 
 /** Validate before invocation, preserve request correlation and sanitize failures. */
-async function dispatch(request: Request, ctx: Context, peer: Peer, current: () => boolean, chat?: ChatBinding): Promise<Response> {
+async function dispatch(request: Request, ctx: Context, peer: Peer, authority: () => boolean,
+  chat?: ChatBinding): Promise<Response> {
   if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
     return new Response("JSON required", { status: 415 });
   }
+  const current = chat ? () => hasCurrentChatAuthority(authority) : authority;
   let decoded;
   try {
-    const data = chat ? await readChatRequestBody(request, chat.signal, current) : await request.json();
+    const data = chat ? await readChatRequestBody(request, chat.signal, authority) : await request.json();
     const envelope = clientRequestSchema.parse(data);
     const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
     if (!method || (!chat && !sessionUnary.has(envelope.method))
