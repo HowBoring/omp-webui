@@ -46,6 +46,8 @@ test("idle Switch retains the owned worker when one reader has no EOF observatio
     f.controls.retirement = { status: "closed", drain };
 
     await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_WORKER_DRAINING");
     expect(f.supervisor.hasOwnedReservation).toBe(true);
     expect(f.supervisor.starts).toBe(1);
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({

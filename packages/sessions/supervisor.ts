@@ -308,7 +308,7 @@ export class SessionSupervisor {
   }
   async #prepareRetirement(identity: BrowserAccess, reason: string): Promise<void> {
     const active = this.#active; if (!active || active.released) return;
-    if (active.exited && !active.retired) throw new Error("SESSION_WORKER_DRAINING");
+    if (active.exited) throw new Error("SESSION_WORKER_DRAINING");
     if (active.retired || !active.worker || active.state !== "open") throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
     this.#current(identity, active);
     const state = await active.worker.state(); this.#current(identity, active);
