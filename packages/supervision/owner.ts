@@ -3,7 +3,7 @@ import type { InspectedSelection } from "../delivery/coordinator.ts";
 import type { PrivateHelperLaunch, PrivateHelperOwner, PrivateHelperOwnerInput } from "./adapter.ts";
 import { selectedControlIo, verifyHelperSelection } from "./control-io-selection.ts";
 import { PrivateHelperController, type PrivateHelperHandle, type PrivateHelperProcess } from "./controller.ts";
-import { helperError } from "./errors.ts";
+import { PrivateHelperError, helperError } from "./errors.ts";
 
 /** External loading/filesystem/process seam. Controlled implementations never confer production authorization. */
 export interface PrivateHelperOwnerSystem {
@@ -52,17 +52,25 @@ class RetainedOwner implements PrivateHelperOwner {
   constructor(lifetime: OwnerLifetime, module: OwnedControlIo, system: PrivateHelperOwnerSystem) {
     this.#lifetime = lifetime; this.#module = module; this.#system = system;
   }
-  async launch(launch: PrivateHelperLaunch): Promise<PrivateHelperHandle> {
+  async launch(launch: PrivateHelperLaunch, retirement?: AbortSignal): Promise<PrivateHelperHandle> {
+    requireLaunchActive(retirement);
     if (this.#closed || this.#closing) throw new ControlIoError("CONTROL_IO_CLOSED");
     const selection = this.#lifetime.selection;
     this.#pending++;
     try {
       await this.#system.verifyLaunch(launch, selection);
+      requireLaunchActive(retirement);
       try { await launch.prepareHelper(launch.generation); }
       catch (error) { throw helperError("HELPER_PREPARE_FAILED", error); }
+      requireLaunchActive(retirement);
       await verifyHelperSelection(selection);
-      const controller = new PrivateHelperController({ spawn: () => this.#system.spawn(launch, selection),
-        openControl: fd => this.#module.openControl(fd), closeControl: fd => this.#system.closeControl(fd) });
+      const controller = new PrivateHelperController({
+        spawn: () => {
+          requireLaunchActive(retirement);
+          return this.#system.spawn(launch, selection);
+        },
+        openControl: fd => this.#module.openControl(fd), closeControl: fd => this.#system.closeControl(fd),
+      });
       const handle = controller.launch({ generation: launch.generation, registerHeldHelper: async hello => {
         await verifyHelperSelection(selection);
         await launch.registerHeldHelper(hello); await verifyHelperSelection(selection);
@@ -86,4 +94,8 @@ class RetainedOwner implements PrivateHelperOwner {
       .catch(error => { throw helperError("HELPER_SELECTION_UNVERIFIED", error); });
     this.#closed = true; this.#lifetime.handles.clear(); retained.delete(this.#lifetime);
   }
+}
+
+function requireLaunchActive(retirement?: AbortSignal): void {
+  if (retirement?.aborted) throw new PrivateHelperError("HELPER_LAUNCH_RETIRED");
 }

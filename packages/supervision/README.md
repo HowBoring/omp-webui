@@ -99,6 +99,11 @@ independent approval; callers must not release that selection themselves. `owner
 for concurrent handles and verifies helper artifacts and prepare/register callbacks. Test systems are available only
 through explicitly non-authorizing `testing.ts`; the production constructor accepts no loader substitution.
 
+A trusted Host caller can pass a per-launch `AbortSignal` as the second argument to `owner.launch`.
+`HELPER_LAUNCH_RETIRED` confirms that call stopped before invoking spawn. Dispatcher preparation may
+already have completed. After a successful spawn, the owner returns and retains the original handle through
+its existing lifecycle even if the signal is aborted.
+
 `owner.launch` returns an owned handle before `ready` finishes, including missing fd, adoption or listener setup
 failure after spawn. Native input stays fenced; helper reap remains observable.
 `rootExit` reports the generation, exit code and signal from the first accepted ROOT_EXIT frame. If control is lost
