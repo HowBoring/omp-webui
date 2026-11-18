@@ -120,6 +120,8 @@ releases the reservation as `not-launched` while the durable attempt is
 `outcome_unknown`. A delivered connection requires confirmed domain completion
 and natural EOF on both readers before release. The helper still needs an
 acknowledged handoff of the absolute deadline for physical shutdown.
+The isolated Session carrier accepts the trusted retained launch port at construction.
+A synthetic Remote test covers forwarding an unconfirmed launch rejection to the supervisor.
 Controlled streams cover attachment and retention. Product admission remains blocked.
 
 ## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)
