@@ -1,21 +1,25 @@
 import { expect, test } from "bun:test";
 import type { FileSink } from "bun";
+import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import { createPrivateHelperOwner } from "../../packages/supervision/adapter.ts";
 import { createPrivateHelperOwnerForTesting } from "../../packages/supervision/testing.ts";
 import { createOwnedControlIoLoader, type ControlIoNativeLibrary } from "../../packages/control-io/testing.ts";
 import type { InspectedSelection } from "../../packages/delivery/coordinator.ts";
-import type { PrivateHelperProcess } from "../../packages/supervision/controller.ts";
+import type { PrivateHelperHandle, PrivateHelperProcess } from "../../packages/supervision/controller.ts";
+import { sourceFixture } from "../sessions/source-fixture.ts";
 
 const generation = "a".repeat(64);
 function controlledChild(index: number) {
   const exited = Promise.withResolvers<number>();
   const stdin: FileSink = { write: () => 1, end: () => 0, flush: () => 0,
     start: () => {}, ref: () => {}, unref: () => {} };
+  const stdout = new TransformStream<Uint8Array, Uint8Array>();
+  const stderr = new TransformStream<Uint8Array, Uint8Array>();
   const process: PrivateHelperProcess = { pid: 41 + index, stdin,
-    stdout: new ReadableStream(), stderr: new ReadableStream(), exited: exited.promise,
-    stdio: [null, null, null, 17 + index] };
+    stdout: stdout.readable, stderr: stderr.readable, exited: exited.promise, stdio: [null, null, null, 17 + index] };
   const bytes: Buffer[] = [];
-  return { process, reap: exited.resolve, bytes };
+  const closeOutput = () => Promise.all([stdout.writable.close(), stderr.writable.close()]);
+  return { process, reap: exited.resolve, bytes, closeOutput };
 }
 
 function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string; headerDigest: string },
@@ -36,7 +40,7 @@ function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string
 function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) {
   let leased = true, nativeOpens = 0, nativeCloses = 0, rawCloses = 0, prepares = 0;
   let abi = 1, unloadFails = false, adoptionFails = false, socketCloseFails = false, verifyFails = false;
-  const children: { process: PrivateHelperProcess; reap(code: number): void; bytes: Buffer[] }[] = [];
+  const children: ReturnType<typeof controlledChild>[] = [];
   const approval = { abi: 1 as const, binaryDigest: "a".repeat(64), sourceDigest: "b".repeat(64),
     headerDigest: "c".repeat(64) };
   const verify = async () => { if (!leased || verifyFails) throw new Error("secret selection path"); };
@@ -122,6 +126,45 @@ test("retirement during launch verification prevents dispatcher preparation and 
   await expect(launched).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
   expect([f.prepares, f.children.length]).toEqual([0, 0]);
   await owner.close();
+});
+
+test("the Supervisor retirement signal reaches the trusted owner's pending launch", async () => {
+  const verificationStarted = Promise.withResolvers<void>();
+  const verification = Promise.withResolvers<void>();
+  const f = fixture({ verifyLaunch: () => { verificationStarted.resolve(); return verification.promise; } });
+  const owner = await f.open();
+  const offered = Promise.withResolvers<{ retirement: AbortSignal; launch: Promise<PrivateHelperHandle> }>();
+  const session = await sourceFixture(Date.now, (cwd, retirement) => {
+    const launch = owner.launch({ ...f.launch, cwd }, retirement);
+    offered.resolve({ retirement, launch });
+    return launch.then(handle => SessionWorker.attachOwned(handle));
+  });
+  const opening = session.supervisor.open(session.identity, session.selected);
+  void opening.catch(() => {});
+  try {
+    const { retirement, launch } = await offered.promise;
+    await verificationStarted.promise;
+    expect(retirement?.aborted).toBe(false);
+
+    const shutdown = session.supervisor.close();
+    expect(retirement?.aborted).toBe(true);
+    verification.resolve();
+    await expect(launch).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
+    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+    await shutdown;
+    expect([f.prepares, f.children.length]).toEqual([0, 0]);
+    expect(session.supervisor.hasOwnedReservation).toBe(true);
+  } finally {
+    verification.resolve();
+    const { launch } = await offered.promise;
+    if (await launch.catch(() => undefined)) {
+      await ready(f, 0);
+      complete(f, 0);
+      await f.children[0]?.closeOutput();
+    }
+    await session.close();
+    await owner.close();
+  }
 });
 
 test("retirement during dispatcher preparation prevents final verification and spawn", async () => {

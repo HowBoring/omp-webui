@@ -125,16 +125,19 @@ an invalid or missing reply, and the cutoff. Only `cancelled` and `expired` affi
 cancellation for a tracked request. Tail notifications, Native settlement, pipe
 EOF and domain completion remain separate observations.
 
-The isolated SessionSupervisor can reserve a generation and retain its original
-owned RPC connection before awaiting readiness. Retirement calls that connection's
-cleanup fence once with the original Host-local cutoff, including when the launcher
-hands it over after that cutoff. Late readiness cannot start or bind the retired
-generation. The bounded shutdown observation can return with ownership still
-unresolved. Only the same connection's confirmed domain completion and natural
-EOF on both readers release the slot. Root status, domain status and validated output
-tails are reported as they are observed. Counts remain lower bounds when a published
-counter or observed stdout EOF is unavailable or the transport records a protocol
-failure. Late completion can release the slot after the Session Index closes.
+The isolated SessionSupervisor reserves a generation and its Host-owned launch
+retirement signal before invoking the trusted adapter. The first retirement fixes
+the Host-local cutoff, fences any delivered connection and aborts outstanding
+preparation. The same fence applies if the adapter hands over the original connection
+after the cutoff. Once a helper exists, retirement preserves its handoff before
+readiness. Late readiness cannot start or bind the retired generation. The bounded
+shutdown observation can return with ownership still unresolved, including after
+an unconfirmed launcher rejection. Only the same connection's confirmed domain
+completion and natural EOF on both readers release the slot. Root status, domain
+status and validated output tails are reported as they are observed. Counts remain
+lower bounds when a published counter or observed stdout EOF is unavailable or the
+transport records a protocol failure. Late completion can release the slot after the
+Session Index closes.
 
 When the original connection grants authenticated cleanup, the Supervisor
 requests strict startup cancellation for an unconfirmed StrictStart. A

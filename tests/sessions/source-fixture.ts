@@ -21,7 +21,7 @@ interface NativeFixtureControls {
 }
 
 export async function sourceFixture(now: () => number = Date.now,
-  launchOwned?: (cwd: string) => OwnedSessionConnection | Promise<OwnedSessionConnection>) {
+  launchOwned?: (cwd: string, retirement: AbortSignal) => OwnedSessionConnection | Promise<OwnedSessionConnection>) {
   const home = await mkdtemp(join(tmpdir(), "session-source-")), cwd = join(home, "project"), dataDir = join(home, "state");
   await mkdir(cwd);
   const origin = "http://127.0.0.1:4321", authority = openBrowserAccess({ dataDir, origin });
