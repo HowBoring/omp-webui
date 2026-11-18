@@ -1,7 +1,8 @@
+import { createHash } from "node:crypto";
 import type { Context } from "@deepseek-ai/cordis";
 import { Remote, TypertRemoteService, type PeerScope } from "@deepseek-ai/dsh-typert-protocol";
 import type { HistoryClient } from "../contracts/generated/history-client.ts";
-import type { HistoryCut, HistoryOpen, HistoryItem } from "../contracts/generated/omp-wire.ts";
+import type { HistoryCut, HistoryOpen, HistoryItem, HistoryPage } from "../contracts/generated/omp-wire.ts";
 import { treeRequest, type TreeRequest, type TreeResult, type TreeNode, type TreePosition } from "../contracts/tree.ts";
 
 /** The port cannot write, open a worker, send input, read files or fetch binary content. */
@@ -9,13 +10,22 @@ export type TreeHistory = Pick<HistoryClient, "open" | "page" | "close">;
 export interface TreeAccess {
   epoch: string; sourceId: string; sessionId: string; workerId: string; contextId: string; history: TreeHistory;
 }
-interface Entry { node: TreeNode; text: string; partIndex: number; partCount: number }
+interface PageLocation { cursor: string; nextCursor: string | undefined; itemCount: number }
+interface PartLocation { page: PageLocation; offset: number; textDigest: string | undefined }
+interface Entry { node: TreeNode; parts: PartLocation[]; partCount: number; pageCount: number; textUnits: number }
 interface Snapshot {
-  owner: PeerScope; access: TreeAccess; opened: HistoryOpen; cursor: string | undefined;
-  nodes: Map<string, Entry>; cursors: Set<string>; parts: number; bytes: number; complete: boolean;
+  owner: PeerScope; access: TreeAccess; opened: Pick<HistoryOpen, "snapshot" | "cut" | "cursor" | "count" | "expiresAt">;
+  cursor: string | undefined; nodes: Map<string, Entry>; cursors: Set<string>;
+  parts: number; indexBytes: number; complete: boolean;
   activePath: string[]; busy: boolean;
 }
-const MAX_SNAPSHOTS = 8, MAX_NODES = 20_000, MAX_BYTES = 16 * 1024 * 1024, MAX_TOTAL_BYTES = 32 * 1024 * 1024;
+const MAX_SNAPSHOTS = 8, MAX_NODES = 20_000, MAX_PARTS = 60_000;
+const MAX_INDEX_BYTES = 16 * 1024 * 1024, MAX_TOTAL_INDEX_BYTES = 32 * 1024 * 1024;
+const MAX_PREVIEW_TEXT_UNITS = 2 * 1024 * 1024;
+const MAX_CATALOG_REFERENCE_UNITS = 4096;
+// Current Native splits at 32 Ki UTF-16 units. Even one part per page fits this reread budget.
+const MAX_PREVIEW_PAGES = 64;
+const PAGE_INDEX_OVERHEAD = 32, PART_INDEX_OVERHEAD = 32;
 const structural = new Set(["model_usage", "thinking_level_change", "model_change", "service_tier_change", "label",
   "title_change", "ttsr_injection", "session_init", "mode_change"]);
 const hidden = new Set(["custom", "credential_pin"]);
@@ -23,6 +33,14 @@ const readable = new Set(["message", "custom_message", "compaction", "branch_sum
 const roles = new Set(["user", "assistant", "toolResult", "custom", "hookMessage", "developer", "fileMention",
   "branchSummary", "compactionSummary", "bashExecution", "pythonExecution"]);
 function fail(code: string): never { throw Error(code); }
+function validToken(value: string): boolean { return value.length > 0 && value.length <= 256; }
+// Native splits at UTF-16 boundaries, which can leave an unpaired surrogate in a part.
+function textDigest(text: string): string { return createHash("sha256").update(text, "utf16le").digest("hex"); }
+function sameNode(first: TreeNode, second: TreeNode): boolean {
+  return first.id === second.id && first.parentId === second.parentId && first.kind === second.kind
+    && first.active === second.active && first.contentState === second.contentState && first.role === second.role
+    && first.boundary === second.boundary;
+}
 const fingerprint = (cut: HistoryCut): string => JSON.stringify([cut.sourceId, cut.sessionId, cut.workerId,
   cut.contextId, cut.contentRevision, cut.nativeRevision, cut.retainedRevision, cut.leafId, cut.observationSeq,
   cut.durability, cut.sourceBindingStatus, cut.catalogBinding?.sourceId, cut.catalogBinding?.instanceId,
@@ -31,6 +49,20 @@ const position = (cut: HistoryCut): TreePosition => ({ sourceId: cut.sourceId, s
   workerId: cut.workerId, contextId: cut.contextId, contentRevision: cut.contentRevision,
   retainedRevision: cut.retainedRevision, nativeRevision: cut.nativeRevision, observationSeq: cut.observationSeq,
   leafId: cut.leafId, durability: "not_attested" });
+
+function retainedCut(cut: HistoryCut): HistoryCut {
+  const { sourceId, sessionId, workerId, contextId, contentRevision, retainedRevision, leafId,
+    catalogBinding, sourceBindingStatus } = cut;
+  const tokens = [sourceId, sessionId, workerId, contextId, contentRevision, retainedRevision];
+  if (leafId !== null) tokens.push(leafId);
+  if (catalogBinding) tokens.push(catalogBinding.sourceId, catalogBinding.instanceId, catalogBinding.nativeSessionId);
+  if (!tokens.every(validToken) || (catalogBinding && (!catalogBinding.reference
+    || catalogBinding.reference.length > MAX_CATALOG_REFERENCE_UNITS))) fail("tree_cache_budget");
+  return { ...position(cut), sourceBindingStatus, ...(catalogBinding ? { catalogBinding: {
+    sourceId: catalogBinding.sourceId, instanceId: catalogBinding.instanceId,
+    nativeSessionId: catalogBinding.nativeSessionId, reference: catalogBinding.reference,
+  } } : {}) };
+}
 
 /** Disposable bounded read-only adapter. It is intentionally unregistered in the product Host. */
 export class ReadonlyTree extends TypertRemoteService {
@@ -45,9 +77,10 @@ export class ReadonlyTree extends TypertRemoteService {
     const invocation = this.ctx.invocation;
     if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) fail("tree_authority_unavailable");
     try {
-      const access = this.authorize(invocation.peer, sessionId);
-      if (access.sessionId !== sessionId || !access.epoch) fail("tree_authority_unavailable");
-      return { owner: invocation.peer, access: { ...access } };
+      const { epoch, sourceId, sessionId: admittedSessionId, workerId, contextId, history }
+        = this.authorize(invocation.peer, sessionId);
+      if (admittedSessionId !== sessionId || !validToken(epoch)) fail("tree_authority_unavailable");
+      return { owner: invocation.peer, access: { epoch, sourceId, sessionId, workerId, contextId, history } };
     } catch { return fail("tree_authority_unavailable"); }
   }
   private recheck(snapshot: Snapshot): void {
@@ -76,15 +109,7 @@ export class ReadonlyTree extends TypertRemoteService {
       if (options.operation === "close") { await this.drop(options.snapshot); return { status: "closed" }; }
       if (options.operation === "page") return await this.page(snapshot, options.cursor);
       if (!snapshot.complete) return { status: "error", code: "tree_incomplete" };
-      // Strict native cursor reread checks current source version/leaf even when selection uses cached text.
-      const verified = await snapshot.access.history.page(snapshot.opened.cursor);
-      this.recheck(snapshot);
-      if (verified.snapshot !== snapshot.opened.snapshot || verified.scope !== "tree"
-        || fingerprint(verified.cut) !== fingerprint(snapshot.opened.cut)) fail("tree_source_changed");
-      const entry = snapshot.nodes.get(options.entryId);
-      if (!entry) return { status: "error", code: "tree_entry_unavailable" };
-      return { status: "preview", node: entry.node, position: position(snapshot.opened.cut), text: entry.text,
-        attachments: "original_association_unproven", modelInput: "not_an_input_audit" };
+      return await this.preview(snapshot, options.entryId);
     } catch (error) {
       if (options.operation !== "open" && snapshot?.owner === this.ctx.invocation?.peer) {
         await this.drop(options.snapshot);
@@ -104,64 +129,124 @@ export class ReadonlyTree extends TypertRemoteService {
     let opened: HistoryOpen | undefined;
     try {
       opened = await binding.access.history.open("tree", "current");
-      if (opened.count > 60000) fail("tree_cache_budget");
-      const snapshot: Snapshot = { ...binding, opened, cursor: opened.cursor, nodes: new Map(), cursors: new Set(),
-        parts: 0, bytes: 0, complete: false, activePath: [], busy: false };
+      if (opened.count > MAX_PARTS) fail("tree_cache_budget");
+      if (!validToken(opened.cursor)) fail("tree_invalid_page");
+      const { snapshot: nativeId, cursor, count, expiresAt } = opened;
+      if (!validToken(nativeId)) fail("tree_cache_budget");
+      const retained = { snapshot: nativeId, cursor, cut: retainedCut(opened.cut), count, expiresAt };
+      const indexBytes = Buffer.byteLength(JSON.stringify(retained)) + Buffer.byteLength(binding.access.epoch);
+      const snapshot: Snapshot = { ...binding, opened: retained, cursor, nodes: new Map(), cursors: new Set(),
+        parts: 0, indexBytes, complete: false, activePath: [], busy: false };
       this.recheck(snapshot);
       if (opened.scope !== "tree" || opened.handoff !== "current" || opened.cursor !== opened.cursors.tree
         || opened.cut.sourceId !== binding.access.sourceId || opened.cut.sessionId !== sessionId
         || opened.cut.workerId !== binding.access.workerId || opened.cut.contextId !== binding.access.contextId) {
         fail("tree_binding_changed");
       }
+      this.checkIndexBudget(snapshot);
       const id = crypto.randomUUID(); this.snapshots.set(id, snapshot);
-      return { status: "opened", snapshot: id, cursor: opened.cursor, position: position(opened.cut),
-        expiresAt: opened.expiresAt, nativeParts: opened.count };
+      return { status: "opened", snapshot: id, cursor, position: position(retained.cut), expiresAt, nativeParts: count };
     } catch (error) {
       if (opened) await binding.access.history.close(opened.snapshot).catch(() => {});
       throw error;
     } finally { this.pending--; }
   }
+  private checkPage(snapshot: Snapshot, page: HistoryPage): void {
+    this.recheck(snapshot);
+    if (page.snapshot !== snapshot.opened.snapshot || page.scope !== "tree"
+      || page.expiresAt !== snapshot.opened.expiresAt
+      || fingerprint(page.cut) !== fingerprint(snapshot.opened.cut)) fail("tree_source_changed");
+    if (page.items.length > 1024 || (page.nextCursor !== undefined
+      && (!validToken(page.nextCursor) || page.items.length === 0))) fail("tree_invalid_page");
+  }
   private async page(snapshot: Snapshot, cursor: string): Promise<TreeResult> {
     if (cursor !== snapshot.cursor || snapshot.cursors.has(cursor)) fail("tree_stale_cursor");
     const page = await snapshot.access.history.page(cursor);
-    this.recheck(snapshot);
-    if (page.snapshot !== snapshot.opened.snapshot || page.scope !== "tree"
-      || fingerprint(page.cut) !== fingerprint(snapshot.opened.cut)) fail("tree_source_changed");
-    if ((page.items.length === 0 && page.nextCursor) || page.items.length > 1024 || (page.nextCursor && (page.nextCursor === cursor
-      || snapshot.cursors.has(page.nextCursor)))) fail("tree_invalid_page");
-    snapshot.cursors.add(cursor);
-    const nodes: TreeNode[] = [];
-    for (const item of page.items) {
-      const entry = this.adopt(snapshot, item);
-      if (entry.partIndex + 1 === entry.partCount) nodes.push(entry.node);
+    this.checkPage(snapshot, page);
+    if (page.nextCursor && (page.nextCursor === cursor || snapshot.cursors.has(page.nextCursor))) {
+      fail("tree_invalid_page");
     }
+    snapshot.cursors.add(cursor);
+    const location = { cursor, nextCursor: page.nextCursor, itemCount: page.items.length };
+    snapshot.indexBytes += Buffer.byteLength(page.nextCursor ?? "") + PAGE_INDEX_OVERHEAD;
+    const nodes: TreeNode[] = [];
+    for (const [offset, item] of page.items.entries()) {
+      const entry = this.adopt(snapshot, item, location, offset);
+      if (entry.parts.length === entry.partCount) nodes.push(entry.node);
+    }
+    this.checkIndexBudget(snapshot);
     snapshot.cursor = page.nextCursor;
     if (!page.nextCursor) {
       if (snapshot.parts !== snapshot.opened.count || [...snapshot.nodes.values()].some(entry =>
-        entry.partIndex + 1 !== entry.partCount)) fail("tree_incomplete_parts");
+        entry.parts.length !== entry.partCount)) fail("tree_incomplete_parts");
       snapshot.activePath = this.continuity(snapshot); snapshot.complete = true;
     }
     return { status: "page", nodes, position: position(snapshot.opened.cut),
       continuity: snapshot.complete ? "complete" : "partial", activePath: snapshot.activePath,
       ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}) };
   }
-  private adopt(snapshot: Snapshot, item: HistoryItem): Entry {
+  private adopt(snapshot: Snapshot, item: HistoryItem, page: PageLocation, offset: number): Entry {
     const id = item.entryId ?? item.id, index = item.partIndex ?? 0, count = item.partCount ?? 1;
-    if (id.length > 256 || !id || index < 0 || count < 1 || index >= count) fail("tree_invalid_parts");
+    if (!validToken(id) || index < 0 || count < 1 || index >= count
+      || (item.parentId !== null && !validToken(item.parentId))) fail("tree_invalid_parts");
     const node = this.node(item, id), prior = snapshot.nodes.get(id);
-    if (prior ? index !== prior.partIndex + 1 || count !== prior.partCount
-      || JSON.stringify(prior.node) !== JSON.stringify(node) : index !== 0) fail("tree_invalid_parts");
-    const text = node.contentState === "readable" ? item.text
-      : node.contentState === "hidden" ? "[Internal native record; content hidden]" : "[Native structural record]";
-    const entry = prior ?? { node, text: "", partIndex: -1, partCount: count };
-    entry.text += prior && node.contentState !== "readable" ? "" : text;
-    entry.partIndex = index;
-    snapshot.nodes.set(id, entry); snapshot.parts++;
-    snapshot.bytes += new TextEncoder().encode(JSON.stringify({ node, text })).byteLength;
-    const total = [...this.snapshots.values()].reduce((sum, value) => sum + value.bytes, 0);
-    if (snapshot.nodes.size > MAX_NODES || snapshot.parts > 60000 || snapshot.bytes > MAX_BYTES
-      || total > MAX_TOTAL_BYTES || entry.text.length > 2 * 1024 * 1024) fail("tree_cache_budget");
+    const entry = prior ?? { node, parts: [], partCount: count, pageCount: 0, textUnits: 0 };
+    if (index !== entry.parts.length || count !== entry.partCount || !sameNode(entry.node, node)) {
+      fail("tree_invalid_parts");
+    }
+    if (node.contentState === "readable") entry.textUnits += item.text.length;
+    if (entry.parts.at(-1)?.page !== page) entry.pageCount++;
+    const digest = node.contentState === "readable" && this.previewFits(entry) ? textDigest(item.text) : undefined;
+    entry.parts.push({ page, offset, textDigest: digest });
+    snapshot.indexBytes += PART_INDEX_OVERHEAD + (digest?.length ?? 0);
+    if (!prior) {
+      snapshot.nodes.set(id, entry);
+      snapshot.indexBytes += Buffer.byteLength(JSON.stringify(node));
+    }
+    snapshot.parts++;
     return entry;
+  }
+  private checkIndexBudget(snapshot: Snapshot): void {
+    let total = snapshot.indexBytes;
+    for (const current of this.snapshots.values()) if (current !== snapshot) total += current.indexBytes;
+    if (snapshot.nodes.size > MAX_NODES || snapshot.parts > MAX_PARTS || snapshot.indexBytes > MAX_INDEX_BYTES
+      || total > MAX_TOTAL_INDEX_BYTES) fail("tree_cache_budget");
+  }
+  private previewFits(entry: Entry): boolean {
+    return entry.textUnits <= MAX_PREVIEW_TEXT_UNITS && entry.pageCount <= MAX_PREVIEW_PAGES;
+  }
+  private async preview(snapshot: Snapshot, id: string): Promise<TreeResult> {
+    const entry = snapshot.nodes.get(id);
+    if (!entry) {
+      const page = await snapshot.access.history.page(snapshot.opened.cursor);
+      this.checkPage(snapshot, page);
+      return { status: "error", code: "tree_entry_unavailable" };
+    }
+    if (!this.previewFits(entry)) return { status: "error", code: "tree_preview_budget" };
+    const text: string[] = [];
+    for (let index = 0; index < entry.parts.length;) {
+      const location = entry.parts[index]!.page;
+      const page = await snapshot.access.history.page(location.cursor);
+      this.checkPage(snapshot, page);
+      if (page.nextCursor !== location.nextCursor || page.items.length !== location.itemCount) {
+        fail("tree_source_changed");
+      }
+      do {
+        const part = entry.parts[index]!;
+        const item = page.items[part.offset]!;
+        if ((item.partIndex ?? 0) !== index || (item.partCount ?? 1) !== entry.partCount
+          || !sameNode(entry.node, this.node(item, item.entryId ?? item.id))) fail("tree_source_changed");
+        if (part.textDigest !== undefined) {
+          if (textDigest(item.text) !== part.textDigest) fail("tree_source_changed");
+          text.push(item.text);
+        }
+        index++;
+      } while (entry.parts[index]?.page === location);
+    }
+    return { status: "preview", node: entry.node, position: position(snapshot.opened.cut),
+      text: entry.node.contentState === "readable" ? text.join("") : entry.node.contentState === "hidden"
+        ? "[Internal native record; content hidden]" : "[Native structural record]",
+      attachments: "original_association_unproven", modelInput: "not_an_input_audit" };
   }
   private node(item: HistoryItem, id: string): TreeNode {
     if (!readable.has(item.kind) && !structural.has(item.kind) && !hidden.has(item.kind)) fail("tree_unsupported_content");
