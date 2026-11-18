@@ -62,8 +62,31 @@ Canceling the first Client's logical `$events` stream withdraws its snapshot
 admission while the second Client keeps its existing delivery. A ready physical
 reconnect receives a new delivery with the original deadline. A controlled
 monotonic clock and synthetic Native port verify zero answer and Stop calls.
-Shared-cookie answering and composed product-browser verification are separate
-work.
+
+The separate isolated option `interactionBrokerMode: "shared-cookie-answer"`
+exposes the same snapshot and the finite `ompInteractionBroker/answerStream`
+on the standard mux. It requires the current socket Peer and its live
+`$events` ready binding. The credential's `/auth/status` CSRF value is a
+bounded typed argument. The Host checks it against the opaque socket admission
+and current scope before Gateway dispatch, after Gateway preparation at the
+Broker call, and before publishing the result. The existing exact Host and
+Origin admission and 16,384-byte limit apply to the complete UTF-8 open frame.
+
+A valid call emits one checked `BrokerResult` and `end`. A failed live
+stream receives a fixed typed error. The Client consumes the finite result and
+terminal on one handle. Ending the logical answer or its ready stream, or
+losing the socket, withdraws publication while the Broker continues the single
+reserved Native acknowledgement. A fresh ready Peer can observe current
+pending cards with their original deadlines. The answer uses one stock Remote
+stream invocation for its lifetime.
+
+In the loopback write fixture, two stock Clients sharing one issued credential
+send concurrent answers. The sibling receives stale before the first Native
+acknowledgement is released. Synthetic cases also cover a credential proof from
+a different login, a missing ready binding, scope loss during Gateway
+preparation, logical cancellation, physical reconnect, UTF-8 accounting, and
+dropped terminal writes. Shared-cookie product-browser and real Native
+verification remain pending.
 
 Ordinary disconnect retires only that page's deliveries. A current reauthorized
 page receives only pending UI and the original deadline. Refresh, reconnect and
@@ -73,8 +96,8 @@ pages, 16 pending/settling UI records, 4,096 seen Native UI ids per incarnation,
 and 64 bounded outcome records; no transcript or pending UI is persisted.
 
 Locally invalid answers never reserve a request. The first locally valid answer
-reserves it synchronously, before awaiting Native RPC; concurrent answers fail as
-stale. Native remains the final business authority. An `invalid` acknowledgement
+reserves it synchronously before awaiting Native RPC. Concurrent Browser View
+replies, including explicit cancellation, return stale. Native remains the final business authority. An `invalid` acknowledgement
 re-presents a still-live question with fresh delivery tokens and its original
 deadline. The timer continues while an acknowledgement is held. Expiry or scope
 revocation may send a coalesced explicit cancellation alongside that outstanding

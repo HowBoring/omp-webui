@@ -26,33 +26,55 @@ const codec = <T>(schema: z.ZodType<T>, typeSymbol: string) => ({ mode: "strict"
   create: () => schema, decode: (value: unknown) => schema.parse(value) });
 const parameter = <T>(name: string, schema: z.ZodType<T>, symbol: string) => ({ name, source: "json" as const,
   codec: codec(schema, symbol), strictCodec: codec(schema, symbol) });
+const answerParameters = [
+  parameter("generation", id, "string"), parameter("interactionId", id, "string"),
+  parameter("deliveryId", id, "string"), parameter("answer", uiAnswerSchema, "UIAnswer"),
+];
+export const brokerWriteProofSchema = z.string().length(43).regex(/^[A-Za-z0-9_-]{43}$/);
 /** New Host Remote contract; Native settlement remains the matched public respond_ui operation. */
 export const brokerContribution = createTypertRemoteInfo({ package: "@omp-webui/interaction-broker", methods: {
   "ompInteractionBroker/pending": { service: "ompInteractionBroker", invocation: { kind: "direct" }, parameters: [],
     result: codec(brokerSnapshotSchema, "BrokerSnapshot") },
-  "ompInteractionBroker/answer": { service: "ompInteractionBroker", invocation: { kind: "direct" }, parameters: [
-    parameter("generation", id, "string"), parameter("interactionId", id, "string"),
-    parameter("deliveryId", id, "string"), parameter("answer", uiAnswerSchema, "UIAnswer"),
-  ], result: codec(brokerResultSchema, "BrokerResult") },
+  "ompInteractionBroker/answer": { service: "ompInteractionBroker", invocation: { kind: "direct" },
+    parameters: answerParameters, result: codec(brokerResultSchema, "BrokerResult") },
 } }, z);
 export const brokerPendingSnapshotEndpoint = "ompInteractionBroker/pendingSnapshot";
-export const brokerSnapshotContribution = createTypertRemoteInfo({ package: brokerContribution.package, methods: {
-  [brokerPendingSnapshotEndpoint]: { service: "ompInteractionBroker", invocation: { kind: "direct" },
-    mode: "stream", parameters: [], result: codec(brokerSnapshotSchema, "BrokerSnapshot") },
+const snapshotMethods = {
+  [brokerPendingSnapshotEndpoint]: { service: "ompInteractionBroker", invocation: { kind: "direct" as const },
+    mode: "stream" as const, parameters: [], result: codec(brokerSnapshotSchema, "BrokerSnapshot") },
+};
+export const brokerSnapshotContribution = createTypertRemoteInfo({
+  package: brokerContribution.package, methods: snapshotMethods,
+}, z);
+
+export const brokerAnswerStreamEndpoint = "ompInteractionBroker/answerStream";
+export const brokerAnswerStreamContribution = createTypertRemoteInfo({ package: brokerContribution.package, methods: {
+  ...snapshotMethods,
+  [brokerAnswerStreamEndpoint]: { service: "ompInteractionBroker", invocation: { kind: "direct" }, mode: "stream",
+    parameters: [...answerParameters, parameter("csrf", brokerWriteProofSchema, "string")],
+    result: codec(brokerResultSchema, "BrokerResult") },
 } }, z);
 
 /** Read a complete one-item Remote snapshot before publishing it to the Browser View. */
 export async function readBrokerSnapshot(handle: RemoteStreamHandle<BrokerSnapshot, never>): Promise<BrokerSnapshot> {
+  return readOne(handle, brokerSnapshotSchema, brokerPendingSnapshotEndpoint, "Invalid Interaction snapshot stream.");
+}
+
+/** Read a complete one-result Remote answer before applying the result to this Browser View. */
+export async function readBrokerAnswer(handle: RemoteStreamHandle<BrokerResult, never>): Promise<BrokerResult> {
+  return readOne(handle, brokerResultSchema, brokerAnswerStreamEndpoint, "Invalid Interaction answer stream.");
+}
+
+async function readOne<T>(handle: RemoteStreamHandle<T, never>, schema: z.ZodType<T>,
+  endpoint: string, message: string): Promise<T> {
   try {
     const stream = handle[Symbol.asyncIterator]();
     const first = await stream.next();
-    const snapshot = brokerSnapshotSchema.safeParse(first.value);
-    if (first.done || !snapshot.success || !(await stream.next()).done) {
-      throw new RemoteError("gateway/protocol", "Invalid Interaction snapshot stream.", {
-        endpoint: brokerPendingSnapshotEndpoint,
-      });
+    const result = schema.safeParse(first.value);
+    if (first.done || !result.success || !(await stream.next()).done) {
+      throw new RemoteError("gateway/protocol", message, { endpoint });
     }
-    return snapshot.data;
+    return result.data;
   } finally {
     handle.dispose();
   }
@@ -64,10 +86,15 @@ export const brokerHostContribution: TypertContribution = { package: brokerContr
 export const brokerSnapshotHostContribution: TypertContribution = {
   ...brokerHostContribution, invocations: brokerSnapshotContribution.descriptors,
 };
+export const brokerAnswerStreamHostContribution: TypertContribution = {
+  ...brokerHostContribution, invocations: brokerAnswerStreamContribution.descriptors,
+};
 declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompInteractionBroker: { pending(): Promise<RemoteResult<BrokerSnapshot>>;
       pendingSnapshot(): RemoteStreamHandle<BrokerSnapshot, never>;
+      answerStream(generation: string, interactionId: string, deliveryId: string,
+        answer: UIAnswer, csrf: string): RemoteStreamHandle<BrokerResult, never>;
       answer(generation: string, interactionId: string, deliveryId: string,
         answer: UIAnswer): Promise<RemoteResult<BrokerResult>> };
   }

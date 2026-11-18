@@ -94,10 +94,16 @@ test("logout durably invalidates all pages of that credential, leaves another br
   const { dataDir, access, cookie, csrf } = await authorized();
   const second = await access.handle(localRequest(access.bootstrapLink()));
   const otherCookie = second!.headers.get("set-cookie")!.split(";")[0]!;
+  const identity = access.admit(request("/auth/status", cookie), "read");
+  if (identity instanceof Response) throw new Error("Fixture login failed");
+  expect(access.revalidateWrite(identity, csrf)).toBe(true);
+  expect(access.revalidateWrite({ ...identity }, csrf)).toBe(false);
+  expect(access.revalidateWrite(identity, "wrong")).toBe(false);
   const response = await access.handle(request("/auth/logout", cookie, {
     method: "POST", headers: { origin: "http://127.0.0.1:3180", "x-omp-csrf": csrf },
   }));
   expect(response?.status).toBe(204);
+  expect(access.revalidateWrite(identity, csrf)).toBe(false);
   expect(response?.headers.get("set-cookie")?.includes("Expires=Thu, 01 Jan 1970")).toBe(true);
   expect((await access.handle(request("/auth/status", cookie)))?.status).toBe(401);
   expect((await access.handle(request("/auth/status", otherCookie)))?.status).toBe(200);
