@@ -87,6 +87,55 @@ test("controller keeps the start barrier through status verification and complet
   expect(complete).toBe(true);
 });
 
+test("the accepted Native root exit is observable before helper reap and survives a later duplicate", async () => {
+  const child = controlledProcess(17);
+  const socket = new ControlledSocket();
+  const controller = new PrivateHelperController({ spawn: () => child.process,
+    openControl: () => socket, closeControl: () => {} });
+  const handle = controller.launch({ generation, registerHeldHelper: async () => {} });
+  socket.receive(`HELLO ${generation} 41 123 42 124\n`);
+  await handle.ready;
+
+  socket.receive(`ROOT_EXIT ${generation} 0`);
+  socket.receive(" 15\n");
+  const observed = { kind: "rootExit", generation, exitCode: 0, signal: 15 } as const;
+  expect(await handle.rootExit).toEqual(observed);
+  expect(handle.control.helperReportedComplete).toBe(false);
+
+  socket.receive(`ROOT_EXIT ${generation} 19 0\nCOMPLETE ${generation}\n`);
+  socket.emit("end");
+  child.reap(0);
+  expect(await handle.helperExited).toBe(0);
+  await expect(handle.completed).rejects.toMatchObject({
+    code: "PRIVATE_DOMAIN_UNRESOLVED", causeCode: "CONTROL_SEQUENCE",
+  });
+  expect(await handle.rootExit).toEqual(observed);
+});
+
+for (const [loss, frame, causeCode] of [
+  ["close without receipt", undefined, "PRIVATE_DOMAIN_UNRESOLVED"],
+  ["wrong generation", `ROOT_EXIT ${"b".repeat(64)} 0 0\n`, "CONTROL_GENERATION"],
+  ["invalid exit status", `ROOT_EXIT ${generation} 19 15\n`, "CONTROL_PROTOCOL"],
+] as const) {
+  test(`${loss} leaves Native root exit unobserved even with a successful helper reap`, async () => {
+    const child = controlledProcess(17);
+    const socket = new ControlledSocket();
+    const controller = new PrivateHelperController({ spawn: () => child.process,
+      openControl: () => socket, closeControl: () => {} });
+    const handle = controller.launch({ generation, registerHeldHelper: async () => {} });
+    socket.receive(`HELLO ${generation} 41 123 42 124\n`);
+    await handle.ready;
+
+    if (frame === undefined) socket.emit("close");
+    else socket.receive(frame);
+    await expect(handle.rootExit).rejects.toMatchObject({ code: "PRIVATE_ROOT_EXIT_UNOBSERVED", causeCode });
+
+    child.reap(0);
+    expect(await handle.helperExited).toBe(0);
+    await expect(handle.completed).rejects.toMatchObject({ code: "PRIVATE_DOMAIN_UNRESOLVED" });
+  });
+}
+
 for (const ending of ["close-only COMPLETE", "close-only truncated COMPLETE", "partial EOF"] as const) {
   test(`${ending} cannot report private drain after successful direct reap`, async () => {
     const child = controlledProcess(17);
