@@ -23,15 +23,23 @@ export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
   state: "opening" | "open" | "outcome_unknown" | "closed";
 }
+interface UnresolvedWorkerDrain {
+  status: "unresolved";
+  code: number;
+  failure: "SESSION_WORKER_DRAIN_UNAVAILABLE";
+}
+
 export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
-  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult;
+  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain;
   notificationCount: number; tailNotifications: number;
 }
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<SupervisedSessionWorker>; worker?: SupervisedSessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
-  journal?: Promise<LiveJournal>; journalValue?: LiveJournal; retired: boolean; exited: boolean; idlePending?: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
+  journal?: Promise<LiveJournal>; journalValue?: LiveJournal;
+  retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
+  exitIndexFailure?: WorkerExit["indexFailure"];
 }
 const directoryIdentity = (cwd: string): string => {
   try {
@@ -40,7 +48,10 @@ const directoryIdentity = (cwd: string): string => {
   } catch {}
   throw new Error("SESSION_CWD_CHANGED");
 };
-const cleanDrain = (drain: DrainResult): boolean => drain.code === 0 && !drain.forced && !drain.protocolFailure;
+const incompleteReaders = (drain: DrainResult): boolean => drain.stdoutEOF === false || drain.stderrEOF === false;
+const observedEOF = (drain: DrainResult): boolean => drain.stdoutEOF === true && drain.stderrEOF === true;
+const cleanDrain = (drain: DrainResult): boolean =>
+  drain.code === 0 && !drain.forced && !drain.protocolFailure && !incompleteReaders(drain);
 const key = (item: CatalogDescriptor) => JSON.stringify([item.sourceId, item.instanceId, item.nativeSessionId]);
 export function nativeSettled(state: SessionState): boolean {
   return state.isSettled === true && state.isStreaming === false && state.isCompacting === false
@@ -77,6 +88,10 @@ export class SessionSupervisor {
   }
   get starts(): number { return this.#starts; }
   exits(): WorkerExit[] { return structuredClone(this.#exits); }
+  #appendExit(exit: WorkerExit): void {
+    this.#exits.push(exit);
+    if (this.#exits.length > 32) this.#exits.shift();
+  }
   #observe(active: Active, attempt: SessionAttempt): void {
     if (!active.record) return;
     const observed = this.options.index.observeCurrent(active.record, attempt);
@@ -111,11 +126,11 @@ export class SessionSupervisor {
   #reserve(selected: CatalogDescriptor, record: RegisteredSession): Active {
     try {
       const existing = this.#active;
-      if (existing && (!existing.exited || existing.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
+      if (existing && !existing.released) throw new Error("SESSION_WORKER_DRAINING");
       const cwd = selected.cwd.status === "known" ? selected.cwd.canonical : undefined;
       if (!cwd) throw new Error("SESSION_CWD_UNKNOWN");
       const active: Active = { id: randomUUID(), key: key(selected), cwd, cwdIdentity: directoryIdentity(cwd), generation: randomUUID(), selected, record,
-        opening: Promise.resolve(), state: "opening", retired: false, exited: false, startupAttempted: false };
+        opening: Promise.resolve(), state: "opening", retired: false, exited: false, released: false, startupAttempted: false };
       this.#active = active; return active;
     } catch (error) {
       const code = sessionFailureCode(error);
@@ -126,9 +141,9 @@ export class SessionSupervisor {
   async create(identity: BrowserAccess, cwd: string): Promise<SessionView> {
     this.#browser(identity); this.#directory(cwd);
     await this.#prepareRetirement(identity, "explicit-new"); this.#browser(identity); this.#directory(cwd);
-    if (this.#active && (!this.#active.exited || this.#active.idlePending)) throw new Error("SESSION_WORKER_DRAINING");
+    if (this.#active && !this.#active.released) throw new Error("SESSION_WORKER_DRAINING");
     const active: Active = { id: randomUUID(), key: randomUUID(), cwd, cwdIdentity: directoryIdentity(cwd), generation: randomUUID(), opening: Promise.resolve(),
-      state: "opening", retired: false, exited: false, startupAttempted: false };
+      state: "opening", retired: false, exited: false, released: false, startupAttempted: false };
     this.#active = active; active.opening = this.#perform(identity, active, "new");
     await active.opening; this.#current(identity, active); return this.#view(active);
   }
@@ -148,17 +163,12 @@ export class SessionSupervisor {
       }
       this.#current(identity, active);
       ++this.#starts; active.launching = this.options.launch(active.cwd);
-      active.worker = await active.launching;
-      active.bridge = new InteractionBridge(active.worker);
-      void active.worker.exited.then(() => {
-        active.exited = true;
-        if (!active.retired) {
-          active.state = "outcome_unknown";
-          this.#observe(active, { state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED" });
-        }
-      }).catch(() => {});
+      const worker = await active.launching;
+      active.worker = worker;
+      active.bridge = new InteractionBridge(worker);
+      void worker.exited.then(code => this.#workerExited(active, worker, code)).catch(() => {});
       this.#current(identity, active); active.startupAttempted = true;
-      const result = await active.worker.startup.start({ intent, expectedCwd: active.cwd,
+      const result = await worker.startup.start({ intent, expectedCwd: active.cwd,
         ...(active.selected ? { reference: active.selected.reference } : {}) });
       this.#ownedCurrent(active); this.#accept(active, result);
     } catch (error) {
@@ -175,6 +185,29 @@ export class SessionSupervisor {
       if (!active.worker || !unknown || active.retired) await this.#stop(active, "open-failed");
       throw new Error(recorded ? code : "SESSION_ATTEMPT_UNAVAILABLE");
     }
+  }
+  async #workerExited(active: Active, worker: SupervisedSessionWorker, code: number): Promise<void> {
+    active.exited = true;
+    if (active.retired) return;
+    active.state = "outcome_unknown";
+    const start = performance.now(), atExit = worker.notificationCount;
+    const indexFailure = this.#observeExit(active, {
+      state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
+    });
+    if (indexFailure) active.exitIndexFailure = indexFailure;
+    // Root exit fences the generation immediately. Keep the slot until the same handle's readers finish.
+    let drain: WorkerExit["drain"];
+    try {
+      const retired = await worker.retireIdle(0);
+      drain = retired.status === "pending" ? await retired.completion : retired.drain;
+      if (active.stopping) return;
+      active.released = observedEOF(drain);
+    } catch {
+      drain = { status: "unresolved", code, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
+    }
+    this.#appendExit({ workerId: active.id, reason: "worker-lost", elapsedMs: performance.now() - start,
+      nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
+      drain, notificationCount: worker.notificationCount, tailNotifications: Math.max(0, worker.notificationCount - atExit) });
   }
   #accept(active: Active, result: StrictStartState, explicitAttempt?: RegisteredSession): void {
     if (result.phase !== "open") {
@@ -230,12 +263,13 @@ export class SessionSupervisor {
     await this.#prepareRetirement(identity, "explicit-switch"); this.#browser(identity); return this.open(identity, selected);
   }
   async #prepareRetirement(identity: BrowserAccess, reason: string): Promise<void> {
-    const active = this.#active; if (!active || (active.exited && !active.idlePending)) return;
+    const active = this.#active; if (!active || active.released) return;
+    if (active.exited && !active.retired) throw new Error("SESSION_WORKER_DRAINING");
     if (active.retired || !active.worker || active.state !== "open") throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
     this.#current(identity, active);
     const state = await active.worker.state(); this.#current(identity, active);
     if (!nativeSettled(state) || active.bridge?.snapshot().pending.length) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
-    active.retired = true; active.idlePending = true; active.state = "outcome_unknown";
+    active.retired = true; active.state = "outcome_unknown";
     this.#observe(active, { state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" });
     const start = performance.now(), atStop = active.worker.notificationCount;
     const retired = await active.worker.retireIdle();
@@ -247,14 +281,14 @@ export class SessionSupervisor {
   }
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
-    active.exited = true; active.idlePending = false; active.state = "closed"; active.bridge?.dispose();
-    const indexFailure = this.#observeExit(active, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
-      ...(cleanDrain(drain) ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
-    this.#exits.push({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
+    active.exited = true; active.released = !incompleteReaders(drain); active.state = "closed"; active.bridge?.dispose();
+    const clean = cleanDrain(drain);
+    const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
+      ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
+    this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
       queuedInputsWithdrawn: false, uiCancelled: true, ...(indexFailure ? { indexFailure } : {}),
       drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) });
-    if (this.#exits.length > 32) this.#exits.shift();
   }
   assertObjectAccess(identity: BrowserAccess): void {
     this.#browser(identity); const active = this.#active;
@@ -293,7 +327,7 @@ export class SessionSupervisor {
   }
   /** Recompute overlapping root grants. Browser logout withdraws only that browser's view/answer rights. */
   async permissionsChanged(): Promise<void> {
-    const active = this.#active; if (!active || active.stopping || (active.exited && !active.idlePending)) return;
+    const active = this.#active; if (!active || active.stopping || active.released) return;
     let authorized = false;
     try { authorized = this.options.grants.authorize(active.cwd, active.cwd).status === "authorized"
       && directoryIdentity(active.cwd) === active.cwdIdentity; } catch {}
@@ -301,11 +335,11 @@ export class SessionSupervisor {
   }
   async revokeAll(): Promise<void> {
     this.#closed = true; clearInterval(this.#sweeper);
-    if (this.#active && (!this.#active.exited || this.#active.idlePending)) await this.#stop(this.#active, "all-browser-access-revoked");
+    if (this.#active && !this.#active.released) await this.#stop(this.#active, "all-browser-access-revoked");
   }
   async close(): Promise<void> {
     this.#closed = true; clearInterval(this.#sweeper);
-    if (this.#active && (!this.#active.exited || this.#active.idlePending)) await this.#stop(this.#active, "host-shutdown");
+    if (this.#active && !this.#active.released) await this.#stop(this.#active, "host-shutdown");
   }
   #stop(active: Active, reason: string): Promise<WorkerExit> {
     active.retired = true;
@@ -313,9 +347,11 @@ export class SessionSupervisor {
   }
   async #drain(active: Active, reason: string): Promise<WorkerExit> {
     const start = performance.now(), deadline = start + 30_000, notificationsAtStop = active.worker?.notificationCount ?? 0;
+    const alreadyExited = active.exited;
     let settled = false, queuedInputsWithdrawn = false, uiCancelled = false;
     const priorUIOutcomes = new Set(active.bridge?.snapshot().outcomes.map(outcome => outcome.id) ?? []);
     const cooperative = async () => {
+      if (alreadyExited) return;
       const worker = active.worker ?? await active.launching; if (!worker) return;
       active.worker = worker;
       const pending = active.bridge?.snapshot().pending ?? [];
@@ -333,15 +369,19 @@ export class SessionSupervisor {
     uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
     active.bridge?.dispose();
-    const remaining = Math.max(0, deadline - performance.now());
+    const remaining = alreadyExited ? 0 : Math.max(0, deadline - performance.now());
     const drain = active.worker ? await active.worker.close({ cooperativeMs: remaining, terminationGraceMs: 5000, readerGraceMs: 1000 })
       : { code: 0, forced: false, stderrBytes: 0 };
-    active.exited = true; active.idlePending = false; active.state = "closed";
-    const indexFailure = this.#observeExit(active, { state: cleanDrain(drain) ? "closed" : "outcome_unknown",
-      ...(cleanDrain(drain) ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true);
+    active.exited = true;
+    active.released = alreadyExited ? observedEOF(drain) : !incompleteReaders(drain);
+    active.state = "closed";
+    const clean = !alreadyExited && cleanDrain(drain);
+    const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
+      ...(clean ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true) ?? active.exitIndexFailure;
     const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
       queuedInputsWithdrawn, uiCancelled, ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) };
-    this.#exits.push(exit); if (this.#exits.length > 32) this.#exits.shift(); return exit;
+    this.#appendExit(exit);
+    return exit;
   }
 }
