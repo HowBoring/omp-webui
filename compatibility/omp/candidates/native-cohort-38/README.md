@@ -6,7 +6,7 @@ The first six patches are the existing compatibility sequence. Their bytes match
 
 ## Replay
 
-Use Python 3.9 or newer and local Git with access to OMP commit `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. The OMP repository supplies a read-only Git object directory. Its checkout and installed dependencies are independent of replay. Use a new scratch directory outside both repositories with room for the full OMP checkout, about 3.1 GiB in the Linux replay.
+Use Python 3.9 or newer and local Git with access to OMP commit `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. The OMP repository supplies a read-only Git object directory. Its checkout and installed dependencies are independent of replay. Use a new scratch directory outside both repositories with room for the full OMP checkout. The verified Linux replay used 274 MiB including the staged TypeScript dependencies.
 
 ```bash
 python3 -B compatibility/omp/candidates/native-cohort-38/replay.py \
@@ -21,8 +21,10 @@ python3 -B compatibility/omp/candidates/native-cohort-38/replay.py \
   --verify-wire /path/to/bun /path/to/node /path/to/local/node_modules
 ```
 
-The [verification record](verification.md) gives the successful individual commands and the interrupted first wrapper attempt. Generated wire artifacts stay in scratch.
+The [verification record](verification.md) gives the successful individual commands, the successful independent wrapper run and the interrupted first wrapper attempt. Generated wire artifacts stay in scratch.
+
+The [compiler-only recipe](compiler.md) uses the same replay to generate runtime validators and compile the isolated preflight launcher. The [isolated preflight evidence](preflight-evidence.md) records the actual bounded public RPC exchange and cooperative child drain. [Artifact identities and proof entrypoints](preflight-handoff.md)
 
 ## Admission boundary
 
-The candidate is unregistered. The active patch order, Host contracts and admission gates remain in force. This source replay leaves the matched runtime validators and release build, external ownership composition, global launcher and platform closure, synthetic worker and TUI compatibility, and paired DSH acceptance for the [candidate admission ticket](https://github.com/HowBoring/omp-webui/issues/41). Branch creation and destination publication remain part of the [durable branch ticket](https://github.com/HowBoring/omp-webui/issues/52).
+The candidate is unregistered. The active patch order, Host contracts and admission gates remain in force. The full runtime dependency and release build, external ownership composition, global launcher and platform closure, synthetic worker and TUI compatibility, and paired DSH acceptance are pending for the [candidate admission ticket](https://github.com/HowBoring/omp-webui/issues/41). Branch creation and destination publication remain part of the [durable branch ticket](https://github.com/HowBoring/omp-webui/issues/52).
