@@ -1,4 +1,6 @@
 /** Owned actual built Host + Chromium proof. Every success/failure path waits for its owned process exit. */
+export {};
+
 const child = Bun.spawn([process.execPath, "--no-env-file", "vendor/host-sessions/session-component-main.js"], {
   cwd: process.cwd(), env: { PATH: process.env.PATH ?? "/usr/bin:/bin" }, stdout: "pipe", stderr: "inherit" });
 const reader = child.stdout.getReader();

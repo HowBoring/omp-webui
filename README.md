@@ -104,7 +104,7 @@ Requirements:
 - Bun `>=1.4.4` for the Host.
 - A global OMP installation matching the verified delivery combination for future RPC integration;
   an ordinary `omp` name or the unmodified official baseline alone is insufficient for the full MVP.
-- Node.js `>=24.9.0` and pnpm `11.28.5` only when building the pinned DSH upstream client.
+- Node.js `>=24.9.0` for the development tools and DSH client build. The DSH build also uses pnpm `11.28.5`.
 
 ~~~bash
 bun install --frozen-lockfile
@@ -115,6 +115,7 @@ The scaffold listens on `http://127.0.0.1:3180`. At this stage only `GET /health
 unimplemented `/api/` routes return `501` and other paths return `404`. Health success indicates only Host liveness.
 
 ~~~bash
+bun run lint
 bun run typecheck
 bun test
 bun run check
@@ -122,7 +123,14 @@ bun run build
 bun dist/main.js
 ~~~
 
-The lockfile pins the tested development dependencies. `check` runs type checking, tests, and the Bun build.
+The lockfile pins the development dependencies. `bun run check` runs Oxlint, strict TypeScript checking, tests,
+and the Bun build. Oxlint checks authored source and fixtures, reports general correctness findings as warnings,
+and fails the command on selected correctness rules. Generated wire types and validators are excluded from lint.
+
+Open the repository root in your editor and select the workspace TypeScript SDK at `node_modules/typescript/lib`.
+For an editor with a generic LSP client, use `bun run lsp` from the repository root as the TypeScript server command.
+`bun run lint:lsp` exposes the same Oxlint configuration to LSP-capable editors for inline lint diagnostics.
+
 Recorded local results and remaining M0 integration work are in [M0 validation](docs/m0-validation.md).
 
 ## Repository layout
