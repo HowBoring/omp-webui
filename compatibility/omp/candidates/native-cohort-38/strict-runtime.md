@@ -117,3 +117,27 @@ The worker accepted 1,048,576-byte physical and 67,108,864-byte reassembled fram
 Busy-worker shutdown, contention, writes and history migration, TUI, paired DSH acceptance and the actual
 global installation remain pending. [Candidate admission #41](https://github.com/HowBoring/omp-webui/issues/41)
 and [supervised Session delivery #44](https://github.com/HowBoring/omp-webui/issues/44)
+
+## UTF-8 attachment preparation
+
+An isolated comparison used the earlier stage and the stage built at
+`27978cf524b9142f8ffdd5fb50b26f7694b655e9`. The two stages had identical CLI and schema hashes.
+Both runs used the same driver and a fresh synthetic profile and working directory. The driver negotiated
+public RPC v2, continued the Catalog-selected Session, and prepared one `utf8` attachment.
+
+| Stage | Receipt SHA-256 | Sanitized result SHA-256 |
+| --- | --- | --- |
+| Earlier stage | `9c0ae64d63cb6dffe8658d1fb593af09acab753111675cc41f4062c768131a1c` | `0be22ec3ca5e83bb04f580d6df772c9150d983925e97c1c1d96052bbd53c1097` |
+| Stage with `bundle/worker.ts` | `7e22b591a5f63dbeece7631e96f596f89e02b324f41ebae0e3d99957c15f0830` | `9936410bbd2bc88307b10bddc9aa62a9c400e24cfbdffa3b4be495f09d52cbbd` |
+
+- The earlier stage lacked `bundle/worker.ts`. `attachment_prepare` returned a failed receipt with item code
+  `attachment_converter_resource_failure`.
+- The stage with the worker returned a ready receipt with the exact text representation
+  `Isolated attachment test.` and an empty degradation list. `attachment_cancel` returned `{cancelled: true}`.
+
+Each run read the same seeded entry and History tree cut before and after preparation. The working
+directories remained empty. Both Catalog and Session processes in each run exited 0 with stdout and
+stderr EOF, empty stderr, and no termination or force. Each provider audit recorded zero denials and
+zero dispatches. The retained driver SHA-256 is
+`f86173833e5378526c4fa2f099d88782ff44ad4de21ebc398205cfa00891b585`.
+[Attachment preparation #38](https://github.com/HowBoring/omp-webui/issues/38)
