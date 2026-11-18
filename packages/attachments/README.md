@@ -34,8 +34,8 @@ conversion, and report truncation or other degradations before consumption.
 a caller admitted by the Host carrier, a Session/draft target, display metadata,
 the exact declared byte length, an async byte stream and a cancellation signal.
 Its `read` returns bytes and metadata, never a filesystem path. Both methods
-reject asynchronously with a stable `attachment_*` error message of at most
-96 characters. Invalid targets/descriptors use `attachment_invalid_target` /
+reject asynchronously with a known, stable `attachment_*` error code.
+Invalid targets/descriptors use `attachment_invalid_target` /
 `attachment_invalid_descriptor`; unexpected storage failures, including SQLite
 reservation failures, use `attachment_storage_unavailable`. Existing authority,
 cancellation and quota refusal codes retain their meaning. The Host callback
@@ -60,9 +60,11 @@ authorized original read; it does not restore a prepared receipt or execute inpu
 `ompOriginals/exchange` Remote, with `stage-base64` and `read-base64`. The actual
 public DSH Client, synthetic Connection carrier and Host Gateway are exercised in
 the fixture. This is a new Host contract, not an invented existing Native API or
-stock DSH upload method. Base64 must round-trip canonically; decoding happens only
-after authority and reservation. The schema bounds encoded data for a 10 MiB
-original. It does not establish acceptable Native/RPC or renderer budgets.
+stock DSH upload method. After authorization and reservation, the Remote checks
+that the encoded length matches the reserved byte length before decoding. Base64
+must round-trip canonically, and the decoded bytes must match the reservation.
+The schema bounds encoded data for a 10 MiB original. Native/RPC and renderer
+budgets require separate checks.
 
 No HTTP/WS route is provided. Before mounting either port the carrier must admit
 Host/Origin, current credentials, CSRF for writes and exact resource rights before

@@ -363,11 +363,13 @@ test("raw intake retains revocation, binding, cancellation and quota refusal cod
   await expect(intake.read({}, target, original.objectId)).rejects.toThrow(/^attachment_authority_unavailable$/);
 });
 
-test("raw intake bounds oversized attachment-like producer errors and releases the reservation", async () => {
+test("raw intake normalizes unknown attachment-like producer errors and releases the reservation", async () => {
   const { store } = open();
   const intake = new OriginalIntake(store, () => access());
-  async function* failed(): AsyncGenerator<Uint8Array> { throw Error(`attachment_${"x".repeat(100)}`); }
-  await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, descriptor, failed()))
-    .rejects.toThrow(/^attachment_storage_unavailable$/);
-  expect(store.usage(access).chargedBytes).toBe(0);
+  for (const error of [`attachment_${"x".repeat(100)}`, "attachment_foo_834"]) {
+    async function* failed(): AsyncGenerator<Uint8Array> { throw Error(error); }
+    await expect(intake.stage({}, { sessionId: "native", draftId: "draft" }, descriptor, failed()))
+      .rejects.toThrow(/^attachment_storage_unavailable$/);
+    expect(store.usage(access).chargedBytes).toBe(0);
+  }
 });

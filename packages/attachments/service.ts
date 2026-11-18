@@ -29,13 +29,14 @@ export class AttachmentRemote extends TypertRemoteService {
         return { status: "read", original, base64: Buffer.from(bytes).toString("base64") };
       }
       // The generator is evaluated only after live authorization and atomic reservation by the store.
+      const { base64, descriptor } = request;
       async function* decode() {
-        if (request.operation !== "stage-base64") return;
-        const value = Buffer.from(request.base64, "base64");
-        if (value.toString("base64") !== request.base64) throw Error("attachment_invalid_base64");
+        if (base64.length !== 4 * Math.ceil(descriptor.byteLength / 3)) throw Error("attachment_size_mismatch");
+        const value = Buffer.from(base64, "base64");
+        if (value.toString("base64") !== base64) throw Error("attachment_invalid_base64");
         yield value;
       }
-      const original = await intake.stage(invocation.peer, request.target, request.descriptor, decode(), signal);
+      const original = await intake.stage(invocation.peer, request.target, descriptor, decode(), signal);
       return { status: "staged", original };
     } catch (error) {
       const code = isAttachmentError(error) ? error.message : "attachment_intake_failed";

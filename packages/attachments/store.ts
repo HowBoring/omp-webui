@@ -3,7 +3,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync,
   readFileSync, readdirSync, realpathSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { isAttachmentError } from "./errors.ts";
+import { isAttachmentError, type AttachmentErrorName } from "./errors.ts";
 import { documentOriginalBytes, imageOriginalBytes, isOriginalMediaType, type OriginalMediaType } from "./media.ts";
 
 export type { ImageMediaType } from "./media.ts";
@@ -16,10 +16,11 @@ export interface OriginalScope {
 /** Recheck live browser, directory, exact native identity and trusted page binding on every invocation. */
 export type OriginalAccess = () => OriginalScope;
 export interface OriginalDescriptor { displayName: string; mediaType: OriginalMediaType; byteLength: number }
-export interface StagedOriginal extends OriginalDescriptor {
+export type StagedOriginal = Omit<OriginalDescriptor, "mediaType"> & {
   objectId: string; sha256: string; state: "staged-unprepared"; nativeAssociation: "unassociated";
-  validation: "signature-only" | "utf8-only"; stagedAt: number;
-}
+  stagedAt: number;
+} & ({ mediaType: "text/plain"; validation: "utf8-only" }
+  | { mediaType: Exclude<OriginalMediaType, "text/plain">; validation: "signature-only" });
 export interface OriginalLimits {
   totalBytes: number;
   /** Per-image ceiling. Text and documents have an independent 5 MiB ceiling. */
@@ -38,7 +39,7 @@ interface Row {
   id: string; scope: string; size: number; displayName: string; mediaType: OriginalMediaType;
   state: "receiving" | "staged-unprepared"; sha256: string | null; stagedAt: number;
 }
-function fail(code: string): never { throw new Error(`attachment_${code}`); }
+function fail(code: AttachmentErrorName): never { throw new Error(`attachment_${code}`); }
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const scopeKey = (scope: OriginalScope) => JSON.stringify([scope.hostId, scope.browserId, scope.pageId,
   scope.profileId, scope.sourceId, scope.instanceId, scope.sessionId, scope.canonicalCwd, scope.draftId]);
@@ -222,9 +223,12 @@ export class OriginalStore {
 
   private metadata(row: Row): StagedOriginal {
     if (row.state !== "staged-unprepared" || !row.sha256) fail("object_unavailable");
-    return { objectId: row.id, displayName: row.displayName, mediaType: row.mediaType, byteLength: row.size,
-      sha256: row.sha256, state: "staged-unprepared", nativeAssociation: "unassociated",
-      validation: row.mediaType === "text/plain" ? "utf8-only" : "signature-only", stagedAt: row.stagedAt };
+    const { mediaType } = row;
+    const metadata = { objectId: row.id, displayName: row.displayName, byteLength: row.size,
+      sha256: row.sha256, state: row.state, nativeAssociation: "unassociated" as const, stagedAt: row.stagedAt };
+    return mediaType === "text/plain"
+      ? { ...metadata, mediaType, validation: "utf8-only" }
+      : { ...metadata, mediaType, validation: "signature-only" };
   }
 
   private syncDirectory(): void {

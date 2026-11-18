@@ -1,7 +1,35 @@
-export const attachmentErrorCodePattern = /^attachment_[a-z0-9_]+$/;
-export const maxAttachmentErrorCodeLength = 96;
+const attachmentErrors = [
+  "authority_unavailable",
+  "binding_changed",
+  "canceled",
+  "draft_budget",
+  "intake_active",
+  "intake_budget",
+  "intake_failed",
+  "invalid_base64",
+  "invalid_descriptor",
+  "invalid_limits",
+  "invalid_target",
+  "invalid_utf8",
+  "limits_changed",
+  "media_mismatch",
+  "object_budget",
+  "object_unavailable",
+  "original_corrupt",
+  "original_unavailable",
+  "size_mismatch",
+  "storage_unavailable",
+  "store_closed",
+  "store_full",
+  "unaccounted_data",
+  "unsafe_store",
+] as const;
 
-export function isAttachmentError(error: unknown): error is Error {
-  return error instanceof Error && error.message.length <= maxAttachmentErrorCodeLength
-    && attachmentErrorCodePattern.test(error.message);
+export type AttachmentErrorName = (typeof attachmentErrors)[number];
+export const attachmentErrorCodes = attachmentErrors.map(name => `attachment_${name}` as const);
+type AttachmentErrorCode = (typeof attachmentErrorCodes)[number];
+const knownCodes = new Set<string>(attachmentErrorCodes);
+
+export function isAttachmentError(error: unknown): error is Error & { message: AttachmentErrorCode } {
+  return error instanceof Error && knownCodes.has(error.message);
 }

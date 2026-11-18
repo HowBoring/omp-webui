@@ -9,7 +9,8 @@ import { installConnection } from "@deepseek-ai/dsh-client-connection/client";
 import { apply as registry } from "@deepseek-ai/dsh-typert-registry/client";
 import { apply as gateway } from "@deepseek-ai/dsh-api-gateway/client";
 import { z } from "zod";
-import { attachmentContribution, attachmentHostContribution, type AttachmentRequest } from "../../packages/contracts/attachments.ts";
+import { attachmentContribution, attachmentHostContribution, attachmentResult,
+  type AttachmentRequest } from "../../packages/contracts/attachments.ts";
 import { OriginalStore } from "../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../packages/attachments/service.ts";
 
@@ -127,4 +128,41 @@ test("revoked or unopened scopes and noncanonical base64 never stage originals t
       expect(!result.ok || result.value.status === "error").toBe(true);
     } finally { await f.dispose(); }
   }
+});
+
+test("typed Host Remote checks the reserved base64 length before canonical decoding", async () => {
+  const f = await fixture();
+  try {
+    const source = { displayName: "source.ts", mediaType: "text/plain" as const, byteLength: 1 };
+    const stage = (encoded: string, byteLength = 1) => f.remote.exchange({ operation: "stage-base64", target,
+      descriptor: { ...source, byteLength }, base64: encoded });
+    for (const [encoded, code] of [["!!!!!!!!", "attachment_size_mismatch"],
+      ["YWJj", "attachment_size_mismatch"], ["YR==", "attachment_invalid_base64"]] as const) {
+      const refused = await stage(encoded);
+      expect(refused.ok && refused.value).toEqual({ status: "error", code });
+    }
+    const full = await stage("!", 1025);
+    expect(full.ok && full.value).toEqual({ status: "error", code: "attachment_store_full" });
+    const accepted = await stage("YQ==");
+    expect(accepted).toMatchObject({ ok: true, value: { status: "staged" } });
+    f.unopen();
+    const unopened = await stage("!!!!!!!!");
+    expect(unopened.ok && unopened.value).toEqual({ status: "error", code: "attachment_authority_unavailable" });
+  } finally { await f.dispose(); }
+});
+
+test("typed Host Remote result codec refuses validation claims for the wrong media type", () => {
+  const metadata = { objectId: "d503e8d2-a0f8-459c-a4fa-ecc916078a14", sha256: "a".repeat(64), stagedAt: 0,
+    state: "staged-unprepared", nativeAssociation: "unassociated", displayName: "sample", byteLength: 1 };
+  const text = { ...metadata, mediaType: "text/plain", validation: "signature-only" };
+  const binary = { ...metadata, mediaType: "application/pdf", validation: "utf8-only" };
+  for (const original of [text, binary]) {
+    expect(attachmentResult.safeParse({ status: "staged", original }).success).toBe(false);
+    expect(attachmentResult.safeParse({ status: "read", original, base64: "YQ==" }).success).toBe(false);
+  }
+});
+
+test("typed Host Remote result codec accepts known error codes and refuses arbitrary iterator text", () => {
+  expect(attachmentResult.safeParse({ status: "error", code: "attachment_invalid_utf8" }).success).toBe(true);
+  expect(attachmentResult.safeParse({ status: "error", code: "attachment_foo_834" }).success).toBe(false);
 });

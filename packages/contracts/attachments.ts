@@ -2,16 +2,20 @@ import { z } from "zod";
 import { createTypertRemoteInfo } from "@deepseek-ai/dsh-typert-protocol/remote-info";
 import type { RemoteResult } from "@deepseek-ai/dsh-typert-protocol";
 import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
-import { attachmentErrorCodePattern, maxAttachmentErrorCodeLength } from "../attachments/errors.ts";
+import { attachmentErrorCodes } from "../attachments/errors.ts";
 import { imageOriginalBytes, originalMediaTypes } from "../attachments/media.ts";
 
 const token = z.string().min(1).max(256);
+const mediaType = z.enum(originalMediaTypes);
 export const attachmentTarget = z.strictObject({ sessionId: token, draftId: token });
 export const originalDescriptor = z.strictObject({ displayName: z.string().min(1).max(255),
-  mediaType: z.enum(originalMediaTypes), byteLength: z.number().int().min(1).max(imageOriginalBytes) });
-const original = originalDescriptor.extend({ objectId: z.uuid(), sha256: z.string().regex(/^[0-9a-f]{64}$/),
-  state: z.literal("staged-unprepared"), nativeAssociation: z.literal("unassociated"),
-  validation: z.enum(["signature-only", "utf8-only"]), stagedAt: z.number().int().nonnegative() });
+  mediaType, byteLength: z.number().int().min(1).max(imageOriginalBytes) });
+const originalMetadata = originalDescriptor.extend({ objectId: z.uuid(), sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  state: z.literal("staged-unprepared"), nativeAssociation: z.literal("unassociated"), stagedAt: z.number().int().nonnegative() });
+const original = z.discriminatedUnion("validation", [
+  originalMetadata.extend({ mediaType: z.literal("text/plain"), validation: z.literal("utf8-only") }),
+  originalMetadata.extend({ mediaType: mediaType.exclude(["text/plain"]), validation: z.literal("signature-only") }),
+]);
 // Full carrier envelope/body limits must be admitted before JSON parsing by the eventual Host carrier.
 const base64 = z.string().max(4 * Math.ceil(imageOriginalBytes / 3));
 export const attachmentRequest = z.discriminatedUnion("operation", [
@@ -21,8 +25,7 @@ export const attachmentRequest = z.discriminatedUnion("operation", [
 export const attachmentResult = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("staged"), original }),
   z.strictObject({ status: z.literal("read"), original, base64 }),
-  z.strictObject({ status: z.literal("error"),
-    code: z.string().max(maxAttachmentErrorCodeLength).regex(attachmentErrorCodePattern) }),
+  z.strictObject({ status: z.literal("error"), code: z.enum(attachmentErrorCodes) }),
 ]);
 export type AttachmentTarget = z.infer<typeof attachmentTarget>;
 export type AttachmentRequest = z.infer<typeof attachmentRequest>;
