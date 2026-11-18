@@ -49,6 +49,51 @@ In a second scratch checkout, the previously generated persistence files stayed 
 applying patch 9 in order. Generating the catalog in the compiler checkout and running the
 five typecheck steps again also passed. Its generated schema matched the reviewed inventory.
 
+## Scoped Linux Client and Web artifacts
+
+The corrected source tree, generated persistence inventory and frozen dependencies
+produced Client and Web artifacts in an isolated Linux checkout. The bundlers used DSH's
+repository-derived public values `DSH_CLIENT_COMMIT_HASH=38a6a5c`,
+`DSH_CLIENT_GIT_DIRTY=true`, and `DSH_CLIENT_VERSION=0.2.2-rc.3` in the clean offline environment.
+
+An initial Client-only bundle exited 0 with 114 unresolved-import warnings. Web exited 1
+after six modules because `@deepseek-ai/cordis` exported `lib/index.js` before the Host pass
+had emitted it. The initial 211 output files were hashed and retained in scratch. The
+documented Host compile and bundle exited 0 and emitted the missing Cordis entry. The
+subsequent Client compile, Client bundle, and Web build all exited 0. The Host and rebuilt
+Client bundles reported zero unresolved-import warnings. Both upstream aggregate checks
+passed against the resulting artifacts.
+
+| Readback | Observed result |
+| --- | --- |
+| Host Cordis `vendor/cordis/lib/index.js` SHA-256 | `627409afa06a265f7253200d3bc4648e88805c39fd3768568eb9b9518a31fe8f` |
+| Dynamic Client bundles, assets and Web dist | 371 files, including 160 Web files, totaling 79,545,767 bytes |
+| Scoped artifact SHA-256 | `f1f03d3935a6d5265d4fd79250bbd2cfecddba2fb8dd2d1a4400ffe96dd135f9` |
+| `apps/web/dist/index.html` SHA-256 | `88718bd0dee8057e959b2dbcf06a6b95267bb5277a252a1b8142906a689d2b2e` |
+| `apps/web/dist/preview.html` SHA-256 | `d0d8a22d8b419c600bfd884f804263c391331310ee9138a33cc5890878f2901f` |
+
+The scoped digest uses DSH's artifact path patterns and length-prefixed path and file bytes.
+Both HTML entry points resolved their local module references. Static readback found
+`reconcilePromptError` in the Session Controller bundle and `tool/parsed-call` in the Chat
+and Trajectory bundles. The complete-build record reader rejected the scoped artifacts
+because the record was absent. This run covered the Host, Client and Web build steps.
+The complete release build and browser admission remain pending.
+
+After the corrected source typecheck and catalog generation below, run the upstream
+component commands from the DSH root with the observed `repositoryClientBuildEnvironment`
+values and the same isolated offline environment.
+
+```bash
+export DSH_CLIENT_COMMIT_HASH=38a6a5c DSH_CLIENT_GIT_DIRTY=true
+export DSH_CLIENT_VERSION=0.2.2-rc.3
+node --import tsx/esm scripts/compile-referenced-projects.ts host
+corepack pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE host
+node --import tsx/esm scripts/compile-referenced-projects.ts client
+corepack pnpm exec tsdown --config-loader native --env.DSH_BUILD_FACE client
+corepack pnpm run build:web
+node --import tsx/esm scripts/build.ts --scope check --serial
+```
+
 ## Persistence review still required
 
 With the invalid tag removed, the upstream generator wrote both language catalogs, their
@@ -83,8 +128,7 @@ Refreshing those five records in scratch made the repository-wide check pass for
 The next persistence step is the upstream compatibility review for the envelope change,
 including the full reader behavior and the policy for an invalid stored marker. The tool
 requires an explicit decision if the change keeps the existing writer version. Generated
-persistence files and refreshed pairing records stayed in scratch. The acknowledgement,
-matched artifact build and runtime admission remain pending.
+persistence files and refreshed pairing records stayed in scratch.
 
 ## Reproduce
 
