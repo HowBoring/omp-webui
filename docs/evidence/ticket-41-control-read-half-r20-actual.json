@@ -1,0 +1,179 @@
+{
+  "issue": "https://github.com/HowBoring/omp-webui/issues/41",
+  "case": "control-read-half-fault",
+  "scope": "ONE_CURRENT_C_FIXED_SYNTHETIC_BROKER_AND_FAKE_DISPATCHER_WINDOW",
+  "faultObservation": "CONTROL_READ_HALF_FAULT_PROTECTION_HELD",
+  "disposition": "MANUAL_DRAINED_NOT_PASS",
+  "productAdmission": "BLOCKED",
+  "source": {
+    "productionBaseCommit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
+    "productionBaseTree": "f8ddcf1201fa93f6ea6e9c8cebfa50f0418f0c16",
+    "productionC": {
+      "compatibility/launcher/control.h": {
+        "blob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
+        "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+      },
+      "compatibility/supervision/candidates.h": {
+        "blob": "12637556c77aa1c3cd6fe5722eaa7bba21ee195c",
+        "sha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f"
+      },
+      "compatibility/supervision/external-protector.c": {
+        "blob": "c48a10f7c90d1ff36c6521c33afbb8f0cde89049",
+        "sha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c"
+      },
+      "compatibility/supervision/private-helper.c": {
+        "blob": "6939247d6defa1c80fc4a079dfa9aceb4deefd29",
+        "sha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
+      }
+    },
+    "sameFourProductionCInputsAsR18": true,
+    "r18FixtureBaseCommit": "b38e5a69caf1de8888ef36799740d1f021fafa30",
+    "r18DonorEvidenceCommit": "78b50e6f5440a68f0c3b12b9030bbadf92045dcc",
+    "r18DonorPatch": "ticket-41-current-backpressure-r18-source.patch",
+    "r18DonorPatchSha256": "a1c3e333df3eab2ae31cec67d3765d7a4917e3a113a8cf539dd90bb78e51e15a",
+    "r20Packet": "recovery/r20-current-control-read-half-source",
+    "r20SourcePlanSha256": "cddcf3a0781a80aaaceac7df01f4ad23a8c4f77107b6aa91aa22eb95b10a739e",
+    "r20SourcePatch": "ticket-41-control-read-half-r20-source.patch",
+    "r20SourcePatchSha256": "ced23a1eb48561fb908cb052b7806e14ae68569e5ccf0f29ce2fd8821e863d7e",
+    "r20PacketMemberSha256": {
+      "README.md": "92912292bced6aa87c9868b4fcd201295f9aa7548f7a2a57efcab61d4346dd68",
+      "SHA256SUMS": "14f5f025cf448872221894caed3231ea1736667896d776ed7a9b7963ce0b7027",
+      "SourcePlan.json": "cddcf3a0781a80aaaceac7df01f4ad23a8c4f77107b6aa91aa22eb95b10a739e",
+      "control_read_half_test.py": "1ad1bbc6ac08d30d0013ea69e61ea7838139d26208455b6ed5aedd8a36bd7d8c",
+      "external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
+      "external_backpressure.py": "a9b42ac590861ada41bac1e8949ec0776a2bcce404617ddb482fbe3988ebfa73",
+      "external_backpressure_io.py": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
+      "external_backpressure_policy.py": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
+      "external_backpressure_stage.py": "c612f25cdc14f08193291fa073b99b0cafdb53d8eb831779dc81b0851bd702cc",
+      "startup74-proof.json": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a"
+    },
+    "r20SharedR18SourceLinks": {
+      "external-backpressure-root.c": "../r18-current-backpressure-source-v1/external-backpressure-root.c",
+      "external_backpressure_io.py": "../r18-current-backpressure-source-v1/external_backpressure_io.py",
+      "external_backpressure_policy.py": "../r18-current-backpressure-source-v1/external_backpressure_policy.py",
+      "startup74-proof.json": "../r18-current-backpressure-source-v1/startup74-proof.json"
+    },
+    "r20FocusedPureSourceTestsPassed": 13,
+    "replay": "R18 checksum inventory and all nine R20 checksums verified. All ten R20 entries reproduced, including four exact relative symlink targets."
+  },
+  "window": {
+    "stage": "/tmp/omp-external-control-read-half-r20-20261118",
+    "marker": "external-current-7459e23-control-read-half-r20",
+    "generation": "241932b83a01d7c477c5d9b721c0a76ce71568be88060d1162d0b0c5570bafa0",
+    "installation": "8e20c157d358a1615ed22da356a2e5df32b4d03af5aafd6785e74625006a9b1c",
+    "manifestSha256": "0e0871d0b5a1fc68639b66bc941c17c8e3d76d1618afe667512dffb5a07a8679",
+    "immutableManifestMembersRehashed": 20,
+    "brokerElfSha256": "711f111265066d05e0b656c031d5345e3e61e897a3f3a0ca07b3bdfc4fd3fda0",
+    "protectorElfSha256": "d14eb877b32a0541b1305398fcbd600a4ceb1a8d3b455e67d883ab6288f9e444",
+    "oneUse": "CONSUMED",
+    "originalTty": true,
+    "originalToolChunks": [
+      {
+        "chunk": "fc56ad",
+        "session": 16015
+      },
+      {
+        "chunk": "1e6823",
+        "session": 16015
+      },
+      {
+        "chunk": "897f52",
+        "eof": true,
+        "exitCode": 2
+      }
+    ],
+    "rootReceipts": {
+      "compileAndSeal": "0be392",
+      "beforeStart": "5d01d2",
+      "faultHeldBeforeManual": "cf6a6c",
+      "postPreservation": "860c2b"
+    }
+  },
+  "actual": {
+    "beforeStartOriginalGuardianBindingVerified": true,
+    "beforeStartBusinessMarkerAbsent": true,
+    "naturalRootExit": {
+      "code": 0,
+      "signal": 0
+    },
+    "fillerOnOriginalSocketDuplicate": {
+      "errno": 11,
+      "name": "EAGAIN",
+      "filledBytes": 8128,
+      "writeRequestBytes": 4096,
+      "strictUpperBoundBytes": 1048576
+    },
+    "fakeCompleteAckWrite": "WROTE_BEFORE_SHUT_RD",
+    "owningControlPeerShutdown": "SHUT_RD_RETURNED",
+    "postShutdownProtection": {
+      "samples": 24,
+      "seconds": 0.2501033090229612,
+      "requiredSeconds": 0.25,
+      "budgetSeconds": 5,
+      "fenceBytesUnchanged": true,
+      "exclusiveMaintenanceLockDenied": true,
+      "originalGuardianPidfdLive": true
+    },
+    "holdReason": "CONTROL_READ_HALF_FAULT_HELD",
+    "guardianExactWriteErrno": "UNOBSERVED",
+    "guardianConsumptionOfFakeCompleteAck": "UNOBSERVED",
+    "completeFrameTiming": "UNOBSERVED"
+  },
+  "manual": {
+    "oneSeparatelyAuthorizedOriginalGuardianPidfdSignal": "SIGKILL",
+    "originalGuardianWait": -9,
+    "originalGuardianStdoutAndStderrEOFAndReadersJoined": true,
+    "controllerDirectChildDomain": "ECHILD",
+    "originalControllerWait": 2,
+    "originalControllerStdoutAndStderrEOFAndReadersJoined": true,
+    "outerDirectChildDomain": "ECHILD",
+    "controlPeerEOFUsedAsEvidence": false,
+    "outerBusinessDeadlineSeconds": 20,
+    "businessDeadlineExceeded": true,
+    "holdToManualSignalSeconds": 34.589356,
+    "businessMarkerToOuterFinalSeconds": 34.911234,
+    "failedFenceRetained": true,
+    "failedFenceSha256": "a87ae0093a104d3ec0afde1d63bc357e4df8a1c1b23bee91b5e239af5cae6d6b",
+    "automaticCleanupPass": false
+  },
+  "separateHistoricalWindows": {
+    "r18": {
+      "status": "PASS_DRAINED",
+      "evidence": "ticket-41-current-backpressure-r18-actual.json"
+    },
+    "r19": {
+      "preStartFailure": "ROOT_CONTROL_EOF",
+      "faultObservation": "NOT_RUN",
+      "businessStarted": false,
+      "manualRecovery": "SEPARATE_PRESTART_DISPOSITION",
+      "retainedFenceSha256": "ddb42f954f7aa5817ffefc101cfaeaf7a73dc17f68218d571ee04fa0a783548a",
+      "originalToolFinal": {
+        "chunk": "cfd0bf",
+        "eof": true,
+        "exitCode": 137
+      },
+      "manualSupervisorFinal": {
+        "chunk": "a90dd2",
+        "eof": true,
+        "exitCode": 0
+      },
+      "originalControllerGuardianWait": "UNATTESTED",
+      "guardianPAllECHILD": "UNATTESTED"
+    }
+  },
+  "provenance": {
+    "storeRoot": "/workspace/work/mvp-implementation",
+    "outsideGitSha256": {
+      "recovery/restore18R20Tools.json": "d1a155c016c307bae63977c81332e96e817b45b5856151c84adeb9bd4923d827",
+      "recovery/restore18R19Tools.json": "b70d4ce108916c1b4b9cde8571d614ba4446502d6dae612a9afbe8a33c36a1fb",
+      "recovery/restore18R19RecoveryTools.json": "c8144d655da17475dee6941974eaaf68dd0bb5f25327b79979ff0b706a89c32f",
+      "recovery/r19-prestart-recovery-source/fallback-receipt.jsonl": "f883b779d00ec8b58ca2d33582826f78faf823d4059b688e3e5b41ce9588f226"
+    },
+    "outsideGitStageJournalSha256": {
+      "controller.jsonl": "ad31f5450e448e29c5293d6ff14a4be0dde132c8d3be334a38fd7a46397f1c2e",
+      "used-once.jsonl": "15308b3a3c55c4acd5af7679726f1d38cd03a5ff11d717d893a8c0aad84a90ee",
+      "business-started.jsonl": "9b2245c8cbaea4c0aa95e959dc6d3d759efcdb8c6a6729ad3b63dd0e98567cfe"
+    },
+    "outsideGitR19ControllerJournalSha256": "050952bd601bdf4cd3582885245698af7e898e6b4cc3d2ab87c6043a9b4ecfd9"
+  }
+}
