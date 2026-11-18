@@ -9,6 +9,11 @@
     "bytes": 12929,
     "sha256": "1f82415645b6ee449f9b0799a732c010b940411a700cd52bc8ddb8b66ecdc6d2"
   },
+  "attachmentWorkerSource": {
+    "path": "packages/coding-agent/src/attachments/worker.ts",
+    "bytes": 1107,
+    "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+  },
   "puppeteerPatch": {
     "path": "puppeteer-core.patch",
     "bytes": 39739,
@@ -427,6 +432,11 @@
       "path": "CHANGELOG-dtzqjxwh.md",
       "bytes": 203402,
       "sha256": "a626a12a05a2399ce825ae445b56285a238238c56e690a84f56cb00a27505f70"
+    },
+    {
+      "path": "worker.ts",
+      "bytes": 5158693,
+      "sha256": "d17945e1c0f73bf9417769aaae337ff4472fbd7fb1b0aae0074e294c558feb3c"
     }
   ],
   "schema": {

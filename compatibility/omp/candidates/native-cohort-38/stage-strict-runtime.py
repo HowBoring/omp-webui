@@ -178,6 +178,7 @@ def record(catalog, identity, inputs, catalog_inputs, candidate):
         "registryLockSha256": inputs["lock"]["sha256"],
         "registryTreeSha256": inputs["registry"]["expanded"]["sha256"],
         "guardSha256": candidate["verification"]["guard"]["sha256"],
+        "attachmentWorkerSource": inputs["attachmentWorkerSource"],
         "bundle": inputs["bundleOutputs"],
         "links": {path: str(target) for path, target in stage_paths(catalog).items()},
         "argvTail": ["bundle/omp", "--mode", "rpc-ui", "--strict-start"],
@@ -291,6 +292,8 @@ def main():
         catalog = verify_catalog(args.catalog, args.bun, env)
         if inputs["schema"]["sha256"] != catalog["identity"]["schemaSha256"]:
             raise ValueError("Schema and Catalog identity differ")
+        worker_source = inputs["attachmentWorkerSource"]
+        verify_regular_file(args.catalog / NATIVE / worker_source["path"], worker_source)
         if args.command == "stage":
             result = write_stage(args, inputs, catalog_inputs, candidate, catalog, env)
         else:
