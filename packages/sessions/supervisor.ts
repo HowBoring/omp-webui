@@ -45,19 +45,23 @@ interface NoWorkerDrain {
 }
 
 type OwnedRootExit = Pick<Awaited<OwnedSessionConnection["rootExit"]>, "exitCode" | "signal">;
-interface OwnedWorkerDrain {
-  status: "owned-completed" | "owned-unresolved";
-  code?: never;
+interface OwnedWorkerFacts {
   domain: "pending" | "completed" | "unresolved";
   rootExit?: OwnedRootExit;
+  rootExitUnobserved?: true;
   output?: StdioOutput;
+  outputUnavailable?: true;
+}
+interface OwnedWorkerDrain extends OwnedWorkerFacts {
+  status: "owned-completed" | "owned-unresolved";
+  code?: never;
 }
 
 export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
   uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain | NoWorkerDrain | OwnedWorkerDrain;
   notificationCount: number; tailNotifications: number;
-  /** Some notifications cannot be accounted for because the handle or retained output was unavailable. */
+  /** Notification counts may omit publications before the counter was available or an unobserved output tail. */
   tailNotificationsLowerBound?: true;
 }
 type LaunchResult = { status: "ready"; worker: SupervisedSessionWorker; settledAt: number }
@@ -67,9 +71,8 @@ interface RetainedLaunch {
   connection?: OwnedSessionConnection;
   launchRejected?: boolean;
   fenceRequested?: boolean;
-  domain?: OwnedWorkerDrain["domain"];
-  rootExit?: OwnedRootExit;
-  output?: StdioOutput;
+  facts: OwnedWorkerFacts;
+  report?(): WorkerExit;
 }
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
@@ -217,23 +220,47 @@ export class SessionSupervisor {
   #launchOwned(active: Active, options: OwnedLaunchOptions): Promise<OwnedSessionWorker> {
     const delivery = Promise.withResolvers<OwnedSessionConnection>();
     const retained: RetainedLaunch = {
+      facts: { domain: "pending" },
       observations: delivery.promise.then(async connection => {
         await Promise.all([
-          connection.completed.then(() => { retained.domain = "completed"; }, () => { retained.domain = "unresolved"; })
-            .then(() => this.#ownedLost(active)),
-          connection.output.then(output => { retained.output = output; }, () => {}),
+          connection.completed.then(() => observeDomain("completed"), () => observeDomain("unresolved")),
+          connection.output.then(output => {
+            retained.facts.output = output;
+            retained.report?.();
+          }, () => {
+            retained.facts.outputUnavailable = true;
+            retained.report?.();
+          }),
         ]);
       }, () => {}),
     };
     active.retained = retained;
-    const lose = () => this.#ownedLost(active);
+    const observeExit = () => {
+      if (!active.retired) void this.#stop(active, "worker-lost");
+      retained.report?.();
+    };
+    const observeDomain = (domain: OwnedWorkerFacts["domain"]) => {
+      retained.facts.domain = domain;
+      observeExit();
+    };
     const retain = (connection: OwnedSessionConnection) => {
       retained.connection = connection;
       this.#fenceOwned(active, retained);
-      void connection.rootExit.then(({ exitCode, signal }) => { retained.rootExit = { exitCode, signal }; lose(); }, lose);
+      void connection.rootExit.then(({ exitCode, signal }) => {
+        retained.facts.rootExit = { exitCode, signal };
+        observeExit();
+      }, () => {
+        retained.facts.rootExitUnobserved = true;
+        observeExit();
+      });
       delivery.resolve(connection);
+      retained.report?.();
     };
-    const reject = (error: unknown) => { retained.launchRejected = true; delivery.reject(error); };
+    const reject = (error: unknown) => {
+      retained.launchRejected = true;
+      delivery.reject(error);
+      retained.report?.();
+    };
     ++this.#starts;
     try {
       const connection = options.launchOwned(active.cwd);
@@ -241,9 +268,6 @@ export class SessionSupervisor {
       else void connection.then(retain, reject);
     } catch (error) { reject(error); }
     return delivery.promise.then(connection => connection.ready);
-  }
-  #ownedLost(active: Active): void {
-    if (!active.retired) void this.#stop(active, "worker-lost");
   }
   #fenceOwned(active: Active, retained: RetainedLaunch): void {
     if (retained.fenceRequested || !retained.connection || active.cooperativeDeadline === undefined) return;
@@ -504,32 +528,39 @@ export class SessionSupervisor {
   }
   async #drainOwned(active: Active, retained: RetainedLaunch, reason: string, start: number, deadline: number): Promise<WorkerExit> {
     this.#fenceOwned(active, retained);
-    const published = active.worker?.notificationCount ?? 0;
+    const published = active.worker?.notificationCount;
     active.state = "outcome_unknown";
     const indexFailure = reason === "open-failed" ? active.exitIndexFailure
       : this.#observeExit(active, { state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
-    const finish = () => {
-      const { connection, domain = "pending", output, rootExit } = retained;
+    let entry: WorkerExit | undefined;
+    const report = () => {
+      const { facts, connection } = retained;
+      const { domain, output } = facts;
       active.released = domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true;
       const drain: WorkerExit["drain"] = connection ? {
-        status: active.released ? "owned-completed" : "owned-unresolved", domain,
-        ...(output ? { output } : {}), ...(rootExit ? { rootExit } : {}),
+        status: active.released ? "owned-completed" : "owned-unresolved", ...facts,
       } : {
         status: "unresolved",
         failure: retained.launchRejected ? "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" : "SESSION_WORKER_LAUNCH_UNRESOLVED",
       };
       const tailNotifications = output?.observedTailNotifications ?? 0;
-      return this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, drain,
+      const countIncomplete = published === undefined || output?.stdoutEOF !== true || output.protocolFailure !== undefined;
+      const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, drain,
         nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
-        notificationCount: published + tailNotifications, tailNotifications,
-        ...(output ? {} : { tailNotificationsLowerBound: true }) });
+        notificationCount: (published ?? 0) + tailNotifications, tailNotifications,
+        ...(countIncomplete ? { tailNotificationsLowerBound: true } : {}) };
+      if (!entry) this.#appendExit(exit);
+      else {
+        const index = this.#exits.indexOf(entry);
+        if (index !== -1) this.#exits[index] = exit;
+      }
+      entry = exit;
+      return exit;
     };
-    const observed = await beforeDeadline(retained.observations.then(() => true), deadline + terminationGraceMs);
-    if (!observed) {
-      // A late observation can release this generation even after the Session Index closes.
-      void retained.observations.then(finish);
-    }
-    return finish();
+    // Keep the latest independent facts visible, including those arriving after the Session Index closes.
+    retained.report = report;
+    await beforeDeadline(retained.observations, deadline + terminationGraceMs);
+    return report();
   }
   async #closeWorker(active: Active, worker: SupervisedSessionWorker, policy: DrainPolicy): Promise<DrainResult | UnresolvedWorkerDrain> {
     try {

@@ -131,9 +131,13 @@ cleanup fence once with the original Host-local cutoff, including when the launc
 hands it over after that cutoff. Late readiness cannot start or bind the retired
 generation. The bounded shutdown observation can return with ownership still
 unresolved. Only the same connection's confirmed domain completion and natural
-EOF on both readers release the slot. Root status and validated output tails are
-separate observations. Late completion can release the slot after the Session
-Index closes, with the Session attempt still recorded as outcome unknown.
+EOF on both readers release the slot. Root status, domain status and validated output
+tails are reported as they are observed. Counts remain lower bounds when a published
+counter or observed stdout EOF is unavailable or the transport records a protocol
+failure. Late completion can release the slot
+after the Session Index closes. The retirement records an unknown Session outcome
+because proof of ownership release does not establish Native settlement or the
+physical shutdown policy.
 
 Owned idle Switch and New remain unavailable while an owned generation occupies
 the slot. Production registration, the helper's absolute deadline handoff and

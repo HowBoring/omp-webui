@@ -670,7 +670,7 @@ test("a connection delivered after the shutdown observation is fenced with the o
   }
 });
 
-test.each(["incomplete EOF", "failed domain"] as const)("an owned launch with %s keeps the retired slot", async outcome => {
+test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an owned launch with %s keeps the retired slot", async outcome => {
   const owned = pendingOwnedConnection();
   const f = await sourceFixture(Date.now, () => owned.connection);
   const opening = f.supervisor.open(f.identity, f.selected);
@@ -680,18 +680,21 @@ test.each(["incomplete EOF", "failed domain"] as const)("an owned launch with %s
     owned.ready.reject(new Error("RPC_STARTUP_FAILED"));
     await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
     const rootExit = { kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 0 } as const;
-    owned.rootExit.resolve(rootExit);
+    if (outcome === "failed output") owned.rootExit.reject(new Error("PRIVATE_ROOT_EXIT_UNOBSERVED"));
+    else owned.rootExit.resolve(rootExit);
     if (outcome === "failed domain") owned.completed.reject(new Error("PRIVATE_DOMAIN_UNRESOLVED"));
     else owned.completed.resolve();
     const output = { stdoutEOF: true, stderrEOF: outcome === "failed domain", stderrBytes: 0, observedTailNotifications: 0 };
-    owned.output.resolve(output);
+    if (outcome === "failed output") owned.output.reject(new Error("RPC_PIPE_ATTACH_FAILED"));
+    else owned.output.resolve(output);
     await new Promise<void>(resolve => setImmediate(resolve));
     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
     expect(f.supervisor.starts).toBe(1);
     expect(f.supervisor.hasOwnedReservation).toBe(true);
     expect(f.supervisor.exits()).toMatchObject([{ reason: "open-failed", drain: {
       status: "owned-unresolved", domain: outcome === "failed domain" ? "unresolved" : "completed",
-      rootExit: { exitCode: 0, signal: 0 }, output,
+      ...(outcome === "failed output" ? { rootExitUnobserved: true, outputUnavailable: true }
+        : { rootExit: { exitCode: 0, signal: 0 }, output }),
     } }]);
   } finally {
     owned.ready.reject(new Error("RPC_SESSION_RETIRED"));

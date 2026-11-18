@@ -47,7 +47,7 @@ class SessionNotifications {
   publish(value: object): void {
     if (this.#retired) return;
     const frame = frameSchema.parse(value);
-    ++this.count;
+    if (frame.type !== "ready") ++this.count;
     if (this.subscribers.size === 0) {
       this.#bufferedBytes += Buffer.byteLength(JSON.stringify(frame));
       if (this.frames.length >= 32 || this.#bufferedBytes > 262_144) throw new Error("SESSION_STARTUP_BUFFER_LIMIT");
@@ -100,10 +100,10 @@ class SessionRpc {
   readonly #initialCount: number;
 
   constructor(private readonly core: Pick<BoundedStdioTransport, "request">,
-    private readonly notifications: SessionNotifications, options: SessionOptions) {
+    private readonly notifications: SessionNotifications, options: SessionOptions, initialCount = notifications.count) {
     const startTimeoutMs = options.startTimeoutMs ?? 30 * 60_000;
     this.frames = notifications.frames;
-    this.#initialCount = notifications.count;
+    this.#initialCount = initialCount;
     this.startup = new StrictStartClient(command => core.request(command,
       command.type === "strict_start" ? startTimeoutMs : undefined), (value): value is StrictStartState => strictState(value));
     this.history = new HistoryClient(command => core.request(command));
@@ -211,7 +211,8 @@ export class SessionWorker extends SessionRpc {
       let interactions: InteractionBridge | undefined;
       let retireInteractions: ((bridge: InteractionBridge) => void) | undefined;
       const ready = transport.ready.then(core => {
-        const session = new SessionRpc(core, notifications, options);
+        // Count valid notifications published on the retained pipes during negotiation as well.
+        const session = new SessionRpc(core, notifications, options, 0);
         const bridge = new InteractionBridge({
           frames: session.frames,
           subscribe: listener => notifications.observeInteractions(listener),

@@ -188,7 +188,7 @@ test("a retired generation receiving its connection late reports a lower bound f
   }
 });
 
-test("owned exit reports published startup and live notifications alongside the validated tail", async () => {
+test.each([true, false])("owned exit counts startup, live and tail notifications with clean framing=%s", async clean => {
   const peer = ownedPeer();
   const connection = SessionWorker.attachOwned(peer.helper);
   const f = await sourceFixture(Date.now, () => connection);
@@ -218,6 +218,7 @@ test("owned exit reports published startup and live notifications alongside the 
 
     const shutdown = f.supervisor.close();
     peer.stdout.send({ type: "session_settled" });
+    if (!clean) peer.stdout.send({ type: "synthetic_invalid" }, { type: "session_settled" });
     peer.rootExit();
     peer.complete();
     closeOutputs();
@@ -225,7 +226,7 @@ test("owned exit reports published startup and live notifications alongside the 
     await shutdown;
     const exit = f.supervisor.exits()[0];
     expect(exit).toMatchObject({ notificationCount: 3, tailNotifications: 1, drain: { status: "owned-completed" } });
-    expect(exit?.tailNotificationsLowerBound).toBeUndefined();
+    expect(exit?.tailNotificationsLowerBound).toBe(clean ? undefined : true);
   } finally {
     closeOutputs();
     peer.helper.disconnectControl();
