@@ -6,6 +6,7 @@ import { SessionWorker } from "../../packages/compatibility/session-worker.ts";
 import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
 import type { ReadyEvent } from "../../packages/contracts/preflight.ts";
 import { PrivateHelperController } from "../../packages/supervision/controller.ts";
+import { sourceFixture } from "./source-fixture.ts";
 
 const generation = "a".repeat(64);
 const ready: ReadyEvent = {
@@ -119,6 +120,50 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   peer.respond(await negotiating, { protocolVersion: 2 });
   return connected.ready;
 }
+
+test("the supervisor never starts a retired owned generation when readiness arrives late", async () => {
+  const peer = ownedPeer();
+  const connection = SessionWorker.attachOwned(peer.helper);
+  const delivered = Promise.withResolvers<void>();
+  const readiness = Promise.withResolvers<Awaited<typeof connection.ready>>();
+  const owned = { ...connection, ready: readiness.promise };
+  const fence = spyOn(owned, "beginCleanup");
+  const f = await sourceFixture(Date.now, () => { delivered.resolve(); return owned; });
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  let closeOutputs = () => { peer.stdout.close(); peer.stderr.close(); };
+  const clock = spyOn(performance, "now").mockReturnValue(1_000);
+  try {
+    await delivered.promise;
+    const readySession = await negotiate(peer, connection);
+    const shutdown = f.supervisor.close(), revocation = f.supervisor.revokeAll();
+    expect(fence).toHaveBeenCalledTimes(1);
+    expect(fence).toHaveBeenCalledWith(31_000);
+    readiness.resolve(readySession);
+    await expect(opening).rejects.toThrow("SESSION_HOST_CLOSING");
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol"]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
+
+    peer.rootExit();
+    peer.complete();
+    closeOutputs();
+    closeOutputs = () => {};
+    await Promise.all([shutdown, revocation]);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect(f.supervisor.starts).toBe(1);
+  } finally {
+    clock.mockRestore();
+    readiness.reject(new Error("RPC_STARTUP_FAILED"));
+    closeOutputs();
+    peer.helper.disconnectControl();
+    peer.reap(0);
+    await opening.catch(() => {});
+    await f.close();
+  }
+});
 
 test("owned Interaction tracking preserves notification replay until a Session subscriber attaches", async () => {
   const peer = ownedPeer();

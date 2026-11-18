@@ -7,18 +7,28 @@ import type { CatalogDescriptor, StrictStartState, SessionState } from "../contr
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
-import type { SessionWorker } from "../compatibility/session-worker.ts";
-import type { DrainPolicy, DrainResult } from "../compatibility/stdio-transport.ts";
+import type { OwnedSessionConnection, SessionWorker } from "../compatibility/session-worker.ts";
+import type { DrainPolicy, DrainResult, StdioOutput } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
 import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./index.ts";
 
 /** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
 export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
-interface Options {
-  authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; catalog: CatalogClient;
+type OwnedSessionWorker = Awaited<OwnedSessionConnection["ready"]>;
+type OwnedLauncher = (cwd: string) => OwnedSessionConnection | Promise<OwnedSessionConnection>;
+interface DirectLaunchOptions {
   launch(cwd: string): Promise<SupervisedSessionWorker>;
+  launchOwned?: never;
 }
+interface OwnedLaunchOptions {
+  launch?: never;
+  /** Trusted source seam. Return the original connection as soon as it exists, before waiting for readiness. */
+  launchOwned: OwnedLauncher;
+}
+type Options = {
+  authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; catalog: CatalogClient;
+} & (DirectLaunchOptions | OwnedLaunchOptions);
 export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
   state: "opening" | "open" | "outcome_unknown" | "closed";
@@ -34,18 +44,37 @@ interface NoWorkerDrain {
   code?: never;
 }
 
+type OwnedRootExit = Pick<Awaited<OwnedSessionConnection["rootExit"]>, "exitCode" | "signal">;
+interface OwnedWorkerDrain {
+  status: "owned-completed" | "owned-unresolved";
+  code?: never;
+  domain: "pending" | "completed" | "unresolved";
+  rootExit?: OwnedRootExit;
+  output?: StdioOutput;
+}
+
 export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
-  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain | NoWorkerDrain;
+  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain | NoWorkerDrain | OwnedWorkerDrain;
   notificationCount: number; tailNotifications: number;
-  /** The handle was unavailable at Stop, so its counter cannot account for pre-handle notifications. */
+  /** Some notifications cannot be accounted for because the handle or retained output was unavailable. */
   tailNotificationsLowerBound?: true;
 }
 type LaunchResult = { status: "ready"; worker: SupervisedSessionWorker; settledAt: number }
   | { status: "rejected"; error: unknown; settledAt: number };
+interface RetainedLaunch {
+  observations: Promise<void>;
+  connection?: OwnedSessionConnection;
+  launchRejected?: boolean;
+  fenceRequested?: boolean;
+  domain?: OwnedWorkerDrain["domain"];
+  rootExit?: OwnedRootExit;
+  output?: StdioOutput;
+}
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
-  opening: Promise<void>; launching?: Promise<LaunchResult>; worker?: SupervisedSessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
+  opening: Promise<void>; launching?: Promise<LaunchResult>; retained?: RetainedLaunch; state: SessionView["state"];
+  worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal;
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
@@ -172,7 +201,7 @@ export class SessionSupervisor {
     this.#active = active; active.opening = this.#perform(identity, active, "new");
     await active.opening; this.#current(identity, active); return this.#view(active);
   }
-  #launch(active: Active): Promise<LaunchResult> {
+  #launch(active: Active, options: DirectLaunchOptions): Promise<LaunchResult> {
     const owned = Promise.withResolvers<SupervisedSessionWorker>();
     const launch = owned.promise.then<LaunchResult, LaunchResult>(
       worker => ({ status: "ready", worker, settledAt: performance.now() }),
@@ -181,9 +210,46 @@ export class SessionSupervisor {
     // Reserve the pending outcome before the adapter can throw or re-enter shutdown.
     active.launching = launch;
     ++this.#starts;
-    try { owned.resolve(this.options.launch(active.cwd)); }
+    try { owned.resolve(options.launch(active.cwd)); }
     catch (error) { owned.reject(error); }
     return launch;
+  }
+  #launchOwned(active: Active, options: OwnedLaunchOptions): Promise<OwnedSessionWorker> {
+    const delivery = Promise.withResolvers<OwnedSessionConnection>();
+    const retained: RetainedLaunch = {
+      observations: delivery.promise.then(async connection => {
+        await Promise.all([
+          connection.completed.then(() => { retained.domain = "completed"; }, () => { retained.domain = "unresolved"; })
+            .then(() => this.#ownedLost(active)),
+          connection.output.then(output => { retained.output = output; }, () => {}),
+        ]);
+      }, () => {}),
+    };
+    active.retained = retained;
+    const lose = () => this.#ownedLost(active);
+    const retain = (connection: OwnedSessionConnection) => {
+      retained.connection = connection;
+      this.#fenceOwned(active, retained);
+      void connection.rootExit.then(({ exitCode, signal }) => { retained.rootExit = { exitCode, signal }; lose(); }, lose);
+      delivery.resolve(connection);
+    };
+    const reject = (error: unknown) => { retained.launchRejected = true; delivery.reject(error); };
+    ++this.#starts;
+    try {
+      const connection = options.launchOwned(active.cwd);
+      if ("ready" in connection) retain(connection);
+      else void connection.then(retain, reject);
+    } catch (error) { reject(error); }
+    return delivery.promise.then(connection => connection.ready);
+  }
+  #ownedLost(active: Active): void {
+    if (!active.retired) void this.#stop(active, "worker-lost");
+  }
+  #fenceOwned(active: Active, retained: RetainedLaunch): void {
+    if (retained.fenceRequested || !retained.connection || active.cooperativeDeadline === undefined) return;
+    retained.fenceRequested = true;
+    try { retained.connection.beginCleanup(active.cooperativeDeadline); }
+    catch { /* Keep observing this connection if the local cleanup port fails. */ }
   }
   async #perform(identity: BrowserAccess, active: Active, intent: "continue" | "new"): Promise<void> {
     const record = active.record;
@@ -201,31 +267,50 @@ export class SessionSupervisor {
         active.selected = described.item;
       }
       this.#current(identity, active);
-      launch = await this.#launch(active);
-      if (launch.status === "rejected") throw launch.error;
-      const { worker } = launch;
-      active.worker = worker;
-      delete active.launching;
-      if (launch.settledAt < (active.cooperativeDeadline ?? Infinity)) active.bridge = new InteractionBridge(worker);
-      void worker.exited.then(code => this.#workerExited(active, worker, code)).catch(() => {});
-      this.#current(identity, active); active.startupAttempted = true;
+      let worker: SupervisedSessionWorker | OwnedSessionWorker;
+      if (this.options.launchOwned) {
+        const owned = await this.#launchOwned(active, this.options);
+        this.#current(identity, active);
+        worker = active.worker = owned;
+        active.bridge = owned.interactions;
+      } else {
+        launch = await this.#launch(active, this.options);
+        if (launch.status === "rejected") throw launch.error;
+        const direct = launch.worker;
+        worker = active.worker = direct;
+        delete active.launching;
+        if (launch.settledAt < (active.cooperativeDeadline ?? Infinity)) active.bridge = new InteractionBridge(direct);
+        void direct.exited.then(code => this.#workerExited(active, direct, code)).catch(() => {});
+        this.#current(identity, active);
+      }
+      active.startupAttempted = true;
       const result = await worker.startup.start({ intent, expectedCwd: active.cwd,
         ...(active.selected ? { reference: active.selected.reference } : {}) });
       this.#ownedCurrent(active); this.#accept(active, result);
     } catch (error) {
       const failure = sessionFailureCode(error);
+      if (active.retained && active.retired) {
+        throw new Error(active.startupAttempted ? "SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN" : failure);
+      }
       // The original shutdown owns cleanup and the last durable observation after the launch deadline.
       if (launch && launch.settledAt >= (active.cooperativeDeadline ?? Infinity)) throw new Error(failure);
       const code = active.startupAttempted && (active.retired || ["SESSION_HOST_CLOSING", "SESSION_DIRECTORY_DENIED",
         "SESSION_CWD_CHANGED", "SESSION_MANUAL_OPEN_REQUIRED"].includes(failure)) ? "SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN" : failure;
       active.state = "outcome_unknown";
-      const unknown = launch?.status === "rejected" || code.startsWith("RPC_") || code.includes("UNKNOWN") || code.includes("LOST");
+      const unknown = (active.retained !== undefined && !active.worker) || launch?.status === "rejected"
+        || code.startsWith("RPC_") || code.includes("UNKNOWN") || code.includes("LOST");
       let recorded = true;
       try {
         this.#observe(active, { state: unknown ? "outcome_unknown" : "failed", code });
-      } catch { recorded = false; }
-      // An uncertain result is observed manually, never retried. A definite refusal releases only our worker.
-      if (!active.worker || !unknown || active.retired) await this.#stop(active, "open-failed");
+      } catch {
+        recorded = false;
+        if (active.retained) active.exitIndexFailure = "SESSION_ATTEMPT_UNAVAILABLE";
+      }
+      // A surviving worker with an uncertain result remains available for manual observation.
+      if (!active.worker || !unknown || active.retired) {
+        const stopping = this.#stop(active, "open-failed");
+        if (!active.retained) await stopping;
+      }
       throw new Error(recorded ? code : "SESSION_ATTEMPT_UNAVAILABLE");
     }
   }
@@ -309,7 +394,9 @@ export class SessionSupervisor {
   async #prepareRetirement(identity: BrowserAccess, reason: string): Promise<void> {
     const active = this.#active; if (!active || active.released) return;
     if (active.exited) throw new Error("SESSION_WORKER_DRAINING");
-    if (active.retired || !active.worker || active.state !== "open") throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    if (active.retained || active.retired || !active.worker || !("retireIdle" in active.worker) || active.state !== "open") {
+      throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    }
     this.#current(identity, active);
     const state = await active.worker.state(); this.#current(identity, active);
     if (!nativeSettled(state) || active.bridge?.snapshot().pending.length) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
@@ -326,7 +413,8 @@ export class SessionSupervisor {
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
     active.exited = true; active.released = observedEOF(drain);
-    active.state = active.released ? "closed" : "outcome_unknown"; active.bridge?.dispose();
+    active.state = active.released ? "closed" : "outcome_unknown";
+    if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const clean = cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
@@ -388,11 +476,22 @@ export class SessionSupervisor {
   }
   #stop(active: Active, reason: string): Promise<WorkerExit> {
     active.retired = true;
-    return active.stopping ??= this.#drain(active, reason);
+    if (!active.stopping) {
+      const stopping = Promise.withResolvers<WorkerExit>();
+      active.stopping = stopping.promise;
+      stopping.resolve(this.#drain(active, reason));
+    }
+    return active.stopping;
   }
   async #drain(active: Active, reason: string): Promise<WorkerExit> {
     const start = performance.now(), deadline = start + 30_000;
-    if (active.worker) return this.#drainWorker(active, active.worker, reason, start, deadline, active.worker.notificationCount);
+    if (active.retained) {
+      active.cooperativeDeadline = deadline;
+      return this.#drainOwned(active, active.retained, reason, start, deadline);
+    }
+    if (active.worker && "close" in active.worker) {
+      return this.#drainWorker(active, active.worker, reason, start, deadline, active.worker.notificationCount);
+    }
     if (active.launching) {
       active.cooperativeDeadline = deadline;
       return this.#drainStarting(active, active.launching, reason, start, deadline);
@@ -402,6 +501,35 @@ export class SessionSupervisor {
     return this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start,
       nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, drain: { status: "not-launched" },
       notificationCount: 0, tailNotifications: 0 });
+  }
+  async #drainOwned(active: Active, retained: RetainedLaunch, reason: string, start: number, deadline: number): Promise<WorkerExit> {
+    this.#fenceOwned(active, retained);
+    const published = active.worker?.notificationCount ?? 0;
+    active.state = "outcome_unknown";
+    const indexFailure = reason === "open-failed" ? active.exitIndexFailure
+      : this.#observeExit(active, { state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
+    const finish = () => {
+      const { connection, domain = "pending", output, rootExit } = retained;
+      active.released = domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true;
+      const drain: WorkerExit["drain"] = connection ? {
+        status: active.released ? "owned-completed" : "owned-unresolved", domain,
+        ...(output ? { output } : {}), ...(rootExit ? { rootExit } : {}),
+      } : {
+        status: "unresolved",
+        failure: retained.launchRejected ? "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" : "SESSION_WORKER_LAUNCH_UNRESOLVED",
+      };
+      const tailNotifications = output?.observedTailNotifications ?? 0;
+      return this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, drain,
+        nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
+        notificationCount: published + tailNotifications, tailNotifications,
+        ...(output ? {} : { tailNotificationsLowerBound: true }) });
+    };
+    const observed = await beforeDeadline(retained.observations.then(() => true), deadline + terminationGraceMs);
+    if (!observed) {
+      // A late observation can release this generation even after the Session Index closes.
+      void retained.observations.then(finish);
+    }
+    return finish();
   }
   async #closeWorker(active: Active, worker: SupervisedSessionWorker, policy: DrainPolicy): Promise<DrainResult | UnresolvedWorkerDrain> {
     try {
@@ -434,7 +562,7 @@ export class SessionSupervisor {
     const ui = active.bridge?.snapshot();
     uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
-    active.bridge?.dispose();
+    if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const now = performance.now();
     const drain = await this.#closeWorker(active, worker, { cooperativeMs: alreadyExited ? 0 : Math.max(0, deadline - now),
       terminationGraceMs: remainingTerminationGrace(deadline + terminationGraceMs, now), readerGraceMs });
