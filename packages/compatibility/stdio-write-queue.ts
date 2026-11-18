@@ -20,8 +20,8 @@ export class StdioWriteQueue {
     const write = this.#tail.then(async () => {
       try {
         if (!active()) return;
-        this.sink.write(line);
-        await this.sink.flush();
+        const written = this.sink.write(line);
+        await Promise.all([written, Promise.try(() => this.sink.flush())]);
       } finally { this.#writes--; this.#bytes -= bytes; }
     });
     // Observe failures immediately and keep later slots releasable even after a failed predecessor.

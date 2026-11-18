@@ -58,6 +58,27 @@ workflow, complemented by public native RPC/TUI and deterministic boundary fault
 plus controlled clocks for long expiry boundaries. Test fixtures are synthetic,
 use an egress guard before native imports, and never use a real provider.
 
+## Retained helper RPC attachment
+
+Trusted Host code can attach the fixed Session RPC client to an existing
+`PrivateHelperHandle` with `SessionWorker.attachOwned`. The caller keeps the original
+handle and its cleanup authority. The attachment gives immediate access to the
+original root exit and domain completion promises and to a separate output observation.
+The ready promise resolves after authenticated helper HELLO and public v2 negotiation
+on the retained Native pipes. A failed HELLO, negotiation or pipe attachment preserves
+the caller's access to those original lifecycle promises.
+
+Root exit and control loss fence RPC requests and queued writes. The readers still
+check post-exit frames and report actual EOF on each pipe. A malformed stdout frame
+records a protocol failure while subsequent bytes drain without publication. A reader
+failure can leave its EOF unobserved. Domain completion comes from the helper's
+validated COMPLETE, control EOF and reap.
+
+SessionSupervisor still needs an owned launch path that saves the handle before
+awaiting RPC readiness, reserves its slot through uncertain domain completion, and
+hands mandatory cleanup to the helper's absolute deadline. This attachment is covered
+with in-memory streams and leaves product admission blocked.
+
 ## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)
 
 **BLOCKED / not attested:** exercise a genuine native tool and a native subagent
