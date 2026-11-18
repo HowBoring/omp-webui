@@ -29,6 +29,14 @@ The [catalog runtime recipe](catalog-runtime.md) stages the exact Linux x64 depe
 read-only catalog exchange against a synthetic Session. The [StrictStart runtime recipe](strict-runtime.md) builds
 a separate staged launcher from the same source and records an ordinary synthetic Session continuation.
 
+The attachment records cover [format preparation](attachment-formats-runtime.md),
+[consent and delivery](attachment-consent-runtime.md),
+[original budgets and mixed preparation failure](attachment-budgets-runtime.md), and
+[elapsed receipt expiry](attachment-expiry-runtime.md). The submission records include
+[lost acknowledgement recovery](submission-loss-runtime.md) and
+[write refusal before reservation](submission-write-refusal-runtime.md). The isolated
+[Linux Chromium record](session-chromium-runtime.md) covers authenticated Session opening and warm refresh.
+
 ## Admission boundary
 
 The candidate is unregistered. The active patch order, Host contracts and admission gates remain in force. The full runtime dependency and release build, external ownership composition, global launcher and platform closure, busy worker shutdown and TUI compatibility, and paired DSH acceptance are pending for the [candidate admission ticket](https://github.com/HowBoring/omp-webui/issues/41). Branch creation and destination publication remain part of the [durable branch ticket](https://github.com/HowBoring/omp-webui/issues/52).
