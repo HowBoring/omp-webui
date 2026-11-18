@@ -17,7 +17,7 @@ import type { SessionWorkerFrame } from "../../packages/compatibility/session-wo
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
-  drain: DrainResult; retirement: GracefulDrainResult | undefined;
+  drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
 
 export async function sourceFixture(now: () => number = Date.now) {

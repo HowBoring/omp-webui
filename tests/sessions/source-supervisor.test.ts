@@ -62,7 +62,7 @@ test("a lost worker fences its view and keeps the slot until both owned readers 
   } finally { completion.resolve(drain); await f.close(); }
 });
 
-test.each(["incomplete", "rejected"])("a lost worker remains owned after a %s drain", async outcome => {
+test.each(["incomplete", "rejected"])("a lost worker remains owned when its drain is %s", async outcome => {
   const f = await sourceFixture();
   const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
   const drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: false };
@@ -77,6 +77,9 @@ test.each(["incomplete", "rejected"])("a lost worker remains owned after a %s dr
     await completion.promise.catch(() => {});
     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
     expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.exits()[0]?.drain).toEqual(outcome === "rejected"
+      ? { status: "unresolved", code: 0, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" }
+      : drain);
 
     f.controls.drain = { ...drain, stderrEOF: true };
     await f.supervisor.close();
@@ -84,6 +87,39 @@ test.each(["incomplete", "rejected"])("a lost worker remains owned after a %s dr
       workerId: opened.workerId, reason: "host-shutdown", drain: f.controls.drain,
     });
   } finally { completion.resolve(drain); await f.close(); }
+});
+
+test("mandatory shutdown retains the root exit's failed index observation during passive drain", async () => {
+  const f = await sourceFixture();
+  const retirement = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").GracefulDrainResult>();
+  const drain = { code: 7, forced: false, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
+  f.controls.retirement = retirement.promise;
+  f.controls.drain = drain;
+  let replaced = false;
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await rename(f.dataDir, f.dataDir + ".original"); replaced = true; await mkdir(f.dataDir);
+    await f.exitWorker(drain.code);
+    await rm(f.dataDir, { recursive: true }); await rename(f.dataDir + ".original", f.dataDir); replaced = false;
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "open" });
+
+    const shutdown = f.supervisor.close();
+    retirement.reject(new Error("SYNTHETIC_RETIREMENT_FAILED"));
+    await retirement.promise.catch(() => {});
+    await shutdown;
+    const exits = f.supervisor.exits();
+    const mandatory = exits.find(exit => exit.reason === "host-shutdown");
+    expect(mandatory).toMatchObject({ workerId: opened.workerId, indexFailure: "SESSION_ATTEMPT_UNAVAILABLE", drain });
+    const passive = exits.find(exit => exit.reason === "worker-lost");
+    expect(passive).toMatchObject({ workerId: opened.workerId, indexFailure: "SESSION_ATTEMPT_UNAVAILABLE" });
+    expect(passive?.drain).toEqual({ status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" });
+    expect(exits).toHaveLength(2);
+    expect(f.index.get(opened.registration.id)?.attempt.state).toBe("outcome_unknown");
+  } finally {
+    retirement.resolve({ status: "closed", drain });
+    if (replaced) { await rm(f.dataDir, { recursive: true, force: true }); await rename(f.dataDir + ".original", f.dataDir); }
+    await f.close();
+  }
 });
 
 test("zero exit with a failed final protocol tail persists an unknown shutdown outcome", async () => {

@@ -23,9 +23,15 @@ export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
   state: "opening" | "open" | "outcome_unknown" | "closed";
 }
+interface UnresolvedWorkerDrain {
+  status: "unresolved";
+  code: number;
+  failure: "SESSION_WORKER_DRAIN_UNAVAILABLE";
+}
+
 export interface WorkerExit {
   workerId: string; reason: string; elapsedMs: number; nativeSettled: boolean; queuedInputsWithdrawn: boolean;
-  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult;
+  uiCancelled: boolean; indexFailure?: "SESSION_ATTEMPT_UNAVAILABLE"; drain: DrainResult | UnresolvedWorkerDrain;
   notificationCount: number; tailNotifications: number;
 }
 interface Active {
@@ -33,6 +39,7 @@ interface Active {
   opening: Promise<void>; launching?: Promise<SupervisedSessionWorker>; worker?: SupervisedSessionWorker; bridge?: InteractionBridge; state: SessionView["state"];
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal;
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
+  exitIndexFailure?: WorkerExit["indexFailure"];
 }
 const directoryIdentity = (cwd: string): string => {
   try {
@@ -81,6 +88,10 @@ export class SessionSupervisor {
   }
   get starts(): number { return this.#starts; }
   exits(): WorkerExit[] { return structuredClone(this.#exits); }
+  #appendExit(exit: WorkerExit): void {
+    this.#exits.push(exit);
+    if (this.#exits.length > 32) this.#exits.shift();
+  }
   #observe(active: Active, attempt: SessionAttempt): void {
     if (!active.record) return;
     const observed = this.options.index.observeCurrent(active.record, attempt);
@@ -155,7 +166,7 @@ export class SessionSupervisor {
       const worker = await active.launching;
       active.worker = worker;
       active.bridge = new InteractionBridge(worker);
-      void worker.exited.then(() => this.#workerExited(active, worker)).catch(() => {});
+      void worker.exited.then(code => this.#workerExited(active, worker, code)).catch(() => {});
       this.#current(identity, active); active.startupAttempted = true;
       const result = await worker.startup.start({ intent, expectedCwd: active.cwd,
         ...(active.selected ? { reference: active.selected.reference } : {}) });
@@ -175,7 +186,7 @@ export class SessionSupervisor {
       throw new Error(recorded ? code : "SESSION_ATTEMPT_UNAVAILABLE");
     }
   }
-  async #workerExited(active: Active, worker: SupervisedSessionWorker): Promise<void> {
+  async #workerExited(active: Active, worker: SupervisedSessionWorker, code: number): Promise<void> {
     active.exited = true;
     if (active.retired) return;
     active.state = "outcome_unknown";
@@ -183,15 +194,20 @@ export class SessionSupervisor {
     const indexFailure = this.#observeExit(active, {
       state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
     });
+    if (indexFailure) active.exitIndexFailure = indexFailure;
     // Root exit fences the generation immediately. Keep the slot until the same handle's readers finish.
-    const retired = await worker.retireIdle(0);
-    const drain = retired.status === "pending" ? await retired.completion : retired.drain;
-    if (active.stopping) return;
-    active.released = observedEOF(drain);
-    this.#exits.push({ workerId: active.id, reason: "worker-lost", elapsedMs: performance.now() - start,
+    let drain: WorkerExit["drain"];
+    try {
+      const retired = await worker.retireIdle(0);
+      drain = retired.status === "pending" ? await retired.completion : retired.drain;
+      if (active.stopping) return;
+      active.released = observedEOF(drain);
+    } catch {
+      drain = { status: "unresolved", code, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
+    }
+    this.#appendExit({ workerId: active.id, reason: "worker-lost", elapsedMs: performance.now() - start,
       nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
       drain, notificationCount: worker.notificationCount, tailNotifications: Math.max(0, worker.notificationCount - atExit) });
-    if (this.#exits.length > 32) this.#exits.shift();
   }
   #accept(active: Active, result: StrictStartState, explicitAttempt?: RegisteredSession): void {
     if (result.phase !== "open") {
@@ -269,11 +285,10 @@ export class SessionSupervisor {
     const clean = cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
-    this.#exits.push({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
+    this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
       queuedInputsWithdrawn: false, uiCancelled: true, ...(indexFailure ? { indexFailure } : {}),
       drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) });
-    if (this.#exits.length > 32) this.#exits.shift();
   }
   assertObjectAccess(identity: BrowserAccess): void {
     this.#browser(identity); const active = this.#active;
@@ -362,10 +377,11 @@ export class SessionSupervisor {
     active.state = "closed";
     const clean = !alreadyExited && cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
-      ...(clean ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true);
+      ...(clean ? {} : { code: "SESSION_EXIT_OUTCOME_UNKNOWN" }) }, true) ?? active.exitIndexFailure;
     const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: settled,
       queuedInputsWithdrawn, uiCancelled, ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: active.worker?.notificationCount ?? 0,
       tailNotifications: Math.max(0, (active.worker?.notificationCount ?? 0) - notificationsAtStop) };
-    this.#exits.push(exit); if (this.#exits.length > 32) this.#exits.shift(); return exit;
+    this.#appendExit(exit);
+    return exit;
   }
 }
