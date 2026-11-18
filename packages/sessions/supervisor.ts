@@ -7,7 +7,7 @@ import type { CatalogDescriptor, StrictStartState, SessionState } from "../contr
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
-import type { OwnedSessionConnection, SessionWorker } from "../compatibility/session-worker.ts";
+import type { OwnedSessionCleanup, OwnedSessionConnection, SessionWorker } from "../compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult, StdioOutput } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
@@ -66,12 +66,14 @@ export interface WorkerExit {
 }
 type LaunchResult = { status: "ready"; worker: SupervisedSessionWorker; settledAt: number }
   | { status: "rejected"; error: unknown; settledAt: number };
+type OwnedCleanupFacts = Pick<WorkerExit, "nativeSettled" | "queuedInputsWithdrawn" | "uiCancelled">;
 interface RetainedLaunch {
   observations: Promise<void>;
   connection?: OwnedSessionConnection;
   launchRejected?: boolean;
   fenceRequested?: boolean;
   facts: OwnedWorkerFacts;
+  cleanupFacts: OwnedCleanupFacts;
   report?(): WorkerExit;
 }
 interface Active {
@@ -221,6 +223,7 @@ export class SessionSupervisor {
     const delivery = Promise.withResolvers<OwnedSessionConnection>();
     const retained: RetainedLaunch = {
       facts: { domain: "pending" },
+      cleanupFacts: { nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false },
       observations: delivery.promise.then(async connection => {
         await Promise.all([
           connection.completed.then(() => observeDomain("completed"), () => observeDomain("unresolved")),
@@ -270,10 +273,38 @@ export class SessionSupervisor {
     return delivery.promise.then(connection => connection.ready);
   }
   #fenceOwned(active: Active, retained: RetainedLaunch): void {
-    if (retained.fenceRequested || !retained.connection || active.cooperativeDeadline === undefined) return;
+    const { connection } = retained;
+    if (retained.fenceRequested || !connection || active.cooperativeDeadline === undefined) return;
     retained.fenceRequested = true;
-    try { retained.connection.beginCleanup(active.cooperativeDeadline); }
-    catch { /* Keep observing this connection if the local cleanup port fails. */ }
+    let cleanup: OwnedSessionCleanup | undefined;
+    try { cleanup = connection.beginCleanup(active.cooperativeDeadline); }
+    catch { return; } // Keep observing ownership if the cleanup port fails.
+    if (!cleanup) return;
+    void connection.interactionCleanup.then(outcomes => {
+      if (outcomes.every(({ status }) => status === "cancelled" || status === "expired")) {
+        retained.cleanupFacts.uiCancelled = true;
+        retained.report?.();
+      }
+    }, () => {});
+    if (active.state === "open" && active.record) {
+      void this.#cleanupOwnedSession(retained, cleanup, active.record.nativeSessionId).catch(() => {});
+    } else if (active.startupAttempted) {
+      // The strict startup reader only accepts strict commands before handoff.
+      void cleanup.cancelStrictStart().catch(() => {});
+    }
+  }
+  async #cleanupOwnedSession(retained: RetainedLaunch, cleanup: OwnedSessionCleanup, sessionId: string): Promise<void> {
+    await Promise.allSettled([cleanup.abortBranchSummary(), cleanup.abortRetry(), cleanup.abortBash(),
+      cleanup.abortAndRestoreQueue().then(() => {
+        retained.cleanupFacts.queuedInputsWithdrawn = true;
+        retained.report?.();
+      }),
+    ]);
+    const state = await cleanup.state();
+    if (state.sessionId === sessionId && nativeSettled(state)) {
+      retained.cleanupFacts.nativeSettled = true;
+      retained.report?.();
+    }
   }
   async #perform(identity: BrowserAccess, active: Active, intent: "continue" | "new"): Promise<void> {
     const record = active.record;
@@ -546,7 +577,7 @@ export class SessionSupervisor {
       const tailNotifications = output?.observedTailNotifications ?? 0;
       const countIncomplete = published === undefined || output?.stdoutEOF !== true || output.protocolFailure !== undefined;
       const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, drain,
-        nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
+        ...retained.cleanupFacts, ...(indexFailure ? { indexFailure } : {}),
         notificationCount: (published ?? 0) + tailNotifications, tailNotifications,
         ...(countIncomplete ? { tailNotificationsLowerBound: true } : {}) };
       if (!entry) this.#appendExit(exit);

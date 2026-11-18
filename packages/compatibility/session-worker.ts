@@ -3,6 +3,7 @@ import { z } from "zod";
 import { InteractionBridge, type InteractionCleanupOutcome,
   type InteractionCleanupReply } from "../interactions/bridge.ts";
 import { interactionReplySchema } from "../contracts/interactions.ts";
+import { queueWithdrawalSchema } from "../contracts/queue-withdrawal.ts";
 import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
 import { BoundedStdioTransport, attachOwnedStdio, OwnedRpcError, type ProcessSelection, type DrainPolicy, type StdioOutput,
   type StdioCommand, type StdioPolicy } from "./stdio-transport.ts";
@@ -141,10 +142,15 @@ export interface OwnedSessionCleanup {
 
 function ownedCleanup(request: Request): OwnedSessionCleanup {
   const startup = new StrictStartClient(request, (value): value is StrictStartState => strictState(value));
-  const abort = async (type: Control): Promise<void> => { await request({ type, id: crypto.randomUUID() }); };
+  const abort = async (type: Exclude<Control, "abort_and_restore_queue">): Promise<void> => {
+    await request({ type, id: crypto.randomUUID() });
+  };
   return Object.freeze({
     cancelStrictStart: () => startup.cancel(),
-    abortAndRestoreQueue: () => abort("abort_and_restore_queue"),
+    abortAndRestoreQueue: async () => {
+      const value = await request({ type: "abort_and_restore_queue", id: crypto.randomUUID() });
+      if (!queueWithdrawalSchema.safeParse(value).success) throw new Error("SESSION_QUEUE_WITHDRAWAL_SCHEMA");
+    },
     abortBranchSummary: () => abort("abort_branch_summary"),
     abortRetry: () => abort("abort_retry"),
     abortBash: () => abort("abort_bash"),

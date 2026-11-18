@@ -125,7 +125,283 @@ async function negotiate(peer: ReturnType<typeof ownedPeer>, connected: ReturnTy
   return connected.ready;
 }
 
-test("a retired generation receiving its connection late reports a lower bound for notifications", async () => {
+async function supervisedOwnedPeer() {
+  const peer = ownedPeer();
+  const connection = SessionWorker.attachOwned(peer.helper);
+  const fixture = await sourceFixture(Date.now, () => connection);
+  const opening = fixture.supervisor.open(fixture.identity, fixture.selected);
+  void opening.catch(() => {});
+  const negotiating = peer.nextCommand();
+  peer.hello();
+  peer.stdout.send(ready);
+  const negotiation = await negotiating;
+  const starting = peer.nextCommand();
+  peer.respond(negotiation, { protocolVersion: 2 });
+  const start = await starting;
+  const binding = { ...fixture.selected, ownership: { ...fixture.selected.ownership, state: "held" } };
+  const opened = { version: "strict-start-v1", phase: "open", intent: "continue", cwd: fixture.cwd,
+    nativeSessionId: fixture.selected.nativeSessionId, binding };
+  const session = await connection.ready;
+  let closing: Promise<void> | undefined;
+  let rootExit: typeof connection.rootExit | undefined;
+  const exitRoot = () => {
+    if (!rootExit) {
+      rootExit = connection.rootExit;
+      peer.rootExit();
+    }
+    return rootExit;
+  };
+  return { ...fixture, peer, session, opening, start, opened, connection, exitRoot,
+    open() { peer.respond(start, opened); return opening; },
+    async publishInput(id: string) {
+      const delivered = Promise.withResolvers<void>();
+      const dispose = session.subscribe(frame => { if (frame.id === id) delivered.resolve(); });
+      peer.stdout.send({ type: "extension_ui_request", method: "input", id, title: "Synthetic UI" });
+      await delivered.promise;
+      dispose();
+    },
+    close: () => closing ??= (async () => {
+      await exitRoot();
+      peer.stdout.close();
+      peer.stderr.close();
+      peer.complete();
+      await fixture.close();
+      await opening.catch(() => {});
+    })(),
+  };
+}
+
+const settledState = (sessionId: string) => ({ sessionId, isSettled: true, isStreaming: false, isCompacting: false,
+  hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
+
+test("owned shutdown records queue and native settlement while the tracked UI reply is held", async () => {
+  const f = await supervisedOwnedPeer();
+  try {
+    const { peer } = f;
+    const view = await f.open();
+    await f.publishInput("held-ui");
+
+    const shutdown = f.supervisor.close();
+    expect(() => f.supervisor.view(f.identity, view.workerId)).toThrow("SESSION_HOST_CLOSING");
+    await Bun.sleep(0);
+    const commands = peer.commands.slice(2);
+    expect(commands.map(command => command.type)).toEqual([
+      "respond_ui", "abort_branch_summary", "abort_retry", "abort_bash", "abort_and_restore_queue",
+    ]);
+    const [ui, summary, retry, bash, queue] = commands;
+    expect(ui).toMatchObject({ targetId: "held-ui", answer: { type: "cancel" } });
+    const querying = peer.nextCommand();
+    peer.respond(queue!, { steering: [{
+      text: "synthetic queued input", images: [{ type: "image", data: "AA==", mimeType: "image/png", extra: true }],
+    }], followUp: [], extra: true });
+    for (const command of [bash!, retry!, summary!]) peer.respond(command, {});
+    const state = await querying;
+    expect(state.type).toBe("get_state");
+    peer.respond(state, settledState(f.selected.nativeSessionId));
+    await Bun.sleep(0);
+
+    expect(f.supervisor.exits()).toMatchObject([{ nativeSettled: true, queuedInputsWithdrawn: true, uiCancelled: false,
+      drain: { status: "owned-unresolved", domain: "pending" } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    peer.respond(ui!, { status: "cancelled" });
+    await f.connection.interactionCleanup;
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
+    await f.close();
+    await shutdown;
+    expect(f.supervisor.exits()).toMatchObject([{ nativeSettled: true, queuedInputsWithdrawn: true, uiCancelled: true,
+      drain: { status: "owned-completed", domain: "completed", output: { stdoutEOF: true, stderrEOF: true } } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+  } finally {
+    await f.close();
+  }
+});
+
+test.each([undefined, { steering: ["invalid"], followUp: [] }])(
+  "owned shutdown leaves queue withdrawal unconfirmed for a missing or malformed acknowledgement %p",
+  async queueResult => {
+    const f = await supervisedOwnedPeer();
+    try {
+      const { peer } = f;
+      await f.open();
+      const shutdown = f.supervisor.close();
+      await Bun.sleep(0);
+      const querying = peer.nextCommand();
+      for (const command of peer.commands.slice(2)) {
+        if (command.type === "abort_and_restore_queue") {
+          peer.stdout.send({ type: "response", id: command.id, command: command.type, success: true, data: queueResult });
+        } else peer.respond(command, {});
+      }
+      const state = await querying;
+      expect(state.type).toBe("get_state");
+      peer.respond(state, settledState(f.selected.nativeSessionId));
+      await Bun.sleep(0);
+      expect(f.supervisor.exits()).toMatchObject([{
+        queuedInputsWithdrawn: false, nativeSettled: true, uiCancelled: true,
+      }]);
+      await f.close();
+      await shutdown;
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+test.each(["cancelling", "open"] as const)("root revocation uses strict startup cancellation when Native reports %s",
+  async phase => {
+    const f = await supervisedOwnedPeer();
+    try {
+      const { peer } = f;
+      await f.publishInput("root-ui");
+      expect(f.supervisor.interactions(f.identity)?.pending[0]?.scope).toEqual({ kind: "startup" });
+
+      f.grants.revoke(f.grant.id);
+      const revocation = f.supervisor.permissionsChanged();
+      await Bun.sleep(0);
+      const [ui, cancel] = peer.commands.slice(2);
+      expect(peer.commands.slice(2).map(command => command.type)).toEqual(["respond_ui", "cancel_strict_start"]);
+      expect(ui).toMatchObject({ targetId: "root-ui", answer: { type: "cancel" } });
+      peer.respond(cancel!, phase === "open" ? f.opened : { version: "strict-start-v1", phase });
+      peer.respond(f.start, f.opened);
+      peer.respond(ui!, { status: "expired" });
+      await f.connection.interactionCleanup;
+      await expect(f.opening).rejects.toThrow("SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN");
+      await Bun.sleep(0);
+      expect(peer.commands).toHaveLength(4);
+      expect((await f.index.page({})).records[0]?.attempt).toEqual({
+        state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+      });
+      expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked",
+        nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: true }]);
+      await f.close();
+      await revocation;
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+test("owned shutdown keeps pre-cutoff queue proof and ignores UI and state replies at the original cutoff", async () => {
+  const f = await supervisedOwnedPeer();
+  const now = spyOn(performance, "now").mockReturnValue(1_000);
+  try {
+    const { peer } = f;
+    await f.open();
+    await f.publishInput("late-ui");
+
+    const shutdown = f.supervisor.close();
+    await Bun.sleep(0);
+    const querying = peer.nextCommand();
+    const [ui, ...controls] = peer.commands.slice(2);
+    for (const command of controls) peer.respond(command,
+      command.type === "abort_and_restore_queue" ? { steering: [], followUp: [] } : {});
+    const state = await querying;
+    expect(state.type).toBe("get_state");
+
+    now.mockReturnValue(31_000);
+    peer.respond(state, settledState(f.selected.nativeSessionId));
+    peer.respond(ui!, { status: "cancelled" });
+    expect(await f.connection.interactionCleanup).toMatchObject([{ status: "unknown", reason: "cleanup-cutoff" }]);
+    await f.close();
+    await shutdown;
+    expect(f.supervisor.exits()).toMatchObject([{ nativeSettled: false, queuedInputsWithdrawn: true, uiCancelled: false,
+      drain: { status: "owned-completed", output: { stdoutEOF: true, stderrEOF: true } } }]);
+  } finally {
+    now.mockRestore();
+    await f.close();
+  }
+});
+
+test("owned shutdown leaves missing acknowledgements unconfirmed after root exit despite late valid replies", async () => {
+  const f = await supervisedOwnedPeer();
+  try {
+    const { peer } = f;
+    await f.open();
+    await f.publishInput("lost-ui");
+
+    const shutdown = f.supervisor.close();
+    await Bun.sleep(0);
+    const commands = peer.commands.slice(2);
+    expect(commands.map(command => command.type)).toEqual([
+      "respond_ui", "abort_branch_summary", "abort_retry", "abort_bash", "abort_and_restore_queue",
+    ]);
+    await f.exitRoot();
+    expect(await f.connection.interactionCleanup).toMatchObject([{ status: "unknown", reason: "cleanup-reply-lost" }]);
+    for (const command of commands) peer.respond(command,
+      command.type === "respond_ui" ? { status: "cancelled" }
+        : command.type === "abort_and_restore_queue" ? { steering: [], followUp: [] } : {});
+    await f.close();
+    await shutdown;
+    expect(peer.commands).toHaveLength(7);
+    expect(f.supervisor.exits()).toMatchObject([{ nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false,
+      drain: { status: "owned-completed", rootExit: { exitCode: 0, signal: 0 } } }]);
+    expect(await f.connection.output).not.toHaveProperty("protocolFailure");
+  } finally {
+    await f.close();
+  }
+});
+
+test.each(["wrong Session", "malformed", "busy"] as const)("owned shutdown keeps %s state unconfirmed",
+  async stateKind => {
+    const f = await supervisedOwnedPeer();
+    try {
+      const { peer } = f;
+      await f.open();
+      const shutdown = f.supervisor.revokeAll();
+      await Bun.sleep(0);
+      const querying = peer.nextCommand();
+      for (const command of peer.commands.slice(2)) peer.respond(command,
+        command.type === "abort_and_restore_queue" ? { steering: [], followUp: [] } : {});
+      const state = await querying;
+      const settled = settledState(f.selected.nativeSessionId);
+      const reply = stateKind === "wrong Session" ? { ...settled, sessionId: f.other.nativeSessionId }
+        : stateKind === "malformed" ? { ...settled, isSettled: "true" } : { ...settled, isStreaming: true };
+      peer.respond(state, reply);
+      await f.close();
+      await shutdown;
+      expect(f.supervisor.exits()).toMatchObject([{ reason: "all-browser-access-revoked",
+        nativeSettled: false, queuedInputsWithdrawn: true, uiCancelled: true }]);
+    } finally {
+      await f.close();
+    }
+  },
+);
+
+test("an authoritative answer correlated at the owned fence does not confirm UI cancellation", async () => {
+  const f = await supervisedOwnedPeer();
+  try {
+    const { peer } = f;
+    await f.open();
+    await f.publishInput("answered-ui");
+    const card = f.supervisor.interactions(f.identity)?.pending[0];
+    if (!card) throw new Error("TEST_INTERACTION_UNAVAILABLE");
+    const stopped = Promise.withResolvers<void>();
+    f.session.subscribe(frame => {
+      if (frame.type === "session_settled") stopped.resolve(f.supervisor.close());
+    });
+    const answering = peer.nextCommand();
+    const answer = f.supervisor.answer(f.identity, card.generation, card.id, { type: "value", value: "Synthetic answer" });
+    void answer.catch(() => {});
+    const command = await answering;
+    peer.stdout.send(
+      { type: "response", id: command.id, command: command.type, success: true, data: { status: "answered" } },
+      { type: "session_settled" },
+    );
+    expect(await f.connection.interactionCleanup).toEqual([
+      { id: card.id, status: "answered", reason: "explicit-native-acknowledgement" },
+    ]);
+    await expect(answer).rejects.toThrow("SESSION_HOST_CLOSING");
+    expect(peer.commands.filter(item => item.type === "respond_ui")).toEqual([command]);
+    await f.close();
+    await stopped.promise;
+    expect(f.supervisor.exits()).toMatchObject([{ uiCancelled: false, drain: { status: "owned-completed" } }]);
+  } finally {
+    await f.close();
+  }
+});
+
+test.each([false, true])("a retired generation reports notification lower bounds with delivery after cutoff=%s", async expired => {
   const peer = ownedPeer();
   const connection = SessionWorker.attachOwned(peer.helper);
   const launching = Promise.withResolvers<void>();
@@ -153,6 +429,7 @@ test("a retired generation receiving its connection late reports a lower bound f
     expect(readySession.notificationCount).toBe(1);
     const shutdown = f.supervisor.close(), revocation = f.supervisor.revokeAll();
     expect(fence).not.toHaveBeenCalled();
+    if (expired) clock.mockReturnValue(31_000);
     delivery.resolve(owned);
     await fenced.promise;
     expect(fence).toHaveBeenCalledTimes(1);
@@ -175,6 +452,7 @@ test("a retired generation receiving its connection late reports a lower bound f
     expect(f.supervisor.starts).toBe(1);
     expect(f.supervisor.exits()).toMatchObject([{
       notificationCount: 1, tailNotifications: 1, tailNotificationsLowerBound: true,
+      uiCancelled: !expired, queuedInputsWithdrawn: false, nativeSettled: false,
     }]);
   } finally {
     clock.mockRestore();
@@ -220,6 +498,7 @@ test.each([true, false])("owned exit counts startup, live and tail notifications
     peer.stdout.send({ type: "session_settled" });
     if (!clean) peer.stdout.send({ type: "synthetic_invalid" }, { type: "session_settled" });
     peer.rootExit();
+    await connection.rootExit;
     peer.complete();
     closeOutputs();
     closeOutputs = () => {};
