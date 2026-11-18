@@ -27,6 +27,19 @@ manual same-native-ID full-view reopen. It sends one snapshot per physical follo
 independent DOM draft. Coordinated multi-holder rebuild, Interaction ownership and integrated draft/attachment
 preservation remain #39/#40 integration obligations; no private resync or surface replacement implements them.
 
+The #60 Host opening reads each Native page of the same complete cut and assembles one contiguous record
+at a time. The active rows must form the parent chain ending at the cut’s leaf. The Host records each DSH
+event’s byte count once and uses it to size later group pages. The complete derived journal still has a
+32-MiB encoded-record budget and visibly invalidates if it exceeds that budget.
+
+Older payload eviction requires asynchronous Host page and snapshot reads with an immutable DSH seq/group
+index and a current-source check before publication. The opening hands off and closes its Native snapshot.
+The existing forward-only cursors are scoped to that snapshot and depend on its expiration, shared snapshot
+quota and retained observation coverage. Rereading under a fresh cut would require verifying the old active
+prefix and its projected records before returning them. The current public API has no coherent seek or
+metadata-only active-path read to bound that verification to the requested records. First-screen latency,
+old-page latency, full corpus reachability and Host RSS remain open #60 acceptance work.
+
 Evidence uses isolated synthetic profiles, an egress guard before native imports, genuine AgentSession/CLI
 streams driven by legitimately registered deterministic providers/tools, and the actual DSH
 Connection/Remote/controller/Conversation/Trajectory assembly. This is controlled-provider component evidence,

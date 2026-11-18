@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
@@ -23,35 +24,65 @@ interface Attempt {
 }
 interface OpeningBudget { bytes: number; items: number }
 
-/** Read only one native immutable cut; all parts and both requested views share its budgets. */
-async function readItems(history: HistoryClient, cursor: string, opened: HistoryOpen, budget: OpeningBudget) {
-  const parts = new Map<string, HistoryItem>();
-  let next: string | undefined = cursor;
-  while (next) {
+/** Opening pages contain contiguous Native record parts, including across page boundaries. */
+class OpeningRecord {
+  readonly #parts: string[] = [];
+  #units = 0;
+  #nextPart = 0;
+  constructor(readonly first: HistoryItem, readonly count: number, readonly keepText: boolean) {}
+
+  append(item: HistoryItem, index: number): HistoryItem | undefined {
+    if (index !== this.#nextPart++ || (item.partCount ?? 1) !== this.count
+      || (index > 0 && !isDeepStrictEqual(this.#metadata(this.first), this.#metadata(item)))) {
+      throw Error('live_open_parts');
+    }
+    if (this.keepText) {
+      this.#units += item.text.length;
+      // Each UTF-16 unit costs at least one encoded JSON byte. The final event or prefix has an exact byte check.
+      if (this.#units > MAX_ITEM_BYTES) {
+        throw Error(item.livePhase === 'streaming' ? 'live_attempt_evicted' : 'live_event_bytes');
+      }
+      this.#parts.push(item.text);
+    }
+    if (this.#nextPart === this.count) return {...this.first, text: this.#parts.join('')};
+  }
+
+  #metadata(item: HistoryItem) {
+    const {id, partIndex, text, ...metadata} = item;
+    return metadata;
+  }
+}
+
+/** Read one immutable cut, retaining only the current Native page and any unfinished record. */
+async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'active' | 'live', budget: OpeningBudget) {
+  let pending: OpeningRecord | undefined;
+  const start = budget.items;
+  let next: string | undefined = opened.cursors[scope];
+  while (next !== undefined) {
     const page = await history.page(next);
-    if (page.snapshot !== opened.snapshot || page.cut.contentRevision !== opened.cut.contentRevision) {
+    if (page.snapshot !== opened.snapshot || page.scope !== scope || page.expiresAt !== opened.expiresAt
+      || !isDeepStrictEqual(page.cut, opened.cut)) {
       throw Error('live_open_cut_changed');
     }
+    if (page.nextCursor !== undefined && (!page.nextCursor || page.nextCursor === next || page.items.length === 0)) {
+      throw Error('live_open_cursor');
+    }
     for (const item of page.items) {
-      budget.bytes += new TextEncoder().encode(JSON.stringify(item)).byteLength; budget.items++;
+      budget.bytes += Buffer.byteLength(JSON.stringify(item)); budget.items++;
       if (budget.bytes > OPEN_BYTES || budget.items > MAX_EVENTS) throw Error('live_open_budget');
-      const id = item.entryId ?? item.id, prior = parts.get(id);
-      if (prior) {
-        if (item.partIndex !== (prior.partIndex ?? 0) + 1 || item.partCount !== prior.partCount) {
-          throw Error('live_open_parts');
-        }
-        prior.text += item.text; prior.partIndex = item.partIndex;
-      } else {
-        if (item.partIndex !== undefined && item.partIndex !== 0) throw Error('live_open_parts');
-        parts.set(id, {...item});
+      if (scope === 'active' && budget.items - start > opened.count) throw Error('live_open_count');
+      if (!pending) {
+        const count = item.partCount ?? 1;
+        if (count < 1 || count > MAX_EVENTS || (count > 1 && item.id !== item.entryId)) throw Error('live_open_parts');
+        pending = new OpeningRecord({...item, text: ''}, count, scope === 'active' || item.livePhase === 'streaming');
       }
+      const record = pending.append(item, item.partIndex ?? 0);
+      if (record) { pending = undefined; yield record; }
     }
     next = page.nextCursor;
   }
-  for (const item of parts.values()) {
-    if ((item.partIndex ?? 0) + 1 !== (item.partCount ?? 1)) throw Error('live_open_parts');
-  }
-  return parts.values();
+  if (pending) throw Error('live_open_parts');
+  if (scope === 'active' && budget.items - start !== opened.count) throw Error('live_open_count');
 }
 
 /** Disposable bounded DSH generation. Native observations remain authoritative and not-attested. */
@@ -59,13 +90,14 @@ export class LiveJournal {
   readonly generation = crypto.randomUUID();
   readonly sessionId;
   readonly #records: SessionHistoryRecord[] = [];
+  readonly #recordByteEnds: number[] = [];
   readonly #entries = new Set<string>();
   readonly #groups: number[] = [];
   readonly #settled = new Set<string>();
   readonly #pendingFinals = new Set<string>();
   readonly #appended = new Map<string, {item: HistoryItem; bytes: number}>();
   readonly #listeners = new Set<(frame: SessionFollowFrame) => void>();
-  #bytes = 0; #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
+  #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null;
   private constructor(readonly opened: HistoryOpen) {
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
@@ -75,10 +107,12 @@ export class LiveJournal {
     const opened = await history.open('active', 'live'), journal = new LiveJournal(opened);
     try {
       if (opened.compacting) throw Error('live_open_compacting');
+      if (opened.scope !== 'active' || opened.handoff !== 'live' || !opened.cursor || !opened.cursors.live
+        || opened.cursor !== opened.cursors.active) throw Error('live_open_cut_changed');
+      if (opened.count > MAX_EVENTS) throw Error('live_open_budget');
+      if (opened.count < 0) throw Error('live_open_count');
       const budget = {bytes: 0, items: 0};
-      for (const item of await readItems(history, opened.cursor, opened, budget)) journal.#commit(item);
-      const live = [...await readItems(history, opened.cursors.live, opened, budget)];
-      journal.#adoptOpening(live);
+      await journal.#loadOpening(history, budget);
       if (opened.prefix && !journal.#attempt) throw Error('live_prefix_identity_unavailable');
       await journal.#catchUp(history);
       return journal;
@@ -86,18 +120,34 @@ export class LiveJournal {
       journal.invalidate(error instanceof Error ? error.message : 'live_open_failed'); throw error;
     } finally { await history.close(opened.snapshot); }
   }
-  #adoptOpening(items: HistoryItem[]): void {
-    for (const item of items) {
-      if (!item.live || item.live.contextId !== this.opened.cut.contextId) throw Error('live_open_identity');
-      if (this.#settled.has(identity(item.live))) continue;
+  async #loadOpening(history: HistoryClient, budget: OpeningBudget): Promise<void> {
+    let leaf: string | null = null;
+    for await (const item of readItems(history, this.opened, 'active', budget)) {
+      const id = item.entryId ?? item.id;
+      if (!id || !item.active || item.parentId !== leaf || this.#entries.has(id)) throw Error('live_open_active_path');
+      this.#commit(item); leaf = id;
+      if (this.#settled.size > ASSOCIATIONS) throw Error('live_settlement_evicted');
+    }
+    if (leaf !== this.opened.cut.leafId) throw Error('live_open_active_path');
+    const {workerId, sourceId, sessionId, contextId} = this.opened.cut;
+    const seen = new Set<string>();
+    for await (const item of readItems(history, this.opened, 'live', budget)) {
+      const id = item.entryId ?? item.id;
+      if (!id || seen.has(id)) throw Error('live_open_parts');
+      seen.add(id);
+      const live = item.live;
+      if (!live || live.workerId !== workerId || live.sourceId !== sourceId || live.sessionId !== sessionId
+        || live.contextId !== contextId) throw Error('live_open_identity');
+      const key = identity(live);
+      if (this.#settled.has(key)) continue;
       if (item.livePhase === 'streaming') {
         if (item.role !== 'assistant' || this.#attempt) throw Error('live_overlapping_assistant');
-        this.#beginAttempt(item.live); this.#chunk(item.text, false);
+        this.#beginAttempt(live); this.#chunk(item.text, false);
       } else {
-        this.#pendingFinals.add(identity(item.live));
+        this.#pendingFinals.add(key);
+        if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
       }
     }
-    if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
     // Every earlier runtime message must settle before a newer active Step can be published.
     if (this.#attempt && this.#pendingFinals.size > 0) throw Error('live_open_pending_order');
   }
@@ -128,16 +178,27 @@ export class LiveJournal {
       || before < 0 || before > through + 1) throw Error('live_stale_page');
     const maximum = request.maxMessages ?? 32;
     if (!Number.isSafeInteger(maximum) || maximum < 1) throw Error('live_page_limit');
-    const end = Math.min(through + 1, before), groups = this.#groups.filter(start => start < end);
+    const end = before;
     let start = end, bytes = 1024, count = 0;
-    for (let index = groups.length - 1; index >= 0 && count < Math.min(128, maximum); index--) {
-      const candidate = groups[index]!;
-      const size = this.#records.slice(candidate, start).reduce((sum, record) => sum + Buffer.byteLength(JSON.stringify(record)), 0);
+    for (let index = this.#groupBefore(end); index >= 0 && count < Math.min(128, maximum); index--) {
+      const candidate = this.#groups[index]!;
+      // Include one array separator per record as well as the encoded events.
+      const size = this.#recordBytesBefore(start) - this.#recordBytesBefore(candidate) + start - candidate;
       if (bytes + size > limit) { if (!count) throw Error('live_page_group_bytes'); break; }
       bytes += size; start = candidate; count++;
     }
     return structuredClone({records: this.#records.slice(start, end), hasMore: start > 0});
   }
+  #groupBefore(end: number): number {
+    let low = 0, high = this.#groups.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      if (this.#groups[middle]! < end) low = middle + 1;
+      else high = middle;
+    }
+    return low - 1;
+  }
+  #recordBytesBefore(offset: number): number { return this.#recordByteEnds[offset - 1] ?? 0; }
   snapshot(): Extract<SessionFollowFrame, {type: 'snapshot'}> {
     this.#assert();
     const assistantStream: SessionAssistantStreamBaseline = {revision: this.#assistantRevision,
@@ -162,9 +223,9 @@ export class LiveJournal {
       ...(surface ? {surfaceOp: 'append'} : {ignorable: true})}};
     const bytes = Buffer.byteLength(JSON.stringify(entry));
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
-    this.#bytes += bytes;
-    if (this.#records.length >= MAX_EVENTS || this.#bytes > MAX_BYTES) this.#fail('live_projection_evicted');
-    this.#records.push(structuredClone(entry)); this.#publish(entry); return entry;
+    const end = this.#recordBytesBefore(this.#records.length) + bytes;
+    if (this.#records.length >= MAX_EVENTS || end > MAX_BYTES) this.#fail('live_projection_evicted');
+    this.#records.push(entry); this.#recordByteEnds.push(end); this.#publish(entry); return entry;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id; if (this.#entries.has(id)) return;
