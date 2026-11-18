@@ -32,9 +32,12 @@ route or change the required real browser/Native/final-tuple acceptance gates.
 
 The isolated Session component can bind Broker Remotes to an authenticated
 Gateway `$events` Peer. One logical Peer per independently issued fixture
-credential permits standard DSH unary requests to resolve that Peer. Product
-admission for multiple Browser Views sharing a credential still needs an
-authenticated page binding.
+credential permits standard DSH unary requests to resolve that Peer. The
+separate shared-cookie write fixture uses a finite answer stream on the
+existing mux so its invocation comes from the actual Peer. It revalidates the
+credential's write proof and current scope at the Broker reservation. Ending
+that Peer or stream withdraws the result view while Native settlement
+continues. Product Browser View admission has its own verification gate.
 
 The [#48 Stop source vertical](../stop-coordinator-source-status.md) adds a typed
 public Host Remote/coordinator using existing queue withdrawal and summary abort

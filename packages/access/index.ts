@@ -69,6 +69,15 @@ export class BrowserAuthority {
     catch { return false; }
   }
 
+  /** Revalidate the opaque Peer admission and its credential's current CSRF proof. */
+  revalidateWrite(identity: BrowserAccess, csrf: string): boolean {
+    if (this.unavailable || this.revoking) return false;
+    const credential = this.identities.get(identity);
+    try {
+      return !!credential && !!this.store.current(credential, this.now()) && equal(csrf, this.store.csrf(credential));
+    } catch { return false; }
+  }
+
   /** Use for each live stream/Peer; revalidate again on every logical open, reply and publication. */
   attachPeer(identity: BrowserAccess, invalidate: () => void): () => void {
     if (!this.revalidate(identity)) { invalidate(); return () => {}; }

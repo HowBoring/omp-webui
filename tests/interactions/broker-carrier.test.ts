@@ -2,7 +2,7 @@ import { expect, spyOn, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import { apply as gateway } from "@deepseek-ai/dsh-api-gateway/client";
 import {
-  isRemoteEventClientId, parseRemoteStreamServerMessage, REMOTE_EVENT_STREAM_ENDPOINT, REMOTE_EVENT_STREAM_PAYLOAD,
+  isRemoteEventClientId, parseRemoteStreamClientMessage, parseRemoteStreamServerMessage, REMOTE_EVENT_STREAM_ENDPOINT, REMOTE_EVENT_STREAM_PAYLOAD,
   type RemoteStreamServerMessage,
 } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
 import { installConnection } from "@deepseek-ai/dsh-client-connection/client";
@@ -15,12 +15,14 @@ import { startSessionComponentServer } from "../../apps/host/src/session-compone
 import { CatalogClient } from "../../packages/contracts/generated/catalog-client.ts";
 import type { RespondUiParams } from "../../packages/contracts/generated/omp-wire.ts";
 import {
-  brokerContribution, brokerSnapshotContribution, readBrokerSnapshot,
+  brokerAnswerStreamContribution, brokerAnswerStreamEndpoint, brokerContribution, brokerPendingSnapshotEndpoint,
+  brokerSnapshotContribution, readBrokerAnswer, readBrokerSnapshot, type BrokerSnapshot,
 } from "../../packages/contracts/interaction-broker.ts";
 import { InteractionBroker, type PageIdentity } from "../../packages/interactions/broker.ts";
 
 type Carrier = Awaited<ReturnType<typeof startSessionComponentServer>>;
 type Credential = { cookie: string; csrf: string };
+type Mode = "shared-cookie-snapshot" | "shared-cookie-answer";
 type Ready = { clientId: string; streamId: string; socket: WebSocket };
 const statusSchema = z.object({ csrf: z.string().min(1) });
 
@@ -63,20 +65,31 @@ function post(host: Carrier, access: Credential, path: string, body?: unknown, o
 const pending = { type: "client-request", rpcId: "pending", method: "ompInteractionBroker/pending", payload: { args: {} } };
 
 async function openPage(host: Carrier, access: Credential, contexts: Context[],
-  sharedSnapshot: boolean, interactions: "answer" | "none") {
+  mode: Mode | undefined, interactions: "answer" | "none") {
   const ctx = new Context();
   contexts.push(ctx);
-  const ready = Promise.withResolvers<Ready>();
+  const ready = Promise.withResolvers<Ready>(), reconnected = Promise.withResolvers<Ready>();
   const responses: number[] = [];
   const sockets: WebSocket[] = [];
   const frames: RemoteStreamServerMessage[] = [];
+  const opens: { endpoint: string; streamId: string; bytes: number }[] = [];
   const origin = host.server.url.origin;
   installConnection(ctx, { interactions, transport: {
     streamBaseUrl: host.server.url.href,
     createWebSocket(url) {
       const socket = connect(url, access.cookie, origin);
       sockets.push(socket);
-      observeReady(socket, ready.resolve, frames);
+      const send = socket.send.bind(socket);
+      socket.send = data => {
+        if (typeof data === "string") {
+          const frame = parseRemoteStreamClientMessage(data);
+          if (frame.type === "open") {
+            opens.push({ endpoint: frame.endpoint, streamId: frame.streamId, bytes: Buffer.byteLength(data) });
+          }
+        }
+        send(data);
+      };
+      observeReady(socket, sockets.length === 1 ? ready.resolve : reconnected.resolve, frames);
       return socket;
     },
     async fetch(url, init) {
@@ -91,8 +104,9 @@ async function openPage(host: Carrier, access: Credential, contexts: Context[],
   } });
   registry(ctx);
   gateway(ctx);
-  await ctx.remote.$mount(sharedSnapshot ? brokerSnapshotContribution : brokerContribution);
-  return { ready: ready.promise, remote: ctx.remote.ompInteractionBroker, responses, sockets, frames,
+  await ctx.remote.$mount(mode === "shared-cookie-answer" ? brokerAnswerStreamContribution
+    : mode === "shared-cookie-snapshot" ? brokerSnapshotContribution : brokerContribution);
+  return { ready: ready.promise, reconnected: reconnected.promise, remote: ctx.remote.ompInteractionBroker, responses, sockets, frames, opens,
     dispose: () => ctx.fiber.dispose() };
 }
 
@@ -104,12 +118,13 @@ async function delivery(page: Awaited<ReturnType<typeof openPage>>) {
   return result.value.pending[0]!;
 }
 
-async function fixture(sharedSnapshot = false) {
+async function fixture(mode?: Mode) {
   const home = await mkdtemp(join(tmpdir(), "omp-broker-carrier-"));
   const contexts: Context[] = [];
   const pages = new Map<string, PageIdentity>();
   const reply = Promise.withResolvers<{ status: "answered" | "cancelled" }>();
   let clockFault = false, scopeCurrent = true, revokeOnRead = false;
+  let scopeReadsBeforeLoss: number | undefined;
   let monotonic = 0;
   const timers = new Map<() => void, number>();
   const entered = Promise.withResolvers<RespondUiParams>();
@@ -117,15 +132,22 @@ async function fixture(sharedSnapshot = false) {
   const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
     respondUi: async command => { commands.push(command); entered.resolve(command); return reply.promise; },
     requestStop: async reason => { stops.push(reason); },
-  }, page => { pages.set(page.clientId, page); return scopeCurrent; }, {
+  }, page => {
+    pages.set(page.clientId, page);
+    if (scopeReadsBeforeLoss !== undefined && --scopeReadsBeforeLoss === 0) {
+      scopeReadsBeforeLoss = undefined;
+      queueMicrotask(() => { scopeCurrent = false; });
+    }
+    return scopeCurrent;
+  }, {
     now() {
       if (clockFault) throw new Error("fixture private clock failure");
       if (revokeOnRead) scopeCurrent = false;
-      return sharedSnapshot ? monotonic : performance.now();
+      return mode ? monotonic : performance.now();
     },
-    wall: sharedSnapshot ? () => 10_000 + monotonic : Date.now,
+    wall: mode ? () => 10_000 + monotonic : Date.now,
     schedule(delay, callback) {
-      if (sharedSnapshot) {
+      if (mode) {
         timers.set(callback, monotonic + delay);
         return () => { timers.delete(callback); };
       }
@@ -140,7 +162,7 @@ async function fixture(sharedSnapshot = false) {
   try {
     host = await startSessionComponentServer({ dataDir: join(home, "state"), port: 0,
       manifest: join(home, "absent-manifest"), launcher: join(home, "absent-launcher"), interactionBroker: broker,
-      ...(sharedSnapshot ? { interactionBrokerMode: "shared-cookie-snapshot" as const } : {}),
+      ...(mode ? { interactionBrokerMode: mode } : {}),
       catalog: new CatalogClient(async () => { throw new Error("UNEXPECTED_CATALOG_REQUEST"); }),
       launch: async () => { throw new Error("UNEXPECTED_WORKER_LAUNCH"); } });
   } catch (error) {
@@ -152,6 +174,8 @@ async function fixture(sharedSnapshot = false) {
     reply: (status: "answered" | "cancelled" = "answered") => reply.resolve({ status }),
     failClock: () => { clockFault = true; },
     loseScope: () => { scopeCurrent = false; },
+    restoreScope: () => { scopeCurrent = true; },
+    loseScopeAfterAdmission: () => { scopeReadsBeforeLoss = 2; },
     advance: (elapsed: number) => { monotonic += elapsed; },
     runDueTimers() {
       for (const [callback, deadline] of timers) {
@@ -162,7 +186,7 @@ async function fixture(sharedSnapshot = false) {
     },
     loseScopeOnRead: () => { revokeOnRead = true; },
     openPage: (access: Credential, interactions: "answer" | "none" = "answer") =>
-      openPage(host, access, contexts, sharedSnapshot, interactions),
+      openPage(host, access, contexts, mode, interactions),
     async close() {
       reply.resolve({ status: "answered" });
       for (const ctx of contexts) await ctx.fiber.dispose();
@@ -206,13 +230,20 @@ test("the isolated carrier binds each admitted Broker Remote to its own ready DS
 });
 
 const snapshotFailure = { code: "gateway/internal", message: "Interaction snapshot failed.", details: {} };
+const answerFailure = { ...snapshotFailure, message: "Interaction answer failed." };
+type Page = Awaited<ReturnType<typeof openPage>>;
+type Delivery = BrokerSnapshot["pending"][number];
+
+function openAnswer(page: Page, { card, deliveryId }: Delivery, csrf: string, value = "explicit") {
+  return page.remote.answerStream(card.generation, card.id, deliveryId, { type: "value", value }, csrf);
+}
 
 function snapshot(page: Awaited<ReturnType<typeof openPage>>) {
   return readBrokerSnapshot(page.remote.pendingSnapshot());
 }
 
 test("shared-cookie Browser Views retain separate Broker snapshots across a logical end and reconnect", async () => {
-  const f = await fixture(true);
+  const f = await fixture("shared-cookie-snapshot");
   try {
     const access = await login(f.host);
     const unready = await f.openPage(access, "none");
@@ -299,8 +330,175 @@ test("shared-cookie Browser Views retain separate Broker snapshots across a logi
   } finally { await f.close(); }
 });
 
+test("same-credential DSH Clients reserve one Broker answer while its Native acknowledgement is held", async () => {
+  const f = await fixture("shared-cookie-answer");
+  try {
+    const access = await login(f.host);
+    const first = await f.openPage(access), second = await f.openPage(access);
+    const firstReady = await first.ready, secondReady = await second.ready;
+    f.receive("shared-answer");
+    const a = (await snapshot(first)).pending[0]!, b = (await snapshot(second)).pending[0]!;
+    expect(firstReady.clientId).not.toBe(secondReady.clientId);
+    expect(f.pages.get(firstReady.clientId)?.credentialId).toBe(f.pages.get(secondReady.clientId)?.credentialId);
+    expect(a.deliveryId).not.toBe(b.deliveryId);
+
+    const input = { type: "value", value: "explicit ✓" } as const;
+    const before = [first.frames.length, second.frames.length];
+    const answers = [readBrokerAnswer(first.remote.answerStream(a.card.generation, a.card.id, a.deliveryId, input, access.csrf)),
+      readBrokerAnswer(second.remote.answerStream(b.card.generation, b.card.id, b.deliveryId, input, access.csrf))];
+    expect(await f.entered).toEqual({ targetId: "shared-answer", answer: input });
+    expect(await Promise.race(answers)).toEqual({ status: "stale" });
+    expect(f.commands).toHaveLength(1);
+    f.reply();
+    expect((await Promise.all(answers)).map(result => result.status).sort()).toEqual(["answered", "stale"]);
+    for (const [i, page] of [first, second].entries()) {
+      const frames = page.frames.slice(before[i]);
+      expect(frames.map(frame => frame.type)).toEqual(["item", "end"]);
+      expect(frames[1]?.streamId).toBe(frames[0]?.streamId);
+      expect((await snapshot(page)).pending).toEqual([]);
+      expect(page.responses).toEqual([]);
+    }
+    expect(f.commands).toHaveLength(1);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("shared-cookie answer checks the ready Peer, credential proof and scope before reserving", async () => {
+  const f = await fixture("shared-cookie-answer");
+  try {
+    const access = await login(f.host), other = await login(f.host);
+    const page = await f.openPage(access), passive = await f.openPage(access, "none"), sibling = await f.openPage(access);
+    const ready = await page.ready;
+    await sibling.ready;
+    f.receive("protected-answer");
+    const entry = (await snapshot(page)).pending[0]!;
+    for (const proof of ["", "a".repeat(44), other.csrf]) {
+      const offset = page.frames.length;
+      await expect(readBrokerAnswer(openAnswer(page, entry, proof))).rejects.toMatchObject(answerFailure);
+      expect(page.frames.slice(offset)).toEqual([{ type: "error", streamId: expect.any(String), error: answerFailure }]);
+    }
+    await expect(readBrokerAnswer(openAnswer(passive, entry, access.csrf))).rejects.toMatchObject(answerFailure);
+    expect(await readBrokerAnswer(openAnswer(sibling, entry, access.csrf))).toEqual({ status: "stale" });
+    expect((await post(f.host, access, "/api/ompInteractionBroker/answer", pending)).status).toBe(501);
+    expect(f.commands).toEqual([]);
+
+    // Let both synchronous admission checks succeed, then withdraw scope at the Gateway's async boundary.
+    f.loseScopeAfterAdmission();
+    await expect(readBrokerAnswer(openAnswer(page, entry, access.csrf))).rejects.toMatchObject(answerFailure);
+    expect(ready.socket.readyState).toBe(WebSocket.OPEN);
+    expect(f.commands).toEqual([]);
+    f.restoreScope();
+    expect((await snapshot(page)).pending).toEqual([entry]);
+    f.reply();
+    expect(await readBrokerAnswer(openAnswer(page, entry, access.csrf))).toEqual({ status: "answered" });
+    expect(f.commands).toHaveLength(1);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test.each(["answer", "events", "socket"] as const)(
+  "ending a held Broker answer's %s releases the view while Native settlement continues once", async cancellation => {
+    const f = await fixture("shared-cookie-answer");
+    try {
+      const access = await login(f.host);
+      const first = await f.openPage(access), sibling = await f.openPage(access);
+      const { socket, streamId, clientId } = await first.ready;
+      await sibling.ready;
+      f.receive("held-answer");
+      const old = (await snapshot(first)).pending[0]!;
+      const siblingDelivery = (await snapshot(sibling)).pending[0]!;
+      const handle = openAnswer(first, old, access.csrf);
+      const result = readBrokerAnswer(handle).catch((error: unknown) => error);
+      expect(await f.entered).toEqual({ targetId: "held-answer", answer: { type: "value", value: "explicit" } });
+      const answerId = first.opens.findLast(frame => frame.endpoint === brokerAnswerStreamEndpoint)?.streamId;
+      if (!answerId) throw new Error("Missing Broker answer open");
+      const offset = first.frames.length;
+      f.receive("still-pending");
+      const pending = (await snapshot(first)).pending[0]!;
+
+      if (cancellation === "answer") {
+        handle.dispose();
+        expect(await result).toMatchObject({ code: "gateway/protocol" });
+        // An ordered round trip on this Peer lets cancellation unwind before reusing the released logical ID.
+        expect((await snapshot(first)).pending).toEqual([pending]);
+        expect(first.frames.slice(offset).filter(frame => frame.streamId === answerId)).toEqual([]);
+        socket.send(JSON.stringify({ type: "open", streamId: answerId, endpoint: brokerPendingSnapshotEndpoint,
+          payload: { args: {} } }));
+        expect((await snapshot(first)).pending).toEqual([pending]);
+        expect(first.frames.filter(frame => frame.streamId === answerId).map(frame => frame.type)).toEqual(["item", "end"]);
+      } else if (cancellation === "events") {
+        socket.send(JSON.stringify({ type: "cancel", streamId }));
+        expect(await result).toMatchObject(answerFailure);
+        expect(first.frames.slice(offset).filter(frame => frame.streamId === answerId)).toEqual([
+          { type: "error", streamId: answerId, error: answerFailure },
+        ]);
+        await expect(snapshot(first)).rejects.toMatchObject(snapshotFailure);
+        expect(socket.readyState).toBe(WebSocket.OPEN);
+      } else {
+        const closed = waitForClose(socket);
+        socket.close();
+        await closed;
+        expect(await result).toMatchObject({ name: "RemoteStreamCarrierError" });
+        expect(first.frames.slice(offset).filter(frame => frame.streamId === answerId)).toEqual([]);
+      }
+
+      expect(await readBrokerAnswer(openAnswer(sibling, siblingDelivery, access.csrf))).toEqual({ status: "stale" });
+      f.advance(600_000);
+      const fresh = cancellation === "socket" ? first : await f.openPage(access);
+      const ready = await (cancellation === "socket" ? fresh.reconnected : fresh.ready);
+      expect(ready.clientId).not.toBe(clientId);
+      expect(first.opens.filter(frame => frame.endpoint === brokerAnswerStreamEndpoint)).toHaveLength(1);
+      const current = await snapshot(fresh);
+      expect(current.pending).toHaveLength(1);
+      expect(current.pending[0]?.card).toEqual(pending.card);
+      expect(current.pending[0]?.deliveryId).not.toBe(pending.deliveryId);
+      expect(await readBrokerAnswer(openAnswer(fresh, old, access.csrf))).toEqual({ status: "stale" });
+      expect(f.commands).toHaveLength(1);
+      f.reply();
+      expect((await snapshot(fresh)).outcomes).toContainEqual({
+        id: "held-answer", status: "answered", reason: "explicit-answer", stop: "none",
+      });
+      expect(f.commands).toHaveLength(1);
+      expect(f.stops).toEqual([]);
+    } finally { await f.close(); }
+  },
+);
+
+test("the shared-cookie answer budget counts the complete UTF-8 open frame", async () => {
+  const f = await fixture("shared-cookie-answer");
+  try {
+    const access = await login(f.host);
+    const first = await f.openPage(access);
+    const { socket } = await first.ready;
+    f.receive("budget-answer");
+    const entry = (await snapshot(first)).pending[0]!;
+    const prefix = '😀"\n';
+    const overhead = Buffer.byteLength(JSON.stringify({
+      type: "open", streamId: "00000000-0000-0000-0000-000000000000", endpoint: brokerAnswerStreamEndpoint,
+      payload: { args: { generation: entry.card.generation, interactionId: entry.card.id, deliveryId: entry.deliveryId,
+        answer: { type: "value", value: prefix }, csrf: access.csrf } },
+    }));
+    const room = 16_384 - overhead;
+    const fitted = prefix + "界".repeat(Math.floor(room / 3)) + "x".repeat(room % 3);
+    const oversized = readBrokerAnswer(openAnswer(first, entry, access.csrf, fitted + "x"));
+    await expect(oversized).rejects.toMatchObject({ name: "RemoteStreamCarrierError" });
+    expect(socket.readyState).toBe(WebSocket.CLOSED);
+    expect(first.opens.at(-1)?.bytes).toBe(16_385);
+    expect(f.commands).toEqual([]);
+
+    const fresh = await f.openPage(access);
+    await fresh.ready;
+    const renewed = (await snapshot(fresh)).pending[0]!;
+    f.reply();
+    expect(await readBrokerAnswer(openAnswer(fresh, renewed, access.csrf, fitted))).toEqual({ status: "answered" });
+    expect(fresh.opens.at(-1)?.bytes).toBe(16_384);
+    expect(f.commands).toEqual([{ targetId: "budget-answer", answer: { type: "value", value: fitted } }]);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
+
 test("an overdue Broker snapshot omits the card while expiry waits for its timer", async () => {
-  const f = await fixture(true);
+  const f = await fixture("shared-cookie-snapshot");
   try {
     const page = await f.openPage(await login(f.host));
     await page.ready;
@@ -333,9 +531,13 @@ function waitForClose(socket: WebSocket): Promise<number> {
 }
 
 test.each([
-  { terminal: "end", status: 0 }, { terminal: "end", status: -1 },
-  { terminal: "error", status: 0 }, { terminal: "error", status: -1 },
-] as const)("a Broker $terminal write returning $status closes the affected carrier once", async ({ terminal, status }) => {
+  { terminal: "end", status: 0, mode: "shared-cookie-snapshot" },
+  { terminal: "end", status: -1, mode: "shared-cookie-snapshot" },
+  { terminal: "error", status: 0, mode: "shared-cookie-snapshot" },
+  { terminal: "error", status: -1, mode: "shared-cookie-snapshot" },
+  { terminal: "end", status: 0, mode: "shared-cookie-answer" },
+  { terminal: "error", status: -1, mode: "shared-cookie-answer" },
+] as const)("a $mode $terminal write returning $status closes the carrier once", async ({ terminal, status, mode }) => {
   const wire: RemoteStreamServerMessage["type"][] = [];
   const closures: (number | undefined)[] = [];
   let armed = false, intercept = true;
@@ -364,20 +566,25 @@ test.each([
     };
     return serve(options);
   });
-  const f = await fixture(true).finally(() => { stub.mockRestore(); });
+  const f = await fixture(mode).finally(() => { stub.mockRestore(); });
   try {
-    const page = await f.openPage(await login(f.host));
+    const access = await login(f.host);
+    const page = await f.openPage(access);
     const { socket } = await page.ready;
+    f.receive("terminal-write");
+    const entry = (await snapshot(page)).pending[0]!;
+    f.reply();
     const closed = waitForClose(socket);
     if (terminal === "error") f.loseScope();
     armed = true;
 
-    const failure = snapshot(page).catch((error: unknown) => error);
+    const result = mode === "shared-cookie-answer" ? readBrokerAnswer(openAnswer(page, entry, access.csrf)) : snapshot(page);
+    const failure = result.catch((error: unknown) => error);
     expect(await Promise.race([closed, Bun.sleep(1_000).then(() => "socket remained open")])).toBe(1011);
     expect(await failure).toMatchObject({ name: "RemoteStreamCarrierError" });
     expect(wire).toEqual(terminal === "end" ? ["item", "end"] : ["error"]);
     expect(closures).toEqual([1011]);
-    expect(f.commands).toEqual([]);
+    expect(f.commands).toHaveLength(mode === "shared-cookie-answer" && terminal === "end" ? 1 : 0);
     expect(f.stops).toEqual([]);
   } finally { await f.close(); }
 });
