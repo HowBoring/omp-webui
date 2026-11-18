@@ -1,4 +1,5 @@
-import { ControlIoError, type OwnedControlIo, type OwnedControlLoad } from "../control-io/index.ts";
+import { ControlIoError } from "../control-io/errors.ts";
+import type { OwnedControlIo, OwnedControlLoad } from "../control-io/index.ts";
 import type { InspectedSelection } from "../delivery/coordinator.ts";
 import type { PrivateHelperLaunch, PrivateHelperOwner, PrivateHelperOwnerInput } from "./adapter.ts";
 import { selectedControlIo, verifyHelperSelection } from "./control-io-selection.ts";
@@ -12,6 +13,16 @@ export interface PrivateHelperOwnerSystem {
   spawn(input: PrivateHelperLaunch, selection: InspectedSelection): PrivateHelperProcess;
   closeControl(fd: number): void;
 }
+
+// A reused signal cannot identify one owner invocation.
+const launchAttempts = new WeakMap<AbortSignal, { refusal?: PrivateHelperError } | null>();
+
+/** Recognize only the original rejection from this owner's pre-spawn guard. */
+export function confirmsPreSpawnRefusal(signal: AbortSignal, error: unknown): boolean {
+  const refusal = launchAttempts.get(signal)?.refusal;
+  return signal.aborted && refusal !== undefined && refusal === error;
+}
+
 // Strong retention includes owners whose callers lose their reference, and failed loads without a returned owner.
 const retained = new Set<OwnerLifetime>();
 interface OwnerLifetime {
@@ -53,6 +64,7 @@ class RetainedOwner implements PrivateHelperOwner {
     this.#lifetime = lifetime; this.#module = module; this.#system = system;
   }
   async launch(launch: PrivateHelperLaunch, retirement?: AbortSignal): Promise<PrivateHelperHandle> {
+    if (retirement) launchAttempts.set(retirement, launchAttempts.has(retirement) ? null : {});
     requireLaunchActive(retirement);
     if (this.#closed || this.#closing) throw new ControlIoError("CONTROL_IO_CLOSED");
     const selection = this.#lifetime.selection;
@@ -97,5 +109,9 @@ class RetainedOwner implements PrivateHelperOwner {
 }
 
 function requireLaunchActive(retirement?: AbortSignal): void {
-  if (retirement?.aborted) throw new PrivateHelperError("HELPER_LAUNCH_RETIRED");
+  if (!retirement?.aborted) return;
+  const refusal = new PrivateHelperError("HELPER_LAUNCH_RETIRED");
+  const attempt = launchAttempts.get(retirement);
+  if (attempt) attempt.refusal = refusal;
+  throw refusal;
 }

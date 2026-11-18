@@ -571,38 +571,53 @@ function pendingOwnedConnection() {
   return { connection, ready, completed, rootExit, output, cutoffs };
 }
 
-test("reentrant retirement aborts the reserved owned launch and shares its unconfirmed rejection", async () => {
-  const delivery = Promise.withResolvers<OwnedSessionConnection>();
-  const reentered = Promise.withResolvers<{ aborted: boolean | undefined; shutdown: Promise<void> }>();
-  let abortCount = 0, repeated: Promise<void> | undefined;
-  const f = await sourceFixture(Date.now, (_cwd, signal): Promise<OwnedSessionConnection> => {
-    signal?.addEventListener("abort", () => { ++abortCount; repeated = f.supervisor.close(); });
-    const shutdown = f.supervisor.revokeAll();
-    reentered.resolve({ aborted: signal?.aborted, shutdown });
-    return delivery.promise;
-  });
-  const opening = f.supervisor.open(f.identity, f.selected);
-  void opening.catch(() => {});
-  try {
-    const { aborted, shutdown } = await reentered.promise;
-    expect(aborted).toBe(true);
-    expect(abortCount).toBe(1);
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
+test.each(["same-code error", "late arbitrary rejection"] as const)(
+  "reentrant retirement aborts the reserved owned launch and keeps an unconfirmed %s", async failure => {
+    const delivery = Promise.withResolvers<OwnedSessionConnection>();
+    const reentered = Promise.withResolvers<{ aborted: boolean; shutdown: Promise<void> }>();
+    let abortCount = 0, repeated: Promise<void> | undefined;
+    const f = await sourceFixture(Date.now, (_cwd, signal): Promise<OwnedSessionConnection> => {
+      signal.addEventListener("abort", () => { ++abortCount; repeated = f.supervisor.close(); });
+      const shutdown = f.supervisor.revokeAll();
+      reentered.resolve({ aborted: signal.aborted, shutdown });
+      return delivery.promise;
+    });
+    const clock = shutdownClock();
+    const opening = f.supervisor.open(f.identity, f.selected);
+    void opening.catch(() => {});
+    try {
+      const { aborted, shutdown } = await reentered.promise;
+      expect(aborted).toBe(true);
+      expect(abortCount).toBe(1);
+      expect(f.supervisor.hasOwnedReservation).toBe(true);
 
-    delivery.reject(new Error("HELPER_LAUNCH_RETIRED"));
-    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
-    await Promise.all([shutdown, repeated, f.supervisor.close()]);
-    expect(abortCount).toBe(1);
-    expect(f.supervisor.starts).toBe(1);
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
-    expect(f.supervisor.exits()).toMatchObject([{ reason: "all-browser-access-revoked",
-      drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" } }]);
-  } finally {
-    delivery.reject(new Error("SYNTHETIC_LAUNCH_REJECTED"));
-    await opening.catch(() => {});
-    await f.close();
-  }
-});
+      if (failure === "late arbitrary rejection") {
+        await clock.advance(35_000);
+        await shutdown;
+        expect(f.supervisor.exits()).toMatchObject([{ drain: {
+          status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED",
+        } }]);
+        f.index.close();
+        delivery.reject(new Error("STRICT_OCCUPIED"));
+      } else {
+        delivery.reject(Object.assign(new Error("HELPER_LAUNCH_RETIRED"), { code: "HELPER_LAUNCH_RETIRED" }));
+      }
+      const openFailure = failure === "same-code error" ? "SESSION_OPEN_OUTCOME_UNKNOWN" : "STRICT_OCCUPIED";
+      await expect(opening).rejects.toThrow(openFailure);
+      await Promise.all([shutdown, repeated, f.supervisor.close()]);
+      expect(abortCount).toBe(1);
+      expect(f.supervisor.starts).toBe(1);
+      expect(f.supervisor.hasOwnedReservation).toBe(true);
+      expect(f.supervisor.exits()).toMatchObject([{ reason: "all-browser-access-revoked",
+        drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" } }]);
+    } finally {
+      delivery.reject(new Error("SYNTHETIC_LAUNCH_REJECTED"));
+      await opening.catch(() => {});
+      clock.restore();
+      await f.close();
+    }
+  },
+);
 
 test("shutdown fences the retained connection while readiness is pending and waits for domain completion and both EOFs", async () => {
   const owned = pendingOwnedConnection();
