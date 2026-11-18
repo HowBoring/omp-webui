@@ -33,7 +33,7 @@ function syntheticRelease(approval: { binaryDigest: string; sourceDigest: string
   return release;
 }
 
-function fixture() {
+function fixture({ verifyLaunch = async () => {}, afterSpawn = () => {} } = {}) {
   let leased = true, nativeOpens = 0, nativeCloses = 0, rawCloses = 0, prepares = 0;
   let abi = 1, unloadFails = false, adoptionFails = false, socketCloseFails = false, verifyFails = false;
   const children: { process: PrivateHelperProcess; reap(code: number): void; bytes: Buffer[] }[] = [];
@@ -59,10 +59,10 @@ function fixture() {
   const load = createOwnedControlIoLoader({ pin: async () => ({ file: { fd: 10, close: async () => {} }, verify }),
     openNative: async () => { nativeOpens++; return library; } });
   const open = () => createPrivateHelperOwnerForTesting({ selection, controlIoApproval: approval }, {
-    load, verifyLaunch: async () => {},
+    load, verifyLaunch,
     spawn: () => {
       const child = controlledChild(children.length);
-      children.push(child); return child.process;
+      children.push(child); afterSpawn(); return child.process;
     }, closeControl: () => { rawCloses++; },
   });
   const launch = { generation, cwd: "/synthetic", arguments: ["--mode", "rpc-ui"], environment: {},
@@ -96,6 +96,92 @@ function complete(f: ReturnType<typeof fixture>, index: number, rootExitCode = 0
   child.bytes.push(Buffer.from(`ROOT_EXIT ${generation} ${rootExitCode} 0\nCOMPLETE ${generation}\n`), Buffer.alloc(0));
   child.reap(0);
 }
+
+test("a previously retired launch refuses verification, preparation and spawn", async () => {
+  let verified = false;
+  const f = fixture({ verifyLaunch: async () => { verified = true; } });
+  const owner = await f.open();
+  const signal = AbortSignal.abort(new Error("private retirement reason"));
+  await expect(owner.launch(f.launch, signal)).rejects.toMatchObject({
+    code: "HELPER_LAUNCH_RETIRED", message: "HELPER_LAUNCH_RETIRED", causeCode: undefined,
+  });
+  expect([verified, f.prepares, f.children.length]).toEqual([false, 0, 0]);
+  await owner.close();
+});
+
+test("retirement during launch verification prevents dispatcher preparation and spawn", async () => {
+  const verificationStarted = Promise.withResolvers<void>();
+  const verification = Promise.withResolvers<void>();
+  const f = fixture({ verifyLaunch: () => { verificationStarted.resolve(); return verification.promise; } });
+  const owner = await f.open();
+  const retirement = new AbortController();
+  const launched = owner.launch(f.launch, retirement.signal);
+  await verificationStarted.promise;
+  retirement.abort();
+  verification.resolve();
+  await expect(launched).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
+  expect([f.prepares, f.children.length]).toEqual([0, 0]);
+  await owner.close();
+});
+
+test("retirement during dispatcher preparation prevents final verification and spawn", async () => {
+  const f = fixture();
+  const owner = await f.open();
+  let verified = false;
+  f.selection.verify = async () => { verified = true; };
+  const preparationStarted = Promise.withResolvers<void>();
+  const preparation = Promise.withResolvers<void>();
+  const retirement = new AbortController();
+  const launched = owner.launch({ ...f.launch, prepareHelper: () => {
+    preparationStarted.resolve();
+    return preparation.promise;
+  } }, retirement.signal);
+  await preparationStarted.promise;
+  retirement.abort();
+  preparation.resolve();
+  await expect(launched).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
+  expect([verified, f.children.length]).toEqual([false, 0]);
+  await owner.close();
+});
+
+test("retirement during final selection verification prevents spawn after completed preparation", async () => {
+  const f = fixture();
+  const owner = await f.open();
+  const verificationStarted = Promise.withResolvers<void>();
+  const verification = Promise.withResolvers<void>();
+  f.selection.verify = () => { verificationStarted.resolve(); return verification.promise; };
+  const retirement = new AbortController();
+  const launched = owner.launch(f.launch, retirement.signal);
+  await verificationStarted.promise;
+  retirement.abort();
+  verification.resolve();
+  await expect(launched).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
+  expect([f.prepares, f.children.length]).toEqual([1, 0]);
+  await owner.close();
+});
+
+test("retirement after spawn preserves the original handle and waits for its completion", async () => {
+  const retirement = new AbortController();
+  const f = fixture({ afterSpawn: () => retirement.abort() });
+  const owner = await f.open();
+  const handle = await owner.launch(f.launch, retirement.signal);
+  expect(retirement.signal.aborted).toBe(true);
+  const child = f.children[0];
+  if (!child) throw new Error("missing controlled child");
+  expect(handle.helperPid).toBe(child.process.pid);
+  expect(handle.stdout).toBe(child.process.stdout);
+  expect(handle.stderr).toBe(child.process.stderr);
+  await ready(f, 0);
+  await handle.ready;
+
+  const closing = owner.close();
+  await Promise.resolve();
+  expect([f.leased, f.nativeCloses]).toEqual([true, 0]);
+  complete(f, 0);
+  await closing;
+  expect(await handle.helperExited).toBe(0);
+  expect([f.leased, f.nativeCloses, f.children.length]).toEqual([false, 1, 1]);
+});
 
 test("concurrent helpers reuse one approved module and retain selection until explicit awaited close", async () => {
   const f = fixture(); const owner = await f.open();
