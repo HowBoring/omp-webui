@@ -8,12 +8,14 @@ import type { ServerWebSocket } from "bun";
 import { resolve } from "node:path";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
+import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import type { SessionWorker } from "../../../packages/compatibility/session-worker.ts";
 import { dispatchSessionRequest as dispatch, sessionUnary as unary, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
+import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
   "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
@@ -44,10 +46,13 @@ export async function startSessionComponentServer(options: Options) {
   await ctx.plugin(RemoteAccessService);
   await ctx.plugin(TypertGatewayService, {});
   ctx.typert.register(sessionsHostContribution);
+  ctx.typert.register({ ...workspaceHostContribution, invocations: workspaceHostContribution.invocations.filter(method =>
+    method.namespace === "ompWorkspaces" && method.method === "registered") });
   ctx.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
     model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors });
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
+  new WorkspaceService(ctx, options.catalog, directories, index);
   const unregister = ctx.typertGateway.registerRemoteEvents(idle, { home: "/" });
   const peers = new Set<Peer>();
   const sockets = new Set<ServerWebSocket<SocketData>>();
@@ -86,15 +91,18 @@ export async function startSessionComponentServer(options: Options) {
         await peer.dispose();
         return new Response("Upgrade required", { status: 426 });
       }
-      if ([...unary].some(method => path === `/api/${method}`) && request.method === "POST") {
+      const registeredWorkspace = path === "/api/ompWorkspaces/registered";
+      if ((registeredWorkspace || [...unary].some(method => path === `/api/${method}`)) && request.method === "POST") {
         if (request.headers.get("origin") !== carrier.url.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
         if (identity instanceof Response) return identity;
         if (inflight >= 32) return Response.json({ error: { code: "SESSION_REQUEST_LIMIT" } }, { status: 429 });
         ++inflight;
         try {
-          const response = await sessionCaller.run(identity, () => dispatch(request, ctx, owner, () => access.revalidate(identity)));
-          if (!access.revalidate(identity)) return new Response("Access invalidated", { status: 401 });
+          const current = () => access.revalidate(identity);
+          const response = registeredWorkspace ? await dispatchWorkspaceRequest(request, ctx, owner, current)
+            : await sessionCaller.run(identity, () => dispatch(request, ctx, owner, current));
+          if (!current()) return new Response("Access invalidated", { status: 401 });
           if (objectReplies.has(path) && isSuccessfulSessionReply(response)) { try { supervisor.assertObjectAccess(identity); }
             catch { return new Response("Session access invalidated", { status: 403 }); } }
           return response;

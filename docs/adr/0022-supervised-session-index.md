@@ -80,3 +80,11 @@ or stacks; malformed envelopes remain HTTP rejections before invocation. The
 public New endpoint resolves the service's `new` method. These changes are covered
 only by FS/SQLite, public native-port and in-memory DSH regressions; they create no
 new Native execution, descendant-cleanup or production-admission attestation.
+
+The isolated Session carrier serves the registered Workspace page from the same
+SQLite index and directory grants used for supervised Open. The public catalog
+description supplies current metadata, ownership and directory access only when
+its source, instance and native Session ID all match the stored registration.
+Replaced references retain cached metadata with unknown ownership and access.
+The registered page performs no worker action and keeps the other Workspace
+endpoints on the standalone fixture carrier.

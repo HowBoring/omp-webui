@@ -3,6 +3,11 @@ import { mkdir, rm, symlink, rename, copyFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { nativeFixture, nativeTitleSlots, sessionManagerFixture } from "../tests/catalog/fixture.ts";
 import { CatalogTransport } from "../packages/compatibility/catalog-transport.ts";
+import type { CatalogDescriptor } from "../packages/contracts/generated/omp-wire.ts";
+
+function persistedReference({ reference, sourceId, instanceId, nativeSessionId }: CatalogDescriptor) {
+  return { reference, sourceId, instanceId, nativeSessionId };
+}
 const home = resolve("vendor/workspace-fixture");
 await rm(home, { recursive: true, force: true });
 const source = await nativeFixture(home, 40);
@@ -37,13 +42,13 @@ try {
   const missing = Buffer.from(JSON.stringify({ ...reference, locator: "bucket/missing-session.jsonl" })).toString("base64url");
   const absentSource = Buffer.from(JSON.stringify({ ...reference, sourceId: "no-longer-configured" })).toString("base64url");
   await Bun.write(join(home, "index-metadata.json"), JSON.stringify([
-    { id: "synthetic-registered-valid", reference: first.reference, nativeSessionId: first.nativeSessionId, title: "Remembered valid native title" },
-    { id: "synthetic-registered-replaced", reference: second.reference, nativeSessionId: second.nativeSessionId, title: "Remembered replaced native title" },
+    { id: "synthetic-registered-valid", ...persistedReference(first), title: "Remembered valid native title" },
+    { id: "synthetic-registered-replaced", ...persistedReference(second), title: "Remembered replaced native title" },
     { id: "synthetic-registered-missing", reference: missing, nativeSessionId: "missing-native", title: "Remembered missing native title" },
     { id: "synthetic-registered-unknown-source", reference: absentSource, nativeSessionId: first.nativeSessionId, title: "Source removed" },
     { id: "synthetic-invalid-reference", reference: "invalid", nativeSessionId: "invalid-native", title: "Invalid persisted metadata reference" },
     ...items.filter(item => /^native-00(0[2-9]|[12][0-9]|3[01])$/.test(item.nativeSessionId)).map(item => ({
-      id: `synthetic-registered-${item.nativeSessionId}`, reference: item.reference, nativeSessionId: item.nativeSessionId,
+      id: `synthetic-registered-${item.nativeSessionId}`, ...persistedReference(item),
       title: item.title, cwd: item.cwd.recorded,
     })),
   ], null, 2));
