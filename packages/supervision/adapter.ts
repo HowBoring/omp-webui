@@ -10,7 +10,7 @@ import { openPrivateHelperOwner } from "./owner.ts";
 import { verifyHelperSelection } from "./control-io-selection.ts";
 import { PrivateHelperError, helperError } from "./errors.ts";
 
-export type { PrivateHelperHandle } from "./controller.ts";
+export type { PrivateHelperHandle, PrivateRootExit } from "./controller.ts";
 
 /** Independent operator approval, never derived/enrolled by this adapter from the selected release itself. */
 export interface PrivateHelperApproval {

@@ -88,3 +88,10 @@ its source, instance and native Session ID all match the stored registration.
 Replaced references retain cached metadata with unknown ownership and access.
 The registered page performs no worker action and keeps the other Workspace
 endpoints on the standalone fixture carrier.
+
+The private helper handle makes the validated Native root outcome available independently
+of helper reap and domain completion. A SessionWorker binding still needs to negotiate RPC
+on the retained pipes, fence requests on root loss, and retain the domain through failed
+startup or uncertain completion. SessionSupervisor must use authoritative domain completion
+when deciding whether to release the worker slot. Mandatory cleanup needs an explicit
+handoff to the helper's absolute deadline and Native input fence.

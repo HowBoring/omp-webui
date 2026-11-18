@@ -100,8 +100,11 @@ for concurrent handles and verifies helper artifacts and prepare/register callba
 through explicitly non-authorizing `testing.ts`; the production constructor accepts no loader substitution.
 
 `owner.launch` returns an owned handle before `ready` finishes, including missing fd, adoption or listener setup
-failure after spawn. Native input stays fenced; helper reap remains observable. `helperExited` alone is not drain.
-Only `completed` combines matched COMPLETE, fully decoded clean control EOF and successful original helper reap.
+failure after spawn. Native input stays fenced; helper reap remains observable.
+`rootExit` reports the generation, exit code and signal from the first accepted ROOT_EXIT frame. If control is lost
+before that frame is accepted, it rejects with `PRIVATE_ROOT_EXIT_UNOBSERVED`. An accepted observation remains
+available if completion later becomes unresolved. `helperExited` records the original helper reap.
+`completed` requires matched COMPLETE, fully decoded clean control EOF and successful original helper reap.
 The carried external clean-EOF correction rejects close-only/truncated completion. The module never enrolls its own
 source/binary approval. Raw-fd close is attempted exactly once only before transfer; uncertainty never permits retry.
 

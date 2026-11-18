@@ -90,10 +90,10 @@ async function ready(f: ReturnType<typeof fixture>, index: number) {
   if (!child) throw new Error("missing controlled child");
   child.bytes.push(Buffer.from(`HELLO ${generation} ${child.process.pid} 123 ${child.process.pid + 100} 124\n`));
 }
-function complete(f: ReturnType<typeof fixture>, index: number) {
+function complete(f: ReturnType<typeof fixture>, index: number, rootExitCode = 0) {
   const child = f.children[index];
   if (!child) throw new Error("missing controlled child");
-  child.bytes.push(Buffer.from(`ROOT_EXIT ${generation} 0 0\nCOMPLETE ${generation}\n`), Buffer.alloc(0));
+  child.bytes.push(Buffer.from(`ROOT_EXIT ${generation} ${rootExitCode} 0\nCOMPLETE ${generation}\n`), Buffer.alloc(0));
   child.reap(0);
 }
 
@@ -103,7 +103,8 @@ test("concurrent helpers reuse one approved module and retain selection until ex
   await ready(f, 0); await ready(f, 1);
   await Promise.all([a.ready, b.ready]);
   expect([f.nativeOpens, f.prepares, f.children.length]).toEqual([1, 2, 2]);
-  complete(f, 0); await a.completed;
+  complete(f, 0, 19); await a.completed;
+  expect(await a.rootExit).toEqual({ kind: "rootExit", generation, exitCode: 19, signal: 0 });
   expect([f.nativeCloses, f.leased]).toEqual([0, true]);
   let closed = false;
   const closing = owner.close().then(() => { closed = true; });

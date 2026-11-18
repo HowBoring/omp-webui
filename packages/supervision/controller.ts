@@ -1,6 +1,6 @@
 import type { FileSink } from "bun";
 import type { ControlSocket } from "../control-io/index.ts";
-import { ControlDecoder, privateGeneration, type PrivateHello } from "./control.ts";
+import { ControlDecoder, privateGeneration, type PrivateEvent, type PrivateHello } from "./control.ts";
 import { PrivateHelperError, helperError } from "./errors.ts";
 import { PrivateControlSession } from "./session.ts";
 import { FencedNativeInput } from "./input.ts";
@@ -25,11 +25,15 @@ export interface PrivateHelperControl {
   generation: string;
   registerHeldHelper(hello: Readonly<PrivateHello>): Promise<void>;
 }
+export type PrivateRootExit = Extract<PrivateEvent, { kind: "rootExit" }>;
+
 export interface PrivateHelperHandle {
   control: PrivateControlSession;
   helperPid: number;
   /** Retain this handle and the selected lease even when startup fails. */
   ready: Promise<Readonly<PrivateHello>>;
+  /** First accepted Native ROOT_EXIT. Rejects with PRIVATE_ROOT_EXIT_UNOBSERVED if control is lost first. */
+  readonly rootExit: Promise<Readonly<PrivateRootExit>>;
   /** Direct helper reap only; never descendant extinction. */
   helperExited: Promise<number>;
   stdin: FileSink;
@@ -73,6 +77,7 @@ class RetainedHelper {
   readonly #resolveReady: (hello: Readonly<PrivateHello>) => void;
   readonly #rejectReady: (error: Error) => void;
   readonly #resolveEnded: () => void;
+  readonly #rootExit = Promise.withResolvers<Readonly<PrivateRootExit>>();
   #socket: PrivateHelperSocket | undefined;
   #closeRawControl: (() => void) | undefined;
   #failed: PrivateHelperError | undefined;
@@ -100,9 +105,10 @@ class RetainedHelper {
     }, error => { throw helperError("PRIVATE_DOMAIN_UNRESOLVED", error); });
     // Callers may observe these later; retain failures without process-level unhandled rejections.
     void ready.promise.catch(() => {});
+    void this.#rootExit.promise.catch(() => {});
     void completed.catch(error => this.fail(error));
     this.handle = { control: this.#session, helperPid: process.pid, ready: ready.promise,
-      helperExited, stdin: this.#nativeInput, stdout: process.stdout, stderr: process.stderr,
+      rootExit: this.#rootExit.promise, helperExited, stdin: this.#nativeInput, stdout: process.stdout, stderr: process.stderr,
       completed, disconnectControl: () => this.fail(new PrivateHelperError("PRIVATE_DOMAIN_UNRESOLVED")) };
   }
 
@@ -133,6 +139,7 @@ class RetainedHelper {
     try { closeRaw?.(); }
     catch { /* retain unresolved ownership; no disposal or drain claim */ }
     this.#rejectReady(this.#failed);
+    this.#rootExit.reject(new PrivateHelperError("PRIVATE_ROOT_EXIT_UNOBSERVED", this.#failed));
     this.#resolveEnded();
   }
 
@@ -172,7 +179,9 @@ class RetainedHelper {
       if (this.#failed) return;
       for (const event of this.#decoder.push(bytes)) {
         await this.#session.accept(event);
+        if (this.#failed) return;
         if (event.kind === "hello") this.#resolveReady(event);
+        else if (event.kind === "rootExit") this.#rootExit.resolve(Object.freeze(event));
       }
     }).finally(() => { this.#pendingBytes -= bytes.length; });
     void this.#chain.catch(error => this.fail(error));
