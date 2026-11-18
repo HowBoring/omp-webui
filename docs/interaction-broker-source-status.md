@@ -1,8 +1,9 @@
 # Interaction Broker source vertical (#47)
 
-Status: SOURCE / public Remote and isolated loopback carrier fixtures. This does not admit private Sessions,
-complete #47, or satisfy its #46/#41 dependencies. Linux product-browser and real
-Native evidence are pending; actual Windows Chrome/WSL2 is deferred by the owner.
+**Status** — Source, public Remote, isolated loopback carrier, and isolated Linux
+Chromium evidence. Private Session admission depends on #46 and #41. Linux
+product-browser and real Native Broker verification are pending. Windows
+Chrome/WSL2 is deferred by the owner.
 
 `packages/interactions/broker.ts` supplies an in-memory Broker for one worker
 incarnation, with a separate verified Session or explicit startup-context scope.
@@ -145,3 +146,31 @@ process creation. The fetch transport composes Request/Response envelopes in
 memory. No actual Native, Agent, worker, Host listener, browser, network/provider,
 FFI, process, or kernel runtime is exercised. This is complementary source/fixture
 evidence, not real simultaneous browser/Native or full #47 acceptance.
+
+## Isolated Linux Chromium verification
+
+On Host candidate `669d1c76d03c2c17e17da54fbd35818b73b41652`, Linux Chromium
+`156.0.8078.79` ran two independent browser contexts with distinct issued
+credentials. Each used the pinned DSH Connection and Gateway to register a
+live `$events` stream and invoke the generated Broker Remote over loopback.
+The two answers arrived concurrently. One reached the synthetic Native
+port, and the other returned stale before the acknowledgement was released.
+After release, both views had cleared the completed card.
+
+Closing one page invalidated that page's Remote admission before reconnect.
+The replacement page registered a new ready client and received a fresh
+delivery for the same pending question with the original deadline. Its old
+delivery stayed stale. The unaffected page remained authorized. The fixture
+recorded zero worker launches and zero Stop requests. It uses a synthetic
+Native port and a minimal browser page, so the evidence covers this isolated
+carrier. Shared-cookie page binding and the composed product UI require
+separate verification.
+
+| Evidence | Identity |
+| --- | --- |
+| Reviewed Host tree | `4b434c9bbfa03895df3edf6a26ea750e1b03fd5b` |
+| DSH source target | `d05468939bcb06446ace47045d138f716406c788` |
+| DSH source input manifest SHA-256 | `aa03d966ef697d27a0817eececff6dfaf0b4125a369ea7ab47eac5af700b1539` |
+| Browser client bundle SHA-256 | `41537312d88fa027173877a4b7059728b09c45231f3be8621e422d385cea7588` |
+| Chromium executable SHA-256 | `ce1ff960ce428a4a88b1b1c38516bdf1954a57fc24036161b7a0d8d0f8aec511` |
+| Validated fixture result SHA-256 | `71f441d55c667dafa571103def0e88f1e581fb2d535565997a0e66a6faf68fa4` |
