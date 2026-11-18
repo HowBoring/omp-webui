@@ -84,13 +84,17 @@ real timer/worker races and the final matched tuple are not delivered here.
 
 Validation on Bun 1.4.4 (`38afee6c8`) and Node 24.22.1:
 
-- Public Client Connection/Remote → real Host Typert Gateway/service → Broker →
-  injected generated Native boundary: 12 passing fixtures, 68 assertions.
-- Held Native acknowledgement with simultaneous two-page answers; invalid answer,
-  cross-page delivery, refresh, Native-invalid redelivery, absolute deadline,
-  timer-late admission, all-page disconnect, explicit/native cancellation,
-  credential and scope revocation, lost acknowledgement, startup scope,
-  tool/URI separation and worker replacement.
+- The guarded public Client Connection/Remote path through the upstream Host
+  Typert Gateway and Broker to the synthetic Native boundary passes 12 fixtures
+  with 76 assertions.
+- A shared barrier releases two request arrivals from independently bound
+  synthetic Peers. One matching answer reaches the Native boundary, and the
+  losing Remote returns stale while the winner's acknowledgement is held. After
+  acknowledgement, the winner returns answered and both pending views are empty.
+- The fixtures also cover invalid answers, cross-page delivery, refresh,
+  Native-invalid redelivery, absolute deadlines, timer-late admission, all-page
+  disconnect, explicit and Native cancellation, credential and scope revocation,
+  lost acknowledgement, startup scope, tool/URI separation and worker replacement.
 - RED before GREEN: missing Broker import; duplicate expiry Stop; lost-ack Stop;
   held-ack timer expiry; revoked-view result application. Each failed at the
   intended public seam before its implementation fix.
