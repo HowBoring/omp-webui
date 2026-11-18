@@ -125,8 +125,9 @@ final native/DSH combination or absent actual-global target keeps the gate BLOCK
 ## Operator report
 
 `bun --no-env-file scripts/inspect-delivery.ts` emits sanitized JSON and exits 2 (blocked). With no configuration,
-its code is `GLOBAL_TARGET_NOT_SELECTED`; it does not discover or run an executable. Optional trusted startup
-`OMP_WEB_DELIVERY_SELECTION` names a small strict JSON configuration containing `root`, `entry`, the independently
-approved `expectedIdentity`, and `control: { path, device, inode }`. Invalid configuration is sanitized. Even valid
-component inspection reports `DELIVERY_COMPONENTS_ONLY` and all outstanding evidence; it is not an installation
-workflow, product admission switch, or actual-global acceptance result.
+its code is `GLOBAL_TARGET_NOT_SELECTED`. Optional trusted startup configuration uses
+`OMP_WEB_DELIVERY_SELECTION` to name a stable regular file of up to 65,536 bytes. Its strict JSON fields are
+`root`, `entry`, the independently approved `expectedIdentity`, and `control: { path, device, inode }`.
+Invalid configuration produces `DELIVERY_SELECTION_INVALID` without including paths or config contents.
+Valid component inspection reports `DELIVERY_COMPONENTS_ONLY` and the outstanding evidence.
+The command inspects explicitly selected components without discovering or running OMP.
