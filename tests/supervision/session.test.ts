@@ -21,6 +21,44 @@ test("Native exec remains held until independently authenticated dispatcher regi
   expect(session.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
 });
 
+test("a registered helper with START fenced refuses Ordinary Stop and accepts mandatory cleanup", async () => {
+  let now = 0;
+  const written: string[] = [];
+  const session = new PrivateControlSession({ generation, now: () => now,
+    write: async bytes => { written.push(new TextDecoder().decode(bytes)); },
+    registerHeldHelper: async () => {},
+    closeNativeAdmission: async () => { written.push("CLOSED"); },
+  });
+  session.fenceStart();
+  await session.accept(hello);
+  expect(session.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
+  await expect(session.ordinaryStop()).rejects.toMatchObject({ code: "CONTROL_SEQUENCE" });
+  expect(written).toEqual([]);
+  now = 30_000;
+  expect(session.forceAvailable).toBe(false);
+  await session.mandatoryCleanup();
+  expect(written).toEqual(["CLOSED", `MANDATORY ${generation}\n`]);
+});
+
+test("the START fence preserves an already submitted control write", async () => {
+  const submitted = Promise.withResolvers<string>();
+  const flushed = Promise.withResolvers<void>();
+  const session = new PrivateControlSession({ generation, now: () => 0,
+    registerHeldHelper: async () => {}, closeNativeAdmission: async () => {},
+    write: async bytes => {
+      submitted.resolve(new TextDecoder().decode(bytes));
+      await flushed.promise;
+    },
+  });
+  const admission = session.accept(hello);
+  const command = await submitted.promise;
+  session.fenceStart();
+  flushed.resolve();
+  await admission;
+  expect(command).toBe(`START ${generation}\n`);
+  expect(session.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
+});
+
 test("ordinary Stop and early Native exit never automatically force descendants", async () => {
   let now = 0;
   const written: string[] = [];

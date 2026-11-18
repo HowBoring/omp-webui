@@ -24,7 +24,11 @@ const ready: ReadyEvent = {
 };
 
 class ControlSocket extends EventEmitter {
-  write(_bytes: Uint8Array, callback: () => void): void { callback(); }
+  readonly writes: string[] = [];
+  write(bytes: Uint8Array, callback: () => void): void {
+    this.writes.push(Buffer.from(bytes).toString("utf8"));
+    callback();
+  }
   destroy(): void { this.emit("close"); }
   receive(frame: string): void { this.emit("data", Buffer.from(frame)); }
 }
@@ -38,7 +42,7 @@ function pipe() {
 }
 
 interface Command extends Partial<RespondUiParams> { id: string; type: string; protocolVersion?: number }
-function ownedPeer() {
+function ownedPeer(registerHeldHelper = async () => {}) {
   const control = new ControlSocket(), stdout = pipe(), stderr = pipe();
   const reap = Promise.withResolvers<number>();
   const commands: Command[] = [];
@@ -64,7 +68,7 @@ function ownedPeer() {
       stdio: [null, null, null, 17] }),
     openControl: () => control, closeControl: () => {},
   });
-  const helper = controller.launch({ generation, registerHeldHelper: async () => {} });
+  const helper = controller.launch({ generation, registerHeldHelper });
   return { helper, stdout, stderr, control, commands, reap: reap.resolve,
     get inputEnded() { return inputEnded; },
     get flushes() { return flushes; },
@@ -495,23 +499,36 @@ test("owned cleanup keeps the first cutoff for pending replies and writes behind
   } finally { clock.mockRestore(); peer.helper.disconnectControl(); peer.reap(0); }
 });
 
-test.each(["before HELLO", "before the v2 ack"] as const)("owned retirement %s cannot later admit cleanup", async when => {
-  const peer = ownedPeer();
+test.each(["before HELLO", "during registration", "before the v2 ack"] as const)(
+  "owned retirement %s fences startup and cannot later admit cleanup", async when => {
+  const registrationStarted = Promise.withResolvers<void>();
+  const registration = Promise.withResolvers<void>();
+  const peer = ownedPeer(async () => {
+    registrationStarted.resolve();
+    await registration.promise;
+  });
   try {
     const connected = SessionWorker.attachOwned(peer.helper);
     const negotiating = peer.nextCommand();
     peer.stdout.send(ready);
     let command: Command | undefined;
-    if (when === "before the v2 ack") {
+    if (when !== "before HELLO") {
       peer.hello();
-      command = await negotiating;
+      await registrationStarted.promise;
+      registration.resolve();
     }
+    if (when === "before the v2 ack") command = await negotiating;
     expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
     expect(peer.inputEnded).toBe(true);
     await expect(connected.ready).rejects.toMatchObject({ code: "RPC_SESSION_RETIRED" });
     if (command) peer.respond(command, { protocolVersion: 2 });
-    else peer.hello();
+    if (when === "before HELLO") {
+      peer.hello();
+      registration.resolve();
+    }
     await peer.helper.ready;
+    expect(peer.control.writes).toEqual(command ? [`START ${generation}\n`] : []);
+    expect(peer.helper.control.nativeIdentity).toEqual({ pid: 42, startTime: "124" });
 
     peer.stdout.send({ type: "session_settled" });
     peer.stdout.close();
@@ -521,10 +538,17 @@ test.each(["before HELLO", "before the v2 ack"] as const)("owned retirement %s c
     });
     expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
     expect(peer.commands).toHaveLength(command ? 1 : 0);
+    await peer.helper.control.mandatoryCleanup();
+    expect(peer.control.writes.at(-1)).toBe(`MANDATORY ${generation}\n`);
     peer.rootExit();
+    expect(await connected.rootExit).toMatchObject({ exitCode: 0, signal: 0 });
     peer.complete();
     await connected.completed;
-  } finally { peer.helper.disconnectControl(); peer.reap(0); }
+  } finally {
+    registration.resolve();
+    peer.helper.disconnectControl();
+    peer.reap(0);
+  }
 });
 
 test("Native root exit fences pending RPC while valid EOF tails and helper completion stay observable", async () => {
@@ -656,7 +680,7 @@ test("control loss fences RPC and malformed stdout tail fails validation without
   } finally { peer.helper.disconnectControl(); peer.reap(0); }
 });
 
-test("an unavailable pipe returns a failed attachment with the retained helper observations", async () => {
+test("retiring a failed pipe attachment fences START and preserves the retained helper observations", async () => {
   const peer = ownedPeer();
   const reader = peer.stderr.stream.getReader();
   try {
@@ -667,6 +691,10 @@ test("an unavailable pipe returns a failed attachment with the retained helper o
     await expect(connected.output).rejects.toMatchObject({ code: "RPC_PIPES_IN_USE" });
     expect(peer.stdout.stream.locked).toBe(false);
     expect(peer.inputEnded).toBe(false);
+    expect(connected.beginCleanup(performance.now() + 1000)).toBeUndefined();
+    peer.hello();
+    await peer.helper.ready;
+    expect(peer.control.writes).toEqual([]);
   } finally {
     reader.releaseLock();
     peer.stdout.close(); peer.stderr.close(); peer.helper.disconnectControl(); peer.reap(0);
