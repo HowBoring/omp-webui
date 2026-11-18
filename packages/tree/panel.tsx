@@ -48,7 +48,9 @@ export function TreePanel({ browser }: { browser: TreeBrowser }) {
     <p>Selected preview: {state.selectedId ?? "none"}</p>
     <p>Displayed retained history is not an exact model-input audit. Native-pruned content cannot be reconstructed.</p>
     <button disabled={state.pending} onClick={() => void browser.open()}>Open current tree</button>
-    {state.error && <p role="alert">{state.error}; open the current tree again.</p>}
+    {state.error && <p role="alert">{state.error === "tree_preview_budget"
+      ? "This entry exceeds the preview limit. You can select another entry."
+      : `${state.error}. Open the current tree again.`}</p>}
     <p role="status">{state.phase === "partial" ? "Partial native tree; load remaining pages before preview." : state.phase}</p>
     {state.position && <><p>Source version: {state.position.contentRevision}; durability: not attested</p>
       <section aria-label="Native tree page"><h3>{state.phase === "complete" ? "Complete native tree" : "Native tree pages"}</h3>
