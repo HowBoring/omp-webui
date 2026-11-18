@@ -64,3 +64,19 @@ Run `ed4f81` (session `80017`) exited zero. The result SHA-256 was
 `e3b861f640387aadd6acde9b4cf5f465426df4b94cb8584b75eceaff4290d581`. The proof driver and results
 are under `/dev/shm/omp-source38-chromium47-current.oN4UYgn2` and
 `/dev/shm/omp-source38-chromium47-run.upfQIx0O`, respectively.
+
+## Regression after the Session ownership changes
+
+The same guarded driver ran against Host commit `0a99dec2e09232874ad4aefb39c8aaf978d4cf13`,
+tree `c0e4cccd442b95756254645115f1b77cb4b06aa3`. Verification matched 361 tracked paths, and the
+scoped TypeScript check passed. Both tabs used the same worker across Open and warm View. One
+answer reached Native and the other received `INTERACTION_ANSWER_LIMIT`. The original worker and
+Catalog both exited zero with stdout and stderr EOF and no termination or force signal.
+This evidence covers the direct Session component. The retained helper's physical shutdown
+deadline still needs its own runtime verification.
+
+Run `155f4b` (session `75451`) exited zero. The result SHA-256 is
+`6eb57cd1cde33686eef6377b64920216681ddd1f7242534bec84b93b8d638910`. The warm View screenshot
+SHA-256 is `4b95bfcc9500908cdb36d8f73cf3be1029313ccb316c0307fae0153a5ffeb59f`. The source and
+output directories are `/dev/shm/omp-source38-chromium44-merged.hXoAWvjN` and
+`/dev/shm/omp-source38-chromium47-run.8iu0SXei`.
