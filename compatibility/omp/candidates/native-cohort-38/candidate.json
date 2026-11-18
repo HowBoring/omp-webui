@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "status": "UNREGISTERED_SOURCE_ONLY",
+  "integrationBase": "8d332684bcda68e2612b0e65794d3e0c9245fd17",
+  "donors": {
+    "durableSource38": "c98b7a5cf61f58636decef1d9b8265df83262d24",
+    "offlineModelDiscovery": "e7b5855a967fbbb84d678f78c4ad5d34960ee19a",
+    "branchInspection": "5b92a9000787d784eaf8d0408f5b6014d67decd1"
+  },
+  "baseCommit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "baseTree": "bc176229265a781c3b502673566328bcb473466c",
+  "patches": [
+    {
+      "path": "0001-safe-preflight.patch",
+      "bytes": 63144,
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550",
+      "treeAfter": "b11880f833b718ee2b310bd61a2cb3b2e122db56"
+    },
+    {
+      "path": "0002-readonly-catalog.patch",
+      "bytes": 33466,
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7",
+      "treeAfter": "45d8c75269c8daae21fce4b627f59e7ef6850482"
+    },
+    {
+      "path": "0003-explicit-interactions.patch",
+      "bytes": 49968,
+      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03",
+      "treeAfter": "87f018db314095edaece27b55150dc41ca15cdfc"
+    },
+    {
+      "path": "0004-coherent-history.patch",
+      "bytes": 49490,
+      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3",
+      "treeAfter": "b53f74e34ff3e8d3224d13eefc95c7c590a0afff"
+    },
+    {
+      "path": "0005-strict-continuation.patch",
+      "bytes": 174829,
+      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382",
+      "treeAfter": "058bcf64e23897f87b7ceae4332db541f9a3c328"
+    },
+    {
+      "path": "0006-live-settlement.patch",
+      "bytes": 74456,
+      "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4",
+      "treeAfter": "ed51aa3c695b9e227395be13927ffbbe8682b06c"
+    },
+    {
+      "path": "candidates/native-cohort-38/patches/0007-durable-submission.patch",
+      "bytes": 165135,
+      "sha256": "0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957",
+      "treeAfter": "0946df8a22ee9abf0a910fb2fe03dacbe4faac53"
+    },
+    {
+      "path": "candidates/native-cohort-38/patches/0008-durable-navigation.patch",
+      "bytes": 76272,
+      "sha256": "2b946933de6b71f6ac6462820e54bb03e1b3811f60cab41426cdfbf5073bb812",
+      "treeAfter": "d397529282400b3f687243ace272d9189f79f78a"
+    },
+    {
+      "path": "candidates/native-cohort-38/patches/0009-attachment-preparation.patch",
+      "bytes": 163788,
+      "sha256": "54563304138f46364541768e30f17fd0c084312e28748b572a86b4929f5d974f",
+      "treeAfter": "4072c2269d10c1d313b7c5a260693d4221155e85"
+    },
+    {
+      "path": "candidates/native-cohort-38/patches/0010-image-original-budget.patch",
+      "bytes": 3099,
+      "sha256": "972a1987e01d64fc255a7944db22a1503ebbb622fc8de28fbdf6ad06719bdd24",
+      "treeAfter": "2f2591e6c69240007c7b8fd8a0a683ebaf17e93c"
+    },
+    {
+      "path": "candidates/offline-model-discovery-v1/model-registry-offline.patch",
+      "bytes": 1458,
+      "sha256": "eed771167c2630774c7326f23eb161cb7e5a7df9a8f644fd88f16301f7e3ac1b",
+      "treeAfter": "7768ec5c4f3b4793d95cfc1310e5799dca645efe"
+    },
+    {
+      "path": "candidates/branch-inspect-v1/native-branch-inspect.patch",
+      "bytes": 18625,
+      "sha256": "9c339517f3dbfa20d1f265727a9247b16502937f13b90782cf40d3c9640b176f",
+      "treeAfter": "b102d9db2b9b91e7baa1de484ca901705785993b"
+    }
+  ],
+  "verification": {
+    "bun": "1.4.4",
+    "nodeObserved": "24.22.1",
+    "strictPackages": {
+      "@types/bun": "1.4.4",
+      "@types/node": "26.6.6",
+      "bun-types": "1.4.4",
+      "undici-types": "8.9.0",
+      "typescript": "6.0.3"
+    },
+    "guard": {
+      "path": "fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    "wireArtifacts": [
+      {
+        "path": "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json",
+        "bytes": 189053,
+        "sha256": "d6fa9c1674b2742a4f279c7d8157bdc4a7cd157242202e499900d9315910e91d"
+      },
+      {
+        "path": "packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
+        "bytes": 72744,
+        "sha256": "191c95c6f3b9d8b59448cd08c7d7d917aac96aab10d894d5a774e97406245abf"
+      },
+      {
+        "path": "sdk/go/omp-rpc/wire.go",
+        "bytes": 393024,
+        "sha256": "b3a2ff036816e20823a620a673936a8fe9bd778acd144d86ff9fc995989bf946"
+      },
+      {
+        "path": "sdk/python/omp-rpc/src/omp_rpc/_wire.py",
+        "bytes": 277781,
+        "sha256": "837ef4edaf1a7571a995ee17cb87173c4d8ffafc7081039429f2e4a23684710f"
+      },
+      {
+        "path": "sdk/rust/omp-rpc/src/wire.rs",
+        "bytes": 356426,
+        "sha256": "7a0f980889c791a6c4dd0e22a84b5ff776cdac1c65106a3cf2e3dafd237e217d"
+      }
+    ]
+  }
+}
