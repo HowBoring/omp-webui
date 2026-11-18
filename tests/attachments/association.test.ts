@@ -132,6 +132,26 @@ test("exact reservation and association retries are idempotent and conflicting e
   expect((await second.read(access, sameBytes.objectId)).state).toBe("staged-unprepared");
 });
 
+test("the initiating entry of a text-only association remains exact after Store reopen", async () => {
+  const { open } = fixture(), first = open();
+  const original = await first.stage(access, descriptor, body());
+  const { receipt, result } = publicEvidence(original.objectId);
+  first.reserveForSubmission(access, attempt, [original.objectId], receipt);
+  first.recordSubmission(access, attempt.clientSubmissionId, result);
+  first.close();
+
+  const reopened = open();
+  const changedInput = { ...result, relations: result.relations.map(relation => relation.role !== "input" ? relation : {
+    ...relation, relationId: "entry:different-user", entryId: "different-user",
+  }) };
+  await expect(reopened.readAssociated(access, "files", original.objectId, changedInput))
+    .rejects.toThrow("attachment_association_conflict");
+  expect(() => reopened.recordSubmission(access, attempt.clientSubmissionId, changedInput))
+    .toThrow("attachment_association_conflict");
+  reopened.recordSubmission(access, attempt.clientSubmissionId, result);
+  expect((await reopened.readAssociated(access, "files", original.objectId, result)).bytes).toEqual(bytes);
+});
+
 test("inherited, incomplete, and mismatched causal evidence leaves the Original held without a historical read", async () => {
   const { open, advance } = fixture(), store = open();
   const original = await store.stage(access, descriptor, body());
@@ -176,6 +196,21 @@ test("a pending submission invalidates a staged deletion confirmation across Sto
   peer.recordSubmission(access, attempt.clientSubmissionId, result);
   expect(() => store.previewDeletion(access, original.objectId)).toThrow("attachment_object_unavailable");
   expect(store.usage(access).chargedBytes).toBe(4);
+});
+
+test("a hold on another connection during final authorization invalidates a staged read", async () => {
+  const { open } = fixture(), store = open(), peer = open("shared-connection");
+  const original = await store.stage(access, descriptor, body());
+  const { receipt, result } = publicEvidence(original.objectId);
+  let checks = 0;
+  const holdDuringAuthorization = () => {
+    if (++checks === 2) peer.reserveForSubmission(access, attempt, [original.objectId], receipt);
+    return access();
+  };
+  await expect(store.read(holdDuringAuthorization, original.objectId)).rejects.toThrow("attachment_original_protected");
+  expect(store.usage(access).chargedBytes).toBe(4);
+  peer.recordSubmission(access, attempt.clientSubmissionId, result);
+  expect((await store.readAssociated(access, "files", original.objectId, result)).bytes).toEqual(bytes);
 });
 
 test("associated reads recheck current scope and revoke bytes if the authority epoch changes during a read", async () => {

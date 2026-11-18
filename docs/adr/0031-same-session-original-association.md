@@ -22,7 +22,9 @@ Settlement accepts a complete, first-page read-only query of at most 128 relatio
 from the matching Native worker. The submitted ID, local origin, source, instance,
 Session and consumed preparation must match the hold. Settlement needs a retained
 committed initiating input and a unique retained committed entry locator for every
-held object. The Native relation places an image in the input's `content` array
+held object. The Store saves the initiating entry ID alongside the locators and
+checks it again on every settlement retry and associated read. The Native
+relation places an image in the input's `content` array
 and prepared text in its companion entry's `files` array. Unknown, inherited,
 paged or ambiguous evidence keeps the hold in place. Both exact retry and
 conflict handling use persisted facts across Store connections and reopen.

@@ -23,6 +23,10 @@ export interface OriginalEntryAssociation {
   entryId: string;
   entryPart: PreparedEntryPart;
 }
+export interface OriginalSubmissionAssociation {
+  initiatingEntryId: string;
+  links: OriginalEntryAssociation[];
+}
 
 const nativeId = /^[A-Za-z0-9_-]{1,96}$/;
 const digest = /^[a-f0-9]{64}$/;
@@ -72,8 +76,8 @@ const committedEntry = (relation: SubmissionRelation) => relation.status === "ob
   && relation.persistence === "committed" && relation.availability === "retained";
 
 /** Validates a complete first page from the trusted, already correlated public submission_query transport. */
-export function originalEntryAssociations(value: unknown, target: SubmissionTarget, clientSubmissionId: string,
-  savedPreparation: string): OriginalEntryAssociation[] | undefined {
+export function originalSubmissionAssociation(value: unknown, target: SubmissionTarget, clientSubmissionId: string,
+  savedPreparation: string): OriginalSubmissionAssociation | undefined {
   if (!isSubmission(value) || !value.found || value.duplicate || value.admission !== "local" || !value.origin
     || !sameTarget(value.target, target) || !sameTarget(value.origin, target)
     || value.clientSubmissionId !== clientSubmissionId || value.origin.clientSubmissionId !== clientSubmissionId
@@ -83,8 +87,10 @@ export function originalEntryAssociations(value: unknown, target: SubmissionTarg
 
   const expected = matchingPreparation(value.preparation, savedPreparation);
   const inputs = value.relations.filter(relation => relation.role === "input");
-  if (!expected || inputs.length !== 1 || !inputs[0]?.entryId || !committedEntry(inputs[0])) return;
-  return associationLinks(value.relations, expected);
+  const input = inputs[0];
+  if (!expected || inputs.length !== 1 || !input?.entryId || !committedEntry(input)) return;
+  const links = associationLinks(value.relations, expected);
+  if (links) return { initiatingEntryId: input.entryId, links };
 }
 
 function associationLinks(relations: SubmissionRelation[], expected: OriginalPreparation) {

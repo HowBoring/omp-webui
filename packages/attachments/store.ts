@@ -3,8 +3,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { chmodSync, closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdirSync, openSync,
   readFileSync, readdirSync, realpathSync, renameSync, unlinkSync, writeSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { originalEntryAssociations, originalPreparation, type OriginalEntryAssociation,
-  type OriginalSubmissionAttempt } from "./association-evidence.ts";
+import { originalPreparation, originalSubmissionAssociation, type OriginalEntryAssociation,
+  type OriginalSubmissionAssociation, type OriginalSubmissionAttempt } from "./association-evidence.ts";
 import { isAttachmentError, type AttachmentErrorName } from "./errors.ts";
 import { documentOriginalBytes, imageOriginalBytes, isOriginalMediaType, type OriginalMediaType } from "./media.ts";
 
@@ -276,7 +276,13 @@ export class OriginalStore {
     this.requireStagingView(row);
     this.current(access, scope, signal);
     this.checkBytes(row, bytes);
-    this.stagedObject(objectId, scope);
+    // The final authority check can admit a hold on another connection. Read eligibility in one snapshot.
+    const staged = this.db.query<{ held: number }, [string, string]>(`SELECT EXISTS (
+        SELECT 1 FROM original_submission_holds WHERE objectId=staged.id
+      ) AS held FROM originals AS staged WHERE id=? AND scope=? AND state='staged-unprepared'`)
+      .get(objectId, scopeKey(scope));
+    if (!staged) fail("object_unavailable");
+    if (staged.held) fail("original_protected");
     return { ...this.metadata(row), bytes };
   }
 
@@ -336,12 +342,12 @@ export class OriginalStore {
     this.db.transaction(() => {
       this.current(access, scope);
       const record = this.submission(scope, clientSubmissionId);
-      const associations = this.verifyAssociation(scope, clientSubmissionId, record, query);
+      const association = this.verifyAssociation(scope, clientSubmissionId, record, query);
       if (!record || record.associations !== null) return;
       const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND state='staged-unprepared'");
-      for (const { objectId } of associations) if (mark.run(objectId).changes !== 1) fail("association_conflict");
+      for (const { objectId } of association.links) if (mark.run(objectId).changes !== 1) fail("association_conflict");
       this.db.query("UPDATE original_submissions SET associations=? WHERE target=? AND submissionId=?")
-        .run(JSON.stringify(associations), submissionTargetKey(scope), clientSubmissionId);
+        .run(JSON.stringify(association), submissionTargetKey(scope), clientSubmissionId);
     }).immediate();
   }
 
@@ -358,8 +364,8 @@ export class OriginalStore {
       const { submissionId: clientSubmissionId } = hold;
       const record = this.submission(scope, clientSubmissionId);
       if (!record?.associations) fail("object_unavailable");
-      const associations = this.verifyAssociation(scope, clientSubmissionId, record, query);
-      const association = associations.find(link => link.objectId === objectId && link.entryId === entryId);
+      const { links } = this.verifyAssociation(scope, clientSubmissionId, record, query);
+      const association = links.find(link => link.objectId === objectId && link.entryId === entryId);
       if (!association) fail("object_unavailable");
       return { association, clientSubmissionId, row, bytes: this.payload(row) };
     }).deferred();
@@ -377,12 +383,12 @@ export class OriginalStore {
   }
 
   private verifyAssociation(scope: OriginalBinding, clientSubmissionId: string, record: SubmissionRow | null,
-    query: unknown): OriginalEntryAssociation[] {
+    query: unknown): OriginalSubmissionAssociation {
     if (!record || record.scope !== scopeKey(scope)) fail("object_unavailable");
-    const associations = originalEntryAssociations(query, submissionTarget(scope), clientSubmissionId, record.preparation);
-    if (!associations) fail("association_evidence_invalid");
-    if (record.associations !== null && record.associations !== JSON.stringify(associations)) fail("association_conflict");
-    return associations;
+    const association = originalSubmissionAssociation(query, submissionTarget(scope), clientSubmissionId, record.preparation);
+    if (!association) fail("association_evidence_invalid");
+    if (record.associations !== null && record.associations !== JSON.stringify(association)) fail("association_conflict");
+    return association;
   }
 
   private associationHeld(objectId: string): boolean {
