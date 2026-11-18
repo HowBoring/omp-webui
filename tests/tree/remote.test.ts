@@ -31,8 +31,8 @@ const opened: HistoryOpen = { version: "coherent-history-v1", handoff: "current"
   scope: "tree", cut, expiresAt: Date.now() + 100_000, count: 6, streaming: false, compacting: false,
   prefix: null, scannedBytes: 100, scanMs: 1, snapshotMs: 1,
   limits: { entries: 20000, runningMessages: 10000, scanItems: 60000, bytes: 1000000, nativeItemBytes: 1000000,
-    itemBytes: 100000, ms: 1000, snapshotBytes: 1000000, cacheBytes: 10000000, snapshots: 8,
-    pageItems: 32, pageBytes: 100000, responseBytes: 100000, ttlMs: 100000, contentItems: 64,
+    itemBytes: 512 * 1024, ms: 1000, snapshotBytes: 256 * 1024 * 1024, cacheBytes: 512 * 1024 * 1024, snapshots: 8,
+    pageItems: 32, pageBytes: 768 * 1024, responseBytes: 1024 * 1024, ttlMs: 100000, contentItems: 64,
     contentPageBytes: 10000, liveEvents: 1024, liveBytes: 1000000, pollItems: 100 } };
 
 async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<HistoryCut>; nativeError?: string; emptyContinuation?: boolean; advertisedParts?: number } = {}) {
@@ -45,6 +45,7 @@ async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<
   const commands: string[] = [];
   let permitted = true, epoch = "projection-1", failPage = false, cancel = false;
   let afterRead: (() => void) | undefined;
+  let transformPage: ((page: HistoryPage) => HistoryPage) | undefined;
   let rewritten = false;
   let pageBarrier: Promise<void> | undefined;
   let releasePage: (() => void) | undefined;
@@ -67,7 +68,7 @@ async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<
       items: pages[index] ?? [], complete: true,
       ...(index < pages.length - 1 || options.emptyContinuation ? { nextCursor: `cursor-${index + 1}` } : {}) };
     afterRead?.(); afterRead = undefined;
-    return page;
+    return transformPage?.(page) ?? page;
   });
   new ReadonlyTree(host, (caller, sessionId) => {
     if (caller !== peer || !permitted || sessionId !== "session") throw Error("PRIVATE_SYNTHETIC_DENIAL");
@@ -99,6 +100,7 @@ async function fixture(options: { pages?: HistoryItem[][]; changedCut?: Partial<
   };
   return { read, commands, revoke: () => { permitted = false; }, occupy: () => { permitted = false; },
     changeEpoch: () => { epoch = "projection-2"; }, rewrite: () => { rewritten = true; },
+    transformPage: (transform: (page: HistoryPage) => HistoryPage) => { transformPage = transform; },
     switchPeer: () => { peer = new Peer(host, { principal: { kind: "owner" }, interactions: "none" }); peers.push(peer); },
     restorePeer: () => { peer = initialPeer; }, failPage: () => { failPage = true; },
     revokeDuringRead: () => { afterRead = () => { permitted = false; }; },
@@ -268,6 +270,37 @@ test("split native entries assemble across pages and missing or reordered parts 
   }
 });
 
+test("preview rejects a changed split tail under an unchanged cut", async () => {
+  const part = { ...item("e", null, true, "Before "), entryId: "e", partIndex: 0, partCount: 2 };
+  const tail = { ...part, id: "e:part:1", text: "after", partIndex: 1 };
+  const f = await fixture({ pages: [[part], [tail]] });
+  try {
+    const { start, last } = await complete(f);
+    expect(last.status === "page" && last.continuity).toBe("complete");
+    f.transformPage(page => page.items[0]?.id === tail.id
+      ? { ...page, items: [{ ...tail, text: "other" }] } : page);
+    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
+      .toEqual({ status: "error", code: "tree_source_changed" });
+  } finally { await f.dispose(); }
+});
+
+test("preview returns no partial text when authority is revoked during its final native page", async () => {
+  const part = { ...item("e", null, true, "Before "), entryId: "e", partIndex: 0, partCount: 2 };
+  const tail = { ...part, id: "e:part:1", text: "after", partIndex: 1 };
+  const f = await fixture({ pages: [[part], [tail]] });
+  try {
+    const { start } = await complete(f);
+    f.transformPage(page => {
+      if (page.items[0]?.id === tail.id) f.revoke();
+      return page;
+    });
+    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
+      .toEqual({ status: "error", code: "tree_authority_unavailable" });
+    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
+      .toEqual({ status: "error", code: "tree_snapshot_unavailable" });
+  } finally { await f.dispose(); }
+});
+
 test("native pruning remains explicit readable text and preview makes no model-input claim", async () => {
   const f = await fixture();
   try {
@@ -416,6 +449,49 @@ test("a larger synthetic tree remains reachable through native pages and renders
     expect((html.match(/aria-pressed=/g) ?? [])).toHaveLength(96);
     expect(html).toContain("Show more retained nodes");
   } finally { browser.dispose(); await f.dispose(); }
+});
+
+test("tree pages and old previews remain reachable past the former aggregate text limit", async () => {
+  const text = "x".repeat(32 * 1024);
+  const pages = Array.from({ length: 26 }, (_, page) => Array.from({ length: 20 }, (_, offset) => {
+    const index = page * 20 + offset;
+    return item(index === 519 ? "e" : `node-${index}`, index ? `node-${index - 1}` : null, true,
+      index === 0 ? "Old question" : text);
+  }));
+  const f = await fixture({ pages });
+  try {
+    const { start, last } = await complete(f);
+    expect(last.status).toBe("page");
+    expect(last.status === "page" && last.activePath).toHaveLength(520);
+    const preview = await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "node-0" });
+    expect(preview.status === "preview" && preview.text).toBe("Old question");
+  } finally { await f.dispose(); }
+});
+
+test("an excessively fragmented entry cannot force an unbounded native preview scan", async () => {
+  const pages = Array.from({ length: 65 }, (_, index) => [{ ...item(`e:part:${index}`, null, true, "x"),
+    entryId: "e", partIndex: index, partCount: 65 }]);
+  const f = await fixture({ pages });
+  try {
+    const { start, last } = await complete(f);
+    expect(last.status === "page" && last.continuity).toBe("complete");
+    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
+      .toEqual({ status: "error", code: "tree_preview_budget" });
+    expect(f.commands.filter(type => type === "history_snapshot_page")).toHaveLength(65);
+  } finally { await f.dispose(); }
+});
+
+test("one split entry exceeding the text budget invalidates its snapshot", async () => {
+  const text = "x".repeat(32 * 1024);
+  const pages = Array.from({ length: 65 }, (_, index) => [{ ...item(`e:part:${index}`, null, true, text),
+    entryId: "e", partIndex: index, partCount: 65 }]);
+  const f = await fixture({ pages });
+  try {
+    const { start, last } = await complete(f);
+    expect(last).toEqual({ status: "error", code: "tree_cache_budget" });
+    expect(await f.read({ operation: "preview", snapshot: start.snapshot, entryId: "e" }))
+      .toEqual({ status: "error", code: "tree_snapshot_unavailable" });
+  } finally { await f.dispose(); }
 });
 
 
