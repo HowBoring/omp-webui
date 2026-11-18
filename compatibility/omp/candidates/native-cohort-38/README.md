@@ -26,8 +26,9 @@ The [verification record](verification.md) gives the successful individual comma
 The [compiler-only recipe](compiler.md) uses the same replay to generate runtime validators and compile the isolated preflight launcher. The [isolated preflight evidence](preflight-evidence.md) records the actual bounded public RPC exchange and cooperative child drain. [Artifact identities and proof entrypoints](preflight-handoff.md)
 
 The [catalog runtime recipe](catalog-runtime.md) stages the exact Linux x64 dependencies and records the public
-read-only catalog exchange against a synthetic Session.
+read-only catalog exchange against a synthetic Session. The [StrictStart runtime recipe](strict-runtime.md) builds
+a separate staged launcher from the same source and records an ordinary synthetic Session continuation.
 
 ## Admission boundary
 
-The candidate is unregistered. The active patch order, Host contracts and admission gates remain in force. The full runtime dependency and release build, external ownership composition, global launcher and platform closure, synthetic worker and TUI compatibility, and paired DSH acceptance are pending for the [candidate admission ticket](https://github.com/HowBoring/omp-webui/issues/41). Branch creation and destination publication remain part of the [durable branch ticket](https://github.com/HowBoring/omp-webui/issues/52).
+The candidate is unregistered. The active patch order, Host contracts and admission gates remain in force. The full runtime dependency and release build, external ownership composition, global launcher and platform closure, busy worker shutdown and TUI compatibility, and paired DSH acceptance are pending for the [candidate admission ticket](https://github.com/HowBoring/omp-webui/issues/41). Branch creation and destination publication remain part of the [durable branch ticket](https://github.com/HowBoring/omp-webui/issues/52).
