@@ -1,9 +1,11 @@
-# Host attachment Originals for tickets 54, 55 and 58
+# Host attachment Originals for tickets 54, 55, 56 and 58
 
 This is an opt-in Host-owned original store and proposed public intake contract.
 No product Host registers it. Tickets 54 and 55 and umbrella ticket 29 remain open.
-Native preparation, Native commit associations and browser upload controls remain
-gated by tickets 36/38/41/45 and the matched-combination acceptance requirements.
+Native preparation, historical routes and browser upload controls remain gated by
+tickets 36/38/41/45 and the matched-combination acceptance requirements. The
+same-Session association seam is unregistered and consumes the #38 candidate's
+public source-only receipt and query contract.
 
 `OriginalStore` stores exact supplied bytes, an independently calculated SHA-256,
 display metadata, a staged timestamp and only the minimum Host scope/index data.
@@ -155,6 +157,17 @@ before releasing the charge. Failed cleanup keeps the tombstoned bytes charged
 until exclusive recovery completes. Startup validates the entire payload
 inventory before reclaiming interrupted writes or tombstones.
 
+## Same-Session association
+
+The trusted Host coordinator can reserve exact staged Original IDs using
+`reserveForSubmission` with a matched Native preparation receipt. The resulting
+SQLite hold survives reopen and participates in the same staged deletion and
+collection locks. `recordSubmission` requires a complete correlated public
+`submission_query` for that local attempt, its consumed receipt manifest, and
+committed retained entry locators for all held objects. `readAssociated` requires
+current authority for the exact original binding and current public query evidence
+for the persisted entry. See [ADR 0031](../../docs/adr/0031-same-session-original-association.md).
+
 ## Evidence and remaining gates
 
 Tests use real tiny synthetic byte streams, private temporary files and real
@@ -183,9 +196,9 @@ validated physical-cleanup recovery.
 
 Native bounded decoding, model and complete encoded RPC budgets, valid and
 malformed selected files through actual prepare and consume, degradation
-confirmation, durable Native entry associations, draft restoration, safe
-download and rendering, product lifecycle integration and actual Linux and
-Windows Chrome/WSL2 browser results and performance remain open.
+confirmation, matched Native entry association and branch proof, draft
+restoration, safe download and rendering, product lifecycle integration and
+actual Linux and Windows Chrome/WSL2 browser results and performance remain open.
 
 See [ADR 0021](../../docs/adr/0021-host-original-intake.md) and the
 [source evidence](../../docs/implementation/ticket-54-source-evidence.json).
