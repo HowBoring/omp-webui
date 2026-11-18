@@ -124,7 +124,11 @@ test("Native root exit fences pending RPC while valid EOF tails and helper compl
     const connected = SessionWorker.attachOwned(peer.helper, { timeoutMs: 500 });
     const session = await negotiate(peer, connected);
     const notices: unknown[] = [];
-    session.subscribe(frame => notices.push(frame));
+    const delivered = Promise.withResolvers<void>();
+    session.subscribe(frame => { notices.push(frame); delivered.resolve(); });
+    const settled = { type: "session_settled" };
+    peer.stdout.send(settled);
+    await delivered.promise;
     const releaseFlush = peer.holdFlush();
     const reading = peer.nextCommand();
     const pending = session.startup.state();
@@ -142,12 +146,14 @@ test("Native root exit fences pending RPC while valid EOF tails and helper compl
 
     let domainCompleted = false;
     void connected.completed.then(() => { domainCompleted = true; }, () => {});
+    peer.stdout.send(settled);
     peer.respond(read, { version: "strict-start-v1", phase: "waiting" });
-    peer.stdout.send({ type: "session_settled" });
+    peer.stdout.send(settled);
     peer.stdout.close();
     await Bun.sleep(0);
     expect(domainCompleted).toBe(false);
-    expect(notices).toEqual([]);
+    expect(notices).toEqual([settled]);
+    expect(session.notificationCount).toBe(1);
     expect(peer.commands).toHaveLength(2);
 
     let outputDone = false;
@@ -156,7 +162,9 @@ test("Native root exit fences pending RPC while valid EOF tails and helper compl
     await connected.completed;
     expect(outputDone).toBe(false);
     peer.stderr.close();
-    expect(await connected.output).toEqual({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0 });
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 2,
+    });
   } finally {
     peer.helper.disconnectControl(); peer.reap(0);
   }
@@ -181,7 +189,7 @@ test("failed RPC negotiation fences Native stdin while the original helper remai
     peer.stdout.close();
     peer.stderr.close();
     expect(await connected.output).toEqual({
-      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, protocolFailure: "RPC_NEGOTIATION",
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0, protocolFailure: "RPC_NEGOTIATION",
     });
     peer.complete();
     await connected.completed;
@@ -203,7 +211,9 @@ test("helper startup failure preserves its error and keeps the domain pending un
 
     peer.stdout.close();
     peer.stderr.close();
-    expect(await connected.output).toEqual({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0 });
+    expect(await connected.output).toEqual({
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0,
+    });
     let domainFailed = false;
     void connected.completed.catch(() => { domainFailed = true; });
     await Bun.sleep(0);
@@ -222,11 +232,13 @@ test("control loss fences RPC and malformed stdout tail fails validation without
     await expect(connected.rootExit).rejects.toMatchObject({ code: "PRIVATE_ROOT_EXIT_UNOBSERVED" });
     await expect(session.startup.state()).rejects.toThrow("RPC_ROOT_EXIT_UNOBSERVED");
 
+    peer.stdout.send({ type: "session_settled" });
     peer.stdout.send({ type: "unexpected_public_frame" });
+    peer.stdout.send({ type: "session_settled" });
     peer.stdout.close();
     peer.stderr.close();
     expect(await connected.output).toEqual({
-      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, protocolFailure: "RPC_PROTOCOL",
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1, protocolFailure: "RPC_PROTOCOL",
     });
     peer.reap(0);
     await expect(connected.completed).rejects.toMatchObject({ code: "PRIVATE_DOMAIN_UNRESOLVED" });
@@ -273,7 +285,7 @@ test("owned stderr overflow fences RPC, caps diagnostics and drains to actual EO
     peer.stderr.bytes(8192);
     peer.stderr.close();
     expect(await connected.output).toEqual({
-      stdoutEOF: true, stderrEOF: true, stderrBytes: 65_536, protocolFailure: "RPC_STDERR_LIMIT",
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 65_536, observedTailNotifications: 0, protocolFailure: "RPC_STDERR_LIMIT",
     });
   } finally { peer.helper.disconnectControl(); peer.reap(0); }
 });
@@ -367,7 +379,9 @@ test.each(["aliased pipes", "throwing stderr reader"] as const)(
       await negotiate(peer, connected);
       peer.stdout.close();
       peer.stderr.close();
-      expect(await connected.output).toEqual({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0 });
+      expect(await connected.output).toEqual({
+        stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0,
+      });
     } finally {
       reader?.mockRestore();
       peer.helper.disconnectControl(); peer.reap(0);
@@ -395,7 +409,7 @@ test("an asynchronous Native write rejection flushes and fences the owned RPC co
     peer.stdout.close();
     peer.stderr.close();
     expect(await connected.output).toEqual({
-      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, protocolFailure: "RPC_STDIN",
+      stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0, protocolFailure: "RPC_STDIN",
     });
     peer.rootExit();
     peer.complete();

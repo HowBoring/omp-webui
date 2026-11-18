@@ -84,6 +84,7 @@ class BoundedStdioRpc {
   private stderrBytes = 0;
   protected stdoutEOF = false;
   protected stderrEOF = false;
+  protected observedTailNotifications = 0;
   protected readersCancelled = false;
   protected readonly writes: StdioWriteQueue;
   private readonly signal: AbortSignal | undefined;
@@ -183,8 +184,12 @@ class BoundedStdioRpc {
     }
     if (!this.readySeen) throw new Error("RPC_ENVELOPE_SCHEMA");
     if (!validResponse(frame)) {
-      if (this.policy.notification?.(frame, this.admissionFailure === undefined || !this.ownedPipes)) return;
-      throw new Error("RPC_ENVELOPE_SCHEMA");
+      const publish = this.admissionFailure === undefined || !this.ownedPipes;
+      if (!this.policy.notification?.(frame, publish)) throw new Error("RPC_ENVELOPE_SCHEMA");
+      if (!publish) {
+        this.observedTailNotifications = Math.min(this.observedTailNotifications + 1, Number.MAX_SAFE_INTEGER);
+      }
+      return;
     }
     if (frame.id === undefined) throw new Error("RPC_ENVELOPE_SCHEMA");
     const pending = this.pending.get(frame.id);
@@ -401,7 +406,7 @@ class OwnedStdioRpc extends BoundedStdioRpc {
     });
     this.output = Promise.all([this.stdout, this.stderr]).then(() => {
       this.detachSignal();
-      return this.outputFacts();
+      return { ...this.outputFacts(), observedTailNotifications: this.observedTailNotifications };
     });
     this.negotiated = this.negotiate(timing, helper.ready).catch(error => {
       fence("RPC_STARTUP_FAILED");
@@ -412,6 +417,11 @@ class OwnedStdioRpc extends BoundedStdioRpc {
 
 export interface StdioOutput {
   stdoutEOF: boolean; stderrEOF: boolean; stderrBytes: number; protocolFailure?: string;
+  /**
+   * Validated notifications after admission closed, capped at the maximum safe integer.
+   * Validation can stop before EOF after a stdout framing fault.
+   */
+  observedTailNotifications: number;
 }
 
 /** @internal The fixed Session mode adapter supplies the policy for the retained Native pipes. */
