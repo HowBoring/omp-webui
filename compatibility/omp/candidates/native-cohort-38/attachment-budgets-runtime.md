@@ -10,7 +10,7 @@ were generated in memory. The isolated transport allowed one command at a time u
 | --- | --- | --- |
 | Object count | 8 UTF-8 originals all ready | 9, `ATTACHMENT_INPUT_BUDGET` |
 | One UTF-8 original | 5,242,880 bytes, 51,193 prepared bytes with `text_truncated` | 5,242,881 bytes, `attachment_original_budget` |
-| One image Original | Positive cases in the ordinary format run | 10,485,761 bytes, `attachment_original_budget` |
+| One image Original | A 10,485,760-byte PNG prepared as 591 bytes with `image_transformed` | 10,485,761 bytes, `attachment_original_budget` |
 | Total original bytes | 33,554,432 bytes over 8 UTF-8 originals, all ready | 33,554,433 bytes, `ATTACHMENT_INPUT_BUDGET` |
 
 A two-item draft combined a valid PNG with a second item declaring JPEG for the same PNG bytes.
@@ -21,9 +21,12 @@ The public Tree cut and its sole seeded entry were unchanged. The input and prov
 was empty. Catalog and Session worker each exited zero on stdin EOF, with both pipe EOFs and
 zero stderr bytes. Both egress guard reports recorded zero dispatches and denials.
 
-This run exercised the Native limits through an isolated transport. The 10 MiB image acceptance edge,
-decode and output-frame limits, and Browser upload, draft and persisted-original budgets still need
-evidence through their corresponding paths. [Attachment preparation #38](https://github.com/HowBoring/omp-webui/issues/38)
+An independent worker tested the exact image edge using a valid PNG with an ancillary chunk and CRC.
+Its 10 MiB Original retained the same pixel data as the 72-byte PNG and produced the same prepared
+image hash. The +1 byte Original returned the size refusal. Both receipts were cancelled and the
+worker and Catalog closed cleanly. Decode and output-frame limits, Browser upload, draft and
+persisted-original budgets still need evidence through their corresponding paths.
+[Attachment preparation #38](https://github.com/HowBoring/omp-webui/issues/38)
 
 ## Artifact identities
 
@@ -38,7 +41,11 @@ evidence through their corresponding paths. [Attachment preparation #38](https:/
 | Public schema SHA-256 | `81a3ffc9ebcf5c929c39995cdc6350b56796782353f87a6a9c274153baffe958` |
 | Scratch driver SHA-256 | `50a97338a4b667852ce1f28778623411251c0e168f76de7f290e94f12e73aa97` |
 | Sanitized result SHA-256 | `f1db30f0446674c23f026613467ca73288e1325c15f17e4890b94cecdf98b9d6` |
+| Exact PNG edge driver SHA-256 | `a8f7fd1c823dfc472d03217ed1b6aa0cff05fd135e48d2ab2d1ffcf72041113b` |
+| Exact PNG edge result SHA-256 | `903e6caeb171bb94c08c6123b5fdea311913ebe08843a05e24cdde101a44efd2` |
 
 Strict TypeScript and the guarded input check passed before execution. Run `e88110` (session `16182`)
 exited zero. The result and both guard files are under
-`/dev/shm/omp-source38-attachment-budget.of1u4lkw/run.U0rKe5Sz`.
+`/dev/shm/omp-source38-attachment-budget.of1u4lkw/run.U0rKe5Sz`. The exact PNG edge run
+`20aaf3` (session `78601`) exited zero with artifacts under
+`/dev/shm/omp-source38-attachment-budget.of1u4lkw/image.tlvtt1RS`.
