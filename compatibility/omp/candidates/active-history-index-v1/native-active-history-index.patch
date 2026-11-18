@@ -1,0 +1,677 @@
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -43,6 +43,35 @@
+   snapshot: string; scope: HistoryScope; cut: HistoryCut; expiresAt: number; items: HistoryItem[];
+   complete: true; nextCursor?: string;
+ }
++export interface HistoryActiveBinding { snapshot: string; contentRevision: string }
++export interface HistoryActiveEntryKey { ordinal: number; entryId: string; digest: string }
++export interface HistoryActiveEntry extends HistoryActiveEntryKey {
++  parentId: string | null; kind: string; role?: string;
++  provider?: string; model?: string; stopReason?: string; live?: HistoryLiveIdentity;
++}
++export interface HistoryActiveOpen {
++  version: "active-history-index-v1"; snapshot: string; cut: HistoryCut; expiresAt: number; count: number;
++  indexBytes: number; scannedBytes: number; streaming: boolean;
++}
++export interface HistoryActiveIndexPage {
++  snapshot: string; cut: HistoryCut; expiresAt: number; items: HistoryActiveEntry[]; nextOrdinal?: number;
++}
++export interface HistoryActivePosition { ordinal: number; partIndex: number }
++export interface HistoryActivePayloadRange {
++  snapshot: string; cut: HistoryCut; expiresAt: number; items: HistoryItem[]; next?: HistoryActivePosition;
++}
++export type HistoryActiveCommand = { id: string } & (
++  | { type: "history_active_index_open" }
++  | { type: "history_active_index_page"; binding: HistoryActiveBinding; start: number }
++  | { type: "history_active_payload_range"; binding: HistoryActiveBinding; entries: HistoryActiveEntryKey[]; startPart: number }
++  | { type: "history_active_index_close"; binding: HistoryActiveBinding });
++export type HistoryActiveSuccess = { id: string; type: "response"; success: true } & (
++  | { command: "history_active_index_open"; data: HistoryActiveOpen }
++  | { command: "history_active_index_page"; data: HistoryActiveIndexPage }
++  | { command: "history_active_payload_range"; data: HistoryActivePayloadRange }
++  | { command: "history_active_index_close"; data: { closed: boolean } });
++type HistoryActiveResponse = HistoryActiveSuccess
++  | { id?: string; type: "response"; command: string; success: false; error: string; code: string };
+ export interface HistoryContentPage {
+   snapshot: string; cut: HistoryCut; expiresAt: number; content: HistoryContent; encoding: "base64";
+   partIndex: number; data: string; nextCursor?: string;
+@@ -66,9 +95,72 @@
+     return old.live !== undefined && !old.settled && value.settled;
+   });
+ }
+-interface Snapshot { runtimeFingerprints: RuntimeFingerprint[]; handoffHeaderRevision: string | undefined; handoffEntryRevisions: string[]; timer: Timer; contents: Map<string, ContentPosition>; open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
++interface HandoffFence {
++  runtimeFingerprints: RuntimeFingerprint[]; handoffHeaderRevision: string | undefined; handoffEntryRevisions: string[];
++}
++interface ActiveIndex extends HandoffFence {
++  open: HistoryActiveOpen; timer: Timer; bytes: number;
++  entries: { metadata: HistoryActiveEntry; retainedOrdinal: number }[];
++}
++const ACTIVE_INDEX_BYTES = 8 * 1024 * 1024;
++const ACTIVE_INDEX_PAGE_ITEMS = 2048;
++const HISTORY_PART_WIDTH = 32 * 1024;
++interface Snapshot extends HandoffFence { timer: Timer; contents: Map<string, ContentPosition>; open: HistoryOpen; rows: Record<HistoryScope, string[]>; bytes: number; cursors: Map<string, { scope: HistoryScope; offset: number }> }
+ function record(value: unknown): Record<string, unknown> {
+   return asRecord(value) ?? {};
++}
++const HISTORY_DIGEST = /^[0-9a-f]{64}$/;
++const HISTORY_SNAPSHOT = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
++function exactKeys(value: Record<string, unknown>, ...keys: string[]): boolean {
++  return Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
++}
++function boundedInteger(value: unknown, max: number): boolean {
++  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0 && value <= max;
++}
++function activeBinding(value: unknown): boolean {
++  const binding = record(value);
++  return exactKeys(binding, "snapshot", "contentRevision") && typeof binding.snapshot === "string"
++    && HISTORY_SNAPSHOT.test(binding.snapshot) && typeof binding.contentRevision === "string"
++    && HISTORY_DIGEST.test(binding.contentRevision);
++}
++function activeEntryKey(value: unknown): boolean {
++  const key = record(value);
++  return exactKeys(key, "ordinal", "entryId", "digest") && boundedInteger(key.ordinal, HISTORY_LIMITS.entries - 1)
++    && typeof key.entryId === "string" && key.entryId.length > 0 && key.entryId.length <= 256
++    && typeof key.digest === "string" && HISTORY_DIGEST.test(key.digest);
++}
++function activeCommandId(value: unknown): value is string {
++  return typeof value === "string" && value.length > 0 && value.length <= 96;
++}
++function isActiveCommand(value: unknown): value is HistoryActiveCommand {
++  const command = record(value);
++  if (!activeCommandId(command.id)) return false;
++  if (command.type === "history_active_index_open") return exactKeys(command, "id", "type");
++  if (!activeBinding(command.binding)) return false;
++  switch (command.type) {
++    case "history_active_index_close": return exactKeys(command, "id", "type", "binding");
++    case "history_active_index_page": return exactKeys(command, "id", "type", "binding", "start")
++      && boundedInteger(command.start, HISTORY_LIMITS.entries);
++    case "history_active_payload_range": return exactKeys(command, "id", "type", "binding", "startPart", "entries")
++      && boundedInteger(command.startPart, HISTORY_LIMITS.nativeItemBytes) && Array.isArray(command.entries)
++      && command.entries.length > 0 && command.entries.length <= HISTORY_LIMITS.pageItems && command.entries.every(activeEntryKey);
++    default: return false;
++  }
++}
++function retainedImage(value: unknown) {
++  const image = record(value);
++  if (image.type !== "image") return undefined;
++  if (typeof image.data !== "string" || typeof image.mimeType !== "string") throw new Error("history_content_invalid");
++  if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(image.mimeType)) throw new Error("history_content_mime");
++  if (image.data.length === 0) return undefined;
++  const decoded = Buffer.from(image.data, "base64");
++  if (decoded.toString("base64") !== image.data) throw new Error("history_content_invalid");
++  const sha256 = Bun.SHA256.hash(decoded, "hex");
++  return { data: image.data, key: `${image.mimeType}:${sha256}`, mimeType: image.mimeType, bytes: decoded.byteLength, sha256 };
++}
++function imageDescriptor(cursor: string, image: NonNullable<ReturnType<typeof retainedImage>>): HistoryContent {
++  return { cursor, mimeType: image.mimeType, bytes: image.bytes, sha256: image.sha256,
++    origin: "retained_native", originalAssociation: "unproven" };
+ }
+ function textContent(value: unknown): string {
+   if (typeof value === "string") return value;
+@@ -87,9 +179,25 @@
+     throw new Error("history_unknown_content");
+   }).join("\n");
+ }
++const CONTENT_MESSAGE_ROLES = new Set(["user", "assistant", "toolResult", "custom", "hookMessage"]);
++const KNOWN_MESSAGE_ROLES = new Set(["developer", "fileMention", "branchSummary", "compactionSummary",
++  ...CONTENT_MESSAGE_ROLES, "bashExecution", "pythonExecution"]);
++function readableRole(message: Record<string, unknown>): string | undefined {
++  const role = message.role;
++  if (typeof role !== "string" || !KNOWN_MESSAGE_ROLES.has(role)) throw new Error("history_unknown_message");
++  if ((role === "custom" || role === "hookMessage") && message.display !== true) return undefined;
++  return role;
++}
++function messageProjectionMetadata(message: Record<string, unknown>, role: string | undefined) {
++  const source = role === "assistant" && typeof message.provider === "string" && typeof message.model === "string"
++    ? { provider: message.provider, model: message.model } : {};
++  if (role === undefined || !CONTENT_MESSAGE_ROLES.has(role) || typeof message.stopReason !== "string") return source;
++  return { ...source, stopReason: message.stopReason };
++}
+ function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "provider" | "model" | "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
+   const message = record(value);
+-  const role = typeof message.role === "string" ? message.role : "unknown";
++  const role = readableRole(message);
++  if (role === undefined) return { text: "[Internal custom message]" };
+   if (role === "developer") return { role, text: "[Native developer context record]" };
+   if (role === "fileMention") {
+     const files = Array.isArray(message.files) ? message.files.map(record) : [];
+@@ -100,15 +208,13 @@
+       ...(content ? { contents: content(files.flatMap(file => file.image ? [file.image] : [])) } : {}) };
+   }
+   if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
+-  if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
+-    if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
+-    return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: (textContent(message.content) || `[${role}]`) +
++  if (CONTENT_MESSAGE_ROLES.has(role)) {
++    return { role, ...messageProjectionMetadata(message, role), text: (textContent(message.content) || `[${role}]`) +
+       (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
+       (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
+       ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
+       ...(typeof message.toolName === "string" ? {toolName:message.toolName} : {}),
+       ...(typeof message.isError === "boolean" ? {isError:message.isError} : {}),
+-      ...(typeof message.stopReason === "string" ? {stopReason:message.stopReason} : {}),
+       ...(content ? { contents: content(message.content) } : {}) };
+   }
+   if (role === "bashExecution" || role === "pythonExecution") return { role,
+@@ -144,12 +250,88 @@
+   return item;
+ }
+ 
++type ObservedEntries = ReturnType<SessionManager["captureHistoryObservation"]>["entries"];
++interface HistoryEntryShape { id: string; parentId: string | null; type: string }
++interface ActiveGraphEntry extends HistoryEntryShape {
++  visibleCustom: boolean; message?: Record<string, unknown>;
++}
++
++/** Match the eager snapshot's canonical JSON view without retaining its record bodies. */
++function materializeActiveEntry(entry: ObservedEntries[number], fingerprint: string): Record<string, unknown> {
++  const encoded = stringifyJson(entry);
++  if (encoded === undefined || Buffer.byteLength(encoded) > HISTORY_LIMITS.nativeItemBytes ||
++    Bun.SHA256.hash(encoded, "hex") !== fingerprint) throw new Error("history_handoff_changed");
++  return record(JSON.parse(encoded));
++}
++
++function assertHistoryEntryShape(value: unknown): asserts value is HistoryEntryShape {
++  const { id, parentId, type } = record(value);
++  if (typeof type !== "string" || !KNOWN_ENTRY_TYPES.has(type)) throw new Error("history_unknown_entry");
++  if (typeof id !== "string" || id.length > 256 || id.length === 0 || (parentId !== null && typeof parentId !== "string")) {
++    throw new Error("history_invalid_entry");
++  }
++}
++
++function activeGraphEntry(entry: Record<string, unknown>): ActiveGraphEntry {
++  assertHistoryEntryShape(entry);
++  // An oversized parent cannot match any valid ID. Preserve the missing-parent result without retaining it.
++  const parentId = typeof entry.parentId === "string" && entry.parentId.length > 256 ? "" : entry.parentId;
++  const row = { id: entry.id, parentId, type: entry.type, visibleCustom: entry.display === true };
++  if (entry.type !== "message") return row;
++  const { role, display, provider, model, stopReason } = record(entry.message);
++  const compact = { role: typeof role === "string" ? role : undefined, display: display === true,
++    provider: typeof provider === "string" ? provider : undefined, model: typeof model === "string" ? model : undefined,
++    stopReason: typeof stopReason === "string" ? stopReason : undefined };
++  // A long field can be read again after path selection. Keep the graph independent of those sizes.
++  const units = (compact.role?.length ?? 0) + (compact.provider?.length ?? 0) + (compact.model?.length ?? 0)
++    + (compact.stopReason?.length ?? 0);
++  return units <= 256 ? { ...row, message: compact } : row;
++}
++
++function activeHistoryPath(entries: readonly HistoryEntryShape[], leafId: string | null) {
++  for (const entry of entries) assertHistoryEntryShape(entry);
++  const indexed = new Map(entries.map((entry, ordinal) => [entry.id, ordinal]));
++  if (indexed.size !== entries.length) throw new Error("history_duplicate_entry");
++  for (const entry of entries) {
++    if (entry.parentId !== null && !indexed.has(entry.parentId)) throw new Error("history_missing_parent");
++  }
++  const completed = new Set<string>();
++  for (const entry of entries) {
++    const path = new Set<string>(); let cursor: string | null = entry.id;
++    while (cursor !== null && !completed.has(cursor)) {
++      if (path.has(cursor)) throw new Error("history_parent_cycle");
++      path.add(cursor); cursor = entries[indexed.get(cursor)!]!.parentId;
++    }
++    for (const id of path) completed.add(id);
++  }
++  const active = new Set<string>();
++  let next = leafId;
++  while (next !== null) {
++    if (active.has(next)) throw new Error("history_parent_cycle");
++    const entry = entries[indexed.get(next)!];
++    if (!entry) throw new Error("history_missing_leaf");
++    active.add(next); next = entry.parentId;
++  }
++  return { active, indexed };
++}
++
++function historyPartCount(item: HistoryItem): number {
++  return Math.max(1, Math.ceil(item.text.length / HISTORY_PART_WIDTH));
++}
++function historyPart(item: HistoryItem, partIndex: number, partCount: number): HistoryItem {
++  const start = partIndex * HISTORY_PART_WIDTH;
++  return { ...item, id: partIndex === 0 ? item.id : `${item.id}:part:${partIndex}`, entryId: item.id,
++    partIndex, partCount, text: item.text.slice(start, start + HISTORY_PART_WIDTH) };
++}
++
+ /** One registry per worker, installed before live forwarding; later settlement can extend observe(). */
+ export class RpcHistoryObservation {
+   readonly #workerId = crypto.randomUUID();
+   readonly #manager: SessionManager;
+   readonly #runtime: () => Runtime;
+   readonly #snapshots = new Map<string, Snapshot>();
++  readonly #activeIndexes = new Map<string, ActiveIndex>();
++  readonly #activeKey = crypto.getRandomValues(new Uint8Array(32));
+   readonly #events: HistoryChange[] = [];
+   #seq = 0;
+   #liveBytes = 0;
+@@ -283,65 +465,27 @@
+     if (!["tree", "active", "running", "live"].includes(scope)) throw new Error("history_invalid_scope");
+     if (handoff !== undefined && handoff !== "current" && handoff !== "live") throw new Error("history_invalid_handoff");
+     const value = this.#capture();
+-    for (const entry of value.entries) {
+-      if (!KNOWN_ENTRY_TYPES.has(entry.type)) throw new Error("history_unknown_entry");
+-      if (typeof entry.id !== "string" || entry.id.length > 256 || entry.id.length === 0 ||
+-        (entry.parentId !== null && typeof entry.parentId !== "string")) throw new Error("history_invalid_entry");
+-    }
+-    const indexed = new Map(value.entries.map(entry => [entry.id, entry]));
+-    if (indexed.size !== value.entries.length) throw new Error("history_duplicate_entry");
+-    for (const entry of value.entries) {
+-      if (entry.parentId !== null && !indexed.has(entry.parentId)) throw new Error("history_missing_parent");
+-    }
+-    const completed = new Set<string>();
+-    for (const entry of value.entries) {
+-      const path = new Set<string>(); let cursor: string | null = entry.id;
+-      while (cursor !== null && !completed.has(cursor)) {
+-        if (path.has(cursor)) throw new Error("history_parent_cycle");
+-        path.add(cursor); cursor = indexed.get(cursor)!.parentId;
+-      }
+-      for (const id of path) completed.add(id);
+-    }
+-    const active = new Set<string>();
+-    let next = value.leafId;
+-    while (next !== null) {
+-      if (active.has(next)) throw new Error("history_parent_cycle");
+-      const entry = indexed.get(next);
+-      if (!entry) throw new Error("history_missing_leaf");
+-      active.add(next); next = entry.parentId;
+-    }
++    const { active } = activeHistoryPath(value.entries, value.leafId);
+     const contents = new Map<string, ContentPosition>();
+     const contentByDigest = new Map<string, HistoryContent>();
+     let contentBytes = 0;
+     const registerContent = (value: unknown): HistoryContent[] => {
+       if (!Array.isArray(value)) return [];
+       return value.flatMap(block => {
+-        const image = record(block);
+-        if (image.type !== "image") return [];
+-        if (typeof image.data !== "string" || typeof image.mimeType !== "string") throw new Error("history_content_invalid");
+-        if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(image.mimeType)) throw new Error("history_content_mime");
+-        if (image.data.length === 0) return [];
+-        const decoded = Buffer.from(image.data, "base64");
+-        if (decoded.toString("base64") !== image.data) throw new Error("history_content_invalid");
+-        const sha256 = Bun.SHA256.hash(decoded, "hex");
+-        const key = `${image.mimeType}:${sha256}`;
+-        const existing = contentByDigest.get(key);
++        const image = retainedImage(block);
++        if (!image) return [];
++        const existing = contentByDigest.get(image.key);
+         if (existing) return [existing];
+         if (contents.size >= HISTORY_LIMITS.contentItems) throw new Error("history_content_items");
+-        const content: HistoryContent = { cursor: crypto.randomUUID(), mimeType: image.mimeType, bytes: decoded.byteLength,
+-          sha256, origin: "retained_native", originalAssociation: "unproven" };
++        const content = imageDescriptor(crypto.randomUUID(), image);
+         contents.set(content.cursor, { content, data: image.data, offset: 0 });
+-        contentByDigest.set(key, content); contentBytes += Buffer.byteLength(image.data);
++        contentByDigest.set(image.key, content); contentBytes += Buffer.byteLength(image.data);
+         return [content];
+       });
+     };
+     const split = (item: HistoryItem): string[] => {
+-      // Fixed UTF-16 slices preserve every code unit, including escaped text. No dropped tail.
+-      const width = 32 * 1024;
+-      const count = Math.max(1, Math.ceil(item.text.length / width));
+-      return Array.from({ length: count }, (_, partIndex) => JSON.stringify({ ...item,
+-        id: partIndex === 0 ? item.id : `${item.id}:part:${partIndex}`, entryId: item.id,
+-        partIndex, partCount: count, text: item.text.slice(partIndex * width, (partIndex + 1) * width) }));
++      const count = historyPartCount(item);
++      return Array.from({ length: count }, (_, index) => JSON.stringify(historyPart(item, index, count)));
+     };
+     const encodedById = new Map(value.entries.map(entry => [entry.id, split({ ...readableEntry(entry, active, registerContent),
+       ...(this.#entryLive.has(`${value.sourceId}:${value.sessionId}:${entry.id}`) ? { live: this.#entryLive.get(`${value.sourceId}:${value.sessionId}:${entry.id}`) } : {}) })]));
+@@ -375,10 +519,7 @@
+       expiresAt: Date.now() + HISTORY_LIMITS.ttlMs, count: rows[scope].length, streaming: value.runtime.streaming,
+       compacting: value.runtime.compacting, prefix, scannedBytes: value.scannedBytes, scanMs: value.scanMs, snapshotMs: performance.now() - started, limits: HISTORY_LIMITS };
+     if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
+-    this.#expire();
+-    let total = bytes;
+-    for (const prior of this.#snapshots.values()) total += prior.bytes;
+-    if (this.#snapshots.size >= HISTORY_LIMITS.snapshots || total > HISTORY_LIMITS.cacheBytes) throw new Error("history_cache_full");
++    this.#reserveSnapshot(bytes);
+     const timer = setTimeout(() => { this.#snapshots.delete(snapshot); }, HISTORY_LIMITS.ttlMs);
+     timer.unref();
+     const positions = new Map<string, {scope: HistoryScope; offset: number}>([
+@@ -388,13 +529,234 @@
+     this.#snapshots.set(snapshot, { runtimeFingerprints: value.runtimeFingerprints, handoffHeaderRevision: value.handoffHeaderRevision, handoffEntryRevisions: value.handoffEntryRevisions, timer, contents, open: structuredClone(open), rows, bytes, cursors: positions });
+     return structuredClone(open);
+   }
++  activeCommand(request: unknown): HistoryActiveResponse {
++    const frame = record(request);
++    const failure = (code: string): HistoryActiveResponse => ({
++      ...(activeCommandId(frame.id) ? { id: frame.id } : {}), type: "response",
++      command: typeof frame.type === "string" && frame.type.length <= 64 ? frame.type : "unknown",
++      success: false, error: code, code,
++    });
++    if (!isActiveCommand(request)) return failure("history_active_command_schema");
++    const result = { id: request.id, type: "response", success: true } as const;
++    try {
++      switch (request.type) {
++        case "history_active_index_open": return { ...result, command: request.type, data: this.openActiveIndex() };
++        case "history_active_index_page": return { ...result, command: request.type,
++          data: this.activeIndexPage(request.binding, request.start) };
++        case "history_active_payload_range": return { ...result, command: request.type,
++          data: this.activePayloadRange(request.binding, request.entries, request.startPart) };
++        case "history_active_index_close": return { ...result, command: request.type, data: this.closeActiveIndex(request.binding) };
++      }
++    } catch (error) {
++      return failure(error instanceof Error && error.message.startsWith("history_") ? error.message : "history_observation_failed");
++    }
++  }
++
++  openActiveIndex(): HistoryActiveOpen {
++    const started = performance.now();
++    const value = this.#capture(false);
++    if (value.runtime.compacting) throw new Error("history_handoff_changed");
++    const { runtimeFingerprints, handoffHeaderRevision, handoffEntryRevisions } = value;
++    const graph = value.entries.map((entry, ordinal) => {
++      const row = activeGraphEntry(materializeActiveEntry(entry, handoffEntryRevisions[ordinal]!));
++      if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
++      return row;
++    });
++    const { active, indexed } = activeHistoryPath(graph, value.cut.leafId);
++    const snapshot = crypto.randomUUID();
++    let bytes = handoffEntryRevisions.length * 64 + (handoffHeaderRevision?.length ?? 0);
++    for (const fingerprint of runtimeFingerprints) {
++      bytes += Buffer.byteLength(JSON.stringify(fingerprint)) + 1;
++      if (bytes > ACTIVE_INDEX_BYTES) throw new Error("history_active_index_bytes");
++    }
++    const entries = [...active].reverse().map((id, ordinal) => {
++      const retainedOrdinal = indexed.get(id)!;
++      const row = graph[retainedOrdinal]!;
++      const fingerprint = handoffEntryRevisions[retainedOrdinal]!;
++      const live = this.#entryLive.get(`${value.sourceId}:${value.sessionId}:${id}`);
++      const message = row.type === "message"
++        ? row.message ?? record(materializeActiveEntry(value.entries[retainedOrdinal]!, fingerprint).message) : {};
++      const role = row.type === "message" ? readableRole(message)
++        : row.type === "custom_message" && row.visibleCustom ? "custom" : undefined;
++      const metadata: HistoryActiveEntry = { ordinal, entryId: id, parentId: row.parentId, kind: row.type,
++        digest: this.#authenticateActive(`entry.${snapshot}.${ordinal}.${fingerprint}`),
++        ...(role !== undefined ? { role } : {}),
++        ...messageProjectionMetadata(message, role),
++        ...(live ? { live: structuredClone(live) } : {}) };
++      const size = Buffer.byteLength(JSON.stringify({ metadata, retainedOrdinal }));
++      if (size > HISTORY_LIMITS.itemBytes) throw new Error("history_item_bytes");
++      bytes += size;
++      if (bytes > ACTIVE_INDEX_BYTES) throw new Error("history_active_index_bytes");
++      if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
++      return { metadata, retainedOrdinal };
++    });
++    if (bytes > ACTIVE_INDEX_BYTES) throw new Error("history_active_index_bytes");
++    if (performance.now() - started > HISTORY_LIMITS.ms) throw new Error("history_snapshot_deadline");
++    this.#reserveSnapshot(bytes);
++    const open: HistoryActiveOpen = { version: "active-history-index-v1", snapshot, cut: value.cut,
++      expiresAt: Date.now() + HISTORY_LIMITS.ttlMs, count: entries.length, indexBytes: bytes,
++      scannedBytes: value.scannedBytes, streaming: value.runtime.streaming };
++    const timer = setTimeout(() => this.#activeIndexes.delete(snapshot), HISTORY_LIMITS.ttlMs);
++    timer.unref();
++    this.#activeIndexes.set(snapshot, { open, timer, entries, bytes, runtimeFingerprints,
++      handoffHeaderRevision, handoffEntryRevisions });
++    return structuredClone(open);
++  }
++
++  #requireActiveIndex(binding: HistoryActiveBinding): ActiveIndex {
++    this.#expire();
++    const index = this.#activeIndexes.get(binding.snapshot);
++    if (!index) throw new Error("history_active_stale_index");
++    if (binding.contentRevision !== index.open.cut.contentRevision) throw new Error("history_active_stale_revision");
++    return index;
++  }
++
++  activeIndexPage(binding: HistoryActiveBinding, start: number): HistoryActiveIndexPage {
++    const index = this.#requireActiveIndex(binding);
++    if (!Number.isSafeInteger(start) || start < 0 || start > index.entries.length) throw new Error("history_active_range");
++    this.#validateActiveIndex(index);
++    const { snapshot, cut, expiresAt } = index.open;
++    const result: HistoryActiveIndexPage = { snapshot, cut, expiresAt, items: [] };
++    let used = Buffer.byteLength(JSON.stringify(result)) + 1024;
++    let ordinal = start;
++    while (ordinal < index.entries.length && result.items.length < ACTIVE_INDEX_PAGE_ITEMS) {
++      const { metadata } = index.entries[ordinal]!;
++      const size = Buffer.byteLength(JSON.stringify(metadata)) + 1;
++      if (used + size > HISTORY_LIMITS.pageBytes) break;
++      result.items.push(metadata); used += size; ordinal++;
++    }
++    if (ordinal === start && ordinal < index.entries.length) throw new Error("history_unpageable_item");
++    if (ordinal < index.entries.length) result.nextOrdinal = ordinal;
++    return structuredClone(result);
++  }
++
++  activePayloadRange(binding: HistoryActiveBinding, keys: HistoryActiveEntryKey[], startPart: number): HistoryActivePayloadRange {
++    const index = this.#requireActiveIndex(binding);
++    if (!Number.isSafeInteger(startPart) || startPart < 0 || keys.length === 0 || keys.length > HISTORY_LIMITS.pageItems) {
++      throw new Error("history_active_range");
++    }
++    const checked = keys.map((key, position) => {
++      const row = index.entries[key.ordinal];
++      if (!Number.isSafeInteger(key.ordinal) || key.ordinal !== keys[0]!.ordinal + position || !row ||
++        row.metadata.entryId !== key.entryId || row.metadata.digest !== key.digest) throw new Error("history_active_entry_key");
++      return row;
++    });
++    const value = this.#validateActiveIndex(index);
++    const { snapshot, cut, expiresAt } = index.open;
++    const result: HistoryActivePayloadRange = { snapshot, cut: structuredClone(cut), expiresAt, items: [] };
++    let used = Buffer.byteLength(JSON.stringify(result)) + 1024;
++    for (const { metadata, retainedOrdinal } of checked) {
++      if (result.items.length === HISTORY_LIMITS.pageItems) {
++        return { ...result, next: { ordinal: metadata.ordinal, partIndex: startPart } };
++      }
++      const entry = value.entries[retainedOrdinal]!;
++      const canonical = materializeActiveEntry(entry, index.handoffEntryRevisions[retainedOrdinal]!);
++      const { item } = this.#readActiveItem(canonical, metadata, snapshot);
++      const partCount = historyPartCount(item);
++      if (startPart >= partCount) throw new Error("history_active_range");
++      for (let partIndex = startPart; partIndex < partCount; partIndex++) {
++        const part = historyPart(item, partIndex, partCount);
++        const size = Buffer.byteLength(JSON.stringify(part)) + 1;
++        if (size > HISTORY_LIMITS.itemBytes) throw new Error("history_item_bytes");
++        if (result.items.length >= HISTORY_LIMITS.pageItems || used + size > HISTORY_LIMITS.pageBytes) {
++          if (result.items.length === 0) throw new Error("history_unpageable_item");
++          return { ...result, next: { ordinal: metadata.ordinal, partIndex } };
++        }
++        result.items.push(part); used += size;
++      }
++      startPart = 0;
++    }
++    return result;
++  }
++
++  #validateActiveIndex(index: ActiveIndex) {
++    const value = this.#validateHandoff(index, index.open.cut);
++    const { cut } = index.open;
++    if (JSON.stringify(value.cut.catalogBinding) !== JSON.stringify(cut.catalogBinding)) {
++      throw new Error("history_handoff_changed");
++    }
++    if (Date.now() >= index.open.expiresAt) throw new Error("history_active_stale_index");
++    return value;
++  }
++
++  #authenticateActive(value: string): string {
++    return new Bun.CryptoHasher("sha256", this.#activeKey).update(value).digest("hex");
++  }
++
++  #activeContentCursor(snapshot: string, ordinal: number, contentOrdinal: number, offset: number): string {
++    const position = `active.${snapshot}.${ordinal}.${contentOrdinal}.${offset}`;
++    return `${position}.${this.#authenticateActive(position)}`;
++  }
++
++  #readActiveItem(entry: Record<string, unknown>, metadata: HistoryActiveEntry, snapshot: string) {
++    const contents: ContentPosition[] = [];
++    const byDigest = new Map<string, HistoryContent>();
++    const register = (value: unknown) => Array.isArray(value) ? value.flatMap(block => {
++      const image = retainedImage(block);
++      if (!image) return [];
++      const existing = byDigest.get(image.key);
++      if (existing) return [existing];
++      if (contents.length >= HISTORY_LIMITS.contentItems) throw new Error("history_content_items");
++      const cursor = this.#activeContentCursor(snapshot, metadata.ordinal, contents.length, 0);
++      const content = imageDescriptor(cursor, image);
++      byDigest.set(image.key, content);
++      contents.push({ content, data: image.data, offset: 0 });
++      return [content];
++    }) : [];
++    const item = readableEntry(entry, new Set([metadata.entryId]), register);
++    if (metadata.live) item.live = structuredClone(metadata.live);
++    return { item, contents };
++  }
++
++  #activeContentPage(cursor: string): HistoryContentPage {
++    const parsed = /^active\.([0-9a-f-]{36})\.(\d{1,5})\.(\d{1,5})\.(\d{1,8})\.[0-9a-f]{64}$/.exec(cursor);
++    if (!parsed) throw new Error("history_stale_content_cursor");
++    const [, snapshot = "", ordinalValue, contentValue, offsetValue] = parsed;
++    const ordinal = Number(ordinalValue), contentOrdinal = Number(contentValue), offset = Number(offsetValue);
++    const index = this.#activeIndexes.get(snapshot);
++    const row = index?.entries[ordinal];
++    if (!index || !row || cursor !== this.#activeContentCursor(snapshot, ordinal, contentOrdinal, offset)) {
++      throw new Error("history_stale_content_cursor");
++    }
++    const value = this.#validateActiveIndex(index);
++    const canonical = materializeActiveEntry(value.entries[row.retainedOrdinal]!, index.handoffEntryRevisions[row.retainedOrdinal]!);
++    const { contents } = this.#readActiveItem(canonical, row.metadata, snapshot);
++    const position = contents[contentOrdinal];
++    if (!position || offset >= position.data.length || offset % HISTORY_LIMITS.contentPageBytes !== 0) {
++      throw new Error("history_stale_content_cursor");
++    }
++    const end = Math.min(position.data.length, offset + HISTORY_LIMITS.contentPageBytes);
++    const nextCursor = end < position.data.length ? this.#activeContentCursor(snapshot, ordinal, contentOrdinal, end) : undefined;
++    return { snapshot, cut: structuredClone(index.open.cut), expiresAt: index.open.expiresAt,
++      content: position.content, encoding: "base64", partIndex: offset / HISTORY_LIMITS.contentPageBytes,
++      data: position.data.slice(offset, end), ...(nextCursor ? { nextCursor } : {}) };
++  }
++
++  closeActiveIndex(binding: HistoryActiveBinding): { closed: boolean } {
++    const index = this.#requireActiveIndex(binding);
++    clearTimeout(index.timer);
++    return { closed: this.#activeIndexes.delete(binding.snapshot) };
++  }
++
++  #reserveSnapshot(bytes: number): void {
++    this.#expire();
++    let total = bytes;
++    for (const prior of this.#snapshots.values()) total += prior.bytes;
++    for (const prior of this.#activeIndexes.values()) total += prior.bytes;
++    if (this.#snapshots.size + this.#activeIndexes.size >= HISTORY_LIMITS.snapshots || total > HISTORY_LIMITS.cacheBytes) {
++      throw new Error("history_cache_full");
++    }
++  }
++
+   #validateSnapshot(snapshot: Snapshot): void {
+     if (snapshot.open.handoff === "current") {
+       if (this.#capture(false).cut.contentRevision !== snapshot.open.cut.contentRevision) throw new Error("history_changed");
+       return;
+     }
++    this.#validateHandoff(snapshot, snapshot.open.cut);
++  }
++  #validateHandoff(snapshot: HandoffFence, cut: HistoryCut) {
+     const value = this.#capture(false);
+-    const cut = snapshot.open.cut;
+     if (value.cut.sourceId !== cut.sourceId || value.cut.sessionId !== cut.sessionId || value.cut.contextId !== cut.contextId ||
+       value.handoffHeaderRevision !== snapshot.handoffHeaderRevision || value.handoffEntryRevisions.length < snapshot.handoffEntryRevisions.length ||
+       snapshot.handoffEntryRevisions.some((revision, index) => value.handoffEntryRevisions[index] !== revision)) {
+@@ -415,12 +777,17 @@
+       }
+     }
+     if (leafId !== value.cut.leafId) throw new Error("history_handoff_changed");
++    return value;
+   }
+   #checkGap(after: number): void {
+     if (after < (this.#events[0]?.seq ?? this.#seq + 1) - 1) throw new Error("history_observation_gap");
+   }
+   #expire(): void {
+     for (const [id, snapshot] of this.#snapshots) if (Date.now() >= snapshot.open.expiresAt) { clearTimeout(snapshot.timer); this.#snapshots.delete(id); }
++    for (const [id, index] of this.#activeIndexes) {
++      if (Date.now() < index.open.expiresAt) continue;
++      clearTimeout(index.timer); this.#activeIndexes.delete(id);
++    }
+   }
+   page(cursor: string): HistoryPage {
+     this.#expire();
+@@ -451,6 +818,7 @@
+   }
+   contentPage(cursor: string): HistoryContentPage {
+     this.#expire();
++    if (cursor.startsWith("active.")) return this.#activeContentPage(cursor);
+     const snapshot = [...this.#snapshots.values()].find(value => value.contents.has(cursor));
+     if (!snapshot) throw new Error("history_stale_content_cursor");
+     this.#validateSnapshot(snapshot);
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -2505,6 +2505,11 @@
+ 				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
+ 			}
+ 
++			case "history_active_index_open":
++			case "history_active_index_page":
++			case "history_active_payload_range":
++			case "history_active_index_close":
++				return historyObservation.activeCommand(command);
+ 			case "history_snapshot_open":
+ 			case "history_content_page":
+ 			case "history_snapshot_page":
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -37,7 +37,8 @@
+ import type { TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
+ import type { LogoutAccount } from "@oh-my-pi/pi-tui/overlays/logout-account-selector";
+ import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
+-import type { HistoryScope, HistoryOpen, HistoryPage, HistoryContentPage, HistoryPoll } from "./rpc-history";
++import type { HistoryScope, HistoryOpen, HistoryPage, HistoryContentPage, HistoryPoll,
++  HistoryActiveCommand, HistoryActiveSuccess } from "./rpc-history";
+ import type { RpcMessagesPage } from "./rpc-messages";
+ import type { GoalModeState } from "../../goals/state";
+ import type { RpcGoalOp, RpcGoalResult } from "./rpc-goal";
+@@ -55,6 +56,7 @@
+ export type RpcMessageUpdates = "full" | "delta";
+ 
+ export type RpcCommand =
++  | HistoryActiveCommand
+   | AttachmentCommand
+   | SubmissionCommand
+   | NavigationCommand
+@@ -455,6 +457,7 @@
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | HistoryActiveSuccess
+   | { id?: string; type: "response"; command: "navigation_inspect"; success: true; data: NavigationPreview }
+   | { id?: string; type: "response"; command: "navigate_tree_committed" | "navigation_query"; success: true; data: NavigationResult }
+   | { id?: string; type: "response"; command: "attachment_prepare"; success: true; data: AttachmentReceipt }
+diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
+--- a/packages/coding-agent/src/modes/rpc/wire/history.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
+@@ -25,6 +25,18 @@
+     scannedBytes: "number.integer", scanMs: "number", snapshotMs: "number", limits: "HistoryLimits" },
+   HistoryPage: { snapshot: "string", scope: "HistoryScope", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
+     complete: "true", "nextCursor?": "string" },
++  HistoryActiveBinding: { snapshot: "string", contentRevision: "string" },
++  HistoryActiveEntryKey: { ordinal: "number.integer", entryId: "string", digest: "string" },
++  HistoryActiveEntry: { ordinal: "number.integer", entryId: "string", digest: "string", parentId: "string | null",
++    kind: "string", "role?": "string", "provider?": "string", "model?": "string", "stopReason?": "string",
++    "live?": "HistoryLiveIdentity" },
++  HistoryActiveOpen: { version: "'active-history-index-v1'", snapshot: "string", cut: "HistoryCut", expiresAt: "number.integer",
++    count: "number.integer", indexBytes: "number.integer", scannedBytes: "number.integer", streaming: "boolean" },
++  HistoryActiveIndexPage: { snapshot: "string", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryActiveEntry[]",
++    "nextOrdinal?": "number.integer" },
++  HistoryActivePosition: { ordinal: "number.integer", partIndex: "number.integer" },
++  HistoryActivePayloadRange: { snapshot: "string", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
++    "next?": "HistoryActivePosition" },
+   HistoryChange: { seq: "number.integer", kind: "string", "source?": "HistoryNativeChange", "live?": "HistoryLiveIdentity", "item?": "HistoryItem", "settlement?": "HistorySettlement" },
+   HistoryPoll: { cut: "HistoryCut", after: "number.integer", through: "number.integer", events: "HistoryChange[]", hasMore: "boolean" },
+ };
+@@ -37,6 +49,15 @@
+     params: { cursor: "string" }, result: "HistoryContentPage" },
+   { name: "history_snapshot_close", doc: "Release one native snapshot without changing history.",
+     params: { snapshot: "string" }, result: { closed: "boolean" } },
++  { name: "history_active_index_open", doc: "Open bounded active-path metadata at one live-handoff cut.",
++    result: "HistoryActiveOpen" },
++  { name: "history_active_index_page", doc: "Read active-path metadata from a zero-based ordinal at its cut.",
++    params: { binding: "HistoryActiveBinding", start: "number.integer" }, result: "HistoryActiveIndexPage" },
++  { name: "history_active_payload_range", doc: "Seek a contiguous range by ordinal, entry ID and digest at its cut.",
++    params: { binding: "HistoryActiveBinding", entries: "HistoryActiveEntryKey[]", startPart: "number.integer" },
++    result: "HistoryActivePayloadRange" },
++  { name: "history_active_index_close", doc: "Release the index and its retained-content cursors.",
++    params: { binding: "HistoryActiveBinding" }, result: { closed: "boolean" } },
+   { name: "history_observation_poll", doc: "Bounded observation journal after a worker cut; explicit gaps require new snapshot.",
+     params: { workerId: "string", after: "number.integer" }, result: "HistoryPoll" },
+ ] as const;

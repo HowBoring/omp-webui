@@ -43,6 +43,12 @@ prefix and its projected records before returning them. The current public API h
 metadata-only active-path read to bound that verification to the requested records. First-screen latency,
 old-page latency, full corpus reachability and Host RSS remain open #60 acceptance work.
 
+The [dormant Active History Index candidate](../../compatibility/omp/candidates/active-history-index-v1/README.md)
+proposes bounded Native active-path metadata and an exact-cut seek by ordinal, entry ID and digest.
+It reuses the Native live handoff fence and whitelisted row encoder. Source38 still scans raw entry
+fingerprints to detect untracked rewrites elsewhere in the retained cut. Host generation rebuild,
+live baseline composition and end-to-end acceptance remain open.
+
 Evidence uses isolated synthetic profiles, an egress guard before native imports, genuine AgentSession/CLI
 streams driven by legitimately registered deterministic providers/tools, and the actual DSH
 Connection/Remote/controller/Conversation/Trajectory assembly. This is controlled-provider component evidence,
