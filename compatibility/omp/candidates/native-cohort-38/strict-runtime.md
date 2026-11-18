@@ -42,7 +42,7 @@ Staging checks the 38 archives against the frozen Native Bun lock and hashes the
 a 47,958,074-byte regular-file bound and a maximum depth of nine. Readback of the existing expansion matched
 every archive member outside the 12 locked Puppeteer patch targets. Git reverse patch validation and the
 `ElementHandle.js` blob check (`ee6b042c87861f00d7fcbb6e3eb6e87af232ebbd`) passed. The archives total
-6,734,034 bytes. The staging and rebuild here reused that verified expansion. No lifecycle scripts run.
+6,734,034 bytes. The earlier staging and rebuild reused that verified expansion. No lifecycle scripts run.
 
 The staging command verifies the Catalog inventory and exact compiler receipt and checks the 25 generated
 files before using them. Bun uses the pinned upstream legacy Pi module plugin, the two verified Puppeteer
@@ -75,6 +75,28 @@ produced the same output file hashes and passed independent readback. Run `stric
 the Catalog stage, compiler stage, registry, Bun and a scratch parent to repeat this check.
 The test also checks that verification rejects a missing worker, an altered worker of the same size and a
 launcher link changed from `cli.js` to `cli.js/`.
+
+### Fresh expansion and rebuild
+
+At Host integration `507290f7fbd891be17f5dcd694e91f4fc15c397b`, a fresh private directory
+started with only the 38 pinned archives and the pinned Puppeteer patch. The recipe ran
+`prepare-registry`, `stage` and `verify` with the recorded Catalog and compiler stages. The
+new expansion matched `30f1ce38c58bd9752e466ae2ddf3fdaaba5aa355d371aaa77b2f267dc0721a8d`.
+The independent comparison found byte-identical CLI, changelog, attachment worker, schema, guard
+and runtime receipt against the previously verified complete-worker stage. The receipt SHA-256
+was `7e22b591a5f63dbeece7631e96f596f89e02b324f41ebae0e3d99957c15f0830`.
+
+The freshly built worker then negotiated public v2 with the Host and returned `waiting`. The
+synthetic HOME and cwd stayed empty. The process exited 0 with both pipe EOFs, zero stderr,
+zero guard denials or dispatches, and no termination or force signal. This run verifies the
+isolated build and unopened StrictStart path. A selected global installation and retained-helper
+lifecycle require their own acceptance evidence.
+
+Build and verification ran in `06604d` (session `89144`). The fresh worker run `8ff990`
+(session `97671`) exited zero. The reports and fresh stage are under
+`/dev/shm/omp-webui-strict-fresh-replay.vt7aMf99`. The waiting result SHA-256 is
+`325b14d221edfb4a31ff5688bc65e2a36b6665d9af654d74febcfaf154a4f4ca`. The temporary dependency
+expansion was removed after verifying the stage.
 
 ## Ordinary public RPC observations from the earlier stage
 
