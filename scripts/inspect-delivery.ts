@@ -34,7 +34,8 @@ async function readSelection(path: string): Promise<CoordinatedSelection> {
     }
     if (length > maximumSelectionBytes || snapshot(await file.stat({ bigint: true })) !== expected
       || snapshot(await stat(path, { bigint: true })) !== expected) throw new Error("Invalid selection file");
-    return selectionSchema.parse(JSON.parse(bytes.toString("utf8", 0, length)));
+    const json = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes.subarray(0, length));
+    return selectionSchema.parse(JSON.parse(json));
   } finally {
     await file.close();
   }

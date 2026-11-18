@@ -20,7 +20,7 @@ export async function acquireMaintenanceLease(
     throw new Error("MAINTENANCE_CONTROL_CHANGED");
   }
   const native = dlopen("libc.so.6", { flock: { args: [FFIType.int, FFIType.int], returns: FFIType.int } });
-  const file = await open(control.path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(error => {
+  const file = await open(control.path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK).catch(error => {
     native.close();
     throw error;
   });
