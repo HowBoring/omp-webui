@@ -4,7 +4,11 @@ import { chmodSync, closeSync, lstatSync, mkdirSync, openSync, realpathSync, sta
 import { isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export type DirectoryStatus = "authorized" | "ungranted" | "unknown" | "missing" | "inaccessible" | "changed";
-export interface DirectoryAccess { status: DirectoryStatus; canonical?: string }
+export interface DirectoryAccess {
+  status: DirectoryStatus; canonical?: string;
+  /** Private filesystem identity returned only when checking an exact grant. */
+  grantIdentity?: string;
+}
 export interface DirectoryGrant { id: string; path: string; grantedAt: string; status: "valid" | "changed" }
 interface Row { id: string; path: string; identity: string; grantedAt: string }
 interface Preview { path: string; identity: string; expires: number }
@@ -85,8 +89,8 @@ export class DirectoryGrants {
     try { return canonical(row.path) === row.path && identity(row.path) === row.identity; } catch { return false; }
   }
 
-  /** Recheck on every operation/publication. This policy is not an OS sandbox or an OMP open guarantee. */
-  authorize(recorded?: string, expectedCanonical?: string): DirectoryAccess {
+  /** Recheck each operation/publication. Supplying a grant ID scopes authority to that grant's directory identity. */
+  authorize(recorded?: string, expectedCanonical?: string, grantId?: string): DirectoryAccess {
     this.current();
     if (!recorded) return { status: "unknown" };
     let path: string;
@@ -96,9 +100,11 @@ export class DirectoryGrants {
     if (expectedCanonical !== undefined && path !== expectedCanonical) return { status: "changed", canonical: path };
     let changed = false;
     for (const row of this.rows()) {
+      if (grantId !== undefined && row.id !== grantId) continue;
       const child = relative(row.path, path);
       if (child !== "" && (child === ".." || child.startsWith(`..${sep}`) || isAbsolute(child))) continue;
-      if (this.valid(row)) return { status: "authorized", canonical: path };
+      if (this.valid(row)) return { status: "authorized", canonical: path,
+        ...(grantId === undefined ? {} : { grantIdentity: row.identity }) };
       changed = true;
     }
     return { status: changed ? "changed" : "ungranted", canonical: path };
