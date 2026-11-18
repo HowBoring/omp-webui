@@ -127,10 +127,14 @@ async function fixture(mode?: Mode) {
   let scopeReadsBeforeLoss: number | undefined;
   let monotonic = 0;
   const timers = new Map<() => void, number>();
-  const entered = Promise.withResolvers<RespondUiParams>();
+  const entered = Promise.withResolvers<RespondUiParams>(), repeated = Promise.withResolvers<RespondUiParams>();
   const commands: RespondUiParams[] = [], stops: string[] = [];
   const broker = new InteractionBroker({ kind: "startup", contextId: "controlled-startup" }, "worker", "root", {
-    respondUi: async command => { commands.push(command); entered.resolve(command); return reply.promise; },
+    respondUi: async command => {
+      commands.push(command);
+      (commands.length === 1 ? entered : repeated).resolve(command);
+      return reply.promise;
+    },
     requestStop: async reason => { stops.push(reason); },
   }, page => {
     pages.set(page.clientId, page);
@@ -170,7 +174,7 @@ async function fixture(mode?: Mode) {
     await rm(home, { recursive: true, force: true });
     throw error;
   }
-  return { host, pages, receive, entered: entered.promise, commands, stops,
+  return { host, pages, receive, entered: entered.promise, repeated: repeated.promise, commands, stops,
     reply: (status: "answered" | "cancelled" = "answered") => reply.resolve({ status }),
     failClock: () => { clockFault = true; },
     loseScope: () => { scopeCurrent = false; },
@@ -358,6 +362,34 @@ test("same-credential DSH Clients reserve one Broker answer while its Native ack
       expect((await snapshot(page)).pending).toEqual([]);
       expect(page.responses).toEqual([]);
     }
+    expect(f.commands).toHaveLength(1);
+    expect(f.stops).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("a sibling's explicit cancel is stale while the winning Broker answer awaits Native acknowledgement", async () => {
+  const f = await fixture("shared-cookie-answer");
+  try {
+    const access = await login(f.host);
+    const winner = await f.openPage(access), sibling = await f.openPage(access);
+    await Promise.all([winner.ready, sibling.ready]);
+    f.receive("held-before-cancel");
+    const delivery = (await snapshot(winner)).pending[0]!;
+    const { card, deliveryId } = (await snapshot(sibling)).pending[0]!;
+    expect(await readBrokerAnswer(sibling.remote.answerStream(card.generation, card.id, deliveryId,
+      { type: "cancel", timedOut: true }, access.csrf))).toEqual({ status: "invalid" });
+    expect(f.commands).toEqual([]);
+
+    const answer = readBrokerAnswer(openAnswer(winner, delivery, access.csrf));
+    expect(await f.entered).toEqual({ targetId: card.id, answer: { type: "value", value: "explicit" } });
+    const cancel = readBrokerAnswer(sibling.remote.answerStream(card.generation, card.id, deliveryId,
+      { type: "cancel" }, access.csrf));
+    const beforeAcknowledgement = await Promise.race([cancel, f.repeated]);
+    const reservedCount = f.commands.length;
+    f.reply();
+    expect(await answer).toEqual({ status: "answered" });
+    expect(beforeAcknowledgement).toEqual({ status: "stale" });
+    expect(reservedCount).toBe(1);
     expect(f.commands).toHaveLength(1);
     expect(f.stops).toEqual([]);
   } finally { await f.close(); }

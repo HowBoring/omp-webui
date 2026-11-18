@@ -96,8 +96,8 @@ pages, 16 pending/settling UI records, 4,096 seen Native UI ids per incarnation,
 and 64 bounded outcome records; no transcript or pending UI is persisted.
 
 Locally invalid answers never reserve a request. The first locally valid answer
-reserves it synchronously, before awaiting Native RPC; concurrent answers fail as
-stale. Native remains the final business authority. An `invalid` acknowledgement
+reserves it synchronously before awaiting Native RPC. Concurrent Browser View
+replies, including explicit cancellation, return stale. Native remains the final business authority. An `invalid` acknowledgement
 re-presents a still-live question with fresh delivery tokens and its original
 deadline. The timer continues while an acknowledgement is held. Expiry or scope
 revocation may send a coalesced explicit cancellation alongside that outstanding

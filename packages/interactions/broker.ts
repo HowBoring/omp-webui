@@ -103,13 +103,12 @@ export class InteractionBroker {
     input: UIAnswer): Promise<BrokerResult> {
     if (!this.#accepting || !this.#current(page)) return { status: "stale" };
     const entry = this.#pending.get(id);
-    if (generation !== this.generation || !entry ||
+    if (generation !== this.generation || !entry || entry.state !== "pending" ||
       entry.deliveries.get(page.pageGeneration) !== deliveryId) return { status: "stale" };
     if (this.time.now() >= entry.deadline) return this.#viewResult(page, this.#cancel(id, "expired"));
     const parsed = uiAnswerSchema.safeParse(input);
     if (!parsed.success || !validAnswer(entry.card, parsed.data)) return { status: "invalid" };
     if (parsed.data.type === "cancel") return this.#viewResult(page, this.#cancel(id, "explicit-cancel"));
-    if (entry.state !== "pending") return { status: "stale" };
     return this.#viewResult(page, this.#settle(id, entry, parsed.data, "explicit-answer"));
   }
   receive(frame: unknown): void {
