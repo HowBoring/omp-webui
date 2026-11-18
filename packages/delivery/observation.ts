@@ -62,22 +62,31 @@ export class ReleaseObservation {
     for (const [location, value] of this.#observed) await this.observe(location, value.role);
   }
 
-  /** All reads are positioned, bounded and bracketed against both descriptor and named identity. */
-  async read<T>(location: string, maximum: number, consume: (file: fs.FileHandle, size: number) => Promise<T>): Promise<T> {
+  /** Transfers close responsibility on open. Verify the descriptor against its name and ancestry before and after use. */
+  async pin(location: string, maximum: number): Promise<{
+    file: fs.FileHandle; size: number; verify(): Promise<void>;
+  }> {
     await this.parents(location);
     const before = await this.observe(location);
     if (!before.isFile() || before.nlink !== 1n || before.size > BigInt(maximum)
       || (before.mode & 0o7000n) !== 0n) refuse();
     const file = await fs.open(location, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
-    try {
-      if (stamp(await file.stat({ bigint: true })) !== stamp(before)) refuse();
-      await this.observe(location);
-      const result = await consume(file, Number(before.size));
+    return { file, size: Number(before.size), verify: async () => {
       if (stamp(await file.stat({ bigint: true })) !== stamp(before)) refuse();
       await this.observe(location);
       await this.parents(location);
+    } };
+  }
+
+  /** All reads are positioned, bounded and bracketed against both descriptor and named identity. */
+  async read<T>(location: string, maximum: number, consume: (file: fs.FileHandle, size: number) => Promise<T>): Promise<T> {
+    const pin = await this.pin(location, maximum);
+    try {
+      await pin.verify();
+      const result = await consume(pin.file, pin.size);
+      await pin.verify();
       return result;
-    } finally { await file.close(); }
+    } finally { await pin.file.close(); }
   }
 
   async bytes(location: string, maximum: number): Promise<Buffer> {
