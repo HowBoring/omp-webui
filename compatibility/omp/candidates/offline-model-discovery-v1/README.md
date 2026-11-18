@@ -16,15 +16,16 @@ The [patch](model-registry-offline.patch) applies to the pinned Source45 ModelRe
 
 Use the assembled Source45 donor at `54545e62489ce13c2328f14c0882abc0c1c7d87c`, its pinned Native tree and Bun 1.4.4. `evidence.json` identifies the exact patch, original and patched source, guard, runtime, installation and compiler inputs. Both compiler cache flags are required for these commands.
 
-From this directory, with `OMP_SOURCE45_ROOT` and `BUN` set to absolute paths for the selected donor and runtime, the following runs the packaged registry regression. The baseline should fail the zero-attempt invariant. The overlay should pass without successful network mocks, settle background discovery and keep the explicit and default online rejection paths active. These are the same core assertions that produced red and green in the original guarded checks. This checkout adds explicit paths and verifies the donor source and guard presence before testing.
+From this directory, with `OMP_SOURCE45_ROOT` and `BUN` set to absolute paths for the selected donor and runtime, the following runs the opt-in registry regression. Ordinary test discovery skips it before importing any Native module. The original donor failed with 15 injected built-in fetch attempts, two extension attempts and two preloaded guard denials. With the overlay, the offline phase settled with all counters at zero. The explicit and default online controls each reached the preserved rejecting guard exactly once, with zero dispatches.
 
 ```bash
 git -C "$OMP_SOURCE45_ROOT/vendor/omp" apply --check "$PWD/model-registry-offline.patch"
 env -i HOME=/tmp PATH=/usr/bin:/bin BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 NODE_DISABLE_COMPILE_CACHE=1 \
-  OMP_SOURCE45_ROOT="$OMP_SOURCE45_ROOT" "$BUN" --no-env-file test \
+  OMP_SOURCE45_ROOT="$OMP_SOURCE45_ROOT" OMP_TEST_OFFLINE_REGISTRY=1 "$BUN" --no-env-file test \
   --preload "$OMP_SOURCE45_ROOT/compatibility/omp/fixtures/no-provider.ts" ./model-registry.test.ts
 env -i HOME=/tmp PATH=/usr/bin:/bin BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 NODE_DISABLE_COMPILE_CACHE=1 \
-  OMP_SOURCE45_ROOT="$OMP_SOURCE45_ROOT" OMP_TEST_OFFLINE_OVERLAY=1 "$BUN" --no-env-file test \
+  OMP_SOURCE45_ROOT="$OMP_SOURCE45_ROOT" OMP_TEST_OFFLINE_REGISTRY=1 OMP_TEST_OFFLINE_OVERLAY=1 \
+  "$BUN" --no-env-file test \
   --preload "$OMP_SOURCE45_ROOT/compatibility/omp/fixtures/no-provider.ts" ./model-registry.test.ts
 env -i HOME=/tmp PATH=/usr/bin:/bin BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 NODE_DISABLE_COMPILE_CACHE=1 \
   python3 -B -m unittest -v test_startup_frames
