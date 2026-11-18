@@ -114,8 +114,12 @@ The opt-in `launchOwned(cwd, retirement)` port supplies the generation's Host-ow
 attaches and returns the original connection before awaiting RPC readiness, even if
 retirement has already aborted the signal. The first retirement fences any attached
 connection with the original Host-local cutoff and aborts launch preparation in the
-same call. The reservation survives an unconfirmed launch rejection. The helper still
-needs an acknowledged handoff of the absolute deadline for physical shutdown.
+same call. The reservation survives an unconfirmed launch rejection. With no
+connection, the owner's exact pre-spawn refusal for the original aborted signal
+releases the reservation as `not-launched` while the durable attempt is
+`outcome_unknown`. A delivered connection requires confirmed domain completion
+and natural EOF on both readers before release. The helper still needs an
+acknowledged handoff of the absolute deadline for physical shutdown.
 Controlled streams cover attachment and retention. Product admission remains blocked.
 
 ## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)

@@ -128,7 +128,7 @@ test("retirement during launch verification prevents dispatcher preparation and 
   await owner.close();
 });
 
-test("the Supervisor retirement signal reaches the trusted owner's pending launch", async () => {
+test("a trusted pre-spawn refusal releases the Supervisor reservation", async () => {
   const verificationStarted = Promise.withResolvers<void>();
   const verification = Promise.withResolvers<void>();
   const f = fixture({ verifyLaunch: () => { verificationStarted.resolve(); return verification.promise; } });
@@ -153,7 +153,13 @@ test("the Supervisor retirement signal reaches the trusted owner's pending launc
     await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
     await shutdown;
     expect([f.prepares, f.children.length]).toEqual([0, 0]);
-    expect(session.supervisor.hasOwnedReservation).toBe(true);
+    expect(session.supervisor.hasOwnedReservation).toBe(false);
+    expect(session.supervisor.exits()).toEqual([{ workerId: expect.any(String), reason: "host-shutdown",
+      elapsedMs: expect.any(Number), nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false,
+      drain: { status: "not-launched" }, notificationCount: 0, tailNotifications: 0 }]);
+    expect((await session.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
   } finally {
     verification.resolve();
     const { launch } = await offered.promise;
@@ -166,6 +172,47 @@ test("the Supervisor retirement signal reaches the trusted owner's pending launc
     await owner.close();
   }
 });
+
+test.each(["different signal", "reused signal"] as const)(
+  "a refusal from a second owner invocation with a %s retains the original spawned reservation", async kind => {
+    const f = fixture();
+    f.failAdoption();
+    const owner = await f.open();
+    const spawned = Promise.withResolvers<{ retirement: AbortSignal; handle: PrivateHelperHandle }>();
+    const delivery = Promise.withResolvers<never>();
+    const session = await sourceFixture(Date.now, async (cwd, retirement) => {
+      const handle = await owner.launch({ ...f.launch, cwd }, retirement);
+      spawned.resolve({ retirement, handle });
+      return delivery.promise;
+    });
+    const opening = session.supervisor.open(session.identity, session.selected);
+    void opening.catch(() => {});
+    try {
+      const { retirement, handle } = await spawned.promise;
+      await expect(handle.ready).rejects.toMatchObject({ code: "HELPER_CONTROL_UNAVAILABLE" });
+      const shutdown = session.supervisor.close();
+      expect(retirement.aborted).toBe(true);
+      const signal = kind === "reused signal" ? retirement : AbortSignal.abort();
+      const retry = owner.launch(f.launch, signal).catch((error: unknown) => {
+        delivery.reject(error);
+        throw error;
+      });
+      await expect(retry).rejects.toMatchObject({ code: "HELPER_LAUNCH_RETIRED" });
+      await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+      await shutdown;
+      expect([f.prepares, f.children.length]).toEqual([1, 1]);
+      expect(session.supervisor.hasOwnedReservation).toBe(true);
+      expect(session.supervisor.exits()).toMatchObject([{ drain: {
+        status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED",
+      } }]);
+    } finally {
+      delivery.reject(new Error("SYNTHETIC_LAUNCH_REJECTED"));
+      await session.close();
+      f.children[0]?.reap(74);
+      await expect(owner.close()).rejects.toMatchObject({ code: "PRIVATE_DOMAIN_UNRESOLVED" });
+    }
+  },
+);
 
 test("retirement during dispatcher preparation prevents final verification and spawn", async () => {
   const f = fixture();

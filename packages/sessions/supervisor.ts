@@ -11,6 +11,7 @@ import type { OwnedSessionCleanup, OwnedSessionConnection, SessionWorker } from 
 import type { DrainPolicy, DrainResult, StdioOutput } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
+import { confirmsPreSpawnRefusal } from "../supervision/owner.ts";
 import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./index.ts";
 
 /** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
@@ -24,7 +25,8 @@ interface DirectLaunchOptions {
 interface OwnedLaunchOptions {
   launch?: never;
   /** Trusted Host port. Forward retirement to pre-spawn preparation. Once a helper exists,
-   * return its original connection before waiting for readiness, even after retirement. */
+   * return its original connection before waiting for readiness, even after retirement.
+   * Propagate any pre-spawn refusal from the owner unchanged. */
   launchOwned: OwnedLauncher;
 }
 type Options = {
@@ -72,7 +74,7 @@ interface RetainedLaunch {
   retirement: AbortController;
   observations: Promise<void>;
   connection?: OwnedSessionConnection;
-  launchRejected?: boolean;
+  launchRefusal?: "not-launched" | "unconfirmed";
   fenceRequested?: boolean;
   facts: OwnedWorkerFacts;
   cleanupFacts: OwnedCleanupFacts;
@@ -264,7 +266,8 @@ export class SessionSupervisor {
       retained.report?.();
     };
     const reject = (error: unknown) => {
-      retained.launchRejected = true;
+      retained.launchRefusal = !retained.connection && confirmsPreSpawnRefusal(retained.retirement.signal, error)
+        ? "not-launched" : "unconfirmed";
       delivery.reject(error);
       retained.report?.();
     };
@@ -572,15 +575,18 @@ export class SessionSupervisor {
     const report = () => {
       const { facts, connection } = retained;
       const { domain, output } = facts;
-      active.released = domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true;
+      const notLaunched = !connection && retained.launchRefusal === "not-launched";
+      active.released = notLaunched || (domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true);
+      if (notLaunched) active.state = "closed";
       const drain: WorkerExit["drain"] = connection ? {
         status: active.released ? "owned-completed" : "owned-unresolved", ...facts,
-      } : {
+      } : notLaunched ? { status: "not-launched" } : {
         status: "unresolved",
-        failure: retained.launchRejected ? "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" : "SESSION_WORKER_LAUNCH_UNRESOLVED",
+        failure: retained.launchRefusal ? "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" : "SESSION_WORKER_LAUNCH_UNRESOLVED",
       };
       const tailNotifications = output?.observedTailNotifications ?? 0;
-      const countIncomplete = published === undefined || output?.stdoutEOF !== true || output.protocolFailure !== undefined;
+      const countIncomplete = !notLaunched
+        && (published === undefined || output?.stdoutEOF !== true || output.protocolFailure !== undefined);
       const exit: WorkerExit = { workerId: active.id, reason, elapsedMs: performance.now() - start, drain,
         ...retained.cleanupFacts, ...(indexFailure ? { indexFailure } : {}),
         notificationCount: (published ?? 0) + tailNotifications, tailNotifications,

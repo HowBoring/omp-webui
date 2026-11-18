@@ -132,9 +132,12 @@ preparation. The same fence applies if the adapter hands over the original conne
 after the cutoff. Once a helper exists, retirement preserves its handoff before
 readiness. Late readiness cannot start or bind the retired generation. The bounded
 shutdown observation can return with ownership still unresolved, including after
-an unconfirmed launcher rejection. Only the same connection's confirmed domain
-completion and natural EOF on both readers release the slot. Root status, domain
-status and validated output tails are reported as they are observed. Counts remain
+an unconfirmed launcher rejection. With no connection, the owner's exact pre-spawn
+refusal for the original aborted generation releases the slot as `not-launched`
+while the durable attempt is `outcome_unknown`. A delivered connection requires
+its own confirmed domain completion and natural EOF on both readers before release.
+Root status, domain status and validated output tails are reported as they are
+observed. Counts remain
 lower bounds when a published counter or observed stdout EOF is unavailable or the
 transport records a protocol failure. Late completion can release the slot after the
 Session Index closes.
