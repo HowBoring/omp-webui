@@ -2,6 +2,7 @@ import { expect, spyOn, test } from "bun:test";
 import { z } from "zod";
 import { rm, rename, mkdir } from "node:fs/promises";
 import { sourceFixture } from "./source-fixture.ts";
+import type { OwnedSessionConnection } from "../../packages/compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult } from "../../packages/compatibility/stdio-transport.ts";
 
 test("explicit Open retains a stable prelaunch failure when its selected cwd disappeared", async () => {
@@ -129,7 +130,7 @@ function shutdownClock() {
   const schedule = globalThis.setTimeout;
   const deadlines = new Map<number, () => void>();
   function scheduleDeadline(handler: Bun.TimerHandler, delay?: number, ...args: unknown[]) {
-    if (typeof handler !== "function" || (delay !== 30_000 && delay !== 5_000)) return schedule(handler, delay, ...args);
+    if (typeof handler !== "function" || (delay !== 30_000 && delay !== 5_000 && delay !== 35_000)) return schedule(handler, delay, ...args);
     deadlines.set(time + delay, () => handler(...args));
     return schedule(() => {}, delay).unref();
   }
@@ -553,4 +554,153 @@ test("shared startup retains root UI and one generation when one waiting browser
     expect(f.supervisor.starts).toBe(1); expect(f.supervisor.exits()).toEqual([]);
     expect(() => f.supervisor.view(f.identity, view.workerId)).toThrow("SESSION_AUTH_REQUIRED");
   } finally { release.resolve(); await f.close(); }
+});
+
+function pendingOwnedConnection() {
+  const ready = Promise.withResolvers<Awaited<OwnedSessionConnection["ready"]>>();
+  const completed = Promise.withResolvers<void>();
+  const rootExit = Promise.withResolvers<Awaited<OwnedSessionConnection["rootExit"]>>();
+  const output = Promise.withResolvers<Awaited<OwnedSessionConnection["output"]>>();
+  const cutoffs: number[] = [];
+  const connection: OwnedSessionConnection = {
+    ready: ready.promise, rootExit: rootExit.promise, completed: completed.promise, output: output.promise,
+    interactionCleanup: Promise.resolve([]),
+    beginCleanup(cutoff) { cutoffs.push(cutoff); return undefined; },
+  };
+  for (const deferred of [ready, completed, rootExit, output]) void deferred.promise.catch(() => {});
+  return { connection, ready, completed, rootExit, output, cutoffs };
+}
+
+test("shutdown fences the retained connection while readiness is pending and waits for domain completion and both EOFs", async () => {
+  const owned = pendingOwnedConnection();
+  const launched: string[] = [];
+  const f = await sourceFixture(Date.now, cwd => { launched.push(cwd); return owned.connection; });
+  const clock = shutdownClock();
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  try {
+    await clock.advance(100);
+    expect(launched).toEqual([f.cwd]);
+    const shutdown = f.supervisor.close();
+    expect(owned.cutoffs).toEqual([30_100]);
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    owned.ready.reject(new Error("RPC_SESSION_RETIRED"));
+    owned.rootExit.resolve({ kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 0 });
+    await clock.advance(150);
+    expect(f.supervisor.exits()).toMatchObject([{ drain: {
+      status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 0 },
+    } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    owned.completed.resolve();
+    await clock.advance(200);
+    expect(f.supervisor.exits()).toMatchObject([{ drain: {
+      status: "owned-unresolved", domain: "completed", rootExit: { exitCode: 0, signal: 0 },
+    } }]);
+    expect(f.supervisor.exits()[0]?.drain).not.toHaveProperty("output");
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 12, observedTailNotifications: 2 });
+    await shutdown;
+    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown", tailNotifications: 2,
+      drain: { status: "owned-completed", rootExit: { exitCode: 0, signal: 0 },
+        output: { stdoutEOF: true, stderrEOF: true } } }]);
+    expect((await f.index.page({})).records[0]?.attempt).toEqual({
+      state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN",
+    });
+  } finally {
+    owned.ready.reject(new Error("RPC_SESSION_RETIRED"));
+    owned.completed.resolve();
+    owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0 });
+    await opening.catch(() => {});
+    await clock.advance(35_100);
+    clock.restore();
+    await f.close();
+  }
+});
+
+test("a connection delivered after the shutdown observation is fenced with the original cutoff", async () => {
+  const owned = pendingOwnedConnection(), delivery = Promise.withResolvers<OwnedSessionConnection>();
+  const f = await sourceFixture(Date.now, () => delivery.promise);
+  const clock = shutdownClock();
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  try {
+    await clock.advance(0);
+    const shutdown = f.supervisor.close();
+    await clock.advance(35_000);
+    await shutdown;
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown",
+      drain: { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_UNRESOLVED" } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    f.index.close();
+
+    await clock.advance(40_000);
+    delivery.resolve(owned.connection);
+    await clock.advance(40_000);
+    expect(owned.cutoffs).toEqual([30_000]);
+    owned.ready.reject(new Error("RPC_STARTUP_FAILED"));
+    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+    owned.rootExit.resolve({ kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 15 });
+    owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 1 });
+    await clock.advance(40_000);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "host-shutdown", tailNotifications: 1, drain: {
+      status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 15 },
+      output: { stdoutEOF: true, stderrEOF: true },
+    } }]);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+
+    owned.completed.resolve();
+    await clock.advance(40_000);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    expect(f.supervisor.exits().at(-1)).toMatchObject({ reason: "host-shutdown", tailNotifications: 1, drain: {
+      status: "owned-completed", rootExit: { exitCode: 0, signal: 15 },
+    } });
+    expect(f.supervisor.starts).toBe(1);
+  } finally {
+    delivery.resolve(owned.connection);
+    owned.ready.reject(new Error("RPC_SESSION_RETIRED"));
+    owned.completed.resolve();
+    owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0 });
+    await opening.catch(() => {});
+    await clock.advance(40_000);
+    clock.restore();
+    await f.close();
+  }
+});
+
+test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an owned launch with %s keeps the retired slot", async outcome => {
+  const owned = pendingOwnedConnection();
+  const f = await sourceFixture(Date.now, () => owned.connection);
+  const opening = f.supervisor.open(f.identity, f.selected);
+  void opening.catch(() => {});
+  try {
+    await new Promise<void>(resolve => setImmediate(resolve));
+    owned.ready.reject(new Error("RPC_STARTUP_FAILED"));
+    await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+    const rootExit = { kind: "rootExit", generation: "owned-generation", exitCode: 0, signal: 0 } as const;
+    if (outcome === "failed output") owned.rootExit.reject(new Error("PRIVATE_ROOT_EXIT_UNOBSERVED"));
+    else owned.rootExit.resolve(rootExit);
+    if (outcome === "failed domain") owned.completed.reject(new Error("PRIVATE_DOMAIN_UNRESOLVED"));
+    else owned.completed.resolve();
+    const output = { stdoutEOF: true, stderrEOF: outcome === "failed domain", stderrBytes: 0, observedTailNotifications: 0 };
+    if (outcome === "failed output") owned.output.reject(new Error("RPC_PIPE_ATTACH_FAILED"));
+    else owned.output.resolve(output);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+    expect(f.supervisor.starts).toBe(1);
+    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.exits()).toMatchObject([{ reason: "open-failed", drain: {
+      status: "owned-unresolved", domain: outcome === "failed domain" ? "unresolved" : "completed",
+      ...(outcome === "failed output" ? { rootExitUnobserved: true, outputUnavailable: true }
+        : { rootExit: { exitCode: 0, signal: 0 }, output }),
+    } }]);
+  } finally {
+    owned.ready.reject(new Error("RPC_SESSION_RETIRED"));
+    owned.completed.resolve();
+    owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 0, observedTailNotifications: 0 });
+    await opening.catch(() => {});
+    await f.close();
+  }
 });

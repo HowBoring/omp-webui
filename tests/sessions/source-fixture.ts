@@ -12,7 +12,7 @@ import { HistoryClient } from "../../packages/contracts/generated/history-client
 import validState from "../../packages/contracts/generated/strict-state.js";
 import type { CatalogDescriptor, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
 import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
-import type { SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
+import type { OwnedSessionConnection, SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
@@ -20,7 +20,8 @@ interface NativeFixtureControls {
   close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
 
-export async function sourceFixture(now: () => number = Date.now) {
+export async function sourceFixture(now: () => number = Date.now,
+  launchOwned?: (cwd: string) => OwnedSessionConnection | Promise<OwnedSessionConnection>) {
   const home = await mkdtemp(join(tmpdir(), "session-source-")), cwd = join(home, "project"), dataDir = join(home, "state");
   await mkdir(cwd);
   const origin = "http://127.0.0.1:4321", authority = openBrowserAccess({ dataDir, origin });
@@ -65,7 +66,7 @@ export async function sourceFixture(now: () => number = Date.now) {
     : { status: "complete", snapshot: "synthetic-snapshot", observedAt: selected.observedAt,
       expiresAt: "2099-11-16T00:00:00.000Z", examined: 2, failures: [], items: [selected, other] };
   });
-  const supervisor = new SessionSupervisor({ authority, grants, index, catalog,
+  const supervisor = new SessionSupervisor({ authority, grants, index, catalog, ...(launchOwned ? { launchOwned } : {
     async launch() {
       ++controls.launches; await controls.launch();
       const childExit = Promise.withResolvers<number>();
@@ -75,7 +76,8 @@ export async function sourceFixture(now: () => number = Date.now) {
           const drain = await controls.close(policy);
           controls.closed = true; childExit.resolve(drain.code); return drain;
         } };
-    } });
+    },
+  }) });
   async function browser() {
     const exchange = await authority.handle(new Request(authority.bootstrapLink(), { headers: { host: "127.0.0.1:4321" } }));
     const cookie = exchange!.headers.get("set-cookie")!.split(";")[0]!;

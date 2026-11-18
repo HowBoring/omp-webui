@@ -28,26 +28,40 @@ Every protected action checks the current authenticated browser, directory grant
 actual directory object and worker generation, including after awaits. Browser
 logout/expiry withdraws that browser's view/answer rights. Overlapping grants are
 recomputed. Effective root revocation, trusted revoke-all and Host shutdown deny
-admission synchronously, cancel UI and public native queues/work, then share one
-absolute 30-second cooperative deadline plus five seconds for SIGTERM before
-SIGKILL if needed. A final one-second reader-only deadline bounds EOF observation;
+admission synchronously. The direct path cancels UI and public native queues/work
+using one absolute 30-second cooperative deadline plus five seconds for SIGTERM
+before SIGKILL if needed. A final one-second reader-only deadline bounds EOF observation;
 it does not delay either execution signal. Native settlement, queue acknowledgement,
 EOFs, tail notification counts, exit code and force are separate facts. Only the
 stored Bun child handle is signalled and awaited; arbitrary PIDs and external TUI
 owners are never kill targets. General extension-created descendant containment
 is not attested.
 
-A launch still negotiating at shutdown keeps its reserved slot across the same
-absolute deadlines. Once the cooperative deadline passes, only the same returned
-worker can be drained using the remaining termination grace. A launcher can reject
-after spawning, so an unconfirmed rejection retains the reservation. If the handle
-is still unavailable at the force deadline, the supervisor reports unresolved
-ownership and keeps the original completion available for cleanup. A mandatory
-drain releases the slot only after both EOFs and a worker exit are observed.
-When Stop precedes handle delivery, its tail notification count is a lower bound
-because the worker counter does not account for notifications before delivery.
-The isolated CLI reports unsuccessful shutdown when ownership is unresolved and
-lets pending cleanup continue after server teardown.
+A direct launch still negotiating at shutdown keeps its reserved slot across the
+same absolute deadlines. Once the cooperative deadline passes, only the same
+returned worker can be drained using the remaining termination grace. An unconfirmed
+launcher rejection retains the reservation. If the handle is still unavailable at
+the force deadline, the supervisor reports unresolved ownership and keeps the
+original completion available for cleanup. The direct shutdown report marks the
+notification count as a lower bound when Stop precedes handle delivery. The isolated CLI reports
+unsuccessful shutdown when ownership is unresolved and lets pending cleanup continue
+after server teardown.
+
+The isolated Supervisor also accepts an owned RPC connection before v2 readiness.
+It fences the original connection at retirement with the first Host-local cutoff,
+including when the launcher delivers the connection after the cutoff. A late ready
+result cannot start the retired generation. Exit diagnostics expose the original
+root status, private domain status and pipe observations as each becomes available.
+Confirmed domain completion and natural EOF on both pipes release the slot. A
+missing published count, unobserved stdout EOF or protocol failure marks the
+reported notification count as a lower bound. The published count includes startup
+notifications, and the transport separately counts validated tail frames after
+its admission fence.
+
+Ownership proof permits slot reuse while the durable Session attempt records an
+unknown outcome. Native settlement, queue withdrawal and the helper's physical
+shutdown deadline require further composition. Owned idle Switch and New and
+production registration remain pending.
 
 The read-only DSH SessionController adapts the public native `LiveJournal` cut.
 It reports `not_attested` recoverability and explicit unsupported native content.
@@ -88,10 +102,11 @@ diagnostic count and continues draining. A reader failure can leave its EOF
 unobserved. Domain completion comes from the helper's validated COMPLETE, control
 EOF and reap.
 
-SessionSupervisor still needs an owned launch path that saves the handle before
-awaiting RPC readiness, reserves its slot through uncertain domain completion, and
-hands mandatory cleanup to the helper's absolute deadline. This attachment is covered
-with in-memory streams and leaves product admission blocked.
+The opt-in `launchOwned` constructor option connects this attachment to the
+supervisor's early retention path described above. The supervisor fences the
+connection at retirement using the original Host-local cutoff. The helper still
+needs an acknowledged handoff of the absolute deadline for physical shutdown.
+Controlled streams cover attachment and retention. Product admission remains blocked.
 
 ## S1-CHILD-OWNERSHIP-FOLLOWUP (#48 / #61)
 
