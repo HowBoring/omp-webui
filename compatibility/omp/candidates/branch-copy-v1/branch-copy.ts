@@ -195,7 +195,8 @@ export function buildBranchCopyIntent(cut: BranchCopyCut, index: BranchCopyIndex
     retainedLeafId: cut.parentId,
     labels: Object.freeze(labels),
   };
-  const copyRevision = hash(JSON.stringify({ ...facts, entries: entries.map(({ destinationJson, ...entry }) => entry) }));
+  const lineage = entries.map(({ destinationJson: _destinationJson, ...entry }) => entry);
+  const copyRevision = hash(JSON.stringify({ ...facts, entries: lineage }));
   return Object.freeze({ ...facts, copyRevision, entries: Object.freeze(entries) });
 }
 

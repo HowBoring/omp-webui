@@ -2,7 +2,7 @@ diff --git a/packages/coding-agent/src/modes/rpc/branch-copy.ts b/packages/codin
 new file mode 100644
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/branch-copy.ts
-@@ -0,0 +1,202 @@
+@@ -0,0 +1,203 @@
 +import { createHash } from "node:crypto";
 +
 +interface BranchCopySource {
@@ -200,7 +200,8 @@ new file mode 100644
 +    retainedLeafId: cut.parentId,
 +    labels: Object.freeze(labels),
 +  };
-+  const copyRevision = hash(JSON.stringify({ ...facts, entries: entries.map(({ destinationJson, ...entry }) => entry) }));
++  const lineage = entries.map(({ destinationJson: _destinationJson, ...entry }) => entry);
++  const copyRevision = hash(JSON.stringify({ ...facts, entries: lineage }));
 +  return Object.freeze({ ...facts, copyRevision, entries: Object.freeze(entries) });
 +}
 +
