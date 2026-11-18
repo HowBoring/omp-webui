@@ -3,17 +3,19 @@ import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
 import type {
-  SessionFollowFrame, SessionHistoryRecord, SessionPage, SessionPageRequest,
+  SessionFollowFrame, SessionHistoryRecord, SessionPage,
   SessionAssistantStreamBaseline, SessionAssistantStreamFrame,
 } from '@deepseek-ai/dsh-api-session-controller/types';
 import type { HistoryClient } from '../contracts/generated/history-client.ts';
 import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
+import { HistoryRecordParts } from './history-record-parts.ts';
+import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
+  pageCoordinates, settledCoordinates, type PageRequest } from './history-records.ts';
 
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
 }[SessionAssistantStreamFrame['type']];
-const MAX_EVENTS = 60_000, MAX_BYTES = 32 * 1024 * 1024;
-const MAX_ITEM_BYTES = 512 * 1024, PAGE_BYTES = 768 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 32 * 1024 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
 const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
   live.workerId, live.sourceId, live.sessionId, live.contextId, live.branchLeafId, live.messageId,
@@ -24,53 +26,9 @@ interface Attempt {
 }
 interface OpeningBudget { bytes: number; items: number }
 
-/** Opening pages contain contiguous Native record parts, including across page boundaries. */
-class OpeningRecord {
-  readonly #parts: string[] = [];
-  #textBytes = 0;
-  #trailingHighSurrogate = '';
-  #nextPart = 0;
-  constructor(readonly first: HistoryItem, readonly count: number, readonly keepText: boolean) {}
-
-  append(item: HistoryItem, index: number): HistoryItem | undefined {
-    const entryId = item.entryId;
-    const expectedId = index === 0 ? entryId ?? item.id : `${entryId}:part:${index}`;
-    if (index !== this.#nextPart || (item.partCount ?? 1) !== this.count || item.id !== expectedId
-      || (this.count > 1 && !entryId)
-      || (index > 0 && !isDeepStrictEqual(this.#metadata(this.first), this.#metadata(item)))) {
-      throw Error('live_open_parts');
-    }
-    this.#nextPart++;
-    if (this.keepText) this.#appendText(item.text);
-    if (this.#nextPart === this.count) return {...this.first, text: this.#parts.join('')};
-  }
-
-  #appendText(text: string): void {
-    let measured = this.#trailingHighSurrogate + text;
-    this.#trailingHighSurrogate = '';
-    const lastUnit = measured.charCodeAt(measured.length - 1);
-    // Native can split a surrogate pair between parts. Measure the trailing high unit with the next part.
-    if (this.#nextPart < this.count && lastUnit >= 0xd800 && lastUnit <= 0xdbff) {
-      this.#trailingHighSurrogate = measured.slice(-1);
-      measured = measured.slice(0, -1);
-    }
-    this.#textBytes += Buffer.byteLength(JSON.stringify(measured)) - 2;
-    // An unfinished pair will cost at least four bytes. The final DSH envelope is checked separately.
-    if (this.#textBytes + (this.#trailingHighSurrogate ? 4 : 0) > MAX_ITEM_BYTES) {
-      throw Error(this.first.livePhase === 'streaming' ? 'live_attempt_evicted' : 'live_event_bytes');
-    }
-    this.#parts.push(text);
-  }
-
-  #metadata(item: HistoryItem) {
-    const {id, partIndex, text, ...metadata} = item;
-    return metadata;
-  }
-}
-
 /** Read one immutable cut, retaining only the current Native page and any unfinished record. */
 async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'active' | 'live', budget: OpeningBudget) {
-  let pending: OpeningRecord | undefined;
+  let pending: HistoryRecordParts | undefined;
   const start = budget.items;
   let next: string | undefined = opened.cursors[scope];
   while (next !== undefined) {
@@ -89,7 +47,7 @@ async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'a
       if (!pending) {
         const count = item.partCount ?? 1;
         if (count < 1 || count > MAX_EVENTS) throw Error('live_open_parts');
-        pending = new OpeningRecord({...item, text: ''}, count, scope === 'active' || item.livePhase === 'streaming');
+        pending = new HistoryRecordParts({...item, text: ''}, count, scope === 'active' || item.livePhase === 'streaming');
       }
       const record = pending.append(item, item.partIndex ?? 0);
       if (record) { pending = undefined; yield record; }
@@ -188,19 +146,14 @@ export class LiveJournal {
   invalidate(code: string): void { this.#failure ??= code; this.#listeners.clear(); }
   #fail(code: string): never { this.invalidate(code); throw Error(code); }
   #assert(): void { if (this.#failure) throw Error(this.#failure); }
-  page(request: Pick<SessionPageRequest, 'throughSeq' | 'beforeSeq' | 'maxMessages'>): SessionPage {
+  page(request: PageRequest): SessionPage {
     return this.#page(request, PAGE_BYTES);
   }
-  #page(request: Pick<SessionPageRequest, 'throughSeq' | 'beforeSeq' | 'maxMessages'>, limit: number): SessionPage {
+  #page(request: PageRequest, limit: number): SessionPage {
     this.#assert();
-    const through = request.throughSeq ?? this.cursor, before = request.beforeSeq ?? through + 1;
-    if (!Number.isSafeInteger(through) || through > this.cursor || through < -1 || !Number.isSafeInteger(before)
-      || before < 0 || before > through + 1) throw Error('live_stale_page');
-    const maximum = request.maxMessages ?? 32;
-    if (!Number.isSafeInteger(maximum) || maximum < 1) throw Error('live_page_limit');
-    const end = before;
-    let start = end, bytes = 1024, count = 0;
-    for (let index = this.#groupBefore(end); index >= 0 && count < Math.min(128, maximum); index--) {
+    const { end, maximum } = pageCoordinates(request, this.cursor);
+    let start = end, bytes = PAGE_OVERHEAD, count = 0;
+    for (let index = this.#groupBefore(end); index >= 0 && count < maximum; index--) {
       const candidate = this.#groups[index]!;
       // Include one array separator per record as well as the encoded events.
       const size = this.#recordBytesBefore(start) - this.#recordBytesBefore(candidate) + start - candidate;
@@ -239,8 +192,7 @@ export class LiveJournal {
   }
   #publish(frame: SessionFollowFrame): void { for (const listener of this.#listeners) listener(structuredClone(frame)); }
   #event(type: string, data: JsonValue, surface = false): SessionHistoryRecord {
-    const entry: SessionHistoryRecord = {type: 'event', event: {type, seq: this.#records.length, time: 0, data,
-      ...(surface ? {surfaceOp: 'append'} : {ignorable: true})}};
+    const entry = historyEvent(this.#records.length, type, data, surface);
     const bytes = Buffer.byteLength(JSON.stringify(entry));
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
     const end = this.#recordBytesBefore(this.#records.length) + bytes;
@@ -248,27 +200,19 @@ export class LiveJournal {
     this.#records.push(entry); this.#recordByteEnds.push(end); this.#publish(entry); return entry;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
-    const id = item.entryId ?? item.id; if (this.#entries.has(id)) return;
+    const id = item.entryId ?? item.id;
+    if (this.#entries.has(id)) return;
     this.#entries.add(id); if (item.live) this.#settled.add(identity(item.live));
-    const content = [{type: 'text', text: item.text}];
-    if (item.role === 'user') {
-      this.#groups.push(this.#records.length); this.#turn++; this.#event('turn/start', {turn: this.#turn});
-      return this.#event('user/message', {id, role: 'user', source: {kind: 'user'}, content}, true);
+    if (item.role === 'assistant' && (!item.provider || !item.model)) this.#fail('live_missing_model_source');
+    const attempt = item.role === 'assistant' && item.live && this.#attempt
+      && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
+    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step });
+    if (!attempt) {
+      if (coordinates.length > 1 || !this.#attempt) this.#groups.push(this.#records.length);
+      this.#turn = coordinates.turn; this.#step = coordinates.step;
     }
-    if (item.role === 'assistant') return this.#commitAssistant(item, id, content);
-    if (!this.#attempt) this.#groups.push(this.#records.length);
-    return this.#event('omp/native-record', {id, kind: item.kind, text: item.text, role: item.role ?? null});
-  }
-  #commitAssistant(item: HistoryItem, id: string, content: {type: string; text: string}[]) {
-    if (!item.provider || !item.model) this.#fail('live_missing_model_source');
-    const attempt = item.live && this.#attempt && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
-    const turn = attempt?.turn ?? this.#turn, step = attempt?.step ?? ++this.#step;
-    if (!attempt) { this.#groups.push(this.#records.length); this.#event('step/start', {turn, step}); }
-    const entry = this.#event('assistant/message', {turn, step, message: {id, role: 'assistant',
-      source: {kind: 'model', provider: item.provider, model: item.model}, content}, stream: [],
-      ...(item.stopReason === 'aborted' ? {interrupted: true} : {})}, true);
-    if (!attempt) this.#event('step/end', {turn, step});
-    return entry;
+    return historyMessage(item, id, attempt ?? coordinates,
+      (type, data, surface) => this.#event(type, data, surface), !!attempt);
   }
   #cursor(value: number) { return value === -1 ? -1 : SessionSeq(value); }
   #beginAttempt(live: HistoryLiveIdentity): void {
