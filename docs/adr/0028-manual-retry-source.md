@@ -14,8 +14,9 @@ effects can repeat or persist. A failed tool call may already have produced effe
 A plain `prompt` response with `agentInvoked: false` includes synchronous refusals. OMP sends the usage text
 `Nothing to retry.` or the streaming warning as `command_output`, whose public schema has no request ID.
 This source uses the correlated result from the candidate's durable submission path. A terminal failed local
-receipt yields a generic Native refusal. A correlated `SUBMISSION_BUSY` keeps its own reason. The source
-does not infer which usage string came from this action.
+receipt yields a generic Native refusal. A schema-valid response with the exact RPC command and request ID
+can supply the Native `SUBMISSION_BUSY` code. Transport exception text and uncorrelated command output
+supply no refusal code.
 
 [Public RPC review](../upstream-compatibility.md) ·
 [Pinned retry handler](https://github.com/can1357/oh-my-pi/blob/7c49c11aa5bbaf3f418406583096168ad5b8c6dc/packages/coding-agent/src/slash-commands/builtin-lifecycle.ts#L545-L578) ·
@@ -34,7 +35,10 @@ key before any await and rechecks the exact View, Native context and Stop genera
 quiescence includes pending Interaction, history, queued input and other work. A trusted shared admission
 gate must check `blocksAdmission` for fresh execution and history changes. Stop and read-only recovery remain
 independently available. The joint Stop snapshot must count real pending work without counting the retry
-coordinator's admission hold itself.
+coordinator's admission hold itself. The worker supplies this snapshot independently of any Browser View
+and withdraws it as soon as worker authority is lost. A committed admission and the exact live result can
+release the hold after joint idle even if the original View disconnects and the durable outcome is pending.
+Showing the outcome to any View, including a reconnected View, still requires current authority.
 
 Confirmation sends exactly one `submission_submit` using the existing candidate wire, fixed `inputType: "prompt"`,
 `message: "/retry"` and `idleOnly: true`. The Host uses the fresh key as the RPC request ID and stable Native
@@ -46,13 +50,19 @@ the copied validators, source and tooling. Relevant definitions agree across the
 schemas. The whole schema hashes differ, so this is no compatibility admission for either artifact.
 
 Ack, outcome and quiescence remain distinct. A current-worker `prompt_result` is correlated by that request ID.
-A later matching `session_settled` or an already-settled result still requires current joint Host idle. A known
-local synchronous refusal has no later prompt result. Outcomes require matching committed receipt facts,
-including the Native no-input and invocation evidence for success. A successful primary outcome gives no
-guarantee about every tool effect. On lost, malformed, mismatched or incomplete results the current worker's
-tracked key can only be queried using `submission_query`. The coordinator sends no second submission.
-It holds one unresolved attempt per worker and keeps only its most recent attempt once resolved. Its
-confirmation and recovery tracking are in memory. It does not recover a key after a Host restart or reopen.
+A later `session_settled` or an already-settled result still requires current joint Host idle. A known local
+synchronous refusal has no later prompt result. Outcomes require matching committed receipt facts, including
+Native no-input and invocation evidence for success. A completed local frame contradicts the committed
+Native builtin invocation marker and leaves the attempt unknown. A successful primary outcome gives no
+guarantee about every tool effect.
+
+On lost or incomplete results, recover the current worker's key with `submission_query`. The read follows at
+most 32 pages of 128 relations using strictly increasing Native offsets. Every page must preserve the full
+receipt identity and committed outcome facts. Invalid, inconsistent or oversized page sequences remain
+unknown. Current View and worker authority are checked before and after each request. The coordinator sends
+one submission, tracks the most recent attempt in memory, and holds further admission while its quiescence
+remains unknown. The tracked key survives a View reconnect to the same worker. Recovery after Host restart
+or worker replacement remains unavailable in this source component.
 
 ## Product acceptance still required
 
@@ -67,6 +77,6 @@ confirmation and recovery tracking are in memory. It does not recover a key afte
   reconciliation if the terminal notifications are lost and a recoverable Native receipt is still available.
   Verify false/busy, confirmation loss and worker replacement with actual authority and worker lifecycle.
 - Run the required matched public Native RPC and real DSH browser cases with a genuine failed tool, state
-  refusal, cancellation, lost outcome and side-effect accounting. The 11 deterministic public submission
+  refusal, cancellation, lost outcome and side-effect accounting. The 24 deterministic public submission
   codec fixtures use synthetic Native responses and Stop, clock and authority observations. Native/runtime,
   browser and product acceptance are **NOT RUN** for this source slice.

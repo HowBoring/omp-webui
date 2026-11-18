@@ -5,9 +5,12 @@ import type { SubmissionClientCommand } from "../contracts/candidates/durable-su
 import type { SubmissionResult, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
 import validateLiveNotification from "../contracts/generated/live-notification.js";
 import type { PromptResultEvent } from "../contracts/generated/omp-wire.ts";
+import { validResponse } from "../contracts/preflight.ts";
 import type { StopSnapshot } from "../contracts/stop.ts";
+import { consumedBuiltin, queryReceipt } from "./native-results.ts";
 
 const confirmationMs = 30_000;
+const nativeBusy = Symbol("native busy");
 const notice = "Retry the last failed turn? OMP may run tools again and repeat their side effects. Earlier effects can remain.";
 const matchesTarget = (a: SubmissionTarget, b: SubmissionTarget) =>
   a.sourceId === b.sourceId && a.instanceId === b.instanceId && a.nativeSessionId === b.nativeSessionId;
@@ -24,13 +27,14 @@ export interface ManualRetryWorker {
 interface Access {
   readonly authority: AbortSignal;
   readonly contextRevision: string;
-  readonly stop: StopSnapshot;
 }
 /** Trusted Host ports for the matched candidate. Never expose the transport callback to a browser. */
 export interface ManualRetryHost {
   /** Recheck the exact view, browser credential, grant, directory, worker and current native context synchronously. */
   authorize(view: RetryView): Access | undefined;
-  /** Validated, correlated public submission command/result transport for this exact worker. */
+  /** Joint Stop state from the current supervised worker, including when no Browser View is attached. */
+  stop(): StopSnapshot | undefined;
+  /** Return the public response envelope from this exact worker, including the Native error code when present. */
   request(command: SubmissionClientCommand): Promise<unknown>;
   now?(): number;
 }
@@ -52,16 +56,20 @@ interface Confirmation {
 }
 interface Attempt {
   readonly requestId: string;
+  readonly stopGeneration: string;
   status: Result["status"];
   reason?: Result["reason"];
   reading: boolean;
   settled: boolean;
   nativeSettled: boolean;
-  liveResult?: PromptResultEvent;
+  liveResult?: Pick<PromptResultEvent, "status" | "agentInvoked">;
+  receiptInvoked: boolean;
   conflict: boolean;
 }
-const outcomeFor = (event: PromptResultEvent): Outcome =>
+const outcomeFor = (event: NonNullable<Attempt["liveResult"]>): Outcome =>
   event.status === "completed" ? "succeeded" : event.status === "aborted" ? "cancelled" : "failed";
+const completedLocally = (event: NonNullable<Attempt["liveResult"]>): boolean =>
+  event.status === "completed" && !event.agentInvoked;
 const terminal = (status: Result["status"]): status is Outcome => status !== "admitted" && status !== "unknown";
 
 /** SOURCE Host entry point for one supervised worker. All Browser Views share this instance. */
@@ -108,20 +116,18 @@ export class ManualRetry {
     this.#confirmations.clear();
     if (this.blocksAdmission() || !this.#idle(access.stop)) return { status: "refused", reason: "busy" };
 
-    const attempt: Attempt = { requestId, status: "unknown", reading: true, settled: false,
-      nativeSettled: false, conflict: false };
+    const attempt: Attempt = { requestId, stopGeneration: saved.stopGeneration, status: "unknown",
+      reading: true, settled: false,
+      nativeSettled: false, receiptInvoked: false, conflict: false };
     this.#attempt = attempt;
     try {
-      const receipt = await this.#request({ type: "submission_submit", id: requestId, clientSubmissionId: requestId,
+      const reply = await this.#request({ type: "submission_submit", id: requestId, clientSubmissionId: requestId,
         ...this.#worker.target, preparationId: `manual-retry-v1:${requestId}`,
         inputType: "prompt", idleOnly: true, message: "/retry" });
-      this.#acceptReceipt(attempt, receipt, true);
-    } catch (error) {
-      // The trusted transport only preserves this exact code for a correlated native response.
-      if (error instanceof Error && error.message === "SUBMISSION_BUSY") attempt.reason = "native_busy";
-      // A possibly delivered request stays unknown, including rejected submissions with effects.
-    }
-    finally { attempt.reading = false; }
+      if (reply === nativeBusy) attempt.reason = "native_busy";
+      else this.#acceptReceipt(attempt, reply, consumedBuiltin(reply), true);
+    } catch { /* A possibly delivered request stays unknown, including rejected submissions with effects. */ }
+    finally { attempt.reading = false; this.#reconcile(attempt); }
     return this.#result(view, attempt, saved.authority);
   }
 
@@ -131,14 +137,24 @@ export class ManualRetry {
     if (!access) return { status: "refused", reason: "forbidden" };
     const attempt = this.#attempt;
     if (!attempt || attempt.requestId !== requestId) return { status: "refused", reason: "unavailable" };
-    if (!attempt.reading && !terminal(attempt.status)) {
+    this.#reconcile(attempt);
+    if (!attempt.reading && !attempt.conflict && !terminal(attempt.status)) {
+      const current = () => {
+        const renewed = this.#authorize(view);
+        return this.#attempt === attempt && renewed?.authority === access.authority
+          && renewed.stop.generation === attempt.stopGeneration;
+      };
       attempt.reading = true;
       try {
-        const receipt = await this.#request({ type: "submission_query", id: randomUUID(), clientSubmissionId: requestId,
-          limit: 128 });
-        this.#acceptReceipt(attempt, receipt, false);
-      } catch { attempt.status = "unknown"; }
-      finally { attempt.reading = false; }
+        const facts = await queryReceipt(requestId, async command => {
+          const reply = await this.#request(command);
+          if (reply !== nativeBusy) return reply;
+        }, current);
+        if (current()) this.#acceptReceipt(attempt, facts?.receipt, facts?.invoked ?? false, false);
+      } catch {
+        if (current()) attempt.status = "unknown";
+      }
+      finally { attempt.reading = false; this.#reconcile(attempt); }
     }
     return this.#result(view, attempt, access.authority);
   }
@@ -151,12 +167,17 @@ export class ManualRetry {
   }
 
   /** The shared Host admission gate must check this before admitting other fresh work. */
-  blocksAdmission(): boolean { return this.#attempt !== undefined && !this.#attempt.settled; }
+  blocksAdmission(): boolean {
+    const attempt = this.#attempt;
+    if (!attempt) return false;
+    this.#reconcile(attempt);
+    return !attempt.settled;
+  }
 
   /** Feed schema-validated public notifications from the original transport before publishing them to Views. */
   observe(workerGeneration: string, frame: unknown): void {
     const attempt = this.#attempt;
-    if (!attempt || attempt.settled || workerGeneration !== this.#worker.workerGeneration ||
+    if (!attempt || workerGeneration !== this.#worker.workerGeneration ||
       !validateLiveNotification(frame) || !frame || typeof frame !== "object" || !("type" in frame)) return;
     if (frame.type === "session_settled") {
       if (attempt.liveResult || terminal(attempt.status)) attempt.nativeSettled = true;
@@ -165,53 +186,80 @@ export class ManualRetry {
       if (next.id !== attempt.requestId) return;
       const previous = attempt.liveResult;
       if ((previous && (previous.status !== next.status || previous.agentInvoked !== next.agentInvoked))
-        || (terminal(attempt.status) && attempt.status !== outcomeFor(next))) {
-        attempt.conflict = true;
-        attempt.status = "unknown";
-      }
-      attempt.liveResult = structuredClone(next);
+        || (terminal(attempt.status) && attempt.status !== outcomeFor(next))
+        || (attempt.receiptInvoked && completedLocally(next))) this.#recordConflict(attempt);
+      attempt.liveResult = { status: next.status, agentInvoked: next.agentInvoked };
       attempt.nativeSettled ||= next.sessionSettled;
     }
+    this.#reconcile(attempt);
   }
 
   #result(view: RetryView, attempt: Attempt, authority: AbortSignal): Result | Refusal {
     const access = this.#authorize(view);
-    if (!access || access.authority !== authority) return { status: "refused", reason: "forbidden" };
-    attempt.settled ||= !attempt.reading && terminal(attempt.status) && attempt.nativeSettled && this.#idle(access.stop);
+    if (!access || access.authority !== authority || access.stop.generation !== attempt.stopGeneration) {
+      return { status: "refused", reason: "forbidden" };
+    }
     return { status: attempt.status, requestId: attempt.requestId, settled: attempt.settled,
       ...(attempt.reason ? { reason: attempt.reason } : {}) };
   }
 
-  #acceptReceipt(attempt: Attempt, receipt: SubmissionResult | undefined, submitReply: boolean): void {
+  #reconcile(attempt: Attempt): void {
+    if (attempt.settled || attempt.reading || attempt.conflict || !attempt.nativeSettled) return;
+    // A committed admission and the exact live result can prove quiescence before the terminal receipt is published.
+    if (!terminal(attempt.status) && (attempt.status !== "admitted" || !attempt.liveResult?.agentInvoked)) return;
+    const stop = this.#currentStop();
+    if (stop?.generation === attempt.stopGeneration && this.#idle(stop)) attempt.settled = true;
+  }
+
+  #acceptReceipt(attempt: Attempt, receipt: SubmissionResult | undefined, consumed: boolean, submitReply: boolean): void {
     attempt.status = "unknown";
     if (!receipt || attempt.conflict || receipt.inputOutcome === "generated" ||
       receipt.persistence === "failed" || receipt.persistence === "unknown") return;
-    if (!receipt.terminal) {
+    if (submitReply && receipt.duplicate) {
+      this.#recordConflict(attempt);
+      return;
+    }
+    if (!receipt.terminal || (submitReply && receipt.nextOffset !== null)) {
       attempt.status = "admitted";
       return;
     }
     if (receipt.persistence !== "committed" || receipt.inputOutcome !== "no_input"
       || receipt.operationOutcome === "unknown") return;
     const result = attempt.liveResult;
-    const consumed = receipt.relations.some(relation => relation.role === "input" &&
-      relation.status === "no_entry" && relation.persistence === "committed" && relation.reason === "native_builtin_consumed");
-    if (result && outcomeFor(result) !== receipt.operationOutcome) return;
+    if (result && (outcomeFor(result) !== receipt.operationOutcome || (consumed && completedLocally(result)))) {
+      this.#recordConflict(attempt);
+      return;
+    }
     if (receipt.operationOutcome === "succeeded" && !consumed && !result?.agentInvoked) return;
+    attempt.receiptInvoked ||= consumed;
     attempt.status = receipt.operationOutcome;
-    if (submitReply && attempt.status === "failed" && !result && !consumed && receipt.nextOffset === null && !receipt.duplicate) {
+    if (submitReply && attempt.status === "failed" && !result && !consumed) {
       // A successful response envelope carrying a durably failed local builtin has no later prompt_result.
       attempt.reason = "native_refused";
       attempt.nativeSettled = true;
     }
   }
 
-  #authorize(view: RetryView): Access | undefined {
+  #recordConflict(attempt: Attempt): void {
+    attempt.conflict = true;
+    attempt.status = "unknown";
+    attempt.settled = false;
+  }
+
+  #authorize(view: RetryView): (Access & { readonly stop: StopSnapshot }) | undefined {
     try {
       const access = this.host?.authorize(view);
-      if (access && !access.authority.aborted && access.contextRevision
-        && access.stop.workerGeneration === this.#worker.workerGeneration && access.stop.scope.kind === "session"
-        && access.stop.scope.sessionId === this.#worker.sessionId && access.stop.status !== "forbidden") return access;
+      const stop = this.#currentStop();
+      if (access && !access.authority.aborted && access.contextRevision && stop) return { ...access, stop };
     } catch { /* Missing current authority fails closed. */ }
+  }
+
+  #currentStop(): StopSnapshot | undefined {
+    try {
+      const stop = this.host?.stop();
+      if (stop?.workerGeneration === this.#worker.workerGeneration && stop.scope.kind === "session"
+        && stop.scope.sessionId === this.#worker.sessionId && stop.status !== "forbidden") return stop;
+    } catch { /* Missing worker authority fails closed. */ }
   }
 
   #idle(state: StopSnapshot): boolean {
@@ -221,11 +269,16 @@ export class ManualRetry {
 
   #now(): number { return this.host?.now?.() ?? performance.now(); }
 
-  async #request(command: SubmissionClientCommand): Promise<SubmissionResult | undefined> {
+  async #request(command: SubmissionClientCommand): Promise<SubmissionResult | typeof nativeBusy | undefined> {
     if (!this.host || !validateCommand(command)) return;
-    const value = await this.host.request(command);
-    if (!validateResult(value)) return;
-    const result = value as SubmissionResult;
+    const response = await this.host.request(command);
+    if (!validResponse(response) || response.id !== command.id || response.command !== command.type) return;
+    if (!response.success) {
+      if (command.type === "submission_submit" && response.code === "SUBMISSION_BUSY") return nativeBusy;
+      return;
+    }
+    if (!validateResult(response.data)) return;
+    const result = response.data as SubmissionResult;
     if (result.found && result.admission === "local" && result.reservation === "committed" && result.origin
       && matchesTarget(result.target, this.#worker.target) && matchesTarget(result.origin, this.#worker.target)
       && result.clientSubmissionId === command.clientSubmissionId
