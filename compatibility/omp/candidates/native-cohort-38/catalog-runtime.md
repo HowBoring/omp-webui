@@ -36,11 +36,11 @@ proof=/dev/shm/path-to-empty-proof
 proof_runner_home=/dev/shm/path-to-empty-runner-home
 env -i PATH=/usr/bin:/bin LANG=C.UTF-8 HOME="$proof_runner_home" TMPDIR="$proof_runner_home" \
   BUN_RUNTIME_TRANSPILER_CACHE_PATH=0 NODE_DISABLE_COMPILE_CACHE=1 \
-  /path/to/bun --no-env-file --no-install --preload "$candidate/no-provider.ts" \
+  /path/to/bun --no-env-file --no-install --preload "$PWD/compatibility/omp/fixtures/no-provider.ts" \
   compatibility/omp/candidates/native-cohort-38/catalog-runtime-proof.ts "$candidate" "$proof"
 ```
 
-## Observed results
+## Original staging and catalog exchange
 
 The unstaged catalog build failed to resolve `pi-utils/dirs`, `pi-utils/type-guards` and
 `ajv/dist/runtime/ucs2length` (`01e56b`). After staging, Bun resolved 34 modules and emitted a disposable bundle
@@ -68,6 +68,39 @@ control, 32 items per page, 262,144 bytes per response, 16,777,216 bytes per sna
 window, a 10 s total scan and a 60 s cursor lifetime. The Host enforced the catalog's 16,384-byte command and
 262,144-byte physical response limits. This run read these limits from the catalog and exercised one ordinary
 listing and description.
+
+
+## Launch-time identity verification
+
+The [shared verifier](catalog-runtime-identity.ts) runs at the end of staging and immediately before the proof
+opens `CatalogTransport`. It checks that the real path of `process.execPath` names the running Linux executable
+and hashes its exact 107,308,936 bytes. The SHA-256 is
+`10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235`.
+
+The inventory covers the entire private staged root. It includes the workspace sources, generated wire and
+catalog validators, copied Native add-on and Ajv, launcher and split chunk, guard, receipt, directories, and
+workspace and launcher symlinks. The verifier visits entries depth-first in UTF-8 byte order and hashes
+NUL-delimited records of each relative path, entry kind and permission mode. A file record adds the file size
+and a streamed SHA-256 of its contents. A symlink record adds its literal target without following the link.
+The inventory allows 9,301 entries including the root, a maximum depth of 13 and 231,529,266 regular-file bytes.
+The verifier bounds directory enumeration and reads files in 64 KiB blocks. The staging recipe normalizes the
+creation mask and copied Ajv modes to reproduce the inventory across caller umasks.
+
+An independent streaming readback compared the first stage against the pinned Git archive, compiler outputs and
+frozen dependency hashes (`bb551f`). The revised recipe regenerated the same inventory from fresh scratch under
+caller umask `0022` and produced the original receipt bytes (`b7f7cf`). The verified inventory SHA-256 is
+`7810144736c74ae8e19d7b1981400183be94e5f1eb6f7409c6678adc2b55cea2`.
+
+The original identity checks accepted an owned copy of a staged validator with altered contents in a check that
+omitted launch (`448699`). The revised proof rejected a same-size byte change to that staged validator at its
+inventory check before opening the transport (`3813a9`). The verifier used only the pinned Bun and the synthetic
+scratch candidate for this rejection.
+
+A fresh ordinary catalog run (`8b30f7`) verified the Bun and inventory hashes before spawn and repeated the three
+public RPC operations successfully. The original child, PID `754980`, exited 0 with both streams at EOF and empty
+stderr. No termination signals were sent. The guard reported 0 denials and 0 dispatches, and the synthetic
+fixture was unchanged. The sanitized result SHA-256 is
+`e58b6efccae30dfbcf8cfdf20a43c638ac5e02d71cc6d1ed79c79c512fac0860`.
 
 The candidate remains unregistered. Ordinary `rpc-ui` and TUI Session tests still require their generated assets
 and wider dependency graph. Global installation, production admission and paired DSH acceptance require their own

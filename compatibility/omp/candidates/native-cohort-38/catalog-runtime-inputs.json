@@ -22,5 +22,11 @@
     "path": "@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
     "bytes": 129937064,
     "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+  },
+  "stagedInventory": {
+    "entries": 9301,
+    "fileBytes": 231529266,
+    "maxDepth": 13,
+    "sha256": "7810144736c74ae8e19d7b1981400183be94e5f1eb6f7409c6678adc2b55cea2"
   }
 }

@@ -2,6 +2,7 @@ import { strict as assert } from "node:assert";
 import { mkdirSync, readFileSync, readdirSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { join, resolve, sep } from "node:path";
 import { CatalogTransport } from "../../../../packages/compatibility/catalog-transport.ts";
+import { verifyCatalogRuntime } from "./catalog-runtime-identity.ts";
 
 const [candidate, output] = process.argv.slice(2);
 assert.ok(candidate && output && process.argv.length === 4, "expected staged candidate and empty proof directory");
@@ -10,19 +11,6 @@ const proof = realpathSync(output);
 assert.equal(proof, resolve(output));
 assert.ok(proof !== root && !proof.startsWith(root + sep));
 assert.deepEqual(readdirSync(proof), []);
-assert.equal(Bun.version, "1.4.4");
-assert.equal(process.env.BUN_RUNTIME_TRANSPILER_CACHE_PATH, "0");
-assert.equal(process.env.NODE_DISABLE_COMPILE_CACHE, "1");
-const identityFiles = {
-  "catalog-runtime.json": "c37717db56ef1808921f7e5f63b86fff9304f18a1cafeb15aef202164820b6dd",
-  "vendor/omp-candidate/cli.js": "c101c0a72f7b79f82a3b8545001aeb9f150dfccd712c9eca3171b7241a511dea",
-  "no-provider.ts": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
-};
-for (const [file, hash] of Object.entries(identityFiles)) {
-  const path = join(root, file);
-  assert.equal(realpathSync(path), path);
-  assert.equal(Bun.SHA256.hash(readFileSync(path), "hex"), hash, file);
-}
 
 const home = join(proof, "home"), cwd = join(proof, "working"), profile = join(home, "profile");
 const bucket = join(profile, "sessions", "misleading-directory-name");
@@ -43,6 +31,7 @@ process.once("exit", () => writeFileSync(process.env.OMP_FIXTURE_AUDIT!, JSON.st
   denied: guard.denied(), dispatched: guard.dispatched(),
 }), { mode: 0o600, flag: "wx" }));
 `, { mode: 0o600, flag: "wx" });
+const identity = verifyCatalogRuntime(candidate);
 const transport = await CatalogTransport.open({
   argv: [process.execPath, "--no-env-file", "--no-install", "--preload", join(root, "no-provider.ts"),
     "--preload", auditSource, join(root, "vendor/omp-candidate/cli.js"), "--rpc-catalog"],
@@ -95,4 +84,4 @@ const network: unknown = JSON.parse(readFileSync(audit, "utf8"));
 assert.deepEqual(network, { denied: 0, dispatched: 0 });
 console.log(JSON.stringify({ status: "PASS_UNREGISTERED_CATALOG_RUNTIME", protocol: 2, originalPid,
   actions: ["catalog_sources", "catalog_page", "describe_session"], nativeSessionId: id, ownership: "free",
-  unchangedFixture: true, budgets, network, drain }));
+  unchangedFixture: true, identity, budgets, network, drain }));

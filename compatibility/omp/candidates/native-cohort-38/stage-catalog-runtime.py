@@ -71,7 +71,9 @@ def stage_dependencies(dependencies, native, inputs):
     if ajv.is_symlink() or any(path.is_symlink() for path in ajv.rglob("*")):
         raise ValueError("Frozen Ajv must contain only package files and directories")
     copied = native / "node_modules/ajv"
-    shutil.copytree(ajv, copied)
+    shutil.copytree(ajv, copied, copy_function=shutil.copyfile)
+    for directory, _, _ in os.walk(copied):
+        Path(directory).chmod(0o700)
     digest = hashlib.sha256()
     files = sorted(path for path in copied.rglob("*") if path.is_file())
     for path in files:
@@ -127,6 +129,7 @@ def main():
     if receipt["status"] != "UNREGISTERED_COMPILER_ONLY" or receipt["sourceTree"] != tree:
         raise ValueError("Compiler receipt differs from the candidate tree")
     verify_file(bun, inputs["bun"])
+    os.umask(0o077)
     scratch.mkdir(mode=0o700)
     home = scratch / "home"
     home.mkdir()
@@ -148,8 +151,14 @@ def main():
               "identity": receipt["identity"], "launcher": str(LAUNCHER), "workspaceLinks": links,
               "ajvTreeSha256": inputs["ajv"]["treeSha256"], "addon": str(NATIVE / addon),
               "addonSha256": inputs["linuxX64BaselineAddon"]["sha256"], "staticCatalogBuild": "passed"}
-    (scratch / "catalog-runtime.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"status": result["status"], "receipt": str(scratch / "catalog-runtime.json")}))
+    receipt_path = scratch / "catalog-runtime.json"
+    receipt_path.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    try:
+        run(env, scratch, bun, "--no-env-file", "--no-install", CANDIDATE / "catalog-runtime-identity.ts", scratch)
+    except (OSError, subprocess.CalledProcessError):
+        receipt_path.unlink()
+        raise
+    print(json.dumps({"status": result["status"], "receipt": str(receipt_path)}))
 
 
 if __name__ == "__main__":
