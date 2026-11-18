@@ -1,19 +1,14 @@
 import { randomUUID } from "node:crypto";
-import validateCommand from "../contracts/candidates/durable-submission-v1/submission-command.js";
-import validateResult from "../contracts/candidates/durable-submission-v1/submission-result.js";
 import type { SubmissionClientCommand } from "../contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionResult, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
 import validateLiveNotification from "../contracts/generated/live-notification.js";
 import type { PromptResultEvent } from "../contracts/generated/omp-wire.ts";
-import { validResponse } from "../contracts/preflight.ts";
+import { requestLocalSubmission, submissionBusy as nativeBusy, submissionConflict } from "../contracts/submission-reply.ts";
 import type { StopSnapshot } from "../contracts/stop.ts";
 import { ReceiptLookup, validateSubmitReceipt } from "./native-results.ts";
 
 const confirmationMs = 30_000;
-const nativeBusy = Symbol("native busy");
 const notice = "Retry the last failed turn? OMP may run tools again and repeat their side effects. Earlier effects can remain.";
-const matchesTarget = (a: SubmissionTarget, b: SubmissionTarget) =>
-  a.sourceId === b.sourceId && a.instanceId === b.instanceId && a.nativeSessionId === b.nativeSessionId;
 
 export interface RetryView {
   readonly clientId: string;
@@ -275,18 +270,9 @@ export class ManualRetry {
   #now(): number { return this.host?.now?.() ?? performance.now(); }
 
   async #request(command: SubmissionClientCommand): Promise<SubmissionResult | typeof nativeBusy | undefined> {
-    if (!this.host || !validateCommand(command)) return;
-    const response = await this.host.request(command);
-    if (!validResponse(response) || response.id !== command.id || response.command !== command.type) return;
-    if (!response.success) {
-      if (command.type === "submission_submit" && response.code === "SUBMISSION_BUSY") return nativeBusy;
-      return;
-    }
-    if (!validateResult(response.data)) return;
-    const result = response.data as SubmissionResult;
-    if (result.found && result.admission === "local" && result.reservation === "committed" && result.origin
-      && matchesTarget(result.target, this.#worker.target) && matchesTarget(result.origin, this.#worker.target)
-      && result.clientSubmissionId === command.clientSubmissionId
-      && result.origin.clientSubmissionId === command.clientSubmissionId) return result;
+    const host = this.host;
+    if (!host) return;
+    const reply = await requestLocalSubmission(this.#worker.target, command, value => host.request(value));
+    if (reply !== submissionConflict) return reply;
   }
 }
