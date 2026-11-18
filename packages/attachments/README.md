@@ -131,9 +131,11 @@ identifies unavailable references alongside successfully renewed IDs. The first
 clock starts at publication, with existing rows initialized from their persisted
 staging timestamp. Reads, refreshes and reopening the Store preserve the clock.
 
-The Host can call `collectExpired` at 24 hours after the last activity. It checks
-at most 128 eligible candidates per pass and returns a continuation when more
-candidates remain. Eligible staged bytes are readable until logical removal.
+The Host can call `collectExpired` at 24 hours after the last activity. It inspects
+at most 128 rows per pass and returns a continuation when more rows remain.
+Eligible staged bytes are readable until logical removal while the staging gate
+permits access. A configured gate permits staging reads only for Originals with
+a current unreferenced determination.
 Both collection and explicit deletion require a trusted, current unreferenced
 determination for the exact Original and its full binding. Missing or unknown
 evidence and occupied, executing, unresolved or Native-associated references
@@ -148,9 +150,10 @@ references change. `confirmDeletion` consumes the confirmation on the first
 attempt and rechecks current authority and the protection revision before
 committing logical removal. A refusal requires a new preview. Exact reads fail
 after removal. Independent same-hash objects keep their own rights and quota.
-Physical cleanup unlinks the exact payload and syncs the directory before
-releasing the charge. Failed cleanup keeps the tombstoned bytes charged until
-exclusive recovery completes.
+Physical cleanup validates and unlinks the exact payload and syncs the directory
+before releasing the charge. Failed cleanup keeps the tombstoned bytes charged
+until exclusive recovery completes. Startup validates the entire payload
+inventory before reclaiming interrupted writes or tombstones.
 
 ## Evidence and remaining gates
 
@@ -174,8 +177,9 @@ reservations, document signature-only results, and Remote encoding, signature
 and quota refusals. The size tests exercise declared boundaries before body
 consumption. They use small files for successful byte round trips. Lifecycle
 tests cover the 24-hour boundary across reopen, migration from the previous
-schema, a dropped upload reply, scoped renewal, protection states, stale or
-revoked confirmations, concurrent read invalidation and physical-cleanup recovery.
+schema, a dropped upload reply, scoped renewal, protection states, bounded
+scans, stale or revoked confirmations, concurrent read invalidation and
+validated physical-cleanup recovery.
 
 Native bounded decoding, model and complete encoded RPC budgets, valid and
 malformed selected files through actual prepare and consume, degradation

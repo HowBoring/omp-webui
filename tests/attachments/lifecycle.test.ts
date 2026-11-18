@@ -1,8 +1,8 @@
 import { afterEach, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
-import { linkSync, mkdtempSync, readdirSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
+import { linkSync, mkdtempSync, readdirSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { OriginalStore, originalLimits, type OriginalProtection, type OriginalScope,
+import { OriginalStore, originalLimits, type OriginalLimits, type OriginalProtection, type OriginalScope,
   type OriginalStoreOptions } from "../../packages/attachments/store.ts";
 
 const hour = 60 * 60 * 1000;
@@ -15,14 +15,16 @@ async function* body() { yield new TextEncoder().encode("note"); }
 
 const roots: string[] = [];
 const stores: OriginalStore[] = [];
-function fixture(protection: OriginalStoreOptions["protection"] | null = () => ({ status: "unreferenced", revision: "1" })) {
+const clearProtection = () => ({ status: "unreferenced", revision: "1" } as const);
+function fixture(protection: OriginalStoreOptions["protection"] | null = clearProtection,
+  limits: Partial<OriginalLimits> = { totalBytes: 8 }) {
   const dataDir = mkdtempSync("/tmp/attachment-lifecycle-");
   roots.push(dataDir);
   let now = 100 * hour;
   return {
     advance: (delta: number) => { now += delta; },
     open: (recovery: OriginalStoreOptions["recovery"] = "exclusive-host-startup") => {
-      const store = new OriginalStore({ dataDir, recovery, limits: { totalBytes: 8 }, clock: () => now,
+      const store = new OriginalStore({ dataDir, recovery, limits, clock: () => now,
         ...(protection ? { protection } : {}) });
       stores.push(store);
       return store;
@@ -177,8 +179,34 @@ test("absent or unavailable lifecycle protection retains old Originals", async (
     advance(48 * hour);
     expect(store.collectExpired()).toEqual({ expired: 0, reclaimed: 0, next: null });
     expect(() => store.previewDeletion(access, original.objectId)).toThrow("attachment_original_protected");
-    expect((await store.read(access, original.objectId)).objectId).toBe(original.objectId);
+    if (protection) await expect(store.read(access, original.objectId)).rejects.toThrow("attachment_original_protected");
+    else expect((await store.read(access, original.objectId)).objectId).toBe(original.objectId);
   }
+});
+
+test("the staging read refuses known unresolved or Native-associated Originals across reopen", async () => {
+  let protection: OriginalProtection = clearProtection();
+  const { open } = fixture(() => protection);
+  const store = open();
+  const { objectId } = await store.stage(access, descriptor, body());
+  store.close();
+
+  const reopened = open();
+  for (const status of ["unresolved-submission", "native-associated"] as const) {
+    protection = { status };
+    await expect(reopened.read(access, objectId)).rejects.toThrow("attachment_original_protected");
+  }
+  expect(reopened.usage(access).chargedBytes).toBe(4);
+});
+
+test("a collection pass advances after a bounded number of IDs even when none are eligible", async () => {
+  const { open } = fixture(clearProtection, { totalBytes: 1024, draftObjects: 256 });
+  const store = open();
+  for (let index = 0; index < 129; index++) await store.stage(access, descriptor, body());
+
+  const first = store.collectExpired();
+  expect(first).toEqual({ expired: 0, reclaimed: 0, next: expect.any(String) });
+  expect(store.collectExpired(first.next ?? undefined)).toEqual({ expired: 0, reclaimed: 0, next: null });
 });
 
 test("revocation during confirmation and elapsed confirmations require a fresh user action", async () => {
@@ -202,6 +230,19 @@ test("revocation during confirmation and elapsed confirmations require a fresh u
   expect(() => store.confirmDeletion(authorized, objectId, expiring.confirmationId))
     .toThrow("attachment_deletion_confirmation_required");
   expect(store.usage(authorized).chargedBytes).toBe(4);
+});
+
+test("a confirmation that expires during the final authority check cannot remove an Original", async () => {
+  const { open, advance } = fixture();
+  const store = open();
+  const { objectId } = await store.stage(access, descriptor, body());
+  const { confirmationId } = store.previewDeletion(access, objectId);
+  let checks = 0;
+  expect(() => store.confirmDeletion(() => {
+    if (++checks === 2) advance(5 * 60 * 1000);
+    return access();
+  }, objectId, confirmationId)).toThrow("attachment_deletion_confirmation_required");
+  expect((await store.read(access, objectId)).objectId).toBe(objectId);
 });
 
 test("deletion on a second connection invalidates a read at its final authority check", async () => {
@@ -235,9 +276,41 @@ test("logical deletion keeps failed physical cleanup charged until exclusive rec
   store.close();
 
   unlinkSync(link);
+  const unexpected = join(dataDir, `${objectId}.partial`);
+  writeFileSync(unexpected, "x", { mode: 0o600 });
+  expect(() => open()).toThrow("attachment_unaccounted_data");
+  expect(readdirSync(dataDir)).toContain(name);
+  expect(readdirSync(dataDir)).toContain(`${objectId}.partial`);
+  unlinkSync(unexpected);
   const reopened = open();
   expect(reopened.usage(access).chargedBytes).toBe(4);
   await expect(reopened.read(access, objectId)).rejects.toThrow("attachment_object_unavailable");
   expect((await reopened.read(access, stillStaged.objectId)).sha256).toBe(stillStaged.sha256);
+  expect((await reopened.stage(access, descriptor, body())).byteLength).toBe(4);
+});
+
+test("exclusive recovery preserves an oversized interrupted publication for investigation", async () => {
+  const { dataDir, open } = fixture();
+  const store = open(), displaced = `${dataDir}-displaced`;
+  roots.push(displaced);
+  const interrupted = () => {
+    if (readdirSync(dataDir).some(name => name.endsWith(".original"))) {
+      renameSync(dataDir, displaced);
+      throw Error("interrupted publication");
+    }
+    return access();
+  };
+  await expect(store.stage(interrupted, descriptor, body())).rejects.toThrow("attachment_authority_unavailable");
+  store.close();
+  renameSync(displaced, dataDir);
+  const payload = readdirSync(dataDir).find(name => name.endsWith(".original"));
+  if (!payload) throw Error("fixture payload absent");
+  writeFileSync(join(dataDir, payload), "oversized");
+  expect(() => open()).toThrow("attachment_unaccounted_data");
+  expect(readdirSync(dataDir)).toContain(payload);
+
+  writeFileSync(join(dataDir, payload), "note");
+  const reopened = open();
+  expect(reopened.usage(access).chargedBytes).toBe(0);
   expect((await reopened.stage(access, descriptor, body())).byteLength).toBe(4);
 });

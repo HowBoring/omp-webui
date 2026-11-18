@@ -54,7 +54,9 @@ objects remain protected. Manual confirmation is scoped, short-lived and
 single-use. A changed protection revision requires a fresh impact review.
 Logical removal commits before unlink, and disk accounting clears after unlink
 and directory sync. An in-progress Store payload read holds a SQLite read lock
-until its descriptor closes. Exclusive startup retries interrupted physical cleanup.
+until its descriptor closes. A configured gate restricts staged reads to current
+unreferenced Originals. Exclusive startup checks the full payload inventory before
+retrying interrupted physical cleanup.
 
 Independent objects retain independent rights and accounting even if their
 bytes match. Retries can create distinct charged Originals. Product use still

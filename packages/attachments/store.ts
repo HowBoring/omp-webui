@@ -59,6 +59,7 @@ interface Row {
 interface PendingDeletion {
   objectId: string; scope: OriginalScope; revision: string; reviewedAt: number; expiresAt: number;
 }
+type PayloadSuffix = "partial" | "original";
 function fail(code: AttachmentErrorName): never { throw new Error(`attachment_${code}`); }
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const bindingFields = ["hostId", "browserId", "pageId", "profileId", "sourceId", "instanceId", "sessionId",
@@ -164,7 +165,7 @@ export class OriginalStore {
     }
   }
 
-  private path(id: string, suffix: "partial" | "original"): string {
+  private path(id: string, suffix: PayloadSuffix): string {
     if (!idPattern.test(id)) fail("object_unavailable");
     return join(this.root, `${id}.${suffix}`);
   }
@@ -244,19 +245,26 @@ export class OriginalStore {
     } finally { this.pending.delete(row.id); }
   }
 
+  /** Reads the Host staging view. With a lifecycle gate, only current unreferenced Originals are visible here. */
   async read(access: OriginalAccess, objectId: string, signal?: AbortSignal): Promise<StagedOriginal & { bytes: Uint8Array }> {
     const scope = this.current(access, undefined, signal);
     // Hold the SQLite read lock until the file closes so removal cannot reclaim its charge early.
     const { row, bytes } = this.db.transaction(() => {
       const row = this.stagedObject(objectId, scope);
+      this.requireStagingView(row);
       return { row, bytes: this.payload(row) };
     }).deferred();
+    this.requireStagingView(row);
     this.current(access, scope, signal);
     if (bytes.length !== row.size || createHash("sha256").update(bytes).digest("hex") !== row.sha256) {
       fail("original_corrupt");
     }
     this.stagedObject(objectId, scope);
     return { ...this.metadata(row), bytes };
+  }
+
+  private requireStagingView(row: Row): void {
+    if (this.protection && this.unreferencedRevision(row) === undefined) fail("original_protected");
   }
 
   private stagedObject(objectId: string, scope: OriginalBinding): Row {
@@ -313,11 +321,11 @@ export class OriginalStore {
       const row = this.stagedObject(objectId, scope);
       const revision = this.unreferencedRevision(row);
       if (revision === undefined) fail("original_protected");
+      this.current(access, scope);
       const at = this.now();
       if (revision !== pending.revision || at < pending.reviewedAt || at >= pending.expiresAt) {
         fail("deletion_confirmation_required");
       }
-      this.current(access, scope);
       this.markForCleanup(objectId);
     }).immediate();
     return { reclaimed: this.cleanup(objectId, "deleting") };
@@ -341,11 +349,12 @@ export class OriginalStore {
     if (after !== undefined && !idPattern.test(after)) fail("invalid_target");
     if (!this.protection) return { expired: 0, reclaimed: 0, next: null };
     const cutoff = this.now() - unsentLifetimeMs;
-    const candidates = this.db.query<{ id: string }, [string, number, number]>(`SELECT id FROM originals
-      WHERE id>? AND state='staged-unprepared' AND activityAt<=? ORDER BY id LIMIT ?`)
-      .all(after ?? "", cutoff, expiryBatchSize + 1);
+    const candidates = this.db.query<Pick<Row, "id" | "state" | "activityAt">, [string, number]>(
+      "SELECT id, state, activityAt FROM originals WHERE id>? ORDER BY id LIMIT ?")
+      .all(after ?? "", expiryBatchSize + 1);
     let expired = 0, reclaimed = 0;
-    for (const { id } of candidates.slice(0, expiryBatchSize)) {
+    for (const { id, state, activityAt } of candidates.slice(0, expiryBatchSize)) {
+      if (state !== "staged-unprepared" || activityAt > cutoff) continue;
       const removed = this.db.transaction(() => {
         this.assertRoot();
         const row = this.db.query<Row, [string, number]>(`SELECT * FROM originals
@@ -417,9 +426,12 @@ export class OriginalStore {
     try {
       return this.db.transaction(() => {
         this.assertRoot();
-        if (!this.db.query("SELECT 1 FROM originals WHERE id=? AND state=?").get(id, state)) return true;
-        this.unlinkPayload(this.path(id, "partial"));
-        this.unlinkPayload(this.path(id, "original"));
+        const row = this.db.query<Row, [string, string]>("SELECT * FROM originals WHERE id=? AND state=?").get(id, state);
+        if (!row) return true;
+        const partial = this.checkedPayload(row, "partial"), original = this.checkedPayload(row, "original");
+        if (partial && original) fail("unaccounted_data");
+        const payload = partial ?? original;
+        if (payload) unlinkSync(payload);
         this.syncDirectory();
         this.db.query("DELETE FROM originals WHERE id=? AND state=?").run(id, state);
         return true;
@@ -427,29 +439,43 @@ export class OriginalStore {
     } catch { return false; /* Startup retries cleanup; bytes remain charged. */ }
   }
 
-  private unlinkPayload(path: string): void {
+  private checkedPayload(row: Row, suffix: PayloadSuffix): string | undefined {
+    const path = this.path(row.id, suffix);
+    let file;
     try {
-      const file = lstatSync(path);
-      if (!file.isFile() || file.nlink !== 1) fail("unsafe_store");
-      unlinkSync(path);
-    } catch (error) { if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error; }
+      file = lstatSync(path);
+    } catch (error) {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") return;
+      throw error;
+    }
+    if (!file.isFile() || file.nlink !== 1 || file.size > row.size) fail("unaccounted_data");
+    if (suffix === "partial" && row.state !== "receiving") fail("unaccounted_data");
+    if (suffix === "original" && row.state === "receiving" && file.size !== row.size) fail("unaccounted_data");
+    return path;
   }
 
   private recover(): void {
-    const rows = this.db.query<{ id: string; state: "receiving" | "deleting" }, []>(
-      "SELECT id, state FROM originals WHERE state IN ('receiving', 'deleting')").all();
-    for (const row of rows) this.cleanup(row.id, row.state);
-    // Unknown payloads indicate a broken exclusive-root contract. Refuse instead of silently omitting their bytes.
-    const known = new Map(this.db.query<Row, []>("SELECT * FROM originals").all().map(row => [row.id, row]));
-    const physical = new Map<string, number>();
+    this.assertRoot();
+    const rows = this.db.query<Row, []>("SELECT * FROM originals").all();
+    this.validateInventory(rows);
+    for (const row of rows) {
+      if (row.state === "receiving" || row.state === "deleting") this.cleanup(row.id, row.state);
+    }
+  }
+
+  private validateInventory(rows: readonly Row[]): void {
+    // Startup validates the entire inventory before unlinking any interrupted payload.
+    const known = new Map(rows.map(row => [row.id, row]));
+    const present = new Set<string>();
     for (const name of readdirSync(this.root)) {
       if (["originals.sqlite", "originals.sqlite-journal"].includes(name)) continue;
-      const match = /^(.*)\.(partial|original)$/.exec(name), id = match?.[1];
+      const match = /^([^.]+)\.(partial|original)$/.exec(name), id = match?.[1], suffix = match?.[2];
       const row = id ? known.get(id) : undefined;
-      if (!id || !row || (row.state === "staged-unprepared" && match?.[2] !== "original")) fail("unaccounted_data");
-      const file = lstatSync(join(this.root, name)), size = (physical.get(id) ?? 0) + file.size;
-      if (!file.isFile() || file.isSymbolicLink() || file.nlink !== 1 || size > row.size) fail("unaccounted_data");
-      physical.set(id, size);
+      if (!id || !idPattern.test(id) || !row || present.has(id) || (suffix !== "partial" && suffix !== "original")) {
+        fail("unaccounted_data");
+      }
+      if (!this.checkedPayload(row, suffix)) fail("unaccounted_data");
+      present.add(id);
     }
   }
 
