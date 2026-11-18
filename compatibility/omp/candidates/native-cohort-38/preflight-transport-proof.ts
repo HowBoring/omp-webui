@@ -68,8 +68,10 @@ assert.equal(drain.stderrBytes, 0);
 assert.equal(drain.protocolFailure, undefined);
 const network = JSON.parse(readFileSync(audit, 'utf8'));
 assert.deepEqual(network, { denied: 0, dispatched: 0 });
-assert.deepEqual(readdirSync(home), []);
-assert.deepEqual(readdirSync(cwd), []);
+const finalHomeEntries = readdirSync(home).length;
+const finalCwdEntries = readdirSync(cwd).length;
+assert.equal(finalHomeEntries, 0);
+assert.equal(finalCwdEntries, 0);
 assert.equal(validMatchedReport(report), true);
 assert.ok(typeof report === 'object' && report !== null);
 assert.ok(validReport(report));
@@ -91,4 +93,4 @@ assert.equal(validMatchedReport(invalidPolicy), false);
 console.log(JSON.stringify({ status: 'PASS_COMPILED_CANDIDATE_DIAGNOSTIC', originalPid, protocol: 2,
   identity, matchedReport: true, activeShapeAllowsUnvalidatedPolicy: true,
   matchedShapeRejectsInvalidPolicy: true, privateAdmission: fields.sessionAdmission,
-  homeWrites: 0, cwdWrites: 0, network, drain }));
+  finalHomeEntries, finalCwdEntries, network, drain }));
