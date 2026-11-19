@@ -2,21 +2,23 @@
   "ticket": 43,
   "umbrella": 29,
   "date": "2026-11-17",
-  "status": "SOURCE_ONLY_UNREGISTERED",
+  "status": "COMPONENT_ACCEPTED_CURRENT_TUPLE",
   "wholeTicketStatus": "OPEN",
   "umbrellaStatus": "OPEN",
   "privateProductGlobalAdmission": "BLOCKED",
   "reviewedComponentFix": "3357e89426350caf9c77ca166878d78b87ce324a",
-  "integrationTipMergedBeforeCompletion": "acc50ff4b45ab5419f27211a5c483f9618c0d00f",
+  "integrationTipMergedBeforeCompletion": "2560f24c460085c6597cf76f973bf3c23a580008",
   "ownBranchIntegrationMerge": "9b4ad362211c8a39d62719f7dafb013a4228ef0b",
   "decision": "Parent 29 Decision 26 permits isolated source integration before missing semantic/private-data gates; no closure or actual OMP admission.",
   "merge": "Conflict-free ort merge; preserves Workspace and continuation explicit fixture enrollment. No resets.",
   "sourcePreservation": {
+    "scope": "historical source-only reconciliation on 2026-11-17",
     "reviewedWorkspaceExecutableContractsModulesTestsAndHistoricalEvidence": "unchanged from 3357e89; reconciliation changes documentation only",
-    "normalHostMainAndHttp": "byte-identical to acc50ff integration",
-    "nativeApisSchemaUpstreamBuildDependencyPinsAndLockfiles": "unchanged from acc50ff integration",
+    "normalHostMainAndHttp": "byte-identical to acc50ff integration and unchanged through 2560f24c",
+    "nativeApisSchemaUpstreamBuildDependencyPinsAndLockfiles": "unchanged from acc50ff integration; current OMP 19 pins are recorded in currentAcceptance",
     "normalHostWorkspaceRegistration": false,
-    "newProtectedCapability": false
+    "newProtectedCapability": false,
+    "currentAcceptanceSourceImpact": "product and Host source unchanged; only the acceptance harness tests/workspaces/browser.py gained explicit Chrome discovery and a serving /healthz readiness probe"
   },
   "results": [
     {
@@ -64,6 +66,7 @@
     "normal Host fetch handler/browser access public module contract without a listener"
   ],
   "execution": {
+    "scope": "historical 2026-11-17 source-only run; current-tuple process/browser acceptance is in currentAcceptance",
     "runtime": "Bun 1.4.4 (38afee6c8)",
     "executable": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
     "environment": "env -i; PATH=/usr/bin:/bin; HOME=/tmp/omp-workspaces43-source/home; PI_CODING_AGENT_DIR and XDG_CONFIG_HOME=/tmp/omp-workspaces43-source/profile; TMPDIR=/tmp; BUN_RUNTIME_TRANSPILER_CACHE_PATH=0; --no-env-file",
@@ -113,8 +116,8 @@
       "apps/workspaces/evidence/review-fix/error-boundary.json": "3b681dc6d3158c45cb4c56e729b57632ce8a373c5568cfb7e0ef5f7b4a0e4a15"
     },
     "tuple": "Native source 4764ff2640a6caf4906c2c4d337e3cceda093f51b720911086cc196b7f1b4871 / schema dcc2efba3634fed2599bde4eb61730ec0ae2d3e47dd7bc55a7909097a443377b / DSH c0b09e15c170a82894608c397a363a7a96e5d05c",
-    "scope": "Historical real Linux browser/native/error-wire results on prior matched component only; no rerun after reconciliation.",
-    "currentFinalTupleAcceptance": "NOT RUN; integration generated identity and DSH source patch set differ; old evidence does not validate current artifacts."
+    "scope": "Real Linux browser/native/error-wire results on the prior matched component only; preserved byte-for-byte and not current identities.",
+    "currentFinalTupleAcceptance": "PASS 2026-11-19; see currentAcceptance and apps/workspaces/evidence/current-2560f24c/. The enumerated records here remain historical."
   },
   "sourceSha256": {
     "apps/host/src/workspace-component-main.ts": "57543414d5dafdcfc02434c18da25dc0b47db170e729864424798ffdaa7081e2",
@@ -145,7 +148,35 @@
     "Fresh focused review before Root integration merge",
     "#41 matched public compatibility/global-install admission",
     "#44 actual Session Index registration/protected open and supervised worker revocation composition",
-    "Fresh matched Native/build/schema/DSH/client/Host artifacts and real product browser/native evidence",
+    "Normal Host product registration plus product-level browser/native evidence",
     "User-deferred Windows Chrome/WSL2 and complete final acceptance/performance/native compatibility"
-  ]
+  ],
+  "currentAcceptance": {
+    "recordedAt": "2026-11-19",
+    "integration": "2560f24c460085c6597cf76f973bf3c23a580008",
+    "ompBase": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+    "ompInstallationAssets": 34395,
+    "dshSourceTree": "d05468939bcb06446ace47045d138f716406c788",
+    "tuple": "apps/workspaces/evidence/current-2560f24c/tuple.json",
+    "browserEvidence": "apps/workspaces/evidence/current-2560f24c/browser.json",
+    "typecheck": "PASS",
+    "lint": "PASS with pre-existing warnings only",
+    "affectedTests": {
+      "tests": 74,
+      "assertions": 1058,
+      "files": 20,
+      "skipped": "tests/catalog/catalog.test.ts:155 real syscall fault requires strace; strace is absent"
+    },
+    "browser": "PASS; 12 actual Chromium scenarios, three real Host process starts, 47 native rows, 35 labelled synthetic index references, typed DSH Remote calls, 0 page errors",
+    "nativeReadonly": "PASS; native inode/mtime/content manifest unchanged",
+    "notRun": [
+      "full repository suite",
+      "normal Host product registration and product-level browser evidence",
+      "performance",
+      "Windows/WSL2"
+    ],
+    "productAdmission": "BLOCKED pending #41 combined/global gates and #44 protected open/registration",
+    "workerRevocation": "BLOCKED pending #44 supervised open; this component has no Session worker",
+    "ompInstallationSha256": "60811bf8f4162281da6617247f63b6fd93e9e1ef82280644d57afb0373a37189"
+  }
 }

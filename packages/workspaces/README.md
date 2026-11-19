@@ -1,9 +1,12 @@
 # Directory authorization and read-only Workspace mapping (#43)
 
-Current status (2026-11-17): unregistered source component reconciled with integration `acc50ff`; #43 and #29 remain
-OPEN and private/product/global admission remains BLOCKED. Pure contract checks and the normal Host compile are
-recorded in [source evidence](../../docs/implementation/ticket-43-source-evidence.json). The earlier Linux
-browser/native `4764…`/`dcc2…`/c0 results remain historical; they do not validate the reconciled final combination.
+Current status (2026-11-19): isolated component accepted on integration `2560f24c` with the current OMP 19 candidate;
+#43 and #29 remain OPEN and private/product/global admission remains BLOCKED. The current-tuple browser/native run,
+affected test counts and evidence hashes are in
+[current tuple](../../apps/workspaces/evidence/current-2560f24c/tuple.json); source-only checks remain in
+[source evidence](../../docs/implementation/ticket-43-source-evidence.json). Earlier Linux browser/native
+`4764…`/`dcc2…`/c0 results remain historical. The normal Host still does not register this component, and #44 owns
+registration, protected open and worker revocation.
 
 `DirectoryGrants` stores only canonical roots and their filesystem identity (device, inode, birth time), grant ID
 and timestamp in private Host-owned SQLite. It never reads native Sessions. A 60-second in-memory confirmation
