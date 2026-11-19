@@ -14,7 +14,7 @@ import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.
 import { inspectDiagnostics } from "../../../packages/compatibility/diagnostics.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
 
-interface Options extends InstallationSelection { port?: number; assets?: string }
+interface Options extends InstallationSelection { port?: number; assets?: string; expectedIdentity: string }
 const emptyPayload = z.strictObject({ args: z.strictObject({}) });
 
 class DiagnosticsService extends TypertRemoteService {
@@ -30,8 +30,9 @@ export async function startDiagnosticsServer(options: Options) {
   const ctx = new Context();
   const lifetime = new AbortController();
   const assets = resolve(options.assets ?? "vendor/dsh-diagnostics");
-  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets);
-  const selection = { ...options, ...(staticAssets.identity === undefined ? {} : { expectedIdentity: staticAssets.identity }) };
+  const identity = options.expectedIdentity;
+  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets, identity);
+  const selection = { ...options, expectedIdentity: identity };
   let busy = false;
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);

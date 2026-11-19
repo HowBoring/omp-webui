@@ -66,6 +66,7 @@ before rebuilding/updating its tuple; source/module/asset changes invalidate it.
 ```sh
 OMP_WEB_MANIFEST="$PWD/vendor/omp-candidate/installation.json" \
 OMP_WEB_LAUNCHER="$PWD/vendor/omp-candidate/omp" \
+OMP_WEB_MANIFEST_SHA256="$(sha256sum "$PWD/vendor/omp-candidate/installation.json" | cut -d' ' -f1)" \
 OMP_WEB_PORT=3180 bun run diagnostics
 ```
 
@@ -73,6 +74,10 @@ Only loopback binds. Neither an HTTP argument nor a Remote parameter can choose 
 paths. The page uses actual DSH Cordis/Connection/TypertRegistry/ClientRemote, a strict public diagnostic
 contribution, actual Host Gateway invocation/Peer, and the public `$events` mux path. It mounts no Chat,
 Workspace or Session controller. Assets must match the startup manifest before their bytes are served.
+
+`OMP_WEB_MANIFEST_SHA256` is the independently enrolled digest of the reviewed manifest; the Host refuses to
+serve diagnostic assets or report verified installation when the manifest bytes do not match it, so enrollment
+and admission are not derived from the same file.
 
 The Host verifies launcher/target, file modes, direct symlinks, directory membership, all source/dependency/native
 files, the absolute Bun executable, and Linux shared-library contents. It checks the **actual child** `/proc/PID/maps`
