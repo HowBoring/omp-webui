@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Isolated durable navigation</title>
+<style>
+body{font:14px/1.45 ui-monospace,monospace;margin:1.5rem;color:#1b241f;background:#faf8f2}
+#tree{list-style:none;padding:0;max-width:52rem}
+#tree li{border-bottom:1px solid #d9d4c7;padding:.35rem 0}
+#tree li[data-active="true"]{background:#e8f0e9}
+#tree button{font:inherit;min-height:40px;min-width:12rem;text-align:left;background:#fff;border:1px solid #9aa89d}
+#tree p{margin:.2rem 0;color:#43524a}
+#detail,#summary,#state{max-width:52rem;min-height:1.5rem;margin:.6rem 0}
+#detail[data-status="error"]{color:#8a2b1d}
+#detail[data-status="operation"]{font-weight:600}
+button{min-height:40px;margin-right:.4rem}
+</style></head><body>
+<h1>Durable navigation (isolated)</h1>
+<p id="state">booting</p>
+<p id="summary"></p>
+<p>
+<button id="inspect">Inspect selected</button>
+<button id="confirm">Confirm navigation</button>
+<button id="query">Query operation</button>
+<button id="refresh">Refresh tree</button>
+<button id="crash">Kill worker now</button>
+<button id="reopen">Reopen worker</button>
+</p>
+<p id="detail"></p>
+<ul id="tree"></ul>
+<script type="module" src="/client.js"></script>
+</body></html>

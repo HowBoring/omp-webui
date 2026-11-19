@@ -135,11 +135,13 @@ try:
                 except OSError:
                     file = ""
                 owned = file.startswith(str(home) + "/")
-                text = memory(pid, regs.rsi, min(regs.rdx, 64)) if owned else b""
+                text = memory(pid, regs.rsi, min(regs.rdx, 2048)) if owned else b""
                 carrier = file == str(target)
                 marker = carrier and text.startswith(b'{"type":"omp_generation_commit"')
                 conversion = carrier and regs.rdx == 7 and text == b"ompgen1"
                 append = carrier and text.startswith(b'{"type":') and not marker
+                receipt = carrier and b'"customType":"omp.native-control/navigation-v1"' in text \
+                    and b'"kind":"receipt"' in text and b'"terminal":true' in text
                 anonymous_copy = owned and file.startswith(str(target.parent) + "/") and "/#" in file and file.endswith(" (deleted)")
                 selected = carrier or anonymous_copy or file.startswith(str(target.parent / ("." + target.name + ".omp-generations")) + "/")
                 if selected:
@@ -151,9 +153,15 @@ try:
                     with open(str(target) + ".replacement", "rb") as source, open(target, "xb") as destination:
                         shutil.copyfileobj(source, destination)
                     audit(fault, boundary="before_pwrite64", tracee=pid)
-                if not fired and ((fault == "short-marker" and marker) or (fault == "short-conversion" and conversion) or (fault == "short-new-copy" and anonymous_copy)):
+                if not fired and fault == "crash-navigation-receipt" and receipt:
+                    audit(fault, boundary="before_pwrite64", tracee=pid)
+                    sys.exit(91)
+                if not fired and ((fault == "short-marker" and marker) or (fault == "short-conversion" and conversion)
+                                  or (fault == "short-new-copy" and anonymous_copy)
+                                  or (fault == "short-navigation" and receipt)
+                                  or (fault == "refuse-navigation" and receipt)):
                     fired = True
-                    regs.rdx = 3 if conversion else 20
+                    regs.rdx = 0 if fault == "refuse-navigation" else 3 if conversion else 20
                     ptrace(13, pid, 0, c.addressof(regs))
                     pending[pid]["fault"], pending[pid]["short"] = fault, True
                 if not fired and ((fault == "crash-prepared-body" and file.endswith(".gen"))
