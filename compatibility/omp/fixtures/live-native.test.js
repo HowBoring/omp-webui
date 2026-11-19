@@ -230,8 +230,12 @@ test('genuine native refusal and empty-error classifiers settle no-entry, includ
     cases.filter(kind=>kind.reason!=='empty_error').map(kind=>({status:'no_entry',durability:'not_attested',reason:kind.reason})));
   const decision=history.poll(opened.cut.workerId,opened.cut.observationSeq).events.find(event=>event.kind==='message_decision');
   expect(decision.settlement.reason).toBe('empty_error');
-  expect(events.filter(event=>event.item.role==='user').map(event=>event.settlement.entryId)).toEqual(manager.getEntries().map(entry=>entry.id));
-  expect(manager.getEntries().every(entry=>entry.message.role==='user')).toBe(true);
+  // A refused turn stays out of the transcript but OMP 19 keeps a non-context
+  // `provider_refusal` record of it, so only message entries carry settlements.
+  const messageEntries=manager.getEntries().filter(entry=>entry.type==='message');
+  expect(events.filter(event=>event.item.role==='user').map(event=>event.settlement.entryId)).toEqual(messageEntries.map(entry=>entry.id));
+  expect(messageEntries.every(entry=>entry.message.role==='user')).toBe(true);
+  expect(manager.getEntries().filter(entry=>entry.type==='custom').map(entry=>entry.customType)).toEqual(['provider_refusal','provider_refusal']);
 });
 
 test('a real native append decision exception reports failed without inventing an entry association',async()=>{
