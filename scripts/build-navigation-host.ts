@@ -1,7 +1,9 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { relative } from "node:path";
 import { digest } from "../packages/compatibility/installation.ts";
+import { installNavigationValidators } from "./install-navigation-validators";
 
+const validators = await installNavigationValidators();
 const inputs: { path: string; sha256: string }[] = [];
 const built = await Bun.build({
   entrypoints: ["apps/host/src/navigation-fixture-main.ts"], target: "bun", outdir: "vendor/host-navigation",
@@ -19,4 +21,5 @@ await writeFile("vendor/host-navigation/manifest.json", JSON.stringify({
   inputs: inputs.sort((a, b) => a.path.localeCompare(b.path)),
   bundle: { file: "navigation-fixture-main.js", sha256: digest(await readFile("vendor/host-navigation/navigation-fixture-main.js")) },
 }, null, 2) + "\n");
-console.info(JSON.stringify({ status: "host-built", inputs: inputs.length, bundle: built.outputs[0]?.size }));
+console.info(JSON.stringify({ status: "host-built", validators: validators.installed.length,
+  inputs: inputs.length, bundle: built.outputs[0]?.size }));

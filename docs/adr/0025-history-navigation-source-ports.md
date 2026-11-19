@@ -43,6 +43,11 @@ record with unresolved persistence and an unchanged position; a refused receipt 
 with a sticky unreadable source; cancel, invalid target and normal exit are distinct. The real matched TUI renders
 only the recovered branch, and the installed baseline refuses the candidate carrier without rewriting it.
 
+The worker's boundary validators are no longer permissive probe shims: `scripts/install-navigation-validators.ts`
+installs the pinned `durable-navigation-v1` generated command/result/preview validators and the wrapper the patched
+native code imports, the strict-runtime manifest records their installed hashes, and malformed commands fail with
+`NAVIGATION_COMMAND_SCHEMA` before dispatch.
+
 What remains open is unchanged product work: a Host-owned durable repository across Host restarts, a real
 all-holder projection handoff, draft conflict resolution in the TUI, long-history performance, Windows, and product
 admission. The repository on this carrier is still not disk durability, and the projection proof is a fixture
