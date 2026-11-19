@@ -92,8 +92,8 @@
     },
     {
       "path": "packages/coding-agent/src/modes/rpc/navigation-command.generated.js",
-      "bytes": 122957,
-      "sha256": "a32a652f8e896d2c47342277acbb13d789c7494842e4dab5ee2dc0431a6c750d"
+      "bytes": 115052,
+      "sha256": "56285798a3c249c599d65b460892e7cc0421598d3b99b67e490efb4130ef2814"
     },
     {
       "path": "packages/coding-agent/src/modes/rpc/navigation-result.generated.js",
@@ -101,9 +101,14 @@
       "sha256": "0ebf9aab91c7b091be48a737030c4819c98986999648c9fa0933cbf6e09ed92d"
     },
     {
+      "path": "packages/coding-agent/src/modes/rpc/navigation-preview.generated.js",
+      "bytes": 7690,
+      "sha256": "4fc0077363cb2c73da9b92e21557ab708c5c732defe10184dd6a6bcb2e70e1c8"
+    },
+    {
       "path": "packages/coding-agent/src/modes/rpc/navigation.generated.ts",
-      "bytes": 439,
-      "sha256": "9abcf2b96057485dd89c2663a4bd1ea631015cda1396499a7509c78f9c4ccecf"
+      "bytes": 851,
+      "sha256": "01e3b963b4c71f9affb2f8d06b06ea1d0ec9f3876f7cc3bbcedfa929944e38ec"
     },
     {
       "path": "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js",
