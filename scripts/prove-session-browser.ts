@@ -1,8 +1,11 @@
 /** Owned actual built Host + Chromium proof. Every success/failure path waits for its owned process exit. */
 export {};
 
+const env = { PATH: process.env.PATH ?? "/usr/bin:/bin",
+  ...(process.env.OMP_WEB_PYTHON ? { OMP_WEB_PYTHON: process.env.OMP_WEB_PYTHON } : {}),
+  ...(process.env.CHROME_EXECUTABLE ? { CHROME_EXECUTABLE: process.env.CHROME_EXECUTABLE } : {}) };
 const child = Bun.spawn([process.execPath, "--no-env-file", "vendor/host-sessions/session-component-main.js"], {
-  cwd: process.cwd(), env: { PATH: process.env.PATH ?? "/usr/bin:/bin" }, stdout: "pipe", stderr: "inherit" });
+  cwd: process.cwd(), env, stdout: "pipe", stderr: "inherit" });
 const reader = child.stdout.getReader();
 let ready = "";
 const timer = setTimeout(() => child.kill("SIGTERM"), 15_000);
@@ -12,7 +15,7 @@ try {
     ready += new TextDecoder().decode(chunk.value); if (ready.length > 4096) throw new Error("SESSION_HOST_READY_LIMIT");
   }
   clearTimeout(timer); reader.releaseLock();
-  const browser = Bun.spawn(["python3", "tests/sessions/browser.py"], { env: { PATH: process.env.PATH ?? "/usr/bin:/bin" },
+  const browser = Bun.spawn([process.env.OMP_WEB_PYTHON ?? "python3", "tests/sessions/browser.py"], { env,
     stdout: "inherit", stderr: "inherit" });
   if (await browser.exited !== 0) throw new Error("SESSION_BROWSER_FAILED");
 } finally {

@@ -1,16 +1,17 @@
 """Actual Linux Chromium -> public DSH Connection/Remote/Session/Conversation -> Bun -> strict native worker.
 Explicit synthetic fixture; no real provider inference or private product admission.
 """
-import asyncio,json,os,subprocess
+import asyncio,json,os,shutil,subprocess
 from pathlib import Path
 from playwright.async_api import async_playwright,expect
 ROOT=Path(__file__).resolve().parents[2]
-BUN='/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun'
+CHROME = os.environ.get('CHROME_EXECUTABLE') or shutil.which('chromium') or shutil.which('google-chrome')
+BUN = os.environ.get('OMP_WEB_BUN') or shutil.which('bun') or 'bun'
 async def main():
  errors=[];wire=[]
  link=subprocess.check_output([BUN,'--no-env-file','vendor/host-sessions/session-component-main.js','--print-bootstrap'],cwd=ROOT,text=True).strip()
  async with async_playwright() as p:
-  browser=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+  browser=await p.chromium.launch(executable_path=CHROME,headless=True,args=['--no-sandbox'])
   context=await browser.new_context();a=await context.new_page();b=await context.new_page()
   for page in (a,b):
    page.on('pageerror',lambda error:errors.append(str(error)))

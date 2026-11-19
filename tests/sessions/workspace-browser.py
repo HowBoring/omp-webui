@@ -1,8 +1,12 @@
 """Chromium exercises the built Browser View through published Session and Workspace DSH Remote methods."""
 import asyncio
+import os
+import shutil
 import sys
 from urllib.parse import urlsplit
 from playwright.async_api import Error, async_playwright, expect
+
+CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shutil.which("google-chrome")
 
 
 async def main():
@@ -11,7 +15,7 @@ async def main():
     assert link and all(link not in arg for arg in sys.argv), "Synthetic bootstrap input must use stdin."
     origin = link.split("/?", 1)[0]
     async with async_playwright() as p:
-        browser = await p.chromium.launch(executable_path="/usr/bin/chromium", headless=True, args=["--no-sandbox"])
+        browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
         context = await browser.new_context()
         page = await context.new_page()
         errors, calls = [], []

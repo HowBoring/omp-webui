@@ -77,7 +77,7 @@ try {
         host.index.observe(record.id, { state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" });
       }
     }
-    const browser = Bun.spawn(["python3", "tests/sessions/workspace-browser.py", project],
+    const browser = Bun.spawn([process.env.OMP_WEB_PYTHON ?? "python3", "tests/sessions/workspace-browser.py", project],
       { stdin: "pipe", stdout: "inherit", stderr: "inherit" });
     browser.stdin.write(host.bootstrapLink() + "\n");
     await browser.stdin.end();

@@ -1,9 +1,10 @@
 """Actual Host SIGKILL + durable metadata restart; browser retains credentials, never reopens/replays automatically."""
-import asyncio,json,signal,subprocess
+import asyncio,json,os,shutil,signal,subprocess
 from pathlib import Path
 from playwright.async_api import async_playwright,expect
 ROOT=Path(__file__).resolve().parents[2]
-BUN='/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun'
+CHROME = os.environ.get('CHROME_EXECUTABLE') or shutil.which('chromium') or shutil.which('google-chrome')
+BUN = os.environ.get('OMP_WEB_BUN') or shutil.which('bun') or 'bun'
 COMMAND=[BUN,'--no-env-file','vendor/host-sessions/session-component-main.js']
 def start():
  child=subprocess.Popen(COMMAND,cwd=ROOT,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
@@ -15,7 +16,7 @@ async def main():
  try:
   link=subprocess.check_output(COMMAND+['--print-bootstrap'],cwd=ROOT,text=True).strip()
   async with async_playwright() as p:
-   browser=await p.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+   browser=await p.chromium.launch(executable_path=CHROME,headless=True,args=['--no-sandbox'])
    context=await browser.new_context();page=await context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(link);await page.wait_for_selector('article[data-native-id="native-0000"]')
    await page.locator('article[data-native-id="native-0000"]').get_by_role('button',name='Open Session',exact=True).click()

@@ -33,7 +33,12 @@
     "workspaces:component": "bun --no-env-file vendor/host-workspaces/workspace-component-main.js",
     "test:workspaces:browser": "python3 tests/workspaces/browser.py",
     "interactions:build": "bun apps/interactions/build.ts && bun scripts/build-interactions-host.ts",
-    "interactions:fixture": "bun --no-env-file vendor/host-interactions/interactions-fixture-main.js"
+    "interactions:fixture": "bun --no-env-file vendor/host-interactions/interactions-fixture-main.js",
+    "sessions:fixture-data": "bun scripts/create-session-fixture.ts",
+    "sessions:build": "bun apps/sessions/build.ts && bun scripts/build-session-host.ts",
+    "sessions:enroll": "bun scripts/enroll-session-fixture.ts",
+    "sessions:component": "bun --no-env-file vendor/host-sessions/session-component-main.js",
+    "test:sessions:browser": "bun scripts/prove-session-browser.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",
