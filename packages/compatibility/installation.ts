@@ -8,7 +8,7 @@ export const assetSchema = z.strictObject({
   path: z.string(), kind: z.enum(["file", "directory", "link"]), identity: z.string(), mode: z.number().int(),
 });
 export const manifestSchema = z.strictObject({
-  format: z.literal("omp-webui-s0-v1"), base: z.literal("7c49c11aa5bbaf3f418406583096168ad5b8c6dc"),
+  format: z.literal("omp-webui-s0-v1"), base: z.literal("57771ae562b9345e0579bceb2d68d585e3e6927e"),
   patch: hash, schema: hash, launcher: z.string(), target: z.string(), runtime: assetSchema,
   platform: z.string(), arch: z.string(), assets: z.array(assetSchema).min(1),
   runtimeDependencies: z.array(assetSchema),

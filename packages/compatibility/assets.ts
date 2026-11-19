@@ -3,12 +3,13 @@ import { dirname, relative, resolve } from "node:path";
 import { digest, identifyAsset, manifestSchema } from "./installation.ts";
 
 /** Serve only assets in the startup-selected trust manifest; no source or launcher facts reach the browser. */
-export async function trustedDiagnosticAssets(manifestPath: string, directory: string) {
+export async function trustedDiagnosticAssets(manifestPath: string, directory: string, expectedIdentity?: string) {
   try {
     const bytes = await readFile(manifestPath);
     const manifest = manifestSchema.parse(JSON.parse(bytes.toString("utf8")));
     const root = resolve(dirname(manifestPath), "../..");
     const identity = digest(bytes);
+    if (expectedIdentity !== undefined && expectedIdentity !== identity) throw new Error("manifest trust differs");
     const entries = new Map(manifest.assets.map(asset => [asset.path, asset]));
     return {
       identity,

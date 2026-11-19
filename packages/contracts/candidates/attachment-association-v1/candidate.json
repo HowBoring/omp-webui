@@ -1,62 +1,62 @@
 {
   "status": "source-only",
   "sourceTicket": 38,
-  "hostSourceCommit": "42bf196f548c01f2a61e9f9bb5664f340e41daeb",
-  "nativeBaseCommit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-  "nativeSourceSchemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab",
+  "hostSourceCommit": "49fa1ddd47e6792e0044e9a94885e42c40ee06c3",
+  "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+  "nativeSourceSchemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
   "referenceHostArtifacts": "packages/contracts/generated",
   "nativePatches": [
     {
       "path": "compatibility/omp/0001-safe-preflight.patch",
-      "bytes": 63144,
-      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+      "bytes": 105640,
+      "sha256": "ce40ca2c735418513b749090414f32734737c3b0edde86d94c6c95bfd7a3d079"
     },
     {
       "path": "compatibility/omp/0002-readonly-catalog.patch",
-      "bytes": 33466,
-      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+      "bytes": 77746,
+      "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616"
     },
     {
       "path": "compatibility/omp/0003-explicit-interactions.patch",
-      "bytes": 49968,
-      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+      "bytes": 51748,
+      "sha256": "8b858b454a1fe1d13013b0615587a5c35465f1ad0011689fe4e9d94b02c9cfb5"
     },
     {
       "path": "compatibility/omp/0004-coherent-history.patch",
-      "bytes": 49490,
-      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+      "bytes": 51774,
+      "sha256": "bc66de7bc6ad5e1b5d7c298311e01c2298b8abedbd3f3c069fd3fda583d318ed"
     },
     {
       "path": "compatibility/omp/0005-strict-continuation.patch",
-      "bytes": 174829,
-      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+      "bytes": 178306,
+      "sha256": "ef760259cde2ca15e7fde92e871cacdea8f5e541a759cb77c178ac942316c571"
     },
     {
       "path": "compatibility/omp/0006-live-settlement.patch",
-      "bytes": 74456,
-      "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+      "bytes": 75038,
+      "sha256": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a"
     },
     {
       "path": "compatibility/omp/0007-durable-submission.patch",
-      "bytes": 165135,
-      "sha256": "0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957"
+      "bytes": 166469,
+      "sha256": "a6c83b289824b3de84938e11a356074fabab7b02dd9e2315d8283a1ca4d3d1bf"
     },
     {
       "path": "compatibility/omp/0009-attachment-preparation.patch",
-      "bytes": 163372,
-      "sha256": "6f8bc7f2c6145bb433f6c5e3e3cff752dd0d4e05541ccfc001a7069a128de767"
+      "bytes": 164209,
+      "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608"
     },
     {
       "path": "compatibility/omp/0010-image-original-budget.patch",
-      "bytes": 3256,
-      "sha256": "9da56554f30898767cb51efe30aac21a38616e78e70e49368ca43434115b1dac"
+      "bytes": 3262,
+      "sha256": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7"
     }
   ],
   "buildIdentity": {
-    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "adda6c134cbff19e7cd688f2b93baf26b962179e5f0b6e2bb1c68d7b675d9451",
-    "patchSha256": "de7b02421953a365c3a458d16e4f74d9122a1b2cf9112a8df4d53083f3e8b753",
-    "schemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab"
+    "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+    "sourceSha256": "01bf0151fc7171166630bc4680fe7314172117b349a1bedd55936220fe3e4fd0",
+    "patchSha256": "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
+    "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
   },
   "files": {
     "attachment-receipt.d.ts": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9",

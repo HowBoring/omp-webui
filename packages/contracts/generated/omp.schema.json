@@ -2222,6 +2222,9 @@
         "details": {},
         "attribution": {
           "$ref": "#/$defs/Attribution"
+        },
+        "excludeFromContext": {
+          "type": "boolean"
         }
       },
       "required": [
@@ -3435,7 +3438,7 @@
         },
         "hasPendingAsyncWork": {
           "type": "boolean",
-          "description": "Background jobs or deliveries can still inject a follow-up and wake the session.",
+          "description": "Background jobs, their deliveries, child agents or queued peer messages can still wake the session.",
           "default": false
         },
         "isSettled": {
@@ -3578,6 +3581,10 @@
           "properties": {},
           "additionalProperties": {},
           "description": "The embedded shell's final `ShellTrace` of the run; only when the caller asked for one."
+        },
+        "fork": {
+          "$ref": "#/$defs/ShellForkOutcome",
+          "description": "Set when the command overlapped another one on the session's persistent shell and ran in a fork of it."
         }
       },
       "required": [
@@ -3588,6 +3595,23 @@
         "totalBytes",
         "outputLines",
         "outputBytes"
+      ]
+    },
+    "ShellForkOutcome": {
+      "type": "object",
+      "properties": {
+        "carried": {
+          "type": "boolean",
+          "description": "What the command set carried back into the session's shell; `false`: it stayed in the fork."
+        },
+        "jobs": {
+          "type": "boolean",
+          "description": "It left background jobs running in the fork, where later commands' `jobs`, `wait` and `%N` miss them."
+        }
+      },
+      "required": [
+        "carried",
+        "jobs"
       ]
     },
     "LineRange": {
@@ -5142,6 +5166,13 @@
       ],
       "type": "string"
     },
+    "CacheWarmingMethod": {
+      "enum": [
+        "prewarm",
+        "replay"
+      ],
+      "type": "string"
+    },
     "CacheWarmingOutcome": {
       "enum": [
         "hit",
@@ -5469,7 +5500,7 @@
       "required": [
         "type"
       ],
-      "description": "A manual compaction (`compact` command, `/compact`, extension `ctx.compact()`) began; the live turn is already aborted."
+      "description": "A manual compaction began. Handoff mode leaves live turns running and applies between turns or when idle."
     },
     "ManualCompactionEndEvent": {
       "type": "object",
@@ -5570,6 +5601,9 @@
         "phase": {
           "$ref": "#/$defs/CacheWarmingPhase"
         },
+        "method": {
+          "$ref": "#/$defs/CacheWarmingMethod"
+        },
         "provider": {
           "type": "string"
         },
@@ -5580,6 +5614,7 @@
       "required": [
         "type",
         "phase",
+        "method",
         "provider",
         "model"
       ],
@@ -5593,6 +5628,9 @@
         },
         "phase": {
           "$ref": "#/$defs/CacheWarmingPhase"
+        },
+        "method": {
+          "$ref": "#/$defs/CacheWarmingMethod"
         },
         "provider": {
           "type": "string"
@@ -5615,6 +5653,7 @@
       "required": [
         "type",
         "phase",
+        "method",
         "provider",
         "model",
         "outcome"

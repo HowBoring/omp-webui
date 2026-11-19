@@ -4,7 +4,8 @@ import { diagnosticReportSchema } from "../../packages/contracts/diagnostics.ts"
 import { isRecord } from "../../packages/compatibility/framing.ts";
 
 test("real Bun Gateway exposes only sanitized diagnostics and rejects browser launch controls", async () => {
-  const host = await startDiagnosticsServer({ manifest: "/missing/manifest", launcher: "/missing/launcher", port: 0 });
+  const host = await startDiagnosticsServer({ manifest: "/missing/manifest", launcher: "/missing/launcher", port: 0,
+    expectedIdentity: "0".repeat(64) });
   const origin = host.server.url.origin;
   const call = (args: object, requestOrigin = origin) => fetch(`${origin}/api/ompDiagnostics/preflight`, {
     method: "POST", headers: { origin: requestOrigin, "content-type": "application/json" },

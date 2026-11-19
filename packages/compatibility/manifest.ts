@@ -31,7 +31,7 @@ export async function writeInstallationManifest(input: ManifestInput): Promise<I
     runtimeDependencies.push(await identifyAsset(input.root, relative(input.root, await realpath(path)), input.path));
   }
   const manifest: InstallationManifest = {
-    format: "omp-webui-s0-v1", base: "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    format: "omp-webui-s0-v1", base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
     patch: input.patch, schema: input.schema, launcher: input.launcher, target: input.target,
     runtime, platform: process.platform, arch: process.arch, assets, runtimeDependencies,
   };

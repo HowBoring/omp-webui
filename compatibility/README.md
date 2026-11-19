@@ -13,7 +13,7 @@ explicit-answer/cancellation semantics and an isolated DSH root Slot/Remote acce
 Use Linux x64, Bun **1.4.4**, complete Node **24.22.1** (including development headers), Corepack with
 pnpm **11.28.5**, git, and writable package caches. Browser evidence also requires Python Playwright,
 `/usr/bin/chromium`, and `/usr/bin/strace`. Keep all upstream source and generated DSH assets under ignored vendor/.
-The checked-in `upstreams.lock.json` pins are unchanged.
+The checked-in `upstreams.lock.json` pins OMP `v19.0.0` (`57771ae562b9345e0579bceb2d68d585e3e6927e`) and the DSH release commit.
 
 From the repository root, with these tools on PATH and `COREPACK_HOME` set to a writable task cache:
 
@@ -50,7 +50,7 @@ files and generated artifacts additionally have individual content identities in
 `--check` verifies the tracked Host generated outputs without refreshing trust or replacing the candidate.
 
 The ordered stack now applies `0001-safe-preflight.patch` then `0002-readonly-catalog.patch`, directly after OMP base
-`7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. The catalog is an isolated synthetic acceptance slice; see
+`57771ae562b9345e0579bceb2d68d585e3e6927e`. The catalog is an isolated synthetic acceptance slice; see
 [its contract and fixed budgets](CATALOG.md) and [typed DSH fixture](../apps/catalog/README.md). Future tickets must add ordered public deltas and extend the
 cumulative source gate/build schema deliberately; they must not overwrite this patch with an unrelated clone
 or claim planned capability names are implemented. `scripts/export-omp-patch.ts` is an explicit authoring tool,
@@ -66,6 +66,7 @@ before rebuilding/updating its tuple; source/module/asset changes invalidate it.
 ```sh
 OMP_WEB_MANIFEST="$PWD/vendor/omp-candidate/installation.json" \
 OMP_WEB_LAUNCHER="$PWD/vendor/omp-candidate/omp" \
+OMP_WEB_MANIFEST_SHA256="$(sha256sum "$PWD/vendor/omp-candidate/installation.json" | cut -d' ' -f1)" \
 OMP_WEB_PORT=3180 bun run diagnostics
 ```
 
@@ -73,6 +74,10 @@ Only loopback binds. Neither an HTTP argument nor a Remote parameter can choose 
 paths. The page uses actual DSH Cordis/Connection/TypertRegistry/ClientRemote, a strict public diagnostic
 contribution, actual Host Gateway invocation/Peer, and the public `$events` mux path. It mounts no Chat,
 Workspace or Session controller. Assets must match the startup manifest before their bytes are served.
+
+`OMP_WEB_MANIFEST_SHA256` is the independently enrolled digest of the reviewed manifest; the Host refuses to
+serve diagnostic assets or report verified installation when the manifest bytes do not match it, so enrollment
+and admission are not derived from the same file.
 
 The Host verifies launcher/target, file modes, direct symlinks, directory membership, all source/dependency/native
 files, the absolute Bun executable, and Linux shared-library contents. It checks the **actual child** `/proc/PID/maps`

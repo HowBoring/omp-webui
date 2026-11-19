@@ -14,7 +14,7 @@ import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.
 import { inspectDiagnostics } from "../../../packages/compatibility/diagnostics.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
 
-interface Options extends InstallationSelection { port?: number; assets?: string }
+interface Options extends InstallationSelection { port?: number; assets?: string; expectedIdentity: string }
 const emptyPayload = z.strictObject({ args: z.strictObject({}) });
 
 class DiagnosticsService extends TypertRemoteService {
@@ -27,11 +27,13 @@ class DiagnosticsService extends TypertRemoteService {
 
 /** Loopback diagnostics carrier. No private Session or general Remote routes are mounted. */
 export async function startDiagnosticsServer(options: Options) {
+  if (!/^[a-f0-9]{64}$/.test(options.expectedIdentity ?? "")) throw new Error("MANIFEST_TRUST_REQUIRED");
   const ctx = new Context();
   const lifetime = new AbortController();
   const assets = resolve(options.assets ?? "vendor/dsh-diagnostics");
-  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets);
-  const selection = { ...options, ...(staticAssets.identity === undefined ? {} : { expectedIdentity: staticAssets.identity }) };
+  const identity = options.expectedIdentity;
+  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets, identity);
+  const selection = { ...options, expectedIdentity: identity };
   let busy = false;
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);

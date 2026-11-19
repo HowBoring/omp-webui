@@ -1,67 +1,72 @@
 {
   "kind": "unregistered-public-navigation-contract-source-candidate",
   "version": "durable-navigation-v1",
-  "integrationBase": "49c437cc69ecfb1e7f83ea234dc054baf9dc4ecf",
+  "integrationBase": "49fa1ddd47e6792e0044e9a94885e42c40ee06c3",
   "registration": "none",
   "hostRpcPort": "absent",
   "capability": "unavailable",
   "runtimeEvidence": "NOT_RUN",
   "source": {
     "repository": "https://github.com/HowBoring/omp-webui",
-    "commit": "c8efeced4b6f59bc686a90fe48f4ee4ea72d5180",
+    "commit": "49fa1ddd47e6792e0044e9a94885e42c40ee06c3",
     "nativePackage": {
       "name": "@oh-my-pi/pi-coding-agent",
-      "version": "18.20.2",
-      "packageJsonSha256": "edb7ec54d5fbb4534f7fc04a5e8ef4075424d4aa649aa32dc16bc79a7f1a3f92"
+      "version": "19.0.0",
+      "packageJsonSha256": "f13255010a1612d371d12328a4730ad255c449d56a7eebbcf8687114c87e5660"
     },
-    "nativePublicBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "nativePublicBase": "57771ae562b9345e0579bceb2d68d585e3e6927e",
     "buildIdentity": {
-      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-      "sourceSha256": "09e2564259760962635133284314b53b03774a1b6e96f8bcce85dcceb8b91874",
-      "patchSha256": "3badafce026c420eea8aa71c4b89deab915a1cd074b8068e0c74931858bb8f8f",
-      "schemaSha256": "0cde2405878c052df5ba4766182e25016990f5b1024cdb84bbd119fd451fa9aa"
+      "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+      "sourceSha256": "01bf0151fc7171166630bc4680fe7314172117b349a1bedd55936220fe3e4fd0",
+      "patchSha256": "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
+      "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
     },
     "sourcePatchFormula": "sha256(base + newline + concatenated ordered patches)",
     "patches": [
       {
         "path": "compatibility/omp/0001-safe-preflight.patch",
-        "bytes": 63144,
-        "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+        "bytes": 105640,
+        "sha256": "ce40ca2c735418513b749090414f32734737c3b0edde86d94c6c95bfd7a3d079"
       },
       {
         "path": "compatibility/omp/0002-readonly-catalog.patch",
-        "bytes": 33466,
-        "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+        "bytes": 77746,
+        "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616"
       },
       {
         "path": "compatibility/omp/0003-explicit-interactions.patch",
-        "bytes": 49968,
-        "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+        "bytes": 51748,
+        "sha256": "8b858b454a1fe1d13013b0615587a5c35465f1ad0011689fe4e9d94b02c9cfb5"
       },
       {
         "path": "compatibility/omp/0004-coherent-history.patch",
-        "bytes": 49490,
-        "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+        "bytes": 51774,
+        "sha256": "bc66de7bc6ad5e1b5d7c298311e01c2298b8abedbd3f3c069fd3fda583d318ed"
       },
       {
         "path": "compatibility/omp/0005-strict-continuation.patch",
-        "bytes": 174829,
-        "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+        "bytes": 178306,
+        "sha256": "ef760259cde2ca15e7fde92e871cacdea8f5e541a759cb77c178ac942316c571"
       },
       {
         "path": "compatibility/omp/0006-live-settlement.patch",
-        "bytes": 74456,
-        "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+        "bytes": 75038,
+        "sha256": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a"
       },
       {
         "path": "compatibility/omp/0007-durable-submission.patch",
-        "bytes": 165135,
-        "sha256": "0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957"
+        "bytes": 166469,
+        "sha256": "a6c83b289824b3de84938e11a356074fabab7b02dd9e2315d8283a1ca4d3d1bf"
       },
       {
-        "path": "compatibility/omp/0008-durable-navigation.patch",
-        "bytes": 76272,
-        "sha256": "2b946933de6b71f6ac6462820e54bb03e1b3811f60cab41426cdfbf5073bb812"
+        "path": "compatibility/omp/0009-attachment-preparation.patch",
+        "bytes": 164209,
+        "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608"
+      },
+      {
+        "path": "compatibility/omp/0010-image-original-budget.patch",
+        "bytes": 3262,
+        "sha256": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7"
       }
     ],
     "immutableFreeze": {
@@ -194,12 +199,12 @@
   },
   "preservedActiveArtifacts": {
     "packages/contracts/generated/omp-wire.ts": {
-      "bytes": 63675,
-      "sha256": "967bff28825d494a15adc0d846f1a7054a0d6d0e6ff791a3ae410104c45a6582"
+      "bytes": 70500,
+      "sha256": "bbd140cfb218911f75ee7ebd55d91180db6ed9c728bec628bfffd9c4902057ff"
     },
     "packages/contracts/generated/omp.schema.json": {
-      "bytes": 197763,
-      "sha256": "ed446d360feb896fb5575ca9db5e982c31fd3aebd0cd1c4233881250e7553a1f"
+      "bytes": 220934,
+      "sha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
     }
   },
   "limits": [
@@ -210,5 +215,6 @@
     "Source37 terminal-fault actual remains pending with earlier failed actual and unresolved old fake accounting.",
     "Historical crash proofs do not attest this current cohort.",
     "Whole51/37/29 and product/global admission remain open/blocked."
-  ]
+  ],
+  "hostSourceCommit": "49fa1ddd47e6792e0044e9a94885e42c40ee06c3"
 }
