@@ -460,6 +460,39 @@ def case_invalid_target(base: Path) -> dict:
             "afterTree": after}
 
 
+def case_boundary(base: Path) -> dict:
+    """Malformed navigation commands must be rejected before any native dispatch."""
+    home = base / "navigation-home"
+    worker = Worker("boundary", home)
+    worker.start()
+    worker.submit("fixture prompt 1")
+    before = worker.tree()
+    carrier = carrier_for(home, worker.binding["nativeSessionId"])
+    digest_before = hashlib.sha256(carrier.read_bytes()).hexdigest()
+    malformed = {
+        "inspectType": {"type": "navigation_inspect", "entryId": 5},
+        "inspectEmpty": {"type": "navigation_inspect", "entryId": ""},
+        "navigateParams": {"type": "navigate_tree_committed", "navigationId": "n1",
+                           "sourceId": "s", "instanceId": "i", "nativeSessionId": "n", "entryId": "e"},
+        "navigateType": {"type": "navigate_tree_committed", "navigationId": "n1",
+                         "sourceId": hex64("s"), "instanceId": hex64("i"), "nativeSessionId": "n",
+                         "entryId": "e", "summarize": "yes"},
+        "queryId": {"type": "navigation_query", "navigationId": "bad id!"},
+        "queryMissing": {"type": "navigation_query"},
+    }
+    rejected = {name: failure_code(lambda payload=payload: worker.data_command(payload))
+                for name, payload in malformed.items()}
+    preview = worker.inspect(worker.message_entry("fixture prompt 1")["entryId"])
+    after = worker.tree()
+    digest_after = hashlib.sha256(carrier.read_bytes()).hexdigest()
+    worker.close()
+    assert set(rejected.values()) == {"NAVIGATION_COMMAND_SCHEMA"}, rejected
+    assert preview["entryId"] and after["cut"]["leafId"] == before["cut"]["leafId"]
+    assert digest_after == digest_before
+    return {"rejected": rejected, "control": preview, "leafUnchanged": True,
+            "carrierUnchanged": True}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("workdir", type=Path)
@@ -469,12 +502,27 @@ def main() -> int:
     args.workdir.mkdir(parents=True, exist_ok=True)
     source_tree = git_tree(ROOT / "vendor/omp-strict")
     assert source_tree == "b102d9db2b9b91e7baa1de484ca901705785993b", source_tree
-    selected = ["committed", "crash", "cancelled", "unknown", "write", "invalid"] \
+    manifest = json.loads((ROOT / "compatibility/omp/candidates/native-cohort-38/"
+                           "strict-runtime-inputs.json").read_text())
+    validators = {}
+    for entry in manifest["generatedOutputs"]:
+        if "navigation" not in entry["path"]:
+            continue
+        installed = (ROOT / "vendor/omp-strict" / entry["path"]).resolve()
+        contents = installed.read_bytes()
+        assert len(contents) == entry["bytes"], entry["path"]
+        assert hashlib.sha256(contents).hexdigest() == entry["sha256"], entry["path"]
+        validators[Path(entry["path"]).name] = entry["sha256"]
+    assert "navigation-result.generated.js" in (ROOT / "vendor/omp-strict/packages/coding-agent/"
+                                                "src/modes/rpc/navigation.generated.ts").read_text()
+    selected = ["committed", "crash", "cancelled", "unknown", "write", "invalid", "boundary"] \
         if args.cases == "all" else args.cases.split(",")
     cases = {"committed": case_committed, "crash": case_crash_after_reply,
              "cancelled": case_cancelled, "unknown": case_unknown_receipt_crash,
-             "write": case_write_failure, "invalid": case_invalid_target}
+             "write": case_write_failure, "invalid": case_invalid_target,
+             "boundary": case_boundary}
     evidence = {"kind": "native-durable-navigation", "sourceTree": source_tree,
+                "navigationValidators": validators,
                 "nativeVersion": json.loads((ROOT / "vendor/omp-strict/packages/coding-agent/package.json")
                                             .read_text())["version"]}
     for name in selected:
