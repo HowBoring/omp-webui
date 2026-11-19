@@ -2,7 +2,7 @@
   "status": "source-only",
   "sourceTicket": 36,
   "fixtureReference": 45,
-  "hostSourceCommit": "54545e62489ce13c2328f14c0882abc0c1c7d87c",
+  "hostSourceCommit": "6a55b59ddfa6173d6d76b7a55a5eee028a282125",
   "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
   "nativePatch": "compatibility/omp/0007-durable-submission.patch",
   "generator": "scripts/build-submission-contracts.ts",

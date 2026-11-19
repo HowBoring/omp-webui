@@ -13,7 +13,7 @@ explicit-answer/cancellation semantics and an isolated DSH root Slot/Remote acce
 Use Linux x64, Bun **1.4.4**, complete Node **24.22.1** (including development headers), Corepack with
 pnpm **11.28.5**, git, and writable package caches. Browser evidence also requires Python Playwright,
 `/usr/bin/chromium`, and `/usr/bin/strace`. Keep all upstream source and generated DSH assets under ignored vendor/.
-The checked-in `upstreams.lock.json` pins are unchanged.
+The checked-in `upstreams.lock.json` pins OMP `v19.0.0` (`57771ae562b9345e0579bceb2d68d585e3e6927e`) and the DSH release commit.
 
 From the repository root, with these tools on PATH and `COREPACK_HOME` set to a writable task cache:
 
@@ -50,7 +50,7 @@ files and generated artifacts additionally have individual content identities in
 `--check` verifies the tracked Host generated outputs without refreshing trust or replacing the candidate.
 
 The ordered stack now applies `0001-safe-preflight.patch` then `0002-readonly-catalog.patch`, directly after OMP base
-`7c49c11aa5bbaf3f418406583096168ad5b8c6dc`. The catalog is an isolated synthetic acceptance slice; see
+`57771ae562b9345e0579bceb2d68d585e3e6927e`. The catalog is an isolated synthetic acceptance slice; see
 [its contract and fixed budgets](CATALOG.md) and [typed DSH fixture](../apps/catalog/README.md). Future tickets must add ordered public deltas and extend the
 cumulative source gate/build schema deliberately; they must not overwrite this patch with an unrelated clone
 or claim planned capability names are implemented. `scripts/export-omp-patch.ts` is an explicit authoring tool,

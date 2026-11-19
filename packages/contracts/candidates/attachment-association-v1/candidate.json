@@ -1,7 +1,7 @@
 {
   "status": "source-only",
   "sourceTicket": 38,
-  "hostSourceCommit": "42bf196f548c01f2a61e9f9bb5664f340e41daeb",
+  "hostSourceCommit": "6a55b59ddfa6173d6d76b7a55a5eee028a282125",
   "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
   "nativeSourceSchemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
   "referenceHostArtifacts": "packages/contracts/generated",
@@ -28,8 +28,8 @@
     },
     {
       "path": "compatibility/omp/0005-strict-continuation.patch",
-      "bytes": 178227,
-      "sha256": "595edd67aa44288e2c690199ab5829a852255782b442be1a9e76c471aa553e46"
+      "bytes": 178306,
+      "sha256": "ef760259cde2ca15e7fde92e871cacdea8f5e541a759cb77c178ac942316c571"
     },
     {
       "path": "compatibility/omp/0006-live-settlement.patch",
@@ -48,14 +48,14 @@
     },
     {
       "path": "compatibility/omp/0010-image-original-budget.patch",
-      "bytes": 3256,
-      "sha256": "9da56554f30898767cb51efe30aac21a38616e78e70e49368ca43434115b1dac"
+      "bytes": 3262,
+      "sha256": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7"
     }
   ],
   "buildIdentity": {
     "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
-    "sourceSha256": "b3cfa52e8955321f8518b883a6a19c0a66d15d50ff9378455d540b92dacb233c",
-    "patchSha256": "6f6ec2ae93c0e0be4d76ffd967bee2dcd136600b231ad055480903c7e29b3aba",
+    "sourceSha256": "35c1f9b52d8db66ed35478cf303cd532d763cd88957fd6e6c7fa8c74942ab5e1",
+    "patchSha256": "b223daf2990e4dfae3a84fb8ae279515b2f79c34892d3b28ab626d449fe5332e",
     "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
   },
   "files": {

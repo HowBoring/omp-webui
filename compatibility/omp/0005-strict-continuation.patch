@@ -1554,7 +1554,7 @@ new file mode 100644
 index 00000000..0a24c099
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-generation.ts
-@@ -0,0 +1,345 @@
+@@ -0,0 +1,346 @@
 +import { strictStartupPolicy } from "../modes/rpc/strict-start-policy";
 +/** Native generation format v1. Publication only appends to a held carrier; no rename, unlink or truncation. */
 +import * as fs from "node:fs";
@@ -1727,7 +1727,8 @@ index 00000000..0a24c099
 +  }
 +  const directoryFd = openSidecar(parentFd, file);
 +  try {
-+    const value = readAuthenticatedMetadata(fd, directoryFd, committed, nativeId(decoder.decode(bytes)));
++    const prefix = new TextDecoder("utf8", { fatal: true }).decode(bytes, { stream: true });
++    const value = readAuthenticatedMetadata(fd, directoryFd, committed, nativeId(prefix));
 +    let bodyFd: number;
 +    try { bodyFd = fs.openSync(`/proc/self/fd/${directoryFd}/${value.token}.gen`, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW); }
 +    catch { throw new Error("GENERATION_CONTENT_UNAVAILABLE"); }

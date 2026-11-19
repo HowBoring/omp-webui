@@ -27,6 +27,7 @@ class DiagnosticsService extends TypertRemoteService {
 
 /** Loopback diagnostics carrier. No private Session or general Remote routes are mounted. */
 export async function startDiagnosticsServer(options: Options) {
+  if (!/^[a-f0-9]{64}$/.test(options.expectedIdentity ?? "")) throw new Error("MANIFEST_TRUST_REQUIRED");
   const ctx = new Context();
   const lifetime = new AbortController();
   const assets = resolve(options.assets ?? "vendor/dsh-diagnostics");
