@@ -1,26 +1,52 @@
 # Ticket #43 — isolated authenticated directory/Workspace component
 
-## Current source reconciliation (2026-11-17)
+## Current acceptance (2026-11-19)
 
+Against integration `2560f24c460085c6597cf76f973bf3c23a580008`, with the current OMP 19 candidate (`57771ae5…`) and
+the DSH c0 closure, the isolated component passed its full acceptance harness. Exact identities and check results:
+[current tuple](../../apps/workspaces/evidence/current-2560f24c/tuple.json); verbatim run result:
+[browser evidence](../../apps/workspaces/evidence/current-2560f24c/browser.json).
+
+- `bun run typecheck` and `bun run lint` passed (only pre-existing warnings).
+- Affected `bun test tests/workspaces tests/access tests/catalog tests/compatibility/{catalog-build,dsh-source,preflight,assets,source}.test.ts`:
+  **74 tests / 1,058 assertions / 20 files**. The single skip is the `tests/catalog/catalog.test.ts:155` real-syscall
+  fault test, which requires `strace`; `strace` is absent here.
+- `python3 tests/workspaces/browser.py`: **all 12 actual Linux Chromium scenarios** across three real Host process
+  starts, 47 native rows, 35 labelled synthetic index references, 40 typed DSH Remote calls and zero page errors.
+- Actual SIGKILL restart restores the absolute browser credential and the persistent directory grant; the readonly
+  native child exits on Host loss. Canonical-root replacement loses rights and reports `changed`; explicit revoke
+  persists through a second actual restart; native cursor errors and a labelled wrong-correlation fault stay explicit
+  and typed. The native inode/mtime/content manifest is unchanged and routine logs contain no bootstrap or CSRF value.
+- Readonly and budget scope: grants live only in Host-owned SQLite and the harness proves no native write; native
+  scan/page/response/snapshot/deadline budgets remain those in `compatibility/CATALOG.md`; the Host adds a 16 KiB
+  request body, eight Peers with one `$events` stream each, 32-item registered pages, 256 grants and 32 previews.
+
+Not run in this ticket: the full repository suite, performance, and Windows/WSL2. The normal Host still does not
+register this component and keeps `PRIVATE_CAPABILITY_GATE_CLOSED`. Synthetic profile/index rows are labelled and are
+not product evidence. #43 and #29 remain OPEN; #44 owns real registration, protected open and worker revocation.
+
+## Source reconciliation, 2026-11-17 (historical source-only record)
+
+Superseded by the current acceptance above; retained for the source-only merge record.
 The reviewed source fix `3357e89426350caf9c77ca166878d78b87ce324a` now includes integration
 `acc50ff4b45ab5419f27211a5c483f9618c0d00f` via own-branch merge `9b4ad362211c8a39d62719f7dafb013a4228ef0b`.
 The merge was conflict-free and preserves both explicit Workspace and continuation fixture enrollment branches.
 Parent #29 Decision 26 permits source components to integrate while semantic/private-data gates remain closed.
 The earlier hold pending #41 still applies to product admission and whole-ticket closure, not this source-only merge.
 
-Current verification: **42 tests / 206 assertions / 6 files**, strict repository TypeScript and normal Host compile
-passed. Tests use temporary Host-owned filesystem/SQLite and public DSH in-memory fixtures; no actual OMP imports,
-worker/Agent starts, sockets, listeners, browser, Native/FFI, global install or upstream builds ran. The second index
-test and HTTP admission/error tests were excluded because they require Native or real listeners. The prior wire
-failure fix remains source-identical; its real HTTP tests were not rerun. The normal Host source remains identical
-to integration, with `PRIVATE_CAPABILITY_GATE_CLOSED` independently checked after login. No Workspace Remote was
-registered in the normal Host. See [exact source verification](../implementation/ticket-43-source-evidence.json).
+Source-only verification on 2026-11-17: **42 tests / 206 assertions / 6 files**, strict repository TypeScript and
+normal Host compile passed. Those tests used temporary Host-owned filesystem/SQLite and public DSH in-memory
+fixtures; no actual OMP imports, worker/Agent starts, sockets, listeners, browser, Native/FFI, global install or
+upstream builds ran. The second index test and HTTP admission/error tests were excluded there because they require
+Native or real listeners. The normal Host source remains identical to integration, with
+`PRIVATE_CAPABILITY_GATE_CLOSED` independently checked after login. No Workspace Remote is registered in the normal
+Host. See [exact source verification](../implementation/ticket-43-source-evidence.json).
 
-All existing JSON/browser/native records below are preserved byte-for-byte as historical evidence. Integration's
-generated Native source/schema identity and DSH source patch set differ from that tuple. No current final-tuple
-browser/native PASS, current Workspace bundle, complete product, private-Session or global-install admission is
-claimed. #43 and #29 remain OPEN; #44 still owns real registration/protected open/worker revocation composition.
-Windows Chrome/WSL2 remains explicitly owner-deferred.
+The JSON/browser/native records under `apps/workspaces/evidence/` other than `current-2560f24c/` are preserved
+byte-for-byte as historical evidence from the older native source, schema and DSH tuple. They are not current
+identities. The current-tuple PASS is recorded above; complete product, private-Session and global-install admission
+remain unclaimed. #43 and #29 remain OPEN; #44 still owns real registration/protected open/worker revocation
+composition. Windows Chrome/WSL2 remains explicitly owner-deferred.
 
 ## Historical reviewed component evidence
 
@@ -89,7 +115,7 @@ Exact historical source/build/schema/runtime/client/Host/installation identities
 | Canonical descendants/replacement/unknown cwd | Segment checks and device/inode/birth-time revalidation; explicit missing, inaccessible, unknown and changed states. |
 | Unauthorized cwd metadata only | Discovered/registered metadata and held/unknown observations; protected history/open/execution remain blocked. |
 | Real pagination/partial/errors | Native catalog pages and separately labelled synthetic Session Index input use actual public descriptions; no implicit registration. |
-| Readonly safety and grant persistence | Actual native trace and process-restart browser evidence; supervised Session-worker revocation remains #44. |
+| Readonly safety and grant persistence | Current tuple: unchanged native inode/mtime/content manifest, SIGKILL restart credential/grant recovery and second-restart revoke; supervised Session-worker revocation remains #44. |
 
 The browser fixture retains 47 discovered rows and 35 explicitly synthetic readonly index references, including held,
 replaced, missing, source-unavailable and invalid-reference states. The native inode/mtime/content manifest must stay

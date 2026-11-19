@@ -1,20 +1,25 @@
 # Authenticated synthetic Workspace acceptance component
 
-## Source reconciliation, 2026-11-17
+## Current acceptance, 2026-11-19
 
-This is an **unregistered source component**, reconciled with integration `acc50ff4b45ab5419f27211a5c483f9618c0d00f`.
-The normal Host imports neither this executable nor its Workspace Remote contribution; authenticated private API
-requests still return `PRIVATE_CAPABILITY_GATE_CLOSED`. Parent #29 Decision 26 permits this source-only integration;
-it does not admit private Sessions, establish a global OMP installation or close #43/#29.
+This remains an **isolated component**. The normal Host imports neither this executable nor its Workspace Remote
+contribution; authenticated private API requests still return `PRIVATE_CAPABILITY_GATE_CLOSED`. Parent #29
+Decision 26 permits isolated component integration; it does not admit private Sessions, establish a global OMP
+installation or close #43/#29.
 
-The browser/native records under `evidence/` are preserved historical results from the earlier `4764…` native source,
-`dcc2…` schema and c0 DSH tuple. They were not rerun after reconciliation. Integration's generated identity and DSH
-source patch set have since advanced; the old tuple is not current-combination acceptance or a current enrollment.
-See [current source verification](../../docs/implementation/ticket-43-source-evidence.json) for pure filesystem/SQLite,
-in-memory public DSH, strict TypeScript and normal Host compile results. No current Workspace browser/native build,
-installation, listener or process acceptance is claimed.
+Against integration `2560f24c` with the current OMP 19 candidate (`57771ae5…`) and DSH c0 closure, the harness passed
+12 real Chromium scenarios across three real Host process starts: catalog partial/error mapping, every native page,
+canonical grant review/confirm/revoke, descendant/prefix/symlink/unknown/missing cwd rights, CSRF and origin denial,
+closed history/open/execution entry points, SIGKILL restart credential and grant persistence, directory replacement
+losing rights, and an unchanged native inode/mtime/content manifest. Current tuple, hashes and check results:
+[current tuple](evidence/current-2560f24c/tuple.json) and
+[browser evidence](evidence/current-2560f24c/browser.json). The affected suites reported 74 tests, 1058 assertions and
+20 files with one `strace`-dependent skip. The full suite, performance and Windows/WSL2 were not run.
+Source-only checks remain in [source evidence](../../docs/implementation/ticket-43-source-evidence.json).
+`before-rebase-2842168/`, `before-review-fix-8157865/`, `review-fix/`, `tuple.json`, `linux-browser.json` and
+`native-trace.json` are preserved historical `4764…`/`dcc2…`/c0 output, not current-combination acceptance.
 
-## Historical fixture and procedure
+## Fixture and procedure
 
 This explicit executable uses real Linux Chromium, fixed DSH Connection/ClientRemote/Gateway/Peer/`$events`, Bun,
 #42 owner login/CSRF and an external actual OMP readonly catalog candidate. It is separate from the product Host.
@@ -33,9 +38,10 @@ The separate registered-reference panel is labelled synthetic metadata input and
 The isolated Session carrier uses its SQLite Session Index for the same registered-page Remote. The normal Host
 never imports this executable.
 
-The earlier matched fixture used Bun 1.4.4 and fixed Node/Corepack tools from `compatibility/README.md` on PATH.
-The following is its historical procedure, not a verified procedure for the reconciled combination or authorization
-to build, enroll or launch an actual OMP candidate. Such work needs separate admission and freshly matched evidence:
+The verified run used Bun 1.4.4 and the fixed Node/Corepack tools from `compatibility/README.md` on PATH, starting from
+the already prepared compatibility closure. The ordering below documents this combination; the preparation commands
+were not rerun in this ticket, and changing the pinned candidate still needs separate admission and freshly matched
+evidence:
 
 ```sh
 bun run compat:prepare --reset

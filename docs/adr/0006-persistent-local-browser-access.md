@@ -35,6 +35,8 @@ The ordinary Host still denies private Session capabilities. Product composition
 admission gates and #44's registration/protected open and supervised worker revocation; this evidence changes no
 Session Source scope and does not claim those future capabilities.
 
-The 2026-11-17 reconciliation admits only the unregistered source under parent #29 Decision 26. The prior
-browser/native tuple remains historical; [current source checks](../implementation/ticket-43-source-evidence.json)
-leave normal Host Workspace registration and private/product/global admission closed. #43 and #29 remain OPEN.
+## Current component status (2026-11-19)
+
+The 2026-11-19 current-tuple run accepts the isolated component under parent #29 Decision 26; earlier
+browser/native records remain historical. [Current acceptance evidence](../evidence/ticket-43-workspaces.md)
+still leaves normal Host Workspace registration and private/product/global admission closed. #43 and #29 remain OPEN.
