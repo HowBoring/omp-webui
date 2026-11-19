@@ -50,3 +50,39 @@ inference, fsync/power-loss durability, and maintainer acceptance gates remain s
 attaches with `ptrace` and requires a Linux tracer; it is not a portable test.
 
 Primary policy: [`docs/adr/0014-native-durable-submission.md`](../../../docs/adr/0014-native-durable-submission.md).
+
+## Native TUI compatibility and rollback
+
+The interactive check uses a dedicated uv-managed Python 3.14.4 environment with pexpect 4.9.0 and the
+unprivileged overlay runner (`run-with-system-fixtures.sh`, user namespace, system `strace` overlay, no global
+OMP change). The ticket worktree's strict fixture is built by `replay.py` into `vendor/omp-strict` (source tree
+`b102d9db…`, pristine `strict-mode.ts`); the candidate TUI entry is
+`vendor/omp-strict/packages/coding-agent/src/cli.ts`, and the pinned baseline is
+`vendor/omp-candidate/cli.js` from the main checkout (base `7c49c11a…`, no submission patches).
+
+Synthetic session: built in place because generation commitments bind to the carrier inode (`carrierIdentity` =
+hash of `dev:ino:birthtimeNs`), so a copied JSONL cannot be replayed. `tests/continuation/tui-fixture.py` opens a
+strict worker with `compatibility/omp/fixtures/submission-provider.ts`, submits one deterministic prompt
+(`tui-1`, `Synthetic fixture input`), waits for a committed terminal page, and prints the resulting Session path.
+Then `tests/continuation/tui-probe.py` opens that same file in a real PTY. Reproduction (inside the ticket
+worktree, HOME name must contain `submission-`):
+
+```
+run-with-system-fixtures.sh <venv>/bin/python tests/continuation/tui-fixture.py \
+  /tmp/t36/submission-tui2 "$PWD/vendor/omp-strict" /home/howboring/.bun/bin/bun \
+  compatibility/omp/fixtures/submission-provider.ts compatibility/omp/fixtures/no-provider.ts
+# -> {"session": "/tmp/t36/submission-tui2/.omp/agent/sessions/…/<id>.jsonl", "terminal": true}
+
+for mode in current baseline; do
+  OMP_BASELINE_CLI=<main>/vendor/omp-candidate/cli.js \
+  OMP_CANDIDATE_CLI="$PWD/vendor/omp-strict/packages/coding-agent/src/cli.ts" \
+  run-with-system-fixtures.sh bash -c 'cd '"$PWD"' && <venv>/bin/python tests/continuation/tui-probe.py \
+    /tmp/t36/submission-tui2 "<session>" '"$mode"' /home/howboring/.bun/bin/bun'
+done
+```
+
+Observed: `current` → `{"kind": "matched-native-tui", "historyRendered": true, "explicitRename": true,
+"exit": 0}` — the current TUI renders the committed history, accepts an explicit `/rename`, and exits cleanly.
+`baseline` → `{"kind": "baseline-tui-refusal", "exit": 1, "invalidHeader": true}` and leaves the file
+untouched. Both runs used the actual native PTY path under the overlay runner; no model inference was sent.
+Global installation, real provider inference and Windows/WSL2 remain separate.

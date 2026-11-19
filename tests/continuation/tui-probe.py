@@ -10,10 +10,15 @@ import pexpect
 root = pathlib.Path(__file__).resolve().parents[2]
 home = pathlib.Path(sys.argv[1]).resolve()
 file = pathlib.Path(sys.argv[2]).resolve()
-baseline = sys.argv[3] in ("baseline", "rollback")
+mode = sys.argv[3]
+baseline_cli = os.environ.get("OMP_BASELINE_CLI")
+candidate_cli = os.environ.get("OMP_CANDIDATE_CLI")
+assert baseline_cli and candidate_cli, "OMP_BASELINE_CLI and OMP_CANDIDATE_CLI must name real native entries"
+baseline = mode in ("baseline", "rollback")
 assert file.is_relative_to(home) and (home / "project").is_dir()
 bun = sys.argv[4]
-launcher = "/workspace/work/rpc-public-module-probe/tarball/package/dist/cli.js" if baseline else str(root / "vendor/omp-candidate/cli.js")
+launcher = baseline_cli if baseline else candidate_cli
+assert pathlib.Path(launcher).is_file(), launcher
 env = {"HOME": str(home), "PATH": "/usr/bin:/bin", "TMPDIR": str(home), "TERM": "xterm-256color",
        "PI_CODING_AGENT_DIR": str(home / ".omp/agent"), "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0",
        "XDG_CONFIG_HOME": str(home / "config"), "XDG_CACHE_HOME": str(home / "cache"),
