@@ -6,9 +6,9 @@ import { fixtureCandidatePath, type FixtureCandidate } from "../continuation/wor
 // sha256sum over the ordered patch files and the emitted schema rather than read back from the build itself.
 const expectedBuild = {
   base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
-  sourceSha256: "adda6c134cbff19e7cd688f2b93baf26b962179e5f0b6e2bb1c68d7b675d9451",
-  patchSha256: "de7b02421953a365c3a458d16e4f74d9122a1b2cf9112a8df4d53083f3e8b753",
-  schemaSha256: "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab",
+  sourceSha256: "b3cfa52e8955321f8518b883a6a19c0a66d15d50ff9378455d540b92dacb233c",
+  patchSha256: "6f6ec2ae93c0e0be4d76ffd967bee2dcd136600b231ad055480903c7e29b3aba",
+  schemaSha256: "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
 } as const;
 
 /** Public diagnostic-only child before synthetic Session authoring; no global installation or product admission. */

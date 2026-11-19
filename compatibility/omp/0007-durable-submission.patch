@@ -386,7 +386,7 @@ index 94ddd949..5bb49834 100644
 +				if (!inputGate.isCurrent(command) || shutdownState.requested || session.sessionId !== sessionId) return false;
 +				if (initiatingSubmission?.idleOnly && (session.isStreaming || session.hasAdmittedSubmission
 +          || session.queuedMessageCount > 0 || session.isCompacting || session.isSessionTransitioning
-+          || session.hasPendingAsyncWork() || goalTurnScheduled())) throw new Error("SUBMISSION_BUSY");
++          || session.wakeSources !== undefined || goalTurnScheduled())) throw new Error("SUBMISSION_BUSY");
 +        if (initiatingSubmission) {
 +					// Admission can wait behind an awaited input hook. Recheck the held native
 +					// namespace, lease and cwd before each subsequent ingress side effect.
