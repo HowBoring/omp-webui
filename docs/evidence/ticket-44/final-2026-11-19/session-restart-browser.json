@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "platform": "Linux Chromium",
+  "browser": "157.0.8103.38",
+  "scenario": "actual Host SIGKILL/restart/manual same-native-ID reopen",
+  "credentialSurvived": true,
+  "indexSurvived": true,
+  "automaticOpen": false,
+  "automaticReplay": false,
+  "sameNativeSession": "native-0000",
+  "newWorkerGeneration": true,
+  "privateData": false,
+  "normalProductAdmission": "blocked",
+  "limits": [
+    "SIGKILL cannot run Host cooperative cleanup; worker pipe EOF and manual reopening provide subsequent native ownership checks."
+  ]
+}

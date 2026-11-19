@@ -1,0 +1,19 @@
+{
+  "status": "PASS",
+  "platform": "Linux Chromium",
+  "browser": "157.0.8103.38",
+  "realDSH": true,
+  "realBun": true,
+  "realStrictNative": true,
+  "scenarios": [
+    "authenticated-explicit-grant",
+    "concurrent-open-one-worker",
+    "root-startup-ui-without-session",
+    "explicit-answer",
+    "original-native-history-via-DSH-Conversation",
+    "warm-refresh-same-worker"
+  ],
+  "privateData": false,
+  "normalProductAdmission": "blocked",
+  "errors": []
+}
