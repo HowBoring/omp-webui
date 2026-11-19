@@ -516,9 +516,17 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     this.#current(identity, active);
-    active.journal ??= LiveJournal.open(active.worker.history);
-    const journal = await active.journal; this.#current(identity, active); active.journalValue = journal;
-    if (journal.sessionId !== sessionId || journal.failure) throw new Error("SESSION_PRESENTATION_INVALIDATED"); return journal;
+    let journal = await (active.journal ??= LiveJournal.open(active.worker.history));
+    this.#current(identity, active);
+    // A new submission starts a new native cut/context. Re-open the journal from the authoritative
+    // history instead of permanently failing presentation for the rest of the worker's life.
+    if (journal.sessionId !== sessionId || journal.failure) {
+      journal = await LiveJournal.open(active.worker.history); this.#current(identity, active);
+      active.journal = Promise.resolve(journal);
+    }
+    active.journalValue = journal;
+    if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
+    return journal;
   }
   requirePresentation(identity: BrowserAccess, sessionId: string, journal: LiveJournal): void {
     const active = this.#active;

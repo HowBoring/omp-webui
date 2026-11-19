@@ -83,8 +83,12 @@ async function present(view: PublicSessionView) {
     source: view.registration.sourceId, instance: view.registration.instanceId, session: view.registration.nativeSessionId,
     cwd: view.cwd, draft: draftId, epoch: attached.generation });
   viewChanged(view);
-  const scope = provider.scope(binding);
-  const saved = await provider.read(scope, new AbortController().signal);
+  let saved: Awaited<ReturnType<typeof provider.read>>;
+  try {
+    await waitProjection(binding);
+    const scope = provider.scope(binding);
+    saved = await provider.read(scope, new AbortController().signal);
+  } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
   const target = ctx.uiConversation.binding(binding).target("trajectory");
   const render = () => { if (reference === retained) historyChanged((target.getSnapshot()?.eventNodes ?? []).map(node => JSON.stringify(node))); };
@@ -113,7 +117,7 @@ function Surface() {
   const catalog = async () => setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices);
   const open = async (selectionId: SessionSelectionId) => {
     setOpening(true);
-    try { await present(resultValue(await ctx.remote.ompSessions.open(selectionId))); }
+    try { await present(resultValue(await (view ? ctx.remote.ompSessions.switch(selectionId) : ctx.remote.ompSessions.open(selectionId)))); }
     finally { setOpening(false); }
   };
   const persist = async (record: Parameters<typeof provider.write>[1], reason: Parameters<typeof provider.write>[2]) => {
@@ -226,7 +230,7 @@ function Surface() {
     <button onClick={() => void perform(catalog)}>Refresh catalog</button>
     <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
       <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
-      <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>Open Chat Session</button>
+      <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
     </li>)}</ul>
     <section data-chat-worker-id={view?.workerId ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}>
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>

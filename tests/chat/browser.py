@@ -18,7 +18,7 @@ async def main():
     errors, wire = [], []
     subprocess.run(["pkill", "-f", "vendor/host-chat/chat-component-main.js"], check=False)
     host = subprocess.Popen([BUN, "--no-env-file", "vendor/host-chat/chat-component-main.js"], cwd=ROOT,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                            stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
     import time, urllib.request
     for _ in range(100):
         try:
@@ -35,6 +35,12 @@ async def main():
         context = await browser.new_context()
         page = await context.new_page()
         page.on("pageerror", lambda error: errors.append(str(error)))
+        async def log_response(response):
+            if "/api/" in response.url and response.request.method == "POST":
+                try: body = await response.text()
+                except Exception: body = "<no body>"
+                print("RPC", response.status, response.url.rsplit("/api/", 1)[-1], body[:400].replace("\n", " "))
+        page.on("response", log_response)
         page.on("response", lambda response: wire.append({"status": response.status, "path": response.url.split("?")[0]})
                 if "/api/" in response.url else None)
         await page.goto(link)
@@ -58,8 +64,18 @@ async def main():
         assert await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session") == "native-0000"
         assert await page.get_by_label("Message").input_value() == "draft survives reload"
         await page.get_by_role("button", name="Refresh catalog").click()
-        await page.locator('li[data-native-id="native-0001"]').get_by_role("button", name="Open Chat Session").click()
-        await page.wait_for_selector('[data-chat-native-session="native-0001"]', timeout=30000)
+        await page.locator('li[data-native-id="native-0001"]').get_by_role("button", name="Switch Chat Session").click()
+        try:
+            await page.wait_for_selector('[data-chat-native-session="native-0001"]', timeout=20000)
+        except Exception:
+            print("OPEN0001_CURRENT", await page.locator("[data-chat-native-session]").count())
+            print("OPEN0001_URL", page.url)
+            print("OPEN0001_BODY", (await page.locator("body").inner_text())[:400].replace("\n", "|"))
+            print("OPEN0001_ERRORS", errors[-4:])
+            print("OPEN0001_ALERTS", [await e.inner_text() for e in await page.locator("[role=alert]").all()])
+            print("OPEN0001_VIEW", await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session"))
+            print("OPEN0001_BODY", (await page.locator("body").inner_text())[:300].replace("\n", "|"))
+            raise
         assert await page.get_by_label("Message").input_value() == ""
         await page.get_by_label("Message").fill("other session draft")
         await page.wait_for_timeout(1000)
@@ -67,7 +83,7 @@ async def main():
         await page.wait_for_selector('[data-chat-native-session="native-0001"]', timeout=30000)
         assert await page.get_by_label("Message").input_value() == "other session draft"
         await page.get_by_role("button", name="Refresh catalog").click()
-        await page.locator('li[data-native-id="native-0000"]').get_by_role("button", name="Open Chat Session").click()
+        await page.locator('li[data-native-id="native-0000"]').get_by_role("button", name="Switch Chat Session").click()
         await page.wait_for_selector('[data-chat-native-session="native-0000"]', timeout=30000)
         assert await page.get_by_label("Message").input_value() == "draft survives reload"
         await page.get_by_role("button", name="Send", exact=True).click()
