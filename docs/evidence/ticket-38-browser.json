@@ -1,6 +1,6 @@
 {
   "kind": "isolated-attachment-browser",
-  "recordedAt": "2026-11-19T11:11:06.131835+00:00",
+  "recordedAt": "2026-11-19T11:15:57.444692+00:00",
   "chromium": "/usr/bin/google-chrome-stable",
   "flow": {
     "build": {
@@ -10,13 +10,13 @@
       "schemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab"
     },
     "target": {
-      "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
-      "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+      "sourceId": "265c306566730d924f820a3a190ff4960cbb831d31aee3c53b5336bfe6252ae2",
+      "instanceId": "03724c1dccda7b8302d5fb898628653fdf69225d75b17dd166757698e2d9640b",
       "nativeSessionId": "native-0000"
     },
     "selection": {
       "session": "attachment-projection",
-      "draftId": "43ca4d1b-840f-4d2b-b3fb-eb9d00873f40",
+      "draftId": "31da0fbe-bf0b-4f54-bedf-c808fd366e23",
       "revision": "1",
       "originalIds": [
         "original-utf8",
@@ -37,20 +37,20 @@
     ],
     "submission": {
       "version": "durable-submission-v1",
-      "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597",
+      "clientSubmissionId": "5064d3e5-8013-424e-8767-ab2eee5894ef",
       "target": {
-        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
-        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "sourceId": "265c306566730d924f820a3a190ff4960cbb831d31aee3c53b5336bfe6252ae2",
+        "instanceId": "03724c1dccda7b8302d5fb898628653fdf69225d75b17dd166757698e2d9640b",
         "nativeSessionId": "native-0000"
       },
       "found": true,
       "duplicate": false,
       "admission": "local",
       "origin": {
-        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
-        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "sourceId": "265c306566730d924f820a3a190ff4960cbb831d31aee3c53b5336bfe6252ae2",
+        "instanceId": "03724c1dccda7b8302d5fb898628653fdf69225d75b17dd166757698e2d9640b",
         "nativeSessionId": "native-0000",
-        "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597"
+        "clientSubmissionId": "5064d3e5-8013-424e-8767-ab2eee5894ef"
       },
       "reservation": "committed",
       "operationOutcome": "unknown",
@@ -60,23 +60,23 @@
       "relations": [],
       "nextOffset": null,
       "preparation": {
-        "receiptId": "84ea8713-5ef2-46aa-bf04-06f754ca4e5a",
-        "resultDigest": "02b4258ff60fbd822c2a34a973911fdae0067c30e6d18582974e3611a6f4875f",
+        "receiptId": "040c3e34-ef58-48ef-8579-8136c5bcc34c",
+        "resultDigest": "2654d10eb5edecf31d7ce43c495975ae616a55b300d7b7f3c4af9f9963b69566",
         "draftRevision": "1",
-        "authorityGeneration": "d722a65e-739f-4f5a-b004-c8a450722298",
+        "authorityGeneration": "1eb3ac32-d145-4905-85d7-fafa25607607",
         "acceptedDegradations": [],
         "attachments": [
           {
             "originalId": "original-utf8",
             "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
-            "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+            "preparedId": "a00a669a-eb54-49b9-baf3-5da26bc0b017",
             "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
             "representationKind": "text"
           },
           {
             "originalId": "original-png",
             "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
-            "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+            "preparedId": "afec6f62-d8ce-4f1e-b477-2579432381ea",
             "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
             "representationKind": "image"
           }
@@ -85,20 +85,20 @@
     },
     "query": {
       "version": "durable-submission-v1",
-      "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597",
+      "clientSubmissionId": "5064d3e5-8013-424e-8767-ab2eee5894ef",
       "target": {
-        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
-        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "sourceId": "265c306566730d924f820a3a190ff4960cbb831d31aee3c53b5336bfe6252ae2",
+        "instanceId": "03724c1dccda7b8302d5fb898628653fdf69225d75b17dd166757698e2d9640b",
         "nativeSessionId": "native-0000"
       },
       "found": true,
       "duplicate": false,
       "admission": "local",
       "origin": {
-        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
-        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "sourceId": "265c306566730d924f820a3a190ff4960cbb831d31aee3c53b5336bfe6252ae2",
+        "instanceId": "03724c1dccda7b8302d5fb898628653fdf69225d75b17dd166757698e2d9640b",
         "nativeSessionId": "native-0000",
-        "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597"
+        "clientSubmissionId": "5064d3e5-8013-424e-8767-ab2eee5894ef"
       },
       "reservation": "committed",
       "operationOutcome": "unknown",
@@ -107,25 +107,25 @@
       "persistence": "unresolved",
       "relations": [
         {
-          "relationId": "entry:695ee2a1",
+          "relationId": "entry:2c0a2eaa",
           "role": "additional",
           "status": "observed",
           "persistence": "committed",
-          "entryId": "695ee2a1",
+          "entryId": "2c0a2eaa",
           "availability": "retained"
         },
         {
-          "relationId": "entry:0e81015a",
+          "relationId": "entry:b65b0149",
           "role": "prepared",
           "status": "observed",
           "persistence": "committed",
-          "entryId": "0e81015a",
+          "entryId": "b65b0149",
           "availability": "retained",
           "attachments": [
             {
               "originalId": "original-utf8",
               "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
-              "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+              "preparedId": "a00a669a-eb54-49b9-baf3-5da26bc0b017",
               "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
               "representationKind": "text",
               "entryPart": {
@@ -136,17 +136,17 @@
           ]
         },
         {
-          "relationId": "entry:63e71cdc",
+          "relationId": "entry:cfc4276e",
           "role": "input",
           "status": "observed",
           "persistence": "committed",
-          "entryId": "63e71cdc",
+          "entryId": "cfc4276e",
           "availability": "retained",
           "attachments": [
             {
               "originalId": "original-png",
               "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
-              "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+              "preparedId": "afec6f62-d8ce-4f1e-b477-2579432381ea",
               "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
               "representationKind": "image",
               "entryPart": {
@@ -159,23 +159,23 @@
       ],
       "nextOffset": null,
       "preparation": {
-        "receiptId": "84ea8713-5ef2-46aa-bf04-06f754ca4e5a",
-        "resultDigest": "02b4258ff60fbd822c2a34a973911fdae0067c30e6d18582974e3611a6f4875f",
+        "receiptId": "040c3e34-ef58-48ef-8579-8136c5bcc34c",
+        "resultDigest": "2654d10eb5edecf31d7ce43c495975ae616a55b300d7b7f3c4af9f9963b69566",
         "draftRevision": "1",
-        "authorityGeneration": "d722a65e-739f-4f5a-b004-c8a450722298",
+        "authorityGeneration": "1eb3ac32-d145-4905-85d7-fafa25607607",
         "acceptedDegradations": [],
         "attachments": [
           {
             "originalId": "original-utf8",
             "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
-            "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+            "preparedId": "a00a669a-eb54-49b9-baf3-5da26bc0b017",
             "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
             "representationKind": "text"
           },
           {
             "originalId": "original-png",
             "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
-            "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+            "preparedId": "afec6f62-d8ce-4f1e-b477-2579432381ea",
             "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
             "representationKind": "image"
           }

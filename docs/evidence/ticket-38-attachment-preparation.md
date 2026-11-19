@@ -7,11 +7,15 @@ projected. Scope limits are listed at the end.
 
 | Input | Identity |
 | --- | --- |
+| Tree | `ecd16a2` — merge of `mvp/spec-29` `5dab4de` |
 | Native base | `7c49c11aa5bbaf3f418406583096168ad5b8c6dc` |
 | Patch stack | `0001`–`0007`, `0009-attachment-preparation`, `0010-image-original-budget` |
 | `sourceSha256` | `46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c` |
 | `patchSha256` | `6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea` |
 | `schemaSha256` | `177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab` |
+
+Every command in the table below was re-run on `ecd16a2` after merging `mvp/spec-29` `5dab4de`; the
+digests did not change, so the merged tree is byte-identical for the native candidate.
 
 The three digests were recomputed independently with `sha256sum` over
 `vendor/omp/packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json` (pretty-printed form) and
@@ -101,12 +105,14 @@ bun --no-env-file apps/host/src/attachment-fixture-main.ts   # 127.0.0.1:3187
 ATTACHMENT_URL=http://127.0.0.1:3187/ uv run --quiet --with playwright python3 tests/browser/attachment-browser.py
 ```
 
-Recorded run (`docs/evidence/ticket-38-browser.json`, 2026-11-19T11:11:06Z): select UTF-8 + PNG →
+Recorded run (`docs/evidence/ticket-38-browser.json`, re-executed after the `mvp/spec-29` merge):
+select UTF-8 + PNG →
 `awaiting-consent` with two prepared cards → explicit consent → `submission_submit` admitted
 (`reservation: committed`, `admission: local`) → `submission_query` returns
 `inputOutcome: generated` with three relations, `prepared` (text, `entryPart` present) and `input`
 (image, `entryPart` present) both `observed`/`committed`, and both `PreparedAttachmentLink`s carrying
-`preparedId` + `preparedSha256`. Receipt `84ea8713-…`, submission `09eacb44-…`.
+`preparedId` + `preparedSha256`. Receipt `040c3e34-ef58-48ef-8579-8136c5bcc34c`, submission
+`5064d3e5-8013-424e-8767-ab2eee5894ef`.
 
 The Host refuses nothing here but stays at `sessionAdmission: "blocked"` for every other route; the
 page serves only digest-matching assets and a strict CSP.
