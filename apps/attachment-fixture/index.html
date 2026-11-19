@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Isolated attachment preparation</title>
+<style>
+body{font:14px/1.45 ui-monospace,monospace;margin:1.5rem;color:#1b241f;background:#faf8f2}
+#state,#originals,#evidence{max-width:56rem;min-height:1.5rem;margin:.6rem 0}
+#originals li{padding:.15rem 0}
+#result[data-status="error"]{color:#8a2b1d}
+button{font:inherit;min-height:40px;margin-right:.4rem;background:#fff;border:1px solid #9aa89d}
+button[disabled]{opacity:.5}
+section[data-attachment-phase]{border:1px solid #d9d4c7;padding:.8rem;max-width:56rem}
+</style></head><body>
+<h1>Attachment preparation (isolated)</h1>
+<p id="state">booting</p>
+<p><button id="select">Select UTF-8 and PNG originals</button><button id="send">Send with preparation</button><button id="cancel">Cancel attempt</button><button id="query">Query submission</button></p>
+<p id="result"></p>
+<ul id="originals"></ul>
+<div id="panel"></div>
+<pre id="evidence">{}</pre>
+<script type="module" src="/client.js"></script>
+</body></html>

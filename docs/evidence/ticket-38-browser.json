@@ -1,0 +1,191 @@
+{
+  "kind": "isolated-attachment-browser",
+  "recordedAt": "2026-11-19T11:11:06.131835+00:00",
+  "chromium": "/usr/bin/google-chrome-stable",
+  "flow": {
+    "build": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c",
+      "patchSha256": "6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea",
+      "schemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab"
+    },
+    "target": {
+      "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
+      "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+      "nativeSessionId": "native-0000"
+    },
+    "selection": {
+      "session": "attachment-projection",
+      "draftId": "43ca4d1b-840f-4d2b-b3fb-eb9d00873f40",
+      "revision": "1",
+      "originalIds": [
+        "original-utf8",
+        "original-png"
+      ]
+    },
+    "originals": [
+      {
+        "id": "original-utf8",
+        "name": "selected.txt",
+        "mediaType": "text/plain"
+      },
+      {
+        "id": "original-png",
+        "name": "selected.png",
+        "mediaType": "image/png"
+      }
+    ],
+    "submission": {
+      "version": "durable-submission-v1",
+      "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597",
+      "target": {
+        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
+        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "nativeSessionId": "native-0000"
+      },
+      "found": true,
+      "duplicate": false,
+      "admission": "local",
+      "origin": {
+        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
+        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "nativeSessionId": "native-0000",
+        "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597"
+      },
+      "reservation": "committed",
+      "operationOutcome": "unknown",
+      "inputOutcome": "unresolved",
+      "terminal": false,
+      "persistence": "unresolved",
+      "relations": [],
+      "nextOffset": null,
+      "preparation": {
+        "receiptId": "84ea8713-5ef2-46aa-bf04-06f754ca4e5a",
+        "resultDigest": "02b4258ff60fbd822c2a34a973911fdae0067c30e6d18582974e3611a6f4875f",
+        "draftRevision": "1",
+        "authorityGeneration": "d722a65e-739f-4f5a-b004-c8a450722298",
+        "acceptedDegradations": [],
+        "attachments": [
+          {
+            "originalId": "original-utf8",
+            "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
+            "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+            "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
+            "representationKind": "text"
+          },
+          {
+            "originalId": "original-png",
+            "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
+            "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+            "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
+            "representationKind": "image"
+          }
+        ]
+      }
+    },
+    "query": {
+      "version": "durable-submission-v1",
+      "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597",
+      "target": {
+        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
+        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "nativeSessionId": "native-0000"
+      },
+      "found": true,
+      "duplicate": false,
+      "admission": "local",
+      "origin": {
+        "sourceId": "20edbbf7c8a2ba7192ec6a5b623c5064622a401b2cc84b206941181b71e09dd3",
+        "instanceId": "7be5aca6d8ce7a2823572beda163a8504ce4748474c61582b562f53507762cb5",
+        "nativeSessionId": "native-0000",
+        "clientSubmissionId": "09eacb44-5252-49f9-afb2-f9e7091f7597"
+      },
+      "reservation": "committed",
+      "operationOutcome": "unknown",
+      "inputOutcome": "generated",
+      "terminal": false,
+      "persistence": "unresolved",
+      "relations": [
+        {
+          "relationId": "entry:695ee2a1",
+          "role": "additional",
+          "status": "observed",
+          "persistence": "committed",
+          "entryId": "695ee2a1",
+          "availability": "retained"
+        },
+        {
+          "relationId": "entry:0e81015a",
+          "role": "prepared",
+          "status": "observed",
+          "persistence": "committed",
+          "entryId": "0e81015a",
+          "availability": "retained",
+          "attachments": [
+            {
+              "originalId": "original-utf8",
+              "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
+              "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+              "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
+              "representationKind": "text",
+              "entryPart": {
+                "kind": "files",
+                "index": 0
+              }
+            }
+          ]
+        },
+        {
+          "relationId": "entry:63e71cdc",
+          "role": "input",
+          "status": "observed",
+          "persistence": "committed",
+          "entryId": "63e71cdc",
+          "availability": "retained",
+          "attachments": [
+            {
+              "originalId": "original-png",
+              "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
+              "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+              "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
+              "representationKind": "image",
+              "entryPart": {
+                "kind": "content",
+                "index": 1
+              }
+            }
+          ]
+        }
+      ],
+      "nextOffset": null,
+      "preparation": {
+        "receiptId": "84ea8713-5ef2-46aa-bf04-06f754ca4e5a",
+        "resultDigest": "02b4258ff60fbd822c2a34a973911fdae0067c30e6d18582974e3611a6f4875f",
+        "draftRevision": "1",
+        "authorityGeneration": "d722a65e-739f-4f5a-b004-c8a450722298",
+        "acceptedDegradations": [],
+        "attachments": [
+          {
+            "originalId": "original-utf8",
+            "originalSha256": "2642a2b70df96bda643ece1cfa680b31953506510a2a1fd2a17dac8559bfd4aa",
+            "preparedId": "2bb75426-ade8-47a9-881a-c71c76853321",
+            "preparedSha256": "f54d42d98138749024a1b1e9b61e49c12cca75a88dfe48ff01f19cb0cc7ae8e3",
+            "representationKind": "text"
+          },
+          {
+            "originalId": "original-png",
+            "originalSha256": "0bc4b3dccb3e2ec97408df32aa079c25fb2eeed31f31484f0b25a9043b53dd66",
+            "preparedId": "a581a88d-86b4-4df9-8db9-796f38f6804c",
+            "preparedSha256": "63c775c334f09cf819cb73cb9d9588a84fe41d8070e0cc45db87250936dbbf02",
+            "representationKind": "image"
+          }
+        ]
+      }
+    },
+    "commands": {
+      "build": "bun --no-env-file apps/attachment-fixture/build.ts",
+      "host": "bun --no-env-file apps/host/src/attachment-fixture-main.ts",
+      "browser": "ATTACHMENT_URL=http://127.0.0.1:3187/ uv run --quiet --with playwright python3 tests/browser/attachment-browser.py"
+    }
+  }
+}

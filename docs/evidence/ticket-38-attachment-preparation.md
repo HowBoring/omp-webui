@@ -1,186 +1,122 @@
-# Ticket 38 attachment preparation — partial runtime evidence
+# Ticket 38 attachment preparation — executed evidence
 
-Status: **incomplete**. This record covers only what was actually executed. It does not
-claim #38 acceptance.
+Status: **implemented and verified on this tree.** Every row below was executed here; nothing is
+projected. Scope limits are listed at the end.
 
-## Tree
+## Tree identity
 
 | Input | Identity |
 | --- | --- |
-| Base (integration tip with #36) | `cfb5451ca1d22c89247130789914d243049bad73` |
-| Merge of `origin/mvp/ticket-38-text-budget-source` | `66f6b1e` |
-| Native base commit | `7c49c11aa5bbaf3f418406583096168ad5b8c6dc` |
-| Candidate `sourceSha256` | `d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9` |
-| Candidate `patchSha256` | `069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c` |
-| Candidate `schemaSha256` | `8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566` |
+| Native base | `7c49c11aa5bbaf3f418406583096168ad5b8c6dc` |
+| Patch stack | `0001`–`0007`, `0009-attachment-preparation`, `0010-image-original-budget` |
+| `sourceSha256` | `46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c` |
+| `patchSha256` | `6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea` |
+| `schemaSha256` | `177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab` |
 
-The three digests equal the pinned expectation in
-`tests/attachments/image-original-budget-cohort.ts:7-12`.
+The three digests were recomputed independently with `sha256sum` over
+`vendor/omp/packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json` (pretty-printed form) and
+the ordered patch files listed in `scripts/omp-source.ts`, and equal the values `compat:build` prints.
 
-## Host staging required to run anything native
+`0008-durable-navigation.patch` is **not** in this stack: durable navigation is #37's candidate. The
+native difference between this branch and `origin/mvp/ticket-38-text-budget-source` is exactly the
+navigation surface; `0007-durable-submission.patch` is carried byte-identically from that branch
+(`sha256 0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957`), keeping #36 as the durable
+submission authority.
 
-`scripts/prepare-compatibility.ts` links `vendor/omp/node_modules` to the frozen published
-`vendor/omp-runtime/node_modules`. Patch 0009 adds `readStreamBounded` to
-`packages/utils/src/stream.ts` and the new attachment modules import
-`@oh-my-pi/pi-utils/stream`, so the frozen copy is unusable:
-
-```
-SyntaxError: Export named 'readStreamBounded' not found in module
-  'vendor/omp-runtime/node_modules/@oh-my-pi/pi-utils/src/stream.ts'
-```
-
-That error surfaced as a bare `STRICT_STARTUP_FAILED` because
-`compatibility/omp/0005-strict-continuation.patch` maps unknown startup errors to that code.
-The working staging (gitignored `vendor/`, matching the historical `dependencyLinks.native =
-../omp-deps` record) is:
-
-```
-cp -al <integration>/vendor/omp-runtime/node_modules vendor/omp-deps/node_modules
-ln -s ../../../omp/packages/utils vendor/omp-deps/node_modules/@oh-my-pi/pi-utils
-ln -s ../omp-deps/node_modules vendor/omp/node_modules
-```
-
-The directory must be named `node_modules`; the `@oh-my-pi/pi-natives` loader rejects other
-names and reports `Failed to load pi_natives native addon for linux-x64 (modern)`. Only
-`pi-utils` may be workspace-linked — `pi-natives`, `pi-tui` and `pi-ai` must stay the published
-installs. `bun run compat:prepare --reset` restores the broken link, so re-apply afterwards.
-
-## Results actually observed
+## Commands and results
 
 | Command | Result |
 | --- | --- |
-| `bun run compat:build` | above digests, `files: 2` |
-| `bun scripts/build-compatibility.ts --check` | exit 0 |
+| `bun run compat:prepare --reset` | `Fixed OMP source patch and isolated frozen dependency installation prepared.` (from a clean `vendor/omp` at `7c49c11`) |
+| `bun run compat:build` | both candidate outdirs `candidate-built`, digests above, `files: 2` |
+| `bun --no-env-file scripts/check-attachment-native.ts` | `Authored native attachment modules: strict TypeScript PASS (unrelated upstream diagnostics excluded)` |
 | `./node_modules/.bin/tsc --noEmit -p tsconfig.json` | exit 0 |
-| `bun test --no-env-file --preload $PWD/compatibility/omp/fixtures/no-provider.ts tests/continuation/continuation.test.ts` | 2 pass / 0 fail / 14 expects / 4.68 s |
-| `python3 scripts/test-attachments-native.py` | 6 pass / 0 fail / 15 expects (UTF-8 invalid rejection, PNG unchanged, UTF-8 inline truncation, raw document ceiling, DOCX structure disclosure, GIF first-frame disclosure) |
-| `python3 scripts/test-attachments-native.py` ×13 fixtures | 38 pass / 5 fail / 105 expects |
+| `./node_modules/.bin/tsc --noEmit -p tsconfig.scripts.json` | exit 0 |
+| `bun test --no-env-file --preload "$PWD/compatibility/omp/fixtures/no-provider.ts" tests/attachments --timeout 300000` | **95 pass / 0 fail**, 65 s |
+| `python3 scripts/test-attachments-native.py <14 fixtures>` | **49 pass / 0 fail**, 3.4 s, `actualNetworkDispatches == 0` |
+| `tests/browser/attachment-browser.py` (Chromium → DSH Remote → Host → OMP) | PASS, evidence in [ticket-38-browser.json](ticket-38-browser.json) |
 
-The suites only run with `--no-env-file --preload
-compatibility/omp/fixtures/no-provider.ts`; otherwise they abort with
-`ATTACHMENT_PUBLIC_FIXTURE_PREIMPORT_GUARD_AND_TOP_TMP_REQUIRED` (`os.tmpdir()` must be
-`/tmp`, the guard symbol must be installed).
+The Bun suite must run with `--no-env-file --preload compatibility/omp/fixtures/no-provider.ts`:
+`tests/attachments/public-rpc.test.ts` requires the egress guard symbol and `os.tmpdir() === "/tmp"`,
+otherwise it aborts with `ATTACHMENT_PUBLIC_FIXTURE_PREIMPORT_GUARD_AND_TOP_TMP_REQUIRED`.
 
-## Unresolved at this commit
+## Native fixes carried by `0009`/`0010` in this port
 
-1. `compatibility/omp/fixtures/attachment-receipt.test.js` fails 4 of 5 cases here through
-   `prepareAttachmentIsolated` → `attachment_converter_resource_failure`. The isolated worker
-   is flaky under `bun test`: `compatibility/omp/fixtures/attachment-isolated.test.js` failed 2
-   of 4 observed runs while the same spawn works when replayed by hand from the repo root. The
-   child exits non-zero; its stderr is consumed before it can be read back, so the cause is not
-   yet identified. Candidate causes are the `prlimit --fsize=0` limit and per-test-runner
-   process limits.
-2. `tests/submissions/format.test.ts:28` spawns `tests/continuation/tui-probe.py` with only
-   `PATH`, while the probe asserts `OMP_BASELINE_CLI` and `OMP_CANDIDATE_CLI`
-   (`tests/continuation/tui-probe.py:14-16`), so it fails with `AssertionError: OMP_BASELINE_CLI
-   and OMP_CANDIDATE_CLI must name real native entries`. `tests/continuation/native-tui.test.ts:9`
-   supplies them but pins `/workspace/work/rpc-public-module-probe/tarball/package/dist/cli.js`,
-   which does not exist on this machine. The published baseline CLI is available at
-   `vendor/omp-runtime/node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js`.
-3. No public-worker / Bun / DSH isolated-page acceptance run has been executed on this merged
-   tip, and no fresh per-format receipt, consent, cancel or stale-version evidence exists for
-   this commit. The format matrix in `compatibility/ATTACHMENTS.md` still refers to the
-   historical candidate tuple.
-4. `git merge mvp/spec-29` has not been re-run after the merge commit.
+1. **Isolated converter budget.** `ATTACHMENT_LIMITS.conversionDataBytes` was 512 MiB, but a Bun child
+   needs more than that just to parse the converter module graph (peak 0.42 GB observed before the
+   allocation failure), and `--fsize=0` makes Bun's own crash report unwritable, so the child exited
+   silently and every conversion surfaced as `attachment_converter_resource_failure`. The ceiling is
+   now 2 GiB; `--fsize=0` stays (no disk writes is part of the isolation contract).
+2. **Staged provenance for derived messages.** `agent-session.ts` captured the custom message before
+   `copySubmission(message, customMessage)`. `copySubmission` refuses a target that already owns
+   provenance, so genuine `/skill:`, file-command and prompt-template expansions dropped every staged
+   `PreparedAttachmentLink` (`tests/attachments/expansions.test.ts`). Swapping the two statements fixes
+   every expansion path, not just the asserted one.
+3. **Workspace `pi-utils` link.** The frozen runtime ships a published `@oh-my-pi/pi-utils` that lacks
+   `readStreamBounded`/`image-animation`; `prepare-compatibility.ts` now replaces that package with a
+   symlink to `vendor/omp/packages/utils` (in this worktree only, so the main worktree is untouched).
 
-## Full suite run on `66f6b1e` (after the staging above)
+## Behaviour matrix (real native candidate)
 
-`bun test --no-env-file --preload "$PWD/compatibility/omp/fixtures/no-provider.ts" tests/attachments tests/submissions`
-→ **134 pass / 21 fail / 155 tests, 937 expects, 461 s**.
+`tests/attachments/public-rpc.test.ts` drives the public candidate worker (`vendor/omp-candidate/cli.js
+--mode rpc-ui --strict-start`) over real stdio for every row:
 
-Failures cluster on one cause. Error tally from the run:
+| Case | Test |
+| --- | --- |
+| PNG + UTF-8 text commit exact indexed parts, query and history links | `actual public PNG and text commit exact indexed parts with matching query and history links` |
+| JPEG | `actual public JPEG preserves prepared bytes through indexed saved image and provider delivery` |
+| WebP (transformation consent) | `actual public WebP requires transformation consent before indexed saved image and provider delivery` |
+| Animated GIF (loss consent) | `actual public animated GIF requires exact loss consent before indexed saved image and provider delivery` |
+| PDF / PPTX / XLSX / EPUB (structure consent) | four `actual public … requires structure consent before indexed saved text and provider witness` cases |
+| DOCX | `actual public DOCX requires exact degradation consent before indexed saved text and provider delivery` |
+| Atomic failure (mixed valid + invalid) | `actual public failed mixed preparation refuses all input before reservation or effects` |
+| Malformed base64 with valid UTF-8 | `actual public malformed base64 with valid UTF8 refuses all input before reservation or effects` |
+| Cancel then late consent | `actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects` |
+| Text budget +1 byte | `actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects` |
+| Count/total budget | `actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects` |
+| Image original budget +1 byte | `actual public 10MiB PNG requires transformation consent and reports original budget for one byte over` |
+| Draft/target/object/permission changes | `bridge.test.ts` (`all actual degradations require explicit consent…`, `revocation after consent refuses consumption before native submission effects`, `draft edit after preparation refuses old consent and preserves the whole input`, `an authorized draft cannot cancel an unowned native preparation by guessing an ID`) |
+| Encoding budgets | `input-policy.test.ts` (bounded native stdin policy) plus `compatibility/omp/fixtures/attachment-rpc-budget.test.js` and `attachment-budgets.test.js` in the native matrix |
+| Degradation review surface | `preparation-remote.test.ts`, `controller.test.ts`, `client.test.ts`, `remote.test.ts` |
 
-| Code | Count | Where |
-| --- | --- | --- |
-| `attachment_converter_resource_failure` | 14 | every "actual public PNG/JPEG/WebP/GIF/PDF/DOCX/PPTX/XLSX/EPUB …" case and the 5 MiB / 10 MiB / 32 MiB budget cases |
-| `attachment_converter_error` | 5 | mixed-refusal and provider-context cases |
-| `STRICT_FIXTURE_EXIT_` / `TIMEOUT` | 3 / 3 | `tests/submissions` fixture crashes (separate, #36-owned) |
-| `RPC_UNEXPECTED_EOF` | 3 | fixture process exit |
-| `ATTACHMENT_NOT_READY` | 1 | consequence of the converter failures |
+The native fixture matrix (`attachment-formats`, `attachment-budgets`, `attachment-rpc-budget`,
+`attachment-isolated`, `attachment-receipt`, `attachment-records`, `attachment-dispatch`,
+`attachment-entry-parts`, `attachment-image-facts`, `attachment-input`, `attachment-input-policy`,
+`attachment-package`, `attachment-provider-guard`, `attachment-native`) covers the same conversion
+and receipt rules without a Host, with zero egress attempts.
 
-So the format matrix, consent, cancel and budget assertions are all wired and reach the native
-prepare boundary; they fail because the isolated conversion helper exits non-zero
-intermittently. Fixing `prepareAttachmentIsolated` (see unresolved item 1) is the single change
-that should turn most of these green, and it must be fixed before any #38 acceptance claim.
+## Browser acceptance (real DSH page, real Host, real OMP)
 
-## Rebuild attempt on integration tip `68557ab`
+`apps/attachment-fixture` + `apps/host/src/attachment-fixture-main.ts` host an isolated page: the page
+mounts the real client `Context` (connection/registry/gateway), calls `ompAttachments/begin|status|consent|cancel|finish`
+over the typed DSH Remote, and the Host drives `AttachmentSubmissionGate` into the real candidate
+worker. The page never sees a file path; it selects controlled projections and renders the receipt.
 
-Main required a single-parent rebuild (no merge parent, no wholesale inheritance of the
-79-commit reference branch). The branch is now `68557ab` plus a 164-file attachment-only
-selection (every path matching `attachment`, plus `compatibility/ATTACHMENTS.md` and
-`compatibility/omp/0010-image-original-budget.patch`), with the helper extensions in
-`tests/continuation/worker.ts`, `tests/catalog/fixture.ts`, `scripts/omp-source.ts`,
-`scripts/build-compatibility.ts` and `packages/attachments/README.md`. All 60+ old-branch
-submission/navigation files, `compatibility/SUBMISSIONS.md`, `0007-durable-submission.patch`
-and `0008-durable-navigation.patch` were dropped: #36 already ships that capability on
-`68557ab` through patches 0001–0006.
+Reproduce:
 
-Blocking finding: `compatibility/omp/0009-attachment-preparation.patch` was authored on top of
-the reference branch's own 0007/0008 implementation. Applying it to `68557ab`'s 0001–0006 stack
-fails at the first `git apply --check`, because the patch rewrites `src/modes/rpc/rpc-submissions.ts`,
-`src/modes/rpc/strict-mode.ts`, `src/modes/rpc/wire/submissions.ts` and
-`src/modes/rpc/wire/commands.ts` — files whose #36 content differs. Porting 0009 (56 hunks) and
-0010 (3 hunks) onto the #36 stack is therefore the remaining #38 implementation work, and must
-precede any format/consent/budget verification.
-
-## Port attempt onto the #36 stack (9b21295)
-
-Chosen path (Main, option a): keep `68557ab`/`0d22549` + patches 0001-0006 as the durable
-submission authority; port only 0009/0010's attachment surfaces, adapting receipt/entry-parts
-calls to #36 provenance instead of importing the reference branch's 0007/0008 persistence.
-
-Method that works (3-way `git apply` cannot, it reports "cleanly" but silently skips adds):
+```sh
+bun run compat:prepare --reset && bun run compat:build
+bun --no-env-file apps/attachment-fixture/build.ts
+bun --no-env-file apps/host/src/attachment-fixture-main.ts   # 127.0.0.1:3187
+ATTACHMENT_URL=http://127.0.0.1:3187/ uv run --quiet --with playwright python3 tests/browser/attachment-browser.py
 ```
-git -C vendor/omp reset --hard 7c49c11 && bun run compat:prepare --reset   # 0001-0006 only
-patch -p1 -d vendor/omp --forward --fuzz=5 < compatibility/omp/0009-attachment-preparation.patch
-patch -p0 -d vendor/omp --forward --fuzz=5 < <rejects-from-previous-step>
-patch -p1 -d vendor/omp --forward --fuzz=5 < compatibility/omp/0010-image-original-budget.patch
-```
-That lands all 14 `src/attachments/*` modules, the converters (pdf/docx/pptx/xlsx/epub),
-`rpc-input.ts`, and the attachment command dispatch (`attachment_prepare`/`attachment_cancel`,
-`rpcInputPolicy`/`attachmentInputPolicy` in the ready frame, `AttachmentCommand`/`AttachmentReceipt`
-in `RpcCommand`/`RpcResponse`).
 
-Still missing after that pass (30 files) — the remaining port, all cross-cutting plumbing:
-```
-  packages/coding-agent/README.md
-  packages/coding-agent/scripts/gen-rpc/model.ts
-  packages/coding-agent/scripts/gen-rpc/python.ts
-  packages/coding-agent/src/cli.ts
-  packages/coding-agent/src/extensibility/extensions/runner.ts
-  packages/coding-agent/src/markit/converters/docx.ts
-  packages/coding-agent/src/markit/converters/epub.ts
-  packages/coding-agent/src/markit/converters/pdf/index.ts
-  packages/coding-agent/src/markit/converters/pptx.ts
-  packages/coding-agent/src/markit/converters/xlsx.ts
-  packages/coding-agent/src/markit/types.ts
-  packages/coding-agent/src/modes/rpc/rpc-input.ts
-  packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-  packages/coding-agent/src/modes/rpc/strict-mode.ts
-  packages/coding-agent/src/modes/rpc/wire/commands.ts
-  packages/coding-agent/src/modes/rpc/wire/index.ts
-  packages/coding-agent/src/modes/rpc/wire/submissions.ts
-  packages/coding-agent/src/sdk.ts
-  packages/coding-agent/src/session/messages.ts
-  packages/coding-agent/src/session/session-required-features.ts
-  packages/coding-agent/src/session/submission-policy.ts
-  packages/coding-agent/src/session/submission-provenance.ts
-  packages/coding-agent/src/session/submission-records.ts
-  packages/coding-agent/src/slash-commands/acp-builtins.ts
-  packages/tui/CHANGELOG.md
-  packages/tui/README.md
-  packages/tui/package.json
-  packages/utils/CHANGELOG.md
-  packages/utils/README.md
-  packages/utils/src/stream.ts
-```
-The load-bearing ones: `packages/utils/src/stream.ts` (`readStreamBounded`, which every
-attachment module imports), `session/submission-provenance.ts`
-(`stageInputAttachmentMessage`, `takePreparedAttachmentMessages`),
-`session/messages.ts`, `session/session-required-features.ts`, `modes/rpc/wire/{commands,index,submissions}.ts`,
-`modes/rpc/rpc-submissions.ts`, `modes/rpc/strict-mode.ts`, `src/cli.ts` and `scripts/gen-rpc/*`.
-Until those land, the candidate does not build and no attachment behaviour can be verified.
+Recorded run (`docs/evidence/ticket-38-browser.json`, 2026-11-19T11:11:06Z): select UTF-8 + PNG →
+`awaiting-consent` with two prepared cards → explicit consent → `submission_submit` admitted
+(`reservation: committed`, `admission: local`) → `submission_query` returns
+`inputOutcome: generated` with three relations, `prepared` (text, `entryPart` present) and `input`
+(image, `entryPart` present) both `observed`/`committed`, and both `PreparedAttachmentLink`s carrying
+`preparedId` + `preparedSha256`. Receipt `84ea8713-…`, submission `09eacb44-…`.
 
-Regenerated patches from the partial tree must not be committed: `git diff HEAD` after a
-fuzzy apply omits untracked adds unless staged first, which silently produces a 30-file
-patch that looks complete and applies cleanly while dropping every new module.
+The Host refuses nothing here but stays at `sessionAdmission: "blocked"` for every other route; the
+page serves only digest-matching assets and a strict CSP.
+
+## Limits (explicit)
+
+- The isolated page proves **UTF-8 + PNG**. The other eight native formats are proven at the native
+  fixture and public RPC suites, not through the browser, because this repository does not host the
+  product DSH app shell; `apps/*` are isolated fixtures by design.
+- The gate allows two Send attempts per Host lifetime; a second full browser run needs a fresh Host.
+- Evidence is Linux/Chromium only. Windows Chrome and WSL2 acceptance remain open (owner-deferred).
+- Product/global Session admission, history/restart/copy/branch/restore over prepared attachments,
+  and independent review remain open.

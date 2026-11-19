@@ -1,8 +1,23 @@
 # Attachment preparation component (#38)
 
-This isolated S0 work extends the native ordered patch stack with `0009-attachment-preparation.patch`.
-It is under implementation. It does not open private product Sessions and is not an attachment
-consumption acceptance claim. #36 durable native reservations and exact causal associations are required.
+This isolated S0 work extends the native ordered patch stack with `0009-attachment-preparation.patch`
+and `0010-image-original-budget.patch` on top of `0007-durable-submission.patch`. It does not open
+private product Sessions. #36 durable native reservations and exact causal associations are required,
+and the pinned native submission contract is unchanged by this work.
+
+Current tree identity (recomputed by `bun run compat:build` and re-derived with `sha256sum` over the
+ordered patch files in `scripts/omp-source.ts`):
+
+| Input | Identity |
+| --- | --- |
+| Native base | `7c49c11aa5bbaf3f418406583096168ad5b8c6dc` |
+| Patch stack | `0001`–`0007`, `0009`, `0010` (`0008` durable navigation belongs to #37) |
+| `sourceSha256` | `46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c` |
+| `patchSha256` | `6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea` |
+| `schemaSha256` | `177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab` |
+
+See [ticket-38 evidence](../docs/evidence/ticket-38-attachment-preparation.md) for the executed command
+matrix on this tuple.
 
 The already-confirmed seams are native conversion/data contracts, public stdio/schema, then actual
 Bun Host + public typed DSH Remote + browser. No Host SDK imports or native Session-file reads are used.
@@ -18,7 +33,8 @@ The native helper currently fixes original targets at 10 MiB/image, 5 MiB/text/d
 32 MiB/input; decoded images at 16,777,216 pixels/64 MiB RGBA; prepared images at 500 KiB/1568 px;
 inline text at 50 KiB/3,000 lines; converter text at 2 MiB; archive declarations at 32 MiB total,
 8 MiB/member, 512 KiB index, 2,048 entries/1,024 path bytes; conversion at eight CPU seconds,
-ten wall seconds and 512 MiB process data allocation; input preparation at sixty seconds.
+ten wall seconds and 2 GiB process data allocation (512 MiB killed every converter child while Bun
+parsed the module graph); input preparation at sixty seconds.
 Prepared JSON representations are limited to 8 MiB/input, staged receipts to 16 MiB/two receipts,
 prose to 128 KiB and full UTF-8 JSONL commands to 48 MiB. Receipt lifetime is five minutes.
 These limits refuse excess; raw limits do not replace complete encoded-frame accounting.
@@ -107,7 +123,14 @@ build/generation/`--check`, TypeScript and pure-suite checks (51 tests/160 asser
 Its previous “runtime NOT RUN” statement belongs to that historical tuple; it does not describe the
 current9f33 sample runs above.
 
-Remaining refusal/budget/locator/lifecycle/stale/cancel/expiry faults, history/restart/copy/branch/restore,
-actual DSH serialization/browser workflow, coherent full-stack checks and independent reviews remain open.
-Linux evidence does not establish WindowsChrome/WSL2 acceptance (owner-deferred). Global runtime selection,
-private product Sessions, whole38 and MVP admission remain blocked/open.
+Current-tree status: the rooted Bun suite (`tests/attachments`, 95 tests), the native fixture matrix
+(14 files, 49 tests), strict authored-native TypeScript, root `tsc` and `compat:build` all pass on the
+tuple above, and [the isolated browser page](../docs/evidence/ticket-38-browser.json) drives
+Chromium → DSH Connection/Remote → Bun Host → real OMP candidate RPC for UTF-8 + PNG preparation,
+degradation review and committed consumption. The page covers two of the ten native formats; the other
+eight are proven at the native fixture and public RPC suites only, because the product DSH app shell is
+not hosted in this repository.
+
+Remaining: product/global Session admission, Windows Chrome/WSL2 acceptance (owner-deferred),
+history/restart/copy/branch/restore over prepared attachments, and independent review remain open.
+Private product Sessions, whole38 and MVP admission remain blocked/open.

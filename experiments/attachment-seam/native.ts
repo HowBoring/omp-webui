@@ -21,6 +21,12 @@ const mime: Record<AttachmentFormat, string> = { png: "image/png", jpeg: "image/
   epub: "application/epub+zip" };
 const actualFormat = (id: z.infer<typeof formats>): AttachmentFormat => id === "broken-utf8" || id === "long-utf8" ? "utf8" : id;
 interface Draft { selection: AttachmentSelection; owner: string; message: string; generation: string }
+/** Public description of the fixture draft a page selects before preparation. */
+export interface AttachmentFixtureDraft {
+  selection: AttachmentSelection;
+  message: string;
+  originals: { id: string; name: string; mediaType: string }[];
+}
 /** currentOwner must revalidate an actual authenticated BrowserAuthority identity on every call/publication. */
 export class NativeAttachmentFixture {
   readonly bridge: AttachmentBridge;
@@ -85,7 +91,7 @@ export class NativeAttachmentFixture {
         metadata.parse(await Bun.file(path.join(home, "originals.json")).json()));
     } catch (error) { await transport?.close(); await fs.rm(home, { recursive: true, force: true }); throw error; }
   }
-  select(value: FixtureSelection) {
+  select(value: FixtureSelection): AttachmentFixtureDraft {
     const owner = this.currentOwner(); if (this.#revoked) throw Error("ATTACHMENT_AUTHORITY_REVOKED");
     const input = fixtureSelection.parse(value);
     const selection = { session: "attachment-projection", draftId: crypto.randomUUID(), revision: String(++this.#revision),
