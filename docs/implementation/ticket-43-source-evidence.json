@@ -167,7 +167,7 @@
       "files": 20,
       "skipped": "tests/catalog/catalog.test.ts:155 real syscall fault requires strace; strace is absent"
     },
-    "browser": "PASS; 12 actual Chromium scenarios, three real Host process starts, 47 native rows, 35 labelled synthetic index references, 40 typed Remote calls, 0 page errors",
+    "browser": "PASS; 12 actual Chromium scenarios, three real Host process starts, 47 native rows, 35 labelled synthetic index references, typed DSH Remote calls, 0 page errors",
     "nativeReadonly": "PASS; native inode/mtime/content manifest unchanged",
     "notRun": [
       "full repository suite",
@@ -176,6 +176,7 @@
       "Windows/WSL2"
     ],
     "productAdmission": "BLOCKED pending #41 combined/global gates and #44 protected open/registration",
-    "workerRevocation": "BLOCKED pending #44 supervised open; this component has no Session worker"
+    "workerRevocation": "BLOCKED pending #44 supervised open; this component has no Session worker",
+    "ompInstallationSha256": "60811bf8f4162281da6617247f63b6fd93e9e1ef82280644d57afb0373a37189"
   }
 }

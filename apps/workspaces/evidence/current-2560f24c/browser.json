@@ -19,7 +19,7 @@
   ],
   "nativeRows": 47,
   "pageErrors": [],
-  "DSHRemoteCalls": 40,
+  "DSHRemoteCalls": 39,
   "workerRevocation": "BLOCKED pending #44 supervised open; this component has only readonly catalog child",
   "productAdmission": "BLOCKED pending #41 combined/global gates and #44 protected open",
   "registeredReferences": "PASS explicit synthetic readonly index metadata provider and actual public describe; real registration/open/index writes remain #44",
