@@ -2,49 +2,49 @@
   "status": "source-only",
   "sourceTicket": 38,
   "hostSourceCommit": "42bf196f548c01f2a61e9f9bb5664f340e41daeb",
-  "nativeBaseCommit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-  "nativeSourceSchemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab",
+  "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+  "nativeSourceSchemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
   "referenceHostArtifacts": "packages/contracts/generated",
   "nativePatches": [
     {
       "path": "compatibility/omp/0001-safe-preflight.patch",
-      "bytes": 63144,
-      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+      "bytes": 105640,
+      "sha256": "ce40ca2c735418513b749090414f32734737c3b0edde86d94c6c95bfd7a3d079"
     },
     {
       "path": "compatibility/omp/0002-readonly-catalog.patch",
-      "bytes": 33466,
-      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+      "bytes": 77733,
+      "sha256": "0f66db16d115d049094c46fb057e95dccac63d1c4c2b8ac2490cb49518f2602f"
     },
     {
       "path": "compatibility/omp/0003-explicit-interactions.patch",
-      "bytes": 49968,
-      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+      "bytes": 51748,
+      "sha256": "8b858b454a1fe1d13013b0615587a5c35465f1ad0011689fe4e9d94b02c9cfb5"
     },
     {
       "path": "compatibility/omp/0004-coherent-history.patch",
-      "bytes": 49490,
-      "sha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3"
+      "bytes": 51832,
+      "sha256": "cacb4d8927635c4ce581d44246c7352328a0ac26122bb514e9b21ef3c57b0fee"
     },
     {
       "path": "compatibility/omp/0005-strict-continuation.patch",
-      "bytes": 174829,
-      "sha256": "aaca2b987dce173031be10956404825df11f73ed837db340c9a6c01fc5b13382"
+      "bytes": 178227,
+      "sha256": "595edd67aa44288e2c690199ab5829a852255782b442be1a9e76c471aa553e46"
     },
     {
       "path": "compatibility/omp/0006-live-settlement.patch",
-      "bytes": 74456,
-      "sha256": "92f2abe8e7bae424816382f6978e7a7edb16407aabf0d5141887cdb29239aed4"
+      "bytes": 75038,
+      "sha256": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a"
     },
     {
       "path": "compatibility/omp/0007-durable-submission.patch",
-      "bytes": 165135,
-      "sha256": "0a939368406e34cc39b43945c777931157b30fdf05ab5eb51ae481ed55527957"
+      "bytes": 166465,
+      "sha256": "ba2c50f211d1b178bebaf0ba81178c5249834d76e502b6235fa75b3411af23b4"
     },
     {
       "path": "compatibility/omp/0009-attachment-preparation.patch",
-      "bytes": 163372,
-      "sha256": "6f8bc7f2c6145bb433f6c5e3e3cff752dd0d4e05541ccfc001a7069a128de767"
+      "bytes": 164267,
+      "sha256": "6e5cf760edfeea311e99bbe04e42ef72c7a36aa97a0291b911d1c20c7f1353d2"
     },
     {
       "path": "compatibility/omp/0010-image-original-budget.patch",
@@ -53,10 +53,10 @@
     }
   ],
   "buildIdentity": {
-    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-    "sourceSha256": "adda6c134cbff19e7cd688f2b93baf26b962179e5f0b6e2bb1c68d7b675d9451",
-    "patchSha256": "de7b02421953a365c3a458d16e4f74d9122a1b2cf9112a8df4d53083f3e8b753",
-    "schemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab"
+    "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+    "sourceSha256": "ce8d7bf6dfcf129953ee90b94be5e10d6ec3151e215f3ba71a0138b1c1f6d00c",
+    "patchSha256": "8bb14380c6067d97c993d2f0edc10ed5cd4c8707414f8cfca125741b61dcbd79",
+    "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
   },
   "files": {
     "attachment-receipt.d.ts": "ce8ddab621fbb7c31c383086acd0d3c8fd05c92abf40240e5c01d568182ba2f9",

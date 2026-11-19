@@ -3,10 +3,10 @@
   "sourceTicket": 36,
   "fixtureReference": 45,
   "hostSourceCommit": "54545e62489ce13c2328f14c0882abc0c1c7d87c",
-  "nativeBaseCommit": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
   "nativePatch": "compatibility/omp/0007-durable-submission.patch",
   "generator": "scripts/build-submission-contracts.ts",
-  "nativeSourceSchemaSha256": "fd06eb5801eae6d8c93f835b5cb09edffa291bbb1a3982ab5e9dca01e57bee11",
+  "nativeSourceSchemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
   "referenceArtifactSchemaSha256": "0b7baf895d2e66fe3f8dccd62223702d00b5f78df7928963b179b76ce3bfb501",
   "files": {
     "omp-wire.ts": "ace452cb8dd1441605e56914907cce8cc9f608152aecf22037201d2973990525",
