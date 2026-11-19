@@ -121,8 +121,13 @@ async function mountGateway(f: ReturnType<typeof fixture>) {
   await f.host.plugin(RemoteAccessService);
   await f.host.plugin(TypertGatewayService, {});
   f.host.typert.register(chatHostContribution);
+  const promptDescriptor = sessionContribution.descriptors.find(descriptor =>
+    descriptor.namespace === "session" && descriptor.method === "prompt");
+  if (!promptDescriptor) throw new Error("Missing DSH session/prompt descriptor");
   f.host.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
-    model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors });
+    model: { services: [], events: [], objects: [] },
+    invocations: [...sessionContribution.descriptors.filter(descriptor => descriptor !== promptDescriptor),
+      { ...promptDescriptor, service: "chatPrompt" }] });
   new ChatPromptService(f.host, id => id === sessionId ? f.gateway : undefined);
   new ChatLookupService(f.host, id => id === sessionId ? f.gateway : undefined);
   const method = sessionContribution.methods["session/prompt"];

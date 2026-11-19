@@ -26,8 +26,10 @@ const ctx = new Context();
 const tab = crypto.randomUUID();
 const owner = { id: "", active: () => true };
 const authorities = new Map<string, DraftAuthority>();
-const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId) });
-let csrf = "", reference: SessionReference | undefined, unsubscribe: (() => void) | undefined;
+const recoveryAuthorized = new Set<string>();
+const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId),
+  authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
+let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: string[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
@@ -47,11 +49,11 @@ function invalidateAccess(text: string) {
 function release() {
   ++presentationRevision; unsubscribe?.(); unsubscribe = undefined;
   if (reference) { authorities.delete(String(reference.sessionId)); reference.release(); reference = undefined; }
-  historyChanged([]);
+  historyChanged([]); liveBinding = undefined;
 }
 async function waitProjection(binding: SessionBinding) {
   const current = () => binding.projection.getSnapshot();
-  for (let attempt = 0; attempt < 200; attempt++) {
+  for (let attempt = 0; attempt < 2000; attempt++) {
     const state = current();
     if (state.phase === "ready") return state.binding;
     if (state.phase === "stock") throw new Error("A projection generation is required for Chat.");
@@ -62,13 +64,13 @@ async function waitProjection(binding: SessionBinding) {
 async function present(view: PublicSessionView) {
   release();
   const current = presentationRevision, access = accessRevision;
-  viewChanged(view);
   await ctx.sessions.refresh();
   if (current !== presentationRevision || access !== accessRevision) return;
   const retained = ctx.sessions.retain(SessionId(view.registration.nativeSessionId), { source: "supervisedChat" });
   reference = retained;
   const binding = await retained.ready;
   if (reference !== retained) return;
+  liveBinding = binding;
   const projection = await waitProjection(binding);
   if (reference !== retained) return;
   const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
@@ -77,6 +79,7 @@ async function present(view: PublicSessionView) {
   authorities.set(view.registration.nativeSessionId, { host: "omp-webui", browser: tab, page: tab, profile: "isolated",
     source: view.registration.sourceId, instance: view.registration.instanceId, session: view.registration.nativeSessionId,
     cwd: view.cwd, draft: draftId, epoch: attached.generation });
+  viewChanged(view);
   const scope = provider.scope(binding);
   const saved = await provider.read(scope, new AbortController().signal);
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
@@ -92,6 +95,7 @@ type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state
 function Surface() {
   const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<string[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
+  const [entry, setEntry] = useState("");
   const [cwd, setCwd] = useState(""), [confirmation, setConfirmation] = useState<string>(), [review, setReview] = useState("");
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -109,9 +113,13 @@ function Surface() {
     finally { setOpening(false); }
   };
   const persist = async (record: Parameters<typeof provider.write>[1], reason: Parameters<typeof provider.write>[2]) => {
-    if (!scope.current) return;
-    try { await provider.write(scope.current, record, reason); }
-    catch (failure) { setError(message(failure)); }
+    const current = binding.current;
+    if (!current) return;
+    try {
+      await waitProjection(current);
+      scope.current = provider.scope(current);
+      await provider.write(scope.current, record, reason);
+    } catch (failure) { setError(message(failure)); }
   };
   const edit = (value: string) => {
     setText(value); draftChanged(value);
@@ -119,9 +127,10 @@ function Surface() {
   };
   const recover = async (requestId: string) => {
     const result = resultValue(await ctx.remote.ompChat.lookup(view!.registration.nativeSessionId, requestId));
-    applyRecovery(result);
+    applyRecovery(result, requestId);
   };
-  const applyRecovery = (result: ChatRecovery) => {
+  const applyRecovery = (result: ChatRecovery, requestId: string) => {
+    if (result.outcome === "accepted" || result.outcome === "not-submitted") recoveryAuthorized.add(requestId);
     if (result.outcome === "accepted") {
       setRecovery(undefined); setText(""); draftChanged(""); void persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
     } else if (result.outcome === "not-submitted") {
@@ -130,10 +139,30 @@ function Surface() {
       setRecovery("Native outcome is still unresolved. Check again after the worker settles.");
     }
   };
+  const settle = async (sessionId: string) => {
+    for (let i = 0; i < 60; ++i) {
+      try { const state = resultValue(await ctx.remote.ompChat.state(sessionId)); if (!state) continue; if (state.settled) return; } catch { return; }
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+  };
+  const sending = useRef(false);
+  const finishAccepted = async (sessionId: string, requestId: string) => {
+    recoveryAuthorized.add(requestId);
+    await persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
+    try {
+      const recovered = resultValue(await ctx.remote.ompChat.lookup(sessionId, requestId));
+      applyRecovery(recovered, requestId); setEntry(recovered.outcome);
+      void settle(sessionId);
+    } catch (failure) { setError(message(failure)); }
+  };
   const send = async (mode: "queue" | "steer") => {
-    if (!view || !binding.current || !scope.current || text.trim() === "" || busy) return;
+    if (!view || !binding.current || !scope.current || text.trim() === "") return;
+    if (sending.current) { setError("Projection is synchronizing. Your draft is retained."); return; }
     const content = text, current = binding.current;
-    setBusy(true); setError(""); setRecovery(undefined);
+    sending.current = true;
+    setError(""); setRecovery(undefined);
+    try { await waitProjection(current); } catch (failure) { setError(message(failure)); return; }
+    setBusy(true);
     const handle = current.session.beginSubmission({ mode, text: content, attachments: [] });
     const requestId = String(handle.requestId);
     setAttempt({ requestId, text: content, mode, state: "sending" });
@@ -143,20 +172,21 @@ function Surface() {
       const result = await current.session.prompt([{ type: "text", text: content }], mode, undefined, handle.requestId);
       if (result.ok) {
         setAttempt({ requestId, text: content, mode, state: "accepted" });
-        setText(""); draftChanged(""); await persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
+        setText(""); draftChanged("");
+        void finishAccepted(current.sessionId, requestId);
       } else {
         handle.abandon();
         const unresolved = result.error.message.includes("unresolved");
         setAttempt({ requestId, text: content, mode, state: unresolved ? "unknown" : "refused", error: result.error.message });
         setError(result.error.message);
         if (unresolved) setRecovery("Outcome unknown. Check Native recovery before sending again.");
-        else await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery");
+        else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery"); }
       }
     } catch (failure) {
       handle.abandon();
       setAttempt({ requestId, text: content, mode, state: "unknown", error: message(failure) });
       setError(message(failure)); setRecovery("Outcome unknown. Check Native recovery before sending again.");
-    } finally { setBusy(false); }
+    } finally { setBusy(false); sending.current = false; }
   };
   useEffect(() => {
     viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
@@ -164,7 +194,7 @@ function Surface() {
     void perform(catalog);
     return () => { release(); };
   }, []);
-  useEffect(() => { if (view) { binding.current = reference!.binding; scope.current = provider.scope(binding.current); } }, [view?.workerId]);
+  useEffect(() => { if (view && liveBinding) { binding.current = liveBinding; scope.current = provider.scope(liveBinding); } }, [view?.workerId]);
   return <div><p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
     <button disabled={!cwd} onClick={() => void perform(async () => {
@@ -186,6 +216,7 @@ function Surface() {
       <div id="conversation">{rows.map((row, index) => <pre className="row" key={index}>{row}</pre>)}</div>
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
+      {entry && <span data-chat-native-entry={entry}>{entry}</span>}
       {recovery && <p role="alert">{recovery} <button onClick={() => void perform(() => recover(attempt!.requestId))}>Check Native recovery</button></p>}
       <textarea aria-label="Message" data-chat-draft value={text} disabled={!view}
         onChange={event => edit(event.target.value)} />
@@ -223,11 +254,6 @@ async function boot() {
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);
   ctx.slots.register({ name: "s1.chat" }, Surface);
   const unmount = ctx.uiRenderer.mount(document.getElementById("app")!);
-  ctx.effect(() => ctx.connection.generation.subscribe(() => {
-    if (!ctx.connection.generation.getSnapshot() && !authorizationWithdrawn) {
-      invalidateAccess("Host connection lost. Manual Open is required after worker loss.");
-    }
-  }));
   window.addEventListener("pagehide", () => { release(); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
   const previous = sessionStorage.getItem("omp-supervised-worker");
   if (previous) {

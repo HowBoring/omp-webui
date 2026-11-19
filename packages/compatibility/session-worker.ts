@@ -130,9 +130,10 @@ class SessionRpc {
   }
   state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
   /** Host-owned adapter for the matched public submission commands; never a browser tunnel. */
-  submitCommand(command: StdioCommand): Promise<unknown> {
+  async submitCommand(command: StdioCommand): Promise<unknown> {
     if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
-    return this.core.request(command);
+    const data = await this.core.request(command);
+    return { type: "response", id: (command as { id?: string }).id, command: (command as { type?: string }).type, success: true, data };
   }
   control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
   protected retire(): void { this.#retired = true; }

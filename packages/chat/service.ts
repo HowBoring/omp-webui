@@ -61,8 +61,8 @@ export class ChatAttachService extends TypertRemoteService {
     super(ctx, "ompChatComponent");
   }
 
-  @Remote("attach") async enroll(input: ChatAttachment): Promise<ChatAttachmentResult> {
-    const result = this.attach(chatAttachment.parse(input));
+  @Remote("attach") async enroll(args: unknown): Promise<ChatAttachmentResult> {
+    const result = this.attach(chatAttachment.parse((args as { input?: unknown } | undefined)?.input));
     if (!result) throw new ChatRemoteError("gateway/bad-request", "No live Session worker is available to attach.", {});
     return chatAttachmentResult.parse(result);
   }

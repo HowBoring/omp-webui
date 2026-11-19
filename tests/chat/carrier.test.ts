@@ -77,8 +77,13 @@ async function fixture() {
     await host.plugin(RemoteAccessService);
     await host.plugin(TypertGatewayService, {});
     host.typert.register(chatHostContribution);
+    const promptDescriptor = sessionContribution.descriptors.find(descriptor =>
+      descriptor.namespace === "session" && descriptor.method === "prompt");
+    if (!promptDescriptor) throw new Error("Missing DSH session/prompt descriptor");
     host.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
-      model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors });
+      model: { services: [], events: [], objects: [] },
+      invocations: [...sessionContribution.descriptors.filter(descriptor => descriptor !== promptDescriptor),
+        { ...promptDescriptor, service: "chatPrompt" }] });
     new ChatPromptService(host, id => id === sessionId ? chat : undefined);
     new ChatLookupService(host, id => id === sessionId ? chat : undefined);
     const peer = new Peer(host, { principal: { kind: "owner" }, interactions: "none" });

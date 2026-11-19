@@ -205,7 +205,7 @@ export async function startSessionComponentServer(options: Options) {
     });
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
       (_request, identity) => runtime.enrollment(identity)) };
-    unaryMethods = new Set([...unary, "ompChatComponent/attach"]);
+    unaryMethods = new Set([...unary, "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }
   const detachRevocation = access.onRevokeAll(() => {
     chatComposition?.runtime.close();

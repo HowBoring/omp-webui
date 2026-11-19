@@ -13,7 +13,7 @@ import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admissio
 
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods,
   "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
-export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections"]);
+export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections", "ompChatComponent/attach"]);
 export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
   "ompChat/lookup": chatContribution.methods["ompChat/lookup"],

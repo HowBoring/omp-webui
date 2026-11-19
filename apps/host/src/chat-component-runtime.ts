@@ -27,6 +27,7 @@ interface Entry {
   readonly gateway: ChatGateway;
   readonly lifetime: AbortController;
   readonly idleGeneration: string;
+  readonly unsubscribe: () => void;
   idle: StopSnapshot;
 }
 
@@ -90,7 +91,7 @@ export class ChatComponentRuntime {
     this.#closed = true;
     for (const view of this.#views.values()) view.enrollment.revoke();
     this.#views.clear();
-    for (const entry of this.#entries.values()) entry.lifetime.abort();
+    for (const entry of this.#entries.values()) { entry.unsubscribe(); entry.lifetime.abort(); }
     this.#entries.clear();
     this.admission.close();
   }
@@ -119,10 +120,14 @@ export class ChatComponentRuntime {
         idle = this.#snapshot(idleGeneration, view.generation, nativeSessionId, state);
         return state;
       },
-      request: (command: SubmissionClientCommand) => worker.submitCommand(command),
+      request: async (command: SubmissionClientCommand) => {
+        const reply = await worker.submitCommand(command);
+        return reply;
+      },
     });
+    const unsubscribe = worker.subscribe(frame => gateway.observe(frame));
     return { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId,
-      gateway, lifetime, idleGeneration, idle };
+      gateway, lifetime, idleGeneration, unsubscribe, idle };
   }
 
   #snapshot(generation: string, workerGeneration: string, sessionId: string, state: Partial<SessionState> | undefined): StopSnapshot {
