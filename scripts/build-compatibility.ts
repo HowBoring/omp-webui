@@ -117,8 +117,11 @@ await Bun.write(join(source, "modes/rpc/preflight.generated.ts"), `// Generated 
   `export function validateCommand(value:unknown):value is Command { return validate(value); }\n` +
   `export const compatibilityBuild = ${JSON.stringify(build)};\n`);
 if (!checkGenerated && !wireOnly) {
-const built = await Bun.build({
-  entrypoints: [join(source, "cli.ts")], target: "bun", outdir: output, splitting: true,
+const candidateDirs = [output, resolve("vendor/omp-candidate-image-original-budget-compiler-inputs-v2")];
+let built;
+for (const outdir of candidateDirs) {
+built = await Bun.build({
+  entrypoints: [join(source, "cli.ts")], target: "bun", outdir, splitting: true,
   plugins: [{ name: "deferred-ordinary-cli", setup(build) {
     build.onResolve({ filter: /^\.\/attachments\/(worker|deny-network)$/ }, ({ path: entry }) => ({
       path: `../omp/packages/coding-agent/src/${entry.slice(2)}.ts`, external: true,
@@ -135,9 +138,10 @@ const built = await Bun.build({
   } }],
 });
 if (!built.success) throw new AggregateError(built.logs, "candidate build failed");
-try { await rm(join(output, "omp")); } catch {}
-await symlink("cli.js", join(output, "omp"));
-console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.outputs.length }));
+try { await rm(join(outdir, "omp")); } catch {}
+await symlink("cli.js", join(outdir, "omp"));
+console.info(JSON.stringify({ status: "candidate-built", outdir, ...build, files: built.outputs.length }));
+}
 
 }
 
@@ -209,7 +213,6 @@ await import("./build-history-contracts.ts");
 await import("./build-live-contracts.ts");
 
 await import("./build-submission-contracts.ts");
-await import("./build-navigation-contracts.ts");
 await import("./build-attachment-contracts.ts");
 
 if (wireOnly && !checkGenerated) {

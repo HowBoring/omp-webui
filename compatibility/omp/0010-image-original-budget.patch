@@ -1,23 +1,23 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 5f8e17fc03cbb8d822b9d4123c68e13774f5fca5..2d9cf6224d2845aa2fa87f07def04726fe938ee6 100644
+index 89809bd..ba35daf 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -3,6 +3,8 @@
- ## [Unreleased]
+@@ -4,6 +4,8 @@
  
  ### Fixed
-+
-+- Attachment preparation reports `attachment_original_budget` for images over 10 MiB before conversion ([WebUI #38](https://github.com/HowBoring/omp-webui/issues/38)).
  
++- Attachment preparation reports `attachment_original_budget` for images over 10 MiB before conversion ([WebUI #38](https://github.com/HowBoring/omp-webui/issues/38)).
++
  - Protected input retained in native queues after plain abort no longer receives premature terminal no-input completion; actual original-object withdrawal or consumption rechecks its receipt ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
  
+ - Permanently withdrawn queued originals retain explicit no-entry provenance, including pre-delivery and held objects, without treating temporary moves or retained abort input as discarded ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
 diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
-index 6e647562daa9cf4e18532632e7c8789e4f8ece72..8f774d6b0bc50e3292a188c888808ed7fe4e90c4 100644
+index 66a7aab..d76eebe 100644
 --- a/packages/coding-agent/docs/rpc-attachments.md
 +++ b/packages/coding-agent/docs/rpc-attachments.md
-@@ -42,7 +42,9 @@
+@@ -42,7 +42,9 @@ position; it does not establish provider delivery or grant access to the Host-ow
  Converters use an owned Linux process, synthetic home, allowlisted environment, pre-import network
- denial, 512 MiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
+ denial, 2 GiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
  Missing containment/converters refuse preparation. Raw limits remain 10 MiB/image, 5 MiB/text/document,
 -eight objects and 32 MiB/input. Decoded images allow 16,777,216 pixels/64 MiB RGBA, including declared
 +eight objects and 32 MiB/input. Images exceeding the raw 10 MiB ceiling return a failed item with
@@ -27,10 +27,10 @@ index 6e647562daa9cf4e18532632e7c8789e4f8ece72..8f774d6b0bc50e3292a188c888808ed7
  Office packages require the selected main content type, and unsupported XML encodings fail instead of being replaced.
  Prepared images fit 1568 pixels/500 KiB and avoid WebP; inline text fits 3000 lines/
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
-index ae4b1536e849d39ee47eac4d81733e5cae00423c..2b00469a7d71a7c77ab422701f670d2af47931dc 100644
+index ae4b153..2b00469 100644
 --- a/packages/coding-agent/src/attachments/receipts.ts
 +++ b/packages/coding-agent/src/attachments/receipts.ts
-@@ -193,6 +193,7 @@
+@@ -193,6 +193,7 @@ export class AttachmentPreparations {
  		if (decoded.reason) return failed("attachment_invalid_base64");
  		if (sha256(decoded.bytes) !== original.sha256) return failed("attachment_original_changed");
  		const image = ["png", "jpeg", "webp", "gif"].includes(original.format);

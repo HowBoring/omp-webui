@@ -10,6 +10,28 @@
     "inbound": "RpcInbound",
     "commands": [
       {
+        "name": "attachment_prepare",
+        "doc": "Prepare every controlled original without input hooks, model/tool calls or message commits. Any failure blocks the whole input.",
+        "params": "AttachmentPrepareParams",
+        "result": "AttachmentReceipt",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "attachment_cancel",
+        "doc": "Invalidate pending or ready preparation. Cancelled or late results cannot be consumed.",
+        "params": "AttachmentCancelParams",
+        "result": "AttachmentCancelResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_interaction_policy",
         "doc": "Read the immutable effective rpc-ui policy, immediately available before extension startup UI or timers.",
         "params": null,
@@ -146,6 +168,28 @@
         "doc": "Cancel pending startup; already published side effects remain explicit.",
         "params": null,
         "result": "StrictStartState",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "submission_submit",
+        "doc": "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
+        "params": "SubmissionSubmitParams",
+        "result": "SubmissionResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "submission_query",
+        "doc": "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
+        "params": "SubmissionQueryParams",
+        "result": "SubmissionResult",
         "nullable": false,
         "unwrap": null,
         "timeoutMs": null,
@@ -982,6 +1026,531 @@
     ]
   },
   "$defs": {
+    "AttachmentInputPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "attachment-input-policy-v1"
+        },
+        "supportedInputKinds": {
+          "type": "array",
+          "items": {
+            "const": "prompt"
+          }
+        },
+        "requiresIdle": {
+          "const": true
+        },
+        "supportsStreamingBehavior": {
+          "const": false
+        }
+      },
+      "required": [
+        "version",
+        "supportedInputKinds",
+        "requiresIdle",
+        "supportsStreamingBehavior"
+      ],
+      "additionalProperties": false
+    },
+    "RpcInputPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "bounded-jsonl-input-v1"
+        },
+        "encoding": {
+          "const": "fatal-utf8"
+        },
+        "framing": {
+          "const": "unchunked-jsonl"
+        },
+        "malformed": {
+          "const": "sanitized-drop-line"
+        },
+        "partialEof": {
+          "const": "reject"
+        },
+        "maxLineBytes": {
+          "type": "integer"
+        },
+        "maxPendingBytes": {
+          "type": "integer"
+        },
+        "maxPendingFrames": {
+          "type": "integer"
+        },
+        "maxStartupBytes": {
+          "type": "integer"
+        },
+        "maxStartupFrames": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "encoding",
+        "framing",
+        "malformed",
+        "partialEof",
+        "maxLineBytes",
+        "maxPendingBytes",
+        "maxPendingFrames",
+        "maxStartupBytes",
+        "maxStartupFrames"
+      ]
+    },
+    "AttachmentFormat": {
+      "enum": [
+        "utf8",
+        "png",
+        "jpeg",
+        "webp",
+        "gif",
+        "pdf",
+        "docx",
+        "pptx",
+        "xlsx",
+        "epub"
+      ],
+      "type": "string"
+    },
+    "AttachmentBinding": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "contextId": {
+          "type": "string"
+        },
+        "modelFingerprint": {
+          "type": "string"
+        },
+        "imageCapable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "contextId",
+        "modelFingerprint",
+        "imageCapable"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentOriginal": {
+      "type": "object",
+      "properties": {
+        "originalId": {
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/AttachmentFormat"
+        },
+        "sha256": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "originalId",
+        "format",
+        "sha256",
+        "data"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentText": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "text"
+        },
+        "text": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentImage": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "image"
+        },
+        "mimeType": {
+          "type": "string"
+        },
+        "data": {
+          "type": "string"
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "mimeType",
+        "data",
+        "width",
+        "height"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentRepresentation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttachmentText"
+        },
+        {
+          "$ref": "#/$defs/AttachmentImage"
+        }
+      ]
+    },
+    "AttachmentFacts": {
+      "type": "object",
+      "properties": {
+        "originalBytes": {
+          "type": "integer"
+        },
+        "convertedBytes": {
+          "type": "integer"
+        },
+        "preparedBytes": {
+          "type": "integer"
+        },
+        "sourceWidth": {
+          "type": "integer"
+        },
+        "sourceHeight": {
+          "type": "integer"
+        },
+        "frames": {
+          "type": "integer"
+        },
+        "decodedBytes": {
+          "type": "integer"
+        },
+        "pagesNeedingOcr": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hasEncodingIssues": {
+          "type": "boolean"
+        },
+        "omittedImages": {
+          "type": "integer"
+        },
+        "emptyText": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AttachmentReadyItem": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "ready"
+        },
+        "originalId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "representation": {
+          "$ref": "#/$defs/AttachmentRepresentation"
+        },
+        "degradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "facts": {
+          "$ref": "#/$defs/AttachmentFacts"
+        }
+      },
+      "required": [
+        "status",
+        "originalId",
+        "originalSha256",
+        "preparedId",
+        "preparedSha256",
+        "representation",
+        "degradations"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentFailedItem": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "const": "failed"
+        },
+        "originalId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "originalId",
+        "originalSha256",
+        "preparedId",
+        "preparedSha256",
+        "code"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentItem": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AttachmentReadyItem"
+        },
+        {
+          "$ref": "#/$defs/AttachmentFailedItem"
+        }
+      ]
+    },
+    "AttachmentReceipt": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "attachment-preparation-v1"
+        },
+        "budgetVersion": {
+          "type": "string"
+        },
+        "receiptId": {
+          "type": "string"
+        },
+        "preparationId": {
+          "type": "string"
+        },
+        "draftId": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "draftFingerprint": {
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/$defs/AttachmentBinding"
+        },
+        "expiresAt": {
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "ready",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentItem"
+          }
+        }
+      },
+      "required": [
+        "version",
+        "budgetVersion",
+        "receiptId",
+        "preparationId",
+        "draftId",
+        "draftRevision",
+        "authorityGeneration",
+        "draftFingerprint",
+        "binding",
+        "expiresAt",
+        "status",
+        "resultDigest",
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentConsent": {
+      "type": "object",
+      "properties": {
+        "receiptId": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "acceptedDegradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "receiptId",
+        "resultDigest",
+        "draftRevision",
+        "authorityGeneration",
+        "acceptedDegradations"
+      ],
+      "additionalProperties": false
+    },
+    "PreparedEntryPart": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "content",
+            "files"
+          ],
+          "type": "string"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65535
+        }
+      },
+      "required": [
+        "kind",
+        "index"
+      ],
+      "additionalProperties": false
+    },
+    "PreparedAttachmentLink": {
+      "type": "object",
+      "properties": {
+        "originalId": {
+          "type": "string"
+        },
+        "preparedId": {
+          "type": "string"
+        },
+        "originalSha256": {
+          "type": "string"
+        },
+        "preparedSha256": {
+          "type": "string"
+        },
+        "representationKind": {
+          "enum": [
+            "text",
+            "image"
+          ],
+          "type": "string"
+        },
+        "entryPart": {
+          "$ref": "#/$defs/PreparedEntryPart"
+        },
+        "entryPartUnavailable": {
+          "enum": [
+            "missing",
+            "changed",
+            "ambiguous"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "originalId",
+        "preparedId",
+        "originalSha256",
+        "preparedSha256",
+        "representationKind"
+      ],
+      "additionalProperties": false
+    },
+    "SubmissionPreparation": {
+      "type": "object",
+      "properties": {
+        "receiptId": {
+          "type": "string"
+        },
+        "resultDigest": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "acceptedDegradations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
+        }
+      },
+      "required": [
+        "receiptId",
+        "resultDigest",
+        "draftRevision",
+        "authorityGeneration",
+        "acceptedDegradations",
+        "attachments"
+      ]
+    },
     "Attribution": {
       "enum": [
         "user",
@@ -4249,6 +4818,304 @@
         "phase"
       ]
     },
+    "SubmissionPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-submission-v1"
+        },
+        "status": {
+          "const": "prototype"
+        },
+        "ownership": {
+          "const": "native-exclusive-pinned-storage"
+        },
+        "durability": {
+          "const": "process-crash-only"
+        },
+        "dedup": {
+          "const": "permanent-refuse-at-capacity"
+        },
+        "query": {
+          "const": "read-only-no-execution"
+        },
+        "logicalHeader": {
+          "const": "ompsub1"
+        },
+        "carrier": {
+          "const": "ompgen2"
+        },
+        "maxSubmissions": {
+          "type": "integer"
+        },
+        "maxMetadataBytes": {
+          "type": "integer"
+        },
+        "maxEntryFacts": {
+          "type": "integer"
+        },
+        "maxNoEntryFacts": {
+          "type": "integer"
+        },
+        "maxQueryRelations": {
+          "type": "integer"
+        },
+        "maxMessageBytes": {
+          "type": "integer"
+        },
+        "maxImagesBytes": {
+          "type": "integer"
+        },
+        "maxPendingTasks": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "ownership",
+        "durability",
+        "dedup",
+        "query",
+        "logicalHeader",
+        "carrier",
+        "maxSubmissions",
+        "maxMetadataBytes",
+        "maxEntryFacts",
+        "maxNoEntryFacts",
+        "maxQueryRelations",
+        "maxMessageBytes",
+        "maxImagesBytes",
+        "maxPendingTasks"
+      ]
+    },
+    "SubmissionCausality": {
+      "type": "object",
+      "properties": {
+        "origin": {
+          "$ref": "#/$defs/SubmissionOrigin"
+        },
+        "role": {
+          "enum": [
+            "input",
+            "prepared",
+            "additional",
+            "execution"
+          ],
+          "type": "string"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
+        }
+      },
+      "required": [
+        "origin",
+        "role"
+      ]
+    },
+    "SubmissionTarget": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId"
+      ]
+    },
+    "SubmissionRelation": {
+      "type": "object",
+      "properties": {
+        "relationId": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "no_entry",
+            "failed"
+          ],
+          "type": "string"
+        },
+        "persistence": {
+          "enum": [
+            "committed",
+            "observed",
+            "failed",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "availability": {
+          "enum": [
+            "retained",
+            "removed"
+          ],
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "attachments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PreparedAttachmentLink"
+          }
+        }
+      },
+      "required": [
+        "relationId",
+        "role",
+        "status",
+        "persistence"
+      ]
+    },
+    "SubmissionResult": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-submission-v1"
+        },
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/SubmissionTarget"
+        },
+        "found": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "admission": {
+          "enum": [
+            "local",
+            "inherited",
+            "absent"
+          ],
+          "type": "string"
+        },
+        "reservation": {
+          "enum": [
+            "committed",
+            "unknown",
+            "absent"
+          ],
+          "type": "string"
+        },
+        "inputOutcome": {
+          "enum": [
+            "unresolved",
+            "generated",
+            "no_input"
+          ],
+          "type": "string"
+        },
+        "operationOutcome": {
+          "enum": [
+            "succeeded",
+            "failed",
+            "cancelled",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "persistence": {
+          "enum": [
+            "committed",
+            "failed",
+            "unknown",
+            "unresolved"
+          ],
+          "type": "string"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SubmissionRelation"
+          }
+        },
+        "nextOffset": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "#/$defs/SubmissionOrigin"
+        },
+        "code": {
+          "type": "string"
+        },
+        "preparation": {
+          "$ref": "#/$defs/SubmissionPreparation"
+        }
+      },
+      "required": [
+        "version",
+        "clientSubmissionId",
+        "target",
+        "found",
+        "duplicate",
+        "admission",
+        "reservation",
+        "inputOutcome",
+        "operationOutcome",
+        "persistence",
+        "terminal",
+        "relations",
+        "nextOffset"
+      ]
+    },
+    "SubmissionOrigin": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "clientSubmissionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "clientSubmissionId"
+      ]
+    },
     "AutoCompactionReason": {
       "enum": [
         "threshold",
@@ -5183,6 +6050,9 @@
         },
         "rpcUiStrictStartupPolicy": {
           "$ref": "#/$defs/StrictStartupPolicy"
+        },
+        "rpcUiSubmissionPolicy": {
+          "$ref": "#/$defs/SubmissionPolicy"
         }
       },
       "required": [
@@ -5212,6 +6082,15 @@
         },
         "strictStartupPolicy": {
           "$ref": "#/$defs/StrictStartupPolicy"
+        },
+        "submissionPolicy": {
+          "$ref": "#/$defs/SubmissionPolicy"
+        },
+        "rpcInputPolicy": {
+          "$ref": "#/$defs/RpcInputPolicy"
+        },
+        "attachmentInputPolicy": {
+          "$ref": "#/$defs/AttachmentInputPolicy"
         },
         "protocolVersion": {
           "type": "integer"
@@ -7080,6 +7959,9 @@
         "text": {
           "type": "string"
         },
+        "submission": {
+          "$ref": "#/$defs/SubmissionCausality"
+        },
         "provider": {
           "type": "string"
         },
@@ -7607,6 +8489,62 @@
       ],
       "description": "Any frame the server writes to stdout (after reassembling `rpc_chunk` sequences), discriminated by `type`."
     },
+    "AttachmentPrepareParams": {
+      "type": "object",
+      "properties": {
+        "preparationId": {
+          "type": "string"
+        },
+        "draftId": {
+          "type": "string"
+        },
+        "draftRevision": {
+          "type": "string"
+        },
+        "authorityGeneration": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "objects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AttachmentOriginal"
+          }
+        }
+      },
+      "required": [
+        "preparationId",
+        "draftId",
+        "draftRevision",
+        "authorityGeneration",
+        "message",
+        "objects"
+      ]
+    },
+    "AttachmentCancelParams": {
+      "type": "object",
+      "properties": {
+        "preparationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "preparationId"
+      ]
+    },
+    "AttachmentCancelResult": {
+      "type": "object",
+      "properties": {
+        "cancelled": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "cancelled"
+      ]
+    },
     "RespondUiParams": {
       "type": "object",
       "properties": {
@@ -7737,6 +8675,79 @@
       "required": [
         "intent",
         "expectedCwd"
+      ]
+    },
+    "SubmissionSubmitParams": {
+      "type": "object",
+      "properties": {
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "preparationId": {
+          "type": "string"
+        },
+        "inputType": {
+          "enum": [
+            "prompt",
+            "steer",
+            "follow_up",
+            "abort_and_prompt"
+          ],
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "idleOnly": {
+          "type": "boolean"
+        },
+        "images": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ImageContent"
+          }
+        },
+        "streamingBehavior": {
+          "$ref": "#/$defs/StreamingBehavior"
+        },
+        "preparationConsent": {
+          "$ref": "#/$defs/AttachmentConsent"
+        }
+      },
+      "required": [
+        "clientSubmissionId",
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "preparationId",
+        "inputType",
+        "message"
+      ]
+    },
+    "SubmissionQueryParams": {
+      "type": "object",
+      "properties": {
+        "clientSubmissionId": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer"
+        },
+        "limit": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "clientSubmissionId"
       ]
     },
     "NegotiateProtocolParams": {
