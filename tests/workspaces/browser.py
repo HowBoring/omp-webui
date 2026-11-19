@@ -1,7 +1,7 @@
 """Actual Linux Chromium → authenticated DSH Remote/Peer/$events → Bun → public OMP catalog.
 All native profiles are deliberately synthetic; never print bootstrap links or cookie material.
 """
-import hashlib, json, os, platform, shutil, socket, subprocess, time
+import hashlib, json, os, platform, shutil, socket, subprocess, time, urllib.error, urllib.request
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[2]
@@ -9,6 +9,8 @@ BUN = shutil.which('bun') or '/workspace/work/rpc-public-module-probe/tooling/bu
 ORIGIN = 'http://127.0.0.1:3182'
 ENTRY = 'vendor/host-workspaces/workspace-component-main.js'
 OUT = ROOT / 'vendor/workspace-evidence'
+CHROME = os.environ.get('CHROME_EXECUTABLE') or shutil.which('chromium') or shutil.which('google-chrome')
+assert CHROME, 'Chromium/Chrome executable not found; set CHROME_EXECUTABLE'
 
 def native_manifest():
     result = {}
@@ -38,17 +40,28 @@ def main():
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         deadline = time.monotonic()+180
         while time.monotonic()<deadline:
-            assert host.poll() is None, 'Component Host exited'
+            assert host.poll() is None, f'Component Host exited: {host.communicate()[0][-4000:]}'
             try:
-                with socket.create_connection(('127.0.0.1',3182), timeout=.2):return
+                with socket.create_connection(('127.0.0.1',3182), timeout=.2):break
             except OSError:time.sleep(.1)
-        raise AssertionError('Component Host readiness timeout')
+        else: raise AssertionError('Component Host readiness timeout')
+        def serving():
+            try:
+                with urllib.request.urlopen(ORIGIN+'/healthz', timeout=1) as response:
+                    return response.status==200 and json.loads(response.read())['status']=='ok'
+            except (OSError, urllib.error.URLError, ValueError): return False
+        while time.monotonic()<deadline and not serving():
+            assert host.poll() is None, f'Component Host exited before serving: {host.communicate()[0][-4000:]}'
+            time.sleep(.1)
+        assert serving(), 'Component Host did not serve /healthz'
+        print(f'host pid {host.pid} serving {ORIGIN}', flush=True)
     def stop(crash=False):
         nonlocal host, logs
         if host:
             children=subprocess.run(['ps','--ppid',str(host.pid),'-o','pid='],capture_output=True,text=True).stdout.split()
             host.kill() if crash else host.terminate()
-            output,_=host.communicate(timeout=15); logs+=output; assert host.returncode==(-9 if crash else 0)
+            output,_=host.communicate(timeout=15); logs+=output
+            assert host.returncode==(-9 if crash else 0), f'Host exit {host.returncode}: {output[-4000:]}'
             host=None
             def running(pid):
                 try:return 'State:\tZ' not in Path(f'/proc/{pid}/status').read_text()
@@ -64,7 +77,7 @@ def main():
     try:
         start()
         with sync_playwright() as pw:
-            browser=pw.chromium.launch(executable_path='/usr/bin/chromium',headless=True,args=['--no-sandbox'])
+            browser=pw.chromium.launch(executable_path=CHROME,headless=True,args=['--no-sandbox'])
             context=browser.new_context(); page=context.new_page(); errors=[]; calls=[]; mux=[]
             page.on('pageerror',lambda error:errors.append(str(error)))
             page.on('request',lambda req:calls.append(req.post_data_json) if '/api/ompWorkspaces/' in req.url else None)
