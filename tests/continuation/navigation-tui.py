@@ -28,7 +28,8 @@ if mode == "matched":
             "--no-skills", "--no-rules", "--no-context-files", "--no-lsp", "--no-judge"]
 else:
     cli = pathlib.Path(os.environ["OMP_BASELINE_CLI"]).resolve()
-    argv = [str(cli), "--session", str(file), "--offline", "--no-extensions", "--no-skills", "--no-rules",
+    argv = [bun, "--no-env-file", "--preload", str(root / "compatibility/omp/fixtures/no-provider.ts"), str(cli),
+            "--session", str(file), "--offline", "--no-extensions", "--no-skills", "--no-rules",
             "--no-tools", "--no-context-files"]
 assert cli.is_file(), cli
 child = pexpect.spawn(argv[0], argv[1:], cwd=str(home / "project"), env=env, encoding="utf-8",

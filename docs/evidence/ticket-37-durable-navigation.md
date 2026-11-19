@@ -27,7 +27,8 @@ python3 tests/continuation/navigation-tui.py vendor/navigation-profile "$CARRIER
 mkdir -p /tmp/navigation-tui-baseline/home/project
 cp -r vendor/navigation-profile/.omp /tmp/navigation-tui-baseline/home/.omp
 COPY=$(find /tmp/navigation-tui-baseline/home/.omp/agent/sessions -name '*.jsonl' | tail -1)
-OMP_BASELINE_CLI=/home/howboring/.local/bin/omp python3 tests/continuation/navigation-tui.py \
+OMP_BASELINE_CLI=$PWD/vendor/omp-runtime/node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js \
+  python3 tests/continuation/navigation-tui.py \
   /tmp/navigation-tui-baseline/home "$COPY" baseline "$(command -v bun)"
 ```
 
@@ -52,14 +53,14 @@ fixture provider and hooks.
 | AC3: normal exit, failed write, cancel, unknown and invalid target are distinct | Native `committed` shows the successor appends `session_exit reason dispose` at the committed leaf and resumes on it. `write` (0-byte fault on the terminal receipt write) returns `outcome unknown/persistence unknown`, in-process `query` reports `NAVIGATION_SOURCE_UNREADABLE`, and the successor reads exactly one durable `reserved` record with `persistence unresolved` and no commit id. `unknown` (SIGKILL at the receipt append entry) leaves one durable `reserved` record, `found: true, outcome reserved, persistence unresolved, terminal false`, and the tree position unchanged. `cancelled` commits a cancelled terminal receipt, keeps the original leaf and does not run the summary. `invalid` rejects inspect/navigate with `NAVIGATION_ENTRY_NOT_FOUND`, leaves no record and no position change. |
 | AC4: no Host auto-navigation, no second tree, no in-memory leaf claim | `confirm` is explicit, token-bound, single-use and requires joint idle; nothing navigates from a stored target. The Host keeps no tree: the page tree comes from `history_snapshot_open/page/close` over the public RPC, the service holds only metadata records (no messages, text or target snapshots), and recovery is read back from the native carrier through a new worker, never from a cached leaf. The report labels the Host metadata repository as `fixture-adapter` (in-memory, non-durable) and the projection proof as a fixture rebuild. |
 | Boundary: malformed command/result cannot cross the RPC validators | The native `boundary` case sends six malformed navigation commands (non-string/empty `entryId`, non-hex source/instance ids, wrong `summarize` type, illegal `navigationId`, missing `navigationId`) and every one returns `NAVIGATION_COMMAND_SCHEMA`; a well-formed `inspect` still returns its preview, the leaf is unchanged and the carrier digest is byte-identical. `tests/navigation/validators.test.ts` drives the installed wrapper and `NavigationClient`: malformed `navigate`/`query` replies throw `NAVIGATION_RESULT_SCHEMA`, malformed inspect replies throw `NAVIGATION_PREVIEW_SCHEMA`, valid replies pass, and the installed files match the manifest hashes. |
-| AC5: real Bun/DSH page + public worker; native TUI and data compatibility | Browser: Linux Chromium → DSH typed Remote/Gateway → Bun Host → public `ompHistoryNavigationSource/action` → real strict worker → public RPC v2. TUI: the matched native TUI opens the recovered carrier in a real PTY, renders only the recovered branch (`fixture prompt 1` + reply, abandoned `fixture prompt 2` hidden), reaches the native idle marker, accepts an explicit rename and exits 0. Baseline OMP `19.0.0` refuses the candidate carrier with a malformed/missing `header` error, exits 1 and leaves the file byte-identical, so the data is not silently downgraded. |
+| AC5: real Bun/DSH page + public worker; native TUI and data compatibility | Browser: Linux Chromium → DSH typed Remote/Gateway → Bun Host → public `ompHistoryNavigationSource/action` → real strict worker → public RPC v2. TUI: the matched native TUI opens the recovered carrier in a real PTY, renders only the recovered branch (`fixture prompt 1` + reply, abandoned `fixture prompt 2` hidden), reaches the native idle marker, accepts an explicit rename and exits 0. The pinned baseline OMP `18.20.2` (`upstreams.lock.json`, run under Bun with the pre-import egress guard) refuses the candidate carrier with a malformed/missing `header` error, exits 1 and leaves the file byte-identical, so the data is not silently downgraded by the reviewed baseline. |
 
 ## Seams and limits
 
 Real: native strict worker and its session storage/generation machinery, public navigation RPC commands and the
 pinned generated validators (`navigation-command.generated.js` `56285798…`, `navigation-result.generated.js`
 `0ebf9aab…` = the compiler receipt hash, `navigation-preview.generated.js` `4fc00773…`), `ompHistoryNavigationSource`
-Remote over real DSH Connection/Remote/Gateway, Chromium page, PTY TUI, installed baseline binary (read-only).
+Remote over real DSH Connection/Remote/Gateway, Chromium page, PTY TUI, pinned baseline `18.20.2` CLI (read-only).
 
 Fixture-owned and labeled: authorization scope/policy and stable client per worker, joint-idle `StopSnapshot`, the
 metadata repository (in-memory, metadata-only, non-durable), the projection rebuild (generation counter over the
@@ -69,8 +70,11 @@ fixture extension.
 Not claimed: Host process restart durability or a production repository backend, real all-holder projection
 handoff, draft conflict resolution in the TUI, long-history performance, Windows, and any private Session reading —
 the Host only spawns the worker and parses no Session file. Probe/browser/TUI identifiers are per-run; the source
-tree hash pins the native implementation. `vendor/` is prepared by `scripts/prepare-compatibility.ts` and is not
-committed.
+tree hash pins the native implementation. `vendor/omp-candidate`, `vendor/omp-runtime` and the baseline CLI come from
+`scripts/prepare-compatibility.ts`; the strict worker tree is materialized by
+`compatibility/omp/candidates/native-cohort-38/replay.py` (tree `b102d9db…`) with the preflight/catalog validators
+from `scripts/build-compatibility.ts`, the navigation validators installed by
+`scripts/install-navigation-validators.ts`, and built native binaries. `vendor/` is not committed.
 
 The candidate's `navigation-command.js` is 115052 bytes while the earlier compiler receipt listed 122957 bytes for the
 same schema; the Host here installs the pinned candidate artifact (the authoritative validator for this source) and

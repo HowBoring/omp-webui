@@ -10,6 +10,7 @@
   },
   "baseline": {
     "kind": "baseline-navigation-tui-refusal",
+    "version": "18.20.2",
     "exit": 1,
     "invalidHeader": true,
     "dataUnchanged": true
