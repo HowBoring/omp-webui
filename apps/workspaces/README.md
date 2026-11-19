@@ -58,7 +58,8 @@ python3 tests/workspaces/browser.py
 
 The browser script owns startup, graceful Host process restarts, an actual synthetic native lock holder and cleanup.
 It obtains bootstrap links through the local `--print-bootstrap` control, never writes secrets to evidence, and checks
-unchanged native inode/mtime/content manifests. The fixed listener is `http://127.0.0.1:3182`; do not run another
+unchanged native inode/mtime/content manifests. It launches `CHROME_EXECUTABLE` when set, otherwise `chromium` or
+`google-chrome`. The fixed listener is `http://127.0.0.1:3182`; do not run another
 component on that port. Full startup closure hashing/preflight is outside usable-screen timing and may take minutes
 on the shared development filesystem; the functional harness permits 180 seconds per startup. This is not S5
 performance acceptance. Stop the Host before rebuilding or re-enrolling its source/assets/closure.
