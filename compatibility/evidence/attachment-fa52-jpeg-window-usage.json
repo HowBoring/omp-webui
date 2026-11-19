@@ -1,0 +1,37 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "runtimeWindow": "ONE_JPEG_9b5528a_READY8d3d373a",
+  "case": "actual public JPEG preserves prepared bytes through indexed saved image and provider delivery",
+  "attempts": 1,
+  "retry": false,
+  "otherCasesRun": 0,
+  "originalToolSession": 88636,
+  "runnerPid": 518726,
+  "runnerWaitStatus": 0,
+  "wrapperExitCode": 0,
+  "released": true,
+  "proof": {
+    "path": "compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+    "bytes": 11243,
+    "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+  },
+  "ready": {
+    "path": "compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+    "bytes": 14221,
+    "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-jpeg-f673w7md/postcheck.json",
+    "bytes": 1601,
+    "sha256": "d0b2892f8b1eaf72bf69f4015b20db0436f2099a9e27d891eedd7dedbdca5b24"
+  },
+  "guard": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "sourceRecordsIncludingToolVerified": 290,
+  "allRecursiveRefsVerifiedBeforeAndAfter": 340,
+  "furtherExecution": "NOT AUTHORIZED; source/proof/usage commit only, then stop. Existing closure/drain-observability limits remain explicit in proof."
+}

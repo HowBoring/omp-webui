@@ -1,0 +1,253 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "0f0441b50fd6bf849570edd7b6cefeab80f1ca86",
+  "scope": "ONE public10MiB standards-valid PNG positive/consent/commit/history/provider-white-image witness plus isolatedsingle-image10MiB+1 failedreceipt/refusedsubmit. No wholeMVP/product admission.",
+  "priorReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-launch-source-ready.json",
+    "bytes": 12644,
+    "sha256": "b458e55414cad835026c1a2853a0f0895e6d2e23941528476258898e996e1d69"
+  },
+  "priorFreeze": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117/final-inputs.json",
+    "bytes": 4480,
+    "sha256": "cb5202918ad156d09e95e15e4dba250fc4116e9ae5c8d0651fc4b516fe663614"
+  },
+  "priorActualProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-count-total-runtime-success.json",
+    "bytes": 23166,
+    "sha256": "3b99deaea3f4ad496b2d57925540b2085c973003a6f6a9e303bc8c83ddcda4ff"
+  },
+  "closureReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-source-ready.json",
+    "bytes": 29960,
+    "sha256": "90bfda6fdcd069b1ae7c9c45f413973e98d613ddbe54ff48ec2c6d25bf23e199"
+  },
+  "resolver": {
+    "path": "/tmp/ticket38-image-ten-mib-source-20261117.py",
+    "bytes": 9520,
+    "sha256": "5161c43e1c49b61525b816d1cdf13907358936a8b82bc93041e98b8d7c47cfbf"
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/png-literal.ts",
+      "bytes": 4174,
+      "sha256": "4717e5d15f835812c69b56b37158551e555c8ae134245efedbe7f680569a23dc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/png-ten-mib-boundary.json",
+      "bytes": 4274,
+      "sha256": "b6885123a73dc0232eb72bbdc7a8bf7829e869e4709b44299410e414ce35ccfa"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-ten-mib-source.md",
+      "bytes": 5503,
+      "sha256": "4ce37d7eeff38e9158176ef76e98c1d500ee072c0587c8018acde9205bacbc3c"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+      "bytes": 94592,
+      "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117.py",
+      "bytes": 9520,
+      "sha256": "5161c43e1c49b61525b816d1cdf13907358936a8b82bc93041e98b8d7c47cfbf"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-retainer-20261117.py",
+      "bytes": 9720,
+      "sha256": "43cd015b7f5942022bf7bd892c15d842f7773c55c714f3d0cbe4d1def0815c63"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117/final-inputs.json",
+      "bytes": 4480,
+      "sha256": "cb5202918ad156d09e95e15e4dba250fc4116e9ae5c8d0651fc4b516fe663614"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-launch-source-ready.json",
+      "bytes": 12644,
+      "sha256": "b458e55414cad835026c1a2853a0f0895e6d2e23941528476258898e996e1d69"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/before.json",
+      "bytes": 4541,
+      "sha256": "ba720ff93356c35af0bb693478cdc21417f90d6771a5a5078cf3d041720a9d5c"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/public-rpc.test.ts",
+      "bytes": 85975,
+      "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/preservation.json",
+      "bytes": 4719,
+      "sha256": "481a7d1ea19e7f524292a1dd4efe2753e523940bc6354b4c477d8c74eda6fd0b"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/literals.py",
+      "bytes": 4997,
+      "sha256": "d8d137d59f691196b61c69e61d3aae451153cb159b3e40a337f8e9e17e50c238"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/literal_checks.cjs",
+      "bytes": 3332,
+      "sha256": "7ee057105e6420dc0a1c81b8aa06974a5701e4a1cc7057788006e9bf72f066d9"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/static_binding.cjs",
+      "bytes": 2706,
+      "sha256": "45727ef0209840ebe06dac46474d99027903af81893467c7b57b2b47b6bfe852"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/retainer_binding.py",
+      "bytes": 1949,
+      "sha256": "949b2c11eee747a1caf180ff7fdc3ea665874982e36b6576e9fafa7b6ed6a88e"
+    },
+    {
+      "path": "/tmp/ticket38-image-ten-mib-source-20261117/source-tool-results.json",
+      "bytes": 3626,
+      "sha256": "d4b1cd0bb94eea64565b6ac9f4fce1bd65d656d3f75e3a6af9e687ebadfe8951"
+    }
+  ],
+  "retainer": {
+    "path": "/tmp/ticket38-image-ten-mib-retainer-20261117.py",
+    "bytes": 9720,
+    "sha256": "43cd015b7f5942022bf7bd892c15d842f7773c55c714f3d0cbe4d1def0815c63"
+  },
+  "capture": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    "tests": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_capture.py",
+      "bytes": 6091,
+      "sha256": "02adca47ba1ad6e47e4a45fcfc7430cef423909d9cffdbcff16eee68f3755e64"
+    },
+    "limitPerStreamBytes": 1048576,
+    "readChunkBytes": 65536,
+    "fullStream": "Count and SHA every observed byte until original EOF.",
+    "overflowOrErrors": "FAIL even on child exit0. Write faults stop writes and continue draining.",
+    "readFault": "FAIL/no EOF claim, retain original source handle; persistent read fault can prevent exit. No recovery authority.",
+    "wait": "Original Popen wait plus both original reader joins and EOF required; readers start before wait.",
+    "forbidden": "No timeout/kill/census/PID fallback/retry/descendant-extinction claim.",
+    "testsRun": "9 synchronous finite pure binary I/O tests PASS; no process/thread spawn. Retainer AST-only; never imported/executed."
+  },
+  "ownership": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_launch_ownership.py",
+      "bytes": 3322,
+      "sha256": "54c9fdce3499dd0f3087b1df79c54356f36b9cde37094215cd9b92e5d884c065"
+    },
+    "tests": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_launch_ownership.py",
+      "bytes": 10602,
+      "sha256": "f3a2de776c3e9c880deb7b8fc560336bb568d526b4fac9019de5220a9c76e5f7"
+    },
+    "constructorSource": {
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py",
+      "bytes": 88747,
+      "sha256": "85d29b2bf0249f5436838298c9a60ee93508b1102e9ac43b001f8a7e7ae8f375"
+    },
+    "guard": "Launch-attempt state before allocation; exact original object before initializer; BaseException always HOLD, including missing handle.",
+    "release": "Original Popen wait + both original reader joins + both actual EOF; capture failures still FAIL.",
+    "hold": "Keep retaining parent, exact allocated original Popen, available original pipes, constructed readers/captures/callbacks on live stack forever. No returned handle is not absence proof.",
+    "report": "One bounded ownership-hold.json; report/pause BaseException cannot grant release.",
+    "fakeHold": "Finite callback raises BaseException sentinel outside lifecycle catch; no fake polling loop.",
+    "forbidden": "No retry/timeout/kill/census/PID fallback/cleanup PASS/descendant-extinction claim.",
+    "testsRun": "25 pure tests incl nine new tests and 36 new fault subcases; no thread/process/sleep. Retainer AST-only. Historical old spawn-failure inference superseded."
+  },
+  "retainerReuse": "Latest actual-proven launch-owned retainer; same capture/ownership helpers, all lifecycle bodies exactAST. Onlyprefix/case/metadata counts/eventlabel differ. No new process wrapper/lifecycle action.",
+  "preservation": {
+    "path": "/tmp/ticket38-image-ten-mib-source-20261117/preservation.json",
+    "bytes": 4719,
+    "sha256": "481a7d1ea19e7f524292a1dd4efe2753e523940bc6354b4c477d8c74eda6fd0b"
+  },
+  "baseCurrentInputs": 854,
+  "recursiveChain": [
+    854,
+    842,
+    831,
+    819,
+    781,
+    745,
+    703,
+    667
+  ],
+  "overrides": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+      "bytes": 94592,
+      "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e"
+    }
+  ],
+  "preimage": {
+    "path": "/tmp/ticket38-image-ten-mib-source-20261117/public-rpc.test.ts",
+    "bytes": 85975,
+    "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645"
+  },
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 94592,
+    "sha256": "e245fbb708d2f93072a3cfa0d0e4cf3453dbd277dce2e6bddc0b7ae62b7b6d4e",
+    "name": "actual public 10MiB PNG requires transformation consent and refuses one image byte over before effects"
+  },
+  "independentLiteralManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/png-ten-mib-boundary.json",
+    "bytes": 4274,
+    "sha256": "b6885123a73dc0232eb72bbdc7a8bf7829e869e4709b44299410e414ce35ccfa"
+  },
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN; fresh paired exact-source review + independent Root precheck + separate ONE required.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public 10MiB PNG requires transformation consent and refuses one image byte over before effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-image-ten-mib-20261117-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 90000,
+    "workerRequestDeadlineMs": 10000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner. New top capture requires original wait and both reader joins/EOF. New ownership helper retains original Popen/pipes/readers on every lifecycle BaseException; unresolved ownership or missing EOF remains bounded-report HOLD with no release/cleanup authority. New launch helper publishes attempt before allocation and retains exact original Popen before __init__; all uncertain launches, even unavailable handles, HOLD; unresolved ownership or missing EOF remains bounded-report HOLD with no release/cleanup authority. No private field proves absence.",
+    "prePost": "Fresh Root exactnewdelta plus854\u2192842\u2192831\u2192819\u2192781\u2192745\u2192703\u2192667; exactlyone test override with retained preimage. Native166/build290/archive41/addon15/HTML6 unchanged; cleanHostHEAD/tree/index. No bulk copies.",
+    "failurePolicy": "Stop firstFAIL, preserveexactfailure. No retry/fix/expectationweakening, Native API/schema/product/build/dependency change, othercase/format, Host/browser/FFI/socket/kernelprobe, GH/merge/global/private/product admission, fence/orphan444480/processcensus/PIDfallback/groupkill. Ifpubliccapabilitygap, SOURCE HOLD; never shrinkacceptedrawlimit or silentlyapprove degradation.",
+    "runtimeWindow": "NONE authorized by thisSOURCE. Root coordination and separateONE required; neverreuse consumedreadiness/raw/output/retainerprefixes."
+  },
+  "oracle": "Exacthistorical590B PNG/d395representationSHA is known regression only. Samewhitepixel+same200resizepath basis, repairedIDATCRC disclosed. Independentzlib+filters requires all200x200RGBApixelswhite, SHA cdbf6c08. ProviderbytesHA consistency constrainedby knownrepresentation andpixelwitness; no fabricatedNativeencodedbyteSHA/fullmodel-layout.",
+  "diagnosticGap": "Over+1 bypasses count/total/RPC and is caught byunchangedworker readStreamBounded(imageBytes), which mapsSTREAM_BYTE_LIMIT to genericattachment_converter_error failedreceipt; submitATTACHMENT_NOT_READY. Not a specificpublicper-imagebudgetdiagnostic, not fullQ6acceptance. Positive10MiB MUST be ready; no expectedrejection as success or targetshrink.",
+  "capacity": "No10MiBpayloadfile/build/runtimecopy/archive. SOURCE streamedhash chunks<=65540B; runtimeoriginal/base64/frameRAMonly. Topcapture<=1MiB each, knownpreparedPNG590B, sequentialownedhelperfsize0. Rootfreshdisk/capacitycheckstillrequired; lastSOURCEdf31047680Bfree, notruntimecapacityproof.",
+  "tdd": "AgreedpublicRPCseam; actualRED/GREEN intentionallyNOTRUN underSOURCEonlyauthority. Pureliteral/AST checks do not substitute forNative. Freshpair/Rootpre/ONE required beforeactual.",
+  "newPrefixes": [
+    "/tmp/ticket38-image-ten-mib-source-20261117",
+    "/tmp/ticket-38-public-image-ten-mib-20261117-",
+    "/tmp/attachment-runtime-image-ten-mib-20261117-"
+  ],
+  "notRun": "No retainerpre/run/post,Native/SDK/OMP/codec/RustFFI/Host/provider/browser/seed/kernel/runtime process/thread. Purestdlibzlib,metadata,literalstreamhash,TypeScriptAST/typecheck only.",
+  "admission": "SOURCE ONLY; stop for freshpairedreview + Rootcapacity/pre + separateONE. Whole29/38/53/54 open;10MiBactual targetunmet;diagnosticgap remains."
+}

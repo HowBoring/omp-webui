@@ -1,0 +1,178 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_DOCX_CASE_ONLY",
+  "hostHead": "4c1d7c323cdfc9c85c339912aaf118bc58bbdcc4",
+  "hostTree": "58aca5cd6622f9bfe4562e15e5ca4bae424ec4e3",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root granted exclusively EXACT ONE anchored DOCX attempt on clean4c1d7c3 / READY5a75f387 / freezeaf345b98. No other Native active per Root. Window used once and RELEASED immediately after actual outcome and original exec drain, before read-only postcheck/proof work.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-source-ready.json",
+    "bytes": 20464,
+    "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-docx-source/final-inputs.json",
+    "bytes": 80113,
+    "sha256": "af345b98794ff6f37a821f9da91c832ab69dc0656937c690e5c16f455dad5954"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public DOCX requires exact degradation consent before indexed saved text and provider delivery",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public DOCX requires exact degradation consent before indexed saved text and provider delivery$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-docx-xbgrmw5o",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-docx-xbgrmw5o",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-docx-xbgrmw5o",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T02:29:59.618919+00:00",
+    "startedMonotonicNs": 151481492411946,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "evidenceDirectory": "/tmp/ticket-38-public-docx-kyef3pil",
+    "runnerPid": 531448,
+    "runnerWaitStatus": 0,
+    "finishedAt": "2026-11-17T02:30:10.771122+00:00",
+    "finishedMonotonicNs": 151492644803988,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "stdoutBytes": 28,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrBytes": 248,
+    "stderrSha256": "8b9dc059e57e07054729cac289e348cef185bc4385f52d36938e47d11b508f37",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 3,
+    "assertions": 45,
+    "durationReported": "11.13s",
+    "caseDurationMs": 10928.68,
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "earnedPublicBehavior": [
+    "Actual Native preparation of fixed1259B minimal DOCX originalSHA76e2ed8160cbd314a8527cd57f07eb8d422c5e1ea7dc4769dc946e5a1f0554a0 returns exactly one ready text representation Controlled DOCX text witness (28 UTF8 bytes), preparedRepresentationSHAfbe65ce22456deb2f5d5dc0fb22632c772adb897e934a6f01bdba31e12298cc9. Exact degradations document_structure_changed and facts originalBytes1259/convertedBytes28/omittedImages0 match independently authored source expectations.",
+    "Preparation leaves public get_entries and controlled-provider effect record unchanged. Attempt without accepting the degradation refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED; query on same client key is foundfalse/reservationabsent/admissionabsent, unresolved, no relations/next offset; entries/effects unchanged.",
+    "Explicit consent accepting exactly document_structure_changed for the returned receiptId/resultDigest/draftRevision/authorityGeneration succeeds; terminal query confirms found/succeeded/generated/committed reservation+persistence with exact selected target, origin clientSubmissionId docx-success and preparation binding.",
+    "Public relation.entryId and earned entryPart.kind:files/index identify exactly one actual saved fileMention item containing exact28B text and attachment-prepared://preparedId path; actual saved link identities match receipt. Public history rows matching that exact entryId carry same origin, prepared role and saved attachment link.",
+    "Exactly one new controlled input/model attempt/dispatch/request, no image, unchanged toolCalls/blockedPayloads. Actual model-request capture reports exactly one developer span with28B and occurrences1 and SHA d771072c331e616e4702b39e480f6f8c69e7abebfb09f039d26e3013f7970eea. This establishes provider delivery only; it never joins history.",
+    "Second public terminal query exactly equals first terminal result and adds no controlled-provider effects."
+  ],
+  "identityDiscipline": "Only public relation.entryId + actual saved entryPart kind/index joins original/prepared attachment identities to get_entries/public history. Text/hash/order supplies no causal association. Independently pinned known text/hash witnesses bytes only.",
+  "drain": {
+    "originalTool": "Original exec session29031 reached finalbea178 exit0; no ongoing tool from this attempt.",
+    "originalPopen": "Original Python Popen retained Bun531448; actual child.wait returned0 before stdout/stderr file handles closed and final runner JSON written. No outer timeout or added signals.",
+    "worker": "Unchanged withWorker awaits strictWorker.close, asserts actual code0; close awaits original reader and stderr; finally awaits original child.exited before removing owned home. Exact worker PID/stderr/drain object were not separately retained.",
+    "catalog": "Unchanged selectedDescriptor awaited CatalogTransport.close in finally. Its exact PID, DrainResult, exitcode and forced metadata are discarded by that helper: NOT CAPTURED. No claim of exact catalog exitcode or descendant extinction.",
+    "serializer": "Unchanged canonical c4e684 nativeTitleSlots child guard precedes pure Native title import; original stdout/stderr/exit await and code0+empty stderr assertion completed before fixture worker starts. Exact PID not separately retained.",
+    "converter": "Unchanged prepareAttachmentIsolated owns original converter handle and bounded stdout/stderr readers, awaits actual child.exited before returning ready, and awaits child.exited in finally before synthetic profile removal. Successful public ready result traversed that implementation; converter PID/exact individual wait metadata were not separately captured.",
+    "profiles": "Runner top synthetic profile removed; before/after /tmp/attachment-public-* lists both empty. This is not a process census or descendant-extinction proof."
+  },
+  "preAndPost": {
+    "status": "PASS",
+    "currentFrozenInputs": 360,
+    "matchedBuildToolRecords": 290,
+    "priorReferencesUnchanged": 338,
+    "priorAuthorizedSourceChangesOnly": [
+      "tests/attachments/public-rpc.test.ts",
+      "compatibility/omp/fixtures/attachment-provider.ts"
+    ],
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "candidateSymlink": "cli.js",
+    "hostSourceUnchanged": true,
+    "perCaseAttachmentHomesBefore": [],
+    "perCaseAttachmentHomesAfter": [],
+    "limit": "Existing matched enrollment, READY/static refs and360-file freeze only, not an exhaustive runtime/dependency closure."
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/runner.json",
+      "bytes": 1790,
+      "sha256": "75c338185708628fe7685e0247f50112035b733c35340ceb9f7a02bf0afcf677"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/precheck.json",
+      "bytes": 1736,
+      "sha256": "16f8dc0906e0b64b7029b737a64cc48e039e5787333f8e8a5c5e9c73aa05b0e1"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/postcheck.json",
+      "bytes": 1717,
+      "sha256": "7946baa8807c797ff00ce0be7c6ed84a1fe9aa5ec3e84519c9527b15b5545a4d"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/stderr.txt",
+      "bytes": 248,
+      "sha256": "8b9dc059e57e07054729cac289e348cef185bc4385f52d36938e47d11b508f37"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/used-once.json",
+      "bytes": 104,
+      "sha256": "654c29b76ae158b2c21f17b282b7f95302f82777a221ee1265922194b0fc82ac"
+    },
+    {
+      "path": "/tmp/ticket-38-public-docx-kyef3pil/original-tool-metadata.json",
+      "bytes": 644,
+      "sha256": "43ecf41ecc6f2a0111997c49eb660b15c7941f30693f957e330c90fc5fedfb55"
+    },
+    {
+      "path": "/tmp/ticket38-docx-runtime.py",
+      "bytes": 6842,
+      "sha256": "b157ad9ecdc53d79c50f6e0cbaece841a9bf7feca9526320e8f9dd95111a705a"
+    }
+  ],
+  "limitations": [
+    "Runtime receipt IDs, entry IDs and per-case provider-effects JSON were asserted but not separately retained; fixture cleanup removed per-case synthetic files. Raw runner stdout/stderr are retained.",
+    "Network guard audit reports0dispatch/0denied at instrumented boundaries; not a general syscall/network proof.",
+    "No exact catalog/converter/serializer/worker PID inventory or descendant-extinction claim.",
+    "JPEG remains earned on its recorded inputs; PNG/text and mixed invalidUTF8 current9f33 reruns remain OPEN; oldf2e6 actual1/47+1/13 historical.",
+    "All remaining selected formats/refusals, budgets/lifecycle/stale/cancel/expiry, history/restart/copy/branch/restore/persistence/faults/native data/TUI/provider and actual DSH/browser/full coherent1\u201310/reviews/full38/MVP acceptance remain OPEN; WindowsChrome/WSL2 owner-deferred."
+  ],
+  "noOtherActions": "No retry, other test/case/format, source or product fix, rebuild, dependency changes, Host/FFI/browser execution, GitHub/push/merge/closure, process census/PIDfallback/groupkill/fence/orphan444480 action.",
+  "admission": "ONE isolated public DOCX case earned only. Window RELEASED; no further runtime authority. Private/global/product admission blocked; whole38/MVP OPEN."
+}

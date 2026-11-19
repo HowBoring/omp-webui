@@ -1,0 +1,150 @@
+{
+  "ticket": 38,
+  "status": "FAIL_WRONG_TRACER_UNCHANGED_IMAGE_EXPECTATION",
+  "hostHead": "ed5fa42f85556db69eb522430599a88a31557db9",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "f2e6abeec0a807557125f108055b83bc041869a2cf42a99cd1c6f53ec3dbc870",
+    "patchSha256": "c4fe066897608e398c197ae641074fe05756f0be2ec721f1e817b26d4580007e",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runner": {
+    "hostHead": "ed5fa42f85556db69eb522430599a88a31557db9",
+    "case": "actual public PNG and text commit exact indexed parts with matching query and history links",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public PNG and text commit exact indexed parts with matching query and history links$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/ticket-38-public-success-me_tfq5l/profile",
+      "PI_CODING_AGENT_DIR": "/tmp/ticket-38-public-success-me_tfq5l/profile",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/ticket-38-public-success-me_tfq5l/profile",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "startedAt": "2026-11-16T23:37:13.354614+00:00",
+    "evidenceDirectory": "/tmp/ticket-38-public-success-me_tfq5l",
+    "status": "FAIL",
+    "runnerPid": 496758,
+    "finishedAt": "2026-11-16T23:37:16.754198+00:00",
+    "runnerWaitStatus": 1,
+    "outerTimeout": false,
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrSha256": "8ad8e1e03e39ff33093dcba5514fa2104ebaedcade7a715de56d7c17c272b1d4",
+    "topProfileRemoved": true
+  },
+  "result": {
+    "passed": 0,
+    "failed": 1,
+    "filtered": 1,
+    "expectCalls": 4,
+    "elapsedSeconds": 3.39,
+    "caseElapsedMs": 3300.31,
+    "phase": "first prepare receipt expectation; before no-effects assertion and before submission",
+    "cause": "Tracer incorrectly expected unchanged 1x1 PNG/no degradation. Actual public OMP preparation returned READY and explicitly disclosed image_transformed. This is not evidence of a product preparation failure.",
+    "actualPreparedImage": {
+      "originalBytes": 68,
+      "originalSha256": "6b1048f8a6d40bac0b2954c18fefa40c4ea7a96120fc2e54b7317c0e43c2bbec",
+      "width": 200,
+      "height": 200,
+      "preparedBytes": 590,
+      "preparedRepresentationSha256": "d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff",
+      "degradations": [
+        "image_transformed"
+      ]
+    },
+    "actualText": "READY; expected literal text and prepared representation digest e603d01747bf11e95e94972008c3befe7d041b60b064fa8134add64c18019b0e matched printed receipt",
+    "notReached": [
+      "preparation leaves entries/effect counters unchanged",
+      "explicit degradation consent and consumption",
+      "submission terminal/query facts",
+      "actual saved indexed image/files parts",
+      "public history links",
+      "controlled-provider exact prepared representation hashes"
+    ],
+    "negativeCase": "FILTERED/NOT RUN",
+    "retry": "NONE"
+  },
+  "sourcePost": {
+    "status": "SOURCE_POST_UNCHANGED",
+    "hostHead": "ed5fa42f85556db69eb522430599a88a31557db9",
+    "hostStatus": "",
+    "verifiedPriorRecords": 290,
+    "mismatches": [],
+    "nativeSnapshotChecks": {
+      "native-head.txt": true,
+      "native-index.patch": true,
+      "native-worktree.patch": true,
+      "native-head.patch": true,
+      "nativeIndex": true
+    },
+    "nativeArchivedFilesUnchanged": 166,
+    "sourceFileHashes": {
+      "compatibility/evidence/attachment-de7c-runtime-readiness.json": "8ff3607522fcc0106ee28147841095714dd1acf22978018d1cc1ead160b987c2",
+      "tests/attachments/public-rpc.test.ts": "1adfae59c4bb3520d9f1b1557d967988aba4cf9fb6cf81f15d2fdfb2205174bc",
+      "tests/catalog/fixture.ts": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    "runtimeResult": "FAIL at expected receipt; no submit/query/indexed parts/history/provider assertions reached",
+    "cleanupEvidence": {
+      "runnerWaitStatus": 1,
+      "strictWorkerCloseCode": 0,
+      "strictWorkerExitEvidence": "finally expect(close().code).toBe(0) completed; no diagnostic printed",
+      "catalogClose": "awaited by selectedDescriptor finally; exact DrainResult discarded, not separately captured",
+      "serializerExit": "helper completed with parsed stdout and no stderr; code!=0 would have thrown before strict_start",
+      "noReopen": "no reopen performed by selected single case",
+      "topSyntheticProfileRemoved": true
+    },
+    "limitations": "No process-list probe or additional runtime was run. Exact catalog exit/forced flag and strictWorker PID are unavailable from the unchanged test harness."
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/ticket-38-public-success-me_tfq5l/runner.json",
+      "bytes": 1553,
+      "sha256": "8c4978cfe6762136df3b088226db502e1d2cb3805f81a72fb4a67e8c359d2a9c"
+    },
+    {
+      "path": "/tmp/ticket-38-public-success-me_tfq5l/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-success-me_tfq5l/stderr.txt",
+      "bytes": 4493,
+      "sha256": "8ad8e1e03e39ff33093dcba5514fa2104ebaedcade7a715de56d7c17c272b1d4"
+    },
+    {
+      "path": "/tmp/ticket-38-public-success-me_tfq5l/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-success-me_tfq5l/source-post.json",
+      "bytes": 1588,
+      "sha256": "8d5b8d1f57f6f9692dadace67e6ae1e95da98f370e2d4b8fc0e9711550e148c5"
+    }
+  ],
+  "drain": {
+    "bunRunnerWaitStatus": 1,
+    "pythonWrapperExitCode": 0,
+    "strictWorkerCloseCode": 0,
+    "strictWorkerEvidence": "finally close() assertion completed without another failure",
+    "serializer": "guarded authoring helper succeeded; it checks child code0 and empty stderr",
+    "catalog": "close awaited child.exited/stdout/stderr; exact DrainResult was discarded by selectedDescriptor and remains uncaptured",
+    "reopen": "NOT RUN",
+    "topProfileRemoved": true,
+    "outerTimeoutOrGroupSignal": false
+  },
+  "scope": "One anchored actual public RPC success case, synthetic isolated profile and existing controlled provider. No additional case/retry/Host/browser/fault/product/private/global runtime. All-format and later acceptance requirements stay open."
+}

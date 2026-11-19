@@ -1,0 +1,541 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "4a36f782971bb8d80c0e8c2e64e9b2eaf036da64",
+  "parentTree": "b97c6d0c1d8f2a40a120b74ba929cbf064cbae74",
+  "branch": "mvp/ticket-38-xlsx-source",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE XLSX source-only public RPC vertical tracer. No Native product/API/schema/source/build/dependency mutation, Native/SDK/Agent/Host/browser/FFI/converter/kernel runtime, actual case, self GO, GH/merge/closure or subsequent format. Linux now; Windows owner-deferred; global path unselected; whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-current/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Previously authorized public attachment_prepare via AttachmentClient.prepare, submission_submit/query, get_entries and history snapshot; unchanged controlled provider known-span capture. No new seam/private runtime import or Native Session-file reads in tracer. Actual red/green awaits Root separate ONE actual window.",
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 59418,
+    "sha256": "261078e763a53c756d9e8807aa16aa2070bed4b2ee0e19f4b863e85c82bbe461",
+    "name": "actual public XLSX requires structure consent before indexed saved text and provider witness"
+  },
+  "fixtures": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/minimal-workbook.xlsx",
+      "bytes": 2372,
+      "sha256": "94807b10285705fa5ea6c6c2a145f5cc81e0add726970438691279d7f6ef5617"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/minimal-workbook-xlsx.json",
+      "bytes": 5960,
+      "sha256": "121646072b2a5646d9b75b44aebd46764f059e5047ca7b821e3aeb39838b4c2f"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/minimal-workbook.xlsx",
+    "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+    "authoring": "Python stdlib ZIP_STORED, fixed1980 timestamps/member order/create_system3/regular0100644 permissions. Five UTF8 XML/OPC members, one Evidence sheet, one Source header cell and one independently chosen inline-string body cell. No styles/formulas/shared-strings/media/external relationships.",
+    "bytes": 2372,
+    "originalSha256": "94807b10285705fa5ea6c6c2a145f5cc81e0add726970438691279d7f6ef5617",
+    "memberCount": 5,
+    "sheetCount": 1,
+    "sheetName": "Evidence",
+    "cells": [
+      {
+        "reference": "A1",
+        "type": "inlineStr",
+        "text": "Source"
+      },
+      {
+        "reference": "A2",
+        "type": "inlineStr",
+        "text": "Controlled prepared document"
+      }
+    ],
+    "relationships": [
+      {
+        "part": "_rels/.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument",
+        "target": "xl/workbook.xml"
+      },
+      {
+        "part": "xl/_rels/workbook.xml.rels",
+        "id": "rId1",
+        "type": "http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet",
+        "target": "xl/worksheets/sheet1.xml"
+      }
+    ],
+    "members": [
+      {
+        "memberPath": "[Content_Types].xml",
+        "bytes": 557,
+        "sha256": "68df920c7a1ce7d882e2fbc6decf71b4c5fbae01312d76a426368d142835f7ad",
+        "crc32": "0db8616e",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\"><Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/><Default Extension=\"xml\" ContentType=\"application/xml\"/><Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/><Override PartName=\"/xl/worksheets/sheet1.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\"/></Types>"
+      },
+      {
+        "memberPath": "_rels/.rels",
+        "bytes": 295,
+        "sha256": "f2f3948a1b6f661f2a5169a86b7029166acd4b79d7abfd37fa2b646fe302bfd6",
+        "crc32": "8bebda98",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "xl/workbook.xml",
+        "bytes": 285,
+        "sha256": "b34b898f5f12d14dc9364b94be0d854bb8bfffa67f90375ef13a0fec5b009be6",
+        "crc32": "183d7028",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><workbook xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><sheets><sheet name=\"Evidence\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>"
+      },
+      {
+        "memberPath": "xl/_rels/workbook.xml.rels",
+        "bytes": 296,
+        "sha256": "62e4000e34e65f9a8d5f6af30f676a870db552afd3bd0b9e300175b6edd2c235",
+        "crc32": "6b82fd5a",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet1.xml\"/></Relationships>"
+      },
+      {
+        "memberPath": "xl/worksheets/sheet1.xml",
+        "bytes": 347,
+        "sha256": "d3d57e605c87d6a4bd52b94405b640c31c941a305b85cfe8e51b82f02feb0f28",
+        "crc32": "f1485709",
+        "xml": "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?><worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><dimension ref=\"A1:A2\"/><sheetData><row r=\"1\"><c r=\"A1\" t=\"inlineStr\"><is><t>Source</t></is></c></row><row r=\"2\"><c r=\"A2\" t=\"inlineStr\"><is><t>Controlled prepared document</t></is></c></row></sheetData></worksheet>"
+      }
+    ],
+    "independentValidation": "Stdlib ZIP CRC/member hashes/metadata and every UTF8 XML document parsed independently by ElementTree; all OPC relationships resolve; workbook main content type, sheet identity, row/cell references/types/text independently verified. No full OOXML XSD/application rendering or Native converter invoked.",
+    "expectedNativePreparation": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "degradations": [
+        "document_structure_changed"
+      ],
+      "omittedImages": 0,
+      "expectedText": "## Evidence\n\n| Source |\n| --- |\n| Controlled prepared document |",
+      "expectedTextBytes": 64,
+      "expectedTextSha256": "06f69c982c70cdbea1d395c14a7564fd6683e2c53437e6d488032e86f015ce6e",
+      "expectedRepresentationSha256": "cae9f008d29403adfdba540bf8bb3e2e8771de2cff76e081b910c0ef11d6c91f",
+      "basis": "Worked explicit-source contract, NOT observed conversion: XlsxConverter resolves Evidence sheet, preserves inlineStr text using parseTagValue:false, emits ## sheet name then blank line and one-column header/separator/body table. sections joins LF-LF without final LF. No xl/media members gives omittedImages0; document wrapper declares document_structure_changed. Short plain text does not truncate. Native source unit test asserts the same exact formatting shape for inline strings.",
+      "providerKnownSpan": {
+        "text": "Controlled prepared document",
+        "bytes": 28,
+        "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+      },
+      "limits": "Exact plain Markdown expectation is independently worked/hashlib-pinned from explicit source, unexecuted. Full OOXML XSD/rendering/styles/formula/layout fidelity unvalidated. Unchanged provider witnesses known28B only, not full Markdown/provider wrapper delivery."
+    }
+  },
+  "independentAuthoringScript": {
+    "path": "/tmp/ticket38-xlsx-author.py",
+    "bytes": 7503,
+    "sha256": "050169ba11afea8bb88cc06db51460a1415dbe02713f9091fccddf6156999751"
+  },
+  "expectationBasis": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "original": "Independent stdlib2372B ZIP_STORED, five UTF8 XML/OPC members, fixed1980 metadata/order/regular permissions, CRC/member hashes. One Evidence sheet; A1 inlineStr Source and A2 inlineStr Controlled prepared document. Correct main content type, all relationships internal/resolved, no formulas/media/shared strings/styles. Independent ElementTree validates all authored XML/graph/cells; no full OOXML XSD/application rendering.",
+    "conversion": "Native validates workbook main content type and archive/encoding/budgets. XlsxConverter uses local XMLParser(parseTagValue:false) and ZipPackage exact member reads, resolves Evidence worksheet, preserves inline strings, emits ## Evidence then blank line and one-column Source header/--- separator/body. Explicit source and source unit test define this exact formatting. No xl/media members means omittedImages0; document wrapper always declares document_structure_changed. Short text is below truncation thresholds. No row-count or unsupported public fact invented.",
+    "preparedDigest": "Worked exact-source expectation, NOT observed conversion:64B ## Evidence, blank line, | Source |, | --- |, | Controlled prepared document | with LF separators/no terminal LF. Independent Python hashlib textSHA06f69c98 and compact kind/text representationSHAcae9f008 pin the literal before runtime. No Native/SDK/converter supplied expected bytes/hash. Actual may fail; stop without fix/retry/weakening.",
+    "provider": "Complete provider remains byte-exact. It already captures known Controlled prepared document once,28B/SHAfd4d6186 in developer request text. That witnesses only independently authored extracted28B, not full64B Markdown/provider wrapper delivery. Full64B is checked at public receipt and actual indexed saved Native companion part.",
+    "dependencies": "XLSX uses the already enrolled local archive/XML path. Reuse immutable41-record archive/XML and15-record installed wrapper/addon manifests and their symlinks; all validated unchanged by streaming hash. No new dependency, native export, external Excel/XML service, vendor/dependency/addon copy or runtime import/probe.",
+    "limits": "Source-worked64B text/digests are independently specified but UNEXECUTED. ZIP/XML graph/cell checks do not establish full OOXML XSD correctness, Excel rendering/styles/formula/layout fidelity. Provider known28B witness does not prove whole64B/provider wrapper delivery."
+  },
+  "expectedAssertions": [
+    "Original exactly2372B/SHA94807b10. Exactly one ready text item bound to selected target, source-worked64B text and representationSHAcae9f008, distinct from original. Exactly document_structure_changed, facts originalBytes2372/convertedBytes64/omittedImages0.",
+    "Preparation changes neither entries nor provider effects. Missing structure consent refuses before reservation/admission/effects; same xlsx-success query stays absent/unresolved/unknown with no relations and unchanged entries/effects.",
+    "Exact explicit receiptId/resultDigest/draftRevision/authorityGeneration/document_structure_changed consent admits ONE terminal succeeded/generated/committed input with exact target/origin/preparation binding.",
+    "Only public returned relation.entryId plus actual entryPart files/index locate saved fileMention. Indexed preparedId path/full64B text/byteSize/textSHA06f69c98 and complete links match expectations/receipt. Same public entryId history rows require origin/prepared role/full link. No text/hash/order joins.",
+    "Exactly one controlled input/attempt/dispatch/request; no images/tool/blocked growth. Existing provider witnesses independently authored28B known span once in developer text with SHAfd4d6186, not whole64B/provider wrapper delivery or history causality.",
+    "Second terminal query exactly equals first with no effects."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/package.ts",
+      "bytes": 3724,
+      "sha256": "b410b3efe8aadd40085fe21d34196b560292838d62241fb61ed9c4fbf81314a3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/markit/registry.ts",
+      "bytes": 2139,
+      "sha256": "590083a2c9cd6e41b914c652e9d05a5845eb216b29c3d5aaa3d4920a916f95a8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/markit/converters/xlsx.ts",
+      "bytes": 5519,
+      "sha256": "6141e084177a40f34377a0e47bbf8661db39ea77c9493462d42a04d51f82d01f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/test/xlsx-converter.test.ts",
+      "bytes": 2001,
+      "sha256": "5ce1fc32266a0058b0c3e25fb34f04de06f11ede692a9ed12fd47c62e94a4b31"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/xml.ts",
+      "bytes": 11401,
+      "sha256": "87d66dc976fe7bce9be6aa9fa5050a85dba7bc4896c2bf146d8c95da9b064ca2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip-package.ts",
+      "bytes": 2283,
+      "sha256": "6ff4e75ba0497449309e9aac2afcab9b40848f58a49c280bf12ef1ea5909584b"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip.ts",
+      "bytes": 28681,
+      "sha256": "33a5df57c77f8b994c80f148a66aaa874438be4f9808c4193b6c7c705a49f267"
+    }
+  ],
+  "preservedClosures": {
+    "archiveXml": {
+      "manifest": {
+        "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+        "bytes": 10064,
+        "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+      },
+      "records": 41,
+      "symlinks": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+      }
+    },
+    "nativeAddonCandidates": {
+      "manifest": {
+        "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+        "bytes": 6181,
+        "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+      },
+      "records": 15,
+      "symlinks": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+      }
+    },
+    "meaning": "Existing immutable manifests reused by reference, no duplicate full manifest. Each named record and symlink independently rehashed/checked in source preservation/readback; actual capability unexecuted."
+  },
+  "checks": [
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-xlsx-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-xlsx-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T06:00:22.147498+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 564323,
+        "code": 0,
+        "finishedAt": "2026-11-17T06:00:30.127232+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-xlsx-source/host-types.json",
+          "bytes": 896,
+          "sha256": "ba60528550161ad4b37e02654f97d776f4c923fd3b07cf98df70c46225292fc5"
+        },
+        {
+          "path": "/tmp/ticket38-xlsx-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-xlsx-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-xlsx-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-xlsx-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-xlsx-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T06:00:30.128292+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 564337,
+        "code": 0,
+        "finishedAt": "2026-11-17T06:00:30.152439+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-xlsx-source/syntax.json",
+          "bytes": 942,
+          "sha256": "0e50d898e167eb6ce1c1b89e79edd6efd670e061f70ef99b3c5a3966d75f8c7f"
+        },
+        {
+          "path": "/tmp/ticket38-xlsx-source/syntax.stdout",
+          "bytes": 73,
+          "sha256": "7a5afed9df12f7d63533c0747fefe1369d66cb8ddaa1a2830378e99ef60453b0"
+        },
+        {
+          "path": "/tmp/ticket38-xlsx-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "frozenReadback": {
+    "status": "PASS_STATIC_ONLY",
+    "before": {
+      "path": "/tmp/ticket38-xlsx-source/before.json",
+      "bytes": 6249,
+      "sha256": "3e81985263e2b0a17e41e563c8296496a4e343998547775b6873ac8f45bf131b"
+    },
+    "after": {
+      "path": "/tmp/ticket38-xlsx-source/after.json",
+      "bytes": 2255,
+      "sha256": "d52799d5fb0ce45383b2e4c08b4d54e403f59ac589bc6571246477c0b3e2db6a"
+    },
+    "commonLibrary": {
+      "path": "/tmp/ticket38-xlsx-common.py",
+      "bytes": 2962,
+      "sha256": "2cfdb69431349c5dacc89fe9dd3acbc3dac998625b0e190d623957720b48f8f0"
+    },
+    "preservationScript": {
+      "path": "/tmp/ticket38-xlsx-preserve.py",
+      "bytes": 3472,
+      "sha256": "5fc3b9c429de00ea6779bdd9b9b8676c594509d4552adf63a162511501b584ab"
+    },
+    "verificationScript": {
+      "path": "/tmp/ticket38-xlsx-readback.py",
+      "bytes": 4565,
+      "sha256": "34af5ee248ef432789c2c4e621e5980b14d85567fcfeaddc67f970169e456ddd"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-xlsx-static.py",
+      "bytes": 1673,
+      "sha256": "8df0cfa19193495e8cdb0fbbfb5ff0bd9e85452dcec914ba1d46027e088cb429"
+    },
+    "deltaFreezeGeneratorAndResolver": {
+      "path": "/tmp/ticket38-xlsx-final-freeze.py",
+      "bytes": 6010,
+      "sha256": "ce31dcc6bba7c7514b5c0f2b68bf956df5fe09890d1e9a7c57e12d02612c31e9"
+    },
+    "baseFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "baseCurrentRecords": 667,
+    "priorDirect669ExactBefore": true,
+    "additionalPriorProofRawRecords": 15,
+    "allPreservedCurrentBefore": 682,
+    "unchangedPreservedCurrentAfter": 681,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostBefore": {
+      "head": "4a36f782971bb8d80c0e8c2e64e9b2eaf036da64",
+      "tree": "b97c6d0c1d8f2a40a120b74ba929cbf064cbae74",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 85092,
+        "sha256": "486ae701247558680e2e3cb2100b683e008f25b342b106a427f48fcb2776ea83",
+        "meaning": "Historical pre-edit Host index digest preserved; own source commit intentionally changes Host index. No index copy. Native live index remains an invariant."
+      },
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "headDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "changedSourcePreimage": {
+      "path": "/tmp/ticket38-xlsx-source/public-rpc.test.ts",
+      "bytes": 53027,
+      "sha256": "a79f171b73e049df5a1db9bbcf613b932982dd7bbc5d917a04c36a7eea70d445"
+    },
+    "priorBodies": "All eight prior cases/helpers are byte-exact prefix; entire controlled provider unchanged.",
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "diskPolicy": "Only changed test preimage copied. Existing immutable667-record freeze reused by reference; no Native diff/source/index/vendor/dependency/addon copies or repeated full manifests.",
+    "limits": "Enrolled current/prior proof/raw references and named source/addon closures, not exhaustive transitive/system/runtime closure. No Native or converter runtime."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. Root must separately authorize exactly ONE anchored actual window; this file grants no runtime authority.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public XLSX requires structure consent before indexed saved text and provider witness$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-xlsx-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Resolve attachment-source-delta-freeze-v1 from immutable base667, apply exactly one test override and listed added records; verify every resolved current record plus base166 Native dirty source records, matched290, unchanged681 prior current refs, preserved41 archive/XML and15 addon manifests/records/symlinks, Native HEAD/index/status/all binary diffs and candidate/dependency links. Verify source checkpoint/index before/after actual. Stream hashes; no copies. Guard audit/owned synthetic homes checked. Not exhaustive transitive/system/runtime closure.",
+    "failurePolicy": "Stop firstFAIL. No retry, expectation weakening, source/product/Native API/schema fix, build/dependency install/mutation, other test/format, Host/browser/ad-hoc FFI probe, process census/PIDfallback/groupkill, orphan444480/fence/GH action. Report exact converter/public capability gap to Root."
+  },
+  "preservedPriorEvidence": {
+    "baseFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "previousPptxProofAndUsage": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-pptx-runtime-success.json",
+        "bytes": 23440,
+        "sha256": "c020f3b2bb4fb909a56b02b3e908d3630cd25a72c3129b32fc485abce4f52e93"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-pptx-window-usage.json",
+        "bytes": 2850,
+        "sha256": "6fcc771238673bf75ec6a91efdc3b63184889afae47e64c8159bf9bc5a8480b2"
+      }
+    ],
+    "proofRawReferenceManifest": {
+      "path": "/tmp/ticket38-xlsx-source/before.json",
+      "bytes": 6249,
+      "sha256": "3e81985263e2b0a17e41e563c8296496a4e343998547775b6873ac8f45bf131b"
+    }
+  },
+  "earnedPriorRuntime": "Current Native9f33/5e315/schema8f9c PNG-text47/mixed13/JPEG33/DOCX45/WebP49/GIF55/PDF49/PPTX45 assertion passes remain earned only on exact recorded isolated inputs. XLSX source author ran no Native/runtime/conversion.",
+  "notRun": [
+    "Actual XLSX/any other case; Native/converter/SDK/Agent/Host/browser/FFI/kernel runtime",
+    "Native API/schema/build/dependency mutation",
+    "GitHub/push/merge/closure/process/fence/orphan actions"
+  ],
+  "remainingMandatory": [
+    "Actual XLSX, then separately tasked EPUB; other selected-format/refusal/budget/locator/lifecycle faults",
+    "stale/cancel/expiry/history/restart/copy/branch/restore/persistence/native data/TUI/provider",
+    "actual DSH/browser/final coherent1-10/full checks/reviews/whole38/MVP",
+    "Linux now; WindowsChrome/WSL2 owner-deferred; global target unselected"
+  ],
+  "admission": "SOURCE READY ONLY. Commit own source/READY, create compact delta freeze, STOP. Root separate exactly ONE actual window required. No self GO or EPUB work. Private/global/product admission blocked; whole38/MVP OPEN."
+}

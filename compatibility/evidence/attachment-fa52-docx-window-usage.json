@@ -1,0 +1,45 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "4c1d7c323cdfc9c85c339912aaf118bc58bbdcc4",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-source-ready.json",
+    "bytes": 20464,
+    "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-docx-source/final-inputs.json",
+    "bytes": 80113,
+    "sha256": "af345b98794ff6f37a821f9da91c832ab69dc0656937c690e5c16f455dad5954"
+  },
+  "case": "actual public DOCX requires exact degradation consent before indexed saved text and provider delivery",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+    "bytes": 11423,
+    "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+  },
+  "originalTool": {
+    "initialChunkId": "4b0bca",
+    "sessionId": 29031,
+    "yieldedWithOriginalPopenPid": 531448,
+    "finalChunkId": "bea178",
+    "exitCode": 0,
+    "networkEnabled": true,
+    "toolDeadline": "Initial10s yield; no outer timeout, no retry or added signal"
+  },
+  "actualRunnerPid": 531448,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-docx-kyef3pil/postcheck.json",
+    "bytes": 1717,
+    "sha256": "7946baa8807c797ff00ce0be7c6ed84a1fe9aa5ec3e84519c9527b15b5545a4d"
+  },
+  "window": "RELEASED immediately after actual outcome and original exec drain; no further Native execution authorized/performed. Proof+usage only.",
+  "limitations": "Exact catalog/worker/converter/serializer individual PID/drain metadata and runtime receipt/entry IDs were not separately captured. No extinction/global/product/full38 claim."
+}

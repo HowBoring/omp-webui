@@ -1,0 +1,51 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "35086532b506d970595fa2d93f3c563177027056",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-source-ready.json",
+    "bytes": 21160,
+    "sha256": "5324d8ef98817f712e43c551a6da5e03a3862d314e2d78aeeb3a64e9ce1a1cab"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-webp-source/final-inputs.json",
+    "bytes": 135450,
+    "sha256": "da6142d51d7b93091544f4b41dc4bac6c543decc5b602252a6de6bd91bfb4274"
+  },
+  "case": "actual public WebP requires transformation consent before indexed saved image and provider delivery",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-webp-runtime-success.json",
+    "bytes": 14127,
+    "sha256": "bd5113489b9b63278cb108b8092b832abd619f328974646bab35426481d95353"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool return metadata, not an independent tool archive.",
+    "initialChunkId": "344aac",
+    "sessionId": 8146,
+    "initialToolReportedWallTimeSeconds": 1.001068062,
+    "initialToolReturnedOriginalSession": true,
+    "finalChunkId": "5d9268",
+    "exitCode": 0,
+    "networkEnabled": true,
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 536077,
+    "stdoutStderrFilesClosedAfterOriginalWait": true
+  },
+  "actualRunnerPid": 536077,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-webp-p11b_vgi/postcheck.json",
+    "bytes": 1797,
+    "sha256": "b1bac3a426f7451c7d5e52f7dee34e8ce61ef15abaf69bce581942bdcc13e26d"
+  },
+  "window": "RELEASED immediately after actual outcome and original exec drain; no further Native execution authorized/performed. Proof+usage only.",
+  "limitations": "Prepared pixel fidelity not independently evaluated; exact encoder output hash not predicted or separately retained. Individual process PID/drain metadata and receipt/entry IDs not separately captured. No extinction/global/product/full38 claim."
+}

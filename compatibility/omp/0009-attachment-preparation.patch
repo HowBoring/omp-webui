@@ -1,0 +1,2659 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 87101a2..89809bd 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -19,6 +19,8 @@
+ 
+ ### Added
+ 
++- Added controlled attachment preparation, explicit degradation consent, exact staged consumption and durable original/prepared provenance ([WebUI #38](https://github.com/HowBoring/omp-webui/issues/38)).
++
+ - Added protected durable submission reservation and read-only provenance queries ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
+ 
+ - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
+diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
+index 7e51b0a..bca229a 100644
+--- a/packages/coding-agent/README.md
++++ b/packages/coding-agent/README.md
+@@ -9,6 +9,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
+ 
+ Package-specific references:
+ 
++- [Controlled attachment preparation, exact-result consent and consumption](docs/rpc-attachments.md)
++
+ - [CHANGELOG](./CHANGELOG.md)
+ - [Exact live observation and native settlement](./docs/rpc-live-observation.md) (same-cut live handoff and exact memory decisions; never durable receipts)
+ - [MCP configuration guide](../../docs/mcp-config.md)
+diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
+new file mode 100644
+index 0000000..66a7aab
+--- /dev/null
++++ b/packages/coding-agent/docs/rpc-attachments.md
+@@ -0,0 +1,61 @@
++# Controlled attachment preparation v1
++
++This compatibility extension adds `attachment_prepare`, `attachment_cancel` and optional
++`submission_submit.preparationConsent` to the same public JSONL RPC/schema/client build. There was
++no baseline generic document-ingestion RPC. Preparation does not call prompt, ReadTool, input hooks,
++models or tools, append a message, read a browser-selected path, extract document images to disk,
++or use the shared document cache. Originals and processed representations are different objects.
++
++Preparation takes an ordered draft revision, authority generation, unchanged native prose, and
++controlled `{originalId,format,sha256,data}` objects. It returns every item's actual failure or staged
++text/image representation, degradation codes and structured native facts (dimensions/frame/decoded allocation,
++converted bytes, PDF OCR pages/encoding, embedded image omissions), a versioned binding and an expiring digest. Any failed
++item prevents consumption of the entire input. Truncation, document structure loss, omitted images/
++PDF text and first-frame animation loss require explicit acceptance of that result. Names are
++presentation data outside this interface; no filename becomes `@path` or an extraction destination.
++Native manual `@path`, slash commands and templates retain their own meaning.
++
++Protected native source/instance/Session, history context, model/thinking/tool context, draft,
++object identity/order/content, authority generation and budget version fence the receipt. The Host
++must also check authentication/current grants at each intake/read/consumption. Opaque generations
++and content hashes grant no original or filesystem access. Cancellation invalidates pending
++publication and ready receipts; restart requires fresh preparation. Stale or partially ready input
++never silently becomes text-only input.
++
++Consumption freezes the exact staged wire fields while permitting native internal cache annotations, then #36 durably reserves its stable client submission
++identity before input dispatch. Explicit causal original/prepared identities travel on actual native
++user/companion objects. Consumption never rereads a path or reconverts an original. Durable duplicate
++lookup precedes ephemeral receipt validation, so receipt loss cannot cause replay. Query distinguishes
++reserved originals from actual committed entry relations: reservation/acknowledgement alone is not
++a Sent Attachment. `attachment-provenance-v1` is a native required feature; older compatibility
++readers must refuse rather than rewrite away metadata they do not understand.
++
++Persisted entry relations may include `entryPart: {kind: "content" | "files", index}`. This zero-based
++index addresses the actual saved native body: an image's `content` part or a converted document's
++`files` item, with indices bounded to 0–65535. Native staging retains the exact part's object identity;
++the final message construction locates it after filtering and reordering. Equal bytes, an original
++hash, a planned position or a replacement object cannot establish that association. Removed,
++changed or duplicated parts instead carry `entryPartUnavailable: "missing" | "changed" | "ambiguous"`.
++Reservation manifests have no persisted slot. A locator proves the saved representation's causal
++position; it does not establish provider delivery or grant access to the Host-owned original.
++
++Converters use an owned Linux process, synthetic home, allowlisted environment, pre-import network
++denial, 2 GiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
++Missing containment/converters refuse preparation. Raw limits remain 10 MiB/image, 5 MiB/text/document,
++eight objects and 32 MiB/input. Decoded images allow 16,777,216 pixels/64 MiB RGBA, including declared
++animation frames; 16-bit PNG allocation is charged at eight bytes/pixel and GIF frames must fit their canvas.
++Office packages require the selected main content type, and unsupported XML encodings fail instead of being replaced.
++Prepared images fit 1568 pixels/500 KiB and avoid WebP; inline text fits 3000 lines/
++50 KiB after at most 2 MiB conversion output. ZIP limits are 2048 members, 512 KiB index, 8 MiB/member,
++32 MiB expansion and 1024 path bytes. Preparation has sixty seconds; two receipts/16 MiB are staged
++for five minutes. Processed receipt/model data has a separate 8 MiB limit.
++
++The advertised `bounded-jsonl-input-v1` policy keeps stdin unchunked and caps complete JSONL commands,
++including base64, escapes, metadata and newline, at 48 MiB. UTF-8 is fatal. Malformed input, oversize
++lines and partial EOF produce fixed sanitized errors. Startup holds at most eight frames/48 MiB;
++the dispatcher retains at most 32 frames/64 MiB. Strict-start's earlier control/handoff limits remain
++separate. Stdout retains its independent 1 MiB physical/64 MiB negotiated reassembly limits;
++preparation replies additionally cap logical/physical aggregate bytes at 9/12 MiB.
++
++Private product Session admission remains blocked. Native data/fault, Host/DSH/browser, rollback
++and the final matched artifact gates remain independent from isolated preparation/source checks.
+diff --git a/packages/coding-agent/scripts/gen-rpc/model.ts b/packages/coding-agent/scripts/gen-rpc/model.ts
+index 4377153..f9e701e 100644
+--- a/packages/coding-agent/scripts/gen-rpc/model.ts
++++ b/packages/coding-agent/scripts/gen-rpc/model.ts
+@@ -181,7 +181,7 @@ export function unionLeaves(model: WireModel, name: string): string[] {
+ export function unionDispatch(model: WireModel, name: string): WireDispatch | undefined {
+ 	const members = unionMembers(model.defs.get(name));
+ 	if (!members) return undefined;
+-	for (const property of ["type", "role", "method", "stage"]) {
++	for (const property of ["type", "role", "method", "stage", "kind", "status"]) {
+ 		const cases = new Map<string, string>();
+ 		let routes = true;
+ 		for (const member of members) {
+diff --git a/packages/coding-agent/scripts/gen-rpc/python.ts b/packages/coding-agent/scripts/gen-rpc/python.ts
+index 8b4f368..3612cef 100644
+--- a/packages/coding-agent/scripts/gen-rpc/python.ts
++++ b/packages/coding-agent/scripts/gen-rpc/python.ts
+@@ -565,7 +565,9 @@ class PythonEmitter {
+ 			return `Sequence[${this.#paramAnnotation(type.items, where)}]`;
+ 		}
+ 		if (type.kind === "ref" && this.#def(type.name).kind === "object" && !this.#isOpen(type.name)) {
+-			throw new Error(`${where}: record-typed parameters need a hand-written command`);
++			// Input records use wire-key JSON dictionaries; output records remain decoded frozen dataclasses.
++			this.#runtime.add("JsonObject");
++			return "JsonObject";
+ 		}
+ 		const inner = nonNull(type);
+ 		if (inner) return `${this.#paramAnnotation(inner, where)} | None`;
+diff --git a/packages/coding-agent/src/attachments/deny-network.ts b/packages/coding-agent/src/attachments/deny-network.ts
+new file mode 100644
+index 0000000..811404f
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/deny-network.ts
+@@ -0,0 +1,24 @@
++/** Preparation helper only. Installed before native converter imports; it owns no Agent or provider credentials. */
++import http from "node:http";
++import https from "node:https";
++import http2 from "node:http2";
++import net from "node:net";
++import tls from "node:tls";
++import dgram from "node:dgram";
++import { syncBuiltinESMExports } from "node:module";
++
++const deny = (): never => { throw new Error("ATTACHMENT_NETWORK_FORBIDDEN"); };
++globalThis.fetch = Object.assign(deny, { preconnect: deny });
++globalThis.WebSocket = class { constructor() { deny(); } } as unknown as typeof WebSocket;
++http.request = deny;
++http.get = deny;
++https.request = deny;
++https.get = deny;
++http2.connect = deny;
++net.Socket.prototype.connect = deny;
++net.connect = deny;
++net.createConnection = deny;
++tls.connect = deny;
++dgram.createSocket = deny;
++Bun.connect = deny;
++syncBuiltinESMExports();
+diff --git a/packages/coding-agent/src/attachments/document.ts b/packages/coding-agent/src/attachments/document.ts
+new file mode 100644
+index 0000000..5598496
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/document.ts
+@@ -0,0 +1,31 @@
++import { validateAttachmentPackage } from "./package";
++import { Markit } from "../markit/registry";
++import type { AttachmentInput, AttachmentPreparation } from "./prepare";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Uses native converter engines without shared caches, image extraction or executable/user paths. */
++export async function convertAttachmentDocument(input: AttachmentInput): Promise<AttachmentPreparation> {
++	try {
++		if (input.format === "pdf") {
++			if (new TextDecoder().decode(input.bytes.subarray(0, 5)) !== "%PDF-") {
++				return { status: "failed", code: "attachment_format_mismatch" };
++			}
++		} else await validateAttachmentPackage(input);
++		const result = await new Markit().convert(Buffer.from(input.bytes), { extension: `.${input.format}` });
++		if (!result.markdown.trim()) return { status: "failed", code: "attachment_conversion_empty" };
++		if (Buffer.byteLength(result.markdown) > ATTACHMENT_LIMITS.convertedBytes) {
++			return { status: "failed", code: "attachment_conversion_output_budget" };
++		}
++		const degradations = ["document_structure_changed"];
++		if (result.facts?.pagesNeedingOcr?.length) degradations.push("pdf_ocr_required");
++		if (result.facts?.hasEncodingIssues) degradations.push("pdf_encoding_issues");
++		if (result.facts?.emptyText) degradations.push("document_no_extractable_text");
++		if (result.facts?.omittedImages) degradations.push("document_images_omitted");
++		return { status: "ready", representation: { kind: "text", text: result.markdown }, degradations,
++			facts: { originalBytes: input.bytes.length, convertedBytes: Buffer.byteLength(result.markdown), ...result.facts } };
++	} catch (error) {
++		const code = error instanceof Error && /^attachment_[a-z_]+$/.test(error.message)
++			? error.message : "attachment_conversion_failed";
++		return { status: "failed", code };
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/entry-parts.ts b/packages/coding-agent/src/attachments/entry-parts.ts
+new file mode 100644
+index 0000000..54f1852
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/entry-parts.ts
+@@ -0,0 +1,57 @@
++/** Native persisted-body locators earned from the actual staged part object, never content matching. */
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import type { SubmissionCausality } from "../session/submission-provenance";
++import type { PreparedAttachmentLink } from "./receipts";
++
++export interface PreparedEntryPart { kind: "content" | "files"; index: number }
++export const MAX_PREPARED_ENTRY_PART_INDEX = 65_535;
++interface PartOrigin { link: PreparedAttachmentLink; baseline: string }
++const parts = new WeakMap<object, PartOrigin>();
++function representation(part: unknown, kind: PreparedAttachmentLink["representationKind"]): string | undefined {
++	if (!isRecord(part)) return;
++	if (kind === "text") return typeof part.content === "string" ? JSON.stringify({ content: part.content }) : undefined;
++	return part.type === "image" && typeof part.data === "string" && typeof part.mimeType === "string"
++		? JSON.stringify({ type: "image", data: part.data, mimeType: part.mimeType }) : undefined;
++}
++/** Only the native receipt freezer may establish this association on its newly created exact wire part. */
++export function stagePreparedEntryPart(part: object, link: PreparedAttachmentLink): void {
++	const baseline = representation(part, link.representationKind);
++	if (baseline === undefined) throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++	parts.set(part, { link: structuredClone(link), baseline });
++}
++/** Explicit native construction/clone carrier; extension replacements cannot establish this identity. */
++export function copyPreparedEntryPart(source: object, target: object): void {
++	const origin = parts.get(source); if (origin) parts.set(target, origin);
++}
++interface Candidate { part: object; locator: PreparedEntryPart; origin: PartOrigin }
++function candidates(body: unknown): Candidate[] {
++	if (!isRecord(body)) return [];
++	const result: Candidate[] = [];
++	for (const kind of ["content", "files"] as const) {
++		const values = body[kind]; if (!Array.isArray(values)) continue;
++		for (let index = 0; index < Math.min(values.length, MAX_PREPARED_ENTRY_PART_INDEX + 1); index++) {
++			const part: unknown = values[index]; if (!isRecord(part)) continue;
++			const origin = parts.get(part); if (!origin) continue;
++			result.push({ part, locator: { kind, index }, origin });
++		}
++	}
++	return result;
++}
++/** Called at final persisted-message construction, after all native filtering/normalization. Missing parts stay explicit. */
++export function locatePreparedEntryParts(cause: SubmissionCausality | undefined, body: unknown): SubmissionCausality | undefined {
++	if (!cause?.attachments?.length) return cause;
++	const actual = candidates(body);
++	const attachments = cause.attachments.map(link => {
++		const { entryPart: _oldPart, entryPartUnavailable: _oldUnavailable, ...manifest } = link;
++		const found = actual.filter(value => value.origin.link.preparedId === link.preparedId);
++		if (found.length !== 1) return { ...manifest, entryPartUnavailable: found.length ? "ambiguous" as const : "missing" as const };
++		const value = found[0];
++		if (JSON.stringify(value.origin.link) !== JSON.stringify(manifest)
++			|| representation(value.part, link.representationKind) !== value.origin.baseline
++			|| value.locator.kind !== (link.representationKind === "text" ? "files" : "content")) {
++			return { ...manifest, entryPartUnavailable: "changed" as const };
++		}
++		return { ...manifest, entryPart: value.locator };
++	});
++	return { ...cause, attachments };
++}
+diff --git a/packages/coding-agent/src/attachments/input-policy.ts b/packages/coding-agent/src/attachments/input-policy.ts
+new file mode 100644
+index 0000000..4a91540
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/input-policy.ts
+@@ -0,0 +1,11 @@
++/** Prepared inputs use the proved idle main-prompt path. Other native input kinds keep their existing behavior. */
++export const attachmentInputPolicy = Object.freeze({
++	version: "attachment-input-policy-v1" as const, supportedInputKinds: ["prompt"] as const,
++	requiresIdle: true as const, supportsStreamingBehavior: false as const,
++});
++
++/** Called before receipt claim/reservation, and again before ordered ingress side effects. */
++export function assertPreparedInputPolicy(inputType: string, busy: boolean, streamingBehavior?: string): void {
++	if (inputType !== "prompt" || streamingBehavior !== undefined) throw new Error("ATTACHMENT_INPUT_KIND_UNSUPPORTED");
++	if (busy) throw new Error("ATTACHMENT_BUSY_UNSUPPORTED");
++}
+diff --git a/packages/coding-agent/src/attachments/isolated.ts b/packages/coding-agent/src/attachments/isolated.ts
+new file mode 100644
+index 0000000..b866f63
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/isolated.ts
+@@ -0,0 +1,68 @@
++import type { AttachmentInput, AttachmentPreparation } from "./prepare";
++import * as fs from "node:fs/promises";
++import * as path from "node:path";
++import * as os from "node:os";
++import { workerHostEntry } from "@oh-my-pi/pi-utils/worker-host";
++import { readStreamBounded } from "@oh-my-pi/pi-utils/stream";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++function isPreparation(value: unknown): value is AttachmentPreparation {
++	if (!value || typeof value !== "object") return false;
++	if ("status" in value && value.status === "failed") return "code" in value && typeof value.code === "string";
++	if (!("status" in value) || value.status !== "ready" || !("degradations" in value) ||
++		!Array.isArray(value.degradations) || !value.degradations.every(code => typeof code === "string") ||
++		!("representation" in value) || !value.representation || typeof value.representation !== "object") return false;
++	const representation = value.representation;
++	if (!("kind" in representation)) return false;
++	if (representation.kind === "text") return "text" in representation && typeof representation.text === "string";
++	return representation.kind === "image" && "data" in representation && typeof representation.data === "string" &&
++		"mimeType" in representation && typeof representation.mimeType === "string" &&
++		"width" in representation && typeof representation.width === "number" &&
++		"height" in representation && typeof representation.height === "number";
++}
++
++/** Runs conversion in an owned, cancellable process; cancelled inputs never produce a usable representation. */
++export async function prepareAttachmentIsolated(input: AttachmentInput, signal?: AbortSignal): Promise<AttachmentPreparation> {
++	if (signal?.aborted) return { status: "failed", code: "attachment_cancelled" };
++	if (process.platform !== "linux" || !await Bun.file("/usr/bin/prlimit").exists()) {
++		return { status: "failed", code: "attachment_converter_unavailable" };
++	}
++	const profile = await fs.mkdtemp(path.join(os.tmpdir(), "omp-preparation-"));
++	const host = workerHostEntry();
++	const argv = host ? [host, "__omp_worker_attachment", input.format]
++		: [new URL("./worker.ts", import.meta.url).pathname, input.format];
++	const child = Bun.spawn(["/usr/bin/prlimit", `--data=${ATTACHMENT_LIMITS.conversionDataBytes}`,
++		`--cpu=${ATTACHMENT_LIMITS.conversionCpuSeconds}`, "--core=0", "--fsize=0", "--", process.execPath,
++		"--no-env-file", ...argv], {
++		stdin: input.bytes, stdout: "pipe", stderr: "pipe", cwd: profile,
++		env: { PATH: "/usr/bin:/bin", HOME: profile, PI_CODING_AGENT_DIR: profile, TMPDIR: profile,
++			OMP_OFFLINE: "1", NO_COLOR: "1", TERM: "dumb" },
++	});
++	let timedOut = false;
++	const abort = (): void => { child.kill("SIGKILL"); };
++	const timer: Timer = setTimeout(() => { timedOut = true; abort(); }, ATTACHMENT_LIMITS.conversionMs);
++	signal?.addEventListener("abort", abort, { once: true });
++	try {
++		if (signal?.aborted) abort();
++		const [output, errors] = await Promise.all([
++			readStreamBounded(child.stdout, ATTACHMENT_LIMITS.convertedBytes).catch(error => { abort(); throw error; }),
++			readStreamBounded(child.stderr, 16 * 1024).catch(error => { abort(); throw error; }),
++		]);
++		const code = await child.exited;
++		/** The child's own report is the only way to tell an OOM kill from a converter refusal. */
++		const report = new TextDecoder("utf-8").decode(errors).trim().slice(-4096);
++		if (report) console.error(`attachment converter exit ${code}: ${report}`);
++		if (signal?.aborted) return { status: "failed", code: "attachment_cancelled" };
++		if (timedOut) return { status: "failed", code: "attachment_conversion_timeout" };
++		if (code !== 0) return { status: "failed", code: "attachment_converter_resource_failure" };
++		const result: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(output));
++		return isPreparation(result) ? result : { status: "failed", code: "attachment_converter_protocol" };
++	} catch (error) {
++		console.error(`attachment converter failure: ${String(error)}`);
++		return { status: "failed", code: signal?.aborted ? "attachment_cancelled" : "attachment_converter_resource_failure" };
++	} finally {
++		clearTimeout(timer); signal?.removeEventListener("abort", abort);
++		abort(); await child.exited;
++		await fs.rm(profile, { recursive: true, force: true });
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/limits.ts b/packages/coding-agent/src/attachments/limits.ts
+new file mode 100644
+index 0000000..24bcd0a
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/limits.ts
+@@ -0,0 +1,17 @@
++/** Versioned independently from raw originals: all limits are refusal ceilings, never silent fallback. */
++export const ATTACHMENT_BUDGET_VERSION = "attachment-budgets-v1";
++export const ATTACHMENT_LIMITS = Object.freeze({
++	imageBytes: 10 * 1024 * 1024, documentBytes: 5 * 1024 * 1024,
++	objects: 8, originalBytes: 32 * 1024 * 1024,
++	imagePixels: 16_777_216, imageDimension: 16_384, decodedBytes: 64 * 1024 * 1024,
++	preparedImageBytes: 500 * 1024, preparedImageDimension: 1568,
++	textBytes: 50 * 1024, textLines: 3000, convertedBytes: 2 * 1024 * 1024,
++	archiveBytes: 32 * 1024 * 1024, archiveMemberBytes: 8 * 1024 * 1024,
++	archiveIndexBytes: 512 * 1024, archiveEntries: 2048, archivePathBytes: 1024,
++	conversionMs: 10_000, inputMs: 60_000, preparedBytes: 8 * 1024 * 1024,
++	// Bun reserves well over half a gigabyte just to parse the converter graph; 512 MiB killed every child.
++	conversionDataBytes: 2 * 1024 * 1024 * 1024, conversionCpuSeconds: 8,
++	messageBytes: 128 * 1024, rpcBytes: 48 * 1024 * 1024,
++	rpcOutputBytes: 9 * 1024 * 1024, rpcOutputWireBytes: 12 * 1024 * 1024,
++	receiptMs: 300_000, receipts: 2, stagedBytes: 16 * 1024 * 1024,
++});
+diff --git a/packages/coding-agent/src/attachments/model-binding.ts b/packages/coding-agent/src/attachments/model-binding.ts
+new file mode 100644
+index 0000000..89c4d44
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/model-binding.ts
+@@ -0,0 +1,15 @@
++import type { Model } from "@oh-my-pi/pi-ai";
++import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
++import { ATTACHMENT_BUDGET_VERSION } from "./limits";
++
++export interface AttachmentImagePolicy { blocked: boolean; urls: boolean }
++
++/** Bind effective wire modality and normalization settings; model IDs alone do not establish compatibility. */
++export function attachmentModelFingerprint(model: Model | undefined, policy: AttachmentImagePolicy): string {
++	return Bun.SHA256.hash(JSON.stringify({ model, policy, imageWire: model ? sendsImageInputOnWire(model) : false,
++		budgetVersion: ATTACHMENT_BUDGET_VERSION, normalization: "inline-png-jpeg-v1" }), "hex");
++}
++
++export function attachmentImageCapable(model: Model | undefined, policy: AttachmentImagePolicy): boolean {
++	return model !== undefined && sendsImageInputOnWire(model) && !policy.blocked && !policy.urls;
++}
+diff --git a/packages/coding-agent/src/attachments/package.ts b/packages/coding-agent/src/attachments/package.ts
+new file mode 100644
+index 0000000..8b6a55f
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/package.ts
+@@ -0,0 +1,64 @@
++import { openArchive } from "@oh-my-pi/pi-utils/ar";
++import { XMLParser } from "@oh-my-pi/pi-utils/xml";
++import type { AttachmentInput } from "./prepare";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++interface ContentTypes { Types?: { "@_xmlns"?: string; Override?: { "@_PartName"?: string; "@_ContentType"?: string }[] | { "@_PartName"?: string; "@_ContentType"?: string } } }
++const packageTypes = {
++	docx: ["word/document.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"],
++	pptx: ["ppt/presentation.xml", "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"],
++	xlsx: ["xl/workbook.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"],
++} as const;
++
++/** Reject unsupported encodings rather than consenting to silently replaced document text. */
++export function decodeAttachmentXml(bytes: Uint8Array): string {
++	let text: string;
++	try { text = new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
++	catch { throw new Error("attachment_document_encoding_unsupported"); }
++	if (text.includes("\0") || /<\?xml\b[^>]*\bencoding\s*=\s*["'](?!utf-8["']|us-ascii["'])/i.test(text)) {
++		throw new Error("attachment_document_encoding_unsupported");
++	}
++	return text;
++}
++
++/** A ZIP signature or a conveniently named member alone cannot establish a selected Office format. */
++export function matchesAttachmentContentType(format: keyof typeof packageTypes, xml: string): boolean {
++	const parser = new XMLParser({ ignoreAttributes: false, processEntities: { maxTotalExpansions: 1000 } });
++	const root = (parser.parse(xml) as ContentTypes).Types;
++	if (root?.["@_xmlns"] !== "http://schemas.openxmlformats.org/package/2006/content-types") return false;
++	const overrides = root.Override ? Array.isArray(root.Override) ? root.Override : [root.Override] : [];
++	const [part, mimeType] = packageTypes[format];
++	return overrides.some(item => item["@_PartName"] === `/${part}` && item["@_ContentType"] === mimeType);
++}
++
++/** Check package identity, encoding and declared expansion before any engine can allocate its content. */
++export async function validateAttachmentPackage(input: AttachmentInput): Promise<void> {
++	const archive = await openArchive({ bytes: input.bytes, format: "zip" }, { limits: {
++		maxEntries: ATTACHMENT_LIMITS.archiveEntries, maxInMemorySize: ATTACHMENT_LIMITS.archiveBytes,
++		maxMemberSize: ATTACHMENT_LIMITS.archiveMemberBytes, maxIndexSize: ATTACHMENT_LIMITS.archiveIndexBytes,
++		maxPathBytes: ATTACHMENT_LIMITS.archivePathBytes, maxLinkDepth: 0,
++	} });
++	let total = 0;
++	for (const entry of archive.indexEntries()) {
++		if (entry.storage?.type === "link") throw new Error("attachment_archive_link");
++		total += entry.size;
++		if (total > ATTACHMENT_LIMITS.archiveBytes) throw new Error("attachment_archive_budget");
++	}
++	for (const entry of archive.indexEntries()) {
++		if (!entry.isDirectory && /\.(?:xml|rels|opf|xhtml|html)$/i.test(entry.path)) {
++			decodeAttachmentXml((await archive.readFile(entry.path)).bytes);
++		}
++	}
++	if (input.format === "epub") {
++		if (!archive.getNode("META-INF/container.xml") || !archive.getNode("mimetype") ||
++			decodeAttachmentXml((await archive.readFile("mimetype")).bytes) !== "application/epub+zip") {
++			throw new Error("attachment_format_mismatch");
++		}
++		return;
++	}
++	if (!(input.format === "docx" || input.format === "pptx" || input.format === "xlsx")) throw new Error("attachment_format_mismatch");
++	if (!archive.getNode(packageTypes[input.format][0]) || !archive.getNode("[Content_Types].xml") ||
++		!matchesAttachmentContentType(input.format, decodeAttachmentXml((await archive.readFile("[Content_Types].xml")).bytes))) {
++		throw new Error("attachment_format_mismatch");
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/prepare.ts b/packages/coding-agent/src/attachments/prepare.ts
+new file mode 100644
+index 0000000..39b4362
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/prepare.ts
+@@ -0,0 +1,77 @@
++import { truncateHead, truncateHeadBytes } from "@oh-my-pi/pi-tui/tools/streaming-output";
++import { imageDecodeFailureReason } from "@oh-my-pi/pi-tui/chat/image-loading";
++import { parseImageMetadata } from "@oh-my-pi/pi-utils/mime";
++import { imageAnimation } from "@oh-my-pi/pi-utils/image-animation";
++import { resizeImage } from "../utils/image-resize";
++import { ATTACHMENT_LIMITS } from "./limits";
++import { convertAttachmentDocument } from "./document";
++
++/** Native conversion boundary. It never dispatches input or calls an Agent, extension, model or tool. */
++export type AttachmentFormat = "utf8" | "png" | "jpeg" | "webp" | "gif" | "pdf" | "docx" | "pptx" | "xlsx" | "epub";
++export interface AttachmentInput { format: AttachmentFormat; bytes: Uint8Array }
++export interface AttachmentFacts {
++	originalBytes?: number; convertedBytes?: number; preparedBytes?: number;
++	sourceWidth?: number; sourceHeight?: number; frames?: number; decodedBytes?: number;
++	pagesNeedingOcr?: number[]; hasEncodingIssues?: boolean; omittedImages?: number; emptyText?: boolean;
++}
++export type AttachmentPreparation =
++	| { status: "failed"; code: string }
++	| { status: "ready"; representation: PreparedRepresentation; degradations: string[]; facts?: AttachmentFacts };
++export type PreparedRepresentation = { kind: "text"; text: string }
++	| { kind: "image"; mimeType: string; data: string; width: number; height: number };
++
++function prepareText(text: string): AttachmentPreparation {
++	const truncated = truncateHead(text);
++	const content = truncated.firstLineExceedsLimit ? truncateHeadBytes(text, 50 * 1024).text : truncated.content;
++	return { status: "ready", representation: { kind: "text", text: content },
++		degradations: truncated.truncated ? ["text_truncated"] : [] };
++}
++
++async function prepareImage(input: AttachmentInput): Promise<AttachmentPreparation> {
++	const metadata = parseImageMetadata(input.bytes);
++	const mimeType = `image/${input.format}`;
++	if (!metadata || metadata.mimeType !== mimeType) return { status: "failed", code: "attachment_format_mismatch" };
++	const { width, height } = metadata;
++	if (!width || !height) return { status: "failed", code: "attachment_invalid_image" };
++	let animation;
++	try { animation = imageAnimation(input.bytes, mimeType, { width, height }); }
++	catch { return { status: "failed", code: "attachment_invalid_image" }; }
++	if (width > ATTACHMENT_LIMITS.imageDimension || height > ATTACHMENT_LIMITS.imageDimension ||
++		width * height * animation.frames > ATTACHMENT_LIMITS.imagePixels ||
++		width * height * animation.frames * animation.decodedBytesPerPixel > ATTACHMENT_LIMITS.decodedBytes) {
++		return { status: "failed", code: "attachment_decoded_budget" };
++	}
++	const image = { type: "image" as const, mimeType, data: input.bytes.toBase64() };
++	if (await imageDecodeFailureReason(image)) return { status: "failed", code: "attachment_invalid_image" };
++	const convertToPng = animation.animated || input.format === "gif";
++	const source = convertToPng ? await new Bun.Image(input.bytes).png().bytes() : input.bytes;
++	const result = await resizeImage({ bytes: source, mimeType: convertToPng ? "image/png" : mimeType }, { excludeWebP: true });
++	if (result.decodeFailed) return { status: "failed", code: "attachment_image_conversion_failed" };
++	if (result.buffer.length > ATTACHMENT_LIMITS.preparedImageBytes) return { status: "failed", code: "attachment_prepared_budget" };
++	const degradations = result.wasResized || convertToPng ? ["image_transformed"] : [];
++	if (animation.animated) degradations.push("animation_first_frame_only");
++	return { status: "ready", representation: { kind: "image", mimeType: result.mimeType, data: result.data,
++		width: result.width, height: result.height }, degradations, facts: { originalBytes: input.bytes.length,
++		preparedBytes: result.buffer.length, sourceWidth: width, sourceHeight: height, frames: animation.frames,
++		decodedBytes: width * height * animation.frames * animation.decodedBytesPerPixel } };
++}
++
++export async function prepareAttachment(input: AttachmentInput): Promise<AttachmentPreparation> {
++	const isImage = ["png", "jpeg", "webp", "gif"].includes(input.format);
++	const ceiling = isImage ? ATTACHMENT_LIMITS.imageBytes : ATTACHMENT_LIMITS.documentBytes;
++	if (input.bytes.byteLength > ceiling) return { status: "failed", code: "attachment_original_budget" };
++	if (isImage) return prepareImage(input);
++	if (input.format !== "utf8") {
++		const converted = await convertAttachmentDocument(input);
++		if (converted.status === "failed" || converted.representation.kind !== "text") return converted;
++		const result = prepareText(converted.representation.text);
++		return result.status === "ready" ? { ...result, facts: converted.facts,
++			degradations: [...converted.degradations, ...result.degradations] } : result;
++	}
++	try {
++		const text = new TextDecoder("utf-8", { fatal: true }).decode(input.bytes);
++		return prepareText(text);
++	} catch {
++		return { status: "failed", code: "attachment_invalid_utf8" };
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/provider-guard.ts b/packages/coding-agent/src/attachments/provider-guard.ts
+new file mode 100644
+index 0000000..907abd0
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/provider-guard.ts
+@@ -0,0 +1,140 @@
++import { stagePreparedEntryPart, copyPreparedEntryPart } from "./entry-parts";
++import type { Context, ImageContent, Message } from "@oh-my-pi/pi-ai";
++import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
++import type { FileMentionMessage } from "../session/messages";
++import { stageAttachmentMessage, type SubmissionTarget } from "../session/submission-provenance";
++import type { PreparedAttachmentLink } from "./receipts";
++import { submissionScope, stagedAttachmentLinks } from "../session/submission-provenance";
++
++export interface PreparedDelivery { readonly target: SubmissionTarget; readonly modelFingerprint: string;
++	readonly attachments: readonly PreparedAttachmentLink[]; dispatched: boolean }
++interface ImageOrigin { link: PreparedAttachmentLink; data: string; mimeType: string; delivery?: PreparedDelivery }
++const images = new WeakMap<object, ImageOrigin>();
++const documentSources = new WeakMap<object, { files: string; role: string; delivery?: PreparedDelivery }>();
++const documents = new WeakMap<object, { links: readonly PreparedAttachmentLink[]; content: string; role: string; delivery?: PreparedDelivery }>();
++
++/** Native staging establishes causal identity on the actual immutable image object. */
++export function stagePreparedImage(image: ImageContent, link: PreparedAttachmentLink, delivery?: PreparedDelivery): void {
++	stagePreparedEntryPart(image, link);
++	images.set(image, { link: { ...link }, data: image.data, mimeType: image.mimeType, ...(delivery ? { delivery } : {}) });
++}
++
++/** Stage the original immutable document fields, independently of later extension/model views. */
++export function stagePreparedDocument(message: FileMentionMessage, delivery?: PreparedDelivery): void {
++	documentSources.set(message, { files: JSON.stringify(message.files), role: message.role, ...(delivery ? { delivery } : {}) });
++}
++
++/** This native clone operation establishes origin before extension handlers can mutate or replace any clone. */
++export function clonePreparedContextMessages(source: AgentMessage[]): AgentMessage[] {
++	const cloned = structuredClone(source);
++	for (let index = 0; index < source.length; index++) {
++		const original = source[index], copy = cloned[index];
++		const links = stagedAttachmentLinks(original);
++		if (links) stageAttachmentMessage(copy, [...links]);
++		const document = documentSources.get(original);
++		if (document) documentSources.set(copy, document);
++		const content: unknown = Reflect.get(original, "content"), copiedContent: unknown = Reflect.get(copy, "content");
++		if (!Array.isArray(content) || !Array.isArray(copiedContent)) continue;
++		for (let part = 0; part < content.length; part++) {
++			const origin = content[part] && typeof content[part] === "object" ? images.get(content[part]) : undefined;
++			if (origin && copiedContent[part] && typeof copiedContent[part] === "object") {
++				images.set(copiedContent[part], origin); copyPreparedEntryPart(content[part], copiedContent[part]);
++			}
++		}
++	}
++	return cloned;
++}
++
++/** The native converter carries provenance from a specific source object into each actual model message. */
++export function carryPreparedModelMessage(source: object, target: Message): void {
++	if (documents.has(target)) return;
++	const origin = documentSources.get(source);
++	if (origin && (Reflect.get(source, "role") !== origin.role || JSON.stringify(Reflect.get(source, "files")) !== origin.files)) {
++		throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED");
++	}
++	const links = stagedAttachmentLinks(source)?.filter(link => link.representationKind === "text");
++	if (links?.length) documents.set(target, { links, content: JSON.stringify(target.content), role: target.role,
++		...(origin?.delivery ? { delivery: origin.delivery } : {}) });
++}
++
++function assertOrder(expected: string[], actual: string[]): void {
++	if (actual.length < expected.length) throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_MISSING");
++	if (actual.length !== expected.length || actual.some((id, index) => id !== expected[index])) {
++		throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED");
++	}
++}
++
++/** Capture only actual native causal objects present in this call, after queued inputs fold into the live context. */
++export function capturePreparedDeliveries(messages: readonly object[]): PreparedDelivery[] {
++	const deliveries = new Set<PreparedDelivery>();
++	for (const message of messages) {
++		const document = documentSources.get(message)?.delivery ?? documents.get(message)?.delivery;
++		if (document && !document.dispatched) deliveries.add(document);
++		const content: unknown = Reflect.get(message, "content");
++		if (!Array.isArray(content)) continue;
++		for (const part of content) {
++			const delivery = part && typeof part === "object" ? images.get(part)?.delivery : undefined;
++			if (delivery && !delivery.dispatched) deliveries.add(delivery);
++		}
++	}
++	return [...deliveries];
++}
++
++/** Expectations come from the actual native call's source objects, independently of the task draining its queue. */
++export function assertPreparedDeliveries(context: Context, modelFingerprint: string, deliveries: readonly PreparedDelivery[],
++	target: SubmissionTarget): void {
++	for (const delivery of deliveries) {
++		if (delivery.modelFingerprint !== modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
++		if (delivery.target.sourceId !== target.sourceId || delivery.target.instanceId !== target.instanceId ||
++			delivery.target.nativeSessionId !== target.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
++	}
++	assertAttachments(context, deliveries.flatMap(delivery => [...delivery.attachments]));
++}
++
++/** Validate the final native payload-hook boundary; a thrown/rejected/cancelled hook never retires its groups. */
++export async function guardPreparedPayload(payload: unknown, deliveries: readonly PreparedDelivery[],
++	validate: () => void, transform: () => unknown | Promise<unknown>, signal?: AbortSignal): Promise<unknown> {
++	signal?.throwIfAborted(); validate();
++	const fingerprint = Bun.SHA256.hash(JSON.stringify(payload) ?? "undefined", "hex");
++	const transformed = await transform();
++	signal?.throwIfAborted(); validate();
++	if (Bun.SHA256.hash(JSON.stringify(transformed ?? payload) ?? "undefined", "hex") !== fingerprint) {
++		throw new Error("ATTACHMENT_PROVIDER_PAYLOAD_CHANGED");
++	}
++	for (const delivery of deliveries) delivery.dispatched = true;
++	return transformed;
++}
++
++/** Refuse lost/replaced prepared inputs before any provider dispatch; identical bytes do not establish origin. */
++export function assertPreparedProviderContext(context: Context, modelFingerprint: string): void {
++	const prepared = submissionScope()?.prepared;
++	if (!prepared) return;
++	if (modelFingerprint !== prepared.modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
++	assertAttachments(context, prepared.attachments);
++}
++
++function assertAttachments(context: Context, attachments: readonly PreparedAttachmentLink[]): void {
++	const expected = attachments.filter(link => link.representationKind === "image").map(link => link.preparedId);
++	const expectedText = attachments.filter(link => link.representationKind === "text").map(link => link.preparedId);
++	const actual: string[] = [];
++	const actualText: string[] = [];
++	for (const message of context.messages) {
++		const document = documents.get(message);
++		if (document?.links.some(link => expectedText.includes(link.preparedId))) {
++			if (message.role !== document.role || JSON.stringify(message.content) !== document.content) {
++				throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED");
++			}
++			actualText.push(...document.links.map(link => link.preparedId));
++		}
++		if (message.role !== "user" || !Array.isArray(message.content)) continue;
++		for (const part of message.content) {
++			if (part.type !== "image") continue;
++			const origin = images.get(part);
++			if (!origin || !expected.includes(origin.link.preparedId)) continue;
++			if (part.data !== origin.data || part.mimeType !== origin.mimeType) throw new Error("ATTACHMENT_PROVIDER_REPRESENTATION_CHANGED");
++			actual.push(origin.link.preparedId);
++		}
++	}
++	assertOrder(expected, actual);
++	assertOrder(expectedText, actualText);
++}
+diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
+new file mode 100644
+index 0000000..ae4b153
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/receipts.ts
+@@ -0,0 +1,208 @@
++import type { ImageContent } from "@oh-my-pi/pi-ai";
++import type { FileMentionMessage } from "../session/messages";
++import { decodeBase64ImageData } from "@oh-my-pi/pi-utils/mime";
++import type { AttachmentFormat, AttachmentPreparation } from "./prepare";
++import { prepareAttachmentIsolated } from "./isolated";
++import { ATTACHMENT_BUDGET_VERSION, ATTACHMENT_LIMITS } from "./limits";
++import { stagePreparedEntryPart } from "./entry-parts";
++import type { PreparedEntryPart } from "./entry-parts";
++import { stageAttachmentMessage } from "../session/submission-provenance";
++import { measureAttachmentRpc, measureAttachmentOutput } from "./rpc-budget";
++import { stagePreparedImage, stagePreparedDocument, type PreparedDelivery } from "./provider-guard";
++
++export interface AttachmentBinding {
++	sourceId: string; instanceId: string; nativeSessionId: string; contextId: string;
++	modelFingerprint: string; imageCapable: boolean;
++}
++export interface ControlledOriginal { originalId: string; format: AttachmentFormat; sha256: string; data: string }
++export interface AttachmentDraft {
++	preparationId: string; draftId: string; draftRevision: string; authorityGeneration: string;
++	message: string; objects: ControlledOriginal[];
++}
++export type AttachmentPreparedItem = AttachmentPreparation & { originalId: string; originalSha256: string;
++	preparedId: string; preparedSha256: string };
++export interface AttachmentReceipt {
++	version: "attachment-preparation-v1"; budgetVersion: string; receiptId: string; preparationId: string;
++	draftId: string; draftRevision: string; authorityGeneration: string; draftFingerprint: string;
++	binding: AttachmentBinding; expiresAt: number; status: "ready" | "failed"; resultDigest: string;
++	items: AttachmentPreparedItem[];
++}
++export interface AttachmentConsent {
++	receiptId: string; resultDigest: string; draftRevision: string; authorityGeneration: string;
++	acceptedDegradations: string[];
++}
++export interface PreparedAttachmentLink {
++	originalId: string; preparedId: string; originalSha256: string; preparedSha256: string;
++	representationKind: "text" | "image";
++	entryPart?: PreparedEntryPart; entryPartUnavailable?: "missing" | "changed" | "ambiguous";
++}
++export interface PreparedSubmission {
++	message: string; images: ImageContent[]; companionMessages: FileMentionMessage[];
++	preparationDigest: string; attachments: PreparedAttachmentLink[]; modelFingerprint: string;
++}
++interface Staged { receipt: AttachmentReceipt; message: string; bytes: number; reserved: string | undefined; bundle?: PreparedSubmission }
++const sha256 = (value: string | Uint8Array): string => Bun.SHA256.hash(value, "hex");
++
++/** Ephemeral immutable receipts. Restart and every draft/context/authority change require fresh preparation. */
++export class AttachmentPreparations {
++	readonly #binding: () => AttachmentBinding;
++	readonly #receipts = new Map<string, Staged>();
++	#pending: { preparationId: string; draftId: string; abort: AbortController } | undefined;
++	#bytes = 0;
++	constructor(binding: () => AttachmentBinding) { this.#binding = binding; }
++
++	/** Cancel both pending publication and ready receipts. Late worker output cannot recreate either. */
++	cancel(preparationId: string): { cancelled: boolean } {
++		let cancelled = false;
++		if (this.#pending?.preparationId === preparationId) { this.#pending.abort.abort(); cancelled = true; }
++		for (const [id, staged] of this.#receipts) {
++			if (staged.receipt.preparationId !== preparationId) continue;
++			if (staged.reserved) throw new Error("ATTACHMENT_ALREADY_RESERVED");
++			this.#receipts.delete(id); this.#bytes -= staged.bytes; cancelled = true;
++		}
++		return { cancelled };
++	}
++
++	async prepare(draft: AttachmentDraft): Promise<AttachmentReceipt> {
++		const binding = structuredClone(this.#binding());
++		this.#prune();
++		if (this.#pending) throw new Error("ATTACHMENT_PREPARATION_BUSY");
++		this.#validateDraft(draft);
++		if (this.#receipts.size >= ATTACHMENT_LIMITS.receipts) throw new Error("ATTACHMENT_RECEIPT_BUDGET");
++		const pending = { preparationId: draft.preparationId, draftId: draft.draftId, abort: new AbortController() };
++		this.#pending = pending;
++		const timer: Timer = setTimeout(() => pending.abort.abort(), ATTACHMENT_LIMITS.inputMs);
++		try {
++			const items: AttachmentPreparedItem[] = [];
++			for (const original of draft.objects) items.push(await this.#prepareItem(original, binding, pending.abort.signal));
++			if (pending.abort.signal.aborted) throw new Error("ATTACHMENT_CANCELLED");
++			if (JSON.stringify(binding) !== JSON.stringify(this.#binding())) throw new Error("ATTACHMENT_CONTEXT_CHANGED");
++			const expiresAt = Date.now() + ATTACHMENT_LIMITS.receiptMs;
++			const base = { version: "attachment-preparation-v1" as const, budgetVersion: ATTACHMENT_BUDGET_VERSION,
++				receiptId: crypto.randomUUID(), preparationId: draft.preparationId, draftId: draft.draftId,
++				draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
++				draftFingerprint: sha256(JSON.stringify({ preparationId: draft.preparationId, draftId: draft.draftId,
++					draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration, message: draft.message,
++					objects: draft.objects.map(({ originalId, format, sha256 }) => ({ originalId, format, sha256 })) })), binding, expiresAt,
++				status: items.every(item => item.status === "ready") ? "ready" as const : "failed" as const, items };
++			const receipt: AttachmentReceipt = { ...base, resultDigest: sha256(JSON.stringify(base)) };
++			measureAttachmentOutput({ type: "response", id: "x".repeat(96), command: "attachment_prepare", success: true, data: receipt });
++			const bytes = Buffer.byteLength(JSON.stringify(receipt));
++			if (bytes > ATTACHMENT_LIMITS.preparedBytes || this.#bytes + bytes > ATTACHMENT_LIMITS.stagedBytes) {
++				throw new Error("ATTACHMENT_PREPARED_BUDGET");
++			}
++			this.#receipts.set(receipt.receiptId, { receipt, message: draft.message, bytes, reserved: undefined });
++			this.#bytes += bytes;
++			return structuredClone(receipt);
++		} finally {
++			clearTimeout(timer);
++			if (this.#pending === pending) this.#pending = undefined;
++		}
++	}
++
++	validateAndFreeze(consent: AttachmentConsent, clientSubmissionId?: string): PreparedSubmission {
++		this.#prune();
++		const staged = this.#receipts.get(consent.receiptId);
++		if (!staged) throw new Error("ATTACHMENT_RECEIPT_STALE");
++		if (staged.receipt.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
++		if (JSON.stringify(staged.receipt.binding) !== JSON.stringify(this.#binding())) throw new Error("ATTACHMENT_CONTEXT_CHANGED");
++		if (staged.receipt.resultDigest !== consent.resultDigest || staged.receipt.draftRevision !== consent.draftRevision ||
++			staged.receipt.authorityGeneration !== consent.authorityGeneration ||
++			staged.receipt.budgetVersion !== ATTACHMENT_BUDGET_VERSION) throw new Error("ATTACHMENT_CONSENT_STALE");
++		if (staged.reserved && staged.reserved !== clientSubmissionId) throw new Error("ATTACHMENT_ALREADY_RESERVED");
++		const required = new Set(staged.receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []));
++		if ([...required].some(code => !consent.acceptedDegradations.includes(code)) ||
++			consent.acceptedDegradations.some(code => !required.has(code))) {
++			throw new Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
++		}
++		if (clientSubmissionId) staged.reserved = clientSubmissionId;
++		return staged.bundle ??= this.#freezeBundle(staged);
++	}
++
++	/** Called only after the native reservation has been durably verified. */
++	markReserved(receiptId: string, clientSubmissionId: string): void {
++		const staged = this.#receipts.get(receiptId);
++		if (!staged || staged.reserved !== clientSubmissionId) throw new Error("ATTACHMENT_RESERVATION_MISMATCH");
++		this.#receipts.delete(receiptId); this.#bytes -= staged.bytes;
++	}
++
++	#freezeBundle(staged: Staged): PreparedSubmission {
++		const images: ImageContent[] = [];
++		const companionMessages: FileMentionMessage[] = [];
++		const attachments: PreparedAttachmentLink[] = [];
++		const delivery: PreparedDelivery = { target: { sourceId: staged.receipt.binding.sourceId,
++			instanceId: staged.receipt.binding.instanceId, nativeSessionId: staged.receipt.binding.nativeSessionId },
++			modelFingerprint: staged.receipt.binding.modelFingerprint, attachments, dispatched: false };
++		for (const item of staged.receipt.items) {
++			if (item.status !== "ready") throw new Error("ATTACHMENT_NOT_READY");
++			const representation = item.representation;
++			const link = { originalId: item.originalId, originalSha256: item.originalSha256,
++				preparedId: item.preparedId, preparedSha256: item.preparedSha256, representationKind: representation.kind };
++			attachments.push(Object.freeze(link));
++			if (representation.kind === "image") {
++				const image: ImageContent = { type: "image", data: representation.data, mimeType: representation.mimeType };
++				stagePreparedImage(image, link, delivery); images.push(image);
++			}
++			else {
++				const message: FileMentionMessage = { role: "fileMention", timestamp: staged.receipt.expiresAt - ATTACHMENT_LIMITS.receiptMs,
++					files: [{ path: `attachment-prepared://${item.preparedId}`, content: representation.text,
++						byteSize: Buffer.byteLength(representation.text) }] };
++				stagePreparedEntryPart(message.files[0], link);
++				stageAttachmentMessage(message, [link]); stagePreparedDocument(message, delivery);
++				Object.freeze(message.files[0]); Object.freeze(message.files);
++				for (const key of ["role", "timestamp", "files"] as const) {
++					Object.defineProperty(message, key, { writable: false, configurable: false });
++				}
++				companionMessages.push(message);
++			}
++		}
++		for (const image of images) {
++			for (const key of ["type", "mimeType", "data"] as const) {
++				Object.defineProperty(image, key, { writable: false, configurable: false });
++			}
++		}
++		Object.freeze(images); Object.freeze(companionMessages); Object.freeze(attachments);
++		return Object.freeze({ message: staged.message, images, companionMessages,
++			preparationDigest: staged.receipt.resultDigest, attachments, modelFingerprint: staged.receipt.binding.modelFingerprint });
++	}
++
++	#validateDraft(draft: AttachmentDraft): void {
++		if (draft.objects.length < 1 || draft.objects.length > ATTACHMENT_LIMITS.objects ||
++			Buffer.byteLength(draft.message) > ATTACHMENT_LIMITS.messageBytes) throw new Error("ATTACHMENT_INPUT_BUDGET");
++		measureAttachmentRpc({ id: "x".repeat(96), type: "attachment_prepare", preparationId: draft.preparationId,
++			draftId: draft.draftId, draftRevision: draft.draftRevision, authorityGeneration: draft.authorityGeneration,
++			message: draft.message, objects: draft.objects });
++		let bytes = 0;
++		const ids = new Map<string, string>();
++		for (const object of draft.objects) {
++			const identity = JSON.stringify({ format: object.format, sha256: object.sha256 });
++			if (!/^[A-Za-z0-9_-]{1,96}$/.test(object.originalId) ||
++				(ids.has(object.originalId) && ids.get(object.originalId) !== identity) ||
++				!/^[a-f0-9]{64}$/.test(object.sha256)) throw new Error("ATTACHMENT_OBJECT_INVALID");
++			ids.set(object.originalId, identity);
++			const padding = object.data.endsWith("==") ? 2 : object.data.endsWith("=") ? 1 : 0;
++			bytes += Math.floor(object.data.length * 3 / 4) - padding;
++		}
++		if (bytes > ATTACHMENT_LIMITS.originalBytes) throw new Error("ATTACHMENT_INPUT_BUDGET");
++	}
++
++	async #prepareItem(original: ControlledOriginal, binding: AttachmentBinding, signal: AbortSignal): Promise<AttachmentPreparedItem> {
++		const failed = (code: string): AttachmentPreparedItem => ({ originalId: original.originalId,
++			originalSha256: original.sha256, preparedId: crypto.randomUUID(), preparedSha256: "", status: "failed", code });
++		const decoded = decodeBase64ImageData(original.data);
++		if (decoded.reason) return failed("attachment_invalid_base64");
++		if (sha256(decoded.bytes) !== original.sha256) return failed("attachment_original_changed");
++		const image = ["png", "jpeg", "webp", "gif"].includes(original.format);
++		if (image && !binding.imageCapable) return failed("attachment_target_has_no_image_input");
++		const result = await prepareAttachmentIsolated({ format: original.format, bytes: decoded.bytes }, signal);
++		return { ...result, originalId: original.originalId, originalSha256: original.sha256,
++			preparedId: crypto.randomUUID(), preparedSha256: result.status === "ready" ? sha256(JSON.stringify(result.representation)) : "" };
++	}
++
++	#prune(): void {
++		for (const [id, value] of this.#receipts) {
++			if (value.receipt.expiresAt > Date.now()) continue;
++			this.#receipts.delete(id); this.#bytes -= value.bytes;
++		}
++	}
++}
+diff --git a/packages/coding-agent/src/attachments/rpc-budget.ts b/packages/coding-agent/src/attachments/rpc-budget.ts
+new file mode 100644
+index 0000000..a1774d2
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/rpc-budget.ts
+@@ -0,0 +1,23 @@
++import { RpcFrameEncoder } from "../modes/rpc/rpc-frame";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Stdin is one unchunked JSONL command. Base64 originals, escapes, metadata and newline are already in these bytes. */
++export function measureAttachmentRpc(frame: object): { logicalBytes: number; wireBytes: number; frames: number } {
++	const logicalBytes = Buffer.byteLength(JSON.stringify(frame)) + 1;
++	if (logicalBytes > ATTACHMENT_LIMITS.rpcBytes) throw new Error("ATTACHMENT_RPC_BUDGET");
++	return { logicalBytes, wireBytes: logicalBytes, frames: 1 };
++}
++
++/** Stdout separately uses the genuine public v2 encoder, including physical chunk envelopes and newlines. */
++export function measureAttachmentOutput(frame: object): { logicalBytes: number; wireBytes: number; frames: number } {
++	const logicalBytes = Buffer.byteLength(JSON.stringify(frame)) + 1;
++	if (logicalBytes > ATTACHMENT_LIMITS.rpcOutputBytes) throw new Error("ATTACHMENT_RPC_OUTPUT_BUDGET");
++	const encoder = new RpcFrameEncoder();
++	encoder.setProtocolVersion(2);
++	let wireBytes = 0, frames = 0;
++	for (const line of encoder.encodeFrames(frame)) {
++		wireBytes += Buffer.byteLength(line); frames++;
++		if (wireBytes > ATTACHMENT_LIMITS.rpcOutputWireBytes) throw new Error("ATTACHMENT_RPC_WIRE_BUDGET");
++	}
++	return { logicalBytes, wireBytes, frames };
++}
+diff --git a/packages/coding-agent/src/attachments/validation.ts b/packages/coding-agent/src/attachments/validation.ts
+new file mode 100644
+index 0000000..cfdd941
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/validation.ts
+@@ -0,0 +1,43 @@
++import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import { MAX_PREPARED_ENTRY_PART_INDEX } from "./entry-parts";
++import type { PreparedAttachmentLink } from "./receipts";
++
++const identity = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_-]{1,96}$/.test(value);
++const digest = (value: unknown): value is string => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
++
++function validEntryPart(value: unknown): boolean {
++	return isRecord(value) && Object.keys(value).every(key => ["kind", "index"].includes(key))
++		&& (value.kind === "content" || value.kind === "files") && typeof value.index === "number"
++		&& Number.isSafeInteger(value.index) && value.index >= 0 && value.index <= MAX_PREPARED_ENTRY_PART_INDEX;
++}
++/** Pure native persisted-metadata validation; object/content hashes convey no read authority. */
++export function validPreparedLinks(value: unknown): value is PreparedAttachmentLink[] {
++	return Array.isArray(value) && value.length <= 8 && value.every(link => isRecord(link) &&
++		identity(link.originalId) && identity(link.preparedId) && digest(link.originalSha256) && digest(link.preparedSha256) &&
++		(link.representationKind === "text" || link.representationKind === "image") &&
++		(link.entryPart === undefined || (validEntryPart(link.entryPart) && link.entryPartUnavailable === undefined &&
++			isRecord(link.entryPart) && link.entryPart.kind === (link.representationKind === "text" ? "files" : "content"))) &&
++		(link.entryPartUnavailable === undefined || (typeof link.entryPartUnavailable === "string" &&
++			["missing", "changed", "ambiguous"].includes(link.entryPartUnavailable))) &&
++		Object.keys(link).every(key => ["originalId", "preparedId", "originalSha256", "preparedSha256", "representationKind", "entryPart", "entryPartUnavailable"].includes(key)));
++}
++
++export function validNativePreparation(value: unknown): boolean {
++	return isRecord(value) && identity(value.receiptId) && digest(value.resultDigest) && identity(value.draftRevision) &&
++		identity(value.authorityGeneration) && Array.isArray(value.acceptedDegradations) && value.acceptedDegradations.length <= 16 &&
++		value.acceptedDegradations.every(code => typeof code === "string" && /^[a-z_]{1,64}$/.test(code)) &&
++		validPreparedLinks(value.attachments) && value.attachments.every(link => link.entryPart === undefined && link.entryPartUnavailable === undefined);
++}
++
++/** Permanent native facts retain exact ordered attachment identities and any earned persisted locator. */
++export function samePreparedLinks(left: readonly PreparedAttachmentLink[] | undefined,
++	right: readonly PreparedAttachmentLink[] | undefined): boolean {
++	if (left === undefined || right === undefined) return left === right;
++	return left.length === right.length && left.every((link, index) => {
++		const next = right[index];
++		return link.originalId === next.originalId && link.preparedId === next.preparedId
++			&& link.originalSha256 === next.originalSha256 && link.preparedSha256 === next.preparedSha256
++			&& link.representationKind === next.representationKind && link.entryPart?.kind === next.entryPart?.kind
++			&& link.entryPart?.index === next.entryPart?.index && link.entryPartUnavailable === next.entryPartUnavailable;
++	});
++}
+diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
+new file mode 100644
+index 0000000..bf5c426
+--- /dev/null
++++ b/packages/coding-agent/src/attachments/worker.ts
+@@ -0,0 +1,27 @@
++import "./deny-network";
++import { readStreamBounded } from "@oh-my-pi/pi-utils/stream";
++import { prepareAttachment } from "./prepare";
++import type { AttachmentFormat } from "./prepare";
++import { ATTACHMENT_LIMITS } from "./limits";
++
++/** Private process selector: inline bytes only, no filename/path read capability. */
++export async function runAttachmentWorker(format: AttachmentFormat): Promise<void> {
++	try {
++		const bytes = await readStreamBounded(Bun.stdin.stream(), ATTACHMENT_LIMITS.imageBytes);
++		const result = await prepareAttachment({ format, bytes });
++		await Bun.stdout.write(JSON.stringify(result));
++	} catch {
++		await Bun.stdout.write(JSON.stringify({ status: "failed", code: "attachment_converter_error" }));
++	}
++}
++
++export function isAttachmentFormat(value: unknown): value is AttachmentFormat {
++	return typeof value === "string" && ["utf8", "png", "jpeg", "webp", "gif", "pdf", "docx", "pptx", "xlsx", "epub"].includes(value);
++}
++
++if (import.meta.main) {
++	const format = process.argv[2];
++	if (!isAttachmentFormat(format)) {
++		process.exitCode = 2;
++	} else await runAttachmentWorker(format);
++}
+diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
+index ff1bfe9..ba8ee38 100755
+--- a/packages/coding-agent/src/cli.ts
++++ b/packages/coding-agent/src/cli.ts
+@@ -17,6 +17,13 @@ function validStrictArgs(args: string[]): boolean {
+ }
+ 
+ export async function runCli(argv: string[]): Promise<void> {
++  if (argv.length === 2 && argv[0] === "__omp_worker_attachment") {
++    // The converter selector precedes the ordinary Session/provider startup graph.
++    await import("./attachments/deny-network");
++    const { runAttachmentWorker, isAttachmentFormat } = await import("./attachments/worker");
++    if (!isAttachmentFormat(argv[1])) throw new Error("ATTACHMENT_FORMAT_UNSUPPORTED");
++    await runAttachmentWorker(argv[1]); return;
++  }
+   if (argv.length === 1 && argv[0] === "--rpc-preflight") {
+     const { runPreflight } = await import("./modes/rpc/preflight");
+     await runPreflight();
+@@ -36,7 +43,9 @@ export async function runCli(argv: string[]): Promise<void> {
+ }
+ 
+ if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
+-  if (process.argv.slice(2).includes("--strict-start")) {
++  if (process.argv[2] === "__omp_worker_attachment") {
++    void runCli(process.argv.slice(2)).catch(() => { process.exitCode = 1; });
++  } else if (process.argv.slice(2).includes("--strict-start")) {
+     const args = process.argv.slice(2);
+     if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
+     else void runCli(args).catch(() => { process.exitCode = 1; });
+diff --git a/packages/coding-agent/src/extensibility/extensions/runner.ts b/packages/coding-agent/src/extensibility/extensions/runner.ts
+index a4c59be..b7ef371 100644
+--- a/packages/coding-agent/src/extensibility/extensions/runner.ts
++++ b/packages/coding-agent/src/extensibility/extensions/runner.ts
+@@ -1,3 +1,4 @@
++import { clonePreparedContextMessages } from "../../attachments/provider-guard";
+ /**
+  * Extension runner - executes extensions and manages their lifecycle.
+  */
+@@ -2493,7 +2494,7 @@ export class ExtensionRunner {
+ 
+ 		let currentMessages: AgentMessage[];
+ 		try {
+-			currentMessages = structuredClone(messages);
++			currentMessages = clonePreparedContextMessages(messages);
+ 		} catch {
+ 			// Messages may contain non-cloneable objects (e.g. in ToolResultMessage.details
+ 			// or ProviderPayload). Fall back to a shallow array clone — extensions should
+diff --git a/packages/coding-agent/src/markit/converters/docx.ts b/packages/coding-agent/src/markit/converters/docx.ts
+index 97191bd..2190969 100644
+--- a/packages/coding-agent/src/markit/converters/docx.ts
++++ b/packages/coding-agent/src/markit/converters/docx.ts
+@@ -46,6 +46,6 @@ export class DocxConverter implements Converter {
+ 		if (!imageDir) {
+ 			markdown = markdown.replace(/!\[([^\]]*)\]\(data:[^)]*\)/g, "<!-- image: $1 -->");
+ 		}
+-		return { markdown: markdown.trim() };
++		return { markdown: markdown.trim(), facts: { omittedImages: imageDir ? 0 : imageCount } };
+ 	}
+ }
+diff --git a/packages/coding-agent/src/markit/converters/epub.ts b/packages/coding-agent/src/markit/converters/epub.ts
+index 2e49f46..8f7e985 100644
+--- a/packages/coding-agent/src/markit/converters/epub.ts
++++ b/packages/coding-agent/src/markit/converters/epub.ts
+@@ -96,6 +96,7 @@ export class EpubConverter implements Converter {
+ 		const basePath = opfPath.includes("/") ? opfPath.substring(0, opfPath.lastIndexOf("/")) : "";
+ 		const turndown = createTurndown();
+ 		const sections: string[] = [];
++		let omittedImages = 0;
+ 		// Add metadata header
+ 		const metaLines: string[] = [];
+ 		for (const key in metadata) {
+@@ -106,10 +107,11 @@ export class EpubConverter implements Converter {
+ 		// Convert spine files
+ 		for (const idref of spineOrder) {
+ 			const href = manifest.get(idref);
+-			if (!href) continue;
++			if (!href) throw new Error("Invalid EPUB: missing spine item");
+ 			const filePath = basePath ? `${basePath}/${href}` : href;
+ 			const html = await zip.readText(filePath);
+-			if (!html) continue;
++			if (!html) throw new Error("Invalid EPUB: missing spine content");
++			omittedImages += (html.match(/<img\b/gi) ?? []).length;
+ 			// Strip script/style, convert to markdown
+ 			const cleaned = html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "");
+ 			const md = turndown.turndown(normalizeTablesHtml(cleaned)).trim();
+@@ -118,6 +120,7 @@ export class EpubConverter implements Converter {
+ 		return {
+ 			markdown: sections.join("\n\n").trim(),
+ 			title: metadata.title,
++			facts: { omittedImages },
+ 		};
+ 	}
+ 
+diff --git a/packages/coding-agent/src/markit/converters/pdf/index.ts b/packages/coding-agent/src/markit/converters/pdf/index.ts
+index 80a43cb..f8932c4 100644
+--- a/packages/coding-agent/src/markit/converters/pdf/index.ts
++++ b/packages/coding-agent/src/markit/converters/pdf/index.ts
+@@ -32,6 +32,8 @@ export class PdfConverter implements Converter {
+ 
+ 		const conversion: ConversionResult = {
+ 			markdown: notice ? [result.markdown, notice].filter(Boolean).join("\n\n") : result.markdown,
++			facts: { pagesNeedingOcr: result.pagesNeedingOcr, hasEncodingIssues: result.hasEncodingIssues,
++				emptyText: result.markdown.trim().length === 0 },
+ 		};
+ 		if (result.title !== undefined) conversion.title = result.title;
+ 		return conversion;
+diff --git a/packages/coding-agent/src/markit/converters/pptx.ts b/packages/coding-agent/src/markit/converters/pptx.ts
+index 1be2983..f04afe9 100644
+--- a/packages/coding-agent/src/markit/converters/pptx.ts
++++ b/packages/coding-agent/src/markit/converters/pptx.ts
+@@ -253,7 +253,7 @@ export class PptxConverter implements Converter {
+ 			}
+ 			sections.push(slideLines.join("\n"));
+ 		}
+-		return { markdown: sections.join("\n\n").trim() };
++		return { markdown: sections.join("\n\n").trim(), facts: { omittedImages: imageDir ? 0 : imageCount } };
+ 	}
+ 
+ 	extractText(shape: Shape): string {
+diff --git a/packages/coding-agent/src/markit/converters/xlsx.ts b/packages/coding-agent/src/markit/converters/xlsx.ts
+index f6798c0..67503d3 100644
+--- a/packages/coding-agent/src/markit/converters/xlsx.ts
++++ b/packages/coding-agent/src/markit/converters/xlsx.ts
+@@ -125,7 +125,8 @@ export class XlsxConverter implements Converter {
+ 			}
+ 			sections.push(lines.join("\n"));
+ 		}
+-		return { markdown: sections.join("\n\n") };
++		return { markdown: sections.join("\n\n"),
++			facts: { omittedImages: [...zip.members].filter(member => member.startsWith("xl/media/")).length } };
+ 	}
+ 
+ 	getCellValue(cell: Cell, shared: StringItem[]): string {
+diff --git a/packages/coding-agent/src/markit/types.ts b/packages/coding-agent/src/markit/types.ts
+index 1b9f6c8..57bc9ed 100644
+--- a/packages/coding-agent/src/markit/types.ts
++++ b/packages/coding-agent/src/markit/types.ts
+@@ -14,6 +14,8 @@ export interface StreamInfo {
+ export interface ConversionResult {
+ 	markdown: string;
+ 	title?: string;
++	/** Structured content omissions; prose notices are not a machine-readable consent contract. */
++	facts?: { pagesNeedingOcr?: number[]; hasEncodingIssues?: boolean; omittedImages?: number; emptyText?: boolean };
+ }
+ 
+ export interface MarkitOptions {
+diff --git a/packages/coding-agent/src/modes/rpc/attachment-client.ts b/packages/coding-agent/src/modes/rpc/attachment-client.ts
+new file mode 100644
+index 0000000..ceeb85e
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/attachment-client.ts
+@@ -0,0 +1,37 @@
++/** Public preparation client. It owns no path, Session, Agent or provider authority. */
++import type { RpcWireCommands, AttachmentReceipt, AttachmentRepresentation } from "./wire/rpc-wire.generated";
++export type AttachmentCommand = { id?: string; type: "attachment_prepare" } & RpcWireCommands["attachment_prepare"]["params"]
++	| { id?: string; type: "attachment_cancel"; preparationId: string };
++export class AttachmentClient {
++	constructor(private readonly send: (command: AttachmentCommand) => Promise<unknown>,
++		private readonly validateReceipt: (value: unknown) => value is AttachmentReceipt) {}
++	async prepare(input: RpcWireCommands["attachment_prepare"]["params"]): Promise<AttachmentReceipt> {
++		const result = await this.send({ ...input, id: crypto.randomUUID(), type: "attachment_prepare" });
++		if (!this.validateReceipt(result) || result.preparationId !== input.preparationId || result.draftId !== input.draftId ||
++			result.draftRevision !== input.draftRevision || result.authorityGeneration !== input.authorityGeneration ||
++			result.budgetVersion !== "attachment-budgets-v1" || result.items.length !== input.objects.length ||
++			(result.status === "ready") !== result.items.every(item => item.status === "ready")) {
++			throw new Error("ATTACHMENT_RECEIPT_INVALID");
++		}
++		for (let index = 0; index < result.items.length; index++) {
++			const item = result.items[index]!, original = input.objects[index]!;
++			if (item.originalId !== original.originalId || item.originalSha256 !== original.sha256 ||
++				(item.status === "ready" && await representationDigest(item.representation) !== item.preparedSha256)) {
++				throw new Error("ATTACHMENT_RECEIPT_INVALID");
++			}
++		}
++		return result;
++	}
++	async cancel(preparationId: string): Promise<{ cancelled: boolean }> {
++		const result = await this.send({ id: crypto.randomUUID(), type: "attachment_cancel", preparationId });
++		if (!result || typeof result !== "object" || !("cancelled" in result) || typeof result.cancelled !== "boolean") {
++			throw new Error("ATTACHMENT_CANCEL_INVALID");
++		}
++		return { cancelled: result.cancelled };
++	}
++}
++
++async function representationDigest(value: AttachmentRepresentation): Promise<string> {
++	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(value)));
++	return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-attachments.ts b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
+new file mode 100644
+index 0000000..d1abd86
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
+@@ -0,0 +1,30 @@
++import type { AgentSession } from "../../session/agent-session";
++import { AttachmentPreparations } from "../../attachments/receipts";
++import { validAttachmentCommand } from "./attachments.generated";
++import type { AttachmentCommand } from "./attachment-client";
++import { attachmentModelFingerprint, attachmentImageCapable } from "../../attachments/model-binding";
++import { cfgImagesBlockImages } from "../settings";
++import { cfgImagesUrlsEnabled } from "../../blob-broker/settings";
++
++/** Uses protected native identity and current runtime context; Host generations supply additional fences, not authority. */
++export function createAttachmentPreparations(session: AgentSession): AttachmentPreparations {
++	return new AttachmentPreparations(() => {
++		const target = session.sessionManager.getSubmissionTarget();
++		const runtime = session.getHistoryRuntimeContext();
++		const context = session.sessionManager.getHistoryMessageContext(runtime);
++		const policy = { blocked: cfgImagesBlockImages.get(session.settings), urls: cfgImagesUrlsEnabled.get(session.settings) };
++		return { ...target, contextId: context.contextId,
++			modelFingerprint: attachmentModelFingerprint(session.model, policy), imageCapable: attachmentImageCapable(session.model, policy) };
++	});
++}
++
++/** Validate the complete same-source public command before conversion or object decoding. */
++export function validateAttachmentCommand(value: unknown): asserts value is AttachmentCommand {
++	if (!validAttachmentCommand(value)) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++	for (const key of ["preparationId", "draftId", "draftRevision", "authorityGeneration"] as const) {
++		if (!(key in value)) continue;
++		const field: unknown = Reflect.get(value, key);
++		if (typeof field !== "string" || !/^[A-Za-z0-9_-]{1,96}$/.test(field)) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++	}
++	if (value.id !== undefined && value.id.length > 96) throw new Error("ATTACHMENT_COMMAND_SCHEMA");
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
+new file mode 100644
+index 0000000..6f94257
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
+@@ -0,0 +1,7 @@
++/** Pure public input guarantee. Stdin commands are unchunked JSONL; stdout framing is independent. */
++export const rpcInputPolicy = Object.freeze({
++	version: "bounded-jsonl-input-v1", encoding: "fatal-utf8", framing: "unchunked-jsonl",
++	malformed: "sanitized-drop-line", partialEof: "reject", maxLineBytes: 48 * 1024 * 1024,
++	maxPendingBytes: 64 * 1024 * 1024, maxPendingFrames: 32,
++	maxStartupBytes: 48 * 1024 * 1024, maxStartupFrames: 8,
++} as const);
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-input.ts b/packages/coding-agent/src/modes/rpc/rpc-input.ts
+index ea64e54..63a031e 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-input.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-input.ts
+@@ -1,4 +1,5 @@
+-import { readLines } from "@oh-my-pi/pi-utils";
++import { ConcatSink } from "@oh-my-pi/pi-utils/stream";
++import { rpcInputPolicy } from "./rpc-input-policy";
+ 
+ /**
+  * Claims Bun's singleton stdin reader immediately and exposes a separately readable stream.
+@@ -45,21 +46,39 @@ export function claimRpcInput(): ReadableStream<Uint8Array> {
+  */
+ export async function readRpcInputFrames(
+ 	input: ReadableStream<Uint8Array>,
+-	onFrame: (frame: unknown) => void,
++	onFrame: (frame: unknown, encodedBytes: number) => void,
+ 	onParseError: (message: string) => void,
+ ): Promise<void> {
+-	const decoder = new TextDecoder();
+-	for await (const line of readLines(input)) {
+-		const text = decoder.decode(line).trim();
+-		if (!text) continue;
+-		let parsed: unknown;
+-		try {
+-			parsed = JSON.parse(text);
+-		} catch (error: unknown) {
+-			const message = error instanceof Error ? error.message : String(error);
+-			onParseError(`Failed to parse command: ${message}`);
+-			continue;
++	const sink = new ConcatSink();
++	let used = 0, discarded = false;
++	for await (const chunk of input) {
++		let offset = 0;
++		while (offset < chunk.byteLength) {
++			const newline = chunk.indexOf(10, offset);
++			const end = newline < 0 ? chunk.byteLength : newline;
++			const part = chunk.subarray(offset, end);
++			if (!discarded && used + part.byteLength + 1 > rpcInputPolicy.maxLineBytes) {
++				sink.clear(); used = 0; discarded = true; onParseError("RPC_INPUT_LIMIT");
++			}
++			if (!discarded) { sink.append(part); used += part.byteLength; }
++			if (newline >= 0) {
++				if (!discarded) parseInputLine(sink.flush() ?? new Uint8Array(), used + 1, onFrame, onParseError);
++				sink.clear(); used = 0; discarded = false;
++			}
++			offset = newline < 0 ? chunk.byteLength : newline + 1;
+ 		}
+-		onFrame(parsed);
+ 	}
++	if (used > 0 && !discarded) onParseError("RPC_INPUT_PARTIAL_EOF");
++}
++
++function parseInputLine(line: Uint8Array, encodedBytes: number,
++	onFrame: (frame: unknown, encodedBytes: number) => void, onParseError: (message: string) => void): void {
++	let text: string;
++	try { text = new TextDecoder("utf-8", { fatal: true }).decode(line).trim(); }
++	catch { onParseError("RPC_INPUT_INVALID_UTF8"); return; }
++	if (!text) return;
++	let parsed: unknown;
++	try { parsed = JSON.parse(text); }
++	catch { onParseError("RPC_INPUT_INVALID_JSON"); return; }
++	onFrame(parsed, encodedBytes);
+ }
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 3aaef8e..758b5fe 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1,7 +1,11 @@
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+ import { RpcSubmissions } from "./rpc-submissions";
++import { attachmentInputPolicy, assertPreparedInputPolicy } from "../../attachments/input-policy";
++import type { CustomMessage } from "../../session/messages";
++import { createAttachmentPreparations, validateAttachmentCommand } from "./rpc-attachments";
++import { rpcInputPolicy } from "./rpc-input-policy";
++import { runSubmission, submissionScope, stageInputAttachmentMessage, captureSubmission } from "../../session/submission-provenance";
+ import type { SubmissionOperationOutcome } from "../../session/submission-provenance";
+-import { runSubmission, submissionScope } from "../../session/submission-provenance";
+ import { validateHistoryCommand } from "./history.generated";
+ import { RpcHistoryObservation } from "./rpc-history";
+ import { getStrictStartup, observeStrictStartup } from "./strict-context";
+@@ -67,7 +71,7 @@ import { CACHE_WARMING_MODES } from "../../session/cache-warmer";
+ import { findMostRecentNonEmptySession, findRecentSessionContinuation } from "../../session/session-listing";
+ import { probeSessionLeases } from "../../session/session-storage";
+ import { SKILL_PROMPT_MESSAGE_TYPE, USER_INTERRUPT_LABEL } from "../../session/messages";
+-import { executeAcpBuiltinSlashCommand } from "../../slash-commands/acp-builtins";
++import { executeAcpBuiltinSlashCommand, resolveAcpBuiltinSlashCommand } from "../../slash-commands/acp-builtins";
+ import { buildAvailableSlashCommands } from "../../slash-commands/available-commands";
+ import { listLogoutAccounts, logoutCredential } from "../../slash-commands/helpers/logout";
+ import { cfgSttEnabled } from "../../stt/settings";
+@@ -304,16 +308,16 @@ export async function runRpcSkillCommand(
+ 	images?: ImageContent[],
+ ): Promise<boolean> {
+ 	const built = prebuilt ?? (await session.buildUserSkillPrompt(invocation.skill, invocation));
+-	return session.promptCustomMessage(
+-		{
++	const value = submissionScope();
++	return runSubmission(value ? { ...value, phase: "input" } : undefined, () => {
++		const message: Pick<CustomMessage, "customType" | "content" | "display" | "details" | "attribution"> = {
+ 			customType: SKILL_PROMPT_MESSAGE_TYPE,
+ 			content: images?.length ? [{ type: "text", text: built.message }, ...images] : built.message,
+-			display: true,
+-			details: built.details,
+-			attribution: "user",
+-		},
+-		{ streamingBehavior, queueChipText: invocation.queueChipText, onPromptAdmitted },
+-	);
++			display: true, details: built.details, attribution: "user",
++		};
++		stageInputAttachmentMessage(message, images); captureSubmission(message, "user");
++		return session.promptCustomMessage(message, { streamingBehavior, queueChipText: invocation.queueChipText, onPromptAdmitted });
++	});
+ }
+ 
+ /**
+@@ -387,7 +391,7 @@ export async function tryRunRpcSkillCommand(
+ export interface RpcInputFrameDeps {
+ 	handleCommand: (command: RpcCommand) => Promise<RpcResponse>;
+ 	output: RpcOutput;
+-	errorResponse: (id: string | undefined, command: string, message: string) => RpcResponse;
++	errorResponse: (id: string | undefined, command: string, message: string, code?: string) => RpcResponse;
+ 	trackBackgroundTask?: (task: Promise<void>) => void;
+ 	pendingExtensionRequests: Map<string, PendingExtensionRequest>;
+ 	onHostToolResult: (frame: RpcHostToolResult) => void;
+@@ -441,6 +445,7 @@ export function dispatchRpcControlFrame(parsed: unknown, deps: RpcInputFrameDeps
+  * A Set, not a Record: `type` is untrusted input and must not hit prototype keys.
+  */
+ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
++	"attachment_prepare",
+ 	"bash",
+ 	"predict_word",
+ 	"live_start",
+@@ -606,22 +611,36 @@ export class RpcInputDispatcher {
+ 	readonly #deps: RpcInputFrameDeps;
+ 	readonly #afterSerialCommand: (() => Promise<void>) | undefined;
+ 	readonly #acceptInput: ((command: RpcCommand) => void) | undefined;
++	readonly #retained = new WeakMap<object, number>();
++	#retainedBytes = 0;
++	#retainedFrames = 0;
+ 
+ 	constructor(options: {
+ 		deps: RpcInputFrameDeps;
+ 		afterSerialCommand?: () => Promise<void>;
+ 		acceptInput?: (command: RpcCommand) => void;
+ 	}) {
+-		this.#deps = options.deps;
++		this.#deps = { ...options.deps, handleCommand: async command => {
++			try { return await options.deps.handleCommand(command); }
++			finally { this.#release(command); }
++		} };
+ 		this.#afterSerialCommand = options.afterSerialCommand;
+ 		this.#acceptInput = options.acceptInput;
+ 	}
+ 
+ 	/** Accept a parsed input frame without blocking the stdin reader. */
+-	dispatch(parsed: unknown): void {
++	dispatch(parsed: unknown, encodedBytes?: number): void {
+ 		try {
+ 			if (dispatchRpcControlFrame(parsed, this.#deps)) return;
++			if (!isRecord(parsed)) throw new Error("RPC_INPUT_COMMAND_OBJECT");
+ 			const command = parsed as RpcCommand;
++			const bytes = encodedBytes ?? Buffer.byteLength(JSON.stringify(parsed)) + 1;
++			if (this.#retainedFrames >= rpcInputPolicy.maxPendingFrames ||
++				this.#retainedBytes + bytes > rpcInputPolicy.maxPendingBytes) {
++				this.#deps.output(this.#deps.errorResponse(command.id, command.type, "RPC_INPUT_QUEUE_LIMIT", "RPC_INPUT_QUEUE_LIMIT"));
++				return;
++			}
++			this.#retained.set(command, bytes); this.#retainedBytes += bytes; this.#retainedFrames++;
+ 			this.#acceptInput?.(command);
+ 			// Bash and predict_word retain their immediate side channel. Prompts,
+ 			// steers, follow-ups and steer_subagent start through the serial tail, but
+@@ -641,11 +660,18 @@ export class RpcInputDispatcher {
+ 				this.#tasks.delete(task);
+ 			});
+ 		} catch (err: unknown) {
++			if (isRecord(parsed)) this.#release(parsed);
+ 			const message = err instanceof Error ? err.message : String(err);
+ 			this.#deps.output(this.#deps.errorResponse(undefined, "parse", `Failed to parse command: ${message}`));
+ 		}
+ 	}
+ 
++	#release(command: object): void {
++		const bytes = this.#retained.get(command);
++		if (bytes === undefined) return;
++		this.#retained.delete(command); this.#retainedBytes -= bytes; this.#retainedFrames--;
++	}
++
+ 	/** Await every accepted serial command, including commands queued before EOF. */
+ 	async drain(): Promise<void> {
+ 		while (this.#tasks.size > 0) {
+@@ -1333,7 +1359,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	if (!strictStartup) outputWriter.write(
+ 		frameEncoder.encodeFrames({
+-			type: "ready", submissionPolicy: nativeSubmissionPolicy,
++			type: "ready", submissionPolicy: nativeSubmissionPolicy, rpcInputPolicy, attachmentInputPolicy,
+ 			protocolVersion: 1,
+ 			supportedProtocolVersions: [1, 2],
+ 			maxFrameBytes: MAX_RPC_FRAME_BYTES,
+@@ -1686,22 +1712,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	// Read stdin from now on: `session_start` may be waiting on a dialog only the client can answer. Until the
+ 	// command loop below exists, negotiation, interaction control and the ask-dialog opt-in are handled at once; every other
+ 	// frame is held, in arrival order, for that loop.
+-	let heldFrames: unknown[] | undefined = [];
+-	const receiveFrame = (parsed: unknown): void => {
++	let heldFrames: { frame: unknown; bytes: number }[] | undefined = [];
++	let heldBytes = 0;
++	const receiveFrame = (parsed: unknown, bytes: number): void => {
+ 		if (interactionControl(parsed)) return;
+ 		if (!heldFrames) {
+-			inputDispatcher.dispatch(parsed);
++			inputDispatcher.dispatch(parsed, bytes);
+ 		} else if (isRpcExtensionUIResponse(parsed)) {
+ 			pendingExtensionRequests.get(parsed.id)?.resolve(parsed);
+ 		} else if (isRecord(parsed) && parsed.type === "set_ask_dialog") {
+ 			output(setAskDialog(parsed as RpcCommand & { type: "set_ask_dialog" }));
+ 		} else {
+-			heldFrames.push(parsed);
++			if (heldFrames.length >= rpcInputPolicy.maxStartupFrames || heldBytes + bytes > rpcInputPolicy.maxStartupBytes) {
++				output(error(isRecord(parsed) && typeof parsed.id === "string" ? parsed.id : undefined,
++					isRecord(parsed) && typeof parsed.type === "string" ? parsed.type : "parse", "RPC_INPUT_QUEUE_LIMIT", "RPC_INPUT_QUEUE_LIMIT"));
++			} else { heldFrames.push({ frame: parsed, bytes }); heldBytes += bytes; }
+ 		}
+ 	};
+ 	// A transport error during startup must not be an unhandled rejection; the final await below still throws it.
+ 	// Input ending while startup still runs means no client is left to answer a dialog it awaits: reject them.
+-	const inputRead = readRpcInputFrames(input, receiveFrame, message => output(error(undefined, "parse", message)));
++	const inputRead = readRpcInputFrames(input, receiveFrame, message => output(error(undefined, "parse", message, message)));
+ 	const rejectStartupDialogs = (): void => {
+ 		if (heldFrames) pendingExtensionRequests.rejectAll("RPC client disconnected during startup");
+ 	};
+@@ -1848,7 +1878,13 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	});
+ 	await emitAvailableCommandsUpdate();
+ 
+-	const submissions = new RpcSubmissions(session, task => shutdownCoordinator.track(task));
++	const attachments = createAttachmentPreparations(session);
++	const assertPreparedRoute = (text: string): void => {
++		if (resolveRpcSkillInvocation(session, text)) return;
++		if (resolveAcpBuiltinSlashCommand(text)) throw new Error("ATTACHMENT_BUILTIN_INPUT_UNSUPPORTED");
++		if (session.classifyPromptCommand(text) !== "ordinary-prompt") throw new Error("ATTACHMENT_COMMAND_INPUT_UNSUPPORTED");
++	};
++	const submissions = new RpcSubmissions(session, attachments, assertPreparedRoute, task => shutdownCoordinator.track(task));
+ 	const inputGate = new RpcUserInputGate();
+ 	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
+ 	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
+@@ -1872,6 +1908,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 					if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
+ 						|| target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
+ 				}
++				if (initiatingSubmission?.prepared) assertPreparedInputPolicy(command.type,
++					session.isBusyForSnapshot || session.hasAdmittedSubmission,
++					command.type === "prompt" ? command.streamingBehavior : undefined);
+ 				return true;
+ 			};
+ 			if (!isCurrent()) return "cancelled";
+@@ -1883,10 +1922,15 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 				if (!isCurrent()) return "cancelled";
+ 				if (result.handled) return "local";
+ 				if (result.text !== undefined) text = result.text;
++				if (initiatingSubmission?.prepared && result.images !== undefined &&
++					(result.images.length !== images?.length || result.images.some((image, index) => image !== images?.[index]))) {
++					throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++				}
+ 				if (result.images !== undefined) images = result.images;
+ 			}
+ 			if (!isCurrent()) return "cancelled";
+-			if (!text.trim() && !images?.length) return "local";
++			if (!text.trim() && !images?.length && !initiatingSubmission?.prepared?.companionMessages.length) return "local";
++			if (initiatingSubmission?.prepared) assertPreparedRoute(text);
+ 			if (command.type === "steer") {
+ 				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
+ 				return "admitted";
+@@ -2006,6 +2050,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 			// Prompting
+ 			// =================================================================
+ 
++			case "attachment_prepare": {
++				try { validateAttachmentCommand(command); return success(id, command.type, await attachments.prepare(command)); }
++				catch (failure) { const code = failure instanceof Error ? failure.message : "ATTACHMENT_PREPARATION_FAILED";
++					return error(id, command.type, code, code); }
++			}
++			case "attachment_cancel": {
++				try { validateAttachmentCommand(command); return success(id, command.type, attachments.cancel(command.preparationId)); }
++				catch (failure) { const code = failure instanceof Error ? failure.message : "ATTACHMENT_CANCEL_FAILED";
++					return error(id, command.type, code, code); }
++			}
+ 			case "submission_query": {
+ 				try { submissions.validate(command); return success(id, command.type,
+ 					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
+@@ -2021,7 +2075,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+           try {
+             if (command.idleOnly && (command.inputType !== "prompt" || command.streamingBehavior !== undefined))
+               throw new Error("SUBMISSION_IDLE_PROMPT_REQUIRED");
+-						const input = { ...command, type: command.inputType };
++						const input = { ...command, type: command.inputType,
++              ...(scope.prepared ? { images: scope.prepared.images } : {}) };
+ 						inputGate.alias(command, input);
+ 						if (input.type === "abort_and_prompt") {
+ 							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
+@@ -2992,7 +3047,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 	// the reader and killing the whole process (issue #5194).
+ 	const held = heldFrames;
+ 	heldFrames = undefined;
+-	for (const parsed of held) inputDispatcher.dispatch(parsed);
++	for (const parsed of held) inputDispatcher.dispatch(parsed.frame, parsed.bytes);
++	heldBytes = 0;
+ 	await inputRead;
+ 
+ 	// stdin closed — RPC client is gone. Fail pending side-channel requests
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+index e7fc8dc..e63716c 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+@@ -1,3 +1,4 @@
++import { assertPreparedInputPolicy } from "../../attachments/input-policy";
+ import { assertSubmissionEntries } from "../../session/submission-records";
+ import { nativeSubmissionPolicy as submissionPolicy } from "../../session/submission-policy";
+ /** Native durable submission coordinator. This owns metadata only; OMP retains the conversation. */
+@@ -7,11 +8,13 @@ import { messageSubmission, runSubmission, sameSubmission } from "../../session/
+ import type { NativeSubmission, SubmissionNoEntry, SubmissionOrigin, SubmissionScope, SubmissionTarget, SubmissionOperationOutcome } from "../../session/submission-provenance";
+ import { validSubmissionCommand } from "./submissions.generated";
+ import type { SubmissionResult } from "./wire/rpc-wire.generated";
++import type { AttachmentConsent, AttachmentPreparations, PreparedSubmission } from "../../attachments/receipts";
+ export type { SubmissionResult } from "./wire/rpc-wire.generated";
+ export interface SubmissionSubmit {
+   id?: string; type: "submission_submit"; clientSubmissionId: string; sourceId: string; instanceId: string; nativeSessionId: string; preparationId: string;
+   inputType: "prompt" | "steer" | "follow_up" | "abort_and_prompt"; message: string; images?: ImageContent[];
+   streamingBehavior?: "steer" | "followUp"; idleOnly?: boolean;
++  preparationConsent?: AttachmentConsent;
+ }
+ export type SubmissionCommand = SubmissionSubmit | { id?: string; type: "submission_query"; clientSubmissionId: string; offset?: number; limit?: number };
+ interface PendingSubmission { origin: SubmissionOrigin; noEntries: Map<string, SubmissionNoEntry>; overflow: boolean; tasks: Set<Promise<unknown>>; revision: number; recheckReady: boolean;
+@@ -20,7 +23,8 @@ export class RpcSubmissions {
+   readonly #pending = new Map<string, PendingSubmission>();
+   #target: SubmissionTarget | undefined;
+   readonly #failures = new Map<string, "failed" | "unknown">();
+-  constructor(readonly session: AgentSession, readonly track: (task: Promise<void>) => void = () => {}) {
++  constructor(readonly session: AgentSession, readonly attachments?: AttachmentPreparations,
++    readonly assertPreparedRoute?: (text: string) => void, readonly track: (task: Promise<void>) => void = () => {}) {
+     try { this.#target = session.sessionManager.getSubmissionTarget(); } catch { /* Ordinary unprotected sessions refuse this API. */ }
+     session.subscribeMessageObservations(observation => {
+       if (observation.kind !== "message_settlement" || !observation.settlement) return;
+@@ -34,7 +38,8 @@ export class RpcSubmissions {
+       } else {
+         if (!pending.noEntries.has(observation.live.messageId) && pending.noEntries.size >= submissionPolicy.maxNoEntryFacts) { pending.overflow = true; return; }
+         pending.noEntries.set(observation.live.messageId, { relationId: observation.live.messageId,
+-          role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry" });
++          role: cause.role, status: decision.status, reason: decision.reason ?? "native_no_entry",
++          ...(cause.attachments ? { attachments: cause.attachments } : {}) });
+       }
+       pending.revision++;
+       if (pending.recheckReady) {
+@@ -65,10 +70,35 @@ export class RpcSubmissions {
+     if (target.sourceId !== command.sourceId || target.instanceId !== command.instanceId
+         || target.nativeSessionId !== command.nativeSessionId) throw new Error("SUBMISSION_TARGET_MISMATCH");
+     const origin = { ...target, clientSubmissionId: command.clientSubmissionId };
++    const originalRequestFingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
++      type: command.inputType, message: command.message, images: command.images ?? [],
++      streamingBehavior: command.streamingBehavior ?? null, preparationConsent: command.preparationConsent ?? null,
++      ...(command.idleOnly ? { idleOnly: true } : {}) }), "hex");
++    let prepared: PreparedSubmission | undefined;
++    if (command.preparationConsent) {
++      const existing = this.session.sessionManager.getExistingSubmission(command.clientSubmissionId);
++      if (existing) {
++        if (!sameSubmission(existing.origin, origin) || existing.originalRequestFingerprint !== originalRequestFingerprint) {
++          throw new Error("SUBMISSION_CONFLICT");
++        }
++        return { admitted: false, scope: { origin, phase: "extension" } };
++      }
++      if (!this.assertPreparedRoute) throw new Error("ATTACHMENT_ROUTING_UNAVAILABLE");
++      this.assertPreparedRoute(command.message);
++      assertPreparedInputPolicy(command.inputType, this.session.isBusyForSnapshot || this.session.hasAdmittedSubmission,
++        command.streamingBehavior);
++      if (command.images?.length) throw new Error("ATTACHMENT_INLINE_CONFLICT");
++      if (!this.attachments) throw new Error("ATTACHMENT_PREPARATION_UNAVAILABLE");
++      prepared = this.attachments.validateAndFreeze(command.preparationConsent, command.clientSubmissionId);
++      if (prepared.message !== command.message) throw new Error("ATTACHMENT_DRAFT_CHANGED");
++    }
+     const fingerprint = Bun.SHA256.hash(JSON.stringify({ target, preparationId: command.preparationId,
+-      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null, ...(command.idleOnly ? { idleOnly: true } : {}) }), "hex");
++      type: command.inputType, message: command.message, images: command.images ?? [], streamingBehavior: command.streamingBehavior ?? null,
++      ...(command.idleOnly ? { idleOnly: true } : {}), ...(prepared ? { prepared } : {}) }), "hex");
+     const reservation: NativeSubmission = { origin, fingerprint, preparationId: command.preparationId,
+-      terminal: false, inputOutcome: "unresolved", noEntries: [] };
++      terminal: false, inputOutcome: "unresolved", noEntries: [],
++      ...(prepared && command.preparationConsent ? { originalRequestFingerprint,
++        preparation: { ...command.preparationConsent, attachments: prepared.attachments } } : {}) };
+     let admitted: boolean;
+     try { admitted = await this.session.sessionManager.reserveSubmission(reservation); }
+     catch (failure) {
+@@ -76,8 +106,9 @@ export class RpcSubmissions {
+       throw failure;
+     }
+     const tasks = new Set<Promise<unknown>>();
++    if (admitted && prepared && command.preparationConsent) this.attachments!.markReserved(command.preparationConsent.receiptId, command.clientSubmissionId);
+     if (admitted) this.#pending.set(origin.clientSubmissionId, { origin, noEntries: new Map(), overflow: false, tasks, revision: 0, recheckReady: false, operationOutcome: "unknown" });
+-    return { admitted, scope: { origin, owner: this.session.sessionManager, phase: "extension", tasks, idleOnly: command.idleOnly, onTaskOverflow: () => {
++    return { admitted, scope: { origin, owner: this.session.sessionManager, phase: "extension", ...(prepared ? { prepared, attachmentDelivery: { delivered: false } } : {}), tasks, idleOnly: prepared ? true : command.idleOnly, onTaskOverflow: () => {
+       const pending = this.#pending.get(origin.clientSubmissionId); if (pending) pending.overflow = true;
+     } } };
+   }
+@@ -175,13 +206,15 @@ export class RpcSubmissions {
+     const durableEntries = state.entries.filter(entry => entry.submission && sameSubmission(entry.submission.origin, value.origin));
+     const retained = new Set(durableEntries.map(entry => entry.id));
+     const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId, fact]));
+-    for (const entry of durableEntries) facts.set(entry.id, { entryId: entry.id, role: entry.submission!.role });
++    for (const entry of durableEntries) facts.set(entry.id, { entryId: entry.id, role: entry.submission!.role,
++      ...(entry.submission!.attachments ? { attachments: entry.submission!.attachments } : {}) });
+     const relations: SubmissionResult["relations"] = [...facts.values()].map(fact => ({ relationId: `entry:${fact.entryId}`,
+       role: fact.role, status: "observed", persistence: "committed", entryId: fact.entryId,
+-      availability: retained.has(fact.entryId) ? "retained" : "removed" }));
++      availability: retained.has(fact.entryId) ? "retained" : "removed", ...(fact.attachments ? { attachments: fact.attachments } : {}) }));
+     for (const entry of observedEntries) {
+       if (facts.has(entry.id) || !entry.submission || !sameSubmission(entry.submission.origin, value.origin)) continue;
+-      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id });
++      relations.push({ relationId: `entry:${entry.id}`, role: entry.submission.role, status: "observed", persistence: "observed", entryId: entry.id,
++        ...(entry.submission.attachments ? { attachments: entry.submission.attachments } : {}) });
+     }
+     relations.push(...value.noEntries.map(item => ({ ...item, persistence: "committed" as const })));
+     const end = Math.min(offset + limit, relations.length);
+@@ -190,6 +223,7 @@ export class RpcSubmissions {
+         && value.origin.nativeSessionId === target.nativeSessionId ? "local" : "inherited", origin: value.origin,
+       reservation: "committed", operationOutcome: value.operationOutcome ?? "unknown", inputOutcome: [...facts.values()].some(fact => fact.role === "input") ? "generated" : value.inputOutcome, terminal: value.terminal,
+       persistence: this.#failures.get(clientSubmissionId) ?? (value.terminal ? "committed" : "unresolved"),
+-      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null };
++      relations: relations.slice(offset, end), nextOffset: end < relations.length ? end : null,
++      ...(value.preparation ? { preparation: value.preparation } : {}) };
+   }
+ }
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index b2ea42a..5521fda 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -1,5 +1,7 @@
+-import type { SubmissionPolicy } from "./wire/rpc-wire.generated";
++import type { SubmissionPolicy, RpcInputPolicy, AttachmentInputPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
++import type { AttachmentCommand } from "./attachment-client";
++import type { AttachmentReceipt } from "../../attachments/receipts";
+ import type { StrictStartState } from "./wire/rpc-wire.generated";
+ /**
+  * RPC protocol types for headless operation.
+@@ -51,6 +53,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+ export type RpcMessageUpdates = "full" | "delta";
+ 
+ export type RpcCommand =
++  | AttachmentCommand
+   | SubmissionCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+@@ -391,6 +394,8 @@ export interface RpcAbortAndRestoreQueueResult {
+ 
+ export interface RpcReadyFrame {
+   submissionPolicy?: SubmissionPolicy;
++  rpcInputPolicy?: RpcInputPolicy;
++  attachmentInputPolicy?: AttachmentInputPolicy;
+ 	/** Effective before extension initialization and timers; immutable for this worker. */
+ 	interactionPolicy?: RpcInteractionPolicy;
+ 	type: "ready";
+@@ -447,6 +452,8 @@ export interface RpcSubagentMessagesResult {
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | { id?: string; type: "response"; command: "attachment_prepare"; success: true; data: AttachmentReceipt }
++  | { id?: string; type: "response"; command: "attachment_cancel"; success: true; data: { cancelled: boolean } }
+   | { id?: string; type: "response"; command: "submission_submit" | "submission_query"; success: true; data: SubmissionResult }
+   | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
+   | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
+diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+index 2acbd31..87a37d3 100644
+--- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
+@@ -1,4 +1,6 @@
++import { attachmentInputPolicy } from "../../attachments/input-policy";
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
++import { rpcInputPolicy } from "./rpc-input-policy";
+ import { strictStartupPolicy } from "./strict-start-policy";
+ import * as fs from "node:fs/promises";
+ import * as path from "node:path";
+@@ -19,7 +21,7 @@ export async function runStrictMode(runtimeArgs: string[] = []): Promise<void> {
+     for (const frame of encoder.encodeFrames(value)) process.stdout.write(frame);
+   };
+   let state: StrictStartState = { version: "strict-start-v1", phase: "waiting" };
+-  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2],
++  output({ type: "ready", protocolVersion: 1, supportedProtocolVersions: [1, 2], rpcInputPolicy, attachmentInputPolicy,
+     maxFrameBytes: MAX_RPC_FRAME_BYTES, maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
+     strictStartup: "strict-start-v1", strictStartupPolicy, submissionPolicy: nativeSubmissionPolicy, interactionPolicy: rpcInteractionPolicy });
+   let negotiated = false, attempted = false;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/attachments.ts b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
+new file mode 100644
+index 0000000..3cab70c
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
+@@ -0,0 +1,43 @@
++/** Controlled inline objects, ephemeral preparation receipts, and exact-result consent. No path read authority. */
++export const attachmentDefs = {
++	AttachmentInputPolicy: { "+": "reject", version: "'attachment-input-policy-v1'", supportedInputKinds: "'prompt'[]",
++		requiresIdle: "true", supportsStreamingBehavior: "false" },
++	RpcInputPolicy: { version: "'bounded-jsonl-input-v1'", encoding: "'fatal-utf8'", framing: "'unchunked-jsonl'",
++		malformed: "'sanitized-drop-line'", partialEof: "'reject'", maxLineBytes: "number.integer",
++		maxPendingBytes: "number.integer", maxPendingFrames: "number.integer", maxStartupBytes: "number.integer", maxStartupFrames: "number.integer" },
++	AttachmentFormat: "'utf8' | 'png' | 'jpeg' | 'webp' | 'gif' | 'pdf' | 'docx' | 'pptx' | 'xlsx' | 'epub'",
++	AttachmentBinding: { "+": "reject", sourceId: "string", instanceId: "string", nativeSessionId: "string", contextId: "string",
++		modelFingerprint: "string", imageCapable: "boolean" },
++	AttachmentOriginal: { "+": "reject", originalId: "string", format: "AttachmentFormat", sha256: "string", data: "string" },
++	AttachmentText: { "+": "reject", kind: "'text'", text: "string" },
++	AttachmentImage: { "+": "reject", kind: "'image'", mimeType: "string", data: "string", width: "number.integer", height: "number.integer" },
++	AttachmentRepresentation: "AttachmentText | AttachmentImage",
++	AttachmentFacts: { "+": "reject", "originalBytes?": "number.integer", "convertedBytes?": "number.integer",
++		"preparedBytes?": "number.integer", "sourceWidth?": "number.integer", "sourceHeight?": "number.integer",
++		"frames?": "number.integer", "decodedBytes?": "number.integer", "pagesNeedingOcr?": "number.integer[]",
++		"hasEncodingIssues?": "boolean", "omittedImages?": "number.integer", "emptyText?": "boolean" },
++	AttachmentReadyItem: { "+": "reject", status: "'ready'", originalId: "string", originalSha256: "string", preparedId: "string",
++		preparedSha256: "string", representation: "AttachmentRepresentation", degradations: "string[]", "facts?": "AttachmentFacts" },
++	AttachmentFailedItem: { "+": "reject", status: "'failed'", originalId: "string", originalSha256: "string", preparedId: "string",
++		preparedSha256: "string", code: "string" },
++	AttachmentItem: "AttachmentReadyItem | AttachmentFailedItem",
++	AttachmentReceipt: { "+": "reject", version: "'attachment-preparation-v1'", budgetVersion: "string", receiptId: "string",
++		preparationId: "string", draftId: "string", draftRevision: "string", authorityGeneration: "string",
++		draftFingerprint: "string", binding: "AttachmentBinding", expiresAt: "number.integer", status: "'ready' | 'failed'",
++		resultDigest: "string", items: "AttachmentItem[]" },
++	AttachmentConsent: { "+": "reject", receiptId: "string", resultDigest: "string", draftRevision: "string",
++		authorityGeneration: "string", acceptedDegradations: "string[]" },
++	PreparedEntryPart: { "+": "reject", kind: "'content' | 'files'", index: "0 <= number.integer <= 65535" },
++	PreparedAttachmentLink: { "+": "reject", originalId: "string", preparedId: "string", originalSha256: "string",
++		preparedSha256: "string", representationKind: "'text' | 'image'", "entryPart?": "PreparedEntryPart",
++		"entryPartUnavailable?": "'missing' | 'changed' | 'ambiguous'" },
++	SubmissionPreparation: { receiptId: "string", resultDigest: "string", draftRevision: "string",
++		authorityGeneration: "string", acceptedDegradations: "string[]", attachments: "PreparedAttachmentLink[]" },
++};
++export const attachmentCommands = [
++	{ name: "attachment_prepare", doc: "Prepare every controlled original without input hooks, model/tool calls or message commits. Any failure blocks the whole input.",
++		params: { preparationId: "string", draftId: "string", draftRevision: "string", authorityGeneration: "string",
++			message: "string", objects: "AttachmentOriginal[]" }, result: "AttachmentReceipt" },
++	{ name: "attachment_cancel", doc: "Invalidate pending or ready preparation. Cancelled or late results cannot be consumed.",
++		params: { preparationId: "string" }, result: { cancelled: "boolean" } },
++] as const;
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+index 97966b2..7731ef0 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -11,6 +11,7 @@ import { interactionCommands } from "./interactions";
+ import { doc } from "./dsl";
+ import { catalogCommands } from "./catalog";
+ import { historyCommands } from "./history";
++import { attachmentCommands } from "./attachments";
+ 
+ /** One RPC command as described to generators. */
+ export interface RpcCommandSpec {
+@@ -37,6 +38,7 @@ export interface RpcCommandSpec {
+ const IMAGES = doc("ImageContent[]", "Images attached to the message.");
+ 
+ export const rpcCommands: readonly RpcCommandSpec[] = [
++  ...attachmentCommands,
+   ...interactionCommands,
+   ...catalogCommands,
+   ...historyCommands,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+index 7dbe653..89f91b9 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
+@@ -30,6 +30,8 @@ export const frameDefs = {
+       "strictStartup?": "'strict-start-v1'",
+       "strictStartupPolicy?": "StrictStartupPolicy",
+       "submissionPolicy?": "SubmissionPolicy",
++      "rpcInputPolicy?": "RpcInputPolicy",
++      "attachmentInputPolicy?": "AttachmentInputPolicy",
+ 			"protocolVersion?": "number.integer",
+ 			"supportedProtocolVersions?": "number.integer[]",
+ 			"maxFrameBytes?": "number.integer",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+index afeae50..23defe2 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -25,6 +25,7 @@ import { strictStartDefs } from "./strict-start";
+ import { catalogDefs } from "./catalog";
+ import { historyDefs } from "./history";
+ import { stateDefs } from "./state";
++import { attachmentDefs } from "./attachments";
+ 
+ export type { RpcCommandSpec } from "./commands";
+ 
+@@ -167,6 +168,7 @@ function collectCommands(defs: WireDefs): RpcWireCommand[] {
+  */
+ export function buildRpcWireBundle(): RpcWireBundle {
+ 	const defs: WireDefs = {
++		...attachmentDefs,
+ 		...messageDefs,
+ 		...modelDefs,
+ 		...stateDefs,
+diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+index bb80bd4..cf9d40d 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/submissions.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
+@@ -5,21 +5,21 @@ export const submissionDefs = {
+     logicalHeader:"'ompsub1'",carrier:"'ompgen2'",maxSubmissions:"number.integer",maxMetadataBytes:"number.integer",
+     maxEntryFacts:"number.integer",maxNoEntryFacts:"number.integer",maxQueryRelations:"number.integer",
+     maxMessageBytes:"number.integer",maxImagesBytes:"number.integer",maxPendingTasks:"number.integer"},
+-  SubmissionCausality: { origin: "SubmissionOrigin", role: "'input' | 'prepared' | 'additional' | 'execution'" },
++  SubmissionCausality: { origin: "SubmissionOrigin", role: "'input' | 'prepared' | 'additional' | 'execution'", "attachments?": "PreparedAttachmentLink[]" },
+   SubmissionTarget: { sourceId: "string", instanceId: "string", nativeSessionId: "string" },
+   SubmissionRelation: { relationId: "string", role: "string", status: "'observed' | 'no_entry' | 'failed'",
+-    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string" },
++    persistence: "'committed' | 'observed' | 'failed' | 'unknown'", "entryId?": "string", "availability?": "'retained' | 'removed'", "reason?": "string", "attachments?": "PreparedAttachmentLink[]" },
+   SubmissionResult: { version: "'durable-submission-v1'", clientSubmissionId: "string", target: "SubmissionTarget", found: "boolean", duplicate: "boolean",
+     admission: "'local' | 'inherited' | 'absent'", "origin?": "SubmissionOrigin", reservation: "'committed' | 'unknown' | 'absent'",
+     inputOutcome: "'unresolved' | 'generated' | 'no_input'",
+     operationOutcome: "'succeeded' | 'failed' | 'cancelled' | 'unknown'", persistence: "'committed' | 'failed' | 'unknown' | 'unresolved'",
+-    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string" },
++    terminal: "boolean", relations: "SubmissionRelation[]", nextOffset: "number.integer | null", "code?": "string", "preparation?": "SubmissionPreparation" },
+   SubmissionOrigin: { sourceId: "string", instanceId: "string", nativeSessionId: "string", clientSubmissionId: "string" },
+ };
+ export const submissionCommands = [
+   { name: "submission_submit", doc: "Reserve stable native identity before any input effect. Duplicate keys only return facts; never replay.",
+     params: { clientSubmissionId: "string", sourceId: "string", instanceId: "string", nativeSessionId: "string", preparationId: "string", inputType: "'prompt' | 'steer' | 'follow_up' | 'abort_and_prompt'",
+-      "idleOnly?": "boolean", message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior" }, result: "SubmissionResult" },
++      "idleOnly?": "boolean", message: "string", "images?": "ImageContent[]", "streamingBehavior?": "StreamingBehavior", "preparationConsent?": "AttachmentConsent" }, result: "SubmissionResult" },
+   { name: "submission_query", doc: "Bounded read-only durable native provenance lookup. Never dispatches, repairs or retries input.",
+     params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
+ ] as const;
+diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
+index 380a100..27f5122 100644
+--- a/packages/coding-agent/src/sdk.ts
++++ b/packages/coding-agent/src/sdk.ts
+@@ -36,6 +36,10 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
+ import { isOpenAICodexWebSocketPreferred } from "@oh-my-pi/pi-ai/providers/openai-codex-transport";
+ import { withCredentialRedaction } from "@oh-my-pi/pi-ai/providers/transform-messages";
+ import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
++import { attachmentModelFingerprint } from "./attachments/model-binding";
++import { assertSubmissionCurrent } from "./session/submission-provenance";
++import { assertPreparedDeliveries, capturePreparedDeliveries, guardPreparedPayload, type PreparedDelivery } from "./attachments/provider-guard";
++import { cfgImagesUrlsEnabled } from "./blob-broker/settings";
+ import { syncOpenAIResponsesHistoryTexts } from "@oh-my-pi/pi-ai/utils";
+ import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
+ import type { Component } from "@oh-my-pi/pi-tui";
+@@ -4803,38 +4807,61 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 		// One transform per conversation: the date/cwd reminder remembers what each
+ 		// conversation was sent, so the main loop and every advisor get their own.
+ 		// Only the main loop journals its reminders in the session.
+-		const createTransformProviderContext = (journal?: DateCwdReminderJournal) => {
++		let mainPreparedDeliveries: PreparedDelivery[] = [];
++		const providerPreparedDeliveries = new WeakMap<Context, PreparedDelivery[]>();
++		const assertPreparedAuthority = (deliveries: readonly PreparedDelivery[]): void => {
++			for (const delivery of deliveries) {
++				assertSubmissionCurrent(() => sessionManager.getSubmissionTarget(), delivery.target);
++			}
++		};
++		const checkPreparedDeliveries = (context: Context, model: Model, deliveries: readonly PreparedDelivery[]): void => {
++			if (!deliveries.length) return;
++			assertPreparedAuthority(deliveries);
++			assertPreparedDeliveries(context, attachmentModelFingerprint(model, {
++				blocked: cfgImagesBlockImages.get(settings), urls: cfgImagesUrlsEnabled.get(settings),
++			}), deliveries, sessionManager.getSubmissionTarget());
++		};
++		const createTransformProviderContext = (journal?: DateCwdReminderJournal,
++			expectations?: () => PreparedDelivery[]) => {
+ 			const dateCwdReminder = new DateCwdReminderInjector(journal);
+ 			return async (context: Context, transformModel: Model): Promise<Context> => {
++				const deliveries = expectations?.() ?? capturePreparedDeliveries(context.messages);
++				assertPreparedAuthority(deliveries);
+ 				let transformed = obfuscator ? obfuscateProviderContext(obfuscator, context) : context;
+ 				// The archive was sized for the model active at the last context build; a model switch may have lowered the budget.
+ 				transformed = capArchiveFrameBytes(transformed, transformModel);
+ 				transformed = await snapcompactInline.transform(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
+ 				transformed = clampProviderContextImages(transformed, transformModel);
+ 				transformed = await normalizeProviderContextImagesForModel(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
+ 				// After the model-specific normalizers: they carry better wording for the
+ 				// cases they own (STB WebP), so this stays the backstop for everything
+ 				// else, and it runs before the blob broker uploads any of these bytes.
+ 				transformed = await dropUnreadableContextImages(transformed, transformModel);
++				checkPreparedDeliveries(transformed, transformModel, deliveries);
+ 				transformed = await blobBroker.decorateContext(transformed, transformModel);
++				assertPreparedAuthority(deliveries);
+ 				// Byte budget after decoration: URL/file-referenced images carry no inline bytes.
+ 				transformed = clampProviderContextImageBytes(transformed, transformModel);
+ 				// Keep per-request volatility out of the system prompt: the date/cwd
+ 				// reminder rides on the first user turn so open-weight providers keep
+ 				// their tool-schema prefix cache (#7404).
+-				return dateCwdReminder.transform(
++				const finalContext = dateCwdReminder.transform(
+ 					transformed,
+ 					formatLocalCalendarDate(),
+ 					normalizePromptPath(sessionManager.getCwd()),
+ 				);
++				checkPreparedDeliveries(finalContext, transformModel, deliveries);
++				if (deliveries.length) providerPreparedDeliveries.set(finalContext, [...deliveries]);
++				return finalContext;
+ 			};
+ 		};
+ 		const transformProviderContext = createTransformProviderContext(
+-			createSessionDateCwdReminderJournal(sessionManager),
++			createSessionDateCwdReminderJournal(sessionManager), () => mainPreparedDeliveries,
+ 		);
+-		const onPayload = async (payload: unknown, model?: Model, signal?: AbortSignal) => {
+-			return await extensionRunner.emitBeforeProviderRequest(payload, model, signal);
+-		};
++		const onPayload = (payload: unknown, model?: Model, signal?: AbortSignal) =>
++			extensionRunner.emitBeforeProviderRequest(payload, model, signal);
+ 		const onResponse: SimpleStreamOptions["onResponse"] = async (response, model, signal) => {
+ 			await extensionRunner.emitAfterProviderResponse(response, model, signal);
+ 		};
+@@ -4904,8 +4931,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 			if (cfgOffline.get(settings) && streamModel.provider !== session?.model?.provider) {
+ 				return Promise.reject(new Error("Offline mode restricts model calls to the active session provider."));
+ 			}
++			const deliveries = providerPreparedDeliveries.get(context) ?? capturePreparedDeliveries(context.messages);
++			checkPreparedDeliveries(context, streamModel, deliveries);
++			const guardedOptions: SimpleStreamOptions | undefined = deliveries.length ? { ...streamOptions,
++				onPayload: (payload, payloadModel, signal) => guardPreparedPayload(payload, deliveries,
++					() => checkPreparedDeliveries(context, payloadModel ?? streamModel, deliveries),
++					() => streamOptions?.onPayload?.(payload, payloadModel, signal), signal),
++			} : streamOptions;
+ 			return withCredentialRedaction(cfgSecretsEnabled.get(settings), () =>
+-				settingsBoundStreamFn(streamModel, context, streamOptions),
++				settingsBoundStreamFn(streamModel, context, guardedOptions),
+ 			);
+ 		};
+ 		// Primary-agent (and its auto-learn capture twin) provider options read per
+@@ -4980,6 +5014,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 			getToolContext: tc => toolContextStore.getContext(tc),
+ 			getApiKey: effectiveGetApiKey,
+ 			streamFn: (streamModel, context, streamOptions) => {
++				if (mainPreparedDeliveries.length && !providerPreparedDeliveries.has(context)) {
++					throw new Error("ATTACHMENT_PROVIDER_EXPECTATIONS_MISSING");
++				}
++				checkPreparedDeliveries(context, streamModel, mainPreparedDeliveries);
+ 				mainRequestProvider = undefined;
+ 				options.assertDispatchModel?.(streamModel);
+ 				// The loop checks the cap before each request, but a side request can finish
+@@ -5033,7 +5071,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 				// loop (side-channel, advisor, and maintenance requests use
+ 				// dedicated wrappers), so it owns the warmer. The replay omits the
+ 				// one-shot fallback-credit redemption.
+-				session.startCacheWarming(streamModel, context, merged);
++				if (!providerPreparedDeliveries.get(context)?.length) session.startCacheWarming(streamModel, context, merged);
+ 				return stream;
+ 			},
+ 			cursorExecHandlers,
+@@ -5088,6 +5126,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 					: undefined
+ 				: undefined,
+ 		});
++		disposeCallbacks.add(agent.addBeforeModelCallHook((_signal, context) => {
++			// This is the actual folded native input, including queued messages; the draining task's ALS origin is irrelevant.
++			mainPreparedDeliveries = capturePreparedDeliveries(context.messages);
++		}));
++		disposeCallbacks.add(agent.addBeforeModelCall(context => {
++			const activeModel = agent.state.model;
++			if (mainPreparedDeliveries.length && !activeModel) throw new Error("ATTACHMENT_TARGET_CHANGED");
++			if (activeModel) checkPreparedDeliveries(context, activeModel, mainPreparedDeliveries);
++			if (mainPreparedDeliveries.length) providerPreparedDeliveries.set(context, [...mainPreparedDeliveries]);
++		}));
+ 		// The main Agent's issued provider is available before AgentSession accounts
+ 		// for the finalized message, including errors synthesized after a stream throws.
+ 		agent.subscribe(event => {
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index bd24bb3..2f294e0 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -1,4 +1,7 @@
+-import { assertSubmissionCurrent, capturedSubmissionScope, captureSubmission, copySubmission, messageSubmission, sdkMessageSubmission, runSubmission, runSubmissionForOwner, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { assertSubmissionCurrent, capturedSubmissionScope, captureSubmission, copySubmission, messageSubmission, sameSubmission, stageInputAttachmentMessage, takePreparedAttachmentMessages, sdkMessageSubmission, runSubmission, runSubmissionForOwner, submissionScope, trackSubmissionTask } from "./submission-provenance";
++import { attachmentModelFingerprint, attachmentImageCapable } from "../attachments/model-binding";
++import { cfgImagesBlockImages } from "../modes/settings";
++import { cfgImagesUrlsEnabled } from "../blob-broker/settings";
+ import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
+ import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
+ /**
+@@ -8536,6 +8539,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		return this.#slashCommands;
+ 	}
+ 
++	/** Native prompt-handler route, without executing extensions, custom commands or MCP prompts. */
++	classifyPromptCommand(text: string): "ordinary-prompt" | "extension-command" | "custom-command" {
++		if (!text.startsWith("/")) return "ordinary-prompt";
++		const spaceIndex = text.indexOf(" ");
++		const commandName = spaceIndex === -1 ? text.slice(1) : text.slice(1, spaceIndex);
++		if (this.#extensionRunner?.getCommand(commandName)) return "extension-command";
++		return this.customCommands.some(loaded => loaded.command.name === commandName) ? "custom-command" : "ordinary-prompt";
++	}
++
+ 	/** Custom commands (TypeScript slash commands and MCP prompts) */
+ 	get customCommands(): ReadonlyArray<LoadedCustomCommand> {
+ 		if (this.#mcpPromptCommands.length === 0) return this.#customCommands;
+@@ -8701,6 +8713,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
++		const scope = submissionScope();
++		const policy = { blocked: cfgImagesBlockImages.get(this.settings), urls: cfgImagesUrlsEnabled.get(this.settings) };
++		if (scope?.phase === "input" && scope.prepared &&
++			attachmentModelFingerprint(this.model, policy) !== scope.prepared.modelFingerprint) throw new Error("ATTACHMENT_TARGET_CHANGED");
++		if (scope?.phase === "input" && scope.prepared && images?.length) {
++			if (images.length !== scope.prepared.images.length || images.some((image, index) => image !== scope.prepared!.images[index])) {
++				throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++			}
++			if (!attachmentImageCapable(this.model, policy)) throw new Error("ATTACHMENT_TARGET_CHANGED");
++			return Promise.resolve(images);
++		}
+ 		return normalizeModelContextImages(images, { model: this.model });
+ 	}
+ 
+@@ -8761,6 +8784,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 	}
+ 
+ 	#normalizeAgentMessageImages<T extends AgentMessage>(message: T): Promise<T> {
++		const value = submissionScope(), cause = messageSubmission(message);
++		if (value?.phase === "input" && value.prepared && cause?.role === "input" && sameSubmission(cause.origin, value.origin)) {
++			const content = "content" in message ? message.content : undefined;
++			const images = Array.isArray(content) ? content.filter((part): part is ImageContent => part.type === "image") : undefined;
++			return this.#normalizeImagesForModel(images).then(() => message);
++		}
+ 		return this.#providerBoundary.normalizeAgentMessageImages(message);
+ 	}
+ 
+@@ -9165,6 +9194,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 					userInitiated: options?.userInitiated === true ? true : undefined,
+ 				}
+ 			: { role: "user" as const, content: userContent, attribution: promptAttribution, timestamp: submittedAt };
++		stageInputAttachmentMessage(message, normalizedImages);
+ 
+ 		const preludeMessages: AgentMessage[] = [];
+ 		if (eagerTodoPrelude) {
+@@ -9379,16 +9409,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
+ 			timestamp: Date.now(),
+ 		};
+-    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
+     copySubmission(message, customMessage);
++    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
+     const hasSkillImages =
+ 			isUserInvokedSkillPrompt(customMessage) &&
+ 			Array.isArray(customMessage.content) &&
+ 			customMessage.content.some(part => part.type === "image");
+ 		const preparationGeneration = this.#promptGeneration;
+-		const preparedMessage = hasSkillImages ? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
+-    copySubmission(customMessage, preparedMessage);
+-    this.#assertSubmissionIdle();
++		const preparedMessage = hasSkillImages || (submissionScope()?.prepared && messageSubmission(customMessage)?.role === "input")
++			? await this.#normalizeAgentMessageImages(customMessage) : customMessage;
++		copySubmission(customMessage, preparedMessage);
++		this.#assertSubmissionIdle();
+ 		const descriptionNotice = hasSkillImages
+ 			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
+ 			: undefined;
+@@ -9755,6 +9786,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			if (options?.prependMessages) {
+ 				messages.push(...options.prependMessages);
+ 			}
++			messages.push(...takePreparedAttachmentMessages());
+ 
+ 			// Early bail-out: if a newer abort/prompt cycle started during setup,
+ 			// return before mutating shared state (nextTurn messages, system prompt).
+@@ -10383,7 +10415,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		const timestamp = options?.timestamp;
+ 		const rawText = options?.rawText ?? text;
+ 		const preprocessed = options?.preprocessed;
+-		const prependMessages = options?.prependMessages ?? [];
++		const prependMessages: readonly AgentMessage[] = [...(options?.prependMessages ?? []),
++			...takePreparedAttachmentMessages()];
+ 		// Captured before any await below so the aside branch can detect a
+ 		// newSession()/switchSession() that completed while normalization/vision
+ 		// description was in flight and drop a record that would otherwise land in a
+@@ -10437,6 +10470,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			const records: AgentMessage[] = [...prependMessages, ...attachmentSourceNotices];
+ 			if (imageDescriptionNotice) records.push(imageDescriptionNotice);
+ 			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
++			stageInputAttachmentMessage(userMessage, normalizedImages);
+ 			this.#queuedMessageRawText.set(userMessage, rawText);
+ 			records.push(userMessage);
+ 			for (const message of records) captureSubmission(message, message.role);
+@@ -10489,6 +10523,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				: { role: "user", content, steering: true, attribution, timestamp };
+ 		this.#queuedMessageRawText.set(userMessage, rawText);
+ 		const group = [...companions, userMessage];
++		stageInputAttachmentMessage(userMessage, content.filter((part): part is ImageContent => part.type === "image"));
+ 		for (const message of group) captureSubmission(message, message.role);
+ 		if (mode === "followUp") {
+ 			for (const message of group) this.agent.followUp(message);
+@@ -10983,13 +11018,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+     copySubmission(message, appMessage);
+     this.#assertSubmissionCurrent();
+     const preprocessed = options?.preprocessed;
+-		const prependMessages = options?.prependMessages ?? [];
++		const prependMessages: readonly AgentMessage[] = [...(options?.prependMessages ?? []),
++      ...(messageSubmission(appMessage)?.role === "input" ? takePreparedAttachmentMessages() : [])];
+ 		const onPromptAdmitted = options?.onPromptAdmitted;
+ 		const onPromptQueued = options?.onPromptQueued;
+ 		const normalizedAppMessage = preprocessed
+ 			? { ...appMessage, content: preprocessed.content }
+ 			: await this.#normalizeAgentMessageImages(appMessage);
+ 		copySubmission(appMessage, normalizedAppMessage);
++		for (const queued of prependMessages) captureSubmission(queued, queued.role);
+     this.#assertSubmissionCurrent();
+     const descriptionNotice = preprocessed
+ 			? preprocessed.descriptionNotice
+diff --git a/packages/coding-agent/src/session/messages.ts b/packages/coding-agent/src/session/messages.ts
+index 46a04f5..d03956a 100644
+--- a/packages/coding-agent/src/session/messages.ts
++++ b/packages/coding-agent/src/session/messages.ts
+@@ -4,6 +4,7 @@
+  * Extends the base AgentMessage type with coding-agent specific message types,
+  * and provides a transformer to convert them to LLM-compatible messages.
+  */
++import { carryPreparedModelMessage } from "../attachments/provider-guard";
+ import { type AgentMessage, isProviderRefusalMessage } from "@oh-my-pi/pi-agent-core";
+ import {
+ 	isUserInterruptAbort,
+@@ -1413,7 +1414,7 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
+ 	for (let i = start; i < len; i++) {
+ 		if (i === len - 1) prefixOutputLen = out.length;
+ 		const fragment = convertMessageAt(messages, i, convertOneCached);
+-		for (const msg of fragment) out.push(msg);
++		for (const msg of fragment) { carryPreparedModelMessage(messages[i], msg); out.push(msg); }
+ 	}
+ 	if (len === 0) prefixOutputLen = 0;
+ 
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index 24b62bb..c2b9e24 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -1,6 +1,7 @@
+ import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
+ import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
++import { locatePreparedEntryParts } from "../attachments/entry-parts";
+ import { causalSubmission, runSubmissionForOwner, sameSubmission, validSubmissionCausality } from "./submission-provenance";
+ import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
+ import { nativeHistoryContextId } from "./history-context";
+@@ -2266,6 +2267,8 @@ export class SessionManager {
+ 			if (!this.#verifiedSubmissions.some(value => sameSubmission(value.origin, origin)))
+ 				throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
+ 		}
++		entry.submission = locatePreparedEntryParts(entry.submission, entry.type === "message" ? entry.message
++			: entry.type === "custom_message" ? entry : undefined);
+ 		this.#entries.push(entry);
+ 		this.#index.insert(entry);
+ 		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
+@@ -2469,7 +2472,8 @@ export class SessionManager {
+ 			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
+ 			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
+ 	      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
+-        ...(this.#header.requiredFeatures ?? []), "durable-submission-v1"])];
++        ...(this.#header.requiredFeatures ?? []), "durable-submission-v1",
++        ...([...records.values()].some(item => item.preparation) ? ["attachment-provenance-v1"] : [])])];
+ 		}
+     // captureState deliberately excludes control rows from its tree. Validate entries together with the permanent ledger.
+     this.#applyEntries(restoredHeader, [...(snapshot.nativeSubmissions ?? []).map(submissionRecord), ...snapshot.entries]);
+@@ -4286,6 +4290,14 @@ export class SessionManager {
+ 		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
+ 	}
+ 	/** Permanent append-only native reservation. No execution may precede its verified publication. */
++	getExistingSubmission(clientSubmissionId: string): NativeSubmission | undefined {
++		this.getSubmissionTarget();
++		if (!(this.#storage instanceof StrictSessionStorage)) throw new Error("SUBMISSION_PROTECTED_STORAGE_REQUIRED");
++		this.#storage.assertReadableState();
++		const value = this.#verifiedSubmissions.find(item => item.origin.clientSubmissionId === clientSubmissionId);
++		return value ? structuredClone(value) : undefined;
++	}
++
+ 	reserveSubmission(value: NativeSubmission): Promise<boolean> {
+ 		return this.#withAtomicPersistenceLock(async () => {
+ 			this.getSubmissionTarget();
+@@ -4296,6 +4308,13 @@ export class SessionManager {
+ 			}
+ 			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
+ 			await this.#ensureSubmissionFormat();
++			if (value.preparation && !this.#header.requiredFeatures?.includes("attachment-provenance-v1")) {
++				this.#header.requiredFeatures = [...(this.#header.requiredFeatures ?? []), "attachment-provenance-v1"];
++				await this.#rewriteAtomically();
++				if (!this.readSubmissionState().header.requiredFeatures?.includes("attachment-provenance-v1")) {
++					throw new Error("SUBMISSION_PUBLICATION_UNKNOWN");
++				}
++			}
+ 			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
+ 			this.#nativeSubmissions.push(reserved);
+ 			await this.#appendSubmissionControl(reserved);
+@@ -4311,7 +4330,8 @@ export class SessionManager {
+ 			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
+ 			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
+-				facts.set(entryId,{entryId,role:submission.role});
++				facts.set(entryId,{entryId,role:submission.role,
++					...(submission.attachments ? { attachments: structuredClone(submission.attachments) } : {})});
+ 			const entryFacts = [...facts.values()];
+ 			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 			await this.flush();
+@@ -4369,7 +4389,8 @@ export class SessionManager {
+ 			const value = byKey.get(submission.origin.clientSubmissionId);
+ 			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
+ 			value.entryFacts ??= [];
+-			if (!value.entryFacts.some(fact => fact.entryId === entryId)) value.entryFacts.push({entryId,role:submission.role});
++			if (!value.entryFacts.some(fact => fact.entryId === entryId)) value.entryFacts.push({entryId,role:submission.role,
++				...(submission.attachments ? { attachments: structuredClone(submission.attachments) } : {})});
+ 			if (value.entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
+ 		}
+ 	}
+diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
+index 85ef1dd..c076479 100644
+--- a/packages/coding-agent/src/session/session-required-features.ts
++++ b/packages/coding-agent/src/session/session-required-features.ts
+@@ -4,7 +4,7 @@ import type { SessionHeader } from "./session-entries";
+ export function nativeSessionHeader(value: unknown): SessionHeader | undefined {
+   if (!isRecord(value) || (value.type !== "session" && value.type !== "ompsub1") || typeof value.id !== "string") return;
+   if (value.requiredFeatures !== undefined && (!Array.isArray(value.requiredFeatures)
+-    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
++    || value.requiredFeatures.some(feature => feature !== "durable-submission-v1" && feature !== "attachment-provenance-v1"))) throw new Error("SESSION_REQUIRED_FEATURE_UNSUPPORTED");
+   if (value.type === "ompsub1" && (!Array.isArray(value.requiredFeatures)
+     || !value.requiredFeatures.includes("durable-submission-v1")))
+     throw new Error("SUBMISSION_METADATA_CORRUPT");
+diff --git a/packages/coding-agent/src/session/submission-policy.ts b/packages/coding-agent/src/session/submission-policy.ts
+index 95661b2..bf56a12 100644
+--- a/packages/coding-agent/src/session/submission-policy.ts
++++ b/packages/coding-agent/src/session/submission-policy.ts
+@@ -4,5 +4,5 @@ export const nativeSubmissionPolicy = Object.freeze({
+   durability: "process-crash-only", dedup: "permanent-refuse-at-capacity", query: "read-only-no-execution",
+   logicalHeader: "ompsub1", carrier: "ompgen2", maxSubmissions: 10_000, maxMetadataBytes: 32 * 1024 * 1024,
+   maxEntryFacts: 100_000, maxNoEntryFacts: 4096, maxQueryRelations: 128, maxMessageBytes: 262_144,
+-  maxImagesBytes: 524_288, maxPendingTasks: 4096,
++  maxImagesBytes: 8 * 1024 * 1024, maxPendingTasks: 4096,
+ } as const);
+diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
+index ad5fbeb..0f727da 100644
+--- a/packages/coding-agent/src/session/submission-provenance.ts
++++ b/packages/coding-agent/src/session/submission-provenance.ts
+@@ -1,24 +1,29 @@
+ import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+ /** Native causal carrier. Queued originals retain their origin independently of the task that drains them. */
+ import * as asyncHooks from "node:async_hooks";
++import type { PreparedAttachmentLink, PreparedSubmission, AttachmentConsent } from "../attachments/receipts";
++import type { FileMentionMessage } from "./messages";
+ import { isRecord } from "@oh-my-pi/pi-utils/type-guards";
++import { validPreparedLinks } from "../attachments/validation";
+ export interface SubmissionTarget { sourceId: string; instanceId: string; nativeSessionId: string }
+ export interface SubmissionOrigin extends SubmissionTarget { clientSubmissionId: string }
+ export type SubmissionRole = "input" | "prepared" | "additional" | "execution";
+-export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole }
++export interface SubmissionCausality { origin: SubmissionOrigin; role: SubmissionRole; attachments?: PreparedAttachmentLink[] }
+ export interface SubmissionScope {
+   origin: SubmissionOrigin; phase: "extension" | "input"; tasks?: Set<Promise<unknown>>;
+   onTaskOverflow?: () => void; idleOnly?: boolean;
+   /** Exact in-process SessionManager identity. Transient only; never a serialized target or authority substitute. */
+   owner?: object;
++  prepared?: PreparedSubmission; attachmentDelivery?: { delivered: boolean };
+ }
+-export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string }
++export interface SubmissionNoEntry { relationId: string; role: string; status: "no_entry" | "failed"; reason: string; attachments?: PreparedAttachmentLink[] }
+ /** Primary native operation result; distinct from input creation, persistence and quiescence. */
+ export type SubmissionOperationOutcome = "succeeded" | "failed" | "cancelled" | "unknown";
+ export interface NativeSubmission {
+   operationOutcome?: SubmissionOperationOutcome;
++  originalRequestFingerprint?: string; preparation?: AttachmentConsent & { attachments: PreparedAttachmentLink[] };
+   reservedAt?: string; completedAt?: string; origin: SubmissionOrigin; fingerprint: string; preparationId: string; terminal: boolean;
+-  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string }[]; noEntries: SubmissionNoEntry[];
++  inputOutcome: "unresolved" | "generated" | "no_input"; entryFacts?: { entryId: string; role: string; attachments?: PreparedAttachmentLink[] }[]; noEntries: SubmissionNoEntry[];
+ }
+ /** Persisted causal carriers are untrusted native data until their complete base shape is checked. */
+ export function validSubmissionOrigin(value: unknown): value is SubmissionOrigin {
+@@ -32,14 +37,16 @@ export function validSubmissionRole(value: unknown): value is SubmissionRole {
+   return value === "input" || value === "prepared" || value === "additional" || value === "execution";
+ }
+ export function validSubmissionCausality(value: unknown): value is SubmissionCausality {
+-  return isRecord(value) && validSubmissionOrigin(value.origin) && validSubmissionRole(value.role);
++  return isRecord(value) && validSubmissionOrigin(value.origin) && validSubmissionRole(value.role)
++    && (value.attachments === undefined || validPreparedLinks(value.attachments));
+ }
+ /** Safe public identity projection. Unknown native fields never become public history payloads. */
+ export function publicSubmissionCausality(value: unknown): SubmissionCausality | undefined {
+   if (value === undefined) return;
+   if (!validSubmissionCausality(value)) throw new Error("SUBMISSION_CAUSALITY_CORRUPT");
+   return { origin: { sourceId: value.origin.sourceId, instanceId: value.origin.instanceId,
+-    nativeSessionId: value.origin.nativeSessionId, clientSubmissionId: value.origin.clientSubmissionId }, role: value.role };
++    nativeSessionId: value.origin.nativeSessionId, clientSubmissionId: value.origin.clientSubmissionId }, role: value.role,
++    ...(value.attachments ? { attachments: structuredClone(value.attachments) } : {}) };
+ }
+ const scope = new asyncHooks.AsyncLocalStorage<SubmissionScope | undefined>();
+ const originals = new WeakMap<object, SubmissionCausality>();
+@@ -60,6 +67,17 @@ export function sdkMessageSubmission(message?: object): SubmissionScope | undefi
+   if (binding) return binding.scope;
+   return capturedSubmissionScope(message);
+ }
++const attachmentMessages = new WeakMap<object, PreparedAttachmentLink[]>();
++/** Association is attached to the actual staged object; never reconstructed by text, hash or append order. */
++export function stageAttachmentMessage(message: object, links: PreparedAttachmentLink[]): void { attachmentMessages.set(message, links); }
++export function stagedAttachmentLinks(message: object): readonly PreparedAttachmentLink[] | undefined { return attachmentMessages.get(message); }
++/** The native input group takes controlled companions once; nested/background messages cannot duplicate their delivery. */
++export function takePreparedAttachmentMessages(): FileMentionMessage[] {
++  const value = scope.getStore();
++  if (value?.phase !== "input" || !value.prepared || !value.attachmentDelivery || value.attachmentDelivery.delivered) return [];
++  value.attachmentDelivery.delivered = true;
++  return value.prepared.companionMessages;
++}
+ export function runSubmission<T>(value: SubmissionScope | undefined, run: () => T): T {
+   return scope.run(value, run);
+ }
+@@ -84,13 +102,27 @@ export function copySubmission(source: object, target: object): void {
+     originals.set(target, structuredClone(cause));
+     const owner = originalOwners.get(source);
+     if (owner) originalOwners.set(target, owner);
++    const attachments = attachmentMessages.get(source);
++    if (attachments) attachmentMessages.set(target, attachments);
+   }
+ }
+ export function captureSubmission(message: object, role: string, value = scope.getStore()): void {
+   if (!value || originals.has(message)) return;
+   if (value.owner) originalOwners.set(message, value.owner);
++  const attachments = attachmentMessages.get(message);
+   originals.set(message, { origin: value.origin, role: role === "user" && value.phase === "input" ? "input"
+-    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional" });
++    : role === "assistant" || role === "toolResult" ? "execution" : value.phase === "input" ? "prepared" : "additional",
++    ...(attachments?.length ? { attachments: structuredClone(attachments) } : {}) });
++}
++
++/** Called only by native user-input construction, after the staged image objects passed unchanged through ingress. */
++export function stageInputAttachmentMessage(message: object, images: readonly object[] | undefined): void {
++  const value = scope.getStore();
++  if (value?.phase !== "input" || !value.prepared || !images?.length) return;
++  if (images.length !== value.prepared.images.length || images.some((image, index) => image !== value.prepared!.images[index])) {
++    throw new Error("ATTACHMENT_REPRESENTATION_CHANGED");
++  }
++  stageAttachmentMessage(message, value.prepared.attachments.filter(link => link.representationKind === "image"));
+ }
+ export function causalSubmission(message?: object): SubmissionCausality | undefined {
+   const explicit = message && originals.get(message);
+diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
+index 147392a..71ffcf1 100644
+--- a/packages/coding-agent/src/session/submission-records.ts
++++ b/packages/coding-agent/src/session/submission-records.ts
+@@ -4,6 +4,7 @@ import type { CustomEntry, SessionEntry } from "./session-entries";
+ import type { NativeSubmission } from "./submission-provenance";
+ import { sameSubmission, validSubmissionCausality, validSubmissionRole, validSubmissionOrigin } from "./submission-provenance";
+ import { nativeSubmissionPolicy as policy } from "./submission-policy";
++import { samePreparedLinks, validNativePreparation, validPreparedLinks } from "../attachments/validation";
+ export const nativeControlRecordBytes = 8 * 1024 * 1024;
+ export const SUBMISSION_CONTROL = "omp.native-control/submission-v1";
+ function boundedString(value: unknown, maximum: number): value is string {
+@@ -44,6 +45,13 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
+     for (const fact of value.noEntries) if (!isRecord(fact) || !boundedString(fact.relationId, 256)
+       || !validSubmissionRole(fact.role) || !["no_entry", "failed"].includes(String(fact.status)) || !boundedString(fact.reason, 512))
+       throw new Error("SUBMISSION_METADATA_CORRUPT");
++    if ((value.originalRequestFingerprint !== undefined && (typeof value.originalRequestFingerprint !== "string" ||
++      !/^[a-f0-9]{64}$/.test(value.originalRequestFingerprint))) ||
++      (value.preparation !== undefined && (!validNativePreparation(value.preparation) || value.originalRequestFingerprint === undefined)) ||
++      (value.entryFacts ?? []).some(fact => isRecord(fact) && fact.attachments !== undefined && !validPreparedLinks(fact.attachments)))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
++    for (const fact of value.noEntries) if (isRecord(fact) && fact.attachments !== undefined && !validPreparedLinks(fact.attachments))
++      throw new Error("SUBMISSION_METADATA_CORRUPT");
+     if (new Set((value.entryFacts ?? []).map(fact => fact.entryId)).size !== (value.entryFacts?.length ?? 0)
+       || new Set(value.noEntries.map(fact => fact.relationId)).size !== value.noEntries.length)
+       throw new Error("SUBMISSION_METADATA_CORRUPT");
+@@ -55,10 +63,16 @@ export function readSubmissionRecords(entries: SessionEntry[]): NativeSubmission
+       || (prior.operationOutcome !== undefined && prior.operationOutcome !== "unknown" && prior.operationOutcome !== record.operationOutcome)
+       || (prior.inputOutcome !== "unresolved" && prior.inputOutcome !== record.inputOutcome)
+       || prior.preparationId !== record.preparationId
+-      || prior.entryFacts?.some(fact => entryFacts.get(fact.entryId)?.role !== fact.role)
++      || prior.originalRequestFingerprint !== record.originalRequestFingerprint
++      || JSON.stringify(prior.preparation) !== JSON.stringify(record.preparation)
++      || prior.entryFacts?.some(fact => {
++        const next = entryFacts.get(fact.entryId);
++        return !next || next.role !== fact.role || !samePreparedLinks(fact.attachments, next.attachments);
++      })
+       || prior.noEntries.some(fact => {
+         const next = noEntries.get(fact.relationId);
+-        return !next || next.role !== fact.role || next.status !== fact.status || next.reason !== fact.reason;
++        return !next || next.role !== fact.role || next.status !== fact.status || next.reason !== fact.reason
++          || !samePreparedLinks(fact.attachments, next.attachments);
+       })))
+       throw new Error("SUBMISSION_METADATA_CONFLICT");
+     values.set(record.origin.clientSubmissionId, record);
+diff --git a/packages/coding-agent/src/slash-commands/acp-builtins.ts b/packages/coding-agent/src/slash-commands/acp-builtins.ts
+index c059f7f..5ed0600 100644
+--- a/packages/coding-agent/src/slash-commands/acp-builtins.ts
++++ b/packages/coding-agent/src/slash-commands/acp-builtins.ts
+@@ -1,7 +1,7 @@
+ import type { AvailableCommand } from "@oh-my-pi/pi-utils/acp";
+ import { BUILTIN_SLASH_COMMANDS_INTERNAL, lookupBuiltinSlashCommand } from "./builtin-registry";
+ import { parseSlashCommand } from "./helpers/parse";
+-import type { AcpBuiltinSlashCommandResult, SlashCommandRuntime } from "./types";
++import type { AcpBuiltinSlashCommandResult, SlashCommandRuntime, ParsedSlashCommand, SlashCommandSpec } from "./types";
+ 
+ export type { AcpBuiltinSlashCommandResult } from "./types";
+ 
+@@ -48,6 +48,14 @@ export const ACP_BUILTIN_SLASH_COMMANDS: AvailableCommand[] = BUILTIN_SLASH_COMM
+ 	};
+ });
+ 
++/** Side-effect-free route used by admission and execution; TUI-only/unknown names remain ordinary native input. */
++export function resolveAcpBuiltinSlashCommand(text: string): { parsed: ParsedSlashCommand; command: SlashCommandSpec } | undefined {
++	const parsed = parseSlashCommand(text);
++	if (!parsed) return undefined;
++	const command = lookupBuiltinSlashCommand(parsed.name);
++	return command?.handle ? { parsed, command } : undefined;
++}
++
+ /**
+  * Dispatch a slash command in ACP/text mode. Returns:
+  * - `false` when no builtin matched (or matched a TUI-only entry); the caller
+@@ -60,11 +68,9 @@ export async function executeAcpBuiltinSlashCommand(
+ 	text: string,
+ 	runtime: SlashCommandRuntime,
+ ): Promise<AcpBuiltinSlashCommandResult> {
+-	const parsed = parseSlashCommand(text);
+-	if (!parsed) return false;
+-	const command = lookupBuiltinSlashCommand(parsed.name);
+-	if (!command?.handle) return false;
+-	const result = await command.handle(parsed, runtime);
++	const resolved = resolveAcpBuiltinSlashCommand(text);
++	if (!resolved) return false;
++	const result = await resolved.command.handle?.(resolved.parsed, runtime);
+ 	if (result === undefined) return { consumed: true };
+ 	return result;
+ }
+diff --git a/packages/tui/CHANGELOG.md b/packages/tui/CHANGELOG.md
+index 7d4b305..594da55 100644
+--- a/packages/tui/CHANGELOG.md
++++ b/packages/tui/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Exposed specific image decoder and UTF-8 output-truncation subpaths for native preparation.
++
+ ## [18.20.1] - 2026-11-14
+ 
+ ### Added
+diff --git a/packages/tui/README.md b/packages/tui/README.md
+index 82a09db..5c138dc 100644
+--- a/packages/tui/README.md
++++ b/packages/tui/README.md
+@@ -4,6 +4,9 @@ Minimal terminal UI framework with differential rendering and synchronized outpu
+ 
+ ## Features
+ 
++The public `chat/image-loading` and `tools/streaming-output` subpaths expose the central decoder and
++UTF-8-safe truncation helpers to native preparation without importing the TUI package barrel.
++
+ - **Differential Rendering**: Three-strategy rendering system that only updates what changed
+ - **Synchronized Output**: Uses CSI 2026 for atomic screen updates (no flicker)
+ - **Bracketed Paste Mode**: Handles large pastes correctly with markers for >10 line pastes
+diff --git a/packages/tui/package.json b/packages/tui/package.json
+index 4904e09..b286a84 100644
+--- a/packages/tui/package.json
++++ b/packages/tui/package.json
+@@ -57,6 +57,8 @@
+ 			"types": "./src/chrome/index.ts",
+ 			"import": "./src/chrome/index.ts"
+ 		},
++		"./tools/streaming-output": "./src/tools/streaming-output.ts",
++		"./chat/image-loading": "./src/chat/image-loading.ts",
+ 		"./tools": {
+ 			"types": "./src/tools/index.ts",
+ 			"import": "./src/tools/index.ts"
+diff --git a/packages/utils/CHANGELOG.md b/packages/utils/CHANGELOG.md
+index b18292f..0527f54 100644
+--- a/packages/utils/CHANGELOG.md
++++ b/packages/utils/CHANGELOG.md
+@@ -2,6 +2,10 @@
+ 
+ ## [Unreleased]
+ 
++### Added
++
++- Added bounded owned-stream reading and image animation container facts for native attachment preparation.
++
+ ## [18.20.2] - 2026-11-14
+ 
+ ### Added
+diff --git a/packages/utils/README.md b/packages/utils/README.md
+index ff3ad90..39e2f11 100644
+--- a/packages/utils/README.md
++++ b/packages/utils/README.md
+@@ -4,6 +4,10 @@ Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero c
+ 
+ ## Notable modules
+ 
++The `image-animation` subpath inspects GIF/APNG/WebP frame metadata before bounded decoding.
++`stream.readStreamBounded` reads an owned stream with a byte ceiling; callers terminate its producer
++on overflow. These helpers do not dispatch tools or model work.
++
+ | Module                                                                                                             | Purpose                                                                                      |
+ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
+ | `logger`                                                                                                           | Centralized logger writing to `~/.omp/logs/` (`bun test`: temp dir), rotating, never stdout  |
+diff --git a/packages/utils/src/image-animation.ts b/packages/utils/src/image-animation.ts
+new file mode 100644
+index 0000000..063ca2e
+--- /dev/null
++++ b/packages/utils/src/image-animation.ts
+@@ -0,0 +1,95 @@
++/** Container facts used before image decode. Frame data is never treated as a trusted allocation size. */
++export interface ImageAnimation { frames: number; animated: boolean; decodedBytesPerPixel: number }
++
++function gifFrames(bytes: Uint8Array): number {
++	if (bytes.length < 14) throw new Error("Invalid GIF");
++	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
++	const canvasWidth = view.getUint16(6, true), canvasHeight = view.getUint16(8, true);
++	let offset = 13 + ((bytes[10] & 0x80) ? 3 * 2 ** ((bytes[10] & 7) + 1) : 0);
++	let frames = 0;
++	const blocks = (): void => {
++		for (;;) {
++			if (offset >= bytes.length) throw new Error("Truncated GIF blocks");
++			const count = bytes[offset++];
++			if (count === 0) return;
++			offset += count;
++			if (offset > bytes.length) throw new Error("Truncated GIF block");
++		}
++	};
++	while (offset < bytes.length) {
++		const marker = bytes[offset++];
++		if (marker === 0x3b && frames > 0) return frames;
++		if (marker === 0x21) { offset++; blocks(); continue; }
++		if (marker !== 0x2c || offset + 9 > bytes.length) throw new Error("Invalid GIF frame");
++		const left = view.getUint16(offset, true), top = view.getUint16(offset + 2, true);
++		const width = view.getUint16(offset + 4, true), height = view.getUint16(offset + 6, true);
++		if (!width || !height || left + width > canvasWidth || top + height > canvasHeight) {
++			throw new Error("Invalid GIF frame bounds");
++		}
++		const flags = bytes[offset + 8];
++		offset += 9 + ((flags & 0x80) ? 3 * 2 ** ((flags & 7) + 1) : 0);
++		offset++; // LZW minimum code size.
++		blocks();
++		frames++;
++	}
++	throw new Error("Missing GIF trailer");
++}
++
++/** Count declared/contained frames without decoding. Full image decoding remains a separate required check. */
++export function imageAnimation(bytes: Uint8Array, mimeType: string, bounds?: { width: number; height: number }): ImageAnimation {
++	let frames = 1;
++	let decodedBytesPerPixel = 4;
++	const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
++	if (mimeType === "image/gif") frames = gifFrames(bytes);
++	if (mimeType === "image/png") {
++		if (bytes.length < 33) throw new Error("Truncated PNG header");
++		decodedBytesPerPixel = bytes[24] === 16 ? 8 : 4;
++		const width = view.getUint32(16), height = view.getUint32(20);
++		let declared: number | undefined, controls = 0, sequence = 0;
++		let imageData = false, defaultImage = false, ended = false;
++		for (let offset = 8; offset + 12 <= bytes.length;) {
++			const length = view.getUint32(offset);
++			if (offset + 12 + length > bytes.length) throw new Error("Truncated PNG chunk");
++			const type = String.fromCharCode(...bytes.subarray(offset + 4, offset + 8));
++			if (type === "acTL") {
++				if (length !== 8 || declared !== undefined || imageData) throw new Error("Invalid APNG control");
++				declared = view.getUint32(offset + 8);
++				if (declared < 1) throw new Error("Invalid APNG frame count");
++			}
++			if (type === "fcTL") {
++				if (length !== 26 || declared === undefined || view.getUint32(offset + 8) !== sequence++) throw new Error("Invalid APNG frame control");
++				const frameWidth = view.getUint32(offset + 12), frameHeight = view.getUint32(offset + 16);
++				if (!frameWidth || !frameHeight || view.getUint32(offset + 20) + frameWidth > width ||
++					view.getUint32(offset + 24) + frameHeight > height) throw new Error("Invalid APNG frame bounds");
++				controls++;
++			}
++			if (type === "fdAT" && (length < 4 || controls < 1 || view.getUint32(offset + 8) !== sequence++)) throw new Error("Invalid APNG frame data");
++			if (type === "IDAT") { if (!imageData && !controls) defaultImage = true; imageData = true; }
++			if (type === "IEND") {
++				if (length !== 0 || offset + 12 !== bytes.length) throw new Error("Invalid PNG trailer");
++				ended = true;
++			}
++			offset += 12 + length;
++		}
++		if (!ended || (declared !== undefined && controls !== declared)) throw new Error("Invalid APNG frame count");
++		frames = declared === undefined ? 1 : declared + (defaultImage ? 1 : 0);
++	}
++	if (mimeType === "image/webp") {
++		if (bytes.length < 12 || view.getUint32(4, true) + 8 !== bytes.length) throw new Error("Invalid WebP container size");
++		frames = 0;
++		const uint24 = (offset: number): number => bytes[offset] + 256 * bytes[offset + 1] + 65536 * bytes[offset + 2];
++		for (let offset = 12; offset + 8 <= bytes.length;) {
++			const length = view.getUint32(offset + 4, true);
++			if (offset + 8 + length + (length & 1) > bytes.length) throw new Error("Truncated WebP chunk");
++			if (String.fromCharCode(...bytes.subarray(offset, offset + 4)) === "ANMF") {
++				if (length < 16 || !bounds || uint24(offset + 8) * 2 + uint24(offset + 14) + 1 > bounds.width ||
++					uint24(offset + 11) * 2 + uint24(offset + 17) + 1 > bounds.height) throw new Error("Invalid WebP frame bounds");
++				frames++;
++			}
++			offset += 8 + length + (length & 1);
++		}
++		frames ||= 1;
++	}
++	if (frames < 1) throw new Error("Invalid animation frame count");
++	return { frames, animated: frames > 1, decodedBytesPerPixel };
++}
+diff --git a/packages/utils/src/stream.ts b/packages/utils/src/stream.ts
+index 8998bc9..542dc79 100644
+--- a/packages/utils/src/stream.ts
++++ b/packages/utils/src/stream.ts
+@@ -11,6 +11,18 @@ const CR = 0x0d;
+ // so one oversized frame does not pin its peak buffer for the stream's life.
+ const CONCAT_SINK_RETAIN_BYTES = 1024 * 1024;
+ 
++/** Read a complete owned stream with an allocation ceiling. Callers must terminate its producer on overflow. */
++export async function readStreamBounded(stream: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array> {
++	const sink = new ConcatSink();
++	let bytes = 0;
++	for await (const chunk of stream) {
++		bytes += chunk.byteLength;
++		if (bytes > maxBytes) throw new Error("STREAM_BYTE_LIMIT");
++		sink.append(chunk);
++	}
++	return sink.flush() ?? new Uint8Array();
++}
++
+ /**
+  * Split a byte stream on LF boundaries.
+  *

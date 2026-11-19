@@ -1,0 +1,102 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_ACTUAL_PUBLIC_PASS_DRAINED",
+  "sourceCheckpoint": "ca6b4829ef14b93f84537b33af477ab07c3ac802",
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-malformed-base64-public-v1-source-ready.json",
+    "bytes": 10784,
+    "sha256": "20733d47bfad8553c1f3b8cc15a338fe20d6fa097fdf448d965ec6648d0e25c8"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-source-20261117/final-inputs.json",
+    "bytes": 6337,
+    "sha256": "15acfb22c0e9b98155d9311843fb60c7801aae95d5f1a8c65f69518addfde7f3"
+  },
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-malformed-base64-runtime-success.json",
+    "bytes": 18008,
+    "sha256": "a8d8f182d19d28bf30b64ebda4d4de6197aca865e55b66bc817783079090fa11"
+  },
+  "case": "actual public malformed base64 with valid UTF8 refuses all input before reservation or effects",
+  "attempts": 1,
+  "retry": "NONE",
+  "runnerPid": 658147,
+  "runnerWaitStatus": 0,
+  "originalWaitBothReadersAndEof": true,
+  "actualPFpid": 658160,
+  "actualPFdrain": {
+    "code": 0,
+    "forced": false,
+    "stderrBytes": 0
+  },
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "rawArchive": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-evidencepack-20261117/raw.tar.gz",
+    "bytes": 6145,
+    "sha256": "1974808da8f8aaa830ab3ecd1ebc139a1067d66a6be1bee6ecc263b4706cecc5"
+  },
+  "rawManifest": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-evidencepack-20261117/manifest.json",
+    "bytes": 4770,
+    "sha256": "7b2929630f6c345a86ba6d605589bfc7d65352135d4fe7db35ae9fddd5c2be7d"
+  },
+  "RootTools": {
+    "records": {
+      "pre-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-initial-tool.json",
+        "bytes": 131,
+        "sha256": "4e62014bfb9994cb81b7b2d8893d1dfcc400e60cdbe64ea77506e213e6d6073d"
+      },
+      "pre-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-pre-final-tool.json",
+        "bytes": 2942,
+        "sha256": "04729e104a214ba070ab2f02c1069ef71ad8875f1528738023dbbce5aa33b623"
+      },
+      "run-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-initial-tool.json",
+        "bytes": 130,
+        "sha256": "d2a34bc3cda7850e12d19fde79e3e5583bdfeb39c2008b55b54ff9c3fa599ccc"
+      },
+      "run-poll1": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-run-poll1-tool.json",
+        "bytes": 4462,
+        "sha256": "a8cbd80818767b7c10fcd8d0ccb660cef2a5aceb98475f879e2f14523f49deb1"
+      },
+      "post-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-initial-tool.json",
+        "bytes": 131,
+        "sha256": "8b27acb42895fc32ad606fb0c594f44ebd497a69a3854059e21ca5a2198654eb"
+      },
+      "post-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-base64-root-post-final-tool.json",
+        "bytes": 2897,
+        "sha256": "5a09be2be78dc2f9216af998f19b15819be59f97af41b51d7f84d7eba43b2920"
+      }
+    },
+    "pre": {
+      "initialChunk": "933e13",
+      "session": 74221,
+      "completionChunk": "d4f60a",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "0adcdb",
+      "session": 36507,
+      "completionChunk": "2be7a7",
+      "exitCode": 0
+    },
+    "post": {
+      "initialChunk": "31d58c",
+      "session": 87325,
+      "completionChunk": "84fbdf",
+      "exitCode": 0
+    }
+  },
+  "window": "Root declared Nativewindow NONE after original wait/readers/EOF and post. Source/raw scopes consumed; no rerun/pristine check. Later actual work requires fresh reviewed Source/freeze/Root coordination.",
+  "postLabelMeaning": "NATIVE_RUNTIME_NOT_RUN is the inherited metadata-only checker label; actual preceding controlled Native public refusal test PASSED.",
+  "acceptance": "Only this malformed-base64 public refusal frontier proved. Whole38/53/54/29 remain open; no P_ALL/global/private/product claim."
+}

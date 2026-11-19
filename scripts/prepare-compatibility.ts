@@ -48,4 +48,8 @@ try {
   if (error instanceof Error && error.message.startsWith("Refusing")) throw error;
 }
 await symlink("../omp-runtime/node_modules", dependencyLink);
+// The patched workspace utils package is the single source of the new bounded-stream helpers.
+const publishedUtils = resolve(runtime, "node_modules/@oh-my-pi/pi-utils");
+await rm(publishedUtils, { recursive: true, force: true });
+await symlink(resolve(omp, "packages/utils"), publishedUtils);
 console.info("Fixed OMP source patch and isolated frozen dependency installation prepared.");

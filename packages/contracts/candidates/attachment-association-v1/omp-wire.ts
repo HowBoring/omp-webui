@@ -1119,63 +1119,6 @@ export interface SubmissionOrigin {
 	clientSubmissionId: string;
 }
 
-export interface NavigationPolicy {
-	version: "durable-navigation-v1";
-	status: "prototype";
-	durability: "process-crash-only";
-	query: "read-only-no-execution";
-	maxOperations: number;
-}
-
-export interface NavigationPreview {
-	version: "durable-navigation-v1";
-	target: SubmissionTarget;
-	entryId: string;
-	targetParentId: string | null;
-	targetRevision: string;
-	contextRevision: string;
-}
-
-export interface NavigationOrigin {
-	sourceId: string;
-	instanceId: string;
-	nativeSessionId: string;
-	navigationId: string;
-}
-
-export interface NavigationResult {
-	version: "durable-navigation-v1";
-	navigationId: string;
-	target: SubmissionTarget;
-	found: boolean;
-	duplicate: boolean;
-	admission: "local" | "inherited" | "absent";
-	outcome: "reserved" | "committed" | "cancelled" | "aborted" | "unsupported" | "failed" | "absent" | "unknown";
-	reservation: "committed" | "absent" | "unknown";
-	persistence: "committed" | "unresolved" | "failed" | "unknown";
-	terminal: boolean;
-	origin?: NavigationOrigin;
-	requestedTargetId?: string;
-	targetParentId?: string | null;
-	actualLeafId?: string | null;
-	summaryEntryId?: string;
-	summaryOrigin?: "extension" | "native";
-	hookCompleted?: boolean;
-	hookChangedLeaf?: boolean;
-	beforeHookInvoked?: boolean;
-	beforeHookCompleted?: boolean;
-	treeHookInvoked?: boolean;
-	targetRevision?: string;
-	contextRevision?: string;
-	draftOriginEntryId?: string;
-	editorText?: string;
-	draftContentRevision?: string;
-	draftStatus?: "inline" | "reference_only";
-	draftUnavailableReason?: string;
-	commitId?: string;
-	code?: string;
-}
-
 export type AutoCompactionReason = "threshold" | "overflow" | "idle" | "incomplete";
 
 export type AutoCompactionAction = "context-full" | "remote" | "handoff" | "shake" | "snapcompact";
@@ -1454,7 +1397,6 @@ export interface CompatibilityReport {
 	runtime: CompatibilityRuntime;
 	rpcUiStrictStartupPolicy?: StrictStartupPolicy;
 	rpcUiSubmissionPolicy?: SubmissionPolicy;
-	rpcUiNavigationPolicy?: NavigationPolicy;
 }
 
 /** First frame after startup; transport fields are absent on servers without protocol v2. */
@@ -1464,7 +1406,6 @@ export interface ReadyEvent {
 	strictStartup?: "strict-start-v1";
 	strictStartupPolicy?: StrictStartupPolicy;
 	submissionPolicy?: SubmissionPolicy;
-	navigationPolicy?: NavigationPolicy;
 	rpcInputPolicy?: RpcInputPolicy;
 	attachmentInputPolicy?: AttachmentInputPolicy;
 	protocolVersion?: number;
@@ -2245,26 +2186,6 @@ export interface SubmissionQueryParams {
 	limit?: number;
 }
 
-export interface NavigationInspectParams {
-	entryId: string;
-}
-
-export interface NavigateTreeCommittedParams {
-	navigationId: string;
-	sourceId: string;
-	instanceId: string;
-	nativeSessionId: string;
-	entryId: string;
-	expectedContextRevision?: string;
-	expectedTargetRevision?: string;
-	summarize?: boolean;
-	customInstructions?: string;
-}
-
-export interface NavigationQueryParams {
-	navigationId: string;
-}
-
 export interface NegotiateProtocolParams {
 	protocolVersion: number;
 }
@@ -2660,9 +2581,6 @@ export interface RpcWireCommands {
 	cancel_strict_start: { params: undefined; result: StrictStartState };
 	submission_submit: { params: SubmissionSubmitParams; result: SubmissionResult };
 	submission_query: { params: SubmissionQueryParams; result: SubmissionResult };
-	navigation_inspect: { params: NavigationInspectParams; result: NavigationPreview };
-	navigate_tree_committed: { params: NavigateTreeCommittedParams; result: NavigationResult };
-	navigation_query: { params: NavigationQueryParams; result: NavigationResult };
 	get_compatibility: { params: undefined; result: CompatibilityReport };
 	negotiate_protocol: { params: NegotiateProtocolParams; result: NegotiateProtocolResult };
 	prompt: { params: PromptParams; result: PromptAck };

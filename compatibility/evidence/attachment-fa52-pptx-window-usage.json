@@ -1,0 +1,62 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "c57e52c7540a28d9b668f8d6778e2e9697086ed6",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-pptx-source-ready.json",
+    "bytes": 67276,
+    "sha256": "80441cc80f4b7ef7e0cb39ff212b8e40f66ee65f28a60a132f00e4c29e43ae2c"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+    "bytes": 184366,
+    "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+  },
+  "case": "actual public PPTX requires structure consent before indexed saved text and provider witness",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-pptx-runtime-success.json",
+    "bytes": 23440,
+    "sha256": "c020f3b2bb4fb909a56b02b3e908d3630cd25a72c3129b32fc485abce4f52e93"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool return metadata, not an independent tool archive.",
+    "initialChunkId": "0d561a",
+    "sessionId": 97703,
+    "initialToolReportedWallTimeSeconds": 1.000502904,
+    "initialToolReturnedOriginalSession": true,
+    "pidEventReceivedInFinalPoll": true,
+    "finalChunkId": "0f10de",
+    "finalToolReportedWallTimeSeconds": 1.8125e-05,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 560961,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckInitialChunkId": "3eae3e",
+    "precheckSessionId": 46033,
+    "precheckFinalChunkId": "e4e3cf",
+    "postcheckInitialChunkId": "89989a",
+    "postcheckSessionId": 51767,
+    "postcheckFinalChunkId": "662e5b",
+    "limits": "Original Popen wait/stream metadata independently retained in runner.json. Tool IDs here are a transcription from this conversation."
+  },
+  "actualRunnerPid": 560961,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-pptx-60ql62gv/postcheck.json",
+    "bytes": 2859,
+    "sha256": "3eede22b1b1bac1ed48d56a1fc84620bbcf128ff96abe5ac501ed0a50c37e72e"
+  },
+  "window": "RELEASED immediately after original owned waits/readers and actual outcome, before read-only postcheck/proof. No further runtime/source-format action authorized/performed.",
+  "limitations": "Source-worked47B complete Native prepared text/digests matched selected case; provider known28B witness only, not whole47B/provider wrapper/pixels. Individual process PID/wait/forced metadata and runtime receipt/entry IDs uncaptured. No extinction/global/product/full38 claim."
+}

@@ -9,6 +9,7 @@ import type { RpcWireBundle } from "@oh-my-pi/pi-coding-agent/modes/rpc/wire/ind
 import { verifySource, ompBase as base } from "./omp-source.ts";
 
 const checkGenerated = process.argv.includes("--check");
+const wireOnly = process.argv.includes("--wire-only");
 async function emit(path: string, text: string): Promise<void> {
   if (checkGenerated) {
     if (await Bun.file(path).text() !== text) throw new Error("OMP_GENERATED_ARTIFACT_STALE");
@@ -18,7 +19,7 @@ const omp = resolve("vendor/omp");
 const output = resolve("vendor/omp-candidate");
 const source = join(omp, "packages/coding-agent/src");
 const { patchText, sourceSha256 } = await verifySource(omp);
-if (!checkGenerated) {
+if (!checkGenerated && !wireOnly) {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
 }
@@ -33,7 +34,7 @@ if (publicDecoder !== await Bun.file(join(source, "modes/rpc/rpc-frame.ts")).tex
 const bundle = buildRpcWireBundle();
 for (const [path, text] of generateRpcArtifacts()) await Bun.write(path, text);
 const schemaText = JSON.stringify(bundle, null, 2) + "\n";
-if (!checkGenerated) await Bun.write(join(output, "rpc-wire.schema.json"), schemaText);
+if (!checkGenerated && !wireOnly) await Bun.write(join(output, "rpc-wire.schema.json"), schemaText);
 const schema = digest(schemaText);
 const patchSha256 = digest(patchText);
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true }, allErrors: false });
@@ -115,10 +116,16 @@ await Bun.write(join(source, "modes/rpc/preflight.generated.ts"), `// Generated 
   `({id:string;type:'negotiate_protocol'} & RpcWireCommands['negotiate_protocol']['params']);\n` +
   `export function validateCommand(value:unknown):value is Command { return validate(value); }\n` +
   `export const compatibilityBuild = ${JSON.stringify(build)};\n`);
-if (!checkGenerated) {
-const built = await Bun.build({
-  entrypoints: [join(source, "cli.ts")], target: "bun", outdir: output, splitting: true,
+if (!checkGenerated && !wireOnly) {
+const candidateDirs = [output, resolve("vendor/omp-candidate-image-original-budget-compiler-inputs-v2")];
+let built;
+for (const outdir of candidateDirs) {
+built = await Bun.build({
+  entrypoints: [join(source, "cli.ts")], target: "bun", outdir, splitting: true,
   plugins: [{ name: "deferred-ordinary-cli", setup(build) {
+    build.onResolve({ filter: /^\.\/attachments\/(worker|deny-network)$/ }, ({ path: entry }) => ({
+      path: `../omp/packages/coding-agent/src/${entry.slice(2)}.ts`, external: true,
+    }));
     build.onResolve({ filter: /^\.\/modes\/rpc\/strict-mode$/ }, () => ({
       path: "../omp/packages/coding-agent/src/modes/rpc/strict-mode.ts", external: true,
     }));
@@ -131,9 +138,10 @@ const built = await Bun.build({
   } }],
 });
 if (!built.success) throw new AggregateError(built.logs, "candidate build failed");
-try { await rm(join(output, "omp")); } catch {}
-await symlink("cli.js", join(output, "omp"));
-console.info(JSON.stringify({ status: "candidate-built", ...build, files: built.outputs.length }));
+try { await rm(join(outdir, "omp")); } catch {}
+await symlink("cli.js", join(outdir, "omp"));
+console.info(JSON.stringify({ status: "candidate-built", outdir, ...build, files: built.outputs.length }));
+}
 
 }
 
@@ -203,3 +211,12 @@ await emit("packages/contracts/generated/identity.ts",
 await import("./build-history-contracts.ts");
 
 await import("./build-live-contracts.ts");
+
+await import("./build-submission-contracts.ts");
+await import("./build-attachment-contracts.ts");
+
+if (wireOnly && !checkGenerated) {
+  await Bun.write(join(output, "NOT_BUILT.json"), JSON.stringify({ status: "NOT_BUILT", ...build,
+    reason: "Wire-only generation does not rebuild or verify the existing native launcher." }, null, 2) + "\n");
+  console.info(JSON.stringify({ status: "wire-only-generated-candidate-not-built", ...build }));
+}

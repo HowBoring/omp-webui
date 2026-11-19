@@ -1,0 +1,30 @@
+{
+  "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+  "generation": "UTF8(\"Controlled prepared document\" + \"\u754c\".repeat(1747617) + \"!\"); over appends one ASCII !.",
+  "arithmetic": "28 + (1747617 * 3) + 1 = 5242880. Over = 5242881. One line; no BOM/newlines.",
+  "original": {
+    "bytes": 5242880,
+    "sha256": "ba9da0ac80bbde2e2c0475b51f543ddfb61532a433af8792135dae85813a9bec"
+  },
+  "overOriginal": {
+    "bytes": 5242881,
+    "sha256": "b531fde1cecce82394955e183dd34efaf72d85e9abb4707c1e2f102d76d3c350"
+  },
+  "expectedPrepared": {
+    "generation": "Controlled prepared document + \u754c repeated17057, no suffix/newline.",
+    "bytes": 51199,
+    "sha256": "5a567064a39ff504a906cd425e64e15d14a8ba1c865ba20a374242e1cb2b950f",
+    "representationSha256": "9bf7e907f0e0985e7f55064ee2fe5de719076439385805d545815b9930ebe2c3",
+    "degradations": [
+      "text_truncated"
+    ],
+    "basis": "Worked 50KiB head window:51200-28=51172 bytes,17057 whole3B glyphs=51171; one leftover byte cannot form next glyph. First line exceeds inline limit. Raw5MiB acceptance is distinct from inline/model/encoded budgets. No Native output supplied expected content/hash."
+  },
+  "authoring": "Python stdlib hashlib streamed literal chunks <=12288B; no5MiB fixture written, no Native/converter imports.",
+  "providerKnownSpan": {
+    "text": "Controlled prepared document",
+    "bytes": 28,
+    "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+  },
+  "limits": "SOURCE EXPECTATION UNEXECUTED. Public UTF8 path has text_truncated but no byte-count AttachmentFacts; no invented facts. Provider known28B only."
+}

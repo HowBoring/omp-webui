@@ -1,0 +1,48 @@
+{
+  "fixture": "tests/attachments/fixtures/opaque-200.webp",
+  "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+  "authoring": {
+    "library": "Pillow 13.0.0",
+    "libwebp": "1.6.0",
+    "mode": "RGB",
+    "size": [
+      200,
+      200
+    ],
+    "solidColor": [
+      37,
+      83,
+      127
+    ],
+    "saveOptions": {
+      "format": "WEBP",
+      "lossless": true,
+      "quality": 100,
+      "method": 6,
+      "exact": true
+    }
+  },
+  "bytes": 38,
+  "originalSha256": "0dd383c62fb5fd7b38a18c4f0cca4ec8670828cf2a63f39bbd96d45102729133",
+  "originalCarrierRepresentationSha256": "82e0ddb7abb78e7d758d9622e43c973fb68e042f3edf7c42ebe39b53f2c49328",
+  "originalCarrierRepresentationMeaning": "Independent compact JSON kind,mimeType,data,width,height for ORIGINAL WebP carrier, explicitly NOT a predicted Native prepared representation.",
+  "decodedRgbSha256": "6d16cd30a7a8d038832c85569b05a51253c98e106ba9332b487e297211efa72d",
+  "width": 200,
+  "height": 200,
+  "frames": 1,
+  "independentValidation": "Pillow reopen/load verifies WebP, one frame, RGB200x200 and exact chosen solid pixels; hashlib independently hashes original, decoded RGB and original-carrier compact JSON. No Bun.Image/OMP/SDK/native converter imported or evaluated.",
+  "expectedNativePreparation": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "degradations": [
+      "image_transformed"
+    ],
+    "width": 200,
+    "height": 200,
+    "mimeTypes": [
+      "image/png",
+      "image/jpeg"
+    ],
+    "preparedBytesAndSha256": "UNPREDICTED: converter-specific PNG/JPEG encoding; never pin a fabricated output hash. Verify canonical returned prepared representation hash, changed carrier, saved indexed part and exact provider byte delivery at separately authorized runtime.",
+    "basis": "prepare.ts always passes excludeWebP:true; resizeImage fast path excludes decoded WebP even at200x200; opaque image conversion chooses smallest PNG/JPEG and encodedResult marks wasResized:true. Controlled model declares text/image input. No animation loss for this one-frame original."
+  }
+}

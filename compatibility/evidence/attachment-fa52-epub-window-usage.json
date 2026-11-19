@@ -1,0 +1,72 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "733fecc75fa316cb35db3da4ef9d742414785db4",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-epub-source-ready.json",
+    "bytes": 34779,
+    "sha256": "b30875843fc62dabdffd15da43ec2c59652763b80fae51fcbd48ef67f8845b8a"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-epub-source/final-inputs.json",
+    "bytes": 14169,
+    "sha256": "a4be144ba454c5c48837becc1eb5cd7f8a271ad2959be410f7b46beab3d8bdc5"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+    "bytes": 12676,
+    "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+  },
+  "case": "actual public EPUB requires structure consent before indexed saved text and provider witness",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-epub-runtime-success.json",
+    "bytes": 20862,
+    "sha256": "3bcd3567cc0a5d8c9da39f5ea946736ea2da611b31875b07c1efb5e3055f9e34"
+  },
+  "rawArchive": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-epub-runtime-raw.tar.gz",
+    "bytes": 3753,
+    "sha256": "d4c7c7305ab051f5afb9b7f57aaf39ff95a2332415e3cfcce348802e28ace9cb"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool returns, not an independent tool archive.",
+    "initialChunkId": "1c346a",
+    "sessionId": 59196,
+    "initialToolReportedWallTimeSeconds": 1.000284781,
+    "initialToolReturnedOriginalSession": true,
+    "pidEventReceivedInFinalPoll": true,
+    "finalChunkId": "666d90",
+    "finalToolReportedWallTimeSeconds": 2.2057e-05,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 575881,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckInitialChunkId": "2855b1",
+    "precheckSessionId": 83922,
+    "precheckFinalChunkId": "6cea18",
+    "postcheckInitialChunkId": "803ee4",
+    "postcheckSessionId": 38942,
+    "postcheckFinalChunkId": "ca34d0",
+    "limits": "Original Popen wait/streams independently retained in runner.json. Tool identifiers here are conversation transcription."
+  },
+  "actualRunnerPid": 575881,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-epub-1klzbtrs/postcheck.json",
+    "bytes": 3143,
+    "sha256": "9e28faf39ceaaa9f3bfdfab80eced0333081c579feb19f614209f311b44e1f7f"
+  },
+  "window": "RELEASED after original actual owned waits/readers/outcome; Root accepted drainage. No further runtime/source case authorized/performed.",
+  "limitations": "Source-worked full79B Native prepared text/digests matched; provider known28B only. Individual helper/process metadata and runtime receipt/entry IDs uncaptured. Archive is allowlisted runner metadata/output/audit, no private Session or ELF/runtime copies. No full38/product/global acceptance."
+}

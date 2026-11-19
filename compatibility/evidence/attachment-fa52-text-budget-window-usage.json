@@ -1,0 +1,72 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "a0783d6c5967d1ff7b56bd57103d874182ca6ee4",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-text-budget-source-ready.json",
+    "bytes": 26028,
+    "sha256": "f1f7f26ef71e7e719ab4fe6d3846d1cf8530571e709a0618043f35abe0a924d8"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-text-budget-source/final-inputs.json",
+    "bytes": 12467,
+    "sha256": "2a793734fc673e61ca3dcd2e28b5395976f36c9062b1c7cf3bd34f03cdfd3f8f"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-epub-source/final-inputs.json",
+    "bytes": 14169,
+    "sha256": "a4be144ba454c5c48837becc1eb5cd7f8a271ad2959be410f7b46beab3d8bdc5"
+  },
+  "case": "actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-text-budget-runtime-success.json",
+    "bytes": 19464,
+    "sha256": "d7e6e5cf779ac2574ba9c8f6fd96ad4d7cdcedfac05e31014af37d1504dc2bc7"
+  },
+  "rawArchive": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-text-budget-runtime-raw.tar.gz",
+    "bytes": 3735,
+    "sha256": "13fe1ae7d6c171dc8280800daf676a7c2abbe78d1183582ab4b0f4ca48e73fe1"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool returns, not an independent tool archive.",
+    "initialChunkId": "802aed",
+    "sessionId": 28045,
+    "initialToolReportedWallTimeSeconds": 1.001020328,
+    "initialToolReturnedOriginalSession": true,
+    "pidEventReceivedInFinalPoll": true,
+    "finalChunkId": "e27be7",
+    "finalToolReportedWallTimeSeconds": 0.952563959,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 586861,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckInitialChunkId": "ca7c38",
+    "precheckSessionId": 63351,
+    "precheckFinalChunkId": "ec74e2",
+    "postcheckInitialChunkId": "8ac00d",
+    "postcheckSessionId": 82789,
+    "postcheckFinalChunkId": "8fa771",
+    "limits": "Original Popen wait/streams independently retained in runner.json. Tool identifiers here are conversation transcription."
+  },
+  "actualRunnerPid": 586861,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-text-budget-j885u6mn/postcheck.json",
+    "bytes": 3106,
+    "sha256": "29ecf6e732c406fe7cc78549c3f2385f41cf670c58854e949f0a4cbfb8cc27af"
+  },
+  "window": "RELEASED after original actual waits/readers/outcome, before pure postcheck/proof/archive. No further source/runtime authorized or performed.",
+  "limitations": "Provider known28B only; individual helper metadata/runtime receipt-entry IDs uncaptured; no descendant extinction. Small allowlisted runner metadata/output/audit archive, no Session/executable/runtime copies. Whole38/product/global OPEN/BLOCKED."
+}

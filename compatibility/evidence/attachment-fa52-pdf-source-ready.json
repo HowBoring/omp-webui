@@ -1,0 +1,915 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "7ea947740d62b7aa7056a61f7c97797989a8fbb1",
+  "parentTree": "1f2d902adc9437e8cb7c43a132e6fcb36e10d484",
+  "branch": "mvp/ticket-38-pdf-source",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE PDF public-RPC/source tracer. No Native product/API/schema/source changes, rebuild, dependency mutation, Native/SDK/Agent/Host/browser/FFI/addon/converter/kernel runtime or actual case execution. Root37 TUI runtime is independent and no self GO is allowed. Linux now; Windows owner-deferred; global path unselected; whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-current/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Previously authorized public attachment_prepare via AttachmentClient.prepare, submission_submit/query, get_entries and history snapshot. Unchanged controlled public provider known-span capture witnesses independently authored extracted text bytes. No new seam/private runtime API/Native Session-file reads in tracer. Actual red/green awaits Root separate ONE GO.",
+  "test": {
+    "path": "tests/attachments/public-rpc.test.ts",
+    "bytes": 46685,
+    "sha256": "a0d0de979b6e6f34869c0cc871609f4c71bc42ba915be0495d3af79d0d121d33",
+    "name": "actual public PDF requires structure consent before indexed saved text and provider witness"
+  },
+  "fixtures": [
+    {
+      "path": "tests/attachments/fixtures/minimal-text.pdf",
+      "bytes": 706,
+      "sha256": "e30ca8235d4595eb5a7d5f99b41f12e32c10375a8a78b199577737f15d48dff3"
+    },
+    {
+      "path": "tests/attachments/fixtures/minimal-text-pdf.json",
+      "bytes": 3175,
+      "sha256": "530005d5838bcc7e8b9fe307709764a1056eda9bb9c20819630f868e32d57d00"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/minimal-text.pdf",
+    "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+    "authoring": "Python standard library, deterministic PDF1.4 objects/xref/trailer and uncompressed ASCII text stream. No PDF renderer/parser/extractor, Native converter, SDK or addon evaluated.",
+    "bytes": 706,
+    "originalSha256": "e30ca8235d4595eb5a7d5f99b41f12e32c10375a8a78b199577737f15d48dff3",
+    "objects": 5,
+    "xrefEntries": 6,
+    "xrefOffset": 523,
+    "objectOffsets": [
+      9,
+      58,
+      115,
+      241,
+      426
+    ],
+    "pageCount": 1,
+    "mediaBox": [
+      0,
+      0,
+      612,
+      792
+    ],
+    "font": "Type1 Helvetica with WinAnsiEncoding",
+    "fontSize": 12,
+    "textPosition": [
+      72,
+      720
+    ],
+    "lineStep": [
+      0,
+      -18
+    ],
+    "contentStreamBytes": 134,
+    "contentStreamSha256": "70d7e2f115301f8b99807018995bc1fb8ac684bafc7e7304fe5c32f3a36a8475",
+    "textLines": [
+      "Controlled prepared document",
+      "Independent PDF line two.",
+      "End of one PDF page."
+    ],
+    "textLineSha256": [
+      "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+      "dffdf81c73fa8c1d3289a40593401d7585179a7f3132608fc70a58e540fec748",
+      "cf98bb33390ac8a90e76561dc663d7e32948494e504cf19a824f8b13a7160e6c"
+    ],
+    "knownProviderSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+    },
+    "independentValidation": "Readback verifies all object/xref offsets, startxref/trailer, exact stream Length and Tj ASCII literals, one Page and no image/encryption/action/embedded-file entries. This establishes authored original structure/content, not a rendered/extracted Native-output oracle.",
+    "expectedNativePreparation": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "degradations": [
+        "document_structure_changed"
+      ],
+      "knownTextLinesExactlyOnce": [
+        "Controlled prepared document",
+        "Independent PDF line two.",
+        "End of one PDF page."
+      ],
+      "pageMarkers": [
+        "<!-- Page 1 -->"
+      ],
+      "facts": {
+        "pagesNeedingOcr": [],
+        "hasEncodingIssues": false,
+        "emptyText": false
+      },
+      "preparedTextBytesAndSha256": "UNPREDICTED complete Markdown formatting/count/hash. Require known ASCII text and native page marker independently specified by original/source contract, no OCR/encoding/empty-text flags, correct actual canonical representation digest and full indexed saved text consistency.",
+      "basis": "Native Rust pdfToMarkdown uses pdf-inspector with include_page_numbers:true; real source tests author equivalent PDF Type1 Helvetica Tj text and require contained exact text, page markers and clean encoding. Native PdfConverter exposes OCR/encoding/empty facts; document conversion declares document_structure_changed.",
+      "providerLimit": "Unchanged provider captures existing known28B literal once in developer text. It witnesses those independently authored extracted bytes, not exact full generated Markdown or provider wrapper formatting. Exact full prepared Markdown is checked at receipt/indexed saved part; no model-input/pixel/layout completeness claim."
+    }
+  },
+  "independentAuthoringScript": {
+    "path": "/tmp/ticket38-pdf-author.py",
+    "bytes": 5127,
+    "sha256": "ce67e9f0ef905e20115688d9e3befbd75a4c8e6c9969fef70879bd4de9f9ac5c"
+  },
+  "expectationBasis": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "original": "Independent stdlib-authored706B PDF1.4 SHAe30ca823, five objects, valid object/xref/startxref/trailer offsets, one612x792 page, Type1Helvetica/WinAnsi at12pt and three exact ASCII Tj text literals. Readback checks every offset, stream Length/hash, text literals, one Page and no image/encryption/action/embedded-file entries. No renderer/extractor/converter evaluated.",
+    "conversion": "Actual public document path checks PDF magic and dispatches Markit PdfConverter\u2192public pi-natives pdfToMarkdown. Rust bridge calls pdf-inspector1.25.0 with include_page_numbers:true. Its actual source tests author equivalent Type1Helvetica Tj PDFs and require exact contained text, <!-- Page N --> markers and clean encoding; empty-page test distinguishes OCR-needed pages. Tracer expects all three independently authored lines exactly once, exactly Page1 marker, no OCR/encoding/empty flags and exactly document_structure_changed.",
+    "preparedDigest": "UNPREDICTED complete Markdown formatting/bytecount/hash. Test independently checks authored text/page facts, then canonical public actual representation digest consistency and full indexed saved-text equality. Consistency is not an independent complete-output oracle. No fabricated extraction output or exact Native formatting/hash.",
+    "provider": "Entire existing provider remains byte-exact. It already captures independently authored literal Controlled prepared document once,28B/SHAfd4d6186 in actual developer request text. This witnesses those extracted bytes, not exact whole prepared Markdown or provider wrapper formatting. Exact full actual prepared Markdown is checked only between receipt and indexed saved Native companion part. No complete-document/model-input/layout fidelity claim.",
+    "dependencies": "Installed public18.20.2 wrapper declares pdfToMarkdown and both Linuxx64 baseline/modern addon candidates exist; narrow static closure pins wrapper JS/type/package records and both existing ELF binaries without copying/loading/executing. No new external PDF CLI or dependency install. Native compiled dependency bridge itself has NOT been invoked; static literal presence/version is not capability proof. If actual public preparation fails, stop and report exact gap; no install/fix/retry.",
+    "limits": "Original structure/ASCII text and source-level expected page/facts are independently pinned. Complete extracted Markdown formatting and rendered/layout/image fidelity are unpredicted/unevaluated; provider witness covers known28B rather than full Markdown. Source availability and pinned addon files do not establish actual converter success."
+  },
+  "expectedAssertions": [
+    "Exact independent706B PDF original SHAe30ca823. Exactly one ready text result bound to selected target. All three independently authored ASCII lines exactly once, one Page1 marker, document_structure_changed only. Facts originalBytes706, actual converted text bytes, pagesNeedingOcr[], hasEncodingIssuesfalse, emptyTextfalse; actual text1..51200B and canonical actual representation digest consistency.",
+    "Public prepare leaves entries/provider effects unchanged. Missing document_structure_changed acceptance refuses before reservation/admission/effects. Same pdf-success query stays absent/unresolved/unknown with empty relations and unchanged entries/effects.",
+    "Exact explicit consent to returned receiptId/resultDigest/draftRevision/authorityGeneration and document_structure_changed admits ONE terminal succeeded/generated/committed input with exact target/origin/preparation binding.",
+    "Only returned public relation.entryId and actual entryPart files/index identify exactly one saved fileMention companion. Actual indexed path/content/byteSize equal returned preparedId/full actual prepared text/bytes; original/prepared link identities match receipt. Same public entryId history rows retain origin/prepared role/full link. Never text/hash/order history joins.",
+    "Exactly one new controlled input/attempt/dispatch/request; no images or tool/blocked growth. Unchanged provider captures independently authored known28B span once in developer text with SHAfd4d6186. Known span is extracted-byte delivery evidence, not full Markdown delivery proof or history causality.",
+    "Second terminal public query exactly equals first and adds no provider effects."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+      "bytes": 1937,
+      "sha256": "95634d45ddd1b2cdb455351102354a20f9ae07b608b032e39dba6cbe0d2ccee6"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/deny-network.ts",
+      "bytes": 864,
+      "sha256": "9a260c8a3f2933024d5abd0242bf5e67343635c61e0d5480da1f0da57b784604"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/registry.ts",
+      "bytes": 2139,
+      "sha256": "590083a2c9cd6e41b914c652e9d05a5845eb216b29c3d5aaa3d4920a916f95a8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/types.ts",
+      "bytes": 1307,
+      "sha256": "fc1f98c5a524ffbc25d9539d1998d8006a772bf4b4f4b1d845b932b297216836"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/converters/pdf/index.ts",
+      "bytes": 1527,
+      "sha256": "1f49f99c9d2d2fdc9cb926f6f2d380e9a0470d6354b082c27b2abb5e2d311981"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/prompts/tools/pdf-text-incomplete.md",
+      "bytes": 192,
+      "sha256": "4616003ea8d9182d8bc25217827c61890bca38efb2dec3e078c049b738581a22"
+    },
+    {
+      "path": "vendor/omp/crates/pi-natives/src/pdf.rs",
+      "bytes": 5487,
+      "sha256": "1a590ed45b3bcb323baa6c8213cc5a2847d5113335e5a625205aae3e1d32425e"
+    },
+    {
+      "path": "vendor/omp/crates/pi-natives/Cargo.toml",
+      "bytes": 5725,
+      "sha256": "dda72d95453142b7cd5049b1cacca78ae3992d79163d47167b426e8fc42fd964"
+    },
+    {
+      "path": "vendor/omp/Cargo.toml",
+      "bytes": 32128,
+      "sha256": "d0e7c3dae86c1eb7d7207c71627225276371ff12a1fff0888f69e1b66aa5d680"
+    },
+    {
+      "path": "vendor/omp/Cargo.lock",
+      "bytes": 255563,
+      "sha256": "e7b0653e1548eafbc71dd9cd001e13bc0ebcbf8850409b8aec4810cccccb2197"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/test/pdf-converter.test.ts",
+      "bytes": 1384,
+      "sha256": "fd54ed306f417eb389f6d2af27c340ef65d146a95842eec8ab8a7ee9179957e4"
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-pdf-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-pdf-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T05:22:35.875169+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 552841,
+        "code": 0,
+        "finishedAt": "2026-11-17T05:22:44.314320+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-pdf-source/host-types.json",
+          "bytes": 894,
+          "sha256": "e5e295a0e7b14524085015fa07e974db03c17ee247409c2427665f5deb2b7e0b"
+        },
+        {
+          "path": "/tmp/ticket38-pdf-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-pdf-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-pdf-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-pdf-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-pdf-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T05:22:44.314828+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 552864,
+        "code": 0,
+        "finishedAt": "2026-11-17T05:22:44.324722+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-pdf-source/syntax.json",
+          "bytes": 939,
+          "sha256": "3d9019c534a403f94f9c02930b87542c1b2ab0dfd60ace81e6937f42b8e407fe"
+        },
+        {
+          "path": "/tmp/ticket38-pdf-source/syntax.stdout",
+          "bytes": 72,
+          "sha256": "39c986d1b97430e7a3d75802f25b3aaef33776b3c1313bd23c48d33deedb5ff9"
+        },
+        {
+          "path": "/tmp/ticket38-pdf-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "status": "PASS_SOURCE_JSON_WHITESPACE_WITH_EXPECTED_PDF_XREF_PADDING_FINDINGS",
+      "metadata": {
+        "status": "PASS_SOURCE_JSON_WHITESPACE_WITH_EXPECTED_PDF_XREF_PADDING_FINDINGS",
+        "at": "2026-11-17T05:27:34.644127+00:00",
+        "scope": "SOURCE_STATIC_ONLY",
+        "checks": [
+          {
+            "label": "full-diff",
+            "argv": [
+              "git",
+              "-C",
+              "/workspace/work/omp-webui-ticket-38",
+              "diff",
+              "--check",
+              "HEAD^",
+              "HEAD"
+            ],
+            "exitCode": 2,
+            "stdout": {
+              "path": "/tmp/ticket38-pdf-source/full-diff.stdout",
+              "bytes": 540,
+              "sha256": "11de83dedee3e627b1c7a4076c4f935b3bc9a4706cdab4cfe5db1332ba834101"
+            },
+            "stderr": {
+              "path": "/tmp/ticket38-pdf-source/full-diff.stderr",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          {
+            "label": "source-json-diff",
+            "argv": [
+              "git",
+              "-C",
+              "/workspace/work/omp-webui-ticket-38",
+              "diff",
+              "--check",
+              "HEAD^",
+              "HEAD",
+              "--",
+              ".",
+              ":(exclude)tests/attachments/fixtures/minimal-text.pdf"
+            ],
+            "exitCode": 0,
+            "stdout": {
+              "path": "/tmp/ticket38-pdf-source/source-json-diff.stdout",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "stderr": {
+              "path": "/tmp/ticket38-pdf-source/source-json-diff.stderr",
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        ],
+        "pdf": {
+          "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/minimal-text.pdf",
+          "bytes": 706,
+          "sha256": "e30ca8235d4595eb5a7d5f99b41f12e32c10375a8a78b199577737f15d48dff3"
+        },
+        "explanation": "Whole-change diff check returns2 solely for six standard PDF fixed-width20-byte xref records ending in space+LF. Original bytes preserved. All source/JSON diff text passes separately. This is an explicit fixture-format exception, not a claim that whole-change git diff --check returned0.",
+        "workflowCorrection": "Initial source commit occurred after the staged full diff check reported these six PDF padding findings. No Native/runtime execution occurred; readiness now retains the result and verified exception."
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-pdf-source/diff-check.json",
+          "bytes": 2271,
+          "sha256": "fa5720ced5e5666656e1f17ffb3f220f032813dcc070d21e54e9a3b0e04d2f5a"
+        },
+        {
+          "path": "/tmp/ticket38-pdf-diff-check.py",
+          "bytes": 2666,
+          "sha256": "ffcd6814b82e76f8e6c38b165b9a8f1c7ec2ac6564c526a38695fb5208d1f2c9"
+        }
+      ],
+      "limits": "Full changed-file git diff --check returns2 solely for six standard fixed-width PDF xref padding rows. Source and JSON pass independently. Original PDF remains exact."
+    }
+  ],
+  "frozenReadback": {
+    "status": "PASS_STATIC_ONLY",
+    "before": {
+      "path": "/tmp/ticket38-pdf-source/before.json",
+      "bytes": 267812,
+      "sha256": "243ae607204849cb2f92082852ce7809df1d9aa28333bb0f8dc803f8f5893631"
+    },
+    "after": {
+      "path": "/tmp/ticket38-pdf-source/after.json",
+      "bytes": 3231,
+      "sha256": "86e04133bbdfacd59a8e75dd5e33938d0aa05ab3602b47ecf229b74a6deef21f"
+    },
+    "preservationScript": {
+      "path": "/tmp/ticket38-pdf-preserve.py",
+      "bytes": 5229,
+      "sha256": "9289b038cc2a36721ac361912c17e47b4141c92c75ff967b60b6d37597571a55"
+    },
+    "verificationScript": {
+      "path": "/tmp/ticket38-pdf-readback.py",
+      "bytes": 5104,
+      "sha256": "c4f2a7e68ee0b5d38febcb3328d5151b9377ab926041767bb08b5ed38088f64e"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-pdf-static.py",
+      "bytes": 1672,
+      "sha256": "68c2dfedfcb4837a0c9f6bc50500a934c6ee7d0cd64af8d99036ca5caacf7b3c"
+    },
+    "finalFreezeGenerator": {
+      "path": "/tmp/ticket38-pdf-final-freeze.py",
+      "bytes": 6230,
+      "sha256": "907e6568a498c3b1863886600009f93ad1a7780b8d30507075d263f75626901b"
+    },
+    "prior507Inputs": "All505 prior GIF source-freeze inputs plus two committed GIF proof/usage records exact before edit. Existing public-rpc.test.ts alone changes; all six prior cases/helpers remain byte-exact prefix.",
+    "priorSavedProofsAndRaw": "All475 older preserved records exact; new520-record baseline covers saved prior source/build/tool/proof/raw references.519 remain unchanged except appended test.",
+    "matchedBuildRecords": 290,
+    "allPreservedCurrentRecords": 520,
+    "unchangedPreservedRecordsAfter": 519,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostStateBefore": {
+      "head": "7ea947740d62b7aa7056a61f7c97797989a8fbb1",
+      "tree": "1f2d902adc9437e8cb7c43a132e6fcb36e10d484",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 83851,
+        "sha256": "8222ae92b0ffa97ad1fe7b128ae1d0985059b3b3de111de7eca8e84e5a3d9475",
+        "snapshot": {
+          "path": "/tmp/ticket38-pdf-source/host-index.bin",
+          "bytes": 83851,
+          "sha256": "8222ae92b0ffa97ad1fe7b128ae1d0985059b3b3de111de7eca8e84e5a3d9475"
+        },
+        "meaning": "Historical pre-edit Host index; source commit changes Host index. Immutable snapshot pinned; original live index is not an after-commit invariant."
+      },
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "headSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nativeStateBefore": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "tree": "bc176229265a781c3b502673566328bcb473466c",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "authoringGitSnapshots": [
+      {
+        "path": "/tmp/ticket38-pdf-source/host-head.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/host-staged.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/host-status.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/host-worktree.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/native-head.txt",
+        "bytes": 1662802,
+        "sha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/native-staged.txt",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/native-status.txt",
+        "bytes": 9449,
+        "sha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486"
+      },
+      {
+        "path": "/tmp/ticket38-pdf-source/native-worktree.txt",
+        "bytes": 1662802,
+        "sha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+      }
+    ],
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "priorBodies": "All six existing cases and all helpers remain byte-exact prefix. Entire provider including both known text spans byte-exact.",
+    "alreadyAbsentHistoricalReferences": [
+      {
+        "proof": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-a640-e957-matched-build.json",
+        "historicalRecord": {
+          "path": "vendor/omp-candidate/chunk-1by7evrw.js",
+          "bytes": 23710,
+          "sha256": "3432fcbbfdf1a0ff12dfd0e359bc75334514aad7c09799c35a6b97aa3b6f4d32"
+        },
+        "status": "HISTORICAL_REFERENCED_FILE_ALREADY_ABSENT_BEFORE_GIF_EDIT"
+      },
+      {
+        "proof": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-matched-build.json",
+        "historicalRecord": {
+          "path": "vendor/omp-candidate/chunk-r29vavqg.js",
+          "bytes": 23710,
+          "sha256": "d7d81b15bd756566412dee4d0950bd02173a78faa748960a3290bc016d1427ae"
+        },
+        "status": "HISTORICAL_REFERENCED_FILE_ALREADY_ABSENT_BEFORE_GIF_EDIT"
+      }
+    ],
+    "limits": "Previously enrolled current source/build/tool and proof/raw references only; not exhaustive runtime/dependency closure. Native source and all prior proof bodies/raw untouched. No Native/SDK/converter/Host/browser/FFI/runtime invoked."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. Root must separately authorize exactly ONE anchored actual window; this file grants no runtime authority.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public PDF requires structure consent before indexed saved text and provider witness$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-pdf-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Recheck final current-input freeze,290 matched records,166 Native dirty/untracked source records, Native HEAD/index/status/all binary diffs, candidate/dependency symlinks,519 preserved prior records and current proofs/raw/readiness. Recheck narrow15-record PDF addon wrapper+binary closure and its two package symlinks without loading; no binary copy/install. Guard audit and owned synthetic homes checked. Existing closure is not exhaustive transitive/system/runtime dependency proof.",
+    "failurePolicy": "Stop firstFAIL; no retry, source/product/API/schema fix, expectation weakening, dependency install/build, other case/format, Host/browser/FFI ad-hoc probe, process census/PIDfallback/groupkill, orphan444480/fence action. Report exact converter/public-contract gap to Root."
+  },
+  "preservedEvidence": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-a640-e957-matched-build.json",
+      "bytes": 64977,
+      "sha256": "b0351acf4de7a0cb3e828dc5727ff07ed15ca6f13af79ed7a9d462195b4cd72e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-checkpoint.json",
+      "bytes": 2880,
+      "sha256": "4cb81180da56ce943d7a3dbc2491bd7cfd1e8f60717150bc3f896dc7113160be"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-consumption-checkpoint.json",
+      "bytes": 2628,
+      "sha256": "cba0725a9911750924683196be1e1f9c211f76d0c69d02f7bff2533c0f27323e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-first-runtime-failure.json",
+      "bytes": 6939,
+      "sha256": "0e96ce1ca487f2399ab3c5a205bab882cbf7adedf2b13d84d66337c456f78539"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-matched-build.json",
+      "bytes": 67109,
+      "sha256": "4bfe49cdeed1096629bd8fa5d740af5a5a66317071703163ccf962d537a639a2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-mixed-refusal-runtime.json",
+      "bytes": 10748,
+      "sha256": "37f3b034dd38fa6a65453c29b90927d26dc910952e1ef8b86fae3bc17af783cc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+      "bytes": 9662,
+      "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-runtime-readiness.json",
+      "bytes": 13820,
+      "sha256": "3c1425c6bb0ec12ba807a4f4a3483980500a18a39680213be29bac7477ae2003"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-de7c-transform-runtime-failure.json",
+      "bytes": 7806,
+      "sha256": "38fe2bee042802285e27ad8491286038277a57b3f7049cbd594682884a2d57a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-expansion-checkpoint.json",
+      "bytes": 4047,
+      "sha256": "b11cf0231d5b8e8d33809924d6ff817bd9fa9b807fedd35dbe7e243af3f7c3af"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-source-ready.json",
+      "bytes": 20464,
+      "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-docx-window-usage.json",
+      "bytes": 1911,
+      "sha256": "6b7729563807666b69e481d3343f791f16d8fa93c6e37cc4f98e6aa74ebe8790"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-format-source-plan.json",
+      "bytes": 10845,
+      "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-source-ready.json",
+      "bytes": 34747,
+      "sha256": "b7ad706c99fdf4daee866289b4881e8c8ee98a70ec216aac9969e908219937fc"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-gif-window-usage.json",
+      "bytes": 2652,
+      "sha256": "f5204bc92bcd30479badaa3c4fe138d715b2157804f98e459dc00d5b7d561268"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+      "bytes": 14221,
+      "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-jpeg-window-usage.json",
+      "bytes": 1338,
+      "sha256": "1f3b553f107eb745c13377d8e72f91f1443ae3ed9f87f39e40fd9fda1930725a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+      "bytes": 79268,
+      "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-mixed-refusal-window-usage.json",
+      "bytes": 2644,
+      "sha256": "d165f364c4e11a6592a4e7b3f6491a37bc2662349bd20d2a9c342341a6f608d9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-png-text-window-usage.json",
+      "bytes": 2634,
+      "sha256": "8f9705e251fb530a48d4c5dbe20e4af9e12d7cb4e8a41917d57251468e49ecdb"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+      "bytes": 11423,
+      "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-gif-runtime-success.json",
+      "bytes": 19966,
+      "sha256": "fa24c95ddb7b517acc28caa7477f5f6ab3eb68216f82ca5b96b09f0b4891631f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+      "bytes": 11243,
+      "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-mixed-refusal-runtime-success.json",
+      "bytes": 18176,
+      "sha256": "9df1958eceb6e742110a119612465a205514e15a439e2acb32e022e1430a9303"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-png-text-runtime-success.json",
+      "bytes": 19443,
+      "sha256": "165045594bcf16fe5fa0a0e37125a6c6388c7d2e09f524efde0178e4231d23a9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-webp-runtime-success.json",
+      "bytes": 14127,
+      "sha256": "bd5113489b9b63278cb108b8092b832abd619f328974646bab35426481d95353"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-source-ready.json",
+      "bytes": 21160,
+      "sha256": "5324d8ef98817f712e43c551a6da5e03a3862d314e2d78aeeb3a64e9ce1a1cab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-window-usage.json",
+      "bytes": 2224,
+      "sha256": "97bd7a03ec1c42e2dfe823fc1724ab1a50ec4dbe811fca9b58c5aa5263c2b3e7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-provider-checkpoint.json",
+      "bytes": 3472,
+      "sha256": "f0f928da57493001695ec098c91ad59de7ec31356f57562526a973d8431bf9c2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-carrier-checkpoint.json",
+      "bytes": 2469,
+      "sha256": "fbf700d11ca7829c562e49d4b2411fd8cf647143a4937d7b9bf446e1d404aeb6"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-source-recovery-checkpoint.json",
+      "bytes": 4611,
+      "sha256": "86d4dc4c685d307ce7da7be8d98eb6d9df4ecf6e1e00907d53850f21648d713b"
+    }
+  ],
+  "earnedPriorRuntime": "Current Native9f33/5e315/schema8f9c PNG-text47, mixed-refusal13, JPEG33, DOCX45, WebP49 and GIF55 assertion passes remain earned only on exact recorded isolated inputs. PDF source author ran no Native/runtime/FFI/conversion.",
+  "notRun": [
+    "Actual PDF or any other case; Native/SDK/Agent/Host/browser/FFI/addon/converter/kernel runtime",
+    "Native build/schema generation/dependency changes",
+    "GitHub/push/merge/closure/process/fence/orphan actions"
+  ],
+  "remainingMandatory": [
+    "Actual PDF and remaining PPTX/XLSX/EPUB formats/refusals",
+    "budgets/cancel/stale/expiry/target/lifecycle/faults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI/provider",
+    "actual DSH/browser/final coherent1-10/full checks/independent review/whole38/MVP",
+    "WindowsChrome/WSL2 owner-deferred; global target unselected"
+  ],
+  "admission": "SOURCE READY ONLY. Own branch source commit plus final current-input freeze, then STOP. Root separate exactly ONE actual authority required. No self GO or overlap with Root37 TUI. Whole38/MVP OPEN; private/global/product admission blocked.",
+  "additionalPdfAddonCandidateClosure": {
+    "manifest": {
+      "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+      "bytes": 6181,
+      "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+    },
+    "generator": {
+      "path": "/tmp/ticket38-pdf-addon-closure.py",
+      "bytes": 3187,
+      "sha256": "50bcc7289730a1770c5b7440ee5917a9c990f447fe9f2b409ba7a3d98a5f3270"
+    },
+    "status": "PASS_STATIC_PDF_ADDON_CANDIDATE_CLOSURE_NOT_LOADED",
+    "at": "2026-11-17T05:22:39.489784+00:00",
+    "symlinks": {
+      "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+      "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+    },
+    "resolvedWrapper": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+    "resolvedPlatformLeaf": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64",
+    "records": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/package.json",
+        "bytes": 3603,
+        "sha256": "3e22095bd42a6f0ca754e08b58c083cf1fb17cb112adf935c4aa6b4ff9fdb6e5"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/clipboard.js",
+        "bytes": 555,
+        "sha256": "8a8e33cc33432713820c7c965af14012439d941d4f2914677a17cec910acc08d"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/desktop-adapter.js",
+        "bytes": 1407,
+        "sha256": "047ea57a9b79ad06e27a1152c4012d0372d48e83441732ea3f597609746ae3ac"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/desktop.js",
+        "bytes": 1247,
+        "sha256": "3b152517eadaf12664cbd8c7dbbf9cfd1ac8d4bc9b30744a4c7e47731a81ed98"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/embedded-addon.js",
+        "bytes": 720,
+        "sha256": "ad94332d9b1ba71dac4c3bc394c35aea2e0e4cf2280bc1c2ba42aba3fb237fc1"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/index.js",
+        "bytes": 18405,
+        "sha256": "f110791acc68ca07cee693ede74ecfd38cfcdb362cd1a6a951a069e9a5b272fb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/loader-state.js",
+        "bytes": 41172,
+        "sha256": "395d21d431121f469ba5a6016c42ac06a5abfa1b8021abc0efbf475dfb0c7ccd"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/path.js",
+        "bytes": 892,
+        "sha256": "716fe783105dc03fc5deaab32a4f0470ba366e663ae77de42c5760144855bf99"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/sqlite-locks.js",
+        "bytes": 942,
+        "sha256": "05ad55cfdaf044c25fea1af2ac83aab4508184a8efa42bd0d0b46432af499f3a"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/vcs.js",
+        "bytes": 9252,
+        "sha256": "d8abeeef68e2650be6e5eaa3559e7a9b5fe496185e3debc9e438894a01302b7c"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/version-sentinel.js",
+        "bytes": 3740,
+        "sha256": "926c11315b5ff843b6cf236c866a12e9ddbf25824db267334c1323a6736cc7be"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives/native/index.d.ts",
+        "bytes": 163444,
+        "sha256": "9d7be3f1efd1d259361e5e73fdccdecef7cb555b2f54831764b750fe4fab8cbb"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/package.json",
+        "bytes": 464,
+        "sha256": "6b5a1435b4a3088e6d5d4952d6e0a153c6d0d6afa5fd9a06ddf17f4e6a7ad3f3"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
+        "bytes": 129937064,
+        "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-modern.node",
+        "bytes": 129887128,
+        "sha256": "b43d9b78fad61c53e96f295b3c9f6210360157406fd80514da2c83362efc2b47"
+      }
+    ],
+    "binaryReadback": [
+      {
+        "file": {
+          "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-baseline.node",
+          "bytes": 129937064,
+          "sha256": "641de3e4caedf0b8ed09bc18def5b7275728fdf829f8f62d1b9dc7bf3ed8e58e"
+        },
+        "elf": "ELF64 x86-64",
+        "pdfToMarkdownLiteralPresent": true,
+        "meaning": "Static bytes/header evidence only. Does not load addon or prove an export works."
+      },
+      {
+        "file": {
+          "path": "/workspace/work/omp-webui-ticket-30/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64/pi_natives.linux-x64-modern.node",
+          "bytes": 129887128,
+          "sha256": "b43d9b78fad61c53e96f295b3c9f6210360157406fd80514da2c83362efc2b47"
+        },
+        "elf": "ELF64 x86-64",
+        "pdfToMarkdownLiteralPresent": true,
+        "meaning": "Static bytes/header evidence only. Does not load addon or prove an export works."
+      }
+    ],
+    "availability": "Installed public18.20.2 wrapper declares pdfToMarkdown; both Linux x64 addon candidates exist and contain its literal. Native bridge source uses pdf-inspector1.25.0. No external PDF CLI/runtime dependency is introduced or installed.",
+    "selection": "Fresh allowlisted synthetic HOME/profile/cache; loader may choose modern or baseline from CPU detection. Both existing candidates are pinned. No selection/loader/CPU/FFI/addon/kernel/runtime probe was executed.",
+    "limits": "Narrow additional PDF wrapper/candidate binary closure, not exhaustive runtime/transitive/system-library closure and not an actual converter capability/availability test. Actual public preparation may fail and must stop without install/fix/retry."
+  }
+}

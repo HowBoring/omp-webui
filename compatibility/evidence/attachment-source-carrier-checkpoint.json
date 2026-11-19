@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "ticket": 38,
+  "scope": "source-only-explicit-native-call-carrier",
+  "acceptance": "IN_PROGRESS_NOT_BUILT",
+  "privateSessionAdmission": "blocked",
+  "integrationMerged": "530225f",
+  "nativeDependency": "d9a2da7fccf5da94b1d8cb58f139d533d138a516",
+  "sourceSha256CalculatedOnly": "2a98c69f44565c93451a2b65133c0940b17aad1383d7dcbca48778adbcdbd0b0",
+  "orderedPatchSha256": "7a8012716830964fb926a946f205e3eccbcd629efdf4f0bc008a3b075e52062c",
+  "generatedIdentity": "STALE_FOR_THIS_SOURCE; previous actual provider checkpoint retained separately",
+  "checks": [
+    {
+      "kind": "ordered-authored-source-verification",
+      "result": "PASS",
+      "runtimeImported": false
+    },
+    {
+      "kind": "changed-source-syntax-only",
+      "result": "PASS",
+      "semanticTypecheck": false
+    },
+    {
+      "command": "bun test compatibility/omp/fixtures/attachment-provider-guard.test.js",
+      "result": "PASS",
+      "tests": 8,
+      "assertions": 19,
+      "kind": "pure object-origin/payload-boundary checks"
+    }
+  ],
+  "carrier": {
+    "selection": "existing Agent.addBeforeModelCallHook actual folded messages, excluding dispatched groups",
+    "finalContext": "existing Agent.addBeforeModelCall associates the exact call with its pending groups",
+    "payload": "SDK shared stream wrapper captures corresponding groups in a per-request callback; protected target/model/context checked before and after awaited payload hook",
+    "retirement": "only the corresponding group crosses its validated Native payload-hook boundary; errors, rewrites and cancellation before that keep it pending",
+    "historicalAndHelpers": "already-dispatched groups omitted; helpers do not inherit main expectations; prepared main requests skip cache warming",
+    "skills": "explicit original native skill argument carrier copies to actual constructed/queued custom message; identical custom data supplies no origin"
+  },
+  "limits": "No real-provider/network delivery claim. Final Native Context, controlled-provider and payload-hook boundaries are distinct.",
+  "remaining": [
+    "regenerate/build/typecheck after runtime hold",
+    "actual queued/skill/steer/follow-up/cancel/retry workers on combined source",
+    "browser/public DSH Native workflow and remaining resource/budget/branch/restart/no-entry negatives",
+    "final accepted dependencies/current integration/complete matched tuple checks"
+  ],
+  "windows": "OWNER_DEFERRED_NOT_RUN"
+}

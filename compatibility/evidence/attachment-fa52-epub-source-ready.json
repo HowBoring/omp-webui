@@ -1,0 +1,595 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "282a5f800d92dc6823af32070cfd7521750c8495",
+  "parentTree": "41ee643d4f7eae42188d4b1e19bfe387679938a8",
+  "branch": "mvp/ticket-38-epub-source",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE EPUB SOURCE-ONLY public RPC vertical tracer. No Native product/API/schema/source/build/dependency mutation, Native/SDK/Agent/Host/browser/FFI/socket/converter/kernel runtime, actual case, self GO, GH/merge/closure or subsequent cases. Linux now; Windows owner-deferred; global path unselected; whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-current/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-current/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Previously authorized public attachment_prepare via AttachmentClient.prepare, submission_submit/query, get_entries and history snapshot; unchanged controlled provider known-span capture. No new seam/private runtime import/Native Session-file reads in tracer. Actual red/green awaits Root separate ONE actual window.",
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 65835,
+    "sha256": "42ff9b48044796238dc1a7c4d896becc899d03583bd0ac5832a2ee6913baf750",
+    "name": "actual public EPUB requires structure consent before indexed saved text and provider witness"
+  },
+  "fixtures": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/minimal-chapter.epub",
+      "bytes": 1893,
+      "sha256": "34985b766db4cddb6ecea12aac1a26690a3bd9aa631f6a402977c6d01f98bbd8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/minimal-chapter-epub.json",
+      "bytes": 5339,
+      "sha256": "f9971c614f5f1e1d2afe6cba1ccd2e85e55b88aaca7eb4760c40152c84cbd2fb"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/minimal-chapter.epub",
+    "status": "INDEPENDENT_ORIGINAL_AUTHORED_NATIVE_CONVERSION_NOT_RUN",
+    "authoring": "Python stdlib ZIP_STORED/fixed1980 order/regular0100644 metadata. EPUB3 mimetype first and uncompressed/no extra field, container rootfile, OPF required identity/title/language/modified metadata, local manifest/spine with one XHTML chapter and separate required nav document. All resource hrefs local; namespace/vocabulary identifiers are not network resources.",
+    "bytes": 1893,
+    "originalSha256": "34985b766db4cddb6ecea12aac1a26690a3bd9aa631f6a402977c6d01f98bbd8",
+    "memberCount": 5,
+    "rootfile": "OEBPS/package.opf",
+    "spine": [
+      "chapter"
+    ],
+    "manifest": {
+      "chapter": {
+        "id": "chapter",
+        "href": "chapter.xhtml",
+        "media-type": "application/xhtml+xml"
+      },
+      "navigation": {
+        "id": "navigation",
+        "href": "nav.xhtml",
+        "media-type": "application/xhtml+xml",
+        "properties": "nav"
+      }
+    },
+    "chapterTitle": "Chapter",
+    "paragraphs": [
+      "Controlled prepared document"
+    ],
+    "members": [
+      {
+        "memberPath": "mimetype",
+        "bytes": 20,
+        "sha256": "e468e350d1143eb648f60c7b0bd6031101ec0544a361ca74ecef256ac901f48b",
+        "crc32": "2cab616f",
+        "utf8": "application/epub+zip"
+      },
+      {
+        "memberPath": "META-INF/container.xml",
+        "bytes": 238,
+        "sha256": "9bc16b7cf36822e1e2b55bfabbe0b0b7cb9abecdcfec7c9ab262c22009d41861",
+        "crc32": "6ffc5d91",
+        "utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"OEBPS/package.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>"
+      },
+      {
+        "memberPath": "OEBPS/package.opf",
+        "bytes": 641,
+        "sha256": "015471cccddc715b9034e956ccb760b4190aefc12a501f51e17179f3ccf4f6b0",
+        "crc32": "bb0a4e8f",
+        "utf8": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"pub-id\"><metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:identifier id=\"pub-id\">urn:uuid:00000000-0000-4000-8000-000000000038</dc:identifier><dc:title>EPUB witness</dc:title><dc:language>en</dc:language><meta property=\"dcterms:modified\">2026-01-01T00:00:00Z</meta></metadata><manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/><item id=\"navigation\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/></manifest><spine><itemref idref=\"chapter\"/></spine></package>"
+      },
+      {
+        "memberPath": "OEBPS/chapter.xhtml",
+        "bytes": 157,
+        "sha256": "429ed1769fc2cd0209a7d31d6495d23f9fdfd1131ad478ef584fb2e9dec122da",
+        "crc32": "c85ab420",
+        "utf8": "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\"><head><title>Chapter</title></head><body><p>Controlled prepared document</p></body></html>"
+      },
+      {
+        "memberPath": "OEBPS/nav.xhtml",
+        "bytes": 273,
+        "sha256": "a7d2f55a6e5d95df8a238f92a3b72e4c8fe6b3a06c6aad846eabef8aebe98088",
+        "crc32": "69be8c5c",
+        "utf8": "<html xmlns=\"http://www.w3.org/1999/xhtml\" xmlns:epub=\"http://www.idpf.org/2007/ops\" lang=\"en\" xml:lang=\"en\"><head><title>Navigation</title></head><body><nav epub:type=\"toc\" id=\"toc\"><h1>Contents</h1><ol><li><a href=\"chapter.xhtml\">Chapter</a></li></ol></nav></body></html>"
+      }
+    ],
+    "independentValidation": "Stdlib ZIP CRC/member/hash/local-header/mimetype-order and independent ElementTree XML/OPF/container/manifest/spine/nav/chapter graph checks. One content chapter, no images/script/style/external resource hrefs. No EPUBCheck/full schema/rendering or Native converter invoked.",
+    "expectedNativePreparation": {
+      "status": "SOURCE_EXPECTATION_UNEXECUTED",
+      "degradations": [
+        "document_structure_changed"
+      ],
+      "omittedImages": 0,
+      "expectedText": "**Title:** EPUB witness\n**Language:** en\n\nChapter\n\nControlled prepared document",
+      "expectedTextBytes": 79,
+      "expectedTextSha256": "417f798e8bf98981a2f92d2dcab954563f2b79e7ce6486e7be4c0b14b0d4ccea",
+      "expectedRepresentationSha256": "b04d22a6b470a322cd10704bd1cc40fadd3d3ae1a970399dc65fa2c860f7dc28",
+      "basis": "Worked explicit-source chain, NOT observed conversion: EpubConverter adds only Title/Language metadata headers, follows only the chapter spine, counts zero img tags, normalizes no tables, then local Turndown retains ordinary head/title Chapter and converts the one paragraph with blank-line boundaries. HTML tokenizer/declaration behavior is honored by valid UTF8 XHTML without optional XML declaration. Sections join blank lines and trim. OPF identifier/modified and non-spine navigation do not enter selected metadata/content.",
+      "providerKnownSpan": {
+        "text": "Controlled prepared document",
+        "bytes": 28,
+        "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+      },
+      "limits": "Exact text/digests independently worked from inspected Native/local HTML source and hashlib-pinned, UNEXECUTED. Full EPUB schema/EPUBCheck/application/render/layout fidelity unvalidated. Provider witnesses known28B only, not whole prepared Markdown/provider wrapper delivery."
+    }
+  },
+  "independentAuthoringScript": {
+    "path": "/tmp/ticket38-epub-author.py",
+    "bytes": 7934,
+    "sha256": "164fb98046ec7749aed82bdc9d72520066213560aa5dbda0e30310aeeb0af0fa"
+  },
+  "expectationBasis": {
+    "status": "SOURCE_EXPECTATION_UNEXECUTED",
+    "original": "Independent1893B/five-member EPUB3 ZIP_STORED. First mimetype entry is uncompressed, exactly application/epub+zip, no extra field. UTF8 container\u2192OPF, required identifier/title/language/modified metadata, local manifest with one chapter and separate nav, spine only chapter; XHTML head/title Chapter and one known28B paragraph. All resource hrefs local, namespaces/vocabularies are identifiers rather than fetched resources. ZIP CRC/hash/local header and independent XML/graph/spine/nav/content checks; no EPUBCheck/full schema/render.",
+    "conversion": "Native package validation checks EPUB mimetype/container/UTF8/archive limits. EpubConverter follows OPF manifest/spine, emits only Title and Language metadata from chosen fields, counts zero img tags, strips no scripts/styles here, normalizes no tables, and calls local createTurndown. Inspected parser/service retain ordinary HEAD/TITLE text; paragraph/body/html block boundaries normalize to Chapter followed by blank line and known paragraph. Valid UTF8 XHTML omits optional declaration because fragment tokenizer treats processing instructions as text. Non-spine nav and OPF identifier/modified fields do not enter selected content/metadata.",
+    "preparedDigest": "Worked exact-source chain, NOT observed conversion:79B **Title:** EPUB witness, LF **Language:** en, blank line Chapter, blank line Controlled prepared document. Independent hashlib textSHA417f798e and compact kind/text representationSHAb04d22a6 pinned before runtime. No Native/converter supplied expected output/hash; actual may fail and must stop without weakening/fix/retry.",
+    "degradation": "Common document wrapper always declares document_structure_changed. EpubConverter facts count only img tags in selected spine HTML; authored chapter has none, so omittedImages0.79B plain result is below text truncation thresholds. No speculative public spine-count/EPUB-validity/render facts invented.",
+    "provider": "Entire existing provider remains byte-exact and captures known Controlled prepared document once,28B/SHAfd4d6186 in developer text. This witnesses that independently authored extracted span only, not complete79B/provider wrapper delivery. Full79B expected prepared text is checked at receipt and actual public indexed saved companion part.",
+    "dependencies": "Existing local XML/ZIP path and41 source+15 installed wrapper/addon manifests remain unchanged. Six additional local Turndown/parser/GFM source records pinned; no new third-party HTML/EPUB engine/service/dependency/native export, no ELF load or copy. Source availability and identities are not actual converter capability proof.",
+    "limits": "Exact79B is an independently worked explicit-source expectation, UNEXECUTED. Structural ZIP/XML/EPUB3 graph checks do not establish EPUBCheck/full schema/application rendering/layout fidelity. Provider known28B does not prove full79B/provider wrapper delivery."
+  },
+  "expectedAssertions": [
+    "Original exactly1893B/SHA34985b76. Exactly one ready text item bound to selected target, worked79B text and representationSHAb04d22a6, distinct from original. Exactly document_structure_changed; facts originalBytes1893/convertedBytes79/omittedImages0.",
+    "Prepare changes neither entries nor provider effects. Missing structure consent refuses before reservation/admission/effects. Same epub-success query stays absent/unresolved/unknown with no relations and unchanged entries/effects.",
+    "Exact explicit receiptId/resultDigest/draftRevision/authorityGeneration/document_structure_changed consent admits ONE terminal succeeded/generated/committed input with exact target/origin/preparation binding.",
+    "Only returned public relation.entryId plus actual entryPart files/index locate saved fileMention. Indexed preparedId path/full79B/byteSize/textSHA417f798e and complete links match expectations/receipt. Same public entryId history rows require origin/prepared role/full link. Never text/hash/order joins.",
+    "Exactly one controlled input/attempt/dispatch/request, no images/tool/blocked growth. Unchanged provider witnesses known28B span once in developer text with SHAfd4d6186; no whole79B/provider wrapper/history-causality claim.",
+    "Second terminal query exactly equals first with no effects."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/package.ts",
+      "bytes": 3724,
+      "sha256": "b410b3efe8aadd40085fe21d34196b560292838d62241fb61ed9c4fbf81314a3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/markit/registry.ts",
+      "bytes": 2139,
+      "sha256": "590083a2c9cd6e41b914c652e9d05a5845eb216b29c3d5aaa3d4920a916f95a8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/markit/converters/epub.ts",
+      "bytes": 5261,
+      "sha256": "b5f15442a81506c32d0b4a370348c7529bb300f7b48fb9f43b023936fb41df0a"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/utils/turndown.ts",
+      "bytes": 3505,
+      "sha256": "ee78ed1ca90d5640fc295f38845668e552277784fba29d0b2bd7baabeae75e17"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/xml.ts",
+      "bytes": 11401,
+      "sha256": "87d66dc976fe7bce9be6aa9fa5050a85dba7bc4896c2bf146d8c95da9b064ca2"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip-package.ts",
+      "bytes": 2283,
+      "sha256": "6ff4e75ba0497449309e9aac2afcab9b40848f58a49c280bf12ef1ea5909584b"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/ar/zip.ts",
+      "bytes": 28681,
+      "sha256": "33a5df57c77f8b994c80f148a66aaa874438be4f9808c4193b6c7c705a49f267"
+    }
+  ],
+  "preservedClosures": {
+    "archiveXml": {
+      "manifest": {
+        "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+        "bytes": 10064,
+        "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+      },
+      "records": 41,
+      "symlinks": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+      }
+    },
+    "nativeAddonCandidates": {
+      "manifest": {
+        "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+        "bytes": 6181,
+        "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+      },
+      "records": 15,
+      "symlinks": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+      }
+    },
+    "meaning": "Existing immutable manifests reused by reference, no duplicate full manifest. Each named record and symlink independently rehashed/checked in source preservation/readback; actual capability unexecuted."
+  },
+  "additionalHtmlClosure": {
+    "manifest": {
+      "path": "/tmp/ticket38-epub-source/html-source-closure.json",
+      "bytes": 2232,
+      "sha256": "3863723836f65bd1b69b1956214cf1b9f0a2aa4f549e19da82709d1e663ec4c1"
+    },
+    "generator": {
+      "path": "/tmp/ticket38-epub-html-closure.py",
+      "bytes": 1598,
+      "sha256": "8ad5035b5657109af3bec66d9bb584775c994b99fab94f2b0447e75e85b662b6"
+    },
+    "status": "PASS_STATIC_LOCAL_HTML_SOURCE_CLOSURE_NOT_IMPORTED",
+    "at": "2026-11-17T07:03:23.040775+00:00",
+    "records": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/utils/turndown.ts",
+        "bytes": 3505,
+        "sha256": "ee78ed1ca90d5640fc295f38845668e552277784fba29d0b2bd7baabeae75e17"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/turndown.ts",
+        "bytes": 266,
+        "sha256": "5b3716017caf22d05135cd8f09d5180b6818f91e3ae03d9ff3ce7d0a43bffbc6"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/turndown/service.ts",
+        "bytes": 12705,
+        "sha256": "b28bc3231f321c3f02f3b3c1451107085b4a46fbc1ae1df4d1afde41aa55be58"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/turndown/html.ts",
+        "bytes": 7575,
+        "sha256": "7c6f62967bf9903ed0176a6c3e3df41d9a7ee0626f04b5220151ce80648b78a3"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/turndown/types.ts",
+        "bytes": 3140,
+        "sha256": "bc96b5228e82e032fede18461600cc782c64d48413933b0ec617367b16cdd51c"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils/src/turndown/gfm.ts",
+        "bytes": 4297,
+        "sha256": "c45a6e569743ac9d37fbb5ca3d133f926da5a224d5b3d87c7959c35f64bc5d06"
+      }
+    ],
+    "sourceFindings": "EpubConverter\u2192createTurndown\u2192local TurndownService/parser/GFM. HEAD/TITLE are not removed; default unknown inline elements retain content, P/BODY/HTML add normalized block boundaries. Processing instructions are not special HTML tokens, so valid UTF8 XHTML omits optional XML declaration. No table/script/style/img exists in spine chapter.",
+    "reusedClosures": "Existing41 archive/XML and15 native wrapper/addon manifests remain unchanged via703\u2192667 inherited inputs. Local pi-utils export wildcard resolves turndown without new third-party dependency.",
+    "limits": "Source file identities/explicit behavior inspection only, no import/converter/Native/SDK/Agent/FFI/socket/runtime execution and no full transitive/system dependency or rendering proof."
+  },
+  "checks": [
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-epub-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-epub-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T07:01:27.552174+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 571068,
+        "code": 0,
+        "finishedAt": "2026-11-17T07:01:35.351863+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-epub-source/host-types.json",
+          "bytes": 896,
+          "sha256": "b21e3c4d17db1029cd72f71c494e59b1f7be2ef7da840d0775f6474ed22b6ca4"
+        },
+        {
+          "path": "/tmp/ticket38-epub-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-epub-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-epub-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-epub-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-epub-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T07:01:35.352581+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 571088,
+        "code": 0,
+        "finishedAt": "2026-11-17T07:01:35.367118+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-epub-source/syntax.json",
+          "bytes": 942,
+          "sha256": "af4dd3c64c6335591b86c1c1df552eb227691f2cd120653e92af0363a29d1452"
+        },
+        {
+          "path": "/tmp/ticket38-epub-source/syntax.stdout",
+          "bytes": 73,
+          "sha256": "3ddd6a2ee2cb178cd26a952a21483c32760aa0f52046e20053923e421519958e"
+        },
+        {
+          "path": "/tmp/ticket38-epub-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "frozenReadback": {
+    "status": "PASS_STATIC_ONLY",
+    "before": {
+      "path": "/tmp/ticket38-epub-source/before.json",
+      "bytes": 6431,
+      "sha256": "41277299029e6acfb5bc23c55469813953db522d148e4b09220d08ed3d86632b"
+    },
+    "after": {
+      "path": "/tmp/ticket38-epub-source/after.json",
+      "bytes": 2552,
+      "sha256": "ac295cf29496fdda40f65bfa399e1854b075a2117b6ca876ac44788b5c7e343b"
+    },
+    "commonLibrary": {
+      "path": "/tmp/ticket38-epub-common.py",
+      "bytes": 4009,
+      "sha256": "7526bb3497f1d7d99a9476a761292ec00b184d9438d5390a60ef3d2c63c758ff"
+    },
+    "preservationScript": {
+      "path": "/tmp/ticket38-epub-preserve.py",
+      "bytes": 3404,
+      "sha256": "9a6aee07fb36c332db80cb280845d89ead41e66681f90ad8c7a1ff36e358ac65"
+    },
+    "verificationScript": {
+      "path": "/tmp/ticket38-epub-readback.py",
+      "bytes": 5094,
+      "sha256": "d1e0059c3c83bb194118b77219ff0948cd2ab4be921c13ff8786e32ee8001c25"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-epub-static.py",
+      "bytes": 1673,
+      "sha256": "afefc85ed52e4e7af84063e60499cb4df2d330ee3b241bd8039d17adb1cde0a5"
+    },
+    "deltaFreezeGeneratorAndResolver": {
+      "path": "/tmp/ticket38-epub-final-freeze.py",
+      "bytes": 5958,
+      "sha256": "ca73eb5a62efb6958c131cfdc1972d8092cfc945d42efd02ec5ce5047808d534"
+    },
+    "baseFreeze": {
+      "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+      "bytes": 12676,
+      "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+    },
+    "resolvedBaseCurrentCount": 703,
+    "flatAncestorFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "flatAncestorCount": 667,
+    "prior705DirectExactBefore": true,
+    "additionalPriorProofRawRecords": 15,
+    "allPreservedCurrentBefore": 718,
+    "unchangedPreservedCurrentAfter": 717,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostBefore": {
+      "head": "282a5f800d92dc6823af32070cfd7521750c8495",
+      "tree": "41ee643d4f7eae42188d4b1e19bfe387679938a8",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 85716,
+        "sha256": "b43b12a8d76bc64078005dacd96fe1bd72b430430faa7f0754c8753d0f72b258",
+        "meaning": "Historical pre-edit Host index digest; own source commit intentionally changes Host index. No copy. Native live index unchanged."
+      },
+      "statusSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "headDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "changedSourcePreimage": {
+      "path": "/tmp/ticket38-epub-source/public-rpc.test.ts",
+      "bytes": 59418,
+      "sha256": "261078e763a53c756d9e8807aa16aa2070bed4b2ee0e19f4b863e85c82bbe461"
+    },
+    "priorBodies": "All nine prior cases/helpers are byte-exact prefix; full provider byte-exact.",
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "diskPolicy": "Only changed test preimage copied. Reuse immutable703 XLSX delta\u2192667 PPTX manifests; no full manifest/Native index/diff/Bun/Python/GCC/.node/vendor/dependency copies.",
+    "limits": "Enrolled base/delta current/prior proof/raw references and named source/addon closures; not exhaustive transitive/system/runtime proof. No Native/converter runtime."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. Root must separately authorize exactly ONE anchored actual window; this file grants no runtime authority.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public EPUB requires structure consent before indexed saved text and provider witness$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-epub-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Resolve nested attachment-source-delta-freeze-v1: EPUB\u2192immutable XLSX703\u2192PPTX667, exactly one current test override and non-overlapping added records per delta. Hash every resolved record plus ancestor166 Native dirty/untracked files, matched290, unchanged717 prior current refs, archive/XML41 + installed addon15 manifests/records/symlinks, new local HTML6 records, Native HEAD/index/status/all binary diffs and candidate/dependency links. Verify source checkpoint/index before/after actual. Stream hashes; no copies. Guard audit/owned homes checked; not exhaustive transitive/system/runtime closure.",
+    "failurePolicy": "Stop firstFAIL. No retry, source/product/Native API/schema fix, expectation weakening, build/dependency mutation/install, other test/format, Host/browser/ad-hoc FFI/socket/kernel probe, process census/PIDfallback/groupkill, orphan444480/fence/GH action. Record exact public/converter gap for Root."
+  },
+  "preservedPriorEvidence": {
+    "baseFreeze": {
+      "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+      "bytes": 12676,
+      "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+    },
+    "flatAncestorFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "previousXlsxProofAndUsage": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-xlsx-runtime-success.json",
+        "bytes": 17201,
+        "sha256": "d1d022dfa5f2d2b0982dbeccfdd48ed5de8e93ad069fc26cf0769dba38f6c972"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-xlsx-window-usage.json",
+        "bytes": 2965,
+        "sha256": "da4d4271b581ab45bfcf7bdd8aa70e3e7dad8414d6b20d1c6b9af445f87777da"
+      }
+    ],
+    "proofRawReferenceManifest": {
+      "path": "/tmp/ticket38-epub-source/before.json",
+      "bytes": 6431,
+      "sha256": "41277299029e6acfb5bc23c55469813953db522d148e4b09220d08ed3d86632b"
+    }
+  },
+  "earnedPriorRuntime": "Current Native9f33/5e315/schema8f9c PNG-text47/mixed13/JPEG33/DOCX45/WebP49/GIF55/PDF49/PPTX45/XLSX45 assertions remain earned only on recorded isolated inputs. EPUB source author ran no Native/runtime/conversion.",
+  "notRun": [
+    "Actual EPUB/any other case; Native/converter/SDK/Agent/Host/browser/FFI/socket/kernel runtime",
+    "Native API/schema/build/dependency mutation",
+    "GitHub/push/merge/closure/process/fence/orphan actions"
+  ],
+  "remainingMandatory": [
+    "Actual EPUB; remaining selected-format/refusal/budget/locator/lifecycle/stale/cancel/expiry faults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI/provider",
+    "actual DSH/browser/final coherent1-10/full checks/reviews/whole38/MVP",
+    "Linux now; WindowsChrome/WSL2 owner-deferred; global target unselected"
+  ],
+  "admission": "SOURCE READY ONLY. Own source/READY commit plus compact nested delta freeze, then STOP for Root separate exactly ONE actual grant. No self GO or automatic further cases after formats; private/global/product admission blocked; whole38/MVP OPEN."
+}
