@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 89809bd..ba35daf 100644
+index e632315d..4baffcdb 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
 @@ -4,6 +4,8 @@
@@ -12,7 +12,7 @@ index 89809bd..ba35daf 100644
  
  - Permanently withdrawn queued originals retain explicit no-entry provenance, including pre-delivery and held objects, without treating temporary moves or retained abort input as discarded ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
 diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
-index 66a7aab..d76eebe 100644
+index 66a7aab3..d76eebef 100644
 --- a/packages/coding-agent/docs/rpc-attachments.md
 +++ b/packages/coding-agent/docs/rpc-attachments.md
 @@ -42,7 +42,9 @@ position; it does not establish provider delivery or grant access to the Host-ow
@@ -27,7 +27,7 @@ index 66a7aab..d76eebe 100644
  Office packages require the selected main content type, and unsupported XML encodings fail instead of being replaced.
  Prepared images fit 1568 pixels/500 KiB and avoid WebP; inline text fits 3000 lines/
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
-index ae4b153..2b00469 100644
+index ae4b1536..2b00469a 100644
 --- a/packages/coding-agent/src/attachments/receipts.ts
 +++ b/packages/coding-agent/src/attachments/receipts.ts
 @@ -193,6 +193,7 @@ export class AttachmentPreparations {

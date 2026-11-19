@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a5122b0975..d1b73a553d 100644
+index 3a4c7026..cef22f04 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -2,6 +2,11 @@
+@@ -2,6 +2,13 @@
  
  ## [Unreleased]
  
@@ -10,13 +10,15 @@ index a5122b0975..d1b73a553d 100644
 +
 +- RPC UI requires explicit valid answers; native ask and tool expiry cancel without default submission.
 +
++- Discover readonly Sessions with native fixed-width title slots before their headers ([WebUI #31](https://github.com/HowBoring/omp-webui/issues/31)).
++- Preserve source-scoped readonly catalog records when configured Session Sources overlap ([WebUI #31](https://github.com/HowBoring/omp-webui/issues/31)).
 +
  ### Added
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/docs/rpc-interactions.md b/packages/coding-agent/docs/rpc-interactions.md
 new file mode 100644
-index 0000000000..f2cd3051d9
+index 00000000..f2cd3051
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-interactions.md
 @@ -0,0 +1,59 @@
@@ -80,7 +82,7 @@ index 0000000000..f2cd3051d9
 +Host expiry cancels and requests Stop. Worker replacement cannot restore old UI
 +IDs or replay an answer. The S0 browser fixture does not grant product Session access.
 diff --git a/packages/coding-agent/src/extensibility/extensions/types.ts b/packages/coding-agent/src/extensibility/extensions/types.ts
-index aa988d36f3..305705936c 100644
+index cb7a3558..aa2c3974 100644
 --- a/packages/coding-agent/src/extensibility/extensions/types.ts
 +++ b/packages/coding-agent/src/extensibility/extensions/types.ts
 @@ -227,6 +227,9 @@ export function timedOutAskDialogResult(questions: ExtensionAskDialogQuestion[])
@@ -93,7 +95,7 @@ index aa988d36f3..305705936c 100644
  	signal?: AbortSignal;
  	timeout?: number;
  	/** Invoked when the UI times out while waiting for a selection/input */
-@@ -335,7 +338,12 @@ export type ExtensionApprovalAnswer =
+@@ -340,7 +343,12 @@ export type ExtensionApprovalAnswer =
  // (custom editor component, header/footer, widgets, theming, terminal input)
  // and may be invoked from event handlers that have already taken the agent
  // loop's lock — hooks intentionally cannot.
@@ -107,7 +109,7 @@ index aa988d36f3..305705936c 100644
  	timeoutStartsOnPresentation?: boolean;
  	/** True when pasteToEditor updates a local or remote composer; absent means unsupported. */
 diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
-index 5a9731a9c2..b11fd51964 100644
+index 5a9731a9..b11fd519 100644
 --- a/packages/coding-agent/src/modes/rpc/preflight.ts
 +++ b/packages/coding-agent/src/modes/rpc/preflight.ts
 @@ -1,4 +1,5 @@
@@ -125,7 +127,7 @@ index 5a9731a9c2..b11fd51964 100644
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index cfcbbdeeb1..943e3c262f 100644
+index cfcbbdee..943e3c26 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -4,6 +4,8 @@
@@ -199,7 +201,7 @@ index cfcbbdeeb1..943e3c262f 100644
  					readySettled = true;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts b/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts
 new file mode 100644
-index 0000000000..64fb13ddce
+index 00000000..64fb13dd
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-interaction-policy.ts
 @@ -0,0 +1,9 @@
@@ -214,7 +216,7 @@ index 0000000000..64fb13ddce
 +export type RpcInteractionPolicy = typeof rpcInteractionPolicy;
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-interactions.ts b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 new file mode 100644
-index 0000000000..8dd3af9dd7
+index 00000000..8dd3af9d
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-interactions.ts
 @@ -0,0 +1,117 @@
@@ -336,7 +338,7 @@ index 0000000000..8dd3af9dd7
 +	return pending.get(response.id)?.resolve(response) ?? { status: "stale" };
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 4408b13370..09ee403565 100644
+index bf9791d5..0bb6497b 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -11,6 +11,9 @@
@@ -368,7 +370,25 @@ index 4408b13370..09ee403565 100644
  };
  
  /** Pending extension UI request map that can fail closed when the RPC client disconnects. */
-@@ -1152,6 +1155,7 @@ function parseAskDialogResponse(
+@@ -442,7 +445,7 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+ /**
+  * Dispatch a single parsed frame from the RPC input stream.
+  *
+- * `bash`, `predict_word`, `prompt`, `steer_subagent`, and `handoff` are dispatched in the
++ * `bash`, `predict_word`, `prompt` and `steer_subagent` are dispatched in the
+  * background so the caller can keep reading subsequent frames while one is
+  * still settling: a `bash` command can run for a long time, and a `prompt`
+  * command's response is held until the message is admitted, which can span
+@@ -461,7 +464,7 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+  *
+  * @returns `undefined` when the frame was routed to a side-channel handler
+  *   (extension UI response, host tool/URI frames) or dispatched in the
+- *   background. Otherwise a promise that
++ *   background (`bash`, `predict_word`, `live_start`, `live_connect`, `dictation_start`, `prompt`, `steer`, `follow_up`, `steer_subagent`). Otherwise a promise that
+  *   resolves once the response for the command has been emitted via `output`.
+  *   Errors from `handleCommand` on a command dispatched inline propagate; the
+  *   caller is expected to wrap them.
+@@ -1154,6 +1157,7 @@ function parseAskDialogResponse(
  				throw new Error(`Ask dialog answer ${JSON.stringify(question.id)} customInput must be a string`);
  			}
  			const custom = customInput?.trim() || undefined;
@@ -376,7 +396,7 @@ index 4408b13370..09ee403565 100644
  			if (!multi && (selected.length > 1 || (selected.length > 0 && custom !== undefined))) {
  				throw new Error(
  					`Ask dialog answer ${JSON.stringify(question.id)} is single-select but carries more than one answer`,
-@@ -1169,30 +1173,19 @@ function parseAskDialogResponse(
+@@ -1171,30 +1175,19 @@ function parseAskDialogResponse(
  	};
  }
  
@@ -413,7 +433,7 @@ index 4408b13370..09ee403565 100644
  }
  
  export function requestRpcEditor(
-@@ -1203,60 +1196,9 @@ export function requestRpcEditor(
+@@ -1205,60 +1198,9 @@ export function requestRpcEditor(
  	dialogOptions?: ExtensionUIDialogOptions,
  	editorOptions?: { promptStyle?: boolean },
  ): Promise<string | undefined> {
@@ -477,7 +497,7 @@ index 4408b13370..09ee403565 100644
  }
  
  /** Sends an RPC extension dialog and cancels the remote presentation when its signal aborts. */
-@@ -1268,55 +1210,7 @@ export function requestRpcDialog<T>(
+@@ -1270,55 +1212,7 @@ export function requestRpcDialog<T>(
  	request: Record<string, unknown>,
  	parseResponse: (response: RpcExtensionUIResponse) => T,
  ): Promise<T> {
@@ -534,7 +554,7 @@ index 4408b13370..09ee403565 100644
  }
  /**
   * Applies a queue-mode RPC command to the calling session only. Owns the
-@@ -1427,6 +1321,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1429,6 +1323,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
  			maxReassembledFrameBytes: MAX_RPC_REASSEMBLED_BYTES,
  			supportsBashExcludeFromContext: true,
@@ -542,7 +562,7 @@ index 4408b13370..09ee403565 100644
  		}),
  	);
  	const output = (obj: RpcResponse | RpcExtensionUIRequest | object) => {
-@@ -1520,6 +1415,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1522,6 +1417,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	 */
  	class RpcExtensionUIContext implements ExtensionUIContext {
  		readonly supportsEditor = true;
@@ -551,7 +571,7 @@ index 4408b13370..09ee403565 100644
  		/** Set by `set_ask_dialog`; hosts that never opt in keep the select/editor ask fallback. */
  		askDialogEnabled = false;
  
-@@ -1728,14 +1625,46 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1730,14 +1627,46 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		rpcUiContext.askDialogEnabled = command.enabled === true;
  		return success(command.id, "set_ask_dialog", { enabled: rpcUiContext.askDialogEnabled });
  	};
@@ -599,7 +619,7 @@ index 4408b13370..09ee403565 100644
  		if (!heldFrames) {
  			inputDispatcher.dispatch(parsed);
  		} else if (isRpcExtensionUIResponse(parsed)) {
-@@ -2024,11 +1953,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2026,11 +1955,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		const id = command.id;
  
  		switch (command.type) {
@@ -613,10 +633,10 @@ index 4408b13370..09ee403565 100644
  			// =================================================================
  			// Prompting
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 6d7b4f84cd..2fe43f30be 100644
+index 0dcbc18a..6cb31efd 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-@@ -33,6 +33,7 @@ import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
+@@ -34,6 +34,7 @@ import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
  import type { RpcMessagesPage } from "./rpc-messages";
  import type { GoalModeState } from "../../goals/state";
  import type { RpcGoalOp, RpcGoalResult } from "./rpc-goal";
@@ -624,7 +644,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  import type { BtwHistoryRecord } from "../../session/btw-history";
  
  // ============================================================================
-@@ -47,6 +48,8 @@ export type RpcMessageUpdates = "full" | "delta";
+@@ -48,6 +49,8 @@ export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
  	// Protocol
@@ -633,7 +653,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  	| { id?: string; type: "negotiate_protocol"; protocolVersion: number }
  
  	// Prompting
-@@ -374,6 +377,8 @@ export interface RpcAbortAndRestoreQueueResult {
+@@ -375,6 +378,8 @@ export interface RpcAbortAndRestoreQueueResult {
  }
  
  export interface RpcReadyFrame {
@@ -642,7 +662,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  	type: "ready";
  	protocolVersion: 1;
  	supportedProtocolVersions: [1, 2];
-@@ -472,6 +477,8 @@ export type RpcResponse =
+@@ -473,6 +478,8 @@ export type RpcResponse =
  	  }
  	| { id?: string; type: "response"; command: "set_slow_mode"; success: true; data: { enabled: boolean } }
  	| { id?: string; type: "response"; command: "goal"; success: true; data: RpcGoalResult }
@@ -651,7 +671,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  	| { id?: string; type: "response"; command: "set_ask_dialog"; success: true; data: { enabled: boolean } }
  	| {
  			id?: string;
-@@ -822,6 +829,7 @@ export type RpcExtensionUIRequest =
+@@ -821,6 +828,7 @@ export type RpcExtensionUIRequest =
  			id: string;
  			method: "editor";
  			title: string;
@@ -659,7 +679,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  			prefill?: string;
  			promptStyle?: boolean;
  	  }
-@@ -833,7 +841,7 @@ export type RpcExtensionUIRequest =
+@@ -832,7 +840,7 @@ export type RpcExtensionUIRequest =
  			questions: RpcAskDialogQuestion[];
  			timeout?: number;
  	  }
@@ -669,7 +689,7 @@ index 6d7b4f84cd..2fe43f30be 100644
  			type: "extension_ui_request";
  			id: string;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 5da22a7c56..666b2e6d59 100644
+index 5da22a7c..666b2e6d 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 @@ -5,6 +5,7 @@
@@ -689,7 +709,7 @@ index 5da22a7c56..666b2e6d59 100644
    {
      name: "get_compatibility",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index ed33f29b80..f7b37ecfe7 100644
+index ed33f29b..f7b37ecf 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
 @@ -16,6 +16,7 @@ export const frameDefs = {
@@ -735,7 +755,7 @@ index ed33f29b80..f7b37ecfe7 100644
  	AnswersUiResponse: doc(
  		{ type: "'extension_ui_response'", id: "string", answers: "AskAnswer[]" },
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index f873117435..9f8449ecb3 100644
+index f8731174..9f8449ec 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
 @@ -18,6 +18,7 @@ import { type RpcCommandSpec, rpcCommands } from "./commands";
@@ -756,7 +776,7 @@ index f873117435..9f8449ecb3 100644
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/modes/rpc/wire/interactions.ts b/packages/coding-agent/src/modes/rpc/wire/interactions.ts
 new file mode 100644
-index 0000000000..9e45d179ca
+index 00000000..9e45d179
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/interactions.ts
 @@ -0,0 +1,33 @@
@@ -794,20 +814,28 @@ index 0000000000..9e45d179ca
 +	},
 +];
 diff --git a/packages/coding-agent/src/tools/ask.ts b/packages/coding-agent/src/tools/ask.ts
-index bb17bfc5f5..194d407919 100644
+index 5da5bdd6..c46e4560 100644
 --- a/packages/coding-agent/src/tools/ask.ts
 +++ b/packages/coding-agent/src/tools/ask.ts
-@@ -38,7 +38,8 @@ import { theme } from "@oh-my-pi/pi-tui/theme";
+@@ -40,11 +40,12 @@ import { theme } from "@oh-my-pi/pi-tui/theme";
  import type { AskToolDetails } from "@oh-my-pi/pi-tui/tools/ask";
  import { ToolError } from "@oh-my-pi/pi-tui/tools/tool-errors";
- import { isRecord, prompt, untilAborted } from "@oh-my-pi/pi-utils";
--import type { ExtensionUIContext, ExtensionUIDialogOptions, ExtensionUISelectItem } from "../extensibility/extensions";
-+import { EXPLICIT_INTERACTION_EXPIRY_REASON, type ExtensionUIContext,
-+	type ExtensionUIDialogOptions, type ExtensionUISelectItem } from "../extensibility/extensions";
+ import { isRecord, logger, prompt, untilAborted } from "@oh-my-pi/pi-utils";
+-import type {
+-	ExtensionFormDialogResult,
+-	ExtensionUIContext,
+-	ExtensionUIDialogOptions,
+-	ExtensionUISelectItem,
++import {
++	EXPLICIT_INTERACTION_EXPIRY_REASON,
++	type ExtensionFormDialogResult,
++	type ExtensionUIContext,
++	type ExtensionUIDialogOptions,
++	type ExtensionUISelectItem,
+ } from "../extensibility/extensions";
+ import { sessionLocalProtocolOptions } from "../internal-urls/context";
  import { askTimeoutMs, cfgAskNotify } from "../modes/settings";
- import askDescription from "../prompts/tools/ask.md" with { type: "text" };
- import askHeadlessForkMessage from "../prompts/tools/ask-headless-fork.md" with { type: "text" };
-@@ -77,7 +78,10 @@ export function recoverAskHtml(toolCallArguments: unknown): string | undefined {
+@@ -123,7 +124,10 @@ function legacyQuestionsHtml(questions: unknown[]): string | undefined {
  // =============================================================================
  
  /** The dialog primitives the fallback walks a form with. */
@@ -819,7 +847,7 @@ index bb17bfc5f5..194d407919 100644
  
  /** One prompt's outcome: the answer, or undefined with `timedOut` telling a deadline from a cancel. */
  interface PromptOutcome<T> {
-@@ -112,10 +116,13 @@ const OTHER_ROW = `${OTHER_LABEL} (type your own)`;
+@@ -158,10 +162,13 @@ const OTHER_ROW = `${OTHER_LABEL} (type your own)`;
   */
  async function promptWithTimeout<T>(
  	ui: FallbackUI,
@@ -834,7 +862,7 @@ index bb17bfc5f5..194d407919 100644
  	let timedOut = false;
  	const timeoutController = timeout === undefined ? undefined : new AbortController();
  	const dialogSignal = timeoutController ? AbortSignal.any([signal, timeoutController.signal]) : signal;
-@@ -126,10 +133,11 @@ async function promptWithTimeout<T>(
+@@ -172,10 +179,11 @@ async function promptWithTimeout<T>(
  		timeoutStartedMs = Date.now();
  		timeoutId = setTimeout(() => {
  			timedOut = true;
@@ -847,7 +875,7 @@ index bb17bfc5f5..194d407919 100644
  		timeout,
  		signal: dialogSignal,
  		onTimeout: () => {
-@@ -144,7 +152,7 @@ async function promptWithTimeout<T>(
+@@ -190,7 +198,7 @@ async function promptWithTimeout<T>(
  			if (timeout !== undefined && !ui.timeoutStartsOnPresentation) armFallbackTimeout(timeout);
  			return shown;
  		});
@@ -856,7 +884,7 @@ index bb17bfc5f5..194d407919 100644
  			// Fallback for surfaces that enforce `timeout` without invoking
  			// `onTimeout`: their auto-cancel resolves right at the deadline. A
  			// cancel arriving well past it is a deliberate user Esc.
-@@ -172,7 +180,7 @@ async function askChoice(
+@@ -218,7 +226,7 @@ async function askChoice(
  	ui: FallbackUI,
  	field: ChoiceField,
  	text: FieldText,
@@ -865,7 +893,7 @@ index bb17bfc5f5..194d407919 100644
  	signal: AbortSignal,
  ): Promise<PromptOutcome<ChoiceAnswer>> {
  	const { question } = text;
-@@ -281,7 +289,7 @@ async function askText(
+@@ -327,7 +335,7 @@ async function askText(
  	ui: FallbackUI,
  	field: TextField,
  	text: FieldText,
@@ -874,7 +902,7 @@ index bb17bfc5f5..194d407919 100644
  	signal: AbortSignal,
  ): Promise<PromptOutcome<string>> {
  	const useEditor = field.multiline || field.value !== "";
-@@ -293,10 +301,14 @@ async function askText(
+@@ -339,10 +347,14 @@ async function askText(
  		if (useEditor) {
  			// The editor has no countdown: typing a long answer must not race a deadline.
  			const prefill = current;
@@ -893,7 +921,7 @@ index bb17bfc5f5..194d407919 100644
  		} else {
  			outcome = await promptWithTimeout(ui, timeout, signal, dialogOptions =>
  				ui.input(title, field.placeholder || undefined, dialogOptions),
-@@ -316,8 +328,9 @@ async function askText(
+@@ -362,8 +374,9 @@ async function askText(
  async function askFieldByField(
  	ui: FallbackUI,
  	form: HtmlForm,
@@ -904,7 +932,7 @@ index bb17bfc5f5..194d407919 100644
  ): Promise<{ data: HtmlFormData; timedOut: boolean } | undefined> {
  	const data = defaultFormData(form);
  	const questions = fieldQuestions(form);
-@@ -332,12 +345,18 @@ async function askFieldByField(
+@@ -378,12 +391,18 @@ async function askFieldByField(
  				if (value === undefined) delete data[field.name];
  				else data[field.name] = value;
  			}
@@ -925,7 +953,7 @@ index bb17bfc5f5..194d407919 100644
  		if (outcome.value === undefined) return undefined;
  		data[field.name] = textValue(field, outcome.value);
  	}
-@@ -426,13 +445,23 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+@@ -520,7 +539,16 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  		};
  		if (steeringSignal?.aborted) onSteer();
  		else steeringSignal?.addEventListener("abort", onSteer, { once: true });
@@ -940,8 +968,10 @@ index bb17bfc5f5..194d407919 100644
 +			expiryTimer = setTimeout(() => expiry.abort(EXPLICIT_INTERACTION_EXPIRY_REASON), timeout);
 +		}
 +		const dialogSignal = AbortSignal.any([...(signal ? [signal] : []), userSteering.signal, expiry.signal]);
- 		const abortError = (): ToolAbortError =>
- 			new ToolAbortError(userSteering.signal.aborted ? "Ask interrupted by message" : "Ask input was cancelled");
+ 		// What the user answered before a message closed the form; the model gets it with the interruption.
+ 		let given: ExtensionFormDialogResult | undefined;
+ 		const abortError = (): ToolAbortError => {
+@@ -541,7 +569,8 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  		const cancelAsk = (): never => {
  			if (userSteering.signal.aborted) throw abortError();
  			context.abort();
@@ -951,13 +981,18 @@ index bb17bfc5f5..194d407919 100644
  		};
  
  		// Send notification if waiting and not suppressed
-@@ -450,16 +479,29 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
- 			if (extensionUi.formDialog) {
+@@ -560,7 +589,8 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
  				const formDialog = extensionUi.formDialog.bind(extensionUi);
  				answered = await untilAborted(dialogSignal, () =>
--					formDialog(params.html, { timeout, signal: dialogSignal }),
-+					formDialog(params.html, { timeout: deadline === undefined ? timeout : Math.max(0, Math.ceil(deadline - performance.now())),
-+						...(deadline === undefined ? {} : {deadlineMonotonicMs: deadline}), signal: dialogSignal }),
+ 					formDialog(html, {
+-						timeout,
++						timeout: deadline === undefined ? timeout : Math.max(0, Math.ceil(deadline - performance.now())),
++						...(deadline === undefined ? {} : { deadlineMonotonicMs: deadline }),
+ 						signal: dialogSignal,
+ 						acceptImages: true,
+ 						onAbandon: partial => {
+@@ -569,13 +599,25 @@ export class AskTool implements AgentTool<typeof askSchema, AskToolDetails> {
+ 					}),
  				);
  			} else {
 -				answered = await askFieldByField(extensionUi, form, timeout, dialogSignal);
@@ -982,11 +1017,11 @@ index bb17bfc5f5..194d407919 100644
 +		if (extensionUi.explicitAnswersOnly && answered?.timedOut) expiry.abort(EXPLICIT_INTERACTION_EXPIRY_REASON);
 +		if (!answered || (extensionUi.explicitAnswersOnly &&
 +			(answered.timedOut || (deadline !== undefined && performance.now() >= deadline)))) return cancelAsk();
- 
- 		const notes = answered.notes?.length ? answered.notes : undefined;
- 		const details: AskToolDetails = {
+ 		// A timeout submits what the form holds; with a required field still empty that is no answer, not data.
+ 		if (answered.timedOut && named.some(field => fieldError(field, answered.data[field.name!]) !== undefined)) {
+ 			return {
 diff --git a/packages/coding-agent/test/rpc-extension-ui.test.ts b/packages/coding-agent/test/rpc-extension-ui.test.ts
-index c66027b122..58d460c305 100644
+index 09368925..0b277a89 100644
 --- a/packages/coding-agent/test/rpc-extension-ui.test.ts
 +++ b/packages/coding-agent/test/rpc-extension-ui.test.ts
 @@ -379,6 +379,7 @@ await runRpcMode(session);
@@ -997,7 +1032,7 @@ index c66027b122..58d460c305 100644
  		});
  		expect(pendingRequests.size).toBe(0);
  	});
-@@ -666,21 +667,23 @@ describe("RPC ask dialog", () => {
+@@ -739,21 +740,23 @@ describe("RPC ask dialog", () => {
  			"an option plus custom input on a single-select",
  			[{ id: "db", selectedOptions: ["Postgres"], customInput: "DuckDB" }, validFeatures],
  		],
@@ -1026,7 +1061,7 @@ index c66027b122..58d460c305 100644
  		const pendingRequests = new Map<string, PendingExtensionRequest>();
  		const output = vi.fn<(frame: object) => void>();
  		const onTimeout = vi.fn();
-@@ -690,38 +693,14 @@ describe("RPC ask dialog", () => {
+@@ -763,38 +766,14 @@ describe("RPC ask dialog", () => {
  		});
  		if (response) respond(pendingRequests, requireRequest(output.mock.calls[0]?.[0]).id, response);
  

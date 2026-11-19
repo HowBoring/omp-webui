@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 7bf62df069..50c9fed23a 100644
+index aaa2b0f5..b312a1a2 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -10,6 +10,7 @@
+@@ -14,6 +14,7 @@
  ### Added
  
  - Added deferred strict rpc-ui startup and an isolated Linux native-generation continuation prototype that retains selected physical Session identity through ownership and persistence ([WebUI #32](https://github.com/HowBoring/omp-webui/issues/32)).
@@ -11,7 +11,7 @@ index 7bf62df069..50c9fed23a 100644
  - Added atomic retained-tree, active-chain and running-message observations with bounded expiring pages and native image content reads ([WebUI #34](https://github.com/HowBoring/omp-webui/issues/34)).
  
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 85182936c0..0b34d8fc54 100644
+index 85182936..0b34d8fc 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -10,6 +10,7 @@ For installation, setup, provider configuration, model roles, slash commands, an
@@ -24,7 +24,7 @@ index 85182936c0..0b34d8fc54 100644
  - [MCP server/tool authoring](../../docs/mcp-server-tool-authoring.md)
 diff --git a/packages/coding-agent/docs/rpc-live-observation.md b/packages/coding-agent/docs/rpc-live-observation.md
 new file mode 100644
-index 0000000000..96ed31887f
+index 00000000..96ed3188
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-live-observation.md
 @@ -0,0 +1,62 @@
@@ -91,7 +91,7 @@ index 0000000000..96ed31887f
 +one derived baseline. If ordering or association cannot be represented within its bounds it fails the view and
 +requires a fresh full-view binding. This option does not reset DSH, replay execution or coordinate viewer holders.
 diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
-index 7476fcc2c8..f65fb99249 100644
+index 7476fcc2..f65fb992 100644
 --- a/packages/coding-agent/src/modes/rpc/history-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/history-client.ts
 @@ -7,8 +7,9 @@ export type HistoryCommand = { [K in "history_snapshot_open" | "history_snapshot
@@ -107,7 +107,7 @@ index 7476fcc2c8..f65fb99249 100644
    }
    async page(cursor: string): Promise<HistoryPage> {
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-index c00b54a916..b7e4c368d9 100644
+index c00b54a9..b7e4c368 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 @@ -1,29 +1,36 @@
@@ -485,10 +485,10 @@ index c00b54a916..b7e4c368d9 100644
      return { cut, after, through, events: structuredClone(events), hasMore: through < this.#seq };
    }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index dc96dd1e98..3a336fa764 100644
+index 0b9efe39..94ddd949 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-@@ -1369,12 +1369,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1371,12 +1371,10 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	const historyObservation = new RpcHistoryObservation(session.sessionManager, () => ({
  		messages: session.messages, prefix: session.agent.state.streamMessage,
@@ -503,7 +503,7 @@ index dc96dd1e98..3a336fa764 100644
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -2296,7 +2294,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2298,7 +2296,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			case "history_observation_poll": {
  				try {
  					if (!validateHistoryCommand(command)) return error(typeof id === "string" && id.length <= 96 ? id : undefined, command.type, "history_command_schema", "history_command_schema");
@@ -513,7 +513,7 @@ index dc96dd1e98..3a336fa764 100644
  						: command.type === "history_snapshot_page" ? historyObservation.page(command.cursor)
  						: command.type === "history_snapshot_close" ? historyObservation.close(command.snapshot)
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-session-events.ts b/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
-index 71fbce6372..86a728e960 100644
+index ce06dcf9..62b1e213 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-session-events.ts
 @@ -1,3 +1,4 @@
@@ -521,8 +521,8 @@ index 71fbce6372..86a728e960 100644
  /**
   * Session-event forwarding for RPC mode: stamps message lifecycle frames with a
   * `messageId` and applies the host's `set_event_filter` selection.
-@@ -115,20 +116,22 @@ export class RpcSessionEventForwarder {
- 	#stamp(event: AgentSessionEvent): RpcAgentSessionEventFrame {
+@@ -116,20 +117,22 @@ export class RpcSessionEventForwarder {
+ 	#stamp(event: WireSessionEvent): RpcAgentSessionEventFrame {
  		switch (event.type) {
  			case "message_start": {
 -				const messageId = this.#mintMessageId();
@@ -549,7 +549,7 @@ index 71fbce6372..86a728e960 100644
  				// A run never leaves a message open; drop anything a dropped frame stranded.
  				this.#openMessageIds.length = 0;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
-index 8376a53b86..167ff4f8ff 100644
+index 8376a53b..167ff4f8 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/history.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
 @@ -1,32 +1,37 @@
@@ -600,7 +600,7 @@ index 8376a53b86..167ff4f8ff 100644
    { name: "history_content_page", doc: "Bounded retained native image bytes tied to immutable observation; never asserts exact original association.",
      params: { cursor: "string" }, result: "HistoryContentPage" },
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 4036cb4d6e..68a1154008 100644
+index 7dfa4cbf..41061b57 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,5 @@
@@ -609,7 +609,7 @@ index 4036cb4d6e..68a1154008 100644
  /**
   * AgentSession - Core abstraction for agent lifecycle and session management.
   *
-@@ -3905,6 +3907,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4139,6 +4141,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  
  	/** Emit an event to all listeners */
  	#emit(event: AgentSessionEvent): void {
@@ -617,7 +617,7 @@ index 4036cb4d6e..68a1154008 100644
  		// Listener array is copy-on-write (see `subscribe`), so iterating the
  		// current array is safe against (un)subscribes made by a listener.
  		for (const l of this.#eventListeners) {
-@@ -4238,11 +4241,60 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4467,11 +4470,60 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		}
  	};
  
@@ -679,7 +679,7 @@ index 4036cb4d6e..68a1154008 100644
  			.finally(() => {
  				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
  					this.#pendingMessageEndPersistence.delete(key);
-@@ -4361,9 +4413,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4590,9 +4642,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const cache = this.#persistedMessageKeys;
  		const wasFresh = cache !== undefined && cache.anchor === this.#persistedMessageKeysAnchor();
  		// A digest entry carries no persistence key, so the memo stays valid across it.
@@ -696,7 +696,7 @@ index 4036cb4d6e..68a1154008 100644
  			(message as PersistedAssistantMessage)[kPersistedSessionEntryId] = entryId;
  		}
  		const key = sessionMessagePersistenceKey(message);
-@@ -4371,10 +4428,25 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4600,10 +4657,25 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			cache.keys.add(key);
  			cache.anchor = this.#persistedMessageKeysAnchor();
  		}
@@ -723,7 +723,7 @@ index 4036cb4d6e..68a1154008 100644
  		if (
  			message.role !== "user" &&
  			message.role !== "developer" &&
-@@ -4382,13 +4454,13 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4611,13 +4683,13 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			message.role !== "toolResult" &&
  			message.role !== "fileMention"
  		) {
@@ -741,7 +741,7 @@ index 4036cb4d6e..68a1154008 100644
  			if (assistantMsg.stopReason !== "aborted" && assistantMsg.stopReason !== "error" && assistantMsg.usage) {
  				assistantMsg.contextSnapshot = {
  					promptTokens: calculatePromptTokens(assistantMsg.usage),
-@@ -4402,8 +4474,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4631,8 +4703,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			semanticToolResult(message.toolName, message)?.toolName === "rewind" &&
  			this.#rewoundToolResultIds.delete(message.toolCallId);
  		if (!skipPersistedRewindResult) {
@@ -752,7 +752,7 @@ index 4036cb4d6e..68a1154008 100644
  	}
  
  	/**
-@@ -4466,7 +4539,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4695,7 +4768,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		};
  	}
  
@@ -761,7 +761,7 @@ index 4036cb4d6e..68a1154008 100644
  		// Session transitions may replace the transcript before a queued commit
  		// runs. Never append the previous conversation to the replacement session.
  		if (this.#promptGeneration !== promptGeneration) {
-@@ -4475,13 +4548,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4704,13 +4777,14 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			if (message.role === "custom" && message.customType === "ttsr-injection") {
  				this.#ttsr.releaseDeferredReservationFromDetails(message.details);
  			}
@@ -778,28 +778,35 @@ index 4036cb4d6e..68a1154008 100644
  					message.customType,
  					message.content,
  					message.display,
-@@ -4496,9 +4570,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4725,9 +4799,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			if (message.role === "custom" && message.customType === "ttsr-injection") {
  				this.#ttsr.markInjectedFromDetails(message.details);
  			}
 -			return;
 +			return entryId ? this.#observeNativeEntry(entryId)
 +				: { status: "no_entry", durability: "not_attested", reason: "one_run_context" };
++		}
++		// A refused turn stays out of the transcript (#persistSessionMessageIfMissing
++		// skips it); keep a non-context record of it instead. Recorded here, once per
++		// message_end, because mid-run compaction re-offers unpersisted turn messages.
++		if (message.role === "assistant" && this.#recovery.isClassifierRefusal(message)) {
++			this.sessionManager.appendCustomEntry(PROVIDER_REFUSAL_CUSTOM_TYPE, providerRefusalData(message));
++			return { status: "no_entry", durability: "not_attested", reason: "classifier_refusal" };
  		}
 -		this.#persistSessionMessageIfMissing(message);
 +		return this.#persistSessionMessageIfMissing(message);
  	}
  
  	/**
-@@ -4642,6 +4717,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4871,6 +4953,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
 +		this.#messageObservations.observe(event);
  		const eventPromptGeneration = this.#promptGeneration;
- 		if (event.type === "agent_end" && this.#activeAgentContinue) {
- 			this.#activeAgentContinue.turnEnded = true;
-@@ -11081,17 +11157,31 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// Snapshot before any await: a loop end routed after a newer loop started is folded into the run.
+ 		const loopEpoch = this.#runEpoch;
+@@ -11489,17 +11572,33 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			return outcome.sessionClaimed;
  		}
  
@@ -816,7 +823,7 @@ index 4036cb4d6e..68a1154008 100644
 -			// queued matches the entry to them by it.
 -			normalizedAppMessage.timestamp,
 -		);
-+		try {	
++		try {
 +			const entryId = this.sessionManager.appendCustomMessageEntry(
 +				normalizedAppMessage.customType,
 +				normalizedAppMessage.content,
@@ -826,6 +833,8 @@ index 4036cb4d6e..68a1154008 100644
 +				// Its own timestamp, as `#persistMessageEnd` keeps one: a view rebuilt while its events are
 +				// queued retains the native message timestamp (not an identity join).
 +				normalizedAppMessage.timestamp,
++				normalizedAppMessage.excludeFromContext,
++				normalizedAppMessage,
 +			);
 +			if (observeIdle) {
 +				this.#messageObservations.observe({ type: "message_end", message: normalizedAppMessage });
@@ -843,7 +852,7 @@ index 4036cb4d6e..68a1154008 100644
  			// transcript paints it now instead of on the next rebuild. The entry is persisted
 diff --git a/packages/coding-agent/src/session/history-context.ts b/packages/coding-agent/src/session/history-context.ts
 new file mode 100644
-index 0000000000..d95939e466
+index 00000000..d95939e4
 --- /dev/null
 +++ b/packages/coding-agent/src/session/history-context.ts
 @@ -0,0 +1,8 @@
@@ -857,7 +866,7 @@ index 0000000000..d95939e466
 +}
 diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
 new file mode 100644
-index 0000000000..907d538adc
+index 00000000..907d538a
 --- /dev/null
 +++ b/packages/coding-agent/src/session/live-message-observation.ts
 @@ -0,0 +1,107 @@
@@ -969,7 +978,7 @@ index 0000000000..907d538adc
 +  }
 +}
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 975011786d..9ce3e51889 100644
+index eb98e40c..1de33f9f 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -3,6 +3,8 @@ import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts"
@@ -981,7 +990,7 @@ index 975011786d..9ce3e51889 100644
  export interface NativeHistoryChange {
    kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
  }
-@@ -3736,6 +3738,7 @@ export class SessionManager {
+@@ -3737,6 +3739,7 @@ export class SessionManager {
  	): string {
  		const entry: SessionMessageEntry = { type: "message", ...this.#freshEntryFields(), message };
  		this.#recordEntry(entry);
@@ -989,7 +998,7 @@ index 975011786d..9ce3e51889 100644
  		return entry.id;
  	}
  
-@@ -3775,6 +3778,7 @@ export class SessionManager {
+@@ -3776,6 +3779,7 @@ export class SessionManager {
  		// the active branch, as the in-memory contract requires.
  		this.#index.detachBranchView();
  		this.#recordEntry(entry);
@@ -997,7 +1006,7 @@ index 975011786d..9ce3e51889 100644
  		return entry.id;
  	}
  
-@@ -4189,6 +4193,15 @@ export class SessionManager {
+@@ -4208,6 +4212,15 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1013,7 +1022,7 @@ index 975011786d..9ce3e51889 100644
  	/** Independent native observer; never replaces the collaboration append callback. */
  	subscribeHistoryChanges(listener: (change: NativeHistoryChange) => void): () => void {
  		this.#historyListeners.add(listener);
-@@ -4209,7 +4222,7 @@ export class SessionManager {
+@@ -4228,7 +4241,7 @@ export class SessionManager {
  	 * Includes full hidden entry payloads in the revision, but never returns those bytes on RPC.
  	 * Runtime must be sampled by the RPC controller in this same synchronous JS turn.
  	 */
@@ -1022,7 +1031,7 @@ index 975011786d..9ce3e51889 100644
  		const started = performance.now();
  		const observedRevision = this.#historyRevision;
  		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
-@@ -4220,7 +4233,7 @@ export class SessionManager {
+@@ -4239,7 +4252,7 @@ export class SessionManager {
  		const sourceBinding = this.#historySourceBinding?.nativeSessionId === this.#sessionId ? this.#historySourceBinding : undefined;
  		const sourceId = sourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
  		let scannedBytes = 0;
@@ -1031,7 +1040,7 @@ index 975011786d..9ce3e51889 100644
  			const bytes = stringifyJson(value);
  			if (bytes === undefined) throw new Error("history_non_json_state");
  			const size = Buffer.byteLength(bytes);
-@@ -4228,23 +4241,31 @@ export class SessionManager {
+@@ -4247,23 +4260,31 @@ export class SessionManager {
  			if (size > limits.nativeItemBytes) throw new Error("history_native_item_bytes");
  			if (scannedBytes > limits.bytes) throw new Error("history_scan_bytes");
  			if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");

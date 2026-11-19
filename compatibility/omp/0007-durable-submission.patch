@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index a4b6abe4e7..87101a2aa0 100644
+index b312a1a2..06352dbd 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
 @@ -4,6 +4,12 @@
@@ -14,7 +14,7 @@ index a4b6abe4e7..87101a2aa0 100644
 +
  - Strict continuation refuses changed native cwd bindings and oversized carrier commits before publication, and releases ownership after failed opens.
  
- ### Fixed
+ - RPC UI requires explicit valid answers; native ask and tool expiry cancel without default submission.
 @@ -13,9 +19,12 @@
  
  ### Added
@@ -30,7 +30,7 @@ index a4b6abe4e7..87101a2aa0 100644
  
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 0b34d8fc54..7e51b0abc2 100644
+index 0b34d8fc..7e51b0ab 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -44,3 +44,5 @@ The agent supports three mutually-exclusive memory backends, selected via the `m
@@ -41,7 +41,7 @@ index 0b34d8fc54..7e51b0abc2 100644
 +Durable submission prototype: public queries separate operation outcome, input creation and protected persistence; detached SDK message reuse refuses ambiguous origins, snapshots retain permanent reservations, in-process SDK helpers and direct task/revival manager appends keep distinct submission owners, and agent-invoking builtins publish request-level initiating no-entry facts; optional idle-only admission and exact history origin are described in [reservation and recovery semantics](docs/rpc-submissions.md).
 diff --git a/packages/coding-agent/docs/rpc-submissions.md b/packages/coding-agent/docs/rpc-submissions.md
 new file mode 100644
-index 0000000000..1821df6bdf
+index 00000000..1821df6b
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-submissions.md
 @@ -0,0 +1,53 @@
@@ -99,7 +99,7 @@ index 0000000000..1821df6bdf
 +verified committed input entries establish generated input. No exact primary callback still means unknown operation
 +outcome; a worker retirement leaves unfinished reservations unresolved and never replays queued memory.
 diff --git a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
-index e189b420d9..c255209d03 100644
+index e189b420..c255209d 100644
 --- a/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 +++ b/packages/coding-agent/src/modes/rpc/catalog-metadata.ts
 @@ -1,3 +1,4 @@
@@ -126,7 +126,7 @@ index e189b420d9..c255209d03 100644
        || !("id" in value) || typeof value.id !== "string" || value.id.length === 0 || value.id.length > 128
        || !("timestamp" in value) || typeof value.timestamp !== "string" || !Number.isFinite(Date.parse(value.timestamp))) {
 diff --git a/packages/coding-agent/src/modes/rpc/preflight.ts b/packages/coding-agent/src/modes/rpc/preflight.ts
-index dca44f560b..facf7847a7 100644
+index dca44f56..facf7847 100644
 --- a/packages/coding-agent/src/modes/rpc/preflight.ts
 +++ b/packages/coding-agent/src/modes/rpc/preflight.ts
 @@ -1,3 +1,4 @@
@@ -144,7 +144,7 @@ index dca44f560b..facf7847a7 100644
          };
          await write({ type: "response", id: command.id, command: command.type, success: true, data: report });
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
-index b7e4c368d9..4eeffe1c5d 100644
+index b7e4c368..4eeffe1c 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 @@ -1,3 +1,5 @@
@@ -265,7 +265,7 @@ index b7e4c368d9..4eeffe1c5d 100644
      if ([...tree, ...running, ...live].some(row => Buffer.byteLength(row) > HISTORY_LIMITS.itemBytes)) throw new Error("history_item_bytes");
      const snapshot = crypto.randomUUID();
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3a336fa764..3aaef8ed11 100644
+index 94ddd949..5bb49834 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,7 @@
@@ -299,12 +299,12 @@ index 3a336fa764..3aaef8ed11 100644
   *
 - * `bash`, `predict_word`, `prompt` and `steer_subagent` are dispatched in the
 - * background so the caller can keep reading subsequent frames while one is
-+ * `bash`, `predict_word`, `prompt`, `submission_submit` and `steer_subagent` are
++ * `bash`, `predict_word`, `prompt`, `steer_subagent`, `handoff`, and `submission_submit` are
 + * dispatched in the background so the caller can keep reading subsequent frames while one is
   * still settling: a `bash` command can run for a long time, and a `prompt`
   * command's response is held until the message is admitted, which can span
   * real wall-clock time (image normalization, a vision-model description call).
-@@ -466,7 +470,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
+@@ -467,7 +471,8 @@ const BACKGROUND_COMMANDS: ReadonlySet<string> = new Set<RpcCommand["type"]>([
   *
   * @returns `undefined` when the frame was routed to a side-channel handler
   *   (extension UI response, host tool/URI frames) or dispatched in the
@@ -314,7 +314,7 @@ index 3a336fa764..3aaef8ed11 100644
   *   resolves once the response for the command has been emitted via `output`.
   *   Errors from `handleCommand` on a command dispatched inline propagate; the
   *   caller is expected to wrap them.
-@@ -492,6 +497,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -493,6 +498,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  	if (
  		BACKGROUND_COMMANDS.has(command.type) ||
  		command.type === "prompt" ||
@@ -322,7 +322,7 @@ index 3a336fa764..3aaef8ed11 100644
  		command.type === "steer" ||
  		command.type === "dictation_start" ||
  		command.type === "follow_up" ||
-@@ -515,6 +521,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
+@@ -517,6 +523,7 @@ export function dispatchRpcInputFrame(parsed: unknown, deps: RpcInputFrameDeps):
  }
  
  const USER_INPUT_TYPES: Record<string, true> = {
@@ -330,7 +330,7 @@ index 3a336fa764..3aaef8ed11 100644
  	prompt: true,
  	steer: true,
  	follow_up: true,
-@@ -560,6 +567,12 @@ export class RpcUserInputGate {
+@@ -562,6 +569,12 @@ export class RpcUserInputGate {
  		if (isAbort) this.#validFrom = sequence;
  	}
  
@@ -343,7 +343,7 @@ index 3a336fa764..3aaef8ed11 100644
  	/** A session change succeeded: invalidate input accepted before its frame. */
  	commitSessionChange(command: RpcCommand): void {
  		const sequence = this.#acceptedAt.get(command);
-@@ -1320,7 +1333,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1322,7 +1335,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -352,7 +352,7 @@ index 3a336fa764..3aaef8ed11 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1725,7 +1738,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1727,7 +1740,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				}
  			}),
  		reportSendError: (action, err) => {
@@ -362,7 +362,7 @@ index 3a336fa764..3aaef8ed11 100644
  		},
  		reportRuntimeError: err => {
  			output({ type: "extension_error", extensionPath: err.extensionPath, event: err.event, error: err.error });
-@@ -1834,17 +1848,32 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1836,17 +1850,32 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -400,7 +400,7 @@ index 3a336fa764..3aaef8ed11 100644
  			if (!isCurrent()) return "cancelled";
  			let text = command.message;
  			let images = command.images;
-@@ -1859,11 +1888,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1861,11 +1890,11 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			if (!isCurrent()) return "cancelled";
  			if (!text.trim() && !images?.length) return "local";
  			if (command.type === "steer") {
@@ -414,7 +414,7 @@ index 3a336fa764..3aaef8ed11 100644
  				return "admitted";
  			}
  			if (command.type === "prompt") {
-@@ -1921,6 +1950,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1923,6 +1952,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				if (!isCurrent()) return "cancelled";
  				if (builtinResult !== false) {
  					if (!("prompt" in builtinResult)) {
@@ -422,7 +422,7 @@ index 3a336fa764..3aaef8ed11 100644
  						if (builtinResult.agentInvoked === true && ticket) {
  							void session.waitForIdle().then(
  								() => promptResults.settle(ticket),
-@@ -1932,6 +1962,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1934,6 +1964,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  							);
  							return "builtin-agent";
  						}
@@ -430,7 +430,7 @@ index 3a336fa764..3aaef8ed11 100644
  						return "local";
  					}
  					text = builtinResult.prompt;
-@@ -1941,17 +1972,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1943,17 +1974,18 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			await watchAndReportPromptResult({
  				ticket,
  				startPrompt: onPromptAdmitted =>
@@ -452,7 +452,7 @@ index 3a336fa764..3aaef8ed11 100644
  	// Abort controllers for builtin commands whose work outlives the prompt
  	// response (e.g. the `/mcp reauth` browser wait, dispatched through
  	// `runCommandInBackground`). Host abort and disconnect must tear those
-@@ -1974,6 +2006,48 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1976,6 +2008,48 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -502,7 +502,7 @@ index 3a336fa764..3aaef8ed11 100644
  				// Taken before any dispatch so a builtin that schedules a turn (e.g. `/retry`)
  				// cannot start its run ahead of the prompt's event-stream position.
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts b/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
-index eaef54f541..9dac259e5b 100644
+index 1540b9a0..676e5f4f 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-prompt-results.ts
 @@ -30,6 +30,8 @@ interface RunOutcome {
@@ -514,7 +514,7 @@ index eaef54f541..9dac259e5b 100644
  	/** `agent_start` count at acceptance; a later start begins a run this prompt may own. */
  	startsAtBegin: number;
  	/** Outcome of the first run started after acceptance, once the agent yielded it. */
-@@ -85,9 +87,10 @@ export class RpcPromptResults {
+@@ -86,9 +88,10 @@ export class RpcPromptResults {
  	}
  
  	/** Open a ticket before the prompt starts any work. Close it with exactly one report or {@link discard}. */
@@ -539,7 +539,7 @@ index eaef54f541..9dac259e5b 100644
  		// behind the response for the same id and lets queue drains land before
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 new file mode 100644
-index 0000000000..e7fc8dcd9e
+index 00000000..e7fc8dcd
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -0,0 +1,195 @@
@@ -739,7 +739,7 @@ index 0000000000..e7fc8dcd9e
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index efccf79be7..b2ea42a01b 100644
+index 5a2c20ae..debafaff 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -1,3 +1,5 @@
@@ -748,7 +748,7 @@ index efccf79be7..b2ea42a01b 100644
  import type { StrictStartState } from "./wire/rpc-wire.generated";
  /**
   * RPC protocol types for headless operation.
-@@ -49,6 +51,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -50,6 +52,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
@@ -756,7 +756,7 @@ index efccf79be7..b2ea42a01b 100644
    | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
    | { id?: string; type: "history_content_page"; cursor: string }
    | { id?: string; type: "history_snapshot_page"; cursor: string }
-@@ -387,6 +390,7 @@ export interface RpcAbortAndRestoreQueueResult {
+@@ -388,6 +391,7 @@ export interface RpcAbortAndRestoreQueueResult {
  }
  
  export interface RpcReadyFrame {
@@ -764,7 +764,7 @@ index efccf79be7..b2ea42a01b 100644
  	/** Effective before extension initialization and timers; immutable for this worker. */
  	interactionPolicy?: RpcInteractionPolicy;
  	type: "ready";
-@@ -443,6 +447,7 @@ export interface RpcSubagentMessagesResult {
+@@ -444,6 +448,7 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -773,7 +773,7 @@ index efccf79be7..b2ea42a01b 100644
    | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
    | { id?: string; type: "response"; command: "history_snapshot_page"; success: true; data: HistoryPage }
 diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
-index 4763326da8..2acbd31b6d 100644
+index 4763326d..2acbd31b 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
 @@ -1,3 +1,4 @@
@@ -791,7 +791,7 @@ index 4763326da8..2acbd31b6d 100644
    let startup: Promise<void> | undefined, reservation: StrictReservation | undefined;
    let activeContext: StrictStartupContext | undefined;
 diff --git a/packages/coding-agent/src/modes/rpc/strict-reservation.ts b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
-index d6e23b09c7..7cf82c42de 100644
+index d6e23b09..7cf82c42 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-reservation.ts
 @@ -1,4 +1,6 @@
@@ -924,7 +924,7 @@ index d6e23b09c7..7cf82c42de 100644
    /** Append or initialize an exclusively created carrier; existing body bytes are never overwritten here. */
 diff --git a/packages/coding-agent/src/modes/rpc/submission-client.ts b/packages/coding-agent/src/modes/rpc/submission-client.ts
 new file mode 100644
-index 0000000000..6f087cad80
+index 00000000..6f087cad
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/submission-client.ts
 @@ -0,0 +1,19 @@
@@ -948,7 +948,7 @@ index 0000000000..6f087cad80
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 800328dd61..97966b2eee 100644
+index 800328dd..97966b2e 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 @@ -1,3 +1,4 @@
@@ -965,7 +965,7 @@ index 800328dd61..97966b2eee 100644
      name: "get_compatibility",
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index 5152c250bb..7dbe653b1a 100644
+index 5152c250..7dbe653b 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
 @@ -18,6 +18,7 @@ export const frameDefs = {
@@ -985,7 +985,7 @@ index 5152c250bb..7dbe653b1a 100644
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
-index 167ff4f8ff..0b28662fc7 100644
+index 167ff4f8..0b28662f 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/history.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
 @@ -10,7 +10,7 @@ export const historyDefs = {
@@ -998,7 +998,7 @@ index 167ff4f8ff..0b28662fc7 100644
    HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
    HistoryCut: { durability: "'not_attested'", sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index 1e7b675bc3..afeae50dfa 100644
+index 1e7b675b..afeae50d 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
 @@ -1,3 +1,4 @@
@@ -1016,7 +1016,7 @@ index 1e7b675bc3..afeae50dfa 100644
  		...interactionDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 new file mode 100644
-index 0000000000..bb80bd4fd4
+index 00000000..bb80bd4f
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 @@ -0,0 +1,25 @@
@@ -1046,16 +1046,16 @@ index 0000000000..bb80bd4fd4
 +    params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
 +] as const;
 diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
-index 5bddc84cfe..380a100d81 100644
+index 9b3f393f..122c8208 100644
 --- a/packages/coding-agent/src/sdk.ts
 +++ b/packages/coding-agent/src/sdk.ts
 @@ -1,4 +1,5 @@
  import * as path from "node:path";
 +import { runSubmissionForOwner } from "./session/submission-provenance";
- import { type CallRecord, ChangeJournal, callLabel } from "./commit/selective/journal";
+ import { type CallRecord, ChangeJournal, callDetails } from "./commit/selective/journal";
  import { createCommitPrelude } from "./commit/selective/prelude-definition";
- import {
-@@ -1970,6 +1971,10 @@ export function createAutoLearnCaptureRunner(
+ import { cfgDisasmBackend } from "./disasm/active";
+@@ -2031,6 +2032,10 @@ export function createAutoLearnCaptureRunner(
   * ```
   */
  export async function createAgentSession(options: CreateAgentSessionOptions = {}): Promise<CreateAgentSessionResult> {
@@ -1066,8 +1066,20 @@ index 5bddc84cfe..380a100d81 100644
  	registerLocalInferenceApi();
  	const extensionRoots = options.extensionRoots?.();
  	const explicit = extensionRoots?.explicit ?? options.additionalExtensionPaths ?? [];
+@@ -5046,10 +5051,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+ 				return Promise.reject(new Error("Offline mode restricts model calls to the active session provider."));
+ 			}
+ 			return withCredentialRedaction(cfgSecretsEnabled.get(settings), () =>
+-				settingsBoundStreamFn(streamModel, context, {
+-					...streamOptions,
+-					thinkingCapabilityDbPath: modelRegistry.modelsDbPath,
+-				}),
++				settingsBoundStreamFn(streamModel, context, streamOptions),
+ 			);
+ 		};
+ 		// Primary-agent (and its auto-learn capture twin) provider options read per
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index 68a1154008..bd24bb39cd 100644
+index 41061b57..7244073a 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,3 +1,4 @@
@@ -1075,7 +1087,7 @@ index 68a1154008..bd24bb39cd 100644
  import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
  import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
  /**
-@@ -2177,6 +2178,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -2235,6 +2236,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				isHiddenUserCompanion(previous) && (isHiddenUserCompanion(next) || isUserQueuedMessage(next)),
  		);
  		this.sessionManager = config.sessionManager;
@@ -1095,7 +1107,7 @@ index 68a1154008..bd24bb39cd 100644
  		// Only a recorded approval may turn a draft file into an execution reference.
  		for (const entry of this.sessionManager.getBranch().reverse()) {
  			if (entry.type !== "mode_change") continue;
-@@ -3748,11 +3762,30 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -3996,11 +4010,30 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		return this.agent.logContext ? logger.withContext(this.agent.logContext, work) : work();
  	}
  
@@ -1126,9 +1138,9 @@ index 68a1154008..bd24bb39cd 100644
 +			trackSubmissionTask(admittedWork);
 +			return await admittedWork;
  		} finally {
- 			if (--this.#admittedSubmissionCount === 0 && this.#admittedSubmissionsSettled) {
- 				const settled = this.#admittedSubmissionsSettled;
-@@ -4283,8 +4316,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			if (--this.#admittedSubmissionCount === 0) this.#scheduleRunCheck();
+ 			if (this.#admittedSubmissionCount === 0 && this.#admittedSubmissionsSettled) {
+@@ -4512,8 +4545,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	#queueMessageEndPersistence(message: AgentMessage, promptGeneration: number): Promise<void> {
  		const key = sessionMessagePersistenceKey(message);
  		const live = nativeMessageIdentity(message);
@@ -1140,7 +1152,7 @@ index 68a1154008..bd24bb39cd 100644
  				try {
  					const settlement = this.#persistMessageEnd(message, promptGeneration);
  					if (settlement.status === "no_entry" && settlement.reason === "empty_error") {
-@@ -4294,7 +4329,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4523,7 +4558,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					this.#messageObservations.settle(message, { status: "failed", durability: "not_attested", reason: "native_persistence_failed" });
  					throw error;
  				}
@@ -1149,23 +1161,24 @@ index 68a1154008..bd24bb39cd 100644
  			.finally(() => {
  				if (key !== undefined && this.#pendingMessageEndPersistence.get(key) === pending) {
  					this.#pendingMessageEndPersistence.delete(key);
-@@ -4565,6 +4600,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4794,6 +4829,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					// otherwise records emission time, which on rebuild excludes
  					// provider preparation / hook time from the prompt→yield anchor.
  					message.timestamp,
++					message.role === "custom" ? message.excludeFromContext : undefined,
 +					message,
  				);
  			}
  			if (message.role === "custom" && message.customType === "ttsr-injection") {
-@@ -4717,6 +4753,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -4953,6 +4990,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#processAgentEvent = async (event: AgentEvent): Promise<void> => {
 +		if (event.type === "message_start" || event.type === "message_end") captureSubmission(event.message, event.message.role);
  		this.#messageObservations.observe(event);
  		const eventPromptGeneration = this.#promptGeneration;
- 		if (event.type === "agent_end" && this.#activeAgentContinue) {
-@@ -8785,7 +8822,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 		// Snapshot before any await: a loop end routed after a newer loop started is folded into the run.
+@@ -9163,7 +9201,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * {@link PromptDroppedError} instead.
  	 */
  	async prompt(text: string, options?: PromptOptions): Promise<boolean> {
@@ -1177,7 +1190,7 @@ index 68a1154008..bd24bb39cd 100644
  	}
  
  	/**
-@@ -8802,6 +8842,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9180,6 +9221,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * @throws {Error} when there is no conversation to resume.
  	 */
  	async resume(): Promise<void> {
@@ -1188,7 +1201,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (!this.isStreaming) return this.#resumeIdle();
  		// waitForIdle() reads a pending unwind as busy. Hold one from the interrupt
  		// until the continuation is live, so a host driving this session to a result
-@@ -8869,6 +8913,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9247,6 +9292,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	async #prompt(text: string, options?: PromptOptions): Promise<boolean> {
@@ -1196,15 +1209,15 @@ index 68a1154008..bd24bb39cd 100644
  		// Stamp the operator's submission instant before ANY async preprocessing —
  		// command execution, image normalization, vision-model description — so the
  		// prompt→yield delta includes the whole wait, whatever path the prompt takes.
-@@ -8894,6 +8939,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			// pass supersedes its interrupted-turn resume only if it claims the session.
+@@ -9271,6 +9317,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			// it claims the session.
  			// Locally handled commands and failed dispatches release that claim.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
 +      this.#assertSubmissionIdle();
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchPrompt(text, options, submittedAt, outcome, followUps);
  			try {
-@@ -8927,7 +8973,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9304,7 +9351,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		outcome: PromptDispatchOutcome,
  		followUps: PromptFollowUps | undefined,
  	): Promise<boolean> {
@@ -1214,7 +1227,7 @@ index 68a1154008..bd24bb39cd 100644
  		// Slash/custom-command handling below rewrites `text`; keep the original
  		// so a dropped prompt is handed back exactly as the user typed it.
  		const typedText = text;
-@@ -8941,8 +8988,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9318,8 +9366,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// Handle extension commands first (execute immediately, even during streaming)
  		if (expandPromptTemplates && text.startsWith("/")) {
  			if (options?.runCommands !== false) {
@@ -1227,7 +1240,7 @@ index 68a1154008..bd24bb39cd 100644
  					// Queued only now, so whatever the command sent runs before them. A failed
  					// command hands them back with itself instead of letting them run without it.
  					if (command === "ran") followUps?.release();
-@@ -8951,7 +9001,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9328,7 +9379,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				}
  
  				// Try custom commands (TypeScript slash commands)
@@ -1238,7 +1251,7 @@ index 68a1154008..bd24bb39cd 100644
  				if (customResult !== null) {
  					if (customResult === "") {
  						followUps?.release();
-@@ -9038,7 +9090,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9415,7 +9468,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const eagerTaskPrelude =
  			!options?.synthetic && !hasPendingUserDirective ? this.#todo.createEagerTaskPrelude(expandedText) : undefined;
  		const attachmentSourceNotices = this.#createAttachmentSourceNotices(options?.images, submittedAt);
@@ -1249,7 +1262,7 @@ index 68a1154008..bd24bb39cd 100644
  
  		const userContent: (TextContent | ImageContent)[] = [{ type: "text", text: expandedText }];
  		if (normalizedImages?.length) {
-@@ -9197,7 +9251,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9574,7 +9629,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			onPromptQueued?: PromptOptions["onPromptQueued"];
  		},
  	): Promise<boolean> {
@@ -1258,15 +1271,15 @@ index 68a1154008..bd24bb39cd 100644
  	}
  
  	async #promptCustomMessage<T = unknown>(
-@@ -9215,6 +9269,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			// prompts and the CLI initial message must not start during idle/manual
- 			// compaction or before a handoff commits its history.
+@@ -9591,6 +9646,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			// Same barrier/claim protocol as prompt(): skill invocations, collab peer
+ 			// prompts and the CLI initial message must not start during a blocking compaction.
  			const release = await this.#maintenance.waitForMaintenanceCleanup();
 +      this.#assertSubmissionIdle();
  			const outcome: PromptDispatchOutcome = { sessionClaimed: false };
  			if (!release) return await this.#dispatchCustomPrompt(message, options, outcome, followUps);
  			try {
-@@ -9324,12 +9379,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9700,12 +9756,16 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
@@ -1284,7 +1297,7 @@ index 68a1154008..bd24bb39cd 100644
  		const descriptionNotice = hasSkillImages
  			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
  			: undefined;
-@@ -9604,7 +9663,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9980,7 +10040,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		// every pre-dispatch bail (generation bump from abort, disposal, usage
  		// preflight denial) exits silently, and prompt() uses the outcome to hand
  		// the typed text back to the host instead of losing it.
@@ -1294,7 +1307,7 @@ index 68a1154008..bd24bb39cd 100644
  		// Client ownership is reserved by #prompt before dispatch preprocessing
  		// and released when its bracket settles; callers that reach this
  		// directly (auto-continue, queued-hidden drain) are autonomous and
-@@ -9740,9 +9800,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10121,9 +10182,11 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const preparation = await logger.time("prompt:prepareAgentStart", () =>
  				this.#prepareAgentStart(message, expandedText, options?.images, generation, setupAbort.signal, "direct"),
  			);
@@ -1307,7 +1320,7 @@ index 68a1154008..bd24bb39cd 100644
  			const baseXdevCatalogDelivered = preparation.baseXdevCatalogDelivered;
  
  			// Auto thinking: classify this real user turn and set the effective level
-@@ -9913,7 +9975,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10294,7 +10357,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const ctx = this.#extensionRunner.createCommandContext();
  
  		try {
@@ -1317,7 +1330,7 @@ index 68a1154008..bd24bb39cd 100644
  			return "ran";
  		} catch (err) {
  			// Emit error via extension runner
-@@ -10042,7 +10105,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10423,7 +10487,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const args = parseCommandArgs(argsString);
  			// Commands that consult findScopedSettings, including /review, must see this
  			// session's cache kill switch instead of the default enabled cache.
@@ -1327,7 +1340,7 @@ index 68a1154008..bd24bb39cd 100644
  			// If result is a string, it's a prompt to send to LLM
  			// If void/undefined, command handled everything
  			return result ?? "";
-@@ -10058,7 +10122,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10439,7 +10504,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				const message = err instanceof Error ? err.message : String(err);
  				logger.error("Custom command failed", { commandName, error: message });
  			}
@@ -1337,7 +1350,7 @@ index 68a1154008..bd24bb39cd 100644
  		}
  	}
  
-@@ -10066,6 +10131,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10447,6 +10513,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * Queue a steering message to interrupt the agent mid-run.
  	 */
  	async steer(text: string, images?: ImageContent[], options?: SteerOptions): Promise<void> {
@@ -1348,7 +1361,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (text.startsWith("/")) {
  			this.#throwIfExtensionCommand(text);
  		}
-@@ -10090,6 +10159,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10471,6 +10541,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * flipping advisor auto-resume.
  	 */
  	async followUp(text: string, images?: ImageContent[], options?: FollowUpOptions): Promise<void> {
@@ -1359,7 +1372,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (text.startsWith("/")) {
  			this.#throwIfExtensionCommand(text);
  		}
-@@ -10305,7 +10378,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10686,7 +10760,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			promptGeneration?: number;
  		},
  	): Promise<boolean> {
@@ -1369,7 +1382,7 @@ index 68a1154008..bd24bb39cd 100644
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
-@@ -10365,6 +10439,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10746,6 +10821,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
@@ -1377,7 +1390,7 @@ index 68a1154008..bd24bb39cd 100644
  			this.#irc.queueAside(records);
  			options?.onPromptAdmitted?.();
  			// The awaits above (image normalization / vision description) can span the run's
-@@ -10414,6 +10489,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10795,6 +10871,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -1385,7 +1398,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
  			return group;
-@@ -10903,16 +10979,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11312,16 +11389,22 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
@@ -1410,7 +1423,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (deliverAs === "aside") {
  			if (await this.#sessionGenerationChanged(sessionGeneration)) return;
  			// Non-interrupting: rides the same step-boundary aside poll as
-@@ -10972,7 +11054,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11384,7 +11467,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			acceptTerminalEmptyStop?: boolean;
  		},
  	): Promise<boolean> {
@@ -1420,22 +1433,36 @@ index 68a1154008..bd24bb39cd 100644
  	}
  
  	async #sendCustomMessage<T = unknown>(
-@@ -11058,7 +11141,13 @@ export class AgentSession implements SettingsScope, AgentViewSession {
- 			attribution: normalizedPayload.attribution,
+@@ -11471,7 +11555,28 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			excludeFromContext: normalizedPayload.excludeFromContext,
  			timestamp: Date.now(),
  		};
--		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
 +		this.#assertSubmissionCurrent();
-+    captureSubmission(appMessage, appMessage.role);
-+    if (typeof message === "object" && message !== null) copySubmission(message, appMessage);
-+    const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
-+    copySubmission(appMessage, normalizedAppMessage);
-+    this.#assertSubmissionCurrent();
++		captureSubmission(appMessage, appMessage.role);
++		if (typeof message === "object" && message !== null) copySubmission(message, appMessage);
+ 		const normalizedAppMessage = await this.#normalizeAgentMessageImages(appMessage);
++		copySubmission(appMessage, normalizedAppMessage);
++		this.#assertSubmissionCurrent();
 +		captureSubmission(normalizedAppMessage, normalizedAppMessage.role);
++		if (normalizedAppMessage.excludeFromContext) {
++			// The model never sees this row, so it must not start or extend a turn: a steer or aside would
++			// buy a provider call on unchanged context. Mid-run (prompt setup included) it is queued like
++			// a `!!` bash row and drawn and saved when the run ends or the next prompt starts; idle it is
++			// appended where the caller asked.
++			if (this.isStreaming) {
++				this.#pendingExcludedRows.push(normalizedAppMessage);
++				return false;
++			}
++			options = {
++				...options,
++				triggerTurn: false,
++				deliverAs: options?.deliverAs === "nextTurn" ? "nextTurn" : undefined,
++			};
++		}
  		if (this.isStreaming) {
  			// Queued into a turn the agent owns: that turn holds the session. Busy only
  			// from another prompt's setup claims nothing (that prompt decides).
-@@ -11211,6 +11300,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11628,6 +11733,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		content: string | (TextContent | ImageContent)[],
  		options?: SendUserMessageOptions,
  	): Promise<void> {
@@ -1446,7 +1473,7 @@ index 68a1154008..bd24bb39cd 100644
  		// Normalize content to text string + optional images
  		let text: string;
  		let images: ImageContent[] | undefined;
-@@ -11319,8 +11412,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11736,8 +11845,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const keep: (m: AgentMessage) => boolean = options?.forInterrupt
  			? m => recordedOnInterrupt.has(m)
  			: m => !isUserAuthoredQueuedMessage(m) && !isHiddenUserCompanion(m);
@@ -1457,7 +1484,7 @@ index 68a1154008..bd24bb39cd 100644
  				if (message.role === "custom" && message.customType === "ttsr-injection") {
  					this.#ttsr.releaseDeferredReservationFromDetails(message.details);
  				}
-@@ -11329,6 +11424,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11746,6 +11857,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			}
  		}
  		this.agent.replaceQueues(steeringAll.filter(keep), followUpAll.filter(keep));
@@ -1465,7 +1492,7 @@ index 68a1154008..bd24bb39cd 100644
  		this.#reconcileQueuedMessageDrain();
  		return { steering, followUp };
  	}
-@@ -11425,8 +11521,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11842,8 +11954,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	dropQueuedMessages(messages: Iterable<AgentMessage>): void {
  		const dropped = new Set(messages);
  		if (dropped.size === 0) return;
@@ -1476,7 +1503,7 @@ index 68a1154008..bd24bb39cd 100644
  		this.#reconcileQueuedMessageDrain();
  	}
  
-@@ -11441,6 +11539,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11858,6 +11972,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  
  		const removed = selected[index];
  		this.agent.replaceQueue(queue, this.#withoutQueuedUserMessage(selected, index));
@@ -1484,7 +1511,7 @@ index 68a1154008..bd24bb39cd 100644
  		this.#reconcileQueuedMessageDrain();
  		return toRestoredQueuedMessage(removed);
  	}
-@@ -11502,6 +11601,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11919,6 +12034,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		return remaining;
  	}
  
@@ -1498,9 +1525,9 @@ index 68a1154008..bd24bb39cd 100644
 +	}
 +
  	/**
- 	 * Pop the last queued message (steering first, then follow-up).
+ 	 * Pop the last queued message (steering first, then follow-up), tagged with its queue.
  	 * Used by dequeue keybinding to restore messages to editor one at a time.
-@@ -11520,6 +11628,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11937,6 +12061,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		if (fromSteer >= 0) {
  			const removed = steering[fromSteer];
  			this.agent.replaceQueues(this.#withoutQueuedUserMessage(steering, fromSteer), followUp.slice());
@@ -1508,9 +1535,9 @@ index 68a1154008..bd24bb39cd 100644
 +				steering.slice(this.#queuedUserGroupStart(steering, fromSteer), fromSteer + 1),
 +			);
  			this.#reconcileQueuedMessageDrain();
- 			return toRestoredQueuedMessage(removed);
+ 			return { ...toRestoredQueuedMessage(removed), queue: "steering" };
  		}
-@@ -11527,6 +11638,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11944,6 +12071,9 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		if (fromFollowUp >= 0) {
  			const removed = followUp[fromFollowUp];
  			this.agent.replaceQueues(steering.slice(), this.#withoutQueuedUserMessage(followUp, fromFollowUp));
@@ -1518,9 +1545,9 @@ index 68a1154008..bd24bb39cd 100644
 +				followUp.slice(this.#queuedUserGroupStart(followUp, fromFollowUp), fromFollowUp + 1),
 +			);
  			this.#reconcileQueuedMessageDrain();
- 			return toRestoredQueuedMessage(removed);
+ 			return { ...toRestoredQueuedMessage(removed), queue: "followUp" };
  		}
-@@ -11554,16 +11668,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11971,16 +12101,19 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		}
  		if (index >= 0) {
  			this.agent.replaceQueue(queue, this.#withoutQueuedUserMessage(pending, index));
@@ -1543,7 +1570,7 @@ index 68a1154008..bd24bb39cd 100644
  		return true;
  	}
  
-@@ -13561,6 +13678,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -13969,6 +14102,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  
  	/** Retry the last failed assistant turn when the session is idle. */
  	async retry(): Promise<boolean> {
@@ -1554,7 +1581,7 @@ index 68a1154008..bd24bb39cd 100644
  		const didRetry = await this.#recovery.retry(this.#prunedTerminalFailure);
  		// A manual retry is the user resuming the run they interrupted, so it lifts the
  		// interrupt's auto-resume suppression the same way a typed prompt does.
-@@ -13583,6 +13704,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -13991,6 +14128,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	 * a model, or with nothing left unfinished.
  	 */
  	async restoreInterruptedTurn(): Promise<boolean> {
@@ -1566,7 +1593,7 @@ index 68a1154008..bd24bb39cd 100644
  		if (this.isStreaming || !hasRestorableTurn(branch)) return false;
  		const model = this.model;
 diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
-index 907d538adc..25d6a079b5 100644
+index 907d538a..25d6a079 100644
 --- a/packages/coding-agent/src/session/live-message-observation.ts
 +++ b/packages/coding-agent/src/session/live-message-observation.ts
 @@ -96,8 +96,14 @@ export class NativeMessageObservations {
@@ -1586,7 +1613,7 @@ index 907d538adc..25d6a079b5 100644
    #emit(observation: NativeMessageObservation): void {
      for (const listener of this.#listeners) {
 diff --git a/packages/coding-agent/src/session/session-artifact-copy.ts b/packages/coding-agent/src/session/session-artifact-copy.ts
-index 0db8962316..d79c0bd86a 100644
+index 0db89623..d79c0bd8 100644
 --- a/packages/coding-agent/src/session/session-artifact-copy.ts
 +++ b/packages/coding-agent/src/session/session-artifact-copy.ts
 @@ -57,7 +57,7 @@ export function prepareGenerationArtifactTree(source: string): PreparedGeneratio
@@ -1599,7 +1626,7 @@ index 0db8962316..d79c0bd86a 100644
                const nativeId = sessionHeaderIdFromPrefix(nativePrefix); if (nativeId) { entry.nativeId = nativeId; entry.fd = fd; }
              }
 diff --git a/packages/coding-agent/src/session/session-entries.ts b/packages/coding-agent/src/session/session-entries.ts
-index 6b96d2abb9..61e02dcd7b 100644
+index 563062a2..0afd8c5e 100644
 --- a/packages/coding-agent/src/session/session-entries.ts
 +++ b/packages/coding-agent/src/session/session-entries.ts
 @@ -1,3 +1,4 @@
@@ -1607,8 +1634,8 @@ index 6b96d2abb9..61e02dcd7b 100644
  import type { AgentMessage } from "@oh-my-pi/pi-agent-core";
  import type {
  	ImageContent,
-@@ -40,6 +41,9 @@ export const EPHEMERAL_MODEL_CHANGE_ROLE = "fallback";
- export const PREWALK_MODEL_CHANGE_ROLE = "prewalk";
+@@ -55,6 +56,9 @@ export function modelRoleOf(role: string | undefined): string | undefined {
+ }
  
  export interface SessionHeader {
 +	/** Native reservation tombstones. Never removed by navigation, pruning, compaction or copies. */
@@ -1617,7 +1644,7 @@ index 6b96d2abb9..61e02dcd7b 100644
  	type: "session";
  	version?: number; // v1 sessions don't have this
  	id: string;
-@@ -91,6 +95,8 @@ export interface NewSessionOptions {
+@@ -101,6 +105,8 @@ export interface NewSessionOptions {
  }
  
  export interface SessionEntryBase {
@@ -1627,7 +1654,7 @@ index 6b96d2abb9..61e02dcd7b 100644
  	id: string;
  	parentId: string | null;
 diff --git a/packages/coding-agent/src/session/session-generation.ts b/packages/coding-agent/src/session/session-generation.ts
-index 0a24c09930..8efdf7cb7e 100644
+index 0a24c099..8efdf7cb 100644
 --- a/packages/coding-agent/src/session/session-generation.ts
 +++ b/packages/coding-agent/src/session/session-generation.ts
 @@ -1,3 +1,4 @@
@@ -1735,7 +1762,7 @@ index 0a24c09930..8efdf7cb7e 100644
            } finally { fs.closeSync(child); }
          }
 diff --git a/packages/coding-agent/src/session/session-header-id.ts b/packages/coding-agent/src/session/session-header-id.ts
-index aff31eac5d..9bc866b65c 100644
+index aff31eac..9bc866b6 100644
 --- a/packages/coding-agent/src/session/session-header-id.ts
 +++ b/packages/coding-agent/src/session/session-header-id.ts
 @@ -1,3 +1,4 @@
@@ -1764,7 +1791,7 @@ index aff31eac5d..9bc866b65c 100644
  
  /**
 diff --git a/packages/coding-agent/src/session/session-loader.ts b/packages/coding-agent/src/session/session-loader.ts
-index 219391d0e2..8172323d5d 100644
+index 219391d0..8172323d 100644
 --- a/packages/coding-agent/src/session/session-loader.ts
 +++ b/packages/coding-agent/src/session/session-loader.ts
 @@ -1,3 +1,4 @@
@@ -1784,7 +1811,7 @@ index 219391d0e2..8172323d5d 100644
  
  function applyTitleSlot(entry: FileEntry | undefined, slot: SessionTitleUpdate | undefined): void {
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index af1edf0fdc..24b62bbf4d 100644
+index 1de33f9f..1fbe92a2 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -1,10 +1,14 @@
@@ -1804,7 +1831,7 @@ index af1edf0fdc..24b62bbf4d 100644
  export interface NativeHistoryChange {
    kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
  }
-@@ -834,6 +838,7 @@ interface SessionManagerStateSnapshot {
+@@ -858,6 +862,7 @@ interface SessionManagerStateSnapshot {
  	/** Stashed sibling family candidate; moveTo drops it, so a rollback must restore it. */
  	taskSiblingCandidate: string | undefined;
  	header: SessionHeader;
@@ -1812,7 +1839,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	entries: SessionEntry[];
  }
  
-@@ -964,6 +969,11 @@ export class ForkSourceNotFoundError extends Error {
+@@ -988,6 +993,11 @@ export class ForkSourceNotFoundError extends Error {
   * repointed.
   */
  export class SessionManager {
@@ -1824,7 +1851,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	#cwd: string;
  	/** Additional workspace directories beyond cwd (multi-root). Normalized absolute, deduped, excludes cwd. */
  	#additionalDirectories: string[] = [];
-@@ -1617,7 +1627,8 @@ export class SessionManager {
+@@ -1639,7 +1649,8 @@ export class SessionManager {
  	}
  
  	#lineFor(entry: FileEntry): string {
@@ -1834,7 +1861,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	}
  	#recordDurableAppend(line: string): void {
  		this.#expectedDiskSize = (this.#expectedDiskSize ?? 0) + Buffer.byteLength(line, "utf8");
-@@ -1629,6 +1640,8 @@ export class SessionManager {
+@@ -1651,6 +1662,8 @@ export class SessionManager {
      const verifiedBinding = this.#storage.verifiedSourceBinding?.();
      if (verifiedBinding) this.bindHistorySource(verifiedBinding);
  		this.#expectedDiskSize = bytes;
@@ -1843,7 +1870,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	}
  
  	/**
-@@ -1682,11 +1695,17 @@ export class SessionManager {
+@@ -1704,11 +1717,17 @@ export class SessionManager {
  	 * Runs as the `session.rewrite` loop phase: a long transcript takes hundreds of milliseconds to stringify.
  	 */
  	#serializeBody(): SessionFileBody {
@@ -1863,7 +1890,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		withLoopPhase("session.rewrite", () => {
  			for (const entry of entries) {
  				const line = this.#lineFor(entry);
-@@ -2118,6 +2137,7 @@ export class SessionManager {
+@@ -2140,6 +2159,7 @@ export class SessionManager {
  
  	#resetToNewSession(options?: NewSessionOptions, forcedSessionFile?: string): string | undefined {
  		if (this.#strictContinuation) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
@@ -1871,7 +1898,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
  		this.#expectedDiskSize = null;
-@@ -2184,9 +2204,14 @@ export class SessionManager {
+@@ -2204,9 +2224,14 @@ export class SessionManager {
  		return this.#sessionFile;
  	}
  
@@ -1887,7 +1914,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#entries = entries;
  		this.#sessionId = header.id;
  		this.#sessionName = header.title;
-@@ -2195,6 +2220,7 @@ export class SessionManager {
+@@ -2215,6 +2240,7 @@ export class SessionManager {
  		const repairedUsage = normalizeLoadedUsage(entries);
  		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
  		this.#index.rebuild(entries);
@@ -1895,7 +1922,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#historyChanged("rebuild", true);
  	}
  
-@@ -2217,7 +2243,13 @@ export class SessionManager {
+@@ -2237,7 +2263,13 @@ export class SessionManager {
  		}
  	}
  
@@ -1909,7 +1936,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		if (this.#released) {
  			logger.warn("Dropped session entry appended after terminal release", { type: entry.type });
  			return;
-@@ -2225,6 +2257,15 @@ export class SessionManager {
+@@ -2245,6 +2277,15 @@ export class SessionManager {
  		if (entry.type === "message" && entry.message.role === "assistant" && normalizeAssistantUsage(entry.message)) {
  			logger.warn("Assistant message recorded with incomplete usage", { id: entry.id });
  		}
@@ -1925,7 +1952,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2236,6 +2277,8 @@ export class SessionManager {
+@@ -2256,6 +2297,8 @@ export class SessionManager {
  			batch.externalLeafId = sessionEntryLeafId(entry);
  		}
  		this.#appendToSessionFile(entry);
@@ -1934,7 +1961,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		if (batch) batch.deferredNotifications.push(entry);
  		else this.#notifyEntryAppended(entry);
  	}
-@@ -2366,6 +2409,7 @@ export class SessionManager {
+@@ -2387,6 +2430,7 @@ export class SessionManager {
  			// (cwd, additionalDirectories), so a by-reference capture would let
  			// a rollback observe the move it is undoing.
  			header: structuredClone(this.#header),
@@ -1942,7 +1969,7 @@ index af1edf0fdc..24b62bbf4d 100644
  			entries: [...this.#entries],
  		};
  	}
-@@ -2380,7 +2424,15 @@ export class SessionManager {
+@@ -2401,7 +2445,15 @@ export class SessionManager {
  		const persist = options?.persist ?? this.#persist;
  		const clone = new SessionManager(this.#cwd, this.#sessionDir, persist, this.#storage);
  		clone.#suppressBreadcrumb = true;
@@ -1958,7 +1985,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		if (!persist) {
  			clone.#sessionFile = undefined;
  			clone.#expectedDiskSize = null;
-@@ -2392,6 +2444,10 @@ export class SessionManager {
+@@ -2413,6 +2465,10 @@ export class SessionManager {
  	}
  
  	restoreState(snapshot: SessionManagerStateSnapshot): void {
@@ -1969,7 +1996,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#closeWriterEventually();
  		this.#diskTail = Promise.resolve();
  		this.#clearDiskError();
-@@ -2399,7 +2455,7 @@ export class SessionManager {
+@@ -2420,7 +2476,7 @@ export class SessionManager {
  		this.#cwd = snapshot.cwd;
  		this.#sessionDir = snapshot.sessionDir;
  		this.#sessionFile = snapshot.sessionFile;
@@ -1978,7 +2005,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#fileIsCurrent = snapshot.onDisk;
  		this.#rewriteRequired = snapshot.needsRewrite;
  		this.#forceFileCreation = snapshot.onDisk;
-@@ -2407,7 +2463,17 @@ export class SessionManager {
+@@ -2428,7 +2484,17 @@ export class SessionManager {
  		this.#fallbackRuntimeOnly = snapshot.fallbackRuntimeOnly;
  		// A completed moveTo drops the stash, so a rollback restores it here.
  		this.#taskSiblingCandidate = snapshot.taskSiblingCandidate;
@@ -1997,7 +2024,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#additionalDirectories = snapshot.header.additionalDirectories ?? [];
  		this.#sessionName = snapshot.sessionName;
  
-@@ -2596,7 +2662,7 @@ export class SessionManager {
+@@ -2617,7 +2683,7 @@ export class SessionManager {
  			this.#fallbackRuntimeOnly = false;
  		}
  
@@ -2006,7 +2033,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#expectedDiskSize = sourceSize;
  		this.#additionalDirectories = header.additionalDirectories ?? [];
  		this.#titleUpdatedAt = titleSlot?.updatedAt ?? header.timestamp;
-@@ -2677,6 +2743,7 @@ export class SessionManager {
+@@ -2698,6 +2764,7 @@ export class SessionManager {
  			parentSession: parentSessionId,
  			providerPromptCacheKey: SessionManager.getInheritedProviderPromptCacheKey(this.#header),
  			taskPromptCacheKey: this.#header.taskPromptCacheKey,
@@ -2014,7 +2041,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		};
  		this.#sessionName = this.#header.title;
  		this.#titleSource = this.#header.titleSource;
-@@ -2941,14 +3008,27 @@ export class SessionManager {
+@@ -2962,14 +3029,27 @@ export class SessionManager {
  		manager.#additionalDirectories = [...this.#additionalDirectories];
  		manager.#header.additionalDirectories =
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
@@ -2042,7 +2069,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	/**
  	 * Stage a synchronous group of entry appends and publish the resulting full
  	 * journal with one atomic replace. A failed publish removes only the staged
-@@ -3924,6 +4004,7 @@ export class SessionManager {
+@@ -3922,6 +4002,7 @@ export class SessionManager {
  	}
  
  	appendCustomEntry(customType: string, data?: unknown): string {
@@ -2050,15 +2077,16 @@ index af1edf0fdc..24b62bbf4d 100644
  		const entry: CustomEntry = { type: "custom", customType, data, ...this.#freshEntryFields() };
  		this.#recordEntry(entry);
  		return entry.id;
-@@ -3955,6 +4036,7 @@ export class SessionManager {
+@@ -3955,6 +4036,8 @@ export class SessionManager {
  		details?: T,
  		attribution: MessageAttribution | undefined = "agent",
  		timestamp?: number,
++		excludeFromContext?: boolean,
 +		originalMessage?: object,
  	): string {
- 		const normalized = normalizeCustomMessagePayload<T>({ customType, content, display, details, attribution });
- 		const fresh = this.#freshEntryFields();
-@@ -3963,6 +4045,7 @@ export class SessionManager {
+ 		const normalized = normalizeCustomMessagePayload<T>({
+ 			customType,
+@@ -3970,6 +4053,7 @@ export class SessionManager {
  			customType: normalized.customType,
  			content: normalized.content,
  			display: normalized.display,
@@ -2066,7 +2094,7 @@ index af1edf0fdc..24b62bbf4d 100644
  			// Drop AgentSession-internal transient fields before disk persistence.
  			details: stripInternalDetailsFields(normalized.details),
  			attribution: normalized.attribution,
-@@ -4193,6 +4276,118 @@ export class SessionManager {
+@@ -4212,6 +4296,118 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -2185,7 +2213,7 @@ index af1edf0fdc..24b62bbf4d 100644
  	/** Native live origins use the same source/context identity as coherent observation cuts. */
  	getHistoryMessageContext(context?: unknown) {
  		const sourceId = this.#historySourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256")
-@@ -4225,6 +4420,8 @@ export class SessionManager {
+@@ -4244,6 +4440,8 @@ export class SessionManager {
  	captureHistoryObservation(runtime: { messages: unknown[]; prefix?: unknown; context?: unknown; streaming: boolean; compacting: boolean }, limits: { entries: number; runningMessages: number; scanItems: number; bytes: number; nativeItemBytes: number; ms: number }, materialize = true, handoff = false) {
  		const started = performance.now();
  		const observedRevision = this.#historyRevision;
@@ -2194,7 +2222,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
  		if (this.#entries.length > limits.entries) throw new Error("history_scan_entries");
  		if (this.#loadedMalformedRecords > 0) throw new Error("history_partial_source");
-@@ -4440,6 +4637,7 @@ export class SessionManager {
+@@ -4459,6 +4657,7 @@ export class SessionManager {
  
  		this.flushSync();
      this.#beginExplicitNativeTransition();
@@ -2202,7 +2230,7 @@ index af1edf0fdc..24b62bbf4d 100644
  		this.#header = header;
  		this.#entries = [...entriesToKeep, ...labels];
  		this.#sessionId = newSessionId;
-@@ -4575,6 +4773,8 @@ export class SessionManager {
+@@ -4587,6 +4786,8 @@ export class SessionManager {
  			},
  			options?.sessionFile,
  		);
@@ -2210,8 +2238,8 @@ index af1edf0fdc..24b62bbf4d 100644
 +		manager.#header.requiredFeatures = structuredClone(sourceHeader?.requiredFeatures);
  		manager.#header.title = sourceHeader?.title;
  		manager.#header.titleSource = sourceHeader?.titleSource;
- 		manager.#additionalDirectories = options?.seance
-@@ -4590,8 +4790,8 @@ export class SessionManager {
+ 		manager.#additionalDirectories = (sourceHeader?.additionalDirectories ?? []).filter(d => d !== path.resolve(cwd));
+@@ -4596,8 +4797,8 @@ export class SessionManager {
  		manager.#titleSource = manager.#header.titleSource;
  		manager.#titleUpdatedAt = nowIso();
  		manager.#hasTitleSlot = true;
@@ -2222,16 +2250,16 @@ index af1edf0fdc..24b62bbf4d 100644
  		manager.#historyChanged("rebuild", true);
  		manager.sanitizeLoadedOpenAIResponsesReplayMetadata();
  		if (options?.repairInterruptedTail) {
-@@ -4600,6 +4800,7 @@ export class SessionManager {
+@@ -4606,6 +4807,7 @@ export class SessionManager {
  			manager.#historyChanged("rebuild", true);
  		}
  		manager.#forceFileCreation = true;
 +		manager.#materializeSubmissionCopy();
  		await manager.#rewriteAtomically();
- 		if (!options?.seance && options?.copyArtifacts !== false) {
+ 		if (options?.copyArtifacts !== false) {
  			await copySessionArtifacts(sourcePath, manager.#sessionFile!);
 diff --git a/packages/coding-agent/src/session/session-provider-boundary.ts b/packages/coding-agent/src/session/session-provider-boundary.ts
-index ed90bee2d1..3124202ad9 100644
+index 1ac44e7f..549d92a0 100644
 --- a/packages/coding-agent/src/session/session-provider-boundary.ts
 +++ b/packages/coding-agent/src/session/session-provider-boundary.ts
 @@ -1,3 +1,4 @@
@@ -2273,7 +2301,7 @@ index ed90bee2d1..3124202ad9 100644
  	/** Builds a hidden vision-model description for attachments sent to a text-only model. */
 diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
 new file mode 100644
-index 0000000000..85ef1dd61e
+index 00000000..85ef1dd6
 --- /dev/null
 +++ b/packages/coding-agent/src/session/session-required-features.ts
 @@ -0,0 +1,14 @@
@@ -2292,7 +2320,7 @@ index 0000000000..85ef1dd61e
 +  return { ...value, type: "session" } as SessionHeader;
 +}
 diff --git a/packages/coding-agent/src/session/strict-session-storage.ts b/packages/coding-agent/src/session/strict-session-storage.ts
-index f62d357da0..cd6840a308 100644
+index f62d357d..cd6840a3 100644
 --- a/packages/coding-agent/src/session/strict-session-storage.ts
 +++ b/packages/coding-agent/src/session/strict-session-storage.ts
 @@ -11,6 +11,8 @@ export class StrictSessionStorage implements SessionStorage {
@@ -2315,7 +2343,7 @@ index f62d357da0..cd6840a308 100644
    readText(file: string): Promise<string> { return Promise.resolve(this.readTextSync(file)); }
 diff --git a/packages/coding-agent/src/session/submission-policy.ts b/packages/coding-agent/src/session/submission-policy.ts
 new file mode 100644
-index 0000000000..95661b2e45
+index 00000000..95661b2e
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-policy.ts
 @@ -0,0 +1,8 @@
@@ -2329,7 +2357,7 @@ index 0000000000..95661b2e45
 +} as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
 new file mode 100644
-index 0000000000..ad5fbebb55
+index 00000000..ad5fbebb
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
 @@ -0,0 +1,121 @@
@@ -2456,7 +2484,7 @@ index 0000000000..ad5fbebb55
 +}
 diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
 new file mode 100644
-index 0000000000..147392a0f1
+index 00000000..147392a0
 --- /dev/null
 +++ b/packages/coding-agent/src/session/submission-records.ts
 @@ -0,0 +1,81 @@
@@ -2542,7 +2570,7 @@ index 0000000000..147392a0f1
 +  }
 +}
 diff --git a/packages/coding-agent/src/session/turn-recovery.ts b/packages/coding-agent/src/session/turn-recovery.ts
-index 5c31423639..2b55b55d60 100644
+index 48db4278..f171020c 100644
 --- a/packages/coding-agent/src/session/turn-recovery.ts
 +++ b/packages/coding-agent/src/session/turn-recovery.ts
 @@ -1,3 +1,4 @@
@@ -2550,7 +2578,7 @@ index 5c31423639..2b55b55d60 100644
  import {
  	type Agent,
  	AgentBusyError,
-@@ -3408,7 +3409,9 @@ export class TurnRecovery {
+@@ -3550,7 +3551,9 @@ export class TurnRecovery {
  			// still surfaces at the await below.
  			let claimFailed = false;
  			try {
@@ -2561,7 +2589,7 @@ index 5c31423639..2b55b55d60 100644
  					claimFailed = true;
  					throw error;
  				});
-@@ -3420,7 +3423,7 @@ export class TurnRecovery {
+@@ -3562,7 +3565,7 @@ export class TurnRecovery {
  				await claim;
  				return;
  			} catch (err) {

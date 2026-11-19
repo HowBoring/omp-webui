@@ -1,8 +1,8 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index d1b73a553d..610cb9cd74 100644
+index cef22f04..dd95ff6d 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
-@@ -9,6 +9,8 @@
+@@ -11,6 +11,8 @@
  
  ### Added
  
@@ -10,10 +10,10 @@ index d1b73a553d..610cb9cd74 100644
 +
  - Added a diagnostic-only `--rpc-preflight` compatibility startup path that reports public build/schema identity before Session or user configuration initialization ([WebUI #30](https://github.com/HowBoring/omp-webui/issues/30)).
  
- ### Fixed
+ ## [19.0.0] - 2026-11-18
 diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
 new file mode 100644
-index 0000000000..7476fcc2c8
+index 00000000..7476fcc2
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/history-client.ts
 @@ -0,0 +1,30 @@
@@ -48,7 +48,7 @@ index 0000000000..7476fcc2c8
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-client.ts b/packages/coding-agent/src/modes/rpc/rpc-client.ts
-index 943e3c262f..c4eaa18fd7 100644
+index 943e3c26..c4eaa18f 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-client.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-client.ts
 @@ -1,3 +1,4 @@
@@ -82,7 +82,7 @@ index 943e3c262f..c4eaa18fd7 100644
  	 * `SessionManager` on the server: no `since` returns all entries in append
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 new file mode 100644
-index 0000000000..c00b54a916
+index 00000000..c00b54a9
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
 @@ -0,0 +1,314 @@
@@ -401,7 +401,7 @@ index 0000000000..c00b54a916
 +  }
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 09ee403565..796d87c814 100644
+index 0bb6497b..377f932c 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,3 +1,5 @@
@@ -410,7 +410,7 @@ index 09ee403565..796d87c814 100644
  /**
   * RPC mode: Headless operation with JSON stdin/stdout protocol.
   *
-@@ -1362,6 +1364,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1364,6 +1366,14 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  		costCapRefusal: () => session.costCapRefusal,
  		settledWithoutRun: () => void settleWatcher.check(),
  	});
@@ -425,7 +425,7 @@ index 09ee403565..796d87c814 100644
  	const sessionEvents = new RpcSessionEventForwarder(output);
  
  	const pendingExtensionRequests = new RpcPendingExtensionRequests();
-@@ -1731,6 +1741,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1733,6 +1743,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  
  	// Output all agent events as JSON; prompt results follow the frame that settled them.
  	session.subscribe(event => {
@@ -433,7 +433,7 @@ index 09ee403565..796d87c814 100644
  		sessionEvents.forward(event);
  		// Before the prompt-result and settle reports: a goal continuation decided at this
  		// agent_end is scheduled (and reported as pending) before either reads settlement.
-@@ -2267,6 +2278,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2269,6 +2280,25 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				return success(id, "get_available_commands", { commands: await getAvailableCommands() });
  			}
  
@@ -460,10 +460,10 @@ index 09ee403565..796d87c814 100644
  				try {
  					return success(
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index 2fe43f30be..a0c7055d75 100644
+index 6cb31efd..4fd6f727 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-@@ -30,6 +30,7 @@ import type { SubagentEventPayload, SubagentLifecyclePayload, SubagentProgressPa
+@@ -31,6 +31,7 @@ import type { SubagentEventPayload, SubagentLifecyclePayload, SubagentProgressPa
  import type { TodoPhase } from "@oh-my-pi/pi-tui/tools/todo";
  import type { LogoutAccount } from "@oh-my-pi/pi-tui/overlays/logout-account-selector";
  import type { LivePhase } from "@oh-my-pi/pi-tui/apps/live-visualizer";
@@ -471,7 +471,7 @@ index 2fe43f30be..a0c7055d75 100644
  import type { RpcMessagesPage } from "./rpc-messages";
  import type { GoalModeState } from "../../goals/state";
  import type { RpcGoalOp, RpcGoalResult } from "./rpc-goal";
-@@ -47,6 +48,11 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -48,6 +49,11 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
@@ -483,7 +483,7 @@ index 2fe43f30be..a0c7055d75 100644
  	// Protocol
  	| { id?: string; type: "get_interaction_policy" }
  	| { id?: string; type: "respond_ui"; targetId: string; answer: RpcUIAnswer }
-@@ -433,6 +439,11 @@ export interface RpcSubagentMessagesResult {
+@@ -434,6 +440,11 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -496,7 +496,7 @@ index 2fe43f30be..a0c7055d75 100644
  	| {
  			id?: string;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 666b2e6d59..bbf37dcf49 100644
+index 666b2e6d..bbf37dcf 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 @@ -8,6 +8,7 @@
@@ -517,7 +517,7 @@ index 666b2e6d59..bbf37dcf49 100644
      doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
 new file mode 100644
-index 0000000000..8376a53b86
+index 00000000..8376a53b
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
 @@ -0,0 +1,37 @@
@@ -559,7 +559,7 @@ index 0000000000..8376a53b86
 +    params: { workerId: "string", after: "number.integer" }, result: "HistoryPoll" },
 +] as const;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index 9f8449ecb3..93c54db31d 100644
+index 9f8449ec..93c54db3 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
 @@ -21,6 +21,7 @@ import { eventDefs } from "./events";
@@ -579,10 +579,11 @@ index 9f8449ecb3..93c54db31d 100644
  	};
  	const open = new Set([...Object.keys(messageDefs), "SelectOptionDetail"]);
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 5835039797..b8a0b167a3 100644
+index ac31d4b6..a028ba47 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,5 +1,9 @@
+@@ -1,6 +1,9 @@
+-import type { Settings } from "../config/settings";
 +export interface NativeHistoryChange {
 +  kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
 +}
@@ -592,15 +593,45 @@ index 5835039797..b8a0b167a3 100644
  import type {
  	ImageContent,
  	Message,
-@@ -21,7 +25,6 @@ import {
- 	isFsError,
- 	logger,
- 	pathIsWithin,
--	stringifyJson,
- 	toError,
- 	withLoopPhase,
- } from "@oh-my-pi/pi-utils";
-@@ -959,6 +962,10 @@ export class SessionManager {
+@@ -139,6 +142,22 @@ import {
+ 	normalizeWorkspaceDirectory,
+ } from "./session-workspace";
+ import { recordSessionRecap, recordSessionTitle } from "./session-index";
++import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
++import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
++import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
++import { locatePreparedEntryParts } from "../attachments/entry-parts";
++import { causalSubmission, runSubmissionForOwner, sameSubmission, validSubmissionCausality } from "./submission-provenance";
++import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
++import { nativeHistoryContextId } from "./history-context";
++import { associateMessageEntry } from "./live-message-observation";
++import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
++import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
++import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
++import { StrictSessionStorage } from "./strict-session-storage";
++
++export interface NativeHistoryChange {
++  kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
++}
+ 
+ const JSONL_SUFFIX_LENGTH = ".jsonl".length;
+ const DRAFT_ONLY_SESSION_MARKER = ".draft-only-session";
+@@ -221,11 +240,9 @@ export async function copySessionArtifacts(sourceSessionFile: string, destinatio
+ 	}
+ }
+ 
+-/** The spill id a file `prefix + name` of a session directory carries (`local/<id>.log`), if any. */
+-function artifactIdOf(name: string, prefix: string): string | undefined {
+-	if (prefix !== "local/") return undefined;
+-	const id = spillIdOfFileName(name);
+-	return id === undefined ? undefined : String(id);
++/** The numeric id an artifact file name (`<id>.<tool>.log`) carries, if any. */
++function artifactIdOf(name: string): string | undefined {
++	return /^(\d+)\./.exec(name)?.[1];
+ }
+ 
+ /**
+@@ -967,6 +984,10 @@ export class SessionManager {
  	#titleRevision = 0;
  	/** Bumped by in-place entry updates, which a {@link SessionBodyStamp} cannot otherwise see. */
  	#bodyRevision = 0;
@@ -611,7 +642,7 @@ index 5835039797..b8a0b167a3 100644
  	#sessionFile: string | undefined;
  	#header!: SessionHeader;
  	#titleUpdatedAt = "";
-@@ -1234,9 +1241,11 @@ export class SessionManager {
+@@ -1240,9 +1261,11 @@ export class SessionManager {
  			if (this.#index.has(entry.id)) continue;
  			this.#entries.push(entry);
  			this.#index.insert(entry);
@@ -623,7 +654,7 @@ index 5835039797..b8a0b167a3 100644
  		this.#expectedDiskSize = diskSize;
  		if (adopted > 0)
  			logger.warn("Kept session entries another writer added", { sessionFile: this.#sessionFile, adopted });
-@@ -1585,6 +1594,8 @@ export class SessionManager {
+@@ -1591,6 +1614,8 @@ export class SessionManager {
  	}
  
  	#recordFullRewrite(bytes: number): void {
@@ -632,7 +663,7 @@ index 5835039797..b8a0b167a3 100644
  		this.#expectedDiskSize = bytes;
  	}
  
-@@ -2104,6 +2115,7 @@ export class SessionManager {
+@@ -2110,6 +2135,7 @@ export class SessionManager {
  
  		this.#entries = [];
  		this.#index.clear();
@@ -640,7 +671,7 @@ index 5835039797..b8a0b167a3 100644
  		this.#fileIsCurrent = false;
  		this.#rewriteRequired = false;
  		this.#loadedMalformedRecords = 0;
-@@ -2132,6 +2144,7 @@ export class SessionManager {
+@@ -2136,6 +2162,7 @@ export class SessionManager {
  	}
  
  	#applyEntries(header: SessionHeader, entries: SessionEntry[]): void {
@@ -648,7 +679,7 @@ index 5835039797..b8a0b167a3 100644
  		this.#header = header;
  		this.#entries = entries;
  		this.#sessionId = header.id;
-@@ -2141,6 +2154,7 @@ export class SessionManager {
+@@ -2145,6 +2172,7 @@ export class SessionManager {
  		const repairedUsage = normalizeLoadedUsage(entries);
  		if (repairedUsage > 0) logger.warn("Loaded assistant messages with incomplete usage", { count: repairedUsage });
  		this.#index.rebuild(entries);
@@ -656,7 +687,7 @@ index 5835039797..b8a0b167a3 100644
  	}
  
  	#freshEntryFields(): { id: string; parentId: string | null; timestamp: string; runtime: RuntimeIdentity } {
-@@ -2154,6 +2168,7 @@ export class SessionManager {
+@@ -2158,6 +2186,7 @@ export class SessionManager {
  
  	#setLeaf(id: string | null): void {
  		this.#index.setLeaf(id);
@@ -664,7 +695,7 @@ index 5835039797..b8a0b167a3 100644
  		const batch = this.#atomicEntryBatch;
  		if (batch && !batch.collecting) {
  			batch.externalLeafChanged = true;
-@@ -2171,6 +2186,7 @@ export class SessionManager {
+@@ -2175,6 +2204,7 @@ export class SessionManager {
  		}
  		this.#entries.push(entry);
  		this.#index.insert(entry);
@@ -672,7 +703,7 @@ index 5835039797..b8a0b167a3 100644
  		const batch = this.#atomicEntryBatch;
  		if (batch?.collecting) batch.entryIds.add(entry.id);
  		if (batch && !batch.collecting) {
-@@ -2203,7 +2219,9 @@ export class SessionManager {
+@@ -2207,7 +2237,9 @@ export class SessionManager {
  		const restoredLeaf = retainedAncestor(batch.externalLeafChanged ? batch.externalLeafId : batch.preBatchLeafId);
  		this.#entries = retained;
  		this.#index.rebuild(retained);
@@ -682,7 +713,7 @@ index 5835039797..b8a0b167a3 100644
  	}
  
  	#draftPath(): string | null {
-@@ -2817,6 +2835,7 @@ export class SessionManager {
+@@ -2822,6 +2854,7 @@ export class SessionManager {
  			manager.#additionalDirectories.length > 0 ? [...manager.#additionalDirectories] : undefined;
  		manager.#entries = structuredClone(this.#entries);
  		manager.#index.rebuild(manager.#entries);
@@ -690,15 +721,15 @@ index 5835039797..b8a0b167a3 100644
  		manager.#forceFileCreation = true;
  		await manager.#rewriteAtomically();
  		return manager;
-@@ -3090,6 +3109,7 @@ export class SessionManager {
+@@ -3095,6 +3128,7 @@ export class SessionManager {
  		this.seal();
  		this.#entries = [];
  		this.#index.clear();
 +		this.#historyChanged("clear", true);
- 		this.#inMemoryArtifacts = null;
  		this.#closeWriterEventually();
  		this.#entriesReleased = true;
-@@ -3502,6 +3522,7 @@ export class SessionManager {
+ 	}
+@@ -3487,6 +3521,7 @@ export class SessionManager {
  		if (trigger) entry.trigger = trigger;
  		this.#entries.push(entry);
  		this.#index.insert(entry);
@@ -706,7 +737,7 @@ index 5835039797..b8a0b167a3 100644
  		this.#notifyEntryAppended(entry);
  		await this.#persistTitleChangeEntry(entry, { title, source, updatedAt: timestamp });
  		// Keep the recent-sessions title index current so welcome-screen lookups
-@@ -3796,6 +3817,7 @@ export class SessionManager {
+@@ -3778,6 +3813,7 @@ export class SessionManager {
  	 * outputs). Use sparingly.
  	 */
  	async rewriteEntries(): Promise<void> {
@@ -714,7 +745,15 @@ index 5835039797..b8a0b167a3 100644
  		this.#bodyRevision++;
  		if (!this.#persist || !this.#sessionFile) return;
  		await this.#rewriteAtomically();
-@@ -4045,6 +4067,74 @@ export class SessionManager {
+@@ -3800,7 +3836,6 @@ export class SessionManager {
+ 		details?: T,
+ 		attribution: MessageAttribution | undefined = "agent",
+ 		timestamp?: number,
+-		excludeFromContext?: boolean,
+ 	): string {
+ 		const normalized = normalizeCustomMessagePayload<T>({
+ 			customType,
+@@ -4049,6 +4084,74 @@ export class SessionManager {
  	}
  
  	/** All session entries (excludes header). Returns a shallow copy. */
@@ -789,7 +828,7 @@ index 5835039797..b8a0b167a3 100644
  	getEntries(): SessionEntry[] {
  		return [...this.#entries];
  	}
-@@ -4103,6 +4193,7 @@ export class SessionManager {
+@@ -4107,6 +4210,7 @@ export class SessionManager {
  			}
  			this.#entries = this.#entries.filter(candidate => candidate.id !== entryId);
  			this.#index.rebuild(this.#entries);
@@ -797,15 +836,15 @@ index 5835039797..b8a0b167a3 100644
  			if (entry.type === "message" && entry.message.role === "assistant") {
  				const { api, provider, model, usage, stopReason, errorMessage } = entry.message;
  				// Off-branch like late usage: totals count every entry, and the kept
-@@ -4218,6 +4309,7 @@ export class SessionManager {
+@@ -4222,6 +4326,7 @@ export class SessionManager {
  		this.#titleUpdatedAt = timestamp;
  		this.#hasTitleSlot = true;
  		this.#index.rebuild(this.#entries);
 +		this.#historyChanged("rebuild", true);
  		this.#artifactManager = null;
- 		this.#artifactManagerSessionFile = null;
+ 		this.#artifactManagerLocalRoot = null;
  		this.#forceFileCreation = this.#persist;
-@@ -4359,10 +4451,12 @@ export class SessionManager {
+@@ -4350,10 +4455,12 @@ export class SessionManager {
  		manager.#hasTitleSlot = true;
  		manager.#entries = history;
  		manager.#index.rebuild(history);

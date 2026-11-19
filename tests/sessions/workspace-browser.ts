@@ -57,7 +57,7 @@ async function trustBrowserAssets(): Promise<void> {
   }));
   const digest = "0".repeat(64);
   // Only static assets are used here. No runtime, launcher or Native execution is selected.
-  const trust: InstallationManifest = { format: "omp-webui-s0-v1", base: "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  const trust: InstallationManifest = { format: "omp-webui-s0-v1", base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
     patch: digest, schema: digest, launcher: "unused", target: "unused",
     runtime: { path: "unused", kind: "file", identity: digest, mode: 0 }, assets: files, runtimeDependencies: [],
     platform: process.platform, arch: process.arch };

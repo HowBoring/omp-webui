@@ -1,5 +1,5 @@
 diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
-index 87101a2..89809bd 100644
+index 06352dbd..e632315d 100644
 --- a/packages/coding-agent/CHANGELOG.md
 +++ b/packages/coding-agent/CHANGELOG.md
 @@ -19,6 +19,8 @@
@@ -12,7 +12,7 @@ index 87101a2..89809bd 100644
  
  - Added exact native live-message/entry observation settlement, opt-in immutable-cut live handoff and scoped bounded source changes ([WebUI #35](https://github.com/HowBoring/omp-webui/issues/35)).
 diff --git a/packages/coding-agent/README.md b/packages/coding-agent/README.md
-index 7e51b0a..bca229a 100644
+index 7e51b0ab..bca229a8 100644
 --- a/packages/coding-agent/README.md
 +++ b/packages/coding-agent/README.md
 @@ -9,6 +9,8 @@ For installation, setup, provider configuration, model roles, slash commands, an
@@ -26,7 +26,7 @@ index 7e51b0a..bca229a 100644
  - [MCP configuration guide](../../docs/mcp-config.md)
 diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
 new file mode 100644
-index 0000000..66a7aab
+index 00000000..66a7aab3
 --- /dev/null
 +++ b/packages/coding-agent/docs/rpc-attachments.md
 @@ -0,0 +1,61 @@
@@ -92,7 +92,7 @@ index 0000000..66a7aab
 +Private product Session admission remains blocked. Native data/fault, Host/DSH/browser, rollback
 +and the final matched artifact gates remain independent from isolated preparation/source checks.
 diff --git a/packages/coding-agent/scripts/gen-rpc/model.ts b/packages/coding-agent/scripts/gen-rpc/model.ts
-index 4377153..f9e701e 100644
+index 43771536..f9e701ee 100644
 --- a/packages/coding-agent/scripts/gen-rpc/model.ts
 +++ b/packages/coding-agent/scripts/gen-rpc/model.ts
 @@ -181,7 +181,7 @@ export function unionLeaves(model: WireModel, name: string): string[] {
@@ -105,7 +105,7 @@ index 4377153..f9e701e 100644
  		let routes = true;
  		for (const member of members) {
 diff --git a/packages/coding-agent/scripts/gen-rpc/python.ts b/packages/coding-agent/scripts/gen-rpc/python.ts
-index 8b4f368..3612cef 100644
+index 8b4f3689..3612cefe 100644
 --- a/packages/coding-agent/scripts/gen-rpc/python.ts
 +++ b/packages/coding-agent/scripts/gen-rpc/python.ts
 @@ -565,7 +565,9 @@ class PythonEmitter {
@@ -121,7 +121,7 @@ index 8b4f368..3612cef 100644
  		if (inner) return `${this.#paramAnnotation(inner, where)} | None`;
 diff --git a/packages/coding-agent/src/attachments/deny-network.ts b/packages/coding-agent/src/attachments/deny-network.ts
 new file mode 100644
-index 0000000..811404f
+index 00000000..811404f3
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/deny-network.ts
 @@ -0,0 +1,24 @@
@@ -151,7 +151,7 @@ index 0000000..811404f
 +syncBuiltinESMExports();
 diff --git a/packages/coding-agent/src/attachments/document.ts b/packages/coding-agent/src/attachments/document.ts
 new file mode 100644
-index 0000000..5598496
+index 00000000..55984966
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/document.ts
 @@ -0,0 +1,31 @@
@@ -188,7 +188,7 @@ index 0000000..5598496
 +}
 diff --git a/packages/coding-agent/src/attachments/entry-parts.ts b/packages/coding-agent/src/attachments/entry-parts.ts
 new file mode 100644
-index 0000000..54f1852
+index 00000000..54f18528
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/entry-parts.ts
 @@ -0,0 +1,57 @@
@@ -251,7 +251,7 @@ index 0000000..54f1852
 +}
 diff --git a/packages/coding-agent/src/attachments/input-policy.ts b/packages/coding-agent/src/attachments/input-policy.ts
 new file mode 100644
-index 0000000..4a91540
+index 00000000..4a915408
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/input-policy.ts
 @@ -0,0 +1,11 @@
@@ -268,7 +268,7 @@ index 0000000..4a91540
 +}
 diff --git a/packages/coding-agent/src/attachments/isolated.ts b/packages/coding-agent/src/attachments/isolated.ts
 new file mode 100644
-index 0000000..b866f63
+index 00000000..b866f63e
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/isolated.ts
 @@ -0,0 +1,68 @@
@@ -342,7 +342,7 @@ index 0000000..b866f63
 +}
 diff --git a/packages/coding-agent/src/attachments/limits.ts b/packages/coding-agent/src/attachments/limits.ts
 new file mode 100644
-index 0000000..24bcd0a
+index 00000000..24bcd0ab
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/limits.ts
 @@ -0,0 +1,17 @@
@@ -365,7 +365,7 @@ index 0000000..24bcd0a
 +});
 diff --git a/packages/coding-agent/src/attachments/model-binding.ts b/packages/coding-agent/src/attachments/model-binding.ts
 new file mode 100644
-index 0000000..89c4d44
+index 00000000..89c4d443
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/model-binding.ts
 @@ -0,0 +1,15 @@
@@ -386,7 +386,7 @@ index 0000000..89c4d44
 +}
 diff --git a/packages/coding-agent/src/attachments/package.ts b/packages/coding-agent/src/attachments/package.ts
 new file mode 100644
-index 0000000..8b6a55f
+index 00000000..8b6a55f6
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/package.ts
 @@ -0,0 +1,64 @@
@@ -456,7 +456,7 @@ index 0000000..8b6a55f
 +}
 diff --git a/packages/coding-agent/src/attachments/prepare.ts b/packages/coding-agent/src/attachments/prepare.ts
 new file mode 100644
-index 0000000..39b4362
+index 00000000..39b43629
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/prepare.ts
 @@ -0,0 +1,77 @@
@@ -539,7 +539,7 @@ index 0000000..39b4362
 +}
 diff --git a/packages/coding-agent/src/attachments/provider-guard.ts b/packages/coding-agent/src/attachments/provider-guard.ts
 new file mode 100644
-index 0000000..907abd0
+index 00000000..907abd0a
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/provider-guard.ts
 @@ -0,0 +1,140 @@
@@ -685,7 +685,7 @@ index 0000000..907abd0
 +}
 diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
 new file mode 100644
-index 0000000..ae4b153
+index 00000000..ae4b1536
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/receipts.ts
 @@ -0,0 +1,208 @@
@@ -899,7 +899,7 @@ index 0000000..ae4b153
 +}
 diff --git a/packages/coding-agent/src/attachments/rpc-budget.ts b/packages/coding-agent/src/attachments/rpc-budget.ts
 new file mode 100644
-index 0000000..a1774d2
+index 00000000..a1774d21
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/rpc-budget.ts
 @@ -0,0 +1,23 @@
@@ -928,7 +928,7 @@ index 0000000..a1774d2
 +}
 diff --git a/packages/coding-agent/src/attachments/validation.ts b/packages/coding-agent/src/attachments/validation.ts
 new file mode 100644
-index 0000000..cfdd941
+index 00000000..cfdd941f
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/validation.ts
 @@ -0,0 +1,43 @@
@@ -977,7 +977,7 @@ index 0000000..cfdd941
 +}
 diff --git a/packages/coding-agent/src/attachments/worker.ts b/packages/coding-agent/src/attachments/worker.ts
 new file mode 100644
-index 0000000..bf5c426
+index 00000000..bf5c4268
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/worker.ts
 @@ -0,0 +1,27 @@
@@ -1009,10 +1009,10 @@ index 0000000..bf5c426
 +	} else await runAttachmentWorker(format);
 +}
 diff --git a/packages/coding-agent/src/cli.ts b/packages/coding-agent/src/cli.ts
-index ff1bfe9..ba8ee38 100755
+index 4936f7ab..ec95b18a 100755
 --- a/packages/coding-agent/src/cli.ts
 +++ b/packages/coding-agent/src/cli.ts
-@@ -17,6 +17,13 @@ function validStrictArgs(args: string[]): boolean {
+@@ -28,6 +28,13 @@ function validStrictArgs(args: string[]): boolean {
  }
  
  export async function runCli(argv: string[]): Promise<void> {
@@ -1026,7 +1026,7 @@ index ff1bfe9..ba8ee38 100755
    if (argv.length === 1 && argv[0] === "--rpc-preflight") {
      const { runPreflight } = await import("./modes/rpc/preflight");
      await runPreflight();
-@@ -36,7 +43,9 @@ export async function runCli(argv: string[]): Promise<void> {
+@@ -47,7 +54,9 @@ export async function runCli(argv: string[]): Promise<void> {
  }
  
  if (import.meta.main || process.env.PI_COMPILED === "true" || !Bun.isMainThread) {
@@ -1038,7 +1038,7 @@ index ff1bfe9..ba8ee38 100755
      if (args.length < 3 || args[0] !== "--mode" || args[1] !== "rpc-ui" || args[2] !== "--strict-start") process.exitCode = 2;
      else void runCli(args).catch(() => { process.exitCode = 1; });
 diff --git a/packages/coding-agent/src/extensibility/extensions/runner.ts b/packages/coding-agent/src/extensibility/extensions/runner.ts
-index a4c59be..b7ef371 100644
+index 35e569e5..967ccd8e 100644
 --- a/packages/coding-agent/src/extensibility/extensions/runner.ts
 +++ b/packages/coding-agent/src/extensibility/extensions/runner.ts
 @@ -1,3 +1,4 @@
@@ -1046,7 +1046,7 @@ index a4c59be..b7ef371 100644
  /**
   * Extension runner - executes extensions and manages their lifecycle.
   */
-@@ -2493,7 +2494,7 @@ export class ExtensionRunner {
+@@ -2495,7 +2496,7 @@ export class ExtensionRunner {
  
  		let currentMessages: AgentMessage[];
  		try {
@@ -1056,7 +1056,7 @@ index a4c59be..b7ef371 100644
  			// Messages may contain non-cloneable objects (e.g. in ToolResultMessage.details
  			// or ProviderPayload). Fall back to a shallow array clone — extensions should
 diff --git a/packages/coding-agent/src/markit/converters/docx.ts b/packages/coding-agent/src/markit/converters/docx.ts
-index 97191bd..2190969 100644
+index 97191bd6..21909693 100644
 --- a/packages/coding-agent/src/markit/converters/docx.ts
 +++ b/packages/coding-agent/src/markit/converters/docx.ts
 @@ -46,6 +46,6 @@ export class DocxConverter implements Converter {
@@ -1068,7 +1068,7 @@ index 97191bd..2190969 100644
  	}
  }
 diff --git a/packages/coding-agent/src/markit/converters/epub.ts b/packages/coding-agent/src/markit/converters/epub.ts
-index 2e49f46..8f7e985 100644
+index 2e49f466..8f7e9859 100644
 --- a/packages/coding-agent/src/markit/converters/epub.ts
 +++ b/packages/coding-agent/src/markit/converters/epub.ts
 @@ -96,6 +96,7 @@ export class EpubConverter implements Converter {
@@ -1102,7 +1102,7 @@ index 2e49f46..8f7e985 100644
  	}
  
 diff --git a/packages/coding-agent/src/markit/converters/pdf/index.ts b/packages/coding-agent/src/markit/converters/pdf/index.ts
-index 80a43cb..f8932c4 100644
+index 80a43cb4..f8932c48 100644
 --- a/packages/coding-agent/src/markit/converters/pdf/index.ts
 +++ b/packages/coding-agent/src/markit/converters/pdf/index.ts
 @@ -32,6 +32,8 @@ export class PdfConverter implements Converter {
@@ -1115,7 +1115,7 @@ index 80a43cb..f8932c4 100644
  		if (result.title !== undefined) conversion.title = result.title;
  		return conversion;
 diff --git a/packages/coding-agent/src/markit/converters/pptx.ts b/packages/coding-agent/src/markit/converters/pptx.ts
-index 1be2983..f04afe9 100644
+index 1be29836..f04afe98 100644
 --- a/packages/coding-agent/src/markit/converters/pptx.ts
 +++ b/packages/coding-agent/src/markit/converters/pptx.ts
 @@ -253,7 +253,7 @@ export class PptxConverter implements Converter {
@@ -1128,7 +1128,7 @@ index 1be2983..f04afe9 100644
  
  	extractText(shape: Shape): string {
 diff --git a/packages/coding-agent/src/markit/converters/xlsx.ts b/packages/coding-agent/src/markit/converters/xlsx.ts
-index f6798c0..67503d3 100644
+index f6798c04..67503d34 100644
 --- a/packages/coding-agent/src/markit/converters/xlsx.ts
 +++ b/packages/coding-agent/src/markit/converters/xlsx.ts
 @@ -125,7 +125,8 @@ export class XlsxConverter implements Converter {
@@ -1142,7 +1142,7 @@ index f6798c0..67503d3 100644
  
  	getCellValue(cell: Cell, shared: StringItem[]): string {
 diff --git a/packages/coding-agent/src/markit/types.ts b/packages/coding-agent/src/markit/types.ts
-index 1b9f6c8..57bc9ed 100644
+index 1b9f6c8f..57bc9edb 100644
 --- a/packages/coding-agent/src/markit/types.ts
 +++ b/packages/coding-agent/src/markit/types.ts
 @@ -14,6 +14,8 @@ export interface StreamInfo {
@@ -1156,7 +1156,7 @@ index 1b9f6c8..57bc9ed 100644
  export interface MarkitOptions {
 diff --git a/packages/coding-agent/src/modes/rpc/attachment-client.ts b/packages/coding-agent/src/modes/rpc/attachment-client.ts
 new file mode 100644
-index 0000000..ceeb85e
+index 00000000..ceeb85ea
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/attachment-client.ts
 @@ -0,0 +1,37 @@
@@ -1199,7 +1199,7 @@ index 0000000..ceeb85e
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-attachments.ts b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
 new file mode 100644
-index 0000000..d1abd86
+index 00000000..d1abd865
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-attachments.ts
 @@ -0,0 +1,30 @@
@@ -1235,7 +1235,7 @@ index 0000000..d1abd86
 +}
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
 new file mode 100644
-index 0000000..6f94257
+index 00000000..6f942579
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/rpc-input-policy.ts
 @@ -0,0 +1,7 @@
@@ -1247,7 +1247,7 @@ index 0000000..6f94257
 +	maxStartupBytes: 48 * 1024 * 1024, maxStartupFrames: 8,
 +} as const);
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-input.ts b/packages/coding-agent/src/modes/rpc/rpc-input.ts
-index ea64e54..63a031e 100644
+index ea64e545..63a031ec 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-input.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-input.ts
 @@ -1,4 +1,5 @@
@@ -1311,7 +1311,7 @@ index ea64e54..63a031e 100644
 +	onFrame(parsed, encodedBytes);
  }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
-index 3aaef8e..758b5fe 100644
+index 5bb49834..4e833a69 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
 @@ -1,7 +1,11 @@
@@ -1378,7 +1378,7 @@ index 3aaef8e..758b5fe 100644
  	"bash",
  	"predict_word",
  	"live_start",
-@@ -606,22 +611,36 @@ export class RpcInputDispatcher {
+@@ -608,22 +613,36 @@ export class RpcInputDispatcher {
  	readonly #deps: RpcInputFrameDeps;
  	readonly #afterSerialCommand: (() => Promise<void>) | undefined;
  	readonly #acceptInput: ((command: RpcCommand) => void) | undefined;
@@ -1416,8 +1416,8 @@ index 3aaef8e..758b5fe 100644
 +			this.#retained.set(command, bytes); this.#retainedBytes += bytes; this.#retainedFrames++;
  			this.#acceptInput?.(command);
  			// Bash and predict_word retain their immediate side channel. Prompts,
- 			// steers, follow-ups and steer_subagent start through the serial tail, but
-@@ -641,11 +660,18 @@ export class RpcInputDispatcher {
+ 			// steers, follow-ups, steer_subagent and handoff start through the serial tail,
+@@ -643,11 +662,18 @@ export class RpcInputDispatcher {
  				this.#tasks.delete(task);
  			});
  		} catch (err: unknown) {
@@ -1436,7 +1436,7 @@ index 3aaef8e..758b5fe 100644
  	/** Await every accepted serial command, including commands queued before EOF. */
  	async drain(): Promise<void> {
  		while (this.#tasks.size > 0) {
-@@ -1333,7 +1359,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1335,7 +1361,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	if (!strictStartup) outputWriter.write(
  		frameEncoder.encodeFrames({
@@ -1445,7 +1445,7 @@ index 3aaef8e..758b5fe 100644
  			protocolVersion: 1,
  			supportedProtocolVersions: [1, 2],
  			maxFrameBytes: MAX_RPC_FRAME_BYTES,
-@@ -1686,22 +1712,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1688,22 +1714,26 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// Read stdin from now on: `session_start` may be waiting on a dialog only the client can answer. Until the
  	// command loop below exists, negotiation, interaction control and the ask-dialog opt-in are handled at once; every other
  	// frame is held, in arrival order, for that loop.
@@ -1477,7 +1477,7 @@ index 3aaef8e..758b5fe 100644
  	const rejectStartupDialogs = (): void => {
  		if (heldFrames) pendingExtensionRequests.rejectAll("RPC client disconnected during startup");
  	};
-@@ -1848,7 +1878,13 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1850,7 +1880,13 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	});
  	await emitAvailableCommandsUpdate();
  
@@ -1492,7 +1492,7 @@ index 3aaef8e..758b5fe 100644
  	const inputGate = new RpcUserInputGate();
  	type OrderedUserInput = Extract<RpcCommand, { type: "prompt" | "steer" | "follow_up" | "abort_and_prompt" }>;
  	type OrderedInputOutcome = "local" | "local-failed" | "local-unknown" | "cancelled" | "admitted" | "builtin-agent";
-@@ -1872,6 +1908,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1874,6 +1910,9 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  					if (target.sourceId !== origin.sourceId || target.instanceId !== origin.instanceId
  						|| target.nativeSessionId !== origin.nativeSessionId) throw new Error("SUBMISSION_TARGET_CHANGED");
  				}
@@ -1502,7 +1502,7 @@ index 3aaef8e..758b5fe 100644
  				return true;
  			};
  			if (!isCurrent()) return "cancelled";
-@@ -1883,10 +1922,15 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -1885,10 +1924,15 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  				if (!isCurrent()) return "cancelled";
  				if (result.handled) return "local";
  				if (result.text !== undefined) text = result.text;
@@ -1519,7 +1519,7 @@ index 3aaef8e..758b5fe 100644
  			if (command.type === "steer") {
  				await runSubmission(submissionScope() ? { ...submissionScope()!, phase: "input" } : undefined, () => session.steer(text, images));
  				return "admitted";
-@@ -2006,6 +2050,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2008,6 +2052,16 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  			// Prompting
  			// =================================================================
  
@@ -1536,7 +1536,7 @@ index 3aaef8e..758b5fe 100644
  			case "submission_query": {
  				try { submissions.validate(command); return success(id, command.type,
  					submissions.query(command.clientSubmissionId, command.offset, command.limit)); }
-@@ -2021,7 +2075,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2023,7 +2077,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
            try {
              if (command.idleOnly && (command.inputType !== "prompt" || command.streamingBehavior !== undefined))
                throw new Error("SUBMISSION_IDLE_PROMPT_REQUIRED");
@@ -1546,7 +1546,7 @@ index 3aaef8e..758b5fe 100644
  						inputGate.alias(command, input);
  						if (input.type === "abort_and_prompt") {
  							goalController.stopForHostAbort(); abortBuiltinCommands("RPC submission abort");
-@@ -2992,7 +3047,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+@@ -2989,7 +3044,8 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
  	// the reader and killing the whole process (issue #5194).
  	const held = heldFrames;
  	heldFrames = undefined;
@@ -1557,7 +1557,7 @@ index 3aaef8e..758b5fe 100644
  
  	// stdin closed — RPC client is gone. Fail pending side-channel requests
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
-index e7fc8dc..e63716c 100644
+index e7fc8dcd..e63716c5 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-submissions.ts
 @@ -1,3 +1,4 @@
@@ -1677,7 +1677,7 @@ index e7fc8dc..e63716c 100644
    }
  }
 diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
-index b2ea42a..5521fda 100644
+index debafaff..52387b32 100644
 --- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
 +++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
 @@ -1,5 +1,7 @@
@@ -1689,7 +1689,7 @@ index b2ea42a..5521fda 100644
  import type { StrictStartState } from "./wire/rpc-wire.generated";
  /**
   * RPC protocol types for headless operation.
-@@ -51,6 +53,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
+@@ -52,6 +54,7 @@ import type { BtwHistoryRecord } from "../../session/btw-history";
  export type RpcMessageUpdates = "full" | "delta";
  
  export type RpcCommand =
@@ -1697,7 +1697,7 @@ index b2ea42a..5521fda 100644
    | SubmissionCommand
    | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
    | { id?: string; type: "history_content_page"; cursor: string }
-@@ -391,6 +394,8 @@ export interface RpcAbortAndRestoreQueueResult {
+@@ -392,6 +395,8 @@ export interface RpcAbortAndRestoreQueueResult {
  
  export interface RpcReadyFrame {
    submissionPolicy?: SubmissionPolicy;
@@ -1706,7 +1706,7 @@ index b2ea42a..5521fda 100644
  	/** Effective before extension initialization and timers; immutable for this worker. */
  	interactionPolicy?: RpcInteractionPolicy;
  	type: "ready";
-@@ -447,6 +452,8 @@ export interface RpcSubagentMessagesResult {
+@@ -448,6 +453,8 @@ export interface RpcSubagentMessagesResult {
  
  // Success responses with data
  export type RpcResponse =
@@ -1716,7 +1716,7 @@ index b2ea42a..5521fda 100644
    | { id?: string; type: "response"; command: "history_snapshot_open"; success: true; data: HistoryOpen }
    | { id?: string; type: "response"; command: "history_content_page"; success: true; data: HistoryContentPage }
 diff --git a/packages/coding-agent/src/modes/rpc/strict-mode.ts b/packages/coding-agent/src/modes/rpc/strict-mode.ts
-index 2acbd31..87a37d3 100644
+index 2acbd31b..87a37d35 100644
 --- a/packages/coding-agent/src/modes/rpc/strict-mode.ts
 +++ b/packages/coding-agent/src/modes/rpc/strict-mode.ts
 @@ -1,4 +1,6 @@
@@ -1737,7 +1737,7 @@ index 2acbd31..87a37d3 100644
    let negotiated = false, attempted = false;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/attachments.ts b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
 new file mode 100644
-index 0000000..3cab70c
+index 00000000..3cab70c6
 --- /dev/null
 +++ b/packages/coding-agent/src/modes/rpc/wire/attachments.ts
 @@ -0,0 +1,43 @@
@@ -1785,7 +1785,7 @@ index 0000000..3cab70c
 +		params: { preparationId: "string" }, result: { cancelled: "boolean" } },
 +] as const;
 diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
-index 97966b2..7731ef0 100644
+index 97966b2e..7731ef0c 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
 @@ -11,6 +11,7 @@ import { interactionCommands } from "./interactions";
@@ -1805,7 +1805,7 @@ index 97966b2..7731ef0 100644
    ...catalogCommands,
    ...historyCommands,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/frames.ts b/packages/coding-agent/src/modes/rpc/wire/frames.ts
-index 7dbe653..89f91b9 100644
+index 7dbe653b..89f91b98 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/frames.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/frames.ts
 @@ -30,6 +30,8 @@ export const frameDefs = {
@@ -1818,7 +1818,7 @@ index 7dbe653..89f91b9 100644
  			"supportedProtocolVersions?": "number.integer[]",
  			"maxFrameBytes?": "number.integer",
 diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
-index afeae50..23defe2 100644
+index afeae50d..23defe2a 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/index.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
 @@ -25,6 +25,7 @@ import { strictStartDefs } from "./strict-start";
@@ -1838,7 +1838,7 @@ index afeae50..23defe2 100644
  		...modelDefs,
  		...stateDefs,
 diff --git a/packages/coding-agent/src/modes/rpc/wire/submissions.ts b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
-index bb80bd4..cf9d40d 100644
+index bb80bd4f..cf9d40d7 100644
 --- a/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 +++ b/packages/coding-agent/src/modes/rpc/wire/submissions.ts
 @@ -5,21 +5,21 @@ export const submissionDefs = {
@@ -1868,10 +1868,10 @@ index bb80bd4..cf9d40d 100644
      params: { clientSubmissionId: "string", "offset?": "number.integer", "limit?": "number.integer" }, result: "SubmissionResult" },
  ] as const;
 diff --git a/packages/coding-agent/src/sdk.ts b/packages/coding-agent/src/sdk.ts
-index 380a100..27f5122 100644
+index 122c8208..4a84e8ae 100644
 --- a/packages/coding-agent/src/sdk.ts
 +++ b/packages/coding-agent/src/sdk.ts
-@@ -36,6 +36,10 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
+@@ -38,6 +38,10 @@ import { prewarmModelConnection } from "@oh-my-pi/pi-ai/providers/connection-pre
  import { isOpenAICodexWebSocketPreferred } from "@oh-my-pi/pi-ai/providers/openai-codex-transport";
  import { withCredentialRedaction } from "@oh-my-pi/pi-ai/providers/transform-messages";
  import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
@@ -1882,7 +1882,7 @@ index 380a100..27f5122 100644
  import { syncOpenAIResponsesHistoryTexts } from "@oh-my-pi/pi-ai/utils";
  import { FALLBACK_DIALECT, preferredDialect } from "@oh-my-pi/pi-catalog/identity";
  import type { Component } from "@oh-my-pi/pi-tui";
-@@ -4803,38 +4807,61 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -4949,38 +4953,61 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  		// One transform per conversation: the date/cwd reminder remembers what each
  		// conversation was sent, so the main loop and every advisor get their own.
  		// Only the main loop journals its reminders in the session.
@@ -1950,7 +1950,7 @@ index 380a100..27f5122 100644
  		const onResponse: SimpleStreamOptions["onResponse"] = async (response, model, signal) => {
  			await extensionRunner.emitAfterProviderResponse(response, model, signal);
  		};
-@@ -4904,8 +4931,15 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5050,8 +5077,18 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  			if (cfgOffline.get(settings) && streamModel.provider !== session?.model?.provider) {
  				return Promise.reject(new Error("Offline mode restricts model calls to the active session provider."));
  			}
@@ -1963,11 +1963,14 @@ index 380a100..27f5122 100644
 +			} : streamOptions;
  			return withCredentialRedaction(cfgSecretsEnabled.get(settings), () =>
 -				settingsBoundStreamFn(streamModel, context, streamOptions),
-+				settingsBoundStreamFn(streamModel, context, guardedOptions),
++				settingsBoundStreamFn(streamModel, context, {
++					...(guardedOptions ?? {}),
++					thinkingCapabilityDbPath: modelRegistry.modelsDbPath,
++				}),
  			);
  		};
  		// Primary-agent (and its auto-learn capture twin) provider options read per
-@@ -4980,6 +5014,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5139,6 +5176,10 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  			getToolContext: tc => toolContextStore.getContext(tc),
  			getApiKey: effectiveGetApiKey,
  			streamFn: (streamModel, context, streamOptions) => {
@@ -1978,7 +1981,7 @@ index 380a100..27f5122 100644
  				mainRequestProvider = undefined;
  				options.assertDispatchModel?.(streamModel);
  				// The loop checks the cap before each request, but a side request can finish
-@@ -5033,7 +5071,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5193,7 +5234,7 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  				// loop (side-channel, advisor, and maintenance requests use
  				// dedicated wrappers), so it owns the warmer. The replay omits the
  				// one-shot fallback-credit redemption.
@@ -1987,7 +1990,7 @@ index 380a100..27f5122 100644
  				return stream;
  			},
  			cursorExecHandlers,
-@@ -5088,6 +5126,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
+@@ -5248,6 +5289,16 @@ async function createAgentSessionScoped(options: CreateAgentSessionOptions): Pro
  					: undefined
  				: undefined,
  		});
@@ -2005,7 +2008,7 @@ index 380a100..27f5122 100644
  		// for the finalized message, including errors synthesized after a stream throws.
  		agent.subscribe(event => {
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index bd24bb3..2f294e0 100644
+index 7244073a..7aaf6d80 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,4 +1,7 @@
@@ -2017,7 +2020,7 @@ index bd24bb3..2f294e0 100644
  import { NativeMessageObservations, nativeMessageEntry, nativeMessageIdentity } from "./live-message-observation";
  import type { NativeMessageObservation, NativeMessageSettlement, NativeMessageIdentity } from "./live-message-observation";
  /**
-@@ -8536,6 +8539,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -8915,6 +8918,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		return this.#slashCommands;
  	}
  
@@ -2033,7 +2036,7 @@ index bd24bb3..2f294e0 100644
  	/** Custom commands (TypeScript slash commands and MCP prompts) */
  	get customCommands(): ReadonlyArray<LoadedCustomCommand> {
  		if (this.#mcpPromptCommands.length === 0) return this.#customCommands;
-@@ -8701,6 +8713,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9080,6 +9092,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#normalizeImagesForModel(images: ImageContent[] | undefined): Promise<ImageContent[] | undefined> {
@@ -2051,7 +2054,7 @@ index bd24bb3..2f294e0 100644
  		return normalizeModelContextImages(images, { model: this.model });
  	}
  
-@@ -8761,6 +8784,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9140,6 +9163,12 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  	}
  
  	#normalizeAgentMessageImages<T extends AgentMessage>(message: T): Promise<T> {
@@ -2064,7 +2067,7 @@ index bd24bb3..2f294e0 100644
  		return this.#providerBoundary.normalizeAgentMessageImages(message);
  	}
  
-@@ -9165,6 +9194,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9543,6 +9572,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  					userInitiated: options?.userInitiated === true ? true : undefined,
  				}
  			: { role: "user" as const, content: userContent, attribution: promptAttribution, timestamp: submittedAt };
@@ -2072,7 +2075,7 @@ index bd24bb3..2f294e0 100644
  
  		const preludeMessages: AgentMessage[] = [];
  		if (eagerTodoPrelude) {
-@@ -9379,16 +9409,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9756,16 +9786,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			attribution: message.attribution ?? "agent",
  			timestamp: Date.now(),
  		};
@@ -2094,7 +2097,7 @@ index bd24bb3..2f294e0 100644
  		const descriptionNotice = hasSkillImages
  			? await this.#buildSkillImageDescriptionNotice(preparedMessage)
  			: undefined;
-@@ -9755,6 +9786,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10133,6 +10164,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			if (options?.prependMessages) {
  				messages.push(...options.prependMessages);
  			}
@@ -2102,7 +2105,7 @@ index bd24bb3..2f294e0 100644
  
  			// Early bail-out: if a newer abort/prompt cycle started during setup,
  			// return before mutating shared state (nextTurn messages, system prompt).
-@@ -10383,7 +10415,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10765,7 +10797,8 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  		const timestamp = options?.timestamp;
  		const rawText = options?.rawText ?? text;
  		const preprocessed = options?.preprocessed;
@@ -2112,7 +2115,7 @@ index bd24bb3..2f294e0 100644
  		// Captured before any await below so the aside branch can detect a
  		// newSession()/switchSession() that completed while normalization/vision
  		// description was in flight and drop a record that would otherwise land in a
-@@ -10437,6 +10470,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10819,6 +10852,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  			const records: AgentMessage[] = [...prependMessages, ...attachmentSourceNotices];
  			if (imageDescriptionNotice) records.push(imageDescriptionNotice);
  			const userMessage: AgentMessage = { role: "user", content, attribution, timestamp: timestamp ?? Date.now() };
@@ -2120,7 +2123,7 @@ index bd24bb3..2f294e0 100644
  			this.#queuedMessageRawText.set(userMessage, rawText);
  			records.push(userMessage);
  			for (const message of records) captureSubmission(message, message.role);
-@@ -10489,6 +10523,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -10871,6 +10905,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
  				: { role: "user", content, steering: true, attribution, timestamp };
  		this.#queuedMessageRawText.set(userMessage, rawText);
  		const group = [...companions, userMessage];
@@ -2128,7 +2131,7 @@ index bd24bb3..2f294e0 100644
  		for (const message of group) captureSubmission(message, message.role);
  		if (mode === "followUp") {
  			for (const message of group) this.agent.followUp(message);
-@@ -10983,13 +11018,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -11393,13 +11428,15 @@ export class AgentSession implements SettingsScope, AgentViewSession {
      copySubmission(message, appMessage);
      this.#assertSubmissionCurrent();
      const preprocessed = options?.preprocessed;
@@ -2146,7 +2149,7 @@ index bd24bb3..2f294e0 100644
      const descriptionNotice = preprocessed
  			? preprocessed.descriptionNotice
 diff --git a/packages/coding-agent/src/session/messages.ts b/packages/coding-agent/src/session/messages.ts
-index 46a04f5..d03956a 100644
+index 8d9c0725..cb97a3b0 100644
 --- a/packages/coding-agent/src/session/messages.ts
 +++ b/packages/coding-agent/src/session/messages.ts
 @@ -4,6 +4,7 @@
@@ -2154,10 +2157,10 @@ index 46a04f5..d03956a 100644
   * and provides a transformer to convert them to LLM-compatible messages.
   */
 +import { carryPreparedModelMessage } from "../attachments/provider-guard";
- import { type AgentMessage, isProviderRefusalMessage } from "@oh-my-pi/pi-agent-core";
+ import { type AgentMessage, toProviderReplayMessage } from "@oh-my-pi/pi-agent-core";
  import {
  	isUserInterruptAbort,
-@@ -1413,7 +1414,7 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
+@@ -1414,7 +1415,7 @@ export function convertToLlm(messages: AgentMessage[]): Message[] {
  	for (let i = start; i < len; i++) {
  		if (i === len - 1) prefixOutputLen = out.length;
  		const fragment = convertMessageAt(messages, i, convertOneCached);
@@ -2167,18 +2170,29 @@ index 46a04f5..d03956a 100644
  	if (len === 0) prefixOutputLen = 0;
  
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index 24b62bb..c2b9e24 100644
+index 1fbe92a2..5354d76a 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
-@@ -1,6 +1,7 @@
- import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
- import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
- import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
-+import { locatePreparedEntryParts } from "../attachments/entry-parts";
- import { causalSubmission, runSubmissionForOwner, sameSubmission, validSubmissionCausality } from "./submission-provenance";
- import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
- import { nativeHistoryContextId } from "./history-context";
-@@ -2266,6 +2267,8 @@ export class SessionManager {
+@@ -1,17 +1,4 @@
+-import { isSubmissionControl, submissionRecord, readSubmissionRecords, nativeControlRecordBytes, assertSubmissionEntries } from "./submission-records";
+-import { nativeSubmissionPolicy as submissionPolicy } from "./submission-policy";
+-import { copyGenerationArtifactTree, prepareGenerationArtifactTree, type PreparedGenerationArtifactCopy } from "./session-artifact-copy";
+-import { causalSubmission, runSubmissionForOwner, sameSubmission, validSubmissionCausality } from "./submission-provenance";
+-import type { NativeSubmission, SubmissionOrigin, SubmissionTarget, SubmissionCausality } from "./submission-provenance";
+-import { nativeHistoryContextId } from "./history-context";
+-import { associateMessageEntry } from "./live-message-observation";
+-import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts";
+-import { isGenerationCarrier, assertPlainArtifactTree } from "./session-generation";
+-import { openNativeGenerationStorage, createExplicitNativeStorage } from "./generation-storage-factory";
+-import { StrictSessionStorage } from "./strict-session-storage";
+-export interface NativeHistoryChange {
+-  kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
+-}
++import type { Settings } from "../config/settings";
+ import * as fs from "node:fs";
+ import * as path from "node:path";
+ import { stringifyJson } from "@oh-my-pi/pi-utils/json";
+@@ -2286,6 +2273,8 @@ export class SessionManager {
  			if (!this.#verifiedSubmissions.some(value => sameSubmission(value.origin, origin)))
  				throw new Error("SUBMISSION_CAUSALITY_ORPHAN");
  		}
@@ -2187,7 +2201,7 @@ index 24b62bb..c2b9e24 100644
  		this.#entries.push(entry);
  		this.#index.insert(entry);
  		this.#historyChanged("append", entry.type === "compaction" || entry.type === "reset_boundary", entry.id);
-@@ -2469,7 +2472,8 @@ export class SessionManager {
+@@ -2490,7 +2479,8 @@ export class SessionManager {
  			for (const item of tombstones) records.set(item.origin.clientSubmissionId, structuredClone(item));
  			snapshot = { ...snapshot, nativeSubmissions: [...records.values()] };
  	      restoredHeader.requiredFeatures = [...new Set([...(restoredHeader.requiredFeatures ?? []),
@@ -2197,7 +2211,7 @@ index 24b62bb..c2b9e24 100644
  		}
      // captureState deliberately excludes control rows from its tree. Validate entries together with the permanent ledger.
      this.#applyEntries(restoredHeader, [...(snapshot.nativeSubmissions ?? []).map(submissionRecord), ...snapshot.entries]);
-@@ -4286,6 +4290,14 @@ export class SessionManager {
+@@ -4306,6 +4296,14 @@ export class SessionManager {
  		return { sourceId: binding.sourceId, instanceId: binding.instanceId, nativeSessionId: binding.nativeSessionId };
  	}
  	/** Permanent append-only native reservation. No execution may precede its verified publication. */
@@ -2212,7 +2226,7 @@ index 24b62bb..c2b9e24 100644
  	reserveSubmission(value: NativeSubmission): Promise<boolean> {
  		return this.#withAtomicPersistenceLock(async () => {
  			this.getSubmissionTarget();
-@@ -4296,6 +4308,13 @@ export class SessionManager {
+@@ -4316,6 +4314,13 @@ export class SessionManager {
  			}
  			if (this.#nativeSubmissions.length >= submissionPolicy.maxSubmissions) throw new Error("SUBMISSION_CAPACITY");
  			await this.#ensureSubmissionFormat();
@@ -2226,7 +2240,7 @@ index 24b62bb..c2b9e24 100644
  			const reserved = { ...structuredClone(value), reservedAt: nowIso() };
  			this.#nativeSubmissions.push(reserved);
  			await this.#appendSubmissionControl(reserved);
-@@ -4311,7 +4330,8 @@ export class SessionManager {
+@@ -4331,7 +4336,8 @@ export class SessionManager {
  			if (noEntries.length > submissionPolicy.maxNoEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			const facts = new Map((value.entryFacts ?? []).map(fact => [fact.entryId,fact]));
  			for (const [entryId,submission] of this.#verifiedSubmissionEntries) if (sameSubmission(submission.origin,origin))
@@ -2236,7 +2250,7 @@ index 24b62bb..c2b9e24 100644
  			const entryFacts = [...facts.values()];
  			if (entryFacts.length > submissionPolicy.maxEntryFacts) throw new Error("SUBMISSION_RELATION_LIMIT");
  			await this.flush();
-@@ -4369,7 +4389,8 @@ export class SessionManager {
+@@ -4389,7 +4395,8 @@ export class SessionManager {
  			const value = byKey.get(submission.origin.clientSubmissionId);
  			if (!value || !sameSubmission(value.origin, submission.origin)) continue;
  			value.entryFacts ??= [];
@@ -2247,7 +2261,7 @@ index 24b62bb..c2b9e24 100644
  		}
  	}
 diff --git a/packages/coding-agent/src/session/session-required-features.ts b/packages/coding-agent/src/session/session-required-features.ts
-index 85ef1dd..c076479 100644
+index 85ef1dd6..c076479e 100644
 --- a/packages/coding-agent/src/session/session-required-features.ts
 +++ b/packages/coding-agent/src/session/session-required-features.ts
 @@ -4,7 +4,7 @@ import type { SessionHeader } from "./session-entries";
@@ -2260,7 +2274,7 @@ index 85ef1dd..c076479 100644
      || !value.requiredFeatures.includes("durable-submission-v1")))
      throw new Error("SUBMISSION_METADATA_CORRUPT");
 diff --git a/packages/coding-agent/src/session/submission-policy.ts b/packages/coding-agent/src/session/submission-policy.ts
-index 95661b2..bf56a12 100644
+index 95661b2e..bf56a12d 100644
 --- a/packages/coding-agent/src/session/submission-policy.ts
 +++ b/packages/coding-agent/src/session/submission-policy.ts
 @@ -4,5 +4,5 @@ export const nativeSubmissionPolicy = Object.freeze({
@@ -2271,7 +2285,7 @@ index 95661b2..bf56a12 100644
 +  maxImagesBytes: 8 * 1024 * 1024, maxPendingTasks: 4096,
  } as const);
 diff --git a/packages/coding-agent/src/session/submission-provenance.ts b/packages/coding-agent/src/session/submission-provenance.ts
-index ad5fbeb..0f727da 100644
+index ad5fbebb..0f727da6 100644
 --- a/packages/coding-agent/src/session/submission-provenance.ts
 +++ b/packages/coding-agent/src/session/submission-provenance.ts
 @@ -1,24 +1,29 @@
@@ -2374,7 +2388,7 @@ index ad5fbeb..0f727da 100644
  export function causalSubmission(message?: object): SubmissionCausality | undefined {
    const explicit = message && originals.get(message);
 diff --git a/packages/coding-agent/src/session/submission-records.ts b/packages/coding-agent/src/session/submission-records.ts
-index 147392a..71ffcf1 100644
+index 147392a0..71ffcf1e 100644
 --- a/packages/coding-agent/src/session/submission-records.ts
 +++ b/packages/coding-agent/src/session/submission-records.ts
 @@ -4,6 +4,7 @@ import type { CustomEntry, SessionEntry } from "./session-entries";
@@ -2419,7 +2433,7 @@ index 147392a..71ffcf1 100644
        throw new Error("SUBMISSION_METADATA_CONFLICT");
      values.set(record.origin.clientSubmissionId, record);
 diff --git a/packages/coding-agent/src/slash-commands/acp-builtins.ts b/packages/coding-agent/src/slash-commands/acp-builtins.ts
-index c059f7f..5ed0600 100644
+index c059f7f4..5ed06000 100644
 --- a/packages/coding-agent/src/slash-commands/acp-builtins.ts
 +++ b/packages/coding-agent/src/slash-commands/acp-builtins.ts
 @@ -1,7 +1,7 @@
@@ -2462,7 +2476,7 @@ index c059f7f..5ed0600 100644
  	return result;
  }
 diff --git a/packages/tui/CHANGELOG.md b/packages/tui/CHANGELOG.md
-index 7d4b305..594da55 100644
+index 71c291c5..2bd1527e 100644
 --- a/packages/tui/CHANGELOG.md
 +++ b/packages/tui/CHANGELOG.md
 @@ -2,6 +2,10 @@
@@ -2473,11 +2487,11 @@ index 7d4b305..594da55 100644
 +
 +- Exposed specific image decoder and UTF-8 output-truncation subpaths for native preparation.
 +
- ## [18.20.1] - 2026-11-14
+ ## [19.0.0] - 2026-11-18
  
- ### Added
+ ### Breaking Changes
 diff --git a/packages/tui/README.md b/packages/tui/README.md
-index 82a09db..5c138dc 100644
+index 82a09db1..5c138dc5 100644
 --- a/packages/tui/README.md
 +++ b/packages/tui/README.md
 @@ -4,6 +4,9 @@ Minimal terminal UI framework with differential rendering and synchronized outpu
@@ -2491,7 +2505,7 @@ index 82a09db..5c138dc 100644
  - **Synchronized Output**: Uses CSI 2026 for atomic screen updates (no flicker)
  - **Bracketed Paste Mode**: Handles large pastes correctly with markers for >10 line pastes
 diff --git a/packages/tui/package.json b/packages/tui/package.json
-index 4904e09..b286a84 100644
+index 31dae679..3140448e 100644
 --- a/packages/tui/package.json
 +++ b/packages/tui/package.json
 @@ -57,6 +57,8 @@
@@ -2504,7 +2518,7 @@ index 4904e09..b286a84 100644
  			"types": "./src/tools/index.ts",
  			"import": "./src/tools/index.ts"
 diff --git a/packages/utils/CHANGELOG.md b/packages/utils/CHANGELOG.md
-index b18292f..0527f54 100644
+index a3e09559..c4eb604e 100644
 --- a/packages/utils/CHANGELOG.md
 +++ b/packages/utils/CHANGELOG.md
 @@ -2,6 +2,10 @@
@@ -2515,11 +2529,11 @@ index b18292f..0527f54 100644
 +
 +- Added bounded owned-stream reading and image animation container facts for native attachment preparation.
 +
- ## [18.20.2] - 2026-11-14
+ ## [19.0.0] - 2026-11-18
  
  ### Added
 diff --git a/packages/utils/README.md b/packages/utils/README.md
-index ff3ad90..39e2f11 100644
+index ff3ad90f..39e2f11c 100644
 --- a/packages/utils/README.md
 +++ b/packages/utils/README.md
 @@ -4,6 +4,10 @@ Shared utilities for [omp](https://github.com/can1357/oh-my-pi) packages. Zero c
@@ -2535,7 +2549,7 @@ index ff3ad90..39e2f11 100644
  | `logger`                                                                                                           | Centralized logger writing to `~/.omp/logs/` (`bun test`: temp dir), rotating, never stdout  |
 diff --git a/packages/utils/src/image-animation.ts b/packages/utils/src/image-animation.ts
 new file mode 100644
-index 0000000..063ca2e
+index 00000000..063ca2e2
 --- /dev/null
 +++ b/packages/utils/src/image-animation.ts
 @@ -0,0 +1,95 @@
@@ -2635,7 +2649,7 @@ index 0000000..063ca2e
 +	return { frames, animated: frames > 1, decodedBytesPerPixel };
 +}
 diff --git a/packages/utils/src/stream.ts b/packages/utils/src/stream.ts
-index 8998bc9..542dc79 100644
+index 8998bc93..542dc79e 100644
 --- a/packages/utils/src/stream.ts
 +++ b/packages/utils/src/stream.ts
 @@ -11,6 +11,18 @@ const CR = 0x0d;
