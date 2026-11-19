@@ -20,7 +20,7 @@ import { createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionU
   chatMethods, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
-import { ChatAttachService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
+import { ChatAttachService, ChatCancelService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
 import { ChatViewAdmission } from "./chat-view-admission.ts";
 import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
@@ -68,9 +68,11 @@ export async function startSessionComponentServer(options: Options) {
   ctx.typert.register({ ...workspaceHostContribution, invocations: workspaceHostContribution.invocations.filter(method =>
     method.namespace === "ompWorkspaces" && method.method === "registered") });
   const promptDescriptor = sessionContribution.descriptors.find(method => method.namespace === "session" && method.method === "prompt");
+  const cancelDescriptor = sessionContribution.descriptors.find(method => method.namespace === "session" && method.method === "cancel");
   ctx.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
     model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors.filter(method =>
-      !(options.chat && promptDescriptor && method.id === promptDescriptor.id)) });
+      !(options.chat && (promptDescriptor && method.id === promptDescriptor.id
+        || cancelDescriptor && method.id === cancelDescriptor.id))) });
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
   new WorkspaceService(ctx, options.catalog, directories, index);
@@ -194,11 +196,13 @@ export async function startSessionComponentServer(options: Options) {
   new SessionPresentationService(ctx, supervisor);
   if (options.chat) {
     ctx.typert.register({ ...chatHostContribution, invocations: [...chatHostContribution.invocations,
-      ...(promptDescriptor ? [{ ...promptDescriptor, service: "chatPrompt" }] : [])] });
+      ...(promptDescriptor ? [{ ...promptDescriptor, service: "chatPrompt" }] : []),
+      ...(cancelDescriptor ? [{ ...cancelDescriptor, service: "chatCancel" }] : [])] });
     ctx.typert.register(chatComponentHostContribution);
     const admission = new ChatViewAdmission(access, directories, supervisor);
     const runtime = new ChatComponentRuntime(access, directories, supervisor, admission);
     new ChatPromptService(ctx, sessionId => runtime.gateway(sessionId));
+    new ChatCancelService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatAttachService(ctx, input => {
       const identity = sessionCaller.getStore(); return identity ? runtime.attach(identity, input) : undefined;
@@ -259,8 +263,10 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
       : pump(socket, frame, control.signal, ctx, current, terminal,
         events && (value => events.ready(value, peer, identity, control.signal))));
   } catch (error) {
-    if (!terminal) throw error;
+    // A client cancel aborts only that stream. The DSH client cancels streams in flight on reconnect,
+    // and treating that abort as socket-fatal would kill every other stream and loop the connection.
     if (control.signal.aborted || socket.readyState !== WebSocket.OPEN) return;
+    if (!terminal) throw error;
     try {
       if (error instanceof FixtureStreamWriteError) throw error;
       const failure = new RemoteError("gateway/internal", {

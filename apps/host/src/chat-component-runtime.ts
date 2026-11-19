@@ -70,6 +70,11 @@ export class ChatComponentRuntime {
       const same = previous && previous.workerId === view.workerId && previous.generation === view.generation
         && previous.draftId === input.draftId ? previous : undefined;
       const owner = same?.owner ?? randomUUID();
+      // A reload keeps this worker; a Session switch away and back retires it and enrolls a new generation.
+      // The attached worker is the only Chat target for its native Session, so its predecessor can no longer be chosen.
+      for (const [candidate, held] of this.#entries) {
+        if (candidate !== key && held.sessionId === entry.sessionId) this.#discard(candidate);
+      }
       this.#views.set(identity.credentialId, { enrollment, owner, workerId: view.workerId,
         generation: view.generation, draftId: input.draftId });
       return { owner, workerId: view.workerId, sessionId: entry.sessionId, generation: view.generation,
@@ -91,9 +96,16 @@ export class ChatComponentRuntime {
     this.#closed = true;
     for (const view of this.#views.values()) view.enrollment.revoke();
     this.#views.clear();
-    for (const entry of this.#entries.values()) { entry.unsubscribe(); entry.lifetime.abort(); }
-    this.#entries.clear();
+    for (const key of [...this.#entries.keys()]) this.#discard(key);
     this.admission.close();
+  }
+
+  #discard(key: string): void {
+    const entry = this.#entries.get(key);
+    if (!entry) return;
+    this.#entries.delete(key);
+    entry.unsubscribe();
+    entry.lifetime.abort();
   }
 
   #grantId(cwd: string): string | undefined {
@@ -124,6 +136,7 @@ export class ChatComponentRuntime {
         const reply = await worker.submitCommand(command);
         return reply;
       },
+      cancel: async () => await worker.control("abort_and_restore_queue"),
     });
     const unsubscribe = worker.subscribe(frame => gateway.observe(frame));
     return { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId,

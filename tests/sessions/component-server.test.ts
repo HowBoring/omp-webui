@@ -63,3 +63,46 @@ test.each(["direct", "retained"] as const)(
     }
   },
 );
+
+test("cancelling a live Session stream keeps the multiplexed websocket open", async () => {
+  const home = await mkdtemp(join(tmpdir(), "session-stream-cancel-"));
+  class Options {
+    readonly dataDir = join(home, "state");
+    readonly port = 0;
+    readonly catalog = new CatalogClient(async () => { throw new Error("UNEXPECTED_CATALOG_REQUEST"); });
+    readonly manifest = join(home, "absent-manifest");
+    readonly launcher = join(home, "absent-launcher");
+    readonly launchOwned = async () => { throw new Error("UNEXPECTED_LAUNCH"); };
+  }
+  const host = await startSessionComponentServer(new Options());
+  try {
+    const origin = host.server.url.origin;
+    const exchange = await fetch(host.bootstrapLink(), { redirect: "manual" });
+    const cookie = exchange.headers.get("set-cookie")!.split(";")[0]!;
+    const url = new URL("api/remote.mux", host.server.url.href);
+    url.protocol = "ws:";
+    // Bun accepts handshake headers here; the DOM typings only admit protocols.
+    const socket = new WebSocket(url.href, { headers: { cookie, origin } } as unknown as string[]);
+    const frames: { type: string; streamId: string }[] = [];
+    let closed: { code: number; reason: string } | undefined;
+    socket.addEventListener("message", event => { frames.push(JSON.parse(String(event.data)) as { type: string; streamId: string }); });
+    socket.addEventListener("close", event => { closed = { code: event.code, reason: event.reason }; });
+    await new Promise<void>((resolve, reject) => {
+      socket.addEventListener("open", () => resolve(), { once: true });
+      socket.addEventListener("error", () => reject(new Error("websocket refused")), { once: true });
+    });
+    // The DSH client cancels a stream immediately after opening it on reconnect, while the
+    // handshake is still in flight; that must abort only that stream, never the multiplexed socket.
+    socket.send(JSON.stringify({ type: "open", streamId: "first", endpoint: "session/control", payload: { args: {} } }));
+    socket.send(JSON.stringify({ type: "cancel", streamId: "first" }));
+    await Bun.sleep(100);
+    expect(closed).toBeUndefined();
+    expect(socket.readyState).toBe(WebSocket.OPEN);
+    socket.send(JSON.stringify({ type: "open", streamId: "second", endpoint: "session/control", payload: { args: {} } }));
+    while (!frames.some(frame => frame.type === "item" && frame.streamId === "second")) await Bun.sleep(5);
+    expect(closed).toBeUndefined();
+    socket.close();
+  } finally {
+    await host.stop(); await rm(home, { recursive: true, force: true });
+  }
+});

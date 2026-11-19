@@ -16,6 +16,7 @@ const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections", "ompChatComponent/attach"]);
 export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
+  "session/cancel": sessionContribution.methods["session/cancel"],
   "ompChat/lookup": chatContribution.methods["ompChat/lookup"],
   "ompChat/state": chatContribution.methods["ompChat/state"],
 };

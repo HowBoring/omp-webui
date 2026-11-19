@@ -66,6 +66,7 @@ function fixture() {
     },
     stop: () => stop,
     state: () => readState(),
+    cancel: async () => ({}),
     async request(command) {
       commands.push(structuredClone(command));
       if (raw) return raw(command);

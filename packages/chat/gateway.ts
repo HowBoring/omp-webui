@@ -2,7 +2,9 @@ import { createHash } from "node:crypto";
 import { setTimeout as wait } from "node:timers/promises";
 import type { PeerScope } from "@deepseek-ai/dsh-typert-protocol";
 import { parseProjectionBinding, sameProjection } from "@deepseek-ai/dsh-api-session-controller/projection";
-import type { SessionProjectionBinding, SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
+import type {
+  SessionCancelRequest, SessionProjectionBinding, SessionPromptRequest,
+} from "@deepseek-ai/dsh-api-session-controller/types";
 import type { SubmissionClientCommand } from "../contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionOrigin, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
 import type { SessionState, PromptResultEvent } from "../contracts/generated/omp-wire.ts";
@@ -40,6 +42,8 @@ export interface ChatWorkerPort {
   state(): Promise<Partial<SessionState>>;
   /** Bounded public JSONL v2 transport; rejects on protocol failure, timeout or EOF. */
   request(command: SubmissionClientCommand): Promise<unknown>;
+  /** Native cancel of the active turn; keeps the pending inbox. */
+  cancel(): Promise<unknown>;
 }
 
 interface Attempt {
@@ -102,9 +106,7 @@ export class ChatGateway {
   }
 
   #view(caller: ChatCaller, sessionId: string): View {
-    if (!this.#workerCurrent() || caller.peer.signal.aborted || sessionId !== this.#sessionId) {
-      throw new ChatError("authority");
-    }
+    if (!this.#workerCurrent() || caller.peer.signal.aborted || sessionId !== this.#sessionId) throw new ChatError("authority");
     const view = this.port.authorize(caller, sessionId);
     if (!view || view.lifetime.aborted || !view.owner || view.owner.length > 4096) throw new ChatError("authority");
     return { owner: view.owner, lifetime: view.lifetime, projection: parseProjectionBinding(view.projection) };
@@ -129,6 +131,13 @@ export class ChatGateway {
     return state.workerGeneration === this.#generation && state.scope.kind === "session"
       && state.scope.sessionId === this.#sessionId && state.status === "idle" && state.nativeSettled
       && state.acceptingWork && state.failures.length === 0 && Object.values(state.pending).every(count => count === 0);
+  }
+
+  /** Cancel the active native turn through the same View authority as prompt. */
+  async cancel(caller: ChatCaller, request: SessionCancelRequest, signal: AbortSignal) {
+    this.#current(caller, request.sessionId, signal);
+    await this.port.cancel();
+    return { accepted: true as const };
   }
 
   async prompt(caller: ChatCaller, request: SessionPromptRequest, signal: AbortSignal) {

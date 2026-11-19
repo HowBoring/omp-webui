@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Context } from "@deepseek-ai/cordis";
 import { Remote, RemoteError, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
-import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
+import type { SessionCancelRequest, SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
 import { chatRecovery, chatSessionId, chatState } from "../contracts/chat.ts";
 import { chatAttachment, chatAttachmentResult, type ChatAttachment, type ChatAttachmentResult } from "../contracts/chat-component.ts";
 import { ChatError, type ChatCaller, type ChatGateway } from "./gateway.ts";
@@ -15,9 +15,7 @@ export const chatViewCaller = new AsyncLocalStorage<ChatCaller["view"]>();
 function binding(ctx: Context, resolve: ResolveChat, sessionId: string) {
   const invocation = ctx.invocation;
   const view = chatViewCaller.getStore();
-  if (!view || !invocation || invocation.signal.aborted || invocation.peer.signal.aborted) {
-    throw new ChatError("authority");
-  }
+  if (!view || !invocation || invocation.signal.aborted || invocation.peer.signal.aborted) throw new ChatError("authority");
   const worker = resolve(chatSessionId.parse(sessionId));
   if (!worker) throw new ChatError("authority");
   return { worker, caller: { view, peer: invocation.peer }, signal: invocation.signal };
@@ -51,6 +49,20 @@ export class ChatPromptService extends TypertRemoteService {
     try {
       const { worker, caller, signal } = binding(this.ctx, this.resolve, request.sessionId);
       return await worker.prompt(caller, request, signal);
+    } catch (error) { return publicError(error); }
+  }
+}
+
+/** Unregistered cancel delegate for the public DSH session/cancel method. */
+export class ChatCancelService extends TypertRemoteService {
+  constructor(ctx: Context, private readonly resolve: ResolveChat) {
+    super(ctx, "chatCancel", { namespace: "session" });
+  }
+
+  @Remote("cancel") async cancel(request: SessionCancelRequest) {
+    try {
+      const { worker, caller, signal } = binding(this.ctx, this.resolve, request.sessionId);
+      return await worker.cancel(caller, request, signal);
     } catch (error) { return publicError(error); }
   }
 }

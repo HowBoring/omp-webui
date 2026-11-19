@@ -15,7 +15,7 @@ import { brandString } from "@deepseek-ai/dsh-brand";
 import { ChatViewAdmission, type ChatViewEnrollment } from "../../apps/host/src/chat-view-admission.ts";
 import { createChatSessionDispatch, dispatchSessionRequest } from "../../apps/host/src/session-remote-dispatch.ts";
 import { ChatGateway, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
-import { ChatLookupService, ChatPromptService } from "../../packages/chat/service.ts";
+import { ChatCancelService, ChatLookupService, ChatPromptService } from "../../packages/chat/service.ts";
 import { chatContribution, chatHostContribution } from "../../packages/contracts/chat.ts";
 import type { SubmissionResult } from "../../packages/contracts/candidates/durable-submission-v1/omp-wire.ts";
 import { sourceFixture } from "../sessions/source-fixture.ts";
@@ -47,6 +47,7 @@ async function fixture() {
     const target = { nativeSessionId, sourceId, instanceId };
     const worker = await source.supervisor.open(source.identity, source.selected);
     const admissions: string[] = [];
+    const cancels: string[] = [];
     const readIdle = async () => ({ sessionId, isSettled: true, isStreaming: false, isCompacting: false,
       hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
     let state = readIdle, beforeReceipt = async () => {};
@@ -57,6 +58,7 @@ async function fixture() {
         status: "idle", nativeSettled: true, acceptingWork: true, pending: { interactions: 0, history: 0, queued: 0, other: 0 },
         failures: [], forceAvailable: false, restored: null, draftConflict: false }),
       state: () => state(),
+      cancel: async () => { cancels.push(sessionId); return { type: "response", success: true }; },
       async request(command) {
         const clientSubmissionId = command.clientSubmissionId;
         if (command.type === "submission_submit") admissions.push(clientSubmissionId);
@@ -80,11 +82,16 @@ async function fixture() {
     const promptDescriptor = sessionContribution.descriptors.find(descriptor =>
       descriptor.namespace === "session" && descriptor.method === "prompt");
     if (!promptDescriptor) throw new Error("Missing DSH session/prompt descriptor");
+    const cancelDescriptor = sessionContribution.descriptors.find(descriptor =>
+      descriptor.namespace === "session" && descriptor.method === "cancel");
+    if (!cancelDescriptor) throw new Error("Missing DSH session/cancel descriptor");
     host.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
       model: { services: [], events: [], objects: [] },
-      invocations: [...sessionContribution.descriptors.filter(descriptor => descriptor !== promptDescriptor),
-        { ...promptDescriptor, service: "chatPrompt" }] });
+      invocations: [...sessionContribution.descriptors.filter(descriptor =>
+        descriptor !== promptDescriptor && descriptor !== cancelDescriptor),
+        { ...promptDescriptor, service: "chatPrompt" }, { ...cancelDescriptor, service: "chatCancel" }] });
     new ChatPromptService(host, id => id === sessionId ? chat : undefined);
+    new ChatCancelService(host, id => id === sessionId ? chat : undefined);
     new ChatLookupService(host, id => id === sessionId ? chat : undefined);
     const peer = new Peer(host, { principal: { kind: "owner" }, interactions: "none" });
     const attached = new WeakMap<Request, ChatViewEnrollment>();
@@ -140,7 +147,7 @@ async function fixture() {
       await ctx.remote.$mount(chatContribution);
       return { remote: ctx.remote, responses };
     }
-    return { source, host, peer, worker, sessionId, admissions, openView, connect, chatRequest, close,
+    return { source, host, peer, worker, sessionId, admissions, cancels, openView, connect, chatRequest, close,
       setState: (callback: typeof state) => { state = callback; }, readIdle,
       beforeReceipt: (callback: typeof beforeReceipt) => { beforeReceipt = callback; } };
   } catch (error) { await close(); throw error; }
@@ -251,6 +258,27 @@ test("Native busy returns the Chat Remote draft-retention error through the unar
       error: { code: "gateway/bad-request", message: "Native Session is busy. Your draft is retained." } });
     expect(client.responses).toEqual([200]);
     expect(f.admissions).toEqual([]);
+  } finally { await f.close(); }
+});
+
+test("cancel reaches the native worker through the attached View", async () => {
+  const f = await fixture();
+  try {
+    const client = await f.connect(f.openView().view);
+    expect(await client.remote.session.cancel({ sessionId: f.sessionId })).toEqual({ ok: true,
+      value: { accepted: true } });
+    expect(f.cancels).toEqual([f.sessionId]);
+    expect(client.responses).toEqual([200]);
+  } finally { await f.close(); }
+});
+
+test("cancel without an attached View never reaches the native worker", async () => {
+  const f = await fixture();
+  try {
+    const client = await f.connect();
+    expect(await client.remote.session.cancel({ sessionId: f.sessionId })).toMatchObject({ ok: false });
+    expect(client.responses).toEqual([401]);
+    expect(f.cancels).toEqual([]);
   } finally { await f.close(); }
 });
 
