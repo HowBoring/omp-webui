@@ -10,8 +10,8 @@ projected. Scope limits are listed at the end.
 | Tree | `ecd16a2` — merge of `mvp/spec-29` `5dab4de` |
 | Native base | `7c49c11aa5bbaf3f418406583096168ad5b8c6dc` |
 | Patch stack | `0001`–`0007`, `0009-attachment-preparation`, `0010-image-original-budget` |
-| `sourceSha256` | `46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c` |
-| `patchSha256` | `6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea` |
+| `sourceSha256` | `adda6c134cbff19e7cd688f2b93baf26b962179e5f0b6e2bb1c68d7b675d9451` |
+| `patchSha256` | `de7b02421953a365c3a458d16e4f74d9122a1b2cf9112a8df4d53083f3e8b753` |
 | `schemaSha256` | `177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab` |
 
 Every command in the table below was re-run on `ecd16a2` after merging `mvp/spec-29` `5dab4de`; the
@@ -56,7 +56,11 @@ otherwise it aborts with `ATTACHMENT_PUBLIC_FIXTURE_PREIMPORT_GUARD_AND_TOP_TMP_
    provenance, so genuine `/skill:`, file-command and prompt-template expansions dropped every staged
    `PreparedAttachmentLink` (`tests/attachments/expansions.test.ts`). Swapping the two statements fixes
    every expansion path, not just the asserted one.
-3. **Workspace `pi-utils` link.** The frozen runtime ships a published `@oh-my-pi/pi-utils` that lacks
+3. **Converter failure reports.** The child's stderr was read and thrown away, so an OOM kill and a
+   converter refusal both surfaced as `attachment_converter_resource_failure` with nothing to act on.
+   A non-empty report is now printed with the exit code (capped at 4 KiB), which is how the 512 MiB
+   ceiling above was found.
+4. **Workspace `pi-utils` link.** The frozen runtime ships a published `@oh-my-pi/pi-utils` that lacks
    `readStreamBounded`/`image-animation`; `prepare-compatibility.ts` now replaces that package with a
    symlink to `vendor/omp/packages/utils` (in this worktree only, so the main worktree is untouched).
 
@@ -111,8 +115,8 @@ select UTF-8 + PNG →
 (`reservation: committed`, `admission: local`) → `submission_query` returns
 `inputOutcome: generated` with three relations, `prepared` (text, `entryPart` present) and `input`
 (image, `entryPart` present) both `observed`/`committed`, and both `PreparedAttachmentLink`s carrying
-`preparedId` + `preparedSha256`. Receipt `040c3e34-ef58-48ef-8579-8136c5bcc34c`, submission
-`5064d3e5-8013-424e-8767-ab2eee5894ef`.
+`preparedId` + `preparedSha256`. Receipt `b02dd83b-dd17-4a6c-88b2-b49df1187085`, submission
+`c396ff05-e5c3-4d7a-8fd8-d830672b60af`.
 
 The Host refuses nothing here but stays at `sessionAdmission: "blocked"` for every other route; the
 page serves only digest-matching assets and a strict CSP.
