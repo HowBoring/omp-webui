@@ -11,8 +11,10 @@ import type { PrivateHelperHandle } from "../supervision/adapter.ts";
 import { PrivateHelperError } from "../supervision/errors.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import { HistoryClient } from "../contracts/generated/history-client.ts";
+import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import strictCommand from "../contracts/generated/strict-command.js";
+import submissionCommand from "../contracts/generated/submission-command.js";
 import strictState from "../contracts/generated/strict-state.js";
 import strictPolicy from "../contracts/generated/strict-policy.js";
 import interactionCommand from "../contracts/generated/interaction-command.js";
@@ -64,7 +66,8 @@ class SessionNotifications {
 
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
-    validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value) || controls(value),
+    validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value)
+      || submissionCommand(value) || controls(value),
     acceptReady: (frame, publish) => {
       if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
@@ -126,6 +129,11 @@ class SessionRpc {
     return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
   }
   state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
+  /** Host-owned adapter for the matched public submission commands; never a browser tunnel. */
+  submitCommand(command: StdioCommand): Promise<unknown> {
+    if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
+    return this.core.request(command);
+  }
   control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
   protected retire(): void { this.#retired = true; }
 }
@@ -198,9 +206,12 @@ export interface OwnedSessionConnection {
 
 /** Combined fixed public RPC boundary. No prompt sender, browser RPC tunnel, executable selectors or private imports. */
 export class SessionWorker extends SessionRpc {
+  /** Matched public native durable submission boundary; the Host, never a browser, supplies commands. */
+  readonly submissions: SubmissionClient;
   private constructor(private readonly transport: BoundedStdioTransport, notifications: SessionNotifications,
     options: SessionOptions) {
     super(transport, notifications, options);
+    this.submissions = new SubmissionClient(command => transport.request(command), isSubmissionResult);
   }
 
   static async open(selection: ProcessSelection, options: SessionOptions = {}): Promise<SessionWorker> {

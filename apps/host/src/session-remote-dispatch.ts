@@ -5,14 +5,16 @@ import { z } from "zod";
 import type { BrowserAccess } from "../../../packages/access/index.ts";
 import { chatRequestFailure } from "../../../packages/chat/service.ts";
 import { chatContribution } from "../../../packages/contracts/chat.ts";
+import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { ChatBodyError, hasCurrentChatAuthority, readChatRequestBody } from "./chat-request-body.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
-const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods };
+const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods,
+  "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections"]);
-const chatMethods = {
+export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
   "ompChat/lookup": chatContribution.methods["ompChat/lookup"],
   "ompChat/state": chatContribution.methods["ompChat/state"],

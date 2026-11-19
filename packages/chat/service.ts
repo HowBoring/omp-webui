@@ -3,6 +3,7 @@ import type { Context } from "@deepseek-ai/cordis";
 import { Remote, RemoteError, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
 import { chatRecovery, chatSessionId, chatState } from "../contracts/chat.ts";
+import { chatAttachment, chatAttachmentResult, type ChatAttachment, type ChatAttachmentResult } from "../contracts/chat-component.ts";
 import { ChatError, type ChatCaller, type ChatGateway } from "./gateway.ts";
 
 /** The Host resolves only an explicitly open, retained worker. */
@@ -51,6 +52,19 @@ export class ChatPromptService extends TypertRemoteService {
       const { worker, caller, signal } = binding(this.ctx, this.resolve, request.sessionId);
       return await worker.prompt(caller, request, signal);
     } catch (error) { return publicError(error); }
+  }
+}
+
+/** Component-only View enrollment. The carrier supplies identity outside this service. */
+export class ChatAttachService extends TypertRemoteService {
+  constructor(ctx: Context, private readonly attach: (input: ChatAttachment) => ChatAttachmentResult | undefined) {
+    super(ctx, "ompChatComponent");
+  }
+
+  @Remote("attach") async enroll(input: ChatAttachment): Promise<ChatAttachmentResult> {
+    const result = this.attach(chatAttachment.parse(input));
+    if (!result) throw new ChatRemoteError("gateway/bad-request", "No live Session worker is available to attach.", {});
+    return chatAttachmentResult.parse(result);
   }
 }
 

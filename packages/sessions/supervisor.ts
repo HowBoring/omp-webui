@@ -435,6 +435,16 @@ export class SessionSupervisor {
     if (!active || active.id !== workerId) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     this.#current(identity, active); return this.#view(active);
   }
+  /** Trusted composition port over the exact live worker; the caller performs its own admission. */
+  runtime(identity: BrowserAccess, workerId: string): { view: SessionView; worker: SupervisedSessionWorker } {
+    this.#browser(identity); const active = this.#active;
+    if (!active || active.id !== workerId || active.state !== "open" || !active.worker) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    // The composition owns cohort selection; the component composition launches SessionWorker, not an owned adapter.
+    return { view: this.#view(active), worker: active.worker as SupervisedSessionWorker };
+  }
   interactions(identity: BrowserAccess) {
     this.#browser(identity); const active = this.#active;
     if (!active) return undefined; this.#current(identity, active); return active.bridge?.snapshot();

@@ -16,7 +16,13 @@ import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor, type SessionLaunchOptions } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
-import { dispatchSessionRequest as dispatch, sessionUnary as unary, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
+import { createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
+  chatMethods, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
+import { chatHostContribution } from "../../../packages/contracts/chat.ts";
+import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
+import { ChatAttachService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
+import { ChatViewAdmission } from "./chat-view-admission.ts";
+import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
@@ -33,6 +39,8 @@ type Options = InstallationSelection & SessionLaunchOptions & {
   /** Opt-in lifecycle owned by this isolated carrier. Unary mode uses one Browser View per credential. */
   interactionBroker?: InteractionBroker;
   interactionBrokerMode?: InteractionBrokerMode;
+  /** Opt-in component Chat over the same explicitly opened worker. Product admission stays blocked. */
+  chat?: true;
 };
 interface SocketData {
   peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController>;
@@ -72,6 +80,9 @@ export async function startSessionComponentServer(options: Options) {
   let inflight = 0;
   let stopping = false;
   let supervisor: SessionSupervisor;
+  let chatComposition: { runtime: ChatComponentRuntime; dispatch: ReturnType<typeof createChatSessionDispatch> } | undefined;
+  let unaryMethods = unary;
+  const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
   let interactionCarrier: InteractionBrokerCarrier | undefined;
@@ -106,7 +117,7 @@ export async function startSessionComponentServer(options: Options) {
       }
       const registeredWorkspace = path === "/api/ompWorkspaces/registered";
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
-      if ((brokerRoute || registeredWorkspace || [...unary].some(method => path === `/api/${method}`))
+      if ((brokerRoute || registeredWorkspace || [...unaryMethods].some(method => path === `/api/${method}`))
         && request.method === "POST") {
         if (request.headers.get("origin") !== server.url.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
@@ -115,6 +126,7 @@ export async function startSessionComponentServer(options: Options) {
         ++inflight;
         try {
           if (brokerRoute) return await brokerRoute.dispatch(request, identity);
+          if (chatComposition && chatEndpoints.has(path)) return await chatComposition.dispatch(request, ctx, owner);
           const current = () => access.revalidate(identity);
           const response = registeredWorkspace ? await dispatchWorkspaceRequest(request, ctx, owner, current)
             : await sessionCaller.run(identity, () => dispatch(request, ctx, owner, current));
@@ -178,7 +190,22 @@ export async function startSessionComponentServer(options: Options) {
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);
+  if (options.chat) {
+    ctx.typert.register(chatHostContribution);
+    ctx.typert.register(chatComponentHostContribution);
+    const admission = new ChatViewAdmission(access, directories, supervisor);
+    const runtime = new ChatComponentRuntime(access, directories, supervisor, admission);
+    new ChatPromptService(ctx, sessionId => runtime.gateway(sessionId));
+    new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
+    new ChatAttachService(ctx, input => {
+      const identity = sessionCaller.getStore(); return identity ? runtime.attach(identity, input) : undefined;
+    });
+    chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
+      (_request, identity) => runtime.enrollment(identity)) };
+    unaryMethods = new Set([...unary, "ompChatComponent/attach"]);
+  }
   const detachRevocation = access.onRevokeAll(() => {
+    chatComposition?.runtime.close();
     const brokerStop = interactionCarrier?.revokeAll();
     revokedStop = Promise.allSettled([supervisor.revokeAll(), brokerStop]).then(results => {
       for (const result of results) if (result.status === "rejected") throw result.reason;
@@ -194,6 +221,7 @@ export async function startSessionComponentServer(options: Options) {
     bootstrapLink: () => access.bootstrapLink(),
     async stop(): Promise<void> {
       stopping = true;
+      chatComposition?.runtime.close();
       const draining = supervisor.close(); access.close(); detachRevocation();
       interactionBroker?.close();
       await draining; directories.close(); index.close();

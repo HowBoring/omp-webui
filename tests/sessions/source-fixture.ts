@@ -13,6 +13,7 @@ import validState from "../../packages/contracts/generated/strict-state.js";
 import type { CatalogDescriptor, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
 import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
 import type { OwnedSessionConnection, SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
+import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/submissions.ts";
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
@@ -54,6 +55,8 @@ export async function sourceFixture(now: () => number = Date.now,
       (value): value is StrictStartState => validState(value)),
     history: new HistoryClient(async () => { throw new Error("SYNTHETIC_HISTORY_UNUSED"); }),
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    submissions: new SubmissionClient(async () => { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); }, isSubmissionResult),
+    async submitCommand() { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async state() { return { sessionId: selected.nativeSessionId, isSettled: !controls.busy, isStreaming: controls.busy,
       isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } }; },

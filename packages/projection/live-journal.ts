@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
+import { parseProjectionBinding } from '@deepseek-ai/dsh-api-session-controller/projection';
 import type {
   SessionFollowFrame, SessionHistoryRecord, SessionPage,
   SessionAssistantStreamBaseline, SessionAssistantStreamFrame,
@@ -61,6 +62,8 @@ async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'a
 /** Disposable bounded DSH generation. Native observations remain authoritative and not-attested. */
 export class LiveJournal {
   readonly generation = crypto.randomUUID();
+  /** Opaque Host-journal projection identity. A new journal is a new generation. */
+  readonly projection = parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: this.generation});
   readonly sessionId;
   readonly #records: SessionHistoryRecord[] = [];
   readonly #recordByteEnds: number[] = [];
@@ -147,7 +150,7 @@ export class LiveJournal {
   #fail(code: string): never { this.invalidate(code); throw Error(code); }
   #assert(): void { if (this.#failure) throw Error(this.#failure); }
   page(request: PageRequest): SessionPage {
-    return this.#page(request, PAGE_BYTES);
+    return {...this.#page(request, PAGE_BYTES), projection: this.projection};
   }
   #page(request: PageRequest, limit: number): SessionPage {
     this.#assert();
@@ -184,8 +187,8 @@ export class LiveJournal {
     const reserve = Buffer.byteLength(JSON.stringify(assistantStream)) + 8192;
     if (reserve >= PAGE_BYTES) throw Error('live_prefix_bytes');
     const page = this.#page({throughSeq: this.cursor, maxMessages: 32}, PAGE_BYTES - reserve);
-    return {type: 'snapshot', header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
-      cursor: this.cursor, ...page, projections: {asOfSeq: this.cursor, values: {}}, assistantStream};
+    return {type: 'snapshot', projection: this.projection, header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
+      cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor, values: {}}, assistantStream};
   }
   subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
     this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };

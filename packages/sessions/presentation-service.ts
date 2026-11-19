@@ -20,7 +20,7 @@ export class SessionPresentationService extends TypertRemoteService {
   }
   @Remote("projections") async projections(request: SessionProjectionsRequest) {
     const journal = await this.supervisor.presentation(this.identity(), request.sessionId);
-    return { kind: "sequenced" as const, asOfSeq: journal.cursor, values: {} };
+    return { kind: "sequenced" as const, projection: journal.projection, asOfSeq: journal.cursor, values: {} };
   }
   @Remote("page") async page(request: SessionPageRequest) {
     const journal = await this.supervisor.presentation(this.identity(), this.addressId(request.address));
