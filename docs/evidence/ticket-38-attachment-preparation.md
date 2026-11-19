@@ -122,3 +122,65 @@ fails at the first `git apply --check`, because the patch rewrites `src/modes/rp
 `src/modes/rpc/wire/commands.ts` — files whose #36 content differs. Porting 0009 (56 hunks) and
 0010 (3 hunks) onto the #36 stack is therefore the remaining #38 implementation work, and must
 precede any format/consent/budget verification.
+
+## Port attempt onto the #36 stack (9b21295)
+
+Chosen path (Main, option a): keep `68557ab`/`0d22549` + patches 0001-0006 as the durable
+submission authority; port only 0009/0010's attachment surfaces, adapting receipt/entry-parts
+calls to #36 provenance instead of importing the reference branch's 0007/0008 persistence.
+
+Method that works (3-way `git apply` cannot, it reports "cleanly" but silently skips adds):
+```
+git -C vendor/omp reset --hard 7c49c11 && bun run compat:prepare --reset   # 0001-0006 only
+patch -p1 -d vendor/omp --forward --fuzz=5 < compatibility/omp/0009-attachment-preparation.patch
+patch -p0 -d vendor/omp --forward --fuzz=5 < <rejects-from-previous-step>
+patch -p1 -d vendor/omp --forward --fuzz=5 < compatibility/omp/0010-image-original-budget.patch
+```
+That lands all 14 `src/attachments/*` modules, the converters (pdf/docx/pptx/xlsx/epub),
+`rpc-input.ts`, and the attachment command dispatch (`attachment_prepare`/`attachment_cancel`,
+`rpcInputPolicy`/`attachmentInputPolicy` in the ready frame, `AttachmentCommand`/`AttachmentReceipt`
+in `RpcCommand`/`RpcResponse`).
+
+Still missing after that pass (30 files) — the remaining port, all cross-cutting plumbing:
+```
+  packages/coding-agent/README.md
+  packages/coding-agent/scripts/gen-rpc/model.ts
+  packages/coding-agent/scripts/gen-rpc/python.ts
+  packages/coding-agent/src/cli.ts
+  packages/coding-agent/src/extensibility/extensions/runner.ts
+  packages/coding-agent/src/markit/converters/docx.ts
+  packages/coding-agent/src/markit/converters/epub.ts
+  packages/coding-agent/src/markit/converters/pdf/index.ts
+  packages/coding-agent/src/markit/converters/pptx.ts
+  packages/coding-agent/src/markit/converters/xlsx.ts
+  packages/coding-agent/src/markit/types.ts
+  packages/coding-agent/src/modes/rpc/rpc-input.ts
+  packages/coding-agent/src/modes/rpc/rpc-submissions.ts
+  packages/coding-agent/src/modes/rpc/strict-mode.ts
+  packages/coding-agent/src/modes/rpc/wire/commands.ts
+  packages/coding-agent/src/modes/rpc/wire/index.ts
+  packages/coding-agent/src/modes/rpc/wire/submissions.ts
+  packages/coding-agent/src/sdk.ts
+  packages/coding-agent/src/session/messages.ts
+  packages/coding-agent/src/session/session-required-features.ts
+  packages/coding-agent/src/session/submission-policy.ts
+  packages/coding-agent/src/session/submission-provenance.ts
+  packages/coding-agent/src/session/submission-records.ts
+  packages/coding-agent/src/slash-commands/acp-builtins.ts
+  packages/tui/CHANGELOG.md
+  packages/tui/README.md
+  packages/tui/package.json
+  packages/utils/CHANGELOG.md
+  packages/utils/README.md
+  packages/utils/src/stream.ts
+```
+The load-bearing ones: `packages/utils/src/stream.ts` (`readStreamBounded`, which every
+attachment module imports), `session/submission-provenance.ts`
+(`stageInputAttachmentMessage`, `takePreparedAttachmentMessages`),
+`session/messages.ts`, `session/session-required-features.ts`, `modes/rpc/wire/{commands,index,submissions}.ts`,
+`modes/rpc/rpc-submissions.ts`, `modes/rpc/strict-mode.ts`, `src/cli.ts` and `scripts/gen-rpc/*`.
+Until those land, the candidate does not build and no attachment behaviour can be verified.
+
+Regenerated patches from the partial tree must not be committed: `git diff HEAD` after a
+fuzzy apply omits untracked adds unless staged first, which silently produces a 30-file
+patch that looks complete and applies cleanly while dropping every new module.
