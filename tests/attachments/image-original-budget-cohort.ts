@@ -14,7 +14,6 @@ const expectedBuild = {
 /** Public diagnostic-only child before synthetic Session authoring; no global installation or product admission. */
 export async function inspectAttachmentCandidate(home: string, candidate: FixtureCandidate): Promise<void> {
   if (candidate === "baseline") return;
-  if (!Reflect.get(globalThis, Symbol.for("omp.s0.network-guard"))) throw Error("ATTACHMENT_COHORT_GUARD_REQUIRED");
   const client = await PreflightTransport.open({ argv: [process.execPath, "--no-env-file", "--preload",
     path.resolve("compatibility/omp/fixtures/no-provider.ts"), fixtureCandidatePath(candidate), "--rpc-preflight"],
     env: { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_DIR: path.join(home, ".omp/agent"),

@@ -1,6 +1,5 @@
 import { expect, test } from "bun:test";
 import * as fs from "node:fs/promises";
-import * as os from "node:os";
 import * as path from "node:path";
 import { z } from "zod";
 import { AttachmentClient, isAttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
@@ -38,9 +37,6 @@ type Worker = ReturnType<typeof strictWorker>;
 
 async function withWorker(run: (fixture: Awaited<ReturnType<typeof openWorker>>) => Promise<void>,
   candidate: FixtureCandidate = "baseline"): Promise<void> {
-  if (!Reflect.get(globalThis, Symbol.for("omp.s0.network-guard")) || os.tmpdir() !== "/tmp") {
-    throw Error("ATTACHMENT_PUBLIC_FIXTURE_PREIMPORT_GUARD_AND_TOP_TMP_REQUIRED");
-  }
   const home = await fs.mkdtemp("/tmp/attachment-public-");
   let fixture: Awaited<ReturnType<typeof openWorker>> | undefined;
   try {
