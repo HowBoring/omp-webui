@@ -38,6 +38,7 @@ try {
   expect(JSON.stringify(ends)).not.toContain('"answer":"default reason"');
   const editor=sourceEvents.find(value=>value.method === "editor");expect(editor).toBeDefined();
   expect(sourceEvents.some(value=>value.method === "cancel" && value.targetId === editor!.id && value.reason === "expired")).toBe(true);
-  expect(await fixture.close()).toMatchObject({code:0,forced:false,networkDenials:3});
+  // OMP 19 issues one extra denied fetch (catalog probe) before the scripted turn; the child boundary denies every attempt.
+  expect(await fixture.close()).toMatchObject({code:0,forced:false,networkDenials:4});
 }finally{await client.stop();}
 console.log("native-core-loop: PASS");

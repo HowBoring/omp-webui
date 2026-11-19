@@ -42,6 +42,7 @@ try {
   expect(readyVerified).toBe(true);
   expect(await client.getState()).toMatchObject({model:{provider:"openai",id:"gpt-4o"}});
   await client.prompt("/s0-select");await selection.promise;
-  const outcome=await fixture.close();expect(outcome).toMatchObject({code:0,forced:false,networkDenials:3});
+  const outcome=await fixture.close();// OMP 19 issues one extra denied fetch (catalog probe) before the scripted turn; the child boundary denies every attempt.
+  expect(outcome).toMatchObject({code:0,forced:false,networkDenials:4});
 }finally{detach();await client.stop();}
 console.log("native-client: PASS");
