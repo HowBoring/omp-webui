@@ -6,7 +6,7 @@ import { nativeFixture, filesystemManifest } from "../catalog/fixture.ts";
 import { strictWorker, selectedDescriptor, isolatedRuntimeArgs, negotiateStrict } from "./worker.ts";
 
 // tui-probe.py requires explicit native entries; keep this suite's original matched/baseline launchers.
-const launchers = { OMP_BASELINE_CLI: "/workspace/work/rpc-public-module-probe/tarball/package/dist/cli.js",
+const launchers = { OMP_BASELINE_CLI: resolve("vendor/omp-runtime/node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js"),
   OMP_CANDIDATE_CLI: resolve("vendor/omp-candidate/cli.js") };
 
 test("baseline TUI refuses the new carrier and matched TUI renders and continues the same native data", async () => {
