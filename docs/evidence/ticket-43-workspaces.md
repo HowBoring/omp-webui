@@ -12,7 +12,7 @@ the DSH c0 closure, the isolated component passed its full acceptance harness. E
   **74 tests / 1,058 assertions / 20 files**. The single skip is the `tests/catalog/catalog.test.ts:155` real-syscall
   fault test, which requires `strace`; `strace` is absent here.
 - `python3 tests/workspaces/browser.py`: **all 12 actual Linux Chromium scenarios** across three real Host process
-  starts, 47 native rows, 35 labelled synthetic index references, 40 typed DSH Remote calls and zero page errors.
+  starts, 47 native rows, 35 labelled synthetic index references, typed DSH Remote calls and zero page errors.
 - Actual SIGKILL restart restores the absolute browser credential and the persistent directory grant; the readonly
   native child exits on Host loss. Canonical-root replacement loses rights and reports `changed`; explicit revoke
   persists through a second actual restart; native cursor errors and a labelled wrong-correlation fault stay explicit
