@@ -4,8 +4,8 @@ import { tmpdir } from "node:os";
 import { digest } from "../packages/compatibility/installation.ts";
 
 export const ompBase = "7c49c11aa5bbaf3f418406583096168ad5b8c6dc";
-export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch", "0006-live-settlement.patch"];
-export const authoredPaths = ["src/session/session-lease.ts", "src/session/history-context.ts", "src/session/live-message-observation.ts", "src/modes/rpc/rpc-session-events.ts", "docs/rpc-live-observation.md", "README.md", "src/session/agent-session.ts", "src/session/session-artifact-copy.ts", "src/utils/file-new-publication.ts", "src/debug/report-bundle.ts", "docs/rpc-strict-start.md", "src/modes/rpc/strict-start-policy.ts", "src/activity/index.ts", "src/memories/index.ts", "src/modes/rpc/rpc-subagents.ts", "src/cli/gc-cli.ts", "src/cli/gc-strip.ts", "src/session/session-header-id.ts", "src/session/session-transfer.ts", "src/cli/render-cli.ts", "src/modes/rpc/strict-client.ts", "src/session/session-drafts.ts", "src/session/session-loader.ts", "src/session/generation-storage-factory.ts", "src/utils/file-xattr.ts", "src/session/session-generation.ts", "src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
+export const ompPatches = ["0001-safe-preflight.patch", "0002-readonly-catalog.patch", "0003-explicit-interactions.patch", "0004-coherent-history.patch", "0005-strict-continuation.patch", "0006-live-settlement.patch", "0009-attachment-preparation.patch", "0010-image-original-budget.patch"];
+export const authoredPaths = ["src/session/navigation-policy.ts", "src/modes/rpc/rpc-output.ts", "docs/rpc-navigation.md", "src/session/navigation-records.ts", "src/modes/rpc/rpc-navigation.ts", "src/modes/rpc/navigation-client.ts", "src/modes/rpc/wire/navigation.ts", "src/session/session-lease.ts", "src/modes/rpc/rpc-prompt-results.ts", "src/session/turn-recovery.ts", "src/session/session-provider-boundary.ts", "src/session/submission-records.ts", "src/session/submission-policy.ts", "src/session/session-required-features.ts", "src/session/session-artifact-copy.ts", "src/utils/file-new-publication.ts", "src/session/submission-provenance.ts", "src/session/session-entries.ts", "src/modes/rpc/rpc-submissions.ts", "src/modes/rpc/wire/submissions.ts", "src/modes/rpc/submission-client.ts", "docs/rpc-submissions.md", "src/session/history-context.ts", "src/session/agent-session.ts", "src/session/live-message-observation.ts", "src/modes/rpc/rpc-session-events.ts", "docs/rpc-live-observation.md", "README.md", "src/debug/report-bundle.ts", "docs/rpc-strict-start.md", "src/modes/rpc/strict-start-policy.ts", "src/activity/index.ts", "src/memories/index.ts", "src/modes/rpc/rpc-subagents.ts", "src/cli/gc-cli.ts", "src/cli/gc-strip.ts", "src/session/session-header-id.ts", "src/session/session-transfer.ts", "src/cli/render-cli.ts", "src/modes/rpc/strict-client.ts", "src/session/session-drafts.ts", "src/session/session-loader.ts", "src/session/generation-storage-factory.ts", "src/utils/file-xattr.ts", "src/session/session-generation.ts", "src/main.ts", "src/session/session-storage.ts", "src/session/strict-session-storage.ts",
   "src/modes/rpc/wire/strict-start.ts", "src/modes/rpc/strict-mode.ts", "src/modes/rpc/strict-reservation.ts",
   "src/modes/rpc/strict-context.ts", "src/modes/rpc/strict-input.ts", "src/session/session-manager.ts", "src/modes/rpc/history-client.ts",
   "src/modes/rpc/rpc-history.ts", "src/modes/rpc/wire/history.ts", "src/cli.ts", "src/cli-runtime.ts", "src/modes/rpc/preflight.ts",
@@ -14,11 +14,31 @@ export const authoredPaths = ["src/session/session-lease.ts", "src/session/histo
   "src/modes/rpc/rpc-interaction-policy.ts", "src/modes/rpc/rpc-interactions.ts", "src/modes/rpc/rpc-mode.ts", "src/modes/rpc/rpc-types.ts",
   "src/modes/rpc/rpc-client.ts", "src/modes/rpc/wire/interactions.ts", "src/tools/ask.ts",
   "src/extensibility/extensions/types.ts", "docs/rpc-interactions.md", "test/rpc-extension-ui.test.ts", "src/modes/rpc/catalog-metadata.ts", "src/modes/rpc/catalog-path.ts", "src/modes/rpc/catalog-client.ts", "CHANGELOG.md"]
-  .map(path => `packages/coding-agent/${path}`);
+  .map(path => `packages/coding-agent/${path}`).concat([
+    "packages/coding-agent/src/attachments/limits.ts", "packages/coding-agent/src/attachments/input-policy.ts", "packages/coding-agent/src/slash-commands/acp-builtins.ts", "packages/coding-agent/src/attachments/prepare.ts",
+    "packages/coding-agent/src/attachments/document.ts", "packages/coding-agent/src/attachments/package.ts", "packages/coding-agent/src/attachments/isolated.ts",
+    "packages/coding-agent/src/attachments/worker.ts", "packages/coding-agent/src/attachments/deny-network.ts",
+    "packages/coding-agent/src/attachments/receipts.ts", "packages/coding-agent/src/markit/types.ts",
+    "packages/coding-agent/src/attachments/rpc-budget.ts",
+    "packages/coding-agent/src/attachments/validation.ts", "packages/coding-agent/src/attachments/entry-parts.ts",
+    "packages/coding-agent/src/attachments/provider-guard.ts", "packages/coding-agent/src/extensibility/extensions/runner.ts",
+    "packages/coding-agent/src/session/messages.ts",
+    "packages/coding-agent/src/attachments/model-binding.ts", "packages/coding-agent/src/sdk.ts",
+    "packages/coding-agent/docs/rpc-attachments.md", "packages/utils/README.md", "packages/utils/CHANGELOG.md",
+    "packages/tui/README.md", "packages/tui/CHANGELOG.md",
+    "packages/coding-agent/src/markit/converters/pdf/index.ts", "packages/coding-agent/src/markit/converters/docx.ts",
+    "packages/coding-agent/src/markit/converters/pptx.ts", "packages/coding-agent/src/markit/converters/xlsx.ts", "packages/coding-agent/src/markit/converters/epub.ts", "packages/utils/src/image-animation.ts",
+    "packages/utils/src/stream.ts", "packages/tui/package.json",
+    "packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+    "packages/coding-agent/src/modes/rpc/attachment-client.ts", "packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+    "packages/coding-agent/src/modes/rpc/rpc-input.ts", "packages/coding-agent/src/modes/rpc/rpc-input-policy.ts",
+    "packages/coding-agent/scripts/gen-rpc/model.ts",
+    "packages/coding-agent/scripts/gen-rpc/python.ts",
+  ]);
 const generatedPaths = ["packages/coding-agent/src/modes/rpc/wire/rpc-wire.generated.ts",
   "packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json", "sdk/go/omp-rpc/wire.go",
   "sdk/python/omp-rpc/src/omp_rpc/_wire.py", "sdk/rust/omp-rpc/src/wire.rs"];
-export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/strict-command.generated.js",
+export const temporaryPaths = ["packages/coding-agent/src/modes/rpc/navigation.generated.ts", "packages/coding-agent/src/modes/rpc/navigation-command.generated.js", "packages/coding-agent/src/modes/rpc/navigation-result.generated.js", "packages/coding-agent/src/modes/rpc/navigation-preview.generated.js", "packages/coding-agent/src/modes/rpc/attachments.generated.ts", ...["command", "receipt"].flatMap(name => ["js", "d.ts"].map(ext => `packages/coding-agent/src/modes/rpc/attachment-${name}.generated.${ext}`)), "packages/coding-agent/src/modes/rpc/submissions.generated.ts", "packages/coding-agent/src/modes/rpc/submission-command.generated.js", "packages/coding-agent/src/modes/rpc/submission-result.generated.js", "packages/coding-agent/src/modes/rpc/strict-command.generated.js",
   "packages/coding-agent/src/modes/rpc/strict-state.generated.js", "packages/coding-agent/src/modes/rpc/strict.generated.ts", "packages/coding-agent/src/modes/rpc/history.generated.ts",
   ...["command", "open", "page", "poll", "content", "notification"].flatMap(name => ["js", "d.ts"].map(extension => `packages/coding-agent/src/modes/rpc/history-${name}.generated.${extension}`)), "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
   "packages/coding-agent/src/modes/rpc/interactions-command.generated.js",

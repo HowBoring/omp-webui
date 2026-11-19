@@ -1,0 +1,306 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_STATIC_READY_NO_ACTUAL_CURRENT_TUPLE_CASE_RUN",
+  "sourceCheckpoint": "8bb7cd3e4e13bea379fbf159f0f8f0bbc7e080f4",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "formatPlan": {
+    "path": "compatibility/evidence/attachment-fa52-format-source-plan.json",
+    "bytes": 10845,
+    "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+  },
+  "scope": "Only one JPEG SOURCE tracer and independent fixture added. Existing PNG/text success and mixed-refusal test bodies, provider and canonical guarded title helper unchanged. No Native or Host runtime, browser, FFI, Native runtime import, or candidate rebuild was executed by this finisher; only guarded Host static types and external-only syntax emit.",
+  "test": {
+    "path": "tests/attachments/public-rpc.test.ts",
+    "bytes": 19074,
+    "sha256": "b80f05ba7461275ff26483f435b09448eb07f061714fc94d292d5916674845e4"
+  },
+  "fixtures": [
+    {
+      "path": "compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 6983,
+      "sha256": "a92b0b5b6450b72815f0f3d0aed4e06040041ae3c8adfdb72810ab570a448994"
+    },
+    {
+      "path": "compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    },
+    {
+      "path": "tests/attachments/fixtures/opaque-200.jpeg",
+      "bytes": 1723,
+      "sha256": "7622bbfcb0ab173d3dd13c0282fc0c8902de814f9283a58bce0b8e43e10654d5"
+    },
+    {
+      "path": "tests/attachments/fixtures/opaque-200.json",
+      "bytes": 934,
+      "sha256": "ffb84a9ac3f9e33888e48cfd8b3d15f9bdba79384944e16e0f94db984f7a2773"
+    }
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-attachments.ts",
+      "bytes": 1937,
+      "sha256": "95634d45ddd1b2cdb455351102354a20f9ae07b608b032e39dba6cbe0d2ccee6"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/modes/rpc/rpc-mode.ts",
+      "bytes": 131206,
+      "sha256": "7fc5594f2a1866cf2d59ccbb34dea2542102b161d6c85a36c5f39e07ecfb71e8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/document.ts",
+      "bytes": 1829,
+      "sha256": "6d11fe9dc33c88ee54fa02557dbe074a877776da85e8187e043d2f0dd4ba628a"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/attachments/package.ts",
+      "bytes": 3724,
+      "sha256": "b410b3efe8aadd40085fe21d34196b560292838d62241fb61ed9c4fbf81314a3"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/markit/converters/docx.ts",
+      "bytes": 2064,
+      "sha256": "424b5e2593bc8578be6254ba9a2394af7cb874aba5258ff52f22f928dfd000bd"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/utils/image-resize.ts",
+      "bytes": 30822,
+      "sha256": "2dbfe65f9639442cce80def61eb7a84e95080eeee55dc120aceb76d4af36d930"
+    },
+    {
+      "path": "vendor/omp/packages/utils/src/image-animation.ts",
+      "bytes": 4996,
+      "sha256": "74b2fb5283b2128f5f6366cafb68279d9a649349af8e909701f4f7168ec7f3af"
+    },
+    {
+      "path": "vendor/omp/packages/coding-agent/src/session/session-title-slot.ts",
+      "bytes": 4893,
+      "sha256": "f09e29d42ace45f77c91c29f847984ca181602959132427f02c9023307520119"
+    }
+  ],
+  "input": {
+    "fixture": "tests/attachments/fixtures/opaque-200.jpeg",
+    "authoring": "Pillow 13.0.0: RGB200x200 solid(37,83,127); JPEG quality85 subsampling0 optimizeFalse progressiveFalse; no OMP/Bun/converter execution.",
+    "bytes": 1723,
+    "originalSha256": "7622bbfcb0ab173d3dd13c0282fc0c8902de814f9283a58bce0b8e43e10654d5",
+    "expectedPreparedRepresentationSha256": "2de4100d163176cc222bb318f972dc371d7b5e61a5a12a23280ee4eb078f3285",
+    "width": 200,
+    "height": 200,
+    "independentValidation": "Python Pillow reopen/load confirms JPEG/RGB200x200; Python hashlib independently pins the original and compact public representation JSON in field order kind,mimeType,data,width,height.",
+    "expectationBasis": "Inspected resizeImage fast path preserves valid supported200x200 JPEG below128000bytes; prepareImage reports no degradation, one frame and160000decodedBytes. These are unexecuted source expectations, not observed Native results."
+  },
+  "checks": [
+    {
+      "status": "PASS",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "HOME": "/tmp/ticket38-jpeg-source-checks/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-jpeg-source-checks/home",
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "startedAt": "2026-11-17T01:25:27.221298+00:00",
+        "pid": 516673,
+        "code": 0,
+        "finishedAt": "2026-11-17T01:25:33.826073+00:00"
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/host-types.json",
+          "bytes": 725,
+          "sha256": "fff6d77dc00a06bd912edc37bc3fffe67eda0f0544bbaff37468c89fcb63e9c0"
+        },
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-jpeg-source-checks/syntax"
+        ],
+        "environment": {
+          "HOME": "/tmp/ticket38-jpeg-source-checks/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-jpeg-source-checks/home",
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "startedAt": "2026-11-17T01:25:33.826505+00:00",
+        "pid": 516683,
+        "code": 0,
+        "finishedAt": "2026-11-17T01:25:33.834492+00:00"
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/syntax.json",
+          "bytes": 778,
+          "sha256": "af355e56fa49483302eebda9c46e4f06e47a0484da03432a50e416b144c55e02"
+        },
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/syntax.stdout",
+          "bytes": 72,
+          "sha256": "95c6fae69eed4906fcd2ed62a412b649248334e6cd5bce151e0557e69284e282"
+        },
+        {
+          "path": "/tmp/ticket38-jpeg-source-checks/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "nativeAuthoringState": {
+    "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "index": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+      "bytes": 1271154,
+      "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+    },
+    "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+    "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+    "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+  },
+  "causality": "Only public result.relations entryId and saved entryPart kind/index join receipt identities to get_entries and public history. Provider facts establish delivered bytes only; text/hash/order never join history.",
+  "plannedRuntime": {
+    "status": "NOT RUN; Root must grant exactly one case window. PNG/text, mixed refusal and JPEG are separate anchored cases; never run the whole file.",
+    "jpegName": "actual public JPEG preserves prepared bytes through indexed saved image and provider delivery",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public JPEG preserves prepared bytes through indexed saved image and provider delivery$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "preImport": "Top guard before test imports, worker and catalog no-provider before launcher, nativeTitleSlots canonical c4e684 child no-provider before pure Native serializer import with explicit synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original tool and child handles; record actual exits and stdout/stderr drain. strictWorker.close awaits exit, reader and stderr; finally awaits child exit and removes only owned synthetic home. Public catalog transport closes/awaits but existing selectedDescriptor discards exact catalog drain details, so do not claim uncaptured exact catalog identities or descendant extinction. Inspect guard audit and pre/post enrolled source records. Stop first failure; no retry or product fix without new Root authorization."
+  },
+  "historical": {
+    "oldTuple": {
+      "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "sourceSha256": "f2e6abeec0a807557125f108055b83bc041869a2cf42a99cd1c6f53ec3dbc870",
+      "patchSha256": "c4fe066897608e398c197ae641074fe05756f0be2ec721f1e817b26d4580007e",
+      "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+    },
+    "success": {
+      "path": "compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+      "bytes": 9662,
+      "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77"
+    },
+    "mixedRefusal": {
+      "path": "compatibility/evidence/attachment-de7c-public-mixed-refusal-runtime.json",
+      "bytes": 10748,
+      "sha256": "37f3b034dd38fa6a65453c29b90927d26dc910952e1ef8b86fae3bc17af783cc"
+    },
+    "scope": "Oldf2e6 success1/47 and refusal1/13 remain historical; current9f33 runtime NOT RUN."
+  },
+  "limitations": [
+    "Current tuple public PNG/text success and invalid UTF8 mixed refusal reruns",
+    "JPEG and all additional selected-format real conversion/provider/history cases",
+    "restart/copy/branch/restore/persistence/budgets/cancel/stale/expiry/fault/TUI/data",
+    "actual DSH/browser/full suite/independent review",
+    "Windows Chrome/WSL2 owner-deferred",
+    "This source/build and fixture manifest does not enroll an exhaustive runtime/dependency closure. Root may require extra preflight enrollment before granting its actual window."
+  ],
+  "admission": "Whole38/MVP OPEN. Product/private/global admission blocked; Windows owner-deferred. No execution authority transferred.",
+  "finalStaticReadback": {
+    "status": "PASS",
+    "matchedFileRecordsIncludingPinnedBun": 290,
+    "readyReferences": "All byte counts/SHA256 re-read after static types/syntax checks.",
+    "priorCaseBodies": "Removing the sole60-line JPEG insertion reproduces original public-rpc.test.ts exactly.",
+    "native": "Native HEAD/index/status/staged/worktree/HEAD binary diffs match pre-finisher snapshot exactly.",
+    "diffCheck": "git diff --check PASS",
+    "actualCasesRun": 0
+  }
+}

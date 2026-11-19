@@ -1,0 +1,33 @@
+{
+  "ticket": 38,
+  "status": "BOTH_COMPILER_WINDOWS_CONSUMED_FAIL_THEN_ADDITIVE_PASS_NATIVE_RUNTIME_NONE",
+  "proof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-evidence.json",
+    "bytes": 8303,
+    "sha256": "b0e9cb8771b478600e02666d4e0db13682dbe853c5ddc09141f5c3063dec4c07"
+  },
+  "firstFailPack": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-fail-preserve-20261117/raw.tar.gz",
+    "bytes": 609265,
+    "sha256": "d939e3be40e14198c9993b6363aa69f25bb9adc533c0875c748fee7f28df955b"
+  },
+  "passPack": {
+    "archive": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/raw.tar.gz",
+      "bytes": 61993,
+      "sha256": "86030b3cb81ea6664792056058fe8b0c20699a2108a0bef34ab29982666f23a1"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-v2-evidencepack-20261117/manifest.json",
+      "bytes": 9042,
+      "sha256": "83eb6da583350e4ec08394bc0ff2a531aa0c0dd9446c334f36942d912f6a5405"
+    },
+    "members": 21,
+    "uncompressedBytes": 375227,
+    "readback": "Exact ordered regular names/counts/fullbytes without extraction."
+  },
+  "firstScope": "vendor/omp-candidate-image-original-budget-20261117: FAIL; no rerun/repair.",
+  "secondScope": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2: PASScompileronly; pre/run/post consumed.",
+  "future": "FreshSourcepair/freeze/retainer/RootONE required for explicitadditivecandidate publictest. No repeatuserpermission needed; Rootcoordination stillrequired.",
+  "wholeAcceptance": "29/38/53/54open"
+}

@@ -1,0 +1,237 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_FAILED_MIXED_PREPARATION_REFUSAL_CASE_ONLY",
+  "hostHead": "a81f5e3e6b9bc1d9643956be1a1b69f9cdac6470",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "f2e6abeec0a807557125f108055b83bc041869a2cf42a99cd1c6f53ec3dbc870",
+    "patchSha256": "c4fe066897608e398c197ae641074fe05756f0be2ec721f1e817b26d4580007e",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runner": {
+    "hostHead": "a81f5e3e6b9bc1d9643956be1a1b69f9cdac6470",
+    "case": "actual public failed mixed preparation refuses all input before reservation or effects",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public failed mixed preparation refuses all input before reservation or effects$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/profile",
+      "PI_CODING_AGENT_DIR": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/profile",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/profile",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "startedAt": "2026-11-17T00:16:05.964230+00:00",
+    "evidenceDirectory": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq",
+    "status": "PASS",
+    "runnerPid": 504942,
+    "finishedAt": "2026-11-17T00:16:09.263497+00:00",
+    "runnerWaitStatus": 0,
+    "outerTimeout": false,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrSha256": "678cab673715803136fd031bdafd25260302e40b16a1484fd9d42885d9620b04",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "originalTool": {
+    "sessionId": 23561,
+    "startedChunkId": "d5f8a9",
+    "finishedChunkId": "ffb534",
+    "wrapperExitCode": 0,
+    "originalRunnerHandleWaited": true,
+    "stdoutStderr": "Original Popen stdout/stderr files closed after child.wait(); original exec session drained to wrapper exit0."
+  },
+  "result": {
+    "passed": 1,
+    "failed": 0,
+    "filtered": 1,
+    "expectCalls": 13,
+    "elapsedSeconds": 3.29,
+    "caseElapsedMs": 3242.49,
+    "successCase": "FILTERED/NOT RERUN; previous success separately evidenced at1031773",
+    "retry": "NONE",
+    "actualPublicTypedSubsetsConfirmedByPassingAssertions": {
+      "attachment_prepare": {
+        "status": "failed",
+        "items": [
+          {
+            "status": "ready",
+            "originalId": "image",
+            "originalSha256": "6b1048f8a6d40bac0b2954c18fefa40c4ea7a96120fc2e54b7317c0e43c2bbec",
+            "preparedSha256": "d39598a3d443533997fb6f9bdb856a1f7d05912f78753c9653391dae5b8942ff"
+          },
+          {
+            "status": "failed",
+            "originalId": "invalid",
+            "originalSha256": "eddf68639913a3cb8331cdfe7f87559e0beccf2c289c0d90ac4d89b3204004f8",
+            "code": "attachment_invalid_utf8"
+          }
+        ]
+      },
+      "submission_submit": {
+        "success": false,
+        "code": "ATTACHMENT_NOT_READY",
+        "error": "ATTACHMENT_NOT_READY"
+      },
+      "submission_query": {
+        "found": false,
+        "admission": "absent",
+        "reservation": "absent",
+        "terminal": false,
+        "inputOutcome": "unresolved",
+        "operationOutcome": "unknown",
+        "persistence": "unresolved",
+        "relations": [],
+        "nextOffset": null
+      },
+      "attachment_cancel": {
+        "cancelled": true
+      }
+    },
+    "verifiedFacts": [
+      "Mixed PNG plus two invalid UTF-8 bytes c3 28 yields whole failed public receipt while valid PNG item is ready with exact independent original/prepared digests.",
+      "Preparation leaves actual public get_entries equal to baseline and controlled-provider effects equal to baseline.",
+      "Submission of failed receipt returns ATTACHMENT_NOT_READY before reservation: public query reports absent admission/reservation, unresolved input/persistence, unknown operation, no relations and no next offset.",
+      "After refusal authoritative public get_entries and complete controlled-provider effects remain exactly equal to baseline.",
+      "Public cancellation of the failed preparation returns cancelled:true."
+    ],
+    "captureBoundary": "Typed subsets above are the exact fields checked against actual responses by the unchanged pinned test. Raw response bodies, dynamic receipt IDs and discarded catalog metadata were not retained or reconstructed."
+  },
+  "sourcePost": {
+    "status": "SOURCE_UNCHANGED",
+    "hostHead": "a81f5e3e6b9bc1d9643956be1a1b69f9cdac6470",
+    "hostStatus": "",
+    "verifiedPriorRecords": 290,
+    "nativeSnapshotChecks": {
+      "head": true,
+      "indexDiff": true,
+      "worktreeDiff": true,
+      "headDiff": true,
+      "nativeStatus": true,
+      "index": true
+    },
+    "nativeArchivedFilesUnchanged": 166,
+    "currentInputs": [
+      {
+        "path": "compatibility/evidence/attachment-de7c-runtime-readiness.json",
+        "bytes": 13820,
+        "sha256": "3c1425c6bb0ec12ba807a4f4a3483980500a18a39680213be29bac7477ae2003"
+      },
+      {
+        "path": "tests/attachments/public-rpc.test.ts",
+        "bytes": 14530,
+        "sha256": "599567e4fc29589ed746090dcc0745b254ddb6a91dfefe71f9f531750351e731"
+      },
+      {
+        "path": "compatibility/omp/fixtures/attachment-provider.ts",
+        "bytes": 6983,
+        "sha256": "a92b0b5b6450b72815f0f3d0aed4e06040041ae3c8adfdb72810ab570a448994"
+      },
+      {
+        "path": "compatibility/omp/fixtures/no-provider.ts",
+        "bytes": 3122,
+        "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+      },
+      {
+        "path": "compatibility/omp/fixtures/history-network-guard.js",
+        "bytes": 706,
+        "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+      },
+      {
+        "path": "tests/continuation/worker.ts",
+        "bytes": 6594,
+        "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+      },
+      {
+        "path": "tests/catalog/fixture.ts",
+        "bytes": 5579,
+        "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+      },
+      {
+        "path": "tests/submissions/fixture.ts",
+        "bytes": 2714,
+        "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+      },
+      {
+        "path": "compatibility/evidence/attachment-de7c-matched-build.json",
+        "bytes": 67109,
+        "sha256": "4bfe49cdeed1096629bd8fa5d740af5a5a66317071703163ccf962d537a639a2"
+      },
+      {
+        "path": "compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+        "bytes": 9662,
+        "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77"
+      }
+    ],
+    "mismatches": []
+  },
+  "drain": {
+    "bunRunnerWaitStatus": 0,
+    "pythonWrapperExitCode": 0,
+    "strictWorkerCloseCode": 0,
+    "strictWorkerEvidence": "Unchanged test finally awaits worker.close(); close awaits child.exited, stdout protocol reader and stderr text; code0 assertion passed. Finally also calls child.kill() and awaits original child.exited. Exact worker PID not exposed/captured.",
+    "serializer": "Guarded nativeTitleSlots child awaits original child.exited plus stdout/stderr and requires code0/empty stderr before parsed output; helper completed. Exact PID not exposed/captured.",
+    "catalog": "selectedDescriptor finally awaits client.close(); CatalogTransport close drains original child exit/stdout/stderr. Exact DrainResult/PID discarded by unchanged helper and not captured. No invented exit/forced metadata.",
+    "reopen": "NOT RUN",
+    "topProfileRemoved": true,
+    "outerTimeoutOrGroupSignal": false
+  },
+  "artifacts": [
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/runner.json",
+      "bytes": 1567,
+      "sha256": "69c087a0a377d4e3b00c409a8dba81c2f72f1df932ba47a592a7bddc5be1f904"
+    },
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/stderr.txt",
+      "bytes": 231,
+      "sha256": "678cab673715803136fd031bdafd25260302e40b16a1484fd9d42885d9620b04"
+    },
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/source-pre.json",
+      "bytes": 2192,
+      "sha256": "c4ea3c8f1c7fcfab68efe42be8d15ad2476579c9f214679979d47945962986b1"
+    },
+    {
+      "path": "/tmp/ticket-38-public-mixed-refusal-3uduh4eq/source-post.json",
+      "bytes": 2192,
+      "sha256": "c4ea3c8f1c7fcfab68efe42be8d15ad2476579c9f214679979d47945962986b1"
+    }
+  ],
+  "priorSuccess": {
+    "path": "compatibility/evidence/attachment-de7c-public-text-runtime-success.json",
+    "bytes": 9662,
+    "sha256": "c6953a89135e1fb7a6b0311a5ee7595632486fb5f64901171099f217966e1b77",
+    "sourceHostHead": "1031773e1ef1144d5f06c23e1588c65c03cc9d72",
+    "status": "Separately passed once; no success rerun in this window."
+  },
+  "limitations": [
+    "One separately authorized controlled synthetic public RPC negative case only.",
+    "No claim of full dependency closure, process census, descendant extinction, or separately captured catalog PID/exit/forced metadata.",
+    "All other selected formats, transforms, budgets, restarts/copies/branches, saved-history/provider/persistence/fault behavior, actual browser/DSH consent, TUI and final matched integration evidence remain mandatory and open.",
+    "No Native/build/guard/dependency/product/runtime behavior change, no private Session import/session-file parsing by Host, no retries or other runtime executed in this window."
+  ],
+  "scope": "Exactly one anchored canonical Bun public RPC negative test with45s case deadline, original preimport history-network-guard, fresh synthetic HOME/PI_CODING_AGENT_DIR/OMP_HISTORY_FIXTURE_PROFILE, top TMPDIR=/tmp, explicit environment allowlist and network-enabled execution. Sourcepre/sourcepost exact. No success rerun, Host, browser, fault shim or other runtime."
+}

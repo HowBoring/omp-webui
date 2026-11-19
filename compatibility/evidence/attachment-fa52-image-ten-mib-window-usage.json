@@ -1,0 +1,88 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "94436ed862aa220f3f5a9e99cc56c9e2f3a0d54d",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-ten-mib-source-ready.json",
+    "bytes": 15259,
+    "sha256": "9c5d89d728bf068a0115e662722ef13e3f28339217be2a55cbcfdfd2b3608541"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-image-ten-mib-source-20261117/final-inputs.json",
+    "bytes": 8211,
+    "sha256": "988d5ad2e1928fbd2392bd81070cf1149b115d22d7f06c7e9a21605a5b89042f"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117/final-inputs.json",
+    "bytes": 4480,
+    "sha256": "cb5202918ad156d09e95e15e4dba250fc4116e9ae5c8d0651fc4b516fe663614"
+  },
+  "case": "actual public 10MiB PNG requires transformation consent and refuses one image byte over before effects",
+  "attempts": 1,
+  "retry": "NONE",
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-image-ten-mib-runtime-success.json",
+    "bytes": 24740,
+    "sha256": "9f40c3608d527e42692f560c282504966c40f4d83fcc9efa1f25725bf3bdcc1a"
+  },
+  "rawArchive": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-ten-mib-evidencepack-20261117/raw.tar.gz",
+    "bytes": 4846,
+    "sha256": "c7f9c51ae2887436aee8d481f31f03d9f67d2b7f7d63f58c7cbee503f3d88680"
+  },
+  "rawManifest": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-ten-mib-evidencepack-20261117/manifest.json",
+    "bytes": 3223,
+    "sha256": "de9c2c84e0ceffe4221a20c4a7ac92a7e43c9b0d8fd2b8881fcfeb0858136ca9"
+  },
+  "originalTools": {
+    "preAndRun": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-ten-mib-root-tool.json",
+      "bytes": 6943,
+      "sha256": "f9c2a4725c00ad852a4bb978a584b44e433f5760a2cff7ec1889c9f2d5a2fcb4"
+    },
+    "post": {
+      "path": "/workspace/work/mvp-implementation/recovery/image-ten-mib-root-post-tool.json",
+      "bytes": 3324,
+      "sha256": "72ef5107dba525b25c83060e744e3d2b29d144547fc43f0e46a3c9fd486182f1"
+    },
+    "pre": {
+      "initialChunk": "1ebac8",
+      "session": 20970,
+      "completionChunk": "e78e97",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "7a45f7",
+      "session": 92402,
+      "completionChunk": "f824e4",
+      "exitCode": 0
+    },
+    "postcheck": {
+      "initialChunk": "4ffae4",
+      "session": 7243,
+      "completionChunk": "1327aa",
+      "exitCode": 0
+    }
+  },
+  "usedOnceRecord": {
+    "path": "/tmp/ticket-38-public-image-ten-mib-20261117-lxu0wk8q/used-once.json",
+    "bytes": 104,
+    "sha256": "967b5fb9ff58c088aecc72e5f9b7cfdafb0a4d6eaf7554815da43329c7c74482"
+  },
+  "actualRunnerPid": 633790,
+  "actualRunnerWaitStatus": 0,
+  "originalWaitAndBothReaderJoinsAndEofObserved": true,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-image-ten-mib-20261117-lxu0wk8q/postcheck.json",
+    "bytes": 3074,
+    "sha256": "553e1cef72ca0c6c121d5888799f25612530fd8243d1ec705ffbfb7d110bcb80"
+  },
+  "window": "Actual original wait/readers completed; Root postcheck PASS. Source readiness is consumed; no pristine rerun or another ONE. Any later actual Native window requires Root coordination.",
+  "limitations": "Generic +1attachment_converter_error and ATTACHMENT_NOT_READY remain diagnostic gap. No P_ALL/ECHILD/descendant-extinction claim. Whole29/38/53/54 open."
+}

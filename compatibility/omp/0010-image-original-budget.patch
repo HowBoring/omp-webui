@@ -1,0 +1,40 @@
+diff --git a/packages/coding-agent/CHANGELOG.md b/packages/coding-agent/CHANGELOG.md
+index 5f8e17fc03cbb8d822b9d4123c68e13774f5fca5..2d9cf6224d2845aa2fa87f07def04726fe938ee6 100644
+--- a/packages/coding-agent/CHANGELOG.md
++++ b/packages/coding-agent/CHANGELOG.md
+@@ -3,6 +3,8 @@
+ ## [Unreleased]
+ 
+ ### Fixed
++
++- Attachment preparation reports `attachment_original_budget` for images over 10 MiB before conversion ([WebUI #38](https://github.com/HowBoring/omp-webui/issues/38)).
+ 
+ - Protected input retained in native queues after plain abort no longer receives premature terminal no-input completion; actual original-object withdrawal or consumption rechecks its receipt ([WebUI #36](https://github.com/HowBoring/omp-webui/issues/36)).
+ 
+diff --git a/packages/coding-agent/docs/rpc-attachments.md b/packages/coding-agent/docs/rpc-attachments.md
+index 6e647562daa9cf4e18532632e7c8789e4f8ece72..8f774d6b0bc50e3292a188c888808ed7fe4e90c4 100644
+--- a/packages/coding-agent/docs/rpc-attachments.md
++++ b/packages/coding-agent/docs/rpc-attachments.md
+@@ -42,7 +42,9 @@
+ Converters use an owned Linux process, synthetic home, allowlisted environment, pre-import network
+ denial, 512 MiB data/eight CPU-second ceilings, ten wall seconds, bounded output and kill/reap.
+ Missing containment/converters refuse preparation. Raw limits remain 10 MiB/image, 5 MiB/text/document,
+-eight objects and 32 MiB/input. Decoded images allow 16,777,216 pixels/64 MiB RGBA, including declared
++eight objects and 32 MiB/input. Images exceeding the raw 10 MiB ceiling return a failed item with
++`attachment_original_budget` before isolated conversion; exactly 10 MiB remains eligible for preparation.
++Any failed item blocks the entire input. Decoded images allow 16,777,216 pixels/64 MiB RGBA, including declared
+ animation frames; 16-bit PNG allocation is charged at eight bytes/pixel and GIF frames must fit their canvas.
+ Office packages require the selected main content type, and unsupported XML encodings fail instead of being replaced.
+ Prepared images fit 1568 pixels/500 KiB and avoid WebP; inline text fits 3000 lines/
+diff --git a/packages/coding-agent/src/attachments/receipts.ts b/packages/coding-agent/src/attachments/receipts.ts
+index ae4b1536e849d39ee47eac4d81733e5cae00423c..2b00469a7d71a7c77ab422701f670d2af47931dc 100644
+--- a/packages/coding-agent/src/attachments/receipts.ts
++++ b/packages/coding-agent/src/attachments/receipts.ts
+@@ -193,6 +193,7 @@
+ 		if (decoded.reason) return failed("attachment_invalid_base64");
+ 		if (sha256(decoded.bytes) !== original.sha256) return failed("attachment_original_changed");
+ 		const image = ["png", "jpeg", "webp", "gif"].includes(original.format);
++		if (image && decoded.bytes.byteLength > ATTACHMENT_LIMITS.imageBytes) return failed("attachment_original_budget");
+ 		if (image && !binding.imageCapable) return failed("attachment_target_has_no_image_input");
+ 		const result = await prepareAttachmentIsolated({ format: original.format, bytes: decoded.bytes }, signal);
+ 		return { ...result, originalId: original.originalId, originalSha256: original.sha256,

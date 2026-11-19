@@ -6,7 +6,7 @@ export async function nativeFixture(home:string,count=1,profile?:string,buckets=
   const root = join(home,".omp",...(profile ? ["profiles",profile]:[]),"agent/sessions");
   await mkdir(join(root,"bucket"),{recursive:true});
   await mkdir(join(home,"project"),{recursive:true});
-  const slots = await nativeTitleSlots(Array.from({ length: count }, (_, index) => `Native Session ${index}`));
+  const slots = await nativeTitleSlots(Array.from({ length: count }, (_, index) => `Native Session ${index}`), home);
   for (let index=0; index<count; index++) {
     const id = `native-${String(index).padStart(4,"0")}`;
     const bucket = buckets === 1 ? "bucket" : `bucket-${String(index % buckets).padStart(4,"0")}`;
@@ -62,13 +62,14 @@ export async function sessionManagerFixture(home: string): Promise<{ emptyFile: 
 }
 
 /** Pure authoritative serializer in a child, avoiding any native runtime import into Host/test module graphs. */
-export async function nativeTitleSlots(titles: string[]): Promise<string[]> {
+export async function nativeTitleSlots(titles: string[], home = "/tmp"): Promise<string[]> {
   const module = new URL("../../vendor/omp/packages/coding-agent/src/session/session-title-slot.ts", import.meta.url).pathname;
-  const child = Bun.spawn([process.execPath, "--no-env-file", "-e", `
+  const guard = new URL("../../compatibility/omp/fixtures/no-provider.ts", import.meta.url).pathname;
+  const child = Bun.spawn([process.execPath, "--no-env-file", "--preload", guard, "-e", `
     import { serializeTitleSlot } from ${JSON.stringify(module)};
     const titles = JSON.parse(await Bun.stdin.text());
     process.stdout.write(JSON.stringify(titles.map(title => serializeTitleSlot({title,source:"user",updatedAt:"2026-01-01T00:00:00Z"}))));
-  `], { env: { BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" }, stdin: "pipe", stdout: "pipe", stderr: "pipe" });
+  `], { env: { HOME: home, TMPDIR: home, BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0" }, stdin: "pipe", stdout: "pipe", stderr: "pipe" });
   child.stdin.write(JSON.stringify(titles)); child.stdin.end();
   const [output, stderr, code] = await Promise.all([
     new Response(child.stdout).text(), new Response(child.stderr).text(), child.exited,

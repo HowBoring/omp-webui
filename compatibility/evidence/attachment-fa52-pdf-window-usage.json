@@ -1,0 +1,62 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "a18ad1b5753838c3340a2f48c41b399e9925fe0f",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-pdf-source-ready.json",
+    "bytes": 47462,
+    "sha256": "7c08e7f3eefbd761a7ec4d582145b87a33620980d827606c4986ea65f2b60b11"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-pdf-source/final-inputs.json",
+    "bytes": 167271,
+    "sha256": "954265a194cf06d12d8f4063ef7aae1a05e2479797914289edefc4e4733261c1"
+  },
+  "case": "actual public PDF requires structure consent before indexed saved text and provider witness",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-pdf-runtime-success.json",
+    "bytes": 21816,
+    "sha256": "b1d5442cd0d75642d8fd77a575cfe2c23ada37443e1210674fa9069593de71d5"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool return metadata, not an independent tool archive.",
+    "initialChunkId": "bcc6ac",
+    "sessionId": 54821,
+    "initialToolReportedWallTimeSeconds": 1.00052052,
+    "initialToolReturnedOriginalSession": true,
+    "pidEventReceivedInFinalPoll": true,
+    "finalChunkId": "1de204",
+    "finalToolReportedWallTimeSeconds": 1.179998057,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 555470,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckInitialChunkId": "f35c14",
+    "precheckSessionId": 30669,
+    "precheckFinalChunkId": "a3a9cb",
+    "postcheckInitialChunkId": "bc68b3",
+    "postcheckSessionId": 42418,
+    "postcheckFinalChunkId": "d525da",
+    "limits": "Original Popen wait/stream metadata independently retained in runner.json. Tool IDs here are a transcription from this conversation."
+  },
+  "actualRunnerPid": 555470,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-pdf-3sz40kpd/postcheck.json",
+    "bytes": 2614,
+    "sha256": "47c485280487ffd80446d8f4f84e4b2a87a242150332c7751cfd1b06f9f8d333"
+  },
+  "window": "RELEASED immediately after original owned waits/readers and actual outcome, before read-only postcheck/proof. No further Native/runtime/source-format action authorized/performed.",
+  "limitations": "Known28B provider witness only, not whole Markdown or pixels/layout. Full extracted Markdown formatting/hash unpredicted and scalar values not separately retained. Individual process PID/wait/forced metadata and receipt/entry IDs uncaptured. No extinction/global/product/full38 claim."
+}
