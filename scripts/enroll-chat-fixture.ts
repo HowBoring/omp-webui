@@ -2,7 +2,7 @@
 import { resolve } from "node:path";
 import { writeInstallationManifest } from "../packages/compatibility/manifest.ts";
 import { compatibilityBuild } from "../packages/contracts/generated/identity.ts";
-const manifest = await writeInstallationManifest({ root: process.cwd(), path: resolve("vendor/chat-installation.json"),
+const manifest = await writeInstallationManifest({ root: process.cwd(), path: resolve("vendor/chat/installation.json"),
   launcher: "vendor/omp-candidate/omp", target: "vendor/omp-candidate/cli.js", runtime: process.execPath,
   trees: ["vendor/dsh-chat", "vendor/host-chat", "apps/chat", "apps/host/src/chat-component-main.ts",
     "apps/host/src/chat-component-runtime.ts", "apps/host/src/chat-view-admission.ts",

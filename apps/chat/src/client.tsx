@@ -176,7 +176,7 @@ function Surface() {
     })}>Grant this directory and descendants</button>}
     <p role="status">{review}</p>
     <button onClick={() => void perform(catalog)}>Refresh catalog</button>
-    <ul>{choices.map(choice => <li key={choice.selectionId}>
+    <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
       <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
       <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>Open Chat Session</button>
     </li>)}</ul>

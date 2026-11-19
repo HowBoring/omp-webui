@@ -67,8 +67,10 @@ export async function startSessionComponentServer(options: Options) {
   ctx.typert.register(sessionsHostContribution);
   ctx.typert.register({ ...workspaceHostContribution, invocations: workspaceHostContribution.invocations.filter(method =>
     method.namespace === "ompWorkspaces" && method.method === "registered") });
+  const promptDescriptor = sessionContribution.descriptors.find(method => method.namespace === "session" && method.method === "prompt");
   ctx.typert.register({ package: sessionContribution.package, face: "host", schemas: [],
-    model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors });
+    model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors.filter(method =>
+      !(options.chat && promptDescriptor && method.id === promptDescriptor.id)) });
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
   new WorkspaceService(ctx, options.catalog, directories, index);
@@ -191,7 +193,8 @@ export async function startSessionComponentServer(options: Options) {
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);
   if (options.chat) {
-    ctx.typert.register(chatHostContribution);
+    ctx.typert.register({ ...chatHostContribution, invocations: [...chatHostContribution.invocations,
+      ...(promptDescriptor ? [{ ...promptDescriptor, service: "chatPrompt" }] : [])] });
     ctx.typert.register(chatComponentHostContribution);
     const admission = new ChatViewAdmission(access, directories, supervisor);
     const runtime = new ChatComponentRuntime(access, directories, supervisor, admission);

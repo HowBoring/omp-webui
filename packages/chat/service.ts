@@ -44,7 +44,7 @@ function publicError(error: unknown): never {
 /** Unregistered prompt delegate for the public DSH session/prompt method. */
 export class ChatPromptService extends TypertRemoteService {
   constructor(ctx: Context, private readonly resolve: ResolveChat) {
-    super(ctx, "sessionController", { namespace: "session" });
+    super(ctx, "chatPrompt", { namespace: "session" });
   }
 
   @Remote("prompt") async prompt(request: SessionPromptRequest) {

@@ -13,18 +13,18 @@ if (process.argv.includes("--print-bootstrap")) {
 }
 z.strictObject({ kind: z.literal("S2-synthetic-chat-fixture"), privateData: z.literal(false) })
   .parse(await Bun.file(join(home, "fixture-marker.json")).json());
-const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_DIR: join(home, ".omp/agent"),
+const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_DIR: home,
   OMP_HISTORY_FIXTURE_PROFILE: home, XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
   XDG_DATA_HOME: join(home, "data"), BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", OPENAI_API_KEY: "synthetic-unused-no-provider-calls",
   NO_COLOR: "1", PI_NOTIFICATIONS: "off" };
 const prefix = [process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/history-network-guard.js"),
   resolve("vendor/omp-candidate/cli.js")];
 const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: home, readyTimeoutMs: 10_000 });
-const host = await startSessionComponentServer({ manifest: resolve("vendor/chat-installation.json"),
+const host = await startSessionComponentServer({ manifest: resolve("vendor/chat/installation.json"),
   assets: resolve("vendor/dsh-chat"),
   launcher: resolve("vendor/omp-candidate/omp"), port, dataDir, catalog: catalog.catalog, chat: true,
-  launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--offline", "--model", "s0-controlled/deterministic-live",
-    "--no-lsp", "--no-skills", "--no-rules", "--no-prewalk", "--no-spotlight", "--no-judge",
+  launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--strict-start", "--offline", "--model", "s0-controlled/deterministic-live",
+    "--no-lsp", "--no-skills", "--no-rules", "--no-spotlight", "--no-judge",
     "--trusted-extension", resolve("compatibility/omp/fixtures/live-provider.ts")], env, cwd, readyTimeoutMs: 20_000 }) });
 console.info(JSON.stringify({ stage: "S2-isolated-chat", chatAdmission: "component-only", productAdmission: "blocked",
   origin: host.server.url.origin }));
