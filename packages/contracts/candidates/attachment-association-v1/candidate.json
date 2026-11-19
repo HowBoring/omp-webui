@@ -1,7 +1,7 @@
 {
   "status": "source-only",
   "sourceTicket": 38,
-  "hostSourceCommit": "6a55b59ddfa6173d6d76b7a55a5eee028a282125",
+  "hostSourceCommit": "49fa1ddd47e6792e0044e9a94885e42c40ee06c3",
   "nativeBaseCommit": "57771ae562b9345e0579bceb2d68d585e3e6927e",
   "nativeSourceSchemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
   "referenceHostArtifacts": "packages/contracts/generated",
@@ -13,8 +13,8 @@
     },
     {
       "path": "compatibility/omp/0002-readonly-catalog.patch",
-      "bytes": 77733,
-      "sha256": "0f66db16d115d049094c46fb057e95dccac63d1c4c2b8ac2490cb49518f2602f"
+      "bytes": 77746,
+      "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616"
     },
     {
       "path": "compatibility/omp/0003-explicit-interactions.patch",
@@ -23,8 +23,8 @@
     },
     {
       "path": "compatibility/omp/0004-coherent-history.patch",
-      "bytes": 51832,
-      "sha256": "cacb4d8927635c4ce581d44246c7352328a0ac26122bb514e9b21ef3c57b0fee"
+      "bytes": 51774,
+      "sha256": "bc66de7bc6ad5e1b5d7c298311e01c2298b8abedbd3f3c069fd3fda583d318ed"
     },
     {
       "path": "compatibility/omp/0005-strict-continuation.patch",
@@ -43,8 +43,8 @@
     },
     {
       "path": "compatibility/omp/0009-attachment-preparation.patch",
-      "bytes": 164267,
-      "sha256": "6e5cf760edfeea311e99bbe04e42ef72c7a36aa97a0291b911d1c20c7f1353d2"
+      "bytes": 164209,
+      "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608"
     },
     {
       "path": "compatibility/omp/0010-image-original-budget.patch",
@@ -54,8 +54,8 @@
   ],
   "buildIdentity": {
     "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
-    "sourceSha256": "35c1f9b52d8db66ed35478cf303cd532d763cd88957fd6e6c7fa8c74942ab5e1",
-    "patchSha256": "b223daf2990e4dfae3a84fb8ae279515b2f79c34892d3b28ab626d449fe5332e",
+    "sourceSha256": "01bf0151fc7171166630bc4680fe7314172117b349a1bedd55936220fe3e4fd0",
+    "patchSha256": "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
     "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
   },
   "files": {

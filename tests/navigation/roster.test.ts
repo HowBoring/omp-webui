@@ -14,8 +14,10 @@ const recorded = JSON.parse(await readFile(resolve("docs/evidence/ticket-41-navi
 test.skipIf(!staged)("roster matches the checked-in candidate, the lock and the staged bundles", async () => {
   const roster = await buildNavigationRoster();
   expect(roster.page.lockSha256).toBe(await digestOf("upstreams.lock.json"));
-  expect(roster.page.dshBase).toBe(roster.dshBase);
-  expect(roster.page.sourceTree).toBe(roster.dshSource.declaredTree);
+  expect(roster.page.dshBase).not.toBeNull();
+  expect(String(roster.page.dshBase)).toBe(String(roster.dshBase));
+  expect(roster.dshSource.declaredTree).not.toBeNull();
+  expect(String(roster.page.sourceTree)).toBe(String(roster.dshSource.declaredTree));
   expect(roster.dshSource.baseCommit).toBe(roster.dshBase);
   for (const digest of [...roster.page.digests, ...roster.host.digests]) expect(await digestOf(digest.path)).toBe(digest.sha256);
   expect(roster.host.bundle.sha256).toBe(await digestOf(roster.host.bundle.path));

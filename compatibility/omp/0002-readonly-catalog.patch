@@ -396,7 +396,7 @@ index 00000000..fce1e66d
 +import type { CatalogDescriptor, CatalogCwd } from "./wire/rpc-wire.generated";
 +
 +export const HEADER_BYTES = 16_384;
-+export const hash = (text: string): string => Bun.SHA256.hash(text, "hex");
++export const hash = (text: string | Uint8Array): string => Bun.SHA256.hash(text, "hex");
 +export async function physicalId(path: string): Promise<string> {
 +  const info = await fs.stat(path, { bigint: true });
 +  return hash(`${info.dev}:${info.ino}:${info.birthtimeNs}`);

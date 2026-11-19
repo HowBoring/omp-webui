@@ -1098,10 +1098,10 @@
       },
       {
         "path": "compatibility/omp/0002-readonly-catalog.patch",
-        "bytes": 77733,
-        "sha256": "0f66db16d115d049094c46fb057e95dccac63d1c4c2b8ac2490cb49518f2602f",
-        "actual": "0f66db16d115d049094c46fb057e95dccac63d1c4c2b8ac2490cb49518f2602f",
-        "actualBytes": 77733
+        "bytes": 77746,
+        "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616",
+        "actual": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616",
+        "actualBytes": 77746
       },
       {
         "path": "compatibility/omp/0003-explicit-interactions.patch",
@@ -1112,10 +1112,10 @@
       },
       {
         "path": "compatibility/omp/0004-coherent-history.patch",
-        "bytes": 51832,
-        "sha256": "cacb4d8927635c4ce581d44246c7352328a0ac26122bb514e9b21ef3c57b0fee",
-        "actual": "cacb4d8927635c4ce581d44246c7352328a0ac26122bb514e9b21ef3c57b0fee",
-        "actualBytes": 51832
+        "bytes": 51774,
+        "sha256": "bc66de7bc6ad5e1b5d7c298311e01c2298b8abedbd3f3c069fd3fda583d318ed",
+        "actual": "bc66de7bc6ad5e1b5d7c298311e01c2298b8abedbd3f3c069fd3fda583d318ed",
+        "actualBytes": 51774
       },
       {
         "path": "compatibility/omp/0005-strict-continuation.patch",
@@ -1140,10 +1140,10 @@
       },
       {
         "path": "compatibility/omp/0009-attachment-preparation.patch",
-        "bytes": 164267,
-        "sha256": "6e5cf760edfeea311e99bbe04e42ef72c7a36aa97a0291b911d1c20c7f1353d2",
-        "actual": "6e5cf760edfeea311e99bbe04e42ef72c7a36aa97a0291b911d1c20c7f1353d2",
-        "actualBytes": 164267
+        "bytes": 164209,
+        "sha256": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608",
+        "actual": "98a6a929769f5165b070a695fcb5f9660d0f10432b144ffec5f6697590f39608",
+        "actualBytes": 164209
       },
       {
         "path": "compatibility/omp/0010-image-original-budget.patch",
