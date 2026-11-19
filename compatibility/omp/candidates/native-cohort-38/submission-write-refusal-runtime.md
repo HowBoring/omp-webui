@@ -24,7 +24,8 @@ The original worker exited 1 on stdin EOF with 290 bytes of stderr and both pipe
 and successor each exited 0 with both EOFs and empty stderr. The three guard files reported zero
 dispatches and denials. No termination or force signal was needed. This run covers pre-reservation
 refusal on the isolated candidate. Persistence faults after reservation, first-write delay and
-production Browser delivery require separate evidence. [Durable submissions #36](https://github.com/HowBoring/omp-webui/issues/36)
+production Browser delivery require separate evidence; post-reservation short writes and delayed first writes are
+covered by [submission-fault-runtime.md](submission-fault-runtime.md). [Durable submissions #36](https://github.com/HowBoring/omp-webui/issues/36)
 
 ## Artifact identities
 

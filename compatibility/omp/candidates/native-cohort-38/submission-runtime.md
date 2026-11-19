@@ -38,10 +38,12 @@ inodes, sizes, modification times and change times on either side of the second 
 
 Both Session workers reported distinct public History worker IDs. All three children closed through stdin EOF
 without a termination or force signal. Each pre-import guard reported zero denials and zero dispatches.
-The scope was one ordinary successful input and clean reopen. Crash windows, lost replies, write failures,
-first-write delays, extension-transformed input, branch provenance, metadata rollback, native TUI, actual global
-installation and authorized DSH browser flows require separate evidence. The candidate remains unregistered
-and both tickets remain open.
+The scope was one ordinary successful input and clean reopen. Delayed first writes, extension-transformed input,
+handled builtins, lost acknowledgements, crash-before-query, short writes, copy/branch provenance, metadata
+rollback and reader compatibility are covered by [submission-fault-runtime.md](submission-fault-runtime.md) and the
+committed `tests/compatibility/submission-native.test.ts` fixture. Native TUI, actual global installation and
+authorized DSH browser flows require separate evidence. The candidate remains unregistered and both tickets remain
+open.
 
 ## Execution and artifact identities
 

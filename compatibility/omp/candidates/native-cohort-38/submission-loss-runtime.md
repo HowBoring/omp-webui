@@ -45,5 +45,7 @@ acknowledgement side record retained in `/dev/shm/omp-source38-submission-loss36
 
 This unregistered acceptance case covers simulated acknowledgement delivery loss and real direct-worker loss
 after a query has observed terminal persistence. Native write faults, transport I/O faults, earlier crash
-windows, helper lifetimes, global installation, and browser or TUI flows require separate evidence.
+windows, helper lifetimes, global installation, and browser or TUI flows require separate evidence. Delayed first
+writes, crash-before-query, short writes, extension transforms, copy/branch inheritance and metadata rollback are
+covered by [submission-fault-runtime.md](submission-fault-runtime.md).
 [Clean-reopen submission run](submission-runtime.md) · [StrictStart staging](strict-runtime.md)
