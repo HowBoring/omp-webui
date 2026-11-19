@@ -1,6 +1,6 @@
 # ADR 0025: Isolate unregistered History Navigation behind explicit trusted ports
 
-- Status: Accepted SOURCE boundary only; product composition and actual evidence unavailable
+- Status: Accepted SOURCE boundary only; #37 has an isolated acceptance carrier, product composition unavailable
 - Date: 2026-11-17
 - Scope: #51 source component; ADR 0010's native persistence and generation rules remain authoritative
 
@@ -27,3 +27,23 @@ The public Remote/generated-client fixture proves source behavior. Its authority
 projection proof are synthetic. It does not attest Host restart durability, actual DSH rebuilding, draft conflict
 resolution, installed candidate capability or Native crash recovery. The current Source37 terminal-fault actual
 remains NOT PASS. Whole #51 and the final native/browser/cohort gates remain open.
+
+## Update: #37 isolated acceptance carrier (2026-11-19)
+
+The same ports boundary now has an isolated acceptance carrier without becoming product composition. The Host
+fixture supplies authorization, joint idle, a metadata-only in-memory repository and a fixture projection rebuild;
+those adapters are labeled `fixture-adapter` and never hold a tree, messages or target snapshots. The navigation
+itself runs on the real native worker: public `navigation_inspect`, `navigate_tree_committed` with native defaults,
+and `navigation_query`.
+
+Actual evidence changes the earlier "unavailable" status in two directions. Native crash recovery is now
+demonstrated: after a committed reply and a kill with no new prompt and no exit marker, a fresh worker reads the
+same committed leaf and query returns the same commit; a kill at the receipt append leaves one durable `reserved`
+record with unresolved persistence and an unchanged position; a refused receipt write leaves unknown persistence
+with a sticky unreadable source; cancel, invalid target and normal exit are distinct. The real matched TUI renders
+only the recovered branch, and the installed baseline refuses the candidate carrier without rewriting it.
+
+What remains open is unchanged product work: a Host-owned durable repository across Host restarts, a real
+all-holder projection handoff, draft conflict resolution in the TUI, long-history performance, Windows, and product
+admission. The repository on this carrier is still not disk durability, and the projection proof is a fixture
+rebuild over the real native tree. See [ticket-37-durable-navigation.md](../evidence/ticket-37-durable-navigation.md).

@@ -481,6 +481,8 @@ def main() -> int:
         shutil.rmtree(args.workdir / name, ignore_errors=True)
         started = time.monotonic()
         evidence[name] = cases[name](args.workdir / name)
+        evidence[name]["case"] = name
+        evidence[name]["ok"] = True
         evidence[name]["seconds"] = round(time.monotonic() - started, 2)
         print(f"[{name}] ok {evidence[name]['seconds']}s", file=sys.stderr)
     output = args.output or args.workdir / "navigation-native.json"
