@@ -2001,7 +2001,7 @@ index 380a100..27f5122 100644
  		// for the finalized message, including errors synthesized after a stream throws.
  		agent.subscribe(event => {
 diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
-index bd24bb3..8111331 100644
+index bd24bb3..2f294e0 100644
 --- a/packages/coding-agent/src/session/agent-session.ts
 +++ b/packages/coding-agent/src/session/agent-session.ts
 @@ -1,4 +1,7 @@
@@ -2068,7 +2068,15 @@ index bd24bb3..8111331 100644
  
  		const preludeMessages: AgentMessage[] = [];
  		if (eagerTodoPrelude) {
-@@ -9386,9 +9416,10 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+@@ -9379,16 +9409,17 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 			attribution: message.attribution ?? "agent",
+ 			timestamp: Date.now(),
+ 		};
+-    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
+     copySubmission(message, customMessage);
++    captureSubmission(customMessage, isUserInvokedSkillPrompt(customMessage) ? "user" : customMessage.role);
+     const hasSkillImages =
+ 			isUserInvokedSkillPrompt(customMessage) &&
  			Array.isArray(customMessage.content) &&
  			customMessage.content.some(part => part.type === "image");
  		const preparationGeneration = this.#promptGeneration;

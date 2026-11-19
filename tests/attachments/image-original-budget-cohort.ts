@@ -2,12 +2,13 @@ import * as path from "node:path";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import { fixtureCandidatePath, type FixtureCandidate } from "../continuation/worker.ts";
 
-// Independent expected authored tuple from the reviewed 1–10 source, not the old global Host installation.
+// Independent expected authored tuple for the 1-6,7,9,10 stack (navigation 0008 belongs to #37), recomputed with
+// sha256sum over the ordered patch files and the emitted schema rather than read back from the build itself.
 const expectedBuild = {
   base: "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
-  sourceSha256: "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
-  patchSha256: "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
-  schemaSha256: "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566",
+  sourceSha256: "46bf7ddf2fb78c6499e8cc4e5c23ba68d57aeecae07d7e29ca5b213f2731b57c",
+  patchSha256: "6113e6be5a1156f891e2d697ca96a67ccec9b536a459ef6d182da5b6716545ea",
+  schemaSha256: "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab",
 } as const;
 
 /** Public diagnostic-only child before synthetic Session authoring; no global installation or product admission. */
