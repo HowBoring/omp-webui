@@ -6,6 +6,8 @@ import { apply as renderer } from "@deepseek-ai/dsh-client-ui-renderer/client";
 import { apply as sessions, type SessionReference } from "@deepseek-ai/dsh-api-session-controller/client";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
+import { brandString } from "@deepseek-ai/dsh-brand";
+import type { SessionRequestId } from "@deepseek-ai/dsh-api-session-controller/types";
 import { UiConversation } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { registerTrajectoryMessageDefinitions } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-message-definitions.ts";
 import { registerTrajectoryAssistantDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-assistant-definition.ts";
@@ -23,7 +25,7 @@ declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
 
 const ctx = new Context();
-const tab = crypto.randomUUID();
+const tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
 const owner = { id: "", active: () => true };
 const authorities = new Map<string, DraftAuthority>();
 const recoveryAuthorized = new Set<string>();
@@ -75,6 +77,7 @@ async function present(view: PublicSessionView) {
   if (reference !== retained) return;
   const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
   if (reference !== retained) return;
+  sessionStorage.setItem("omp-supervised-worker", JSON.stringify({ workerId: view.workerId, generation: view.generation }));
   owner.id = attached.owner;
   authorities.set(view.registration.nativeSessionId, { host: "omp-webui", browser: tab, page: tab, profile: "isolated",
     source: view.registration.sourceId, instance: view.registration.instanceId, session: view.registration.nativeSessionId,
@@ -96,6 +99,7 @@ function Surface() {
   const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<string[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
+  const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
   const [cwd, setCwd] = useState(""), [confirmation, setConfirmation] = useState<string>(), [review, setReview] = useState("");
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
@@ -141,7 +145,9 @@ function Surface() {
   };
   const settle = async (sessionId: string) => {
     for (let i = 0; i < 60; ++i) {
-      try { const state = resultValue(await ctx.remote.ompChat.state(sessionId)); if (!state) continue; if (state.settled) return; } catch { return; }
+      try { const state = resultValue(await ctx.remote.ompChat.state(sessionId)); if (!state) continue;
+        setSettlement({ requestId: state.requestId, terminal: state.terminal ?? false, operationOutcome: state.operationOutcome ?? "pending", settled: state.settled });
+        if (state.settled) return; } catch { return; }
       await new Promise(resolve => setTimeout(resolve, 250));
     }
   };
@@ -157,8 +163,20 @@ function Surface() {
   };
   const send = async (mode: "queue" | "steer") => {
     if (!view || !binding.current || !scope.current || text.trim() === "") return;
-    if (sending.current) { setError("Projection is synchronizing. Your draft is retained."); return; }
-    const content = text, current = binding.current;
+    const current = binding.current;
+    if (sending.current) {
+      const sessionId = current.sessionId;
+      const settlement = resultValue(await ctx.remote.ompChat.state(sessionId));
+      if (!settlement || settlement.settled) { setError("The previous prompt is still settling. Your draft is retained."); return; }
+      const projection = await waitProjection(current).catch(() => undefined);
+      if (!projection) { setError("Projection is synchronizing. Your draft is retained."); return; }
+      const reply = await ctx.remote.session.prompt({ requestId: brandString<SessionRequestId>(crypto.randomUUID()), sessionId: SessionId(view.registration.nativeSessionId),
+        mode, content: [{ type: "text", text }], projection });
+      const error = reply.ok ? "Unexpected prompt acceptance." : reply.error.message;
+      setError(error); setAttempt({ requestId: crypto.randomUUID(), text, mode, state: reply.ok ? "unknown" : "refused", error });
+      return;
+    }
+    const content = text;
     sending.current = true;
     setError(""); setRecovery(undefined);
     try { await waitProjection(current); } catch (failure) { setError(message(failure)); return; }
@@ -263,7 +281,7 @@ async function boot() {
       if (current !== accessRevision) return;
       if (result.ok) await present(result.value);
       else errorChanged("Previous worker unavailable. Manually Open the native Session.");
-    } catch { sessionStorage.removeItem("omp-supervised-worker"); }
+    } catch (error) { sessionStorage.removeItem("omp-supervised-worker"); errorChanged(message(error)); }
   }
 }
 window.addEventListener("pageshow", event => { if (event.persisted) location.reload(); });

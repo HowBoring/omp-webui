@@ -51,25 +51,37 @@ async def main():
         await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=30000)
         await page.wait_for_selector('[data-chat-native-entry="accepted"]', timeout=30000)
         assert await page.get_by_label("Message").input_value() == ""
-        await page.wait_for_timeout(300)
-        await page.get_by_label("Message").fill("slow-input")
+        await page.get_by_label("Message").fill("draft survives reload")
+        await page.wait_for_timeout(1500)
+        await page.reload()
+        await page.wait_for_selector("[data-chat-worker-id]:not([data-chat-worker-id=''])", timeout=30000)
+        assert await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session") == "native-0000"
+        assert await page.get_by_label("Message").input_value() == "draft survives reload"
+        await page.get_by_role("button", name="Refresh catalog").click()
+        await page.locator('li[data-native-id="native-0001"]').get_by_role("button", name="Open Chat Session").click()
+        await page.wait_for_selector('[data-chat-native-session="native-0001"]', timeout=30000)
+        assert await page.get_by_label("Message").input_value() == ""
+        await page.get_by_label("Message").fill("other session draft")
+        await page.wait_for_timeout(1000)
+        await page.reload()
+        await page.wait_for_selector('[data-chat-native-session="native-0001"]', timeout=30000)
+        assert await page.get_by_label("Message").input_value() == "other session draft"
+        await page.get_by_role("button", name="Refresh catalog").click()
+        await page.locator('li[data-native-id="native-0000"]').get_by_role("button", name="Open Chat Session").click()
+        await page.wait_for_selector('[data-chat-native-session="native-0000"]', timeout=30000)
+        assert await page.get_by_label("Message").input_value() == "draft survives reload"
         await page.get_by_role("button", name="Send", exact=True).click()
         await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=30000)
         await page.get_by_label("Message").fill("second while busy")
         await page.get_by_role("button", name="Send", exact=True).click()
-        await expect(page.get_by_role("alert")).to_contain_text("draft is retained", timeout=30000)
-        assert await page.get_by_label("Message").input_value() == "second while busy"
-        await page.wait_for_timeout(2000)
-        await page.get_by_role("button", name="Refresh catalog").click()
-        await page.locator('li[data-native-id="native-0000"]').get_by_role("button", name="Open Chat Session").click()
-        await page.wait_for_selector(f'[data-chat-worker-id="{worker}"]', timeout=30000)
+        await expect(page.get_by_role("alert")).to_contain_text("Native Session is busy. Your draft is retained.", timeout=30000)
         assert await page.get_by_label("Message").input_value() == "second while busy"
         await page.screenshot(path=str(ROOT / "vendor/chat-browser.png"), full_page=True)
         assert not errors, errors
         result = {"status": "PASS", "platform": "Linux Chromium", "browser": browser.version, "realDSH": True,
                   "realBun": True, "realHost": True, "realChatGateway": True,
                   "scenarios": ["authenticated-explicit-grant", "explicit-open", "real-text-success",
-                                "accepted-echo", "native-input-reconciliation", "draft-retained-while-projection-synchronizes", "draft-retained-after-refusal", "manual-reopen-same-worker"],
+                                "accepted-echo", "native-input-reconciliation", "draft-retained-while-projection-synchronizes", "page-reload-same-worker", "two-session-draft-isolation"],
                   "privateData": False, "productAdmission": "blocked", "wire": wire, "errors": errors}
         (ROOT / "vendor/chat-browser.json").write_text(json.dumps(result, indent=2) + "\n")
         print(json.dumps({key: result[key] for key in ("status", "scenarios", "privateData", "productAdmission")}))
