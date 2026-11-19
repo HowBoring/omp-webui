@@ -505,10 +505,14 @@ export class SessionSupervisor {
   }
   async listed(identity: BrowserAccess): Promise<{ view: SessionView; running: boolean; blank: boolean } | undefined> {
     this.#browser(identity); const active = this.#active;
-    if (!active?.worker || active.state !== "open" || active.retired || active.exited) return undefined;
-    this.#current(identity, active); const state = await active.worker.state(); this.#current(identity, active);
-    const journal = await this.presentation(identity, active.record!.nativeSessionId); this.#current(identity, active);
-    return { view: this.#view(active), running: !nativeSettled(state), blank: journal.cursor < 0 };
+    if (!active) return undefined;
+    try { this.#current(identity, active); } catch { return undefined; }
+    const state = active.state === "open" && active.worker ? await active.worker.state() : undefined;
+    this.#current(identity, active);
+    // Membership must not depend on (or mutate) a presentation journal: a catalog read must never
+    // invalidate a page that is already following it. `blank` uses the last opened journal only.
+    return { view: this.#view(active), running: state !== undefined && !nativeSettled(state),
+             blank: active.journalValue !== undefined && active.journalValue.cursor < 0 };
   }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {
     this.#browser(identity); const active = this.#active;

@@ -26,12 +26,14 @@ declare module "@deepseek-ai/dsh-api-session-controller/client" { interface Sess
 
 const ctx = new Context();
 const tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
-const owner = { id: "", active: () => true };
+const owner = { id: (() => { const saved = localStorage.getItem("omp.chat.owner"); if (saved) return saved;
+  const created = crypto.randomUUID(); localStorage.setItem("omp.chat.owner", created); return created; })(), active: () => true };
 const authorities = new Map<string, DraftAuthority>();
 const recoveryAuthorized = new Set<string>();
 const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId),
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
+let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: string[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
@@ -58,7 +60,7 @@ async function waitProjection(binding: SessionBinding) {
   for (let attempt = 0; attempt < 2000; attempt++) {
     const state = current();
     if (state.phase === "ready") return state.binding;
-    if (state.phase === "stock") throw new Error("A projection generation is required for Chat.");
+    if (state.phase === "stock" && attempt >= 200) throw new Error("A projection generation is required for Chat.");
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   throw new Error("Projection is not ready for an attached Chat draft.");
@@ -78,17 +80,19 @@ async function present(view: PublicSessionView) {
   const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
   if (reference !== retained) return;
   sessionStorage.setItem("omp-supervised-worker", JSON.stringify({ workerId: view.workerId, generation: view.generation }));
-  owner.id = attached.owner;
+  // Host-assigned view owner stays authoritative for the Gateway; draft storage uses the stable tab owner.
   authorities.set(view.registration.nativeSessionId, { host: "omp-webui", browser: tab, page: tab, profile: "isolated",
     source: view.registration.sourceId, instance: view.registration.instanceId, session: view.registration.nativeSessionId,
     cwd: view.cwd, draft: draftId, epoch: attached.generation });
+  draftDirty = false;
   viewChanged(view);
   let saved: Awaited<ReturnType<typeof provider.read>>;
   try {
     await waitProjection(binding);
-    const scope = provider.scope(binding);
-    saved = await provider.read(scope, new AbortController().signal);
+    currentScope = provider.scope(binding);
+    saved = await provider.read(currentScope, new AbortController().signal);
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
+  if (reference !== retained || draftDirty) return;
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
   const target = ctx.uiConversation.binding(binding).target("trajectory");
   const render = () => { if (reference === retained) historyChanged((target.getSnapshot()?.eventNodes ?? []).map(node => JSON.stringify(node))); };
@@ -107,7 +111,7 @@ function Surface() {
   const [cwd, setCwd] = useState(""), [confirmation, setConfirmation] = useState<string>(), [review, setReview] = useState("");
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
-  const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false);
+  const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -127,10 +131,11 @@ function Surface() {
       await waitProjection(current);
       scope.current = provider.scope(current);
       await provider.write(scope.current, record, reason);
+      setDraftReady(true);
     } catch (failure) { setError(message(failure)); }
   };
   const edit = (value: string) => {
-    setText(value); draftChanged(value);
+    draftDirty = true; setText(value); draftChanged(value);
     void persist({ draft: { text: value, references: [] }, originals: [] }, "edit");
   };
   const recover = async (requestId: string) => {
@@ -239,6 +244,8 @@ function Surface() {
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}
+      {settlement && <p data-chat-settlement={settlement.settled ? "settled" : "running"}>{`result: ${settlement.terminal ? settlement.operationOutcome : "pending"} · settled: ${settlement.settled}`}</p>}
+      <span data-chat-draft-ready={draftReady ? "true" : "false"} hidden />
       {recovery && <p role="alert">{recovery} <button onClick={() => void perform(() => recover(attempt!.requestId))}>Check Native recovery</button></p>}
       <textarea aria-label="Message" data-chat-draft value={text} disabled={!view}
         onChange={event => edit(event.target.value)} />
