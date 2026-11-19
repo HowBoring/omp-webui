@@ -54,7 +54,15 @@ test.each(["explicit","deadline"] as const)("HTTP DSH Remote bounds cancel/late-
     ]);
     for(const cancel of [true,false]) {
       if(!cancel)await Bun.sleep(120); // Real Host deadline, while acknowledgement is still held.
-      const flood=Promise.all(Array.from({length:512},()=>answer(cancel)));
+      // Bun 1.4.4 native fetch drops larger loopback bursts before dispatch; retain all 512
+      // Host calls in eight-request windows. The bridge suite covers 512 concurrent callers.
+      const flood=(async()=>{
+        const results=[];
+        for(let offset=0;offset<512;offset+=8) {
+          results.push(...await Promise.all(Array.from({length:8},()=>answer(cancel))));
+        }
+        return results;
+      })();
       const result=await Promise.race([flood,Bun.sleep(2000).then(()=>"pending" as const)]);
       expect(result).toEqual(Array.from({length:512},()=>({ok:true,
         value:{status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"}})));

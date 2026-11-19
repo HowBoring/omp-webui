@@ -89,7 +89,7 @@
     "packages/interactions/bridge.ts": "38d8d33f26cfe6b31b55d143bbcfb4d58881de2ab0814a7e1f1d88176518b392",
     "packages/contracts/interactions.ts": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
     "apps/host/src/interactions-fixture-server.ts": "8e95ca478e1e40257a6ec30764a9213c6271077a6dae04f1b117ffb3e4ff634e",
-    "tests/browser/interactions-control.test.ts": "405f85ec071ad8fdd6400ce37b94fea4726a2070bf244d46b47ab4959a2284aa",
+    "tests/browser/interactions-control.test.ts": "c9a455d3e0f9894050c12c9418ab9dd08936e045b8f6f5c7e262a2e3bd09eb67",
     "tests/browser/interactions-browser.py": "179e1423c2c207f8abf36ccc9d47351d75f36c3e65bc4a96d9ce1394241f96b4"
   }
 }

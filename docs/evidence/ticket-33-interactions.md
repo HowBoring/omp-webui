@@ -219,8 +219,11 @@ The retained new red observes 512 explicit cancellation calls remaining pending
 for the full 2-second probe. Green covers both an explicit cancellation already
 pending and an internal deadline cancellation already pending. In each case one
 external caller waits, while 512 explicit cancellations and 512 postdeadline
-ordinary answers receive immediate typed Host overload through real HTTP. One
-native cancellation and one abort remain pending, and releasing the native reply
+ordinary answers receive immediate typed Host overload through real HTTP. The HTTP
+driver keeps eight requests in flight per batch because Bun 1.4.4 native fetch can
+fail larger loopback bursts before they reach the Host; the bridge suite separately
+covers 512 concurrent in-process callers. One native cancellation and one abort
+remain pending, and releasing the native reply
 returns its actual `cancelled` result to the first caller. Later calls are stale;
 carrier disposal removes subscriptions and no later request is published.
 Internal deadline processing bypasses external waiter admission. The existing
