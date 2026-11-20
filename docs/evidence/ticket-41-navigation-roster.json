@@ -31,15 +31,21 @@
         "bytes": 2491,
         "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
         "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
+      },
+      {
+        "path": "compatibility/dsh/patches/0006-parsed-tool-presentation.patch",
+        "bytes": 91910,
+        "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+        "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
       }
     ],
-    "declaredTree": "d05468939bcb06446ace47045d138f716406c788"
+    "declaredTree": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
   },
   "page": {
     "kind": "isolated-navigation-fixture",
     "lockSha256": "9bf7a9ee0e6c446d82e6f21677009fa65cb2593b3460cff00abb9d65a17b8d54",
     "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
-    "sourceTree": "d05468939bcb06446ace47045d138f716406c788",
+    "sourceTree": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea",
     "contractSha256": "05e15e264ac1c7d77cb31a23ecdd4248c4edddd4afc5172f356db0cc96389a99",
     "assets": {
       "client.js": "f8a138b74aabfc6a0a2faa19aae20070a0c11ea7dd43ede3e15262f777bec46d",
@@ -482,7 +488,7 @@
       },
       {
         "path": "packages/contracts/interactions.ts",
-        "sha256": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144"
+        "sha256": "f90be093cbf86ba277a4326df2f6bbe2d976c662f309df1397dc1f0d5a8d5730"
       },
       {
         "path": "packages/contracts/navigation-fixture.ts",
@@ -502,7 +508,7 @@
       },
       {
         "path": "packages/history-navigation-source/service.ts",
-        "sha256": "0486297d6aaf4ccb2b4373c2853bab0c914d0629819b6867bd26d75508115d60"
+        "sha256": "e4a3e153277481795ce909c01dfd607d15d63fae06baae35e3aab2537d6974bf"
       },
       {
         "path": "packages/navigation/fixture.ts",
@@ -1151,6 +1157,20 @@
         "sha256": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7",
         "actual": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7",
         "actualBytes": 3262
+      },
+      {
+        "path": "compatibility/omp/0011-history-tool-details.patch",
+        "bytes": 13480,
+        "sha256": "3598548a00c93c161221415ea32e2617855a884b21b96c7de9887b9709199f64",
+        "actual": "3598548a00c93c161221415ea32e2617855a884b21b96c7de9887b9709199f64",
+        "actualBytes": 13480
+      },
+      {
+        "path": "compatibility/omp/0008-durable-navigation.patch",
+        "bytes": 77932,
+        "sha256": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8",
+        "actual": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8",
+        "actualBytes": 77932
       }
     ]
   },
