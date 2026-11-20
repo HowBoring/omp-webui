@@ -39,6 +39,7 @@ import { historyNavigationSourceHostContribution } from "../../../packages/contr
 import { HistoryNavigationSource } from "../../../packages/history-navigation-source/service.ts";
 import { createNavigationPorts } from "./navigation-ports.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
+import { originalHistoryResponse } from "./original-history.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
   "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
@@ -137,6 +138,19 @@ export async function startSessionComponentServer(options: Options) {
         }
         await peer.dispose();
         return new Response("Upgrade required", { status: 426 });
+      }
+      if (path === "/api/ompOriginals/history" || path === "/api/ompOriginals/original") {
+        if (!attachmentStore) return new Response("Not found", { status: 404 });
+        return originalHistoryResponse(request, {
+          admit: value => access.admit(value, "read"),
+          session: (identity, sessionId) => {
+            const tree = supervisor.treeAccess(identity, sessionId);
+            return { history: tree.history, scope: { hostId: access.hostId, browserId: identity.credentialId,
+              pageId: identity.credentialId, profileId: access.hostId, sourceId: tree.sourceId,
+              instanceId: tree.instanceId, sessionId, canonicalCwd: tree.cwd, authorityEpoch: tree.epoch } };
+          },
+          store: attachmentStore,
+        });
       }
       const registeredWorkspace = path === "/api/ompWorkspaces/registered";
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;

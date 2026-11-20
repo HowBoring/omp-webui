@@ -49,6 +49,19 @@ export class ChatAttachmentAuthority implements AttachmentAuthority {
     this.store.associateReserved(() => scope, clientSubmissionId, objectIds);
   }
 
+  /** Durable hold before Native dispatch; a changed draft, View or receipt refuses this Send. */
+  async reserve(selection: AttachmentSelection, attempt: { clientSubmissionId: string; preparationId: string;
+    draftRevision: string; authorityGeneration: string }, objectIds: readonly string[], receipt: unknown): Promise<void> {
+    const target = { sessionId: selection.session, draftId: selection.draftId };
+    this.store.reserveForSubmission(() => this.scope(target), attempt, objectIds, receipt);
+  }
+
+  /** Records the Host-verified complete native query; the Store rejects anything but a committed retained association. */
+  async record(selection: AttachmentSelection, clientSubmissionId: string, result: unknown): Promise<void> {
+    const target = { sessionId: selection.session, draftId: selection.draftId };
+    this.store.recordSubmission(() => this.scope(target), clientSubmissionId, result);
+  }
+
   async authorize(selection: AttachmentSelection): Promise<AuthorizedAttachmentDraft> {
     const identity = this.#identity();
     const resolved = this.runtime().attachment(identity, selection.session, selection.draftId);

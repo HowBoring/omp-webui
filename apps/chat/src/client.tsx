@@ -34,7 +34,7 @@ import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
 import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
-import { TreePanel } from "../../../packages/tree/panel.tsx";
+import { TreePanel, historicalOriginals } from "../../../packages/tree/panel.tsx";
 import type { TreeNode } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
@@ -783,6 +783,7 @@ function Surface() {
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
+        originals={historicalOriginals(view.registration.nativeSessionId)}
         affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
         navigation={{ sessionId: view.registration.nativeSessionId,
           action: request => ctx.remote.ompHistoryNavigationSource.action(request).then(resultValue),

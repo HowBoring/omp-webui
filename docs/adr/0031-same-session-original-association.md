@@ -41,9 +41,16 @@ conversation content stay outside the ledger.
 Native attachment preparation and read-only query transport still require
 matching product composition. The caller must enforce response bounds,
 request/worker correlation, first-page query identity, and current grants.
-Safe preview/download routes, historical grants beyond the original page/draft,
-terminal no-input and cancellation release, authoritative branch-copy provenance,
-associated deletion review and real matched Native/browser acceptance remain open.
+Historical access is implemented by the composed Session carrier:
+`GET`/`HEAD /api/ompOriginals/history|original` re-admit the browser, require the
+exact entry in the current Native history (so branch copies read by entry identity
+and guessed entries fail), and return typed metadata or original bytes with safe
+MIME/Disposition. Writes remain Native submissions; the carrier reserves before
+dispatch and records the durable first-page query after commitment, so sent
+Originals are held out of staging expiry. Historical grants beyond the original
+page/draft, terminal no-input and cancellation release, authoritative branch-copy
+provenance beyond identity forwarding, associated deletion review and real matched
+Native/browser acceptance remain open.
 The tests exercise the unregistered Store with synthetic public candidate frames
 and real temporary SQLite files. The reopen checks use a fresh Store connection
 in the same process.

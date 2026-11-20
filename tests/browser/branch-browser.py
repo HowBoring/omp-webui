@@ -97,6 +97,15 @@ async def main():
             await expect(active).to_contain_text("Native compaction boundary")
             await page.screenshot(path=str(ROOT / "vendor/branch-browser-tree.png"), full_page=True)
 
+            # Previewing a retained entry asks the public Host route for its Originals on every open.
+            # This fixture has no attached files, so the honest answer is "none", not a fabricated download.
+            await active.get_by_role("button").first.click()
+            originals = tree.locator('[aria-label="Original files"]')
+            await expect(originals).to_be_visible(timeout=30000)
+            await expect(originals).to_contain_text("No original is associated", timeout=30000)
+            await expect(originals).not_to_contain_text("Download original")
+            assert not [path for path in writes if path.startswith("ompOriginals")], writes
+
             before_edit = await draft.input_value()
             target = tree.locator("[data-chat-branch-point]").nth(1)
             target_id = await target.get_attribute("data-chat-branch-point")
