@@ -1,0 +1,60 @@
+{
+  "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+  "stageTimingMs": [
+    {
+      "name": "host-ready",
+      "atMs": 964
+    },
+    {
+      "name": "page-loaded",
+      "atMs": 1782
+    },
+    {
+      "name": "granted",
+      "atMs": 2092
+    },
+    {
+      "name": "catalog-1000",
+      "atMs": 4816
+    },
+    {
+      "name": "open-clicked",
+      "atMs": 4859
+    },
+    {
+      "name": "session-present",
+      "atMs": 49951
+    },
+    {
+      "name": "first-node",
+      "atMs": 49965
+    },
+    {
+      "name": "cold-open:48526ms",
+      "atMs": 49966
+    },
+    {
+      "name": "first-page-0:2795ms",
+      "atMs": 52761
+    },
+    {
+      "name": "first-page-1:4440ms",
+      "atMs": 57201
+    },
+    {
+      "name": "first-page-2:3163ms",
+      "atMs": 60363
+    },
+    {
+      "name": "history-rows=24",
+      "atMs": 60368
+    }
+  ],
+  "firstPageSamplesMs": [
+    3162.6091669895686
+  ],
+  "oldPageSamplesMs": [],
+  "historyRows": 24,
+  "error": "TimeoutError: Page.wait_for_selector: Timeout 90000ms exceeded.\nCall log:\n  - waiting for locator(\"[data-chat-load-earlier]\") to be visible\n",
+  "note": "Cold open retained in the sample set; no over-budget sample is excluded."
+}
