@@ -455,7 +455,7 @@ index 00000000..fce1e66d
 +    }
 +    const header = value;
 +    const title=slot ? text(slot.title,512) || undefined : text(header.title,512);
-+    const parentSession=text(header.parentSession,128),continuationOf=text(header.continuationOf,128);
++    const parentSession=text(header.parentSession,4096),continuationOf=text(header.continuationOf,4096);
 +    const nativeSessionId = value.id;
 +    const instanceId = hash(`${before.dev}:${before.ino}:${before.birthtimeNs}:${nativeSessionId}`);
 +    const locator = nodePath.relative(source.root, target);

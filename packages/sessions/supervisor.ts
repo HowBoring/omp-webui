@@ -18,11 +18,11 @@ import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./ind
 export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
 type OwnedSessionWorker = Awaited<OwnedSessionConnection["ready"]>;
 type OwnedLauncher = (cwd: string, retirement: AbortSignal) => OwnedSessionConnection | Promise<OwnedSessionConnection>;
-interface DirectLaunchOptions {
+export interface DirectLaunchOptions {
   launch(cwd: string): Promise<SupervisedSessionWorker>;
   launchOwned?: never;
 }
-interface OwnedLaunchOptions {
+export interface OwnedLaunchOptions {
   launch?: never;
   /** Trusted Host port. Forward retirement to pre-spawn preparation. Once a helper exists,
    * return its original connection before waiting for readiness, even after retirement.
@@ -101,6 +101,9 @@ export type BranchedSession =
       text: string; view?: SessionView }
   | { status: "cancelled"; previousSessionId: string; targetEntryId: string };
 interface RetainedHistory { sessionId: string; entries: Map<string, { parentId?: string; kind: string }> }
+/** Rows that carry conversation. Native also authors labels, title slots and init rows the cut may add. */
+const conversationKind = (kind: string) =>
+  kind === "message" || kind === "custom_message" || kind === "compaction" || kind === "branch_summary" || kind === "reset_boundary";
 /** Source ancestors of a branch target: the only history the native cut keeps. */
 const retainedAncestors = (history: RetainedHistory, target: string): Set<string> => {
   const selected = history.entries.get(target);
@@ -511,6 +514,13 @@ export class SessionSupervisor {
    * only reads it back. Nothing is sent, replayed or copied: `text` is the unsent draft of the new Session.
    * The previous Session keeps its own file, registration and path.
    */
+  /** Native allows only historical user messages; the Host never decides this on its own. */
+  async branchPoints(identity: BrowserAccess, workerId: string) {
+    const runtime = this.runtime(identity, workerId);
+    const points = await runtime.worker.branchMessages(), latest = this.runtime(identity, workerId);
+    if (latest.view.generation !== runtime.view.generation) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    return { workerId: latest.view.workerId, generation: latest.view.generation, points };
+  }
   async branch(identity: BrowserAccess, workerId: string, generation: string, entryId: string): Promise<BranchedSession> {
     this.#browser(identity);
     const active = this.#active;
@@ -562,9 +572,12 @@ export class SessionSupervisor {
       view = await this.open(identity, descriptor);
       const opened = this.runtime(identity, view.workerId);
       const after = await this.#readRetained(opened.worker);
-      // The new Session holds exactly the source ancestors of the target, never the target itself.
-      if (after.sessionId !== nativeSessionId || after.entries.has(entryId) || after.entries.size !== retained.size
-        || [...retained].some(id => !after.entries.has(id))) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+      // Every source entry forwarded into the new Session must be an ancestor of the target; native may add
+      // its own rows (labels, session init) but never an off-path sibling and never the target itself.
+      const expected = [...retained].filter(id => conversationKind(before.entries.get(id)!.kind));
+      const forwarded = [...after.entries.keys()].filter(id => before.entries.has(id) && conversationKind(after.entries.get(id)!.kind));
+      if (after.sessionId !== nativeSessionId || forwarded.length !== expected.length
+        || expected.some(id => !forwarded.includes(id)) || after.entries.has(entryId)) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
       view = this.view(identity, view.workerId);
     } catch (failure) {
       const code = sessionFailureCode(failure);

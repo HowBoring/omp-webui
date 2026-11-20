@@ -5,19 +5,22 @@ import type { TreeNode } from "../contracts/tree.ts";
 import { treeContribution } from "../contracts/tree.ts";
 import { TreeBrowser } from "./browser.ts";
 
-function NodeButton({ node, browser }: { node: TreeNode; browser: TreeBrowser }) {
+/** Native allow-list only: a node is branchable because the native command said so, never from its kind. */
+export type BranchAffordance = { points: ReadonlySet<string>; branch(node: TreeNode): void };
+function NodeButton({ node, browser, affordance }: { node: TreeNode; browser: TreeBrowser; affordance?: BranchAffordance | undefined }) {
   const state = browser.getSnapshot();
-  return <button disabled={state.pending || state.phase !== "complete"}
+  return <><button disabled={state.pending || state.phase !== "complete"}
     aria-pressed={state.selectedId === node.id} onClick={() => void browser.select(node.id)}>
     {node.id} · {node.boundary ?? node.role ?? node.kind} · {node.active ? "active path" : "other branch"}
-  </button>;
+  </button>{affordance?.points.has(node.id) && <button data-chat-branch-point={node.id}
+    onClick={() => affordance.branch(node)}>Branch here</button>}</>;
 }
-function Segment({ nodes, browser }: { nodes: TreeNode[]; browser: TreeBrowser }) {
+function Segment({ nodes, browser, affordance }: { nodes: TreeNode[]; browser: TreeBrowser; affordance?: BranchAffordance | undefined }) {
   const [count, setCount] = useState(64);
-  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser}/></li>)}</ol>
+  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser} affordance={affordance}/></li>)}</ol>
     {nodes.length > count && <button onClick={() => setCount(count + 64)}>Show more retained nodes</button>}</>;
 }
-function ActivePath({ browser }: { browser: TreeBrowser }) {
+function ActivePath({ browser, affordance }: { browser: TreeBrowser; affordance?: BranchAffordance | undefined }) {
   const state = browser.getSnapshot(), nodes = new Map(state.pages.flat().map(node => [node.id, node]));
   const segments: { nodes: TreeNode[]; boundary?: TreeNode }[] = [];
   let pending: TreeNode[] = [];
@@ -31,12 +34,12 @@ function ActivePath({ browser }: { browser: TreeBrowser }) {
   return <section aria-label="Current active path"><h3>Current active path</h3>{segments.map((segment, index) =>
     <section key={segment.boundary?.id ?? "current"}>{segment.boundary ? <>
       <details><summary>Retained history before {segment.boundary.boundary} ({segment.nodes.length} nodes)</summary>
-        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser}/></details>
-      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser}/></p>
-    </> : <Segment key="current" nodes={segment.nodes} browser={browser}/>}</section>)}</section>;
+        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser} affordance={affordance}/></details>
+      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser} affordance={affordance}/></p>
+    </> : <Segment key="current" nodes={segment.nodes} browser={browser} affordance={affordance}/>}</section>)}</section>;
 }
 /** Small public React surface. Explicit Open/Page/Select; rendering never opens a Session or sends input. */
-export function TreePanel({ browser }: { browser: TreeBrowser }) {
+export function TreePanel({ browser, affordance }: { browser: TreeBrowser; affordance?: BranchAffordance | undefined }) {
   const state = useSyncExternalStore(browser.subscribe, browser.getSnapshot, browser.getSnapshot);
   useEffect(() => {
     if (state.expiresAt === undefined) return;
@@ -56,13 +59,13 @@ export function TreePanel({ browser }: { browser: TreeBrowser }) {
       <section aria-label="Native tree page"><h3>{state.phase === "complete" ? "Complete native tree" : "Native tree pages"}</h3>
         <p>Page {state.visiblePage + 1} of {state.pages.length} loaded pages; each row names its native parent.</p>
         <ol>{state.pages[state.visiblePage]?.map(node => <li key={node.id}>
-          <NodeButton node={node} browser={browser}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
+          <NodeButton node={node} browser={browser} affordance={affordance}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
         <button disabled={state.visiblePage === 0} onClick={() => browser.showPage(state.visiblePage - 1)}>Previous loaded page</button>
         <button disabled={state.visiblePage + 1 >= state.pages.length}
           onClick={() => browser.showPage(state.visiblePage + 1)}>Next loaded page</button>
         <button disabled={state.pending || state.phase !== "partial"}
           onClick={() => void browser.nextPage()}>Load next native page</button></section>
-      {state.phase === "complete" && <ActivePath browser={browser}/>}</>}
+      {state.phase === "complete" && <ActivePath browser={browser} affordance={affordance}/>}</>}
     {state.preview && <section aria-label="Selected node preview"><h3>Preview {state.preview.node.id}</h3>
       <pre>{state.preview.text}</pre><p>Attachment Originals: association unproven; no original download is offered here.</p></section>}
   </section>;

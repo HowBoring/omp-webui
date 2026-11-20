@@ -159,12 +159,9 @@ export class SessionsService extends TypertRemoteService {
   }
   /** Native-allowlisted historical user points. Reading them never opens, mutates or branches anything. */
   @Remote("branchPoints") async branchPoints(workerId: string) {
-    const identity = this.identity(), runtime = this.runtime(identity, workerId);
-    const points = await runtime.worker.branchMessages(); this.identity();
-    const latest = this.runtime(identity, workerId);
-    if (latest.view.generation !== runtime.view.generation) settingsFailure("stale");
-    return { workerId: latest.view.workerId, generation: latest.view.generation,
-      points: points.slice(0, 20_000).map(point => ({ entryId: point.entryId, text: point.text })) };
+    const identity = this.identity();
+    const points = await this.options.supervisor.branchPoints(identity, workerId);
+    return { workerId: points.workerId, generation: points.generation, points: points.points.slice(0, 20_000) };
   }
   /** Native branch cut. The returned text is the new Session's unsent draft, never a send. */
   @Remote("branch") async branch(change: { workerId: string; generation: string; entryId: string }) {
