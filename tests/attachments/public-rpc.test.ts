@@ -46,8 +46,12 @@ async function withWorker(run: (fixture: Awaited<ReturnType<typeof openWorker>>)
   finally {
     try {
       if (fixture) {
-        try { expect((await fixture.worker.close()).code).toBe(0); }
-        finally { fixture.worker.child.kill(); await fixture.worker.child.exited; }
+        try {
+          const closed = await fixture.worker.close();
+          if (closed.code !== 0) console.error(JSON.stringify({ event: "ATTACHMENT_PUBLIC_WORKER_EXIT",
+            code: closed.code, stderr: closed.stderr.slice(0, 1500) }));
+          expect(closed.code).toBe(0);
+        } finally { fixture.worker.child.kill(); await fixture.worker.child.exited; }
       }
     } finally { await fs.rm(home, { recursive: true, force: true }); }
   }

@@ -32,10 +32,20 @@ stays blocked; no real user data is used.
 
 ## Verification (ticket worktree `mvp/ticket-58-cleanup`)
 
+- Candidate rebuilt in the ticket worktree with `bun scripts/build-compatibility.ts`
+  (OMP `57771ae5`, authored source `b245d8ec…`, patch `b91a8571…`) and Chat
+  Host re-enrolled against the local candidate. The previous public-RPC failures
+  came from running the shared `vendor/omp-candidate` symlink while it was being
+  rebuilt elsewhere; after the standalone build, `bun test
+  tests/attachments/public-rpc.test.ts` is 15/15. The cohort's pinned authored
+  tuple was updated from the pre-#54 tuple (`e9e00d47…`/`99b33a85…`) to the
+  current patches; the worker-exit diagnostic now records exit code and stderr
+  if that process fails again.
 - `bun run typecheck` — PASS.
-- `bun test tests/attachments` — PASS (store, lifecycle, association, remote,
-  submission gate; includes bounded 130-row expiry, same-hash independence,
-  lost-publication refusal, revocation and branch inheritance).
+- `bun test tests/attachments` — PASS, 110 tests / 16 files (store, lifecycle,
+  association, remote, public RPC, submission gate; includes bounded 130-row
+  expiry, same-hash independence, lost-publication refusal, revocation, branch
+  inheritance and worker-exit capture).
 - `tests/chat/images.py` on the rebuilt ticket Host — PASS, 18 scenarios,
   Chromium 157.0.8103.38. Covers staging, Send consent/native entry, paste/drop,
   Base64, spoofing, cancellation retaining the draft original, degradation and

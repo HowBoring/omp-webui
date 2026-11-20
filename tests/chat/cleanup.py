@@ -166,7 +166,11 @@ async def main():
             await page.locator(f'[data-chat-deletion-preview="{race_id}"] [data-chat-delete-confirm]').click()
             await page.locator(f'[data-chat-deletion-preview="{race_id}"]').wait_for(state="detached")
             await wait_count(page, 1)
-            assert (await usage(page))[0] == preview_charge - len(b"race bytes\n")
+            expected_charge = preview_charge - len(b"race bytes\n")
+            for _ in range(25):
+                if (await usage(page))[0] == expected_charge: break
+                await asyncio.sleep(0.2)
+            assert (await usage(page))[0] == expected_charge, ((await usage(page))[0], expected_charge)
             scenarios.append("fresh-review-after-resolution-deletes")
 
             await page.screenshot(path=str(ROOT / "vendor/chat-cleanup.png"), full_page=True)
