@@ -1,0 +1,67 @@
+Strict workers may cut a Branched Session at a user entry.
+
+The strict continuation guard still refuses every path-based session switch. A branch or
+fork cut at an entry is the one explicit native transition a strict worker owns: it reuses
+the durable submission publication backend, keeps the source file untouched, and takes a
+fresh lease on the new file. Only the branch cut passes `allowStrictBranch`, so
+`new_session` and `switch_session` stay refused for strict workers.
+
+diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
+index 01adfb3..3f3176b 100644
+--- a/packages/coding-agent/src/session/session-manager.ts
++++ b/packages/coding-agent/src/session/session-manager.ts
+@@ -2535,9 +2535,9 @@ export class SessionManager {
+ 			await this.#rewriteAtomically();
+ 		}
+ 	}
+-  #beginExplicitNativeTransition(): void {
++  #beginExplicitNativeTransition(allowStrictBranch = false): void {
+     if (!this.#strictContinuation) return;
+-    if (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)
++    if (!(this.#storage instanceof StrictSessionStorage) || (!allowStrictBranch && !this.#storage.allowExplicitNativeTransitions))
+       throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
+     this.#storage.assertCurrent();
+     this.#explicitNativePrevious = this.#storage;
+@@ -2700,9 +2700,9 @@ export class SessionManager {
+ 	 * behind when the user quits, so it keeps the ordinary lazy gate and writes
+ 	 * once it has content.
+ 	 */
+-	async newSession(options?: NewSessionOptions): Promise<string | undefined> {
++	async newSession(options?: NewSessionOptions, allowStrictBranch = false): Promise<string | undefined> {
+ 		await this.#drainAndCloseWriter();
+-    this.#beginExplicitNativeTransition();
++    this.#beginExplicitNativeTransition(allowStrictBranch);
+ 		const sessionFile = this.#resetToNewSession(options);
+     this.#materializeExplicitNativeTransition();
+ 		if (options?.drop !== true) await this.ensureOnDisk();
+@@ -4608,7 +4608,7 @@ export class SessionManager {
+ 	 * Returns the new file path, or undefined when not persisting.
+ 	 */
+ 	createBranchedSession(leafId: string, options?: { copyArtifacts?: boolean }): string | undefined {
+-		if (this.#strictContinuation && (!(this.#storage instanceof StrictSessionStorage) || !this.#storage.allowExplicitNativeTransitions)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
++		if (this.#strictContinuation && !(this.#storage instanceof StrictSessionStorage)) throw new Error("STRICT_ALTERNATE_TARGET_FORBIDDEN");
+ 		const sourceSessionFile = this.#sessionFile;
+     const artifactCopy = sourceSessionFile && options?.copyArtifacts === true ? prepareNestedArtifactCopy(sourceSessionFile) : undefined;
+     try {
+@@ -4662,7 +4662,7 @@ export class SessionManager {
+ 		}
+ 
+ 		this.flushSync();
+-    this.#beginExplicitNativeTransition();
++    this.#beginExplicitNativeTransition(true);
+ 		header.requiredFeatures = structuredClone(this.#header.requiredFeatures);
+ 		this.#header = header;
+ 		this.#entries = [...entriesToKeep, ...labels];
+diff --git a/packages/coding-agent/src/session/agent-session.ts b/packages/coding-agent/src/session/agent-session.ts
+index 7aaf6d8..bf5cfcd 100644
+--- a/packages/coding-agent/src/session/agent-session.ts
++++ b/packages/coding-agent/src/session/agent-session.ts
+@@ -15307,7 +15307,7 @@ export class AgentSession implements SettingsScope, AgentViewSession {
+ 				if (!leafId) {
+ 					const title = this.sessionManager.getSessionName();
+ 					const titleSource = this.sessionManager.titleSource;
+-					await this.sessionManager.newSession({ parentSession: previousSessionFile });
++					await this.sessionManager.newSession({ parentSession: previousSessionFile }, true);
+ 					if (title) await this.sessionManager.setSessionName(title, titleSource);
+ 				} else {
+ 					this.sessionManager.createBranchedSession(leafId, { copyArtifacts: options?.copyArtifacts });

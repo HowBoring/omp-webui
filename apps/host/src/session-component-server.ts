@@ -13,7 +13,7 @@ import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote"
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
-import { SessionSupervisor, type SessionLaunchOptions } from "../../../packages/sessions/supervisor.ts";
+import { SessionSupervisor, type DirectLaunchOptions, type OwnedLaunchOptions } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
@@ -49,14 +49,16 @@ import { openBrowserAccess, type BrowserAccess } from "../../../packages/access/
 import { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
 import type { InteractionBroker } from "../../../packages/interactions/broker.ts";
 import { InteractionBrokerCarrier, type BrokerStream, type InteractionBrokerMode } from "./interaction-broker-carrier.ts";
-type Options = InstallationSelection & SessionLaunchOptions & {
+interface CarrierOptions extends InstallationSelection {
   port?: number; assets?: string; catalog: CatalogClient; dataDir: string;
   /** Opt-in lifecycle owned by this isolated carrier. Unary mode uses one Browser View per credential. */
   interactionBroker?: InteractionBroker;
   interactionBrokerMode?: InteractionBrokerMode;
   /** Opt-in component Chat over the same explicitly opened worker. Product admission stays blocked. */
   chat?: true;
-};
+}
+/** Exactly one launcher, inherited either from an option class or from an object literal. */
+type Options = (CarrierOptions & DirectLaunchOptions) | (CarrierOptions & OwnedLaunchOptions);
 interface SocketData {
   peer: Peer; identity: BrowserAccess; detach?: () => void; streams: Map<string, AbortController>;
   brokerEvents?: AbortController;

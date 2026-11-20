@@ -21,6 +21,9 @@ import { isAttachmentReceipt } from "../../packages/contracts/attachment-prepara
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
   model: ModelInfo; thinkingLevel: "off" | "low" | "high";
+  sessionId: string; sessionFile: string; branchPoints: { entryId: string; text: string }[];
+  branchResult: { text: string; cancelled: boolean } | undefined; branchFailure: unknown;
+  branchSessionId: string | undefined; branchParent: string;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
   close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
@@ -49,6 +52,9 @@ export async function sourceFixture(now: () => number = Date.now,
       reasoning: true, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 128000, maxTokens: 4096, thinking: { mode: "effort", efforts: ["low", "high"] } },
     thinkingLevel: "off",
+    sessionId: selected.nativeSessionId, sessionFile: "/synthetic/source.jsonl",
+    branchPoints: [{ entryId: "entry-0", text: "Synthetic fixture input" }],
+    branchResult: undefined, branchFailure: undefined, branchSessionId: undefined, branchParent: "/synthetic/source.jsonl",
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
@@ -71,7 +77,7 @@ export async function sourceFixture(now: () => number = Date.now,
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
     async setAskDialog() { return { enabled: true }; }, get readyPolicy(): unknown { return undefined; },
-    async state() { return { sessionId: selected.nativeSessionId, isSettled: !controls.busy, isStreaming: controls.busy,
+    async state() { return { sessionId: controls.sessionId, sessionFile: controls.sessionFile, isSettled: !controls.busy, isStreaming: controls.busy,
       isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] },
       model: controls.model, thinkingLevel: controls.thinkingLevel }; },
     async models() { return [
@@ -81,13 +87,27 @@ export async function sourceFixture(now: () => number = Date.now,
     async selectModel(provider: string, id: string) { controls.model = { ...controls.model, provider, id, name: id }; },
     async setThinkingLevel(level: "off" | "low" | "high") { controls.thinkingLevel = level; },
     async retireIdle() { return controls.retirement ?? { status: "closed", drain: controls.drain }; },
+    async branchMessages() { return controls.branchPoints; },
+    async branch() {
+      if (controls.branchFailure !== undefined) throw controls.branchFailure;
+      const result = controls.branchResult ?? { text: "Synthetic fixture input", cancelled: false };
+      if (!result.cancelled && controls.branchSessionId) {
+        controls.sessionId = controls.branchSessionId; controls.sessionFile = "/synthetic/branch.jsonl";
+      }
+      return result;
+    },
   };
+  const branchItem = (): CatalogDescriptor => ({ ...selected, nativeSessionId: controls.branchSessionId ?? "",
+    reference: "branch-reference", parentSession: controls.branchParent,
+    ownership: { state: "free", observedAt: selected.observedAt } });
   const catalog = new CatalogClient(async command => {
     if (controls.catalogFailure !== undefined) throw controls.catalogFailure;
     return command.type === "describe_session"
-    ? { status: "verified", observedAt: selected.observedAt, item: command.reference === other.reference ? other : selected }
+    ? { status: "verified", observedAt: selected.observedAt,
+      item: command.reference === "branch-reference" ? branchItem() : command.reference === other.reference ? other : selected }
     : { status: "complete", snapshot: "synthetic-snapshot", observedAt: selected.observedAt,
-      expiresAt: "2099-11-16T00:00:00.000Z", examined: 2, failures: [], items: [selected, other] };
+      expiresAt: "2099-11-16T00:00:00.000Z", examined: 2, failures: [],
+      items: [selected, other, ...(controls.branchSessionId === undefined ? [] : [branchItem()])] };
   });
   const supervisor = new SessionSupervisor({ authority, grants, index, catalog, ...(launchOwned ? { launchOwned } : {
     async launch() {

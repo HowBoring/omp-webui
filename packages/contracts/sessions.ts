@@ -30,6 +30,16 @@ export type SessionPreferences = z.infer<typeof sessionPreferencesSchema>;
 const preferencesChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), revision: z.number().int().min(0),
   model: z.strictObject({ provider: token, id: token }).optional(), thinking: thinkingLevel.optional() })
   .refine(value => value.model !== undefined || value.thinking !== undefined, "Choose a model or thinking level.");
+const branchPoint = z.strictObject({ entryId: path, text: z.string().max(1_048_576) });
+/** Native branch-message list; the Host re-checks membership when a branch is committed. */
+export const branchPointsSchema = z.strictObject({ workerId: worker, generation: z.string().uuid(), points: z.array(branchPoint).max(20_000) });
+const branchChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), entryId: path });
+const branchOutcome = z.discriminatedUnion("status", [
+  z.strictObject({ status: z.literal("created"), nativeSessionId: path, previousSessionId: path, targetEntryId: path,
+    retainedEntries: z.number().int().min(0).max(20_000), text: z.string().max(1_048_576), view: sessionViewSchema.optional() }),
+  z.strictObject({ status: z.literal("cancelled"), previousSessionId: path, targetEntryId: path }),
+]);
+export type BranchOutcome = z.infer<typeof branchOutcome>;
 const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scanning"]),
   choices: z.array(z.strictObject({ selectionId: selection, nativeSessionId: path, sourceId: path, instanceId: path,
     cwd: path.optional(), title: z.string().max(8192).optional(), ownership: z.enum(["held", "free", "unknown"]),
@@ -49,6 +59,8 @@ const method = <T>(parameters: ReturnType<typeof parameter>[], result: z.ZodType
 export const sessionsContribution = createTypertRemoteInfo({ package: "@omp-webui/sessions", methods: {
   "ompSessions/catalog": method([parameter("options", page)], catalog),
   "ompSessions/index": method([parameter("options", page)], index),
+  "ompSessions/branchPoints": method([parameter("workerId", worker)], branchPointsSchema),
+  "ompSessions/branch": method([parameter("change", branchChange)], branchOutcome),
   "ompSessions/open": method([parameter("selectionId", selection)], sessionViewSchema),
   "ompSessions/switch": method([parameter("selectionId", selection)], sessionViewSchema),
   "ompSessions/new": method([parameter("grantId", z.string().uuid())], sessionViewSchema),
@@ -70,6 +82,8 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
     ompSessions: {
       catalog(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof catalog>>>;
       index(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof index>>>;
+      branchPoints(workerId: string): Promise<RemoteResult<z.infer<typeof branchPointsSchema>>>;
+      branch(change: { workerId: string; generation: string; entryId: string }): Promise<RemoteResult<BranchOutcome>>;
       open(selectionId: SessionSelectionId): Promise<RemoteResult<PublicSessionView>>;
       switch(selectionId: SessionSelectionId): Promise<RemoteResult<PublicSessionView>>;
       "new"(grantId: string): Promise<RemoteResult<PublicSessionView>>;
