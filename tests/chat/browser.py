@@ -223,6 +223,8 @@ async def main():
             # The standalone shell renders the post-cut baseline after reopening the same Session.
             await page.wait_for_timeout(1500)
             await send(page, "second live prompt")
+            # The accepted second turn is persisted on the same native Session. The standalone shell
+            # rebuilds the post-cut baseline when the same Session is reopened (not a different Session).
             await page.wait_for_timeout(2500)
             await page.reload()
             await page.wait_for_selector("[data-chat-root-slot]")

@@ -39,6 +39,7 @@ const recoveryAuthorized = new Set<string>();
 const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId),
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
+let unsubscribeProjection: (() => void) | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
@@ -58,6 +59,7 @@ function invalidateAccess(text: string) {
 }
 function release() {
   ++presentationRevision; unsubscribe?.(); unsubscribe = undefined;
+  unsubscribeProjection?.(); unsubscribeProjection = undefined;
   if (reference) { authorities.delete(String(reference.sessionId)); reference.release(); reference = undefined; }
   historyChanged([]); liveBinding = undefined;
 }
@@ -122,13 +124,19 @@ async function present(view: PublicSessionView) {
   watch(binding, retained);
 }
 function watch(binding: SessionBinding, retained: SessionReference) {
-  const target = ctx.uiConversation.binding(binding).target("trajectory");
-  const render = () => {
-    if (reference !== retained) return;
-    const next = target.getSnapshot()?.eventNodes ?? [];
-    historyChanged([...next]);
+  const attach = () => {
+    const target = ctx.uiConversation.binding(binding).target("trajectory");
+    const render = () => {
+      if (reference !== retained) return;
+      historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]);
+    };
+    unsubscribe?.(); unsubscribe = target.subscribe(render); render();
   };
-  unsubscribe?.(); unsubscribe = target.subscribe(render); render();
+  attach();
+  unsubscribeProjection?.();
+  unsubscribeProjection = binding.projection.subscribe(() => {
+    if (reference === retained && binding.projection.getSnapshot().phase === "ready") attach();
+  });
 }
 
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
