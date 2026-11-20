@@ -50,7 +50,10 @@ the copied validators, source and tooling. Relevant definitions agree across the
 schemas. The whole schema hashes differ, so this is no compatibility admission for either artifact.
 
 Ack, outcome and quiescence remain distinct. A current-worker `prompt_result` is correlated by that request ID.
-A later `session_settled` or an already-settled result still requires current joint Host idle. A known local
+A correlated `SUBMISSION_BUSY` reply is a terminal local refusal (`failed`, reason `native_busy`) with no model
+call. It settles once joint Host idle is observed and releases the admission hold, so later explicit input is
+not blocked. Transport exception text and uncorrelated busy text remain unknown and never establish a busy
+refusal. A later `session_settled` or an already-settled result still requires current joint Host idle. A known local
 synchronous refusal has no later prompt result. Outcomes require matching committed receipt facts, including
 Native no-input and invocation evidence for success. A completed local frame contradicts the committed
 Native builtin invocation marker and leaves the attempt unknown. A successful primary outcome gives no

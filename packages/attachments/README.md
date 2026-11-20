@@ -1,7 +1,9 @@
 # Host attachment Originals for tickets 54, 55, 56 and 58
 
-This is an opt-in Host-owned original store and proposed public intake contract.
-No product Host registers it. Tickets 54 and 55 and umbrella ticket 29 remain open.
+This is the Host-owned original store and public intake contract. The composed
+Session carrier registers the historical `GET`/`HEAD` routes, submission gate and
+branch link inheritance; product admission beyond that carrier remains gated by
+tickets 54, 55 and umbrella ticket 29.
 Native preparation, historical routes and browser upload controls remain gated by
 tickets 36/38/41/45 and the matched-combination acceptance requirements. The
 same-Session association seam is unregistered and consumes the #38 candidate's
@@ -199,9 +201,9 @@ validated physical-cleanup recovery.
 
 Native bounded decoding, model and complete encoded RPC budgets, valid and
 malformed selected files through actual prepare and consume, degradation
-confirmation, matched Native entry association and branch proof, draft
-restoration, safe download and rendering, product lifecycle integration and
-actual Linux and Windows Chrome/WSL2 browser results and performance remain open.
+confirmation, matched Native entry association and verified native branch
+inheritance are covered by Host/Store and real Chromium tests. Draft restoration,
+product lifecycle integration, Windows browser results and performance remain open.
 
 See [ADR 0021](../../docs/adr/0021-host-original-intake.md) and the
 [source evidence](../../docs/implementation/ticket-54-source-evidence.json).
