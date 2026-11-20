@@ -162,6 +162,17 @@ async def wait_attempt_text(page, text, timeout=60000):
     raise AssertionError(f"attempt did not contain {text!r}")
 
 
+async def wait_draft(page, text, reason, timeout=15000):
+    deadline = time.monotonic() + timeout / 1000
+    while time.monotonic() < deadline:
+        if await page.get_by_label("Message").input_value() == text: return
+        await asyncio.sleep(0.2)
+    print("DRAFT_LOST", reason, repr(await page.get_by_label("Message").input_value()),
+          (await page.locator("[data-chat-attempt]").all_inner_texts())[:2],
+          (await page.get_by_role("alert").all_inner_texts())[:3])
+    raise AssertionError(reason)
+
+
 async def wait_attempt(page, state, timeout=60000):
     try:
         await page.wait_for_selector(f'[data-chat-attempt="{state}"]', timeout=timeout)
@@ -317,7 +328,7 @@ async def documents(page, scenarios):
     await wait_original(page, 1)
     await send_images(page, "empty conversion")
     await wait_attempt_text(page, "no extractable text")
-    assert await page.get_by_label("Message").input_value() == "empty conversion", "empty conversion keeps the draft"
+    await wait_draft(page, "empty conversion", "empty conversion keeps the draft")
     await wait_original(page, 1)
     await page.reload()
     await page.wait_for_selector("[data-chat-root-slot]")
@@ -327,7 +338,7 @@ async def documents(page, scenarios):
     await wait_original(page, 1)
     await send_images(page, "output budget conversion")
     await wait_attempt_text(page, "prepared-text ceiling")
-    assert await page.get_by_label("Message").input_value() == "output budget conversion", "output budget keeps the draft"
+    await wait_draft(page, "output budget conversion", "output budget keeps the draft")
     await wait_original(page, 1)
     await page.reload()
     await page.wait_for_selector("[data-chat-root-slot]")
@@ -339,7 +350,7 @@ async def documents(page, scenarios):
     before = await page.locator("[data-chat-native-entry]").count()
     await send_images(page, "corrupt conversion")
     await wait_attempt_text(page, "converter failed")
-    assert await page.get_by_label("Message").input_value() == "corrupt conversion", "failed conversion keeps the draft"
+    await wait_draft(page, "corrupt conversion", "failed conversion keeps the draft")
     await wait_original(page, 1)
     assert await page.locator("[data-chat-native-entry]").count() == before, "failed conversion is not sent to Native"
     await remove_all(page)
