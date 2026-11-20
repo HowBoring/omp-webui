@@ -18,6 +18,9 @@ const identity = (scope: NavigationScope) => JSON.stringify([scope.browser, scop
   scope.contextId, scope.projection.source, scope.projection.generation]);
 const sameTarget = (left: NavigationPreview["target"], right: NavigationPreview["target"]) =>
   left.sourceId === right.sourceId && left.instanceId === right.instanceId && left.nativeSessionId === right.nativeSessionId;
+const stableIdentity = (scope: NavigationScope) => JSON.stringify([scope.browser, scope.grant, scope.directory,
+  scope.sourceId, scope.instanceId, scope.nativeSessionId, scope.sessionId, scope.workerId, scope.workerGeneration,
+  scope.epoch.split(":")[0]]);
 const workerKey = (scope: NavigationScope) => JSON.stringify([
   scope.sourceId, scope.instanceId, scope.nativeSessionId, scope.workerId, scope.workerGeneration,
 ]);
@@ -74,11 +77,12 @@ export class HistoryNavigationSource extends TypertRemoteService {
   }
   private async recheck(binding: Binding, projection = binding.access.scope.projection): Promise<void> {
     const current = await this.bind(binding.access.scope.sessionId);
-    if (binding.signal.aborted || binding.owner !== current.owner || binding.owner.signal.aborted
-      || binding.access.authoritySignal.aborted || current.access.authoritySignal !== binding.access.authoritySignal
+    if (binding.signal.aborted || binding.owner.signal.aborted || current.owner.signal.aborted
+      || binding.access.authoritySignal.aborted || current.access.authoritySignal.aborted
+      || JSON.stringify(binding.owner.principal) !== JSON.stringify(current.owner.principal)
       || current.access.client !== binding.access.client || current.access.matchedCohort !== binding.access.matchedCohort
       || JSON.stringify(current.access.policy) !== JSON.stringify(binding.access.policy)
-      || identity(current.access.scope) !== identity({ ...binding.access.scope, projection })) fail("navigation_binding_changed");
+      || stableIdentity(current.access.scope) !== stableIdentity(binding.access.scope)) fail("navigation_binding_changed");
   }
   private purge(): void {
     for (const [key, value] of this.confirmations) {

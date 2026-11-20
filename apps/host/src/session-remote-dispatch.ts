@@ -21,9 +21,12 @@ export const preferenceMethods = Object.fromEntries(preferencesHostContribution.
   .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods, ...preferenceMethods,
   "ompTree/read": treeContribution.methods["ompTree/read"],
+  "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
   "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
 /** Read-only tree RPC is admitted by the Chat Host without being part of a Chat presentation binding. */
 const treeUnary = new Set(["ompTree/read"]);
+/** Native navigation is authorized by the source service, not by a Chat presentation binding. */
+const navigationUnary = new Set(["ompHistoryNavigationSource/action"]);
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
   "ompChatComponent/attach", ...Object.keys(preferenceMethods)]);
 export const chatMethods = {
@@ -57,7 +60,8 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
     if (request.method !== "POST") return new Response("POST required", { status: 405 });
     if (!chatEndpoints.has(new URL(request.url).pathname)) return new Response("Chat unavailable", { status: 404 });
     if (inflight >= 32) return new Response("Chat request limit", { status: 429 });
-    if (new URL(request.url).pathname === "/api/ompTree/read") {
+    const unbound = new URL(request.url).pathname.slice(5);
+    if (treeUnary.has(unbound) || navigationUnary.has(unbound)) {
       ++inflight;
       try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, () => true)); }
       finally { --inflight; }
@@ -92,7 +96,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const data = chat ? await readChatRequestBody(request, chat.signal, authority, original) : await request.json();
     const envelope = clientRequestSchema.parse(data);
     const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
-    if (!method || (!chat && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method))
+    if (!method || (!chat && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
     const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(payload.args));

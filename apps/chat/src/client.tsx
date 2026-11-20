@@ -32,7 +32,7 @@ import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-c
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
-import type { ConflictSafeDraftOffer, HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
+import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -673,6 +673,7 @@ async function boot() {
   await ctx.remote.$mount(chatContribution);
   await ctx.remote.$mount(chatComponentContribution);
   await ctx.remote.$mount(treeContribution);
+  await ctx.remote.$mount(historyNavigationSourceContribution);
   await ctx.remote.$mount(attachmentContribution);
   await ctx.remote.$mount(attachmentsContribution);
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);
