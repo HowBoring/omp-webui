@@ -34,9 +34,9 @@ const assistant = (text: string, timestamp: number) => ({
 	role: "assistant" as const,
 	content: [{ type: "text" as const, text }],
 	api: "openai-completions" as const,
-	provider: "s5-controlled" as const,
-	model: "s5-historical" as const,
-	usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0 },
+	provider: "s0-controlled" as const,
+	model: "deterministic-live" as const,
+	usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0, cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } },
 	stopReason: "stop" as const,
 	timestamp,
 });
