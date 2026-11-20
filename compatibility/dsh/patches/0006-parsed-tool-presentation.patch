@@ -1,5 +1,5 @@
 diff --git a/packages/client/ui-chat/README.md b/packages/client/ui-chat/README.md
-index 2fac916272e976d9faae94536ebaa20614322d07..166792c09cf2d074e88918f0f49b5cf72c45e686 100644
+index 2fac9162..166792c0 100644
 --- a/packages/client/ui-chat/README.md
 +++ b/packages/client/ui-chat/README.md
 @@ -10,6 +10,8 @@ Desktop product events use the optional [product analytics service](../product-a
@@ -12,7 +12,7 @@ index 2fac916272e976d9faae94536ebaa20614322d07..166792c09cf2d074e88918f0f49b5cf7
  
  Use this package to render a browser chat from recorded Session conversations, including historical images, localized actions, and restored scroll position. Work-details modes control reasoning previews and process visibility without hiding Assistant replies; Verbose keeps completed-turn process rows visible. Local transcript and steering submissions appear immediately, remain in their original surface, and disappear atomically when authoritative Session records arrive, while queued submissions stay outside Chat. The package does not assemble or modify model requests.
 diff --git a/packages/client/ui-chat/README.zh.md b/packages/client/ui-chat/README.zh.md
-index 385c7e8483ab0878f9ba11ac6802a57cff26e3c2..8a9c305724995358be6e45e6358b6bded92907a4 100644
+index 385c7e84..8a9c3057 100644
 --- a/packages/client/ui-chat/README.zh.md
 +++ b/packages/client/ui-chat/README.zh.md
 @@ -10,6 +10,8 @@ kind: "package-reference"
@@ -25,7 +25,7 @@ index 385c7e8483ab0878f9ba11ac6802a57cff26e3c2..8a9c305724995358be6e45e6358b6bde
  
  使用本包可在浏览器中渲染已记录的 Session 对话，包括历史图片、本地化操作和滚动位置恢复。工作步骤展示模式控制思考预览与过程显隐，不隐藏 Assistant 回复；完全展开模式保持已完成轮次的过程行可见。本地 transcript（文本记录）与 steering（中途引导）提交会立即显示并保留在原区域，在权威会话记录到达时原子地消失，而排队中的提交始终不进入 Chat。本包不组装或修改模型请求。
 diff --git a/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx b/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
-index e1d4a2e9b1a382465eede5bdfc500c2634961b94..f5949a5ed07b7c0d7dc14ffa8c738b857b226f80 100644
+index e1d4a2e9..f5949a5e 100644
 --- a/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
 +++ b/packages/client/ui-chat/src/client/chat/ApprovalCommand.tsx
 @@ -34,7 +34,8 @@ export function ApprovalCommand({ callId, useChat }: PropsRuntime<'conversation.
@@ -39,7 +39,7 @@ index e1d4a2e9b1a382465eede5bdfc500c2634961b94..f5949a5ed07b7c0d7dc14ffa8c738b85
      return undefined
    })
 diff --git a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts b/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
-index e61bb53109dfa160ac66030e2e943698568f2724..81f54b6aef5d8c92e9af9390b6ad32692749aff8 100644
+index e61bb531..81f54b6a 100644
 --- a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
 +++ b/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
 @@ -1,8 +1,9 @@
@@ -71,7 +71,7 @@ index e61bb53109dfa160ac66030e2e943698568f2724..81f54b6aef5d8c92e9af9390b6ad3269
 +    ? PartialArguments.fromText(value) : PartialArguments.fromObject(value) }
 +}
 diff --git a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
-index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffaa9ecca6b 100644
+index 3ed7b86d..04629fe0 100644
 --- a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
 +++ b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
 @@ -7,6 +7,7 @@ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
@@ -82,7 +82,7 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
  import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode, contextLocation } from './common.ts'
  
  declare module '../contract/chat-nodes.ts' {
-@@ -39,15 +40,16 @@ function jsonArguments(value: unknown): string {
+@@ -39,15 +40,18 @@ function jsonArguments(value: unknown): string {
  }
  
  function rootCall(match: ConversationMatch, previous?: ToolCallBlock): StartedToolCall {
@@ -90,6 +90,7 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
 +  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
 +    throw new Error('tool-call start requires a call event')
 +  }
++  const signature = 'thoughtSignature' in match.event.data ? match.event.data.thoughtSignature : undefined
    return {
      phase: 'start',
      callId: String(match.event.data.callId),
@@ -99,34 +100,39 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
 -      ? PartialArguments.fromText(match.event.data.arguments)
 -      : previous.args.settle(match.event.data.arguments),
 +    ...toToolCallArguments(match.event.data.arguments),
++    ...(typeof signature === 'string' ? { thoughtSignature: signature } : {}),
 +    ...(match.event.type === 'tool/call' && previous !== undefined
 +      ? { args: previous.args.settle(match.event.data.arguments) } : {}),
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -107,7 +109,9 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
+@@ -107,7 +110,11 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
 -    call: previous === undefined ? null : { name: previous.name, argsRaw: previous.argsRaw },
 +    call: previous === undefined ? null : previous.argumentRepresentation === 'parsed-json'
-+      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed }
-+      : { name: previous.name, argsRaw: previous.argsRaw },
++      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed,
++        ...(previous.thoughtSignature ? { thoughtSignature: previous.thoughtSignature } : {}) }
++      : { name: previous.name, argsRaw: previous.argsRaw,
++        ...(previous.thoughtSignature ? { thoughtSignature: previous.thoughtSignature } : {}) },
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -255,7 +259,9 @@ function projectBlock(
+@@ -255,7 +262,11 @@ function projectBlock(
        ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
        name: block.name,
        args: block.args,
 -      call: { name: block.name, argsRaw: block.argsRaw },
 +      call: block.argumentRepresentation === 'parsed-json'
-+        ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed }
-+        : { name: block.name, argsRaw: block.argsRaw },
++        ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed,
++          ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}) }
++        : { name: block.name, argsRaw: block.argsRaw,
++          ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}) },
        callTime: block.time,
        content: [],
        isError: true,
-@@ -301,7 +307,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -301,7 +312,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
        }
        return chunk.type === 'tool-call-delta' ? { id: String(chunk.id), role: 'start' } : null
      }
@@ -135,7 +141,7 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
      if (event.type === 'tool/result' && isAppendSurfaceEvent(event)) {
        return { id: String(event.data.message.source.callId), role: 'update' }
      }
-@@ -315,11 +321,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -315,11 +326,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
    },
    start: (_context, match) => {
      const state: ToolState = { root: undefined, children: new Map(), parents: new Map() }
@@ -149,7 +155,7 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
      if (match.event.type === 'tool/result') {
        const root = context.state.root
        const running = root !== undefined && !('kind' in root) && root.phase === 'start' ? root : undefined
-@@ -363,6 +369,7 @@ export function registerToolConversationNode(ctx: Context): void {
+@@ -363,6 +374,7 @@ export function registerToolConversationNode(ctx: Context): void {
      match: {
        'assistant/live-chunk': match,
        'tool/call': match,
@@ -158,7 +164,7 @@ index 3ed7b86d13bd299ff67709dc69cd69690184f66f..ae94cf651bb39839b6fd89c6f6170ffa
        'tool/ptc-dispatch-start': match,
        'tool/ptc-dispatch': match,
 diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
-index 3a709877d248a26a2eed693925717f1083bc9efa..c266100940b287c6f83a52b15e5bfb3ca231c67e 100644
+index 9679a00b..666efae5 100644
 --- a/packages/client/ui-conversation/README.md
 +++ b/packages/client/ui-conversation/README.md
 @@ -11,6 +11,8 @@ Desktop product events use the optional [product analytics service](../product-a
@@ -171,7 +177,7 @@ index 3a709877d248a26a2eed693925717f1083bc9efa..c266100940b287c6f83a52b15e5bfb3c
  
  ## Table of Contents
 diff --git a/packages/client/ui-conversation/README.zh.md b/packages/client/ui-conversation/README.zh.md
-index 22341bd2cd0eaeed8fd653e752434818d2bd8f8c..8b69d72aeab0373b1643637f4429bf786f34d94a 100644
+index 91286e2e..6bf8b7b6 100644
 --- a/packages/client/ui-conversation/README.zh.md
 +++ b/packages/client/ui-conversation/README.zh.md
 @@ -11,6 +11,8 @@ kind: "package-reference"
@@ -184,7 +190,7 @@ index 22341bd2cd0eaeed8fd653e752434818d2bd8f8c..8b69d72aeab0373b1643637f4429bf78
  
  ## 目录
 diff --git a/packages/client/ui-conversation/src/client/contract/records.ts b/packages/client/ui-conversation/src/client/contract/records.ts
-index daddf0aac7cd1ee848918a36d353aba395e0e64a..e6d4ccd3e26dacc41dd3b4e6416039603b77d9ce 100644
+index daddf0aa..78628d4a 100644
 --- a/packages/client/ui-conversation/src/client/contract/records.ts
 +++ b/packages/client/ui-conversation/src/client/contract/records.ts
 @@ -9,6 +9,7 @@ import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -200,11 +206,20 @@ index daddf0aac7cd1ee848918a36d353aba395e0e64a..e6d4ccd3e26dacc41dd3b4e641603960
    args: ToolArgs
    /** Call head backfilled from the in-window tool/call; null when window truncation left the call outside (card head shows callId). */
 -  call: { name: string; argsRaw: string } | null
-+  call: ({ name: string } & ToolCallArguments) | null
++  call: ({ name: string; thoughtSignature?: string } & ToolCallArguments) | null
    /** Unix epoch ms of the paired tool/call when the call is still in-window; used for call-row duration. */
    callTime: number | null
    content: readonly ContentBlock[]
-@@ -302,11 +303,17 @@ export interface PreparingToolCall extends ToolCallHead {
+@@ -283,6 +284,8 @@ interface ToolCallHead {
+   subCalls: readonly ToolCallBlock[]
+   /** The argument view; see {@link ToolArgs}. */
+   args: ToolArgs
++  /** Provider thought signature retained with the native parsed call. */
++  thoughtSignature?: string
+ }
+ 
+ /**
+@@ -302,11 +305,17 @@ export interface PreparingToolCall extends ToolCallHead {
    readonly phase: 'preparing'
  }
  
@@ -227,7 +242,7 @@ index daddf0aac7cd1ee848918a36d353aba395e0e64a..e6d4ccd3e26dacc41dd3b4e641603960
  /** A tool still preparing or awaiting its result. */
  export type RunningToolCall = PreparingToolCall | StartedToolCall
 diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
-index 7595fc12c78013cc1fc5a777087d3f11caee8293..b550227426186bd23fbe9d4a88f120c4406d2b7f 100644
+index 7595fc12..b5502274 100644
 --- a/packages/client/ui-conversation/src/client/index.ts
 +++ b/packages/client/ui-conversation/src/client/index.ts
 @@ -56,7 +56,7 @@ export type {
@@ -240,7 +255,7 @@ index 7595fc12c78013cc1fc5a777087d3f11caee8293..b550227426186bd23fbe9d4a88f120c4
  } from './contract/records.ts'
  export type {
 diff --git a/packages/client/ui-conversation/src/client/locales.ts b/packages/client/ui-conversation/src/client/locales.ts
-index a29d8481985839911c06303cd80da24217e263d0..eccf094984bf5995b1bfa8241d9b5de1a29d7089 100644
+index a29d8481..eccf0949 100644
 --- a/packages/client/ui-conversation/src/client/locales.ts
 +++ b/packages/client/ui-conversation/src/client/locales.ts
 @@ -325,6 +325,7 @@ export const zh = {
@@ -308,7 +323,7 @@ index a29d8481985839911c06303cd80da24217e263d0..eccf094984bf5995b1bfa8241d9b5de1
    'row.inspect': 'Inspecionar',
    'row.imageSize': '{width}x{height}px, {bytes} bytes',
 diff --git a/packages/client/ui-schedule/src/client/schedule-create-card.ts b/packages/client/ui-schedule/src/client/schedule-create-card.ts
-index 20ec61fe80ae29abcbc4846f485194e2f6eadae2..5392261538591f771d1e0d2825684091a89b93d9 100644
+index 20ec61fe..53922615 100644
 --- a/packages/client/ui-schedule/src/client/schedule-create-card.ts
 +++ b/packages/client/ui-schedule/src/client/schedule-create-card.ts
 @@ -145,7 +145,7 @@ export function scheduleCreateCardModel(block: ToolBlock, toolName: string): Sch
@@ -321,7 +336,7 @@ index 20ec61fe80ae29abcbc4846f485194e2f6eadae2..5392261538591f771d1e0d2825684091
    const task = settled ? narrowScheduleRecord(parseJson(output ?? '')) : undefined
    return {
 diff --git a/packages/client/ui-tool/README.md b/packages/client/ui-tool/README.md
-index 448a4e197b0a7767cc4dde982f5c855aafad962a..39416229f5430fe0bee505e54d2a5ced0336018f 100644
+index 448a4e19..39416229 100644
 --- a/packages/client/ui-tool/README.md
 +++ b/packages/client/ui-tool/README.md
 @@ -9,6 +9,8 @@ English | [中文](README.zh.md)
@@ -334,7 +349,7 @@ index 448a4e197b0a7767cc4dde982f5c855aafad962a..39416229f5430fe0bee505e54d2a5ced
  
  ## Table of Contents
 diff --git a/packages/client/ui-tool/README.zh.md b/packages/client/ui-tool/README.zh.md
-index 37757c47a75ce043d97fb4cbee423948fce602b2..339b80d55368c460254b5a573769a6ac2bc5589e 100644
+index 37757c47..339b80d5 100644
 --- a/packages/client/ui-tool/README.zh.md
 +++ b/packages/client/ui-tool/README.zh.md
 @@ -9,6 +9,8 @@ kind: "package-reference"
@@ -347,7 +362,7 @@ index 37757c47a75ce043d97fb4cbee423948fce602b2..339b80d55368c460254b5a573769a6ac
  
  ## 目录
 diff --git a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx b/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
-index 9355ddac427c0ba96bb6e9795295adb21210307e..d634e750b8c95f8ce8e66448168e891f1e6b8ade 100644
+index 9355ddac..d634e750 100644
 --- a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
 +++ b/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
 @@ -42,13 +42,15 @@ const ToolCall = memo(function ToolCall({
@@ -368,7 +383,7 @@ index 9355ddac427c0ba96bb6e9795295adb21210307e..d634e750b8c95f8ce8e66448168e891f
          : renderSlot('tool.call.toolview', owner, {
            entryKey: toolName,
 diff --git a/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx b/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
-index 9985614f80b2f867004709875c0f2e58d1886e86..3f994cff1f25a0f7a234d7f6af376b9dd6516510 100644
+index 9985614f..3f994cff 100644
 --- a/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
 +++ b/packages/client/ui-tool/src/client/tool/components/ToolRow.tsx
 @@ -48,6 +48,8 @@ export interface ToolRowProps {
@@ -416,7 +431,7 @@ index 9985614f80b2f867004709875c0f2e58d1886e86..3f994cff1f25a0f7a234d7f6af376b9d
                                  </div>
                                )}
 diff --git a/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts b/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
-index e48d7d442362204d2d5059df58a29974e648aadd..79b8f8895ee76fa5bbd0cfd29d96dc62f3c6d89e 100644
+index e48d7d44..79b8f889 100644
 --- a/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
 +++ b/packages/client/ui-tool/src/client/tool/models/raw-tool-call.ts
 @@ -26,7 +26,7 @@ export function parsedToolCall(block: ToolCallBlock): ParsedToolCall | null {
@@ -429,7 +444,7 @@ index e48d7d442362204d2d5059df58a29974e648aadd..79b8f8895ee76fa5bbd0cfd29d96dc62
      parsedCalls.set(block, null)
      return null
 diff --git a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
-index ae96145b03d516a399ee10537fc2d4a8738636f3..1c7fb3b34ed21e2cf3a14994b724396d19a705b7 100644
+index ae96145b..1c7fb3b3 100644
 --- a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
 +++ b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
 @@ -370,10 +370,22 @@ export function formatToolBody(variant: ToolRowVariant, argsRaw: string): string
@@ -457,7 +472,7 @@ index ae96145b03d516a399ee10537fc2d4a8738636f3..1c7fb3b34ed21e2cf3a14994b724396d
    const stopped = done && typeof block.meta === 'object' && block.meta !== null
      && !Array.isArray(block.meta) && (block.meta as Record<string, unknown>).stopped === true
 diff --git a/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx b/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
-index 6ce48b990fc2fb8b98b7765f5f1cfb3e6c8e24f9..e944699a288c2c41fd3873a1766f44af55a691d6 100644
+index 6ce48b99..e944699a 100644
 --- a/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
 +++ b/packages/client/ui-tool/src/client/tool/toolviews/GenericToolCard.tsx
 @@ -37,6 +37,13 @@ export function GenericToolCard({
@@ -475,7 +490,7 @@ index 6ce48b990fc2fb8b98b7765f5f1cfb3e6c8e24f9..e944699a288c2c41fd3873a1766f44af
      ? null
      : localizeAutoReviewDenial(model.autoReviewDenial, t)
 diff --git a/packages/client/ui-trajectory/README.md b/packages/client/ui-trajectory/README.md
-index 265c6fffd96e9cf9c384dd87d64c18009356aeb8..9fd9a2b6dd5bd58a4ede106f745b3fd43c85887e 100644
+index 265c6fff..9fd9a2b6 100644
 --- a/packages/client/ui-trajectory/README.md
 +++ b/packages/client/ui-trajectory/README.md
 @@ -9,6 +9,8 @@ English | [中文](README.zh.md)
@@ -488,7 +503,7 @@ index 265c6fffd96e9cf9c384dd87d64c18009356aeb8..9fd9a2b6dd5bd58a4ede106f745b3fd4
  
  ## Table of Contents
 diff --git a/packages/client/ui-trajectory/README.zh.md b/packages/client/ui-trajectory/README.zh.md
-index bed828aa7f11d0e5fb687ada53b5a23ddf62251a..275ead2b407b4719bc1fffd7c44f5f72219029af 100644
+index bed828aa..275ead2b 100644
 --- a/packages/client/ui-trajectory/README.zh.md
 +++ b/packages/client/ui-trajectory/README.zh.md
 @@ -9,6 +9,8 @@ kind: "package-reference"
@@ -501,7 +516,7 @@ index bed828aa7f11d0e5fb687ada53b5a23ddf62251a..275ead2b407b4719bc1fffd7c44f5f72
  
  ## 目录
 diff --git a/packages/client/ui-trajectory/src/client/layout.ts b/packages/client/ui-trajectory/src/client/layout.ts
-index 06c9015a896d7ba80cf9fb3697167c2e3218a384..d99a2e07294be4652e5546b08f3b5f030fc34e92 100644
+index 06c9015a..d99a2e07 100644
 --- a/packages/client/ui-trajectory/src/client/layout.ts
 +++ b/packages/client/ui-trajectory/src/client/layout.ts
 @@ -9,6 +9,7 @@ import type {
@@ -591,10 +606,10 @@ index 06c9015a896d7ba80cf9fb3697167c2e3218a384..d99a2e07294be4652e5546b08f3b5f03
            ? {
              outputDetail: detailResult(sub, t),
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
-index ba06b40f9b8665fa6ab8d445d63964f284b4d15c..999ddaf8546afc4e285fc38802bcf34e7c43d52d 100644
+index ba06b40f..75d8a984 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
-@@ -33,15 +33,17 @@ interface DispatchData {
+@@ -33,15 +33,19 @@ interface DispatchData {
  }
  
  function rootCall(match: ConversationMatch): StartedToolCall {
@@ -602,6 +617,7 @@ index ba06b40f9b8665fa6ab8d445d63964f284b4d15c..999ddaf8546afc4e285fc38802bcf34e
 +  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
      throw new Error('trajectory-tool-call start requires tool/call')
    }
++  const signature = 'thoughtSignature' in match.event.data ? match.event.data.thoughtSignature : undefined
    return {
      phase: 'start',
      callId: String(match.event.data.callId),
@@ -610,34 +626,39 @@ index ba06b40f9b8665fa6ab8d445d63964f284b4d15c..999ddaf8546afc4e285fc38802bcf34e
 -    args: PartialArguments.fromText(match.event.data.arguments),
 +    ...(match.event.type === 'tool/parsed-call'
 +      ? { argumentRepresentation: 'parsed-json', argsParsed: match.event.data.arguments,
++        ...(typeof signature === 'string' ? { thoughtSignature: signature } : {}),
 +        args: PartialArguments.fromObject(match.event.data.arguments) } as const
 +      : { argsRaw: match.event.data.arguments, args: PartialArguments.fromText(match.event.data.arguments) }),
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -62,7 +64,9 @@ function rootResult(
+@@ -62,7 +65,11 @@ function rootResult(
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
 -    call: previous === undefined ? null : { name: previous.name, argsRaw: previous.argsRaw },
 +    call: previous === undefined ? null : previous.argumentRepresentation === 'parsed-json'
-+      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed }
-+      : { name: previous.name, argsRaw: previous.argsRaw },
++      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed,
++        ...(previous.thoughtSignature ? { thoughtSignature: previous.thoughtSignature } : {}) }
++      : { name: previous.name, argsRaw: previous.argsRaw,
++        ...(previous.thoughtSignature ? { thoughtSignature: previous.thoughtSignature } : {}) },
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -204,7 +208,9 @@ function projectCall(
+@@ -204,7 +211,11 @@ function projectCall(
      ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
      name: block.name,
      args: block.args,
 -    call: { name: block.name, argsRaw: block.argsRaw },
 +    call: block.argumentRepresentation === 'parsed-json'
-+      ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed }
-+      : { name: block.name, argsRaw: block.argsRaw },
++      ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed,
++        ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}) }
++      : { name: block.name, argsRaw: block.argsRaw,
++        ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}) },
      callTime: block.time,
      content: [],
      isError: true,
-@@ -232,7 +238,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -232,7 +243,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
    kind: 'trajectory-tool-call',
    target: 'trajectory',
    match: (event) => {
@@ -647,7 +668,7 @@ index ba06b40f9b8665fa6ab8d445d63964f284b4d15c..999ddaf8546afc4e285fc38802bcf34e
        return { id: String(event.data.message.source.callId), role: 'update' }
      }
 diff --git a/packages/core/session/README.md b/packages/core/session/README.md
-index 3b55b1fcced8dd7625e17d034e87b515f69af4d5..7fa3eae14d440817b0dc13cc213685e677aa1825 100644
+index 3b55b1fc..7fa3eae1 100644
 --- a/packages/core/session/README.md
 +++ b/packages/core/session/README.md
 @@ -9,6 +9,8 @@ English | [中文](README.zh.md)
@@ -660,7 +681,7 @@ index 3b55b1fcced8dd7625e17d034e87b515f69af4d5..7fa3eae14d440817b0dc13cc213685e6
  
  ## Table of Contents
 diff --git a/packages/core/session/README.zh.md b/packages/core/session/README.zh.md
-index 9ca25d8a115657276af567c6ca6d4c4e50d56289..25de695df10cb79d98eacc2b91b0d0bc07dd90dd 100644
+index 9ca25d8a..25de695d 100644
 --- a/packages/core/session/README.zh.md
 +++ b/packages/core/session/README.zh.md
 @@ -9,6 +9,8 @@ kind: "package-reference"
@@ -673,10 +694,10 @@ index 9ca25d8a115657276af567c6ca6d4c4e50d56289..25de695df10cb79d98eacc2b91b0d0bc
  
  ## 目录
 diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
-index 0cf13c86a0313ba8869f36bb48004e61dc4cb685..ea0d97797f3f6baa825a33b2ca965a960a4d6724 100644
+index 0cf13c86..f211197e 100644
 --- a/packages/core/session/src/types.ts
 +++ b/packages/core/session/src/types.ts
-@@ -367,6 +367,21 @@ export interface SessionEventMap {
+@@ -367,6 +367,23 @@ export interface SessionEventMap {
     * call with its `tool/result`.
     */
    'tool/call': { turn: number; step: number; callId: ToolCallId; name: string; arguments: string }
@@ -694,11 +715,13 @@ index 0cf13c86a0313ba8869f36bb48004e61dc4cb685..ea0d97797f3f6baa825a33b2ca965a96
 +    callId: ToolCallId
 +    name: string
 +    arguments: { [key: string]: JsonValue }
++    /** Provider thought signature retained with the native call, when one exists. */
++    thoughtSignature?: string
 +  }
    /**
     * A completed tool call's model-facing result, optional internal failure
     * identity and user-facing reason, and optional tool-private `meta`
-@@ -521,7 +536,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
+@@ -521,7 +538,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
       * defaulting to required means a forgotten marker over-refuses (an
       * inconvenience) rather than silently resuming a gutted session.
       */

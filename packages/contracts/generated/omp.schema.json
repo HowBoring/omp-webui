@@ -7973,6 +7973,102 @@
         "leafId"
       ]
     },
+    "HistoryUsage": {
+      "type": "object",
+      "properties": {
+        "inputTokens": {
+          "type": "integer"
+        },
+        "outputTokens": {
+          "type": "integer"
+        },
+        "totalTokens": {
+          "type": "integer"
+        },
+        "cacheReadTokens": {
+          "type": "integer"
+        },
+        "cacheWriteTokens": {
+          "type": "integer"
+        },
+        "reasoningTokens": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "inputTokens",
+        "outputTokens"
+      ]
+    },
+    "HistoryToolCall": {
+      "type": "object",
+      "properties": {
+        "callId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "arguments": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": {}
+        },
+        "thoughtSignature": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "callId",
+        "name",
+        "arguments"
+      ]
+    },
+    "HistoryFile": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "available": {
+          "type": "boolean"
+        },
+        "hasImage": {
+          "type": "boolean"
+        },
+        "lineCount": {
+          "type": "integer"
+        },
+        "byteSize": {
+          "type": "integer"
+        },
+        "skippedReason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "available",
+        "hasImage"
+      ]
+    },
+    "HistoryError": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "status": {
+          "type": "integer"
+        },
+        "code": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reason"
+      ]
+    },
     "HistoryItem": {
       "type": "object",
       "properties": {
@@ -8060,6 +8156,42 @@
             "branch"
           ],
           "type": "string"
+        },
+        "reasoning": {
+          "type": "string"
+        },
+        "toolCalls": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryToolCall"
+          }
+        },
+        "usage": {
+          "$ref": "#/$defs/HistoryUsage"
+        },
+        "files": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HistoryFile"
+          }
+        },
+        "error": {
+          "$ref": "#/$defs/HistoryError"
+        },
+        "display": {
+          "type": "boolean"
+        },
+        "customType": {
+          "type": "string"
+        },
+        "unavailable": {
+          "type": "boolean"
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "cancelled": {
+          "type": "boolean"
         }
       },
       "required": [

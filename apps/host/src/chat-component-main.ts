@@ -14,8 +14,10 @@ if (process.argv.includes("--print-bootstrap")) {
 z.strictObject({ kind: z.literal("S2-synthetic-chat-fixture"), privateData: z.literal(false) })
   .parse(await Bun.file(join(home, "fixture-marker.json")).json());
 const scenario = process.env.OMP_CHAT_FIXTURE_SCENARIO, delay = process.env.OMP_CHAT_FIXTURE_DELAY_MS;
+const tools = process.env.OMP_CHAT_FIXTURE_TOOLS;
 const fixtureEnv = { ...(scenario === undefined ? {} : { OMP_LIVE_FIXTURE_SCENARIO: scenario }),
-  ...(delay === undefined ? {} : { OMP_LIVE_FIXTURE_DELAY_MS: delay }) };
+  ...(delay === undefined ? {} : { OMP_LIVE_FIXTURE_DELAY_MS: delay }),
+  ...(tools === undefined ? {} : { OMP_LIVE_FIXTURE_TOOLS: tools }) };
 const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_DIR: home,
   OMP_HISTORY_FIXTURE_PROFILE: home, XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
   XDG_DATA_HOME: join(home, "data"), BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", OPENAI_API_KEY: "synthetic-unused-no-provider-calls",

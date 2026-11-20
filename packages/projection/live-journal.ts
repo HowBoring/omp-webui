@@ -11,7 +11,7 @@ import type { HistoryClient } from '../contracts/generated/history-client.ts';
 import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
 import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
-  pageCoordinates, settledCoordinates, type PageRequest } from './history-records.ts';
+  pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
 
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
@@ -74,6 +74,7 @@ export class LiveJournal {
   readonly #pendingFinals = new Set<string>();
   readonly #appended = new Map<string, {item: HistoryItem; bytes: number}>();
   readonly #listeners = new Set<(frame: SessionFollowFrame) => void>();
+  readonly #toolCalls = new ToolCallLedger();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null;
   private constructor(readonly opened: HistoryOpen) {
@@ -210,13 +211,13 @@ export class LiveJournal {
     if (item.role === 'assistant' && (!item.provider || !item.model)) this.#fail('live_missing_model_source');
     const attempt = item.role === 'assistant' && item.live && this.#attempt
       && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
-    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step });
+    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step }, item.toolCalls?.length ?? 0);
     if (!attempt) {
       if (coordinates.length > 1 || !this.#attempt) this.#groups.push(this.#records.length);
       this.#turn = coordinates.turn; this.#step = coordinates.step;
     }
     return historyMessage(item, id, attempt ?? coordinates,
-      (type, data, surface) => this.#event(type, data, surface), !!attempt);
+      (type, data, surface) => this.#event(type, data, surface), !!attempt, this.#toolCalls);
   }
   #cursor(value: number) { return value === -1 ? -1 : SessionSeq(value); }
   #beginAttempt(live: HistoryLiveIdentity): void {

@@ -28,12 +28,14 @@ async def wait_health(timeout=15.0):
     raise RuntimeError("chat Host did not become healthy")
 
 
-async def start_host(scenario=None, delay=None):
+async def start_host(scenario=None, delay=None, tools=None):
     env = os.environ.copy()
     if scenario:
         env["OMP_CHAT_FIXTURE_SCENARIO"] = scenario
     if delay is not None:
         env["OMP_CHAT_FIXTURE_DELAY_MS"] = str(delay)
+    if tools:
+        env["OMP_CHAT_FIXTURE_TOOLS"] = "1"
     host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
                             stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
     await wait_health()
@@ -190,6 +192,27 @@ async def main():
             await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
             await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
             assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "relaunched Session settles succeeded"
+            await context.close()
+
+            # Phase 1b: real native tool call -> parsed arguments, signature, paired result, typed usage, reload.
+            await stop_host(host)
+            host = await start_host(tools=True)
+            context, page = await new_page(browser, errors)
+            await open_session(page, "native-0001")
+            await send(page, "use the controlled tool")
+            await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
+            assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "tool turn settles succeeded"
+            await page.wait_for_selector('[data-chat-tool="s0_fixture"]', timeout=60000)
+            assert '"path": "controlled.txt"' in await page.locator('[data-chat-tool="s0_fixture"] .arguments').inner_text(), "actual parsed arguments render"
+            await page.wait_for_selector('[data-chat-tool-result="s0_fixture"]', timeout=60000)
+            tool_text = await page.locator('[data-chat-tool-result="s0_fixture"]').inner_text()
+            assert "controlled result" in tool_text, "native tool result renders"
+            assert "controlled-signature" in tool_text, "native thought signature renders"
+            assert await page.locator("[data-chat-usage]").count() > 0, "native usage renders"
+            await page.reload()
+            await page.wait_for_selector('[data-chat-tool-result="s0_fixture"]', timeout=60000)
+            assert "controlled result" in await page.locator('[data-chat-tool-result="s0_fixture"]').inner_text(), "tool history survives reopen"
+            scenarios.append("native-tool-call-result-pairing")
             await context.close()
 
             # Phase 2: slow controlled stream -> busy refusal with retained draft, then native cancel settles.

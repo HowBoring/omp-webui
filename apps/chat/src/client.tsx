@@ -34,7 +34,7 @@ const provider = createDraftProvider({ owner, storage: localStorage, authority: 
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
-let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: string[]) => void = () => {};
+let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
@@ -95,16 +95,68 @@ async function present(view: PublicSessionView) {
   if (reference !== retained || draftDirty) return;
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
   const target = ctx.uiConversation.binding(binding).target("trajectory");
-  const render = () => { if (reference === retained) historyChanged((target.getSnapshot()?.eventNodes ?? []).map(node => JSON.stringify(node))); };
+  const render = () => { if (reference === retained) historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]); };
   unsubscribe = target.subscribe(render); render();
 }
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
   return <main data-chat-root-slot="true"><h1>Human Chat over the native Session</h1>
     <p>Isolated S2 component · synthetic data only · normal product admission remains blocked.</p>{renderSlot("s1.chat", {})}</main>;
 }
+
+type Node = Record<string, any>;
+const blocks = (value: unknown): Node[] => Array.isArray(value) ? value.filter((part): part is Node => typeof part === "object" && part !== null) : [];
+function Arguments({ value }: { value: unknown }) {
+  if (value === undefined || value === null) return <span className="native-unavailable">arguments unavailable</span>;
+  return <pre className="arguments">{typeof value === "string" ? value : JSON.stringify(value, null, 2)}</pre>;
+}
+function NodeRow({ node }: { node: unknown }) {
+  if (typeof node !== "object" || node === null) return <p className="row" data-chat-blocked="unknown-node">Unsupported history record</p>;
+  const value = node as Node, kind = String(value.kind ?? "");
+  if (kind === "user" || kind === "assistant" || kind === "steering" || kind === "context") {
+    return <article className="row" data-chat-node={kind}>
+      <h3>{kind === "assistant" ? "Assistant" : kind === "user" ? "User" : "Context"}</h3>
+      {kind === "assistant" && value.usage && <p className="usage" data-chat-usage>
+        {`input ${value.usage.inputTokens} · output ${value.usage.outputTokens}${value.usage.totalTokens === undefined ? "" : ` · total ${value.usage.totalTokens}`}`}</p>}
+      {blocks(value.blocks ?? value.content).map((block, index) => block.kind === "reasoning" || block.type === "reasoning"
+        ? <details className="reasoning" key={index}><summary>Native reasoning</summary><pre>{String(block.text ?? "")}</pre></details>
+        : block.kind === "tool-call" || block.type === "toolCall"
+          ? <section className="tool" data-chat-tool={String(block.name)} key={index}><strong>{String(block.name)}</strong>
+              <Arguments value={block.argsParsed ?? block.argsRaw ?? block.arguments} /></section>
+          : <p className="text" key={index}>{String(block.text ?? "")}</p>)}
+      {value.interrupted && <p className="native-unavailable" data-chat-interrupted>Native turn interrupted</p>}
+    </article>;
+  }
+  if (kind === "tool-result") {
+    const call = (value.call ?? {}) as Node;
+    return <article className="row tool-result" data-chat-tool-result={String(value.name ?? value.callId ?? "")}>
+      <h3>Tool result · {String(value.name || value.callId || "unpaired")}</h3>
+      <Arguments value={call.argsParsed ?? call.argsRaw ?? value.args} />
+      {call.thoughtSignature && <p className="signature" data-chat-signature>{String(call.thoughtSignature)}</p>}
+      {blocks(value.content).map((block, index) => <p className="text" key={index}>{String(block.text ?? "Native content unavailable")}</p>)}
+      {value.isError && <p className="error" data-chat-tool-error>{String(value.error?.reason ?? value.error?.code ?? "Native tool failure")}</p>}
+    </article>;
+  }
+  if (kind === "turn-error") return <p className="row error" data-chat-turn-error>{String(value.message ?? "Native turn failed")}</p>;
+  if (kind === "compaction") return <p className="row native-unavailable" data-chat-native-record="summary">Native compaction summary</p>;
+  if (value.type === "omp/native-record") {
+    const data = (value.data ?? {}) as Node, files = blocks(data.files);
+    return <article className="row native-record" data-chat-native-record={String(data.kind ?? "unknown")}>
+      <h3>{String(data.kind ?? "Native record")} · {String(data.role ?? "unknown")}</h3>
+      {data.display !== false && <p className="text">{String(data.text ?? "")}</p>}
+      {data.customType && <p className="meta">Native custom type {String(data.customType)}</p>}
+      {files.length > 0 && <ul>{files.map((file, index) => <li key={index} data-chat-file={String(file.path)}>
+        {String(file.path)} · {file.available ? `${String(file.lineCount ?? "?")} lines` : `unavailable: ${String(file.skippedReason ?? "not retained")}`}</li>)}</ul>}
+      {data.unavailable && <p className="native-unavailable" data-chat-unavailable>Native payload unavailable; no reconstruction was substituted.</p>}
+      {data.truncated && <p className="native-unavailable" data-chat-truncated>Native payload truncated at its source limit.</p>}
+      {data.cancelled && <p className="native-unavailable" data-chat-cancelled>Native execution cancelled.</p>}
+    </article>;
+  }
+  return <p className="row" data-chat-blocked="unknown-node">Unsupported history node {kind || String(value.type ?? "unknown")}</p>;
+}
+
 type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state: "sending" | "accepted" | "refused" | "unknown"; error?: string };
 function Surface() {
-  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<string[]>([]), [error, setError] = useState("");
+  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
   const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
@@ -240,7 +292,7 @@ function Surface() {
     <section data-chat-worker-id={view?.workerId ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}>
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
-      <div id="conversation">{rows.map((row, index) => <pre className="row" key={index}>{row}</pre>)}</div>
+      <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}

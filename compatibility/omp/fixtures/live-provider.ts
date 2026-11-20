@@ -46,7 +46,7 @@ export default function(pi) {
           partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
         }
         if(process.env.OMP_LIVE_FIXTURE_TOOLS==='1'&&context.messages.at(-1)?.role!=='toolResult'){
-          const toolCall={type:'toolCall',id:'reusable-fixture-id',name:'s0_fixture',arguments:{}};
+          const toolCall={type:'toolCall',id:'reusable-fixture-id',name:'s0_fixture',arguments:{path:'controlled.txt',count:2},thoughtSignature:'controlled-signature'};
           partial.content=[toolCall];
           stream.push({type:'toolcall_start',contentIndex:0,partial});
           stream.push({type:'toolcall_delta',contentIndex:0,delta:'{}',partial});

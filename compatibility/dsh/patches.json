@@ -22,6 +22,11 @@
       "path": "patches/semantic-draft-esm.patch",
       "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
       "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
+    },
+    {
+      "path": "patches/0006-parsed-tool-presentation.patch",
+      "sha256": "3d350c9fafa0dbba940e151e4f50036c8aeed6672ff3447782958eeb1a598996",
+      "treeAfter": "e6fb18243439ce0e71740c7ff2013f074e4db3c5"
     }
   ]
 }
