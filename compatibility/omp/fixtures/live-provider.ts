@@ -27,7 +27,7 @@ export default function(pi) {
       const stream=createAssistantMessageEventStream();
       const partial={role:'assistant',api:'s0-controlled',provider:'s0-controlled',model:'deterministic-live',
         timestamp:calls,stopReason:'stop',content:[],
-        usage:{input:0,output:0,cacheRead:0,cacheWrite:0,totalTokens:0,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}};
+        usage:{input:12,output:3,cacheRead:0,cacheWrite:0,totalTokens:15,cost:{input:0,output:0,cacheRead:0,cacheWrite:0,total:0}}};
       void (async()=>{
         stream.push({type:'start',partial});
         await Bun.sleep(80);
