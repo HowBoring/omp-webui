@@ -187,7 +187,7 @@ export class OriginalStore {
     const rows = this.db.query<{ target: string; submissionId: string; scope: string; associations: string }, []>(
       "SELECT target, submissionId, scope, associations FROM original_submissions WHERE associations IS NOT NULL").all();
     const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
-      (sourceId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+      (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
     for (const row of rows) {
       const binding = storedBinding(row.scope);
       if (!binding) continue;
@@ -196,7 +196,7 @@ export class OriginalStore {
       if (!storedLinks(parsed)) continue;
       for (const link of parsed.links) {
         if (!idPattern.test(link.objectId) || !entryPattern.test(link.entryId)) continue;
-        insert.run(binding.sourceId, binding.instanceId, link.entryId, link.objectId, row.target, row.submissionId);
+        insert.run(binding.sessionId, binding.instanceId, link.entryId, link.objectId, row.target, row.submissionId);
       }
     }
   }
@@ -436,9 +436,9 @@ export class OriginalStore {
 
   private recordLinks(scope: OriginalBinding, clientSubmissionId: string, association: OriginalSubmissionAssociation): void {
     const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
-      (sourceId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+      (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
     for (const link of association.links) {
-      insert.run(scope.sourceId, scope.instanceId, link.entryId, link.objectId,
+      insert.run(scope.sessionId, scope.instanceId, link.entryId, link.objectId,
         submissionTargetKey(scope), clientSubmissionId);
     }
   }
@@ -459,7 +459,7 @@ export class OriginalStore {
   private sameRequester(stored: Readonly<OriginalBinding>, current: OriginalHistoryScope): boolean {
     return stored.hostId === current.hostId && stored.browserId === current.browserId
       && stored.pageId === current.pageId && stored.profileId === current.profileId
-      && stored.sourceId === current.sourceId && stored.instanceId === current.instanceId;
+      && stored.sessionId === current.sessionId && stored.instanceId === current.instanceId;
   }
 
   /** Entry ids are supplied by the Host only after the current Native history retained them. */
@@ -475,8 +475,8 @@ export class OriginalStore {
         o.size, o.sha256, s.associations, s.scope FROM original_entry_links l
         JOIN originals o ON o.id=l.objectId
         JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
-        WHERE l.sourceId=? AND l.instanceId=? AND l.entryId IN (${marks}) AND o.state='native-associated'`)
-      .all(scope.sourceId, scope.instanceId, ...unique);
+        WHERE l.sessionId=? AND l.instanceId=? AND l.entryId IN (${marks}) AND o.state='native-associated'`)
+      .all(scope.sessionId, scope.instanceId, ...unique);
     const order = new Map(unique.map((entryId, index) => [entryId, index]));
     const items = rows.flatMap(row => {
       const stored = storedBinding(row.scope);
@@ -512,8 +512,8 @@ export class OriginalStore {
         l.entryId, l.objectId, o.displayName, o.mediaType, o.size, o.sha256, s.scope, o.state
         FROM original_entry_links l JOIN originals o ON o.id=l.objectId
         JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
-        WHERE l.sourceId=? AND l.instanceId=? AND l.entryId=? AND l.objectId=?`)
-        .get(scope.sourceId, scope.instanceId, entryId, objectId);
+        WHERE l.sessionId=? AND l.instanceId=? AND l.entryId=? AND l.objectId=?`)
+        .get(scope.sessionId, scope.instanceId, entryId, objectId);
       if (!row || row.state !== "native-associated" || !row.sha256) fail("object_unavailable");
       const stored = storedBinding(row.scope);
       if (!stored || !this.sameRequester(stored, scope)) fail("object_unavailable");

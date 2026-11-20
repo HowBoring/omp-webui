@@ -80,7 +80,7 @@ function history(entryIds: string[], retained = entryIds): TreeHistory {
 function route(store: OriginalStore, options: { retained?: string[]; revoke?: () => boolean } = {}) {
   return (request: Request) => originalHistoryResponse(request, {
     admit: () => options.revoke?.() ? new Response("denied", { status: 403 }) : { hostId: "host", credentialId: "browser", expiresAt: 1 },
-    session: () => ({ scope: { ...scope, sessionId: "branch" }, history: history(["user"], options.retained ?? ["user"]) }),
+    session: () => ({ scope: { ...scope, sourceId: "c".repeat(64) }, history: history(["user"], options.retained ?? ["user"]) }),
     store,
   });
 }
@@ -96,9 +96,10 @@ test("historical Originals stay readable after Host restart and in a branch copy
     availability: "available" }]);
   expect(new Uint8Array((await reopened.readHistorical(access, "user", original.objectId, ["user"])).bytes))
     .toEqual(image);
-  for (const field of ["browserId", "pageId", "hostId", "profileId", "sourceId", "instanceId"] as const) {
-    expect(await reopened.history(() => ({ ...scope, sessionId: "branch", [field]: "other" }), ["user"]))
-      .toEqual([]);
+  const branch = () => ({ ...scope, sourceId: "c".repeat(64) });
+  expect(await reopened.history(branch, ["user"])).toHaveLength(1);
+  for (const field of ["browserId", "pageId", "hostId", "profileId", "instanceId", "sessionId"] as const) {
+    expect(await reopened.history(() => ({ ...branch(), [field]: "other" }), ["user"])).toEqual([]);
   }
   await expect(reopened.readHistorical(() => ({ ...scope, browserId: "other" }), "user", original.objectId, ["user"]))
     .rejects.toThrow("attachment_object_unavailable");
@@ -125,7 +126,7 @@ test("the public route rechecks admission, retention and representation on every
   const store = open();
   const original = await committed(store);
   const handle = route(store);
-  const query = `sessionId=branch&entryId=user`;
+  const query = `sessionId=native&entryId=user`;
   const list = await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`));
   expect(list.status).toBe(200);
   expect((await list.json() as { items: unknown[] }).items).toHaveLength(1);
@@ -139,7 +140,7 @@ test("the public route rechecks admission, retention and representation on every
   expect(head.headers.get("content-length")).toBe(String(image.length));
   expect(await head.text()).toBe("");
   expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/original?${query}&objectId=${original.objectId}&disposition=attachment`, { method: "POST" }))).status).toBe(405);
-  expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?sessionId=branch&entryId=other`))).status).toBe(404);
+  expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?sessionId=native&entryId=other`))).status).toBe(404);
   expect((await handle(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}&entryId=user`))).status).toBe(400);
   expect((await route(store, { revoke: () => true })(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`))).status).toBe(403);
 });
