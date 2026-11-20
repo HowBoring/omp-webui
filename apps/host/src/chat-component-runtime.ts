@@ -46,6 +46,8 @@ interface Entry {
   askDialog?: Promise<unknown> | undefined;
   readonly brokerPage: PageBinding;
   readonly pages: Map<string, StopPage>;
+  /** Admitted browser identities by credential, so a replacement browser is not pinned to the first one. */
+  readonly identities: Map<string, BrowserAccess>;
   idle: StopSnapshot;
   native?: Partial<SessionState>;
   refreshing?: Promise<void> | undefined;
@@ -223,6 +225,7 @@ export class ChatComponentRuntime {
     entry.unsubscribe();
     entry.lifetime.abort();
     this.#stopPolling(entry);
+    entry.identities.clear();
     for (const page of entry.pages.values()) entry.stop.disconnect(page);
     entry.stop.close();
     entry.broker.close();
@@ -255,8 +258,12 @@ export class ChatComponentRuntime {
   #page(entry: Entry, identity: BrowserAccess): StopPage {
     const held = entry.pages.get(identity.credentialId);
     if (held) return held;
-    const page = entry.stop.attach({ credentialId: identity.credentialId, clientId: identity.credentialId,
-      peerId: identity.credentialId });
+    entry.identities.set(identity.credentialId, identity);
+    let page: StopPage;
+    try {
+      page = entry.stop.attach({ credentialId: identity.credentialId, clientId: identity.credentialId,
+        peerId: identity.credentialId });
+    } catch (error) { entry.identities.delete(identity.credentialId); throw error; }
     entry.pages.set(identity.credentialId, page);
     return page;
   }
@@ -282,8 +289,9 @@ export class ChatComponentRuntime {
       },
       resume: () => broker!.resumeAfterStop(),
     }, (page, held) => {
-      if (page.credentialId !== identity.credentialId || held.kind !== "session" || held.sessionId !== nativeSessionId) return false;
-      if (this.#views.get(page.credentialId)?.owner !== undefined && !this.authority.revalidate(identity)) return false;
+      const pageIdentity = entry.identities.get(page.credentialId);
+      if (!pageIdentity || held.kind !== "session" || held.sessionId !== nativeSessionId) return false;
+      if (!this.authority.revalidate(pageIdentity)) return false;
       return this.#entries.get(`${view.workerId}\u0000${view.generation}`) === entry;
     }, () => performance.now(), {
       workerGeneration: view.generation,
@@ -357,6 +365,7 @@ export class ChatComponentRuntime {
     });
     entry = { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId, worker,
       gateway, retry, lifetime, idleGeneration, unsubscribe, stop, broker, brokerPage, pages: new Map(),
+      identities: new Map(),
       idle: { generation: idleGeneration, workerGeneration: view.generation, scope, status: "idle", nativeSettled: false,
         acceptingWork: false, pending: { interactions: 0, history: 0, queued: 0, other: 0 }, failures: [],
         forceAvailable: false, restored: null, draftConflict: false } };

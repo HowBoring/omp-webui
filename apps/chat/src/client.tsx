@@ -199,7 +199,14 @@ async function present(view: PublicSessionView) {
   const projection = await waitProjection(binding);
   presentationGeneration = projection.generation;
   if (reference !== retained) return;
-  const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
+  let attached;
+  try { attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId })); }
+  catch (failure) {
+    // A worker can outlive its browser but still be unattachable after a crash or revoke. Drop the stale
+    // restore so every later reload goes through explicit Open/Recheck instead of failing silently again.
+    sessionStorage.removeItem("omp-supervised-worker");
+    throw new Error(`${message(failure)} Use “Recheck this Session” or open a Session from the list.`);
+  }
   if (reference !== retained) return;
   renewEnrollment = async projection => {
     if (reference !== retained) return;
@@ -1289,6 +1296,14 @@ async function boot() {
       if (current !== accessRevision || presented !== presentationRevision) return;
       if (result.ok && result.value?.view) await present(result.value.view);
     } catch { /* A later explicit Open remains available. */ }
+      if (result.ok && result.value?.view) {
+        if (result.value.view.state !== "open") throw new Error("Its worker is no longer live.");
+        await present(result.value.view);
+      }
+    } catch (failure) {
+      sessionStorage.removeItem("omp-supervised-worker");
+      errorChanged(`The previous Session is not attached. ${message(failure)}`);
+    }
   }
 }
 window.addEventListener("pageshow", event => { if (event.persisted) location.reload(); });
