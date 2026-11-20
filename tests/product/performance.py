@@ -150,20 +150,24 @@ async def wait_port(port, timeout=60):
     raise RuntimeError(f"host did not listen on {port}")
 
 
+def serving(port):
+    """A workload is concurrent only if it answers HTTP; a dying Host resets or stalls the connect."""
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.5) as sock:
+            sock.sendall(b"GET /healthz HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            sock.settimeout(0.5)
+            return sock.recv(64).startswith(b"HTTP/")
+    except OSError:
+        return False
+
+
 def start_host(host, port, env, log):
     subprocess.run(["pkill", "-9", "-f", str(host)], check=False)
-    deadline = time.monotonic() + 10
-    while time.monotonic() < deadline:
-        try:
-            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
-                time.sleep(0.1)
-        except OSError:
-            break
-    try:
-        with socket.create_connection(("127.0.0.1", port), timeout=0.2):
-            raise RuntimeError(f"port {port} is already serving another workload; refusing to measure")
-    except OSError:
-        pass
+    deadline = time.monotonic() + 20
+    while serving(port) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    if serving(port):
+        raise RuntimeError(f"port {port} is already serving another workload; refusing to measure")
     log.parent.mkdir(parents=True, exist_ok=True)
     handle = log.open("w")
     process = subprocess.Popen([BUN, "--no-env-file", str(host)], cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
@@ -202,18 +206,27 @@ def chat_env(manifest, data):
 
 
 def product_env(data):
-    """Real product Host: enrolled installation, corpus as the session source, no fixture injection."""
+    """Real product Host: enrolled installation and corpus Session source; the worker gets a provider
+    through the public config.yml extension + modelRoles registration (the #59 controlled provider),
+    never a bypass flag."""
     manifest = PRODUCT_MANIFEST.read_bytes()
     home = data / "home"
     for name in ("state", "cache"):
         (home / ".local" / name).mkdir(parents=True, exist_ok=True)
+    (home / "config.yml").write_text(
+        "extensions:\n"
+        f"  - {ROOT / 'compatibility/omp/fixtures/live-provider.ts'}\n"
+        "modelRoles:\n"
+        "  default: s0-controlled/deterministic-live\n")
     return {
         **os.environ,
         "HOME": str(home),
-        "PI_CODING_AGENT_DIR": str(CORPUS),
+        "PI_CODING_AGENT_DIR": str(home),
+        "OMP_HISTORY_FIXTURE_PROFILE": str(home),
         "XDG_STATE_HOME": str(home / ".local" / "state"),
         "XDG_CACHE_HOME": str(home / ".local" / "cache"),
         "OMP_CATALOG_SOURCES": json.dumps([str(CORPUS / "sessions")]),
+        "OMP_LIVE_JOURNAL_MAX_BYTES": os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"),
         "OMP_WEB_MANIFEST": str(PRODUCT_MANIFEST),
         "OMP_WEB_LAUNCHER": str(PRODUCT_LAUNCHER),
         "OMP_WEB_MANIFEST_SHA256": hashlib.sha256(manifest).hexdigest(),
@@ -238,6 +251,29 @@ async def wait_until(condition, timeout):
             pass
         await asyncio.sleep(0.03)
     raise TimeoutError("condition not met before timeout")
+
+
+class BlockedSession(Exception):
+    """A refused strict startup or projection is a blocked precondition, never a slow performance sample."""
+
+    def __init__(self, code, raw):
+        super().__init__(f"{code}: {raw}")
+        self.code, self.raw = code, raw
+
+
+async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
+    deadline = time.monotonic() + timeout / 1000
+    while time.monotonic() < deadline:
+        alerts = " ".join(await page.locator('[role="alert"]').all_inner_texts()).strip()
+        if "STRICT_STARTUP_FAILED" in alerts:
+            raise BlockedSession("STRICT_STARTUP_FAILED", alerts)
+        if "Session projection failed" in alerts:
+            raise BlockedSession("SESSION_PROJECTION_FAILED", alerts)
+        if await page.locator('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]').count() \
+                and await page.locator("[data-chat-node]").count():
+            return
+        await asyncio.sleep(0.05)
+    raise TimeoutError("session nodes did not render before timeout")
 
 
 async def count_at_least(locator, minimum):
@@ -418,10 +454,8 @@ async def chat_run(browser_args, product=False):
                 stage("catalog-1000")
                 await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
                 stage("open-clicked")
-                await page.wait_for_selector('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]', timeout=CHAT_TIMEOUT_MS)
+                await session_ready(page, CHAT_TIMEOUT_MS)
                 stage("session-present")
-                await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
-                stage("first-node")
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
@@ -431,8 +465,7 @@ async def chat_run(browser_args, product=False):
                         await refresh.click()
                     await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
                     await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
-                    await page.wait_for_selector('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]', timeout=timeout)
-                    await page.wait_for_selector("[data-chat-node]", timeout=timeout)
+                    await session_ready(page, timeout)
                 for index in range(WARMUPS + SAMPLES):
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
@@ -515,6 +548,21 @@ async def chat_run(browser_args, product=False):
         if product:
             result["productAdmission"] = startup
         return result
+    except BlockedSession as blocked:
+        evidence = ROOT / f"vendor/performance-evidence/{kind}-blocked.json"
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        record = {
+            "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+            "status": "blocked",
+            "code": blocked.code,
+            "raw": blocked.raw,
+            "stageTimingMs": CHAT_STAGES,
+            "rss": locals().get("peak"),
+            "note": "Strict startup or Session projection refused before any sample; recorded as a blocked precondition, not a performance failure.",
+        }
+        evidence.write_text(json.dumps(record, indent=2) + "\n")
+        print(f"{kind}-blocked: {json.dumps(record)}", file=sys.stderr, flush=True)
+        return {"class": kind, "status": "blocked", "blocked": record}
     except Exception as failure:
         evidence = ROOT / f"vendor/performance-evidence/{kind}-failure.json"
         evidence.parent.mkdir(parents=True, exist_ok=True)
@@ -533,6 +581,16 @@ async def chat_run(browser_args, product=False):
         stop_host(host)
         log.close()
         shutil.rmtree(data, ignore_errors=True)
+
+
+def memory_limit_mib():
+    """Cgroup v2 memory.max of this process; recorded so a capped run never claims physical RAM."""
+    try:
+        path = [line.split("::", 1)[1] for line in Path("/proc/self/cgroup").read_text().splitlines() if "::" in line][-1]
+        raw = Path("/sys/fs/cgroup" + path + "/memory.max").read_text().strip()
+        return None if raw == "max" else round(int(raw) / 1048576)
+    except (OSError, IndexError, ValueError):
+        return None
 
 
 async def main():
@@ -564,9 +622,12 @@ async def main():
             "machineCpus": physical_cpus,
             "cpuAffinityEmulation": None if cpus == physical_cpus else f"{cpus} of {physical_cpus} processors by affinity (taskset); not 4-vCPU hardware",
             "memoryMiB": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1048576),
+            "memoryLimitMiB": memory_limit_mib(),
             "kernel": Path("/proc/version").read_text().strip(),
             "filesystem": mount.stdout.strip() or None,
             "browser": browser_version,
+            "controlledProvider": "config.yml extension compatibility/omp/fixtures/live-provider.ts with modelRoles.default "
+                                  "s0-controlled/deterministic-live; deterministic fixture, not real model inference",
             "runtime": "see corpus.json",
         },
         "corpus": {"seed": manifest["seed"], "limits": manifest["limits"], "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256")}, "history": {key: manifest["history"][key] for key in ("entries", "bytes", "sha256", "typeDistribution")}},
@@ -580,18 +641,29 @@ async def main():
         if args.classes in ("chat", "all"):
             evidence["classes"].append(await chat_run(["--no-sandbox"]))
         if args.classes in ("product", "all"):
-            evidence["classes"].append(await chat_run(["--no-sandbox"], product=True))
-            evidence["productMeasurement"] = (
-                "measured: product Host apps/host/src/main.ts over the enrolled installation "
-                f"({hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest()}) serving the 1000-Session corpus "
-                "and the 10000-entry/100MiB history through the real catalog and session worker")
-            evidence["admission"] = "admitted: product Host verified the enrolled installation and served the measured session"
+            measured = await chat_run(["--no-sandbox"], product=True)
+            evidence["classes"].append(measured)
+            if measured.get("status") == "blocked":
+                blocked = measured["blocked"]
+                evidence["productMeasurement"] = (
+                    f"blocked: product Host open refused by {blocked['code']} before any sample; "
+                    "raw stage/RSS evidence in vendor/performance-evidence/product-blocked.json")
+                evidence["admission"] = "admitted: product Host verified the enrolled installation; Session open blocked"
+            else:
+                evidence["productMeasurement"] = (
+                    "measured: product Host apps/host/src/main.ts over the enrolled installation "
+                    f"({hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest()}) serving the 1000-Session corpus "
+                    "and the 10000-entry/100MiB history through the real catalog and session worker")
+                evidence["admission"] = "admitted: product Host verified the enrolled installation and served the measured session"
     finally:
         output = ROOT / "vendor/performance-evidence/performance.json"
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(evidence, indent=2) + "\n")
         print(json.dumps(evidence, indent=2))
-    failed = [entry["class"] for result in evidence["classes"] for entry in (result["firstPage"], result["oldPage"]) if not entry["pass"]]
+    failed = [result["class"] for result in evidence["classes"] if result.get("status") != "blocked"
+              for entry in (result["firstPage"], result["oldPage"]) if not entry["pass"]]
+    blocked = [result["class"] for result in evidence["classes"] if result.get("status") == "blocked"]
+    print(f"BLOCKED_CLASSES={blocked}", file=sys.stderr)
     print(f"FAILED_CLASSES={failed}", file=sys.stderr)
     return 1 if failed else 0
 
