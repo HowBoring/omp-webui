@@ -9,11 +9,15 @@ import { chatComponentContribution } from "../../../packages/contracts/chat-comp
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { ChatBodyError, hasCurrentChatAuthority, readChatRequestBody } from "./chat-request-body.ts";
+import { preferencesHostContribution } from "../../../packages/preferences/service.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
-const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods,
+export const preferenceMethods = Object.fromEntries(preferencesHostContribution.invocations
+  .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
+const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods, ...preferenceMethods,
   "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
-export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections", "ompChatComponent/attach"]);
+export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
+  "ompChatComponent/attach", ...Object.keys(preferenceMethods)]);
 export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
   "session/cancel": sessionContribution.methods["session/cancel"],

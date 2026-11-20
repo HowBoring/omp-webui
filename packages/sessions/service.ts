@@ -1,19 +1,31 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { brandString } from "@deepseek-ai/dsh-brand";
-import { Remote, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
+import { Remote, RemoteError, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
 import type { Context } from "@deepseek-ai/cordis";
 import type { BrowserAccess, BrowserAuthority } from "../access/index.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogDescriptor } from "../contracts/generated/omp-wire.ts";
-import { sessionViewSchema, type SessionSelectionId } from "../contracts/sessions.ts";
+import { sessionPreferencesSchema, sessionViewSchema, type SessionSelectionId } from "../contracts/sessions.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { SessionIndex } from "./index.ts";
-import type { SessionSupervisor, SessionView } from "./supervisor.ts";
+import { nativeSettled, type SessionSupervisor, type SessionView } from "./supervisor.ts";
 import type { CatalogPageInput } from "../contracts/catalog.ts";
 import { sameNativeSession } from "../contracts/catalog-identity.ts";
 export const sessionCaller = new AsyncLocalStorage<BrowserAccess>();
 interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor }
+class SessionSettingsError extends RemoteError<"gateway/bad-request"> {}
+const settingsFailure = (reason: "stale" | "busy" | "conflict" | "capability" | "unconfirmed" | "projection"): never => {
+  const text = {
+    stale: "This Session changed. Reopen it before editing model or thinking settings.",
+    busy: "This Session is busy. Stop the current turn before changing its model or thinking level.",
+    conflict: "Session settings changed. Read them again before saving.",
+    capability: "That model or thinking level is not available in this native Session.",
+    unconfirmed: "The native Session did not confirm the requested settings.",
+    projection: "The native Session applied these settings, but its history could not be reopened. Reopen this Session.",
+  }[reason];
+  throw new SessionSettingsError("gateway/bad-request", text, {});
+};
 const publicView = (view: SessionView) => {
   const { reference: _reference, attemptRevision: _revision, ...registration } = view.registration;
   return sessionViewSchema.parse({ ...view, registration }); };
@@ -21,10 +33,102 @@ const publicView = (view: SessionView) => {
 /** All public invocations get a fresh authenticated BrowserAccess from the carrier, never browser-supplied authority. */
 export class SessionsService extends TypertRemoteService {
   private readonly choices = new Map<SessionSelectionId, { descriptor: CatalogDescriptor; expires: number }>();
+  private readonly settingsRevisions = new Map<string, number>();
+  private readonly settingsQueue = new Map<string, Promise<unknown>>();
   constructor(ctx: Context, readonly options: Options) { super(ctx, "ompSessions"); }
   private identity(): BrowserAccess {
     const identity = sessionCaller.getStore();
     if (!identity || !this.options.authority.revalidate(identity)) throw new Error("SESSION_AUTH_REQUIRED"); return identity;
+  }
+  private settingsKey(view: Pick<SessionView, "workerId" | "generation">): string { return `${view.workerId}\0${view.generation}`; }
+  private serial<T>(workerId: string, task: () => Promise<T>): Promise<T> {
+    const prior = this.settingsQueue.get(workerId) ?? Promise.resolve();
+    const next = prior.then(task, task);
+    this.settingsQueue.set(workerId, next);
+    void next.finally(() => { if (this.settingsQueue.get(workerId) === next) this.settingsQueue.delete(workerId); }).catch(() => {});
+    return next;
+  }
+  private revision(view: Pick<SessionView, "workerId" | "generation">): number { return this.settingsRevisions.get(this.settingsKey(view)) ?? 0; }
+  private runtime(identity: BrowserAccess, workerId: string) {
+    try { return this.options.supervisor.runtime(identity, workerId); }
+    catch (error) {
+      if (error instanceof Error && error.message === "SESSION_MANUAL_OPEN_REQUIRED") settingsFailure("stale");
+      throw error;
+    }
+  }
+  private async snapshot(identity: BrowserAccess, workerId: string, revision?: number) {
+    const runtime = this.runtime(identity, workerId);
+    const state = await runtime.worker.state(); this.identity();
+    const models = await runtime.worker.models(); this.identity();
+    const levels = await runtime.worker.thinkingLevels(); this.identity();
+    const latest = this.runtime(identity, workerId);
+    if (latest.view.generation !== runtime.view.generation) settingsFailure("stale");
+    const model = state.model;
+    if (!model) return settingsFailure("capability");
+    const seen = new Set<string>(), publicModels: { provider: string; id: string; name: string; reasoning: boolean;
+      efforts: ("inherit" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max")[] }[] = [];
+    const current = `${model.provider}\0${model.id}`;
+    for (const candidate of [model, ...models.filter(candidate => `${candidate.provider}\0${candidate.id}` !== current)]) {
+      const key = `${candidate.provider}\0${candidate.id}`;
+      if (seen.has(key)) continue; seen.add(key);
+      if (publicModels.length >= 64) break;
+      publicModels.push({ provider: candidate.provider, id: candidate.id, name: candidate.name, reasoning: candidate.reasoning,
+        efforts: (candidate.thinking?.efforts ?? []).filter(level => level !== "off" && level !== "inherit") });
+    }
+    const available = [...new Set(levels)];
+    return sessionPreferencesSchema.parse({ workerId: runtime.view.workerId, generation: runtime.view.generation,
+      revision: revision ?? this.revision(runtime.view), busy: !nativeSettled(state),
+      model: { provider: model.provider, id: model.id, name: model.name },
+      thinking: { level: state.thinkingLevel ?? available[0] ?? "off", levels: available.length ? available : ["off"] },
+      models: publicModels });
+  }
+  @Remote("preferences") preferences(workerId: string) {
+    const identity = this.identity();
+    return this.serial(workerId, () => this.snapshot(identity, workerId));
+  }
+  @Remote("applyPreferences") applyPreferences(change: { workerId: string; generation: string; revision: number;
+    model?: { provider: string; id: string };
+    thinking?: "inherit" | "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max" }) {
+    const identity = this.identity();
+    return this.serial(change.workerId, async () => {
+      const runtime = this.runtime(identity, change.workerId);
+      if (runtime.view.generation !== change.generation) settingsFailure("stale");
+      this.identity();
+      const state = await runtime.worker.state(); this.identity();
+      if (!nativeSettled(state)) settingsFailure("busy");
+      if (this.revision(runtime.view) !== change.revision) settingsFailure("conflict");
+      const models = await runtime.worker.models(); this.identity();
+      const selected = change.model
+        ? models.find(model => model.provider === change.model!.provider && model.id === change.model!.id) : undefined;
+      if (change.model && !selected) settingsFailure("capability");
+      if (change.thinking && !change.model) {
+        const levels = await runtime.worker.thinkingLevels(); this.identity();
+        if (!levels.includes(change.thinking)) settingsFailure("capability");
+      }
+      try {
+        if (selected) await runtime.worker.selectModel(selected.provider, selected.id);
+        if (change.thinking) {
+          if (selected) {
+            const levels = await runtime.worker.thinkingLevels(); this.identity();
+            if (!levels.includes(change.thinking)) settingsFailure("capability");
+          }
+          await runtime.worker.setThinkingLevel(change.thinking);
+        }
+      } catch (error) { if (error instanceof SessionSettingsError) throw error; settingsFailure("capability"); }
+      this.identity();
+      const latest = this.runtime(identity, change.workerId);
+      if (latest.view.generation !== change.generation) settingsFailure("stale");
+      const revision = change.revision + 1;
+      const snapshot = await this.snapshot(identity, change.workerId, revision);
+      if (selected && (snapshot.model.provider !== selected.provider || snapshot.model.id !== selected.id)) settingsFailure("unconfirmed");
+      if (change.thinking && snapshot.thinking.level !== change.thinking) settingsFailure("unconfirmed");
+      try {
+        await this.options.supervisor.refreshPresentation(identity, latest.view.workerId,
+          latest.view.registration.nativeSessionId);
+      } catch { settingsFailure("projection"); }
+      this.settingsRevisions.set(this.settingsKey(latest.view), revision);
+      return snapshot;
+    });
   }
   private selection(id: SessionSelectionId): CatalogDescriptor {
     this.identity(); const choice = this.choices.get(id);

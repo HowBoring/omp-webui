@@ -27,8 +27,18 @@ export class SessionPresentationService extends TypertRemoteService {
     return { cursor: request.throughSeq ?? journal.cursor, ...journal.page(request) };
   }
   @Remote({ mode: "stream" }) async *control(signal: AbortSignal): AsyncGenerator<SessionControlFrame> {
-    yield { type: "baseline", value: { projections: {} } };
-    while (!signal.aborted) await Bun.sleep(100);
+    const journal = this.supervisor.activeJournal(this.identity());
+    yield { type: "baseline", value: { projections: journal ? { [journal.sessionId]: {
+      projection: journal.projection, asOfSeq: journal.cursor, values: {},
+    } } : {} } };
+    let announced = journal?.projection.generation;
+    while (!signal.aborted) {
+      await Bun.sleep(100);
+      const current = this.supervisor.activeJournal(this.identity());
+      if (!current || current.projection.generation === announced) continue;
+      announced = current.projection.generation;
+      yield { type: "projection-invalidated", sessionId: SessionId(current.sessionId), projection: current.projection };
+    }
   }
   @Remote({ mode: "stream" }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncGenerator<SessionFollowFrame> {
     const identity = this.identity(), id = this.addressId(request.address), journal = await this.supervisor.presentation(identity, id);

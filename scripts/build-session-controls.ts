@@ -4,7 +4,8 @@ import standaloneCode from "ajv/dist/standalone/index.js";
 import { makeCommandSchemas } from "./command-schemas.ts";
 const schema = await Bun.file("vendor/omp/packages/coding-agent/src/modes/rpc/wire/rpc-wire.schema.json").json();
 const ajv = new Ajv2020({ strict: false, code: { source: true, esm: true } }); ajv.addSchema(schema);
-const commands = ["get_state", "abort", "abort_and_restore_queue", "abort_branch_summary", "abort_retry", "abort_bash"];
+const commands = ["get_state", "abort", "abort_and_restore_queue", "abort_branch_summary", "abort_retry", "abort_bash",
+  "get_available_models", "set_model", "get_available_thinking_levels", "set_thinking_level"];
 const code = standaloneCode(ajv, ajv.compile({ $defs: schema.$defs,
   anyOf: makeCommandSchemas(schema, commands, { maxIdLength: 96 }) }));
 const target = "packages/contracts/generated/session-controls.js";

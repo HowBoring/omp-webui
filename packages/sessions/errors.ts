@@ -35,6 +35,10 @@ function publicCode(code: string) {
 }
 /** Rebuild public errors from a fixed vocabulary. Raw exceptions, details, paths and stacks never cross the carrier. */
 export function sessionFailure(error: unknown): RemoteError {
+  // Session settings failures are built from a fixed local vocabulary; other raw errors never cross the carrier.
+  if (error instanceof RemoteError && error.code === "gateway/bad-request") {
+    return new RemoteError(error.code, error.message, {});
+  }
   const candidate = error instanceof Error ? error.message : "";
   const system = error instanceof Error && "code" in error && typeof error.code === "string" ? error.code : "";
   const code = publicCode(system) ?? publicCode(candidate) ?? "gateway/internal";

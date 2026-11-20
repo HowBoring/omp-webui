@@ -62,9 +62,9 @@ async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'a
 /** Disposable bounded DSH generation. Native observations remain authoritative and not-attested. */
 export class LiveJournal {
   readonly generation = crypto.randomUUID();
-  /** Opaque Host-journal projection identity, stable per native Session so re-opening a new cut
-   * keeps the DSH rebuild's snapshot/page identity coherent. */
-  get projection() { return parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: String(this.sessionId)}); }
+  /** Opaque Host-journal identity; each opened cut is its own presentation generation so DSH
+   * replaces a journal whose native branch/cut changed instead of following stale pages. */
+  get projection() { return parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: this.generation}); }
   readonly sessionId;
   readonly #records: SessionHistoryRecord[] = [];
   readonly #recordByteEnds: number[] = [];

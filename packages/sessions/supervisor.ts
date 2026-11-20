@@ -532,6 +532,23 @@ export class SessionSupervisor {
     if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
     return journal;
   }
+  /** Replace an already-presented journal after a native cut change; a Session with no viewer stays lazy. */
+  async refreshPresentation(identity: BrowserAccess, workerId: string, sessionId: string): Promise<LiveJournal | undefined> {
+    const active = this.#active; this.#browser(identity);
+    if (!active?.worker || active.state !== "open" || active.id !== workerId
+      || active.record?.nativeSessionId !== sessionId || !active.journalValue) return undefined;
+    const journal = await LiveJournal.open(active.worker.history); this.#current(identity, active);
+    if (active.state !== "open" || active.id !== workerId || active.record?.nativeSessionId !== sessionId) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    active.journal = Promise.resolve(journal); active.journalValue = journal;
+    return journal;
+  }
+  /** The currently presented journal for this authority, when a viewer is attached. */
+  activeJournal(identity: BrowserAccess): LiveJournal | undefined {
+    const active = this.#active; this.#browser(identity);
+    return active?.state === "open" ? active.journalValue : undefined;
+  }
   requirePresentation(identity: BrowserAccess, sessionId: string, journal: LiveJournal): void {
     const active = this.#active;
     if (!active || active.record?.nativeSessionId !== sessionId || active.journalValue !== journal) {

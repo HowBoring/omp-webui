@@ -51,3 +51,34 @@ with the dedicated preferences preimport guard, env -i, synthetic HOME/profile/c
 under /tmp and TMPDIR=/tmp. No durable preferences, Session settings API, product
 registration, Native/browser runtime, dependency/schema/build work, publishing or
 ticket closure is included. Commit and stop for a fresh focused source review.
+
+## Session model/thinking and WebUI appearance implementation
+
+The reviewed source slice above covered only WebUI `ui-theme`/`locale`. This
+branch adds the Session-local capabilities as an additive public contract in
+`packages/contracts/sessions.ts`: `ompSessions/preferences` and
+`ompSessions/applyPreferences`. The Host adapter reads actual `get_state`,
+`get_available_models` and `get_available_thinking_levels`; writes actual
+`set_model`/`set_thinking_level`; never uses DSH `session/selectModel` or its
+global default. Choices are sanitized before crossing Remote.
+
+Writes require worker generation, current revision and native settlement. They
+are serialized per worker, recheck browser authority and generation, and read the
+native state/models/levels back before reporting success. Replaced Session,
+busy, stale revision, unknown model, unsupported thinking and revoked authority
+fail without false success. Revisions are Host-local and reset on restart.
+
+The Chat client mounts a filtered Remote contribution exposing only
+`settings/describe` and `settings/mutate`; its appearance rows scope theme and
+language to `[data-chat-root-slot]` and never mutate the global document or
+browser storage. Session settings use the new public RPC. A successful native
+write opens a fresh Host journal and the control stream announces the new
+projection generation; Session Settings renews the Chat attachment only after
+the rebuilt projection is ready, so the following stream keeps native history,
+draft and settlement consistent.
+
+Actual component evidence is pinned in
+`docs/evidence/ticket-49-session-preferences.json`; the generated browser
+artifact is `vendor/settings-browser.json`. Normal product admission stays
+blocked, the Chat provider remains controlled/synthetic, and ticket 49 remains
+open.
