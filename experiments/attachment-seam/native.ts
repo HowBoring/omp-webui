@@ -52,7 +52,7 @@ export class NativeAttachmentFixture {
       return { target: this.target, draftId: selection.draftId, draftRevision: selection.revision,
         authorityGeneration: draft.generation, message: draft.message, objects };
     } }, () => ({ prepare: input => transport.attachments.prepare(input), cancel: id => transport.attachments.cancel(id),
-      submit: input => transport.submissions.submit(input) }));
+      submit: input => transport.submissions.submit(input), query: (id, offset, limit) => transport.submissions.query(id, offset, limit) }));
   }
   static async open(currentOwner: () => string, options: { nativeExpansions?: boolean } = {}): Promise<NativeAttachmentFixture> {
     const home = await fs.mkdtemp(path.join(os.tmpdir(), "attachment-browser-"));

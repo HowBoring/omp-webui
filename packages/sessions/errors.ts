@@ -1,6 +1,7 @@
 import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import { isNativeWorkerErrorCode, isSessionErrorCode } from "../contracts/session-errors.ts";
 import { isWorkspaceErrorCode } from "../contracts/workspace-errors.ts";
+import { isAttachmentGateErrorCode } from "../contracts/attachment-remote.ts";
 
 const recovery: Readonly<Record<string, string>> = {
   SESSION_WORKER_BUSY_STOP_REQUIRED:
@@ -31,7 +32,7 @@ function message(code: string): string {
 }
 function publicCode(code: string) {
   return isSessionErrorCode(code) || isNativeWorkerErrorCode(code) || isWorkspaceErrorCode(code)
-    || code === "gateway/cancelled" ? code : undefined;
+    || isAttachmentGateErrorCode(code) || code === "gateway/cancelled" ? code : undefined;
 }
 /** Rebuild public errors from a fixed vocabulary. Raw exceptions, details, paths and stacks never cross the carrier. */
 export function sessionFailure(error: unknown): RemoteError {

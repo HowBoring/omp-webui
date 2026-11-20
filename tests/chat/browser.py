@@ -9,9 +9,9 @@ from playwright.async_api import async_playwright, expect
 ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shutil.which("google-chrome")
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
-HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+HOST = Path(os.environ.get("OMP_CHAT_HOST_DIR", ROOT / "vendor/host-chat")) / "chat-component-main.js"
 CANDIDATE = ROOT / "vendor/omp-candidate-t49/cli.js"
-PORT = int(os.environ.get("OMP_CHAT_PORT", "3188"))
+PORT = int(os.environ.get("OMP_CHAT_PORT", os.environ.get("OMP_CHAT_FIXTURE_PORT", "3188")))
 CHAT_BUTTON = re.compile(r"(Open|Switch) Chat Session")
 
 
@@ -133,7 +133,7 @@ async def new_page(browser, errors):
 
 async def main():
     kill_worker()
-    subprocess.run(["pkill", "-f", f"{ROOT}/vendor/host-chat/chat-component-main.js"], check=False)
+    subprocess.run(["pkill", "-f", f"{HOST}"], check=False)
     await asyncio.sleep(0.5)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL)
