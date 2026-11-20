@@ -31,6 +31,8 @@ import { AttachmentBridge } from "../../../packages/attachments/bridge.ts";
 import { AttachmentSubmissionGate } from "../../../packages/attachments/submission-gate.ts";
 import { installAttachmentRemote } from "../../../packages/attachments/remote.ts";
 import { attachmentHostContribution } from "../../../packages/contracts/attachments.ts";
+import { treeHostContribution } from "../../../packages/contracts/tree.ts";
+import { ReadonlyTree } from "../../../packages/tree/service.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
@@ -224,6 +226,12 @@ export async function startSessionComponentServer(options: Options) {
     new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatAttachService(ctx, input => {
       const identity = sessionCaller.getStore(); return identity ? runtime.attach(identity, input) : undefined;
+    });
+    ctx.typert.register(treeHostContribution);
+    new ReadonlyTree(ctx, (_peer, sessionId) => {
+      const identity = sessionCaller.getStore();
+      if (!identity || !access.revalidate(identity)) throw new Error("TREE_AUTHORITY_UNAVAILABLE");
+      return supervisor.treeAccess(identity, sessionId);
     });
     ctx.typert.register(preferencesHostContribution);
     new WebPreferences(ctx, () => {
