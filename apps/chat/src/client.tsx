@@ -28,7 +28,7 @@ import { base64Of, bytesOfBase64, decodeImage, type ImageKind } from "./images.t
 import { attachmentLimits, attachmentName, classifyAttachment, draftBudgetFailure } from "./attachments.ts";
 import type { OriginalMediaType } from "../../../packages/attachments/media.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
-import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
+import { DraftOriginalId, DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
 import { retryContribution, type RetryAttempt, type RetryResult, type RetryState } from
@@ -44,17 +44,65 @@ declare module "@deepseek-ai/dsh-api-session-controller/client" { interface Sess
 
 const ctx = new Context();
 const tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
-const owner = { id: (() => { const saved = localStorage.getItem("omp.chat.owner"); if (saved) return saved;
-  const created = crypto.randomUUID(); localStorage.setItem("omp.chat.owner", created); return created; })(), active: () => true };
+/** A live Web Lock distinguishes this tab from a copied tab that inherited the same sessionStorage. */
+async function acquireOwner(candidate: string): Promise<string> {
+  // A reload's old document can still hold its lock for a moment; a copied tab holds it forever.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const held = await new Promise<boolean>(resolve => {
+      void navigator.locks.request(`omp.chat.owner.${candidate}`, { ifAvailable: true }, lock => {
+        if (lock === null) { resolve(false); return; }
+        resolve(true);
+        return new Promise<void>(() => {});
+      });
+    });
+    if (held) return candidate;
+    await new Promise(resolve => setTimeout(resolve, 50));
+  }
+  return crypto.randomUUID();
+}
+let tabOwner = "";
+const ownTab = async () => {
+  const saved = sessionStorage.getItem("omp-chat-owner"), next = await acquireOwner(saved ?? tab);
+  if (saved !== undefined && saved !== next) {
+    // A copied tab owns the inherited draft record; start an independent Host draft scope.
+    draftId = crypto.randomUUID(); sessionStorage.setItem("omp-chat-draft", draftId);
+  }
+  sessionStorage.setItem("omp-chat-owner", next); tabOwner = next;
+};
+const owner = { get id() { if (tabOwner === "") throw new Error("draft_owner_unavailable"); return tabOwner; }, active: () => true };
 const authorities = new Map<string, DraftAuthority>();
 const recoveryAuthorized = new Set<string>();
-const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId),
-  authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
+let attachedTarget: { sessionId: string; draftId: string } | undefined;
+/** Host originals reauthorize exact bytes for this tab's draft; failures stay as ordered invalid items. */
+async function prepareOriginals(scope: DraftScope, refs: readonly { id: unknown; name: string; mediaType: string }[],
+  signal: AbortSignal) {
+  const target = attachedTarget;
+  if (!target || target.sessionId !== String(scope.nativeSessionId)) return refs.map(() => ({
+    status: "invalid" as const, reason: "original_scope_unavailable" }));
+  const prepared: ({ status: "ready"; file: File } | { status: "invalid"; reason: string })[] = [];
+  for (const ref of refs) {
+    try {
+      signal.throwIfAborted();
+      const value = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "read-base64", target,
+        objectId: String(ref.id) }));
+      if (value.status !== "read") throw new Error(value.status === "error" ? value.code : value.status);
+      const bytes = bytesOfBase64(value.base64);
+      if (String(value.original.objectId) !== String(ref.id)) throw new Error("attachment_scope_mismatch");
+      prepared.push({ status: "ready", file: new File([bytes as BlobPart], ref.name, { type: ref.mediaType }) });
+    } catch (failure) { prepared.push({ status: "invalid", reason: message(failure).slice(0, 120) }); }
+  }
+  signal.throwIfAborted();
+  return prepared;
+}
+const provider = createDraftProvider({ owner, storage: sessionStorage, authority: sessionId => authorities.get(sessionId),
+  authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)), prepareOriginals });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
+let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
+let draftRestored: () => void = () => {};
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
 let renewEnrollment: ((projection: SessionProjectionBinding) => Promise<void>) | undefined;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
@@ -62,11 +110,12 @@ const resultValue = <T,>(result: { ok: true; value: T } | { ok: false; error: { 
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
 };
-const draftId = (() => {
+let draftId = (() => {
   const saved = sessionStorage.getItem("omp-chat-draft");
   if (saved) return saved;
   const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-draft", created); return created;
 })();
+const ownerReady = ownTab();
 function invalidateAccess(text: string) {
   ++accessRevision; release(); viewChanged(undefined); errorChanged(text);
 }
@@ -129,6 +178,7 @@ async function present(view: PublicSessionView) {
   authorities.set(view.registration.nativeSessionId, { host: "omp-webui", browser: tab, page: tab, profile: "isolated",
     source: view.registration.sourceId, instance: view.registration.instanceId, session: view.registration.nativeSessionId,
     cwd: view.cwd, draft: draftId, epoch: attached.generation });
+  attachedTarget = { sessionId: view.registration.nativeSessionId, draftId };
   draftDirty = false;
   viewChanged(view);
   let saved: Awaited<ReturnType<typeof provider.read>>;
@@ -138,7 +188,26 @@ async function present(view: PublicSessionView) {
     saved = await provider.read(currentScope, new AbortController().signal);
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
   if (reference !== retained || draftDirty) return;
-  draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
+  if (!saved) { draftNotice(undefined); draftChanged(""); draftOriginals([]); draftRestored(); watch(binding, retained); return; }
+  // Reauthorize every stable Original through the Host before publishing text and items together.
+  let prepared: Awaited<ReturnType<typeof provider.prepare>> | undefined;
+  if (!saved.unresolved) {
+    try { prepared = await provider.prepare(currentScope!, saved.originals, new AbortController().signal); }
+    catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
+  }
+  if (reference !== retained || draftDirty) return;
+  const items = saved.originals.map((ref, index) => {
+    const result = prepared?.[index];
+    if (result?.status !== "ready") return { objectId: String(ref.id), displayName: ref.name,
+      mediaType: ref.mediaType as OriginalMediaType, byteLength: 0, pixels: 0,
+      invalid: result?.reason ?? (saved.unresolved ? "An unresolved submission protects this file." : "The Host could not reauthorize this file.") };
+    return { objectId: String(ref.id), displayName: ref.name,
+      mediaType: (result.file.type || ref.mediaType) as OriginalMediaType, byteLength: result.file.size, pixels: 0 };
+  });
+  draftOriginals(items);
+  draftChanged(saved.unresolved?.draft.text ?? saved.draft.text);
+  draftNotice(saved.unresolved ? "An unresolved submission is protected. Check Native recovery before editing or sending." : undefined);
+  draftRestored();
   watch(binding, retained);
 }
 function watch(binding: SessionBinding, retained: SessionReference) {
@@ -329,7 +398,7 @@ function NodeRow({ node }: { node: unknown }) {
 }
 
 type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state: "sending" | "accepted" | "refused" | "unknown"; error?: string };
-type Uploaded = { objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number; width?: number; height?: number; pixels: number };
+type Uploaded = { objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number; width?: number; height?: number; pixels: number; invalid?: string };
 const retryRefusalText = (reason: string, detail?: string): string => `${({
   unavailable: "Retry is unavailable for this worker.",
   forbidden: "This Chat view no longer authorizes Retry.",
@@ -351,7 +420,6 @@ const retryAttemptText = (attempt: RetryAttempt): string => `${({
   attempt.detail ? ` ${attempt.detail}` : ""}${attempt.settled ? "" : " Not settled yet."}`;
 const retryTerminal = (attempt: RetryAttempt): boolean =>
   attempt.status !== "admitted" && attempt.status !== "unknown";
-
 function Surface() {
   const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
@@ -360,7 +428,14 @@ function Surface() {
   const [cwd, setCwd] = useState(""), [confirmation, setConfirmation] = useState<string>(), [review, setReview] = useState("");
   const [originals, setOriginals] = useState<Uploaded[]>([]), [base64Draft, setBase64Draft] = useState("");
   const [controller, setController] = useState<AttachmentPreparationController>();
-  const revision = useRef(0);
+  const [frozen, setFrozen] = useState(false), [retention, setRetention] = useState("");
+  const revision = useRef(0), originalsRef = useRef<Uploaded[]>([]), touchTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => { originalsRef.current = originals; }, [originals]);
+  useEffect(() => {
+    draftOriginals = (items) => setOriginals(items);
+    draftNotice = (notice) => { setRecovery(notice); setFrozen(notice !== undefined && notice.startsWith("An unresolved submission")); };
+    draftRestored = () => setDraftReady(true);
+  }, []);
   // One presentation controller per attached worker. Opening or paging it is explicit and read-only.
   useEffect(() => {
     if (!view) { setTree(undefined); return; }
@@ -407,19 +482,36 @@ function Surface() {
     try { await present(resultValue(await (view ? ctx.remote.ompSessions.switch(selectionId) : ctx.remote.ompSessions.open(selectionId)))); }
     finally { setOpening(false); }
   };
+  /** Stable Original references; invalid items stay in the record so a missing file remains visible. */
+  const draftRefs = () => originalsRef.current.map(item => ({ id: DraftOriginalId(item.objectId), name: item.displayName, mediaType: item.mediaType }));
   const persist = async (record: Parameters<typeof provider.write>[1], reason: Parameters<typeof provider.write>[2]) => {
     const current = binding.current;
     if (!current) return;
     try {
       await waitProjection(current);
       scope.current = provider.scope(current);
-      await provider.write(scope.current, record, reason);
+      // Ordinary edits persist whatever the draft owns; authoritative recovery decisions carry their own cleared set.
+      const complete = reason === "edit" || reason === "submission" ? { ...record, originals: record.originals.length > 0 ? record.originals : draftRefs() } : record;
+      await provider.write(scope.current, complete, reason);
       setDraftReady(true);
     } catch (failure) { setError(message(failure)); }
   };
+  /** Explicit edits and active recovery renew the staged Originals; background hydration never does. */
+  const touch = (activity: "explicit-edit" | "active-recovery") => {
+    const objectIds = originalsRef.current.filter(item => item.invalid === undefined).map(item => item.objectId);
+    if (!view || objectIds.length === 0) return;
+    clearTimeout(touchTimer.current);
+    touchTimer.current = setTimeout(() => {
+      if (!view) return;
+      void ctx.remote.ompOriginals.exchange({ operation: "touch", target: { sessionId: view.registration.nativeSessionId, draftId },
+        activity, objectIds }).then(resultValue).then(value => {
+        if (value.status === "touched") setRetention(`${activity}: ${value.renewed.length} renewed${value.unavailable.length > 0 ? `, ${value.unavailable.length} unavailable` : ""}`);
+      }).catch(failure => setRetention(`${activity} not confirmed: ${message(failure)}`));
+    }, 250);
+  };
   const edit = (value: string) => {
-    draftDirty = true; setText(value); draftChanged(value);
-    void persist({ draft: { text: value, references: [] }, originals: [] }, "edit");
+    draftDirty = true; setText(value); draftChanged(value); touch("explicit-edit");
+    void persist({ draft: { text: value, references: [] }, originals: draftRefs() }, "edit");
   };
   /** Every branch refusal is a stable notice: the draft, the Session and its generation stay as they were. */
   const branchMessage = (code: string) => code === "SESSION_WORKER_BUSY_STOP_REQUIRED"
@@ -507,7 +599,7 @@ function Surface() {
     void ctx.remote.ompRetry.state().then(resultValue).then(applyRetry).catch(() => {});
   }, [view?.workerId, view?.generation]);
   const selection = (): AttachmentSelection => ({ session: view!.registration.nativeSessionId, draftId,
-    revision: String(revision.current), originalIds: originals.map(item => item.objectId) });
+    revision: String(revision.current), originalIds: originals.filter(item => item.invalid === undefined).map(item => item.objectId) });
   const stage = async (bytes: Uint8Array, displayName: string, declaredType: string, current: Uploaded[]): Promise<Uploaded> => {
     if (bytes.byteLength === 0) throw new Error("The file is empty.");
     const mediaType = classifyAttachment(bytes, { name: displayName, type: declaredType });
@@ -537,7 +629,8 @@ function Surface() {
     try {
       for (const file of Array.from(files)) {
         const uploaded = await stage(new Uint8Array(await file.arrayBuffer()), file.name, file.type, next);
-        next = [...next, uploaded]; ++revision.current; setOriginals(next);
+        next = [...next, uploaded]; ++revision.current; originalsRef.current = next; setOriginals(next);
+        void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
       }
     } catch (failure) { setError(message(failure)); }
     finally { setUploading(false); }
@@ -549,7 +642,8 @@ function Surface() {
       const bytes = bytesOfBase64(base64Draft);
       if (bytes.length === 0) throw new Error("The pasted value has no file bytes.");
       const uploaded = await stage(bytes, "pasted-file", "", originals);
-      setOriginals([...originals, uploaded]); ++revision.current; setBase64Draft(""); setError("");
+      const next = [...originals, uploaded]; originalsRef.current = next; setOriginals(next); ++revision.current; setBase64Draft(""); setError("");
+      void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
     } catch (failure) { setError(message(failure)); }
     finally { setUploading(false); }
   };
@@ -558,7 +652,9 @@ function Surface() {
       const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
         target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
       if (released.status !== "released") throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
-      setOriginals(current => current.filter(item => item.objectId !== objectId)); ++revision.current;
+      const next = originalsRef.current.filter(item => item.objectId !== objectId);
+      originalsRef.current = next; setOriginals(next); ++revision.current;
+      void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
     } catch (failure) { setError(message(failure)); }
   };
   const recover = async (requestId: string) => {
@@ -570,7 +666,8 @@ function Surface() {
     if (result.outcome === "accepted") {
       setRecovery(undefined); setText(""); draftChanged(""); void persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
     } else if (result.outcome === "not-submitted") {
-      setRecovery(undefined); void persist({ draft: { text, references: [] }, originals: [] }, "recovery");
+      setRecovery(undefined); setFrozen(false); touch("active-recovery");
+      void persist({ draft: { text, references: [] }, originals: draftRefs() }, "recovery");
     } else if (result.outcome === "unknown" || result.outcome === "completed-without-input") {
       setRecovery("Native outcome is still unresolved. Check again after the worker settles.");
     }
@@ -601,7 +698,8 @@ function Surface() {
     } catch (failure) { setError(message(failure)); }
   };
   const send = async (mode: "queue" | "steer") => {
-    if (!view || !binding.current || !scope.current || text.trim() === "") return;
+    if (!view || !binding.current || !scope.current || text.trim() === "" || frozen) return;
+    if (originals.some(item => item.invalid !== undefined)) { setError("Revalidate or remove the unavailable file before sending. Your draft is retained."); return; }
     const current = binding.current;
     if (originals.length > 0 && mode !== "queue") {
       setError("Files are sent with Send; Steer does not accept attachments. Your draft is retained."); return;
@@ -626,8 +724,8 @@ function Surface() {
     const handle = current.session.beginSubmission({ mode, text: content, attachments: [] });
     const requestId = String(handle.requestId);
     setAttempt({ requestId, text: content, mode, state: "sending" });
-    await persist({ draft: { text: content, references: [] }, originals: [],
-      unresolved: { id: DraftSubmissionId(requestId), ownsDraft: true, draft: { text: content, references: [] }, originals: [] } }, "submission");
+    await persist({ draft: { text: content, references: [] }, originals: draftRefs(),
+      unresolved: { id: DraftSubmissionId(requestId), ownsDraft: true, draft: { text: content, references: [] }, originals: draftRefs() } }, "submission");
     const abort = new AbortController(); attemptAbort.current = abort;
     let preparation: AttachmentPreparationController | undefined;
     const resolvePreparation = async (): Promise<string | undefined> => {
@@ -674,13 +772,13 @@ function Surface() {
           recoveryAuthorized.add(requestId);
           setAttempt({ requestId, text: content, mode, state: "refused", error: failure });
           setError(failure);
-          await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery");
+          await persist({ draft: { text: content, references: [] }, originals: draftRefs() }, "recovery");
         } else {
           const unresolved = result.error.message.includes("unresolved");
           setAttempt({ requestId, text: content, mode, state: unresolved ? "unknown" : "refused", error: result.error.message || result.error.code });
           setError(result.error.message || result.error.code);
           if (unresolved) setRecovery("Outcome unknown. Check Native recovery before sending again.");
-          else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery"); }
+          else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: draftRefs() }, "recovery"); }
         }
       }
     } catch (failure) {
@@ -693,7 +791,7 @@ function Surface() {
         const reason = await resolvePreparation() ?? message(failure);
         setAttempt({ requestId, text: content, mode, state: "refused", error: reason });
         setError(reason);
-        await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery");
+        await persist({ draft: { text: content, references: [] }, originals: draftRefs() }, "recovery");
       } else {
         setAttempt({ requestId, text: content, mode, state: "unknown", error: message(failure) });
         setError(message(failure)); setRecovery("Outcome unknown. Check Native recovery before sending again.");
@@ -761,28 +859,32 @@ function Surface() {
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}
       {settlement && <p data-chat-settlement={settlement.settled ? "settled" : "running"}>{`result: ${settlement.terminal ? settlement.operationOutcome : "pending"} · settled: ${settlement.settled}`}</p>}
       <span data-chat-draft-ready={draftReady ? "true" : "false"} hidden />
+      <span data-chat-retention={retention} hidden />
+      <span data-chat-frozen={frozen ? "true" : "false"} hidden />
       {recovery && <p role="alert">{recovery} <button onClick={() => void perform(() => recover(attempt!.requestId))}>Check Native recovery</button></p>}
       <textarea aria-label="Message" data-chat-draft value={text} disabled={!view}
         onChange={event => edit(event.target.value)}
         onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length > 0) { event.preventDefault(); if (!busy) void addFiles(files); } }} />
       <fieldset data-chat-attachments>
         <legend>Files for this Send</legend>
-        <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || busy || uploading}
+        <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || busy || uploading || frozen}
           onChange={event => { const files = event.target.files; if (files) void addFiles(files).finally(() => { event.target.value = ""; }); }} />
         <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || busy || uploading}
           placeholder="Paste base64 or a data:…;base64 URL" onChange={event => setBase64Draft(event.target.value)} />
-        <button data-chat-base64-add disabled={!view || busy || uploading || base64Draft.trim() === ""}
+        <button data-chat-base64-add disabled={!view || busy || uploading || frozen || base64Draft.trim() === ""}
           onClick={() => void addBase64()}>Add pasted file</button>
         {uploading && <p role="status">Inspecting and staging the file…</p>}
-        <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}>
+        <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}
+          data-chat-original-invalid={item.invalid === undefined ? undefined : "true"}>
           {item.displayName} · {item.mediaType}{item.width === undefined ? "" : ` · ${item.width}×${item.height}`} · {item.byteLength} bytes
-          <button disabled={busy} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
+          {item.invalid === undefined ? <button disabled={busy} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
+            : <span data-chat-original-invalid-reason> · {item.invalid}</span>}
         </li>)}</ul>
         <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>
       {controller && <AttachmentPreparationPanel controller={controller} />}
-      <button data-chat-send disabled={!view || busy || uploading || text.trim() === ""} onClick={() => void send("queue")}>Send</button>
-      <button data-chat-steer disabled={!view || busy || uploading || text.trim() === "" || originals.length > 0} onClick={() => void send("steer")}>Steer</button>
+      <button data-chat-send disabled={!view || busy || uploading || frozen || originals.some(item => item.invalid !== undefined) || text.trim() === ""} onClick={() => void send("queue")}>Send</button>
+      <button data-chat-steer disabled={!view || busy || uploading || frozen || text.trim() === "" || originals.length > 0} onClick={() => void send("steer")}>Steer</button>
       <button data-chat-stop disabled={!view || stop?.status === "terminating"} onClick={() => void perform(async () => {
         setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop()));
       })}>Stop</button>
@@ -854,6 +956,7 @@ function Surface() {
   </div>;
 }
 async function boot() {
+  await ownerReady;
   const auth = await fetch("/auth/status", { cache: "no-store" });
   if (!auth.ok) { document.getElementById("app")!.textContent = "Browser authorization required. Open a local bootstrap link."; return; }
   csrf = (await auth.json()).csrf;
