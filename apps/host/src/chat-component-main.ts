@@ -10,6 +10,7 @@ const attachments = process.env.OMP_CHAT_ATTACHMENTS === "1";
 const home = resolve(attachments ? "vendor/chat-attachment-fixture" : "vendor/chat-fixture"),
   dataDir = resolve(process.env.OMP_CHAT_FIXTURE_DATA ?? "vendor/chat-access"),
   port = Number(process.env.OMP_CHAT_PORT ?? process.env.OMP_CHAT_FIXTURE_PORT ?? 3188);
+if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("OMP_CHAT_PORT must be a TCP port");
 if (process.argv.includes("--print-bootstrap")) {
   const authority = openBrowserAccess({ dataDir, origin: `http://127.0.0.1:${port}` });
   console.info(authority.bootstrapLink()); authority.close(); process.exit(0);

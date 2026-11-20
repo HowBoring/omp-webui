@@ -1,0 +1,133 @@
+{
+ "status": "ACTUAL_COMPONENT_BROWSER_PASS",
+ "ticket49": "OPEN",
+ "ticket29": "OPEN",
+ "productAdmission": "BLOCKED",
+ "integrationBase": "c0c16d8185aee7152a39cefa47869d94b8a78a6a",
+ "tuple": {
+  "host": "apps/host session-component-server (built chat and sessions bundles)",
+  "hostChatBundleSha256": "878dd6589d7289a6b20ff9c148c5c04aad1258213b0007ce05aaf1fa88ab3c8e",
+  "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+  "dshSourceTree": "d05468939bcb06446ace47045d138f716406c788",
+  "dshAssetsIdentity": "4d459f4cb1bfe0efa33b4baea82bb6440d90e4cbba26b7c5d7933b1e035a9348",
+  "ompCandidateBase": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+  "ompCandidatePatch": "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
+  "ompCandidateCliIdentity": "4fd3944ce12cea73992c4cfd19ba1f8d212854c3f473ec5751cf914084d0d5cc",
+  "bun": "1.4.4 (38afee6c8)",
+  "typescript": "6.0.3",
+  "browser": "Linux Chromium 157.0.8103.38",
+  "python": "3.14.4",
+  "playwright": "1.65.2"
+ },
+ "publicSurface": {
+  "session": [
+   "ompSessions/preferences",
+   "ompSessions/applyPreferences"
+  ],
+  "webuiClient": [
+   "settings/describe",
+   "settings/mutate"
+  ],
+  "sessionRpc": [
+   "get_state",
+   "get_available_models",
+   "get_available_thinking_levels",
+   "set_model",
+   "set_thinking_level"
+  ],
+  "excluded": [
+   "credentials",
+   "settings/document",
+   "settings/replace",
+   "settings/update",
+   "provider/plugin global management",
+   "DSH session/selectModel"
+  ]
+ },
+ "tests": {
+  "settingsRemote": {
+   "file": "tests/sessions/settings-remote.test.ts",
+   "passed": 4,
+   "assertions": 31
+  },
+  "preferencesRemote": {
+   "file": "tests/preferences/remote.test.ts",
+   "passed": 8,
+   "assertions": 36
+  },
+  "existingChatBrowser": {
+   "file": "tests/chat/browser.py",
+   "status": "PASS",
+   "scenarios": 15
+  },
+  "existingSessionBrowser": {
+   "file": "tests/sessions/browser.py",
+   "status": "PASS",
+   "scenarios": 6
+  },
+  "strictTypeScript": "PASS",
+  "sessionControlsGenerationCheck": "PASS"
+ },
+ "browserEvidence": {
+  "script": "tests/chat/settings-browser.py",
+  "artifact": "vendor/settings-browser.json",
+  "screenshot": "vendor/settings-browser.png",
+  "status": "PASS",
+  "realDSH": true,
+  "realStrictNative": true,
+  "renderedModelOptions": 64,
+  "nativeModelChoicesReturned": 64,
+  "initialThinkingLevels": [
+   "off"
+  ],
+  "thinkingLevelsAfterModelChange": [
+   "off",
+   "minimal",
+   "low",
+   "medium",
+   "high",
+   "xhigh"
+  ],
+  "changedModel": true,
+  "changedThinking": true,
+  "finalRevision": 3,
+  "scenarios": [
+   "scoped-appearance-dark-zh",
+   "reload-persistence",
+   "native-settings-read",
+   "native-settings-apply-readback",
+   "stale-revision-refused",
+   "draft-and-history-preserved",
+   "stream-settled-after-settings"
+  ],
+  "negativeStaleReplay": {
+   "transport": "actual Chromium fetch to public /api/ompSessions/applyPreferences",
+   "httpStatus": 200,
+   "rpcOk": false,
+   "code": "gateway/bad-request",
+   "message": "Session settings changed. Read them again before saving."
+  },
+  "scoping": {
+   "globalDocumentTheme": false,
+   "browserStorageThemeOrLocale": false,
+   "changedRoot": "[data-chat-root-slot]"
+  }
+ },
+ "unitNegatives": [
+  "stale revision refused",
+  "replaced worker generation refused",
+  "busy native session refused",
+  "revoked browser authority refused",
+  "unknown model refused without native write",
+  "unsupported thinking level refused without native write",
+  "preference client cannot mount credentials or settings document/replace/update"
+ ],
+ "limitations": [
+  "normal product admission remains blocked",
+  "controlled synthetic Chat provider; no real AI response claimed",
+  "Host-local revisions are not durable across Host restart",
+  "no atomic native conditional write spanning model plus thinking",
+  "Windows/WSL2 alternate browser matrix not run",
+  "cross-Browser-View settings event delivery not exercised by this browser proof"
+ ]
+}

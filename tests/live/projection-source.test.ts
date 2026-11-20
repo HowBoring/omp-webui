@@ -209,6 +209,8 @@ test('a branch change withdraws old pages and a fresh opening uses the same Nati
   const current = await LiveJournal.open(fixture([[first], [item('new-leaf', 'first', 'Current')]], {cut}));
   assert.equal(current.sessionId, old.sessionId);
   assert.notEqual(current.generation, old.generation);
+  assert.equal(old.projection.generation, old.generation);
+  assert.notEqual(current.projection.generation, old.projection.generation);
   assert.deepEqual(current.page({maxMessages: 1}).records[1]?.event.data, {
     id: 'new-leaf', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: 'Current'}],
   });

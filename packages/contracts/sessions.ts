@@ -18,6 +18,18 @@ const record = z.strictObject({ id: registration, nativeSessionId: path, sourceI
 export const sessionViewSchema = z.strictObject({ registration: record, workerId: worker, generation: z.string().uuid(), cwd: path,
   state: z.enum(["opening", "open", "outcome_unknown", "closed"]) });
 export type PublicSessionView = z.infer<typeof sessionViewSchema>;
+const thinkingLevel = z.enum(["inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const modelSummary = z.strictObject({ provider: token, id: token, name: z.string().min(1).max(128),
+  reasoning: z.boolean(), efforts: z.array(thinkingLevel).max(8) });
+export const sessionPreferencesSchema = z.strictObject({
+  workerId: worker, generation: z.string().uuid(), revision: z.number().int().min(0), busy: z.boolean(),
+  model: z.strictObject({ provider: token, id: token, name: z.string().min(1).max(128) }),
+  thinking: z.strictObject({ level: thinkingLevel, levels: z.array(thinkingLevel).min(1).max(8) }),
+  models: z.array(modelSummary).max(64) });
+export type SessionPreferences = z.infer<typeof sessionPreferencesSchema>;
+const preferencesChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), revision: z.number().int().min(0),
+  model: z.strictObject({ provider: token, id: token }).optional(), thinking: thinkingLevel.optional() })
+  .refine(value => value.model !== undefined || value.thinking !== undefined, "Choose a model or thinking level.");
 const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scanning"]),
   choices: z.array(z.strictObject({ selectionId: selection, nativeSessionId: path, sourceId: path, instanceId: path,
     cwd: path.optional(), title: z.string().max(8192).optional(), ownership: z.enum(["held", "free", "unknown"]),
@@ -48,6 +60,8 @@ export const sessionsContribution = createTypertRemoteInfo({ package: "@omp-webu
   "ompSessions/preview": method([parameter("path", path)], preview),
   "ompSessions/confirm": method([parameter("confirmation", z.string().uuid())], grant),
   "ompSessions/revoke": method([parameter("grantId", z.string().uuid())], z.strictObject({ revoked: z.literal(true) })),
+  "ompSessions/preferences": method([parameter("workerId", worker)], sessionPreferencesSchema),
+  "ompSessions/applyPreferences": method([parameter("change", preferencesChange)], sessionPreferencesSchema),
 }}, z);
 export const sessionsHostContribution: TypertContribution = { package: sessionsContribution.package, face: "host", schemas: [],
   model: { services: [], events: [], objects: [] }, invocations: sessionsContribution.descriptors };
@@ -67,6 +81,10 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
       preview(path: string): Promise<RemoteResult<z.infer<typeof preview>>>;
       confirm(confirmation: string): Promise<RemoteResult<z.infer<typeof grant>>>;
       revoke(grantId: string): Promise<RemoteResult<{ revoked: true }>>;
+      preferences(workerId: SessionWorkerId): Promise<RemoteResult<SessionPreferences>>;
+      applyPreferences(change: { workerId: SessionWorkerId; generation: string; revision: number;
+        model?: { provider: string; id: string }; thinking?: z.infer<typeof thinkingLevel>
+      }): Promise<RemoteResult<SessionPreferences>>;
     }
   }
 }

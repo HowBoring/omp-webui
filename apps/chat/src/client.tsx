@@ -7,7 +7,7 @@ import { apply as sessions, type SessionReference } from "@deepseek-ai/dsh-api-s
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
 import { brandString } from "@deepseek-ai/dsh-brand";
-import type { SessionRequestId } from "@deepseek-ai/dsh-api-session-controller/types";
+import type { SessionProjectionBinding, SessionRequestId } from "@deepseek-ai/dsh-api-session-controller/types";
 import { UiConversation } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { registerTrajectoryMessageDefinitions } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-message-definitions.ts";
 import { registerTrajectoryAssistantDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-assistant-definition.ts";
@@ -16,7 +16,8 @@ import { registerTrajectoryToolDefinition } from "@deepseek-ai/dsh-client-ui-tra
 import type { SessionBinding } from "@deepseek-ai/dsh-api-session-controller/client";
 import type { PropsRenderSlots, StandardSourceBinding, HostObservable } from "@deepseek-ai/dsh-client-ui-slots";
 import { useEffect, useRef, useState } from "react";
-import { sessionsContribution, type PublicSessionView, type SessionSelectionId } from "../../../packages/contracts/sessions.ts";
+import { sessionsContribution, type PublicSessionView, type SessionPreferences, type SessionSelectionId } from "../../../packages/contracts/sessions.ts";
+import { preferencesRemoteContribution } from "../../../packages/preferences/remote.ts";
 import { chatContribution, type ChatRecovery } from "../../../packages/contracts/chat.ts";
 import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
@@ -44,6 +45,7 @@ let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
+let renewEnrollment: ((projection: SessionProjectionBinding) => Promise<void>) | undefined;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
 const resultValue = <T,>(result: { ok: true; value: T } | { ok: false; error: { message: string } }): T => {
   if (!result.ok) throw new Error(result.error.message);
@@ -73,24 +75,23 @@ async function waitProjection(binding: SessionBinding) {
   }
   throw new Error("Projection is not ready for an attached Chat draft.");
 }
-async function waitProjectionGeneration(binding: SessionBinding, generation: string) {
+async function waitRebuiltProjection(binding: SessionBinding, generation: string) {
   for (let attempt = 0; attempt < 400; attempt++) {
     const state = binding.projection.getSnapshot();
     if (state.phase === "ready" && state.binding.generation === generation) return;
     if (state.phase === "failed") throw new Error(`The rebuilt Session projection failed: ${String(state.error)}.`);
     await new Promise(resolve => setTimeout(resolve, 25));
   }
-  throw new Error("The rebuilt Session projection did not become ready.");
+  const state = binding.projection.getSnapshot(), session = binding.session.getSnapshot();
+  throw new Error(`The rebuilt Session projection stayed ${state.phase} (open ${session.openState ?? "unknown"}, projection ${session.projectionGeneration ?? "none"}, error ${session.openError?.message ?? "none"}).`);
 }
-async function renewSessionProjection(view: PublicSessionView) {
+async function renewSessionProjection(view: PublicSessionView, progress: (status: string) => void = () => {}) {
   const sessionId = SessionId(view.registration.nativeSessionId);
-  const result = resultValue(await ctx.remote.session.projections({ sessionId }));
-  if (result?.kind !== "sequenced" || !result.projection) return;
-  const binding = liveBinding;
-  if (!binding) return;
-  await waitProjectionGeneration(binding, result.projection.generation);
-  if (liveBinding !== binding) return;
-  resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: result.projection, draftId }));
+  progress("Reading the rebuilt Session projection…");
+  const current = resultValue(await ctx.remote.session.projections({ sessionId }));
+  if (current?.kind !== "sequenced" || !current.projection) throw new Error("The Session projection is not available for rebuild.");
+  if (liveBinding) { progress("Waiting for the rebuilt Session projection…"); await waitRebuiltProjection(liveBinding, current.projection.generation); }
+  if (renewEnrollment) { progress("Renewing the Chat attachment…"); await renewEnrollment(current.projection); }
 }
 async function present(view: PublicSessionView) {
   release();
@@ -107,6 +108,10 @@ async function present(view: PublicSessionView) {
   if (reference !== retained) return;
   const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
   if (reference !== retained) return;
+  renewEnrollment = async projection => {
+    if (reference !== retained) return;
+    resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection, draftId }));
+  };
   sessionStorage.setItem("omp-supervised-worker", JSON.stringify({ workerId: view.workerId, generation: view.generation }));
   // Host-assigned view owner stays authoritative for the Gateway; draft storage uses the stable tab owner.
   authorities.set(view.registration.nativeSessionId, { host: "omp-webui", browser: tab, page: tab, profile: "isolated",
@@ -138,6 +143,111 @@ function watch(binding: SessionBinding, retained: SessionReference) {
   unsubscribeProjection = binding.projection.subscribe(() => {
     if (reference === retained && binding.projection.getSnapshot().phase === "ready") attach();
   });
+}
+function SessionSettings({ view }: { view: PublicSessionView }) {
+  const [prefs, setPrefs] = useState<SessionPreferences>();
+  const [selection, setSelection] = useState(""), [thinking, setThinking] = useState<SessionPreferences["thinking"]["level"]>("off");
+  const [status, setStatus] = useState(""), [error, setError] = useState("");
+  const adopt = (next: SessionPreferences) => { setPrefs(next); setSelection(JSON.stringify([next.model.provider, next.model.id]));
+    setThinking(next.thinking.level); };
+  const load = async () => {
+    try { adopt(resultValue(await ctx.remote.ompSessions.preferences(view.workerId))); }
+    catch (failure) { setPrefs(undefined); setError(message(failure)); }
+  };
+  useEffect(() => { setPrefs(undefined); setStatus(""); setError(""); void load(); }, [view.workerId, view.generation]);
+  const [provider, id] = (() => { try { const value = JSON.parse(selection); return Array.isArray(value) ? value : ["", ""]; }
+    catch { return ["", ""]; } })() as [string, string];
+  const dirty = prefs !== undefined && (provider !== prefs.model.provider || id !== prefs.model.id || thinking !== prefs.thinking.level);
+  const save = async () => {
+    if (!prefs || !dirty) return;
+    const change: Parameters<typeof ctx.remote.ompSessions.applyPreferences>[0] = {
+      workerId: view.workerId, generation: view.generation, revision: prefs.revision };
+    if (provider !== prefs.model.provider || id !== prefs.model.id) change.model = { provider, id };
+    if (thinking !== prefs.thinking.level) change.thinking = thinking;
+    setStatus("Applying native Session settings…"); setError("");
+    try { adopt(resultValue(await ctx.remote.ompSessions.applyPreferences(change)));
+      await renewSessionProjection(view, setStatus);
+      setStatus("The native Session confirmed the new settings."); }
+    catch (failure) { setStatus(""); setError(message(failure)); void load(); }
+  };
+  return <section data-session-settings data-session-busy={prefs?.busy ? "true" : "false"}>
+    <h3>Model and thinking</h3>
+    {!prefs && !error && <p>Reading native Session settings…</p>}
+    {prefs && <>
+      <label>Model <select aria-label="Session model" value={selection} disabled={prefs.busy}
+        onChange={event => setSelection(event.target.value)}>
+        {prefs.models.some(model => model.provider === prefs.model.provider && model.id === prefs.model.id) ? null
+          : <option value={JSON.stringify([prefs.model.provider, prefs.model.id])}>{prefs.model.provider} / {prefs.model.name} (current)</option>}
+        {prefs.models.map(model => <option key={`${model.provider}\0${model.id}`}
+          value={JSON.stringify([model.provider, model.id])}>{model.provider} / {model.name}</option>)}
+      </select></label>
+      <label>Thinking <select aria-label="Session thinking level" value={thinking} disabled={prefs.busy}
+        onChange={event => setThinking(event.target.value as SessionPreferences["thinking"]["level"])}>
+        {prefs.thinking.levels.map(level => <option key={level} value={level}>{level}</option>)}
+      </select></label>
+      <button data-session-settings-save disabled={prefs.busy || !dirty} onClick={() => void save()}>Apply to this Session</button>
+      <p data-session-settings-revision={prefs.revision}>Revision {prefs.revision} · {prefs.models.length} native model choices
+        {prefs.busy ? " · Session is busy; stop the current turn to edit." : ""}</p>
+    </>}
+    {status && <p role="status">{status}</p>}
+    {error && <p role="alert">{error}</p>}
+  </section>;
+}
+
+function Appearance() {
+  const [theme, setTheme] = useState("system"), [locale, setLocale] = useState(""), [localeDraft, setLocaleDraft] = useState("");
+  const [revisions, setRevisions] = useState<Record<string, number>>({}), [status, setStatus] = useState(""), [error, setError] = useState("");
+  const valueOf = (view: { value: unknown } | undefined, fallback: string) => {
+    if (!view || typeof view.value !== "object" || view.value === null || !("preference" in view.value)
+      || typeof view.value.preference !== "string") return fallback;
+    return view.value.preference;
+  };
+  const adopt = (themeValue: string, localeValue: string, nextRevisions: Record<string, number>) => {
+    setTheme(themeValue); setLocale(localeValue); setLocaleDraft(localeValue); setRevisions(nextRevisions);
+  };
+  const load = async () => {
+    try {
+      const document = resultValue(await ctx.remote.settings.describe());
+      const themeView = document.namespaces.find(view => view.ns === "ui-theme");
+      const localeView = document.namespaces.find(view => view.ns === "locale");
+      adopt(valueOf(themeView, "system"), valueOf(localeView, ""), {
+        "ui-theme": themeView?.revision ?? 0, locale: localeView?.revision ?? 0 });
+    } catch (failure) { setError(message(failure)); }
+  };
+  useEffect(() => { void load(); }, []);
+  const zh = locale.toLowerCase().startsWith("zh");
+  const update = async (ns: "ui-theme" | "locale", value: string) => {
+    setStatus(""); setError("");
+    try {
+      const next = resultValue(await ctx.remote.settings.mutate(ns,
+        [{ op: "set" as const, path: ["preference"], value }], revisions[ns] ?? 0));
+      const updated = { ...revisions, [ns]: next.revision };
+      adopt(ns === "ui-theme" ? value : theme, ns === "locale" ? value : locale, updated);
+      setStatus(zh ? "已保存到本 WebUI。" : "Saved to this WebUI.");
+    } catch (failure) { setError(message(failure)); void load(); }
+  };
+  useEffect(() => {
+    const root = document.querySelector<HTMLElement>("[data-chat-root-slot]");
+    if (!root) return;
+    root.dataset.omTheme = theme;
+    root.lang = locale || "en";
+  }, [theme, locale]);
+  return <section data-webui-appearance>
+    <legend>{zh ? "外观与语言" : "Appearance and language"}</legend>
+    <label>{zh ? "主题" : "Theme"} <select aria-label="WebUI theme" value={theme}
+      onChange={event => void update("ui-theme", event.target.value)}>
+      <option value="system">{zh ? "跟随系统" : "System"}</option>
+      <option value="light">{zh ? "浅色" : "Light"}</option>
+      <option value="dark">{zh ? "深色" : "Dark"}</option>
+    </select></label>
+    <label>{zh ? "语言" : "Language"} <input aria-label="WebUI language" value={localeDraft}
+      placeholder="en" onChange={event => setLocaleDraft(event.target.value)} />
+      <button disabled={localeDraft.trim() === locale} onClick={() => void update("locale", localeDraft.trim())}>
+        {zh ? "应用语言" : "Apply language"}</button></label>
+    <p>{zh ? "仅作用于本 WebUI 页面，不修改其他入口。" : "Scoped to this WebUI page; other entry points are unchanged."}</p>
+    {status && <p role="status">{status}</p>}
+    {error && <p role="alert">{error}</p>}
+  </section>;
 }
 
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
@@ -430,7 +540,8 @@ function Surface() {
     return () => { release(); };
   }, []);
   useEffect(() => { if (view && liveBinding) { binding.current = liveBinding; scope.current = provider.scope(liveBinding); } }, [view?.workerId]);
-  return <div><p role="alert">{error}</p>
+  return <div><Appearance />
+    <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
     <button disabled={!cwd} onClick={() => void perform(async () => {
       const preview = resultValue(await ctx.remote.ompSessions.preview(cwd));
@@ -445,11 +556,12 @@ function Surface() {
       <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
       <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
     </li>)}</ul>
-    <section data-chat-worker-id={view?.workerId ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}
+    <section data-chat-worker-id={view?.workerId ?? ""} data-chat-generation={view?.generation ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}
       data-chat-image-count={originals.length} onDragOver={event => event.preventDefault()}
       onDrop={event => { event.preventDefault(); if (!busy) void addFiles(event.dataTransfer.files); }}>
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
+      {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
@@ -506,6 +618,7 @@ async function boot() {
   ctx.slots.installScope("session", { current: source, bindingSource: target => { if (target !== undefined) throw new Error("Root shell has no Session Slot"); return source; } });
   await ctx.remote.$mount(sessionsContribution);
   await ctx.remote.$mount(sessionContribution);
+  await ctx.remote.$mount(preferencesRemoteContribution);
   await ctx.remote.$mount(chatContribution);
   await ctx.remote.$mount(chatComponentContribution);
   await ctx.remote.$mount(attachmentContribution);

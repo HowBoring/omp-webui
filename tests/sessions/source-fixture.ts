@@ -10,7 +10,7 @@ import { CatalogClient } from "../../packages/contracts/generated/catalog-client
 import { StrictStartClient } from "../../packages/contracts/generated/strict-client.ts";
 import { HistoryClient } from "../../packages/contracts/generated/history-client.ts";
 import validState from "../../packages/contracts/generated/strict-state.js";
-import type { CatalogDescriptor, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
+import type { CatalogDescriptor, ModelInfo, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
 import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
 import type { OwnedSessionConnection, SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/submissions.ts";
@@ -19,6 +19,7 @@ import { isAttachmentReceipt } from "../../packages/contracts/attachment-prepara
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
+  model: ModelInfo; thinkingLevel: "off" | "low" | "high";
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
   close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
@@ -43,6 +44,10 @@ export async function sourceFixture(now: () => number = Date.now,
   let exited: PromiseWithResolvers<number>;
   const controls: NativeFixtureControls = {
     catalogFailure: undefined, busy: false, launches: 0, closed: false, notificationCount: 0,
+    model: { provider: "synthetic", id: "fixture", name: "Fixture", api: "synthetic", baseUrl: "http://127.0.0.1/",
+      reasoning: true, input: ["text"], cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+      contextWindow: 128000, maxTokens: 4096, thinking: { mode: "effort", efforts: ["low", "high"] } },
+    thinkingLevel: "off",
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
@@ -63,7 +68,14 @@ export async function sourceFixture(now: () => number = Date.now,
     async submitCommand() { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async state() { return { sessionId: selected.nativeSessionId, isSettled: !controls.busy, isStreaming: controls.busy,
-      isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } }; },
+      isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] },
+      model: controls.model, thinkingLevel: controls.thinkingLevel }; },
+    async models() { return [
+      { provider: "synthetic", id: "fixture", name: "Fixture", reasoning: true, thinking: { efforts: ["low", "high"] } },
+      { provider: "synthetic", id: "other", name: "Other", reasoning: false }]; },
+    async thinkingLevels(): Promise<("off" | "low" | "high")[]> { return ["off", "low", "high"]; },
+    async selectModel(provider: string, id: string) { controls.model = { ...controls.model, provider, id, name: id }; },
+    async setThinkingLevel(level: "off" | "low" | "high") { controls.thinkingLevel = level; },
     async retireIdle() { return controls.retirement ?? { status: "closed", drain: controls.drain }; },
   };
   const catalog = new CatalogClient(async command => {
