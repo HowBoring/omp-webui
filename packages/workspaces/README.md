@@ -1,0 +1,52 @@
+# Directory authorization and read-only Workspace mapping (#43)
+
+Current status (2026-11-19): isolated component accepted on integration `2560f24c` with the current OMP 19 candidate;
+#43 and #29 remain OPEN and private/product/global admission remains BLOCKED. The current-tuple browser/native run,
+affected test counts and evidence hashes are in
+[current tuple](../../apps/workspaces/evidence/current-2560f24c/tuple.json); source-only checks remain in
+[source evidence](../../docs/implementation/ticket-43-source-evidence.json). Earlier Linux browser/native
+`4764…`/`dcc2…`/c0 results remain historical. The normal Host still does not register this component, and #44 owns
+registration, protected open and worker revocation.
+
+`DirectoryGrants` stores only canonical roots and their filesystem identity (device, inode, birth time), grant ID
+and timestamp in private Host-owned SQLite. It never reads native Sessions. A 60-second in-memory confirmation
+binds an explicitly reviewed canonical target; confirmation is single-use and verifies replacement again.
+The owner grants a directory and descendants, with `path.relative` segment checks. Grant roots and native recorded
+cwd are revalidated for every catalog page. Missing, unknown, inaccessible, changed and ungranted are explicit.
+Symlink escapes and same-path replacements do not inherit grants. Grant loss/state replacement fails closed.
+
+The store uses FULL synchronous transactions, DELETE journaling, owner-only directory/file modes and live file
+identity checks. There are at most 256 grants and 32 pending previews; paths are absolute, NUL-free and at most
+4096 characters. Preview expiry never renews automatically. Reopening preserves grants; revocation commits before
+returning. A repeated explicit grant can update a deliberately re-reviewed replacement, retaining the grant ID.
+
+`workspacePage` consumes the public native `CatalogClient`. Source-scoped native items, ownership observations,
+partial failures, scanning cursors and native error codes remain native facts. Its parallel access array matches each
+page's item identities. Every discovery is explicitly `discovered`; no Session is created, registered, leased, opened
+or migrated. Cwd headings describe only the current Session page; they do not claim complete global Workspace
+pagination or counts. Native scan/response/snapshot/deadline budgets remain those in `compatibility/CATALOG.md`.
+Host access metadata adds at most 32 short records to a bounded native page; one HTTP body/WS frame is at most
+16 KiB, with eight Peers and one `$events` stream per Peer. No raw native RPC browser tunnel exists.
+
+`SessionIndexReader` exposes read-only metadata from the isolated Session carrier's SQLite Session Index. Independently
+paged registered references are re-described through public RPC. Current metadata, ownership and directory access
+require a matching native source, instance and Session ID. Missing, replaced, invalid, inaccessible and source-unavailable
+references retain cached metadata and report unknown access and ownership. Each page has at most 32 records.
+The registered page never writes the Session Index.
+`fixture-index.ts` supplies only deliberately authored synthetic reference metadata to the isolated executable.
+Legacy fixture rows without the source and instance retain explicit catalog failures and show `invalid_reference`
+if the catalog returns a verified description. Regenerating fixture data records the full native identity.
+
+No protected Session/history/attachment/execution admission exists here. Every view reports `blocked_pending_41_44`
+even after a valid grant. Normal Host admission remains closed. #44 must compose this current-rights policy with
+source/reference identity, final ownership checks, registration persistence and supervised worker stop/revoke
+cleanup. This component has a readonly catalog child, and never reports a Session worker stopped.
+
+Authenticated, decoded unary calls retain the DSH `rpcId` on both success and failure. Known grant,
+filesystem/storage, index, catalog and transport codes use the public typed Remote failure vocabulary in
+`packages/contracts/workspace-errors.ts`, with fixed sanitized messages and empty details. The carrier uses the
+public DSH `RemoteError` and Gateway failure serializer; thrown messages, stacks, native output, paths and details
+never cross that boundary. Unclassified failures return `gateway/internal` / `Workspace request failed.`.
+Malformed envelopes, endpoint/argument mismatch and non-JSON bodies remain HTTP 400/415; auth, Origin and CSRF
+rejections retain HTTP 401/403 and never derive correlation from an untrusted body. Credential revalidation still
+precedes invocation and response publication. Catalog page business error values retain their existing schema.

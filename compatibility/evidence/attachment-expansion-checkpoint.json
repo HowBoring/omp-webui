@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "ticket": 38,
+  "scope": "isolated-native-idle-prepared-input-routing-and-expansion",
+  "acceptance": "IN_PROGRESS",
+  "privateSessionAdmission": "blocked",
+  "source": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "b3caa16ffe0fce43b7db9fb4be4db1b2bc45f7cfe108431fc26a13961423e2f2",
+    "patchSha256": "4fceb5268ed574661bd15def1f7b62e8940db38481ea2bf85b88292d529de018",
+    "schemaSha256": "500c7f341dba3636a26b5417d2e1f4d89c1b8caa243e55e068fad1cff2a4eabe"
+  },
+  "nativeDependency": "6a6d7f65d6c631b7e35652fb5e17ecce5d79dbb7",
+  "checks": [
+    {
+      "command": "bun scripts/build-compatibility.ts",
+      "result": "PASS",
+      "scope": "ordered1\u20137+9;8notcomposed"
+    },
+    {
+      "command": "bun scripts/check-attachment-native.ts",
+      "result": "PASS",
+      "scope": "authoredNativefiles;unrelatedupstreamdiagnosticsexcluded"
+    },
+    {
+      "command": "bun test tests/attachments/expansions.test.ts",
+      "result": "PASS",
+      "tests": 1,
+      "assertions": 22,
+      "seconds": 6.13,
+      "observed": [
+        "actual native skill file discovery and /skill expansion",
+        "actual file-based slash command expansion",
+        "actual prompt-template expansion",
+        "all three retain committed input image relation and separate staged text relation",
+        "expanded input checked by actual public native history snapshot/content API",
+        "controlled provider modelDispatches advances1,2,3 only after consumption"
+      ],
+      "cleanup": "owned worker gracefulexit0,noforce;synthetic profile/originals removed"
+    },
+    {
+      "command": "bun test tests/attachments/provider.test.ts tests/attachments/input-kinds.test.ts",
+      "result": "PASS_ON_PRIOR_SOURCE",
+      "tests": 3,
+      "assertions": 41,
+      "seconds": 16.25,
+      "sourceSha256": "17327b30d2b3aa97eb26e8dd7b276b14f6477550f183ee5fff2ef8e5a450ae32",
+      "schemaSha256": "500c7f341dba3636a26b5417d2e1f4d89c1b8caa243e55e068fad1cff2a4eabe",
+      "observed": [
+        "exact staged image bytes at controlled provider",
+        "same-byte ingress clone/context drop/payload hook rewrite refused",
+        "unsupported preparedsteer/followup/abort refused before reservation",
+        "valid idle receipt remains usable after kind refusal",
+        "known/retry handler refused before input/model/reservation effects",
+        "unknown slash text follows ordinary native route"
+      ],
+      "cleanup": "all owned workers exit0,noforce;synthetic profiles removed"
+    }
+  ],
+  "scopeBoundary": [
+    "Final Native Context, controlled provider and payload-hook boundary; no real-provider/network delivery claim",
+    "Pre-import Javascript egress denial/syntheticHOME/allowlistedenv; no newOSnetwork-syscall audit in this narrow slice",
+    "New optional actual custom source object carrier fixes appendCustomMessageEntry provenance; sharedbasefold coordinated with36",
+    "Prepared admission advertises idlepromptonly; unsupported live kinds refuse before receipt claim/reservation"
+  ],
+  "remaining": [
+    "postEnter actual serialized DSH SessionRemote preparation+explicitcontinuation workflow, quote/referencecodec/cancel/stale/neweredit/reconnect proof",
+    "remaining actual converter/cancellation/resource/archive/encodedRPC boundary cases",
+    "restart/copy/branch/no-entry and durable retry combinations",
+    "compose accepted8/final7/sharedguards andcurrentintegration",
+    "complete finalmatchedartifact gates"
+  ],
+  "windows": "OWNER_DEFERRED_NOT_RUN",
+  "digests": {
+    "compatibility/omp/0009-attachment-preparation.patch": "b0ec5f8e366f6b86ee05248c2ac8e92569978c1afd46ee0ec8aa42c9c84082f5",
+    "tests/attachments/expansions.test.ts": "f80c99907e3c8554867a4465c9cca76cc664e818c2704c2b8b4a0eaaee09b65d",
+    "tests/attachments/input-kinds.test.ts": "8f73d9907a16f4ce401b1b8108847915a01fe083f72b166c8a0020405b1544a2",
+    "compatibility/omp/fixtures/attachment-originals.ts": "5b557ced7ae6129aa8345643f0fcbef7b6bbaebb17d7503a2995afab9f0526fe"
+  }
+}

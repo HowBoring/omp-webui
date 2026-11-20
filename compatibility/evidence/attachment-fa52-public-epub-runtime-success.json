@@ -1,0 +1,361 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_EPUB_CASE_ONLY",
+  "hostHead": "733fecc75fa316cb35db3da4ef9d742414785db4",
+  "hostTree": "7b806be642291af60e90e4822c6fab4d8385816f",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root granted exactly ONE anchored EPUB actual attempt on clean 733fecc / READY b3087584 / nested delta a4be144b, independently resolved745 inputs, sole active top OMP window. Used once and RELEASED after actual outcome/original owned waits/readers, before read-only postcheck/proof/archive. Root explicitly accepted reported drainage. No further runtime/source authority.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-epub-source-ready.json",
+    "bytes": 34779,
+    "sha256": "b30875843fc62dabdffd15da43ec2c59652763b80fae51fcbd48ef67f8845b8a"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-epub-source/final-inputs.json",
+    "bytes": 14169,
+    "sha256": "a4be144ba454c5c48837becc1eb5cd7f8a271ad2959be410f7b46beab3d8bdc5"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+    "bytes": 12676,
+    "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+  },
+  "flatAncestorFreeze": {
+    "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+    "bytes": 184366,
+    "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public EPUB requires structure consent before indexed saved text and provider witness",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public EPUB requires structure consent before indexed saved text and provider witness$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-epub-9xqrg6_w",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-epub-9xqrg6_w",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-epub-9xqrg6_w",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T07:46:31.652120+00:00",
+    "startedMonotonicNs": 170473525606107,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-epub-1klzbtrs",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/tmp/ticket38-epub-runtime.py",
+      "bytes": 7210,
+      "sha256": "283f2e380307db7176ac2fa89feba948e4c9a8b3e40bb0f1adf591cf6234299e"
+    },
+    "runnerPid": 575881,
+    "runnerWaitStatus": 0,
+    "finishedAt": "2026-11-17T07:46:35.550805+00:00",
+    "finishedMonotonicNs": 170477424312231,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "stdoutBytes": 28,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrBytes": 237,
+    "stderrSha256": "1ec60e29292d7c88f44d438ddf79422c95cccde6aa1f793011cbc15e369c9199",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 9,
+    "assertions": 45,
+    "durationReported": "3.89s",
+    "caseDurationMs": 3825.4,
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "independentlyExpectedPrepared": {
+    "text": "**Title:** EPUB witness\n**Language:** en\n\nChapter\n\nControlled prepared document",
+    "bytes": 79,
+    "textSha256": "417f798e8bf98981a2f92d2dcab954563f2b79e7ce6486e7be4c0b14b0d4ccea",
+    "representationSha256": "b04d22a6b470a322cd10704bd1cc40fadd3d3ae1a970399dc65fa2c860f7dc28",
+    "provenance": "Independent worked explicit-source example, including retained XHTML Chapter head/title, Python-hashed BEFORE actual. Selected case matched exact79B literals/digests/facts. Not a fabricated extraction result or separately exported raw receipt."
+  },
+  "earnedPublicBehavior": [
+    "Independent1893B/five-member EPUB3 original SHA34985b766db4cddb6ecea12aac1a26690a3bd9aa631f6a402977c6d01f98bbd8 matches. Original first/stored mimetype, CRC/XML/container/OPF/manifest/spine/local nav/chapter graph and known paragraph remain pinned. No external resource hrefs. This is structural evidence, not EPUBCheck/schema/rendering proof.",
+    "Actual public preparation returns one ready text item equal to worked79B Title/Language metadata header, retained Chapter head/title and known paragraph; representation SHAb04d22a6b470a322cd10704bd1cc40fadd3d3ae1a970399dc65fa2c860f7dc28. Original/prepared digests distinct. Exactly document_structure_changed; facts originalBytes1893/convertedBytes79/omittedImages0. No speculative public spine-count/validity/fidelity facts invented.",
+    "Prepare changes neither public entries nor provider effects. Missing structure consent refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED before reservation/admission/effects. Same epub-success query stays absent/unresolved/unknown, no relations/nextOffsetnull, entries/effects unchanged.",
+    "Exact explicit structure consent bound to returned receiptId/resultDigest/draftRevision/authorityGeneration succeeds. ONE terminal query confirms found/succeeded/generated/committed reservation and persistence, selected target, epub-success origin and consent binding.",
+    "Only returned public relation.entryId and actual entryPart files/index locate one saved fileMention. Indexed preparedId path/full79B/byteSize and text SHA417f798e8bf98981a2f92d2dcab954563f2b79e7ce6486e7be4c0b14b0d4ccea match expectations; full links match receipt. Same entryId history rows require origin/prepared role/full link. Never text/hash/order joins.",
+    "Exactly one controlled input/model attempt/dispatch/request, no images/tool/blocked growth. Unchanged provider witnesses Controlled prepared document once in developer text,28B/SHAfd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419. Known extracted span only, not complete79B/provider-wrapper delivery or history causality.",
+    "Second terminal query equals first exactly and adds no effects."
+  ],
+  "identityDiscipline": "Only public relation.entryId and actual saved part kind/index supply causal history joins. Hashes witness bytes/contract consistency; text/hash/order never identifies history. No new private Native runtime imports or Native Session-file parsing.",
+  "contentOracleLimits": "Actual assertions matched independent source-worked complete79B prepared text/digests, including the inspected retained chapter head/title behavior. Structural checks do not establish EPUBCheck/full schema/application rendering/layout fidelity. Provider captures known28B only; full receipt/indexed text equality does not prove full79B/provider-wrapper delivery. Runtime receipt/entry IDs/raw receipt/provider-effects JSON were not separately retained after fixture cleanup.",
+  "drain": {
+    "originalTool": "Original network-enabled exec 1c346a / session 59196 reached original completion poll 666d90 actual exit 0. No ongoing tool from attempt. Identifiers assistant-transcribed, not independent archive.",
+    "originalPopen": "Original Python Popen retained Bun 575881; actual child.wait returned 0 before stdout/stderr files closed and runner JSON. No added signals, outer timeout, recovery or fallback.",
+    "worker": "Unchanged withWorker awaited strictWorker.close and asserted actual code0. Close awaits original stdout reader and stderr; finally awaited original child.exited before owned home removal. Exact individual worker PID/drain object/stderr not separately retained.",
+    "catalog": "Unchanged selectedDescriptor awaited CatalogTransport.close in finally. Helper discards exact PID/DrainResult/exitcode/forced metadata; NOT CAPTURED. No invented exact catalog exitcode/zero-forced or descendant-extinction claim.",
+    "serializer": "Unchanged canonical title helper c4e684 preloads child no-provider BEFORE pure Native serializer import. Original stdout/stderr/exit awaits and code0+empty stderr assertion completed before worker startup. Exact child PID not separately retained.",
+    "converter": "Unchanged prepareAttachmentIsolated owns original converter handle/readers, awaits child.exited before ready and again in finally before owned profile removal. Actual EPUB package/Markit/ZIP/XML/local HTML conversion executed inside this single public preparation path. Exact converter PID/individual wait/forced metadata not separately retained.",
+    "profiles": "Top synthetic profile removed and before/after per-case attachment-public homes both empty. Neither profile absence nor returned parent exit establishes descendant extinction."
+  },
+  "preAndPost": {
+    "status": "PASS",
+    "resolvedCurrentInputs": 745,
+    "resolvedBaseCurrentInputs": 703,
+    "flatAncestorCurrentInputs": 667,
+    "soleCurrentTestOverride": 1,
+    "uniqueAddedRecords": 42,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "unchangedPriorCurrentReferences": 717,
+    "prior705DirectExactBeforeSource": true,
+    "allNinePriorCasesProofsRawReadiesPreserved": true,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostHeadTreeIndexExactBeforeAndAfterRuntime": true,
+    "hostIndexBeforeAndAfterRuntimeSha256": "d6a445b323b999c0915dee80fce4691e3c597e3933b5076d8062ff011d8c1715",
+    "archiveXmlClosureRecords": 41,
+    "addonClosureRecords": 15,
+    "htmlSourceClosureRecords": 6,
+    "closureManifests": {
+      "archiveXml": {
+        "manifest": {
+          "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+          "bytes": 10064,
+          "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+        },
+        "records": 41,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+        }
+      },
+      "nativeAddonCandidates": {
+        "manifest": {
+          "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+          "bytes": 6181,
+          "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+        },
+        "records": 15,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+        }
+      },
+      "meaning": "Existing immutable manifests reused by reference, no duplicate full manifest. Each named record and symlink independently rehashed/checked in source preservation/readback; actual capability unexecuted."
+    },
+    "htmlSourceManifest": {
+      "path": "/tmp/ticket38-epub-source/html-source-closure.json",
+      "bytes": 2232,
+      "sha256": "3863723836f65bd1b69b1956214cf1b9f0a2aa4f549e19da82709d1e663ec4c1"
+    },
+    "closureSymlinks": {
+      "archiveXml": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+      },
+      "nativeAddonCandidates": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+      }
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "sourceChangedDuringRuntime": false,
+    "perCaseAttachmentHomesBefore": [],
+    "perCaseAttachmentHomesAfter": [],
+    "limits": "Exact enrolled delta/base source/build/tool/proof/raw references and named closures; not exhaustive transitive/system/runtime dependency proof."
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/archive-manifest.json",
+      "bytes": 2831,
+      "sha256": "4975c8ecdc142a4e2e6dfb356712ea4226b65069fd5f59d498de7cabb4e4e857"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/original-tool-metadata.json",
+      "bytes": 1003,
+      "sha256": "ceba947c7526ca47c32e038ade979b837eed6b710df23dab3318253858f4ae64"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/postcheck.json",
+      "bytes": 3143,
+      "sha256": "9e28faf39ceaaa9f3bfdfab80eced0333081c579feb19f614209f311b44e1f7f"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/precheck.json",
+      "bytes": 3162,
+      "sha256": "902c03ef2ac719702affbc6daca85c189d5d41918680789bc4431635b03c9f60"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/runner.json",
+      "bytes": 1942,
+      "sha256": "b96e7b2d22051251a93cede19a16671e2218325395f136a6c09adbd5d8689267"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/start.json",
+      "bytes": 1398,
+      "sha256": "33a0a97d8102809321a918730301ea4cf52749625c8e92495d7d20e4d9849e02"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/stderr.txt",
+      "bytes": 237,
+      "sha256": "1ec60e29292d7c88f44d438ddf79422c95cccde6aa1f793011cbc15e369c9199"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/used-once.json",
+      "bytes": 104,
+      "sha256": "4eb051ca7e3f88bb84f5d5884cdcb22b5689813855e34e2f2f066b7de07568f7"
+    },
+    {
+      "path": "/tmp/ticket38-epub-runtime.py",
+      "bytes": 7210,
+      "sha256": "283f2e380307db7176ac2fa89feba948e4c9a8b3e40bb0f1adf591cf6234299e"
+    }
+  ],
+  "retainedArchive": {
+    "file": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-epub-runtime-raw.tar.gz",
+      "bytes": 3753,
+      "sha256": "d4c7c7305ab051f5afb9b7f57aaf39ff95a2332415e3cfcce348802e28ace9cb"
+    },
+    "manifest": {
+      "path": "/tmp/ticket-38-public-epub-1klzbtrs/archive-manifest.json",
+      "bytes": 2831,
+      "sha256": "4975c8ecdc142a4e2e6dfb356712ea4226b65069fd5f59d498de7cabb4e4e857"
+    },
+    "members": [
+      {
+        "archivePath": "manifest.json",
+        "bytes": 2831,
+        "sha256": "4975c8ecdc142a4e2e6dfb356712ea4226b65069fd5f59d498de7cabb4e4e857"
+      },
+      {
+        "archivePath": "raw/precheck.json",
+        "bytes": 3162,
+        "sha256": "902c03ef2ac719702affbc6daca85c189d5d41918680789bc4431635b03c9f60"
+      },
+      {
+        "archivePath": "raw/postcheck.json",
+        "bytes": 3143,
+        "sha256": "9e28faf39ceaaa9f3bfdfab80eced0333081c579feb19f614209f311b44e1f7f"
+      },
+      {
+        "archivePath": "raw/start.json",
+        "bytes": 1398,
+        "sha256": "33a0a97d8102809321a918730301ea4cf52749625c8e92495d7d20e4d9849e02"
+      },
+      {
+        "archivePath": "raw/runner.json",
+        "bytes": 1942,
+        "sha256": "b96e7b2d22051251a93cede19a16671e2218325395f136a6c09adbd5d8689267"
+      },
+      {
+        "archivePath": "raw/used-once.json",
+        "bytes": 104,
+        "sha256": "4eb051ca7e3f88bb84f5d5884cdcb22b5689813855e34e2f2f066b7de07568f7"
+      },
+      {
+        "archivePath": "raw/stdout.txt",
+        "bytes": 28,
+        "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+      },
+      {
+        "archivePath": "raw/stderr.txt",
+        "bytes": 237,
+        "sha256": "1ec60e29292d7c88f44d438ddf79422c95cccde6aa1f793011cbc15e369c9199"
+      },
+      {
+        "archivePath": "raw/network-audit.json",
+        "bytes": 68,
+        "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+      },
+      {
+        "archivePath": "raw/original-tool-metadata.json",
+        "bytes": 1003,
+        "sha256": "ceba947c7526ca47c32e038ade979b837eed6b710df23dab3318253858f4ae64"
+      }
+    ],
+    "uncompressedBytes": 13916,
+    "memberCount": 10,
+    "scope": "Nine allowlisted runner metadata/output/sanitized guard-audit files only. No Native Session JSONL/content, RPC transcript, receipt/provider JSON, profile settings/directories, executable, addon, runtime or source-tree copies.",
+    "readback": "Every archived name/type/size/content byte verified against exact allowlist; no extraction or private Session/runtime copy."
+  },
+  "preservedPriorEvidence": {
+    "baseFreeze": {
+      "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+      "bytes": 12676,
+      "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+    },
+    "flatAncestorFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "previousXlsxProofAndUsage": [
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-xlsx-runtime-success.json",
+        "bytes": 17201,
+        "sha256": "d1d022dfa5f2d2b0982dbeccfdd48ed5de8e93ad069fc26cf0769dba38f6c972"
+      },
+      {
+        "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-xlsx-window-usage.json",
+        "bytes": 2965,
+        "sha256": "da4d4271b581ab45bfcf7bdd8aa70e3e7dad8414d6b20d1c6b9af445f87777da"
+      }
+    ],
+    "proofRawReferenceManifest": {
+      "path": "/tmp/ticket38-epub-source/before.json",
+      "bytes": 6431,
+      "sha256": "41277299029e6acfb5bc23c55469813953db522d148e4b09220d08ed3d86632b"
+    }
+  },
+  "limitations": [
+    "Runtime receipt/entry IDs and per-case raw receipt/provider-effects JSON not separately retained. Complete79B prepared values are independently expected literals matched by assertions, not separately exported raw values. No invented IDs.",
+    "Provider witness known28B only, not full79B/provider wrapper, pixels/layout or full EPUB validity.",
+    "Audit0dispatch/0denied covers instrumented boundaries only, not general syscall/network proof. Individual Native/catalog/converter/serializer PID/wait/forced metadata uncaptured; no descendant-extinction claim.",
+    "All format proofs remain scoped to their individual recorded current9f33 isolated cases. No combined full38/product acceptance from this case/cohort.",
+    "Remaining refusals/budgets/cancel/stale/expiry/locator/lifecycle/history/restart/copy/branch/restore/persistence/fault/native data/TUI/provider, actual DSH/browser/final coherent1-10/full checks/reviews/whole38/MVP OPEN. Linux now; WindowsChrome/WSL2 owner-deferred; global target unselected."
+  ],
+  "noOtherActions": "No retry, source/product/Native API/schema fix, expectation weakening, build/dependency install/mutation, other case/format, Host/browser/ad-hoc FFI/socket/kernel probe, GH/push/merge/closure, process census/PIDfallback/groupkill/fence/orphan444480 action. Evidence-only archive contains no private Session or executable/addon/runtime copies.",
+  "admission": "ONE isolated public EPUB case only. Runtime window RELEASED and drainage accepted by Root before post/evidence-only work. No further runtime/source authority; private/global/product admission blocked; whole38/MVP OPEN."
+}

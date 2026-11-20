@@ -1,0 +1,690 @@
+{
+  "format": "ticket-41-external-composed-selection-v1",
+  "scope": "Unregistered SOURCE only; fresh full paired review required; no admission/actual runtime proof",
+  "base": {
+    "commit": "fe8a24afcbff02edaa9988349c32e87ce081bd99",
+    "tree": "f4ad103dda4d25e7f97130505812993bd6161569"
+  },
+  "external": {
+    "commit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+    "tree": "6884dcfa3567993898ef98001320a6b159752443"
+  },
+  "allowlist": [
+    "compatibility/supervision/candidates.h",
+    "compatibility/supervision/external-protector.c",
+    "compatibility/supervision/private-helper.c",
+    "docs/adr/0027-unregistered-external-protector-composition.md",
+    "docs/evidence/source-checks/ticket-41-external-composed-static.ts",
+    "docs/evidence/ticket-41-external-clean-eof.json",
+    "docs/evidence/ticket-41-external-clean-eof.md",
+    "docs/evidence/ticket-41-external-composed-selection.json",
+    "docs/evidence/ticket-41-external-composed-static-closure.json",
+    "docs/evidence/ticket-41-external-composed-validation.md",
+    "docs/evidence/ticket-41-external-phase-fix.json",
+    "docs/evidence/ticket-41-external-phase-fix.md",
+    "docs/evidence/ticket-41-external-protector-static.json",
+    "docs/evidence/ticket-41-external-protector.md",
+    "docs/evidence/ticket-41-external-raw-close.json",
+    "docs/evidence/ticket-41-external-raw-close.md",
+    "docs/evidence/ticket-41-external-review-fix.json",
+    "docs/evidence/ticket-41-external-review-fix.md",
+    "docs/evidence/ticket-41-external-terminal-fix.json",
+    "docs/evidence/ticket-41-external-terminal-fix.md",
+    "packages/supervision/EXTERNAL.md",
+    "packages/supervision/README.md",
+    "packages/supervision/external-launch.ts",
+    "packages/supervision/external.ts",
+    "scripts/build-external-protector.ts",
+    "scripts/build-private-helper.ts",
+    "scripts/check-external-protector-static.py",
+    "scripts/supervisor-build.ts",
+    "tests/supervision/external/build.test.ts",
+    "tests/supervision/external/controller.test.ts",
+    "tests/supervision/external/launch.test.ts",
+    "tests/supervision/fixtures/external-write-fault.py"
+  ],
+  "selected": [
+    {
+      "path": "compatibility/supervision/candidates.h",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "12637556c77aa1c3cd6fe5722eaa7bba21ee195c",
+      "sourceSha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+      "selectedSha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "present",
+        "gitBlob": "ced3a27457579673efaade0aa78187e42b895b5a",
+        "sha256": "798333e40bdb7e1c83e725b3991a0fb934dc92a4903ae2f3e94fd448e18b4893"
+      },
+      "dependencyNotes": "OMP_PROC_VIEW_ONLY excludes external enumeration; private candidate implementation unchanged."
+    },
+    {
+      "path": "compatibility/supervision/external-protector.c",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "c48a10f7c90d1ff36c6521c33afbb8f0cde89049",
+      "sourceSha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+      "selectedSha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Literal include of private-helper.c; separately compiled fixed policy, no private signal/discovery/escalation definitions."
+    },
+    {
+      "path": "compatibility/supervision/private-helper.c",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "6939247d6defa1c80fc4a079dfa9aceb4deefd29",
+      "sourceSha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+      "selectedSha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "present",
+        "gitBlob": "af95d4e72c81ca14a8021db5c940ce1fa4c22150",
+        "sha256": "b0216bc3c4c5c6cde9168b4aa3a8a4030e68582a682d6ec4d4362dcfeb383b9f"
+      },
+      "dependencyNotes": "Complete latest shared C; candidates.h + launcher/control.h + pinned inert syntax configuration; private semantics retained, new build/provenance required."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-clean-eof.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "0cdc4d95e03a00c1299dcc59fdb27261bba38a91",
+      "sourceSha256": "12d01ef2e91f5edd78f9f50a42dde03de4512529448e6dd0803b211038398dde",
+      "selectedSha256": "12d01ef2e91f5edd78f9f50a42dde03de4512529448e6dd0803b211038398dde",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-clean-eof.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "baf5bb2cc9883b4ee393e70dc168bcf333ba94c0",
+      "sourceSha256": "ef3be7f83e49a6e315aaee6993ef72677b45d0f0d0304b6544d9a64d6b77e06a",
+      "selectedSha256": "967633bc09e53be5c0ef73db203aba6b374f9afae177d0383dd843a52365e7b0",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-phase-fix.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "b029ecb14c4b1ab22d48c856c66a47dfce20e146",
+      "sourceSha256": "5d8b4c53d418a1b75e308376bee17f6de093952609364977d85c6ae38c9068ea",
+      "selectedSha256": "5d8b4c53d418a1b75e308376bee17f6de093952609364977d85c6ae38c9068ea",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-phase-fix.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "f41ed6662fa1a39035e3f9b13be3daaea18f99f2",
+      "sourceSha256": "157d99db27fbf65c1b0adfe154fa13168977ec3535e3133e88a949cf68fcc7bc",
+      "selectedSha256": "f82ae030fa5deabdc64046de9f9cb7fd315ccae60b1b9ab7e511b79a705bfae0",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-protector-static.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "8c138d18e992b321784089f213b5a22bdb30a120",
+      "sourceSha256": "704e7b20c879c52a4c97882d01d03c9446de6e38d315cb6867f1b344e9ea10f7",
+      "selectedSha256": "704e7b20c879c52a4c97882d01d03c9446de6e38d315cb6867f1b344e9ea10f7",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-protector.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "f52ec3c102441c3ec1bcf4b400b30290b77a4989",
+      "sourceSha256": "c3dd9e0cbac805ec5e6ef83639f0719e1e099facd3011b6886fdda6b1833ccb7",
+      "selectedSha256": "9f9e96628672cac99efcc1d7588e08b1cdaf65c961f27be40e874f9841fb850e",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-raw-close.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "d6678041a1837df452acae3d62d7d5f05b724f75",
+      "sourceSha256": "454f20ec65ab1cb324fe3b1ada559f1f7a817ad59df377f3b1b669beaca4d6fa",
+      "selectedSha256": "454f20ec65ab1cb324fe3b1ada559f1f7a817ad59df377f3b1b669beaca4d6fa",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-raw-close.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "8c649550609e922a6cdbd2c119b2453c7c404409",
+      "sourceSha256": "a8f49315ba454e35681f0d9dfc0f839f7d154b5dc49b69d9509d1f7f2b80e813",
+      "selectedSha256": "ce48f00e0880ce8c99d82994bd6ae303fea4f932dd76ff8aee5139ffa08cdee4",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-review-fix.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "97cfdca4ba05890636bccdd5a4c33930028b9e20",
+      "sourceSha256": "f2598303c90ed44a57a87add54dbfd43c2c5617a36d71fe93f6dac1b458dddd6",
+      "selectedSha256": "f2598303c90ed44a57a87add54dbfd43c2c5617a36d71fe93f6dac1b458dddd6",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-review-fix.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "23c35dac31c4f59c05868898feba93b5ab0611a9",
+      "sourceSha256": "5c6ec163de813093dd83954fadb8f4e2131c23bcd6d33f8e030316d61bb81a3c",
+      "selectedSha256": "6daddcfea5f4efbd33556aa1a9c5269b1eaf721ea36ef9d08e60489138d7dcbe",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-terminal-fix.json",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "e116276c21ad3694be4d69c509f5655d0e029bfa",
+      "sourceSha256": "c99e635e154a2c0b5e324b7e00cd828f5754e1cb674a5de5ccc8fb0cd5b51b1a",
+      "selectedSha256": "c99e635e154a2c0b5e324b7e00cd828f5754e1cb674a5de5ccc8fb0cd5b51b1a",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-terminal-fix.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "864e8c82ebe23e50d9875c1ba1ad1c01490e7a05",
+      "sourceSha256": "77bd22075e338a70997e50c764ad45c8b130f1a05869ed3c498f59b4f00ce9ea",
+      "selectedSha256": "09bfe31f01cf42f27818a568183c6b55c045b4c32958e4872e8da029a9ad7789",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical source evidence only; original report identities/results are not current composition proof."
+    },
+    {
+      "path": "packages/supervision/EXTERNAL.md",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "331c77b8da684688ab04ba4af9360dd241941ab9",
+      "sourceSha256": "22c9425ca4462c642af1fd5ae145d2a7b5dbbdcdb622fad4735677f0fdf201dd",
+      "selectedSha256": "0da17d37d1568bf4fe5e9a393640f3df32a9303e0b27ba8a60c2529e1df49b74",
+      "transformation": "historical notice",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical external contract plus composition notice; ADR0027 controls current source-only limits."
+    },
+    {
+      "path": "packages/supervision/external-launch.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "e68b77d90faac6444fcf3949765c323bac2ce703",
+      "sourceSha256": "0ceb136dfd6e93ce920185e6c3a9064bbe34b07a7ae9ef3345cec788f3cd615a",
+      "selectedSha256": "0ceb136dfd6e93ce920185e6c3a9064bbe34b07a7ae9ef3345cec788f3cd615a",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Pure fixed launch; node:path and external error only; no spawn, independent hints grant no authority."
+    },
+    {
+      "path": "packages/supervision/external.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "a9dd2f1651b5ce07482a731e61624d3e1cf7c1bb",
+      "sourceSha256": "038322e975069037d4bf5139e47c5afe79cf677de4d494c12b4663d8afc2a282",
+      "selectedSha256": "038322e975069037d4bf5139e47c5afe79cf677de4d494c12b4663d8afc2a282",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Runtime control.ts -> errors.ts; type-only controller.ts -> authoritative public ControlSocket alias; injected system, no backend."
+    },
+    {
+      "path": "scripts/build-external-protector.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "32239ad5b0b928f2a736256a7a1ad830e7d74fd4",
+      "sourceSha256": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+      "selectedSha256": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Concrete distinct external binary/full shared C/header/configuration provenance; imports shared builder static maintenance FFI; never invoked."
+    },
+    {
+      "path": "scripts/build-private-helper.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "ea376e4b5c79b72175711049634e31fbabfc74fb",
+      "sourceSha256": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+      "selectedSha256": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "present",
+        "gitBlob": "867e1ffc436011a5d79bc5a5867de70b00188076",
+        "sha256": "c34860192c5adb8245ab119579a09bc3fa2e39970e7aa3b00bd1529b0480e2dd"
+      },
+      "dependencyNotes": "Concrete private policy over shared builder; fixed original binary/provenance/error categories."
+    },
+    {
+      "path": "scripts/check-external-protector-static.py",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "ea1b23fea422afc9b95ec9ad7637058b0d4e05c4",
+      "sourceSha256": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+      "selectedSha256": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Historical review tool emits ELF and compares old5608 assembly; copied for inspection, NOT RUN."
+    },
+    {
+      "path": "scripts/supervisor-build.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "edb38e99e7cc91c466374096932edb0ae3b6e38a",
+      "sourceSha256": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+      "selectedSha256": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Current H maintenance.ts exact match; use lease -> publish -> verify -> nested-finally temporary cleanup/release; explicit builder never invoked."
+    },
+    {
+      "path": "tests/supervision/external/build.test.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "aa1be5e233d7e38cb12fefc02529e5065e49497c",
+      "sourceSha256": "04222da953ce43dfbe2ff57085377d83196829b6deb3e38248782a896b6658ee",
+      "selectedSha256": "04222da953ce43dfbe2ff57085377d83196829b6deb3e38248782a896b6658ee",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Pre-build public refusal suite preserved; static maintenance FFI import, NOT RUN in source-only window."
+    },
+    {
+      "path": "tests/supervision/external/controller.test.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "77aff04569eafefef31d12d1d85b861314567eff",
+      "sourceSha256": "ab2c3b849c1ce0fddc54df682228616a6205b648f85e9d733aa766e37792850f",
+      "selectedSha256": "ab2c3b849c1ce0fddc54df682228616a6205b648f85e9d733aa766e37792850f",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Existing reviewed external controller/launch public fake suite, byte-exact; no actual OS adapter."
+    },
+    {
+      "path": "tests/supervision/external/launch.test.ts",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "a4c095073d1e42e76f651721983c782c0dc7519c",
+      "sourceSha256": "88ccd8c65f0304dafba197552c9e132c880fa8240a93626302bc3655c2a910a8",
+      "selectedSha256": "88ccd8c65f0304dafba197552c9e132c880fa8240a93626302bc3655c2a910a8",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Existing reviewed external controller/launch public fake suite, byte-exact; no actual OS adapter."
+    },
+    {
+      "path": "tests/supervision/fixtures/external-write-fault.py",
+      "sourceCommit": "bcbc30e9532e404fb27fc63ceb85c07de335c46f",
+      "sourceBlob": "7e55b4f5f6597ed98d76694ea4c7e0703c448037",
+      "sourceSha256": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc",
+      "selectedSha256": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc",
+      "transformation": "none",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "dependencyNotes": "Opt-in actual C/fd3 fixture; review artifact only, NOT RUN."
+    }
+  ],
+  "authored": [
+    {
+      "path": "packages/supervision/README.md",
+      "integrationPreimage": {
+        "state": "present",
+        "gitBlob": "641ce00b3bf6a017e49449ce05c17394491f0b86",
+        "sha256": "89450ad09bab0c33148fe5e623c20fad11e43d50f55920e34cfdf859e694ee8f"
+      },
+      "sha256": "1f534a112eb89f1261f11201b72f5e507ed29761b89b243e75f8054ff3593e14"
+    },
+    {
+      "path": "docs/adr/0027-unregistered-external-protector-composition.md",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "sha256": "b1261df12ce01003e95ac6a871552ec3e45998b20b3b073478b4655f636c4f28"
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-composed-selection.json",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "sha256Note": "Self digest is bound by the candidate Git commit/tree, avoiding a recursive manifest hash."
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-composed-validation.md",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "sha256": "e9a1ad93c4883ac047fe86ee65173cb70c5b8fffc892026f3eb53644143e92de"
+    },
+    {
+      "path": "docs/evidence/source-checks/ticket-41-external-composed-static.ts",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "sha256": "e6343b7b341ec5da07de8809eb8fa5d5cce131a580a3e593c98c594fdda05f99"
+    },
+    {
+      "path": "docs/evidence/ticket-41-external-composed-static-closure.json",
+      "integrationPreimage": {
+        "state": "absent"
+      },
+      "sha256": "522f5d784a033bd40752188b546fd62be9c2cdd5be95a3424bb8ad38846e3abb"
+    }
+  ],
+  "preserved": [
+    {
+      "path": "apps/host/src/main.ts",
+      "gitBlob": "6b008cf8dd49cd2e7502b8bf30db5b0abf0296fc",
+      "sha256": "d8cacafcbe4939693fd732e3a3f3514693094d55ad2c529e4985df98a2a37ace"
+    },
+    {
+      "path": "bun.lock",
+      "gitBlob": "c726e4801fcb52709ea28238b44788f59f793b2d",
+      "sha256": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a"
+    },
+    {
+      "path": "compatibility/control-io/owned-control-io.c",
+      "gitBlob": "75d3b922ab8494d9c79bebeea6dcb463f4ca5d65",
+      "sha256": "083ca23248eb574c79dae845ea58fc2cb3e753bdfd0b6a70c6af5e2595c9f816"
+    },
+    {
+      "path": "compatibility/control-io/owned-control-io.h",
+      "gitBlob": "aea82c6bc8ad9018dcde865d03e3fb5866908f04",
+      "sha256": "9ce570125d50e2a1316ac5d737d8398d91a4b0d6d26d3dad6c1b8b1aa58e5a0c"
+    },
+    {
+      "path": "compatibility/launcher/control.h",
+      "gitBlob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
+      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
+    },
+    {
+      "path": "docs/adr/0020-owned-control-socket-io.md",
+      "gitBlob": "f018de11e0425bae2cd13c5bd4a726fcb5b8b5ea",
+      "sha256": "3534772a322750775eff4248039545765f33dc4833f942de7d62de84a70c43ea"
+    },
+    {
+      "path": "package.json",
+      "gitBlob": "10ade346c5658a8a54cf1bc792e2de386348fb74",
+      "sha256": "bef34a3b8ed9138627814491b60a609ab6ae23027195e690dd88e0a5c8d03be3"
+    },
+    {
+      "path": "packages/control-io/README.md",
+      "gitBlob": "4a6645fe08a7f3a40afe9caff636a8ce560ca839",
+      "sha256": "66017b2fcb868e11b3e2912d59615bef47755d897bb655a17bdb8483da8ee6d0"
+    },
+    {
+      "path": "packages/control-io/errors.ts",
+      "gitBlob": "93c8899474caa9956f918ad11de3bd39e7beb7cf",
+      "sha256": "1f3a007997b2ea8d40966e443a0478b38519a23ab2992ee4adc4df280f8fb94b"
+    },
+    {
+      "path": "packages/control-io/index.ts",
+      "gitBlob": "0360535ccd2dd2ee71de2015e7216464f4d22643",
+      "sha256": "771a4570fccf75b7914e0da2a8a16971f07496fedaf000e389d76b3c358a7aa9"
+    },
+    {
+      "path": "packages/control-io/loader.ts",
+      "gitBlob": "fbfd4354272b8db9b3638104a0bb3c371abdec50",
+      "sha256": "5991e567ad6bc0fade4fd3cec633a71d249c9a1fb64031cb5f8fcf792e80a0a8"
+    },
+    {
+      "path": "packages/control-io/package.json",
+      "gitBlob": "4a8d6e10f9b452eeb8fc1ac841c1e2ecc605ae34",
+      "sha256": "7c8e2f455aaba9912eca09baee3859292ea4eb0609ba322b9a4bd7d2c750bd26"
+    },
+    {
+      "path": "packages/control-io/selection.ts",
+      "gitBlob": "6a2da712be00fb821f3993a1972c655160799047",
+      "sha256": "eb05a396846125a38424b226eac7126563fbb5db85d9848f301f27730e0ed5c4"
+    },
+    {
+      "path": "packages/control-io/socket.ts",
+      "gitBlob": "bc27d12d475ae8c68f8a042551b6ec510f1213e1",
+      "sha256": "5e8f5dd439b5bae0869ac2c961719e48f76b229529001267c3cf6af267648600"
+    },
+    {
+      "path": "packages/control-io/testing.ts",
+      "gitBlob": "0dfc96671b83c5d450318c41c6d4616e669fe348",
+      "sha256": "b97c1790ac5bcff04d7d1922296e7a599bf4aa9baf0d266eda1c6bab2d9f5fc3"
+    },
+    {
+      "path": "packages/delivery/README.md",
+      "gitBlob": "0a346bdeb43e22917d3c393c9b79b91e7242981e",
+      "sha256": "418f9ad3dbc59e4ac7dfe387832b637e283320e884b1c36323dbf60d56aeb261"
+    },
+    {
+      "path": "packages/delivery/artifact.ts",
+      "gitBlob": "90868b5e762b97617dc41d30276f03d9c55d6e0f",
+      "sha256": "156520065b5f1a3cf5e6b350f9d5d0feab948fb7e8bbed87a8d7075c4f693a2a"
+    },
+    {
+      "path": "packages/delivery/coordinator.ts",
+      "gitBlob": "72c0b3bbe58f0d0dc16b1b2d86d908182e48d815",
+      "sha256": "2fdb67853128ca788fff78cf126532a64a14aa8cebbff55aca4a32608a1a42ae"
+    },
+    {
+      "path": "packages/delivery/elf.ts",
+      "gitBlob": "28c68957b31aae793f902dc10884d75e6febc0f1",
+      "sha256": "dfd97850b07ee45473510648ee10aac9422d21000231b0e868a4d0f8e24bf22e"
+    },
+    {
+      "path": "packages/delivery/gate.ts",
+      "gitBlob": "0c35721bddcd86018f77fe4aa04406bb02d82ab0",
+      "sha256": "37f31ca2850344db23300cb7ab9c163bfc9aa6a4a811c82c101a5e39c879cd26"
+    },
+    {
+      "path": "packages/delivery/maintenance.ts",
+      "gitBlob": "1548347934267a06b6974d2eaf229c4d5229b751",
+      "sha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba"
+    },
+    {
+      "path": "packages/delivery/observation.ts",
+      "gitBlob": "b5516f28e8ca7817e2343ca53649755e287613e1",
+      "sha256": "d9cdb21e61602afc316b1feff3976f7f7530b1c2abcbc8b94d8a92259aaf5370"
+    },
+    {
+      "path": "packages/delivery/platform.ts",
+      "gitBlob": "da40112c2399ca261c7ae8817a99a517a2ae3a71",
+      "sha256": "3b7c2a8f0bc580b1fcbc8f6198e3be85eac56c201bf1b704dac7e776a2e88482"
+    },
+    {
+      "path": "packages/delivery/resolver.ts",
+      "gitBlob": "8c4609441b2f7dfc85af32be8323368d01fd7471",
+      "sha256": "8b0fccce70de3fca7123c447a15e86b3c0a85c7493b77d0d047eaad91200768d"
+    },
+    {
+      "path": "packages/supervision/adapter.ts",
+      "gitBlob": "2628c4aa0b98f5330fc6e1ab2436c5390a84d1e9",
+      "sha256": "8f51436141dfcbe9973900f4fca2c0de6d710a58fd06921fe9031ed7d498eaaa"
+    },
+    {
+      "path": "packages/supervision/control-io-selection.ts",
+      "gitBlob": "11b27129aff778c7dca919253d5c2b8108dbd23c",
+      "sha256": "3f1d95f15d09194e817119f972ceab7ee0199d64816bf3ab3f9ea8bd6c95333f"
+    },
+    {
+      "path": "packages/supervision/control.ts",
+      "gitBlob": "66fda39f585f22b22bbbfb84c8db4095ac1b1ed2",
+      "sha256": "c7f807fd1f2eeed7e43ed447ce046f8b281fbb8f038f8293ba850e61f30192ec"
+    },
+    {
+      "path": "packages/supervision/controller.ts",
+      "gitBlob": "93572aaf48202f9b0549764c149a649fb9d003c1",
+      "sha256": "f280fdb75af1d79aa883ec4b92da1e5b3b4eee3dbb075e75cfbdaaeba7222f44"
+    },
+    {
+      "path": "packages/supervision/errors.ts",
+      "gitBlob": "62edde5b6ff84c5d2d98a4b16fbe2e215590a040",
+      "sha256": "2c86986ff3ae8f15bd43e37f6cad474f9e4da3a64a65993d5bf309c5fc23c5e5"
+    },
+    {
+      "path": "packages/supervision/input.ts",
+      "gitBlob": "7e6f9a8d3794787f4259a05115a4ef06ed2d5049",
+      "sha256": "5952682f7f8fbdc0792dc68e61daa73e7e99f423f1082382fd9fbffb53db1805"
+    },
+    {
+      "path": "packages/supervision/owner.ts",
+      "gitBlob": "ec93bad3c053eb5cfab19e6700672344cd6a43db",
+      "sha256": "e6730bb103396237e0c087c7289d738edd40673c94b0f043f7389215d66e5881"
+    },
+    {
+      "path": "packages/supervision/session.ts",
+      "gitBlob": "d7a484d7de18ba3cf9d31941cab2bea54c9cd9da",
+      "sha256": "3b29f56df9b941052290b54b0beed29231d054b1b24351f5baca50b7b9bac7b5"
+    },
+    {
+      "path": "packages/supervision/testing.ts",
+      "gitBlob": "69c2056c55add06a3629df5b99e3a259ce32cea3",
+      "sha256": "227bff2891ddef99e49eac0f7a3b2f0f31a9ef38bf7bf7f827e74d6abdbc3e3e"
+    },
+    {
+      "path": "scripts/build-control-io-public.ts",
+      "gitBlob": "fbb285141a6ea506c48cbef1136523c8fb8db277",
+      "sha256": "9a39023b166813401b6292c4292be0832b36852df00c0ba7feb22e1ca0d8fcab"
+    },
+    {
+      "path": "scripts/build-control-io.ts",
+      "gitBlob": "1a5bd1abbdfbaedcbb9e5615acaaf4befe544e84",
+      "sha256": "ba550487cde1a286c21c77793addec9f2f2761fcaced17085ce30ae5de30152b"
+    },
+    {
+      "path": "tests/delivery/artifact.test.ts",
+      "gitBlob": "c1f3a448bec6c8197bf81e68b3a63b4d04eea9c6",
+      "sha256": "78987d0fdb45f467b1ced199cb3e819a22d89b135b5aed20bd37938af64022d1"
+    },
+    {
+      "path": "tests/delivery/fixtures.ts",
+      "gitBlob": "161d00e654483f5bc72b723f9e76278aaec01d0e",
+      "sha256": "a7064bc3e8f7043b407f9dd4bb9333622b815e40d18c1a8bf51054cd594cf2a3"
+    },
+    {
+      "path": "tests/delivery/platform.test.ts",
+      "gitBlob": "c87dd73ac9ff47b46462dae52f793b9fe334bb48",
+      "sha256": "240543ea3a436ee7b0296eb97d6aaafec216cc0529b65dc0d2cc4f69465092bf"
+    },
+    {
+      "path": "tests/delivery/resolver.test.ts",
+      "gitBlob": "9d1298edf679abc8a0e892f443a4222ae33b1d80",
+      "sha256": "507fd03078c0977f7153f858c4b4bbe9972306723d77ac027530db2fa9d56495"
+    },
+    {
+      "path": "tests/supervision/approved-helper-owner.test.ts",
+      "gitBlob": "88308b450fafeec0f20b4beb872ae1e7be5dfbe0",
+      "sha256": "04fc7899abb42be73a942dfca8c687af2c501a54e104a92363fa87f00e4d2074"
+    },
+    {
+      "path": "tests/supervision/control-io-public.test.ts",
+      "gitBlob": "1940cdb07616e786392b2f017935be06e6b493d8",
+      "sha256": "170121ba83c2aae19c2d5e979c6441fdad9a80cd167d708d11effcadee346d34"
+    },
+    {
+      "path": "tests/supervision/control.test.ts",
+      "gitBlob": "d344a44406ad3503ba7b6336d01ace29f36cbb57",
+      "sha256": "eb7b267a02c00754a0b399e53500f4e98d5f45c73c43c847186266defa4b10a2"
+    },
+    {
+      "path": "tests/supervision/controller.test.ts",
+      "gitBlob": "6dcc8c837b072066aa19797598a03dd9604f6ca2",
+      "sha256": "0305d0ca4e86bd3577288927bbcdaaae32795dfc7f8de7f65ceb6bf3eebfbbc7"
+    },
+    {
+      "path": "tests/supervision/owned-control-io.test.ts",
+      "gitBlob": "915ee39af37300f92cd9326ac9edd88a0563df47",
+      "sha256": "e8c6a765f11ad3f6ad23305484e7c10b012ea267c1d8304e7eebe601ee5cef4a"
+    },
+    {
+      "path": "tests/supervision/session.test.ts",
+      "gitBlob": "b563468e88ec375d32a9cb301edf6b281556685d",
+      "sha256": "b8c1afa3abf8e7e02d66f7cafa6e5bc5a6a660143ae44464dfe78a901cb30edf"
+    },
+    {
+      "path": "tsconfig.json",
+      "gitBlob": "e82b813bbbf686ac01b5fc2bc5817a8391c46ab5",
+      "sha256": "800a26db7fc43fe2cab5187539fae9f737ccacc0b5157e6fda872e6269baf71c"
+    },
+    {
+      "path": "upstreams.lock.json",
+      "gitBlob": "2259127f31c91cc14b90db165f10863e1c3e80a8",
+      "sha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c"
+    }
+  ],
+  "pureSuites": [
+    "tests/supervision/external/controller.test.ts",
+    "tests/supervision/external/launch.test.ts",
+    "tests/supervision/control-io-public.test.ts",
+    "tests/supervision/control.test.ts",
+    "tests/supervision/session.test.ts",
+    "tests/supervision/controller.test.ts",
+    "tests/supervision/owned-control-io.test.ts",
+    "tests/supervision/approved-helper-owner.test.ts"
+  ],
+  "composedDependencies": {
+    "currentHDelivery": "Every base packages/delivery path is preserved byte-exact, including maintenance (no older delivery ancestry).",
+    "authoritativePublicP": "Base control-I/O, private controller, adapter, owner, selection, control/error/session and tests are preserved; controller PrivateHelperSocket remains an alias of public ControlSocket.",
+    "maintenance": {
+      "path": "packages/delivery/maintenance.ts",
+      "baseAndExternalBlob": "1548347934267a06b6974d2eaf229c4d5229b751",
+      "sha256": "4dd1201cf464e975033223e47a6a911da291f04749c1bdef8b1628cc3a38c8ba",
+      "contract": "acquireMaintenanceLease(control, use) -> compile/publish -> verify -> cleanup temporary then release in nested finally; both concrete entries preserve finite policy errors."
+    },
+    "CIncludes": [
+      "compatibility/supervision/external-protector.c -> private-helper.c",
+      "private-helper.c -> candidates.h",
+      "private-helper.c -> ../launcher/control.h",
+      "configuration -> docs/evidence/source-checks/ticket-41-private-helper-configuration.h (inert syntax-only configuration, never build approval)"
+    ],
+    "notSelected": [
+      "Native patches/backend/registration/publication",
+      "old external private controller/control-I/O shim/delivery ancestry",
+      "compiled artifacts, runtime inventories, keys, approvals or staging"
+    ]
+  },
+  "reviewCoverage": {
+    "prerequisiteSource": "ticket-41-h-public-composed-{spec,standards}.md at e99c903 tree f4ad103; merged exact tree in fe8a24a",
+    "historicalExternal": "ticket-41-external-clean-eof-{spec,standards}.md covers 5608b676...285eeb8; ticket-41-external-raw-close-{spec,standards}.md covers 285eeb8...bcbc30e; not this composition",
+    "currentComposition": "Fresh full Spec and Standards review pending"
+  },
+  "reconciliation": {
+    "integrationBranch": "mvp/spec-29",
+    "actualTip": "fe8a24afcbff02edaa9988349c32e87ce081bd99",
+    "status": "Merged integration tip before handoff; already up to date; source-only own branch, integration unchanged"
+  }
+}

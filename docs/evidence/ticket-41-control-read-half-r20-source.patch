@@ -1,0 +1,757 @@
+# Historical R20 synthetic fixture source reference. Scope consumed.
+# Reconstruct the reviewed R18 donor before replaying this patch in scratch.
+# See the adjacent evidence document for exact hashes and source replay.
+
+diff --git a/recovery/r20-current-control-read-half-source/README.md b/recovery/r20-current-control-read-half-source/README.md
+new file mode 100644
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/README.md
+@@ -0,0 +1,45 @@
++# #41 R20 synthetic external control read-half fault
++
++Source candidate based on integration `7459e233fc58c03b49b8dc1a5204bfb348e074d5`. The four production C inputs match the R18 inputs byte for byte. The fixed broker, I/O and owner policy, and startup-74 source proof are read-only links to the R18 source packet. R20 uses a fresh stage, marker, generation, and installation.
++
++The fixture waits for the original guardian's exact running and natural `ROOT_EXIT <generation> 0 0` frames. FakeDispatcher holds its completion ACK until the fixture has filled the guardian's shared fd3 send queue and obtained positive, sub-1 MiB backpressure with EAGAIN. After FakeDispatcher writes the ACK, the fixture rechecks protection and calls `shutdown(SHUT_RD)` on its own control peer. It keeps the peer's write half, fake Dispatcher connection, and filler duplicate open.
++
++The observation journal records successful shutdown and repeated samples from the original pidfd that extend at least 250 ms after shutdown within the fixture's 5-second observation budget. Each sample requires the first observed fence bytes, a denied exclusive maintenance lock, and a nonterminal original guardian. The first fence bytes stay pinned through HOLD even when observation fails. A completed observation records `CONTROL_READ_HALF_FAULT_PROTECTION_HELD` and enters HOLD. A failed sample or syscall also enters HOLD. The observed EAGAIN belongs to the fixture duplicate. The guardian's exact errno, ACK consumption, and COMPLETE timing remain unobserved.
++
++A fresh literal Root challenge at HOLD can authorize the original pidfd signal once, following the retained R18 ownership checks. Expected disposition is guardian wait -9, genuine stdout/stderr EOF and reader joins for both original actors, original controller wait 2, and direct-child ECHILD in the controller and outer domains. The controller requires the same failed fence bytes after reap. When `SHUT_RD` was never attempted, it also requires the inherited bounded control EOF drain. When `SHUT_RD` returned or its outcome is uncertain, the controller records the shutdown state and excludes control EOF from the evidence. `MANUAL_DRAINED_NOT_PASS` is status 2. The separate fault observation receipt is required to establish that the planned injection and retention observations completed. Startup-74 remains the separate R18 failure path with status 3. Product admission remains blocked.
++
++## Commands for the new case
++
++The commands below use the existing R18 prepare, compiler, seal, and one-use runner workflow. Preparation follows source review. Compilation and artifact review bind the new configuration and executables. Run only with the fresh exact manifest clearance. Use the emitted literal commands in the original stdin for the before-START gate and the post-HOLD decision. The outer runner requires a TTY on stdin and exits 4 before opening the stage if stdin lacks one.
++
++```bash
++r20_packet=/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source
++r20_stage=/tmp/omp-external-control-read-half-r20-20261118
++r20_root=/workspace/work/omp-webui-current
++r20_marker=external-current-7459e23-control-read-half-r20
++
++# Pure source tests and pin check.
++cd "$r20_packet"
++/usr/bin/python3 -B -m unittest control_read_half_test -v
++sha256sum -c SHA256SUMS
++
++# Later, after source review and preparation clearance.
++/usr/bin/python3 -B "$r20_packet/external_backpressure_stage.py" --prepare-source "$r20_marker"
++
++# Separate compiler window, using the same commands emitted in compiler-recipe.json.
++env -i PATH=/usr/bin:/bin /usr/bin/gcc -std=c11 -Wall -Wextra -Werror -O2 -static \
++  "$r20_stage/root.c" -o "$r20_stage/release/bin/omp"
++env -i PATH=/usr/bin:/bin /usr/bin/gcc -std=c11 -Wall -Wextra -Werror -O2 -static \
++  -include "$r20_stage/configuration.h" "$r20_root/compatibility/supervision/external-protector.c" \
++  -o "$r20_stage/release/bin/omp-external-protector"
++
++# Seal the unsigned artifacts for review.
++/usr/bin/python3 -B "$r20_packet/external_backpressure_stage.py" --seal-unsigned "$r20_marker"
++
++# Launch with tty: true in the execution tool and keep the original session stdin.
++# Substitute the literal SHA256 from the fresh exact-manifest Root clearance.
++cd "$r20_root"
++env -i PATH=/usr/bin:/bin HOME="$r20_stage/home" TMPDIR=/tmp LC_ALL=C \
++  /usr/bin/python3 -B "$r20_packet/external_backpressure.py" --run-once \
++  "$r20_marker" APPROVED_LITERAL_MANIFEST_SHA256
++```
+diff --git a/recovery/r20-current-control-read-half-source/SHA256SUMS b/recovery/r20-current-control-read-half-source/SHA256SUMS
+new file mode 100644
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/SHA256SUMS
+@@ -0,0 +1,9 @@
++92912292bced6aa87c9868b4fcd201295f9aa7548f7a2a57efcab61d4346dd68  README.md
++cddcf3a0781a80aaaceac7df01f4ad23a8c4f77107b6aa91aa22eb95b10a739e  SourcePlan.json
++1ad1bbc6ac08d30d0013ea69e61ea7838139d26208455b6ed5aedd8a36bd7d8c  control_read_half_test.py
++f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b  external-backpressure-root.c
++a9b42ac590861ada41bac1e8949ec0776a2bcce404617ddb482fbe3988ebfa73  external_backpressure.py
++7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c  external_backpressure_io.py
++49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176  external_backpressure_policy.py
++c612f25cdc14f08193291fa073b99b0cafdb53d8eb831779dc81b0851bd702cc  external_backpressure_stage.py
++32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a  startup74-proof.json
+diff --git a/recovery/r20-current-control-read-half-source/SourcePlan.json b/recovery/r20-current-control-read-half-source/SourcePlan.json
+new file mode 100644
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/SourcePlan.json
+@@ -0,0 +1,62 @@
++{
++  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
++  "baseCommit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
++  "baseTree": "f8ddcf1201fa93f6ea6e9c8cebfa50f0418f0c16",
++  "productionRoot": "/workspace/work/omp-webui-current",
++  "case": "control-read-half-fault",
++  "marker": "external-current-7459e23-control-read-half-r20",
++  "stage": "/tmp/omp-external-control-read-half-r20-20261118",
++  "generation": "241932b83a01d7c477c5d9b721c0a76ce71568be88060d1162d0b0c5570bafa0",
++  "installation": "8e20c157d358a1615ed22da356a2e5df32b4d03af5aafd6785e74625006a9b1c",
++  "sourceSha256": {
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/README.md": "92912292bced6aa87c9868b4fcd201295f9aa7548f7a2a57efcab61d4346dd68",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/control_read_half_test.py": "1ad1bbc6ac08d30d0013ea69e61ea7838139d26208455b6ed5aedd8a36bd7d8c",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/external-backpressure-root.c": "f61c63d9acfc3ac61b76a93d58bc0f29df1a39208d277ee6732ea0d1c714f12b",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/external_backpressure.py": "a9b42ac590861ada41bac1e8949ec0776a2bcce404617ddb482fbe3988ebfa73",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/external_backpressure_io.py": "7bad0702da02ad28570641c154de8c5ec113e5255ed45443d136fb87a312866c",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/external_backpressure_policy.py": "49f2786e48f224afe84d25e5f6323522620d12fd3c9f7839070ce106cfdfb176",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/external_backpressure_stage.py": "c612f25cdc14f08193291fa073b99b0cafdb53d8eb831779dc81b0851bd702cc",
++    "/workspace/work/mvp-implementation/recovery/r20-current-control-read-half-source/startup74-proof.json": "32d0f03abc1d19a264697409e1cf0b0068d11b1bc56196f8ee1977ed194cdf9a",
++    "/workspace/work/omp-webui-current/compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
++    "/workspace/work/omp-webui-current/compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
++    "/workspace/work/omp-webui-current/compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
++    "/workspace/work/omp-webui-current/compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++  },
++  "sharedR18SourceLinks": {
++    "external-backpressure-root.c": "../r18-current-backpressure-source-v1/external-backpressure-root.c",
++    "external_backpressure_io.py": "../r18-current-backpressure-source-v1/external_backpressure_io.py",
++    "external_backpressure_policy.py": "../r18-current-backpressure-source-v1/external_backpressure_policy.py",
++    "startup74-proof.json": "../r18-current-backpressure-source-v1/startup74-proof.json"
++  },
++  "cInputs": {
++    "compatibility/launcher/control.h": {
++      "commit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
++      "blob": "e413a06218c6d04e347f08f84999ac8fd5ba1888",
++      "sha256": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146"
++    },
++    "compatibility/supervision/candidates.h": {
++      "commit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
++      "blob": "12637556c77aa1c3cd6fe5722eaa7bba21ee195c",
++      "sha256": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f"
++    },
++    "compatibility/supervision/external-protector.c": {
++      "commit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
++      "blob": "c48a10f7c90d1ff36c6521c33afbb8f0cde89049",
++      "sha256": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c"
++    },
++    "compatibility/supervision/private-helper.c": {
++      "commit": "7459e233fc58c03b49b8dc1a5204bfb348e074d5",
++      "blob": "6939247d6defa1c80fc4a079dfa9aceb4deefd29",
++      "sha256": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3"
++    }
++  },
++  "validation": {
++    "focusedPureTests": 13,
++    "r18PureTests": 31,
++    "runtimeAdapterImport": false,
++    "stagePrepared": false,
++    "targetsCompiled": false,
++    "runtime": "NOT_RUN"
++  },
++  "supersedesSourcePlanSha256": "676668acd3b9ffbf4d9559175cd1f7e10b9892a78599a5dc6eab60e05f7e7168"
++}
+diff --git a/recovery/r20-current-control-read-half-source/control_read_half_test.py b/recovery/r20-current-control-read-half-source/control_read_half_test.py
+new file mode 100644
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/control_read_half_test.py
+@@ -0,0 +1,361 @@
++"""Exercise the fault and disposition at the existing fixture's fake OS seam."""
++import ast
++from dataclasses import dataclass
++import errno
++from pathlib import Path
++from types import SimpleNamespace as N
++import unittest
++
++from external_backpressure_policy import Refusal, Session, fill_queue, recover, remaining, require
++
++
++def fixture_function(name, **namespace):
++    source = Path(__file__).with_name("external_backpressure.py")
++    selected = [node for node in ast.parse(source.read_text()).body
++                if isinstance(node, (ast.FunctionDef, ast.ClassDef)) and node.name == name]
++    assert len(selected) == 1, name
++    namespace.update(Refusal=Refusal, require=require, remaining=remaining, dataclass=dataclass)
++    exec(compile(ast.Module(body=selected, type_ignores=[]), str(source), "exec"), namespace)
++    return namespace[name]
++
++
++class ControlReadHalfTests(unittest.TestCase):
++    def observe(self, *, started=True, ack=True, altered_fence=False, altered_pidfd=False,
++                expired=False, shutdown_failure=False):
++        session = Session()
++        fault = fixture_function("FaultObservation")()
++        session.started, session.root_zero = started, True
++        session.pidfd, session.identity = 17, (5, 321)
++        clock = 0.0
++        events = []
++        fence = b"original incomplete fence"
++
++        def pause(_read, _write, _error, delay):
++            nonlocal clock
++            self.assertLessEqual(delay, 0.01)
++            clock += 6 if expired else delay
++
++        def protected(pidfd, path, control, _generation, _journal):
++            self.assertEqual((pidfd, path, control), (17, Path("/fake/fences/g.fence"), 91))
++            events.append(("protection", clock))
++            return b"changed" if altered_fence and session.failed else fence
++
++        def shutdown(how):
++            self.assertTrue(session.failed)
++            events.append(("shutdown", how))
++            if shutdown_failure:
++                raise OSError("uncertain shutdown")
++
++        writes = iter([812, BlockingIOError(errno.EAGAIN, "full")])
++
++        def send(_data):
++            result = next(writes)
++            if isinstance(result, OSError):
++                raise result
++            return result
++
++        peer = N(fileno=lambda: 12, shutdown=shutdown)
++        writer = N(setblocking=lambda value: self.assertFalse(value), send=send)
++        dispatcher = N(release=N(set=lambda: events.append(("release", clock))),
++                       ack=N(wait=lambda bound: events.append(("ack", bound)) or ack),
++                       failure=None, done=N(is_set=lambda: False))
++        journal = N(save=lambda name, **fields: events.append((name, fields)))
++
++        def identity(fd):
++            if fd == session.pidfd and altered_pidfd and session.failed:
++                return (5, 322)
++            return {12: (1, 234), 17: (5, 321)}[fd]
++
++        func = fixture_function("control_read_half_fault",
++                                STAGE=Path("/fake"), GENERATION="g", BUDGET=5, fill_queue=fill_queue,
++                                time=N(monotonic=lambda: clock), select=N(select=pause), socket=N(SHUT_RD=0),
++                                identity=identity,
++                                os=N(open=lambda *args: 91, O_RDONLY=1, O_CLOEXEC=2, O_NOFOLLOW=4),
++                                protected=protected)
++        return session, fault, events, lambda: func(session, journal, (peer, writer, object(), [], dispatcher), fault)
++
++    def test_shutdown_follows_real_backpressure_and_ack_with_bounded_protection_receipt(self):
++        session, fault, events, run = self.observe()
++        run()
++        self.assertEqual(fault.original_fence, b"original incomplete fence")
++        self.assertTrue(fault.completed)
++        self.assertEqual(fault.shutdown_state, "RETURNED")
++        names = [event[0] for event in events]
++        expected_order = ["ACTUAL_FD3_EAGAIN", "release", "ack", "CONTROL_PEER_SHUT_RD_INTENT", "shutdown",
++                          "CONTROL_PEER_SHUT_RD_RETURNED", "CONTROL_READ_HALF_FAULT_PROTECTION_HELD"]
++        self.assertEqual(list(filter(expected_order.__contains__, names)), expected_order)
++        self.assertIn(("shutdown", 0), events)
++        self.assertTrue(session.failed)
++        self.assertFalse(session.signal_attempted)
++        self.assertGreaterEqual(events[-1][1]["interval"], 0.25)
++        self.assertLess(events[-1][1]["interval"], 5)
++        self.assertGreater(events[-1][1]["observations"], 1)
++
++    def test_missing_start_or_ack_cannot_inject(self):
++        for changes, code in (({"started": False}, "READ_HALF_FAULT_INELIGIBLE"),
++                              ({"ack": False}, "ACK_WRITE_FAILED")):
++            with self.subTest(code=code):
++                _session, fault, events, run = self.observe(**changes)
++                with self.assertRaisesRegex(Refusal, code):
++                    run()
++                self.assertNotIn("shutdown", [event[0] for event in events])
++                self.assertEqual(fault.shutdown_state, "NOT_ATTEMPTED")
++                self.assertFalse(fault.completed)
++
++    def test_lost_protection_or_deadline_after_shutdown_stays_failed_without_receipt(self):
++        for changes, code in (({"altered_fence": True}, "FAULT_FENCE_CHANGED"),
++                              ({"altered_pidfd": True}, "ORIGINAL_PIDFD_CHANGED"),
++                              ({"expired": True}, "READ_HALF_FAULT_TIMEOUT")):
++            with self.subTest(code=code):
++                session, fault, events, run = self.observe(**changes)
++                with self.assertRaisesRegex(Refusal, code):
++                    run()
++                self.assertTrue(session.failed)
++                self.assertEqual(fault.original_fence, b"original incomplete fence")
++                self.assertFalse(fault.completed)
++                self.assertEqual(fault.shutdown_state, "RETURNED")
++                self.assertIn(("shutdown", 0), events)
++                self.assertNotIn("CONTROL_READ_HALF_FAULT_PROTECTION_HELD", [event[0] for event in events])
++
++    def test_shutdown_failure_keeps_sticky_failure_without_successful_return_receipt(self):
++        session, fault, events, run = self.observe(shutdown_failure=True)
++        with self.assertRaises(OSError):
++            run()
++        names = [event[0] for event in events]
++        self.assertIn("CONTROL_PEER_SHUT_RD_INTENT", names)
++        self.assertNotIn("CONTROL_PEER_SHUT_RD_RETURNED", names)
++        self.assertTrue(session.failed)
++        self.assertFalse(session.signal_attempted)
++        self.assertFalse(fault.completed)
++        self.assertEqual(fault.shutdown_state, "ATTEMPTED_OUTCOME_UNCERTAIN")
++
++    def test_observed_fault_flows_to_manual_hold_with_original_fence(self):
++        session = Session()
++        events = []
++        owned = tuple(range(5))
++        journal = N(save=lambda name, **fields: events.append((name, fields)))
++
++        def recover(actual_session, actual_journal, actual_owned, fault):
++            self.assertIs(actual_session, session)
++            self.assertTrue(session.failed)
++            self.assertIs(actual_journal, journal)
++            self.assertIs(actual_owned, owned)
++            self.assertEqual(fault.original_fence, b"original incomplete fence")
++            self.assertTrue(fault.completed)
++            self.assertEqual(events[-1][0], "HOLD")
++            return 2
++
++        def observe(_session, _journal, _owned, fault):
++            fault.original_fence = b"original incomplete fence"
++            fault.completed = True
++            fault.shutdown_state = "RETURNED"
++
++        function = fixture_function("controller", FaultObservation=fixture_function("FaultObservation"),
++                                    start_protector=lambda *args: owned, protocol_start=lambda *args: None,
++                                    control_read_half_fault=observe,
++                                    refusal_code=str, manual_recovery=recover)
++        self.assertEqual(function(session, journal), 2)
++        self.assertEqual(events[-1][1]["refusalCode"], "CONTROL_READ_HALF_FAULT_HELD")
++        self.assertFalse(session.signal_attempted)
++
++    def disposition(self, *, approve, fault=None, fence=b"original incomplete fence", control_data=()):
++        session = Session()
++        session.failed = session.started = session.root_zero = True
++        session.protector, session.pidfd, session.identity = N(pid=77), 17, (5, 321)
++        if fault is None:
++            fault = fixture_function("FaultObservation")(fence, "RETURNED", True)
++        events, challenge = [], []
++        control_data = iter(control_data)
++        journal = N(save=lambda name, **fields: events.append((name, fields)))
++        dispatcher = N(finish=N(set=lambda: events.append(("dispatcher-finish", {}))),
++                       done=N(wait=lambda bound: True))
++        writer = N(close=lambda: events.append(("close-duplicate", {})))
++        reader = N(finish=lambda _bound, _journal, role: events.append(("reader-joined", {"role": role})))
++
++        def report(receipt):
++            challenge.append(receipt["freshManualCommand"].encode() + b"\n")
++            return True
++
++        def wait(process, pidfd, _until, status, _journal, role):
++            self.assertIs(process, session.protector)
++            events.append(("original-wait", {"fd": pidfd, "status": status, "role": role}))
++
++        def receive(_peer, _size, _until):
++            events.append(("control-receive", {}))
++            return next(control_data)
++
++        function = fixture_function(
++            "manual_recovery", STAGE=Path("/fake"), GENERATION="g", BUDGET=5, WALL=32,
++            os=N(open=lambda *args: 91, O_RDONLY=1, O_CLOEXEC=2, O_NOFOLLOW=4, urandom=lambda n: b"A" * n,
++                 waitid=lambda *args: None, P_PIDFD=3, WEXITED=4, WNOHANG=8, WNOWAIT=16),
++            protected=lambda *args: fence, report=report, input_line=lambda _fd: challenge[0] if approve else b"",
++            recover=recover, identity=lambda _fd: (5, 321), time=N(monotonic=lambda: 0),
++            signal=N(SIGKILL=9, pidfd_send_signal=lambda fd, number, *_args:
++                     events.append(("signal", {"fd": fd, "number": number}))),
++            original_wait=wait, domain_empty=lambda *_args: events.append(("direct-ECHILD", {})),
++            fence_bytes=lambda *args: fence, receive=receive)
++        return session, events, challenge, lambda: function(
++            session, journal, (object(), writer, object(), [reader, reader], dispatcher), fault)
++
++    def test_fresh_literal_disposition_reaps_original_then_joins_readers_and_preserves_fence(self):
++        session, events, challenge, run = self.disposition(approve=True)
++        self.assertEqual(run(), 2)
++        self.assertEqual(challenge, [f"ROOT_KILL_ONLY_ORIGINAL 77 17 5 321 {'41' * 24}\n".encode()])
++        self.assertIn(("signal", {"fd": 17, "number": 9}), events)
++        names = [event[0] for event in events]
++        self.assertLess(names.index("MANUAL_ORIGINAL_PROTECTOR_SIGKILL_INTENT"), names.index("signal"))
++        self.assertLess(names.index("original-wait"), names.index("close-duplicate"))
++        self.assertIn(("original-wait", {"fd": 17, "status": -9, "role": "manual-protector"}), events)
++        self.assertIn(("MANUAL_CONTROL_NOT_USED_AS_EOF_EVIDENCE", {"shutdownState": "RETURNED"}), events)
++        self.assertNotIn("control-receive", names)
++        self.assertEqual(names.count("reader-joined"), 2)
++        self.assertIn("direct-ECHILD", names)
++        self.assertEqual(events[-1], ("MANUAL_RECOVERED_NOT_NORMAL_PASS", {
++            "faultObserved": True, "failedFenceCleared": False, "failedFenceHex": b"original incomplete fence".hex()}))
++        self.assertTrue(session.signal_attempted)
++
++    def test_missing_literal_cannot_attempt_signal(self):
++        session, events, _challenge, run = self.disposition(approve=False)
++        with self.assertRaisesRegex(Refusal, "FRESH_ROOT_MANUAL_COMMAND_REQUIRED"):
++            run()
++        self.assertFalse(session.signal_attempted)
++        self.assertNotIn("signal", [event[0] for event in events])
++
++    def test_changed_fence_in_unfinished_observation_cannot_become_challenge_baseline(self):
++        _session, fault, _events, observe = self.observe(altered_fence=True)
++        with self.assertRaisesRegex(Refusal, "FAULT_FENCE_CHANGED"):
++            observe()
++        session, events, challenge, dispose = self.disposition(approve=True, fault=fault, fence=b"changed")
++        with self.assertRaisesRegex(Refusal, "FAULT_FENCE_CHANGED_BEFORE_RECOVERY"):
++            dispose()
++        self.assertEqual(challenge, [])
++        self.assertFalse(session.signal_attempted)
++        self.assertNotIn("signal", [event[0] for event in events])
++
++    def test_ack_failure_before_shutdown_requires_bounded_control_eof_after_reaping(self):
++        _session, fault, _events, observe = self.observe(ack=False)
++        with self.assertRaisesRegex(Refusal, "ACK_WRITE_FAILED"):
++            observe()
++        _session, events, _challenge, dispose = self.disposition(approve=True, fault=fault,
++                                                                control_data=[b"!!", b""])
++        self.assertEqual(dispose(), 2)
++        names = [event[0] for event in events]
++        self.assertLess(names.index("original-wait"), names.index("control-receive"))
++        self.assertLess(names.index("close-duplicate"), names.index("control-receive"))
++        self.assertEqual(names.count("control-receive"), 2)
++        self.assertIn(("MANUAL_CONTROL_BOUNDED_EOF", {"receivedBytes": 2}), events)
++        self.assertFalse(events[-1][1]["faultObserved"])
++
++        _session, overflow, _challenge, dispose = self.disposition(
++            approve=True, fault=fault, control_data=[b"!" * 4096] * 257)
++        with self.assertRaisesRegex(Refusal, "MANUAL_CONTROL_DRAIN_LIMIT"):
++            dispose()
++        self.assertNotIn("MANUAL_RECOVERED_NOT_NORMAL_PASS", [event[0] for event in overflow])
++
++    def test_uncertain_shutdown_records_actual_state_without_using_control_eof(self):
++        _session, fault, _events, observe = self.observe(shutdown_failure=True)
++        with self.assertRaises(OSError):
++            observe()
++        _session, events, _challenge, dispose = self.disposition(approve=True, fault=fault)
++        self.assertEqual(dispose(), 2)
++        self.assertIn(("MANUAL_CONTROL_NOT_USED_AS_EOF_EVIDENCE",
++                       {"shutdownState": "ATTEMPTED_OUTCOME_UNCERTAIN"}), events)
++        self.assertNotIn("control-receive", [event[0] for event in events])
++        self.assertFalse(events[-1][1]["faultObserved"])
++
++    def test_outer_collects_original_termination_before_reporting_disposition_or_refusing_zero(self):
++        for controller_status in (0, 2, 3):
++            with self.subTest(controller_status=controller_status):
++                events = []
++                journal = N(save=lambda event, **fields: events.append(event))
++                reader = N(finish=lambda *_args: events.append("reader-joined"))
++
++                class Child:
++                    pid = 78
++
++                    def __init__(self, *_args, **_kwargs):
++                        pass
++
++                    def wait(self, timeout):
++                        return controller_status
++
++                function = fixture_function(
++                    "outer", STAGE=FakeBusinessPath(controller_status != 3), ROOT=Path("/fake"),
++                    MARKER="r19", RUNNER_ENV={}, BUDGET=5,
++                    Path=Path, __file__=__file__,
++                    subprocess=N(Popen=Child), proof_original=lambda *_args: 33, identity=lambda _fd: (5, 321),
++                    output_pipes=lambda *_args: ((101, 102), (103, 104), [reader, reader]),
++                    pipes=lambda *_args: (105, 106), wait_ready=lambda *_args: None,
++                    os=N(getpid=lambda: 77, write=lambda _fd, raw: len(raw), close=lambda _fd: None),
++                    time=N(monotonic=lambda: 0), select=N(select=lambda *_args: ([33], [], [])),
++                    domain_empty=lambda *_args: events.append("direct-ECHILD"), report=lambda _data: True)
++                if controller_status == 0:
++                    with self.assertRaisesRegex(Refusal, "CONTROLLER_FAILED"):
++                        function(Session(), journal, "a" * 64)
++                else:
++                    self.assertEqual(function(Session(), journal, "a" * 64), controller_status)
++                    status = "MANUAL_DRAINED_NOT_PASS" if controller_status == 2 else "FAILED_DRAINED_STARTUP74"
++                    self.assertEqual(events[-1], "OUTER_" + status)
++                self.assertIn("ORIGINAL_CONTROLLER_WAIT", events)
++                self.assertEqual(events.count("reader-joined"), 2)
++                self.assertIn("direct-ECHILD", events)
++
++
++class FakeBusinessPath:
++    def __init__(self, business):
++        self.business = business
++
++    def __truediv__(self, _name):
++        return self
++
++    def exists(self):
++        return self.business
++
++
++class OuterTerminalTests(unittest.TestCase):
++    def invoke(self, tty):
++        events = []
++        reports = []
++        manifest = "a" * 64
++
++        class Journal:
++            def __init__(self, _session, path):
++                events.append(("journal", path))
++
++            def save(self, name, **_fields):
++                events.append(("record", name))
++
++        def isatty(fd):
++            events.append(("isatty", fd))
++            return tty
++
++        def outer(session, _journal, sha):
++            self.assertTrue(session.source74_verified)
++            self.assertEqual(sha, manifest)
++            events.append(("spawn", None))
++            return 2
++
++        main = fixture_function(
++            "main", Session=Session, MARKER="r20", STAGE=Path("/fixture"), Journal=Journal,
++            sys=N(argv=["runner", "--run-once", "r20", manifest]), os=N(isatty=isatty),
++            verify=lambda sha: events.append(("verify", sha)) or True, outer=outer, report=reports.append,
++            signal=N(SIGTERM=15, SIGINT=2, SIGHUP=1, signal=lambda *_args: None),
++            hold=lambda: self.fail("unexpected HOLD"))
++        return main(), events, reports
++
++    def test_no_tty_refuses_before_stage_verification_journal_or_spawn(self):
++        status, events, reports = self.invoke(tty=False)
++        self.assertEqual(status, 4)
++        self.assertEqual(events, [("isatty", 0)])
++        self.assertEqual(reports, [{"status": "REFUSED_BEFORE_STAGE_USE", "refusalCode": "OUTER_STDIN_TTY_REQUIRED"}])
++
++    def test_tty_keeps_verified_original_runner_flow(self):
++        status, events, reports = self.invoke(tty=True)
++        self.assertEqual(status, 2)
++        self.assertEqual(events, [("isatty", 0), ("verify", "a" * 64), ("journal", Path("/fixture/used-once.jsonl")),
++                                  ("record", "ROOT_ONE_USE_SCOPE"), ("spawn", None)])
++        self.assertEqual(reports, [])
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/recovery/r20-current-control-read-half-source/external-backpressure-root.c b/recovery/r20-current-control-read-half-source/external-backpressure-root.c
+new file mode 120000
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/external-backpressure-root.c
+@@ -0,0 +1 @@
++../r18-current-backpressure-source-v1/external-backpressure-root.c
+\ No newline at end of file
+diff --git a/recovery/r18-current-backpressure-source-v1/external_backpressure.py b/recovery/r20-current-control-read-half-source/external_backpressure.py
+copy from recovery/r18-current-backpressure-source-v1/external_backpressure.py
+copy to recovery/r20-current-control-read-half-source/external_backpressure.py
+--- a/recovery/r18-current-backpressure-source-v1/external_backpressure.py
++++ b/recovery/r20-current-control-read-half-source/external_backpressure.py
+@@ -2 +2 @@
+-"""SOURCE ONLY. Proposed one-use current-C backpressure runtime; NEVER compile here.
++"""SOURCE ONLY. Proposed one-use external control read-half fault fixture.
+@@ -6,0 +7 @@
++from dataclasses import dataclass
+@@ -20 +21 @@
+-from external_backpressure_policy import Session, drain, empty_domain, fill_queue, hold_tick
++from external_backpressure_policy import Session, empty_domain, fill_queue, hold_tick
+@@ -26,5 +27,6 @@
+-ROOT = Path("/workspace/work/omp-webui-ticket-41-current-backpressure")
+-STAGE = Path("/tmp/omp-external-current-backpressure-r18-20261117")
+-MARKER = "external-current-602f498-backpressure-r18-v1"
+-GENERATION = "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382"
+-INSTALLATION = "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54"
++ROOT = Path("/workspace/work/omp-webui-current")
++STAGE = Path("/tmp/omp-external-control-read-half-r20-20261118")
++MARKER = "external-current-7459e23-control-read-half-r20"
++CASE = "control-read-half-fault"
++GENERATION = "241932b83a01d7c477c5d9b721c0a76ce71568be88060d1162d0b0c5570bafa0"
++INSTALLATION = "8e20c157d358a1615ed22da356a2e5df32b4d03af5aafd6785e74625006a9b1c"
+@@ -43,0 +46,7 @@
++
++
++@dataclass
++class FaultObservation:
++    original_fence: bytes | None = None
++    shutdown_state: str = "NOT_ATTEMPTED"
++    completed: bool = False
+@@ -232,2 +241,3 @@
+-def backpressure(session, journal, owned):
+-    peer, writer, _sink, readers, dispatcher = owned
++def control_read_half_fault(session, journal, owned, fault):
++    require(session.started and session.root_zero and not session.failed, "READ_HALF_FAULT_INELIGIBLE")
++    peer, writer, _sink, _readers, dispatcher = owned
+@@ -236 +246,3 @@
+-    protected(session.pidfd, fence, control, GENERATION, journal)
++    require(identity(session.pidfd) == session.identity, "ORIGINAL_PIDFD_CHANGED")
++    before = protected(session.pidfd, fence, control, GENERATION, journal)
++    fault.original_fence = before
+@@ -242,0 +255,12 @@
++
++    def sample():
++        require(dispatcher.failure is None and not dispatcher.done.is_set(), "FAULT_DISPATCHER_LOST")
++        require(identity(session.pidfd) == session.identity, "ORIGINAL_PIDFD_CHANGED")
++        require(protected(session.pidfd, fence, control, GENERATION, journal) == before, "FAULT_FENCE_CHANGED")
++
++    sample()
++    session.failed = True
++    journal.save("CONTROL_PEER_SHUT_RD_INTENT", peerFd=peer.fileno(), peerIdentity=identity(peer.fileno()))
++    fault.shutdown_state = "ATTEMPTED_OUTCOME_UNCERTAIN"
++    peer.shutdown(socket.SHUT_RD)
++    fault.shutdown_state = "RETURNED"
+@@ -243,0 +268,3 @@
++    journal.save("CONTROL_PEER_SHUT_RD_RETURNED")
++    observe_until = started + 0.25
++    deadline = started + BUDGET
+@@ -245,2 +272,4 @@
+-    while time.monotonic() - started < 0.25:
+-        protected(session.pidfd, fence, control, GENERATION, journal)
++    while True:
++        sample_start = time.monotonic()
++        require(sample_start < deadline, "READ_HALF_FAULT_TIMEOUT")
++        sample()
+@@ -248,26 +277,11 @@
+-        select.select([], [], [], 0.01)
+-    protected(session.pidfd, fence, control, GENERATION, journal)
+-    require(observations > 0, "RETENTION_NOT_OBSERVED")
+-    journal.save("HELD_250MS", observations=observations, interval=time.monotonic() - started)
+-    journal.save("CLOSE_FIXTURE_DUPLICATE_INTENT")
+-    writer.close()  # Essential: this exact duplicate must not manufacture a late EOF failure.
+-    until = time.monotonic() + BUDGET
+-    drain(lambda size, bound: receive(peer, size, bound), lambda bound: line(peer, bound, journal),
+-          filled, f"COMPLETE {GENERATION}\n".encode(), until)
+-    original_wait(session.protector, session.pidfd, until, 0, journal, "protector")
+-    for index, reader in enumerate(readers):
+-        reader.finish(until, journal, f"protector-{index}")
+-        require(not reader.raw, "UNEXPECTED_PROTECTOR_OUTPUT")
+-    domain_empty(until, journal, "controller")
+-    require(not fence.exists(), "FENCE_NOT_FINALIZED")
+-    import fcntl
+-    fcntl.flock(control, fcntl.LOCK_EX | fcntl.LOCK_NB)
+-    journal.save("NORMAL_FENCE_ABSENT_EXCLUSIVE_LOCK_AVAILABLE")
+-    dispatcher.finish.set()
+-    require(dispatcher.done.wait(remaining(time.monotonic, until, "DISPATCHER_FINISH_TIMEOUT")),
+-            "DISPATCHER_FINISH_TIMEOUT")
+-    require(dispatcher.failure is None, "DISPATCHER_FAILED")
+-    journal.save("PASS_DRAINED", actualCase="current-C external fd3 backpressure", productAdmission="BLOCKED")
+-
+-
+-def manual_recovery(session, journal, owned):
++        remaining(time.monotonic, deadline, "READ_HALF_FAULT_TIMEOUT")
++        if sample_start >= observe_until:
++            break
++        select.select([], [], [], min(0.01, max(0, observe_until - time.monotonic())))
++    require(observations > 1, "RETENTION_NOT_OBSERVED")
++    journal.save("CONTROL_READ_HALF_FAULT_PROTECTION_HELD", observations=observations, fenceHex=before.hex(),
++                 interval=sample_start - started, originalPidfdIdentity=session.identity, normalPass=False)
++    fault.completed = True
++
++
++def manual_recovery(session, journal, owned, fault):
+@@ -277,0 +292 @@
++    require(fault.original_fence is None or before == fault.original_fence, "FAULT_FENCE_CHANGED_BEFORE_RECOVERY")
+@@ -294,7 +309,11 @@
+-    total = 0
+-    while True:
+-        chunk = receive(peer, 4096, until)
+-        total += len(chunk)
+-        require(total < 1_049_088, "MANUAL_CONTROL_DRAIN_LIMIT")
+-        if not chunk:
+-            break
++    if fault.shutdown_state == "NOT_ATTEMPTED":
++        total = 0
++        while True:
++            chunk = receive(peer, 4096, until)
++            total += len(chunk)
++            require(total < 1_049_088, "MANUAL_CONTROL_DRAIN_LIMIT")
++            if not chunk:
++                break
++        journal.save("MANUAL_CONTROL_BOUNDED_EOF", receivedBytes=total)
++    else:
++        journal.save("MANUAL_CONTROL_NOT_USED_AS_EOF_EVIDENCE", shutdownState=fault.shutdown_state)
+@@ -308 +327,2 @@
+-    journal.save("MANUAL_RECOVERED_NOT_NORMAL_PASS", failedFenceCleared=False, failedFenceHex=before.hex())
++    journal.save("MANUAL_RECOVERED_NOT_NORMAL_PASS", faultObserved=fault.completed,
++                 failedFenceCleared=False, failedFenceHex=before.hex())
+@@ -320,0 +341 @@
++    fault = FaultObservation()
+@@ -324,2 +345,2 @@
+-        backpressure(session, journal, owned)
+-        return 0
++        control_read_half_fault(session, journal, owned, fault)
++        raise Refusal("CONTROL_READ_HALF_FAULT_HELD")
+@@ -330 +351 @@
+-                         noAutomaticCleanup=True)
++                         noAutomaticCleanup=True, faultObserved=fault.completed, shutdownState=fault.shutdown_state)
+@@ -334 +355 @@
+-                return manual_recovery(session, journal, owned)
++                return manual_recovery(session, journal, owned, fault)
+@@ -361,2 +382 @@
+-        # This is a sampled acceptance deadline, never a termination mechanism.
+-        # Late genuine drainage may release owners, but cannot become normal PASS.
++        # A sampled deadline journals delay while keeping the original owners.
+@@ -380 +400 @@
+-    require(result in (0, 2, 3), "CONTROLLER_FAILED")
++    require(result in (2, 3), "CONTROLLER_FAILED")
+@@ -384,4 +404 @@
+-    normal = result == 0 and until is not None and not expired
+-    status = "PASS_DRAINED" if normal else "LATE_OR_MANUAL_DRAINED_NOT_PASS"
+-    if result == 3:
+-        status = "FAILED_DRAINED_STARTUP74"
++    status = "FAILED_DRAINED_STARTUP74" if result == 3 else "MANUAL_DRAINED_NOT_PASS"
+@@ -389 +406,2 @@
+-                 originalWait=result, originalReadersEOF=True, productAdmission="BLOCKED")
++                 originalWait=result, originalReadersEOF=True, businessDeadlineExceeded=expired,
++                 productAdmission="BLOCKED")
+@@ -393 +411 @@
+-    return 3 if result == 3 else (0 if normal else 2)
++    return result
+@@ -401 +419 @@
+-            and manifest["generation"] == GENERATION and manifest["case"] == "backpressure", "MANIFEST_SCOPE")
++            and manifest["generation"] == GENERATION and manifest["case"] == CASE, "MANIFEST_SCOPE")
+@@ -421,0 +440,5 @@
++        if sys.argv[1] == "--run-once":
++            require(len(sys.argv) == 4, "OUTER_EXACT_ARGUMENTS")
++            if not os.isatty(0):
++                report({"status": "REFUSED_BEFORE_STAGE_USE", "refusalCode": "OUTER_STDIN_TTY_REQUIRED"})
++                return 4
+@@ -434 +456,0 @@
+-        require(len(sys.argv) == 4, "OUTER_EXACT_ARGUMENTS")
+@@ -438 +460 @@
+-                     scope="ONE_EXTERNAL_BACKPRESSURE_NO_NATIVE_NO_GLOBAL", recovery="FRESH_ROOT_COMMAND_ONLY")
++                     scope="ONE_EXTERNAL_CONTROL_READ_HALF_FAULT", recovery="FRESH_ROOT_COMMAND_ONLY")
+diff --git a/recovery/r20-current-control-read-half-source/external_backpressure_io.py b/recovery/r20-current-control-read-half-source/external_backpressure_io.py
+new file mode 120000
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/external_backpressure_io.py
+@@ -0,0 +1 @@
++../r18-current-backpressure-source-v1/external_backpressure_io.py
+\ No newline at end of file
+diff --git a/recovery/r20-current-control-read-half-source/external_backpressure_policy.py b/recovery/r20-current-control-read-half-source/external_backpressure_policy.py
+new file mode 120000
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/external_backpressure_policy.py
+@@ -0,0 +1 @@
++../r18-current-backpressure-source-v1/external_backpressure_policy.py
+\ No newline at end of file
+diff --git a/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py b/recovery/r20-current-control-read-half-source/external_backpressure_stage.py
+copy from recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py
+copy to recovery/r20-current-control-read-half-source/external_backpressure_stage.py
+--- a/recovery/r18-current-backpressure-source-v1/external_backpressure_stage.py
++++ b/recovery/r20-current-control-read-half-source/external_backpressure_stage.py
+@@ -13,2 +13,2 @@
+-ROOT = Path("/workspace/work/omp-webui-ticket-41-current-backpressure")
+-STAGE = Path("/tmp/omp-external-current-backpressure-r18-20261117")
++ROOT = Path("/workspace/work/omp-webui-current")
++STAGE = Path("/tmp/omp-external-control-read-half-r20-20261118")
+@@ -17,3 +17,5 @@
+-MARKER = "external-current-602f498-backpressure-r18-v1"
+-GENERATION = "c9e341885be6939f08db8d9d1336351af3f136a4fd4fcd76861fa3580fa11382"
+-INSTALLATION = "b8dd747db3ae19ab705f78dc6de60ba249f5f822efbf35a8552d0e72227a3b54"
++MARKER = "external-current-7459e23-control-read-half-r20"
++CASE = "control-read-half-fault"
++GENERATION = "241932b83a01d7c477c5d9b721c0a76ce71568be88060d1162d0b0c5570bafa0"
++INSTALLATION = "8e20c157d358a1615ed22da356a2e5df32b4d03af5aafd6785e74625006a9b1c"
++BASE_COMMIT = "7459e233fc58c03b49b8dc1a5204bfb348e074d5"
+@@ -55 +57,3 @@
+-    require(plan["status"] == "SOURCE_READY_RUNTIME_NOT_RUN" and plan["marker"] == MARKER, "SOURCE_PLAN_SCOPE")
++    require(plan["status"] == "SOURCE_READY_RUNTIME_NOT_RUN" and plan["marker"] == MARKER
++            and plan["case"] == CASE and plan["generation"] == GENERATION
++            and plan["stage"] == str(STAGE) and plan["baseCommit"] == BASE_COMMIT, "SOURCE_PLAN_SCOPE")
+@@ -87,0 +92 @@
++        "outerStdin": "FD 0 must be an interactive TTY for both literal Root challenges",
+@@ -89,2 +94,6 @@
+-        "stdin": "X only after exact START/running", "completionAck": "held after exact ROOT_EXIT generation 0 0",
+-        "filler": "4096-byte ! chunks, positive <1MiB, actual EAGAIN", "heldSeconds": 0.25,
++        "stdin": "X only after exact START/running",
++        "completionAck": "held through exact ROOT_EXIT generation 0 0 and fixture EAGAIN, then written by peer",
++        "filler": "4096-byte ! chunks, positive <1MiB, actual fixture EAGAIN",
++        "fault": "fixture peer SHUT_RD after successful ACK write and unchanged pre-fault protection",
++        "faultObservation": "original pidfd live, first fence bytes retained, exclusive lock denied, dispatcher held",
++        "minimumPostShutdownSeconds": 0.25,
+@@ -92 +100,0 @@
+-        "completion": "close fixture duplicate; exact filler; exact COMPLETE; EOF; original wait0; readers EOF; ECHILD",
+@@ -95,2 +103,5 @@
+-        "recovery": "fresh Root post-HOLD command only; original guardian pidfd SIGKILL once only after START+natural ROOT_EXIT0",
+-        "epipe": "NOT_IMPLEMENTED_NOT_RUN", "authentication": "SYNTHETIC_PEER_NO_NATIVE_OR_GLOBAL_AUTHORITY"})
++        "recovery": ("fresh Root post-HOLD command only after START+natural ROOT_EXIT0; original pidfd SIGKILL once; "
++                     "guardian wait -9; stdout/stderr EOF and joins; original controller wait; both ECHILD; fence retained"),
++        "controlEvidence": ("bounded EOF drain when SHUT_RD was never attempted; when SHUT_RD returned or outcome is "
++                            "uncertain, record exact shutdown state and omit control EOF as evidence"),
++        "authentication": "SYNTHETIC_PEER_NO_NATIVE_OR_GLOBAL_AUTHORITY"})
+@@ -110,2 +121,2 @@
+-        "status": "READY_NOT_RUN", "marker": MARKER, "generation": GENERATION, "case": "backpressure",
+-        "baseCommit": "602f4988c7e09b8d3d7d708b07fc36e4516b560a", "cwd": str(ROOT),
++        "status": "READY_NOT_RUN", "marker": MARKER, "generation": GENERATION, "case": CASE,
++        "baseCommit": BASE_COMMIT, "cwd": str(ROOT),
+diff --git a/recovery/r20-current-control-read-half-source/startup74-proof.json b/recovery/r20-current-control-read-half-source/startup74-proof.json
+new file mode 120000
+--- /dev/null
++++ b/recovery/r20-current-control-read-half-source/startup74-proof.json
+@@ -0,0 +1 @@
++../r18-current-backpressure-source-v1/startup74-proof.json
+\ No newline at end of file

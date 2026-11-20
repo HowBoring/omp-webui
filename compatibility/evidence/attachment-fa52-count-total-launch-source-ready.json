@@ -1,0 +1,219 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "fbfae85667e4b2171bd47f81d305e93951850c19",
+  "scope": "Publish exact original object before constructor initialization; every uncertain launch holds. Bounded capture/case unchanged.",
+  "priorReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-owned-source-ready.json",
+    "bytes": 11621,
+    "sha256": "be4d6b94999999ee5a68cab58e8a4c3e46a28ee6452cba8f5efc5113c0171cbe"
+  },
+  "priorFreeze": {
+    "path": "/tmp/ticket38-count-total-owned-source-20261117/final-inputs.json",
+    "bytes": 4233,
+    "sha256": "170a5473a62faad0d6568d8c66d148573bb12af17f2940309e54b171159e1538"
+  },
+  "closureReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-source-ready.json",
+    "bytes": 29960,
+    "sha256": "90bfda6fdcd069b1ae7c9c45f413973e98d613ddbe54ff48ec2c6d25bf23e199"
+  },
+  "resolver": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117.py",
+    "bytes": 2181,
+    "sha256": "7a918bcda42ff66d07901070101aada615252422c7b615121f4d8c16277a0c29"
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_launch_ownership.py",
+      "bytes": 3322,
+      "sha256": "54c9fdce3499dd0f3087b1df79c54356f36b9cde37094215cd9b92e5d884c065"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_launch_ownership.py",
+      "bytes": 10602,
+      "sha256": "f3a2de776c3e9c880deb7b8fc560336bb568d526b4fac9019de5220a9c76e5f7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-launch-source.md",
+      "bytes": 3039,
+      "sha256": "22ad5e393f67861218b965c7ebf492dfc95b5a6db92da703d3050bbf14a16c02"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-retainer-20261117.py",
+      "bytes": 9747,
+      "sha256": "7a376d1ccde7ff7d8e8a7b2aa8f957cc3bd727e71823d03fd593b5fd99dade1f"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117.py",
+      "bytes": 2181,
+      "sha256": "7a918bcda42ff66d07901070101aada615252422c7b615121f4d8c16277a0c29"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117/author_metadata.py",
+      "bytes": 6849,
+      "sha256": "be495f0fa7d29267f9d896d8a551bf5c8fddb0c8799eff0a7663553036eac829"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117/static_binding.py",
+      "bytes": 5168,
+      "sha256": "decfce27691475a22c732a9968ffc870f9d1a69639182141be256844248242c4"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117/preservation.json",
+      "bytes": 1705,
+      "sha256": "ea7b9493b8ded310b74faa8083930630511566e3ae82db9e437a7e93fb459a8c"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-launch-source-20261117/source-tool-results.json",
+      "bytes": 12961,
+      "sha256": "0aa0c1c67c66a957f62d3cfd02d29169d75f661bb4d714239a26ba8db3a5ce03"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-owned-source-ready.json",
+      "bytes": 11621,
+      "sha256": "be4d6b94999999ee5a68cab58e8a4c3e46a28ee6452cba8f5efc5113c0171cbe"
+    },
+    {
+      "path": "/tmp/ticket38-count-total-owned-source-20261117/final-inputs.json",
+      "bytes": 4233,
+      "sha256": "170a5473a62faad0d6568d8c66d148573bb12af17f2940309e54b171159e1538"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-20261117-fb0_pygm/precheck.json",
+      "bytes": 3091,
+      "sha256": "3d1742bd102f7f7fdbffd964994411da1103484896713025e4d7607e2369eaa9"
+    },
+    {
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py",
+      "bytes": 88747,
+      "sha256": "85d29b2bf0249f5436838298c9a60ee93508b1102e9ac43b001f8a7e7ae8f375"
+    }
+  ],
+  "retainer": {
+    "path": "/tmp/ticket38-count-total-launch-retainer-20261117.py",
+    "bytes": 9747,
+    "sha256": "7a376d1ccde7ff7d8e8a7b2aa8f957cc3bd727e71823d03fd593b5fd99dade1f"
+  },
+  "capture": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    "tests": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_capture.py",
+      "bytes": 6091,
+      "sha256": "02adca47ba1ad6e47e4a45fcfc7430cef423909d9cffdbcff16eee68f3755e64"
+    },
+    "limitPerStreamBytes": 1048576,
+    "readChunkBytes": 65536,
+    "fullStream": "Count and SHA every observed byte until original EOF.",
+    "overflowOrErrors": "FAIL even on child exit0. Write faults stop writes and continue draining.",
+    "readFault": "FAIL/no EOF claim, retain original source handle; persistent read fault can prevent exit. No recovery authority.",
+    "wait": "Original Popen wait plus both original reader joins and EOF required; readers start before wait.",
+    "forbidden": "No timeout/kill/census/PID fallback/retry/descendant-extinction claim.",
+    "testsRun": "9 synchronous finite pure binary I/O tests PASS; no process/thread spawn. Retainer AST-only; never imported/executed."
+  },
+  "ownership": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_launch_ownership.py",
+      "bytes": 3322,
+      "sha256": "54c9fdce3499dd0f3087b1df79c54356f36b9cde37094215cd9b92e5d884c065"
+    },
+    "tests": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/test_retainer_launch_ownership.py",
+      "bytes": 10602,
+      "sha256": "f3a2de776c3e9c880deb7b8fc560336bb568d526b4fac9019de5220a9c76e5f7"
+    },
+    "constructorSource": {
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/subprocess.py",
+      "bytes": 88747,
+      "sha256": "85d29b2bf0249f5436838298c9a60ee93508b1102e9ac43b001f8a7e7ae8f375"
+    },
+    "guard": "Launch-attempt state before allocation; exact original object before initializer; BaseException always HOLD, including missing handle.",
+    "release": "Original Popen wait + both original reader joins + both actual EOF; capture failures still FAIL.",
+    "hold": "Keep retaining parent, exact allocated original Popen, available original pipes, constructed readers/captures/callbacks on live stack forever. No returned handle is not absence proof.",
+    "report": "One bounded ownership-hold.json; report/pause BaseException cannot grant release.",
+    "fakeHold": "Finite callback raises BaseException sentinel outside lifecycle catch; no fake polling loop.",
+    "forbidden": "No retry/timeout/kill/census/PID fallback/cleanup PASS/descendant-extinction claim.",
+    "testsRun": "25 pure tests incl nine new tests and 36 new fault subcases; no thread/process/sleep. Retainer AST-only. Historical old spawn-failure inference superseded."
+  },
+  "preservation": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117/preservation.json",
+    "bytes": 1705,
+    "sha256": "ea7b9493b8ded310b74faa8083930630511566e3ae82db9e437a7e93fb459a8c"
+  },
+  "baseCurrentInputs": 842,
+  "recursiveChain": [
+    842,
+    831,
+    819,
+    781,
+    745,
+    703,
+    667
+  ],
+  "overrides": [],
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 85975,
+    "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645",
+    "name": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects"
+  },
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN; fresh paired exact-source review + independent Root precheck + separate ONE required.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-count-total-launch-20261117-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 90000,
+    "workerRequestDeadlineMs": 10000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner. New top capture requires original wait and both reader joins/EOF. New ownership helper retains original Popen/pipes/readers on every lifecycle BaseException; unresolved ownership or missing EOF remains bounded-report HOLD with no release/cleanup authority. New launch helper publishes attempt before allocation and retains exact original Popen before __init__; all uncertain launches, even unavailable handles, HOLD; unresolved ownership or missing EOF remains bounded-report HOLD with no release/cleanup authority. No private field proves absence.",
+    "prePost": "Root independent exactnewdelta/781\u2192745\u2192703\u2192667 + Native166/build290/41archive/15addon/6HTML; exactNativeHEAD/index/status/binarydiffs, candidate/dependencylinks and cleanHostHEAD/tree/index. No bulkcopies. Retain originalhandles/readers/toolreturns; noPIDfallback/groupkill/census.",
+    "failurePolicy": "Stop firstFAIL, preserveexactfailure. No retry/fix/expectationweakening, Native API/schema/product/build/dependency change, othercase/format, Host/browser/FFI/socket/kernelprobe, GH/merge/global/private/product admission, fence/orphan444480/processcensus/PIDfallback/groupkill. Ifpubliccapabilitygap, SOURCE HOLD; never shrinkacceptedrawlimit or silentlyapprove degradation.",
+    "runtimeWindow": "NONE authorized by thisSOURCE. Root coordination and separateONE required; neverreuse consumedreadiness/raw/output/retainerprefixes."
+  },
+  "oldPrecheck": {
+    "record": {
+      "path": "/tmp/ticket-38-public-count-total-20261117-fb0_pygm/precheck.json",
+      "bytes": 3091,
+      "sha256": "3d1742bd102f7f7fdbffd964994411da1103484896713025e4d7607e2369eaa9"
+    },
+    "meaning": "Unused historical precheck only; no used-once/start/runner. Never reused for new bounded source."
+  },
+  "newPrefixes": [
+    "/tmp/ticket38-count-total-launch-source-20261117",
+    "/tmp/ticket-38-public-count-total-launch-20261117-",
+    "/tmp/attachment-runtime-count-total-launch-20261117-"
+  ],
+  "notRun": "No retainer pre/run/post, actual case, thread/process, Bun/Native/Host/SDK/provider/browser/FFI/kernel action.",
+  "admission": "SOURCE ONLY. Root HOLD pending fresh pair + independent new pre + separate ONE. Whole38/53/54 open."
+}

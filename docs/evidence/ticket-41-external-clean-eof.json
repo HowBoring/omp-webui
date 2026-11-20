@@ -1,0 +1,114 @@
+{
+  "status": "SOURCE/PURE/TYPES ONLY; actual external OS/Native/global/private admission NOT PROVED",
+  "reviewBase": "32fe293c25bf727bb9679726273780765673f4fb",
+  "reviewBaseTree": "c7e039c5a013af66a25e4ad962091a26638b0c1d",
+  "reviews": {
+    "standards": "ticket-41-external-root-standards.md:0 findings",
+    "spec": "ticket-41-external-root-spec.md:1 P2 close-only truncated control accepted as completed"
+  },
+  "sourceCommit": "812e74d9af91431eac89007bb4d59ea341c64cda",
+  "sourceTree": "6fad89b1a6e7187e140cff9c5e08ab3173deba3a",
+  "integrationTip": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "integrationMerge": "git merge --no-edit mvp/spec-29: Already up to date; ancestor check exit0",
+  "seams": "Existing agreed public ExternalProtectorController / PrivateHelperController process/socket adapters; no actual OS runtime",
+  "tdd": {
+    "externalRed": {
+      "commit": "61dafea819785acd101a7b212f72acebd445eef2",
+      "pass": 30,
+      "fail": 1,
+      "assertions": 165,
+      "failure": "completed fulfilled after verified ROOT_EXIT+COMPLETE+unterminated printable tail, close-only and direct reap0"
+    },
+    "externalFirstGreen": {
+      "commit": "74400f201117e28628d6893df3f7be82a39bf692",
+      "pass": 31,
+      "fail": 0,
+      "assertions": 167
+    },
+    "privateRed": {
+      "commit": "94e3ee4f02086511eb64a42af1487eff2ea7f4d9",
+      "pass": 6,
+      "fail": 1,
+      "assertions": 31,
+      "failure": "same public completed promise falsely fulfilled for close-only COMPLETE+partial tail and direct reap0"
+    },
+    "privateFirstGreen": {
+      "commit": "60fd9b1451d0273d3eeffb8c5a3420be2eea1151",
+      "pass": 7,
+      "fail": 0,
+      "assertions": 34
+    },
+    "finalPure": {
+      "pass": 62,
+      "fail": 0,
+      "assertions": 277,
+      "files": 7,
+      "durationMs": 60
+    }
+  },
+  "semantics": [
+    "Only observed end can authorize clean EOF; decoder.finish validates all received bytes after prior queued frames.",
+    "Close without prior end fails immediately even with exact COMPLETE; direct reap remains observable and completion waits for reap.",
+    "Duplicate end/close after observed end is ignored, preserving ordered queued ROOT_EXIT/COMPLETE processing.",
+    "Error/disconnect remains sticky before direct reap, including after provisional COMPLETE and clean EOF.",
+    "Same private Host promise bug independently reproduced and repaired; private C EOF cleanup policy unchanged.",
+    "Receipt-known START fences and separate ROOT_EXIT readiness versus terminal completion behavior unchanged."
+  ],
+  "checks": {
+    "fullHostTypeScript": "PASS exit0",
+    "gitDiffCheck": "PASS",
+    "baseCBuildAndFixtureComparison": "PASS byte equality and previous SHA256,9 paths",
+    "freshCCompilation": "NOT RUN unchanged source"
+  },
+  "commands": [
+    "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/external/controller.test.ts",
+    "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/controller.test.ts",
+    "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun test tests/supervision/control.test.ts tests/supervision/controller.test.ts tests/supervision/session.test.ts tests/supervision/build.test.ts tests/supervision/external/controller.test.ts tests/supervision/external/launch.test.ts tests/supervision/external/build.test.ts",
+    "PATH=/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:$PATH bun run typecheck",
+    "git diff --check",
+    "git merge --no-edit mvp/spec-29",
+    "git merge-base --is-ancestor mvp/spec-29 HEAD"
+  ],
+  "bun": "1.4.4 (38afee6c8); ignored own node_modules symlink to integration deps; no installs",
+  "sourceDigests": {
+    "packages/supervision/external.ts": "8dbc09732684f926f0247a639337da6b46b73d5141c348cace0c2038fa40a2b9",
+    "packages/supervision/controller.ts": "aa42c81906514cf08a6e92b93f289bdd0c9f84ffca8add321f696d805504b29c",
+    "tests/supervision/external/controller.test.ts": "5ed3ed83ee39ea06728d6b4cd554b846c7dcd89c08b1b4ad94af550e6718993e",
+    "tests/supervision/controller.test.ts": "30e7e4760dbefaf03018e2ebbeed8b6c20d305bec1d50fbf1ea6ff2827d27147",
+    "packages/supervision/EXTERNAL.md": "23103f27e493d2a2555d202974f956e24f5109f5ad27a9c0dc7ec7d6ff6d1f99",
+    "packages/supervision/README.md": "59407017cfe2d97d7f672baffaff75db1800f1c46f7363c38d5997acd2c23200"
+  },
+  "unchangedBaseDigests": {
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+    "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+    "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+    "scripts/check-external-protector-static.py": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+    "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+  },
+  "logs": {
+    "/tmp/ticket-41-external-clean-eof-red.log": "4890bac5c7df2adc744a713799f2a15986c6a89f9703f4adf9c14a2152abdaaa",
+    "/tmp/ticket-41-external-clean-eof-green-first.log": "5157f2870fbd97413de93bae0a4ea2a96c671b4d5f39a3716a4c0c97d31ec847",
+    "/tmp/ticket-41-private-clean-eof-red.log": "0dd60dd4f3d83e8836fabc2c3d0087c6c52480dde3cdf9c15263d5dd1a2c041d",
+    "/tmp/ticket-41-private-clean-eof-green-first.log": "67c4a49c1235a2b8f30e139a4feeed9de111cc95058a840da19c2223ffd7ebbd",
+    "/tmp/ticket-41-clean-eof-green-controllers.log": "1b30341830e80c56de764ebfc9597d53a296ad972318dab99ed2770516b30141",
+    "/tmp/ticket-41-clean-eof-pure.log": "2f396fda724195c51e1fdfab034fbd7351b6250e1bfd940f2a989ab8c6df0161",
+    "/tmp/ticket-41-clean-eof-typecheck.log": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+  },
+  "notRun": [
+    "actual helper/protector/C/kernel fixtures",
+    "Native/CLI/UDS/listener/FFI/dlopen/probes/signals/browser/strace",
+    "C write-fault/backpressure fixtures",
+    "global installation/approval/publication/product/private admission"
+  ],
+  "limits": [
+    "Controlled OS adapters do not prove actual kernel authentication, cleanup or global provenance.",
+    "No C, adapter interface, timeout or force feature changed; unwired owned-control-io shim not copied or touched.",
+    "Old orphan and all fences untouched and uninspected.",
+    "Fresh independent two-axis review is coordinator-owned and pending.",
+    "Windows Chrome/WSL2 remains owner-deferred."
+  ]
+}

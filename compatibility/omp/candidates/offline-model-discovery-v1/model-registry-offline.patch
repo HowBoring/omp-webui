@@ -1,0 +1,33 @@
+diff --git a/packages/coding-agent/src/config/model-registry.ts b/packages/coding-agent/src/config/model-registry.ts
+--- a/packages/coding-agent/src/config/model-registry.ts
++++ b/packages/coding-agent/src/config/model-registry.ts
+@@ -55,6 +55,7 @@
+ import { redactUrlForLog } from "../mcp/json-rpc";
+ import type { AuthStorage } from "../session/auth-storage";
+ import { type ApiKeyResolverModel, type ApiKeyResolverOptions, createApiKeyResolver } from "./api-key-resolver";
++import { cfgOffline } from "./auxiliary-model-policy";
+ import type { ConfigError, ConfigFile, LoadResult } from "./config-file";
+ import {
+ 	buildCustomModelOverlay,
+@@ -845,7 +846,8 @@
+ 	}
+ 
+ 	/**
+-	 * Reload models from disk (built-in + custom config).
++	 * Reload models from disk (built-in + custom config). Cache-aware discovery
++	 * uses only cached catalogs when the registry settings enable offline mode.
+ 	 */
+ 	async refresh(
+ 		strategy: ModelRefreshStrategy = "online-if-uncached",
+@@ -2307,6 +2309,11 @@
+ 		strategy: ModelRefreshStrategy,
+ 		providerFilter?: ReadonlySet<string>,
+ 	): Promise<void> {
++		// Startup and deferred selectors share the cache-aware strategy. Keep
++		// their cache hydration and settlement while honoring offline settings.
++		if (strategy === "online-if-uncached" && this.#settings && cfgOffline.get(this.#settings)) {
++			strategy = "offline";
++		}
+ 		try {
+ 			await this.#runRuntimeDiscoveries(strategy, providerFilter);
+ 		} finally {

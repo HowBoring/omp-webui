@@ -1,0 +1,125 @@
+$ bun run typecheck && bun test && bun run build
+$ tsc --noEmit -p tsconfig.json
+bun test v1.4.4 (38afee6c8)
+
+tests/access/browser-access.test.ts:
+(pass) root bootstrap exchanges once, cleans URL, and preserves absolute browser access across reopening [15.31ms]
+(pass) writes reject hostile authority, origin, proxy, metadata and CSRF before any body is consumed [10.05ms]
+(pass) logout durably invalidates all pages of that credential, leaves another browser valid [11.67ms]
+(pass) changing origin or data directory and losing private material require fresh bootstrap [18.72ms]
+(pass) bootstrap is root GET only and never authenticates an API, upload or websocket [7.05ms]
+(pass) loss or replacement of private state invalidates a live Host's cached credential authority [10.14ms]
+
+tests/access/peers.test.ts:
+(pass) real WebSocket admission, each logical open, logout and expiry use current credential authority [1015.52ms]
+
+tests/access/host.test.ts:
+(pass) Host serves login but private API stays closed independently of browser authorization [13.48ms]
+
+tests/access/admission.test.ts:
+(pass) actual HTTP rejects large declared bodies before upload, Remote and history processing [42.97ms]
+
+tests/compatibility/candidate.test.ts:
+(pass) actual candidate launcher preflight uses isolated protocol without touching a user profile [12.83ms]
+(pass) preflight mixed with Session/UI arguments is rejected before ordinary CLI startup [18.55ms]
+
+tests/compatibility/preflight.test.ts:
+(pass) unknown startup installation blocks diagnostics before executing a launcher [0.31ms]
+(pass) verified install rejects same-version launcher, symlink, runtime and native closure replacements [632.47ms]
+(pass) enrolled launcher-content drift blocks the same-version candidate before launch [6.47ms]
+(pass) enrolled launcher-symlink drift blocks the same-version candidate before launch [5.57ms]
+(pass) enrolled runtime-content drift blocks the same-version candidate before launch [8.14ms]
+(pass) enrolled dependency-content drift blocks the same-version candidate before launch [4.98ms]
+(pass) enrolled new-dependency drift blocks the same-version candidate before launch [5.26ms]
+(pass) untracked intermediate dependency symlinks cannot be enrolled as a complete closure [1.94ms]
+
+tests/compatibility/dsh-source.test.ts:
+(pass) the declared complete source is accepted through the public DSH build gate [1973.48ms]
+(pass) an undeclared edit to a consumed DSH module blocks the build gate [2195.82ms]
+(pass) ignored startup environment files and undeclared untracked source cannot evade the gate [2630.33ms]
+
+tests/compatibility/assets.test.ts:
+(pass) changed served JavaScript or startup trust manifest cannot publish verified diagnostic UI [19.94ms]
+
+tests/compatibility/source.test.ts:
+(pass) a consumed public decoder changed outside the recorded patch blocks the candidate build [27.90ms]
+(pass) even an ignored extra startup environment file is rejected before importing generators [117.03ms]
+
+tests/compatibility/framing.test.ts:
+(pass) public OMP decoder reassembles chunked UTF-8 frames across arbitrary byte boundaries [94.53ms]
+(pass) physical byte ceiling includes newline and rejects a line before unbounded buffering [62.91ms]
+(pass) invalid physical UTF-8 and partial JSON EOF are explicit protocol failures [0.28ms]
+(pass) chunked frames are refused until public v2 negotiation completes [0.27ms]
+(pass) public OMP decoder rejects logical byte ceiling [0.20ms]
+(pass) public OMP decoder rejects count ceiling [5.09ms]
+(pass) public OMP decoder rejects nonintegral metadata [0.14ms]
+(pass) public OMP decoder rejects sequence must begin at zero [0.07ms]
+(pass) public OMP decoder rejects canonical base64 [0.32ms]
+(pass) chunk interleaving and incomplete chunk EOF are never silently ignored [0.40ms]
+(pass) chunk metadata remains bound to one ordered logical frame [3.25ms]
+(pass) public decoder refuses declared length mismatches after the final chunk [15.29ms]
+(pass) logical UTF-8 is validated after public chunk reassembly [59.95ms]
+
+tests/compatibility/transport.test.ts:
+(pass) real candidate transport negotiates public v2 then drains and reaps after the report [75.99ms]
+(pass) public request IDs correlate concurrent responses completed in reverse order [30.89ms]
+(pass) a valid report followed by partial EOF is a failed drain, never successful diagnostics [37.74ms]
+(pass) public transport rejects wrong-id without treating acknowledgement as compatibility [80.03ms]
+(pass) public transport rejects wrong-command without treating acknowledgement as compatibility [39.40ms]
+(pass) public transport rejects invalid-result without treating acknowledgement as compatibility [36.78ms]
+(pass) a duplicate terminal frame cannot turn into a successful diagnostic drain [106.82ms]
+(pass) a invalid-utf8 terminal frame cannot turn into a successful diagnostic drain [70.09ms]
+(pass) late response after timeout cannot revive a request, but its bytes are drained [149.27ms]
+(pass) stderr stays separate and its sensitive fixture contents are never returned [49.77ms]
+146 |     }
+147 |   }
+148 | 
+149 |   private fail(code: string): void {
+150 |     if (this.fault !== undefined) return;
+151 |     this.fault = new Error(code);
+                           ^
+error: RPC_READY_TIMEOUT
+      at fail (/workspace/work/omp-webui-ticket-39/packages/compatibility/transport.ts:151:22)
+      at <anonymous> (/workspace/work/omp-webui-ticket-39/packages/compatibility/transport.ts:55:45)
+(fail) EOF drain reaps a non-exiting process within the diagnostic termination budget [54.55ms]
+(pass) cancellation rejects pending work and reaps without replay [57.75ms]
+(pass) blocked stdin flush cannot prevent EOF shutdown deadlines and process reaping [496.33ms]
+(pass) stdin EOF still drains a valid pending response before observing actual exit [31.65ms]
+
+tests/compatibility/runtime.test.ts:
+(pass) a real candidate with omitted runtime/native mappings is blocked despite a matched ready/schema/build [766.77ms]
+
+tests/host/diagnostics.test.ts:
+(pass) real Bun Gateway exposes only sanitized diagnostics and rejects browser launch controls [27.34ms]
+
+tests/host/http.test.ts:
+(pass) Host scaffold HTTP handler > exposes a health endpoint [0.18ms]
+(pass) Host scaffold HTTP handler > does not pretend the DSH API is implemented [0.05ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/remote.mux unavailable [0.20ms]
+(pass) Host scaffold HTTP handler > keeps the unimplemented API path /api/unknown unavailable [0.01ms]
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path / [0.05ms]
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /api
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /missing
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /healthz/
+(pass) Host scaffold HTTP handler > returns 404 for the non-API path /.env
+(pass) Host scaffold HTTP handler > does not expose health through a mutation request [0.04ms]
+(pass) Host scaffold HTTP handler > serves a real loopback request and releases its listener [2.15ms]
+
+tests/browser/diagnostics-contract.test.ts:
+(pass) public diagnostic report > accepts bounded blocked reports and rejects browser execution controls or private data [0.37ms]
+(pass) public diagnostic report > verified reports require complete identity while session admission remains blocked [0.52ms]
+(pass) public diagnostic report > generated Remote descriptor has no business inputs and a strict result codec [0.03ms]
+
+tests/browser/diagnostics-remote.test.ts:
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > uses the Connection envelope and returns a typed RemoteResult [10.79ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > rejects mismatched correlation and malformed reports [10.69ms]
+(pass) actual DSH diagnostic Remote with explicit public wire fixtures > withdrawal aborts the in-flight request and rejects stale captured calls [5.40ms]
+
+1 tests failed:
+(fail) EOF drain reaps a non-exiting process within the diagnostic termination budget [54.55ms]
+
+ 70 pass
+ 1 fail
+ 195 expect() calls
+Ran 71 tests across 16 files. [11.43s]
+error: script "check" exited with code 1

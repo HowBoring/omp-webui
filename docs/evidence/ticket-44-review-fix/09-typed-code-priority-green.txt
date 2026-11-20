@@ -1,0 +1,12 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-remote.test.ts:
+(pass) busy New and Switch return correlated typed lifecycle failures with an explicit recovery action [102.54ms]
+(pass) known typed errors keep safe codes while arbitrary native messages and forged objects are sanitized [42.00ms]
+(pass) malformed carrier envelopes reject before invocation while a valid stale choice returns a correlated failure [45.07ms]
+(pass) unconfirmed New returns manual recovery through Remote without inventing a registration [31.75ms]
+
+ 4 pass
+ 0 fail
+ 67 expect() calls
+Ran 4 tests across 1 file. [440.00ms]

@@ -1,0 +1,25 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-supervisor.test.ts:
+(pass) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [27.85ms]
+(pass) Open during pending idle retirement retains its prelaunch reason [178.31ms]
+(pass) zero exit with a failed final protocol tail persists an unknown shutdown outcome [47.39ms]
+38 |
+39 | test("an oversized adapter code remains bounded and its unknown worker is available for manual observation", async () => {
+40 |   const f = await sourceFixture();
+41 |   try {
+42 |     f.controls.start = async () => { throw new Error("STRICT_" + "A".repeat(200)); };
+43 |     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
+                                                                         ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "SESSION_OPEN_OUTCOME_UNKNOWN"
+Received message: "[\n  {\n    \"origin\": \"string\",\n    \"code\": \"too_big\",\n    \"maximum\": 96,\n    \"inclusive\": true,\n    \"path\": [\n      \"code\"\n    ],\n    \"message\": \"Too big: expected string to have <=96 characters\"\n  }\n]"
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:43:69)
+(fail) an oversized adapter code remains bounded and its unknown worker is available for manual observation [29.56ms]
+
+ 3 pass
+ 1 fail
+ 10 expect() calls
+Ran 4 tests across 1 file. [406.00ms]

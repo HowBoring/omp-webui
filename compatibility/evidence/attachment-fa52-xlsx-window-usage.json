@@ -1,0 +1,67 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_PASS_DRAINED",
+  "sourceCheckpoint": "5ec607d3a4da23bd9c3471583c064bd378d74c16",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-xlsx-source-ready.json",
+    "bytes": 31776,
+    "sha256": "7e886eb25cd6ee5416358f560d550d0becc1e7e65830ba16748b4caf08fdced8"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-xlsx-source/final-inputs.json",
+    "bytes": 12676,
+    "sha256": "05a0b43855f70e82f289da944f10c70df2316dc2707d6c93ce8be5cab1ca5c93"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+    "bytes": 184366,
+    "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+  },
+  "case": "actual public XLSX requires structure consent before indexed saved text and provider witness",
+  "attempts": 1,
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-xlsx-runtime-success.json",
+    "bytes": 17201,
+    "sha256": "d1d022dfa5f2d2b0982dbeccfdd48ed5de8e93ad069fc26cf0769dba38f6c972"
+  },
+  "originalTool": {
+    "provenance": "Assistant-transcribed original tool returns, not an independent tool archive.",
+    "initialChunkId": "2f8b28",
+    "sessionId": 46414,
+    "initialToolReportedWallTimeSeconds": 1.000525606,
+    "initialToolReturnedOriginalSession": true,
+    "pidEventReceivedInFinalPoll": true,
+    "finalChunkId": "c5d4cb",
+    "finalToolReportedWallTimeSeconds": 0.505341656,
+    "exitCode": 0,
+    "networkEnabled": true,
+    "sandboxPermissions": "with_additional_permissions",
+    "initialYieldMs": 1000,
+    "outerTimeout": false,
+    "retry": "NONE",
+    "originalPopenPid": 569158,
+    "originalPopenActualWaitStatus": 0,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "precheckInitialChunkId": "898ca8",
+    "precheckSessionId": 94742,
+    "precheckFinalChunkId": "90b109",
+    "postcheckInitialChunkId": "a7874e",
+    "postcheckSessionId": 75069,
+    "postcheckFinalChunkId": "34e8b7",
+    "limits": "Original Popen wait/streams independently retained in runner.json. Tool identifiers here are conversation transcription."
+  },
+  "actualRunnerPid": 569158,
+  "actualRunnerWaitStatus": 0,
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "postcheck": {
+    "path": "/tmp/ticket-38-public-xlsx-dy0u1vrw/postcheck.json",
+    "bytes": 3066,
+    "sha256": "4058332c1ebb7aebbedc74264249c1ff37189836b19015b4efa1d11092e4811e"
+  },
+  "window": "RELEASED after actual original owned waits/readers/outcome, before read-only postcheck/proof. No further runtime/source-format authorized or performed.",
+  "limitations": "Source-worked full64B Native prepared text/digests matched; provider known28B only, not whole64B/provider wrapper or rendering/fullXSD. Individual process metadata and runtime receipt/entry IDs uncaptured. No extinction/global/product/full38 claim."
+}

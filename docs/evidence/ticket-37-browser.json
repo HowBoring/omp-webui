@@ -1,0 +1,14 @@
+{
+  "kind": "browser-durable-navigation",
+  "session": "phase reopened; starts 2; session 097d87c1; active 09fd97fc; hooks unread; provider calls unread",
+  "before": "a6fc4164",
+  "commitId": "78cb5dbf-66a1-4a0d-80e7-19923710c231",
+  "actualLeafId": "05079b56",
+  "confirmation": "confirmation d02ce865 target 613364b5 parent 05079b56 expires 1795085457107 options native_defaults notice files_and_external_effects_are_not_rolled_back",
+  "operation": "committed / committed / projection ready / commit 78cb5dbf / native leaf 05079b56 / draft 613364b5",
+  "reopenedActive": "05079b56",
+  "match": true,
+  "admission": "synthetic-fixture-only",
+  "stopSnapshot": "fixture-adapter",
+  "projection": "fixture-adapter"
+}

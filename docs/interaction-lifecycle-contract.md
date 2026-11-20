@@ -2,6 +2,16 @@
 
 Status: 用户已确认六项政策；以下为实施目标，Broker、停止流程和公共 RPC 增量尚未实现。
 
+Source-only progress: [#48 Stop coordinator](stop-coordinator-source-status.md)
+now provides the typed Host Remote/coordinator and controlled-clock fixtures.
+Actual Native transport, product browser/dispatch, and owned-supervisor force
+integration remain gated; this does not change the runtime acceptance status.
+
+2026-11-17 source-only update: [#47 Broker source vertical](interaction-broker-source-status.md)
+now implements the isolated Broker/public Remote seam. Product admission, full Stop
+coordination and real browser/Native/final-tuple acceptance remain pending; the
+original policy/evidence below retains its dated scope.
+
 确认日期：2026-11-15。决策：[原生会话 MVP 的交互所有权与取消、断线策略](https://github.com/HowBoring/omp-webui/issues/22)。
 取舍见 [ADR 0007](adr/0007-interaction-lifecycle.md)。基线保持 OMP 18.20.2 /
 `7c49c11aa5bbaf3f418406583096168ad5b8c6dc`、DSH dsh-v0.2.2-rc.3 /

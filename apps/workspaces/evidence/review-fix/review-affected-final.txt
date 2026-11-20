@@ -1,0 +1,111 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/access/browser-access.test.ts:
+(pass) root bootstrap exchanges once, cleans URL, and preserves absolute browser access across reopening [13.27ms]
+(pass) writes reject hostile authority, origin, proxy, metadata and CSRF before any body is consumed [7.45ms]
+(pass) logout durably invalidates all pages of that credential, leaves another browser valid [10.97ms]
+(pass) changing origin or data directory and losing private material require fresh bootstrap [35.68ms]
+(pass) bootstrap is root GET only and never authenticates an API, upload or websocket [7.79ms]
+(pass) loss or replacement of private state invalidates a live Host's cached credential authority [16.18ms]
+
+tests/access/peers.test.ts:
+(pass) real WebSocket admission, each logical open, logout and expiry use current credential authority [1012.39ms]
+
+tests/access/host.test.ts:
+(pass) Host serves login but private API stays closed independently of browser authorization [10.28ms]
+
+tests/access/admission.test.ts:
+(pass) actual HTTP rejects large declared bodies before upload, Remote and history processing [23.78ms]
+
+tests/compatibility/preflight.test.ts:
+(pass) unknown startup installation blocks diagnostics before executing a launcher [0.37ms]
+(pass) verified install rejects same-version launcher, symlink, runtime and native closure replacements [1264.65ms]
+(pass) enrolled launcher-content drift blocks the same-version candidate before launch [18.29ms]
+(pass) enrolled launcher-symlink drift blocks the same-version candidate before launch [10.80ms]
+(pass) enrolled runtime-content drift blocks the same-version candidate before launch [9.13ms]
+(pass) enrolled dependency-content drift blocks the same-version candidate before launch [8.66ms]
+(pass) enrolled new-dependency drift blocks the same-version candidate before launch [10.51ms]
+(pass) untracked intermediate dependency symlinks cannot be enrolled as a complete closure [2.51ms]
+
+tests/compatibility/dsh-source.test.ts:
+(pass) the declared complete source is accepted through the public DSH build gate [2834.27ms]
+(pass) an undeclared edit to a consumed DSH module blocks the build gate [2202.80ms]
+(pass) ignored startup environment files and undeclared untracked source cannot evade the gate [3106.08ms]
+
+tests/compatibility/catalog-build.test.ts:
+(pass) catalog builds the resolved complete DSH candidate and records its source and consumed input identities [4347.28ms]
+(pass) catalog rejects baseline, partial patches, wrong base and unrecorded resolved source before publishing assets [27652.57ms]
+
+tests/compatibility/assets.test.ts:
+(pass) changed served JavaScript or startup trust manifest cannot publish verified diagnostic UI [3.22ms]
+
+tests/compatibility/source.test.ts:
+(pass) a consumed public decoder changed outside the recorded patch blocks the candidate build [27.09ms]
+(pass) even an ignored extra startup environment file is rejected before importing generators [54.65ms]
+
+tests/catalog/native-layout.test.ts:
+(pass) actual native empty and serialized titled Sessions are discovered and described without mutation [338.86ms]
+(pass) canonical title slots share the fixed header budget, override legacy titles and never hide corrupt leading metadata [65.68ms]
+
+tests/catalog/expiry.test.ts:
+(pass) catalog cursors have an absolute real-time TTL and cannot cross child generations or page scope [60675.03ms]
+
+tests/catalog/transport.test.ts:
+(pass) catalog startup can be slower than its unchanged short request budget [422.50ms]
+(pass) catalog ready and negotiation share the independently selected startup deadline [209.86ms]
+(pass) catalog startup without an override retains the selected default deadline [94.56ms]
+(pass) catalog blocked stdin bounds queued and inflight writes independently of expired pending requests [385.99ms]
+(pass) catalog requests that expire while queued are not published when a real blocked reader resumes [1061.33ms]
+(pass) catalog correlates concurrent readonly responses completed in reverse order [15.42ms]
+(pass) catalog rejects wrong-id through its readonly policy [29.54ms]
+(pass) catalog rejects wrong-command through its readonly policy [14.11ms]
+(pass) catalog rejects unknown-notification through its readonly policy [14.58ms]
+(pass) catalog partial EOF fails terminal drain after a valid description [15.86ms]
+(pass) catalog cancellation rejects pending readonly work and reaps the child [15.92ms]
+(pass) catalog rejects a duplicate generated ID without replacing its pending waiter [117.91ms]
+(pass) catalog still rejects chunks adjacent to a valid negotiation ack [20.63ms]
+
+tests/catalog/protocol.test.ts:
+(pass) catalog-only mode refuses ordinary Session commands, oversize input and partial EOF without native effects [177.10ms]
+(pass) cancelled readonly catalog child is drained and reaped, and no prior cursor is replayed after restart [537.49ms]
+
+tests/catalog/catalog.test.ts:
+(pass) all 1000 native Sessions remain reachable in bounded stable pages and readonly filesystem [5294.36ms]
+(pass) profile and explicit custom sources exclude other profiles, merge verified aliases, retain same-ID copies and unknown cwd [222.76ms]
+(pass) missing and replaced references fail explicitly, outside-source symlinks are partial failures and directory changes stale pages [146.04ms]
+(pass) native ownership observations see another process without acquiring or writing a lease [241.84ms]
+(pass) native scan cost limit is explicit and oversized/corrupt headers stay partial [3682.91ms]
+(pass) source root replacement never redirects a durable reference into a different tree [205.58ms]
+(pass) native lease backend errors surface unknown rather than free (real syscall fault) [360.22ms]
+(pass) response-byte packing preserves every large descriptor through continuation rather than exceeding the native wire budget [1268.90ms]
+(pass) unreadable native buckets preserve successful custom results and report partial permission failure [135.50ms]
+(pass) catalog leaves legacy directories, malformed primary Sessions and valid backups unchanged [186.18ms]
+(pass) nested authorized sources preserve both scoped descriptors through every complete page [806.92ms]
+(pass) nested authorized sources preserve both scoped descriptors through every partial page [365.60ms]
+
+tests/catalog/native.test.ts:
+(pass) native read-only catalog discovers actual header cwd without ordinary Session startup [122.08ms]
+
+tests/workspaces/grants.test.ts:
+(pass) explicit canonical grant persists, includes descendants, rejects prefix confusion and revokes durably [14.13ms]
+(pass) symlink escape, source cwd replacement and canonical-root replacement never inherit old rights [24.94ms]
+(pass) confirmation expiry, single use and lost durable state fail closed [12.61ms]
+(pass) revoking an ancestor preserves only separately granted descendants [13.57ms]
+
+tests/workspaces/index.test.ts:
+(pass) readonly Session Index metadata keeps failed references visible without admitting history or registering discoveries [3.41ms]
+(pass) native registered descriptions recheck every directory right after a concurrent revoke before publishing the page [184.37ms]
+
+tests/workspaces/remote-errors.test.ts:
+(pass) a consumed confirmation returns a correlated domain failure through typed DSH Remote [107.35ms]
+(pass) directory replacement, grant budget, native, index and storage failures retain safe typed codes [1286.66ms]
+(pass) unknown thrown values are sanitized while malformed envelopes and admission stay HTTP rejections [26.01ms]
+(pass) an expired confirmation is a correlated typed failure using the controlled public clock seam [19.93ms]
+
+tests/workspaces/admission.test.ts:
+(pass) credential revocation during a pending confirmation body prevents mutation and forged source arguments are refused [30.60ms]
+
+ 67 pass
+ 0 fail
+ 1014 expect() calls
+Ran 67 tests across 19 files. [121.97s]

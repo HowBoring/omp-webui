@@ -1,0 +1,2 @@
+# Patch context rows deliberately contain a leading space, including blank context.
+*.patch -whitespace

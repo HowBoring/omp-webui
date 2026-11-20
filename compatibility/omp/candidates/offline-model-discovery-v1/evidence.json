@@ -1,0 +1,312 @@
+{
+  "scope": {
+    "native": "Source45 with exactly one runtime source overlay",
+    "browser": "Linux synthetic controlled provider-error over public RPC and DSH Client",
+    "realInference": false,
+    "normalProductAdmission": "blocked",
+    "globalInstallation": "untouched",
+    "matchedNativeRelease": "not built",
+    "windows": "deferred"
+  },
+  "inputs": {
+    "source45Head": "54545e62489ce13c2328f14c0882abc0c1c7d87c",
+    "nativeBase": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "originalInstallationSha256": "85610fdabcc0e0993e7f4dc0b2b3c0ba5f408396a4b0505f8b3749d99c98fef1",
+    "bun": {
+      "version": "1.4.4",
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "guardSha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497",
+    "patchSha256": "eed771167c2630774c7326f23eb161cb7e5a7df9a8f644fd88f16301f7e3ac1b",
+    "offlineSource": {
+      "module": "model-registry",
+      "originalSha": "c33502eef8a0931889bdaab2a28da23c64b531b1241d4fbcf816a0d507d434f7",
+      "patchedSha": "4170d9c10d12626e0bc2833282f120529b66a6b5ee5ed129309723baaa4327f5"
+    },
+    "patchedStartupDriverSha256": "7a1ca047670669d31b1749f86377cb45d0cbfe3b174c7b3e38777e8b23a406c2",
+    "patchedStartupGuardSha256": "b1eaa11fc42177bae32aff4101ad88829b39de2432668d8a3f8886afa84c8b94",
+    "browserFixtureSourcePinsSha256": "f9a0c704c683ae937ee86cdf84e0961fc4846bee53fa2f194444ed023683a2ec"
+  },
+  "strictStart": {
+    "tool": {
+      "receipt": "restore18-45-offline-diagnostic-tools.json",
+      "sha256": "1fa905bedb6d654b91cdd5265f50bf7201dfda3fd50b6245112da1adad817ac3",
+      "chunks": [
+        {
+          "chunk_id": "4c71ae",
+          "session_id": 41765
+        },
+        {
+          "chunk_id": "603acb",
+          "exit_code": 0
+        }
+      ]
+    },
+    "result": {
+      "status": "PASS_SYNTHETIC_OFFLINE_SOURCE_STRICT_START_ZERO_DENIALS",
+      "opened": true,
+      "protocolVersion": 2,
+      "sourceOverlayLoaded": true,
+      "deniedByPhase": {
+        "exit": 0,
+        "extensionLoad": 0,
+        "sessionStart": 0
+      },
+      "originalWaitCode": 0,
+      "forced": false,
+      "readerEOF": {
+        "stderr": true,
+        "stdout": true
+      },
+      "internetSocketCalls": 0
+    },
+    "firstProviderInvoked": false,
+    "networkAudit": {
+      "denied": 0,
+      "actualNetworkDispatches": 0,
+      "guard": "preimport-no-provider-v1"
+    },
+    "receiptSha256": {
+      "result.json": "5310d333297fb01e613a606d53443ac17879ed7aef03de5c93212b1b2562403c",
+      "guard-diagnostic.json": "a181e54c8115d4c4a34e32669555eeb86dbf752b4b11ffe42e84d8d405bb25da",
+      "submission-network-audit.json": "e7a31a8cebf33493340eae36db61d8f802e600bf2889493e2de4af1a1b2f30b7",
+      "offline-source-overlay.json": "421335c810b35879b6e5a6ad60edeb40bba43aa5c5a8cd9a8770159eda90f805"
+    }
+  },
+  "browserPreparation": {
+    "seedTool": {
+      "receipt": "restore18-45-offline-provider-error-source-v1/seed/root-tool.json",
+      "sha256": "d69b142c599d3d9bb6d50168243d59f9e7db501e8c0f0a474dbecc45f2482015",
+      "chunks": [
+        {
+          "chunk_id": "b16afa",
+          "exit_code": 0
+        }
+      ]
+    },
+    "seedFileCount": 2,
+    "seedGuard": {
+      "denied": 0,
+      "dispatched": 0
+    },
+    "hostBuildTool": {
+      "receipt": "restore18-45-offline-host-build-tools.json",
+      "sha256": "ad6ddeff18d2152dbb708efccc1fab275b946a5117ca27da0cf0955fabbc8988",
+      "chunks": [
+        {
+          "chunk_id": "0498c0",
+          "session_id": 79896
+        },
+        {
+          "chunk_id": "098459",
+          "exit_code": 0
+        }
+      ]
+    },
+    "strictTypecheck": {
+      "originalRoots": 252,
+      "addedFixtureRoots": 1,
+      "exitCode": 0
+    },
+    "host": {
+      "bytes": 4037931,
+      "sha256": "306c9b617b60b6f3a0727c1d00c57384ee9a8877544a7436ddd41a4867d10476",
+      "inputs": 291,
+      "unchangedInputs": 290
+    },
+    "hostManifest": {
+      "bytes": 100657,
+      "sha256": "b65fa281783b88d10853d557f557473f144c558aafa021eaf95977b23f02aaf9"
+    },
+    "clientInstallationSha256": "dcc504f535c8d8942a9332b7307a4f8130695958ca3c4c01a7652fbffb018c62",
+    "clientAssetCount": 65,
+    "independentClientReadbackSha256": "c53d7ff60d2afafc26fef0be138dd20679e686c47881206c0ef02d39b87e7910"
+  },
+  "browser": {
+    "tool": {
+      "receipt": "restore18-45-offline-browser-tools.json",
+      "sha256": "963e59a7016c1aaeb5be125f83942693bfcdeac2d1bb4e3c9fd24863c4db5e8f",
+      "chunks": [
+        {
+          "chunk_id": "361e13",
+          "session_id": 81709
+        },
+        {
+          "chunk_id": "542f4d",
+          "exit_code": 0
+        }
+      ]
+    },
+    "retainer": {
+      "status": "PASS_ONE_PROVIDER_ERROR_BROWSER_OFFLINE_SOURCE_ORIGINAL_HANDLES_DRAINED",
+      "originalWaitCode": 0,
+      "controlledNativeNetworkAudit": {
+        "denied": 0,
+        "actualNetworkDispatches": 0,
+        "guard": "preimport-no-provider-v1"
+      },
+      "nativeInternetSocketCalls": 0
+    },
+    "ownedEOF": {
+      "stdout.bin": {
+        "eof": true,
+        "logComplete": true,
+        "errorCount": 0,
+        "overflowBytes": 0
+      },
+      "stderr.bin": {
+        "eof": true,
+        "logComplete": true,
+        "errorCount": 0,
+        "overflowBytes": 0
+      }
+    },
+    "readersJoined": 2,
+    "echild": true,
+    "matchedAdoptees": 4,
+    "hostExitCode": 0,
+    "nativeExits": {
+      "catalog": {
+        "code": 0,
+        "exactIdentity": true
+      },
+      "native-worker": {
+        "code": 0,
+        "exactIdentity": true
+      }
+    },
+    "attemptStatus": "PASS",
+    "providerErrorStatus": "PASS",
+    "providerEffects": {
+      "calls": 1,
+      "realInference": false
+    },
+    "visibleDraftEditable": true,
+    "operation": {
+      "terminal": true,
+      "settled": true,
+      "operationOutcome": "failed",
+      "inputOutcome": "generated",
+      "persistence": "committed"
+    },
+    "submission": {
+      "automaticRetry": false,
+      "additionalNativeInput": false,
+      "unresolvedOutcomeNotice": "absent",
+      "httpPromptDispatchCount": 1
+    },
+    "receiptSha256": {
+      "attempt.json": "bfef7abda9e7c2e9472626c6bb15a2f388741d11d6b94cb6eab06dcf8bf5cbdb",
+      "provider-error.json": "545ec10201d7c4dc577070597531d20e2ea28666fda8017bd372df62eca687a5",
+      "original-retainer.json": "5813bd00094321b03848716173a5bc775ce491ba5d816e3124cb82bf7805cdab"
+    }
+  },
+  "retainedFailures": {
+    "originalGuardDiagnostic": {
+      "tool": {
+        "receipt": "restore18-45-guard-diagnostic-tools.json",
+        "sha256": "e09987a900f46b0b3b1a061c49b70e4c44c51729139f66c79f36a5969342747a",
+        "chunks": [
+          {
+            "chunk_id": "033f4a",
+            "session_id": 88050
+          },
+          {
+            "chunk_id": "5e7e28",
+            "exit_code": 1
+          }
+        ]
+      },
+      "result": {
+        "status": "FAIL",
+        "opened": false,
+        "protocolVersion": 2,
+        "failure": "RPC_RESPONSE_CORRELATION",
+        "originalWaitCode": 0,
+        "forced": false,
+        "readerEOF": {
+          "stderr": true,
+          "stdout": true
+        }
+      },
+      "deniedByPhase": {
+        "extensionLoad": 0,
+        "sessionStart": 16,
+        "exit": 16
+      },
+      "providerInvoked": false,
+      "api": "fetch",
+      "listedDiscoverySiteCount": 14,
+      "unattributedCount": 2,
+      "receiptSha256": {
+        "result.json": "d37c35e85aff9f4b65b9edef235101c4c39b7dfd0b0cf2da7a5f9a2337fae631",
+        "guard-diagnostic.json": "7b984bf19aa06bac142eb6f4e8b6bb57d5c6b81d796cda2bc225247e847481b8",
+        "submission-network-audit.json": "cd08931600e1d01f22d02b40c0a6c578e5472e8bb1502ff14790170eccfd3837"
+      }
+    },
+    "priorBrowserCatalogDrain": {
+      "toolReceipt": "provider-error-restore10-root-tool.json",
+      "toolSha256": "80bf3acfea639619a400d44c7e60c1d6185c039cc0f900f819b11aed8c18f28f",
+      "initialChunk": "f5f71e",
+      "sessionId": 49746,
+      "terminalChunk": "c4f77b",
+      "exitCode": 1,
+      "failure": "CATALOG_NOT_DRAINED",
+      "separatePostRunAuditDenials": 16
+    },
+    "priorBrowserGuardDenials": {
+      "tool": {
+        "receipt": "restore18-45-browser-tools.json",
+        "sha256": "e90bbaaae82cf466d40994be5942d76147837b3b6ba395c9666d233c2702477a",
+        "chunks": [
+          {
+            "chunk_id": "ac1c28",
+            "session_id": 14561
+          },
+          {
+            "chunk_id": "2a6f23",
+            "exit_code": 1
+          }
+        ]
+      },
+      "failure": "CONTROLLED_NATIVE_NETWORK_GUARD_NOT_ZERO",
+      "guardDenials": 16
+    },
+    "earlierV1Typecheck": {
+      "tool": {
+        "receipt": "restore18-45-clean-build-tools.json",
+        "sha256": "342d8c0f930a23cac7d576998bec2f6cf6c6c48cb54606c0a98004bd57a396a3",
+        "chunks": [
+          {
+            "chunk_id": "69b6f1",
+            "session_id": 72708
+          },
+          {
+            "chunk_id": "2de4a3",
+            "exit_code": 1
+          }
+        ]
+      },
+      "failure": "TypeScript root order and declaration augmentation",
+      "typecheckExitCode": 2
+    },
+    "earlierV2OuterReadback": {
+      "tool": {
+        "receipt": "restore18-45-clean-build-v2-tools.json",
+        "sha256": "4b9fbd4ddca6b08431486804213ca48f05a2fdd0af7675b18ab4efec5a4850fa",
+        "chunks": [
+          {
+            "chunk_id": "200d6f",
+            "session_id": 30742
+          },
+          {
+            "chunk_id": "1320de",
+            "exit_code": 1
+          }
+        ]
+      },
+      "failure": "DUPLICATE_CLIENT_MODULE_REALM",
+      "independentReadback": "65 assets and 95 byte-identical Zod module pairs verified separately"
+    }
+  }
+}

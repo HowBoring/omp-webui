@@ -1,0 +1,203 @@
+{
+  "ticket": 38,
+  "baseNativeInventory": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-build-plan-20261117/source-inventory.json",
+    "bytes": 2600147,
+    "sha256": "c213e58a4c0276c84323e65af614b5be3f4ac07e085b9936cebcd28a6e88eac3"
+  },
+  "externalCompilerClosure": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-compiler-inputs-v2-source-20261117/external-compiler-closure.json",
+    "bytes": 7686,
+    "sha256": "46cf8bdff41ade4f61513dd4a98d0193c823f9295b2a97b42a9428cab2f536c9"
+  },
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "compilerEvidence": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-image-original-budget-compiler-evidence.json",
+    "bytes": 8303,
+    "sha256": "b0e9cb8771b478600e02666d4e0db13682dbe853c5ddc09141f5c3063dec4c07"
+  },
+  "expectedPublicBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "physicalGeneratedIdentityDistinct": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "cohortAudit": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-image-original-budget-public-v3-source-20261117/cohort-source-audit.json",
+    "bytes": 2251,
+    "sha256": "817c5c04fd33c2f3f1641d048cacc684def70df4fcd9cc9d4e83eb6c85a7e519"
+  },
+  "capture": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_capture.py",
+      "bytes": 2113,
+      "sha256": "2d360228ed3536e557a8aab5740b49084e2dca42e3be783028068b07c3a6d526"
+    },
+    "limitPerStreamBytes": 1048576,
+    "faultPolicy": "Count/hash everyobservedbyte; actualEOF andoriginalwait/readers required; overflow/read/write/flush/disk errors FAIL. Lifecycleuncertainty stays originalretainingHOLD."
+  },
+  "ownership": {
+    "helper": {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/retainer_launch_ownership.py",
+      "bytes": 3322,
+      "sha256": "54c9fdce3499dd0f3087b1df79c54356f36b9cde37094215cd9b92e5d884c065"
+    },
+    "AST": "Fivecallback ASTs exact latestproven retainer; started callback eventlabel only. Exact run_owned call, helperswholefilehashes unchanged. No new lifecyclehelper/protocol; no timeout/signal/retry/census/recovery."
+  },
+  "nativeIndex": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+    "bytes": 1271154,
+    "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+  },
+  "status": "SOURCE_READY_READY_CANCEL_V1_NATIVE_RUNTIME_NOT_RUN",
+  "sourceParent": "c98925c7b623901314771337e577f812a0e4e446",
+  "scope": "One sequential public valid small UTF8 READY -> cancel -> late valid consent whole-input refusal case. No runtime evidence or Native changes.",
+  "baseSourceBase64": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-malformed-base64-public-v1-source-20261117/final-inputs.json",
+    "bytes": 6337,
+    "sha256": "15acfb22c0e9b98155d9311843fb60c7801aae95d5f1a8c65f69518addfde7f3"
+  },
+  "resolver": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/source-resolver.py",
+    "bytes": 5689,
+    "sha256": "3b5ffd8c5a435e994814e7ef901711fabebd50aa56fcdb46e641b669e6ea1d81"
+  },
+  "retainer": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/public-retainer.py",
+    "bytes": 9912,
+    "sha256": "7443ac391b14dcff1f6e2ff5af88a897fc9702aade9ec9848c8851ca4c6d30d0"
+  },
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 100960,
+    "sha256": "bcee7b29f5b92110045f3a5fa8d6be4dfe488e9d0c50ba71007e92648d66e983",
+    "name": "actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects"
+  },
+  "sourceInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+      "bytes": 100960,
+      "sha256": "bcee7b29f5b92110045f3a5fa8d6be4dfe488e9d0c50ba71007e92648d66e983"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-ready-cancel-public-v1-source.md",
+      "bytes": 4056,
+      "sha256": "01b19ac5b22f2940152f34845ad7194a7108805b3b34801084954d6366def412"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/cancel-contract-source-audit.json",
+      "bytes": 1804,
+      "sha256": "c2674cb364e6ab206106e34997778b81bbe12862a958335cd5596b741faade6d"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/host-typecheck-tool-result.json",
+      "bytes": 364,
+      "sha256": "9df2b5780e25aa8807b7e873fb4315ac252767b0ced5640059c891a0a40f6990"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/initial-pins.json",
+      "bytes": 1181,
+      "sha256": "7a513f03789bcfc3a6df0db4870b22deb4672b16ff9e1183acee0cdb382b372a"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/public-retainer.py",
+      "bytes": 9912,
+      "sha256": "7443ac391b14dcff1f6e2ff5af88a897fc9702aade9ec9848c8851ca4c6d30d0"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/retainer-static-check.json",
+      "bytes": 999,
+      "sha256": "16c0c645131ba29fc7dc31d2553667b701442afccf1c067d831eaefc59979771"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/source-audit.cjs",
+      "bytes": 2195,
+      "sha256": "8992a35174f6c1a4c62914e2da501c3469ba3b73647ea3745495f2d416355b36"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/source-audit.json",
+      "bytes": 447,
+      "sha256": "da8f7a38e4a1dfc123c36e9be42b730e551310e86072078abca8691cb85fe9c0"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/source-resolver.py",
+      "bytes": 5689,
+      "sha256": "3b5ffd8c5a435e994814e7ef901711fabebd50aa56fcdb46e641b669e6ea1d81"
+    }
+  ],
+  "binding": "Explicit existing additivecandidate; same public preflight/tuple/drain gate. Public client validates schema/digests; captured otherwise-valid consent is submitted only after awaited public cancel.",
+  "bodyPreservation": "All prior14 cases and surrounding source bytes exact; one new38-line case/15directexpects.",
+  "sourceChecks": {
+    "hostTypes": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/host-typecheck-tool-result.json",
+      "bytes": 364,
+      "sha256": "9df2b5780e25aa8807b7e873fb4315ac252767b0ced5640059c891a0a40f6990"
+    },
+    "sourceAST": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/source-audit.json",
+      "bytes": 447,
+      "sha256": "da8f7a38e4a1dfc123c36e9be42b730e551310e86072078abca8691cb85fe9c0"
+    },
+    "retainerAST": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/retainer-static-check.json",
+      "bytes": 999,
+      "sha256": "16c0c645131ba29fc7dc31d2553667b701442afccf1c067d831eaefc59979771"
+    },
+    "publicCancelContractSource": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/cancel-contract-source-audit.json",
+      "bytes": 1804,
+      "sha256": "c2674cb364e6ab206106e34997778b81bbe12862a958335cd5596b741faade6d"
+    }
+  },
+  "freshPrefixes": [
+    "/tmp/ticket-38-public-ready-cancel-v1-20261117-",
+    "/tmp/attachment-runtime-ready-cancel-v1-20261117-"
+  ],
+  "notRun": "No Native-bearing import/test/actor/preflight/codec/retainer mode/build/generator/Host/browser. Source-only hashes/Git/AST and normal Host noEmit types. Prior base64 scope consumed.",
+  "admission": "STOP_FRESH_PAIRED_SOURCE_REVIEW. Root alone coordinates one fresh Native one-window/no-provider scope. Whole38/53/54/29 remain open.",
+  "plannedRuntime": {
+    "status": "NOT RUN; fresh paired Source review then Root capacity/window/pre/exactONE/post required",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-ready-cancel-v1-20261117-*>",
+      "PI_CODING_AGENT_DIR": "<same syntheticHOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same syntheticHOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "preImport": "Top historyguard before allNative-bearingfixture/HostFrame imports; everypreflight/catalog/worker/serializer/converter uses existingguarded syntheticHOME paths; no trueAgent/privateSession/global install.",
+    "newActor": "One publicdiagnostic preflight child before fixtureauthoring; requestidentity and cleanDrain mustmatch; originalclose result audited. Otherworker/catalog/serializer/converter helpers unchanged, no invented perchildoutcome.",
+    "limits": {
+      "caseDeadlineMs": 45000,
+      "requestDeadlineMs": 10000,
+      "preflightTransportDeadlineMs": 3000,
+      "topOuterTimeout": false,
+      "streamCaptureBytesEach": 1048576,
+      "minimumFreeTmpBytes": 33554432
+    },
+    "failurePolicy": "FirstFAIL preserved/no retry/fix/expectationweakening; originalownedhandles+EOF needed; uncertainlaunch/lifecycle retainsHOLD; no recovery/census/kernel/PIDfallback.",
+    "profiles": "FreshTopHOME retained with audit; internalfixtureownshome+originalexits; filesystembefore/after unchanged notP_ALL/extinction.",
+    "otherCases": "Fourteen filtered; only the sequential READY-cancel-late-consent public refusal case selected."
+  }
+}

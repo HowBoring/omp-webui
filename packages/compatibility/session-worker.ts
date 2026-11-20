@@ -1,0 +1,364 @@
+import { MAX_RPC_FRAME_BYTES, MAX_RPC_REASSEMBLED_BYTES } from "@oh-my-pi/pi-coding-agent/modes/rpc/rpc-frame";
+import { z } from "zod";
+import { InteractionBridge, type InteractionCleanupOutcome,
+  type InteractionCleanupReply } from "../interactions/bridge.ts";
+import { interactionReplySchema } from "../contracts/interactions.ts";
+import { queueWithdrawalSchema } from "../contracts/queue-withdrawal.ts";
+import { nativeWorkerFailureCode } from "../contracts/session-errors.ts";
+import { BoundedStdioTransport, attachOwnedStdio, OwnedRpcError, type ProcessSelection, type DrainPolicy, type StdioOutput,
+  type StdioCommand, type StdioPolicy } from "./stdio-transport.ts";
+import type { PrivateHelperHandle } from "../supervision/adapter.ts";
+import { PrivateHelperError } from "../supervision/errors.ts";
+import { StrictStartClient } from "../contracts/generated/strict-client.ts";
+import { HistoryClient } from "../contracts/generated/history-client.ts";
+import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
+import { AttachmentClient } from "../contracts/generated/attachment-client.ts";
+import { NavigationClient } from "../contracts/generated/navigation-client.ts";
+import type { AttachmentReceipt, ImageContent, NavigationPreview, NavigationResult } from "../contracts/generated/omp-wire.ts";
+import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
+import strictCommand from "../contracts/generated/strict-command.js";
+import submissionCommand from "../contracts/generated/submission-command.js";
+import attachmentCommand from "../contracts/generated/attachment-command.js";
+import attachmentReceipt from "../contracts/generated/attachment-receipt.js";
+import navigationCommand from "../contracts/generated/navigation-command.js";
+import navigationPreview from "../contracts/generated/navigation-preview.js";
+import navigationResult from "../contracts/generated/navigation-result.js";
+import strictState from "../contracts/generated/strict-state.js";
+import strictPolicy from "../contracts/generated/strict-policy.js";
+import interactionCommand from "../contracts/generated/interaction-command.js";
+import queueCommand from "../contracts/generated/queue-command.js";
+import interactionPolicy from "../contracts/generated/interaction-policy.js";
+import interactionRequest from "../contracts/generated/interaction-request.js";
+import liveNotification from "../contracts/generated/live-notification.js";
+import liveState from "../contracts/generated/live-state.js";
+import controls from "../contracts/generated/session-controls.js";
+import branchCommand from "../contracts/generated/branch-controls.js";
+import type { BranchMessage, StrictStartState, SessionState, RespondUiParams } from "../contracts/generated/omp-wire.ts";
+const frameSchema = z.object({ type: z.string() }).catchall(z.unknown());
+export type SessionWorkerFrame = z.infer<typeof frameSchema>;
+type Control = "abort_and_restore_queue" | "abort_branch_summary" | "abort_retry" | "abort_bash";
+
+type SessionOptions = { startTimeoutMs?: number };
+type OwnedSessionOptions = SessionOptions & Pick<ProcessSelection, "timeoutMs" | "readyTimeoutMs" | "signal">;
+
+class SessionNotifications {
+  readonly frames: SessionWorkerFrame[] = [];
+  readonly subscribers = new Set<(frame: SessionWorkerFrame) => void>();
+  count = 0;
+  #bufferedBytes = 0;
+  #retired = false;
+  readyFrame: { interactionPolicy?: unknown } | undefined;
+  #interactionSubscriber: ((frame: SessionWorkerFrame) => void) | undefined;
+
+  retire(): void { this.#retired = true; }
+
+  /** Internal observation leaves the pre-subscriber replay buffer available to the Session caller. */
+  observeInteractions(listener: (frame: SessionWorkerFrame) => void): () => void {
+    this.#interactionSubscriber = listener;
+    return () => { this.#interactionSubscriber = undefined; };
+  }
+
+  publish(value: object): void {
+    if (this.#retired) return;
+    const frame = frameSchema.parse(value);
+    if (frame.type !== "ready") ++this.count;
+    if (this.subscribers.size === 0) {
+      this.#bufferedBytes += Buffer.byteLength(JSON.stringify(frame));
+      if (this.frames.length >= 32 || this.#bufferedBytes > 262_144) throw new Error("SESSION_STARTUP_BUFFER_LIMIT");
+      this.frames.push(frame);
+    }
+    this.#interactionSubscriber?.(frame);
+    for (const subscriber of this.subscribers) {
+      if (this.#retired) break;
+      subscriber(frame);
+    }
+  }
+}
+
+function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
+  return {
+    validateCommand: value => strictCommand(value) || interactionCommand(value) || queueCommand(value) || validateHistoryCommand(value)
+      || submissionCommand(value) || navigationCommand(value) || attachmentCommand(value) || controls(value)
+      || branchCommand(value),
+    acceptReady: (frame, publish) => {
+      if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
+        || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
+        || frame.strictStartup !== "strict-start-v1" || !strictPolicy(frame.strictStartupPolicy)
+        || !interactionPolicy(frame.interactionPolicy)) return false;
+      notifications.readyFrame = { interactionPolicy: frame.interactionPolicy };
+      if (publish) notifications.publish(frame);
+      return true;
+    },
+    remoteError: nativeWorkerFailureCode,
+    physicalFrameBytes: MAX_RPC_FRAME_BYTES, allowChunks: true, commandBytes: 48 * 1024 * 1024,
+    queuedBytes: 64 * 1024 * 1024, pendingLimit: 32, settledLimit: 256, stderrBytes: 65_536, defaultTimeoutMs: 60_000,
+    notification: (frame, publish) => {
+      if (!interactionRequest(frame) && !liveNotification(frame)) return false;
+      if (publish) notifications.publish(frame);
+      return true;
+    },
+  };
+}
+
+type Request = (command: StdioCommand) => Promise<unknown>;
+
+const nativeThinking = z.enum(["inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const nativeModel = z.object({ provider: z.string().min(1), id: z.string().min(1), name: z.string().min(1),
+  reasoning: z.boolean(), thinking: z.object({ efforts: z.array(nativeThinking).max(8) }).passthrough().optional() }).passthrough();
+export type AvailableModel = z.infer<typeof nativeModel>;
+
+async function readSessionState(request: Request): Promise<SessionState> {
+  const value = await request({ type: "get_state", id: crypto.randomUUID() });
+  if (!liveState(value)) throw new Error("SESSION_STATE_SCHEMA");
+  return value as SessionState;
+}
+
+/** Fixed public Session RPC operations shared across the two construction paths. */
+class SessionRpc {
+  readonly startup: StrictStartClient;
+  readonly history: HistoryClient;
+  /** Matched public native navigation boundary; previews and confirmed returns only. */
+  readonly navigation: NavigationClient;
+  readonly frames: readonly SessionWorkerFrame[];
+  #retired = false;
+  readonly #initialCount: number;
+
+  constructor(private readonly core: Pick<BoundedStdioTransport, "request">,
+    private readonly notifications: SessionNotifications, options: SessionOptions, initialCount = notifications.count) {
+    const startTimeoutMs = options.startTimeoutMs ?? 30 * 60_000;
+    this.frames = notifications.frames;
+    this.#initialCount = initialCount;
+    this.startup = new StrictStartClient(command => core.request(command,
+      command.type === "strict_start" ? startTimeoutMs : undefined), (value): value is StrictStartState => strictState(value));
+    this.history = new HistoryClient(command => core.request(command));
+    this.navigation = new NavigationClient(command => core.request(command),
+      (value): value is NavigationResult => navigationResult(value),
+      (value): value is NavigationPreview => navigationPreview(value));
+  }
+
+  get notificationCount(): number { return this.notifications.count - this.#initialCount; }
+  subscribe(listener: (frame: SessionWorkerFrame) => void): () => void {
+    const subscribers = this.notifications.subscribers;
+    if (subscribers.size >= 64) throw new Error("SESSION_SUBSCRIBER_LIMIT");
+    subscribers.add(listener); return () => subscribers.delete(listener);
+  }
+  /** The ready frame's negotiated interaction policy, for hosts that route native questions through a broker. */
+  get readyPolicy(): unknown { return this.notifications.readyFrame?.interactionPolicy; }
+  /** Opt in to the native ask dialog so questions arrive as `extension_ui_request` frames. */
+  async setAskDialog(enabled = true): Promise<{ enabled: boolean }> {
+    return z.object({ enabled: z.boolean() }).parse(await this.command({ type: "set_ask_dialog", enabled }));
+  }
+  /** InteractionBridge is the only caller; generated interaction schema enforces the family and payload. */
+  async command(fields: object): Promise<unknown> {
+    if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
+    const command = { ...fields, id: crypto.randomUUID() };
+    if (!interactionCommand(command) && !("type" in command && command.type === "abort" && controls(command))) {
+      throw new Error("SESSION_INTERACTION_COMMAND_DENIED");
+    }
+    return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
+  }
+  state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
+  /** Native-authoritative list of user-message points that may start a new Session. */
+  async branchMessages(): Promise<readonly BranchMessage[]> {
+    const value = z.object({ messages: z.array(z.object({ entryId: z.string().min(1).max(256),
+      text: z.string().max(1_048_576) })).max(20_000) }).parse(
+      await this.core.request({ type: "get_branch_messages", id: crypto.randomUUID() }));
+    return value.messages;
+  }
+  /** Public native branch: creates a new Session file and switches to it. Returns only the unsent text. */
+  async branch(entryId: string): Promise<{ text: string; cancelled: boolean }> {
+    if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
+    return z.object({ text: z.string().max(1_048_576), cancelled: z.boolean() }).parse(
+      await this.core.request({ type: "branch", entryId, id: crypto.randomUUID() }));
+  }
+  async models(): Promise<AvailableModel[]> {
+    const value = z.object({ models: z.array(nativeModel).max(4096) }).parse(
+      await this.core.request({ type: "get_available_models", id: crypto.randomUUID() }));
+    return value.models;
+  }
+  async thinkingLevels(): Promise<z.infer<typeof nativeThinking>[]> {
+    const value = z.object({ levels: z.array(nativeThinking).max(8) }).parse(
+      await this.core.request({ type: "get_available_thinking_levels", id: crypto.randomUUID() }));
+    return value.levels;
+  }
+  async selectModel(provider: string, modelId: string): Promise<void> {
+    const command = { type: "set_model", provider, modelId, id: crypto.randomUUID() };
+    if (!controls(command)) throw new Error("SESSION_CONTROL_SCHEMA");
+    await this.core.request(command);
+  }
+  async setThinkingLevel(level: z.infer<typeof nativeThinking>): Promise<void> {
+    const command = { type: "set_thinking_level", level, id: crypto.randomUUID() };
+    if (!controls(command)) throw new Error("SESSION_CONTROL_SCHEMA");
+    await this.core.request(command);
+  }
+  /** Host-owned adapter for the matched public submission commands; never a browser tunnel. */
+  async submitCommand(command: StdioCommand): Promise<unknown> {
+    if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
+    const data = await this.core.request(command);
+    return { type: "response", id: (command as { id?: string }).id, command: (command as { type?: string }).type, success: true, data };
+  }
+  control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
+  /** Host-owned public queue creation for native Stop recovery; never a browser tunnel. */
+  async steer(message: string, images?: ImageContent[]): Promise<unknown> {
+    const command = { type: "steer", id: crypto.randomUUID(), message, ...(images ? { images } : {}) };
+    if (!queueCommand(command)) throw new Error("SESSION_QUEUE_SCHEMA");
+    return await this.submitCommand(command);
+  }
+  async followUp(message: string, images?: ImageContent[]): Promise<unknown> {
+    const command = { type: "follow_up", id: crypto.randomUUID(), message, ...(images ? { images } : {}) };
+    if (!queueCommand(command)) throw new Error("SESSION_QUEUE_SCHEMA");
+    return await this.submitCommand(command);
+  }
+  protected retire(): void { this.#retired = true; }
+}
+
+/** Fixed Host operations on a retired, retained Session. Abort acknowledgements do not establish settlement. */
+export interface OwnedSessionCleanup {
+  cancelStrictStart(): Promise<StrictStartState>;
+  abortAndRestoreQueue(): Promise<void>;
+  abortBranchSummary(): Promise<void>;
+  abortRetry(): Promise<void>;
+  abortBash(): Promise<void>;
+  state(): Promise<SessionState>;
+}
+
+function ownedCleanup(request: Request): OwnedSessionCleanup {
+  const startup = new StrictStartClient(request, (value): value is StrictStartState => strictState(value));
+  const abort = async (type: Exclude<Control, "abort_and_restore_queue">): Promise<void> => {
+    await request({ type, id: crypto.randomUUID() });
+  };
+  return Object.freeze({
+    cancelStrictStart: () => startup.cancel(),
+    abortAndRestoreQueue: async () => {
+      const value = await request({ type: "abort_and_restore_queue", id: crypto.randomUUID() });
+      if (!queueWithdrawalSchema.safeParse(value).success) throw new Error("SESSION_QUEUE_WITHDRAWAL_SCHEMA");
+    },
+    abortBranchSummary: () => abort("abort_branch_summary"),
+    abortRetry: () => abort("abort_retry"),
+    abortBash: () => abort("abort_bash"),
+    state: () => readSessionState(request),
+  });
+}
+
+const unsentCleanupErrors = new Set(["RPC_COMMAND_LIMIT", "RPC_COMMAND_SCHEMA", "RPC_DUPLICATE_ID", "RPC_PENDING_LIMIT"]);
+
+async function cancelOwnedInteraction(request: Request, targetId: string): Promise<InteractionCleanupReply> {
+  const command: StdioCommand & RespondUiParams = {
+    id: crypto.randomUUID(), type: "respond_ui", targetId, answer: { type: "cancel" },
+  };
+  try {
+    const reply = interactionReplySchema.safeParse(await request(command));
+    if (reply.success && reply.data.status !== "answered") return reply.data;
+    return { status: "unknown", reason: "cleanup-reply-invalid" };
+  } catch (error) {
+    if (!(error instanceof OwnedRpcError) || unsentCleanupErrors.has(error.code)) {
+      return { status: "unknown", reason: "cleanup-request-failed" };
+    }
+    return { status: "unknown", reason: error.code === "RPC_CLEANUP_CLOSED" ? "cleanup-cutoff" : "cleanup-reply-lost" };
+  }
+}
+
+export interface OwnedSessionConnection {
+  /** Resolves after helper HELLO and correlated public RPC negotiation. */
+  readonly ready: Promise<SessionRpc & {
+    readonly interactions: Pick<InteractionBridge, "generation" | "snapshot" | "answer" | "bindSession">;
+  }>;
+  /** Settles after beginCleanup with the outcomes for UI tracked at its fence. Separate from exit and EOF. */
+  readonly interactionCleanup: Promise<readonly InteractionCleanupOutcome[]>;
+  /** Irreversibly fences regular work and future helper START submission.
+   * Cleanup RPCs require authenticated v2 and an open transport.
+   * The first cutoff is in the local performance.now() time domain, at most 30s away.
+   * An invalid or expired cutoff leaves regular work fenced and grants no cleanup access. */
+  beginCleanup(cutoff: number): OwnedSessionCleanup | undefined;
+  /** Synchronous Host-local reader inherited from the original owning helper handle. */
+  readonly readHostMonotonic?: () => bigint;
+  readonly rootExit: PrivateHelperHandle["rootExit"];
+  readonly completed: PrivateHelperHandle["completed"];
+  /** Settles after the attached readers finish. A failed pipe attachment rejects this observation. */
+  readonly output: Promise<StdioOutput>;
+}
+
+/** Combined fixed public RPC boundary. No prompt sender, browser RPC tunnel, executable selectors or private imports. */
+export class SessionWorker extends SessionRpc {
+  /** Matched public native durable submission boundary; the Host, never a browser, supplies commands. */
+  readonly submissions: SubmissionClient;
+  /** Matched public native preparation boundary; original bytes never enter the browser transport. */
+  readonly attachments: AttachmentClient;
+  private constructor(private readonly transport: BoundedStdioTransport, notifications: SessionNotifications,
+    options: SessionOptions) {
+    super(transport, notifications, options);
+    this.submissions = new SubmissionClient(command => transport.request(command), isSubmissionResult);
+    this.attachments = new AttachmentClient(command => transport.request({ ...command, id: command.id ?? crypto.randomUUID() }),
+      (value): value is AttachmentReceipt => attachmentReceipt(value));
+  }
+
+  static async open(selection: ProcessSelection, options: SessionOptions = {}): Promise<SessionWorker> {
+    const notifications = new SessionNotifications();
+    const transport = await BoundedStdioTransport.open(selection, sessionPolicy(notifications));
+    return new SessionWorker(transport, notifications, options);
+  }
+
+  /** The caller retains the original helper and its cleanup authority, including when RPC startup rejects. */
+  static attachOwned(helper: PrivateHelperHandle, options: OwnedSessionOptions = {}): OwnedSessionConnection {
+    const { control, rootExit, completed } = helper;
+    const readHostMonotonic = helper.readHostMonotonic?.bind(helper);
+    const hostClock = readHostMonotonic && { readHostMonotonic };
+    const interactionCleanup = Promise.withResolvers<readonly InteractionCleanupOutcome[]>();
+    try {
+      const notifications = new SessionNotifications();
+      const transport = attachOwnedStdio(helper, options, sessionPolicy(notifications));
+      let interactions: InteractionBridge | undefined;
+      let retireInteractions: ((bridge: InteractionBridge) => void) | undefined;
+      const ready = transport.ready.then(core => {
+        // Count valid notifications published on the retained pipes during negotiation as well.
+        const session = new SessionRpc(core, notifications, options, 0);
+        const bridge = new InteractionBridge({
+          frames: session.frames,
+          subscribe: listener => notifications.observeInteractions(listener),
+          command: command => session.command(command),
+        });
+        interactions = bridge;
+        const dispose = () => bridge.dispose();
+        void rootExit.then(dispose, dispose);
+        retireInteractions?.(bridge);
+        return Object.assign(session, { interactions: bridge });
+      }).catch(error => {
+        throw error instanceof OwnedRpcError || error instanceof PrivateHelperError
+          ? error : new OwnedRpcError("RPC_STARTUP_FAILED");
+      });
+      void ready.catch(() => {});
+      let cleanup: OwnedSessionCleanup | undefined;
+      return {
+        ready, rootExit, completed, output: transport.output, interactionCleanup: interactionCleanup.promise, ...hostClock,
+        beginCleanup: cutoff => {
+          control.fenceStart();
+          notifications.retire();
+          const request = transport.beginCleanup(cutoff);
+          if (!retireInteractions) {
+            retireInteractions = bridge => interactionCleanup.resolve(
+              bridge.retireForCleanup(request && (targetId => cancelOwnedInteraction(request, targetId))));
+            if (interactions) retireInteractions(interactions);
+            else void ready.catch(() => interactionCleanup.resolve([]));
+          }
+          if (request) return cleanup ??= ownedCleanup(request);
+        },
+      };
+    } catch (error) {
+      const unavailable = Promise.reject<never>(error instanceof OwnedRpcError
+        ? error : new OwnedRpcError("RPC_PIPE_ATTACH_FAILED"));
+      void unavailable.catch(() => {});
+      return {
+        ready: unavailable, rootExit, completed, output: unavailable, interactionCleanup: interactionCleanup.promise,
+        ...hostClock,
+        beginCleanup: () => {
+          control.fenceStart();
+          interactionCleanup.resolve([]);
+        },
+      };
+    }
+  }
+
+  get exited(): Promise<number> { return this.transport.exited; }
+  retireIdle(timeoutMs = 5000) { this.retire(); return this.transport.closeGracefully(timeoutMs); }
+  close(policy: DrainPolicy) { this.retire(); return this.transport.close(policy); }
+}

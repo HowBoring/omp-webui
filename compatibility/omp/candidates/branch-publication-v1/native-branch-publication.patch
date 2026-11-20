@@ -1,0 +1,125 @@
+diff --git a/packages/coding-agent/src/utils/file-new-publication.ts b/packages/coding-agent/src/utils/file-new-publication.ts
+index 574de0bde5a6b6aef29496da4a1809f6a864cc39..d4048deb3a9dc221009764fc2971c7ada4291012 100644
+--- a/packages/coding-agent/src/utils/file-new-publication.ts
++++ b/packages/coding-agent/src/utils/file-new-publication.ts
+@@ -1,26 +1,101 @@
+ /** Linux publication of a complete NEW file. Anonymous preparation and fd-bound linkat never clobber a destination. */
+ import * as fs from "node:fs";
+-import { dlopen, FFIType, ptr } from "bun:ffi";
+-export function publishNewFile(directoryFd: number, name: string, bytes: Buffer, mode: number, assertCurrent: () => void): void {
+-  if (process.platform !== "linux" || !name || name.includes("/") || name.includes("\0")) throw new Error("GENERATION_NEW_PUBLICATION_UNSUPPORTED");
+-  assertCurrent();
+-  let fd: number;
+-  try { fd = fs.openSync(`/proc/self/fd/${directoryFd}`, 0x410002, mode); } // Linux O_TMPFILE | O_RDWR; no named staging cleanup.
++import * as os from "node:os";
++import { dlopen, FFIType, ptr, read } from "bun:ffi";
++
++export class DurableNewFilePublicationError extends Error {
++  constructor(readonly outcome: "not_published" | "outcome_unknown", cause: unknown) {
++    super(outcome === "not_published" ? "DURABLE_NEW_PUBLICATION_NOT_PUBLISHED" : "DURABLE_NEW_PUBLICATION_UNKNOWN", { cause });
++  }
++}
++
++export function publishNewFile(
++  directoryFd: number, name: string, bytes: Buffer, mode: number, assertCurrent: () => void,
++): void {
++  publishNewFileImpl(directoryFd, name, bytes, mode, assertCurrent, false);
++}
++
++/**
++ * Publishes complete caller-serialized bytes at mode 0600. The caller keeps the already-durable trusted
++ * parent directory fd open and supplies a synchronous check of its current identity and publication authority.
++ * Success proves the named inode and completed file and parent syncs. An unknown outcome requires observation.
++ */
++export function publishDurableNewFile(
++  directoryFd: number, name: string, bytes: Buffer, assertCurrent: () => void,
++): void {
++  publishNewFileImpl(directoryFd, name, bytes, 0o600, assertCurrent, true);
++}
++
++function openAnonymousFile(directory: string, mode: number): number {
++  // Linux O_TMPFILE | O_RDWR; no named staging cleanup.
++  try { return fs.openSync(directory, 0x410002, mode); }
+   catch { throw new Error("GENERATION_NEW_PUBLICATION_UNSUPPORTED"); }
++}
++
++function writePreparedFile(fd: number, bytes: Buffer, mode: number): void {
++  let offset = 0;
++  while (offset < bytes.length) {
++    const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
++    if (!count) throw new Error("GENERATION_NEW_SHORT_WRITE");
++    offset += count;
++  }
++  fs.fchmodSync(fd, mode);
++}
++
++function verifyPublishedFile(target: string, held: fs.BigIntStats, durable: boolean): void {
++  const named = durable ? fs.lstatSync(target, { bigint: true }) : fs.statSync(target, { bigint: true });
++  if (held.dev !== named.dev || held.ino !== named.ino || held.birthtimeNs !== named.birthtimeNs) {
++    throw new Error("GENERATION_NEW_PUBLICATION_UNKNOWN");
++  }
++  if (durable && (!named.isFile() || named.size !== held.size || named.mtimeNs !== held.mtimeNs || named.mode !== held.mode)) {
++    throw new Error("GENERATION_NEW_PUBLICATION_UNKNOWN");
++  }
++}
++
++function publishNewFileImpl(
++  directoryFd: number, name: string, bytes: Buffer, mode: number, assertCurrent: () => void, durable: boolean,
++): void {
++  let mayHaveLinked = false;
+   try {
+-    let offset = 0;
+-    while (offset < bytes.length) {
+-      const count = fs.writeSync(fd, bytes, offset, bytes.length - offset, offset);
+-      if (!count) throw new Error("GENERATION_NEW_SHORT_WRITE"); offset += count;
++    if (process.platform !== "linux" || !name || name.includes("/") || name.includes("\0")
++      || (durable && (name === "." || name === ".."))) {
++      throw new Error("GENERATION_NEW_PUBLICATION_UNSUPPORTED");
+     }
+-    fs.fchmodSync(fd, mode); assertCurrent();
+-    const libc = dlopen("libc.so.6", { linkat: { args: [FFIType.i32, FFIType.ptr, FFIType.i32, FFIType.ptr, FFIType.i32], returns: FFIType.i32 } });
+-    try {
+-      const source = Buffer.from(`/proc/self/fd/${fd}\0`), target = Buffer.from(`${name}\0`);
+-      if (libc.symbols.linkat(-100, ptr(source), directoryFd, ptr(target), 0x400) !== 0) throw new Error("GENERATION_NEW_PUBLICATION_REFUSED");
+-    } finally { libc.close(); }
+-    const held = fs.fstatSync(fd, { bigint: true }), named = fs.statSync(`/proc/self/fd/${directoryFd}/${name}`, { bigint: true });
+-    if (held.dev !== named.dev || held.ino !== named.ino || held.birthtimeNs !== named.birthtimeNs) throw new Error("GENERATION_NEW_PUBLICATION_UNKNOWN");
+     assertCurrent();
+-  } finally { fs.closeSync(fd); }
++    const directory = `/proc/self/fd/${directoryFd}`;
++    const fd = openAnonymousFile(directory, mode);
++    try {
++      writePreparedFile(fd, bytes, mode);
++      if (durable) fs.fsyncSync(fd);
++      const prepared = durable ? fs.fstatSync(fd, { bigint: true }) : undefined;
++      if (prepared && prepared.size !== BigInt(bytes.length)) throw new Error("GENERATION_NEW_SHORT_WRITE");
++
++      assertCurrent();
++      const libc = dlopen("libc.so.6", {
++        linkat: { args: [FFIType.i32, FFIType.ptr, FFIType.i32, FFIType.ptr, FFIType.i32], returns: FFIType.i32 },
++        __errno_location: { args: [], returns: FFIType.ptr },
++      });
++      try {
++        const errno = durable ? libc.symbols.__errno_location() : null;
++        const source = Buffer.from(`/proc/self/fd/${fd}\0`);
++        const target = Buffer.from(`${name}\0`);
++        mayHaveLinked = true;
++        if (libc.symbols.linkat(-100, ptr(source), directoryFd, ptr(target), 0x400) !== 0) {
++          // EEXIST proves this attempt never replaced the incumbent namespace entry.
++          if (errno && read.i32(errno) === os.constants.errno.EEXIST) mayHaveLinked = false;
++          throw new Error("GENERATION_NEW_PUBLICATION_REFUSED");
++        }
++      } finally { libc.close(); }
++
++      const published = `${directory}/${name}`;
++      const held = prepared ?? fs.fstatSync(fd, { bigint: true });
++      verifyPublishedFile(published, held, durable);
++      if (durable) fs.fsyncSync(directoryFd);
++      assertCurrent();
++      if (durable) verifyPublishedFile(published, held, true);
++    } finally { fs.closeSync(fd); }
++  } catch (error) {
++    if (!durable) throw error;
++    throw new DurableNewFilePublicationError(mayHaveLinked ? "outcome_unknown" : "not_published", error);
++  }
+ }

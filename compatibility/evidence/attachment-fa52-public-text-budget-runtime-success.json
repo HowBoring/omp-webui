@@ -1,0 +1,328 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_TEXT_RAW_LIMIT_CONSENT_CASE_ONLY",
+  "hostHead": "a0783d6c5967d1ff7b56bd57103d874182ca6ee4",
+  "hostTree": "d0cee6169f5ea941d13f8ab6b1344418c5f11202",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root granted exactly ONE anchored 5MiB UTF8 case on clean a0783d6 / READYf1f7f26e / freeze2a793734, after fresh Astra readiness GO0 and Root independent781+166Native/290/41/15/6/state/links/index/diffs check. Sole active Native window; used once and RELEASED after actual result/original owned waits/readers, before pure postcheck/proof/archive. No further source/runtime authority.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-text-budget-source-ready.json",
+    "bytes": 26028,
+    "sha256": "f1f7f26ef71e7e719ab4fe6d3846d1cf8530571e709a0618043f35abe0a924d8"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-text-budget-source/final-inputs.json",
+    "bytes": 12467,
+    "sha256": "2a793734fc673e61ca3dcd2e28b5395976f36c9062b1c7cf3bd34f03cdfd3f8f"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-epub-source/final-inputs.json",
+    "bytes": 14169,
+    "sha256": "a4be144ba454c5c48837becc1eb5cd7f8a271ad2959be410f7b46beab3d8bdc5"
+  },
+  "flatAncestorFreeze": {
+    "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+    "bytes": 184366,
+    "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-text-budget-i2nxjdjb",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-text-budget-i2nxjdjb",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-text-budget-i2nxjdjb",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T08:16:11.269455+00:00",
+    "startedMonotonicNs": 172253142944303,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-text-budget-j885u6mn",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/tmp/ticket38-text-budget-runtime.py",
+      "bytes": 6625,
+      "sha256": "20859b85a66e5d4c7ecda538ec1cf3f2bb22fc322e39bd28aff69ad6dda8c60f"
+    },
+    "runnerPid": 586861,
+    "runnerWaitStatus": 0,
+    "finishedAt": "2026-11-17T08:16:15.547827+00:00",
+    "finishedMonotonicNs": 172257421450227,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "stdoutBytes": 28,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrBytes": 238,
+    "stderrSha256": "e2138424bc5be5d7f261d971837b4d7be760ba70897aa76763a97a69270530c6",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 10,
+    "assertions": 62,
+    "durationReported": "4.27s",
+    "caseDurationMs": 4202.18,
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "independentLiteralManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/utf8-5mib-boundary.json",
+    "bytes": 1638,
+    "sha256": "3d97bd8459b3c395dd292c8f3a844295674643d5ab30e477be4c61c97e35518e"
+  },
+  "independentlyExpectedInputAndPrepared": {
+    "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+    "generation": "UTF8(\"Controlled prepared document\" + \"\u754c\".repeat(1747617) + \"!\"); over appends one ASCII !.",
+    "arithmetic": "28 + (1747617 * 3) + 1 = 5242880. Over = 5242881. One line; no BOM/newlines.",
+    "original": {
+      "bytes": 5242880,
+      "sha256": "ba9da0ac80bbde2e2c0475b51f543ddfb61532a433af8792135dae85813a9bec"
+    },
+    "overOriginal": {
+      "bytes": 5242881,
+      "sha256": "b531fde1cecce82394955e183dd34efaf72d85e9abb4707c1e2f102d76d3c350"
+    },
+    "expectedPrepared": {
+      "generation": "Controlled prepared document + \u754c repeated17057, no suffix/newline.",
+      "bytes": 51199,
+      "sha256": "5a567064a39ff504a906cd425e64e15d14a8ba1c865ba20a374242e1cb2b950f",
+      "representationSha256": "9bf7e907f0e0985e7f55064ee2fe5de719076439385805d545815b9930ebe2c3",
+      "degradations": [
+        "text_truncated"
+      ],
+      "basis": "Worked 50KiB head window:51200-28=51172 bytes,17057 whole3B glyphs=51171; one leftover byte cannot form next glyph. First line exceeds inline limit. Raw5MiB acceptance is distinct from inline/model/encoded budgets. No Native output supplied expected content/hash."
+    },
+    "authoring": "Python stdlib hashlib streamed literal chunks <=12288B; no5MiB fixture written, no Native/converter imports.",
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+    },
+    "limits": "SOURCE EXPECTATION UNEXECUTED. Public UTF8 path has text_truncated but no byte-count AttachmentFacts; no invented facts. Provider known28B only."
+  },
+  "earnedPublicBehavior": [
+    "Independent original generated in memory from known28B prefix + \u754c repeated1747617 + !, exactly5242880B/SHAba9da0ac. Public preparation accepts exact5MiB as one ready UTF8 item at selected source/instance/session and exact draft/revision/authority binding.",
+    "Actual representation equals independent known28B + \u754c repeated17057, exactly51199B/SHA5a567064 and compact representationSHA9bf7e907. Raw original and prepared digests distinct. Exactly text_truncated; no invented optional text-specific AttachmentFacts. UTF8-safe head excludes next3B glyph and original suffix.",
+    "Preparation changes neither public entries nor provider effects. Missing text_truncated consent refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED before reservation/admission/effects. Same clientSubmissionId query foundfalse/absent/unknown/unresolved, no relations/nextOffsetnull; entries/effects unchanged.",
+    "Explicit acceptance of actual receiptId/resultDigest/draftRevision/authorityGeneration and text_truncated admits exactly ONE succeeded/generated/committed reservation/input with selected target/origin/preparation binding.",
+    "Only returned public relation.entryId + actual entryPart files/index locates saved fileMention. Indexed preparedId path/full51199B/content/byteSize and textSHA5a567064 match independent expectations; full links match receipt. Same entryId history origin/prepared role/full link. No text/hash/order association.",
+    "Exactly one controlled input/model attempt/dispatch/request, no images/tool/blocked growth. Unchanged provider captures known Controlled prepared document once in developer text,28B/SHAfd4d6186. Full51199B/provider-wrapper delivery unclaimed. Repeat terminal query equals first with no effects.",
+    "Same validUTF8 literal plus one ASCII! is exactly5242881B/SHAb531fde1. Public preparation returns one failed attachment_original_budget item, empty preparedSha, selected target/draft binding, no entries/provider effects. Consumption refuses ATTACHMENT_NOT_READY before reservation/effects; same keyquery remains absent/unknown/unresolved/no relations.",
+    "Complete caller draft including prose and original base64 remains byteexact and independently hashed after over-limit refusal. This public seam does not establish browser editor or durable draft persistence. Raw5MiB acceptance is separate from inline/model/prepared/full encoded-RPC budgets; no whole budget matrix claim."
+  ],
+  "identityDiscipline": "Only public relation.entryId and actual saved part kind/index supply causal history joins. Hashes witness bytes/contract consistency; text/hash/order never identifies history. No new private Native runtime imports or Native Session-file parsing.",
+  "contentOracleLimits": "Independent streaming Python pins were fixed before actual. Passing assertions match complete51199B prepared literal/hash and indexed saved content, not separately exported raw runtime receipt/entry IDs/provider-effects JSON. Provider captures known28B only; no full51199B/provider-wrapper delivery, general Unicode corpus or all budget proof.",
+  "drain": {
+    "originalTool": "Original network-enabled exec 802aed / session28045 reached original completion poll e27be7, actual exit0. No ongoing tool from this attempt. Tool identifiers assistant-transcribed.",
+    "originalPopen": "Original Python Popen retained Bun586861; child.wait returned0 before stdout/stderr files closed and runner.json written. No outer timeout, retry, added signal or recovery fallback.",
+    "worker": "Unchanged withWorker awaited strictWorker.close and asserted actual code0. Close awaits original stdout reader and stderr; finally awaited original child.exited before owned home removal. Exact worker PID/drain object/stderr not separately retained.",
+    "catalog": "Unchanged selectedDescriptor awaited CatalogTransport.close in finally. Helper discards exact catalog PID/DrainResult/exitcode/forced metadata; NOT CAPTURED. No invented exact individual code/zero-forced/descendant extinction.",
+    "serializer": "Unchanged canonical title helper preloads no-provider BEFORE pure Native serializer import. Original stdout/stderr/exit awaits and code0+empty stderr assertion completed before worker startup. Exact child PID not separately retained.",
+    "converter": "Unchanged prepareAttachmentIsolated owns original helper handles/readers, awaits child.exited before return and again in finally before owned profile removal. This run traversed public UTF8 preparation twice (at-limit and over-limit); exact helper PIDs/individual waits/forced metadata not separately retained.",
+    "profiles": "Top synthetic home removed; pre/post per-case attachment-public homes both empty. Profile absence and returned parent exit do not establish descendant extinction."
+  },
+  "preAndPost": {
+    "status": "PASS",
+    "resolvedCurrentInputs": 781,
+    "resolvedBaseCurrentInputs": 745,
+    "flatAncestorCurrentInputs": 667,
+    "soleCurrentTestOverride": 1,
+    "uniqueAddedRecords": 36,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "unchangedPriorCurrentReferences": 761,
+    "allTenPriorCasesProofsRawReadiesPreserved": true,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "hostHeadTreeIndexExactBeforeAndAfterRuntime": true,
+    "hostIndexBeforeAndAfterRuntimeSha256": "83ec3c35c350b855522dd9a6744a0853135a9d50044cf544aad0d2f679b460ef",
+    "archiveXmlClosureRecords": 41,
+    "addonClosureRecords": 15,
+    "htmlSourceClosureRecords": 6,
+    "closureSymlinks": {
+      "archiveXml": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+      },
+      "nativeAddonCandidates": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+      }
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "sourceChangedDuringRuntime": false,
+    "perCaseAttachmentHomesBefore": [],
+    "perCaseAttachmentHomesAfter": [],
+    "limits": "Exact enrolled delta/base source/build/tool/proof/raw references and named closures; not exhaustive transitive/system/runtime dependency proof."
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/archive-manifest.json",
+      "bytes": 2894,
+      "sha256": "85219c13bc4dfea4c22d45ddb59ed8f0e98107f0238950d205152d5c760d2c52"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/precheck.json",
+      "bytes": 3132,
+      "sha256": "c7bc082f637ab36e62353bf6eca370818a59e1ddc8ebcfd98f15398ba4b0da23"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/postcheck.json",
+      "bytes": 3106,
+      "sha256": "29ecf6e732c406fe7cc78549c3f2385f41cf670c58854e949f0a4cbfb8cc27af"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/start.json",
+      "bytes": 1433,
+      "sha256": "fb4d88e8c508ac17634aafd77c8ba263f0fe3abdd9b6e0be236040cf89d9e066"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/runner.json",
+      "bytes": 1977,
+      "sha256": "73a7414d889e631971151e595b1ffc4f176b20ca3e477d64fdeb74e54d73796e"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/used-once.json",
+      "bytes": 104,
+      "sha256": "ad78079caac7aa402c758622999b04a04b69f7b4ccda69e18a647186d8e7ef66"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/stderr.txt",
+      "bytes": 238,
+      "sha256": "e2138424bc5be5d7f261d971837b4d7be760ba70897aa76763a97a69270530c6"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/original-tool-metadata.json",
+      "bytes": 1004,
+      "sha256": "15438a1db4c585951228888879c9b19a20bd7a0421a088005586059aa4168949"
+    },
+    {
+      "path": "/tmp/ticket38-text-budget-runtime.py",
+      "bytes": 6625,
+      "sha256": "20859b85a66e5d4c7ecda538ec1cf3f2bb22fc322e39bd28aff69ad6dda8c60f"
+    }
+  ],
+  "retainedArchive": {
+    "file": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-text-budget-runtime-raw.tar.gz",
+      "bytes": 3735,
+      "sha256": "13fe1ae7d6c171dc8280800daf676a7c2abbe78d1183582ab4b0f4ca48e73fe1"
+    },
+    "manifest": {
+      "path": "/tmp/ticket-38-public-text-budget-j885u6mn/archive-manifest.json",
+      "bytes": 2894,
+      "sha256": "85219c13bc4dfea4c22d45ddb59ed8f0e98107f0238950d205152d5c760d2c52"
+    },
+    "members": [
+      {
+        "archivePath": "manifest.json",
+        "bytes": 2894,
+        "sha256": "85219c13bc4dfea4c22d45ddb59ed8f0e98107f0238950d205152d5c760d2c52"
+      },
+      {
+        "archivePath": "raw/precheck.json",
+        "bytes": 3132,
+        "sha256": "c7bc082f637ab36e62353bf6eca370818a59e1ddc8ebcfd98f15398ba4b0da23"
+      },
+      {
+        "archivePath": "raw/postcheck.json",
+        "bytes": 3106,
+        "sha256": "29ecf6e732c406fe7cc78549c3f2385f41cf670c58854e949f0a4cbfb8cc27af"
+      },
+      {
+        "archivePath": "raw/start.json",
+        "bytes": 1433,
+        "sha256": "fb4d88e8c508ac17634aafd77c8ba263f0fe3abdd9b6e0be236040cf89d9e066"
+      },
+      {
+        "archivePath": "raw/runner.json",
+        "bytes": 1977,
+        "sha256": "73a7414d889e631971151e595b1ffc4f176b20ca3e477d64fdeb74e54d73796e"
+      },
+      {
+        "archivePath": "raw/used-once.json",
+        "bytes": 104,
+        "sha256": "ad78079caac7aa402c758622999b04a04b69f7b4ccda69e18a647186d8e7ef66"
+      },
+      {
+        "archivePath": "raw/stdout.txt",
+        "bytes": 28,
+        "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+      },
+      {
+        "archivePath": "raw/stderr.txt",
+        "bytes": 238,
+        "sha256": "e2138424bc5be5d7f261d971837b4d7be760ba70897aa76763a97a69270530c6"
+      },
+      {
+        "archivePath": "raw/network-audit.json",
+        "bytes": 68,
+        "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+      },
+      {
+        "archivePath": "raw/original-tool-metadata.json",
+        "bytes": 1004,
+        "sha256": "15438a1db4c585951228888879c9b19a20bd7a0421a088005586059aa4168949"
+      }
+    ],
+    "uncompressedBytes": 13984,
+    "memberCount": 10,
+    "scope": "Nine allowlisted runner metadata/output/sanitized guard-audit files only. No Native Session JSONL/content, RPC transcript, receipt/provider JSON, profile settings/directories, executable, addon, runtime or source-tree copies.",
+    "readback": "All names/types/sizes/bytes independently matched exact allowlist; no extraction/private Session/runtime copy."
+  },
+  "limitations": [
+    "Receipt/entry IDs and raw per-case receipt/provider-effects JSON not separately retained; no invented IDs. Full prepared literal and hash verified by assertions, known provider28B only.",
+    "Audit0dispatch/0denied covers instrumented boundaries, not general syscall/network proof. Individual Native/catalog/serializer/helper PID/wait/forced metadata uncaptured; no descendant-extinction claim.",
+    "One raw5MiB/+1B UTF8 boundary and explicit actual truncation-consent vertical only. All prior format proofs remain scoped to their individual recorded inputs.",
+    "Remaining refusal/budget/cancel/stale/expiry/locator/lifecycle/history/restart/copy/branch/restore/persistence/fault/native data/TUI/provider, actual DSH/browser/coherent1\u201310/fullchecks/reviews/whole38/MVP OPEN. Linux now; WindowsChrome/WSL2 owner-deferred; global target unselected."
+  ],
+  "noOtherActions": "No retry/source fix/expectation weakening/Native API/schema/product/build/dependency mutation/othercase/Host/browser/FFI/socket/kernelprobe/GH/merge/global/private admission/processcensus/PIDfallback/groupkill/orphan/fence action. Raw archive excludes Session contents and executable/addon/runtime copies.",
+  "admission": "ONE isolated public 5MiB UTF8 boundary/consent case only. Window RELEASED before pure post/evidence work. No automatic nextsource/runtime. Root owns further windows; private/global/product blocked, whole38/MVP OPEN."
+}

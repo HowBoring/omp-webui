@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "ticket": 38,
+  "scope": "isolated-native-staged-text-consumption",
+  "acceptance": "IN_PROGRESS",
+  "privateSessionAdmission": "blocked",
+  "source": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "057ffd9b8b7628db1969c7074d6c6df6ec631884e67404d45129c43fb8d27f95",
+    "patchSha256": "2486eb2d04dd88a9a315c962fa27201ab23d7801904bee83e77d86008657c115",
+    "schemaSha256": "e67950064dadbcfed0cd970b759443133e010e91fc61a04aa28f1af81632dd9a",
+    "priorCheckpoint": "b07a220"
+  },
+  "checks": [
+    { "command": "bun scripts/build-compatibility.ts", "result": "PASS" },
+    { "command": "bun scripts/check-attachment-native.ts", "result": "PASS", "scope": "authored native modules only" },
+    {
+      "command": "bun test tests/attachments/public-rpc.test.ts tests/attachments/contracts.test.ts",
+      "result": "PASS", "tests": 2, "assertions": 14,
+      "observed": ["preparation leaves native entries and controlled model effects unchanged", "same-source receipt consumed after native durable reservation", "actual staged text companion has committed original/prepared causal metadata", "nested path parameters rejected"]
+    },
+    { "command": "python3 scripts/test-attachments-native.py compatibility/omp/fixtures/attachment-budgets.test.js", "result": "PASS", "tests": 1, "assertions": 1 },
+    { "command": "python3 scripts/test-attachments-native.py compatibility/omp/fixtures/attachment-input.test.js compatibility/omp/fixtures/attachment-rpc-budget.test.js", "result": "PASS", "tests": 4, "assertions": 6 },
+    { "command": "python3 scripts/test-attachments-native.py compatibility/omp/fixtures/attachment-dispatch.test.js", "result": "PASS", "tests": 1, "assertions": 3 }
+  ],
+  "protocol": {
+    "stdin": "unchunked JSONL; fatal UTF-8; 48 MiB including escapes/base64/metadata/newline",
+    "stdout": "independent v2 chunks; 1 MiB physical and 64 MiB reassembly",
+    "preparationReply": "9 MiB logical and 12 MiB physical aggregate",
+    "dispatcher": "32 frames / 64 MiB retained",
+    "startup": "8 frames / 48 MiB held; strict-start earlier limits remain separate"
+  },
+  "remainingGates": ["compose clean 1fea4f8 native prerequisites", "actual provider-pipeline image integrity and model/settings guards", "strict metadata/copy/branch/restart/lost-reply and cancellation races", "maximum-size native and Host transport cases", "converter/archive/time/memory/output negative cases", "Host authority and original/draft fences", "typed public DSH Remote and real browser workflow", "final matched artifact tuple"],
+  "windows": "OWNER_DEFERRED_NOT_RUN"
+}

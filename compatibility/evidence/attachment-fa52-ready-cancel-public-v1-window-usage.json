@@ -1,0 +1,102 @@
+{
+  "ticket": 38,
+  "status": "USED_ONCE_ACTUAL_PUBLIC_PASS_DRAINED",
+  "sourceCheckpoint": "57e2a454912a51bc3a93895624a439daed4ef2e2",
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-ready-cancel-public-v1-source-ready.json",
+    "bytes": 11119,
+    "sha256": "a8ac2f9bd8cf8e04e1dd5689a0c2dffe5b807710075d55bea5c517fe36ed894f"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/final-inputs.json",
+    "bytes": 8697,
+    "sha256": "84b1b37ee12975fb9912b3cabc7683fbcb53ca45c4b99e16b102f9f8e2a15dd4"
+  },
+  "runtimeProof": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-public-ready-cancel-runtime-success.json",
+    "bytes": 18162,
+    "sha256": "3bca15b89ab00021390d34691d2530a01b0be3f76b01c39429cb41962a9c6e32"
+  },
+  "case": "actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects",
+  "attempts": 1,
+  "retry": "NONE",
+  "runnerPid": 661297,
+  "runnerWaitStatus": 0,
+  "originalWaitBothReadersAndEof": true,
+  "actualPFpid": 661310,
+  "actualPFdrain": {
+    "code": 0,
+    "forced": false,
+    "stderrBytes": 0
+  },
+  "networkAudit": {
+    "guard": "history-egress-v1",
+    "actualNetworkDispatches": 0,
+    "denied": 0
+  },
+  "rawArchive": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-evidencepack-20261117/raw.tar.gz",
+    "bytes": 6109,
+    "sha256": "2e381468170eb70d7bbdd47b74cee856e42eea0c69dfb15a5026b31f3fca2e6a"
+  },
+  "rawManifest": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-evidencepack-20261117/manifest.json",
+    "bytes": 4769,
+    "sha256": "5f04ad3d793a12c50c6cfe3fc88f60a1b1f95754b86011317234882dcf19177c"
+  },
+  "RootTools": {
+    "records": {
+      "pre-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-initial-tool.json",
+        "bytes": 130,
+        "sha256": "aec67ab4dfe81696aa41523c46259721992cf2bf06d33e2ed92f268b02d77c8f"
+      },
+      "pre-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-final-tool.json",
+        "bytes": 2935,
+        "sha256": "c45b255bc1f156e4659f92bd8a88bdcec04c9e510151970089075d5b7a5e543e"
+      },
+      "run-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-initial-tool.json",
+        "bytes": 130,
+        "sha256": "7446028c0460af9259d16c7a8a07a10c0d3085bc30d856fc5d308d116cec824a"
+      },
+      "run-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-final-tool.json",
+        "bytes": 4420,
+        "sha256": "e6d4ab2cd592e008a8a815fda25997e333e939efb1bb767b2f6cb376b02d6905"
+      },
+      "post-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-initial-tool.json",
+        "bytes": 131,
+        "sha256": "0795fcfc0a3f14455c2950dfc63f78d236a516e46dd45e3552d610ce2ee1eb85"
+      },
+      "post-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-final-tool.json",
+        "bytes": 2894,
+        "sha256": "b444a532aa3fe5dc0b1604f320b66537899097998978002182fb9b06d37ec1ff"
+      }
+    },
+    "pre": {
+      "initialChunk": "c35f2e",
+      "session": 52139,
+      "completionChunk": "4625f7",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "529529",
+      "session": 8055,
+      "completionChunk": "5cba8d",
+      "exitCode": 0
+    },
+    "post": {
+      "initialChunk": "9b55f5",
+      "session": 33694,
+      "completionChunk": "8e6ca8",
+      "exitCode": 0
+    }
+  },
+  "window": "Root declared Nativewindow NONE after original wait/readers/EOF and post. Source/raw scopes consumed; no rerun/pristine check. Later actual work requires fresh reviewed Source/freeze/Root coordination. Stop after evidence commit for Root next slice.",
+  "postLabelMeaning": "NATIVE_RUNTIME_NOT_RUN is the inherited metadata-only checker label; actual preceding controlled Native ready-cancel/late-consent test PASSED.",
+  "acceptance": "Only this sequential public ready-cancel/late-consent refusal transition proved. Whole38/53/54/29 remain open; no P_ALL/global/private/product claim."
+}

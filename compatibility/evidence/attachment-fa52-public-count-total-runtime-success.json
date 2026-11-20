@@ -1,0 +1,440 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_EIGHT_OBJECT_32MIB_CONSENT_AND_REFUSAL_CASE_ONLY",
+  "hostHead": "e6bd168773446506d1a9dff98b7ff7cab23a861a",
+  "hostTree": "7315da8eb0ff96acb8210b46c2bcc6a0e19cd8b5",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root authorized exactly ONE anchored count/total attempt after fresh paired SOURCE reviews and independent854-input precheck. Original result/wait/readers completed and Root RELEASED the window before read-only postcheck. No further runtime/source authority.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-count-total-launch-source-ready.json",
+    "bytes": 12644,
+    "sha256": "b458e55414cad835026c1a2853a0f0895e6d2e23941528476258898e996e1d69"
+  },
+  "deltaFreeze": {
+    "path": "/tmp/ticket38-count-total-launch-source-20261117/final-inputs.json",
+    "bytes": 4480,
+    "sha256": "cb5202918ad156d09e95e15e4dba250fc4116e9ae5c8d0651fc4b516fe663614"
+  },
+  "baseFreeze": {
+    "path": "/tmp/ticket38-count-total-owned-source-20261117/final-inputs.json",
+    "bytes": 4233,
+    "sha256": "170a5473a62faad0d6568d8c66d148573bb12af17f2940309e54b171159e1538"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-count-total-launch-20261117-tphpoa96",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-count-total-launch-20261117-tphpoa96",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-count-total-launch-20261117-tphpoa96",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T11:30:26.496124+00:00",
+    "startedMonotonicNs": 183908369610854,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/tmp/ticket38-count-total-launch-retainer-20261117.py",
+      "bytes": 9747,
+      "sha256": "7a376d1ccde7ff7d8e8a7b2aa8f957cc3bd727e71823d03fd593b5fd99dade1f"
+    },
+    "runnerPid": 626710,
+    "runnerWaitStatus": 0,
+    "originalWaitObserved": true,
+    "originalReaderJoinsObserved": true,
+    "originalStreamEofObserved": true,
+    "finishedAt": "2026-11-17T11:30:36.770985+00:00",
+    "finishedMonotonicNs": 183918644485462,
+    "stdoutStderrFilesClosedAfterOriginalWaitAndBothReaderJoins": true,
+    "capture": {
+      "stderr": {
+        "observedBytes": 255,
+        "observedSha256": "3516718519b4930e52d95bdee14d51c5c0bed55d00f07ff3ee1668a3d14e49f8",
+        "capturedBytes": 255,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/stderr.txt",
+          "bytes": 255,
+          "sha256": "3516718519b4930e52d95bdee14d51c5c0bed55d00f07ff3ee1668a3d14e49f8"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      },
+      "stdout": {
+        "observedBytes": 28,
+        "observedSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+        "capturedBytes": 28,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/stdout.txt",
+          "bytes": 28,
+          "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      }
+    },
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 11,
+    "assertions": 253,
+    "caseDurationMs": 10171.26,
+    "durationReported": "10.26s",
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "independentLiteralManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/utf8-count-total-boundary.json",
+    "bytes": 3153,
+    "sha256": "ac96e2a36b89911f2ecad5391419a2b4407a24b977a620ed45759520ef3574b1"
+  },
+  "preRunLiteralExpectations": {
+    "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+    "specBasis": "Spec29 story63 / decisions20-21 and attachment-contract Q6: max8 objects and33554432B; pertext5242880B, separate encoded50331648B.",
+    "generation": "UTF8(\"Controlled prepared document\" + \"x\".repeat(4194276)); eight separate logical IDs text-1..8, equal original bytes.",
+    "arithmetic": "28+4194276=4194304B each; 8*4194304=33554432B. Total-over appends one ASCII ! to only first object:33554433B across8; first4194305<5242880. Count-over9 separate one-byte ! objects=9B<33554432.",
+    "original": {
+      "bytes": 4194304,
+      "sha256": "92b6fae8c43b91f2d2112427ee14947565814730c56e11eb176c0fc73fe23b32"
+    },
+    "totalOverFirstOriginal": {
+      "bytes": 4194305,
+      "sha256": "a2ff6cfe3749e48dc056fff1f4367eca40f85d2a47b0176ed92ac9db70644bb5"
+    },
+    "countOverOriginal": {
+      "generation": "ASCII !; base64 IQ==",
+      "bytes": 1,
+      "sha256": "bb7208bc9b5d7c04f1236a82a0093a5e33f40423d5ba8d4266f7092c3ba43b62"
+    },
+    "acceptedRawBytes": 33554432,
+    "totalOverRawBytes": 33554433,
+    "countOverRawBytes": 9,
+    "expectedPrepared": {
+      "bytes": 51200,
+      "sha256": "87a381e538d26bc4c3ee9ad4edb5f915b4da222bb55481af59e5ffe58c4ed4c5",
+      "generation": "Controlled prepared document + x repeated51172; no suffix/newline.",
+      "representationSha256": "b5b175df454069cef4a11b866e34146af6785b651c85efaa02069c365486e9f4",
+      "degradations": [
+        "text_truncated"
+      ],
+      "basis": "Independent50KiB head:51200-28=51172 ASCII x. Eight full expected saved bodies, eight distinct causal locators; no optional UTF8 facts invented."
+    },
+    "encodedFrames": {
+      "accepted": {
+        "base64Bytes": 44739264,
+        "envelopeIncludingNewlineBytes": 1254,
+        "wireBytes": 44740518
+      },
+      "totalOver": {
+        "base64Bytes": 44739264,
+        "envelopeIncludingNewlineBytes": 1252,
+        "wireBytes": 44740516
+      },
+      "countOver": {
+        "base64Bytes": 36,
+        "envelopeIncludingNewlineBytes": 1378,
+        "wireBytes": 1414
+      },
+      "rpcCeilingBytes": 50331648,
+      "basis": "Actual public send retains generated36-character UUID; JSON compact UTF8+newline exactly measured before send. Refusal IDs distinct36 characters. Envelope depends only on same-sized IDs, not UUID contents.",
+      "separation": "Raw+1 leaves base64 length unchanged because4194304 and4194305 share encoded5592408B. Both large frames fit48MiB. This is NOT an exact48MiB boundary test; no public boundary claim from a private helper."
+    },
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+      "capture": "Unchanged provider caps2 per-message spans; expect two developer known28B witnesses once each. No fulltext or eight-body provider claim."
+    },
+    "authoring": "Python stdlib hashlib literal chunks<=4096B and empty-data JSON envelope arithmetic. No large fixture or Native/Host/converter import/execution.",
+    "limits": "SOURCE EXPECTATIONS UNEXECUTED; actualRED/GREEN requires freshRootreview/exactONE. Complete caller draft retained, browser/editor/storage state untested."
+  },
+  "expectationStatusMeaning": "The copied manifest status is the immutable pre-run SOURCE expectation label. Actual passing assertions below earn only this isolated case.",
+  "earnedPublicBehavior": [
+    "Eight ordered logical originals text-1..8, each4194304B and SHA92b6fae8, total33554432B, are accepted by public preparation as eight ready items with eight distinct prepared IDs and exact selected target/draft/revision/authority binding.",
+    "The actual compact public attachment_prepare command, retained36-character UUID and newline is44740518B including44739264B base64 and1254B envelope; it fits50331648B. Raw32MiB and encoded48MiB are separate budgets; exact48MiB edge is untested.",
+    "Every actual representation equals known28B prefix plus51172 ASCII x, full51200B text/SHA87a381e5 and representationSHAb5b175df; exactly text_truncated. Original and prepared digests differ; no optional UTF8 facts invented.",
+    "Preparation leaves public entries/provider effects unchanged. Missing text_truncated consent refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED before reservation/admission/effects; query remains absent/unknown/unresolved with no relations.",
+    "Explicit actual receipt/digest/draftRevision/authorityGeneration and text_truncated acceptance admits exactly one succeeded/generated/committed reservation/input at the selected target and causal origin/preparation.",
+    "All eight originalIds retain distinct prepared IDs and eight distinct actual entryId/files/index locators. Returned public relations select saved fileMention parts; each exact attachment-prepared path, complete51200B content/SHA/byteSize and full attachment link match. Same-entry history rows carry matching origin/prepared role/full links. Equal bytes and hashes do not identify or merge objects.",
+    "Exactly one controlled input/model attempt/dispatch/request; no images/tool/blocked growth. Unchanged provider captures only two known28B developer spans, one occurrence each/SHAfd4d6186. No full/eight-body provider-delivery claim. Repeat terminal query equals first and adds no effects.",
+    "Nine distinct one-byte originals total9B, wire1414B, refuse the whole public command with ATTACHMENT_INPUT_BUDGET and no receipt/data/reservation/entries/provider effects. The caller draft, original base64 and each decoded hash remain exact.",
+    "Eight originals totaling33554433B (first4194305B, remaining7x4194304B; each below5MiB), wire44740516B, refuse the whole command with ATTACHMENT_INPUT_BUDGET and no receipt/data/reservation/entries/provider effects. Caller draft/base64/hashes remain exact. Browser/editor/durable-draft persistence is untested."
+  ],
+  "identityDiscipline": "Only returned public relation.entryId plus actual saved part kind/index provide causal history joins. Hashes witness content consistency, never identity. No Native Session/history files parsed or retained.",
+  "contentOracleLimits": "Full prepared bodies/ordered IDs/saved causal locators were verified by passing assertions, not exported as separate raw receipt/entry/provider JSON. Dynamic IDs are not separately retained or invented. Provider witnesses only two known28B spans.",
+  "drain": {
+    "originalTool": "Root exec c25fd9/session25153 reached original completion f40023 EXIT0; complete original objects retained in evidencepack.",
+    "originalPopen": "Original Bun626710 Popen wait returned0, both original reader joins and actual EOF observed before output files closed and result written. No timeout/retry/signal/discovery/recovered authority.",
+    "capture": "All observed stdout28B/stderr255B saved with exact counts/SHA; per-stream cap1MiB, no overflow/read/write/flush/disk errors. Overflow/fault paths were not exercised by this actual run.",
+    "workerCatalogSerializerHelpers": "Unchanged fixture owns and awaits original worker/readers, catalog close, guarded serializer exit and isolated-helper exits. Individual Native/catalog/serializer/helper PID/wait/forced metadata is not separately retained; no invented per-child outcome.",
+    "profiles": "Runner reports topProfileRemoved; captured pre/post attachment-public-home lists are empty/unchanged. No P_ALL/ECHILD or descendant-extinction proof is claimed."
+  },
+  "sourceOnlyFaultCoverage": "Constructor-after-creation, unavailable handle, lifecycle BaseException, returning HOLD, missing EOF, persistence/pause and capture overflow/error regressions are pure fake/AST SOURCE evidence only. They were not injected/exercised by this actual run.",
+  "preAndPost": {
+    "precheck": {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/precheck.json",
+      "bytes": 3125,
+      "sha256": "c3901f1e0302eccaf0bdad4b197842cf996891603a5fd5d9cbc6feb569e9f925"
+    },
+    "postcheck": {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/postcheck.json",
+      "bytes": 3083,
+      "sha256": "2b08f02cd2e69732271fcf4b35fe369d5cfad17c2a36f333180a8d5d7e41f68f"
+    },
+    "status": "PASS",
+    "resolvedCurrentInputs": 854,
+    "unchangedInheritedInputs": 842,
+    "overrides": 0,
+    "nativeRecords": 166,
+    "matchedBuildRecords": 290,
+    "archiveXmlRecords": 41,
+    "addonRecords": 15,
+    "htmlRecords": 6,
+    "hostHeadTreeIndexExactDuringRuntime": true,
+    "hostIndex": {
+      "path": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+      "bytes": 88900,
+      "sha256": "74a245ee920f36df742bb51e0c630f07310126e1969991a18fb0476981bc3253"
+    },
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "closureSymlinks": {
+      "archiveXml": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+      },
+      "nativeAddonCandidates": {
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+        "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+      }
+    },
+    "allElevenPriorCasesPreserved": true,
+    "perCaseAttachmentHomesUnchanged": true,
+    "limits": "Exact enrolled delta/base source/build/tool/proof/raw references and named closures; not exhaustive transitive/system/runtime dependency proof."
+  },
+  "originalTools": {
+    "preAndRun": {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-tool.json",
+      "bytes": 7088,
+      "sha256": "20bca8807a6bcb291a9ee367e917c582a2652dc39e0b2cf38dd21c0d044ce820"
+    },
+    "post": {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-post-tool.json",
+      "bytes": 3404,
+      "sha256": "c769ffedab81f6b340f5b6a4e4d2bf89438839b2d99a18deec648d28f5268ce5"
+    },
+    "pre": {
+      "initialChunk": "9f4651",
+      "session": 73048,
+      "completionChunk": "416e1e",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "c25fd9",
+      "session": 25153,
+      "completionChunk": "f40023",
+      "exitCode": 0
+    },
+    "postcheck": {
+      "initialChunk": "5df7bc",
+      "session": 97551,
+      "completionChunk": "3e83e1",
+      "exitCode": 0
+    }
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/precheck.json",
+      "bytes": 3125,
+      "sha256": "c3901f1e0302eccaf0bdad4b197842cf996891603a5fd5d9cbc6feb569e9f925"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/postcheck.json",
+      "bytes": 3083,
+      "sha256": "2b08f02cd2e69732271fcf4b35fe369d5cfad17c2a36f333180a8d5d7e41f68f"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/start.json",
+      "bytes": 1541,
+      "sha256": "11eca31c38b3940f1acf7b136e0686e7c47912584584fa4b539c23d69b3a35a7"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/runner.json",
+      "bytes": 3363,
+      "sha256": "caa228024af5bdf80d1dcf4e02b01a4fb134c8bda7f132cb4c8ea60566151d8a"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/used-once.json",
+      "bytes": 104,
+      "sha256": "2886169f6e0cb407668dd9a9e15ac2d61084ccb0285a43626d522a417d77885b"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/stderr.txt",
+      "bytes": 255,
+      "sha256": "3516718519b4930e52d95bdee14d51c5c0bed55d00f07ff3ee1668a3d14e49f8"
+    },
+    {
+      "path": "/tmp/ticket-38-public-count-total-launch-20261117-sru5siqe/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-tool.json",
+      "bytes": 7088,
+      "sha256": "20bca8807a6bcb291a9ee367e917c582a2652dc39e0b2cf38dd21c0d044ce820"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/count-total-launch-root-post-tool.json",
+      "bytes": 3404,
+      "sha256": "c769ffedab81f6b340f5b6a4e4d2bf89438839b2d99a18deec648d28f5268ce5"
+    }
+  ],
+  "retainedEvidencepack": {
+    "file": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-count-total-launch-evidencepack-20261117/raw.tar.gz",
+      "bytes": 4874,
+      "sha256": "2e1337ca057287f0daaaf69365cfeac9f1267a36046172509b3f3c3b1daf4f8f"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-count-total-launch-evidencepack-20261117/manifest.json",
+      "bytes": 3271,
+      "sha256": "455512187b6818dd95a91ffaa4564c2fea3565030a2fb74831e43ea7906d6b69"
+    },
+    "memberCount": 11,
+    "uncompressedBytes": 25330,
+    "scope": "Eight allowlisted runner/start/pre/post/used-once/stdout/stderr/guard-audit files and two complete Root tool objects only.",
+    "exclusions": "No Native Session/history files, RPC receipt/provider dump, profile directory, executable/ELF/addon/runtime/key or source-tree copies.",
+    "readback": "Exact ordered names, regular-file types, sizes and complete bytes matched allowlist without extraction.",
+    "members": [
+      {
+        "archivePath": "manifest.json",
+        "bytes": 3271,
+        "sha256": "455512187b6818dd95a91ffaa4564c2fea3565030a2fb74831e43ea7906d6b69"
+      },
+      {
+        "archivePath": "raw/precheck.json",
+        "bytes": 3125,
+        "sha256": "c3901f1e0302eccaf0bdad4b197842cf996891603a5fd5d9cbc6feb569e9f925"
+      },
+      {
+        "archivePath": "raw/postcheck.json",
+        "bytes": 3083,
+        "sha256": "2b08f02cd2e69732271fcf4b35fe369d5cfad17c2a36f333180a8d5d7e41f68f"
+      },
+      {
+        "archivePath": "raw/start.json",
+        "bytes": 1541,
+        "sha256": "11eca31c38b3940f1acf7b136e0686e7c47912584584fa4b539c23d69b3a35a7"
+      },
+      {
+        "archivePath": "raw/runner.json",
+        "bytes": 3363,
+        "sha256": "caa228024af5bdf80d1dcf4e02b01a4fb134c8bda7f132cb4c8ea60566151d8a"
+      },
+      {
+        "archivePath": "raw/used-once.json",
+        "bytes": 104,
+        "sha256": "2886169f6e0cb407668dd9a9e15ac2d61084ccb0285a43626d522a417d77885b"
+      },
+      {
+        "archivePath": "raw/stdout.txt",
+        "bytes": 28,
+        "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+      },
+      {
+        "archivePath": "raw/stderr.txt",
+        "bytes": 255,
+        "sha256": "3516718519b4930e52d95bdee14d51c5c0bed55d00f07ff3ee1668a3d14e49f8"
+      },
+      {
+        "archivePath": "raw/network-audit.json",
+        "bytes": 68,
+        "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+      },
+      {
+        "archivePath": "tools/root-pre-run.json",
+        "bytes": 7088,
+        "sha256": "20bca8807a6bcb291a9ee367e917c582a2652dc39e0b2cf38dd21c0d044ce820"
+      },
+      {
+        "archivePath": "tools/root-post.json",
+        "bytes": 3404,
+        "sha256": "c769ffedab81f6b340f5b6a4e4d2bf89438839b2d99a18deec648d28f5268ce5"
+      }
+    ]
+  },
+  "limitations": [
+    "Instrumented guard0dispatch/0denied is not a general syscall/network proof.",
+    "One isolated eight-object32MiB/consent/count+1/raw-total+1 case only; earlier format proofs remain individually scoped.",
+    "Final cohort, actual DSH/browser/end-to-end draft storage, global/private/product admission,10MiB images, exact48MiB frame edge, cancellation/stale/expiry/restart/copy/branch/restore/fault matrices remain open. Whole29/38/53/54 remain open."
+  ],
+  "evidenceOnlyActions": "Read captured raw/tool results and source/expectation metadata; pack only allowlisted small files; author proof/usage/note and own evidence commit. No consumed pre/usage-absence check, retainer pre/run/post, actual, Native/schema/build/source/dependency change or merge/push/close.",
+  "admission": "USED_ONCE_PASS; window RELEASED before post/evidence. No automatic next source/runtime authority. Whole29/38/53/54 open; product/private/global blocked.",
+  "testSource": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 85975,
+    "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645",
+    "name": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects"
+  }
+}

@@ -1,0 +1,31 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/workspaces/remote-errors.test.ts:
+49 |   try {
+50 |     const preview = await f.ctx.remote.ompWorkspaces.preview(f.root);
+51 |     if (!preview.ok) throw preview.error;
+52 |     expect((await f.ctx.remote.ompWorkspaces.confirm(preview.value.confirmation)).ok).toBe(true);
+53 |     const stale = await f.ctx.remote.ompWorkspaces.confirm(preview.value.confirmation);
+54 |     expect(stale).toMatchObject({ ok: false, error: { code: "GRANT_PREVIEW_EXPIRED", details: {} } });
+                       ^
+error: expect(received).toMatchObject(expected)
+
+  {
+-   "error": {
+-     "code": "GRANT_PREVIEW_EXPIRED",
+-     "details": {},
+-   },
++   "error": [RemoteError: client api: ompWorkspaces/confirm failed: transport failure for /api/ompWorkspaces/confirm: HTTP 400],
+    "ok": false,
+  }
+
+- Expected  - 4
++ Received  + 1
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-43-review-fix/tests/workspaces/remote-errors.test.ts:54:19)
+(fail) a consumed confirmation returns a correlated domain failure through typed DSH Remote [54.26ms]
+
+ 0 pass
+ 1 fail
+ 2 expect() calls
+Ran 1 test across 1 file. [170.00ms]

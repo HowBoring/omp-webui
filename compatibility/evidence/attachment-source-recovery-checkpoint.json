@@ -1,0 +1,83 @@
+{
+  "status": "NOT_BUILT",
+  "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+  "sourceSha256": "50ed6fa60f561691dce3ec7d766262d9458a8b61f75686e06aad344bfe3a8345",
+  "patchSha256": "f0d576d68d0f1693e0dc8c78499570b6fdd2fd6052188b126236d9a1f2058064",
+  "schemaSha256": "177282c33cc393c9ddbf9136eacffb6151b17dd6b349514061ae66b1ba9eb2ab",
+  "reason": "Wire-only generation does not rebuild or verify the existing native launcher.",
+  "issue": 38,
+  "common7Commit": "705330957a3cd2a5323a5d0edb40b6289c11cf3a",
+  "scope": "source, generated public wire, pure component/schema/native metadata codec and TypeScript only; not Native runtime or product acceptance",
+  "orderedPatches": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    9
+  ],
+  "checks": {
+    "orderedSourceVerification": "PASS",
+    "wireOnlyGeneration": "PASS",
+    "wireOnlyGeneratedCheck": "PASS",
+    "authoredNativeAttachmentTypeScript": "PASS",
+    "hostTypeScript": "PASS",
+    "diffCheck": "PASS",
+    "pureTests": {
+      "passed": 44,
+      "failed": 0,
+      "assertions": 129,
+      "files": 9,
+      "durationMs": 429,
+      "paths": [
+        "tests/attachments/submission-gate.test.ts",
+        "tests/attachments/bridge.test.ts",
+        "tests/attachments/remote.test.ts",
+        "tests/attachments/controller.test.ts",
+        "tests/attachments/contracts.test.ts",
+        "compatibility/omp/fixtures/attachment-entry-parts.test.js",
+        "compatibility/omp/fixtures/attachment-records.test.js",
+        "tests/submissions/contracts.test.ts",
+        "tests/submissions/records.test.js"
+      ]
+    }
+  },
+  "changes": [
+    "Actual native part identity earns saved content/files locator at final persisted construction; missing/changed/ambiguous markers stay explicit",
+    "Public HistoryItem.submission carries validated cloned attachment links; reservations have no saved part",
+    "Later native receipt records cannot forget/mutate ordered carried attachment identities/locators or omission facts",
+    "Prepared Native scope remains idleOnly through awaited SDK checks; explicit delivery groups revalidate common7 protected authority outside task-local scope",
+    "Attachment acceptance requires every exact original/prepared identity/digest/kind and actual saved part",
+    "Exact successful terminal no_input has completed-without-input disposition distinct from accepted/not-submitted; Original ownership never follows DSH echo cleanup"
+  ],
+  "redGreen": [
+    "Recovered locator fixture4/10 PASS; public locator bound test genuinely failed before bounding wire indices0..65535",
+    "Malformed persisted unavailable marker genuinely threw before strict string validation",
+    "History causality test genuinely failed because attachments were omitted before safe public projection",
+    "Monotonic attachment record test genuinely failed before comparing persisted attachment relations",
+    "Host gate genuinely accepted another origin key/target before exact matching",
+    "Host gate genuinely accepted preparedId without saved part before tightening acceptance",
+    "Successful no_input remained unresolved before adding exact completed-without-input disposition"
+  ],
+  "failedAttempts": [
+    {
+      "kind": "accidental process fixture in otherwise pure test list",
+      "path": "tests/submissions/validation.test.ts",
+      "failed": 4,
+      "reason": "Sandbox stdin write EPERM in nativeTitleSlots helper before strictWorker/Native startup",
+      "scope": "Not a semantic Native failure or pass; not rerun; fixture homes removed by finally; no helper/Native process remained in inspected process list"
+    }
+  ],
+  "runtime": "NOT RUN for this tuple. No Native launcher build/worker, browser, provider dispatch, OS fault or full suite. Existing launcher is historical and explicitly NOT_BUILT for the generated identity.",
+  "remaining": [
+    "Compose next common7 raw SDK per-call carrier/restore-state fixes before final Native validation",
+    "Clean ordered1\u20137+9 Native build after root runtime clearance and actual36 first proof; do not compose8 yet",
+    "Public Native saved-part/history/restart/branch and provider/input-kind/actual skill/file/template evidence",
+    "Actual DSH exact quote/reference serialization, whole-input consent/cancel/newer-draft and original lifecycle integration",
+    "Final matched composition, whole check and independent review"
+  ],
+  "platform": "Linux development only; actual Windows Chrome/WSL2 acceptance explicitly owner-deferred",
+  "recoverySnapshot": "/tmp/ticket-38-recovery/pre-common7 (plus earlier snapshot under parent directory)"
+}

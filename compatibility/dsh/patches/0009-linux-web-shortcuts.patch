@@ -1,0 +1,35 @@
+diff --git a/packages/client/shortcuts/src/binding.ts b/packages/client/shortcuts/src/binding.ts
+index 8a7bed81..13275321 100644
+--- a/packages/client/shortcuts/src/binding.ts
++++ b/packages/client/shortcuts/src/binding.ts
+@@ -95,6 +95,13 @@ export function presentBinding(binding: NormalizedBinding | null, platform: Shor
+  */
+ export function isWebBindingAllowed(binding: NormalizedBinding, platform: ShortcutPlatform): boolean {
+   if (binding.secondCode !== undefined) return false
++  // Linux Web admits Control+Alt/Shift chords and three-modifier chords so product actions can avoid
++  // browser-reserved keys without falling back to fake desktop bindings.
++  if (platform === 'linux') {
++    if (binding.modifiers.length >= 3) return true
++    if (binding.modifiers.length === 2 && binding.modifiers.includes('control')
++      && (binding.modifiers.includes('alt') || binding.modifiers.includes('shift'))) return true
++  }
+   if (platform === 'windows' || platform === 'macos') {
+     if (binding.modifiers.length >= 3) return true
+     const primary = platform === 'macos' ? 'meta' : 'control'
+diff --git a/packages/client/shortcuts/tests/registry.client.spec.ts b/packages/client/shortcuts/tests/registry.client.spec.ts
+index 92a800f3..92611139 100644
+--- a/packages/client/shortcuts/tests/registry.client.spec.ts
++++ b/packages/client/shortcuts/tests/registry.client.spec.ts
+@@ -15,6 +15,12 @@ it.each(['macos', 'windows'] as const)('admits the existing single-modifier Web
+ import type { ShortcutCommand, ShortcutGesture } from '../src/client/types.ts'
+ 
+ const context = { region: 'page', modal: null, target: null } as const
++it('admits Control+Alt and Control+Shift Web combinations on Linux', () => {
++  expect(isWebBindingAllowed({ code: 'KeyN', modifiers: ['control', 'alt'] }, 'linux')).toBe(true)
++  expect(isWebBindingAllowed({ code: 'Enter', modifiers: ['control', 'alt'] }, 'linux')).toBe(true)
++  expect(isWebBindingAllowed({ code: 'KeyR', modifiers: ['alt'] }, 'linux')).toBe(false)
++})
++
+ it('admits modified Web combinations and refuses two-key chords', () => {
+   expect(isWebBindingAllowed({ code: 'KeyB', modifiers: ['control', 'alt', 'shift'] }, 'windows')).toBe(true)
+   expect(isWebBindingAllowed({ code: 'KeyB', secondCode: 'KeyJ', modifiers: [] }, 'macos')).toBe(false)

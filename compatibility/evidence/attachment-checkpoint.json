@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "ticket": 38,
+  "scope": "isolated-native-preparation-component",
+  "acceptance": "IN_PROGRESS",
+  "privateSessionAdmission": "blocked",
+  "source": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "3090dfea075bb66b37cf8e19d50fda45f41f6cfd7d79c7ce8af719ae33f7d3d6",
+    "patchSha256": "b8f0a528345dddbcf1654daa9043ba146c1eb07d45f6f40d81c5cd88e4032157",
+    "schemaSha256": "690ff1fc2e2aea210442c672f237a5660383c30f0402b8311c2bf500bc538da3",
+    "priorCheckpoint": "c2a59a2150c88d136ae594f6c0ff2efef76bec8b"
+  },
+  "runtime": { "name": "bun", "version": "1.4.4", "platform": "linux", "architecture": "x64" },
+  "checks": [
+    { "command": "bun scripts/build-compatibility.ts", "result": "PASS" },
+    { "command": "bun scripts/build-compatibility.ts --check", "result": "PASS" },
+    { "command": "bun scripts/check-attachment-native.ts", "result": "PASS", "scope": "authored native modules; unrelated upstream diagnostics excluded" },
+    { "command": "bun run typecheck", "result": "PASS" },
+    {
+      "command": "python3 scripts/test-attachments-native.py compatibility/omp/fixtures/attachment-native.test.js compatibility/omp/fixtures/attachment-formats.test.js compatibility/omp/fixtures/attachment-isolated.test.js compatibility/omp/fixtures/attachment-receipt.test.js",
+      "result": "PASS", "tests": 19, "assertions": 52,
+      "isolation": "synthetic HOME/profile; pre-import network guard; allowlisted environment",
+      "networkDispatches": 0
+    },
+    {
+      "command": "bun test tests/attachments/contracts.test.ts tests/attachments/public-rpc.test.ts",
+      "result": "PASS", "tests": 2, "assertions": 11,
+      "isolation": "genuine protected rpc-ui worker; synthetic native source; pre-import provider guard",
+      "observed": ["same-source schema-valid preparation receipt", "exact selected source/instance/Session binding", "native entries unchanged", "no controlled provider execution", "nested path input rejected"]
+    }
+  ],
+  "coverage": ["PNG", "JPEG", "WebP", "GIF first-frame loss", "strict UTF-8", "PDF native conversion and OCR/no-text facts", "DOCX", "PPTX", "XLSX", "EPUB", "raw document limit", "decoded pixel limit", "whole-input not-ready gate", "actual truncation consent", "model change", "draft/result/authority version change", "cancelled late consent"],
+  "remainingGates": ["final strict-continuation prerequisite", "durable reservation consumes immutable staged representations", "actual causal original/prepared entry associations and restart/branch queries", "complete physical RPC aggregate accounting", "archive/converter/time/memory/output negative corpus", "live cancellation/revocation races", "Host current-authority checks", "typed DSH Remote and real browser workflow", "matched final ordered source/build/schema/DSH tuple"],
+  "windows": "OWNER_DEFERRED_NOT_RUN"
+}

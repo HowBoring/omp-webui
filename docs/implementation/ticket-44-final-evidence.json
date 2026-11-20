@@ -1,0 +1,145 @@
+{
+  "ticket": 44,
+  "title": "Supervised native Session open, registration and revocation teardown",
+  "status": "COMPONENT_VERIFIED_PRODUCT_ADMISSION_BLOCKED",
+  "date": "2026-11-19",
+  "reviewedBase": "950a4826d40918b64f3a35e99af3486b7235d461",
+  "environment": {
+    "platform": "Linux x64 WSL2",
+    "runtime": "bun 1.4.4",
+    "browser": "Chromium 157.0.8103.38",
+    "native": "isolated synthetic OMP candidate, no provider dispatch",
+    "fixture": {
+      "kind": "S1-synthetic-session-fixture",
+      "privateData": false,
+      "home": "vendor/sessions-fixture",
+      "note": "Explicitly authored synthetic native data; never product admission."
+    }
+  },
+  "buildIdentities": {
+    "dshSessionsManifestSha256": "f525f3368cd1b698ef279371cf9c95af3c38e23095098c85579d61793b545b54",
+    "hostSessionsManifestSha256": "2b5fdb1efffd2314050f294dfa7372c35ae003398bd5dc83a002044427772061",
+    "hostBundleSha256": "f233b2e7f6595a52d9bc7a2a3b0871c166f2b0f5931514ae70f0ab5536fcff7e",
+    "sessionInstallationManifestSha256": "36b19a86b92e7035bb54ba149539d11a17314ce3858c93f60d2ad852b4abddf5",
+    "enrolledAssets": 191,
+    "hostBuildInputs": 318
+  },
+  "commands": [
+    {
+      "command": "bun --no-env-file apps/sessions/build.ts && bun --no-env-file scripts/build-session-host.ts",
+      "result": "PASS",
+      "note": "Pinned DSH candidate source and OMP patch identities re-verified; no network."
+    },
+    {
+      "command": "bun --no-env-file scripts/create-session-fixture.ts && bun --no-env-file scripts/enroll-session-fixture.ts",
+      "result": "PASS",
+      "note": "Synthetic fixture marker written; 191 isolated assets enrolled; normal product admission stays blocked."
+    },
+    {
+      "command": "bun test --no-env-file ./tests/sessions",
+      "result": "PASS",
+      "tests": 116,
+      "assertions": 748,
+      "files": 11,
+      "failures": 0,
+      "durationMs": 152660,
+      "note": "Includes six real busy-native teardown scenarios against the actual candidate worker."
+    },
+    {
+      "command": "bun test --no-env-file ./tests/sessions/supervisor.test.ts -t \"real busy native\"",
+      "result": "PASS",
+      "tests": 6,
+      "assertions": 57,
+      "failures": 0,
+      "log": "docs/evidence/ticket-44/final-2026-11-19/busy-6.txt"
+    },
+    {
+      "command": "python tests/sessions/browser.py (built Host on 127.0.0.1:3187)",
+      "result": "PASS",
+      "evidence": "docs/evidence/ticket-44/final-2026-11-19/session-browser.json",
+      "scenarios": [
+        "authenticated-explicit-grant",
+        "concurrent-open-one-worker",
+        "root-startup-ui-without-session",
+        "explicit-answer",
+        "original-native-history-via-DSH-Conversation",
+        "warm-refresh-same-worker"
+      ]
+    },
+    {
+      "command": "python tests/sessions/restart-browser.py",
+      "result": "PASS",
+      "evidence": "docs/evidence/ticket-44/final-2026-11-19/session-restart-browser.json",
+      "note": "Actual Host SIGKILL, durable credential/index survival, no automatic reopen or replay, manual same-native-ID reopen with a new worker generation."
+    },
+    {
+      "command": "bun --no-env-file tests/sessions/workspace-browser.ts",
+      "result": "PASS",
+      "evidence": "docs/evidence/ticket-44/final-2026-11-19/workspace-browser.txt",
+      "note": "Real browser: registered status/attempts, partial catalog paging, explicit Open, grant revoke and browser logout cancelling a withheld catalog refresh."
+    },
+    {
+      "command": "bun run typecheck",
+      "result": "PASS"
+    },
+    {
+      "command": "bun run lint",
+      "result": "PASS",
+      "note": "Warnings only, all pre-existing."
+    }
+  ],
+  "acceptanceMapping": {
+    "register-before-open": {
+      "source": "packages/sessions/supervisor.ts SessionSupervisor.open -> SessionIndex.register before describe/start; failed attempt persists",
+      "tests": ["tests/sessions/index.test.ts", "tests/sessions/source-supervisor.test.ts", "tests/sessions/supervisor.test.ts"],
+      "browser": "workspace-browser.txt status/attempt rows"
+    },
+    "native-identity-ownership-cwd": {
+      "source": "supervisor #perform verifies describe status/instance, ownership free, canonical cwd; #accept requires final binding ownership held and same native identity",
+      "tests": ["tests/sessions/index.test.ts", "tests/sessions/source-supervisor.test.ts"],
+      "browser": "session-browser.json concurrent-open-one-worker; native history read through DSH Conversation"
+    },
+    "one-worker-shared-views": {
+      "source": "SessionSupervisor single #active slot, shared opening promise, warm view; SessionIndex across restart",
+      "tests": ["tests/sessions/source-supervisor.test.ts", "tests/sessions/remote.test.ts"],
+      "browser": "session-browser.json concurrent-open-one-worker + warm-refresh-same-worker; session-restart-browser.json new generation on manual reopen"
+    },
+    "root-startup-seam-before-binding": {
+      "source": "InteractionBridge created before strict_start; startup answer through ompSessions.interactions/answer without stdin proxying or a prompt sender",
+      "tests": ["tests/sessions/source-supervisor.test.ts", "tests/sessions/remote.test.ts"],
+      "browser": "session-browser.json root-startup-ui-without-session with data-native-binding=unconfirmed before the explicit answer"
+    },
+    "authority-rechecks-and-cancel": {
+      "source": "SessionsService identity() per call; supervisor #current/#ownedCurrent rechecks browser, grants, cwd object and generation after awaits; access.onRevokeAll and supervisor.close fence admission synchronously",
+      "tests": ["tests/sessions/revoke-all.test.ts", "tests/sessions/source-remote.test.ts", "tests/sessions/source-supervisor.test.ts"],
+      "browser": "workspace-browser.txt logout during withheld refresh; session-restart-browser.json post-crash unconfirmed binding and no replay"
+    },
+    "30s-plus-5s-owned-teardown": {
+      "source": "supervisor #drain uses one 30_000ms cooperative deadline plus 5_000ms termination grace plus 1_000ms reader grace; only the returned worker handle is signalled",
+      "tests": ["tests/sessions/supervisor.test.ts (real busy native)", "tests/sessions/drain.test.ts", "tests/sessions/source-supervisor.test.ts (controlled clock)"],
+      "evidence": "busy-6.txt: stubborn processes forced at ~35.02-35.04s with exit 137, termination and force sent, both EOFs observed; cooperative processes settle <60ms; actualNetworkDispatches=0"
+    },
+    "typed-outcomes-no-replay": {
+      "source": "SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION, SESSION_EXTERNAL_OWNER, SESSION_OWNERSHIP_UNKNOWN, SESSION_NATIVE_REPLACED, SESSION_CWD_CHANGED, SESSION_OPEN_RETIRED_OUTCOME_UNKNOWN, SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED, SESSION_WORKER_DRAINING, SESSION_SELECTION_EXPIRED; no transcript copy or replay path",
+      "tests": ["tests/sessions/error-contract.test.ts", "tests/sessions/source-supervisor.test.ts", "tests/sessions/source-remote.test.ts"],
+      "browser": "session-restart-browser.json empty pre-reopen conversation and no automatic interaction"
+    }
+  },
+  "notRun": [
+    "Product/default Host composition and private Session admission: apps/host/src/main.ts intentionally remains a health/diagnostic scaffold. docs/mvp-acceptance-and-handoff.md requires the product Host to expose only health or non-private diagnostics until the applicable source/schema/semantics/security gates pass, so no product worker, catalog or Broker was opened.",
+    "Root product InteractionBroker construction from a real launcher: the component carrier and synthetic Broker fixtures are verified; product composition is part of the integration gates.",
+    "Owned idle Switch/New where retirement stays pending: raises SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48 and retains the slot; no product-side Stop/force UI.",
+    "Absolute shutdown-deadline handoff to a retained #41 helper; only direct workers were exercised here.",
+    "Extension-created descendant/subagent cleanup (#48/#61): not attested; no PID-tree kill or blanket descendant claim.",
+    "Windows Chrome/WSL2 browser matrix, scale/performance targets, and native TUI complement reruns."
+  ],
+  "limits": [
+    "SIGKILL cannot run Host cooperative cleanup; restart evidence proves durable index/credential survival and manual reopen with fresh native ownership checks, not signal-time cleanup.",
+    "The synthetic fixture uses the isolated candidate CLI with no provider dispatch; results do not attest any real user Session or global OMP installation.",
+    "Browser evidence ran headless Linux Chromium via CHROME_EXECUTABLE/shim resolution; no Windows-browser acceptance is implied."
+  ],
+  "harnessChanges": [
+    "tests/sessions/browser.py, restart-browser.py, workspace-browser.py, workspace-browser.ts and scripts/prove-session-browser.ts resolve bun, Python and Chromium from OMP_WEB_BUN/OMP_WEB_PYTHON/CHROME_EXECUTABLE with portable fallbacks instead of the authoring worktree's absolute paths.",
+    "package.json adds sessions:fixture-data, sessions:build, sessions:enroll, sessions:component and test:sessions:browser."
+  ]
+}

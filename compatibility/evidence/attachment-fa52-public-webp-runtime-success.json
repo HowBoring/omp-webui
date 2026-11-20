@@ -1,0 +1,229 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_PUBLIC_WEBP_CASE_ONLY",
+  "hostHead": "35086532b506d970595fa2d93f3c563177027056",
+  "hostTree": "67f3b8482392493f8717aeb7a86fcfd6d08298bd",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "rootAuthorization": "Root granted exclusively EXACT ONE anchored WebP attempt on clean35086532 / READY5324d8ef / freezeda6142d5. No other Native active per Root. Window used once and RELEASED immediately after actual outcome and original exec drain, before read-only postcheck/proof work.",
+  "readiness": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-webp-source-ready.json",
+    "bytes": 21160,
+    "sha256": "5324d8ef98817f712e43c551a6da5e03a3862d314e2d78aeeb3a64e9ce1a1cab"
+  },
+  "frozenInputs": {
+    "path": "/tmp/ticket38-webp-source/final-inputs.json",
+    "bytes": 135450,
+    "sha256": "da6142d51d7b93091544f4b41dc4bac6c543decc5b602252a6de6bd91bfb4274"
+  },
+  "runner": {
+    "status": "PASS",
+    "case": "actual public WebP requires transformation consent before indexed saved image and provider delivery",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public WebP requires transformation consent before indexed saved image and provider delivery$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-webp-y3jaigk9",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-webp-y3jaigk9",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-webp-y3jaigk9",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T02:52:45.707861+00:00",
+    "startedMonotonicNs": 152847581346213,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-webp-p11b_vgi",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerPid": 536077,
+    "runnerWaitStatus": 0,
+    "finishedAt": "2026-11-17T02:52:54.572821+00:00",
+    "finishedMonotonicNs": 152856446324044,
+    "stdoutStderrFilesClosedAfterOriginalWait": true,
+    "stdoutBytes": 28,
+    "stdoutSha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47",
+    "stderrBytes": 244,
+    "stderrSha256": "d48a704e16f4372bc79e3eb2c2e11ee0e995cf30211d768b6dea8047b44d9b34",
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "topProfileRemoved": true
+  },
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 4,
+    "assertions": 49,
+    "durationReported": "8.85s",
+    "caseDurationMs": 8672.61,
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "earnedPublicBehavior": [
+    "Independent38B lossless WebP originalSHA0dd383c62fb5fd7b38a18c4f0cca4ec8670828cf2a63f39bbd96d45102729133 and original-carrier compact representationSHA82e0ddb7abb78e7d758d9622e43c973fb68e042f3edf7c42ebe39b53f2c49328 match before preparation. The carrier hash describes ORIGINAL image/webp, not Native prepared output.",
+    "Actual Native public prepare returns exactly one ready PNG-or-JPEG image200x200 with exactly image_transformed; prepared byte count positive and <=512000, prepared byte SHA differs from original, canonical returned representation digest equals preparedSha256 and differs from original-carrier representation. Facts match originalBytes38, actual preparedBytes, source200x200, frames1/decodedBytes160000. Converter-specific MIME/count/SHA scalar values were not separately retained; no fabricated encoder hash is asserted.",
+    "Preparation leaves public get_entries and controlled-provider effect record unchanged. Attempt without accepting image_transformed refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED. Query on same client key is foundfalse/reservationabsent/admissionabsent, unresolved/no relations/next offset; entries/effects unchanged.",
+    "Explicit consent to exactly image_transformed for returned receiptId/resultDigest/draftRevision/authorityGeneration succeeds; terminal query confirms found/succeeded/generated/committed reservation+persistence, exact selected target, origin clientSubmissionId webp-success and preparation binding.",
+    "Only returned public relation.entryId and actual entryPart.kind:content/index identify exactly one saved user image. Actual indexed part equals the returned prepared data and MIME; saved original/prepared link identities match receipt. Public history rows matching that exact entryId carry same origin, input role and full saved attachment link.",
+    "Exactly one new controlled input/model attempt/dispatch/request and exactly one image carrying actual prepared MIME, byte count and byte SHA; toolCalls and blockedPayloads unchanged, no known prepared-document span. Actual provider capture witnesses exact prepared byte delivery only; it never joins history.",
+    "Second public terminal query exactly equals first terminal result and adds no controlled-provider effects."
+  ],
+  "identityDiscipline": "Only public relation.entryId plus actual saved entryPart kind/index supplies history causality. Text/hash/order supplies none. Original and prepared hashes witness bytes/contract consistency only. No Native Session-file parsing, private runtime API or inferred append-order joins.",
+  "contentOracleLimits": "Pillow independently reopens/loads authored original and verifies exact known200x200 RGB pixels. Prepared pixel fidelity was NOT independently decoded/evaluated. Prepared encoder bytes/hash were intentionally not predicted. Public receipt, saved indexed part and actual provider capture establish consistent prepared delivery; this does not prove independent pixel equivalence or broad WebP/model support.",
+  "drain": {
+    "originalTool": "Original network-enabled exec session8146 reached final5d9268 exit0; no ongoing tool from this attempt.",
+    "originalPopen": "Original Python Popen retained Bun536077; actual child.wait returned0 before stdout/stderr file handles closed and final runner JSON written. No outer timeout or added signals.",
+    "worker": "Unchanged withWorker awaited strictWorker.close and asserted actual code0; close awaits original stdout reader and stderr. Finally awaited original child.exited before removing owned home. Exact individual worker PID/stderr/drain object not separately retained.",
+    "catalog": "Unchanged selectedDescriptor awaited CatalogTransport.close in finally. Helper discards exact PID, DrainResult, exitcode and forced metadata: NOT CAPTURED. No exact catalog exitcode or descendant-extinction claim.",
+    "serializer": "Unchanged canonical c4e684 nativeTitleSlots child guard preceded pure Native serializer import; original stdout/stderr/exit awaits and code0+empty stderr assertion completed before worker startup. Exact PID not separately retained.",
+    "converter": "Unchanged prepareAttachmentIsolated owns original converter handle/readers, awaits actual child.exited before ready and again in finally before synthetic profile removal. Successful ready traversed this implementation; converter PID and individual wait metadata not separately captured.",
+    "profiles": "Runner top synthetic profile removed; before/after /tmp/attachment-public-* lists both empty. This is not a process census or descendant-extinction proof."
+  },
+  "preAndPost": {
+    "status": "PASS",
+    "currentFrozenInputs": 437,
+    "matchedBuildToolRecords": 290,
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "priorPreservedReferencesUnchanged": 415,
+    "priorJPEGDOCXProofsAndReadiesVerified": true,
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "sourceChangedDuringRuntime": false,
+    "perCaseAttachmentHomesBefore": [],
+    "perCaseAttachmentHomesAfter": [],
+    "limit": "Existing enrollment and saved reference closure only, not exhaustive runtime/dependency closure."
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/runner.json",
+      "bytes": 1786,
+      "sha256": "808d28397900983c28af081817c43875196540a984e7a060c7f6105878975879"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/precheck.json",
+      "bytes": 1816,
+      "sha256": "6cfc434062f8c55735edeb29fec48c513b4510030a14236835bb3256b3a3c8c0"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/postcheck.json",
+      "bytes": 1797,
+      "sha256": "b1bac3a426f7451c7d5e52f7dee34e8ce61ef15abaf69bce581942bdcc13e26d"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/start.json",
+      "bytes": 1242,
+      "sha256": "c59de5bec555eaf3c4f4496f6ebcf7a5356f202a664c093a5274d5dbddcd68b6"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/stdout.txt",
+      "bytes": 28,
+      "sha256": "bbe6a94c29cc8d3ff5a1792a5abae1f1122aed0642111b52036ab7e0b2b2ca47"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/stderr.txt",
+      "bytes": 244,
+      "sha256": "d48a704e16f4372bc79e3eb2c2e11ee0e995cf30211d768b6dea8047b44d9b34"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/used-once.json",
+      "bytes": 104,
+      "sha256": "995fc1b122b338d050f99c319bc3b6767a039133c0a9f5040433289fcef8dc2f"
+    },
+    {
+      "path": "/tmp/ticket-38-public-webp-p11b_vgi/original-tool-metadata.json",
+      "bytes": 481,
+      "sha256": "1118e81b22f1bc30a363b51852a21de3308c5e2b80226b6b80d52c7ef8fa5d32"
+    },
+    {
+      "path": "/tmp/ticket38-webp-runtime.py",
+      "bytes": 6332,
+      "sha256": "9d71ccec3aa97b8663ee152777450ad5274513092739beb889a6a3e27b9f0b43"
+    }
+  ],
+  "preservedEvidence": [
+    {
+      "path": "compatibility/evidence/attachment-fa52-matched-build.json",
+      "bytes": 79268,
+      "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-format-source-plan.json",
+      "bytes": 10845,
+      "sha256": "4cceb31574b6583088671af3bf4bff252bb6b7f290e2ee0f4520ac970e6ee463"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-jpeg-source-ready.json",
+      "bytes": 14221,
+      "sha256": "8d3d373ad6cd1199bae2397dca71495074a8e17326c0fc67478b2505a936f6d4"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-public-jpeg-runtime-success.json",
+      "bytes": 11243,
+      "sha256": "6751ff3d5b2bb58b5c358ff9acbd844f5780c0b46554fe3b7d8a3c5713e0b865"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-jpeg-window-usage.json",
+      "bytes": 1338,
+      "sha256": "1f3b553f107eb745c13377d8e72f91f1443ae3ed9f87f39e40fd9fda1930725a"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-docx-source-ready.json",
+      "bytes": 20464,
+      "sha256": "5a75f38765ad622abb1691c10b9b4b909c5982099f53db2bb51da83a56270779"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-public-docx-runtime-success.json",
+      "bytes": 11423,
+      "sha256": "ab19813b2ecf5c74b511ffe798abe03d21adaeffc2105ffa2fc96b06a40a4367"
+    },
+    {
+      "path": "compatibility/evidence/attachment-fa52-docx-window-usage.json",
+      "bytes": 1911,
+      "sha256": "6b7729563807666b69e481d3343f791f16d8fa93c6e37cc4f98e6aa74ebe8790"
+    }
+  ],
+  "limitations": [
+    "Runtime receipt/entry IDs, prepared MIME/count/digest scalar values and per-case provider-effects JSON were asserted but not separately retained; fixture cleanup removed per-case files. Raw runner output is retained.",
+    "Guard audit0dispatch/0denied covers instrumented network boundaries, not general syscall/network proof.",
+    "Individual catalog/worker/converter/serializer PID/drain metadata not captured; no descendant-extinction claim.",
+    "Current JPEG1/33 and DOCX1/45/11.13s remain earned on recorded inputs. PNG/text and mixed current9f33 reruns remain OPEN; oldf2e6 passes remain historical.",
+    "Remaining GIF/PDF/PPTX/XLSX/EPUB and other selected-format/refusal, budgets/lifecycle/stale/cancel/expiry, history/restart/copy/branch/restore/persistence/fault/native data/TUI/provider and actual DSH/browser/full coherent1\u201310/reviews/whole38/MVP gates remain OPEN. WindowsChrome/WSL2 owner-deferred; global path unselected."
+  ],
+  "noOtherActions": "No retry, other test/case/format, source/product fix, rebuild/schema/dependency change, Host/FFI/browser execution, GitHub/push/merge/closure/process census/PIDfallback/groupkill/fence/orphan444480 action.",
+  "admission": "ONE isolated public WebP case earned only. Window RELEASED; no further runtime authority. Private/global/product admission blocked; whole38/MVP OPEN."
+}

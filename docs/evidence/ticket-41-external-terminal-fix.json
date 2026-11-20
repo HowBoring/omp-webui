@@ -1,0 +1,72 @@
+{
+  "status": "SOURCE/PURE/TYPES ONLY; kernel/Native/global/product admission BLOCKED",
+  "reviewBase": "904f3e859aecdf00d3f8e442dca71ef1fb97cf7d",
+  "reviewBaseTree": "d4b0c3dea196232713fb71673b1164648ad77efc",
+  "sourceCommit": "b3e6d2a6adeebcfef3809876547b0449d65bafcf",
+  "sourceTree": "709363edb0aeb7982cd1038d7c1723e957992345",
+  "integrationTip": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "integrationMerge": "explicit git merge --no-edit mvp/spec-29: Already up to date",
+  "tdd": {
+    "redCommit": "1098fcaaa116ba1b3bfb18008ea0e2c1830dd243",
+    "red": {
+      "pass": 11,
+      "fail": 3,
+      "assertions": 47,
+      "failure": "each observed end/close/incomplete allowed late START after verification release"
+    },
+    "green": {
+      "pass": 35,
+      "fail": 0,
+      "assertions": 128,
+      "files": 7,
+      "durationMs": 59
+    }
+  },
+  "checks": {
+    "fullHostTypeScript": "PASS, exit0",
+    "gitDiffCheck": "PASS",
+    "baseCBuildAndFixtureByteComparison": "PASS",
+    "freshCCompilation": "NOT RUN; unchanged C/build sources; previous static results are historical, not rerun"
+  },
+  "sourceDigests": {
+    "packages/supervision/external.ts": "45c2e5692b8b6f337984384cf67ecc959749a6aae4042efd94209801535ae168",
+    "tests/supervision/external/controller.test.ts": "5c5ed6c246dfce7b79f7e92d24b9dd459768405f18cbdfd9a879006a268cbadd",
+    "packages/supervision/EXTERNAL.md": "f7307952ef5e71c9214bcf09c7c46e49df72575dd6ffba3937859fc80f0e70b9"
+  },
+  "unchangedBaseDigests": {
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+    "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+    "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+    "scripts/check-external-protector-static.py": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+    "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+  },
+  "logs": {
+    "/tmp/ticket-41-external-terminal-red.log": "6fb7009b6c8ce16416dd9a123db752822b70d6fddc447d6d378bd8f214230a2c",
+    "/tmp/ticket-41-external-terminal-pure.log": "bd4fb1784a536f8d002f8a7a5304ebcbeba0917161b5d4acf46ad314ca3ce4af",
+    "/tmp/ticket-41-external-terminal-typecheck.log": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+  },
+  "commands": [
+    "bun test tests/supervision/control.test.ts tests/supervision/controller.test.ts tests/supervision/session.test.ts tests/supervision/build.test.ts tests/supervision/external/controller.test.ts tests/supervision/external/launch.test.ts tests/supervision/external/build.test.ts",
+    "bun run typecheck",
+    "git diff --check"
+  ],
+  "bun": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun (1.4.4)",
+  "freshIndependentReviews": "pending coordinator; not performed by fixer",
+  "notRun": [
+    "actual helper/protector/C or kernel fixtures",
+    "Native/CLI/task, UDS/listener/probe/signals/browser/strace/dlopen",
+    "external-write-fault.py backpressure and write-error",
+    "global approval/install/publication/admission"
+  ],
+  "limits": [
+    "Pure public OS adapters are not actual socket/kernel/authentication proof.",
+    "C pre-exec barrier and independent authenticated dispatcher registration remain necessary.",
+    "Private API/policy and previous C finalization/builder separation unchanged.",
+    "Original orphan/fences not inspected or touched.",
+    "Windows Chrome/WSL2 owner-deferred."
+  ]
+}

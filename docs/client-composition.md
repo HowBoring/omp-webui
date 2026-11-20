@@ -3,7 +3,7 @@
 Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过，最终产品构建与集成仍待验证。
 
 日期：2026-11-15。决策：[原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)。
-取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。
+取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。同 Session 多持有者重建在保留执行 scope 内采用窄公开投影生命周期，见 [ADR 0015](adr/0015-retain-execution-replace-projection.md)；复用现有 Conversation 窗口替换，无第二套 assembler。
 
 ## 已选方向
 
@@ -95,8 +95,14 @@ prompt；失败保留草稿，截断等降级须用户明确接受。当前公�
 
 草稿按页签＋Session 隔离并在同页刷新或 Host 重启后恢复，不自动发送。stock DSH 的文字草稿
 按 Session ID 共享 localStorage，runtime 附件不在该快照中；现有导航策略补丁没有补齐恢复。
-需要窄公开接缝承载语义快照、有序原件引用、匹配 binding 的原子恢复和新回执状态，并允许
-配置持久化归属/键。当前只有源码可行性依据，没有该补丁或浏览器恢复实证；不走私有 registry。
+现有[公开草稿补丁与隔离实证](../experiments/draft-seam/README.md)承载语义快照、有序原件引用、
+匹配 binding／修订的原子恢复及独立回执状态，并允许 provider 接管持久化归属和键，禁用旧共享
+读写。Linux 真实 DSH Client／受控公开 Remote 与 provider 夹具验证不覆盖新编辑、冻结提交、
+双页签／重复页签与刷新恢复。provider 模式在执行前持久化未决提交标记；刷新隔离该快照，
+不获取新回执、不新建逻辑提交。公开 beforeDispatch 将本地标记与准确 DSH 请求 ID 关联；
+resolveDraftSubmission 仅接受显式权威结果，先持久化再原子解锁，不按文本匹配。浏览器底层可能
+重传相同 HTTP 请求，证据分别记录物理次数及逻辑身份；这不证明原生恰好执行一次。
+上述夹具不构成产品 Host 原件库、原生准备、持久原生提交或完整产品闭环证明。
 
 ## 投影代次重建
 

@@ -1,0 +1,30 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-supervisor.test.ts:
+(pass) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [39.14ms]
+(pass) Open during pending idle retirement retains its prelaunch reason [65.65ms]
+29 |   const f = await sourceFixture();
+30 |   try {
+31 |     const opened = await f.supervisor.open(f.identity, f.selected);
+32 |     f.controls.drain = { code: 0, forced: false, stderrBytes: 0, protocolFailure: "RPC_PROTOCOL" };
+33 |     await f.supervisor.close();
+34 |     expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
+                                                              ^
+error: expect(received).toEqual(expected)
+
+  {
+-   "code": "SESSION_EXIT_OUTCOME_UNKNOWN",
+-   "state": "outcome_unknown",
++   "state": "closed",
+  }
+
+- Expected  - 2
++ Received  + 1
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:34:58)
+(fail) zero exit with a failed final protocol tail persists an unknown shutdown outcome [28.51ms]
+
+ 2 pass
+ 1 fail
+ 8 expect() calls
+Ran 3 tests across 1 file. [302.00ms]

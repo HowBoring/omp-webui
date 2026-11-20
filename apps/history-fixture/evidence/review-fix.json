@@ -1,0 +1,323 @@
+{
+  "kind": "ticket-34-review-fix-public-seam-evidence",
+  "capturedAt": "2026-11-16T13:28:04.444679+00:00",
+  "integration": "385b972db48595d0614fc4ce99c8c1e0f2eff26d",
+  "implementationBase": "26aa8b4e4e785cf42d98b8cae482ff1d75a86097",
+  "lifecycleCommit": "1dcf600",
+  "sharedCollectorCommit": "07aa9cb5fb16526c6e37605a827029db69f7324c",
+  "checks": {
+    "actualBuiltHostBrowser": {
+      "status": "PASS",
+      "initialSameCutNativePages": 8,
+      "nativeCacheSlotsFreeAfterCleanup": 2,
+      "lifecycle": {
+        "scope-change": {
+          "status": "PASS",
+          "nativeSnapshotsAllocated": 2,
+          "nativeSnapshotsClosed": 2
+        },
+        "generation-loss": {
+          "status": "PASS",
+          "nativeSnapshotsAllocated": 2,
+          "nativeSnapshotsClosed": 2
+        },
+        "dispose": {
+          "status": "PASS",
+          "nativeSnapshotsAllocated": 1,
+          "nativeSnapshotsClosed": 1
+        }
+      },
+      "refreshNativeResponses": [
+        {
+          "operation": "close",
+          "status": "closed"
+        },
+        {
+          "operation": "open",
+          "status": "opened"
+        },
+        {
+          "operation": "close",
+          "status": "closed"
+        },
+        {
+          "operation": "open",
+          "status": "opened"
+        },
+        {
+          "operation": "page",
+          "status": "page"
+        },
+        {
+          "operation": "page",
+          "status": "page"
+        },
+        {
+          "operation": "page",
+          "status": "page"
+        }
+      ]
+    },
+    "affectedHostAndSchemaTests": {
+      "status": "PASS",
+      "tests": 5,
+      "assertions": 31
+    },
+    "nativeAffectedTests": {
+      "status": "PASS",
+      "tests": 20,
+      "assertions": 281
+    },
+    "ownedDshSourceAndCatalogBuildTests": {
+      "status": "PASS",
+      "tests": 5,
+      "assertions": 37
+    },
+    "generatedArtifactByteIdentity": "PASS: canonical build --check against committed validators/types/schema",
+    "collectorByteIdentity": {
+      "status": "PASS",
+      "beforeSha256": "a87c0b364f2bae2e89b319195ba2b5987e88cd9b23d268236a8e063480296450",
+      "afterSha256": "a87c0b364f2bae2e89b319195ba2b5987e88cd9b23d268236a8e063480296450"
+    },
+    "nativeChanges": "NONE: ordered native0001\u20130004, source8960/schema8345 unchanged",
+    "afterAcceptedInteractionAndCurrentIntegration": {
+      "status": "PASS",
+      "acceptedInteractionCommit": "90d66826ea14055203830f7bebdeb81eed8c95c2",
+      "integration": "385b972db48595d0614fc4ce99c8c1e0f2eff26d",
+      "cleanOwnNativeSourceBuildAndGeneratedCheck": "PASS: ordered0001\u20130004; source/schema unchanged",
+      "strictAuthoredTypecheck": "PASS",
+      "historyAndSchemaTests": {
+        "passed": 5,
+        "failed": 0,
+        "assertions": 31
+      },
+      "browserAndBothHostBuilds": "PASS",
+      "actualBuiltHostBrowser": "PASS: 8 initial pages; 3 refresh pages; scope 2/2, generation 2/2, disposal 1/1 native closes; both cache slots immediately available",
+      "integrationMerge": "content-only merge after above accepted-source checks"
+    }
+  },
+  "artifacts": {
+    "historyHost": {
+      "path": "vendor/host-history/main.js",
+      "sha256": "82c74d241521729d85042b5c4780d87822c92dd03285c4d6ceeb0f834d1676a5"
+    },
+    "productScaffoldHost": {
+      "path": "dist/main.js",
+      "sha256": "98b8be50ef7cecca72754f5b8a37ab171c212e475f1149f27aa35303c6ed9231"
+    },
+    "browserReportSha256": "ad218eecd33fb86a43ccb28b07448878dc6012169fc9572e78bb3fa91d7161c2",
+    "browserScreenshotSha256": "82ee7205b033f8e89c9125d3ddf16a0325f3541881ba5e275a9aec1bc60d4923",
+    "buildManifestSha256": "a87c0b364f2bae2e89b319195ba2b5987e88cd9b23d268236a8e063480296450"
+  },
+  "sourceFiles": {
+    "apps/history-fixture/src/client.ts": "3551601d70244eef731e7bd80dfbb3ec6e45dd6ddd4cf5aff4350710d09ed88b",
+    "apps/history-fixture/build.ts": "652a0ba3cd485324997f4d5d6383f5c0374e4c94104831b82e96bdaf90eebe45",
+    "scripts/build-identities.ts": "87b6cc2b2bf444d5ba47f27deff5b0b63e8962b61897b41cbd93fae7cf505534",
+    "scripts/command-schemas.ts": "566fe6ee8a254f58a6e9f1abccbaa883517b604a993defa24b08fb54b7244a76",
+    "scripts/build-compatibility.ts": "8c3b4088a294d94a9506f11aa77a502a302243089126ef6f1d186581c1fea92a",
+    "scripts/build-history-contracts.ts": "5eecbc7c3027d6f8e8d8cf4594284f766407cecf0fc78f996bc26097e5743d25",
+    "scripts/prove-history-browser.ts": "6436fa7b54e626f6a44985f9956babf248f7ceb7b284091224caa78997e436df",
+    "tests/browser/history-browser.py": "23870e4465da8fb54e3bf92731e35d603058e2fdff671921a73777c4113f20bf",
+    "tests/browser/history_lifecycle.py": "863416ad80aa8ab74037a52e42b14cb334d8baa01437f4391149642fc182d748",
+    "tests/compatibility/command-contracts.test.ts": "c34e0df53e97bcc07fb3a2dff7d33ede29882377d1673b030c098e450bb02976"
+  },
+  "logs": {
+    "refreshTddRed": {
+      "status": "EXPECTED FAIL",
+      "file": "vendor/review-refresh-red.log",
+      "sha256": "00910a72bde98d880dcabddfc97640cbf89fe8a741067f9871b428a4087033c2"
+    },
+    "originalClientSensitivity": {
+      "status": "EXPECTED FAIL",
+      "file": "vendor/review-refresh-regression-negative.log",
+      "sha256": "c329ed699cd3a8f2c2f054657c62c0ebf7d86582fd9ffe91e6e98e7d435ebc86"
+    },
+    "matchedBuiltHostBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-built-host-browser-matched.log",
+      "sha256": "657e33db6eb6aa73028177afb53e7054dd5317215cd9b78c9b3372bc958bdf3f"
+    },
+    "hostAndSchemaTests": {
+      "status": "PASS",
+      "file": "vendor/review-affected-tests.log",
+      "sha256": "3871367e8903e6c6aaf22ec13dee7aa540669066fb012b5d1d41419808ec8c82"
+    },
+    "nativeAffected": {
+      "status": "PASS",
+      "file": "vendor/review-native-affected-final.log",
+      "sha256": "82dd9f7e049cdeb13723d98d8379cee66dd5679792dc622d02a49a5d6226d4ce"
+    },
+    "dshSourceAndCatalogBuilder": {
+      "status": "PASS",
+      "file": "vendor/review-source-build-tests.log",
+      "sha256": "12fe4a0b5fe7f491d7fe259c56a98a6344c95ed57fc3f2183349fc0283232acb"
+    },
+    "strictTypecheck": {
+      "status": "PASS",
+      "file": "vendor/review-typecheck-final.log",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    "generatedByteIdentity": {
+      "status": "PASS",
+      "file": "vendor/review-schema-identity-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "hostBuild": {
+      "status": "PASS",
+      "file": "vendor/review-host-build-final.log",
+      "sha256": "d468ee93f766b13b2ea7d1e377940bd5398d49725ed64229d3f2c718c98c0314"
+    },
+    "historyHostBuild": {
+      "status": "PASS",
+      "file": "vendor/review-fixture-host-build.log",
+      "sha256": "5d59287d4b1e73b07964d0353605684c46383285d1f8fe68dba44ae666491904"
+    },
+    "actualHistoryBuilderUndeclaredSource": {
+      "status": "EXPECTED FAIL",
+      "file": "vendor/review-history-builder-negative.log",
+      "sha256": "34f10fefac456d1c9a149f8721397898a76c72e2e8f759847f052b581108bf97"
+    },
+    "overlappingProofPortConflict": {
+      "status": "FAIL: EADDRINUSE; rerun sequentially",
+      "file": "vendor/review-built-host-browser-final.log",
+      "sha256": "210515ad0a6364498361714e65f181cd5effc8dd9018f2ba98683e972456dc23"
+    },
+    "initialBuildMissingBunPath": {
+      "status": "FAIL: missing bun PATH; corrected",
+      "file": "vendor/review-host-build.log",
+      "sha256": "c215af6971a9fbb8741988f95cce8d9b4c4d3f1d9ff4298b3a64619da4ffd89f"
+    },
+    "initialNativeCommandOrder": {
+      "status": "FAIL: command ordering; corrected",
+      "file": "vendor/review-native-affected-isolated.log",
+      "sha256": "3818c66ad64b0a2dfc2b38ee5958c19836da7a69746ed920eb6d087a0536e7e9"
+    },
+    "initialFixedBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-refresh-green.log",
+      "sha256": "5ecf94e3fc35c2aac7c592e199575d45f3211e3d3a8d2a112dec79564f6cb375"
+    },
+    "sourceHostLifecycleBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-lifecycle-green.log",
+      "sha256": "bf181456a86f850f96caa95bc3c3cfd4776e9e78b468f1e8b5b3d5667322acc9"
+    },
+    "schemaHelperTypecheck": {
+      "status": "PASS",
+      "file": "vendor/review-schema-helper-typecheck-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "initialSchemaHelperTs6Command": {
+      "status": "FAIL: TypeScript6 requires --ignoreConfig for explicit files; corrected",
+      "file": "vendor/review-schema-helper-typecheck.log",
+      "sha256": "5b766b55df5bc15c215149742c8fe88d72a584cb45f5422c7edca1594b6d0cb5"
+    },
+    "acceptedNativeSourcePrepare": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-native-prepare.log",
+      "sha256": "ea2145744b5c944261e390c9de670dd32c0eead19825bdf96969894a9ac96c46"
+    },
+    "acceptedNativeBuild": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-native-build.log",
+      "sha256": "d67829e8b0feb536ea1eea4fd6a11431bbd34182557fbc1f0f43aab1179b4426"
+    },
+    "acceptedGeneratedByteIdentity": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-generated-check.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "acceptedStrictTypecheck": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-typecheck.log",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    "acceptedAffectedTests": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-affected-tests.log",
+      "sha256": "ce2498096ec233c22ca5e883a38dd1cdf523274fa69f147dda570f7a11eb364a"
+    },
+    "acceptedBrowserBuild": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-browser-build.log",
+      "sha256": "17023d7c49a8233a11d0e499055d3767df2643ed56ec05ebd77356d61a2e496e"
+    },
+    "acceptedHostBuild": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-host-build.log",
+      "sha256": "770b2846359569f0d3f458eee5da5734d99c4403334f65dfbc22f835c6a096bb"
+    },
+    "acceptedHistoryHostBuild": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-history-host-build.log",
+      "sha256": "2bd9f8c4ca860d43f4939dd6da19b40b6b8f21c2ce461d4a21c9bbb0fec4a178"
+    },
+    "acceptedMatchedBrowser": {
+      "status": "PASS",
+      "file": "vendor/review-accepted-browser-proof.log",
+      "sha256": "657e33db6eb6aa73028177afb53e7054dd5317215cd9b78c9b3372bc958bdf3f"
+    }
+  },
+  "priorNativeStress": {
+    "status": "REUSED: unchanged native source/schema",
+    "sourceSha256": "8960c74b6c74dcadc585a0e68e2aba8687129107ddd449b85ae93d98f0d4c424",
+    "schemaSha256": "8345aa426ee69f310e787d247df0dcee0902fbb13d8e1196348fae0d2b5aa25b",
+    "historyPatchSha256": "7de520b76bae96a41ae07b2d0dc172d473d412eb17054713ee15948fea7b1cc3",
+    "priorTupleSha256": "379edf3d688adbfd85f41ae2a8e94591ab8a15863f2a8b5c1a9562ae0f6e3e7b",
+    "priorFullCheckLogSha256": "c35aee8a65a89bf812c84ab4873bf95ef5ff3e8b21c0b21079079b5c920a6b4f",
+    "metrics": {
+      "kind": "native-reachability-only-not-formal-performance",
+      "nativeBytes": 107226874,
+      "entries": 10000,
+      "pages": 137,
+      "maxPageBytes": 781133,
+      "elapsedMs": 20995.871377000003,
+      "scanMs": 247.596126000004,
+      "scannedBytes": 107227278
+    },
+    "retainedContentStress": "PASS in prior log: eight 4 MiB native image representations and 5 MiB text"
+  },
+  "limits": [
+    "Private product Session admission blocked; synthetic Linux data only",
+    "Generation loss/online and disposal are controlled standard browser events while native open responses are delayed; no DSH/controller private mutation",
+    "Native 10k/100MiB stress and full repository/upstream suites not repeated; current affected gates listed above",
+    "Windows/WSL2 deferred; formal30-sample performance not run"
+  ],
+  "commands": {
+    "affectedHostAndSchemaTests": "bun test tests/history tests/compatibility/command-contracts.test.ts",
+    "ownedDshSourceAndCatalogBuildTests": "bun test tests/compatibility/dsh-source.test.ts tests/compatibility/catalog-build.test.ts (owned vendor/dsh only)",
+    "nativeAffectedTests": {
+      "argv": [
+        "bun",
+        "test",
+        "--no-env-file",
+        "--preload",
+        "<worktree>/compatibility/omp/fixtures/no-provider.ts",
+        "<worktree>/compatibility/omp/fixtures/history-native.test.js",
+        "<worktree>/compatibility/omp/fixtures/history-public-rpc.test.js"
+      ],
+      "cwd": "fresh synthetic temporary directory",
+      "environment": [
+        "PATH",
+        "HOME=<synthetic directory>",
+        "PI_CODING_AGENT_DIR=<same synthetic directory>"
+      ],
+      "allOtherEnvironment": "removed"
+    },
+    "strictTypecheck": "bun run typecheck",
+    "schemaHelperTypecheck": "tsc --ignoreConfig --noEmit --target ESNext --module Preserve --moduleResolution Bundler --allowImportingTsExtensions --strict --skipLibCheck --types bun scripts/command-schemas.ts",
+    "nativeSourceBuildAndGeneratedCheck": [
+      "bun scripts/prepare-compatibility.ts --reset --source-only",
+      "bun scripts/build-compatibility.ts",
+      "bun scripts/build-compatibility.ts --check"
+    ],
+    "browserAndHostBuild": [
+      "bun apps/history-fixture/build.ts",
+      "bun run build",
+      "bun build apps/history-fixture/main.ts --target=bun --outdir=vendor/host-history"
+    ],
+    "matchedBuiltHostBrowser": "bun scripts/prove-history-browser.ts --built"
+  },
+  "acceptedInteractionCommit": "90d66826ea14055203830f7bebdeb81eed8c95c2",
+  "integrationContentMerge": "86caaea2402d2c08a6485e3d774fb4594450a3c0"
+}

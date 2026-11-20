@@ -1,0 +1,452 @@
+{
+  "lock": {
+    "path": "bun.lock",
+    "bytes": 123072,
+    "sha256": "e2d778cbeff80ae87870e02df1abd701e3e51a81a6ca28d3394c03a74ba0ea2d"
+  },
+  "legacyPlugin": {
+    "path": "packages/coding-agent/scripts/legacy-pi-virtual-module.ts",
+    "bytes": 12929,
+    "sha256": "1f82415645b6ee449f9b0799a732c010b940411a700cd52bc8ddb8b66ecdc6d2"
+  },
+  "attachmentWorkerSource": {
+    "path": "packages/coding-agent/src/attachments/worker.ts",
+    "bytes": 1107,
+    "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+  },
+  "puppeteerPatch": {
+    "path": "puppeteer-core.patch",
+    "bytes": 39739,
+    "sha256": "db11c7dd26e34d807450ecb60c5f92bb8ed21a1fb116a77c3040e21433b9b970"
+  },
+  "generatedOutputs": [
+    {
+      "path": "packages/coding-agent/src/modes/rpc/attachment-command.generated.js",
+      "bytes": 123497,
+      "sha256": "1c986415d58ff6903e869674340b554e7de6787778e269a40f3eba7958a85f41"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/attachment-receipt.generated.js",
+      "bytes": 37900,
+      "sha256": "c8a22033d78df94f57cf532f1194558c657704c09874c4ccfec953ac46fbecff"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/attachments.generated.ts",
+      "bytes": 448,
+      "sha256": "763adeafe97e4c4d11222426078953a8228b532af477aea53f59c956b812dff9"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-command.generated.js",
+      "bytes": 131849,
+      "sha256": "90851e4ed1bc11fdaef4e34af7e3eefb59dd53589f088a45602a5af0d73ef537"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-content.generated.js",
+      "bytes": 19744,
+      "sha256": "2bad9e7a58830705ea09b8b61310dcca1acb8b26e660b5610e153580f3f3adc4"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-notification.generated.js",
+      "bytes": 10207,
+      "sha256": "6da5db3307cedd28d3bf8b0519676c9a231a5825378f7ad09df3961aa3220c5a"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-open.generated.js",
+      "bytes": 72611,
+      "sha256": "28dff9561b2bbcf8f8802995f90027cf0fd8b39f60673316f338128f6bf85c6b"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-page.generated.js",
+      "bytes": 53466,
+      "sha256": "19e2207c86007931839d346d50e1865d9f2365bab54b6a61b711c97ca3843a57"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history-poll.generated.js",
+      "bytes": 66840,
+      "sha256": "d851db7e274b23ae345d302eb21bde7f04cf626765b47c15ef095eeb7f4c8eaa"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/history.generated.ts",
+      "bytes": 1231,
+      "sha256": "ade11ff068188c977094caff97b071e783c7092258c5cc6234ea84333bdaa5b0"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/interactions-command.generated.js",
+      "bytes": 130290,
+      "sha256": "5b62faa86c4aebe6d4e4dbe943758e5e94807311a93157458f41d6d9106bc341"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/interactions-policy.generated.js",
+      "bytes": 4056,
+      "sha256": "074fb6a4e1dcc5d4b7c6f6f907e9c50e5cb0878b2ade365fa2d3095159b8b768"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/interactions-result.generated.js",
+      "bytes": 2126,
+      "sha256": "b83c4c43030713428688a2ebc78182096cf12fca4c0d92609718cd6b76057727"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/interactions.generated.ts",
+      "bytes": 828,
+      "sha256": "3c4d6c849a1a2a326c239b320b1655f8bc83ee158adafbd47c07c2bdfd6c45dc"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/navigation-command.generated.js",
+      "bytes": 115052,
+      "sha256": "56285798a3c249c599d65b460892e7cc0421598d3b99b67e490efb4130ef2814"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/navigation-result.generated.js",
+      "bytes": 24409,
+      "sha256": "0ebf9aab91c7b091be48a737030c4819c98986999648c9fa0933cbf6e09ed92d"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/navigation-preview.generated.js",
+      "bytes": 7690,
+      "sha256": "4fc0077363cb2c73da9b92e21557ab708c5c732defe10184dd6a6bcb2e70e1c8"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/navigation.generated.ts",
+      "bytes": 851,
+      "sha256": "01e3b963b4c71f9affb2f8d06b06ea1d0ec9f3876f7cc3bbcedfa929944e38ec"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/preflight-validator.generated.js",
+      "bytes": 6515,
+      "sha256": "7f2d0fb19862410d912885d78f21f8446d9704abed2a5b125315132af053f1bb"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/preflight.generated.ts",
+      "bytes": 741,
+      "sha256": "a71beb1c5dd9fa00989c5ad0fad2cfa07d573bc38631a944e60bb2e6e916c54e"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/strict-command.generated.js",
+      "bytes": 13378,
+      "sha256": "6c40c0b955d376152bf3bc0755f8afd6ab4f0a3a1741e86ce237cf6cc16c367a"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/strict-state.generated.js",
+      "bytes": 17156,
+      "sha256": "50194c49a21e1c4566b2040b6df7cae661ed0915c014d99279fdd7df50a186b7"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/strict.generated.ts",
+      "bytes": 647,
+      "sha256": "fdc7c71db530875d550dc1420b6e6628d4263f827f632574f20dcfe1cf966d61"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/submission-command.generated.js",
+      "bytes": 132352,
+      "sha256": "130d94d93ef1a9f0abe474d3acebf4dcac937f662e55df94753f63a77641e389"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/submission-result.generated.js",
+      "bytes": 36666,
+      "sha256": "64e33fa959ce2deeda52b854774aa052810af6d9e920833624943e8130e1d463"
+    },
+    {
+      "path": "packages/coding-agent/src/modes/rpc/submissions.generated.ts",
+      "bytes": 440,
+      "sha256": "a66fffddc634d7de5d3ca3f7d011267dcd068c7be098aab0b429942e3d299938"
+    }
+  ],
+  "registry": {
+    "archives": [
+      {
+        "name": "@babel/parser",
+        "version": "7.29.9",
+        "archive": "babel-parser-7.29.9.tgz",
+        "bytes": 439123,
+        "integrity": "sha512-CjXrNHTnvqBVqHgdBysY3vk2T8tpJHb5/RMeHJBTyVa9xgugCB0CJTx/3oO8RV2QRQP391RWpB7D6hLjm8V9uA=="
+      },
+      {
+        "name": "@opentelemetry/api",
+        "version": "1.9.1",
+        "archive": "opentelemetry-api-1.9.1.tgz",
+        "bytes": 116186,
+        "integrity": "sha512-gLyJlPHPZYdAk1JENA9LeHejZe1Ti77/pTeFm/nMXmQH/HFZlcS/O2XJB+L8fkbrNSqhdtlvjBVjxwUYanNH5Q=="
+      },
+      {
+        "name": "@opentelemetry/api-logs",
+        "version": "0.220.0",
+        "archive": "opentelemetry-api-logs-0.220.0.tgz",
+        "bytes": 19988,
+        "integrity": "sha512-CmVa4ImJ+ynfrPMNaAXHET6Bhb44SwzmfyVJFq9ni2jgXJR/l7C6gfVFddNmHP+ZOkP9cf4f9DBe68qVLTHc9w=="
+      },
+      {
+        "name": "@opentelemetry/context-async-hooks",
+        "version": "2.9.0",
+        "archive": "opentelemetry-context-async-hooks-2.9.0.tgz",
+        "bytes": 13082,
+        "integrity": "sha512-OQ0vzvbZBiUhjqLnUaoNfYmP8553Crr3aggB4y0ZUi815mZ7idpdJXQmoKdeBKJelYttoBlLSSHubmyw3wvX4w=="
+      },
+      {
+        "name": "@opentelemetry/core",
+        "version": "2.9.0",
+        "archive": "opentelemetry-core-2.9.0.tgz",
+        "bytes": 71362,
+        "integrity": "sha512-m2nckMT80NnmjTYSPjJQObBJ+8dgkoajEOUbznL8AHZ3T3yHRk2P7gI1PhEBc1+lOnrYE9UWrWHqJDsmqjmNbw=="
+      },
+      {
+        "name": "@opentelemetry/exporter-logs-otlp-proto",
+        "version": "0.220.0",
+        "archive": "opentelemetry-exporter-logs-otlp-proto-0.220.0.tgz",
+        "bytes": 10342,
+        "integrity": "sha512-8LZAxdJ0ENDAFwr4j0oY35mHBltiSzvlhdQAPGiC7p9VnxtuSq4SW1gfBAdW6t6hiQG6OwUl8w7KHaOdJPKHWg=="
+      },
+      {
+        "name": "@opentelemetry/exporter-metrics-otlp-http",
+        "version": "0.220.0",
+        "archive": "opentelemetry-exporter-metrics-otlp-http-0.220.0.tgz",
+        "bytes": 15081,
+        "integrity": "sha512-Yqt3RBw/bRVncaE9qIIhk4WfjbAQqXuP9FgAaU+IKPndnLEp/cUqZlSC324+bpmduRz7DoTjig8Ub0PeILWXUA=="
+      },
+      {
+        "name": "@opentelemetry/exporter-metrics-otlp-proto",
+        "version": "0.220.0",
+        "archive": "opentelemetry-exporter-metrics-otlp-proto-0.220.0.tgz",
+        "bytes": 10124,
+        "integrity": "sha512-lyO+IQBdSvqHN/ZOW/OzrSWemtfD+HgWngn+HBNLhjy0YrCQQTz0OE/kSekH2Pl340dn9DWzhqHdz5Eftr+HLA=="
+      },
+      {
+        "name": "@opentelemetry/exporter-trace-otlp-proto",
+        "version": "0.220.0",
+        "archive": "opentelemetry-exporter-trace-otlp-proto-0.220.0.tgz",
+        "bytes": 10499,
+        "integrity": "sha512-voTAD8XgJxlK7zLkXh8EzMB09zrQr3tyY/BsnDTlDiQU/UdK58MZ63A3mUjdEDrxMjCVmBHU3WQJhRmQe+Dvzg=="
+      },
+      {
+        "name": "@opentelemetry/otlp-exporter-base",
+        "version": "0.220.0",
+        "archive": "opentelemetry-otlp-exporter-base-0.220.0.tgz",
+        "bytes": 59606,
+        "integrity": "sha512-CXYo8UD5Mn9YbgebO2EL4wejtA+gxLmLiu6HCk2KH2BR7XhFN6/6p1UlCb23DYCjeYkndevLHuejCCN1yx4+OQ=="
+      },
+      {
+        "name": "@opentelemetry/otlp-transformer",
+        "version": "0.220.0",
+        "archive": "opentelemetry-otlp-transformer-0.220.0.tgz",
+        "bytes": 104710,
+        "integrity": "sha512-lXGrv7KXZ0gNH9SVNUaa6vv6phVYGvJxfXAlMbzbakiXru75f5MZl8Z7oqiMMQD77riVHJCFlQvbZs/VVN2/4A=="
+      },
+      {
+        "name": "@opentelemetry/resources",
+        "version": "2.9.0",
+        "archive": "opentelemetry-resources-2.9.0.tgz",
+        "bytes": 50286,
+        "integrity": "sha512-jyA5MBLQ+Dkl3+JsZkUoUvL7yHvU64kLsvpXKarWm6347Sl1t1bXFTFykUePNpT5WH5pm9a2Qtt03iIYQhZ1Fg=="
+      },
+      {
+        "name": "@opentelemetry/sdk-logs",
+        "version": "0.220.0",
+        "archive": "opentelemetry-sdk-logs-0.220.0.tgz",
+        "bytes": 63926,
+        "integrity": "sha512-WywcTkQtv2iNmt+6y5Kcd4rzvx9bLVsBa2Nwcmg01IUaBTkTow3W4d9KE5vNBpEDtb9tp21WcRBY/lANRrApYA=="
+      },
+      {
+        "name": "@opentelemetry/sdk-metrics",
+        "version": "2.9.0",
+        "archive": "opentelemetry-sdk-metrics-2.9.0.tgz",
+        "bytes": 184356,
+        "integrity": "sha512-Xx8RGS4H5XEBl01WuCreMIpiah9cCXMbSkeuIePPdD2cUpq/vUzYmj8E/MK1OsbOc93FuAD4jfn2WOacKwLn7Q=="
+      },
+      {
+        "name": "@opentelemetry/sdk-trace",
+        "version": "2.9.0",
+        "archive": "opentelemetry-sdk-trace-2.9.0.tgz",
+        "bytes": 86064,
+        "integrity": "sha512-sGA19HvtrrSKYsseHphluH6j3p6Xa3fqc7c7y8f/7mYWejc1lyDFcpSdD1kYa50HCLUeEo4zA5bW0pniaPszuw=="
+      },
+      {
+        "name": "@opentelemetry/sdk-trace-base",
+        "version": "2.9.0",
+        "archive": "opentelemetry-sdk-trace-base-2.9.0.tgz",
+        "bytes": 19208,
+        "integrity": "sha512-cp9zmTl62R8PJrpvFcmc8N2JQU/xfa0S+61q511Nji+QxCfZ8Ifvg7H27G8cANe4crg4RTrWsVvanHiXjSp6ag=="
+      },
+      {
+        "name": "@opentelemetry/sdk-trace-node",
+        "version": "2.9.0",
+        "archive": "opentelemetry-sdk-trace-node-2.9.0.tgz",
+        "bytes": 9337,
+        "integrity": "sha512-ec9a7ps37huy5itYk0MalaZdSLlM6AXWp/FhtEjgMpp5leEGojBDvAl/UWttQnkMZOvFHKzRESn8TD3yKTF5nQ=="
+      },
+      {
+        "name": "@opentelemetry/semantic-conventions",
+        "version": "1.43.0",
+        "archive": "opentelemetry-semantic-conventions-1.43.0.tgz",
+        "bytes": 1565668,
+        "integrity": "sha512-eSYWTm620tTk45EKSedaUL8MFYI8hW164hIXsgIHyxu3VobUB3fFCu5t0hQby6OoWRPsG1KkKUG2M5UadiLiVg=="
+      },
+      {
+        "name": "@puppeteer/browsers",
+        "version": "3.0.6",
+        "archive": "puppeteer-browsers-3.0.6.tgz",
+        "bytes": 92632,
+        "integrity": "sha512-B/gKoqlFkzhvzsI6jo9K1cZz9o5ypviVv/xu8CwA4grZzyVwN+XfkT+tu8T1zrauuEXv6VhS2oGX+6NL95WcKA=="
+      },
+      {
+        "name": "ansi-regex",
+        "version": "6.3.0",
+        "archive": "ansi-regex-6.3.0.tgz",
+        "bytes": 2971,
+        "integrity": "sha512-WpDfL7NO6j7tH88IDBNVdUJxDh9nmCteAVW9dsep846XdwF4naCBK+/tGLX3KJgcpgMRXCFlTM2hKGoK9FsdrQ=="
+      },
+      {
+        "name": "ansi-styles",
+        "version": "6.2.3",
+        "archive": "ansi-styles-6.2.3.tgz",
+        "bytes": 5836,
+        "integrity": "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="
+      },
+      {
+        "name": "axe-core",
+        "version": "4.13.0",
+        "archive": "axe-core-4.13.0.tgz",
+        "bytes": 627805,
+        "integrity": "sha512-UzGt8zg7Ny8djbYMhxl2zuEevVa7r2gJjYY5Lwr1xM7+XU2nd6CkIWFTVcCIbAP63vSz71NaVyyuSk9lHKcy0A=="
+      },
+      {
+        "name": "chromium-bidi",
+        "version": "16.0.1",
+        "archive": "chromium-bidi-16.0.1.tgz",
+        "bytes": 746536,
+        "integrity": "sha512-J63PGu/9PpeCwLIcKYyzWP6yaVL5pxuBc0shlYCYM8BaAkmlwiQboXO1iNbOgSDbVklEyYFfNEcHD8oOAWacUA=="
+      },
+      {
+        "name": "cliui",
+        "version": "9.0.1",
+        "archive": "cliui-9.0.1.tgz",
+        "bytes": 19175,
+        "integrity": "sha512-k7ndgKhwoQveBL+/1tqGJYNz097I7WOvwbmmU2AR5+magtbjPWQTS1C5vzGkBC8Ym8UWRzfKUzUUqFLypY4Q+w=="
+      },
+      {
+        "name": "devtools-protocol",
+        "version": "0.0.1638949",
+        "archive": "devtools-protocol-0.0.1638949.tgz",
+        "bytes": 556005,
+        "integrity": "sha512-mXwg4Fqnv0WR4iuAT/gYUmctNkjILwXFHyZ+m7Ty1dfr0ezZt2U3gnrrJTfRobJTHoXf+IbuFvFITzLrLFjwJA=="
+      },
+      {
+        "name": "escalade",
+        "version": "3.2.0",
+        "archive": "escalade-3.2.0.tgz",
+        "bytes": 4483,
+        "integrity": "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="
+      },
+      {
+        "name": "get-caller-file",
+        "version": "2.0.5",
+        "archive": "get-caller-file-2.0.5.tgz",
+        "bytes": 2383,
+        "integrity": "sha512-DyFP3BM/3YHTQOCUL/w0OZHR0lpKeGrxotcHWcqNEdnltqFwXVfhEBQ94eIo34AfQpo0rGki4cyIiftY06h2Fg=="
+      },
+      {
+        "name": "get-east-asian-width",
+        "version": "1.7.0",
+        "archive": "get-east-asian-width-1.7.0.tgz",
+        "bytes": 5431,
+        "integrity": "sha512-XjH1AECxf0giL2V1aU8vKyRR2ppRUb5c0EvT7zuJTokQ74bNo52zOtghqdWIqrhUD79fo3x0WfKZdOqxF6LG1Q=="
+      },
+      {
+        "name": "mitt",
+        "version": "3.0.1",
+        "archive": "mitt-3.0.1.tgz",
+        "bytes": 6147,
+        "integrity": "sha512-vKivATfr97l2/QBCYAkXYDbrIWPM2IIKEl7YPhjCvKlG3kE2gm+uBo6nEXK3M5/Ffh/FLpKExzOQ3JJoJGFKBw=="
+      },
+      {
+        "name": "modern-tar",
+        "version": "0.7.7",
+        "archive": "modern-tar-0.7.7.tgz",
+        "bytes": 24341,
+        "integrity": "sha512-t9VmxaqrmANnEOBhpSDI6HD192Ge48k8vmWqQQL7hSFEqHEYwZbbsu49+aKLWZeRvFs3j1pMhXOqqF4kPlvjkQ=="
+      },
+      {
+        "name": "puppeteer-core",
+        "version": "25.3.0",
+        "archive": "puppeteer-core-25.3.0.tgz",
+        "bytes": 1118695,
+        "integrity": "sha512-fm+wpUr2oigH1PXZvwgATrM2tYWHMDG8ASzTEe9uukCye4X5Ldx1K5BTHPFKITrIWvQQAQ256d1NpbEveBcKjA=="
+      },
+      {
+        "name": "string-width",
+        "version": "8.2.2",
+        "archive": "string-width-8.2.2.tgz",
+        "bytes": 4309,
+        "integrity": "sha512-GaPUh5gfdrYzqeVNZvUfT23vYYxXzKYidUcnMtJg/3rxRV63EFZy3k6xfKlmfeJD0176lnUV/Usr3XcwSvFzpg=="
+      },
+      {
+        "name": "strip-ansi",
+        "version": "7.2.0",
+        "archive": "strip-ansi-7.2.0.tgz",
+        "bytes": 2156,
+        "integrity": "sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w=="
+      },
+      {
+        "name": "wrap-ansi",
+        "version": "10.0.0",
+        "archive": "wrap-ansi-10.0.0.tgz",
+        "bytes": 5840,
+        "integrity": "sha512-SGcvg80f0wUy2/fXES19feHMz8E0JoXv2uNgHOu4Dgi2OrCy1lqwFYEJz1BLbDI0exjPMe/ZdzZ/YpGECBG/aQ=="
+      },
+      {
+        "name": "y18n",
+        "version": "5.0.8",
+        "archive": "y18n-5.0.8.tgz",
+        "bytes": 6157,
+        "integrity": "sha512-0pfFzegeDWJHJIAmTLRP2DwHjdF5s7jo9tuztdQxAhINCdvS+3nGINqPd00AphqJR/0LhANUS6/+7SCb98YOfA=="
+      },
+      {
+        "name": "yargs",
+        "version": "18.2.0",
+        "archive": "yargs-18.2.0.tgz",
+        "bytes": 48841,
+        "integrity": "sha512-9OpKOLeaoNFecEp7P6iYbzze/5CqWoH7N3SMs/6y1XF4nMvFMspEGZzJ6uFi9MmQwXhyzqYoSEKO3tvA3Z/o2w=="
+      },
+      {
+        "name": "yargs-parser",
+        "version": "22.0.0",
+        "archive": "yargs-parser-22.0.0.tgz",
+        "bytes": 21743,
+        "integrity": "sha512-rwu/ClNdSMpkSrUb+d6BRsSkLUq1fmfsY6TOpYzTwvwkg1/NRG85KBy3kq++A8LKQwX6lsu+aWad+2khvuXrqw=="
+      },
+      {
+        "name": "zod",
+        "version": "3.25.76",
+        "archive": "zod-3.25.76.tgz",
+        "bytes": 583600,
+        "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+      }
+    ],
+    "expanded": {
+      "entries": 6361,
+      "fileBytes": 47958074,
+      "maxDepth": 9,
+      "sha256": "30f1ce38c58bd9752e466ae2ddf3fdaaba5aa355d371aaa77b2f267dc0721a8d"
+    }
+  },
+  "bundleOutputs": [
+    {
+      "path": "cli.js",
+      "bytes": 29981874,
+      "sha256": "5658c2d6991e86b66761b68c97779189509345c2177bbe04631b8a4494ec37e8"
+    },
+    {
+      "path": "CHANGELOG-dtzqjxwh.md",
+      "bytes": 203402,
+      "sha256": "a626a12a05a2399ce825ae445b56285a238238c56e690a84f56cb00a27505f70"
+    },
+    {
+      "path": "worker.ts",
+      "bytes": 5158693,
+      "sha256": "d17945e1c0f73bf9417769aaae337ff4472fbd7fb1b0aae0074e294c558feb3c"
+    }
+  ],
+  "schema": {
+    "path": "vendor/omp-candidate/rpc-wire.schema.json",
+    "bytes": 229463,
+    "sha256": "81a3ffc9ebcf5c929c39995cdc6350b56796782353f87a6a9c274153baffe958"
+  }
+}

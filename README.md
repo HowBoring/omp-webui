@@ -25,7 +25,10 @@ The [public Client policy experiment](docs/dsh-policy-validation.md) now passes 
 checks; its patch and fixture assets remain on a separate experiment branch, without product runtime integration.
 The [local access policy](docs/local-access-contract.md) remembers browser authorization for 30 days,
 allows explicit persistent directory grants in the WebUI, and confines uploads to dedicated staging.
-Authentication and these grant operations remain unimplemented.
+The normal Host supplies persistent browser login while private capabilities remain gated.
+The [Workspace component](apps/workspaces/README.md) supplies isolated grant/catalog source and current-tuple
+acceptance evidence. Its [current acceptance](docs/evidence/ticket-43-workspaces.md) leaves Workspace registration in
+the normal Host absent and private capabilities gated; it does not establish complete #43 acceptance.
 The accepted [history interaction contract](docs/history-interaction-contract.md) separates tree selection,
 same-Session navigation and new-Session branching, with explicit confirmation, unsent drafts and a
 stop-then-wait flow. Its disposable prototype is evidence for the interaction decision, not RPC integration.
@@ -96,22 +99,31 @@ DSH source/release versions are not npm package versions: the reviewed source an
 
 ## Development
 
-Requirements:
-
-- Bun `>=1.4.4` for the Host.
-- A global OMP installation matching the verified delivery combination for future RPC integration;
-  an ordinary `omp` name or the unmodified official baseline alone is insufficient for the full MVP.
-- Node.js `>=24.9.0` and pnpm `11.28.5` only when building the pinned DSH upstream client.
+The default Health scaffold requires Bun `>=1.4.4`. Start it from the repository root.
 
 ~~~bash
 bun install --frozen-lockfile
 bun run dev
 ~~~
 
-The scaffold listens on `http://127.0.0.1:3180`. At this stage only `GET /healthz` is implemented;
-unimplemented `/api/` routes return `501` and other paths return `404`. Health success indicates only Host liveness.
+The scaffold listens on `http://127.0.0.1:3180`. Use `GET /healthz` to check Host liveness.
+
+Repository-wide type checking and tests require a built and linked DSH checkout matching the
+[pinned upstream commit](upstreams.lock.json) and the [active patch manifest](compatibility/dsh/patches.json).
+The current preparation script requires Node.js `24.22.1` and Corepack on `PATH`. In the DSH checkout,
+`corepack pnpm --version` must report `11.28.5`. Prepare and link the default `vendor/dsh` from the repository root.
 
 ~~~bash
+bun run dsh:prepare
+bun run dsh:link
+~~~
+
+To reuse an existing build verified against the active patch set, run `bun run dsh:link /absolute/path/to/dsh`.
+Builds from the same upstream commit can contain different patches. See the
+[semantic draft build and import evidence](docs/evidence/ticket-45-dsh-semantic-draft-package.md).
+
+~~~bash
+bun run lint
 bun run typecheck
 bun test
 bun run check
@@ -119,7 +131,17 @@ bun run build
 bun dist/main.js
 ~~~
 
-The lockfile pins the tested development dependencies. `check` runs type checking, tests, and the Bun build.
+The lockfile pins the development dependencies. `bun run check` runs Oxlint, strict TypeScript checking, tests,
+and the Bun build. Oxlint checks authored source and fixtures, reports general correctness findings as warnings,
+and fails the command on selected correctness rules. Generated wire types and validators are excluded from lint.
+
+RPC integration requires a global OMP installation that meets the
+[delivery verification policy](docs/rpc-delivery-contract.md).
+
+Open the repository root in your editor and select the workspace TypeScript SDK at `node_modules/typescript/lib`.
+For an editor with a generic LSP client, use `bun run lsp` from the repository root as the TypeScript server command.
+`bun run lint:lsp` exposes the same Oxlint configuration to LSP-capable editors for inline lint diagnostics.
+
 Recorded local results and remaining M0 integration work are in [M0 validation](docs/m0-validation.md).
 
 ## Repository layout
@@ -135,3 +157,6 @@ DSH source checkouts and generated bundles belong under ignored `vendor/`; they 
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+Ticket 46's [parsed Tool presentation source patch](compatibility/dsh/README.md) is
+unregistered preparation. Emission, matched builds and private Session admission remain blocked.

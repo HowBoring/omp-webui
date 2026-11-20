@@ -1,0 +1,95 @@
+{
+  "kind": "ticket33-isolated-explicit-interaction-linux-candidate",
+  "OMP": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9387aee5beda5f2843e0558eed9a9ce1ebfe1251ff4286da2e2dc7d7cad7d6ae",
+    "patchSha256": "b69f38c5fd03046fb3dad417a84297a8f8292bbb1546bcd5be334c31219cf858",
+    "schemaSha256": "67cd13dea944971fd5c6885674d507fd6c3c25f385376207a0a9c4250c03b753"
+  },
+  "nativeSourceFreeze": "13fd5508440af24e877ec9cbb607e983962b1bc2",
+  "nativeTraceReused": true,
+  "orderedPatches": [
+    {
+      "file": "0001-safe-preflight.patch",
+      "sha256": "6e7f1e147324a468e80a938abe6db0db760cc1aa5a7c8f0c862b83fe890cc550"
+    },
+    {
+      "file": "0002-readonly-catalog.patch",
+      "sha256": "d0d8d87520af6e3d96c4acb3d5ab5a47355e3dbf71aca3d6a703eb16c69c5af7"
+    },
+    {
+      "file": "0003-explicit-interactions.patch",
+      "sha256": "fb7dcd71ffe59f273adc177e95f7c6527bf66cf59f93c1fd6e14ab39e6debb03"
+    }
+  ],
+  "Host": {
+    "kind": "S0-isolated-interactions",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4",
+      "executableSha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "inputs": 247,
+    "bundle": {
+      "file": "interactions-fixture-main.js",
+      "sha256": "a187fab0e1ef9cd0d3cfb3ec6030d5920f04b6d4e07cba9bc1de8c8681ffddfe"
+    },
+    "inputSetSha256": "4e059520f6664e085fd637ea8ea795f682ed025670581423a9a636df37c33480"
+  },
+  "DSH": {
+    "kind": "S0-isolated-interactions",
+    "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "dshSource": {
+      "baseCommit": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceHead": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+      "sourceTree": "c0b09e15c170a82894608c397a363a7a96e5d05c",
+      "mode": "candidate",
+      "patches": [
+        {
+          "path": "patches/0001-navigation-policy.patch",
+          "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+          "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+        },
+        {
+          "path": "patches/0002-semantic-drafts.patch",
+          "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+          "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+        }
+      ],
+      "sourceSha256": "d4790e8b7740b1541b9254a3e0802e959b49964ed58f08e4bf5a7d26f0000538"
+    },
+    "lockSha256": "229f1adcd47d8f9c22cd1a7cda2ae93efad3761a6899f40f81d9383c5042bf8c",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4"
+    },
+    "sourceInputs": 255,
+    "inputs": 255,
+    "sourceSha256": "6b8f040e64fa45d91f189c9530db2626f6a4e7cb90366919867241db0ab1b79a",
+    "contractSha256": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
+    "assets": {
+      "client.js": "e70609e020d439ba2ff963880f278a67aabce1ca80beea5fb8c498a61c9f701d",
+      "index.html": "28c2c860702e135d3f3c48b9e9ee524676c039e32c462e74d929b1c3982e28af"
+    },
+    "inputSetSha256": "4acf94ee2251438fe082347315d657c187ef5252516e9f9204f1799d456d13e5"
+  },
+  "sourceManifestSha256": {
+    "vendor/host-interactions/manifest.json": "f1d75fe409c889a129282196ad66e644f77d8769df18f0cee09f77cfd0a53c5b",
+    "vendor/dsh-interactions/manifest.json": "6f80da4f0072ec6fc9f3fda4bbb78fee75b0e658f1435f761fa4cdd69d1d396b",
+    "tests/interactions/no-provider.ts": "d6289b7695f0ef8ed9d2f4258e91a99219c5f2d4e1fa4c81e45cbe519e0a7b4a",
+    "tests/interactions/native-extension.ts": "2875772a176018177572797ceecc9d2c8c06419a4da92d555083acb44aab1324",
+    "tests/interactions/native-core-loop.ts": "66809f6b89b1be295eff813c95938d56b5ba6ba155dde715e7258c3100df43fd",
+    "tests/interactions/native-client.ts": "52eff05114f0345205ef82cf3ed4bf3f4d08b045d091a7437ba194cafce8e137",
+    "bun.lock": "604786e0f436ee11c7970d96d577895a96f2e0d39c982944d5bc2ef533e1225a",
+    "scripts/build-identities.ts": "87b6cc2b2bf444d5ba47f27deff5b0b63e8962b61897b41cbd93fae7cf505534",
+    "apps/diagnostics/build.ts": "bda52ec363767a352dcba99664eef16c14b6da2c6916ae9960b236c7a5fa3048",
+    "apps/interactions/build.ts": "dfbc93ce8ff269bb2aa7bd39c011e5a36651726e963d9160654f9839890b4d95",
+    "apps/catalog/build.ts": "b7d9fc29604d569c55540c3e70e83854af789b6bf3ab83281de46b16e61fc062",
+    "apps/host/src/dsh-events-carrier.ts": "a306738188cddf0f7f65c69683d874d6193b90d18f83e8db15c1881d7d8231f2",
+    "packages/interactions/bridge.ts": "38d8d33f26cfe6b31b55d143bbcfb4d58881de2ab0814a7e1f1d88176518b392",
+    "packages/contracts/interactions.ts": "fefc894ed10e3ad0f65e35936e196d5aed8aca4ea639957d5fc1eda60f99f144",
+    "apps/host/src/interactions-fixture-server.ts": "8e95ca478e1e40257a6ec30764a9213c6271077a6dae04f1b117ffb3e4ff634e",
+    "tests/browser/interactions-control.test.ts": "c9a455d3e0f9894050c12c9418ab9dd08936e045b8f6f5c7e262a2e3bd09eb67",
+    "tests/browser/interactions-browser.py": "179e1423c2c207f8abf36ccc9d47351d75f36c3e65bc4a96d9ce1394241f96b4"
+  }
+}

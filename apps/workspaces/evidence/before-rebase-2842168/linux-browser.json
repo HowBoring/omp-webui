@@ -1,0 +1,28 @@
+{
+  "kind": "actual-authenticated-DSH-Bun-public-OMP-workspace-component",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "browser": "156.0.8078.79",
+  "bun": "1.4.4",
+  "cases": [
+    "PASS separate readonly Session Index provider pagination reaches all 35 explicit synthetic references",
+    "PASS explicit synthetic Session Index metadata maps actual public describe verified/held, replaced, missing, invalid and source unavailable; failed references retained with unknown ownership",
+    "PASS auth root exchange + actual native partial/errors through typed DSH",
+    "PASS explicit canonical review/confirmation; web grant leaves profile/sources fixed",
+    "PASS every native page reachable; child/prefix/symlink/unknown/missing states; discovery only",
+    "PASS no CSRF/null Origin/source expansion rejected; history/open/execution gates stay closed",
+    "PASS actual SIGKILL Host restart restores absolute browser credential and persistent directory grant; readonly native child exits on Host loss",
+    "PASS actual directory replacement loses rights and reports changed canonical root",
+    "PASS explicit revoke persists across second actual Host restart; no Session worker claimed stopped",
+    "PASS labelled wrong-correlation carrier fault fails visibly",
+    "PASS actual public native cursor error maps as explicit typed error",
+    "PASS native inode/mtime/content manifest unchanged; routine logs contain no bootstrap/CSRF"
+  ],
+  "nativeRows": 47,
+  "pageErrors": [],
+  "DSHRemoteCalls": 38,
+  "workerRevocation": "BLOCKED pending #44 supervised open; this component has only readonly catalog child",
+  "productAdmission": "BLOCKED pending #41 combined/global gates and #44 protected open",
+  "registeredReferences": "PASS explicit synthetic readonly index metadata provider and actual public describe; real registration/open/index writes remain #44",
+  "windowsWSL2": "DEFERRED by user",
+  "performance": "NOT RUN; this is functional component evidence"
+}

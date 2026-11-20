@@ -1,0 +1,428 @@
+diff --git a/packages/coding-agent/src/modes/rpc/branch-inspect-client.ts b/packages/coding-agent/src/modes/rpc/branch-inspect-client.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/branch-inspect-client.ts
+@@ -0,0 +1,46 @@
++import {
++	type BranchInspectCommand,
++	type BranchInspectErrorCode,
++	type BranchInspectParams,
++	type BranchInspectPreview,
++	sameBranchSource,
++	validBranchInspectParams,
++	validBranchInspectResponse,
++} from "./branch-inspect-wire";
++
++type Request = (command: BranchInspectCommand & { id: string }) => Promise<unknown>;
++export type BranchInspectClientErrorCode = BranchInspectErrorCode | "BRANCH_INSPECT_RESPONSE_SCHEMA";
++
++export class BranchInspectClientError extends Error {
++	readonly code: BranchInspectClientErrorCode;
++	constructor(code: BranchInspectClientErrorCode) {
++		super(code);
++		this.name = "BranchInspectClientError";
++		this.code = code;
++	}
++}
++
++/** Unregistered public JSONL callback client for the read-only branch inspection candidate. */
++export class BranchInspectClient {
++	readonly #request: Request;
++
++	constructor(request: Request) {
++		this.#request = request;
++	}
++
++	async inspect(params: BranchInspectParams): Promise<BranchInspectPreview> {
++		if (!validBranchInspectParams(params)) throw new BranchInspectClientError("BRANCH_INSPECT_COMMAND_SCHEMA");
++		const id = crypto.randomUUID();
++		const command = { ...structuredClone(params), id, type: "branch_inspect" } as const;
++		const { source, entryId, expected } = command;
++		const reply = await this.#request(structuredClone(command));
++		if (!validBranchInspectResponse(reply) || reply.id !== id)
++			throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
++		if (!reply.success) throw new BranchInspectClientError(reply.code);
++		const { data } = reply;
++		if (data.entryId !== entryId || !sameBranchSource(data.source, source) ||
++			(expected && (data.parentId !== expected.parentId || data.targetRevision !== expected.targetRevision ||
++				data.contextRevision !== expected.contextRevision))) throw new BranchInspectClientError("BRANCH_INSPECT_RESPONSE_SCHEMA");
++		return data;
++	}
++}
+diff --git a/packages/coding-agent/src/modes/rpc/branch-inspect-wire.ts b/packages/coding-agent/src/modes/rpc/branch-inspect-wire.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/branch-inspect-wire.ts
+@@ -0,0 +1,118 @@
++/** Protected current Native Session identity, using the public SubmissionTarget fields. */
++export interface BranchInspectSource {
++	sourceId: string;
++	instanceId: string;
++	nativeSessionId: string;
++}
++
++export interface BranchInspectCut {
++	parentId: string | null;
++	targetRevision: string;
++	contextRevision: string;
++}
++
++export interface BranchInspectParams {
++	source: BranchInspectSource;
++	entryId: string;
++	/** Revalidate the entire selected cut and current idle state. */
++	expected?: BranchInspectCut;
++}
++
++export interface BranchInspectCommand extends BranchInspectParams {
++	type: "branch_inspect";
++	id?: string;
++}
++
++export interface BranchInspectPreview extends BranchInspectCut {
++	version: "branch-inspect-v1";
++	source: BranchInspectSource;
++	entryId: string;
++}
++
++const errorCodes = [
++	"BRANCH_INSPECT_COMMAND_SCHEMA",
++	"BRANCH_SOURCE_CHANGED",
++	"BRANCH_SOURCE_UNAVAILABLE",
++	"BRANCH_TARGET_MISSING",
++	"BRANCH_TARGET_NOT_USER",
++	"BRANCH_TARGET_UNAVAILABLE",
++	"BRANCH_STALE_TARGET",
++	"BRANCH_STALE_CONTEXT",
++	"session_busy",
++	"NAVIGATION_BUSY",
++] as const;
++
++export type BranchInspectErrorCode = (typeof errorCodes)[number];
++export type BranchInspectResponse = { id?: string; type: "response"; command: "branch_inspect" } & (
++	| { success: true; data: BranchInspectPreview }
++	| { success: false; code: BranchInspectErrorCode; error: string }
++);
++
++function record(value: unknown): value is Record<string, unknown> {
++	if (typeof value !== "object" || value === null) return false;
++	const prototype = Object.getPrototypeOf(value);
++	return prototype === Object.prototype || prototype === null;
++}
++
++function only(value: Record<string, unknown>, fields: readonly string[]): boolean {
++	return Reflect.ownKeys(value).every(key => typeof key === "string" && fields.includes(key) &&
++		Object.prototype.propertyIsEnumerable.call(value, key));
++}
++
++function bounded(value: unknown, max: number): value is string {
++	return typeof value === "string" && value.length > 0 && value.length <= max;
++}
++
++function revision(value: unknown): value is string {
++	return typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
++}
++
++export function branchInspectRequestId(value: unknown): string | undefined {
++	return record(value) && bounded(value.id, 96) ? value.id : undefined;
++}
++
++function validSource(value: unknown): value is BranchInspectSource {
++	return record(value) && only(value, ["sourceId", "instanceId", "nativeSessionId"]) &&
++		revision(value.sourceId) && revision(value.instanceId) && bounded(value.nativeSessionId, 128);
++}
++
++function hasCut(value: Record<string, unknown>): boolean {
++	return (value.parentId === null || bounded(value.parentId, 128)) &&
++		revision(value.targetRevision) && revision(value.contextRevision);
++}
++
++export function sameBranchSource(left: BranchInspectSource, right: BranchInspectSource): boolean {
++	return left.sourceId === right.sourceId && left.instanceId === right.instanceId &&
++		left.nativeSessionId === right.nativeSessionId;
++}
++
++function hasBranchInspectParams(value: Record<string, unknown>): boolean {
++	if (!validSource(value.source) || !bounded(value.entryId, 128)) return false;
++	return !Object.hasOwn(value, "expected") || (record(value.expected) &&
++		only(value.expected, ["parentId", "targetRevision", "contextRevision"]) && hasCut(value.expected));
++}
++
++export function validBranchInspectParams(value: unknown): value is BranchInspectParams {
++	return record(value) && only(value, ["source", "entryId", "expected"]) && hasBranchInspectParams(value);
++}
++
++export function validBranchInspectCommand(value: unknown): value is BranchInspectCommand {
++	if (!record(value) || value.type !== "branch_inspect" || !only(value, ["id", "type", "source", "entryId", "expected"]))
++		return false;
++	return (!Object.hasOwn(value, "id") || branchInspectRequestId(value) !== undefined) && hasBranchInspectParams(value);
++}
++
++export function validBranchInspectPreview(value: unknown): value is BranchInspectPreview {
++	return record(value) && value.version === "branch-inspect-v1" &&
++		only(value, ["version", "source", "entryId", "parentId", "targetRevision", "contextRevision"]) &&
++		validSource(value.source) && bounded(value.entryId, 128) && hasCut(value);
++}
++
++export function validBranchInspectResponse(value: unknown): value is BranchInspectResponse {
++	if (!record(value) || value.type !== "response" || value.command !== "branch_inspect" ||
++		(Object.hasOwn(value, "id") && branchInspectRequestId(value) === undefined)) return false;
++	const envelope = ["id", "type", "command", "success"];
++	if (value.success === true) return only(value, [...envelope, "data"]) && validBranchInspectPreview(value.data);
++	return value.success === false && only(value, [...envelope, "code", "error"]) && bounded(value.error, 128) &&
++		errorCodes.some(code => code === value.code);
++}
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-branch-inspect.ts b/packages/coding-agent/src/modes/rpc/rpc-branch-inspect.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/rpc-branch-inspect.ts
+@@ -0,0 +1,111 @@
++import {
++	branchInspectRequestId,
++	type BranchInspectErrorCode,
++	type BranchInspectPreview,
++	type BranchInspectResponse,
++	type BranchInspectSource,
++	sameBranchSource,
++	validBranchInspectCommand,
++	validBranchInspectPreview,
++} from "./branch-inspect-wire";
++
++interface Entry {
++	type: string;
++	parentId: string | null;
++	message?: { role: string };
++}
++
++/** Read-only subset of the Native SessionManager. */
++interface BranchInspection {
++	assertNavigationSource(): void;
++	getSubmissionTarget(): BranchInspectSource;
++	getEntry(id: string): Entry | undefined;
++	navigationTarget(id: string): { entryId: string; parentId: string | null; targetRevision: string };
++	navigationContextRevision(): string;
++}
++
++class BranchInspectionError extends Error {
++	readonly code: BranchInspectErrorCode;
++	constructor(code: BranchInspectErrorCode) {
++		super(code);
++		this.code = code;
++	}
++}
++
++function refuse(code: BranchInspectErrorCode): never {
++	throw new BranchInspectionError(code);
++}
++
++function sourceIdentity(manager: BranchInspection): BranchInspectSource {
++	try {
++		manager.assertNavigationSource();
++		return manager.getSubmissionTarget();
++	} catch {
++		return refuse("BRANCH_SOURCE_UNAVAILABLE");
++	}
++}
++
++function readTarget(manager: BranchInspection, entryId: string, source: BranchInspectSource) {
++	const entry = manager.getEntry(entryId);
++	if (!entry) return refuse("BRANCH_TARGET_MISSING");
++	if (entry.type !== "message" || entry.message?.role !== "user") return refuse("BRANCH_TARGET_NOT_USER");
++	if (entry.parentId !== null && (entry.parentId === entryId || !manager.getEntry(entry.parentId)))
++		return refuse("BRANCH_TARGET_UNAVAILABLE");
++	try {
++		const target = manager.navigationTarget(entryId);
++		if (target.entryId === entryId && target.parentId === entry.parentId) return target;
++	} catch (failure) {
++		const code = failure instanceof Error ? failure.message : undefined;
++		if (code === "NAVIGATION_ENTRY_NOT_FOUND") return refuse("BRANCH_TARGET_MISSING");
++		// An unexpected failure can come from the protected read or from encoding the target.
++		if (code !== "NAVIGATION_TARGET_TOO_LARGE" && !sameBranchSource(sourceIdentity(manager), source))
++			return refuse("BRANCH_SOURCE_CHANGED");
++	}
++	return refuse("BRANCH_TARGET_UNAVAILABLE");
++}
++
++/** Synchronous preview or revalidation using the current protected Native Session. */
++export function inspectBranch(
++	value: unknown,
++	manager: BranchInspection,
++	isBusy: () => boolean,
++	outstandingBuiltinCount: number,
++): BranchInspectPreview {
++	if (!validBranchInspectCommand(value)) return refuse("BRANCH_INSPECT_COMMAND_SCHEMA");
++	const source = sourceIdentity(manager);
++	if (!sameBranchSource(source, value.source)) return refuse("BRANCH_SOURCE_CHANGED");
++	const { entryId, expected } = value;
++	if (expected && (outstandingBuiltinCount > 0 || isBusy())) return refuse("session_busy");
++	const target = readTarget(manager, entryId, source);
++	const contextRevision = sourceContext(manager);
++	const preview = { version: "branch-inspect-v1", source, ...target, contextRevision };
++	if (!validBranchInspectPreview(preview)) return refuse("BRANCH_TARGET_UNAVAILABLE");
++	if (expected && (expected.parentId !== preview.parentId || expected.targetRevision !== preview.targetRevision))
++		return refuse("BRANCH_STALE_TARGET");
++	if (expected && expected.contextRevision !== contextRevision) return refuse("BRANCH_STALE_CONTEXT");
++	return preview;
++}
++
++function sourceContext(manager: BranchInspection): string {
++	try {
++		return manager.navigationContextRevision();
++	} catch {
++		return refuse("BRANCH_SOURCE_UNAVAILABLE");
++	}
++}
++
++export function respondBranchInspect(
++	value: unknown,
++	manager: BranchInspection,
++	isBusy: () => boolean,
++	outstandingBuiltinCount: number,
++): BranchInspectResponse {
++	const id = branchInspectRequestId(value);
++	const envelope = { ...(id === undefined ? {} : { id }), type: "response", command: "branch_inspect" } as const;
++	try {
++		return { ...envelope, success: true, data: inspectBranch(value, manager, isBusy, outstandingBuiltinCount) };
++	} catch (failure) {
++		const code = failure instanceof BranchInspectionError ? failure.code : "BRANCH_SOURCE_UNAVAILABLE";
++		return { ...envelope, success: false, code, error: code };
++	}
++}
+diff --git a/packages/coding-agent/src/modes/rpc/wire/branch-inspect.ts b/packages/coding-agent/src/modes/rpc/wire/branch-inspect.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/coding-agent/src/modes/rpc/wire/branch-inspect.ts
+@@ -0,0 +1,17 @@
++/** Read-only candidate. The native submission target identifies the currently protected Session. */
++export const branchInspectDefs = {
++	BranchInspectCut: { parentId: "string | null", targetRevision: "string", contextRevision: "string" },
++	BranchInspectPreview: {
++		version: "'branch-inspect-v1'", source: "SubmissionTarget", entryId: "string",
++		parentId: "string | null", targetRevision: "string", contextRevision: "string",
++	},
++};
++
++export const branchInspectCommands = [
++	{
++		name: "branch_inspect",
++		doc: "Read or revalidate the selected native user-message cut without creating a Session.",
++		params: { source: "SubmissionTarget", entryId: "string", "expected?": "BranchInspectCut" },
++		result: "BranchInspectPreview",
++	},
++] as const;
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -1,5 +1,6 @@
+ import type { NavigationResult } from "./wire/rpc-wire.generated";
+ import { RpcNavigation } from "./rpc-navigation";
++import { respondBranchInspect } from "./rpc-branch-inspect";
+ import { nativeNavigationPolicy } from "../../session/navigation-policy";
+ import { attachmentInputPolicy, assertPreparedInputPolicy } from "../../attachments/input-policy";
+ import { nativeSubmissionPolicy } from "../../session/submission-policy";
+@@ -1996,8 +1997,9 @@
+ 						: undefined,
+ 					signal: builtinAbort.signal,
+ 					runCommandInBackground: task => {
++						const work = task();
+ 						backgroundedBuiltin = true;
+-						shutdownCoordinator.track(task().finally(() => builtinCommandAborts.delete(builtinAbort)));
++						shutdownCoordinator.track(work.finally(() => builtinCommandAborts.delete(builtinAbort)));
+ 					},
+ 					notifyTitleChanged: async () => {
+ 						output({ type: "session_info_update", title: session.sessionName, sessionId: session.sessionId });
+@@ -2005,8 +2007,9 @@
+ 					notifyConfigChanged: async () => {
+ 						output({ type: "config_update", model: session.model, thinkingLevel: session.thinkingLevel });
+ 					},
++				}).finally(() => {
++					if (!backgroundedBuiltin) builtinCommandAborts.delete(builtinAbort);
+ 				});
+-				if (!backgroundedBuiltin) builtinCommandAborts.delete(builtinAbort);
+ 				if (!isCurrent()) return "cancelled";
+ 				if (builtinResult !== false) {
+ 					if (!("prompt" in builtinResult)) {
+@@ -2051,8 +2054,8 @@
+ 	// and can persist credentials after the client asked to abort.
+ 	const builtinCommandAborts = new Set<AbortController>();
+ 	const abortBuiltinCommands = (reason: string): void => {
++		// Cancellation requests leave the work outstanding until its completion cleanup.
+ 		for (const controller of builtinCommandAborts) controller.abort(reason);
+-		builtinCommandAborts.clear();
+ 	};
+ 
+ 	// Handle a single command
+@@ -2069,6 +2072,14 @@
+ 			// Prompting
+ 			// =================================================================
+ 
++			case "branch_inspect":
++				return respondBranchInspect(
++					command,
++					session.sessionManager,
++					() => shutdownState.requested || session.isBusyForSnapshot || session.isSessionTransitioning ||
++						pendingUserInputs.size > 0 || pendingExtensionRequests.size > 0 || !isSessionSettled(session, goalTurnScheduled),
++					builtinCommandAborts.size,
++				);
+       case "navigation_inspect": {
+         try { navigation.validate(command); return success(id, command.type, navigation.inspect(command.entryId)); }
+         catch (failure) { const code = failure instanceof Error ? failure.message : "NAVIGATION_FAILURE";
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -1,4 +1,5 @@
+ import type { NavigationCommand } from "./rpc-navigation";
++import type { BranchInspectCommand, BranchInspectPreview } from "./branch-inspect-wire";
+ import type { NavigationResult, NavigationPreview, NavigationPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionPolicy, RpcInputPolicy } from "./wire/rpc-wire.generated";
+ import type { SubmissionCommand, SubmissionResult } from "./rpc-submissions";
+@@ -58,6 +59,7 @@
+   | AttachmentCommand
+   | SubmissionCommand
+   | NavigationCommand
++  | BranchInspectCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+   | { id?: string; type: "history_snapshot_page"; cursor: string }
+@@ -455,6 +457,7 @@
+ 
+ // Success responses with data
+ export type RpcResponse =
++  | { id?: string; type: "response"; command: "branch_inspect"; success: true; data: BranchInspectPreview }
+   | { id?: string; type: "response"; command: "navigation_inspect"; success: true; data: NavigationPreview }
+   | { id?: string; type: "response"; command: "navigate_tree_committed" | "navigation_query"; success: true; data: NavigationResult }
+   | { id?: string; type: "response"; command: "attachment_prepare"; success: true; data: AttachmentReceipt }
+diff --git a/packages/coding-agent/src/modes/rpc/wire/commands.ts b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+--- a/packages/coding-agent/src/modes/rpc/wire/commands.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/commands.ts
+@@ -1,4 +1,5 @@
+ import { navigationCommands } from "./navigation";
++import { branchInspectCommands } from "./branch-inspect";
+ import { submissionCommands } from "./submissions";
+ import { strictStartCommands } from "./strict-start";
+ /**
+@@ -46,6 +47,7 @@
+   ...strictStartCommands,
+   ...submissionCommands,
+   ...navigationCommands,
++  ...branchInspectCommands,
+   {
+     name: "get_compatibility",
+     doc: "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
+diff --git a/packages/coding-agent/src/modes/rpc/wire/index.ts b/packages/coding-agent/src/modes/rpc/wire/index.ts
+--- a/packages/coding-agent/src/modes/rpc/wire/index.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/index.ts
+@@ -1,4 +1,5 @@
+ import { navigationDefs } from "./navigation";
++import { branchInspectDefs } from "./branch-inspect";
+ import { submissionDefs } from "./submissions";
+ /**
+  * RPC wire schema: the single source the client libraries are generated from.
+@@ -177,6 +178,7 @@
+     ...strictStartDefs,
+     ...submissionDefs,
+     ...navigationDefs,
++    ...branchInspectDefs,
+ 		...eventDefs,
+ 		...frameDefs,
+ 		...interactionDefs,

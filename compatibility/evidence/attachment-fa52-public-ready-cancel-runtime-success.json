@@ -1,0 +1,378 @@
+{
+  "ticket": 38,
+  "status": "PASS_ONE_ACTUAL_PUBLIC_READY_CANCEL_LATE_CONSENT_REFUSAL_CASE",
+  "hostHeadDuringActual": "57e2a454912a51bc3a93895624a439daed4ef2e2",
+  "hostTreeDuringActual": "bad3dcd52a0e2b75519c427a26d29701ecf9d9ab",
+  "testSource": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 100960,
+    "sha256": "bcee7b29f5b92110045f3a5fa8d6be4dfe488e9d0c50ba71007e92648d66e983",
+    "name": "actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects"
+  },
+  "sourceReady": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-ready-cancel-public-v1-source-ready.json",
+    "bytes": 11119,
+    "sha256": "a8ac2f9bd8cf8e04e1dd5689a0c2dffe5b807710075d55bea5c517fe36ed894f"
+  },
+  "sourceFreeze": {
+    "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/final-inputs.json",
+    "bytes": 8697,
+    "sha256": "84b1b37ee12975fb9912b3cabc7683fbcb53ca45c4b99e16b102f9f8e2a15dd4"
+  },
+  "compiledManifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/vendor/omp-candidate-image-original-budget-compiler-inputs-v2/compiled-manifest.json",
+    "bytes": 14500,
+    "sha256": "9bae31f42bf99a0eebd5a89b3f20813c3ff8558e766b442efc233535e56932b4"
+  },
+  "expectedAndActualPublicBuild": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+    "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "runtimeMeaning": "Actual controlled Native worker executed public preparation, ready receipt cancellation and late-consent submission refusal with the existing literal-provider harness. This negative case admitted no input or model dispatch; it is public runtime evidence, not compiler-only evidence.",
+  "result": {
+    "testsPass": 1,
+    "testsFail": 0,
+    "testsFiltered": 14,
+    "expectCalls": 21,
+    "caseDurationMs": 3885.46,
+    "reportedDuration": "3.98s",
+    "attempts": 1,
+    "retry": "NONE"
+  },
+  "earnedPublicBehavior": [
+    "Existing public AttachmentClient.prepare validated the returned public receipt schema, correlation, order and representation digest. One valid 28-byte UTF8 item was READY with matching draft/selected-target binding, exact text, no degradation, original SHA fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419 and prepared SHA e603d01747bf11e95e94972008c3befe7d041b60b064fa8134add64c18019b0e.",
+    "Otherwise-valid consent was captured from that ready receipt before the awaited public attachment_cancel barrier. Cancellation returned cancelled:true. Returned public expiresAt was still in the future immediately before late submit; TTL and clocks were unchanged.",
+    "Late public submission_submit with the same captured consent returned ATTACHMENT_RECEIPT_STALE. Public submission_query showed found false, admission/reservation absent, terminal false, unresolved input/persistence, unknown operation, no relations and null nextOffset.",
+    "Preparation, public cancellation and refused late submission each left public entry snapshots and all controlled provider effects exactly equal to their before snapshots.",
+    "Complete caller draft including valid original, order, message and bindings remained exact; decoded original SHA matched. Browser/editor/durable draft retention remains unproved."
+  ],
+  "publicPreflight": {
+    "report": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+      "candidate": "image-original-budget-v2",
+      "processId": 661310,
+      "actual": {
+        "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+        "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+        "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+        "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+      },
+      "runtime": {
+        "name": "bun",
+        "version": "1.4.4",
+        "platform": "linux",
+        "arch": "x64"
+      }
+    },
+    "drain": {
+      "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+      "drain": {
+        "code": 0,
+        "forced": false,
+        "stderrBytes": 0
+      }
+    },
+    "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+  },
+  "identityComposition": "Actual public preflight PID661310 reported exact additive d8d/069e/8f9/base7c49 on Bun1.4.4 linux x64 with clean original narrow transport drain. Physical generated Native identity remains distinct and unchanged. No global Host identity or product admission claim.",
+  "runner": {
+    "status": "PASS",
+    "case": "actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public cancelled ready UTF8 receipt refuses late consent before reservation or effects$"
+    ],
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "/tmp/attachment-runtime-ready-cancel-v1-20261117-ntvbojjl",
+      "PI_CODING_AGENT_DIR": "/tmp/attachment-runtime-ready-cancel-v1-20261117-ntvbojjl",
+      "OMP_HISTORY_FIXTURE_PROFILE": "/tmp/attachment-runtime-ready-cancel-v1-20261117-ntvbojjl",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "startedAt": "2026-11-17T16:31:59.560762+00:00",
+    "startedMonotonicNs": 202001434251046,
+    "retry": "NONE",
+    "outerTimeout": false,
+    "evidenceDirectory": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0",
+    "otherCases": "Anchored-filtered; not authorized or run",
+    "runnerScript": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-source-20261117/public-retainer.py",
+      "bytes": 9912,
+      "sha256": "7443ac391b14dcff1f6e2ff5af88a897fc9702aade9ec9848c8851ca4c6d30d0"
+    },
+    "runnerPid": 661297,
+    "runnerWaitStatus": 0,
+    "originalWaitObserved": true,
+    "originalReaderJoinsObserved": true,
+    "originalStreamEofObserved": true,
+    "finishedAt": "2026-11-17T16:32:03.551085+00:00",
+    "finishedMonotonicNs": 202005424590260,
+    "stdoutStderrFilesClosedAfterOriginalWaitAndBothReaderJoins": true,
+    "capture": {
+      "stdout": {
+        "observedBytes": 621,
+        "observedSha256": "67ff35bbec505992d07daca0188945145c5b3e57ef770f39485adb67903f92fa",
+        "capturedBytes": 621,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/stdout.txt",
+          "bytes": 621,
+          "sha256": "67ff35bbec505992d07daca0188945145c5b3e57ef770f39485adb67903f92fa"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      },
+      "stderr": {
+        "observedBytes": 239,
+        "observedSha256": "6147dbf8acd82d4ab2e8e3bcec3c7418221fa791a4e05539c4b6427c8fdbbb40",
+        "capturedBytes": 239,
+        "captureLimitBytes": 1048576,
+        "streamEof": true,
+        "overflow": false,
+        "readError": null,
+        "writeError": null,
+        "flushError": null,
+        "diskError": false,
+        "pass": true,
+        "file": {
+          "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/stderr.txt",
+          "bytes": 239,
+          "sha256": "6147dbf8acd82d4ab2e8e3bcec3c7418221fa791a4e05539c4b6427c8fdbbb40"
+        },
+        "savedFileSizeMatchesConfirmedWrites": true,
+        "accepted": true
+      }
+    },
+    "networkAudit": {
+      "guard": "history-egress-v1",
+      "actualNetworkDispatches": 0,
+      "denied": 0
+    },
+    "publicPreflightAudit": {
+      "report": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT",
+        "candidate": "image-original-budget-v2",
+        "processId": 661310,
+        "actual": {
+          "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+          "sourceSha256": "d8d12deee18a1b8a56c57785f8bf2f5a23fbb3a21389427cf9fc4eba6e5622d9",
+          "patchSha256": "069eaf6f90773d17d09bf4c3faf3f66ade3a3e362156e03650701ecad4e31b8c",
+          "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+        },
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        }
+      },
+      "drain": {
+        "event": "ATTACHMENT_ADDITIVE_PUBLIC_PREFLIGHT_DRAIN",
+        "drain": {
+          "code": 0,
+          "forced": false,
+          "stderrBytes": 0
+        }
+      },
+      "meaning": "Public compiledpreflight report plus original narrowtransport drain, not physicalgenerated9 equivalence or descendant proof."
+    },
+    "topSyntheticHomeRetained": "/tmp/attachment-runtime-ready-cancel-v1-20261117-ntvbojjl"
+  },
+  "preAndPost": {
+    "precheck": {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/precheck.json",
+      "bytes": 2868,
+      "sha256": "5b2ca15604828830b26fc47a577810142635625bc607ee8865f8594fa861939b"
+    },
+    "postcheck": {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/postcheck.json",
+      "bytes": 2829,
+      "sha256": "1f1fca8732f47abdbdf45f9e2c8280561aed2e1cd7b7d69c7264826060736072"
+    },
+    "currentSourceRecords": 1016,
+    "baseSourceRecords": 992,
+    "sourceOverrides": 1,
+    "nativeFiles": 10715,
+    "nativeIndex": {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+      "bytes": 1271154,
+      "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+    },
+    "allOldCompilerFailPassPreserved": true,
+    "perCaseHomesBefore": [],
+    "perCaseHomesAfter": [],
+    "perCaseHomesUnchanged": true,
+    "postRawStatus": "PASS_FRESH_SOURCE_METADATA_NATIVE_RUNTIME_NOT_RUN",
+    "postStatusMeaning": "NATIVE_RUNTIME_NOT_RUN is the inherited metadata-only checker label; actual preceding controlled Native ready-cancel/late-consent test PASSED."
+  },
+  "originalTools": {
+    "records": {
+      "pre-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-initial-tool.json",
+        "bytes": 130,
+        "sha256": "aec67ab4dfe81696aa41523c46259721992cf2bf06d33e2ed92f268b02d77c8f"
+      },
+      "pre-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-final-tool.json",
+        "bytes": 2935,
+        "sha256": "c45b255bc1f156e4659f92bd8a88bdcec04c9e510151970089075d5b7a5e543e"
+      },
+      "run-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-initial-tool.json",
+        "bytes": 130,
+        "sha256": "7446028c0460af9259d16c7a8a07a10c0d3085bc30d856fc5d308d116cec824a"
+      },
+      "run-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-final-tool.json",
+        "bytes": 4420,
+        "sha256": "e6d4ab2cd592e008a8a815fda25997e333e939efb1bb767b2f6cb376b02d6905"
+      },
+      "post-initial": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-initial-tool.json",
+        "bytes": 131,
+        "sha256": "0795fcfc0a3f14455c2950dfc63f78d236a516e46dd45e3552d610ce2ee1eb85"
+      },
+      "post-final": {
+        "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-final-tool.json",
+        "bytes": 2894,
+        "sha256": "b444a532aa3fe5dc0b1604f320b66537899097998978002182fb9b06d37ec1ff"
+      }
+    },
+    "pre": {
+      "initialChunk": "c35f2e",
+      "session": 52139,
+      "completionChunk": "4625f7",
+      "exitCode": 0
+    },
+    "actual": {
+      "initialChunk": "529529",
+      "session": 8055,
+      "completionChunk": "5cba8d",
+      "exitCode": 0
+    },
+    "post": {
+      "initialChunk": "9b55f5",
+      "session": 33694,
+      "completionChunk": "8e6ca8",
+      "exitCode": 0
+    }
+  },
+  "rawRecords": [
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/precheck.json",
+      "bytes": 2868,
+      "sha256": "5b2ca15604828830b26fc47a577810142635625bc607ee8865f8594fa861939b"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/postcheck.json",
+      "bytes": 2829,
+      "sha256": "1f1fca8732f47abdbdf45f9e2c8280561aed2e1cd7b7d69c7264826060736072"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/runner.json",
+      "bytes": 4435,
+      "sha256": "89826d4222c13ccc2edc2568ef9b39ce46766283ac7107e933597d9dc191f2aa"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/start.json",
+      "bytes": 1560,
+      "sha256": "1fb3f0fdde0a203df96492edfdb62e5013342aec44649e1e229e6aea221bff9e"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/used-once.json",
+      "bytes": 104,
+      "sha256": "34ba073dc26aa0ed1bee6e4754d2d404e767926f61e4a95dbf9a7837c5dce5b7"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/stdout.txt",
+      "bytes": 621,
+      "sha256": "67ff35bbec505992d07daca0188945145c5b3e57ef770f39485adb67903f92fa"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/stderr.txt",
+      "bytes": 239,
+      "sha256": "6147dbf8acd82d4ab2e8e3bcec3c7418221fa791a4e05539c4b6427c8fdbbb40"
+    },
+    {
+      "path": "/tmp/ticket-38-public-ready-cancel-v1-20261117-h9iqr0i0/network-audit.json",
+      "bytes": 68,
+      "sha256": "d7cd0d3bc32be93160819274a1158910dded031cd0898f2c01933e24ff2d68b2"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-initial-tool.json",
+      "bytes": 130,
+      "sha256": "aec67ab4dfe81696aa41523c46259721992cf2bf06d33e2ed92f268b02d77c8f"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-pre-final-tool.json",
+      "bytes": 2935,
+      "sha256": "c45b255bc1f156e4659f92bd8a88bdcec04c9e510151970089075d5b7a5e543e"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-initial-tool.json",
+      "bytes": 130,
+      "sha256": "7446028c0460af9259d16c7a8a07a10c0d3085bc30d856fc5d308d116cec824a"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-run-final-tool.json",
+      "bytes": 4420,
+      "sha256": "e6d4ab2cd592e008a8a815fda25997e333e939efb1bb767b2f6cb376b02d6905"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-initial-tool.json",
+      "bytes": 131,
+      "sha256": "0795fcfc0a3f14455c2950dfc63f78d236a516e46dd45e3552d610ce2ee1eb85"
+    },
+    {
+      "path": "/workspace/work/mvp-implementation/recovery/restore12-readycancel-root-post-final-tool.json",
+      "bytes": 2894,
+      "sha256": "b444a532aa3fe5dc0b1604f320b66537899097998978002182fb9b06d37ec1ff"
+    }
+  ],
+  "retainedEvidencepack": {
+    "archive": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-evidencepack-20261117/raw.tar.gz",
+      "bytes": 6109,
+      "sha256": "2e381468170eb70d7bbdd47b74cee856e42eea0c69dfb15a5026b31f3fca2e6a"
+    },
+    "manifest": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-evidencepack-20261117/manifest.json",
+      "bytes": 4769,
+      "sha256": "5f04ad3d793a12c50c6cfe3fc88f60a1b1f95754b86011317234882dcf19177c"
+    },
+    "readback": {
+      "path": "/workspace/work/mvp-implementation/recovery/ticket38-ready-cancel-public-v1-evidencepack-20261117/readback.json",
+      "bytes": 712,
+      "sha256": "cab6dd789b9bbb36c1f2629ee7517bc6bc0bf04870052b8a98b4cfc562c5c963"
+    },
+    "memberCount": 15,
+    "uncompressedBytes": 28133,
+    "readbackMeaning": "Ordered regular names, sizes, SHA256 and full bytes exact without extraction."
+  },
+  "drainLimits": "Original top Bun661297 wait0/both reader joins/actual EOF, exact stdout621B/stderr239B captures, publicPF661310 clean narrow transport drain. Other helper individual PIDs/waits/forced outcomes are not separately exported. Top syntheticHOME retained. Empty unchanged per-case homes are filesystem metadata only; no P_ALL/general extinction claim.",
+  "oracleLimits": "Dynamic receipt/prepared IDs, raw responses and complete counter snapshots were asserted by the pinned test but are not separately exported. No Native Session/history or profile payloads read/copied during retention.",
+  "limitations": [
+    "One sequential READY -> cancel -> late otherwise-valid consent public refusal case; fourteen others filtered. Earlier proofs retain their own scopes.",
+    "Pending-publication races, late helper publication, already-reserved cancellation, repeated cancel, actual expiry and replay/restart remain separate unproved matrices. Future public expiresAt in this test is an isolation check, not expiry proof.",
+    "Guard0dispatch/0denied is instrumented evidence, not general syscall network proof.",
+    "No Host/browser/original storage/durable draft/global/private/product/Windows support claim. Whole29/38/53/54 remain open."
+  ],
+  "evidenceOnlyActions": "Allowlisted raw/tool/source assertion reads, compact pack/readback and three new proof/window/note files only. No consumed pre/run/post or old checker rerun, no test/Source/code/Native/index/schema/build/generator edits, no runtime actor or Host/browser/kernel/GitHub/merge/push."
+}

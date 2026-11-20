@@ -1,0 +1,114 @@
+{
+  "issue": 43,
+  "finding": "P2 authenticated workspace dispatch errors collapsed into malformed HTTP400",
+  "seams": "Actual authenticated HTTP -> public DSH Connection -> typed Remote -> Host Gateway; filesystem/clock/native RPC/index faults at public boundaries.",
+  "red": "Consumed valid confirmation surfaced generic transport HTTP400 instead of GRANT_PREVIEW_EXPIRED.",
+  "green": "Valid failures return correlated HTTP200 DSH server-response with typed known codes, sanitized messages and empty details; unknown gateway/internal safe fallback.",
+  "integration": "d22a908b2b6b8a53093af70c347b92cc5e69869b",
+  "admission": "HTTP400 malformed envelope/method/arguments;415 media type;401 invalid credentials;403 CSRF/Origin; no rpcId on malformed/admission refusals.",
+  "upstreamSourceEdits": "NONE; own native fixed 0001-0004 +0006; readonly canonical c0 DSH compiled closure; no upstream rebuild/install.",
+  "preliminaryAttempts": [
+    "Enrollment initially refused a symlinked runtime ancestor, then an indirect node_modules link; corrected own layout to direct resolved readonly dependency links.",
+    "One browser startup overlapped final local source/build edits and failed closed on identity drift; retained vendor logs; subsequent run uses stable source enrollment."
+  ],
+  "autoReview": "Rejected removing a duplicate current() revalidation check; both checks retained, no bypass or pending approval.",
+  "limits": [
+    "No #41 global composition/admission acceptance",
+    "No #44 registration/protected open/worker revocation",
+    "Windows/WSL2 user-deferred",
+    "No full latest suite claim",
+    "No real providers or private history used"
+  ],
+  "checks": {
+    "strictTypecheck": "PASS; app plus authored native catalog/live-history scoped checks",
+    "affectedTests": {
+      "tests": 67,
+      "assertions": 1014,
+      "files": 19
+    },
+    "finalWireTests": {
+      "tests": 5,
+      "assertions": 55,
+      "files": 2
+    },
+    "nativeReadonlyTrace": "PASS;231lines;0writes/0nonUnixConnects;2ownership observations",
+    "browser": "PASS; 12 scenarios;47native rows;35synthetic index references;40Remote calls;0page errors",
+    "fullSuite": "NOT RUN on latest combination; prior116/944 historical"
+  },
+  "wireEvidenceSha256": "b961d466e08fe2e8bfb484fd7664b5678b4d56c7fe486f849d7f0083c1967dfa",
+  "affectedEvidenceSha256": "22018d150f61c4138f6f5fcb003230ed9725a0e01ebcd64261a408a40d3bcadf",
+  "verificationLogs": {
+    "nativeBuild": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-native-build.log",
+      "sha256": "c469fb26c9b208805efbb45bcd144ba7e2f66b7f6b9ec9796bbe5b7c575b0f30"
+    },
+    "generatedArtifacts": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-generated-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "nativeSource": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-source-final.log",
+      "sha256": "06d3228dcf30f8aa5605c08cc0a22798678907d3121007b2b0a2fa427d0a694e"
+    },
+    "appTypes": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-types-final.log",
+      "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    },
+    "hostBuild": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-host-build.log",
+      "sha256": "44adba3909a273a6f488976b16028f968e51967bb0e76d4809f9511aae4b8706"
+    },
+    "workspaceBuild": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-workspace-build-final.log",
+      "sha256": "44e2f8b5f000081b375c43363c2a8ea6b3e9375b8cb78224905b5da6b9cca374"
+    },
+    "diagnosticsBuild": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-diagnostic-build.log",
+      "sha256": "a7815fe7dd44328f47fe38161052743c4af7a3adbfc735e0ee1555c64d7e1aa1"
+    },
+    "nativeCatalogTypes": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-native-types.log",
+      "sha256": "8da12ee91df94cecefd1d44b6898a92b85a3b2ec55cd4c66157b9f67ac527393"
+    },
+    "nativeLiveHistoryTypes": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-native-live-types.log",
+      "sha256": "516f528bf6fc073c9a636e6d4f73552615f9210f16f83f1db286da1687fa62e3"
+    },
+    "browser": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-browser-stable.log",
+      "sha256": "4ae6e85307acbab965a50259230d405d908cb17e2396c98bd08d96634e4f04e3"
+    },
+    "readonlyTrace": {
+      "result": "PASS",
+      "retainedIgnoredPath": "vendor/review-native-trace.log",
+      "sha256": "5c5725b6b1f5b9d723499f586c730ca8cafd860876ef40ce4c6eb918a119bb04"
+    }
+  },
+  "commands": [
+    "bun scripts/prepare-compatibility.ts --source-only",
+    "bun scripts/build-compatibility.ts",
+    "bun scripts/build-compatibility.ts --check",
+    "bun run typecheck",
+    "bun run build",
+    "bun run workspaces:build",
+    "bun run diagnostics:build",
+    "bun scripts/check-catalog-native.ts",
+    "bun scripts/check-live-native.ts",
+    "bun test tests/workspaces tests/access tests/catalog tests/compatibility/catalog-build.test.ts tests/compatibility/dsh-source.test.ts tests/compatibility/preflight.test.ts tests/compatibility/assets.test.ts tests/compatibility/source.test.ts",
+    "bun test tests/workspaces/remote-errors.test.ts tests/workspaces/admission.test.ts",
+    "bun scripts/enroll-candidate.ts --workspace-component",
+    "bun scripts/create-workspace-fixture.ts",
+    "python3 tests/workspaces/browser.py",
+    "BUN_EXECUTABLE=<Bun1.4.4> python3 scripts/trace-catalog.py"
+  ]
+}

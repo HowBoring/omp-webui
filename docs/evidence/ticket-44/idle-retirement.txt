@@ -1,0 +1,14 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/supervisor.test.ts:
+(pass) simultaneous explicit opens and warm views share one actual native worker [11220.20ms]
+(pass) explicit New retires a confirmed idle worker and confirms a distinct identity; Switch returns to the original [22184.73ms]
+
+tests/sessions/drain.test.ts:
+(pass) ordinary idle retirement times out without background signals and retains its handle for later authorized shutdown [310.01ms]
+
+ 3 pass
+ 16 filtered out
+ 0 fail
+ 18 expect() calls
+Ran 3 tests across 2 files. [34.31s]

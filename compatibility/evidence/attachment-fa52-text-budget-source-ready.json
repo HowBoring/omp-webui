@@ -1,0 +1,439 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "890bacf48fceea171996caeab132f9838597f123",
+  "parentTree": "adfc5d30985997b493cc3229b0dcff3265a98ce8",
+  "branch": "mvp/ticket-38-text-budget-source",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE raw5MiB UTF8 boundary/truncation-consent public tracer SOURCE ONLY. Exactatlimit plus1B refusal; not wholebudgetmatrix. NoNative product/API/schema/source/build/dependency change. NoNative/SDK/serializer/Agent/converter/FFI/kernel/socket/listener/browser/seed/probe/runtime. NoGH/merge/global/private/product admission. Whole38/MVP OPEN.",
+  "skills": [
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Already-approved public AttachmentClient.prepare\u2192attachment_prepare, submission_submit/query, get_entries and public history snapshot; unchanged controlled provider known28B capture. No new private seam/Native Session-file reads. Actual RED/GREEN deferred to Root separate ONE actual window.",
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 74887,
+    "sha256": "b4a7702b055920d961558342f6be82efa6e9b96af4d0042fccac4bb8d698e4d6",
+    "name": "actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects"
+  },
+  "manifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/utf8-5mib-boundary.json",
+    "bytes": 1638,
+    "sha256": "3d97bd8459b3c395dd292c8f3a844295674643d5ab30e477be4c61c97e35518e"
+  },
+  "input": {
+    "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+    "generation": "UTF8(\"Controlled prepared document\" + \"\u754c\".repeat(1747617) + \"!\"); over appends one ASCII !.",
+    "arithmetic": "28 + (1747617 * 3) + 1 = 5242880. Over = 5242881. One line; no BOM/newlines.",
+    "original": {
+      "bytes": 5242880,
+      "sha256": "ba9da0ac80bbde2e2c0475b51f543ddfb61532a433af8792135dae85813a9bec"
+    },
+    "overOriginal": {
+      "bytes": 5242881,
+      "sha256": "b531fde1cecce82394955e183dd34efaf72d85e9abb4707c1e2f102d76d3c350"
+    },
+    "expectedPrepared": {
+      "generation": "Controlled prepared document + \u754c repeated17057, no suffix/newline.",
+      "bytes": 51199,
+      "sha256": "5a567064a39ff504a906cd425e64e15d14a8ba1c865ba20a374242e1cb2b950f",
+      "representationSha256": "9bf7e907f0e0985e7f55064ee2fe5de719076439385805d545815b9930ebe2c3",
+      "degradations": [
+        "text_truncated"
+      ],
+      "basis": "Worked 50KiB head window:51200-28=51172 bytes,17057 whole3B glyphs=51171; one leftover byte cannot form next glyph. First line exceeds inline limit. Raw5MiB acceptance is distinct from inline/model/encoded budgets. No Native output supplied expected content/hash."
+    },
+    "authoring": "Python stdlib hashlib streamed literal chunks <=12288B; no5MiB fixture written, no Native/converter imports.",
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419"
+    },
+    "limits": "SOURCE EXPECTATION UNEXECUTED. Public UTF8 path has text_truncated but no byte-count AttachmentFacts; no invented facts. Provider known28B only."
+  },
+  "independence": "Python hashlib streaming <=12288B literal chunks, no5MiB fixture or Native/converter expected-output calls. Counts and Unicode literal authored independently, small manifest records exact sizes/hashes. Original5242880B and over5242881B. Worked prepared51199B, full expected literal and text/compactJSON representation SHA fixed BEFORE runtime. Provider unchanged known28B only.",
+  "sourceFindings": [
+    "limits.ts documentBytes=5*1024*1024 also governs utf8; prepareAttachment refuses only byteLength>ceiling before decode. FatalUTF8 decode; rawlimit not shrunk to inline/prepared/model/encoded ceilings.",
+    "Single line exceeds50KiB. prepareText calls truncateHead, sees firstLineExceedsLimit, uses truncateHeadBytes(text,50*1024). Independent worked28+17057*3=51199B;51200th byte is start of next3B glyph. Byte boundary helper backs up; original trailing ! omitted. Exactly text_truncated; no document_structure_changed.",
+    "Public UTF8 ready shape has degradation text_truncated but no optional text-specific AttachmentFacts. No originalBytes/preparedBytes/text-count fact invented; source testcase checks actual public degradation plus independently expected text/hash.",
+    "Receipt validation binds draft/revision/authority/original order/digests and representation SHA. Missing actual degradation consent fails validateAndFreeze before reservation/admission. Explicit consent uses returned receiptId/resultDigest/draftRevision/authorityGeneration; acceptedDegradations exactly[text_truncated].",
+    "Worker reads <=10MiB and then enforces5MiB text original limit. Over5MiB+1 is validUTF8 with correct SHA, below rawaggregate32MiB and completeRPC48MiB; isolated preparation must return failed item attachment_original_budget. Receipt retained but failed; consume refuses ATTACHMENT_NOT_READY before reservation/effects.",
+    "Text saved companion records attachment-prepared://preparedId/content/byteSize; saved identity only public relation.entryId + actual entryPart files/index. Same entryId history origin/role/full links; no text/hash/order joins.",
+    "No unconditional Native source capability gap found in inspected public path. Actual mismatch must produce firstFAIL/SOURCE HOLD, never lower5MiB target, automatic truncation consent or derive expected bytes from Native."
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/rpc-budget.ts",
+      "bytes": 1321,
+      "sha256": "5129c850349930bdae2fb881799e4072c72fd659c1bfd4eb07bea4b2b3f1c961"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/tui/src/tools/streaming-output.ts",
+      "bytes": 68738,
+      "sha256": "a0bef76bc092f7f0beee7ca0bbb0a1f12134e41e117b16259976b88303f502de"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/packages/contracts/generated/attachment-client.ts",
+      "bytes": 2366,
+      "sha256": "4eacdfcfd93583efe99567020993a809edf20b061b99b35b0e3e55cf1eed1216"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/packages/contracts/generated/attachment-receipt.js",
+      "bytes": 37900,
+      "sha256": "c8a22033d78df94f57cf532f1194558c657704c09874c4ccfec953ac46fbecff"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    }
+  ],
+  "expectedAssertions": [
+    "Exactly5MiB validUTF8 original knownSHAba9da0ac acceptedready at selected target; one text-limit item, worked51199B and representationSHA9bf7e907 distinctfromoriginal; exacttext_truncated.",
+    "Preparation changes neither publicentries nor providereffects. Missingconsent refuses ATTACHMENT_DEGRADATION_CONSENT_REQUIRED and samekeyquery foundfalse/reservationabsent/admissionabsent/terminalfalse/operationunknown/inputunresolved/persistenceunresolved/relations[]/nextOffsetnull; no effects.",
+    "Explicit actualreceiptbound text_truncated consent admits ONE succeeded/generated/committed reservation+input, exactselectedtarget/origin/preparationbinding. Onlypublicrelation.entryId and actual files/index locates saved51199B preparedId path/content/byteSize/textSHA5a567064; historysameentryId exactorigin/preparedrole/fullcausallink.",
+    "Exactlyone input/modelattempt/dispatch/request. Noimages/tools/blockedgrowth. Provider known28B/SHAfd4d6186 once in developertext; no full51199B/providerwrapper deliveryclaim. Repeatterminalquery equalsfirst and no effects.",
+    "Samevalidliteral plusoneASCII! exactly5242881B correctSHAb531fde1 preparesfailed attachment_original_budget; noentries/providereffects. Attemptconsumption refuses ATTACHMENT_NOT_READY, absent/unresolvedquery/noeffects. Completecallerdraft/prose/originalbase64 byteexact retained with originalSHA. Browser draft persistence/editor state untested."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS_STATIC_SOURCE_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-text-budget-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-text-budget-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T08:04:12.940212+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 582611,
+        "code": 0,
+        "finishedAt": "2026-11-17T08:04:21.851862+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-text-budget-source/host-types.json",
+          "bytes": 910,
+          "sha256": "a410802dee85dc098e0f8cefe7561556e0c2b574faa8cb6c588e4d17120827ad"
+        },
+        {
+          "path": "/tmp/ticket38-text-budget-source/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-text-budget-source/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_SOURCE_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-text-budget-source/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-text-budget-source/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-text-budget-source/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T08:04:21.852225+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter runtime imports",
+        "pid": 582638,
+        "code": 0,
+        "finishedAt": "2026-11-17T08:04:21.861669+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-text-budget-source/syntax.json",
+          "bytes": 963,
+          "sha256": "834f16b7a1a831695b96d799f10edcaa2d3666cc711af9ac59d1e43bb37c3f69"
+        },
+        {
+          "path": "/tmp/ticket38-text-budget-source/syntax.stdout",
+          "bytes": 71,
+          "sha256": "34c7ed8d40d58db424231047b08b52911c003f461d3e112510659db9c58dc992"
+        },
+        {
+          "path": "/tmp/ticket38-text-budget-source/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "frozenReadback": {
+    "before": {
+      "path": "/tmp/ticket38-text-budget-source/before.json",
+      "bytes": 5342,
+      "sha256": "d34896cd97e483046c5b52735555886d3c7aa85045be4d6bd433ccb84f065b0f"
+    },
+    "after": {
+      "path": "/tmp/ticket38-text-budget-source/after.json",
+      "bytes": 1505,
+      "sha256": "eb12f172d7caf914a9439b8a09c1d2e856180bae99b3601d2217aef3c4e7e0f9"
+    },
+    "independentAuthorAndPreservationAndBoundedResolver": {
+      "path": "/tmp/ticket38-text-budget-source.py",
+      "bytes": 10890,
+      "sha256": "4b44ff2cc335c613184b4b1194695e804634247f1c389bef02c894447d31b1ee"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-text-budget-static.py",
+      "bytes": 1680,
+      "sha256": "b1a2f2efc9ee6831ddbac47a57ef209a82c557496531cda5df8ca32bc81676d5"
+    },
+    "baseFreeze": {
+      "path": "/tmp/ticket38-epub-source/final-inputs.json",
+      "bytes": 14169,
+      "sha256": "a4be144ba454c5c48837becc1eb5cd7f8a271ad2959be410f7b46beab3d8bdc5"
+    },
+    "baseCurrentInputs": 745,
+    "flatAncestorFreeze": {
+      "path": "/tmp/ticket38-pptx-source/final-inputs.json",
+      "bytes": 184366,
+      "sha256": "85301e2a334150a2720fb2738e4a2ca7a3e9edea8741986ab5f2265e26625e5a"
+    },
+    "flatAncestorCurrentInputs": 667,
+    "additionalPriorProofRawRecords": 17,
+    "preservedCurrentBefore": 762,
+    "unchangedPreservedCurrentAfter": 761,
+    "priorBodies": "All ten prior cases and helpers byte-exact prefix; full provider byte-exact.",
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "hostBefore": {
+      "head": "890bacf48fceea171996caeab132f9838597f123",
+      "tree": "adfc5d30985997b493cc3229b0dcff3265a98ce8",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 86468,
+        "sha256": "2e6846ef26504f8f43e4462cf5c68485ef007e5332a652db58a7b8454a996ada"
+      },
+      "meaning": "Historical pre-edit Host index; own source commit intentionally changes Host index. No index copy. Native liveindex stays unchanged."
+    },
+    "testPreimage": {
+      "path": "/tmp/ticket38-text-budget-source/public-rpc.test.ts",
+      "bytes": 65835,
+      "sha256": "42ff9b48044796238dc1a7c4d896becc899d03583bd0ac5832a2ee6913baf750"
+    },
+    "documentationPreimage": {
+      "path": "/tmp/ticket38-text-budget-source/ATTACHMENTS.md",
+      "bytes": 4701,
+      "sha256": "5164ebc473811e32d1262fa8965fe9643dc5548c55f6f318dcfd9192b7f82099"
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "closureManifests": {
+      "archiveXml": {
+        "manifest": {
+          "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+          "bytes": 10064,
+          "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+        },
+        "records": 41,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+        }
+      },
+      "nativeAddonCandidates": {
+        "manifest": {
+          "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+          "bytes": 6181,
+          "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+        },
+        "records": 15,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+        }
+      },
+      "meaning": "Existing immutable manifests reused by reference, no duplicate full manifest. Each named record and symlink independently rehashed/checked in source preservation/readback; actual capability unexecuted."
+    },
+    "htmlSourceManifest": {
+      "path": "/tmp/ticket38-epub-source/html-source-closure.json",
+      "bytes": 2232,
+      "sha256": "3863723836f65bd1b69b1956214cf1b9f0a2aa4f549e19da82709d1e663ec4c1"
+    },
+    "boundedResolver": "New pure acyclic resolver maxdepth4; all immutable priorhelpers unchanged. Resolve thisdelta\u2192EPUB745\u2192XLSX703\u2192PPTX667. Solecurrenttestoverride, uniqueaddedrecords, exactNative state and namedclosures. No fullmanifest/index/vendor/runtime/binary/dependency copies.",
+    "limits": "Streamhashes/metadata/source only; enrolled refs and named closures, not exhaustive transitive/system/runtime proof."
+  },
+  "documentation": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/ATTACHMENTS.md",
+    "meaning": "Scoped current9f33 individual format/refusal proofs linked in matrix; olda640/e957 explicitly historical. Thisboundary SOURCE NOT RUN; otherbudget/browser/productclaims remain OPEN."
+  },
+  "plannedRuntime": {
+    "status": "NOT RUN. STOP aftersourcecommit/freeze forfreshRootreview and separate exactly ONE anchoredactualwindow; no selfGO.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public 5MiB UTF8 requires truncation consent and refuses one byte over before effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-text-budget-* synthetic directory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 45000,
+    "workerRequestDeadlineMs": 10000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Pure bounded resolver verify ofnewdelta/base745\u2192703\u2192667 +166Native dirty/untracked +290matched +41archive/XML+15addon+6HTML; exactNativeHEAD/index/status/allbinarydiffs and candidate/dependencylinks. OwnHostHEAD/tree/index cleanbeforeafter. Streamhash no copies; profile andguard audits asanchoredrunner. Originalhandles/readers only; noPIDfallback/groupkill/proccensus.",
+    "failurePolicy": "Stop firstFAIL, preserveexactfailure. No retry/fix/expectationweakening, Native API/schema/product/build/dependency change, othercase/format, Host/browser/FFI/socket/kernelprobe, GH/merge/global/private/product admission, fence/orphan444480/processcensus/PIDfallback/groupkill. Ifpubliccapabilitygap, SOURCE HOLD; never shrinkacceptedrawlimit or silentlyapprove degradation.",
+    "runtimeWindow": "CurrentNative37window1c60d1/session19999 remains separatelyowned. No overlap or actualnow. Root freshreview + ONE mandatory."
+  },
+  "earnedPriorRuntime": "Ten existing isolated current9f33 cases remain scoped recordedPASS:PNGtext47,invalidUTF8mixed13,JPEG33,DOCX45,WebP49,GIF55,PDF49,PPTX45,XLSX45,EPUB45. Their readies/proofs/rawrefs are preserved byteexact. No new runtime executed.",
+  "tddState": "One nextvertical authored atapprovedpublicseam. Independentpins/source/staticreadbackPASS. ActualRED/GREEN NOTRUN and no product fix claimed; await Root separately authorized ONE. No wholebudgetmatrix.",
+  "notRun": [
+    "New actual boundary or anyothercase; Native/SDK/serializer/Agent/converter/FFI/kernel/socket/listener/browser/seed/probe runtime",
+    "Native API/schema/product/build/dependency mutation",
+    "GH/push/merge/closure/global/private/product admission"
+  ],
+  "remainingMandatory": [
+    "ActualthisONEboundaryslice; remainingrefusal/budget/locator/lifecycle/stale/cancel/expiryfaults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI/provider; actualDSH/browser/coherent1\u201310/fullchecks/reviews/whole38/MVP",
+    "Linuxnow; WindowsChrome/WSL2ownerdeferred; noownerselectedglobalOMPpath"
+  ],
+  "admission": "SOURCE READY ONLY. Commit READY +smallmanifest+appendedcase+scopedcompatibilitydoc; compactdeltafreeze then STOP freshRootreview/exactONE. Whole38/MVP OPEN; private/global/product blocked."
+}

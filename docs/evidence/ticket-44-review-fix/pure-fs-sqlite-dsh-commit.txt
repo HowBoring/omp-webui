@@ -1,0 +1,87 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/error-contract.test.ts:
+(pass) the public native error boundary preserves known refusal/history codes and bounds unrecognized failures [0.12ms]
+
+tests/sessions/source-supervisor.test.ts:
+(pass) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [64.82ms]
+(pass) Open during pending idle retirement retains its prelaunch reason [84.57ms]
+(pass) zero exit with a failed final protocol tail persists an unknown shutdown outcome [78.63ms]
+(pass) an oversized adapter code remains bounded and its unknown worker is available for manual observation [66.25ms]
+(pass) a failed attempt write cannot bypass cleanup of a definitely refused owned worker [60.62ms]
+(pass) an index outage retains an unknown owned worker for manual observation after storage recovers [111.77ms]
+(pass) a replaced directory is a durable prelaunch refusal without a worker [37.06ms]
+(pass) shared startup retains root UI and one generation when one waiting browser logs out [51.64ms]
+
+tests/sessions/source-remote.test.ts:
+(pass) busy New and Switch return correlated typed lifecycle failures with an explicit recovery action [92.22ms]
+(pass) known typed errors keep safe codes while arbitrary native messages and forged objects are sanitized [37.39ms]
+(pass) malformed carrier envelopes reject before invocation while a valid stale choice returns a correlated failure [61.91ms]
+(pass) unconfirmed New returns manual recovery through Remote without inventing a registration [62.08ms]
+
+tests/sessions/index.test.ts:
+(pass) first open persists one reference and its failure across Host restart [39.84ms]
+(pass) Host restart preserves native identity and requires manual reopen without resurrecting a worker [7.42ms]
+(pass) same native ID in different physical instances remains distinct and snapshots reject expired cursors [9.46ms]
+(pass) replacement of the Host state directory fails closed [7.05ms]
+
+tests/sessions/revoke-all.test.ts:
+(pass) trusted revoke-all invalidates durable credentials and peers and notifies admission before returning [23.06ms]
+
+tests/workspaces/grants.test.ts:
+(pass) explicit canonical grant persists, includes descendants, rejects prefix confusion and revokes durably [56.11ms]
+(pass) symlink escape, source cwd replacement and canonical-root replacement never inherit old rights [20.09ms]
+(pass) confirmation expiry, single use and lost durable state fail closed [5.44ms]
+(pass) revoking an ancestor preserves only separately granted descendants [13.30ms]
+
+tests/interactions/bridge.test.ts:
+(pass) answer floods are rejected immediately while native invalid/valid/stale semantics remain authoritative [1.72ms]
+(pass) explicit cancellation bypasses a held answer without rewriting its delayed native reply [0.84ms]
+(pass) Host expiry sends cancellation and abort while an answer acknowledgement is held [40.89ms]
+(pass) worker answer capacity remains bounded across interactions and disposal [5.41ms]
+(pass) a Host deadline reached before its timer callback sends cancellation and returns the actual native result [0.50ms]
+
+tests/browser/interactions-remote.test.ts:
+(pass) public DSH interaction Remote decodes Host overload without accepting it as a native acknowledgement [5.11ms]
+
+tests/preferences/remote.test.ts:
+(pass) a WebUI theme preference is read and changed through the actual settings Remote [26.65ms]
+(pass) a canceled carrier invocation cannot change a preference, its revision or its public notification [7.08ms]
+(pass) a Peer canceled after admission cannot change preferences, revisions or notifications [7.34ms]
+(pass) locale preference edits preserve theme and unset delegates language selection to the browser [35.03ms]
+(pass) stale or unconditional edits cannot overwrite another page's accepted preference [14.22ms]
+(pass) expired browser authority refuses reads and edits even for the DSH owner principal [12.57ms]
+(pass) global configuration, unknown capabilities and malformed edits cannot change WebUI state [26.82ms]
+(pass) accepted preference changes publish the public settings invalidation event for other views [10.13ms]
+
+tests/attachments/store.test.ts:
+(pass) two SQLite connections reserve a shared budget before reading concurrent bodies [30.42ms]
+(pass) in-flight intake reservations are bounded separately from durable objects [19.95ms]
+(pass) current browser, page, directory, profile, source, instance, Session and draft rights fence each read [53.43ms]
+(pass) revocation between chunks cleans partial bytes and leaves the budget reusable [25.40ms]
+(pass) exclusive startup reclaims interrupted partial data only after its directory returns [24.52ms]
+(pass) single-object, draft-count and draft-byte refusals preserve already staged originals [72.72ms]
+(pass) short, oversized and disguised image streams cannot publish or consume quota [25.75ms]
+(pass) a missing original is a bounded public failure and its charged bytes are not silently reclaimed [12.87ms]
+(pass) display traversal cannot overwrite a project file and stored bytes remain owner-only [35.42ms]
+(pass) raw intake requires explicit verified Open and never reads the body on a mismatched target [11.93ms]
+(pass) an authority-epoch change during upload invalidates publication without losing prior draft objects [20.25ms]
+(pass) a second connection cannot change the persisted budget to bypass a full store [8.80ms]
+(pass) storage corruption refuses exact-original reads rather than returning changed content [12.27ms]
+(pass) restart refuses unaccounted payloads even when their names reuse a known object ID [9.74ms]
+(pass) exact originals survive Host restart without becoming prepared or sent [15.64ms]
+(pass) aborting a stalled upload releases its reservation without waiting for another chunk [20.75ms]
+(pass) raw intake rejects an invalid target with one bounded code before body consumption [5.78ms]
+(pass) raw intake rejects invalid descriptors without exposing schema details or consuming bytes [14.01ms]
+(pass) raw intake bounds SQLite reservation errors and can stage after the storage fault clears [11.96ms]
+(pass) raw intake retains revocation, binding, cancellation and quota refusal codes [27.67ms]
+(pass) raw intake bounds oversized attachment-like producer errors and releases the reservation [33.19ms]
+
+tests/attachments/remote.test.ts:
+(pass) proposed Host Remote stages and reads exact originals without preparation or Native claims [37.72ms]
+(pass) revoked or unopened scopes and noncanonical base64 never stage originals through an owner Peer [113.93ms]
+
+ 59 pass
+ 0 fail
+ 301 expect() calls
+Ran 59 tests across 11 files. [2.20s]

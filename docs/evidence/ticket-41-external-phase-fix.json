@@ -1,0 +1,162 @@
+{
+  "status": "SOURCE/PURE/TYPES ONLY; kernel/Native/global/product admission BLOCKED",
+  "reviewBase": "907e8b17d6c089c70afbb995d1ac0aa3ae293721",
+  "reviewBaseTree": "0c6d22a0b3e0d8e565876ef10ae90f25082c0de1",
+  "reviews": {
+    "standards": "ticket-41-external-phase-standards.md: 0 findings",
+    "spec": "ticket-41-external-phase-spec.md: 1 P2, known pre-start root death permits START/readiness"
+  },
+  "sourceCommit": "abd9796b539094609b2957ca6598ded1ce53569a",
+  "sourceTree": "22dc0ec35411e7aba4ce006a9668e3125ffa75e3",
+  "integrationTip": "4024c4084173c102764e0c1e42efa183ba8810d4",
+  "integrationMerge": "explicit git merge --no-edit mvp/spec-29: Already up to date; ancestor check passed",
+  "tdd": {
+    "redCommit": "3a6ca60acf97c56390d786a5495fbc6b9df666ad",
+    "red": {
+      "pass": 27,
+      "fail": 2,
+      "assertions": 148,
+      "failure": "single valid ROOT_EXIT during held registration and in HELLO chunk each released an unwanted START"
+    },
+    "greenController": {
+      "pass": 30,
+      "fail": 0,
+      "assertions": 162,
+      "files": 1,
+      "durationMs": 19
+    },
+    "green": {
+      "pass": 50,
+      "fail": 0,
+      "assertions": 230,
+      "files": 7,
+      "durationMs": 49
+    },
+    "callbackRegression": "ROOT_EXIT before held START write callback rejects readiness immediately; ordered verified COMPLETE/EOF/direct reap still succeeds"
+  },
+  "semantics": [
+    "Valid ROOT_EXIT rejects pending ready with existing EXTERNAL_UNRESOLVED; it is not a malformed frame or sticky lifecycle failure.",
+    "After successful independent verification, observed root death suppresses START; root death while START write callback is pending prevents successful readiness.",
+    "Healthy verified terminal drain can complete independently of rejected startup readiness; COMPLETE before verification remains sticky EXTERNAL_PROTOCOL.",
+    "Prior receipt guards for forbidden phases, duplicates, incomplete, EOF/close and premature COMPLETE remain covered; ordinary post-start ordered completion remains successful."
+  ],
+  "checks": {
+    "fullHostTypeScript": "PASS, exit0",
+    "gitDiffCheck": "PASS",
+    "baseCBuildAndFixtureByteComparison": "PASS, 9 files",
+    "freshCCompilation": "NOT RUN; unchanged C/build sources; previous static results are historical"
+  },
+  "commands": [
+    "bun test tests/supervision/control.test.ts tests/supervision/controller.test.ts tests/supervision/session.test.ts tests/supervision/build.test.ts tests/supervision/external/controller.test.ts tests/supervision/external/launch.test.ts tests/supervision/external/build.test.ts",
+    "bun run typecheck",
+    "git diff --check"
+  ],
+  "bun": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun (1.4.4)",
+  "freshIndependentReviews": "pending coordinator; not performed by fixer",
+  "notRun": [
+    "actual helper/protector/C or kernel fixtures",
+    "Native/CLI/task, UDS/listener/probe/signals/browser/strace/dlopen",
+    "external-write-fault.py backpressure and write-error",
+    "global approval/install/publication/admission"
+  ],
+  "limits": [
+    "Pure public OS adapters are not actual socket/kernel/authentication proof.",
+    "C pre-exec barrier, independent authenticated registration, full-flush/sticky-fence finalization, ECHILD and private EOF policy unchanged.",
+    "Original orphan/fences not inspected or touched.",
+    "Windows Chrome/WSL2 owner-deferred."
+  ],
+  "sourceDigests": {
+    "packages/supervision/external.ts": "56a4d3219dcd6c6103b5a4d7f26d6f84e4377225449a80d25fd82ade4dd77ab2",
+    "tests/supervision/external/controller.test.ts": "6ac72aa022bd269c66876f08c131af0c01483e403b59c68370f0e8fa053743b1",
+    "packages/supervision/EXTERNAL.md": "19b84a13ef62c3b10e610e6eec2310340a77740d35a577c975d30f351ac63070"
+  },
+  "unchangedBaseDigests": {
+    "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+    "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+    "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+    "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+    "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+    "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+    "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+    "scripts/check-external-protector-static.py": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+    "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+  },
+  "logs": {
+    "/tmp/ticket-41-external-root-exit-red.log": "7dd84569f77c2af9d95d0bb31b3ba93109fdfe29b8a1e8355ae4b878e0e35b2b",
+    "/tmp/ticket-41-external-root-exit-green-controller.log": "c3c76b87392beda08d6486ef5bcae7f5cab6e39fc13e39650fa0f310c33d4d63",
+    "/tmp/ticket-41-external-root-exit-pure.log": "79f5b939dee2e7ae172a46d0175d1da14bba503f5cde6702e5f0da8cb2ab6f9a",
+    "/tmp/ticket-41-external-root-exit-typecheck.log": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+  },
+  "previousPhaseFixEvidence": {
+    "status": "SOURCE/PURE/TYPES ONLY; kernel/Native/global/product admission BLOCKED",
+    "reviewBase": "c0a46ec61706f69ee722409e42f71b11589a8272",
+    "reviewBaseTree": "6c446b470d56d32069da8d12789176d8b0853ad1",
+    "sourceCommit": "57fa6091f28c4396269a936ebccf502bb93d3fe9",
+    "sourceTree": "fb1c0dbac677168bf596e4751dd7f493afc59d9d",
+    "integrationTip": "4024c4084173c102764e0c1e42efa183ba8810d4",
+    "integrationMerge": "explicit git merge --no-edit mvp/spec-29: Already up to date; ancestor check passed",
+    "tdd": {
+      "redCommit": "11cfa7fa026b55f6c7472458ffd544d66fe1a566",
+      "red": {
+        "pass": 15,
+        "fail": 12,
+        "assertions": 96,
+        "failure": "all four forbidden phases and duplicate HELLO/ROOT_EXIT released START; each tested during held registration and in same chunk as HELLO"
+      },
+      "green": {
+        "pass": 47,
+        "fail": 0,
+        "assertions": 212,
+        "files": 7,
+        "durationMs": 48
+      }
+    },
+    "checks": {
+      "fullHostTypeScript": "PASS, exit0",
+      "gitDiffCheck": "PASS",
+      "baseCBuildAndFixtureByteComparison": "PASS, 9 files",
+      "freshCCompilation": "NOT RUN; unchanged C/build sources; previous static results are historical"
+    },
+    "commands": [
+      "bun test tests/supervision/control.test.ts tests/supervision/controller.test.ts tests/supervision/session.test.ts tests/supervision/build.test.ts tests/supervision/external/controller.test.ts tests/supervision/external/launch.test.ts tests/supervision/external/build.test.ts",
+      "bun run typecheck",
+      "git diff --check"
+    ],
+    "bun": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun (1.4.4)",
+    "freshIndependentReviews": "pending coordinator; not performed by fixer",
+    "notRun": [
+      "actual helper/protector/C or kernel fixtures",
+      "Native/CLI/task, UDS/listener/probe/signals/browser/strace/dlopen",
+      "external-write-fault.py backpressure and write-error",
+      "global approval/install/publication/admission"
+    ],
+    "limits": [
+      "Pure public OS adapters are not actual socket/kernel/authentication proof.",
+      "C pre-exec barrier, independent authenticated registration, full-flush/sticky-fence finalization, ECHILD and private EOF policy unchanged.",
+      "Original orphan/fences not inspected or touched.",
+      "Windows Chrome/WSL2 owner-deferred."
+    ],
+    "sourceDigests": {
+      "packages/supervision/external.ts": "4114521d961c843d36cabf17dc9ad014bd589f52f6b4979f0ca104c954cef538",
+      "tests/supervision/external/controller.test.ts": "6c077481178d0586766bea37a7b858081a7d2b7ed7d9959a8c538eecf0d1501a",
+      "packages/supervision/EXTERNAL.md": "da313c0835a331aa9272b24b2d9cdd54e816e6c7b425118680c66bf1435363fe"
+    },
+    "unchangedBaseDigests": {
+      "compatibility/supervision/external-protector.c": "f3e4c38b50e59e5dbb79ec5f20842568af222f0a1e10c8ba0f842b9d745ae73c",
+      "compatibility/supervision/private-helper.c": "2c1b396430991d0a3e915969916481cfc49eb4bac944a65a92daba22f24310b3",
+      "compatibility/supervision/candidates.h": "1239466932bdcd678b6b32afea9e40bf39a5d2fba78208e8a7885edabbe4412f",
+      "compatibility/launcher/control.h": "9036df53380ab63bd196a645ef9e856ca37444637408feaec06bda4af0170146",
+      "scripts/supervisor-build.ts": "771bd378484e72456e827f16dbf669b49da1e5fb0a6cd8b8aad2d74226802155",
+      "scripts/build-private-helper.ts": "66843711293853df170e53a388cc7e6e96a20a7a43b38edc803e3ae7f083e170",
+      "scripts/build-external-protector.ts": "c51e43347aca29f1053a48ad7de29f2e007067e5e7f151501a2e4dedf483ecdb",
+      "scripts/check-external-protector-static.py": "c8f4596858d8b58d791c21983017798ebc9f0db9d353d7c9bb84ca10501bb3bb",
+      "tests/supervision/fixtures/external-write-fault.py": "0b0e557dcc574cb690c273f9f11b13cb772c004feeff408b676b26697c2e40dc"
+    },
+    "logs": {
+      "/tmp/ticket-41-external-phase-red.log": "2a1dea8bd6d156d4a66f9af142335472e5430f95ecfbdcc25e1aeaf020672aac",
+      "/tmp/ticket-41-external-phase-green-controller.log": "50fdab5e8b603ec45d48fb063767be0771e5a51d36aa0e22e4aa1eb53c557404",
+      "/tmp/ticket-41-external-phase-pure.log": "5507f9b535cb29a0d7f8dd6ac10b8318fbf6bf21966a0b14b4680b8b26c8ef7d",
+      "/tmp/ticket-41-external-phase-typecheck.log": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+    }
+  }
+}

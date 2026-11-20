@@ -1,0 +1,8 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": [
+    "../../packages/history-navigation-source/**/*.ts",
+    "../../packages/contracts/history-navigation-source.ts",
+    "./remote.test.ts"
+  ]
+}

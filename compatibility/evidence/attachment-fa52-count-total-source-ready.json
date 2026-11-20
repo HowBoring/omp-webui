@@ -1,0 +1,508 @@
+{
+  "ticket": 38,
+  "status": "SOURCE_READY_RUNTIME_NOT_RUN",
+  "sourceParent": "9559616170abf99aeef679bd493b62f05924e492",
+  "parentTree": "5ab48157043ce9bd589aa0a63ef92db3989df3b2",
+  "native": {
+    "base": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+    "sourceSha256": "9f33ec9a6e6ad0c2f5d8f105da5e59f29f45eb8aa4780bd0ad010ccf40a996d9",
+    "patchSha256": "5e3153a05b95c8474971ee221a005ad7d9eeccbe197322ea3bcc6abed42d1bad",
+    "schemaSha256": "8f9c3a086dade38eee57fdb535f1d5b66e81a1f770a2f44e9bc077f41b0e5566"
+  },
+  "matchedBuild": {
+    "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-matched-build.json",
+    "bytes": 79268,
+    "sha256": "dc751fc9fb6efa6b9dbd80722bb1bf4d6a89e73910553e2e7d0c377a7e122ea5"
+  },
+  "scope": "ONE count/total vertical publicRPC SOURCE case:8*4MiB UTF8 exactly32MiB, receipt-bound truncation consent, eight indexed saved parts/history links;9 one-byte objects and8 objects totaling32MiB+1 refuse whole commands. Native1-9/schema/generated/build/provider/helpers unchanged. NoNative/OMP/SDK/Host/provider/browser/process/kernel/seed execution. Whole38/53/54/MVP OPEN; product/global/private admission BLOCKED.",
+  "skills": [
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/implement-spec/SKILL.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/SKILL.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/tests.md",
+    "/workspace/work/omp-webui-ticket-38/.agents/skills/tdd/mocking.md"
+  ],
+  "seam": "Existing approved public AttachmentClient.prepare\u2192attachment_prepare, submission_submit/query, get_entries, history snapshot; unchanged controlled-provider known-span capture. Fixture.send/wait retain exact public command/correlation envelope; no private implementation seam or Session-file reads.",
+  "test": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/public-rpc.test.ts",
+    "bytes": 85975,
+    "sha256": "2437ee3e1166b3d72c5a6c90cfbe2c3a246ae77e1f5972beee27af2ced80b645",
+    "name": "actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects"
+  },
+  "manifest": {
+    "path": "/workspace/work/omp-webui-ticket-38/tests/attachments/fixtures/utf8-count-total-boundary.json",
+    "bytes": 3153,
+    "sha256": "ac96e2a36b89911f2ecad5391419a2b4407a24b977a620ed45759520ef3574b1"
+  },
+  "input": {
+    "status": "INDEPENDENT_LITERAL_PINS_NATIVE_NOT_RUN",
+    "specBasis": "Spec29 story63 / decisions20-21 and attachment-contract Q6: max8 objects and33554432B; pertext5242880B, separate encoded50331648B.",
+    "generation": "UTF8(\"Controlled prepared document\" + \"x\".repeat(4194276)); eight separate logical IDs text-1..8, equal original bytes.",
+    "arithmetic": "28+4194276=4194304B each; 8*4194304=33554432B. Total-over appends one ASCII ! to only first object:33554433B across8; first4194305<5242880. Count-over9 separate one-byte ! objects=9B<33554432.",
+    "original": {
+      "bytes": 4194304,
+      "sha256": "92b6fae8c43b91f2d2112427ee14947565814730c56e11eb176c0fc73fe23b32"
+    },
+    "totalOverFirstOriginal": {
+      "bytes": 4194305,
+      "sha256": "a2ff6cfe3749e48dc056fff1f4367eca40f85d2a47b0176ed92ac9db70644bb5"
+    },
+    "countOverOriginal": {
+      "generation": "ASCII !; base64 IQ==",
+      "bytes": 1,
+      "sha256": "bb7208bc9b5d7c04f1236a82a0093a5e33f40423d5ba8d4266f7092c3ba43b62"
+    },
+    "acceptedRawBytes": 33554432,
+    "totalOverRawBytes": 33554433,
+    "countOverRawBytes": 9,
+    "expectedPrepared": {
+      "bytes": 51200,
+      "sha256": "87a381e538d26bc4c3ee9ad4edb5f915b4da222bb55481af59e5ffe58c4ed4c5",
+      "generation": "Controlled prepared document + x repeated51172; no suffix/newline.",
+      "representationSha256": "b5b175df454069cef4a11b866e34146af6785b651c85efaa02069c365486e9f4",
+      "degradations": [
+        "text_truncated"
+      ],
+      "basis": "Independent50KiB head:51200-28=51172 ASCII x. Eight full expected saved bodies, eight distinct causal locators; no optional UTF8 facts invented."
+    },
+    "encodedFrames": {
+      "accepted": {
+        "base64Bytes": 44739264,
+        "envelopeIncludingNewlineBytes": 1254,
+        "wireBytes": 44740518
+      },
+      "totalOver": {
+        "base64Bytes": 44739264,
+        "envelopeIncludingNewlineBytes": 1252,
+        "wireBytes": 44740516
+      },
+      "countOver": {
+        "base64Bytes": 36,
+        "envelopeIncludingNewlineBytes": 1378,
+        "wireBytes": 1414
+      },
+      "rpcCeilingBytes": 50331648,
+      "basis": "Actual public send retains generated36-character UUID; JSON compact UTF8+newline exactly measured before send. Refusal IDs distinct36 characters. Envelope depends only on same-sized IDs, not UUID contents.",
+      "separation": "Raw+1 leaves base64 length unchanged because4194304 and4194305 share encoded5592408B. Both large frames fit48MiB. This is NOT an exact48MiB boundary test; no public boundary claim from a private helper."
+    },
+    "providerKnownSpan": {
+      "text": "Controlled prepared document",
+      "bytes": 28,
+      "sha256": "fd4d618665fd8dbb429346ec93e6996c7f60ce30e0cf40de732e5a1ac9ef8419",
+      "capture": "Unchanged provider caps2 per-message spans; expect two developer known28B witnesses once each. No fulltext or eight-body provider claim."
+    },
+    "authoring": "Python stdlib hashlib literal chunks<=4096B and empty-data JSON envelope arithmetic. No large fixture or Native/Host/converter import/execution.",
+    "limits": "SOURCE EXPECTATIONS UNEXECUTED; actualRED/GREEN requires freshRootreview/exactONE. Complete caller draft retained, browser/editor/storage state untested."
+  },
+  "independence": "Spec29/Q6 raw8/32MiB constants are literals, never Native limit imports. Python stdlib streams literal chunks<=4096B; empty-data compactJSON+base64 length arithmetic independently pins actual frame bytes. Expected prepared51200B/fulltext SHA/representation SHA fixed from worked50KiB ASCII head, not Native output. No huge committed/generated source fixture.",
+  "sourceFindings": [
+    "Public AttachmentPreparations validates count and raw total before setting pending or preparing any item. Morethan8 or decodedbase64 total>33554432 throws ATTACHMENT_INPUT_BUDGET; handler returns failure with no receipt. This is wholecommand refusal, unlike individual5MiB+1 failed-item receipt.",
+    "Nine valid one-byte UTF8 objects isolate count9 while raw total9B and encoded1414B fit. Total-over has exactly8 valid original hashes; first4194305B<5242880, others4194304B, total33554433B; no individual/count/encoded excess explains refusal.",
+    "Accepted8 objects share bytes/hash but distinct IDs, eight ready items in order, eight distinct prepared IDs, eight actual causal relation links and distinct saved locations. Receipt status ready plus full literal representations prevents silent subset success. NooptionalUTF8 AttachmentFacts invented.",
+    "Each4MiB single-line ASCII UTF8 becomes full51200B expected prepared text with text_truncated. Receipt-bound explicit consent required before reservation/effects. Preparation itself adds no publicentries/provider effects. User prose retained exactly.",
+    "AttachmentClient generates36-characterUUID. New callback measures command then uses existing fixture.send/wait directly, avoiding request replacementid. Exactly44740518B JSONL includes44739264B base64+1254B envelope/newline<50331648B. Refusals IDs are distinct36-characterstrings; exact sizes44740516B and1414B. Raw+1 does not grow base64 here.",
+    "No exact48MiB RPC boundary assertion added: accepted raw32MiB does not imply wire32MiB, nor does it reach48MiB. Measurement observes public send bytes; private measureAttachmentRpc/encoder unit seams are not imported. No Native/schema/build change justified by this source slice.",
+    "Saved parts use only public relation.entryId + entryPart kind/files/index and exact preparedId path/content/byteSize/SHA. Eight distinct locators and same-ID history rows with origin/preparedrole/fulllink assertions distinguish equal-content logical objects.",
+    "Unchanged provider capture caps2 known28B spans. Expect exactly2 developer witnesses once each plus one input/modelattempt/dispatch/request, no images/tools/blockedgrowth. This does not establish eight or full provider bodies. Terminal requery stable and no effects.",
+    "Refusal leaves every caller draft field/object/base64 immutable and checks every original SHA after rejection. No receipt is available to consume; query remains absent/unresolved. No browser draft persistence/editor/history-original service claim."
+  ],
+  "sourceContractReferences": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/docs/rpc-attachments.md",
+      "bytes": 5154,
+      "sha256": "cdaec389a05d1bcfaabe77181e72e5778044513c87e8d19feaa6f345d1ed8dab"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/modes/rpc/wire/attachments.ts",
+      "bytes": 4070,
+      "sha256": "8a630be6755010eff9b6f4cf63080a86c27a9f246edca536532be81b0d7210c8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/limits.ts",
+      "bytes": 1031,
+      "sha256": "cccb7d85b52a4a125a51447a2601140fb523fb75d38639c38ea817cae7a0ee9f"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/prepare.ts",
+      "bytes": 4972,
+      "sha256": "2cc1e5bca63ff28c5e18e1712090f5674b04ec52f3bf9691a91bcb0dbd6386ce"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/receipts.ts",
+      "bytes": 12550,
+      "sha256": "45c7945d10f4177aad0edc4be44460b80525bb5f23b45b39bea05baf6eb8e4f8"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/isolated.ts",
+      "bytes": 3964,
+      "sha256": "7e67cddbb213b2cd5a96dffe7c8894d5db63c1948b5e174e9b2e7088e3d9f4d3"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/worker.ts",
+      "bytes": 1107,
+      "sha256": "8fe668c3b3f47e6da7ada3823512a65c492907e37db64d3647de9cb84a5f06db"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/rpc-budget.ts",
+      "bytes": 1321,
+      "sha256": "5129c850349930bdae2fb881799e4072c72fd659c1bfd4eb07bea4b2b3f1c961"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/tui/src/tools/streaming-output.ts",
+      "bytes": 68738,
+      "sha256": "a0bef76bc092f7f0beee7ca0bbb0a1f12134e41e117b16259976b88303f502de"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/packages/contracts/generated/attachment-client.ts",
+      "bytes": 2366,
+      "sha256": "4eacdfcfd93583efe99567020993a809edf20b061b99b35b0e3e55cf1eed1216"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/packages/contracts/generated/attachment-receipt.js",
+      "bytes": 37900,
+      "sha256": "c8a22033d78df94f57cf532f1194558c657704c09874c4ccfec953ac46fbecff"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/coding-agent/src/attachments/provider-guard.ts",
+      "bytes": 8099,
+      "sha256": "3626f3c5312bd280a25bc5f5f0f635dcd16e244af1eb133c1b60c9e26770af4d"
+    }
+  ],
+  "expectedAssertions": [
+    "All8 valid4MiB UTF8 originals ready at exactly32MiB. Same selectedtarget and draft/revision/authority, ordered items, unique prepared IDs, exact51200B representations and independent digests; text_truncated on every item.",
+    "Prepare has no entries/provider effects. Missingconsent refuses before reservation/admission and absentquery. Explicit actualreceipt-bound consent admits exactlyONE succeeded/generated/committed reservation/input with exacttarget/origin/preparationbinding.",
+    "All8 distinct logical originals survive public causal links and distinct actual savedpartlocators; each51200B exact text/digest/path/byteSize. Publichistory sameentryId origin/preparedrole/link; no hash/text/order joins.",
+    "One modelattempt/dispatch/request/input, no tools/images/blockedgrowth; unchanged2known28B developer witnesses once each, no full/eight-body provider claim. Stable terminalquery and no additional effects.",
+    "Nine1B objects and eight33554433B-total objects independently reject ATTACHMENT_INPUT_BUDGET with no data/receipt, queryabsent/noeffects, complete caller draft/order/base64/hashes retained. Accepted encoded44740518B and refused44740516B/1414B fit50331648B."
+  ],
+  "unchangedRuntimeInputs": [
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/attachment-provider.ts",
+      "bytes": 7059,
+      "sha256": "ceb42b6d0de5b44952a2487340bac3876023ae1effbdfa84aa56594b46686e55"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+      "bytes": 3122,
+      "sha256": "c413f208c3a0849c2b37726d05e4533144a36bf420b8ec3cbfb3fdfa28346497"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "bytes": 706,
+      "sha256": "86ac53a1c9fc67baca01fd49b5a06e9e8341ba53d89bb2e4a0d92c06efc82ce9"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/catalog/fixture.ts",
+      "bytes": 5579,
+      "sha256": "c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/continuation/worker.ts",
+      "bytes": 6594,
+      "sha256": "29a4e34c77cdf1c05b32c8b50d2a32f33f377d38c3d8f2f7baf3629e574f49a7"
+    },
+    {
+      "path": "/workspace/work/omp-webui-ticket-38/tests/submissions/fixture.ts",
+      "bytes": 2714,
+      "sha256": "ddb703e997f8594b5cd559a31375ed1abbf3e37871e5fe27c7ada648f52c220e"
+    }
+  ],
+  "checks": [
+    {
+      "status": "PASS_STATIC_SOURCE_ONLY",
+      "metadata": {
+        "label": "host-types",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "--no-env-file",
+          "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/no-provider.ts",
+          "run",
+          "typecheck"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-count-total-source-20261117/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-count-total-source-20261117/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T10:35:10.499073+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter imports or runtime",
+        "pid": 614424,
+        "code": 0,
+        "finishedAt": "2026-11-17T10:35:22.432975+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/host-types.json",
+          "bytes": 931,
+          "sha256": "7a35ee389148f73d4fb3d3b814b09c8e9a196815df0c69781fb31931565e91a5"
+        },
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/host-types.stdout",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/host-types.stderr",
+          "bytes": 32,
+          "sha256": "70685b4df7789c854b9e1ceab7d78a6d0f9a0831c11eb0010b7b5fdbe0e50c39"
+        }
+      ]
+    },
+    {
+      "status": "PASS_STATIC_SOURCE_ONLY",
+      "metadata": {
+        "label": "syntax",
+        "argv": [
+          "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+          "build",
+          "--no-env-file",
+          "tests/attachments/public-rpc.test.ts",
+          "--target=bun",
+          "--packages=external",
+          "--external=*",
+          "--outdir=/tmp/ticket38-count-total-source-20261117/syntax"
+        ],
+        "environment": {
+          "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+          "HOME": "/tmp/ticket38-count-total-source-20261117/home",
+          "PI_CODING_AGENT_DIR": "/tmp/ticket38-count-total-source-20261117/home",
+          "TMPDIR": "/tmp",
+          "OMP_OFFLINE": "1",
+          "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+        },
+        "cwd": "/workspace/work/omp-webui-ticket-38",
+        "startedAt": "2026-11-17T10:35:22.433639+00:00",
+        "scope": "SOURCE_STATIC_ONLY; no Native/SDK/Agent/Host/converter imports or runtime",
+        "pid": 614437,
+        "code": 0,
+        "finishedAt": "2026-11-17T10:35:22.460350+00:00",
+        "stdoutStderrFilesClosedAfterOriginalWait": true
+      },
+      "records": [
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/syntax.json",
+          "bytes": 993,
+          "sha256": "3b86752f668eed212ae5f4550f5998c85253e470d93a57824f7a0e1adf1f9ae2"
+        },
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/syntax.stdout",
+          "bytes": 72,
+          "sha256": "38df2fc609bb7d2dabb259fc920b3d70ebfb013c176603dee9d9630954a7cf31"
+        },
+        {
+          "path": "/tmp/ticket38-count-total-source-20261117/syntax.stderr",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  ],
+  "staticToolResults": {
+    "path": "/tmp/ticket38-count-total-source-20261117/static-original-tool-results.json",
+    "bytes": 2688,
+    "sha256": "58e53bba650d2dfeb651a4387fdc06ccc8b5d2bb51d9f1b00f5dd9280226e2f1"
+  },
+  "frozenReadback": {
+    "before": {
+      "path": "/tmp/ticket38-count-total-source-20261117/before.json",
+      "bytes": 5582,
+      "sha256": "04721d9f6295a23a133f711bda952514095e7f22abc0cc4650ce5f9a4d6ca29a"
+    },
+    "after": {
+      "path": "/tmp/ticket38-count-total-source-20261117/after.json",
+      "bytes": 1457,
+      "sha256": "591a3a041f80295e42138c918be4fe917b333931a96713dc6993be9b3ac18171"
+    },
+    "independentAuthorAndPreservationAndBoundedResolver": {
+      "path": "/tmp/ticket38-count-total-source-20261117.py",
+      "bytes": 12039,
+      "sha256": "e35bdcf52a1b470475171e57b19108ccca536a1a9cbe6dc007e3b57eb8e0bd8c"
+    },
+    "staticChecksScript": {
+      "path": "/tmp/ticket38-count-total-static-20261117.py",
+      "bytes": 1673,
+      "sha256": "4659869a2399f4a59bc4d5020e4092a541a0d8f26b0d2c5c2b8511e4ddcea25d"
+    },
+    "baseFreeze": {
+      "path": "/tmp/ticket38-text-budget-source/final-inputs.json",
+      "bytes": 12467,
+      "sha256": "2a793734fc673e61ca3dcd2e28b5395976f36c9062b1c7cf3bd34f03cdfd3f8f"
+    },
+    "baseCurrentInputs": 781,
+    "recursiveChain": [
+      781,
+      745,
+      703,
+      667
+    ],
+    "additionalPriorProofRecords": 18,
+    "unchangedBaseCurrentAfter": 779,
+    "intentionalOverrides": [
+      "tests/attachments/public-rpc.test.ts",
+      "compatibility/ATTACHMENTS.md"
+    ],
+    "priorBodies": "All eleven prior cases/helpers byte-exact prefix; full provider unchanged.",
+    "testPreimage": {
+      "path": "/tmp/ticket38-count-total-source-20261117/public-rpc.test.ts",
+      "bytes": 74887,
+      "sha256": "b4a7702b055920d961558342f6be82efa6e9b96af4d0042fccac4bb8d698e4d6"
+    },
+    "documentationPreimage": {
+      "path": "/tmp/ticket38-count-total-source-20261117/ATTACHMENTS.md",
+      "bytes": 7471,
+      "sha256": "d6b786562a1f50083f2bcacb674ccb32c833d67cc50a5d11ebc596b1b04f6109"
+    },
+    "nativeAuthoringState": {
+      "head": "7c49c11aa5bbaf3f418406583096168ad5b8c6dc",
+      "index": {
+        "path": "/workspace/work/omp-webui-ticket-38/vendor/omp/.git/index",
+        "bytes": 1271154,
+        "sha256": "408e824e14287d3e002497853df63e5d01df1d91d36e0054d8d0b6c308eee9a8"
+      },
+      "statusSha256": "f816e79f9312d683667885a47564187fd193c4a2539bba1d5d36b5205a2b7486",
+      "headDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a",
+      "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "worktreeDiffSha256": "543c553d793f7f9c158f5375359b88b3d8da3a24d268f5670570c8c7c33d661a"
+    },
+    "nativeDirtyAndUntrackedSourceRecords": 166,
+    "matchedBuildToolRecords": 290,
+    "hostBefore": {
+      "head": "9559616170abf99aeef679bd493b62f05924e492",
+      "tree": "5ab48157043ce9bd589aa0a63ef92db3989df3b2",
+      "index": {
+        "originalPath": "/workspace/work/omp-webui/.git/worktrees/omp-webui-ticket-38/index",
+        "bytes": 87140,
+        "sha256": "70cd57cc74ddcd1c43618fd6bf73885ed38c4ec2000cdb0ec36d1f2cbe2fe572"
+      },
+      "meaning": "Historical pre-edit Host index; owncommit changes Hostindex. LiveNativeindex exact, no indexcopy."
+    },
+    "candidateSymlink": "cli.js",
+    "dependencyLinks": {
+      "host": "/workspace/work/omp-webui-current/node_modules",
+      "native": "../omp-deps"
+    },
+    "closureManifests": {
+      "archiveXml": {
+        "manifest": {
+          "path": "/tmp/ticket38-pptx-source/pptx-source-closure.json",
+          "bytes": 10064,
+          "sha256": "a8249f73c14e92ec20c75bc58e76d2f4b24c87f945950351446b2e40f26f1b50"
+        },
+        "records": 41,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-utils": "/workspace/work/omp-webui-ticket-38/vendor/omp/packages/utils"
+        }
+      },
+      "nativeAddonCandidates": {
+        "manifest": {
+          "path": "/tmp/ticket38-pdf-source/pdf-addon-closure.json",
+          "bytes": 6181,
+          "sha256": "25b9b52c2431e338e5855cc385b6977a71b061f41aecafaee762be8f7d6861e1"
+        },
+        "records": 15,
+        "symlinks": {
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives",
+          "/workspace/work/omp-webui-ticket-38/vendor/omp-deps/@oh-my-pi/pi-natives-linux-x64": "/workspace/work/omp-webui-ticket-35/vendor/omp-runtime/node_modules/@oh-my-pi/pi-natives-linux-x64"
+        }
+      },
+      "meaning": "Existing immutable manifests reused by reference, no duplicate full manifest. Each named record and symlink independently rehashed/checked in source preservation/readback; actual capability unexecuted."
+    },
+    "htmlSourceManifest": {
+      "path": "/tmp/ticket38-epub-source/html-source-closure.json",
+      "bytes": 2232,
+      "sha256": "3863723836f65bd1b69b1956214cf1b9f0a2aa4f549e19da82709d1e663ec4c1"
+    },
+    "initialPurePreservationFailure": {
+      "path": "/tmp/ticket38-count-total-source-20261117/initial-preservation-failure.json",
+      "bytes": 1280,
+      "sha256": "19e7ed205705ec0ec2d7fa025ffbc92ebccd84501ff4ba5da74b732cb7ec9fee"
+    },
+    "failureExplanation": "Firstpurecheck assumed sole testoverride from older745 pattern and failed on already-enrolled documentation. Preserved failure; newdelta explicitly overrides test+doc, retains olddocpreimage matching781record. All prior metadata/readies/raw/pins immutable.",
+    "boundedResolver": "Fresh pure acyclic maxdepth5; exact781\u2192745\u2192703\u2192667 metadata preserved, two explicit authored overrides, uniqueaddedrecords. StreamhashNative166/build290/41archive/15addon/6HTML+symlinks. No bulk runtime/vendor/index/fixturecopies; no exhaustive transitive/system dependency claim."
+  },
+  "retainerContract": {
+    "existingRetainer": {
+      "path": "/tmp/ticket38-text-budget-runtime.py",
+      "bytes": 6625,
+      "sha256": "20859b85a66e5d4c7ecda538ec1cf3f2bb22fc322e39bd28aff69ad6dda8c60f"
+    },
+    "existingReady": {
+      "path": "/workspace/work/omp-webui-ticket-38/compatibility/evidence/attachment-fa52-text-budget-source-ready.json",
+      "bytes": 26028,
+      "sha256": "f1f7f26ef71e7e719ab4fe6d3846d1cf8530571e709a0618043f35abe0a924d8"
+    },
+    "newRetainerSource": {
+      "path": "/tmp/ticket38-count-total-retainer-20261117.py",
+      "bytes": 6758,
+      "sha256": "0d501d3a59d0f2ff214670299c212fefb401f7a74059873a58e55cdfca159579"
+    },
+    "status": "Fresh distinct source only; never imported/executed. Root must inspect and supply separately reviewed READY+freeze hashes to pre/run/post. No automatic actual gate or retry.",
+    "preserved": "OriginalPopen wait retained; stdout/stderr files close only after actualwait. Complete original tool returns/sessionIDs toEOF must be separately retained byRoot. Original handles/readers only, no census/numericPID/groupkill/recoveredauthority. Existing fixture helper identity/drain limits unchanged; no descendant-extinction claim.",
+    "prefixes": [
+      "/tmp/ticket38-count-total-source-20261117",
+      "/tmp/ticket-38-public-count-total-20261117-",
+      "/tmp/attachment-runtime-count-total-20261117-"
+    ]
+  },
+  "plannedRuntime": {
+    "status": "NOTRUN. STOP aftersourcecommit/freeze; freshreview + Root separatelyauthorizes exactlyONE anchoredwindow. Noactualauthority now.",
+    "argv": [
+      "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin/bun",
+      "test",
+      "--no-env-file",
+      "--preload=/workspace/work/omp-webui-ticket-38/compatibility/omp/fixtures/history-network-guard.js",
+      "tests/attachments/public-rpc.test.ts",
+      "-t",
+      "^actual public eight UTF8 objects at 32MiB require consent and refuse count and total excess before effects$"
+    ],
+    "cwd": "/workspace/work/omp-webui-ticket-38",
+    "environment": {
+      "PATH": "/workspace/work/rpc-public-module-probe/tooling/bun/package/bin:/usr/bin:/bin",
+      "HOME": "<fresh /tmp/attachment-runtime-count-total-20261117-* syntheticdirectory>",
+      "PI_CODING_AGENT_DIR": "<same synthetic HOME>",
+      "OMP_HISTORY_FIXTURE_PROFILE": "<same synthetic HOME>",
+      "TMPDIR": "/tmp",
+      "OMP_OFFLINE": "1",
+      "BUN_RUNTIME_TRANSPILER_CACHE_PATH": "0"
+    },
+    "perCaseDeadlineMs": 90000,
+    "workerRequestDeadlineMs": 10000,
+    "preImport": "Top history guard before test imports. Unchanged worker/catalog launchers preload no-provider before Native launcher with allowlisted synthetic HOME/profile/env; per-case cwd is owned synthetic /tmp/attachment-public-*/project. TOP TMPDIR=/tmp required. Canonical title helper SHA c4e6845dee42b99476a16b0d7d96771c6bc69321d3b440a95c7293dc7a75a49d preloads child no-provider guard BEFORE pure Native serializer import, synthetic HOME/TMPDIR/cache.",
+    "cleanup": "Retain original runner/child handles and actual exit/readers. Existing worker.close awaits exit+reader+stderr; fixture finally awaits original child exit and removes only owned home. Catalog close awaited but helper discards exact catalog PID/DrainResult/exitcode/forced metadata. Serializer awaits exit0 and empty stderr. Isolated converter owns handle/readers/exited/finally kill/reap. Individual Native/catalog/serializer/converter identities/wait/forced metadata not separately captured by current fixture; do not invent these or descendant-extinction claims. Top original Popen wait and streams should be retained by future runner.",
+    "prePost": "Root independent exactnewdelta/781\u2192745\u2192703\u2192667 + Native166/build290/41archive/15addon/6HTML; exactNativeHEAD/index/status/binarydiffs, candidate/dependencylinks and cleanHostHEAD/tree/index. No bulkcopies. Retain originalhandles/readers/toolreturns; noPIDfallback/groupkill/census.",
+    "failurePolicy": "Stop firstFAIL, preserveexactfailure. No retry/fix/expectationweakening, Native API/schema/product/build/dependency change, othercase/format, Host/browser/FFI/socket/kernelprobe, GH/merge/global/private/product admission, fence/orphan444480/processcensus/PIDfallback/groupkill. Ifpubliccapabilitygap, SOURCE HOLD; never shrinkacceptedrawlimit or silentlyapprove degradation.",
+    "runtimeWindow": "NONE authorized by thisSOURCE. Root coordination and separateONE required; neverreuse consumedreadiness/raw/output/retainerprefixes."
+  },
+  "earnedPriorRuntime": "Eleven prior isolated cases scopedPASS, including5MiB multibyteUTF8consent/5MiB+1 refusal at9559616170abf99aeef679bd493b62f05924e492. Their proofs/readies/raw/history/pins byteexact. NewcounttotalactualNOTRUN.",
+  "tddState": "One nextvertical SOURCE authored at alreadyapprovedpublicseam. Sourcehash/metadata/type/AST checksPASS; actualRED/GREEN deferred to freshRootreview/ONE. No productimplementation/acceptance claim.",
+  "notRun": [
+    "AnyNative/OMP/SDK/serializer/Agent/converter/Host/provider/browser/process/kernel/seed runtime",
+    "Newactualcase or anyexistingcase, Native1-9/schema/generated/build/dependency mutation",
+    "GH/push/merge/closure/global/private/product admission"
+  ],
+  "remainingMandatory": [
+    "ActualthisONEboundaryslice; remainingrefusal/budget/locator/lifecycle/stale/cancel/expiryfaults",
+    "history/restart/copy/branch/restore/persistence/native data/TUI/provider; actualDSH/browser/coherent1\u201310/fullchecks/reviews/whole38/MVP",
+    "Linuxnow; WindowsChrome/WSL2ownerdeferred; noownerselectedglobalOMPpath"
+  ],
+  "admission": "SOURCE READY ONLY. Commit coherent4files, freezecompactdelta, STOP freshreview/RootONE. Whole38/53/54/MVP OPEN; product/global/privateblocked."
+}

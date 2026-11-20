@@ -1,0 +1,22 @@
+bun test v1.4.4 (38afee6c8)
+
+tests/sessions/source-supervisor.test.ts:
+4 |
+5 | test("explicit Open retains a stable prelaunch failure when its selected cwd disappeared", async () => {
+6 |   const f = await sourceFixture();
+7 |   try {
+8 |     await rm(f.cwd, { recursive: true });
+9 |     await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_CWD_CHANGED");
+                                                                        ^
+error: expect(received).toThrow(expected)
+
+Expected substring: "SESSION_CWD_CHANGED"
+Received message: "ENOENT: no such file or directory, stat '/tmp/session-source-8tGo9p/project'"
+
+      at <anonymous> (/workspace/work/omp-webui-ticket-44/tests/sessions/source-supervisor.test.ts:9:69)
+(fail) explicit Open retains a stable prelaunch failure when its selected cwd disappeared [58.08ms]
+
+ 0 pass
+ 1 fail
+ 1 expect() calls
+Ran 1 test across 1 file. [490.00ms]
