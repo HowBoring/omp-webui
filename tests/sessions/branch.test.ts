@@ -25,8 +25,8 @@ interface Fixture {
   authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; discovery: CatalogTransport;
   identity: BrowserAccess; selected: CatalogDescriptor; supervisor: SessionSupervisor; disposed(): Promise<void>;
 }
-async function fixture(onBranch?: (identity: BrowserAccess, previousSessionId: string, nativeSessionId: string,
-  entryIds: readonly string[]) => void | Promise<void>): Promise<Fixture> {
+async function fixture(onBranch?: (identity: BrowserAccess, previous: { sessionId: string; instanceId: string },
+  native: { sessionId: string; instanceId: string }, entryIds: readonly string[]) => void | Promise<void>): Promise<Fixture> {
   const home = await mkdtemp(join(tmpdir(), "session-branch-"));
   const root = await nativeFixture(home, 2);
   const file = join(root, "bucket", "native-0000.jsonl");
@@ -95,27 +95,33 @@ test("a native branch keeps only the target's source ancestors and leaves the so
 test("a Host-verified native branch inherits Originals only for forwarded entry ids", async () => {
   const copied: number[] = [];
   let store: OriginalStore | undefined;
-  const f = await fixture((_identity, previousSessionId, nativeSessionId, entryIds) => {
-    copied.push(store!.inheritBranchLinks(previousSessionId, nativeSessionId, entryIds));
+  const f = await fixture((_identity, previous, native, entryIds) => {
+    copied.push(store!.inheritBranchLinks(previous.sessionId, previous.instanceId, native.sessionId, native.instanceId, entryIds));
   });
   const dataDir = await mkdtemp(join(tmpdir(), "branch-links-"));
   try {
     store = new OriginalStore({ dataDir, recovery: "exclusive-host-startup", clock: () => 0 });
-    const source = branchSource();
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    const sourceRegistration = opened.registration;
+    const source: OriginalScope = { ...branchSource(), sessionId: sourceRegistration.nativeSessionId,
+      sourceId: sourceRegistration.sourceId, instanceId: sourceRegistration.instanceId };
     const originalId = await associate(store, source);
     expect(store.history(() => source, ["entry-0"])).toHaveLength(1);
-    const opened = await f.supervisor.open(f.identity, f.selected);
     const result = await f.supervisor.branch(f.identity, opened.workerId, opened.generation, "entry-2");
     if (result.status !== "created") throw new Error("BRANCH_NOT_CREATED");
     expect(result.nativeSessionId).not.toBe("native-0000");
-    const branch: OriginalScope = { ...source, sessionId: result.nativeSessionId, sourceId: "c".repeat(64) };
+    const registration = result.view!.registration;
+    const branch: OriginalScope = { ...source, sessionId: registration.nativeSessionId, sourceId: registration.sourceId, instanceId: registration.instanceId };
     expect(store.history(() => branch, ["entry-0", "entry-1"])).toEqual([{ entryId: "entry-0", objectId: originalId,
       displayName: "photo.gif", mediaType: "image/gif", byteLength: branchImage.length, sha256: branchSha,
       availability: "available" }]);
     expect(new Uint8Array((await store.readHistorical(() => branch, "entry-0", originalId, ["entry-0"])).bytes))
       .toEqual(branchImage);
     expect(copied).toEqual([1]);
+    // The source Session keeps its own link row and instance.
+    expect(store.history(() => source, ["entry-0"])).toHaveLength(1);
     expect(store.history(() => ({ ...branch, browserId: "other" }), ["entry-0"])).toEqual([]);
+    expect(store.history(() => ({ ...branch, instanceId: source.instanceId }), ["entry-0"])).toEqual([]);
     await expect(store.readHistorical(() => ({ ...branch, pageId: "other" }), "entry-0", originalId, ["entry-0"]))
       .rejects.toThrow("attachment_object_unavailable");
     expect(await f.supervisor.switchTo(f.identity, f.selected)).toMatchObject({ registration: { nativeSessionId: "native-0000" } });

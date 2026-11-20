@@ -33,9 +33,10 @@ export interface OwnedLaunchOptions {
 export type SessionLaunchOptions = DirectLaunchOptions | OwnedLaunchOptions;
 type Options = {
   authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; catalog: CatalogClient;
-  /** Host-verified native branch: the new Session forwards exactly these entry ids unchanged. */
-  onBranch?: (identity: BrowserAccess, previousSessionId: string, nativeSessionId: string,
-    entryIds: readonly string[]) => void | Promise<void>;
+  /** Host-verified native branch: the new Session has its own source instance and forwards exactly
+   * these entry ids unchanged. Both identities are the Catalog-registered ones. */
+  onBranch?: (identity: BrowserAccess, previous: { sessionId: string; instanceId: string },
+    native: { sessionId: string; instanceId: string }, entryIds: readonly string[]) => void | Promise<void>;
 } & SessionLaunchOptions;
 export interface SessionView {
   registration: RegisteredSession; workerId: string; generation: string; cwd: string;
@@ -573,8 +574,9 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     this.#current(identity, active);
-    const previousSessionId = active.record?.nativeSessionId;
-    if (!previousSessionId) throw new Error("SESSION_NATIVE_IDENTITY_UNCONFIRMED");
+    const previous = active.record;
+    if (!previous?.nativeSessionId) throw new Error("SESSION_NATIVE_IDENTITY_UNCONFIRMED");
+    const previousSessionId = previous.nativeSessionId, previousInstanceId = previous.instanceId;
     const worker = active.worker as SupervisedSessionWorker;
     // Native is the only authority on which historical entries may start a branch.
     const points = await worker.branchMessages(); this.#current(identity, active);
@@ -634,7 +636,8 @@ export class SessionSupervisor {
     if (view && copied.length) {
       // Association copies are supplementary: the branch already exists, so a store failure must not
       // turn a completed native transition into an error. Reads still require the stored scope.
-      try { await this.options.onBranch?.(identity, previousSessionId, nativeSessionId, copied); }
+      const native = { sessionId: nativeSessionId, instanceId: view.registration.instanceId };
+      try { await this.options.onBranch?.(identity, { sessionId: previousSessionId, instanceId: previousInstanceId }, native, copied); }
       catch (failure) { console.error("SESSION_BRANCH_LINK_COPY_FAILED", failure); }
     }
     return { status: "created", nativeSessionId, previousSessionId, targetEntryId: entryId, retainedEntries,
