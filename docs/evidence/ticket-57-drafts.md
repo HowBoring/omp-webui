@@ -8,10 +8,13 @@ remains blocked.
 
 - `apps/chat/src/client.tsx` acquires an exclusive `navigator.locks` owner per
   tab, keeps the owner and draft id in `sessionStorage`, and mints a new owner and
-  draft id in a copied tab. It registers the existing public
-  `ConversationDraftProvider` from `packages/drafts/provider.ts` and hydrates the
-  stored record atomically into text, ordered originals, invalid-item reasons and
-  the unresolved-submission guard.
+  draft id in a copied tab. It implements the public
+  `ConversationDraftProvider` contract from `packages/drafts/provider.ts` and
+  hydrates the stored record atomically through that provider's public
+  `scope`/`read`/`prepare` seam into text, ordered originals, invalid-item
+  reasons and the unresolved-submission guard. The provider is not registered
+  through DSH's provider-mode `registerDraftProvider`; only the chat surface
+  hydrates it (see Boundaries).
 - Hydration never trusts a stored runtime receipt. Each original is re-read from
   the typed Host Originals Remote under the current explicitly opened
   Session/draft scope; the returned object id must match. Missing, deleted or
@@ -66,9 +69,10 @@ controlled clock injection plus a separate store reconstruction.
 
 ## Boundaries
 
-- The DSH provider-mode composer runtime is not mounted. The registered contract
-  and atomic hydration follow the public DSH semantics, but this is not a claim
-  that DSH's own composer UI is active.
+- The DSH provider-mode composer runtime is not mounted, so the provider is not
+  registered through `registerDraftProvider`. Its contract and the chat surface's
+  atomic hydration follow the public DSH semantics; this is not a claim that
+  DSH's own composer UI is active.
 - Closing the page or browser is not a recovery promise; the record lives in
   sessionStorage and the Host lifetime is independent.
 - Deleted/missing Originals stay as invalid items until the user removes them or

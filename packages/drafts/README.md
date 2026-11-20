@@ -1,10 +1,12 @@
 # Scoped semantic draft provider — ticket 57
 
-`apps/chat/src/client.tsx` registers this provider with a per-tab Web Lock owner,
-sessionStorage records and the typed Host Originals Remote for preparation. The
-DSH provider-mode composer runtime itself is not mounted; the chat surface owns
-atomic hydration of this provider's records. This is not product root admission
-or MVP acceptance.
+`apps/chat/src/client.tsx` implements this provider's public
+`ConversationDraftProvider` contract with a per-tab Web Lock owner,
+sessionStorage records and the typed Host Originals Remote for preparation, and
+hydrates through its public `scope`/`read`/`prepare` seam. It does not call DSH's
+provider-mode `registerDraftProvider`: that composer runtime is not mounted, so
+the chat surface owns atomic hydration. This is not product root admission or
+MVP acceptance.
 ADRs [0009](../../docs/adr/0009-original-attachments-and-drafts.md) and
 [0021](../../docs/adr/0021-host-original-intake.md) retain their existing boundaries.
 
@@ -52,7 +54,7 @@ or let an old preparation result return under replacement authority. Copies with
 the same identity remain accepted; authority is still rechecked at completion.
 
 Original preparation returns one ordered visible invalid item by default:
-`draft_native_preparation_unavailable`. The registered chat resolver re-reads
+`draft_native_preparation_unavailable`. The chat resolver re-reads
 each exact staged Original from the trusted Host Remote under the current
 explicitly opened scope, so a stored receipt is never trusted after reload or
 restart; missing, expired or unauthorized objects become visible invalid items.

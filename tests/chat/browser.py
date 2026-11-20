@@ -105,10 +105,10 @@ async def open_session(page, native_id="native-0000"):
 
 async def wait_draft(page, text):
     try:
-        await page.wait_for_function("([text]) => Object.keys(localStorage).some(key => key.startsWith(\"omp.draft.v1:\") && localStorage.getItem(key).includes(text))", arg=[text], timeout=60000)
+        await page.wait_for_function("([text]) => Object.keys(sessionStorage).some(key => key.startsWith(\"omp.draft.v1:\") && sessionStorage.getItem(key).includes(text))", arg=[text], timeout=60000)
     except Exception:
         print("DRAFT_ALERTS", [await e.inner_text() for e in await page.locator("[role=alert]").all()])
-        print("DRAFT_KEYS", await page.evaluate("() => Object.keys(localStorage)"))
+        print("DRAFT_KEYS", await page.evaluate("() => Object.keys(sessionStorage)"))
         raise
 
 
