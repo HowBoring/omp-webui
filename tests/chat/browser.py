@@ -60,8 +60,14 @@ async def start_host(scenario=None, delay=None, tools=None):
             await wait_health()
         except RuntimeError:
             continue
-        if host.poll() is None:
-            return host
+        # Health alone can belong to a predecessor that still owns the port. The Host logs its own
+        # origin after it binds, and this process truncates the log first, so the line proves the
+        # listener is the child we just started rather than a leftover one.
+        for _ in range(50):
+            if host.poll() is not None: break
+            if "S2-isolated-chat" in (ROOT / "vendor/chat-host.log").read_text(errors="ignore"):
+                return host
+            await asyncio.sleep(0.1)
     raise RuntimeError("chat Host did not become healthy on a free port")
 
 
