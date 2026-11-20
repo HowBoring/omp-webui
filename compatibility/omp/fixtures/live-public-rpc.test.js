@@ -28,7 +28,7 @@ test('actual CLI public wire carries controlled final, exact entries and not-att
 },20000);
 
 test('genuine controlled tool execution reuses raw IDs while retaining exact initiating assistant and native entries',async()=>{
-  const fixture=await openLiveFixture(true,{tools:true});const {transport}=fixture;
+  const fixture=await openLiveFixture(false,{tools:true});const {transport}=fixture;
   try {
     const opened=await transport.history.open('active');await transport.prompt();
     const events=[];let after=opened.cut.observationSeq;
@@ -46,7 +46,8 @@ test('genuine controlled tool execution reuses raw IDs while retaining exact ini
     await transport.history.close(opened.snapshot);const next=await transport.history.open('tree');
     const rows=(await transport.history.page(next.cursor)).items;
     expect(rows.find(row=>row.id===tool.settlement.entryId).live).toEqual(tool.live);
-    expect(rows.filter(row=>row.toolCallId==='reusable-fixture-id')).toHaveLength(2);
+    const reused=rows.flatMap(row=>[row.toolCallId,...(row.toolCalls??[]).map(call=>call.callId)]).filter(id=>id==='reusable-fixture-id');
+    expect(reused).toHaveLength(2);
     await transport.history.close(next.snapshot);
   }finally{await fixture.close();}
 },20000);

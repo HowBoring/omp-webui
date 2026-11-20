@@ -30,8 +30,8 @@
       },
       {
         "path": "compatibility/omp/0002-readonly-catalog.patch",
-        "bytes": 77746,
-        "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616"
+        "bytes": 77748,
+        "sha256": "1849ca04a25b505a0c1af60aeb48b54c96d54a7c393c62fe54bf2c53c29ab3ce"
       },
       {
         "path": "compatibility/omp/0003-explicit-interactions.patch",
@@ -50,8 +50,8 @@
       },
       {
         "path": "compatibility/omp/0006-live-settlement.patch",
-        "bytes": 75038,
-        "sha256": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a"
+        "bytes": 75150,
+        "sha256": "5893f22df1b829cb418332913677728737202673c2ed225e362e68e09c1b7886"
       },
       {
         "path": "compatibility/omp/0007-durable-submission.patch",
@@ -77,6 +77,11 @@
         "path": "compatibility/omp/0008-durable-navigation.patch",
         "bytes": 77932,
         "sha256": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8"
+      },
+      {
+        "path": "compatibility/omp/0012-strict-branch-transition.patch",
+        "bytes": 3983,
+        "sha256": "c58a4634362e28ffcd63909de285406edd5d3b08d2802e80957ea88dd79ca821"
       }
     ],
     "immutableFreeze": {

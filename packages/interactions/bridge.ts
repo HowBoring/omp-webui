@@ -22,6 +22,7 @@ interface Pending {
   provisional?: "stale" | "unknown";
   settlementReason?: string;
   cancellation?: Promise<InteractionAnswerResult>;
+  claimed?: boolean;
   outcome?: InteractionSnapshot["outcomes"][number];
 }
 type CleanupFailure = "cleanup-unavailable" | "cleanup-cutoff" | "cleanup-request-failed"
@@ -81,6 +82,18 @@ export class InteractionBridge {
   /** Bind only the identity read back through the public native state response. */
   bindSession(sessionId:string):void {
     this.#scope={kind:"session",sessionId:z.string().min(1).parse(sessionId)};
+  }
+  /** Host admission for an external waiter: a reserved continuation already owns the settlement. */
+  admission(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult>|undefined {
+    const entry=this.#pending.get(id);
+    if(this.#closed || generation !== this.generation || !entry || entry.provisional) return undefined;
+    if(!entry.answering && !entry.cancellation) return undefined;
+    // Exactly one late answer observes the deadline's own cancellation; every other waiter is bounded.
+    if(answer.type !== "cancel" && entry.cancellation && !entry.answering && !entry.claimed && entry.settlementReason === "expired") {
+      entry.claimed=true;
+      return entry.cancellation;
+    }
+    return this.#overloaded();
   }
   answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);

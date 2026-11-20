@@ -866,10 +866,10 @@ index 00000000..d95939e4
 +}
 diff --git a/packages/coding-agent/src/session/live-message-observation.ts b/packages/coding-agent/src/session/live-message-observation.ts
 new file mode 100644
-index 00000000..907d538a
+index 00000000..ef1022bd
 --- /dev/null
 +++ b/packages/coding-agent/src/session/live-message-observation.ts
-@@ -0,0 +1,107 @@
+@@ -0,0 +1,109 @@
 +import * as logger from "@oh-my-pi/pi-utils/logger";
 +/** Exact in-process lifecycle/entry associations. Symbols never become persisted or wire identities. */
 +import type { AgentEvent, AgentMessage } from "@oh-my-pi/pi-agent-core";
@@ -911,7 +911,7 @@ index 00000000..907d538a
 +export class NativeMessageObservations {
 +  #count = 0;
 +  readonly #open: NativeMessageIdentity[] = [];
-+  readonly #toolOwners = new Map<string, string>();
++  readonly #toolOwners = new Map<string, NativeMessageIdentity | "">();
 +  readonly #listeners = new Set<(observation: NativeMessageObservation) => void>();
 +  constructor(readonly context: () => Omit<NativeMessageIdentity, "messageId">) {}
 +  subscribe(listener: (observation: NativeMessageObservation) => void): () => void {
@@ -928,8 +928,11 @@ index 00000000..907d538a
 +    if (!live) {
 +      if (this.#open.length >= 4096) throw new Error("native_live_open_evicted");
 +      live = { ...this.context(), messageId: `msg-${++this.#count}` };
-+      if (event.message.role === "toolResult") live.toolOwnerMessageId = this.#toolOwners.get(
-+        JSON.stringify([live.sourceId, live.sessionId, live.contextId, event.message.toolCallId]));
++      // The branch moves once the initiating assistant message is appended; ownership cannot be keyed on the context.
++      if (event.message.role === "toolResult") {
++        const owner = this.#toolOwners.get(JSON.stringify([live.sourceId, live.sessionId, event.message.toolCallId]));
++        if (owner) live = { ...owner, messageId: live.messageId, toolOwnerMessageId: owner.messageId };
++      }
 +      this.#open.push(live);
 +    }
 +    if (event.type === "message_end") {
@@ -937,16 +940,15 @@ index 00000000..907d538a
 +      if (openIndex >= 0) this.#open.splice(openIndex, 1);
 +      if (event.message.role === "assistant") for (const block of event.message.content) {
 +        if (block.type !== "toolCall") continue;
-+        const key = JSON.stringify([live.sourceId, live.sessionId, live.contextId, block.id]);
++        const key = JSON.stringify([live.sourceId, live.sessionId, block.id]);
 +        // Reused unresolved IDs are ambiguous; absence is safer than assigning a late result to a new call.
-+        this.#toolOwners.set(key, this.#toolOwners.has(key) ? "" : live.messageId);
++        this.#toolOwners.set(key, this.#toolOwners.has(key) ? "" : live);
 +        if (this.#toolOwners.size > 4096) this.#toolOwners.delete(this.#toolOwners.keys().next().value!);
 +      }
 +    }
 +    if (event.type === "message_end" && event.message.role === "toolResult") {
-+      this.#toolOwners.delete(JSON.stringify([live.sourceId, live.sessionId, live.contextId, event.message.toolCallId]));
++      this.#toolOwners.delete(JSON.stringify([live.sourceId, live.sessionId, event.message.toolCallId]));
 +    }
-+    if (live.toolOwnerMessageId === "") delete live.toolOwnerMessageId;
 +    (event.message as ObservedMessage)[kLive] = live;
 +    this.#emit({ kind: event.type === "message_end" ? "message_final" : event.type, live, message: event.message });
 +  }
@@ -978,7 +980,7 @@ index 00000000..907d538a
 +  }
 +}
 diff --git a/packages/coding-agent/src/session/session-manager.ts b/packages/coding-agent/src/session/session-manager.ts
-index eb98e40c..1de33f9f 100644
+index bf0b045c..12171238 100644
 --- a/packages/coding-agent/src/session/session-manager.ts
 +++ b/packages/coding-agent/src/session/session-manager.ts
 @@ -3,6 +3,8 @@ import { SESSION_DRAFT_FILE, DRAFT_ONLY_SESSION_MARKER } from "./session-drafts"
@@ -990,7 +992,7 @@ index eb98e40c..1de33f9f 100644
  export interface NativeHistoryChange {
    kind: string; revision: number; contextRevision: number; sessionId: string; leafId: string | null; entryId?: string;
  }
-@@ -3737,6 +3739,7 @@ export class SessionManager {
+@@ -3736,6 +3738,7 @@ export class SessionManager {
  	): string {
  		const entry: SessionMessageEntry = { type: "message", ...this.#freshEntryFields(), message };
  		this.#recordEntry(entry);
@@ -998,7 +1000,7 @@ index eb98e40c..1de33f9f 100644
  		return entry.id;
  	}
  
-@@ -3776,6 +3779,7 @@ export class SessionManager {
+@@ -3775,6 +3778,7 @@ export class SessionManager {
  		// the active branch, as the in-memory contract requires.
  		this.#index.detachBranchView();
  		this.#recordEntry(entry);
@@ -1006,7 +1008,7 @@ index eb98e40c..1de33f9f 100644
  		return entry.id;
  	}
  
-@@ -4208,6 +4212,15 @@ export class SessionManager {
+@@ -4207,6 +4211,15 @@ export class SessionManager {
  		this.#historyChanged("source_binding", true);
  	}
  
@@ -1022,7 +1024,7 @@ index eb98e40c..1de33f9f 100644
  	/** Independent native observer; never replaces the collaboration append callback. */
  	subscribeHistoryChanges(listener: (change: NativeHistoryChange) => void): () => void {
  		this.#historyListeners.add(listener);
-@@ -4228,7 +4241,7 @@ export class SessionManager {
+@@ -4227,7 +4240,7 @@ export class SessionManager {
  	 * Includes full hidden entry payloads in the revision, but never returns those bytes on RPC.
  	 * Runtime must be sampled by the RPC controller in this same synchronous JS turn.
  	 */
@@ -1031,7 +1033,7 @@ index eb98e40c..1de33f9f 100644
  		const started = performance.now();
  		const observedRevision = this.#historyRevision;
  		if (typeof this.#sessionId !== "string" || this.#sessionId.length === 0 || this.#sessionId.length > 128) throw new Error("history_invalid_source");
-@@ -4239,7 +4252,7 @@ export class SessionManager {
+@@ -4238,7 +4251,7 @@ export class SessionManager {
  		const sourceBinding = this.#historySourceBinding?.nativeSessionId === this.#sessionId ? this.#historySourceBinding : undefined;
  		const sourceId = sourceBinding?.sourceId ?? new Bun.CryptoHasher("sha256").update(this.#sessionFile ?? `memory:${this.#sessionId}`).digest("hex");
  		let scannedBytes = 0;
@@ -1040,7 +1042,7 @@ index eb98e40c..1de33f9f 100644
  			const bytes = stringifyJson(value);
  			if (bytes === undefined) throw new Error("history_non_json_state");
  			const size = Buffer.byteLength(bytes);
-@@ -4247,23 +4260,31 @@ export class SessionManager {
+@@ -4246,23 +4259,31 @@ export class SessionManager {
  			if (size > limits.nativeItemBytes) throw new Error("history_native_item_bytes");
  			if (scannedBytes > limits.bytes) throw new Error("history_scan_bytes");
  			if (performance.now() - started > limits.ms) throw new Error("history_scan_deadline");
