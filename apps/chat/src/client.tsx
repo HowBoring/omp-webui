@@ -289,7 +289,7 @@ function SessionSettings({ view }: { view: PublicSessionView }) {
       setStatus("The native Session confirmed the new settings."); }
     catch (failure) { setStatus(""); setError(message(failure)); void load(); }
   };
-  return <section data-session-settings data-session-busy={prefs?.busy ? "true" : "false"}>
+  return <section data-session-settings tabIndex={-1} data-session-busy={prefs?.busy ? "true" : "false"}>
     <h3>Model and thinking</h3>
     {!prefs && !error && <p>Reading native Session settings…</p>}
     {prefs && <>
@@ -391,7 +391,7 @@ let productActions: ProductActions | undefined;
 function registerProductShortcuts(service: ShortcutsService): void {
   type Modifier = "primary" | "control" | "alt" | "shift" | "meta";
   type Binding = { code: string; modifiers: readonly Modifier[] };
-  // Web reserves almost every printable combination outside upstream's explicit allow-list.
+  // Web reserves printable combinations outside the allow-list; Linux now admits Control+Alt/Shift chords.
   const profiles = (linux: Binding | undefined, web: Binding | undefined, desktop: Binding, windows?: Binding) => ({
     ...(linux === undefined ? {} : { "web:linux": linux }),
     "web:windows": windows ?? web ?? desktop, "web:macos": web ?? desktop,
@@ -413,19 +413,19 @@ function registerProductShortcuts(service: ShortcutsService): void {
   });
   const bindings = [
     command("omp.send", "Send the draft", "Send",
-      profiles({ code: "Slash", modifiers: ["primary"] }, { code: "Slash", modifiers: ["primary", "shift"] },
+      profiles({ code: "Enter", modifiers: ["primary", "alt"] }, { code: "Slash", modifiers: ["primary", "shift"] },
         { code: "Enter", modifiers: ["alt"] }), () => productActions?.send()),
     command("omp.new-session", "New Session in a granted directory", "New Session",
-      profiles(undefined, { code: "KeyN", modifiers: ["primary", "shift"] }, { code: "KeyN", modifiers: ["alt"] }),
+      profiles({ code: "KeyN", modifiers: ["primary", "alt"] }, { code: "KeyN", modifiers: ["primary", "shift"] }, { code: "KeyN", modifiers: ["alt"] }),
       grant => productActions?.newSession(grant)),
     command("omp.settings", "Show Session settings", "Settings",
-      profiles({ code: "Comma", modifiers: ["primary", "shift"] }, { code: "Comma", modifiers: ["primary"] },
+      profiles({ code: "KeyS", modifiers: ["primary", "alt"] }, { code: "Comma", modifiers: ["primary"] },
         { code: "Comma", modifiers: ["primary"] }), () => productActions?.settings()),
     command("omp.stop", "Stop the reply", "Stop",
-      profiles({ code: "Period", modifiers: ["primary", "shift"] }, { code: "Period", modifiers: ["primary", "shift"] },
+      profiles({ code: "KeyK", modifiers: ["primary", "alt"] }, { code: "Period", modifiers: ["primary", "shift"] },
         { code: "Period", modifiers: ["primary"] }), () => productActions?.stop()),
     command("omp.retry", "Retry the last failed turn", "Retry",
-      profiles(undefined, { code: "KeyR", modifiers: ["primary", "shift"] }, { code: "KeyR", modifiers: ["alt"] }),
+      profiles({ code: "KeyR", modifiers: ["primary", "alt"] }, { code: "KeyR", modifiers: ["primary", "shift"] }, { code: "KeyR", modifiers: ["alt"] }),
       () => productActions?.retry()),
   ];
   for (const binding of bindings) service.register(binding);
@@ -1017,15 +1017,19 @@ function Surface() {
     }); },
     settings: () => {
       if (!view) { void perform(catalog); return; }
-      const settings = document.querySelector("[data-session-settings]");
-      if (settings) { settings.scrollIntoView({ block: "start" }); (settings.querySelector("select, input, button") as HTMLElement | null)?.focus(); }
+      const settings = document.querySelector<HTMLElement>("[data-session-settings]");
+      if (settings) {
+        settings.scrollIntoView({ block: "start" });
+        const control = settings.querySelector<HTMLElement>("select:not([disabled]), input:not([disabled]), button:not([disabled])");
+        (control ?? settings).focus();
+      }
     },
   };
   useEffect(() => {
     if (!isProductShell()) return;
     productActions = productHandlers.current;
     return () => { if (productActions === productHandlers.current) productActions = undefined; };
-  }, []);
+  });
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -1241,7 +1245,8 @@ async function boot() {
     // The pinned full Client roster expects a locale service before shortcuts can own keyboard input.
     const locale = new LocaleRuntime(ctx);
     ctx.provide("locale", locale);
-    registerProductShortcuts(new ShortcutsService(ctx));
+    const shortcuts = new ShortcutsService(ctx);
+    registerProductShortcuts(shortcuts);
   }
   new UiConversation(ctx, ctx.sessions);
   // The Chat surface owns its composer but not the draft protocol: provider mode owns the
@@ -1276,6 +1281,14 @@ async function boot() {
       if (result.ok) await present(result.value);
       else errorChanged("Previous worker unavailable. Manually Open the native Session.");
     } catch (error) { sessionStorage.removeItem("omp-supervised-worker"); errorChanged(message(error)); }
+  } else {
+    const current = accessRevision, presented = presentationRevision;
+    try {
+      const result = await ctx.remote.ompSessions.current();
+      // A manual Open during the restore wins: never replace a Session the user already presented.
+      if (current !== accessRevision || presented !== presentationRevision) return;
+      if (result.ok && result.value?.view) await present(result.value.view);
+    } catch { /* A later explicit Open remains available. */ }
   }
 }
 window.addEventListener("pageshow", event => { if (event.persisted) location.reload(); });

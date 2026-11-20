@@ -46,6 +46,7 @@ const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scannin
     directory: z.string().max(32) })).max(32), nextCursor: token.optional() });
 const index = z.strictObject({ records: z.array(record).max(32), nextCursor: token.optional() });
 const page = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(32).optional() });
+const currentSession = z.strictObject({ view: sessionViewSchema.optional(), running: z.boolean(), blank: z.boolean() });
 const grant = z.strictObject({ id: z.string().uuid(), path, grantedAt: z.string().datetime(), status: z.enum(["valid", "changed"]) });
 const preview = z.strictObject({ path, confirmation: z.string().uuid(), expiresAt: z.string().datetime() });
 const codec = <T>(schema: z.ZodType<T>, typeSymbol: string) => ({ mode: "strict" as const, typeSymbol,
@@ -65,6 +66,7 @@ export const sessionsContribution = createTypertRemoteInfo({ package: "@omp-webu
   "ompSessions/switch": method([parameter("selectionId", selection)], sessionViewSchema),
   "ompSessions/new": method([parameter("grantId", z.string().uuid())], sessionViewSchema),
   "ompSessions/view": method([parameter("workerId", worker)], sessionViewSchema),
+  "ompSessions/current": method([], currentSession.optional()),
   "ompSessions/recheck": method([], sessionViewSchema),
   "ompSessions/interactions": method([], interactionSnapshotSchema.optional()),
   "ompSessions/answer": method([parameter("generation", z.string().uuid()), parameter("id", token), parameter("answer", uiAnswerSchema)], interactionAnswerResultSchema),
@@ -88,6 +90,7 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
       switch(selectionId: SessionSelectionId): Promise<RemoteResult<PublicSessionView>>;
       "new"(grantId: string): Promise<RemoteResult<PublicSessionView>>;
       view(workerId: SessionWorkerId): Promise<RemoteResult<PublicSessionView>>;
+      current(): Promise<RemoteResult<z.infer<typeof currentSession> | undefined>>;
       recheck(): Promise<RemoteResult<PublicSessionView>>;
       interactions(): Promise<RemoteResult<z.infer<typeof interactionSnapshotSchema> | undefined>>;
       answer(generation: string, id: string, answer: z.infer<typeof uiAnswerSchema>): Promise<RemoteResult<z.infer<typeof interactionAnswerResultSchema>>>;

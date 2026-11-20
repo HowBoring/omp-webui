@@ -54,6 +54,8 @@ test('special records are surface-typed, safe and honest about unavailable paylo
     files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]})[0];
   expect(file!.event).toMatchObject({type:'omp/native-record',surfaceOp:'append',
     data:{kind:'fileMention',role:'fileMention',files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]}});
+  const mentioned=collect({id:'fm',active:true,parentId:'u',kind:'message',role:'fileMention',text:'[File mention: a.txt]',files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]})[0];
+  expect(mentioned!.event.data).toMatchObject({kind:'fileMention',role:'fileMention',files:[{path:'a.txt'}]});
   const internal=collect({id:'c',active:true,parentId:'u',kind:'custom_message',role:'custom',text:'[Internal custom message]',display:false},'c');
   expect(internal[0]!.event.data).toEqual({id:'c',kind:'custom_message',role:'custom',text:'[Internal custom message]',display:false});
   const missing=collect({id:'m',active:true,parentId:'u',kind:'message',role:'assistant',text:'',provider:'p',model:'m',unavailable:true,truncated:true});
