@@ -199,7 +199,7 @@ test("a durable local refusal is reported without waiting for a prompt result", 
   expect(f.commands).toHaveLength(1);
 });
 
-test("a native busy error preserves its reason and does not turn into a second submission", async () => {
+test("a structured native busy refusal fails without a model call and releases admission", async () => {
   const f = fixture();
   const offer = f.service.offer(f.identity);
   if (offer.status !== "confirmation") throw Error("expected confirmation");
@@ -207,10 +207,23 @@ test("a native busy error preserves its reason and does not turn into a second s
     error: "Native submission was busy", code: "SUBMISSION_BUSY" }));
 
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, reason: "native_busy", settled: false,
+    status: "failed", requestId: offer.requestId, reason: "native_busy", settled: true,
   });
-  expect(f.service.blocksAdmission()).toBe(true);
+  expect(f.service.blocksAdmission()).toBe(false);
   expect(f.commands).toHaveLength(1);
+
+  // The refusal is terminal and local: a later explicit Retry proceeds with exactly one new submission.
+  f.rawReply(async command => ({ type: "response", id: command.id, command: command.type, success: true,
+    data: receipt(command.clientSubmissionId) }));
+  const next = f.service.offer(f.identity);
+  expect(next.status).toBe("confirmation");
+  if (next.status !== "confirmation") throw Error("expected confirmation");
+  expect(await f.service.confirm(f.identity, next.requestId)).toEqual({
+    status: "admitted", requestId: next.requestId, settled: false,
+  });
+  expect(f.commands).toHaveLength(2);
+  expect(f.commands.map(command => command.type === "submission_submit" ? command.message : command.type))
+    .toEqual(["/retry", "/retry"]);
 });
 
 test("transport error text cannot establish a Native busy refusal code", async () => {
