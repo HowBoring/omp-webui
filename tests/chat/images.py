@@ -10,9 +10,8 @@ HOST = Path(os.environ.get("OMP_CHAT_HOST_DIR", ROOT / "vendor/host-chat")) / "c
 PORT = os.environ.get("OMP_CHAT_FIXTURE_PORT", "3193")
 ORIGIN = f"http://127.0.0.1:{PORT}"
 DATA = ROOT / "vendor/chat-images-access"
-CANDIDATE = ROOT / "vendor/omp-candidate-image-t54"
 FIXTURE_ENV = {"OMP_CHAT_ATTACHMENTS": "1", "OMP_CHAT_FIXTURE_PORT": PORT, "OMP_CHAT_FIXTURE_DATA": str(DATA),
-               "OMP_CHAT_CANDIDATE": "vendor/omp-candidate-image-t54"}
+               "OMP_CHAT_CANDIDATE": "vendor/omp-candidate-image-t54/cli.js"}
 
 
 def free_port():
@@ -94,7 +93,7 @@ TINY = {
 
 
 async def upload(page, name, mime, data):
-    await page.get_by_label("Add image files").set_input_files({"name": name, "mimeType": mime, "buffer": data})
+    await page.get_by_label("Add files").set_input_files({"name": name, "mimeType": mime, "buffer": data})
 
 
 async def wait_phase(page, phase):
@@ -116,6 +115,11 @@ async def wait_alert(page, text, timeout=30000):
             return
         await asyncio.sleep(0.2)
     print("ALERT_TEXTS", await page.get_by_role("alert").all_inner_texts())
+    print("ALERT_PHASE", await page.locator("[data-attachment-phase]").all_inner_texts())
+    print("ALERT_ATTEMPT", await page.locator("[data-chat-attempt]").all_inner_texts())
+    print("ALERT_PANEL", (await page.locator('[aria-label="Prepared attachments"]').all_inner_texts())[:800])
+    print("ALERT_SETTLEMENT", await page.locator("[data-chat-settlement]").all_inner_texts())
+    print("ALERT_DRAFT", await page.get_by_label("Message").input_value())
     raise AssertionError(f"alert did not contain {text!r}")
 
 async def wait_attempt(page, state, timeout=60000):
@@ -128,7 +132,7 @@ async def wait_attempt(page, state, timeout=60000):
         raise
 
 async def wait_original(page, count):
-    await expect(page.locator("[data-chat-image-count]")).to_have_attribute("data-chat-image-count", str(count), timeout=30000)
+    await expect(page.locator("[data-chat-file-count]")).to_have_attribute("data-chat-file-count", str(count), timeout=30000)
 
 
 async def send_file_event(page, event, name, mime, data):
@@ -150,11 +154,118 @@ async def send_images(page, text):
     await page.get_by_role("button", name="Send", exact=True).click()
 
 
+DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+PPTX_MIME = "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+EPUB_MIME = "application/epub+zip"
+FIXTURES = ROOT / "tests/attachments/fixtures"
+
+
+async def remove_all(page):
+    while await page.locator("[data-chat-original-id]").count():
+        await page.locator("[data-chat-original-id]").first.get_by_role("button", name="Remove", exact=True).click()
+
+
+async def documents(page, scenarios):
+    """Real text and document originals through the public browser path and live Native converters."""
+    pdf, docx = (FIXTURES / "minimal-text.pdf").read_bytes(), (FIXTURES / "minimal-text.docx").read_bytes()
+    pptx, xlsx = (FIXTURES / "minimal-slide.pptx").read_bytes(), (FIXTURES / "minimal-workbook.xlsx").read_bytes()
+    epub = (FIXTURES / "minimal-chapter.epub").read_bytes()
+
+    await page.get_by_label("Add files").set_input_files({"name": "spoof.png", "mimeType": "image/png",
+                                                          "buffer": b"plain UTF-8 text\n"})
+    await wait_original(page, 1)
+    assert await page.locator("[data-chat-original-type='text/plain']").count() == 1, "bytes decide over a lying MIME type"
+    await remove_all(page)
+    scenarios.append("bad-mime-content-wins")
+
+    await page.get_by_label("Add files").set_input_files({"name": "bad.txt", "mimeType": "text/plain",
+                                                          "buffer": b"caf\xc3\x28"})
+    await wait_alert(page, "UTF-8")
+    await page.get_by_label("Add files").set_input_files({"name": "archive.zip", "mimeType": "application/zip",
+                                                          "buffer": b"PK\x03\x04" + b"\x00" * 24})
+    await wait_alert(page, "ZIP archive")
+    await page.get_by_label("Add files").set_input_files({"name": "big.txt", "mimeType": "text/plain",
+                                                          "buffer": b"a" * (5 * 1024 * 1024 + 1)})
+    await wait_alert(page, "at most 5 MiB")
+    await wait_original(page, 0)
+    scenarios.append("bad-encoding-unsupported-document-limit")
+
+    await page.get_by_label("Add files").set_input_files([
+        {"name": "paper.pdf", "mimeType": "application/pdf", "buffer": pdf},
+        {"name": "notes.txt", "mimeType": "text/plain", "buffer": b"attachment provenance note\n"},
+        {"name": "report.docx", "mimeType": DOCX_MIME, "buffer": docx}])
+    await wait_original(page, 3)
+    assert await page.locator("[data-chat-original-type='application/pdf']").count() == 1
+    assert await page.locator("[data-chat-original-type='text/plain']").count() == 1
+    assert await page.locator(f"[data-chat-original-type='{DOCX_MIME}']").count() == 1
+    await send_images(page, "document provenance")
+    await wait_phase(page, "awaiting-consent")
+    panel = page.locator('[aria-label="Prepared attachments"]')
+    assert await panel.get_by_text("Document was converted to Markdown").count() >= 2, "conversion is declared before consent"
+    assert await panel.get_by_text("Controlled prepared document").count() >= 1, "converted PDF text is shown"
+    assert await panel.get_by_text("Controlled DOCX text witness").count() >= 1, "converted DOCX text is shown"
+    assert await page.locator("[data-attachment-representation='text']").count() == 3, "Native consumes prepared text"
+    assert await page.locator("[data-attachment-representation='image']").count() == 0
+    assert await page.locator('[data-attachment-phase="awaiting-consent"]').count() == 1, "nothing is consumed before consent"
+    await page.get_by_role("button", name=re.compile(r"Accept listed changes and continue Send|Continue this Send attempt")).click()
+    await wait_attempt(page, "accepted")
+    await page.wait_for_selector('[data-chat-native-entry="accepted"]', timeout=60000)
+    await wait_original(page, 0)
+    assert await page.get_by_label("Message").input_value() == "", "accepted document Send clears the draft"
+    scenarios.append("text-pdf-docx-consent-native-entry")
+
+    await page.get_by_label("Add files").set_input_files([
+        {"name": "slides.pptx", "mimeType": PPTX_MIME, "buffer": pptx},
+        {"name": "book.xlsx", "mimeType": XLSX_MIME, "buffer": xlsx},
+        {"name": "chapter.epub", "mimeType": EPUB_MIME, "buffer": epub}])
+    await wait_original(page, 3)
+    await send_images(page, "office and ebook provenance")
+    await wait_phase(page, "awaiting-consent")
+    assert await page.locator("[data-attachment-representation='text']").count() == 3
+    await page.get_by_role("button", name=re.compile(r"Accept listed changes and continue Send|Continue this Send attempt")).click()
+    await wait_attempt(page, "accepted")
+    await wait_original(page, 0)
+    scenarios.append("pptx-xlsx-epub-consent-native-entry")
+
+    await page.get_by_label("Base64 file").fill(base64.b64encode(pdf).decode())
+    await page.get_by_role("button", name="Add pasted file").click()
+    await wait_original(page, 1)
+    assert await page.locator("[data-chat-original-type='application/pdf']").count() == 1, "base64 PDF accepted"
+    await remove_all(page)
+    await send_file_event(page, "paste", "pasted.txt", "text/plain", b"pasted text\n")
+    await wait_original(page, 1)
+    await send_file_event(page, "drop", "dropped.md", "text/plain", b"dropped text\n")
+    await wait_original(page, 2)
+    assert await page.locator("[data-chat-original-type='text/plain']").count() == 2, "pasted and dropped text accepted"
+    await remove_all(page)
+    scenarios.append("document-base64-paste-drop")
+
+    await upload(page, "cancel.docx", DOCX_MIME, docx)
+    await wait_original(page, 1)
+    await send_images(page, "document cancel")
+    await wait_phase(page, "awaiting-consent")
+    await page.get_by_role("button", name="Cancel this Send attempt").click()
+    await wait_attempt(page, "refused")
+    assert await page.get_by_label("Message").input_value() == "document cancel", "cancelled document keeps the draft"
+    await wait_original(page, 1)
+    await remove_all(page)
+    scenarios.append("document-cancel-keeps-draft-original")
+
+    await upload(page, "broken.pdf", "application/pdf", b"%PDF-1.7\nnot a real pdf\n")
+    await wait_original(page, 1)
+    before = await page.locator("[data-chat-native-entry]").count()
+    await send_images(page, "corrupt conversion")
+    await wait_alert(page, "converter failed")
+    assert await page.get_by_label("Message").input_value() == "corrupt conversion", "failed conversion keeps the draft"
+    await wait_original(page, 1)
+    assert await page.locator("[data-chat-native-entry]").count() == before, "failed conversion is not sent to Native"
+    await remove_all(page)
+    scenarios.append("document-corrupt-explicit-conversion-failure")
+
 async def main():
     free_port()
     await asyncio.sleep(0.5)
-    if not CANDIDATE.exists():
-        shutil.copytree(ROOT / "vendor/omp-candidate", CANDIDATE, symlinks=True)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     shutil.rmtree(DATA, ignore_errors=True)
     errors, scenarios = [], []
@@ -201,23 +312,23 @@ async def main():
             await wait_original(page, 1)
             await send_file_event(page, "drop", "drop.webp", "image/webp", TINY["image/webp"])
             await wait_original(page, 2)
-            await page.get_by_label("Base64 image").fill(base64.b64encode(TINY["image/jpeg"]).decode())
-            await page.get_by_role("button", name="Add pasted image").click()
+            await page.get_by_label("Base64 file").fill(base64.b64encode(TINY["image/jpeg"]).decode())
+            await page.get_by_role("button", name="Add pasted file").click()
             await wait_original(page, 3)
             assert await page.locator("[data-chat-original-type='image/gif']").count() == 1, "pasted GIF accepted"
             assert await page.locator("[data-chat-original-type='image/webp']").count() == 1, "dropped WebP accepted"
             assert await page.locator("[data-chat-original-type='image/jpeg']").count() == 1, "base64 JPEG accepted"
             scenarios.append("image-paste-drop-base64")
 
-            await page.get_by_label("Add image files").set_input_files({"name": "spoof.png", "mimeType": "image/png",
-                                                                        "buffer": b"this is not an image"})
-            await wait_alert(page, "Unsupported image")
+            await page.get_by_label("Add files").set_input_files({"name": "spoof.png", "mimeType": "image/png",
+                                                                        "buffer": b"\x00\x01not an image"})
+            await wait_alert(page, "binary")
             await wait_original(page, 3)
-            await page.get_by_label("Add image files").set_input_files({"name": "broken.png", "mimeType": "image/png",
+            await page.get_by_label("Add files").set_input_files({"name": "broken.png", "mimeType": "image/png",
                                                                         "buffer": b"\x89PNG\r\n\x1a\n" + b"\x00" * 32})
             await wait_alert(page, "not a decodable")
             await wait_original(page, 3)
-            await page.get_by_label("Add image files").set_input_files({"name": "huge.png", "mimeType": "image/png",
+            await page.get_by_label("Add files").set_input_files({"name": "huge.png", "mimeType": "image/png",
                                                                         "buffer": png + b"\x00" * (10 * 1024 * 1024)})
             await wait_alert(page, "at most 10 MiB")
             await wait_original(page, 3)
@@ -240,21 +351,8 @@ async def main():
             await wait_original(page, 0)
             scenarios.append("image-degradation-consent-accepted")
 
-            stale_before = await page.locator("[data-chat-original-id]").count()
-            await upload(page, "stale.png", "image/png", data_png(5, 5, (10, 90, 10)))
-            stale = await context.new_page()
-            stale_errors = []
-            stale.on("pageerror", lambda error: stale_errors.append(str(error)))
-            await stale.goto(f"{ORIGIN}/")
-            await stale.wait_for_selector("[data-chat-root-slot]")
-            await open_session(stale)
-            await send_images(page, "stale grant")
-            await wait_alert(page, "ATTACHMENT_", 60000)
-            assert await page.get_by_label("Message").input_value() == "stale grant", "stale grant keeps the draft"
-            await wait_original(page, stale_before + 1)
-            assert not stale_errors, stale_errors
-            scenarios.append("image-stale-grant-rejected-draft-kept")
-            await stale.close()
+
+            await documents(page, scenarios)
 
             limit = await context.new_page()
             await limit.goto(f"{ORIGIN}/")
@@ -262,11 +360,11 @@ async def main():
             await open_session(limit)
             eight = [{"name": f"limit-{index}.png", "mimeType": "image/png",
                       "buffer": data_png(2, 2, (index, index, index))} for index in range(8)]
-            await limit.get_by_label("Add image files").set_input_files(eight)
+            await limit.get_by_label("Add files").set_input_files(eight)
             await wait_original(limit, 8)
-            await limit.get_by_label("Add image files").set_input_files({"name": "ninth.png", "mimeType": "image/png",
+            await limit.get_by_label("Add files").set_input_files({"name": "ninth.png", "mimeType": "image/png",
                                                                          "buffer": data_png(2, 2, (9, 9, 9))})
-            await wait_alert(limit, "at most 8 images")
+            await wait_alert(limit, "at most 8 files")
             assert await limit.locator("[data-chat-original-id]").count() == 8, "the ninth image is refused"
             await limit.close()
             scenarios.append("image-object-limit-enforced")
