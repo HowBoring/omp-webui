@@ -120,6 +120,7 @@ const provider = createDraftProvider({ owner, storage: sessionStorage, authority
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
+const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
@@ -218,11 +219,13 @@ async function present(view: PublicSessionView) {
   // Reauthorize every stable Original through the Host before publishing text and items together.
   let prepared: readonly PreparedDraftOriginal[] | undefined;
   if (!saved.unresolved) {
-    try { prepared = await provider.prepare(currentScope!, saved.originals, new AbortController().signal); }
+    try { prepared = await provider.prepare(currentScope!, saved.originals.filter(ref => !removedOriginals.has(String(ref.id))), new AbortController().signal); }
     catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
   }
   if (reference !== retained || draftDirty) return;
-  const items = saved.originals.map((ref, index) => {
+    // A removal that happened while this record was being read must not be republished by the stale read.
+  const retainedOriginals = saved.originals.filter(ref => !removedOriginals.has(String(ref.id)));
+  const items = retainedOriginals.map((ref, index) => {
     const result = prepared?.[index];
     if (result?.status !== "ready") return { objectId: String(ref.id), displayName: ref.name,
       mediaType: ref.mediaType as OriginalMediaType, byteLength: 0, pixels: 0,
@@ -498,7 +501,7 @@ function Surface() {
   const [retryOffer, setRetryOffer] = useState<{ requestId: string }>();
   const [retryNote, setRetryNote] = useState("");
   const retryPoller = useRef<ReturnType<typeof setInterval>>(), retryRenewed = useRef("");
-  const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
+  const scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
     try { setError(""); await action(); }
@@ -517,7 +520,7 @@ function Surface() {
   /** Stable Original references; invalid items stay in the record so a missing file remains visible. */
   const draftRefs = () => originalsRef.current.map(item => ({ id: DraftOriginalId(item.objectId), name: item.displayName, mediaType: item.mediaType }));
   const persist = async (record: Parameters<typeof provider.write>[1], reason: Parameters<typeof provider.write>[2]) => {
-    const current = binding.current;
+    const current = liveBinding;
     if (!current) return;
     try {
       await waitProjection(current);
@@ -681,7 +684,7 @@ function Surface() {
     finally { setUploading(false); }
   };
   const removeOriginal = async (objectId: string) => {
-    draftDirty = true;
+        draftDirty = true; removedOriginals.add(objectId);
     try {
       const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
         target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
@@ -734,9 +737,9 @@ function Surface() {
     } catch (failure) { setError(message(failure)); }
   };
   const send = async (mode: "queue" | "steer") => {
-    if (!view || !binding.current || !scope.current || text.trim() === "" || frozen) return;
+    if (!view || !liveBinding || !scope.current || text.trim() === "" || frozen) return;
     if (originals.some(item => item.invalid !== undefined)) { setError("Revalidate or remove the unavailable file before sending. Your draft is retained."); return; }
-    const current = binding.current;
+    const current = liveBinding;
     if (originals.length > 0 && mode !== "queue") {
       setError("Files are sent with Send; Steer does not accept attachments. Your draft is retained."); return;
     }
@@ -829,11 +832,11 @@ function Surface() {
   };
   useEffect(() => {
     viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
-    if (binding.current) scope.current = provider.scope(binding.current);
+    if (liveBinding) scope.current = provider.scope(liveBinding);
     void perform(catalog);
     return () => { release(); };
   }, []);
-  useEffect(() => { if (view && liveBinding) { binding.current = liveBinding; scope.current = provider.scope(liveBinding); } }, [view?.workerId]);
+  useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -998,11 +1001,17 @@ async function boot() {
     const headers = new Headers(init.headers); headers.set("x-omp-csrf", csrf);
     const response = await fetch(input, { ...init, headers });
     if (response.status === 401 && !authorizationWithdrawn) {
-      // A Host restart can answer an old in-flight request before its replacement is ready; only a
-      // failed /auth/status check proves the browser actually lost authorization.
       authorizationWithdrawn = true;
       void (async () => {
         try {
+          // A newer Chat tab withdraws this View's enrollment while the browser credential stays valid;
+          // the Host marks exactly that refusal "Access invalidated". A restart cannot answer a live
+          // request with it, so this is view authority loss, not a transient 401 to recheck.
+          const body = await response.clone().text();
+          if (body.includes("Access invalidated")) {
+            invalidateAccess("Browser authorization required. Open a local bootstrap link.");
+            return;
+          }
           const check = await fetch("/auth/status", { cache: "no-store" });
           if (check.ok) { csrf = (await check.json()).csrf; authorizationWithdrawn = false; return; }
         } catch { /* The authority stays withdrawn below. */ }
