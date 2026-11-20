@@ -15,6 +15,16 @@ const labels: Record<string, string> = {
   document_no_extractable_text: "The document has no extractable text",
   document_images_omitted: "Embedded document images are omitted",
 };
+export const attachmentFailures: Record<string, string> = {
+  attachment_format_mismatch: "The bytes do not match the declared format.",
+  attachment_conversion_failed: "The document converter failed.",
+  attachment_conversion_empty: "The document has no extractable text.",
+  attachment_conversion_output_budget: "The converted text exceeds the prepared-text ceiling.",
+  attachment_archive_budget: "The archive exceeds Native's archive budget.",
+  attachment_original_budget: "The original exceeds Native's byte budget.",
+  attachment_decoded_budget: "The image exceeds Native's decode budget.",
+  attachment_prepared_budget: "The prepared image exceeds Native's output budget.",
+};
 export function AttachmentPreparationPanel({ controller }: { controller: AttachmentPreparationController }) {
   const view = React.useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const [error, setError] = React.useState<string>();
@@ -28,9 +38,11 @@ export function AttachmentPreparationPanel({ controller }: { controller: Attachm
     {view.phase === "registered" && <p role="status">Send is pending preparation. This is not a committed Native message.</p>}
     {view.phase === "preparing" && <p role="status">Preparing every attachment…</p>}
     {status?.prompt !== undefined && <details><summary>Exact serialized prompt</summary><pre>{status.prompt}</pre></details>}
-    {status?.receipt?.items.map((item, index) => <article key={item.preparedId} data-original-id={item.originalId}>
+    {status?.receipt?.items.map((item, index) => <article key={item.preparedId} data-original-id={item.originalId}
+      data-attachment-representation={item.status === "failed" ? "failed" : item.representation.kind}>
       <h3>Attachment {index + 1}</h3>
-      {item.status === "failed" ? <p role="alert">Could not prepare this attachment: {item.code}</p> : <>
+      {item.status === "failed" ? <p role="alert">Could not prepare this attachment: {attachmentFailures[item.code] ?? item.code}</p> : <>
+        <p>Host original {item.originalId} stays private; Native receives {item.representation.kind === "image" ? "the transformed image" : "the text"} below.</p>
         {item.representation.kind === "image" ? <>
           <p>{item.representation.width} × {item.representation.height}, {item.representation.mimeType}</p>
           <img alt={`Prepared attachment ${index + 1}`} style={{ maxWidth: 280, maxHeight: 180 }}

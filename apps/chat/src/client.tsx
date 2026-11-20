@@ -23,8 +23,10 @@ import { chatComponentContribution } from "../../../packages/contracts/chat-comp
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { attachmentsContribution, type AttachmentSelection } from "../../../packages/contracts/attachment-remote.ts";
 import { AttachmentPreparationController } from "../../../packages/client-extensions/attachment-preparation.ts";
-import { AttachmentPreparationPanel } from "../../../packages/client-extensions/attachment-preparation-panel.tsx";
-import { base64Of, bytesOfBase64, decodeImage, draftBudgetFailure, imageLimits, sniffImage, type ImageKind } from "./images.ts";
+import { AttachmentPreparationPanel, attachmentFailures } from "../../../packages/client-extensions/attachment-preparation-panel.tsx";
+import { base64Of, bytesOfBase64, decodeImage, type ImageKind } from "./images.ts";
+import { attachmentLimits, attachmentName, classifyAttachment, draftBudgetFailure } from "./attachments.ts";
+import type { OriginalMediaType } from "../../../packages/attachments/media.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
 import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
@@ -321,7 +323,7 @@ function NodeRow({ node }: { node: unknown }) {
 }
 
 type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state: "sending" | "accepted" | "refused" | "unknown"; error?: string };
-type Uploaded = { objectId: string; displayName: string; mediaType: ImageKind; byteLength: number; width: number; height: number; pixels: number };
+type Uploaded = { objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number; width?: number; height?: number; pixels: number };
 function Surface() {
   const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
@@ -372,24 +374,27 @@ function Surface() {
   };
   const selection = (): AttachmentSelection => ({ session: view!.registration.nativeSessionId, draftId,
     revision: String(revision.current), originalIds: originals.map(item => item.objectId) });
-  const stage = async (bytes: Uint8Array, displayName: string, current: Uploaded[]): Promise<Uploaded> => {
-    const mediaType = sniffImage(bytes);
-    if (!mediaType) throw new Error("Unsupported image. Use PNG, JPEG, WebP, or GIF whose bytes match the format.");
-    const refusal = draftBudgetFailure(current, { byteLength: bytes.byteLength });
-    if (refusal === "objects") throw new Error(`A draft can hold at most ${imageLimits.objects} images.`);
-    if (refusal === "bytes" && bytes.byteLength > imageLimits.bytes)
-      throw new Error(`Each image must be at most ${imageLimits.bytes / 1024 ** 2} MiB.`);
-    if (refusal === "bytes") throw new Error(`The draft's images must total at most ${imageLimits.draftBytes / 1024 ** 2} MiB.`);
-    if (refusal === "pixels") throw new Error("The draft exceeds its independent image decode budget.");
-    const decoded = await decodeImage(bytes, mediaType);
-    if (draftBudgetFailure(current, { byteLength: 0, pixels: decoded.pixels }) === "pixels")
+  const stage = async (bytes: Uint8Array, displayName: string, declaredType: string, current: Uploaded[]): Promise<Uploaded> => {
+    if (bytes.byteLength === 0) throw new Error("The file is empty.");
+    const mediaType = classifyAttachment(bytes, { name: displayName, type: declaredType });
+    const image = mediaType.startsWith("image/");
+    const ceiling = image ? attachmentLimits.imageBytes : attachmentLimits.documentBytes;
+    const refusal = draftBudgetFailure(current, { mediaType, byteLength: bytes.byteLength });
+    if (refusal === "objects") throw new Error(`A draft can hold at most ${attachmentLimits.objects} files.`);
+    if (refusal === "bytes" && bytes.byteLength > ceiling)
+      throw new Error(`Each ${image ? "image" : "text or document"} must be at most ${ceiling / 1024 ** 2} MiB.`);
+    if (refusal === "bytes") throw new Error(`The draft's files must total at most ${attachmentLimits.draftBytes / 1024 ** 2} MiB.`);
+    const decoded = image ? await decodeImage(bytes, mediaType as ImageKind) : undefined;
+    if (draftBudgetFailure(current, { mediaType, byteLength: 0, pixels: decoded?.pixels }) === "pixels")
       throw new Error("The draft exceeds its independent image decode budget.");
+    const name = attachmentName(displayName);
     const staged = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "stage-base64",
       target: { sessionId: view!.registration.nativeSessionId, draftId },
-      descriptor: { displayName, mediaType, byteLength: bytes.byteLength }, base64: base64Of(bytes) }));
-    if (staged.status === "error") throw new Error(`The Host refused this image: ${staged.code}`);
-    if (staged.status !== "staged") throw new Error("The Host returned an unexpected image receipt.");
-    return { objectId: staged.original.objectId, displayName, mediaType, byteLength: bytes.byteLength, ...decoded };
+      descriptor: { displayName: name, mediaType, byteLength: bytes.byteLength }, base64: base64Of(bytes) }));
+    if (staged.status === "error") throw new Error(`The Host refused this file: ${staged.code}`);
+    if (staged.status !== "staged") throw new Error("The Host returned an unexpected attachment receipt.");
+    return { objectId: staged.original.objectId, displayName: name, mediaType, byteLength: bytes.byteLength,
+      pixels: decoded?.pixels ?? 0, ...(decoded ? { width: decoded.width, height: decoded.height } : {}) };
   };
   const addFiles = async (files: FileList | File[]) => {
     if (!view) return;
@@ -397,7 +402,7 @@ function Surface() {
     let next = originals;
     try {
       for (const file of Array.from(files)) {
-        const uploaded = await stage(new Uint8Array(await file.arrayBuffer()), file.name, next);
+        const uploaded = await stage(new Uint8Array(await file.arrayBuffer()), file.name, file.type, next);
         next = [...next, uploaded]; ++revision.current; setOriginals(next);
       }
     } catch (failure) { setError(message(failure)); }
@@ -408,14 +413,19 @@ function Surface() {
     setUploading(true);
     try {
       const bytes = bytesOfBase64(base64Draft);
-      if (bytes.length === 0) throw new Error("The pasted value has no image bytes.");
-      const uploaded = await stage(bytes, "pasted-image", originals);
+      if (bytes.length === 0) throw new Error("The pasted value has no file bytes.");
+      const uploaded = await stage(bytes, "pasted-file", "", originals);
       setOriginals([...originals, uploaded]); ++revision.current; setBase64Draft(""); setError("");
     } catch (failure) { setError(message(failure)); }
     finally { setUploading(false); }
   };
-  const removeOriginal = (objectId: string) => {
-    setOriginals(current => current.filter(item => item.objectId !== objectId)); ++revision.current;
+  const removeOriginal = async (objectId: string) => {
+    try {
+      const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
+        target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
+      if (released.status !== "released") throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
+      setOriginals(current => current.filter(item => item.objectId !== objectId)); ++revision.current;
+    } catch (failure) { setError(message(failure)); }
   };
   const recover = async (requestId: string) => {
     const result = resultValue(await ctx.remote.ompChat.lookup(view!.registration.nativeSessionId, requestId));
@@ -460,7 +470,7 @@ function Surface() {
     if (!view || !binding.current || !scope.current || text.trim() === "") return;
     const current = binding.current;
     if (originals.length > 0 && mode !== "queue") {
-      setError("Images are sent with Send; Steer does not accept attachments. Your draft is retained."); return;
+      setError("Files are sent with Send; Steer does not accept attachments. Your draft is retained."); return;
     }
     if (sending.current) {
       const sessionId = current.sessionId;
@@ -470,11 +480,11 @@ function Surface() {
       if (!projection) { setError("Projection is synchronizing. Your draft is retained."); return; }
       const reply = await ctx.remote.session.prompt({ requestId: brandString<SessionRequestId>(crypto.randomUUID()), sessionId: SessionId(view.registration.nativeSessionId),
         mode, content: [{ type: "text", text }], projection });
-      const error = reply.ok ? "Unexpected prompt acceptance." : reply.error.message;
+      const error = reply.ok ? "Unexpected prompt acceptance." : reply.error.message || reply.error.code;
       setError(error); setAttempt({ requestId: crypto.randomUUID(), text, mode, state: reply.ok ? "unknown" : "refused", error });
       return;
     }
-    const content = text, hasImages = originals.length > 0;
+    const content = text, hasAttachments = originals.length > 0;
     sending.current = true;
     setError(""); setRecovery(undefined);
     try { await waitProjection(current); await renewSessionProjection(view); } catch (failure) { setError(message(failure)); sending.current = false; return; }
@@ -486,7 +496,7 @@ function Surface() {
       unresolved: { id: DraftSubmissionId(requestId), ownsDraft: true, draft: { text: content, references: [] }, originals: [] } }, "submission");
     const abort = new AbortController(); attemptAbort.current = abort;
     let preparation: AttachmentPreparationController | undefined;
-    const resolvePreparation = async () => {
+    const resolvePreparation = async (): Promise<string | undefined> => {
       if (!preparation) return;
       await preparation.refresh().catch(() => {});
       let snapshot = preparation.getSnapshot();
@@ -495,13 +505,16 @@ function Surface() {
         await preparation.refresh().catch(() => {});
         snapshot = preparation.getSnapshot();
       }
+      const failed = snapshot.phase === "idle" ? undefined : snapshot.receipt?.items.find(item => item.status === "failed");
+      const failure = failed ? `Could not prepare this attachment: ${attachmentFailures[failed.code] ?? failed.code}` : undefined;
       if (("recovery" in snapshot && snapshot.recovery === "not-submitted") || snapshot.phase === "cancelled") {
         await preparation.finishAfterRecovery("not-submitted").catch(() => {});
         setController(undefined);
       }
+      return failure;
     };
     try {
-      if (hasImages) {
+      if (hasAttachments) {
         preparation = new AttachmentPreparationController(ctx.remote.ompAttachments, { current: selection });
         setController(preparation);
         await preparation.registerAttempt({ selection: selection(), submissionId: requestId, requestId }, abort.signal);
@@ -522,12 +535,19 @@ function Surface() {
         void finishAccepted(current.sessionId, requestId);
       } else {
         handle.abandon();
-        await resolvePreparation();
-        const unresolved = result.error.message.includes("unresolved");
-        setAttempt({ requestId, text: content, mode, state: unresolved ? "unknown" : "refused", error: result.error.message });
-        setError(result.error.message);
-        if (unresolved) setRecovery("Outcome unknown. Check Native recovery before sending again.");
-        else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery"); }
+        const failure = await resolvePreparation();
+        if (failure) {
+          recoveryAuthorized.add(requestId);
+          setAttempt({ requestId, text: content, mode, state: "refused", error: failure });
+          setError(failure);
+          await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery");
+        } else {
+          const unresolved = result.error.message.includes("unresolved");
+          setAttempt({ requestId, text: content, mode, state: unresolved ? "unknown" : "refused", error: result.error.message || result.error.code });
+          setError(result.error.message || result.error.code);
+          if (unresolved) setRecovery("Outcome unknown. Check Native recovery before sending again.");
+          else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery"); }
+        }
       }
     } catch (failure) {
       handle.abandon();
@@ -536,8 +556,9 @@ function Surface() {
       const notSubmitted = phase === "registered" || phase === "preparing" || phase === "failed" || phase === "cancelled";
       if (notSubmitted) {
         recoveryAuthorized.add(requestId);
-        setAttempt({ requestId, text: content, mode, state: "refused", error: message(failure) });
-        setError(message(failure));
+        const reason = await resolvePreparation() ?? message(failure);
+        setAttempt({ requestId, text: content, mode, state: "refused", error: reason });
+        setError(reason);
         await persist({ draft: { text: content, references: [] }, originals: [] }, "recovery");
       } else {
         setAttempt({ requestId, text: content, mode, state: "unknown", error: message(failure) });
@@ -569,7 +590,7 @@ function Surface() {
       <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
     </li>)}</ul>
     <section data-chat-worker-id={view?.workerId ?? ""} data-chat-generation={view?.generation ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}
-      data-chat-image-count={originals.length} onDragOver={event => event.preventDefault()}
+      data-chat-file-count={originals.length} onDragOver={event => event.preventDefault()}
       onDrop={event => { event.preventDefault(); if (!busy) void addFiles(event.dataTransfer.files); }}>
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
@@ -585,21 +606,20 @@ function Surface() {
       <textarea aria-label="Message" data-chat-draft value={text} disabled={!view}
         onChange={event => edit(event.target.value)}
         onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length > 0) { event.preventDefault(); if (!busy) void addFiles(files); } }} />
-      <fieldset data-chat-images>
-        <legend>Images for this Send</legend>
-        <input aria-label="Add image files" data-chat-image-input type="file" multiple disabled={!view || busy || uploading}
-          accept="image/png,image/jpeg,image/webp,image/gif"
-          onChange={event => { if (event.target.files) void addFiles(event.target.files); event.target.value = ""; }} />
-        <textarea aria-label="Base64 image" data-chat-base64 value={base64Draft} disabled={!view || busy || uploading}
-          placeholder="Paste base64 or a data:image/…;base64 URL" onChange={event => setBase64Draft(event.target.value)} />
+      <fieldset data-chat-attachments>
+        <legend>Files for this Send</legend>
+        <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || busy || uploading}
+          onChange={event => { const files = event.target.files; if (files) void addFiles(files).finally(() => { event.target.value = ""; }); }} />
+        <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || busy || uploading}
+          placeholder="Paste base64 or a data:…;base64 URL" onChange={event => setBase64Draft(event.target.value)} />
         <button data-chat-base64-add disabled={!view || busy || uploading || base64Draft.trim() === ""}
-          onClick={() => void addBase64()}>Add pasted image</button>
-        {uploading && <p role="status">Decoding and staging the image…</p>}
+          onClick={() => void addBase64()}>Add pasted file</button>
+        {uploading && <p role="status">Inspecting and staging the file…</p>}
         <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}>
-          {item.displayName} · {item.mediaType} · {item.width}×{item.height} · {item.byteLength} bytes
-          <button disabled={busy} onClick={() => removeOriginal(item.objectId)}>Remove</button>
+          {item.displayName} · {item.mediaType}{item.width === undefined ? "" : ` · ${item.width}×${item.height}`} · {item.byteLength} bytes
+          <button disabled={busy} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
         </li>)}</ul>
-        <p>PNG, JPEG, WebP, or GIF · up to {imageLimits.objects} images · {imageLimits.bytes / 1024 ** 2} MiB each · {imageLimits.draftBytes / 1024 ** 2} MiB draft.</p>
+        <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>
       {controller && <AttachmentPreparationPanel controller={controller} />}
       <button data-chat-send disabled={!view || busy || uploading || text.trim() === ""} onClick={() => void send("queue")}>Send</button>

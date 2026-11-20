@@ -197,8 +197,13 @@ export class ChatGateway {
         attempt.phase = "admitted";
       } catch (error) {
         const cancelled = error instanceof Error && error.message === "ATTACHMENT_CANCELLED";
-        attempt.phase = cancelled ? "refused" : "unknown";
-        if (cancelled) attempt.settled = true;
+        // Preparation refusals never dispatched; settle them so a corrected draft can be sent without a stuck Session.
+        let recovery: string | undefined;
+        try { recovery = this.port.attachments.recovery(attempt.id); } catch { /* The gate may already be finished. */ }
+        const local = !cancelled && (recovery === "not-submitted" || error instanceof Error
+          && /^ATTACHMENT_(?:CONVERSION|FORMAT|NOT_READY|DRAFT|ORIGINAL|ARCHIVE|DECODED|PREPARED|REQUEST_|CONSENT_|NATIVE_RESULT_INVALID|ATTEMPT_)/.test(error.message));
+        attempt.phase = cancelled || local ? "refused" : "unknown";
+        if (cancelled || local) attempt.settled = true;
         delete attempt.result;
         current();
         throw error instanceof ChatError ? error : new ChatError(cancelled ? "cancelled" : "unknown");

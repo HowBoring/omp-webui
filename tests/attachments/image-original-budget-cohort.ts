@@ -2,13 +2,13 @@ import * as path from "node:path";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import { fixtureCandidatePath, type FixtureCandidate } from "../continuation/worker.ts";
 
-// Independent expected authored tuple for the 1-6,7,9,10 stack (navigation 0008 belongs to #37), recomputed with
-// sha256sum over the ordered patch files and the emitted schema rather than read back from the build itself.
+// Independent expected authored tuple for the OMP19 1-6,7,9,10,11 stack (navigation 0008 belongs to #37),
+// recomputed from the authored patches and emitted schema rather than read back from the running build.
 const expectedBuild = {
   base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
-  sourceSha256: "01bf0151fc7171166630bc4680fe7314172117b349a1bedd55936220fe3e4fd0",
-  patchSha256: "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
-  schemaSha256: "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62",
+  sourceSha256: "8b5420ab340afb947fe4620fe6e84909ae0bd5ad36f19b91d1794b7308a2b7c3",
+  patchSha256: "ddcbf9213eeec575065fd5436ab9262bb7fd85b8a4c6d32b0bda26bd61dd03f5",
+  schemaSha256: "6520b1017637db3d3bb8b49a6e9ddea67bb6889152664e4a89b252bf15c1b044",
 } as const;
 
 /** Public diagnostic-only child before synthetic Session authoring; no global installation or product admission. */

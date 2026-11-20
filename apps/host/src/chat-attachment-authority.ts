@@ -7,13 +7,12 @@
 import type { BrowserAccess, BrowserAuthority } from "../../../packages/access/index.ts";
 import type { AttachmentAuthority, AuthorizedAttachmentDraft } from "../../../packages/attachments/bridge.ts";
 import { OriginalIntake } from "../../../packages/attachments/intake.ts";
+import { attachmentFormat } from "../../../packages/attachments/media.ts";
 import type { OriginalScope, OriginalStore } from "../../../packages/attachments/store.ts";
 import type { AttachmentSelection, AttachmentAttempt } from "../../../packages/contracts/attachment-remote.ts";
 import type { AttachmentTarget } from "../../../packages/contracts/attachments.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
 import type { ChatComponentRuntime } from "./chat-component-runtime.ts";
-
-const formats = { "image/png": "png", "image/jpeg": "jpeg", "image/webp": "webp", "image/gif": "gif" } as const;
 
 export class ChatAttachmentAuthority implements AttachmentAuthority {
   /** Late-bound so the Host can compose the authority before the runtime that owns the gate. */
@@ -58,7 +57,7 @@ export class ChatAttachmentAuthority implements AttachmentAuthority {
     const objects = [];
     for (const originalId of selection.originalIds) {
       const staged = await this.#intake.read(identity, target, originalId);
-      const format = formats[staged.mediaType as keyof typeof formats];
+      const format = attachmentFormat(staged.mediaType);
       if (!format) throw Error("ATTACHMENT_FORMAT_UNSUPPORTED");
       objects.push({ originalId, format, sha256: staged.sha256, data: Buffer.from(staged.bytes).toString("base64") });
     }
