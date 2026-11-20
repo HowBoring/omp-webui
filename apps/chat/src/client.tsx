@@ -438,7 +438,6 @@ function Surface() {
     try {
       const recovered = resultValue(await ctx.remote.ompChat.lookup(sessionId, requestId));
       applyRecovery(recovered, requestId); setEntry(recovered.outcome);
-      void settle(sessionId);
       // The accepted turn may create a new native cut. Reattach once the response has landed so the
       // rebuilt journal includes the completed turn before the next prompt.
       void settle(sessionId);
