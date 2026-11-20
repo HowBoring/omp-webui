@@ -39,10 +39,20 @@ async def start_host(scenario=None, delay=None, tools=None):
         env["OMP_CHAT_FIXTURE_DELAY_MS"] = str(delay)
     if tools:
         env["OMP_CHAT_FIXTURE_TOOLS"] = str(tools)
-    host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
-                            stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
-    await wait_health()
-    return host
+    # A force-terminated scenario can leave its predecessor draining past the SIGTERM wait. Kill any
+    # leftover hard, and never accept health from a predecessor while the new process already died.
+    for _ in range(3):
+        subprocess.run(["pkill", "-9", "-f", str(HOST)], check=False)
+        await asyncio.sleep(0.3)
+        host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
+                                stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
+        try:
+            await wait_health()
+        except RuntimeError:
+            continue
+        if host.poll() is None:
+            return host
+    raise RuntimeError("chat Host did not become healthy on a free port")
 
 
 def bootstrap():
@@ -132,7 +142,42 @@ async def new_page(browser, errors):
     return context, page
 
 
+async def phase_pending_ui(browser, errors, grant_first=False):
+    host = await start_host(scenario="pending-ui", delay=100)
+    try:
+        context, page = await new_page(browser, errors)
+        if grant_first:
+            await grant(page)
+        await open_session(page)
+        await send(page, "pending native question before stop")
+        await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
+        audit_path = ROOT / "vendor/chat-fixture/pending-ui-audit.json"
+        for _ in range(100):
+            if audit_path.exists() and json.loads(audit_path.read_text()).get("stage") == "awaiting": break
+            await page.wait_for_timeout(100)
+        assert audit_path.exists() and json.loads(audit_path.read_text()).get("stage") == "awaiting", \
+            "the native question reached the #47 Broker before Stop"
+        await page.get_by_role("button", name="Stop", exact=True).click()
+        await page.wait_for_selector('[data-chat-stop-status="stopping"]', timeout=10000)
+        # The broker cancels the native question; settlement is only shown when the gateway sees every
+        # pending interaction at zero, so this wait proves the UI cancellation and joint quiescence.
+        await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=30000)
+        audit = json.loads(audit_path.read_text())
+        assert audit["answer"] == "cancelled", f"native question was cancelled: {audit}"
+        await context.close()
+    finally:
+        await stop_host(host)
+
+
 async def main():
+    if os.environ.get("OMP_BROWSER_ONLY_PENDING_UI") == "1":
+        subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
+                       stdout=subprocess.DEVNULL)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
+            await phase_pending_ui(browser, [], grant_first=True)
+            await browser.close()
+        return
     kill_worker()
     subprocess.run(["pkill", "-f", f"{HOST}"], check=False)
     await asyncio.sleep(0.5)
@@ -334,6 +379,8 @@ async def main():
             assert await page.get_by_label("Message").input_value() == "draft during stubborn stop", "force keeps the draft"
             scenarios.append("stubborn-force-confirm-terminated-reaped")
             await context.close()
+
+            await phase_pending_ui(browser, errors)
 
             # Phase 3: controlled provider terminal error is accepted then settles failed, never resent.
             await stop_host(host)

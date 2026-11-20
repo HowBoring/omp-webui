@@ -29,6 +29,7 @@ import { createDraftProvider, type DraftAuthority } from "../../../packages/draf
 import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
+import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
 
@@ -376,21 +377,12 @@ function Surface() {
   };
   /** Restored input is only ever an unsent draft: a nonempty composer wins and is never overwritten. */
   const restore = (snapshot: StopSnapshot) => {
-    const restored = snapshot.restored;
-    if (!restored || restoredFor.current === snapshot.generation) return;
+    if (restoredFor.current === snapshot.generation) return;
+    const draft = restoredDraft(snapshot, text);
+    if (!draft) return;
     restoredFor.current = snapshot.generation;
-    const value = [...restored.steering, ...restored.followUp].map(item => item.text).join("\n");
-    const images = [...restored.steering, ...restored.followUp].filter(item => item.images?.length).length;
-    const losses = [images && `${images} queued input${images === 1 ? "" : "s"} had images that could not be restored as drafts`,
-      restored.imagesDropped && "attachments were dropped", restored.truncated && "the restored text was truncated"]
-      .filter(Boolean).join("; ");
-    if (value === "") { setStopNote(losses ? `Stop restored no text: ${losses}.` : ""); return; }
-    if (text.trim() !== "") {
-      setStopNote(`Stop returned queued input that was not inserted because this draft is not empty.${losses ? ` ${losses}.` : ""}`);
-      return;
-    }
-    edit(value);
-    setStopNote(`Stop restored queued input as an unsent draft.${losses ? ` ${losses}.` : ""}`);
+    if (draft.text !== "") edit(draft.text);
+    setStopNote(draft.note);
   };
   const applyStop = (snapshot: StopSnapshot) => {
     setStop(snapshot); restore(snapshot);
@@ -644,7 +636,7 @@ function Surface() {
       <button data-chat-stop disabled={!view || stop?.status === "terminating"} onClick={() => void perform(async () => {
         setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop()));
       })}>Stop</button>
-      {stop && stop.status !== "idle" && <div data-chat-stop-status={stop.status}>
+      {stop && stop.status !== "idle" && <div data-chat-stop-status={stop.status} data-chat-stop-interactions={stop.pending.interactions}>
         <p role="status">{`stop ${stop.status} · native ${stop.nativeSettled ? "settled" : "running"} · answers ${stop.pending.interactions} · summary ${stop.pending.history} · queue ${stop.pending.queued} · other ${stop.pending.other}`}
           {stop.failures.length > 0 ? ` · ${stop.failures.join(", ")}` : ""}</p>
         {stop.forceAvailable && !force && <button data-chat-stop-offer onClick={() => void perform(async () => {

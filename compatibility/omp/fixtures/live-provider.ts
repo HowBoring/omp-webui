@@ -8,6 +8,8 @@ export default function(pi) {
   let calls=0;
   const seed=Number(process.env.OMP_LIVE_FIXTURE_SEED??0);
   const stubborn=process.env.OMP_LIVE_FIXTURE_SCENARIO==='stubborn';
+  const pendingUi=process.env.OMP_LIVE_FIXTURE_SCENARIO==='pending-ui';
+  const pendingAudit=path.join(profile,'pending-ui-audit.json');
   if(stubborn){
     const audit=path.join(profile,'stubborn-audit.json');
     const facts={termObserved:false,termAt:0,exitAt:0};
@@ -32,7 +34,7 @@ export default function(pi) {
       contextWindow:128000,maxTokens:8192,cost:{input:0,output:0,cacheRead:0,cacheWrite:0}}],
     streamSimple(model,context,options) {
       if(model.provider!=='s0-controlled'||model.id!=='deterministic-live') throw Error('unexpected_fixture_provider');
-      calls++; fs.writeFileSync(path.join(profile,'controlled-provider.json'),JSON.stringify({calls,kind:'controlled-in-process-provider',realProviderInference:false,tools:process.env.OMP_LIVE_FIXTURE_TOOLS??null}));
+      calls++; fs.writeFileSync(path.join(profile,'controlled-provider.json'),JSON.stringify({calls,kind:'controlled-in-process-provider',realProviderInference:false,tools:process.env.OMP_LIVE_FIXTURE_TOOLS??null,scenario:process.env.OMP_LIVE_FIXTURE_SCENARIO??null}));
       const stream=createAssistantMessageEventStream();
       const partial={role:'assistant',api:'s0-controlled',provider:'s0-controlled',model:'deterministic-live',
         timestamp:calls,stopReason:'stop',content:[],
@@ -65,6 +67,12 @@ export default function(pi) {
           {type:'toolCall',id:'batch-two-id',name:'s0_fixture_batch',arguments:{path:'batch-two.txt',count:2},thoughtSignature:'batch-two-signature'},
         ];
         const backgroundCall={type:'toolCall',id:'background-fixture-id',name:'bash',arguments:{command:"sleep 2; printf 'background fixture result\\n'",async:true},thoughtSignature:'background-signature'};
+        if(pendingUi&&!fs.existsSync(pendingAudit)){
+          const call={type:'toolCall',id:'pending-ui-fixture-id',name:'s0_pending_ui',arguments:{},thoughtSignature:'pending-ui-signature'};
+          partial.content=[call];stream.push({type:'toolcall_start',contentIndex:0,partial});
+          stream.push({type:'toolcall_end',contentIndex:0,toolCall:call,partial});
+          partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
+        }
         if(stubborn&&toolResults===0){
           const call={type:'toolCall',id:'stubborn-fixture-id',name:'s0_stubborn',arguments:{},thoughtSignature:'stubborn-signature'};
           partial.content=[call];stream.push({type:'toolcall_start',contentIndex:0,partial});
@@ -112,6 +120,20 @@ export default function(pi) {
     pi.registerTool({name:'rewind',label:'Controlled rewind',description:'Controlled native rewind result',
       parameters:schemaType({report:'string'}),async execute(_id,params){return {content:[{type:'text',text:'rewind requested'}],details:{report:params.report,rewound:true}};}});
   }
+  if(pendingUi)pi.registerTool({name:'s0_pending_ui',label:'Controlled pending UI',
+    description:'Synthetic pending native question for Stop cancellation',parameters:schemaType({}),
+    async execute(_id,_params,_signal,_onUpdate,ctx){
+      const audit=pendingAudit;
+      fs.writeFileSync(audit,JSON.stringify({stage:'awaiting'}));
+      try{
+        const answer=await ctx.ui.askDialog([{id:'decision',question:'Stop this question?',options:[{label:'Allow'},{label:'Deny'}]}]);
+        fs.writeFileSync(audit,JSON.stringify({answer:answer===undefined?'cancelled':'answered'}));
+        return {content:[{type:'text',text:answer===undefined?'question cancelled':'question answered'}]};
+      }catch(error){
+        fs.writeFileSync(audit,JSON.stringify({error:String(error)}));
+        throw error;
+      }
+    }});
   if(stubborn)pi.registerTool({name:'s0_stubborn',label:'Controlled uncooperative tool',
     description:'Synthetic busy proof that ignores abort and SIGTERM',parameters:schemaType({}),
     async execute(){setInterval(()=>{},1000);await new Promise(()=>{});return {content:[]};}});

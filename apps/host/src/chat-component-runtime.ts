@@ -13,7 +13,8 @@ import type { BrowserAccess, BrowserAuthority } from "../../../packages/access/i
 import type { ChatAttachment, ChatAttachmentResult } from "../../../packages/contracts/chat-component.ts";
 import type { SubmissionClientCommand } from "../../../packages/contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SessionState, AbortAndRestoreQueueResult, PromptResultEvent, RpcWireCommands,
-  SessionSettledEvent } from "../../../packages/contracts/generated/omp-wire.ts";
+  SessionSettledEvent, UIReplyResult } from "../../../packages/contracts/generated/omp-wire.ts";
+import { InteractionBroker, type PageBinding } from "../../../packages/interactions/broker.ts";
 import type { StopSnapshot } from "../../../packages/contracts/stop.ts";
 import type { StopCaller } from "../../../packages/interactions/stop-service.ts";
 import { StopCoordinator, createStopNativePort, type StopPage } from "../../../packages/interactions/stop.ts";
@@ -38,6 +39,9 @@ interface Entry {
   readonly idleGeneration: string;
   readonly unsubscribe: () => void;
   readonly stop: StopCoordinator;
+  readonly broker: InteractionBroker;
+  askDialog?: Promise<unknown> | undefined;
+  readonly brokerPage: PageBinding;
   readonly pages: Map<string, StopPage>;
   idle: StopSnapshot;
   native?: Partial<SessionState>;
@@ -166,6 +170,7 @@ export class ChatComponentRuntime {
     this.#stopPolling(entry);
     for (const page of entry.pages.values()) entry.stop.disconnect(page);
     entry.stop.close();
+    entry.broker.close();
   }
 
   #grantId(cwd: string): string | undefined {
@@ -191,18 +196,19 @@ export class ChatComponentRuntime {
     const idleGeneration = randomUUID();
     const scope = { kind: "session" as const, sessionId: nativeSessionId };
     let entry: Entry;
+    let broker: InteractionBroker | undefined;
     const stop = new StopCoordinator(scope, view.generation, createStopNativePort({
       abortBranchSummary: async command => await worker.control(command.type) as
         RpcWireCommands["abort_branch_summary"]["result"],
       abortAndRestoreQueue: async command => await worker.control(command.type) as AbortAndRestoreQueueResult,
     }), {
-      beginStop: async () => {}, cancellationUncertain: () => false,
+      beginStop: async () => await broker!.beginStop(), cancellationUncertain: () => broker!.cancellationUncertain,
       pending: () => {
         const state = entry.native;
-        return { interactions: 0, history: 0, queued: state?.queuedMessageCount ?? 0,
+        return { interactions: broker!.pendingCount, history: 0, queued: state?.queuedMessageCount ?? 0,
           other: state?.hasPendingAsyncWork === true ? 1 : 0 };
       },
-      resume: () => {},
+      resume: () => broker!.resumeAfterStop(),
     }, (page, held) => {
       if (page.credentialId !== identity.credentialId || held.kind !== "session" || held.sessionId !== nativeSessionId) return false;
       if (this.#views.get(page.credentialId)?.owner !== undefined && !this.authority.revalidate(identity)) return false;
@@ -215,6 +221,13 @@ export class ChatComponentRuntime {
       },
       terminateAndReap: () => this.supervisor.forceWorker(identity, view.workerId, view.generation),
     });
+    broker = new InteractionBroker(scope, view.generation, view.workerId, {
+      respondUi: async params => await worker.command({ type: "respond_ui", ...params }) as UIReplyResult,
+      requestStop: async () => { void entry?.stop.requestStop(); },
+    }, () => true);
+    const readyPolicy = worker.readyPolicy;
+    if (readyPolicy !== undefined) broker.receive({ type: "ready", interactionPolicy: readyPolicy });
+    const brokerPage = broker.attach({ credentialId: "host", clientId: "host", peerId: "host" });
     const gateway = new ChatGateway({
       sessionId: nativeSessionId, generation: view.generation, target, lifetime: lifetime.signal,
       matchedCohort: "omp-webui-chat-component-v1",
@@ -222,6 +235,8 @@ export class ChatComponentRuntime {
       // Real #48 snapshot: status/force/restored queue/draft conflict all come from the coordinator.
       stop: () => entry.idle,
       state: async () => {
+        entry.askDialog ??= worker.setAskDialog();
+        await entry.askDialog;
         const state = await worker.state();
         entry.native = state;
         entry.stop.observeState(view.generation, state);
@@ -242,13 +257,14 @@ export class ChatComponentRuntime {
       } } : {}),
     });
     const unsubscribe = worker.subscribe(frame => {
+      broker!.receive(frame);
       gateway.observe(frame);
       if (!liveNotification(frame)) return;
       if (frame.type === "session_settled" || (frame.type === "prompt_result" && frame.sessionSettled))
         stop.observeNotification(view.generation, frame as PromptResultEvent | SessionSettledEvent);
     });
     entry = { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId, worker,
-      gateway, lifetime, idleGeneration, unsubscribe, stop, pages: new Map(),
+      gateway, lifetime, idleGeneration, unsubscribe, stop, broker, brokerPage, pages: new Map(),
       idle: { generation: idleGeneration, workerGeneration: view.generation, scope, status: "idle", nativeSettled: false,
         acceptingWork: false, pending: { interactions: 0, history: 0, queued: 0, other: 0 }, failures: [],
         forceAvailable: false, restored: null, draftConflict: false } };

@@ -147,7 +147,7 @@ console.info(JSON.stringify({ status: "candidate-built", outdir, ...build, files
 
 // The runtime startup-fast interaction dispatcher validates the same authored public command schema.
 const interactionSchemas = makeCommandSchemas(bundle,
-  ["get_interaction_policy", "respond_ui", "negotiate_protocol"], { requireId: false });
+  ["get_interaction_policy", "respond_ui", "negotiate_protocol", "set_ask_dialog"], { requireId: false });
 for (const schema of interactionSchemas) audit(schema);
 for (const name of ["InteractionPolicy", "UIReplyResult"]) audit(bundle.$defs[name]);
 const interactionValidator = ajv.compile({ $defs: bundle.$defs, anyOf: interactionSchemas });
@@ -220,3 +220,12 @@ if (wireOnly && !checkGenerated) {
     reason: "Wire-only generation does not rebuild or verify the existing native launcher." }, null, 2) + "\n");
   console.info(JSON.stringify({ status: "wire-only-generated-candidate-not-built", ...build }));
 }
+
+// Host-owned public queue boundary: the core already exposes steer/follow_up; this
+// validates only those two commands for native queue creation and Stop recovery.
+const queueSchemas = makeCommandSchemas(bundle, ["steer", "follow_up"]);
+const queueValidator = ajv.compile({ $defs: bundle.$defs, anyOf: queueSchemas });
+await emit("packages/contracts/generated/queue-command.js", standaloneCode(ajv, queueValidator));
+await emit("packages/contracts/generated/queue-command.d.ts",
+  "declare const validate: (value: unknown) => boolean;\nexport default validate;\n");
+
