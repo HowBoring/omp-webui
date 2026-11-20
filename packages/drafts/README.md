@@ -1,8 +1,10 @@
-# Scoped semantic draft provider — ticket 57 SOURCE candidate
+# Scoped semantic draft provider — ticket 57
 
-This unregistered component implements the existing public DSH
-`ConversationDraftProvider`. No application imports or registers it. It is not
-ticket 57, attachment preparation, product recovery or MVP acceptance.
+`apps/chat/src/client.tsx` registers this provider with a per-tab Web Lock owner,
+sessionStorage records and the typed Host Originals Remote for preparation. The
+DSH provider-mode composer runtime itself is not mounted; the chat surface owns
+atomic hydration of this provider's records. This is not product root admission
+or MVP acceptance.
 ADRs [0009](../../docs/adr/0009-original-attachments-and-drafts.md) and
 [0021](../../docs/adr/0021-host-original-intake.md) retain their existing boundaries.
 
@@ -50,10 +52,10 @@ or let an old preparation result return under replacement authority. Copies with
 the same identity remain accepted; authority is still rechecked at completion.
 
 Original preparation returns one ordered visible invalid item by default:
-`draft_native_preparation_unavailable`. An optional resolver uses the existing
-public provider preparation signature and must already supply authorized,
-prepared Files or current invalid reasons. Staged `OriginalIntake` bytes and
-`read-base64` acknowledgements cannot implement positive Native preparation.
+`draft_native_preparation_unavailable`. The registered chat resolver re-reads
+each exact staged Original from the trusted Host Remote under the current
+explicitly opened scope, so a stored receipt is never trusted after reload or
+restart; missing, expired or unauthorized objects become visible invalid items.
 The adapter rejects partial cardinality, checks authority/cancellation again
 after a deferred resolver and refuses preparation for unresolved storage.
 It neither uploads nor creates runtime attachment IDs; DSH retains its existing

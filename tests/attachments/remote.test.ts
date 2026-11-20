@@ -166,3 +166,25 @@ test("typed Host Remote result codec accepts known error codes and refuses arbit
   expect(attachmentResult.safeParse({ status: "error", code: "attachment_invalid_utf8" }).success).toBe(true);
   expect(attachmentResult.safeParse({ status: "error", code: "attachment_foo_834" }).success).toBe(false);
 });
+
+test("typed Host Remote renews only exact current staged Originals for an explicit draft action", async () => {
+  const f = await fixture();
+  try {
+    const source = { displayName: "notes.txt", mediaType: "text/plain" as const, byteLength: 4 };
+    const stage = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "bm90ZQ==" });
+    if (!stage.ok || stage.value.status !== "staged") throw Error("stage refused");
+    const objectId = stage.value.original.objectId;
+    const touched = await f.remote.exchange({ operation: "touch", target, activity: "explicit-edit", objectIds: [objectId] });
+    expect(touched.ok && touched.value).toEqual({ status: "touched", renewed: [objectId], unavailable: [] });
+    const other = "d503e8d2-a0f8-459c-a4fa-ecc916078a14";
+    const partial = await f.remote.exchange({ operation: "touch", target, activity: "active-recovery", objectIds: [objectId, other] });
+    expect(partial.ok && partial.value).toEqual({ status: "touched", renewed: [objectId], unavailable: [other] });
+    const malformed = await f.remote.exchange({ operation: "touch", target,
+      // @ts-expect-error The public codec must refuse an unknown retention activity.
+      activity: "background-refresh", objectIds: [objectId] });
+    expect(malformed.ok).toBe(false);
+    f.revoke();
+    const refused = await f.remote.exchange({ operation: "touch", target, activity: "explicit-edit", objectIds: [objectId] });
+    expect(refused.ok && refused.value.status).toBe("error");
+  } finally { await f.dispose(); }
+});

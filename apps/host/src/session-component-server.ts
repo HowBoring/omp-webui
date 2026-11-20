@@ -219,7 +219,15 @@ export async function startSessionComponentServer(options: Options) {
       ...(cancelDescriptor ? [{ ...cancelDescriptor, service: "chatCancel" }] : [])] });
     ctx.typert.register(chatComponentHostContribution);
     const admission = new ChatViewAdmission(access, directories, supervisor);
-    attachmentStore = new OriginalStore({ dataDir: join(options.dataDir, "attachments"), recovery: "exclusive-host-startup" });
+    attachmentStore = new OriginalStore({ dataDir: join(options.dataDir, "attachments"), recovery: "exclusive-host-startup",
+      // Isolated Chat has no other trusted reference owner; submission holds are checked by the Store itself.
+      protection: () => ({ status: "unreferenced", revision: "isolated-chat" }) });
+    // Restart never resets the staged clock: expire from the persisted activity time before serving.
+    for (let page = 0, after: string | undefined; page < 32; page++) {
+      const passed = attachmentStore.collectExpired(after);
+      after = passed.next ?? undefined;
+      if (after === undefined) break;
+    }
     let runtime: ChatComponentRuntime;
     const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
     const bridge = new AttachmentBridge(authority, target => runtime.native(target));

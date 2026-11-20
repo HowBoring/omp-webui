@@ -333,6 +333,7 @@ async def documents(page, scenarios):
     await page.reload()
     await page.wait_for_selector("[data-chat-root-slot]")
     await open_session(page)
+    await remove_all(page)
 
     await upload(page, "oversize.docx", DOCX_MIME, docx_with_text("x" * (2 * 1024 * 1024 + 1024)))
     await wait_original(page, 1)
@@ -343,6 +344,7 @@ async def documents(page, scenarios):
     await page.reload()
     await page.wait_for_selector("[data-chat-root-slot]")
     await open_session(page)
+    await remove_all(page)
     scenarios.append("document-conversion-failure-matrix")
 
     await upload(page, "broken.pdf", "application/pdf", b"%PDF-1.7\nnot a real pdf\n")
@@ -509,9 +511,10 @@ async def main():
                            for text in await limit.get_by_role("alert").all_inner_texts())
             else:
                 assert await limit.get_by_label("Message").input_value() == "restart consent", "Host restart keeps the draft"
-                assert await limit.locator("[data-chat-original-id]").count() == 0, "Host restart drops unprepared attachments"
+                # A Host restart keeps the confirmed Original; it is reauthorized or shown as an explicit invalid item.
+                assert await limit.locator("[data-chat-original-id]").count() == 1, "Host restart keeps the prepared Original"
             assert any("restart consent" in value for value in
-                       await limit.evaluate("Object.values(localStorage)")), "the draft is retained in storage"
+                       await limit.evaluate("Object.values(sessionStorage)")), "the draft is retained in the tab's storage"
             assert "restart consent" not in journal.read_text(), "Host restart never dispatches the unconsented draft"
             effects_after = json.loads(effects.read_text())
             if effects_after != effects_before:  # a fresh worker rewrites its zeroed effect journal on start
@@ -530,4 +533,5 @@ async def main():
         await stop_host(host)
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

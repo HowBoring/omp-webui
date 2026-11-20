@@ -29,6 +29,10 @@ export class AttachmentRemote extends TypertRemoteService {
         const { reclaimed } = this.store.release(scope, request.objectId);
         return { status: "released", objectId: request.objectId, reclaimed };
       }
+      if (request.operation === "touch") {
+        const scope = this.authorize(invocation.peer, request.target);
+        return { status: "touched", ...this.store.touchDraft(() => scope, request.activity, request.objectIds) };
+      }
       if (request.operation === "read-base64") {
         const { bytes, ...original } = await intake.read(invocation.peer, request.target, request.objectId, signal);
         return { status: "read", original, base64: Buffer.from(bytes).toString("base64") };
