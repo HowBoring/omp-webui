@@ -1,0 +1,73 @@
+{
+  "ticket": 59,
+  "recordedAt": "2026-11-21T03:10:00+08:00",
+  "status": "partial",
+  "productHost": {
+    "url": "http://localhost:3191",
+    "command": "OMP_WEB_DATA_DIR=/tmp/t59-prod-webdata OMP_WEB_LAUNCHER=$PWD/vendor/omp-candidate/omp OMP_WEB_MANIFEST=$PWD/vendor/product/installation.json OMP_WEB_MANIFEST_SHA256=<sha> OMP_WEB_PORT=3191 HOME=/tmp/t59-prod-home PI_CODING_AGENT_DIR=/tmp/t59-prod-home OMP_HISTORY_FIXTURE_PROFILE=/tmp/t59-prod-home OMP_LIVE_FIXTURE_DELAY_MS=2500 bun --no-env-file apps/host/src/main.ts",
+    "installationSha256": "3acd8c85599404d4033d39e3c5eb053583c182d5b5de51515f5bf406a0dd708b",
+    "assets": "vendor/dsh-product",
+    "runtime": {"name": "bun", "version": "1.4.4", "platform": "linux", "arch": "x64"},
+    "realProductAdmission": true,
+    "syntheticFixtureUsed": false
+  },
+  "controlledProvider": {
+    "kind": "controlled-in-process-provider",
+    "realProviderInference": false,
+    "label": "controlled public extension; not a real model provider",
+    "extension": "compatibility/omp/fixtures/live-provider.ts",
+    "configFile": "/tmp/t59-prod-home/config.yml",
+    "config": "extensions:\n  - /home/howboring/Projects/omp-webui-ticket-59/compatibility/omp/fixtures/live-provider.ts\nmodelRoles:\n  default: s0-controlled/deterministic-live\n",
+    "auditFile": "/tmp/t59-prod-home/controlled-provider.json",
+    "note": "calls is per worker process; compare only within one session/worker",
+    "lastAudit": {"calls": 12, "kind": "controlled-in-process-provider", "realProviderInference": false, "tools": null, "scenario": null}
+  },
+  "linuxProductFlow": {
+    "newSessionAndExplicitOpen": "native 01a1fa4a-f78e-779d-89f8-93a15b08eea7, worker c2cc59e4-875a-4442-8800-fd93ac906d81, draft-ready true, model s0-controlled/deterministic-live",
+    "send": {"nativeAssistant": "authoritative controlled final", "providerCallsBefore": 12, "providerCallsAfter": 13, "attempt": "accepted · queue · e512cae2-a106-4dfd-a0e3-840003a9bb14"},
+    "stop": {"nativeConversation": "authoritative [Native error: Interrupted by user]; Native turn interrupted", "providerCallsBefore": 14, "providerCallsAfterStop": 15},
+    "retry": {"attemptRequestId": "22be9272-3368-4526-ac05-3b8912a812ad", "statusPath": "admitted -> succeeded", "settled": true, "newAssistant": "authoritative controlled final", "providerCallsAfterRetry": 16}
+  },
+  "windows": {
+    "os": "Microsoft Windows NT 10.0.26300.0",
+    "chrome": {"executable": "C:\\Program Files\\Google Chrome Dev\\Application\\chrome.exe", "fileVersion": "160.0.8157.0", "cdp": "http://127.0.0.1:9223", "hwnd": 680726250},
+    "shell": "Windows PowerShell 5.1.26100.9818",
+    "osClipboardFilePaste": {
+      "method": "PowerShell Set-Clipboard -Path (CF_HDROP) + real keybd_event Ctrl+V (user32), Chrome focused",
+      "clipboardFiles": ["C:\\Users\\howboring\\AppData\\Local\\Temp\\t59-win-paste.txt"],
+      "pasteEvent": {"files": [{"name": "t59-win-paste.txt", "type": "text/plain", "size": 39}], "types": ["Files"]},
+      "attachmentPhase": "staged Original in draft",
+      "attachment": {"id": "1678065d-3faa-4837-8507-aba1315beb11", "mediaType": "text/plain", "label": "t59-win-paste.txt · text/plain · 39 bytes"},
+      "syntheticFallback": false
+    },
+    "osExplorerDragDrop": {
+      "method": "real Explorer item drag with user32 SetCursorPos/mouse_event down/move/up into Chrome client area",
+      "source": {"explorerHwnd": 130810792, "item": "win-drag.txt", "itemCenter": [529, 179]},
+      "target": {"clientPoint": [1398, 547], "element": "chat composer drop zone"},
+      "dropEvent": {"files": [{"name": "win-drag.txt", "type": "text/plain", "size": 32}], "types": ["Files"]},
+      "attachmentPhase": "staged Original in draft",
+      "attachment": {"id": "dc9e84c0-bf46-4047-87fc-b3025b014b37", "mediaType": "text/plain", "label": "win-drag.txt · text/plain · 32 bytes"},
+      "javascriptDragEventUsed": false
+    },
+    "osKeyboard": {
+      "method": "user32 keybd_event with MapVirtualKey scan codes, Chrome foreground",
+      "ctrlAltEnter": {"sent": true, "effect": "no send; provider calls unchanged at 17"},
+      "ctrlShiftSlash": {"effect": "send; provider calls 17 -> 18; native user row 'Windows OS key probe' and assistant 'authoritative controlled final'"},
+      "ctrlAltK": {"effect": "no stop; turn stayed active"},
+      "ctrlShiftPeriod": {"effect": "stop; native 'authoritative controlled final [Native error: Interrupted by user]' + 'Native turn interrupted'"},
+      "ctrlAltR": {"effect": "no retry; retry attempt unchanged"},
+      "ctrlShiftR": {"effect": "one retry; provider calls 18 -> 19; retry confirm shown; attempt settled true and later status 'The retried turn succeeded.' with new assistant 'authoritative controlled final'"}
+    }
+  },
+  "linuxKeyboard": {
+    "ctrlAltK": {"effect": "stop confirmed against native state", "native": "Native turn interrupted"},
+    "ctrlAltEnter": {"effect": "send accepted; interrupted in the stop probe"},
+    "ctrlAltR": {"effect": "FAIL/unknown: retry confirmation opened and was confirmed, but ompRetry/state reported status 'unknown' / settled false ('The native outcome is unknown. The worker returned no response'); no clean one-attempt native proof in this run"},
+    "note": "UI-button Linux send/Stop/Retry above is the clean native proof; key retry remains partial"
+  },
+  "remainingFailures": [
+    "Linux Ctrl+Alt+R retry: ompRetry/state unknown/not settled in the concurrent key run",
+    "full matrix and typecheck not rerun for this evidence commit",
+    "scripts/product-controlled-provider.ts referenced by Main does not exist in either worktree (no commit 31a8f3d); host used config.yml extension path directly"
+  ]
+}
