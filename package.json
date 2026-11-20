@@ -39,7 +39,10 @@
     "sessions:enroll": "bun scripts/enroll-session-fixture.ts",
     "sessions:component": "bun --no-env-file vendor/host-sessions/session-component-main.js",
     "test:sessions:browser": "bun scripts/prove-session-browser.ts",
-    "test:sessions:interactions": "python3 tests/sessions/interactions-browser.py"
+    "test:sessions:interactions": "python3 tests/sessions/interactions-browser.py",
+    "product:build": "bun scripts/build-product.ts",
+    "product:enroll": "bun scripts/enroll-product.ts",
+    "product:start": "bun --no-env-file apps/host/src/main.ts"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",

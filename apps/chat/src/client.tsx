@@ -39,6 +39,10 @@ import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel, historicalOriginals } from "../../../packages/tree/panel.tsx";
 import type { TreeNode } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
+import { LocaleRuntime } from "@deepseek-ai/dsh-client-locale/client";
+import ShortcutsService from "@deepseek-ai/dsh-client-shortcuts/client";
+import type { ShortcutCommand, ShortcutCommandId } from "@deepseek-ai/dsh-client-shortcuts/client";
+import { isProductShell } from "./product-flag.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -366,8 +370,63 @@ function Appearance() {
 }
 
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
-  return <main data-chat-root-slot="true"><h1>Human Chat over the native Session</h1>
-    <p>Isolated S2 component · synthetic data only · normal product admission remains blocked.</p>{renderSlot("s1.chat", {})}</main>;
+  const product = isProductShell();
+  return <main data-chat-root-slot="true" data-product-shell={product ? "true" : "false"}>
+    <h1>{product ? "OMP WebUI" : "Human Chat over the native Session"}</h1>
+    <p>{product
+      ? "Real OMP 19 product Host · pinned DSH Client · the native Session stays in your authorized directories."
+      : "Isolated S2 component · synthetic data only · normal product admission remains blocked."}</p>{renderSlot("s1.chat", {})}</main>;
+}
+
+/** Product shortcuts resolve against the mounted Surface; fixtures leave this unset. */
+interface ProductActions {
+  newSession(grantId: string): void;
+  send(): void;
+  stop(): void;
+  retry(): void;
+  settings(): void;
+}
+let productActions: ProductActions | undefined;
+
+function registerProductShortcuts(service: ShortcutsService): void {
+  type Modifier = "primary" | "control" | "alt" | "shift" | "meta";
+  type Binding = { code: string; modifiers: readonly Modifier[] };
+  // Web reserves almost every printable combination outside upstream's explicit allow-list.
+  const profiles = (linux: Binding | undefined, web: Binding | undefined, desktop: Binding, windows?: Binding) => ({
+    ...(linux === undefined ? {} : { "web:linux": linux }),
+    "web:windows": windows ?? web ?? desktop, "web:macos": web ?? desktop,
+    "desktop:linux": desktop, "desktop:windows": desktop, "desktop:macos": desktop,
+  });
+  const command = (id: string, label: string, alt: string,
+    defaults: ReturnType<typeof profiles>, action: (source: string) => void): ShortcutCommand => ({
+    id: id as ShortcutCommandId, label: () => label, aliases: [alt], defaults,
+    regions: ["page", "editable"], modals: [],
+    resolve: context => {
+      if (id === "omp.new-session") {
+        const grant = context.target?.closest?.("[data-product-grant]")?.getAttribute("data-product-grant");
+        return grant ? { status: "handled", run: () => action(grant) } : { status: "blocked", reason: "Choose a granted directory first" };
+      }
+      return { status: "handled", run: () => action("") };
+    },
+  });
+  const bindings = [
+    command("omp.send", "Send the draft", "Send",
+      profiles({ code: "Slash", modifiers: ["primary"] }, { code: "Slash", modifiers: ["primary", "shift"] },
+        { code: "Enter", modifiers: ["alt"] }), () => productActions?.send()),
+    command("omp.new-session", "New Session in a granted directory", "New Session",
+      profiles(undefined, { code: "KeyN", modifiers: ["primary", "shift"] }, { code: "KeyN", modifiers: ["alt"] }),
+      grant => productActions?.newSession(grant)),
+    command("omp.settings", "Show Session settings", "Settings",
+      profiles({ code: "Comma", modifiers: ["primary", "shift"] }, { code: "Comma", modifiers: ["primary"] },
+        { code: "Comma", modifiers: ["primary"] }), () => productActions?.settings()),
+    command("omp.stop", "Stop the reply", "Stop",
+      profiles({ code: "Period", modifiers: ["primary", "shift"] }, { code: "Period", modifiers: ["primary", "shift"] },
+        { code: "Period", modifiers: ["primary"] }), () => productActions?.stop()),
+    command("omp.retry", "Retry the last failed turn", "Retry",
+      profiles(undefined, { code: "KeyR", modifiers: ["primary", "shift"] }, { code: "KeyR", modifiers: ["alt"] }),
+      () => productActions?.retry()),
+  ];
+  for (const binding of bindings) service.register(binding);
 }
 
 type Node = Record<string, any>;
@@ -490,6 +549,8 @@ function Surface() {
   }, [view?.workerId, view?.generation, view?.registration?.nativeSessionId]);
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
+  const [grants, setGrants] = useState<{ id: string; path: string; status: string; grantedAt: string }[]>([]);
+  const [grantNotice, setGrantNotice] = useState("");
   const [opening, setOpening] = useState(false), [cataloging, setCataloging] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [usage, setUsage] = useState<Usage>(), [deletion, setDeletion] = useState<DeletionPreview>(), [deleting, setDeleting] = useState(false);
@@ -525,6 +586,39 @@ function Surface() {
     setCataloging(true); setChoices([]);
     try { setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices); }
     finally { setCataloging(false); }
+  };
+  const refreshGrants = async () => {
+    setGrants(resultValue(await ctx.remote.ompSessions.grants()));
+  };
+  const newSession = async (grantId: string) => {
+    setOpening(true);
+    try { await present(resultValue(await ctx.remote.ompSessions.new(grantId))); await catalog(); await refreshGrants(); }
+    finally { setOpening(false); }
+  };
+  const revoke = async (grantId: string) => {
+    await perform(async () => {
+      resultValue(await ctx.remote.ompSessions.revoke(grantId));
+      setGrantNotice("Grant revoked. Existing Sessions stay readable until their directory changes.");
+      await refreshGrants(); await catalog();
+    });
+  };
+  const recheck = async () => {
+    await perform(async () => {
+      resultValue(await ctx.remote.ompSessions.recheck());
+      setGrantNotice("The active Session and its directory permissions were rechecked.");
+      await refreshGrants(); await catalog();
+    });
+  };
+  const logout = async () => {
+    await perform(async () => {
+      const response = await fetch("/auth/status", { cache: "no-store" });
+      if (!response.ok) throw new Error("This browser is already signed out.");
+      const status: unknown = await response.json();
+      if (typeof status !== "object" || status === null || !("csrf" in status) || typeof status.csrf !== "string")
+        throw new Error("The Host did not return a CSRF token.");
+      await fetch("/auth/logout", { method: "POST", headers: { "x-omp-csrf": status.csrf } });
+      location.reload();
+    });
   };
   const open = async (selectionId: SessionSelectionId) => {
     setOpening(true);
@@ -889,10 +983,31 @@ function Surface() {
   useEffect(() => {
     viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
     if (liveBinding) scope.current = provider.scope(liveBinding);
-    void perform(catalog);
-    return () => { release(); };
+    void perform(async () => { await catalog(); await refreshGrants(); });
+    return () => { release(); }; // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
+  const productHandlers = useRef<ProductActions>({ newSession: () => {}, send: () => {}, stop: () => {}, retry: () => {}, settings: () => {} });
+  productHandlers.current = {
+    newSession: grantId => { void perform(() => newSession(grantId)); },
+    send: () => { void send("queue"); },
+    stop: () => { void perform(async () => { setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop())); }); },
+    retry: () => { void perform(async () => {
+      const offer = resultValue(await ctx.remote.ompRetry.offer());
+      if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
+      else setRetryNote(retryRefusalText(offer.reason, offer.detail));
+    }); },
+    settings: () => {
+      if (!view) { void perform(catalog); return; }
+      const settings = document.querySelector("[data-session-settings]");
+      if (settings) { settings.scrollIntoView({ block: "start" }); (settings.querySelector("select, input, button") as HTMLElement | null)?.focus(); }
+    },
+  };
+  useEffect(() => {
+    if (!isProductShell()) return;
+    productActions = productHandlers.current;
+    return () => { if (productActions === productHandlers.current) productActions = undefined; };
+  }, []);
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -904,11 +1019,27 @@ function Surface() {
       resultValue(await ctx.remote.ompSessions.confirm(confirmation)); setConfirmation(undefined); await catalog();
     })}>Grant this directory and descendants</button>}
     <p role="status">{review}</p>
-    <button disabled={cataloging} onClick={() => void perform(catalog)}>Refresh catalog</button>
-    <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
-      <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
-      <button disabled={opening || cataloging || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
-    </li>)}</ul>
+    <section data-product-grants aria-label="Authorized directories">
+      <h2>Authorized directories</h2>
+      <button disabled={cataloging} onClick={() => void perform(async () => { await refreshGrants(); await catalog(); })}>Refresh grants and catalog</button>
+      <button data-product-recheck onClick={() => void recheck()}>Recheck this Session</button>
+      <button data-product-logout onClick={() => void logout()}>Log out this browser</button>
+      {grantNotice && <p role="status" data-product-grant-notice>{grantNotice}</p>}
+      {grants.length === 0 ? <p data-product-no-grants>No directory is authorized yet. Review a directory above before opening or creating a Session.</p>
+        : <ul>{grants.map(grant => <li key={grant.id} data-product-grant={grant.id} data-product-grant-status={grant.status}>
+          <span>{grant.path} · {grant.status}</span>
+          <button data-product-new-session={grant.id} disabled={opening || grant.status !== "valid"}
+            onClick={() => void perform(() => newSession(grant.id))}>New Session here</button>
+          <button data-product-revoke={grant.id} onClick={() => void revoke(grant.id)}>Revoke directory</button>
+        </li>)}</ul>}
+    </section>
+    <section data-product-catalog aria-label="Native Sessions">
+      <h2>Native Sessions</h2>
+      <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
+        <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
+        <button disabled={opening || cataloging || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
+      </li>)}</ul>
+    </section>
     <section data-chat-worker-id={view?.workerId ?? ""} data-chat-generation={view?.generation ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}
       data-chat-file-count={originals.length} onDragOver={event => event.preventDefault()}
       onDrop={event => { event.preventDefault(); if (!busy) void addFiles(event.dataTransfer.files); }}>
@@ -1088,6 +1219,12 @@ async function boot() {
     return response;
   } } });
   registry(ctx); gateway(ctx); renderer(ctx); sessions(ctx, { projectionRebuild: true });
+  if (isProductShell()) {
+    // The pinned full Client roster expects a locale service before shortcuts can own keyboard input.
+    const locale = new LocaleRuntime(ctx);
+    ctx.provide("locale", locale);
+    registerProductShortcuts(new ShortcutsService(ctx));
+  }
   new UiConversation(ctx, ctx.sessions);
   // The Chat surface owns its composer but not the draft protocol: provider mode owns the
   // semantic scope, hydration and submission checkpoint while this tab keeps its own authorization.
