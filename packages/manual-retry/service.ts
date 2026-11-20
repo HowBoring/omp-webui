@@ -70,11 +70,13 @@ const outcomeFor = (event: NonNullable<Attempt["liveResult"]>): Outcome =>
 const completedLocally = (event: NonNullable<Attempt["liveResult"]>): boolean =>
   event.status === "completed" && !event.agentInvoked;
 const terminal = (status: Status): status is Outcome => status !== "admitted" && status !== "unknown";
+/** Confirmations must survive the wire: equal views are not the same object on later requests. */
+const key = (view: RetryView): string => `${view.clientId}\u0000${view.credentialId}`;
 
 /** SOURCE Host entry point for one supervised worker. All Browser Views share this instance. */
 export class ManualRetry {
   readonly #worker: ManualRetryWorker;
-  readonly #confirmations = new Map<RetryView, Confirmation>();
+  readonly #confirmations = new Map<string, Confirmation>();
   #attempt: Attempt | undefined;
 
   constructor(worker: ManualRetryWorker, private readonly host?: ManualRetryHost) {
@@ -86,8 +88,8 @@ export class ManualRetry {
     if (!this.host) return { status: "refused", reason: "unavailable" };
     if (!this.#authorize(view)) return { status: "refused", reason: "forbidden" };
     const now = this.#now();
-    const saved = this.#confirmations.get(view);
-    if (saved && saved.expiry <= now) this.#confirmations.delete(view);
+    const saved = this.#confirmations.get(key(view));
+    if (saved && saved.expiry <= now) this.#confirmations.delete(key(view));
     const confirmation = saved && saved.expiry > now
       ? { requestId: saved.requestId, expiresInMs: saved.expiry - now } : undefined;
     return { status: "state" as const, notice, ...(confirmation ? { confirmation } : {}), ...(this.#attempt ? { attempt: this.#snapshot(this.#attempt) } : {}) };
@@ -105,19 +107,19 @@ export class ManualRetry {
     for (const [owner, saved] of this.#confirmations) {
       if (saved.authority.aborted || saved.expiry <= now) this.#confirmations.delete(owner);
     }
-    if (this.#confirmations.size >= 64 && !this.#confirmations.has(view)) {
+    if (this.#confirmations.size >= 64 && !this.#confirmations.has(key(view))) {
       return { status: "refused", reason: "unavailable" };
     }
     const requestId = randomUUID();
-    this.#confirmations.set(view, { requestId, expiry: now + confirmationMs,
+    this.#confirmations.set(key(view), { requestId, expiry: now + confirmationMs,
       authority: access.authority, contextRevision: access.contextRevision, stopGeneration: access.stop.generation });
     return { status: "confirmation", requestId, notice, expiresInMs: confirmationMs };
   }
 
   async confirm(view: RetryView, requestId: string): Promise<Result | Refusal> {
-    const saved = this.#confirmations.get(view);
+    const saved = this.#confirmations.get(key(view));
     if (!saved || saved.requestId !== requestId) return { status: "refused", reason: "stale_confirmation" };
-    this.#confirmations.delete(view);
+    this.#confirmations.delete(key(view));
     const access = this.#authorize(view);
     if (!access) return { status: "refused", reason: "forbidden" };
     if (saved.expiry <= this.#now() || saved.authority !== access.authority
@@ -177,9 +179,9 @@ export class ManualRetry {
   }
 
   cancel(view: RetryView, requestId: string): boolean {
-    const saved = this.#confirmations.get(view);
+    const saved = this.#confirmations.get(key(view));
     if (!saved || saved.requestId !== requestId) return false;
-    this.#confirmations.delete(view);
+    this.#confirmations.delete(key(view));
     return this.#authorize(view)?.authority === saved.authority && saved.expiry > this.#now();
   }
 
@@ -207,6 +209,12 @@ export class ManualRetry {
         || (attempt.receiptInvoked && completedLocally(next))) this.#recordConflict(attempt);
       attempt.liveResult = { status: next.status, agentInvoked: next.agentInvoked };
       attempt.nativeSettled ||= next.sessionSettled;
+      // A committed admission reserves the request; the exact live result is what makes its outcome observable.
+      // A completed-local frame is not an agent turn: only the receipt can tell a consumed builtin from a conflict.
+      if (!attempt.conflict && attempt.status === "admitted" && !completedLocally(attempt.liveResult)) {
+        attempt.status = outcomeFor(attempt.liveResult);
+        attempt.evidence = undefined;
+      }
     }
     this.#reconcile(attempt);
   }

@@ -23,7 +23,8 @@ function fixture() {
   const otherAuthority = new AbortController();
   const view: RetryView = { clientId: "view-a", credentialId: "browser" };
   const otherView: RetryView = { clientId: "view-b", credentialId: "another-browser" };
-  const viewAuthorities = new Map([[view, authority], [otherView, otherAuthority]]);
+  const viewKey = (selected: RetryView) => `${selected.clientId}\u0000${selected.credentialId}`;
+  const viewAuthorities = new Map([[viewKey(view), authority], [viewKey(otherView), otherAuthority]]);
   const stop: StopSnapshot = { generation: "stop-1", workerGeneration: binding.workerGeneration,
     scope: { kind: "session", sessionId: binding.sessionId }, status: "idle", nativeSettled: true,
     acceptingWork: true, pending: { ...pending }, failures: [], forceAvailable: false, restored: null,
@@ -34,7 +35,7 @@ function fixture() {
   let rawReply: ((command: SubmissionClientCommand) => Promise<unknown>) | undefined;
   const host: ManualRetryHost = {
     authorize: selected => {
-      const signal = viewAuthorities.get(selected)?.signal;
+      const signal = viewAuthorities.get(viewKey(selected))?.signal;
       if (signal) return { authority: signal, contextRevision };
     },
     stop: () => stop,
@@ -50,7 +51,7 @@ function fixture() {
     revoke: () => authority.abort(), changeContext: () => { contextRevision = "revision-2"; },
     reconnect() {
       const reconnected = { ...view };
-      viewAuthorities.set(reconnected, new AbortController());
+      viewAuthorities.set(viewKey(reconnected), new AbortController());
       return reconnected;
     },
     advance: (ms: number) => { now += ms; },
@@ -122,6 +123,27 @@ test("retry result and joint Stop settlement belong to the same worker and attem
   expect(f.service.offer(f.identity)).toMatchObject({ status: "confirmation" });
 });
 
+test("an admitted retry takes its outcome from the exact live result", async () => {
+  const f = fixture();
+  const offer = f.service.offer(f.identity);
+  if (offer.status !== "confirmation") throw Error("expected confirmation");
+  const { requestId } = offer;
+  expect(await f.service.confirm(f.identity, requestId)).toMatchObject({ status: "admitted", settled: false });
+  f.service.observe(binding.workerGeneration, { type: "prompt_result", id: requestId, status: "completed",
+    agentInvoked: true, sessionSettled: true });
+  expect(f.service.state(f.identity)).toMatchObject({ status: "state",
+    attempt: { status: "succeeded", settled: true } });
+
+  const next = f.service.offer(f.identity);
+  if (next.status !== "confirmation") throw Error("expected a second confirmation");
+  expect(await f.service.confirm(f.identity, next.requestId)).toMatchObject({ status: "admitted" });
+  f.service.observe(binding.workerGeneration, { type: "prompt_result", id: next.requestId, status: "aborted",
+    agentInvoked: true, sessionSettled: true });
+  expect(f.service.state(f.identity)).toMatchObject({ status: "state",
+    attempt: { status: "cancelled", settled: true } });
+  expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_submit"]);
+});
+
 test("busy, expired, changed context, replaced worker and revoked confirmations send nothing", async () => {
   const f = fixture();
   const offer = () => {
@@ -153,13 +175,13 @@ test("busy, expired, changed context, replaced worker and revoked confirmations 
   expect(f.commands).toEqual([]);
 });
 
-test("a different View cannot use a confirmation, and dismissing it sends nothing", async () => {
+test("another View cannot use a confirmation, an equal one from the wire can dismiss it", async () => {
   const f = fixture();
   const offer = f.service.offer(f.identity);
   if (offer.status !== "confirmation") throw Error("expected confirmation");
-  expect(await f.service.confirm({ ...f.identity }, offer.requestId))
+  expect(await f.service.confirm(f.otherView, offer.requestId))
     .toEqual({ status: "refused", reason: "stale_confirmation" });
-  expect(f.service.cancel(f.identity, offer.requestId)).toBe(true);
+  expect(f.service.cancel({ ...f.identity }, offer.requestId)).toBe(true);
   expect(await f.service.confirm(f.identity, offer.requestId)).toMatchObject({ status: "refused" });
   expect(f.commands).toEqual([]);
 });
