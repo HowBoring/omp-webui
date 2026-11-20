@@ -6,30 +6,35 @@ import { treeContribution } from "../contracts/tree.ts";
 import { TreeBrowser } from "./browser.ts";
 import type { HistoryNavigationSourceRequest, HistoryNavigationSourceResult } from "../contracts/history-navigation-source.ts";
 
+/** Native allow-list only: a node is branchable because the native command said so, never from its kind. */
+export type BranchAffordance = { points: ReadonlySet<string>; branch(node: TreeNode): void };
 export interface TreeNavigation {
   sessionId: string;
   action(request: HistoryNavigationSourceRequest): Promise<HistoryNavigationSourceResult>;
   ready(result: Extract<HistoryNavigationSourceResult, { status: "operation" }>): void;
 }
 
-function NodeButton({ node, browser, navigation, inspect }: { node: TreeNode; browser: TreeBrowser; navigation: TreeNavigation | undefined;
-  inspect: ((entryId: string) => void) | undefined }) {
+function NodeButton({ node, browser, affordance, navigation, inspect }: { node: TreeNode; browser: TreeBrowser;
+  affordance?: BranchAffordance | undefined; navigation: TreeNavigation | undefined; inspect: ((entryId: string) => void) | undefined }) {
   const state = browser.getSnapshot();
   return <><button disabled={state.pending || state.phase !== "complete"}
     aria-pressed={state.selectedId === node.id} onClick={() => void browser.select(node.id)}>
     {node.id} · {node.boundary ?? node.role ?? node.kind} · {node.active ? "active path" : "other branch"}
-  </button>{navigation && inspect && <button data-navigation-target={node.id}
+  </button>{affordance?.points.has(node.id) && <button data-chat-branch-point={node.id}
+    onClick={() => affordance.branch(node)}>Branch here</button>}
+    {navigation && inspect && <button data-navigation-target={node.id}
     onClick={() => inspect(node.id)}>Return to before this entry…</button>}</>;
 }
-function Segment({ nodes, browser, navigation, inspect }: { nodes: TreeNode[]; browser: TreeBrowser; navigation: TreeNavigation | undefined;
+function Segment({ nodes, browser, affordance, navigation, inspect }: { nodes: TreeNode[]; browser: TreeBrowser;
+  affordance?: BranchAffordance | undefined; navigation: TreeNavigation | undefined;
   inspect: ((entryId: string) => void) | undefined }) {
   const [count, setCount] = useState(64);
-  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser}
+  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser} affordance={affordance}
     navigation={navigation} inspect={inspect}/></li>)}</ol>
     {nodes.length > count && <button onClick={() => setCount(count + 64)}>Show more retained nodes</button>}</>;
 }
-function ActivePath({ browser, navigation, inspect }: { browser: TreeBrowser; navigation: TreeNavigation | undefined;
-  inspect: ((entryId: string) => void) | undefined }) {
+function ActivePath({ browser, affordance, navigation, inspect }: { browser: TreeBrowser; affordance?: BranchAffordance | undefined;
+  navigation: TreeNavigation | undefined; inspect: ((entryId: string) => void) | undefined }) {
   const state = browser.getSnapshot(), nodes = new Map(state.pages.flat().map(node => [node.id, node]));
   const segments: { nodes: TreeNode[]; boundary?: TreeNode }[] = [];
   let pending: TreeNode[] = [];
@@ -43,12 +48,16 @@ function ActivePath({ browser, navigation, inspect }: { browser: TreeBrowser; na
   return <section aria-label="Current active path"><h3>Current active path</h3>{segments.map((segment, index) =>
     <section key={segment.boundary?.id ?? "current"}>{segment.boundary ? <>
       <details><summary>Retained history before {segment.boundary.boundary} ({segment.nodes.length} nodes)</summary>
-        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser} navigation={navigation} inspect={inspect}/></details>
-      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser} navigation={navigation} inspect={inspect}/></p>
-    </> : <Segment key="current" nodes={segment.nodes} browser={browser} navigation={navigation} inspect={inspect}/>}</section>)}</section>;
+        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser} affordance={affordance}
+          navigation={navigation} inspect={inspect}/></details>
+      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser} affordance={affordance}
+        navigation={navigation} inspect={inspect}/></p>
+    </> : <Segment key="current" nodes={segment.nodes} browser={browser} affordance={affordance} navigation={navigation}
+      inspect={inspect}/>}</section>)}</section>;
 }
 /** Small public React surface. Explicit Open/Page/Select; rendering never opens a Session or sends input. */
-export function TreePanel({ browser, navigation }: { browser: TreeBrowser; navigation?: TreeNavigation }) {
+export function TreePanel({ browser, affordance, navigation }: { browser: TreeBrowser; affordance?: BranchAffordance | undefined;
+  navigation?: TreeNavigation }) {
   const state = useSyncExternalStore(browser.subscribe, browser.getSnapshot, browser.getSnapshot);
   const [returnState, setReturnState] = useState<{ busy: boolean; result?: HistoryNavigationSourceResult; error?: string }>({ busy: false });
   async function act(request: HistoryNavigationSourceRequest): Promise<void> {
@@ -86,13 +95,13 @@ export function TreePanel({ browser, navigation }: { browser: TreeBrowser; navig
       <section aria-label="Native tree page"><h3>{state.phase === "complete" ? "Complete native tree" : "Native tree pages"}</h3>
         <p>Page {state.visiblePage + 1} of {state.pages.length} loaded pages; each row names its native parent.</p>
         <ol>{state.pages[state.visiblePage]?.map(node => <li key={node.id}>
-          <NodeButton node={node} browser={browser} navigation={navigation} inspect={inspect}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
+          <NodeButton node={node} browser={browser} affordance={affordance} navigation={navigation} inspect={inspect}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
         <button disabled={state.visiblePage === 0} onClick={() => browser.showPage(state.visiblePage - 1)}>Previous loaded page</button>
         <button disabled={state.visiblePage + 1 >= state.pages.length}
           onClick={() => browser.showPage(state.visiblePage + 1)}>Next loaded page</button>
         <button disabled={state.pending || state.phase !== "partial"}
           onClick={() => void browser.nextPage()}>Load next native page</button></section>
-      {state.phase === "complete" && <ActivePath browser={browser} navigation={navigation} inspect={inspect}/>}</>}
+      {state.phase === "complete" && <ActivePath browser={browser} affordance={affordance} navigation={navigation} inspect={inspect}/>}</>}
     {navigation && <section aria-label="Return to history" data-navigation-panel data-navigation-phase={returnState.busy ? "busy"
       : returnState.error ? "error" : returnState.result?.status ?? "idle"}>
       <h3>Return to history</h3>

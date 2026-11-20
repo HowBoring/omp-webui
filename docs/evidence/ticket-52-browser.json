@@ -1,0 +1,30 @@
+{
+  "status": "PASS",
+  "platform": "Linux Chromium",
+  "browser": "157.0.8103.38",
+  "realDSH": true,
+  "realBun": true,
+  "realHost": true,
+  "realOmpWorker": true,
+  "cases": {
+    "nativeUserPointsOnly": "PASS",
+    "toolSpecialCompactionResetRendering": "PASS",
+    "previewBeforeBranch": "PASS",
+    "confirmCancelKeepsInput": "PASS",
+    "nativeIdentityVerified": "PASS",
+    "atomicPresentationReplacement": "PASS",
+    "unsentReturnedDraft": "PASS",
+    "commonHistoryOnly": "PASS",
+    "sourceAndDestinationKnown": "PASS",
+    "reloadRebuildsNewSession": "PASS",
+    "noReplayPromptOrModelCall": "PASS"
+  },
+  "sourceSession": "01a1f84b-d815-70cf-b6ca-884c8ca72881",
+  "branchedSession": "01a1f84b-eccd-7242-aa47-814de6f101bc",
+  "targetEntry": "61f92f92",
+  "privateData": false,
+  "productAdmission": "blocked",
+  "branchWrites": [
+    "ompSessions/branch"
+  ]
+}

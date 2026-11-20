@@ -133,6 +133,8 @@ test("the product Chat Host serves durable native navigation to a real DSH clien
           thinkingLevel: "off" as const }; },
         async models() { return []; }, async thinkingLevels(): Promise<("off" | "low" | "high")[]> { return ["off"]; },
         async selectModel() {}, async setThinkingLevel() {},
+        async branchMessages() { return [{ entryId: "entry-0", text: "Synthetic fixture input" }]; },
+        async branch() { return { text: "Synthetic fixture input", cancelled: false }; },
         async retireIdle() { return { status: "closed" as const, drain: { code: 0, forced: false, stderrBytes: 0,
           stdoutEOF: true, stderrEOF: true } }; },
         exited: exit.promise, notificationCount: 0,

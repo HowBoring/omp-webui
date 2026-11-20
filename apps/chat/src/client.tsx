@@ -36,6 +36,7 @@ import { retryContribution, type RetryAttempt, type RetryResult, type RetryState
 import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
+import type { TreeNode } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
@@ -373,6 +374,19 @@ function Surface() {
   const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tree, setTree] = useState<TreeBrowser>();
+  const [branchPoints, setBranchPoints] = useState<ReadonlySet<string>>(new Set());
+  const [branchTarget, setBranchTarget] = useState<TreeNode>(), [branchNotice, setBranchNotice] = useState("");
+  // Native allow-list per worker generation: points never survive an atomic presentation replacement.
+  useEffect(() => {
+    setBranchPoints(new Set()); setBranchTarget(undefined);
+    if (!view) return;
+    let active = true;
+    void ctx.remote.ompSessions.branchPoints(view.workerId).then(result => {
+      if (!active || !result.ok || result.value.generation !== view.generation) return;
+      setBranchPoints(new Set(result.value.points.map(point => point.entryId)));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [view?.workerId, view?.generation]);
   const [returned, setReturned] = useState<ConflictSafeDraftOffer>();
   const [stop, setStop] = useState<StopSnapshot>(), [force, setForce] = useState<ForceOffer>();
   const [stopNote, setStopNote] = useState("");
@@ -406,6 +420,38 @@ function Surface() {
   const edit = (value: string) => {
     draftDirty = true; setText(value); draftChanged(value);
     void persist({ draft: { text: value, references: [] }, originals: [] }, "edit");
+  };
+  /** Every branch refusal is a stable notice: the draft, the Session and its generation stay as they were. */
+  const branchMessage = (code: string) => code === "SESSION_WORKER_BUSY_STOP_REQUIRED"
+    ? "Stop the current reply, wait until this Session is idle, then branch again."
+    : code === "SESSION_BRANCH_TARGET_UNAVAILABLE" ? "Native does not allow a branch at this entry."
+    : code === "SESSION_MANUAL_OPEN_REQUIRED" ? "This view is stale. Reopen the current Session, then branch again."
+    : code === "SESSION_BRANCH_OUTCOME_UNKNOWN" ? "The native branch outcome is unknown. Open the Session list and choose a Session; nothing is replayed."
+    : code === "SESSION_BRANCH_IDENTITY_UNCONFIRMED" ? "Native did not report a new Session, so no branch is shown."
+    : code === "SESSION_BRANCH_LINEAGE_UNCONFIRMED" ? "The new Session's native source relation is unconfirmed, so it is not shown as created here."
+    : code === "SESSION_BRANCH_RETAINED_MISMATCH" ? "The new Session did not retain exactly the selected history, so it is not shown here."
+    : code;
+  const branch = async (target: TreeNode) => {
+    if (!view) return;
+    const workerId = view.workerId, generation = view.generation;
+    setBusy(true); setBranchNotice("");
+    try {
+      const result = await ctx.remote.ompSessions.branch({ workerId, generation, entryId: target.id });
+      if (!result.ok) { setBranchNotice(branchMessage(result.error.code)); return; }
+      const value = result.value;
+      if (value.status === "cancelled") { setBranchNotice("Native refused the branch. This Session and its input are unchanged."); return; }
+      // Atomic presentation replacement: the old worker, rows, attempt and generation are gone before the new view.
+      setAttempt(undefined); setSettlement(undefined); setEntry(""); setRecovery(undefined);
+      if (value.view) {
+        await present(value.view);
+        setBranchNotice(`Native Session ${value.nativeSessionId} created at ${value.targetEntryId}. This message and everything after it stay in the previous Session; files and external effects are not rolled back. The returned text is an unsent draft.`);
+        await catalog();
+      } else {
+        await catalog();
+        setBranchNotice(`Native Session ${value.nativeSessionId} was created but is not attached here. Open it from the Session list. Files and external effects are not rolled back.`);
+      }
+      if (value.text) edit(value.text);
+    } finally { setBusy(false); setBranchTarget(undefined); }
   };
   /** Restored input is only ever an unsent draft: a nonempty composer wins and is never overwritten. */
   const restore = (snapshot: StopSnapshot) => {
@@ -685,12 +731,21 @@ function Surface() {
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
+        affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
         navigation={{ sessionId: view.registration.nativeSessionId,
           action: request => ctx.remote.ompHistoryNavigationSource.action(request).then(resultValue),
           ready: (result: Extract<HistoryNavigationSourceResult, { status: "operation" }>) => {
             setReturned(result.draft);
             void perform(() => renewSessionProjection(view));
           } }}/></div>}
+      {branchTarget && <section aria-label="Branch confirmation" data-chat-branch>
+        <h3>Branch into a new Session?</h3>
+        <p>Target {branchTarget.id}. Only the history before this message is kept; this message and everything after it stay in the current Session.</p>
+        <p>Files and external effects are not rolled back. The text of this message returns as an unsent draft.</p>
+        <button data-chat-branch-confirm disabled={busy || !view || view.generation === ""}
+          onClick={() => void perform(() => branch(branchTarget))}>Branch at {branchTarget.id}</button>
+        <button data-chat-branch-cancel onClick={() => setBranchTarget(undefined)}>Cancel</button></section>}
+      {branchNotice && <p role="status" data-chat-branch-notice>{branchNotice}</p>}
       {returned && <section data-chat-returned-draft data-returned-conflict={text.trim() === "" ? "false" : "true"}>
         <h3>Returned text from {returned.originEntryId}</h3>
         <p>It was not sent. Files and external effects were not rolled back.</p>
