@@ -17,6 +17,13 @@ bun run dsh:prepare
 bun run dsh:link "$DSH_SOURCE"
 ```
 
+[`patches/0008-provider-runtime.patch`](patches/0008-provider-runtime.patch) is an additive
+provider-mode runtime for custom-composer surfaces. It exports `createProviderRuntime`, which
+constructs the existing `InputHub` and `ConversationController` without mounting the stock
+Conversation shell. A custom Chat surface can then register its draft provider through the
+public `registerDraftProvider` contract while keeping its own composer and Host authorization.
+It adds no draft semantics and no Native or Host contract.
+
 [`parsed-tool-source-candidate.json`](parsed-tool-source-candidate.json) separately records
 all six exact source patches under `UNREGISTERED_SOURCE_ONLY`; no current script or runtime
 reads that descriptor. Patches 4–5 are inert source prerequisites of patch 6, an unregistered

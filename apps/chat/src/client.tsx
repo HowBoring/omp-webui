@@ -8,7 +8,7 @@ import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote"
 import { SessionId } from "@deepseek-ai/dsh-session/types";
 import { brandString } from "@deepseek-ai/dsh-brand";
 import type { SessionProjectionBinding, SessionRequestId } from "@deepseek-ai/dsh-api-session-controller/types";
-import { UiConversation } from "@deepseek-ai/dsh-client-ui-conversation/client";
+import { UiConversation, createProviderRuntime } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { registerTrajectoryMessageDefinitions } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-message-definitions.ts";
 import { registerTrajectoryAssistantDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-assistant-definition.ts";
 import { registerTrajectoryConversationView } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-snapshot-builder.ts";
@@ -44,31 +44,51 @@ declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
 
 const ctx = new Context();
-const tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
-/** A live Web Lock distinguishes this tab from a copied tab that inherited the same sessionStorage. */
-async function acquireOwner(candidate: string): Promise<string> {
-  // A reload's old document can still hold its lock for a moment; a copied tab holds it forever.
-  for (let attempt = 0; attempt < 20; attempt++) {
-    const held = await new Promise<boolean>(resolve => {
-      void navigator.locks.request(`omp.chat.owner.${candidate}`, { ifAvailable: true }, lock => {
-        if (lock === null) { resolve(false); return; }
-        resolve(true);
-        return new Promise<void>(() => {});
-      });
+let tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
+/**
+ * A live Web Lock distinguishes this tab from a copied tab that inherited the same sessionStorage.
+ * A reload reuses the inherited identity and waits for its unloaded predecessor, never minting an
+ * identity on lock failure; a copy is recognized by its navigation type and starts its own scope.
+ */
+async function claimOwner(candidate: string, reload: boolean): Promise<string> {
+  if (reload) {
+    // The predecessor document is being replaced and releases its lock as it unloads.
+    const acquired = Promise.withResolvers<void>();
+    void navigator.locks.request(`omp.chat.owner.${candidate}`, () => {
+      acquired.resolve();
+      return new Promise<void>(() => {});
     });
-    if (held) return candidate;
+    await acquired.promise;
+    return candidate;
+  }
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const probe = Promise.withResolvers<boolean>();
+    void navigator.locks.request(`omp.chat.owner.${candidate}`, { ifAvailable: true }, lock => {
+      if (lock === null) { probe.resolve(false); return; }
+      probe.resolve(true);
+      return new Promise<void>(() => {});
+    });
+    if (await probe.promise) return candidate;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  return crypto.randomUUID();
+  // A contended lock never mints an identity; only an actual copied tab does that below.
+  return candidate;
 }
 let tabOwner = "";
 const ownTab = async () => {
-  const saved = sessionStorage.getItem("omp-chat-owner"), next = await acquireOwner(saved ?? tab);
-  if (saved !== undefined && saved !== next) {
-    // A copied tab owns the inherited draft record; start an independent Host draft scope.
+  const saved = sessionStorage.getItem("omp-chat-owner");
+  const navigation = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
+  const copied = saved !== undefined && navigation !== "reload" && navigation !== "back_forward";
+  if (copied) {
+    // The inherited draft record belongs to the live original tab; take a fresh page and draft scope
+    // instead of writing through its Host authority or stealing its draft id.
+    tab = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", tab);
     draftId = crypto.randomUUID(); sessionStorage.setItem("omp-chat-draft", draftId);
+    tabOwner = crypto.randomUUID();
+  } else {
+    tabOwner = await claimOwner(saved ?? tab, saved !== undefined);
   }
-  sessionStorage.setItem("omp-chat-owner", next); tabOwner = next;
+  sessionStorage.setItem("omp-chat-owner", tabOwner);
 };
 const owner = { get id() { if (tabOwner === "") throw new Error("draft_owner_unavailable"); return tabOwner; }, active: () => true };
 const authorities = new Map<string, DraftAuthority>();
@@ -100,6 +120,7 @@ const provider = createDraftProvider({ owner, storage: sessionStorage, authority
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
+const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
@@ -198,11 +219,13 @@ async function present(view: PublicSessionView) {
   // Reauthorize every stable Original through the Host before publishing text and items together.
   let prepared: readonly PreparedDraftOriginal[] | undefined;
   if (!saved.unresolved) {
-    try { prepared = await provider.prepare(currentScope!, saved.originals, new AbortController().signal); }
+    try { prepared = await provider.prepare(currentScope!, saved.originals.filter(ref => !removedOriginals.has(String(ref.id))), new AbortController().signal); }
     catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
   }
   if (reference !== retained || draftDirty) return;
-  const items = saved.originals.map((ref, index) => {
+    // A removal that happened while this record was being read must not be republished by the stale read.
+  const retainedOriginals = saved.originals.filter(ref => !removedOriginals.has(String(ref.id)));
+  const items = retainedOriginals.map((ref, index) => {
     const result = prepared?.[index];
     if (result?.status !== "ready") return { objectId: String(ref.id), displayName: ref.name,
       mediaType: ref.mediaType as OriginalMediaType, byteLength: 0, pixels: 0,
@@ -454,7 +477,7 @@ function Surface() {
   }, [view?.workerId, view?.generation, view?.registration?.nativeSessionId]);
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
-  const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
+  const [opening, setOpening] = useState(false), [cataloging, setCataloging] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tree, setTree] = useState<TreeBrowser>();
   const [branchPoints, setBranchPoints] = useState<ReadonlySet<string>>(new Set());
@@ -478,13 +501,17 @@ function Surface() {
   const [retryOffer, setRetryOffer] = useState<{ requestId: string }>();
   const [retryNote, setRetryNote] = useState("");
   const retryPoller = useRef<ReturnType<typeof setInterval>>(), retryRenewed = useRef("");
-  const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
+  const scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
     try { setError(""); await action(); }
     catch (failure) { if (current === accessRevision) setError(message(failure)); }
   };
-  const catalog = async () => setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices);
+  const catalog = async () => {
+    setCataloging(true); setChoices([]);
+    try { setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices); }
+    finally { setCataloging(false); }
+  };
   const open = async (selectionId: SessionSelectionId) => {
     setOpening(true);
     try { await present(resultValue(await (view ? ctx.remote.ompSessions.switch(selectionId) : ctx.remote.ompSessions.open(selectionId)))); }
@@ -493,7 +520,7 @@ function Surface() {
   /** Stable Original references; invalid items stay in the record so a missing file remains visible. */
   const draftRefs = () => originalsRef.current.map(item => ({ id: DraftOriginalId(item.objectId), name: item.displayName, mediaType: item.mediaType }));
   const persist = async (record: Parameters<typeof provider.write>[1], reason: Parameters<typeof provider.write>[2]) => {
-    const current = binding.current;
+    const current = liveBinding;
     if (!current) return;
     try {
       await waitProjection(current);
@@ -518,6 +545,7 @@ function Surface() {
     }, 250);
   };
   const edit = (value: string) => {
+    if (frozen) return;
     draftDirty = true; setText(value); draftChanged(value); touch("explicit-edit");
     void persist({ draft: { text: value, references: [] }, originals: draftRefs() }, "edit");
   };
@@ -631,7 +659,7 @@ function Surface() {
       pixels: decoded?.pixels ?? 0, ...(decoded ? { width: decoded.width, height: decoded.height } : {}) };
   };
   const addFiles = async (files: FileList | File[]) => {
-    if (!view) return;
+    if (!view || frozen) return;
     setUploading(true);
     let next = originals;
     try {
@@ -644,7 +672,7 @@ function Surface() {
     finally { setUploading(false); }
   };
   const addBase64 = async () => {
-    if (!view || base64Draft.trim() === "") return;
+    if (!view || frozen || base64Draft.trim() === "") return;
     setUploading(true);
     try {
       const bytes = bytesOfBase64(base64Draft);
@@ -656,6 +684,7 @@ function Surface() {
     finally { setUploading(false); }
   };
   const removeOriginal = async (objectId: string) => {
+        draftDirty = true; removedOriginals.add(objectId);
     try {
       const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
         target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
@@ -679,7 +708,7 @@ function Surface() {
       setRecovery(undefined); setFrozen(false); touch("active-recovery");
       void persist({ draft: { text, references: [] }, originals: draftRefs() }, "recovery");
     } else if (result.outcome === "unknown" || result.outcome === "completed-without-input") {
-      setRecovery("Native outcome is still unresolved. Check again after the worker settles.");
+      setRecovery("Native outcome is still unresolved. Check again after the worker settles."); setFrozen(true);
     }
   };
   const settle = async (sessionId: string) => {
@@ -708,22 +737,14 @@ function Surface() {
     } catch (failure) { setError(message(failure)); }
   };
   const send = async (mode: "queue" | "steer") => {
-    if (!view || !binding.current || !scope.current || text.trim() === "" || frozen) return;
+    if (!view || !liveBinding || !scope.current || text.trim() === "" || frozen) return;
     if (originals.some(item => item.invalid !== undefined)) { setError("Revalidate or remove the unavailable file before sending. Your draft is retained."); return; }
-    const current = binding.current;
+    const current = liveBinding;
     if (originals.length > 0 && mode !== "queue") {
       setError("Files are sent with Send; Steer does not accept attachments. Your draft is retained."); return;
     }
     if (sending.current) {
-      const sessionId = current.sessionId;
-      const settlement = resultValue(await ctx.remote.ompChat.state(sessionId));
-      if (!settlement || settlement.settled) { setError("The previous prompt is still settling. Your draft is retained."); return; }
-      const projection = await waitProjection(current).catch(() => undefined);
-      if (!projection) { setError("Projection is synchronizing. Your draft is retained."); return; }
-      const reply = await ctx.remote.session.prompt({ requestId: brandString<SessionRequestId>(crypto.randomUUID()), sessionId: SessionId(view.registration.nativeSessionId),
-        mode, content: [{ type: "text", text }], projection });
-      const error = reply.ok ? "Unexpected prompt acceptance." : reply.error.message || reply.error.code;
-      setError(error); setAttempt({ requestId: crypto.randomUUID(), text, mode, state: reply.ok ? "unknown" : "refused", error });
+      setError("The previous prompt is still outstanding. Wait for its settlement or check Native recovery. Your draft is retained.");
       return;
     }
     const content = text, hasAttachments = originals.length > 0;
@@ -787,7 +808,7 @@ function Surface() {
           const unresolved = result.error.message.includes("unresolved");
           setAttempt({ requestId, text: content, mode, state: unresolved ? "unknown" : "refused", error: result.error.message || result.error.code });
           setError(result.error.message || result.error.code);
-          if (unresolved) setRecovery("Outcome unknown. Check Native recovery before sending again.");
+          if (unresolved) { setFrozen(true); setRecovery("Outcome unknown. Check Native recovery before sending again."); }
           else { recoveryAuthorized.add(requestId); await persist({ draft: { text: content, references: [] }, originals: draftRefs() }, "recovery"); }
         }
       }
@@ -803,6 +824,7 @@ function Surface() {
         setError(reason);
         await persist({ draft: { text: content, references: [] }, originals: draftRefs() }, "recovery");
       } else {
+        setFrozen(true);
         setAttempt({ requestId, text: content, mode, state: "unknown", error: message(failure) });
         setError(message(failure)); setRecovery("Outcome unknown. Check Native recovery before sending again.");
       }
@@ -810,11 +832,11 @@ function Surface() {
   };
   useEffect(() => {
     viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
-    if (binding.current) scope.current = provider.scope(binding.current);
+    if (liveBinding) scope.current = provider.scope(liveBinding);
     void perform(catalog);
     return () => { release(); };
   }, []);
-  useEffect(() => { if (view && liveBinding) { binding.current = liveBinding; scope.current = provider.scope(liveBinding); } }, [view?.workerId]);
+  useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -826,10 +848,10 @@ function Surface() {
       resultValue(await ctx.remote.ompSessions.confirm(confirmation)); setConfirmation(undefined); await catalog();
     })}>Grant this directory and descendants</button>}
     <p role="status">{review}</p>
-    <button onClick={() => void perform(catalog)}>Refresh catalog</button>
+    <button disabled={cataloging} onClick={() => void perform(catalog)}>Refresh catalog</button>
     <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
       <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
-      <button disabled={opening || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
+      <button disabled={opening || cataloging || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
     </li>)}</ul>
     <section data-chat-worker-id={view?.workerId ?? ""} data-chat-generation={view?.generation ?? ""} data-chat-native-session={view?.registration.nativeSessionId ?? ""}
       data-chat-file-count={originals.length} onDragOver={event => event.preventDefault()}
@@ -877,14 +899,14 @@ function Surface() {
         if (!requestId) { setError("This protected submission has no recoverable request identity; reopen the Session."); return; }
         await recover(requestId);
       })}>Check Native recovery</button></p>}
-      <textarea aria-label="Message" data-chat-draft value={text} disabled={!view || !draftReady}
+      <textarea aria-label="Message" data-chat-draft value={text} disabled={!view || !draftReady || frozen}
         onChange={event => edit(event.target.value)}
         onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length > 0) { event.preventDefault(); if (!busy) void addFiles(files); } }} />
       <fieldset data-chat-attachments>
         <legend>Files for this Send</legend>
         <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || !draftReady || busy || uploading || frozen}
           onChange={event => { const files = event.target.files; if (files) void addFiles(files).finally(() => { event.target.value = ""; }); }} />
-        <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || !draftReady || busy || uploading}
+        <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || !draftReady || busy || uploading || frozen}
           placeholder="Paste base64 or a data:…;base64 URL" onChange={event => setBase64Draft(event.target.value)} />
         <button data-chat-base64-add disabled={!view || !draftReady || busy || uploading || frozen || base64Draft.trim() === ""}
           onClick={() => void addBase64()}>Add pasted file</button>
@@ -892,8 +914,8 @@ function Surface() {
         <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}
           data-chat-original-invalid={item.invalid === undefined ? undefined : "true"}>
           {item.displayName} · {item.mediaType}{item.width === undefined ? "" : ` · ${item.width}×${item.height}`} · {item.byteLength} bytes
-          {item.invalid === undefined ? <button disabled={busy} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
-            : <span data-chat-original-invalid-reason> · {item.invalid}</span>}
+          {item.invalid === undefined ? "" : <span data-chat-original-invalid-reason> · {item.invalid}</span>}
+          <button disabled={busy || frozen} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
         </li>)}</ul>
         <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>
@@ -980,12 +1002,30 @@ async function boot() {
     const response = await fetch(input, { ...init, headers });
     if (response.status === 401 && !authorizationWithdrawn) {
       authorizationWithdrawn = true;
-      invalidateAccess("Browser authorization required. Open a local bootstrap link.");
+      void (async () => {
+        try {
+          // A newer Chat tab withdraws this View's enrollment while the browser credential stays valid;
+          // the Host marks exactly that refusal "Access invalidated". A restart cannot answer a live
+          // request with it, so this is view authority loss, not a transient 401 to recheck.
+          const body = await response.clone().text();
+          if (body.includes("Access invalidated")) {
+            invalidateAccess("Browser authorization required. Open a local bootstrap link.");
+            return;
+          }
+          const check = await fetch("/auth/status", { cache: "no-store" });
+          if (check.ok) { csrf = (await check.json()).csrf; authorizationWithdrawn = false; return; }
+        } catch { /* The authority stays withdrawn below. */ }
+        invalidateAccess("Browser authorization required. Open a local bootstrap link.");
+      })();
     }
     return response;
   } } });
   registry(ctx); gateway(ctx); renderer(ctx); sessions(ctx, { projectionRebuild: true });
-  new UiConversation(ctx, ctx.sessions); registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
+  new UiConversation(ctx, ctx.sessions);
+  // The Chat surface owns its composer but not the draft protocol: provider mode owns the
+  // semantic scope, hydration and submission checkpoint while this tab keeps its own authorization.
+  (await createProviderRuntime(ctx)).input.registerDraftProvider(ctx, provider);
+  registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
   const absent: StandardSourceBinding = { key: undefined, hooks: {}, keyedHooks: {}, props: {} };
   const source: HostObservable<StandardSourceBinding> = { getSnapshot: () => absent, subscribe: () => () => {} };
   ctx.slots.installScope("session", { current: source, bindingSource: target => { if (target !== undefined) throw new Error("Root shell has no Session Slot"); return source; } });
@@ -1006,10 +1046,11 @@ async function boot() {
   window.addEventListener("pagehide", () => { release(); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
   const previous = sessionStorage.getItem("omp-supervised-worker");
   if (previous) {
-    const current = accessRevision;
+    const current = accessRevision, presented = presentationRevision;
     try {
       const result = await ctx.remote.ompSessions.view(JSON.parse(previous).workerId);
-      if (current !== accessRevision) return;
+      // A manual Open during the restore wins: never replace a Session the user already presented.
+      if (current !== accessRevision || presented !== presentationRevision) return;
       if (result.ok) await present(result.value);
       else errorChanged("Previous worker unavailable. Manually Open the native Session.");
     } catch (error) { sessionStorage.removeItem("omp-supervised-worker"); errorChanged(message(error)); }
