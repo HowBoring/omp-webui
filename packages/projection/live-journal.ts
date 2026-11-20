@@ -20,6 +20,25 @@ const configuredMaxBytes = Number(process.env.OMP_LIVE_JOURNAL_MAX_BYTES);
 const MAX_BYTES = Number.isSafeInteger(configuredMaxBytes) && configuredMaxBytes > 0
   ? configuredMaxBytes : 32 * 1024 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
+/** The Native cut moves while a cold Session activates (bookkeeping is appended), so an opening
+ * that observed a changed cut retries the same journal instead of failing the projection. */
+const OPEN_RETRY_ATTEMPTS = 20, OPEN_RETRY_DELAY_MS = 150;
+/** Quiet polls an opening must observe before the journal is published. */
+const OPEN_QUIET_POLLS = 3, OPEN_QUIET_DELAY_MS = 60, OPEN_SETTLE_READS = 40;
+const OPEN_RETRY_CODES: readonly string[] = [
+  'history_handoff_changed', 'history_changed', 'history_stale_cursor', 'history_stale_observation',
+  'history_stale_content_cursor', 'live_context_changed', 'live_open_cut_changed', 'live_open_unsettled',
+];
+function errorCode(error: unknown): string {
+  const code = (error as {code?: unknown} | undefined)?.code;
+  if (typeof code === 'string') return code;
+  return error instanceof Error ? error.message : '';
+}
+function delay(ms: number): Promise<void> {
+  const {promise, resolve} = Promise.withResolvers<void>();
+  setTimeout(resolve, ms);
+  return promise;
+}
 const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
   live.workerId, live.sourceId, live.sessionId, live.contextId, live.branchLeafId, live.messageId,
 ]);
@@ -86,6 +105,16 @@ export class LiveJournal {
     this.#nativeLeaf = opened.cut.leafId;
   }
   static async open(history: HistoryClient, generation?: string): Promise<LiveJournal> {
+    for (let attempt = 1; ; attempt++) {
+      try { return await LiveJournal.#opened(history, generation); }
+      catch (error) {
+        const code = errorCode(error);
+        if (attempt >= OPEN_RETRY_ATTEMPTS || !OPEN_RETRY_CODES.includes(code)) throw error;
+        await delay(OPEN_RETRY_DELAY_MS);
+      }
+    }
+  }
+  static async #opened(history: HistoryClient, generation?: string): Promise<LiveJournal> {
     const opened = await history.open('active', 'live');
     const journal = new LiveJournal(opened, history, generation);
     try {
@@ -98,6 +127,7 @@ export class LiveJournal {
       await journal.#loadOpening(history, budget);
       if (opened.prefix && !journal.#attempt) throw Error('live_prefix_identity_unavailable');
       await journal.#catchUp(history);
+      await journal.#quiesce(history);
       return journal;
     } catch (error) {
       await history.close(opened.snapshot).catch(() => {});
@@ -223,6 +253,20 @@ export class LiveJournal {
       historyMessage(item, id, counters, emit, false, ledger);
     }
     return {records, end: counters};
+  }
+  /** A cold Session still appends its own activation bookkeeping after the opening read; hold the
+   * journal unpublished until the cut has been quiet for a short window so the client's first
+   * follow does not inherit a cut that immediately moves. */
+  async #quiesce(history: HistoryClient): Promise<void> {
+    let quiet = 0;
+    for (let reads = 0; quiet < OPEN_QUIET_POLLS; reads++) {
+      if (reads >= OPEN_SETTLE_READS) throw Error('live_open_unsettled');
+      await delay(OPEN_QUIET_DELAY_MS);
+      const poll = await history.poll(this.opened.cut.workerId, this.#after);
+      const before = this.#after;
+      this.accept(poll);
+      quiet = poll.events.length === 0 && this.#after === before ? quiet + 1 : 0;
+    }
   }
   async #catchUp(history: HistoryClient): Promise<void> {
     let target: number | undefined;

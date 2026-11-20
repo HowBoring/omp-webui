@@ -24,6 +24,7 @@ function fixture(active: HistoryItem[][], options: {
   refusePage?: number;
   live?: HistoryItem[][];
   prefix?: HistoryItem;
+  staleOpen?: boolean;
 } = {}) {
   const cut = options.cut ?? initialCut;
   const opened: HistoryOpen = {
@@ -38,12 +39,14 @@ function fixture(active: HistoryItem[][], options: {
       responseBytes: 1024 * 1024, ttlMs: 10_000, contentItems: 64, contentPageBytes: 256 * 1024,
       liveEvents: 1024, liveBytes: 1024 * 1024, pollItems: 100},
   };
+  let opens = 0;
   const history = new HistoryClient(async command => {
     switch (command.type) {
       case 'history_snapshot_open':
         assert.equal(command.scope, 'active');
         assert.equal(command.handoff, 'live');
-        return opened;
+        // A cold Session moves its cut while it activates; the first opening observes the older cut.
+        return options.staleOpen && opens++ === 0 ? {...opened, cut: {...cut, contextId: 'context-0'}} : opened;
       case 'history_snapshot_close':
         assert.equal(command.snapshot, opened.snapshot);
         return {closed: true};
@@ -76,6 +79,12 @@ function fixture(active: HistoryItem[][], options: {
   });
   return history;
 }
+
+test('an opening whose cut moves while a cold Session activates retries instead of failing the projection', async () => {
+  const journal = await LiveJournal.open(fixture([], {staleOpen: true}));
+  assert.equal(journal.failure, undefined);
+  assert.equal(journal.opened.cut.contextId, 'context');
+});
 
 test('opening refuses an oversized active record before asking for more native pages', async () => {
   const pages = Array.from({length: 20}, (_, partIndex) => [{
