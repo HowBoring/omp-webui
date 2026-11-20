@@ -68,6 +68,7 @@ Decision record: `docs/adr/0033-branched-session-native-branch.md`.
 ```
 env -u ALL_PROXY -u HTTPS_PROXY -u HTTP_PROXY bun --no-env-file scripts/prepare-compatibility.ts --reset
 bun --no-env-file scripts/build-compatibility.ts
+bun --no-env-file scripts/build-branch-controls.ts --check
 bun --no-env-file apps/chat/build.ts
 bun --no-env-file scripts/build-chat-host.ts
 mkdir -p vendor/chat && bun --no-env-file scripts/enroll-chat-fixture.ts
@@ -96,12 +97,25 @@ presentation replacement, unsent returned draft, common history only, source and
 destination known, reload rebuilds the new Session, and no replay prompt or model
 call. `docs/evidence/ticket-52-browser.json` is that run.
 
+The ticket was then merged into the integration branch that also carries ticket 48
+(`mvp/spec-29` at 59f89d6). The merged worktree was prepared from scratch
+(`prepare-compatibility.ts --reset`), rebuilt, and the whole browser suite rerun:
+eleven of eleven cases pass again and `docs/evidence/ticket-52-browser.json` holds
+that run. The generated `branch-controls` validator was regenerated there because
+the committed copy had been generated from a stale 301-definition wire schema; it now
+derives from the merged 386-definition schema and admits only `branch` and
+`get_branch_messages` with the 96-character id policy
+(`tests/compatibility/command-contracts.test.ts`).
+
 Merged digests: candidate source `e9e00d47306d8885563fc271f5a79ea3330f18a5ec52de4f54688c64101b0530`,
 patch `99b33a85b209f7f3e29beb97ee531a8399eb5e9069f2eb4abc7f1e3e146bd5cb`,
 schema `b13a75ebfb36a0c48edb5d796e8335d6ab0a6a6b6fad7eda06be40c7f7c5a1ff`.
 
-Known failures outside this ticket after the merge: `tests/navigation/validators.test.ts`
-needs the ticket 51 staged worker tree (`vendor/omp-strict`), which this worktree never
-builds, and the continuation fault-shim suite still fails eleven native syscall cases
-under the system-fixture prefix. `tests/sessions`, `tests/tree` and
-`tests/attachments/public-rpc.test.ts` pass, and `bun run typecheck` is clean.
+Known failures outside this ticket after the merge: the continuation fault-shim suite
+still fails eleven native syscall cases under the system-fixture prefix. In the merged
+worktree `tests/navigation/validators.test.ts` runs against the staged ticket 51 worker
+tree (`vendor/omp-strict`) and `bun --no-env-file scripts/build-navigation-contracts.ts
+--check` passes; `tests/sessions`, `tests/tree`, `tests/attachments/public-rpc.test.ts`,
+`tests/compatibility` and `bun run typecheck` pass. The native branch tests spawn
+`--mode rpc-ui` workers, so they must not run concurrently with a browser suite that
+force-kills leftover workers on the same machine.
