@@ -32,6 +32,7 @@ import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-c
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
+import type { ConflictSafeDraftOffer, HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -346,6 +347,7 @@ function Surface() {
   const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [tree, setTree] = useState<TreeBrowser>();
+  const [returned, setReturned] = useState<ConflictSafeDraftOffer>();
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -596,7 +598,23 @@ function Surface() {
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
-      {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree} /></div>}
+      {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
+        navigation={{ sessionId: view.registration.nativeSessionId,
+          action: request => ctx.remote.ompHistoryNavigationSource.action(request).then(resultValue),
+          ready: (result: Extract<HistoryNavigationSourceResult, { status: "operation" }>) => {
+            setReturned(result.draft);
+            void perform(() => renewSessionProjection(view));
+          } }}/></div>}
+      {returned && <section data-chat-returned-draft data-returned-conflict={text.trim() === "" ? "false" : "true"}>
+        <h3>Returned text from {returned.originEntryId}</h3>
+        <p>It was not sent. Files and external effects were not rolled back.</p>
+        <pre>{returned.text}</pre>
+        {text.trim() === "" ? <button data-returned-use
+          onClick={() => { edit(returned.text); setReturned(undefined); }}>Put returned text in the composer</button>
+          : <><p role="alert">The composer already has unsubmitted text; it is never overwritten.</p>
+            <button data-returned-replace onClick={() => { edit(returned.text); setReturned(undefined); }}>Replace the current draft</button>
+            <button data-returned-keep onClick={() => setReturned(undefined)}>Keep the current draft</button></>}
+      </section>}
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}

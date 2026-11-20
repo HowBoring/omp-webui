@@ -62,9 +62,9 @@ export interface NavigationProjectionOwner {
 }
 export interface HistoryNavigationSourcePorts {
   /** Synchronously recheck browser, grant/directory, exact native identity, worker, ownership and projection. */
-  authorize(peer: PeerScope, sessionId: string): NavigationAccess;
+  authorize(peer: PeerScope, sessionId: string): NavigationAccess | Promise<NavigationAccess>;
   /** Authoritative joint Stop state, scoped to this exact worker and Broker Session. No browser state. */
-  idle(scope: NavigationScope): StopSnapshot;
+  idle(scope: NavigationScope): StopSnapshot | Promise<StopSnapshot>;
   readonly repository: NavigationOperationRepository;
   readonly projectionOwner: NavigationProjectionOwner;
   readonly now?: () => number;

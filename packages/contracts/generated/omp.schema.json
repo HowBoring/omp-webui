@@ -197,6 +197,39 @@
         "clientOmit": []
       },
       {
+        "name": "navigation_inspect",
+        "doc": "Read native target identity and confirmation generation without navigation or execution.",
+        "params": "NavigationInspectParams",
+        "result": "NavigationPreview",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "navigate_tree_committed",
+        "doc": "Reserve before hooks; commit the final native position before success. Duplicate keys never navigate again.",
+        "params": "NavigateTreeCommittedParams",
+        "result": "NavigationResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
+        "name": "navigation_query",
+        "doc": "Read an existing navigation receipt without replay, repair, summary or execution.",
+        "params": "NavigationQueryParams",
+        "result": "NavigationResult",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "get_compatibility",
         "doc": "Side-effect-free compatibility report; available only through --rpc-preflight, never opens a Session.",
         "params": null,
@@ -5140,6 +5173,249 @@
         "clientSubmissionId"
       ]
     },
+    "NavigationPolicy": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-navigation-v1"
+        },
+        "status": {
+          "const": "prototype"
+        },
+        "durability": {
+          "const": "process-crash-only"
+        },
+        "query": {
+          "const": "read-only-no-execution"
+        },
+        "maxOperations": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "version",
+        "status",
+        "durability",
+        "query",
+        "maxOperations"
+      ]
+    },
+    "NavigationPreview": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-navigation-v1"
+        },
+        "target": {
+          "$ref": "#/$defs/SubmissionTarget"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "targetParentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetRevision": {
+          "type": "string"
+        },
+        "contextRevision": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "target",
+        "entryId",
+        "targetParentId",
+        "targetRevision",
+        "contextRevision"
+      ]
+    },
+    "NavigationOrigin": {
+      "type": "object",
+      "properties": {
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "navigationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "navigationId"
+      ]
+    },
+    "NavigationResult": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "const": "durable-navigation-v1"
+        },
+        "navigationId": {
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/SubmissionTarget"
+        },
+        "found": {
+          "type": "boolean"
+        },
+        "duplicate": {
+          "type": "boolean"
+        },
+        "admission": {
+          "enum": [
+            "local",
+            "inherited",
+            "absent"
+          ],
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "reserved",
+            "committed",
+            "cancelled",
+            "aborted",
+            "unsupported",
+            "failed",
+            "absent",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "reservation": {
+          "enum": [
+            "committed",
+            "absent",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "persistence": {
+          "enum": [
+            "committed",
+            "unresolved",
+            "failed",
+            "unknown"
+          ],
+          "type": "string"
+        },
+        "terminal": {
+          "type": "boolean"
+        },
+        "origin": {
+          "$ref": "#/$defs/NavigationOrigin"
+        },
+        "requestedTargetId": {
+          "type": "string"
+        },
+        "targetParentId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "actualLeafId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summaryEntryId": {
+          "type": "string"
+        },
+        "summaryOrigin": {
+          "enum": [
+            "extension",
+            "native"
+          ],
+          "type": "string"
+        },
+        "hookCompleted": {
+          "type": "boolean"
+        },
+        "hookChangedLeaf": {
+          "type": "boolean"
+        },
+        "beforeHookInvoked": {
+          "type": "boolean"
+        },
+        "beforeHookCompleted": {
+          "type": "boolean"
+        },
+        "treeHookInvoked": {
+          "type": "boolean"
+        },
+        "targetRevision": {
+          "type": "string"
+        },
+        "contextRevision": {
+          "type": "string"
+        },
+        "draftOriginEntryId": {
+          "type": "string"
+        },
+        "editorText": {
+          "type": "string"
+        },
+        "draftContentRevision": {
+          "type": "string"
+        },
+        "draftStatus": {
+          "enum": [
+            "inline",
+            "reference_only"
+          ],
+          "type": "string"
+        },
+        "draftUnavailableReason": {
+          "type": "string"
+        },
+        "commitId": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "navigationId",
+        "target",
+        "found",
+        "duplicate",
+        "admission",
+        "outcome",
+        "reservation",
+        "persistence",
+        "terminal"
+      ]
+    },
     "AutoCompactionReason": {
       "enum": [
         "threshold",
@@ -6092,6 +6368,9 @@
         },
         "rpcUiSubmissionPolicy": {
           "$ref": "#/$defs/SubmissionPolicy"
+        },
+        "rpcUiNavigationPolicy": {
+          "$ref": "#/$defs/NavigationPolicy"
         }
       },
       "required": [
@@ -6130,6 +6409,9 @@
         },
         "attachmentInputPolicy": {
           "$ref": "#/$defs/AttachmentInputPolicy"
+        },
+        "navigationPolicy": {
+          "$ref": "#/$defs/NavigationPolicy"
         },
         "protocolVersion": {
           "type": "integer"
@@ -8919,6 +9201,67 @@
       },
       "required": [
         "clientSubmissionId"
+      ]
+    },
+    "NavigationInspectParams": {
+      "type": "object",
+      "properties": {
+        "entryId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "entryId"
+      ]
+    },
+    "NavigateTreeCommittedParams": {
+      "type": "object",
+      "properties": {
+        "navigationId": {
+          "type": "string"
+        },
+        "sourceId": {
+          "type": "string"
+        },
+        "instanceId": {
+          "type": "string"
+        },
+        "nativeSessionId": {
+          "type": "string"
+        },
+        "entryId": {
+          "type": "string"
+        },
+        "expectedContextRevision": {
+          "type": "string"
+        },
+        "expectedTargetRevision": {
+          "type": "string"
+        },
+        "summarize": {
+          "type": "boolean"
+        },
+        "customInstructions": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "navigationId",
+        "sourceId",
+        "instanceId",
+        "nativeSessionId",
+        "entryId"
+      ]
+    },
+    "NavigationQueryParams": {
+      "type": "object",
+      "properties": {
+        "navigationId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "navigationId"
       ]
     },
     "NegotiateProtocolParams": {

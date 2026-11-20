@@ -9,6 +9,7 @@ import { chatComponentContribution } from "../../../packages/contracts/chat-comp
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { attachmentsContribution } from "../../../packages/contracts/attachment-remote.ts";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
+import { historyNavigationSourceContribution } from "../../../packages/contracts/history-navigation-source.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
@@ -33,6 +34,7 @@ export const chatMethods = {
   ...attachmentsContribution.methods,
   "ompOriginals/exchange": attachmentContribution.methods["ompOriginals/exchange"],
   "ompTree/read": treeContribution.methods["ompTree/read"],
+  "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
 };
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();

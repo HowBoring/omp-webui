@@ -4,20 +4,32 @@ import type { PropsRuntime } from "@deepseek-ai/dsh-client-ui-slots";
 import type { TreeNode } from "../contracts/tree.ts";
 import { treeContribution } from "../contracts/tree.ts";
 import { TreeBrowser } from "./browser.ts";
+import type { HistoryNavigationSourceRequest, HistoryNavigationSourceResult } from "../contracts/history-navigation-source.ts";
 
-function NodeButton({ node, browser }: { node: TreeNode; browser: TreeBrowser }) {
+export interface TreeNavigation {
+  sessionId: string;
+  action(request: HistoryNavigationSourceRequest): Promise<HistoryNavigationSourceResult>;
+  ready(result: Extract<HistoryNavigationSourceResult, { status: "operation" }>): void;
+}
+
+function NodeButton({ node, browser, navigation, inspect }: { node: TreeNode; browser: TreeBrowser; navigation: TreeNavigation | undefined;
+  inspect: ((entryId: string) => void) | undefined }) {
   const state = browser.getSnapshot();
-  return <button disabled={state.pending || state.phase !== "complete"}
+  return <><button disabled={state.pending || state.phase !== "complete"}
     aria-pressed={state.selectedId === node.id} onClick={() => void browser.select(node.id)}>
     {node.id} · {node.boundary ?? node.role ?? node.kind} · {node.active ? "active path" : "other branch"}
-  </button>;
+  </button>{navigation && inspect && <button data-navigation-target={node.id}
+    onClick={() => inspect(node.id)}>Return to before this entry…</button>}</>;
 }
-function Segment({ nodes, browser }: { nodes: TreeNode[]; browser: TreeBrowser }) {
+function Segment({ nodes, browser, navigation, inspect }: { nodes: TreeNode[]; browser: TreeBrowser; navigation: TreeNavigation | undefined;
+  inspect: ((entryId: string) => void) | undefined }) {
   const [count, setCount] = useState(64);
-  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser}/></li>)}</ol>
+  return <><ol>{nodes.slice(0, count).map(node => <li key={node.id}><NodeButton node={node} browser={browser}
+    navigation={navigation} inspect={inspect}/></li>)}</ol>
     {nodes.length > count && <button onClick={() => setCount(count + 64)}>Show more retained nodes</button>}</>;
 }
-function ActivePath({ browser }: { browser: TreeBrowser }) {
+function ActivePath({ browser, navigation, inspect }: { browser: TreeBrowser; navigation: TreeNavigation | undefined;
+  inspect: ((entryId: string) => void) | undefined }) {
   const state = browser.getSnapshot(), nodes = new Map(state.pages.flat().map(node => [node.id, node]));
   const segments: { nodes: TreeNode[]; boundary?: TreeNode }[] = [];
   let pending: TreeNode[] = [];
@@ -31,13 +43,31 @@ function ActivePath({ browser }: { browser: TreeBrowser }) {
   return <section aria-label="Current active path"><h3>Current active path</h3>{segments.map((segment, index) =>
     <section key={segment.boundary?.id ?? "current"}>{segment.boundary ? <>
       <details><summary>Retained history before {segment.boundary.boundary} ({segment.nodes.length} nodes)</summary>
-        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser}/></details>
-      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser}/></p>
-    </> : <Segment key="current" nodes={segment.nodes} browser={browser}/>}</section>)}</section>;
+        <Segment key={`${index}-${segment.boundary.id}`} nodes={segment.nodes} browser={browser} navigation={navigation} inspect={inspect}/></details>
+      <p>Native {segment.boundary.boundary} boundary: <NodeButton node={segment.boundary} browser={browser} navigation={navigation} inspect={inspect}/></p>
+    </> : <Segment key="current" nodes={segment.nodes} browser={browser} navigation={navigation} inspect={inspect}/>}</section>)}</section>;
 }
 /** Small public React surface. Explicit Open/Page/Select; rendering never opens a Session or sends input. */
-export function TreePanel({ browser }: { browser: TreeBrowser }) {
+export function TreePanel({ browser, navigation }: { browser: TreeBrowser; navigation?: TreeNavigation }) {
   const state = useSyncExternalStore(browser.subscribe, browser.getSnapshot, browser.getSnapshot);
+  const [returnState, setReturnState] = useState<{ busy: boolean; result?: HistoryNavigationSourceResult; error?: string }>({ busy: false });
+  async function act(request: HistoryNavigationSourceRequest): Promise<void> {
+    setReturnState({ busy: true });
+    try {
+      const result = await navigation!.action(request);
+      setReturnState({ busy: false, result });
+      if (result.status === "operation" && result.outcome === "committed") {
+        browser.invalidate("navigation_pending");
+        await browser.open();
+        navigation!.ready(result);
+      }
+    } catch (error) {
+      setReturnState({ busy: false, error: error instanceof Error ? error.message : String(error) });
+    }
+  }
+  const inspect = navigation ? (entryId: string) => void act({ operation: "inspect", sessionId: navigation.sessionId, entryId }) : undefined;
+  const confirmation = returnState.result?.status === "confirmation" ? returnState.result : undefined;
+  const operation = returnState.result?.status === "operation" ? returnState.result : undefined;
   useEffect(() => {
     if (state.expiresAt === undefined) return;
     const timer = setTimeout(() => browser.invalidate("tree_snapshot_expired"), Math.max(0, state.expiresAt - Date.now()));
@@ -56,13 +86,35 @@ export function TreePanel({ browser }: { browser: TreeBrowser }) {
       <section aria-label="Native tree page"><h3>{state.phase === "complete" ? "Complete native tree" : "Native tree pages"}</h3>
         <p>Page {state.visiblePage + 1} of {state.pages.length} loaded pages; each row names its native parent.</p>
         <ol>{state.pages[state.visiblePage]?.map(node => <li key={node.id}>
-          <NodeButton node={node} browser={browser}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
+          <NodeButton node={node} browser={browser} navigation={navigation} inspect={inspect}/> <span>parent: {node.parentId ?? "root"}</span></li>)}</ol>
         <button disabled={state.visiblePage === 0} onClick={() => browser.showPage(state.visiblePage - 1)}>Previous loaded page</button>
         <button disabled={state.visiblePage + 1 >= state.pages.length}
           onClick={() => browser.showPage(state.visiblePage + 1)}>Next loaded page</button>
         <button disabled={state.pending || state.phase !== "partial"}
           onClick={() => void browser.nextPage()}>Load next native page</button></section>
-      {state.phase === "complete" && <ActivePath browser={browser}/>}</>}
+      {state.phase === "complete" && <ActivePath browser={browser} navigation={navigation} inspect={inspect}/>}</>}
+    {navigation && <section aria-label="Return to history" data-navigation-panel data-navigation-phase={returnState.busy ? "busy"
+      : returnState.error ? "error" : returnState.result?.status ?? "idle"}>
+      <h3>Return to history</h3>
+      <p>Native selection only. Files and external effects are not rolled back. Nothing is sent automatically.</p>
+      {returnState.error && <p role="alert">{returnState.error}</p>}
+      {returnState.result?.status === "error" && <p role="alert" data-navigation-error={returnState.result.code}>{returnState.result.code}</p>}
+      {confirmation && <div data-navigation-confirmation>
+        <p>Original Session: {confirmation.sessionId}</p>
+        <p>Target entry: {confirmation.entryId}; actual parent: {confirmation.targetParentId ?? "root"}</p>
+        <p>{confirmation.notice}</p>
+        <button disabled={returnState.busy} data-navigation-confirm
+          onClick={() => void act({ operation: "confirm", token: confirmation.token })}>Confirm return in this Session</button>
+        <button disabled={returnState.busy} data-navigation-cancel
+          onClick={() => void act({ operation: "cancel", token: confirmation.token })}>Cancel</button>
+      </div>}
+      {operation && <div data-navigation-operation={operation.outcome}>
+        <p>Native outcome: {operation.outcome}; persisted: {operation.persistence}; projection: {operation.projection}</p>
+        <p>Actual leaf: {operation.actualLeafId ?? "unknown"}; commit: {operation.commitId ?? "unknown"}</p>
+        {operation.draft && <p>Returned text is available in the composer area as an explicit draft choice.</p>}
+        {operation.draftUnavailable && <p>Returned text unavailable: {operation.draftUnavailable}</p>}
+      </div>}
+    </section>}
     {state.preview && <section aria-label="Selected node preview"><h3>Preview {state.preview.node.id}</h3>
       <pre>{state.preview.text}</pre><p>Attachment Originals: association unproven; no original download is offered here.</p></section>}
   </section>;

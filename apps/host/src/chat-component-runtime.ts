@@ -101,6 +101,20 @@ export class ChatComponentRuntime {
     return view.enrollment;
   }
 
+  /** Stop snapshot for native navigation: the same public state and admission facts a prompt sees. */
+  async navigationIdle(identity: BrowserAccess, workerId: string, generation: string,
+    sessionId: string): Promise<StopSnapshot | undefined> {
+    const entry = this.#entries.get(`${workerId}\u0000${generation}`);
+    if (this.#closed || !entry || entry.sessionId !== sessionId || !this.authority.revalidate(identity)) return;
+    let state: Partial<SessionState> | undefined;
+    try { state = await entry.worker.state(); } catch { state = undefined; }
+    if (this.#entries.get(`${workerId}\u0000${generation}`) !== entry) return;
+    entry.idle = this.#snapshot(entry.idleGeneration, entry.generation, entry.sessionId, state);
+    return entry.gateway.blocksAdmission
+      ? { ...entry.idle, status: "stopping", acceptingWork: false }
+      : entry.idle;
+  }
+
   gateway(sessionId: string): ChatGateway | undefined {
     for (const entry of this.#entries.values()) if (entry.sessionId === sessionId) return entry.gateway;
   }

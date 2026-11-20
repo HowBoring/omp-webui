@@ -213,6 +213,7 @@ await import("./build-history-contracts.ts");
 await import("./build-live-contracts.ts");
 
 await import("./build-submission-contracts.ts");
+await import("./build-navigation-contracts.ts");
 await import("./build-attachment-contracts.ts");
 
 if (wireOnly && !checkGenerated) {
