@@ -1,0 +1,60 @@
+--- a/packages/client/ui-conversation/src/client/provider-runtime.ts
++++ b/packages/client/ui-conversation/src/client/provider-runtime.ts
+@@ -0,0 +1,46 @@
++/**
++ * Provider-mode Conversation runtime without the stock Conversation shell.
++ *
++ * Client surfaces that own their composer do not mount {@link apply}: they do
++ * not need the stock slots, locale, Session/workspace faces, or upload service.
++ * They still register their durable draft provider through Conversation's
++ * public `registerDraftProvider` seam and receive the same provider-mode
++ * checkpoint policy, so this constructs exactly those services.
++ */
++import type { Context } from '@deepseek-ai/cordis'
++import type { TranslateNS } from '@deepseek-ai/dsh-client-locale/client'
++import { ComposerBlockRegistry } from './input/blocks.ts'
++import { InputHub } from './input/hub.ts'
++import { ConversationController } from './service.ts'
++
++export interface ProviderRuntimeOptions {
++  /** Upper bound on concurrent attachment uploads; the stock composer also defaults to two. */
++  readonly maxConcurrentFileUploads?: number
++  /** Composer copy; custom surfaces may supply none, leaving only diagnostic strings untranslated. */
++  readonly translate?: TranslateNS<'conversation'>
++}
++
++export interface ProviderRuntime {
++  /** The registered `conversation` service. */
++  readonly conversation: ConversationController
++  /** Provider-mode input resolver; pass to `registerDraftProvider`. */
++  readonly input: InputHub
++}
++
++/**
++ * Register the provider-mode Conversation service.
++ * @param ctx - owning root context; the service follows its lifetime.
++ * @param options - optional upload bound and translation face.
++ * @returns the live service and its input resolver, after the service fiber starts.
++ */
++export async function createProviderRuntime(ctx: Context, options: ProviderRuntimeOptions = {}): Promise<ProviderRuntime> {
++  const input = new InputHub(ctx, options.translate ?? (() => ''), 'provider')
++  await ctx.plugin(ConversationController, {
++    input,
++    blocks: new ComposerBlockRegistry(),
++    maxConcurrentFileUploads: options.maxConcurrentFileUploads ?? 2,
++  })
++  const conversation = ctx.get('conversation') as ConversationController | undefined
++  if (conversation === undefined) throw new Error('conversation_provider_runtime_unavailable')
++  return { conversation, input }
++}
+--- a/packages/client/ui-conversation/src/client/index.ts
++++ b/packages/client/ui-conversation/src/client/index.ts
+@@ -49,6 +49,8 @@
+   ConversationViewSnapshotMap, ConversationViewSnapshotStore, StepLocation, TurnLocation,
+ } from './contract/conversation.ts'
+ export { EMPTY_CONVERSATION_SNAPSHOT, conversationPhase } from './contract/snapshot.ts'
++export { createProviderRuntime } from './provider-runtime.ts'
++export type { ProviderRuntime, ProviderRuntimeOptions } from './provider-runtime.ts'
+ export type {
+   ConversationPhase, ConversationSnapshot,
+ } from './contract/snapshot.ts'
