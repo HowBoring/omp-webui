@@ -7,7 +7,7 @@ import type {
 } from "@deepseek-ai/dsh-api-session-controller/types";
 import type { SubmissionClientCommand } from "../contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionOrigin, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
-import type { SessionState, PromptResultEvent } from "../contracts/generated/omp-wire.ts";
+import type { PromptResultEvent, SessionState, SubmissionResult } from "../contracts/generated/omp-wire.ts";
 import liveNotification from "../contracts/generated/live-notification.js";
 import { chatRequestId, chatSessionId, type ChatRecovery, type ChatState } from "../contracts/chat.ts";
 import { stopSnapshotSchema } from "../contracts/stop.ts";
@@ -44,6 +44,12 @@ export interface ChatWorkerPort {
   request(command: SubmissionClientCommand): Promise<unknown>;
   /** Native cancel of the active turn; keeps the pending inbox. */
   cancel(): Promise<unknown>;
+  /** Present only when the Host composes the attachment gate for this worker. */
+  readonly attachments?: {
+    has(requestId: string): boolean;
+    submit(requestId: string, message: string, signal: AbortSignal): Promise<unknown>;
+    recovery(requestId: string): "accepted" | "not-submitted" | "completed-without-input" | "unresolved";
+  };
 }
 
 interface Attempt {
@@ -58,7 +64,7 @@ interface Attempt {
 }
 
 export class ChatError extends Error {
-  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown") {
+  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown" | "cancelled") {
     super(`chat_${code}`);
   }
 }
@@ -172,6 +178,33 @@ export class ChatGateway {
     this.#attempts.set(attempt.id, attempt);
     if (busy) throw new ChatError("busy");
     this.#latest = attempt;
+    if (this.port.attachments?.has(attempt.id)) {
+      const snapshot = await this.port.state();
+      if (!isNativeIdle(snapshot, this.#target.nativeSessionId) || !this.#idle()) {
+        attempt.phase = "refused"; throw new ChatError("busy");
+      }
+      attempt.phase = "dispatching";
+      try {
+        // The gate prepared and consented before this call; it owns the native reservation for this exact request.
+        const reply = await this.port.attachments.submit(attempt.id, text, signal) as SubmissionResult | undefined;
+        current();
+        if (reply && reply.terminal && reply.operationOutcome !== "unknown") {
+          const input = reply.relations?.some(relation => relation.role === "input" && relation.status === "observed"
+            && !!relation.entryId) === true;
+          attempt.result = { agentInvoked: input, sessionSettled: true,
+            status: reply.operationOutcome === "succeeded" ? "completed" : reply.operationOutcome === "cancelled" ? "aborted" : "error" };
+        }
+        attempt.phase = "admitted";
+      } catch (error) {
+        const cancelled = error instanceof Error && error.message === "ATTACHMENT_CANCELLED";
+        attempt.phase = cancelled ? "refused" : "unknown";
+        if (cancelled) attempt.settled = true;
+        delete attempt.result;
+        current();
+        throw error instanceof ChatError ? error : new ChatError(cancelled ? "cancelled" : "unknown");
+      }
+      return this.#accept(attempt, current, signal);
+    }
     await this.#dispatch(attempt, text, current);
     return this.#accept(attempt, current, signal);
   }
@@ -242,6 +275,18 @@ export class ChatGateway {
   }
 
   async #pollAcceptance(attempt: Attempt, current: () => void, signal: AbortSignal) {
+    if (this.port.attachments?.has(attempt.id)) {
+      for (let i = 0; i < waitAttempts; ++i) {
+        const recovery = this.port.attachments.recovery(attempt.id);
+        if (recovery === "accepted") return { accepted: true as const };
+        if (recovery === "completed-without-input") return { accepted: true as const,
+          noInput: { requestId: attempt.id, projection: attempt.projection } };
+        if (recovery === "not-submitted" || i === waitAttempts - 1) break;
+        await wait(100, undefined, { signal }).catch(() => { throw new ChatError("authority"); });
+        current();
+      }
+      return;
+    }
     for (let i = 0; i < waitAttempts; ++i) {
       const outcome = await this.#recover(attempt, current);
       if (!outcome) break;

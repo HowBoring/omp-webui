@@ -71,3 +71,18 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
     };
   }
 }
+
+/** Fixed Host error vocabulary from AttachmentSubmissionGate; safe to map across the Session carrier. */
+export const attachmentGateErrorCodes = [
+  "ATTACHMENT_ALREADY_BOUND", "ATTACHMENT_ATTEMPT_LIMIT", "ATTACHMENT_ATTEMPT_UNKNOWN", "ATTACHMENT_AUTHORITY_CHANGED",
+  "ATTACHMENT_CANCELLED", "ATTACHMENT_CONSENT_STALE", "ATTACHMENT_DEGRADATION_CONSENT_REQUIRED", "ATTACHMENT_DISPATCH_UNBOUND",
+  "ATTACHMENT_DRAFT_CHANGED", "ATTACHMENT_HOST_PREPARATION_LIMIT", "ATTACHMENT_HOST_PREPARED_BUDGET", "ATTACHMENT_NATIVE_RESULT_INVALID",
+  "ATTACHMENT_NOT_READY", "ATTACHMENT_OUTCOME_UNRESOLVED", "ATTACHMENT_PREPARATION_CONFLICT", "ATTACHMENT_RECEIPT_STALE",
+  "ATTACHMENT_REQUEST_CONFLICT", "ATTACHMENT_SEND_FAILED", "ATTACHMENT_TARGET_CHANGED",
+] as const;
+export type AttachmentGateErrorCode = (typeof attachmentGateErrorCodes)[number];
+const gateCodes = new Set<string>(attachmentGateErrorCodes);
+export function isAttachmentGateErrorCode(value: string): value is AttachmentGateErrorCode { return gateCodes.has(value); }
+declare module "@deepseek-ai/dsh-typert-protocol" {
+  interface RemoteErrorDetailsMap extends Record<AttachmentGateErrorCode, Record<string, never>> {}
+}

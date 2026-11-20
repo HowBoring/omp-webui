@@ -8,7 +8,7 @@ import {
 } from "@deepseek-ai/dsh-api-gateway/stream-protocol";
 import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import type { ServerWebSocket } from "bun";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
@@ -17,12 +17,19 @@ import { SessionSupervisor, type SessionLaunchOptions } from "../../../packages/
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import { createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
-  chatMethods, isSuccessfulSessionReply } from "./session-remote-dispatch.ts";
+  chatMethods, isSuccessfulSessionReply, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
 import { ChatAttachService, ChatCancelService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
 import { ChatViewAdmission } from "./chat-view-admission.ts";
 import { ChatComponentRuntime } from "./chat-component-runtime.ts";
+import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
+import { OriginalStore } from "../../../packages/attachments/store.ts";
+import { AttachmentRemote } from "../../../packages/attachments/service.ts";
+import { AttachmentBridge } from "../../../packages/attachments/bridge.ts";
+import { AttachmentSubmissionGate } from "../../../packages/attachments/submission-gate.ts";
+import { installAttachmentRemote } from "../../../packages/attachments/remote.ts";
+import { attachmentHostContribution } from "../../../packages/contracts/attachments.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 const streams = new Set(["$events", "session/follow", "session/control"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
@@ -84,15 +91,18 @@ export async function startSessionComponentServer(options: Options) {
   let inflight = 0;
   let stopping = false;
   let supervisor: SessionSupervisor;
-  let chatComposition: { runtime: ChatComponentRuntime; dispatch: ReturnType<typeof createChatSessionDispatch> } | undefined;
+  let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
+  let attachmentStore: OriginalStore | undefined;
   let unaryMethods = unary;
   const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
   let interactionCarrier: InteractionBrokerCarrier | undefined;
   const interactionBroker = options.interactionBroker;
+  access = openBrowserAccess({ dataDir: options.dataDir, origin: `http://127.0.0.1:${options.port ?? 3180}` });
   const server = Bun.serve<SocketData>({
-    hostname: "127.0.0.1", port: options.port ?? 3180, maxRequestBodySize: 16_384,
+    // The strict reader still enforces 2 MiB for prompt work and 16 MiB for one base64 image original.
+    hostname: "127.0.0.1", port: options.port ?? 3180, maxRequestBodySize: 20 * 1024 * 1024,
     async fetch(request, carrier) {
       if (stopping) return new Response("Host closing", { status: 503 });
       const path = new URL(request.url).pathname;
@@ -130,7 +140,7 @@ export async function startSessionComponentServer(options: Options) {
         ++inflight;
         try {
           if (brokerRoute) return await brokerRoute.dispatch(request, identity);
-          if (chatComposition && chatEndpoints.has(path)) return await chatComposition.dispatch(request, ctx, owner);
+          if (chatComposition && chatEndpoints.has(path)) return chatComposition.dispatch(request, ctx, owner);
           const current = () => access.revalidate(identity);
           const response = registeredWorkspace ? await dispatchWorkspaceRequest(request, ctx, owner, current)
             : await sessionCaller.run(identity, () => dispatch(request, ctx, owner, current));
@@ -186,7 +196,6 @@ export async function startSessionComponentServer(options: Options) {
       },
     },
   });
-  access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
   if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker,
     options.interactionBrokerMode);
   const { launch, launchOwned } = options;
@@ -200,7 +209,15 @@ export async function startSessionComponentServer(options: Options) {
       ...(cancelDescriptor ? [{ ...cancelDescriptor, service: "chatCancel" }] : [])] });
     ctx.typert.register(chatComponentHostContribution);
     const admission = new ChatViewAdmission(access, directories, supervisor);
-    const runtime = new ChatComponentRuntime(access, directories, supervisor, admission);
+    attachmentStore = new OriginalStore({ dataDir: join(options.dataDir, "attachments"), recovery: "exclusive-host-startup" });
+    let runtime: ChatComponentRuntime;
+    const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
+    const bridge = new AttachmentBridge(authority, target => runtime.native(target));
+    const gate = new AttachmentSubmissionGate(bridge, attempt => authority.authorizeAttempt(attempt));
+    ctx.typert.register(attachmentHostContribution);
+    new AttachmentRemote(ctx, attachmentStore, (_peer, target) => authority.scope(target));
+    installAttachmentRemote(ctx, gate);
+    runtime = new ChatComponentRuntime(access, directories, supervisor, admission, gate);
     new ChatPromptService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatCancelService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
@@ -229,6 +246,8 @@ export async function startSessionComponentServer(options: Options) {
     async stop(): Promise<void> {
       stopping = true;
       chatComposition?.runtime.close();
+      attachmentStore?.close();
+      attachmentStore = undefined;
       const draining = supervisor.close(); access.close(); detachRevocation();
       interactionBroker?.close();
       await draining; directories.close(); index.close();

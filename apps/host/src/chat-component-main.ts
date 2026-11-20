@@ -6,7 +6,9 @@ import { CatalogTransport } from "../../../packages/compatibility/catalog-transp
 import { SessionWorker } from "../../../packages/compatibility/session-worker.ts";
 import { startSessionComponentServer } from "./session-component-server.ts";
 
-const home = resolve("vendor/chat-fixture"), dataDir = resolve("vendor/chat-access"), port = 3188;
+const attachments = process.env.OMP_CHAT_ATTACHMENTS === "1";
+const home = resolve(attachments ? "vendor/chat-attachment-fixture" : "vendor/chat-fixture"),
+  dataDir = resolve(process.env.OMP_CHAT_FIXTURE_DATA ?? "vendor/chat-access"), port = Number(process.env.OMP_CHAT_FIXTURE_PORT ?? 3188);
 if (process.argv.includes("--print-bootstrap")) {
   const authority = openBrowserAccess({ dataDir, origin: `http://127.0.0.1:${port}` });
   console.info(authority.bootstrapLink()); authority.close(); process.exit(0);
@@ -16,19 +18,24 @@ z.strictObject({ kind: z.literal("S2-synthetic-chat-fixture"), privateData: z.li
 const scenario = process.env.OMP_CHAT_FIXTURE_SCENARIO, delay = process.env.OMP_CHAT_FIXTURE_DELAY_MS;
 const fixtureEnv = { ...(scenario === undefined ? {} : { OMP_LIVE_FIXTURE_SCENARIO: scenario }),
   ...(delay === undefined ? {} : { OMP_LIVE_FIXTURE_DELAY_MS: delay }) };
-const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_DIR: home,
-  OMP_HISTORY_FIXTURE_PROFILE: home, XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
+const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home,
+  PI_CODING_AGENT_DIR: attachments ? join(home, ".omp/agent") : home,
+  ...(attachments ? {} : { OMP_HISTORY_FIXTURE_PROFILE: home }),
+  XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
   XDG_DATA_HOME: join(home, "data"), BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", OPENAI_API_KEY: "synthetic-unused-no-provider-calls",
   NO_COLOR: "1", PI_NOTIFICATIONS: "off", ...fixtureEnv };
-const prefix = [process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/history-network-guard.js"),
-  resolve("vendor/omp-candidate/cli.js")];
+const prefix = [process.execPath, "--no-env-file", "--preload",
+  resolve(attachments ? "compatibility/omp/fixtures/no-provider.ts" : "compatibility/omp/fixtures/history-network-guard.js"),
+  resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate", "cli.js")];
 const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: home, readyTimeoutMs: 10_000 });
 const host = await startSessionComponentServer({ manifest: resolve("vendor/chat/installation.json"),
   assets: resolve("vendor/dsh-chat"),
-  launcher: resolve("vendor/omp-candidate/omp"), port, dataDir, catalog: catalog.catalog, chat: true,
-  launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--strict-start", "--offline", "--model", "s0-controlled/deterministic-live",
+  launcher: resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate", "omp"), port, dataDir, catalog: catalog.catalog, chat: true,
+  launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--strict-start", "--offline",
+    "--model", attachments ? "attachment-controlled/literal" : "s0-controlled/deterministic-live",
     "--no-lsp", "--no-skills", "--no-rules", "--no-spotlight", "--no-judge",
-    "--trusted-extension", resolve("compatibility/omp/fixtures/live-provider.ts")], env, cwd, readyTimeoutMs: 20_000 }) });
+    ...(attachments ? ["--trusted-extension", resolve("compatibility/omp/fixtures/attachment-provider.ts")]
+      : ["--trusted-extension", resolve("compatibility/omp/fixtures/live-provider.ts")])], env, cwd, readyTimeoutMs: 20_000 }) });
 console.info(JSON.stringify({ stage: "S2-isolated-chat", chatAdmission: "component-only", productAdmission: "blocked",
   origin: host.server.url.origin }));
 process.on("SIGUSR1", () => { void host.revokeAll().catch(() => {}); });

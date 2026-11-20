@@ -93,6 +93,32 @@ test("the Chat Gateway accepts an exact committed input through public idle-only
   expect(f.commands[1]?.id).not.toBe("request-a");
 });
 
+test("an attachment attempt is handed to the gate, never resubmitted as text", async () => {
+  const f = fixture();
+  const calls: [string, string][] = [];
+  Object.defineProperty(f.ports, "attachments", { configurable: true, value: {
+    has: (requestId: string) => requestId === "request-image",
+    async submit(requestId: string, message: string) { calls.push([requestId, message]); },
+    recovery: () => "accepted" as const,
+  } });
+  expect(await f.gateway.prompt(f.peer, prompt("request-image"), new AbortController().signal)).toEqual({ accepted: true });
+  expect(calls).toEqual([["request-image", "  /help\n@literal  "]]);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
+test("a busy native Session refuses an attachment Send before preparing, queueing, or submitting", async () => {
+  const f = fixture();
+  let submitted = 0;
+  Object.defineProperty(f.ports, "attachments", { configurable: true, value: {
+    has: () => true, async submit() { submitted++; }, recovery: () => "unresolved" as const,
+  } });
+  f.state(async () => ({ ...idle, isSettled: false, isStreaming: true }));
+  await expect(f.gateway.prompt(f.peer, prompt("request-image"), new AbortController().signal))
+    .rejects.toThrow("chat_busy");
+  expect(submitted).toBe(0);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
 test("a synchronous builtin can settle with a complete paged no-input proof for its original projection", async () => {
   const f = fixture();
   const effects = Array.from({ length: 128 }, (_, i) => ({ relationId: `effect:${i}`, role: "effect",

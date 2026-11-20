@@ -14,6 +14,8 @@ import type { CatalogDescriptor, StrictStartState } from "../../packages/contrac
 import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packages/compatibility/stdio-transport.ts";
 import type { OwnedSessionConnection, SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/submissions.ts";
+import { AttachmentClient } from "../../packages/contracts/generated/attachment-client.ts";
+import { isAttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
@@ -56,6 +58,7 @@ export async function sourceFixture(now: () => number = Date.now,
     history: new HistoryClient(async () => { throw new Error("SYNTHETIC_HISTORY_UNUSED"); }),
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     submissions: new SubmissionClient(async () => { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); }, isSubmissionResult),
+    attachments: new AttachmentClient(async () => { throw new Error("SYNTHETIC_ATTACHMENT_UNUSED"); }, isAttachmentReceipt),
     async submitCommand() { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async state() { return { sessionId: selected.nativeSessionId, isSettled: !controls.busy, isStreaming: controls.busy,
