@@ -189,19 +189,6 @@ async def main():
             await wait_original(page, 3)
             scenarios.append("image-spoof-bad-and-size-rejected")
 
-            five = [{"name": f"limit-{index}.png", "mimeType": "image/png",
-                     "buffer": data_png(2, 2, (index, index, index))} for index in range(5)]
-            await page.get_by_label("Add image files").set_input_files(five)
-            await wait_original(page, 8)
-            await page.get_by_label("Add image files").set_input_files({"name": "ninth.png", "mimeType": "image/png",
-                                                                        "buffer": data_png(2, 2, (9, 9, 9))})
-            await expect(page.get_by_role("alert")).to_contain_text("at most 8 images", timeout=30000)
-            assert await page.locator("[data-chat-original-id]").count() == 8, "the ninth image is refused"
-            for _ in range(8):
-                await page.locator("[data-chat-original-id] button").first.click()
-            await wait_original(page, 0)
-            scenarios.append("image-object-limit-enforced")
-
             await upload(page, "cancel.png", "image/png", data_png(3, 3, (90, 10, 10)))
             await send_images(page, "image provenance check")
             await page.wait_for_selector('[data-attachment-phase="awaiting-consent"]', timeout=60000)
@@ -232,6 +219,21 @@ async def main():
             assert not stale_errors, stale_errors
             scenarios.append("image-stale-grant-rejected-draft-kept")
             await stale.close()
+
+            limit = await context.new_page()
+            await limit.goto(f"{ORIGIN}/")
+            await limit.wait_for_selector("[data-chat-root-slot]")
+            await open_session(limit)
+            eight = [{"name": f"limit-{index}.png", "mimeType": "image/png",
+                      "buffer": data_png(2, 2, (index, index, index))} for index in range(8)]
+            await limit.get_by_label("Add image files").set_input_files(eight)
+            await wait_original(limit, 8)
+            await limit.get_by_label("Add image files").set_input_files({"name": "ninth.png", "mimeType": "image/png",
+                                                                         "buffer": data_png(2, 2, (9, 9, 9))})
+            await expect(limit.get_by_role("alert")).to_contain_text("at most 8 images", timeout=30000)
+            assert await limit.locator("[data-chat-original-id]").count() == 8, "the ninth image is refused"
+            await limit.close()
+            scenarios.append("image-object-limit-enforced")
 
             await page.screenshot(path=str(ROOT / "vendor/chat-images.png"), full_page=True)
             assert not errors, errors
