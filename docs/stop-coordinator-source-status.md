@@ -1,14 +1,21 @@
 # #48 Stop coordinator source vertical
 
-Status: source/controlled-clock public Remote evidence only. #48 and the #29 MVP
-remain open. No product Session, Native runtime, browser route, or force-capable
-supervisor is installed by this change.
+Status: real Host composition wired on the S2 isolated Chat component. The
+browser → Host → public RPC → `StopCoordinator` → supervised native worker path
+runs with Chromium against the real candidate; product admission stays blocked
+in `apps/host/src/main.ts`. #48 remains open only for the public-queue and
+Broker-pending-UI gaps recorded below.
 
-The existing browser → Host → public RPC workflow and typed public Remote seam
-were already accepted in #29. This vertical uses the local implement-spec/TDD
-workflow within the source-components-before-blockers authorization. Its branch
-starts from integration `4024c40`, includes the #47 Broker source `8bf16c1`, and
-reads the #44/#45 supervisor source as a reference without modifying it.
+`apps/host/src/chat-component-runtime.ts` builds one coordinator per admitted
+worker generation. Its native port issues the matched public
+`abort_branch_summary` / `abort_and_restore_queue` commands through
+`SessionWorker.control`; `observeState` consumes real `get_state`; EOF and
+`session_settled`/`prompt_result.sessionSettled` enter through typed
+notifications; the owned capability delegates to
+`SessionSupervisor.forceWorker`, which closes the retained supervised worker with
+the existing bounded termination/reap path. `session/cancel` on the Chat Gateway
+now requests the same ordinary Stop. `apps/host/src/session-remote-dispatch.ts`
+installs the page binding through `stopCaller` for `ompStop` methods only.
 
 `packages/contracts/stop.ts` contributes the new public Host `ompStop` namespace:
 `state`, `stop`, `offerForce`, and `confirmForce(token)`. The browser supplies no
@@ -156,9 +163,14 @@ are composed in memory; no actual HTTP, browser, Host listener, Native/Agent/SDK
 provider, socket, FFI, or kernel process operation runs. Dependencies are linked
 read-only; no build/schema/pin/dependency mutation or private Session data access.
 
-Remaining acceptance gates are product admission and real #45/#47 dispatcher
-composition, validated RPC client/control wiring, real provider/tools/background
-wakeup and native UI/summary/queue races, actual owned-supervisor confirmation and
-descendant reaping, EOF tail/drain behavior, attachment-original recovery, actual
-browser UI confirmation, Linux/WSL2 tests, and the matched provenance/global-build
-tuple. No source fixture replaces those mandatory #48/#29 results.
+Remaining acceptance gates: a public queue producer and a composable Interaction
+Broker in the Chat composition. The Host transport policy
+(`packages/contracts/generated/strict-command.js`) rejects `steer`, `follow_up`,
+and `prompt` with `streamingBehavior` (`RPC_COMMAND_SCHEMA` from
+`packages/compatibility/stdio-transport.ts:161`), so no browser-reachable native
+queue can exist; `abort_and_restore_queue` therefore always returns an empty
+queue in this composition, and the draft-restore branch is exercised only by
+coordinator fixtures. `chat-component-main.ts` passes no `interactionBroker`, so
+Host pending-UI cancellation is likewise unreachable; native settlement still
+gates quiescence. Attachment-original recovery and the matched provenance tuple
+remain separate gates. No fixture replaces these results.

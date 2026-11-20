@@ -7,6 +7,15 @@ export default function(pi) {
   if(!profile || process.env.HOME!==profile || process.env.PI_CODING_AGENT_DIR!==profile) throw Error('synthetic_profile_required');
   let calls=0;
   const seed=Number(process.env.OMP_LIVE_FIXTURE_SEED??0);
+  const stubborn=process.env.OMP_LIVE_FIXTURE_SCENARIO==='stubborn';
+  if(stubborn){
+    const audit=path.join(profile,'stubborn-audit.json');
+    const facts={termObserved:false,termAt:0,exitAt:0};
+    const record=()=>fs.writeFileSync(audit,JSON.stringify(facts));
+    record();
+    process.on('exit',()=>{facts.exitAt=Date.now();record();});
+    process.on('SIGTERM',()=>{facts.termObserved=true;facts.termAt=Date.now();record();});
+  }
   if(!Number.isSafeInteger(seed)||seed<0||seed>1000)throw Error('invalid_fixture_seed');
   pi.on('session_start',()=>{for(let index=0;index<seed;index++)pi.appendEntry('s0-synthetic-retained',{index});});
   pi.on('input',(event)=>{
@@ -56,6 +65,12 @@ export default function(pi) {
           {type:'toolCall',id:'batch-two-id',name:'s0_fixture_batch',arguments:{path:'batch-two.txt',count:2},thoughtSignature:'batch-two-signature'},
         ];
         const backgroundCall={type:'toolCall',id:'background-fixture-id',name:'bash',arguments:{command:"sleep 2; printf 'background fixture result\\n'",async:true},thoughtSignature:'background-signature'};
+        if(stubborn&&toolResults===0){
+          const call={type:'toolCall',id:'stubborn-fixture-id',name:'s0_stubborn',arguments:{},thoughtSignature:'stubborn-signature'};
+          partial.content=[call];stream.push({type:'toolcall_start',contentIndex:0,partial});
+          stream.push({type:'toolcall_end',contentIndex:0,toolCall:call,partial});
+          partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
+        }
         const toolCalls=background
           ? [backgroundCall, ...batchCalls]
           : batch
@@ -97,6 +112,9 @@ export default function(pi) {
     pi.registerTool({name:'rewind',label:'Controlled rewind',description:'Controlled native rewind result',
       parameters:schemaType({report:'string'}),async execute(_id,params){return {content:[{type:'text',text:'rewind requested'}],details:{report:params.report,rewound:true}};}});
   }
+  if(stubborn)pi.registerTool({name:'s0_stubborn',label:'Controlled uncooperative tool',
+    description:'Synthetic busy proof that ignores abort and SIGTERM',parameters:schemaType({}),
+    async execute(){setInterval(()=>{},1000);await new Promise(()=>{});return {content:[]};}});
   pi.registerTool({name:'s0_fixture',label:'Controlled tool',description:'Deterministic fixture tool',
     parameters:schemaType({}),async execute(){return {content:[{type:'text',text:'controlled result'}]}}});
   pi.registerTool({name:'s0_fixture_batch',label:'Controlled batch tool',description:'Deterministic batch fixture tool',

@@ -304,6 +304,37 @@ async def main():
             scenarios.append("idle-stop-keeps-draft-no-force")
             await context.close()
 
+            # Phase 2b: stubborn public worker -> 30s one-use force -> SIGTERM/SIGKILL reap.
+            await stop_host(host)
+            host = await start_host(scenario="stubborn", delay=100)
+            context, page = await new_page(browser, errors)
+            await open_session(page)
+            await send(page, "stubborn worker before stop")
+            await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
+            await page.wait_for_timeout(1500)
+            await page.get_by_label("Message").fill("draft during stubborn stop")
+            await page.get_by_role("button", name="Stop", exact=True).click()
+            await page.wait_for_selector('[data-chat-stop-status="stopping"]', timeout=10000)
+            await page.wait_for_timeout(5000)
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "force is not offered before 30s"
+            await page.wait_for_selector("[data-chat-stop-offer]", timeout=40000)
+            scenarios.append("stubborn-force-offered-after-30s")
+            pid = subprocess.run(["pgrep", "-f", re.escape(f"{ROOT}/vendor/omp-candidate/cli.js") + ".*--mode rpc-ui"],
+                                 capture_output=True, text=True).stdout.split()[0]
+            await page.locator("[data-chat-stop-offer]").click()
+            await page.locator("[data-chat-stop-confirm]").click()
+            for _ in range(300):
+                alive = subprocess.run(["pgrep", "-f", re.escape(f"{ROOT}/vendor/omp-candidate/cli.js") + ".*--mode rpc-ui"],
+                                       capture_output=True, text=True).stdout.split()
+                if pid not in alive: break
+                await page.wait_for_timeout(100)
+            else: raise AssertionError(f"stubborn worker {pid} was not reaped")
+            audit = json.loads((ROOT / "vendor/chat-fixture/stubborn-audit.json").read_text())
+            assert audit["exitAt"] > 0, f"stubborn worker exited after force: {audit}"
+            assert await page.get_by_label("Message").input_value() == "draft during stubborn stop", "force keeps the draft"
+            scenarios.append("stubborn-force-confirm-terminated-reaped")
+            await context.close()
+
             # Phase 3: controlled provider terminal error is accepted then settles failed, never resent.
             await stop_host(host)
             host = await start_host(scenario="empty-error")
