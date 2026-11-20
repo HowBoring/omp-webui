@@ -66,13 +66,15 @@ function usageValue(item: HistoryItem) {
 }
 
 function nativeRecord(item: HistoryItem, id: string): JsonValue {
-  if (!visibleKinds.has(item.kind) && !structuralKinds.has(item.kind)) {
+  // Native file mentions arrive as kind "message" with role "fileMention"; the role is the surface.
+  const surface = item.kind === 'message' && item.role !== undefined ? item.role : item.kind;
+  if (!visibleKinds.has(surface) && !structuralKinds.has(surface)) {
     throw Error('live_native_record_unsupported');
   }
   if (item.role !== undefined && !nativeRoles.has(item.role)) {
     throw Error('live_native_record_unsupported');
   }
-  const kind = visibleKinds.has(item.kind) ? item.kind : 'structural';
+  const kind = visibleKinds.has(surface) ? surface : 'structural';
   return { id, kind, ...(item.role === undefined ? {} : { role: item.role }), text: item.text,
     ...(item.display !== undefined ? {display: item.display} : {}),
     ...(item.customType !== undefined ? {customType: item.customType} : {}),

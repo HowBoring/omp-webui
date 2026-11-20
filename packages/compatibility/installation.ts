@@ -67,7 +67,9 @@ export async function inspectInstallation(selection: InstallationSelection): Pro
     const verify = async (): Promise<void> => {
       if (digest(await readFile(selection.manifest)) !== digest(bytes)) throw new Error("manifest changed");
       if (manifest.platform !== process.platform || manifest.arch !== process.arch) throw new Error("platform");
-      if (resolve(selection.launcher) !== resolve(root, manifest.launcher)) throw new Error("launcher selection");
+      // The operator may name the launcher by any path (for example a PATH symlink). Both that path and
+      // the enrolled launcher must resolve to the exact enrolled target, and the target content is hashed.
+      if (await realpath(resolve(root, manifest.launcher)) !== target) throw new Error("enrolled launcher target");
       if (await realpath(selection.launcher) !== target) throw new Error("launcher target");
       for (const entry of [manifest.runtime, ...manifest.runtimeDependencies, ...manifest.assets]) {
         const actual = await identifyAsset(root, entry.path, resolve(selection.manifest));

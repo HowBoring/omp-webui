@@ -47,7 +47,8 @@ const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch
   "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
 import type { CatalogClient } from "../../../packages/contracts/generated/catalog-client.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
-import { trustedDiagnosticAssets } from "../../../packages/compatibility/assets.ts";
+import { trustedDiagnosticAssets, trustedProductAssets } from "../../../packages/compatibility/assets.ts";
+import { configuredOrigin } from "../../../packages/access/trust.ts";
 import { openBrowserAccess, type BrowserAccess } from "../../../packages/access/index.ts";
 import { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
 import type { InteractionBroker } from "../../../packages/interactions/broker.ts";
@@ -59,6 +60,10 @@ interface CarrierOptions extends InstallationSelection {
   interactionBrokerMode?: InteractionBrokerMode;
   /** Opt-in component Chat over the same explicitly opened worker. Product admission stays blocked. */
   chat?: true;
+  /** Product Host: require independently trusted assets and report real admission instead of the fixture stage. */
+  product?: true;
+  /** Exact browser origin used for bootstrap links and Origin checks; listener stays loopback-only. */
+  origin?: string;
 }
 /** Exactly one launcher, inherited either from an option class or from an object literal. */
 type Options = (CarrierOptions & DirectLaunchOptions) | (CarrierOptions & OwnedLaunchOptions);
@@ -80,7 +85,9 @@ async function* idle(signal: AbortSignal): AsyncGenerator<never> {
 export async function startSessionComponentServer(options: Options) {
   const ctx = new Context();
   const assets = resolve(options.assets ?? "vendor/dsh-sessions");
-  const staticAssets = await trustedDiagnosticAssets(options.manifest, assets);
+  const staticAssets = options.product
+    ? await trustedProductAssets(options.manifest, assets, options.expectedIdentity ?? "")
+    : await trustedDiagnosticAssets(options.manifest, assets, options.expectedIdentity);
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);
   await ctx.plugin(TypertGatewayService, {});
@@ -111,6 +118,7 @@ export async function startSessionComponentServer(options: Options) {
   const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
+  let origin: URL;
   let interactionCarrier: InteractionBrokerCarrier | undefined;
   const interactionBroker = options.interactionBroker;
   const server = Bun.serve<SocketData>({
@@ -129,7 +137,7 @@ export async function startSessionComponentServer(options: Options) {
         if (identity instanceof Response) return identity;
       }
       if (path === "/api/remote.mux") {
-        if (request.headers.get("origin") !== carrier.url.origin || peers.size >= 8) {
+        if (request.headers.get("origin") !== origin.origin || peers.size >= 8) {
           return new Response("Forbidden", { status: 403 });
         }
         const identity = access.admit(request, "websocket");
@@ -159,7 +167,7 @@ export async function startSessionComponentServer(options: Options) {
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
       if ((brokerRoute || registeredWorkspace || [...unaryMethods].some(method => path === `/api/${method}`))
         && request.method === "POST") {
-        if (request.headers.get("origin") !== server.url.origin) return new Response("Forbidden", { status: 403 });
+        if (request.headers.get("origin") !== origin.origin) return new Response("Forbidden", { status: 403 });
         const identity = access.admit(request, "write");
         if (identity instanceof Response) return identity;
         if (inflight >= 32) return Response.json({ error: { code: "SESSION_REQUEST_LIMIT" } }, { status: 429 });
@@ -178,7 +186,9 @@ export async function startSessionComponentServer(options: Options) {
       }
       if (path.startsWith("/api/")) return new Response("Private Session admission is blocked", { status: 501 });
       if (request.method === "GET" && path === "/healthz") {
-        return Response.json({ service: "omp-webui-host", status: "ok", stage: "isolated-session-component", sessionAdmission: "blocked" });
+        return Response.json({ service: "omp-webui-host", status: "ok",
+          stage: options.product ? "product" : "isolated-session-component",
+          sessionAdmission: options.product ? "admitted" : "blocked" });
       }
       if (request.method !== "GET" || !["/", "/client.js"].includes(path)) return new Response("Not found", { status: 404 });
       return staticAssets.response(path === "/" ? "index.html" : "client.js");
@@ -222,7 +232,8 @@ export async function startSessionComponentServer(options: Options) {
       },
     },
   });
-  access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
+  origin = configuredOrigin(options.origin ?? server.url.origin);
+  access = openBrowserAccess({ dataDir: options.dataDir, origin: origin.origin });
   if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker,
     options.interactionBrokerMode);
   const { launch, launchOwned } = options;

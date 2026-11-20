@@ -32,6 +32,11 @@
       "path": "patches/0008-provider-runtime.patch",
       "sha256": "48887717d2e13ab5a9b77a91fdecc29c7e72c250851030b05c58c2d38a87ca08",
       "treeAfter": "d876ff7a0636f71bdcae2148ec1a45d5a42e142f"
+    },
+    {
+      "path": "patches/0009-linux-web-shortcuts.patch",
+      "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
+      "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
     }
   ]
 }

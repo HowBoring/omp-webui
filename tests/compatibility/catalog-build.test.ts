@@ -55,14 +55,16 @@ test("catalog builds the resolved complete DSH candidate and records its source 
     const manifest = identity.parse(JSON.parse(await readFile(resolve(dir, "vendor/dsh-catalog/manifest.json"), "utf8")));
     expect(manifest.dshBase).toBe(base);
     expect(manifest.dshSource).toMatchObject({ mode: "candidate",
-      sourceTree: "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea",
-      sourceSha256: "18cfb280c19fabedb49e45bb8cf3f708a580f92d4c78170e05d6d17a7886a56c" });
+      sourceTree: "52c982f334decf8c27e2296445dedada1e6d0309",
+      sourceSha256: "3358a2bfe1a00d880679f7dfe6ee6304911a0c13d822cd8661c6d5d55a4e16f9" });
     expect(manifest.dshSource.patches.map(patch => patch.sha256)).toEqual([
       "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
       "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
       "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
       "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
       "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+      "48887717d2e13ab5a9b77a91fdecc29c7e72c250851030b05c58c2d38a87ca08",
+      "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
     ]);
     expect(manifest.inputs.length).toBe(manifest.sourceInputs);
     expect(manifest.inputs.find(input => input.package === "@deepseek-ai/dsh-api-gateway"

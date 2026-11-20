@@ -30,7 +30,7 @@ const codec = <T>(schema: z.ZodType<T>, typeSymbol: string) => ({ mode: "strict"
 const input = codec(chatAttachment, "ChatAttachment");
 
 export const chatComponentContribution = createTypertRemoteInfo({ package: "@omp-webui/chat-component", methods: {
-  "ompChatComponent/attach": { service: "ompChatComponent", invocation: { kind: "direct" },
+  "ompChatComponent/attach": { service: "ompChatComponent", implementation: "enroll", invocation: { kind: "direct" },
     parameters: [{ name: "input", source: "json" as const, codec: input, strictCodec: input }],
     result: codec(chatAttachmentResult, "ChatAttachmentResult") },
 } }, z);

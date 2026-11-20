@@ -72,12 +72,12 @@ export class ChatCancelService extends TypertRemoteService {
 
 /** Component-only View enrollment. The carrier supplies identity outside this service. */
 export class ChatAttachService extends TypertRemoteService {
-  constructor(ctx: Context, private readonly attach: (input: ChatAttachment) => ChatAttachmentResult | undefined) {
+  constructor(ctx: Context, private readonly attachView: (input: ChatAttachment) => ChatAttachmentResult | undefined) {
     super(ctx, "ompChatComponent");
   }
 
-  @Remote("attach") async enroll(args: unknown): Promise<ChatAttachmentResult> {
-    const result = this.attach(chatAttachment.parse((args as { input?: unknown } | undefined)?.input));
+  @Remote("attach") async enroll(input: ChatAttachment): Promise<ChatAttachmentResult> {
+    const result = this.attachView(chatAttachment.parse(input));
     if (!result) throw new ChatRemoteError("gateway/bad-request", "No live Session worker is available to attach.", {});
     return chatAttachmentResult.parse(result);
   }

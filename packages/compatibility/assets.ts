@@ -2,9 +2,32 @@ import { readFile } from "node:fs/promises";
 import { dirname, relative, resolve } from "node:path";
 import { digest, identifyAsset, manifestSchema } from "./installation.ts";
 
+export interface TrustedAssets {
+  identity: string | undefined;
+  response(name: "index.html" | "client.js"): Promise<Response>;
+}
+
 /** Serve only assets in the startup-selected trust manifest; no source or launcher facts reach the browser. */
 export async function trustedDiagnosticAssets(manifestPath: string, directory: string, expectedIdentity?: string) {
+  return trustedAssets(manifestPath, directory, expectedIdentity, {
+    requiredIdentity: false, unverified: "Diagnostic assets unverified; Session admission blocked",
+  });
+}
+
+/**
+ * Product assets require an independently enrolled manifest identity. A self-consistent manifest is not
+ * trust: the operator must pin its digest out of band before the Host serves any product byte.
+ */
+export async function trustedProductAssets(manifestPath: string, directory: string, expectedIdentity: string) {
+  return trustedAssets(manifestPath, directory, expectedIdentity, {
+    requiredIdentity: true, unverified: "Product assets unverified; Session admission blocked",
+  });
+}
+
+async function trustedAssets(manifestPath: string, directory: string, expectedIdentity: string | undefined,
+  policy: { requiredIdentity: boolean; unverified: string }): Promise<TrustedAssets> {
   try {
+    if (policy.requiredIdentity && expectedIdentity === undefined) throw new Error("independent identity required");
     const bytes = await readFile(manifestPath);
     const manifest = manifestSchema.parse(JSON.parse(bytes.toString("utf8")));
     const root = resolve(dirname(manifestPath), "../..");
@@ -28,12 +51,12 @@ export async function trustedDiagnosticAssets(manifestPath: string, directory: s
             "x-content-type-options": "nosniff",
             "content-security-policy": "default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'",
           } });
-        } catch { return new Response("Diagnostic assets unverified; Session admission blocked", { status: 503 }); }
+        } catch { return new Response(policy.unverified, { status: 503 }); }
       },
     };
   } catch {
     return { identity: undefined, async response(): Promise<Response> {
-      return new Response("Diagnostic assets unverified; Session admission blocked", { status: 503 });
+      return new Response(policy.unverified, { status: 503 });
     } };
   }
 }
