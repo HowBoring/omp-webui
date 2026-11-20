@@ -70,12 +70,20 @@ so the unknown attempt and its `Check outcome` control remain visible instead of
 - candidate patch set `99b33a85b209f7f3e29beb97ee531a8399eb5e9069f2eb4abc7f1e3e146bd5cb`
 - candidate schema `b13a75ebfb36a0c48edb5d796e8335d6ab0a6a6b6fad7eda06be40c7f7c5a1ff`
 - candidate CLI `a5dcfd62b2e1045faa8fb00c7919636d4f8291903b362d39f131fe6f8a8c8b30`
-- Chat host bundle `ecfad7387549678fe5b8abb9bd9101cf079053ef0922217fa80ed8050b687c05`
-- enrolled chat manifest `885260effe84d08e359422519dc5a868b714f5932853643bd727ffc98343a36c`
+- Chat host bundle `7f7a6839f2f4940e5be2830d843fa2ae83fcafec891a4be561c4a9df8c4ffdf8`
+- enrolled chat manifest `7bbf0bb7090bd0e18b2fa59358ac523081e9fc047f112ce6c1735081ddfa4088`
 - Bun `1.4.4`, Linux Chromium `157.0.8103.38`, Playwright `1.65.2` (Python 3.14.4)
 
 `docs/evidence/ticket-53-browser.json` is the full run: 32 scenarios, `status: PASS`,
-`privateData: false`, `productAdmission: blocked`, `errors: []`.
+`privateData: false`, `productAdmission: blocked`, `errors: []`. It was captured on commit
+`429d6ef` before merging the latest integration. The final tree `ff08968` (merging `0e437d7` and
+`b4f8db2`, including ticket 57's tab-scoped drafts) rebuilt both bundles and re-ran the complete
+eight-scenario Retry matrix on the same fixed port: `PASS`, all eight scenarios, 63s. `bun test
+tests/manual-retry tests/chat/carrier.test.ts` remains 52 pass / 0 fail and `bun run typecheck` is
+clean on the final tree. The full 1010-test repository suite has 15 pre-existing environment
+failures (for example `compatibility/omp/fixtures/live-public-rpc.test.js` "genuine controlled tool
+execution"); that same test reproduces the failure at integration baseline `584fd72`, before this
+ticket's code, so it is not evidence for or against Retry.
 
 ## Reproduction
 
