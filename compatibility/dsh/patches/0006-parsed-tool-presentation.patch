@@ -241,6 +241,96 @@ index daddf0aa..78628d4a 100644
  
  /** A tool still preparing or awaiting its result. */
  export type RunningToolCall = PreparingToolCall | StartedToolCall
+diff --git a/packages/client/ui-conversation/src/client/conversation/assembly.ts b/packages/client/ui-conversation/src/client/conversation/assembly.ts
+index 233a72e2..9e2ec277 100644
+--- a/packages/client/ui-conversation/src/client/conversation/assembly.ts
++++ b/packages/client/ui-conversation/src/client/conversation/assembly.ts
+@@ -195,10 +195,19 @@ class BoundConversation implements ConversationBinding {
+ 
+ interface BindingRecord {
+   readonly source: SessionBinding
++  readonly generation: string
+   readonly binding: BoundConversation
+   disposeScope: () => void
+ }
+ 
++/** Conversation assembly must not survive a projection epoch rebuild. */
++function projectionGeneration(binding: SessionBinding): string {
++  const state = binding.projection.getSnapshot()
++  return state.phase === 'ready'
++    ? `ready:${state.binding.source}:${state.binding.generation}`
++    : state.phase
++}
++
+ /** Root service owning Conversation registries and per-Session bindings. */
+ export class UiConversation extends Service {
+   /** Registry of event matchers and target snapshot builders. */
+@@ -211,7 +220,7 @@ export class UiConversation extends Service {
+   readonly userText: UserTextRegistry
+   /** Plugin-owned handlers for selection and context-menu gestures. */
+   readonly interactions: ConversationInteractionRegistry
+-  private readonly bindings = new WeakMapWithValues<SessionBinding, BindingRecord>()
++  private readonly bindings = new WeakMapWithValues<SessionBinding, Map<string, BindingRecord>>()
+   private readonly images: HistoricalImageCache
+ 
+   /**
+@@ -227,7 +236,9 @@ export class UiConversation extends Service {
+     this.interactions = new ConversationInteractionRegistry(ctx)
+     this.images = new HistoricalImageCache(ctx, sessions)
+     const rebuild = (): void => {
+-      for (const record of this.bindings.values) record.binding.rebuild()
++      for (const records of this.bindings.values) {
++        for (const record of records.values()) record.binding.rebuild()
++      }
+     }
+     let rebuildQueued = false
+     const scheduleRebuild = (): void => {
+@@ -246,7 +257,9 @@ export class UiConversation extends Service {
+         disposeGroups()
+         disposeViews()
+         disposeEvents()
+-        for (const record of [...this.bindings.values]) this.drop(record, true)
++        for (const records of [...this.bindings.values]) {
++          for (const record of [...records.values()]) this.drop(record, true)
++        }
+       }
+     }, 'ui-conversation assembly')
+   }
+@@ -264,14 +277,18 @@ export class UiConversation extends Service {
+     if (this.sessions.binding(sessionId) !== owner) {
+       throw new Error(`uiConversation.binding: inactive session "${sessionId}"`)
+     }
+-    const current = this.bindings.get(owner)
++    const generation = projectionGeneration(owner)
++    const generations = this.bindings.get(owner) ?? new Map<string, BindingRecord>()
++    const current = generations.get(generation)
+     if (current !== undefined) return current.binding
++    for (const record of [...generations.values()]) this.drop(record, false)
+     const binding = new BoundConversation(
+       owner.eventSource,
+       new ConversationNodeAssembler(this.events, this.views, this.groups),
+     )
+-    const record: BindingRecord = { source: owner, binding, disposeScope: () => {} }
+-    this.bindings.set(owner, record)
++    const record: BindingRecord = { source: owner, generation, binding, disposeScope: () => {} }
++    generations.set(generation, record)
++    this.bindings.set(owner, generations)
+     const disposeScope = owner.ctx.effect(
+       () => () => { this.drop(record, false) },
+       'ui-conversation binding',
+@@ -345,8 +362,10 @@ export class UiConversation extends Service {
+   }
+ 
+   private drop(record: BindingRecord, releaseScope: boolean): void {
+-    if (this.bindings.get(record.source) !== record) return
+-    this.bindings.delete(record.source)
++    const generations = this.bindings.get(record.source)
++    if (generations?.get(record.generation) !== record) return
++    generations.delete(record.generation)
++    if (generations.size === 0) this.bindings.delete(record.source)
+     record.binding.dispose()
+     if (releaseScope) record.disposeScope()
+   }
 diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
 index 7595fc12..b5502274 100644
 --- a/packages/client/ui-conversation/src/client/index.ts

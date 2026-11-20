@@ -39,7 +39,7 @@ const recoveryAuthorized = new Set<string>();
 const provider = createDraftProvider({ owner, storage: localStorage, authority: sessionId => authorities.get(sessionId),
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)) });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
-let unsubscribeProjection: (() => void) | undefined;
+let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
@@ -103,6 +103,7 @@ async function present(view: PublicSessionView) {
   if (reference !== retained) return;
   liveBinding = binding;
   const projection = await waitProjection(binding);
+  presentationGeneration = projection.generation;
   if (reference !== retained) return;
   const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
   if (reference !== retained) return;
@@ -330,7 +331,7 @@ function Surface() {
       void settle(sessionId);
       // The accepted turn may create a new native cut. Reattach once the response has landed so the
       // rebuilt journal includes the completed turn before the next prompt.
-      if (view) setTimeout(() => { void renewSessionProjection(view).catch(() => {}); }, 1200);
+      void settle(sessionId);
     } catch (failure) { setError(message(failure)); }
   };
   const send = async (mode: "queue" | "steer") => {

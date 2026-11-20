@@ -221,15 +221,12 @@ async def main():
 
             # A second live prompt on the same native Session must be accepted and append a new turn.
             # The standalone shell renders the post-cut baseline after reopening the same Session.
-            await page.wait_for_timeout(1500)
+            await page.wait_for_timeout(4000)
             await send(page, "second live prompt")
-            # The accepted second turn is persisted on the same native Session. The standalone shell
-            # rebuilds the post-cut baseline when the same Session is reopened (not a different Session).
-            await page.wait_for_timeout(2500)
-            await page.reload()
-            await page.wait_for_selector("[data-chat-root-slot]")
-            await open_session(page, "native-0001")
+            await page.wait_for_timeout(2000)
+            await page.click("[data-chat-refresh]")
             await page.locator('#conversation').get_by_text("second live prompt", exact=True).last.wait_for(timeout=60000)
+            await page.locator('#conversation').get_by_text("authoritative controlled final", exact=True).last.wait_for(timeout=60000)
             scenarios.append("second-live-prompt")
 
             # A fresh Session issues two calls in one step, then reuses both ids after their results.
