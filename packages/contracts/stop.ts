@@ -19,6 +19,7 @@ export const forceOfferSchema = z.strictObject({ status: z.enum(["offered", "una
   token: id.optional(), expiresInMs: z.number().optional() });
 export type ForceOffer = z.infer<typeof forceOfferSchema>;
 export const forceResultSchema = z.strictObject({ status: z.enum(["stale", "ended", "unknown"]) });
+export type ForceResult = z.infer<typeof forceResultSchema>;
 const codec = <T>(schema: z.ZodType<T>, typeSymbol: string) => ({ mode: "strict" as const, typeSymbol,
   create: () => schema, decode: (value: unknown) => schema.parse(value) });
 const parameter = { name: "token", source: "json" as const, codec: codec(id, "string"), strictCodec: codec(id, "string") };
@@ -41,6 +42,6 @@ declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompStop: { state(): Promise<RemoteResult<StopSnapshot>>; stop(): Promise<RemoteResult<StopSnapshot>>;
       offerForce(): Promise<RemoteResult<ForceOffer>>;
-      confirmForce(token: string): Promise<RemoteResult<z.infer<typeof forceResultSchema>>> };
+      confirmForce(token: string): Promise<RemoteResult<ForceResult>> };
   }
 }

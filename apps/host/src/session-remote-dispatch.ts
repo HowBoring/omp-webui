@@ -9,6 +9,8 @@ import { chatComponentContribution } from "../../../packages/contracts/chat-comp
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { attachmentsContribution } from "../../../packages/contracts/attachment-remote.ts";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
+import { stopContribution } from "../../../packages/contracts/stop.ts";
+import { stopCaller, type StopCaller } from "../../../packages/interactions/stop-service.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
@@ -33,6 +35,7 @@ export const chatMethods = {
   ...attachmentsContribution.methods,
   "ompOriginals/exchange": attachmentContribution.methods["ompOriginals/exchange"],
   "ompTree/read": treeContribution.methods["ompTree/read"],
+  ...stopContribution.methods,
 };
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();
@@ -42,12 +45,14 @@ const invalidated = () => new Response("Access invalidated", { status: 401, head
 
 /** Resolve the already attached View from Host-owned carrier state after browser admission. */
 type ResolveChatView = (request: Request, identity: BrowserAccess) => ChatViewEnrollment | undefined;
+type ResolveStop = (identity: BrowserAccess) => StopCaller | undefined;
 type ChatBinding = NonNullable<ReturnType<ChatViewAdmission["bind"]>>;
 
 /** Opt-in unary dispatch with an authenticated View resolver and a bounded body read. */
 export type ChatSessionDispatch = (request: Request, ctx: Context, peer: Peer) => Promise<Response>;
 
-export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView): ChatSessionDispatch {
+export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView,
+  resolveStop?: ResolveStop): ChatSessionDispatch {
   let inflight = 0;
   return async (request, ctx, peer) => {
     const identity = admission.authority.admit(request, "write");
@@ -66,8 +71,9 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
       if (view) binding = admission.bind(identity, view, peer, request.signal);
     } catch { return invalidated(); }
     if (!binding) return invalidated();
+    const stop = resolveStop?.(identity);
     ++inflight;
-    try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, binding.current, binding)); }
+    try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, binding.current, binding, stop)); }
     finally { --inflight; }
   };
 }
@@ -79,7 +85,7 @@ export function dispatchSessionRequest(request: Request, ctx: Context, peer: Pee
 
 /** Validate before invocation, preserve request correlation and sanitize failures. */
 async function dispatch(request: Request, ctx: Context, peer: Peer, authority: () => boolean,
-  chat?: ChatBinding): Promise<Response> {
+  chat?: ChatBinding, stop?: StopCaller): Promise<Response> {
   if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
     return new Response("JSON required", { status: 415 });
   }
@@ -110,7 +116,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     signal.throwIfAborted();
     if (!current()) return invalidated();
     const invoke = () => ctx.typertGateway.invoke({ namespace: method.namespace, method: method.method, args, peer, signal });
-    const value = await (chat ? chat.run(invoke) : invoke());
+    const value = await (chat ? chat.run(() => stop ? stopCaller.run(stop, invoke) : invoke()) : invoke());
     if (chat && !current()) return invalidated();
     const response = Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } }, options);
     if (!chat) successfulReplies.add(response);
