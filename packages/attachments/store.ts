@@ -36,6 +36,20 @@ export type AssociatedOriginal = OriginalDescriptor & {
   objectId: string; sha256: string; state: "native-associated";
   nativeAssociation: Omit<OriginalEntryAssociation, "objectId"> & { clientSubmissionId: string };
 };
+/**
+ * Historical read authority: the same browser/page/source/instance and the Host's current admitted
+ * Session. It deliberately omits draftId: a retained entry also exists in a branch copy.
+ */
+export interface OriginalHistoryScope {
+  hostId: string; browserId: string; pageId: string; profileId: string; sourceId: string; instanceId: string;
+  sessionId: string; canonicalCwd: string; authorityEpoch: string;
+}
+/** Recheck browser, page, directory and exact Session binding on every historical read. */
+export type OriginalHistoryAccess = () => OriginalHistoryScope;
+export interface OriginalHistoryItem {
+  entryId: string; objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number;
+  sha256: string; availability: "available" | "missing";
+}
 export interface OriginalDeletionPreview {
   original: StagedOriginal;
   impact: { draftId: string; losesOriginalAccess: true; laterToolReadsMayFail: true };
@@ -71,6 +85,7 @@ interface PendingDeletion {
 type PayloadSuffix = "partial" | "original";
 function fail(code: AttachmentErrorName): never { throw new Error(`attachment_${code}`); }
 const idPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const entryPattern = /^[A-Za-z0-9_-]{1,256}$/;
 const bindingFields = ["hostId", "browserId", "pageId", "profileId", "sourceId", "instanceId", "sessionId",
   "canonicalCwd", "draftId"] as const;
 const scopeKey = (scope: OriginalBinding) => JSON.stringify(bindingFields.map(field => scope[field]));
@@ -84,6 +99,12 @@ const unsentLifetimeMs = 24 * 60 * 60 * 1000;
 const expiryBatchSize = 128;
 const deletionConfirmationMs = 5 * 60 * 1000;
 const deletionConfirmationLimit = 128;
+
+function storedLinks(value: unknown): value is { links: { objectId: string; entryId: string }[] } {
+  if (!value || typeof value !== "object" || !("links" in value) || !Array.isArray(value.links)) return false;
+  return value.links.every(link => !!link && typeof link === "object" && "objectId" in link && "entryId" in link
+    && typeof link.objectId === "string" && typeof link.entryId === "string");
+}
 
 function storedBinding(key: string): Readonly<OriginalBinding> | undefined {
   const fields: unknown = JSON.parse(key);
@@ -135,12 +156,16 @@ export class OriginalStore {
           PRIMARY KEY(target, submissionId));
         CREATE TABLE IF NOT EXISTS original_submission_holds (objectId TEXT PRIMARY KEY REFERENCES originals(id),
           target TEXT NOT NULL, submissionId TEXT NOT NULL,
-          FOREIGN KEY(target, submissionId) REFERENCES original_submissions(target, submissionId));`);
+          FOREIGN KEY(target, submissionId) REFERENCES original_submissions(target, submissionId));
+        CREATE TABLE IF NOT EXISTS original_entry_links (sourceId TEXT NOT NULL, instanceId TEXT NOT NULL,
+          entryId TEXT NOT NULL, objectId TEXT NOT NULL, target TEXT NOT NULL, submissionId TEXT NOT NULL,
+          PRIMARY KEY(sourceId, instanceId, entryId, objectId));`);
       this.db.transaction(() => {
         const saved = this.db.query<{ limits: string }, []>("SELECT limits FROM budget WHERE id=1").get();
         if (saved && saved.limits !== JSON.stringify(this.limits)) fail("limits_changed");
         if (!saved) this.db.query("INSERT INTO budget VALUES(1, ?)").run(JSON.stringify(this.limits));
         this.migrateActivityClock();
+        this.backfillLinks();
       }).immediate();
       if (options.recovery === "exclusive-host-startup") this.recover();
     } catch (error) { this.db.close(); throw error; }
@@ -151,6 +176,28 @@ export class OriginalStore {
     if (!columns.some(column => column.name === "activityAt")) {
       this.db.exec("ALTER TABLE originals ADD COLUMN activityAt INTEGER NOT NULL DEFAULT 0;"
         + "UPDATE originals SET activityAt=stagedAt;");
+    }
+  }
+
+  /**
+   * Historical links are keyed by the Native entry/copy relation, not by the Session that first
+   * committed them, so a branch copy stays readable. Existing associations are replayed once.
+   */
+  private backfillLinks(): void {
+    const rows = this.db.query<{ target: string; submissionId: string; scope: string; associations: string }, []>(
+      "SELECT target, submissionId, scope, associations FROM original_submissions WHERE associations IS NOT NULL").all();
+    const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
+      (sourceId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+    for (const row of rows) {
+      const binding = storedBinding(row.scope);
+      if (!binding) continue;
+      let parsed: unknown;
+      try { parsed = JSON.parse(row.associations); } catch { continue; }
+      if (!storedLinks(parsed)) continue;
+      for (const link of parsed.links) {
+        if (!idPattern.test(link.objectId) || !entryPattern.test(link.entryId)) continue;
+        insert.run(binding.sourceId, binding.instanceId, link.entryId, link.objectId, row.target, row.submissionId);
+      }
     }
   }
 
@@ -358,6 +405,7 @@ export class OriginalStore {
       for (const { objectId } of association.links) if (mark.run(objectId).changes !== 1) fail("association_conflict");
       this.db.query("UPDATE original_submissions SET associations=? WHERE target=? AND submissionId=?")
         .run(JSON.stringify(association), submissionTargetKey(scope), clientSubmissionId);
+      this.recordLinks(scope, clientSubmissionId, association);
     }).immediate();
   }
 
@@ -384,6 +432,101 @@ export class OriginalStore {
     if (!row.sha256) fail("original_corrupt");
     return { objectId, sha256: row.sha256, mediaType: row.mediaType, displayName: row.displayName, byteLength: row.size,
       state: "native-associated", nativeAssociation: { clientSubmissionId, entryId, entryPart: association.entryPart }, bytes };
+  }
+
+  private recordLinks(scope: OriginalBinding, clientSubmissionId: string, association: OriginalSubmissionAssociation): void {
+    const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
+      (sourceId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+    for (const link of association.links) {
+      insert.run(scope.sourceId, scope.instanceId, link.entryId, link.objectId,
+        submissionTargetKey(scope), clientSubmissionId);
+    }
+  }
+
+  private currentHistory(access: OriginalHistoryAccess, expected?: OriginalHistoryScope, signal?: AbortSignal): OriginalHistoryScope {
+    this.assertRoot();
+    if (signal?.aborted) fail("canceled");
+    let scope: OriginalHistoryScope;
+    try { scope = { ...access() }; } catch { return fail("authority_unavailable"); }
+    const fields = ["hostId", "browserId", "pageId", "profileId", "sourceId", "instanceId", "sessionId",
+      "canonicalCwd", "authorityEpoch"] as const;
+    if (fields.some(field => !validIdentity(scope[field]))) fail("authority_unavailable");
+    if (expected && fields.some(field => scope[field] !== expected[field])) fail("binding_changed");
+    return scope;
+  }
+
+  /** True only when the submission was created by this exact browser/page and source/instance. */
+  private sameRequester(stored: Readonly<OriginalBinding>, current: OriginalHistoryScope): boolean {
+    return stored.hostId === current.hostId && stored.browserId === current.browserId
+      && stored.pageId === current.pageId && stored.profileId === current.profileId
+      && stored.sourceId === current.sourceId && stored.instanceId === current.instanceId;
+  }
+
+  /** Entry ids are supplied by the Host only after the current Native history retained them. */
+  history(access: OriginalHistoryAccess, entryIds: readonly string[], signal?: AbortSignal): OriginalHistoryItem[] {
+    const scope = this.currentHistory(access, undefined, signal);
+    if (!Array.isArray(entryIds) || entryIds.length < 1 || entryIds.length > 128
+      || !entryIds.every(entryId => entryPattern.test(entryId))) fail("invalid_target");
+    const unique = [...new Set(entryIds)];
+    const marks = unique.map(() => "?").join(",");
+    const rows = this.db.query<{ entryId: string; objectId: string; target: string; submissionId: string;
+      displayName: string; mediaType: OriginalMediaType; size: number; sha256: string | null; associations: string | null;
+      scope: string }, string[]>(`SELECT l.entryId, l.objectId, l.target, l.submissionId, o.displayName, o.mediaType,
+        o.size, o.sha256, s.associations, s.scope FROM original_entry_links l
+        JOIN originals o ON o.id=l.objectId
+        JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
+        WHERE l.sourceId=? AND l.instanceId=? AND l.entryId IN (${marks}) AND o.state='native-associated'`)
+      .all(scope.sourceId, scope.instanceId, ...unique);
+    const order = new Map(unique.map((entryId, index) => [entryId, index]));
+    const items = rows.flatMap(row => {
+      const stored = storedBinding(row.scope);
+      if (!stored || !this.sameRequester(stored, scope) || !row.sha256) return [];
+      return [{ entryId: row.entryId, objectId: row.objectId, displayName: row.displayName, mediaType: row.mediaType,
+        byteLength: row.size, sha256: row.sha256, availability: this.available(row.objectId, row.size, row.mediaType) }];
+    });
+    items.sort((first, second) => (order.get(first.entryId) ?? 0) - (order.get(second.entryId) ?? 0)
+      || first.objectId.localeCompare(second.objectId));
+    this.currentHistory(access, scope, signal);
+    return items;
+  }
+
+  private available(objectId: string, size: number, mediaType: OriginalMediaType): "available" | "missing" {
+    try {
+      const file = lstatSync(this.path(objectId, "original"));
+      return file.isFile() && !file.isSymbolicLink() && file.nlink === 1 && file.size === size
+        && file.size <= this.objectCeiling(mediaType) ? "available" : "missing";
+    } catch { return "missing"; }
+  }
+
+  /**
+   * Read one retained entry's original. `entries` is the Host's current Native retention scan, so
+   * an old page, guessed entry id or unrelated object cannot widen access.
+   */
+  async readHistorical(access: OriginalHistoryAccess, entryId: string, objectId: string,
+    entries: readonly string[], signal?: AbortSignal): Promise<OriginalHistoryItem & { bytes: Uint8Array }> {
+    const scope = this.currentHistory(access, undefined, signal);
+    if (!entryPattern.test(entryId) || !idPattern.test(objectId) || !entries.includes(entryId)) fail("object_unavailable");
+    const { item, bytes } = this.db.transaction(() => {
+      const row = this.db.query<{ entryId: string; objectId: string; displayName: string; mediaType: OriginalMediaType;
+        size: number; sha256: string | null; scope: string; state: string }, [string, string, string, string]>(`SELECT
+        l.entryId, l.objectId, o.displayName, o.mediaType, o.size, o.sha256, s.scope, o.state
+        FROM original_entry_links l JOIN originals o ON o.id=l.objectId
+        JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
+        WHERE l.sourceId=? AND l.instanceId=? AND l.entryId=? AND l.objectId=?`)
+        .get(scope.sourceId, scope.instanceId, entryId, objectId);
+      if (!row || row.state !== "native-associated" || !row.sha256) fail("object_unavailable");
+      const stored = storedBinding(row.scope);
+      if (!stored || !this.sameRequester(stored, scope)) fail("object_unavailable");
+      const bytes = this.payload({ id: row.objectId, scope: row.scope, size: row.size, displayName: row.displayName,
+        mediaType: row.mediaType, state: "native-associated", sha256: row.sha256, stagedAt: 0, activityAt: 0 });
+      return { item: { entryId, objectId, displayName: row.displayName, mediaType: row.mediaType,
+        byteLength: row.size, sha256: row.sha256, availability: "available" as const }, bytes };
+    }).deferred();
+    this.currentHistory(access, scope, signal);
+    if (bytes.length !== item.byteLength || createHash("sha256").update(bytes).digest("hex") !== item.sha256) {
+      fail("original_corrupt");
+    }
+    return { ...item, bytes };
   }
 
   private submission(scope: OriginalBinding, clientSubmissionId: string): SubmissionRow | null {

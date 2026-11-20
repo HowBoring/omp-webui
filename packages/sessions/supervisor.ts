@@ -506,8 +506,8 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     this.#current(identity, active);
-    return { history: active.worker.history, sourceId: active.record.sourceId, sessionId,
-      epoch: active.generation };
+    return { history: active.worker.history, sourceId: active.record.sourceId,
+      instanceId: active.record.instanceId, cwd: active.cwd, sessionId, epoch: active.generation };
   }
   /** Exact live worker plus its current presented journal for a native navigation request. */
   async navigationAccess(identity: BrowserAccess, sessionId: string) {
