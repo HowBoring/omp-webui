@@ -136,8 +136,8 @@
     "nativeRpcChromium": {
       "status": "PASS",
       "command": "python tests/chat/browser.py",
-      "scenarios": 16,
-      "includes": "native-tool-call-result-pairing, page reload, cancel, provider failure, host restart",
+      "scenarios": 18,
+      "includes": "native-tool-call-result-pairing, native-tool-batch-id-reuse, native-tool-history-reopen, page reload, cancel, provider failure, host restart",
       "privateData": false,
       "productAdmission": "blocked"
     }

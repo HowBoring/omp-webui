@@ -11,17 +11,18 @@ CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shut
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
 HOST = ROOT / "vendor/host-chat/chat-component-main.js"
 CHAT_BUTTON = re.compile(r"(Open|Switch) Chat Session")
+PORT = int(os.environ.get("OMP_CHAT_PORT", "3188"))
 
 
 def kill_worker():
-    subprocess.run(["pkill", "-f", "vendor/omp-candidate/cli.js.*--mode rpc-ui"], check=False)
+    subprocess.run(["pkill", "-f", re.escape(f"{ROOT}/vendor/omp-candidate/cli.js") + ".*--mode rpc-ui"], check=False)
 
 
 async def wait_health(timeout=15.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            urllib.request.urlopen("http://127.0.0.1:3188/healthz", timeout=1)
+            urllib.request.urlopen(f"http://127.0.0.1:{PORT}/healthz", timeout=1)
             return
         except Exception:
             await asyncio.sleep(0.1)
@@ -30,12 +31,13 @@ async def wait_health(timeout=15.0):
 
 async def start_host(scenario=None, delay=None, tools=None):
     env = os.environ.copy()
+    env["OMP_CHAT_PORT"] = str(PORT)
     if scenario:
         env["OMP_CHAT_FIXTURE_SCENARIO"] = scenario
     if delay is not None:
         env["OMP_CHAT_FIXTURE_DELAY_MS"] = str(delay)
     if tools:
-        env["OMP_CHAT_FIXTURE_TOOLS"] = "1"
+        env["OMP_CHAT_FIXTURE_TOOLS"] = str(tools)
     host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
                             stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
     await wait_health()
@@ -100,6 +102,8 @@ async def wait_session(page, native_id):
 
 async def send(page, text):
     await page.get_by_label("Message").fill(text)
+    await wait_draft(page, text)
+    await page.wait_for_selector('[data-chat-draft-ready="true"]', state="attached", timeout=60000)
     await page.get_by_role("button", name="Send", exact=True).click()
 
 
@@ -127,7 +131,7 @@ async def new_page(browser, errors):
 
 async def main():
     kill_worker()
-    subprocess.run(["pkill", "-f", "vendor/host-chat/chat-component-main.js"], check=False)
+    subprocess.run(["pkill", "-f", re.escape(f"{ROOT}/vendor/host-chat/chat-component-main.js")], check=False)
     await asyncio.sleep(0.5)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL)
@@ -194,25 +198,49 @@ async def main():
             assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "relaunched Session settles succeeded"
             await context.close()
 
-            # Phase 1b: real native tool call -> parsed arguments, signature, paired result, typed usage, reload.
+            # Phase 1b-1d: render one call, then a batched same-id reuse, all from native history.
             await stop_host(host)
-            host = await start_host(tools=True)
+            host = await start_host(tools="all")
             context, page = await new_page(browser, errors)
             await open_session(page, "native-0001")
             await send(page, "use the controlled tool")
+            await page.locator('#conversation').get_by_text("use the controlled tool", exact=True).last.wait_for(timeout=60000)
             await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
             assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "tool turn settles succeeded"
             await page.wait_for_selector('[data-chat-tool="s0_fixture"]', timeout=60000)
-            assert '"path": "controlled.txt"' in await page.locator('[data-chat-tool="s0_fixture"] .arguments').inner_text(), "actual parsed arguments render"
+            assert '"path": "controlled.txt"' in await page.locator('[data-chat-tool="s0_fixture"]').last.inner_text(), "actual parsed arguments render"
             await page.wait_for_selector('[data-chat-tool-result="s0_fixture"]', timeout=60000)
-            tool_text = await page.locator('[data-chat-tool-result="s0_fixture"]').inner_text()
+            tool_text = await page.locator('[data-chat-tool-result="s0_fixture"]').last.inner_text()
             assert "controlled result" in tool_text, "native tool result renders"
             assert "controlled-signature" in tool_text, "native thought signature renders"
             assert await page.locator("[data-chat-usage]").count() > 0, "native usage renders"
-            await page.reload()
-            await page.wait_for_selector('[data-chat-tool-result="s0_fixture"]', timeout=60000)
-            assert "controlled result" in await page.locator('[data-chat-tool-result="s0_fixture"]').inner_text(), "tool history survives reopen"
             scenarios.append("native-tool-call-result-pairing")
+
+            # A fresh Session issues two calls in one step, then reuses both ids after their results.
+            await open_session(page, "native-0002")
+            await send(page, "use all controlled tools")
+            await page.locator('#conversation').get_by_text("use all controlled tools", exact=True).last.wait_for(timeout=60000)
+            await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
+            assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "batch turn settles succeeded"
+            await page.wait_for_selector('[data-chat-tool="s0_fixture_batch"]', timeout=60000)
+            first_args = await page.locator('[data-chat-tool="s0_fixture"]').all_inner_texts()
+            second_args = await page.locator('[data-chat-tool="s0_fixture_batch"]').all_inner_texts()
+            assert len(first_args) >= 2 and all('batch-one.txt' in text for text in first_args), "first id args render twice"
+            assert len(second_args) >= 2 and all('batch-two.txt' in text for text in second_args), "second id args render twice"
+            first_results = await page.locator('[data-chat-tool-result="s0_fixture"]').all_inner_texts()
+            second_results = await page.locator('[data-chat-tool-result="s0_fixture_batch"]').all_inner_texts()
+            assert len(first_results) >= 2 and all('controlled result' in text for text in first_results), "first id results pair twice"
+            assert len(second_results) >= 2 and all('controlled batch result' in text for text in second_results), "second id results pair twice"
+            assert await page.locator('[data-chat-blocked="unknown-node"]').count() == 0, "reuse is not blocked as ambiguity"
+            scenarios.append("native-tool-batch-id-reuse")
+
+            # Reopen once: every tool record, signature and usage remains native-sourced.
+            await page.reload()
+            await page.wait_for_selector('[data-chat-tool-result="s0_fixture_batch"]', timeout=60000)
+            assert len(await page.locator('[data-chat-tool-result="s0_fixture_batch"]').all_inner_texts()) >= 2, "batch history survives reopen"
+            assert len(await page.locator('[data-chat-tool-result="s0_fixture"]').all_inner_texts()) >= 2, "reused id history survives reopen"
+            assert await page.locator("[data-chat-usage]").count() > 0, "usage history survives reopen"
+            scenarios.append("native-tool-history-reopen")
             await context.close()
 
             # Phase 2: slow controlled stream -> busy refusal with retained draft, then native cancel settles.

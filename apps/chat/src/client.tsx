@@ -95,14 +95,18 @@ async function present(view: PublicSessionView) {
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
   if (reference !== retained || draftDirty) return;
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
+  watch(binding, retained);
+}
+function watch(binding: SessionBinding, retained: SessionReference) {
   const target = ctx.uiConversation.binding(binding).target("trajectory");
   const render = () => {
     if (reference !== retained) return;
     const next = target.getSnapshot()?.eventNodes ?? [];
     historyChanged([...next]);
   };
-  unsubscribe = target.subscribe(render); render();
+  unsubscribe?.(); unsubscribe = target.subscribe(render); render();
 }
+
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
   return <main data-chat-root-slot="true"><h1>Human Chat over the native Session</h1>
     <p>Isolated S2 component · synthetic data only · normal product admission remains blocked.</p>{renderSlot("s1.chat", {})}</main>;

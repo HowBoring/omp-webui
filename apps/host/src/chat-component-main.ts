@@ -6,7 +6,7 @@ import { CatalogTransport } from "../../../packages/compatibility/catalog-transp
 import { SessionWorker } from "../../../packages/compatibility/session-worker.ts";
 import { startSessionComponentServer } from "./session-component-server.ts";
 
-const home = resolve("vendor/chat-fixture"), dataDir = resolve("vendor/chat-access"), port = 3188;
+const home = resolve("vendor/chat-fixture"), dataDir = resolve("vendor/chat-access"), port = Number(process.env.OMP_CHAT_PORT ?? 3188);
 if (process.argv.includes("--print-bootstrap")) {
   const authority = openBrowserAccess({ dataDir, origin: `http://127.0.0.1:${port}` });
   console.info(authority.bootstrapLink()); authority.close(); process.exit(0);

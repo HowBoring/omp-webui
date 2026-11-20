@@ -45,12 +45,27 @@ export default function(pi) {
           stream.push({type:'toolcall_end',contentIndex:0,toolCall,partial});
           partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
         }
-        if(process.env.OMP_LIVE_FIXTURE_TOOLS==='1'&&context.messages.at(-1)?.role!=='toolResult'){
-          const toolCall={type:'toolCall',id:'reusable-fixture-id',name:'s0_fixture',arguments:{path:'controlled.txt',count:2},thoughtSignature:'controlled-signature'};
-          partial.content=[toolCall];
-          stream.push({type:'toolcall_start',contentIndex:0,partial});
-          stream.push({type:'toolcall_delta',contentIndex:0,delta:'{}',partial});
-          stream.push({type:'toolcall_end',contentIndex:0,toolCall,partial});
+        const toolMode=process.env.OMP_LIVE_FIXTURE_TOOLS;
+        const lastUser=context.messages.filter(message=>message.role==='user').at(-1);
+        const promptText=lastUser===undefined?'':lastUser.content.flatMap(content=>content.type==='text'?[content.text]:[]).join(' ');
+        const toolResults=context.messages.filter(message=>message.role==='toolResult').length;
+        const batch=toolMode==='batch'||(toolMode==='all'&&(promptText.includes('both')||promptText.includes('all')));
+        const toolCalls=batch
+          ? [
+            {type:'toolCall',id:'batch-one-id',name:'s0_fixture',arguments:{path:'batch-one.txt',count:1},thoughtSignature:'batch-one-signature'},
+            {type:'toolCall',id:'batch-two-id',name:'s0_fixture_batch',arguments:{path:'batch-two.txt',count:2},thoughtSignature:'batch-two-signature'},
+          ]
+          : toolMode==='reuse'||toolMode==='all'||toolMode==='1'
+            ? [{type:'toolCall',id:'reusable-fixture-id',name:'s0_fixture',arguments:{path:'controlled.txt',count:2},thoughtSignature:'controlled-signature'}]
+            : [];
+        const repeat=toolMode==='all'&&toolResults>=2&&toolResults<4;
+        if(toolCalls.length>0&&(toolResults===0||repeat)){
+          partial.content=toolCalls;
+          for(const [contentIndex,toolCall] of toolCalls.entries()){
+            stream.push({type:'toolcall_start',contentIndex,partial});
+            stream.push({type:'toolcall_delta',contentIndex,delta:'{}',partial});
+            stream.push({type:'toolcall_end',contentIndex,toolCall,partial});
+          }
           partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
         }
         partial.content=[{type:'text',text:''}];stream.push({type:'text_start',contentIndex:0,partial});
@@ -79,4 +94,6 @@ export default function(pi) {
   }
   pi.registerTool({name:'s0_fixture',label:'Controlled tool',description:'Deterministic fixture tool',
     parameters:schemaType({}),async execute(){return {content:[{type:'text',text:'controlled result'}]}}});
+  pi.registerTool({name:'s0_fixture_batch',label:'Controlled batch tool',description:'Deterministic batch fixture tool',
+    parameters:schemaType({}),async execute(){return {content:[{type:'text',text:'controlled batch result'}]}}});
 }

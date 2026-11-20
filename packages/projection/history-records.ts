@@ -35,19 +35,17 @@ type EmitEvent = (type: string, data: JsonValue, surface?: boolean) => SessionHi
 
 /** Native call ids are ordered; an unanswered call may not silently change owner. */
 export class ToolCallLedger {
-  readonly #calls = new Map<string, string>();
-  readonly #resolved = new Set<string>();
-  call(callId: string, owner: string): void {
-    const seen = this.#calls.get(callId);
-    if (seen !== undefined && seen !== owner && !this.#resolved.has(callId)) {
-      throw Error('live_tool_owner_unavailable');
-    }
-    this.#calls.set(callId, owner);
-    this.#resolved.delete(callId);
+  readonly #calls = new Map<string, number>();
+  readonly #results = new Map<string, number>();
+  call(callId: string, _owner: string): void {
+    const calls = this.#calls.get(callId) ?? 0, results = this.#results.get(callId) ?? 0;
+    if (calls > results) throw Error('live_tool_owner_unavailable');
+    this.#calls.set(callId, calls + 1);
   }
   result(callId: string, _owner: string | null): void {
-    if (this.#resolved.has(callId)) throw Error('live_tool_owner_unavailable');
-    this.#resolved.add(callId);
+    const calls = this.#calls.get(callId) ?? 0, results = this.#results.get(callId) ?? 0;
+    if (results >= calls) throw Error('live_tool_owner_unavailable');
+    this.#results.set(callId, results + 1);
   }
 }
 
