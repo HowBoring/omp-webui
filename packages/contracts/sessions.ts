@@ -46,6 +46,8 @@ const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scannin
     directory: z.string().max(32) })).max(32), nextCursor: token.optional() });
 const index = z.strictObject({ records: z.array(record).max(32), nextCursor: token.optional() });
 const page = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(32).optional() });
+/** Catalog reads may additionally ask the Host to rescan native sessions; every other page stays cache-only. */
+const catalogPage = page.extend({ refresh: z.boolean().optional() });
 const currentSession = z.strictObject({ view: sessionViewSchema.optional(), running: z.boolean(), blank: z.boolean() });
 const grant = z.strictObject({ id: z.string().uuid(), path, grantedAt: z.string().datetime(), status: z.enum(["valid", "changed"]) });
 const preview = z.strictObject({ path, confirmation: z.string().uuid(), expiresAt: z.string().datetime() });
@@ -58,7 +60,7 @@ const method = <T>(parameters: ReturnType<typeof parameter>[], result: z.ZodType
   ({ service: "ompSessions", invocation: { kind: "direct" as const }, parameters, result: codec(result, "result") });
 /** Authenticated isolated S1 component. Fixed actions only; no prompt sender or arbitrary native RPC/path selector. */
 export const sessionsContribution = createTypertRemoteInfo({ package: "@omp-webui/sessions", methods: {
-  "ompSessions/catalog": method([parameter("options", page)], catalog),
+  "ompSessions/catalog": method([parameter("options", catalogPage)], catalog),
   "ompSessions/index": method([parameter("options", page)], index),
   "ompSessions/branchPoints": method([parameter("workerId", worker)], branchPointsSchema),
   "ompSessions/branch": method([parameter("change", branchChange)], branchOutcome),
