@@ -42,6 +42,8 @@ export interface ChatWorkerPort {
   state(): Promise<Partial<SessionState>>;
   /** Bounded public JSONL v2 transport; rejects on protocol failure, timeout or EOF. */
   request(command: SubmissionClientCommand): Promise<unknown>;
+  /** Another Host-owned source (Manual Retry) whose unsettled attempt blocks new input. */
+  externalBusy?(): boolean;
   /** Native cancel of the active turn; keeps the pending inbox. */
   cancel(): Promise<unknown>;
   /** Present only when the Host composes the attachment gate for this worker. */
@@ -108,7 +110,8 @@ export class ChatGateway {
   /** A future shared admission gate must consult this for other input and history work. */
   get blocksAdmission(): boolean {
     const attempt = this.#latest;
-    return !this.#workerCurrent() || !!attempt && attempt.phase !== "conflict" && !attempt.settled;
+    return !this.#workerCurrent() || this.port.externalBusy?.() === true
+      || !!attempt && attempt.phase !== "conflict" && !attempt.settled;
   }
 
   #view(caller: ChatCaller, sessionId: string): View {

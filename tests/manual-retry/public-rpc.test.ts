@@ -23,7 +23,8 @@ function fixture() {
   const otherAuthority = new AbortController();
   const view: RetryView = { clientId: "view-a", credentialId: "browser" };
   const otherView: RetryView = { clientId: "view-b", credentialId: "another-browser" };
-  const viewAuthorities = new Map([[view, authority], [otherView, otherAuthority]]);
+  const viewKey = (selected: RetryView) => `${selected.clientId}\u0000${selected.credentialId}`;
+  const viewAuthorities = new Map([[viewKey(view), authority], [viewKey(otherView), otherAuthority]]);
   const stop: StopSnapshot = { generation: "stop-1", workerGeneration: binding.workerGeneration,
     scope: { kind: "session", sessionId: binding.sessionId }, status: "idle", nativeSettled: true,
     acceptingWork: true, pending: { ...pending }, failures: [], forceAvailable: false, restored: null,
@@ -34,7 +35,7 @@ function fixture() {
   let rawReply: ((command: SubmissionClientCommand) => Promise<unknown>) | undefined;
   const host: ManualRetryHost = {
     authorize: selected => {
-      const signal = viewAuthorities.get(selected)?.signal;
+      const signal = viewAuthorities.get(viewKey(selected))?.signal;
       if (signal) return { authority: signal, contextRevision };
     },
     stop: () => stop,
@@ -50,7 +51,7 @@ function fixture() {
     revoke: () => authority.abort(), changeContext: () => { contextRevision = "revision-2"; },
     reconnect() {
       const reconnected = { ...view };
-      viewAuthorities.set(reconnected, new AbortController());
+      viewAuthorities.set(viewKey(reconnected), new AbortController());
       return reconnected;
     },
     advance: (ms: number) => { now += ms; },
@@ -85,7 +86,7 @@ test("a lost submit reply stays unknown and explicit recovery only queries the o
   });
 
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "no_response", settled: false,
   });
   expect(await f.service.confirm(f.identity, offer.requestId)).toMatchObject({ status: "refused" });
   expect(f.service.offer(f.identity)).toEqual({ status: "refused", reason: "busy" });
@@ -122,6 +123,27 @@ test("retry result and joint Stop settlement belong to the same worker and attem
   expect(f.service.offer(f.identity)).toMatchObject({ status: "confirmation" });
 });
 
+test("an admitted retry takes its outcome from the exact live result", async () => {
+  const f = fixture();
+  const offer = f.service.offer(f.identity);
+  if (offer.status !== "confirmation") throw Error("expected confirmation");
+  const { requestId } = offer;
+  expect(await f.service.confirm(f.identity, requestId)).toMatchObject({ status: "admitted", settled: false });
+  f.service.observe(binding.workerGeneration, { type: "prompt_result", id: requestId, status: "completed",
+    agentInvoked: true, sessionSettled: true });
+  expect(f.service.state(f.identity)).toMatchObject({ status: "state",
+    attempt: { status: "succeeded", settled: true } });
+
+  const next = f.service.offer(f.identity);
+  if (next.status !== "confirmation") throw Error("expected a second confirmation");
+  expect(await f.service.confirm(f.identity, next.requestId)).toMatchObject({ status: "admitted" });
+  f.service.observe(binding.workerGeneration, { type: "prompt_result", id: next.requestId, status: "aborted",
+    agentInvoked: true, sessionSettled: true });
+  expect(f.service.state(f.identity)).toMatchObject({ status: "state",
+    attempt: { status: "cancelled", settled: true } });
+  expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_submit"]);
+});
+
 test("busy, expired, changed context, replaced worker and revoked confirmations send nothing", async () => {
   const f = fixture();
   const offer = () => {
@@ -153,13 +175,13 @@ test("busy, expired, changed context, replaced worker and revoked confirmations 
   expect(f.commands).toEqual([]);
 });
 
-test("a different View cannot use a confirmation, and dismissing it sends nothing", async () => {
+test("another View cannot use a confirmation, an equal one from the wire can dismiss it", async () => {
   const f = fixture();
   const offer = f.service.offer(f.identity);
   if (offer.status !== "confirmation") throw Error("expected confirmation");
-  expect(await f.service.confirm({ ...f.identity }, offer.requestId))
+  expect(await f.service.confirm(f.otherView, offer.requestId))
     .toEqual({ status: "refused", reason: "stale_confirmation" });
-  expect(f.service.cancel(f.identity, offer.requestId)).toBe(true);
+  expect(f.service.cancel({ ...f.identity }, offer.requestId)).toBe(true);
   expect(await f.service.confirm(f.identity, offer.requestId)).toMatchObject({ status: "refused" });
   expect(f.commands).toEqual([]);
 });
@@ -197,7 +219,7 @@ test("transport error text cannot establish a Native busy refusal code", async (
   if (offer.status !== "confirmation") throw Error("expected confirmation");
   f.reply(async () => { throw Error("SUBMISSION_BUSY"); });
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "no_response", settled: false,
   });
 });
 
@@ -240,11 +262,13 @@ test("native receipts for another Session or a generated prompt cannot establish
     target: { ...target, nativeSessionId: "unrelated" }, terminal: true, persistence: "committed",
     operationOutcome: "succeeded", inputOutcome: "no_input",
   }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   f.reply(async command => receipt(command.clientSubmissionId, {
     terminal: true, persistence: "committed", operationOutcome: "succeeded", inputOutcome: "generated",
   }));
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
 });
 
 test("the source module without a trusted Host binding offers no capability", () => {
@@ -318,7 +342,8 @@ test.each([true, false])("committed builtin evidence contradicts a completed loc
       expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "succeeded", requestId, settled: false });
     }
     f.service.observe(binding.workerGeneration, local);
-    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+      evidence: "conflict", settled: false });
     expect(f.service.blocksAdmission()).toBe(true);
   });
 
@@ -348,7 +373,8 @@ test.each(["backward cursor", "mismatched origin", "changed outcome"] as const)(
         origin: { ...target, clientSubmissionId: "other-submission" } };
       return { ...page, operationOutcome: "failed" };
     });
-    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+      evidence: "receipt_unknown", settled: false });
     expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_query", "submission_query"]);
     expect(f.service.blocksAdmission()).toBe(true);
   },
@@ -375,7 +401,8 @@ test.each([true, false])("recovery resumes beyond the per-call page budget (earl
     if (offset === 4096) page.relations = earlyMarker ? page.relations.slice(0, 1) : [invoked];
     return page;
   });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(32);
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(1);
   expect(f.service.offer(f.otherView)).toEqual({ status: "refused", reason: "busy" });
@@ -399,8 +426,10 @@ test("a resumed page cannot reuse a relation from a previous lookup", async () =
     if (command.offset === undefined) page.relations[127] = invoked;
     return page;
   });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
-  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
+  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(33);
   expect(f.service.blocksAdmission()).toBe(true);
 });
@@ -416,8 +445,10 @@ test("contradictory committed input evidence fails through submit and query alik
         reason: "native_builtin_consumed" },
       { relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" },
     ] }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_query"]);
 });
 
@@ -443,7 +474,7 @@ test.each(["missing code", "wrong id"] as const)("Native busy requires a correla
   f.rawReply(async command => ({ type: "response", command: command.type, success: false, error: "SUBMISSION_BUSY",
     ...(defect === "missing code" ? { id: command.id } : { id: "earlier-request", code: "SUBMISSION_BUSY" }) }));
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "receipt_unknown", settled: false,
   });
 });
 
@@ -453,7 +484,8 @@ test("a duplicate submission reply cannot lend admission to a same-ID live frame
   if (offer.status !== "confirmation") throw Error("expected confirmation");
   const { requestId } = offer;
   f.reply(async command => receipt(command.clientSubmissionId, { duplicate: true }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "conflict", settled: false });
 
   f.service.observe(binding.workerGeneration, {
     type: "prompt_result", id: requestId, status: "completed", agentInvoked: true, sessionSettled: true,

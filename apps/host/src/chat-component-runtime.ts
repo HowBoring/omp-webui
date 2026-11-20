@@ -21,6 +21,8 @@ import { StopCoordinator, createStopNativePort, type StopPage } from "../../../p
 import liveNotification from "../../../packages/contracts/generated/live-notification.js";
 import type { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
 import { ChatGateway, type ChatWorkerPort } from "../../../packages/chat/gateway.ts";
+import { ManualRetry, type RetryView } from "../../../packages/manual-retry/service.ts";
+import type { RetryCaller } from "../../../packages/manual-retry/remote-service.ts";
 import type { AttachmentSubmissionGate } from "../../../packages/attachments/submission-gate.ts";
 import type { AttachmentNativePort } from "../../../packages/attachments/bridge.ts";
 import type { SubmissionTarget } from "../../../packages/contracts/generated/omp-wire.ts";
@@ -39,6 +41,7 @@ interface Entry {
   readonly idleGeneration: string;
   readonly unsubscribe: () => void;
   readonly stop: StopCoordinator;
+  readonly retry: ManualRetry;
   readonly broker: InteractionBroker;
   askDialog?: Promise<unknown> | undefined;
   readonly brokerPage: PageBinding;
@@ -54,7 +57,12 @@ interface View {
   readonly owner: string;
   readonly workerId: string;
   readonly generation: string;
+  readonly sessionId: string;
   readonly draftId: string;
+  readonly identity: BrowserAccess;
+  readonly lifetime: AbortController;
+  /** Opaque projection identity at attach time; any presentation change makes an offer stale. */
+  readonly contextRevision: string;
 }
 
 export class ChatComponentRuntime {
@@ -82,12 +90,14 @@ export class ChatComponentRuntime {
       }
       const previous = this.#views.get(identity.credentialId);
       previous?.enrollment.revoke();
+      previous?.lifetime.abort();
       // One admitted Chat View owns a prepared target: a newer tab revokes the older credential's view so
       // its staged originals can no longer be authorized or consumed.
       for (const [credential, held] of this.#views) {
         if (credential === identity.credentialId) continue;
         if (held.workerId !== view.workerId || held.generation !== view.generation) continue;
         held.enrollment.revoke();
+        held.lifetime.abort();
         this.#views.delete(credential);
       }
       const lifetime = new AbortController();
@@ -103,7 +113,8 @@ export class ChatComponentRuntime {
         if (candidate !== key && held.sessionId === entry.sessionId) this.#discard(candidate);
       }
       this.#views.set(identity.credentialId, { enrollment, owner, workerId: view.workerId,
-        generation: view.generation, draftId: input.draftId });
+        generation: view.generation, sessionId: entry.sessionId, draftId: input.draftId, identity,
+        lifetime, contextRevision: `${projection.source}\u0000${projection.generation}` });
       this.#page(entry, identity);
       return { owner, workerId: view.workerId, sessionId: entry.sessionId, generation: view.generation,
         draftId: input.draftId };
@@ -149,6 +160,18 @@ export class ChatComponentRuntime {
     return { coordinator: entry.stop, page, refresh: () => this.#refresh(entry, page) };
   }
 
+  /** Exact Retry source for one authenticated Chat View; inputs are never browser-selected. */
+  retryBinding(identity: BrowserAccess): RetryCaller | undefined {
+    if (this.#closed || !this.authority.revalidate(identity)) return;
+    const held = this.#views.get(identity.credentialId);
+    if (!held) return;
+    const entry = this.#entries.get(`${held.workerId}\u0000${held.generation}`);
+    const page = entry?.pages.get(identity.credentialId);
+    if (!entry || !page) return;
+    return { retry: entry.retry, view: { clientId: identity.credentialId, credentialId: identity.credentialId },
+      refresh: () => { if (!entry.refreshing) entry.refreshing = this.#observe(entry, page); } };
+  }
+
   /** The gate's native port is the exact retained worker for the prepared target, never a browser tunnel. */
   native(target: SubmissionTarget): AttachmentNativePort {
     for (const entry of this.#entries.values()) {
@@ -181,7 +204,7 @@ export class ChatComponentRuntime {
 
   close(): void {
     this.#closed = true;
-    for (const view of this.#views.values()) view.enrollment.revoke();
+    for (const view of this.#views.values()) { view.enrollment.revoke(); view.lifetime.abort(); }
     this.#views.clear();
     for (const key of [...this.#entries.keys()]) this.#discard(key);
     this.admission.close();
@@ -191,6 +214,12 @@ export class ChatComponentRuntime {
     const entry = this.#entries.get(key);
     if (!entry) return;
     this.#entries.delete(key);
+    for (const [credential, held] of this.#views) {
+      if (held.workerId !== entry.workerId || held.generation !== entry.generation) continue;
+      held.enrollment.revoke();
+      held.lifetime.abort();
+      this.#views.delete(credential);
+    }
     entry.unsubscribe();
     entry.lifetime.abort();
     this.#stopPolling(entry);
@@ -204,6 +233,23 @@ export class ChatComponentRuntime {
       const access = this.grants.authorize(cwd, cwd, grant.id);
       if (access.status === "authorized" && access.grantIdentity) return grant.id;
     }
+  }
+
+  /** Rechecks credential, worker, grant and View lifetime before any native retry can be issued. */
+  #retryHeld(view: RetryView): { held: View; entry: Entry; page: StopPage } | undefined {
+    if (this.#closed || view.clientId !== view.credentialId) return;
+    const held = this.#views.get(view.credentialId);
+    if (!held || held.lifetime.signal.aborted || !this.authority.revalidate(held.identity)) return;
+    const entry = this.#entries.get(`${held.workerId}\u0000${held.generation}`);
+    const page = entry?.pages.get(view.credentialId);
+    if (!entry || !page || entry.sessionId !== held.sessionId) return;
+    if (entry.stop.state(page).status === "forbidden") return;
+    let current: SessionView;
+    try { current = this.supervisor.runtime(held.identity, held.workerId).view; } catch { return; }
+    if (current.state !== "open" || current.workerId !== held.workerId || current.generation !== held.generation
+      || current.registration.nativeSessionId !== entry.sessionId || current.registration.sourceId !== entry.target.sourceId
+      || current.registration.instanceId !== entry.target.instanceId || this.#grantId(current.cwd) !== entry.grantId) return;
+    return { held, entry, page };
   }
 
   #page(entry: Entry, identity: BrowserAccess): StopPage {
@@ -254,6 +300,23 @@ export class ChatComponentRuntime {
     const readyPolicy = worker.readyPolicy;
     if (readyPolicy !== undefined) broker.receive({ type: "ready", interactionPolicy: readyPolicy });
     const brokerPage = broker.attach({ credentialId: "host", clientId: "host", peerId: "host" });
+    const retry = new ManualRetry({ sessionId: nativeSessionId, workerGeneration: view.generation, target }, {
+      authorize: held => {
+        const found = this.#retryHeld(held);
+        return found ? { authority: found.held.lifetime.signal, contextRevision: found.held.contextRevision } : undefined;
+      },
+      stop: held => {
+        const found = this.#retryHeld(held);
+        if (!found) return;
+        const snapshot = found.entry.stop.state(found.page);
+        found.entry.idle = snapshot;
+        return snapshot;
+      },
+      request: async command => {
+        if (lifetime.signal.aborted) throw Error("RETRY_WORKER_RETIRED");
+        return await worker.submitCommand(command);
+      },
+    });
     const gateway = new ChatGateway({
       sessionId: nativeSessionId, generation: view.generation, target, lifetime: lifetime.signal,
       matchedCohort: "omp-webui-chat-component-v1",
@@ -271,6 +334,7 @@ export class ChatComponentRuntime {
         return state;
       },
       request: async (command: SubmissionClientCommand) => await worker.submitCommand(command),
+      externalBusy: () => retry.blocksAdmission(),
       cancel: async () => {
         const page = entry.pages.values().next().value;
         if (page) { entry.stop.stop(page); this.#refresh(entry, page); return; }
@@ -285,12 +349,14 @@ export class ChatComponentRuntime {
     const unsubscribe = worker.subscribe(frame => {
       broker!.receive(frame);
       gateway.observe(frame);
+      retry.observe(view.generation, frame);
       if (!liveNotification(frame)) return;
+      if (frame.type === "command_output") retry.observeOutput(view.generation, frame.text);
       if (frame.type === "session_settled" || (frame.type === "prompt_result" && frame.sessionSettled))
         stop.observeNotification(view.generation, frame as PromptResultEvent | SessionSettledEvent);
     });
     entry = { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId, worker,
-      gateway, lifetime, idleGeneration, unsubscribe, stop, broker, brokerPage, pages: new Map(),
+      gateway, retry, lifetime, idleGeneration, unsubscribe, stop, broker, brokerPage, pages: new Map(),
       idle: { generation: idleGeneration, workerGeneration: view.generation, scope, status: "idle", nativeSettled: false,
         acceptingWork: false, pending: { interactions: 0, history: 0, queued: 0, other: 0 }, failures: [],
         forceAvailable: false, restored: null, draftConflict: false } };

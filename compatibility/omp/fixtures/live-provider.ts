@@ -43,6 +43,17 @@ export default function(pi) {
         stream.push({type:'start',partial});
         await Bun.sleep(80);
         const scenario=process.env.OMP_LIVE_FIXTURE_SCENARIO;
+        if(scenario==='retry'&&calls===1){
+          partial.stopReason='error';
+          partial.errorMessage='synthetic retryable terminal error';
+          stream.push({type:'error',reason:'error',error:partial});stream.end();return;
+        }
+        if(scenario==='retry-tool'&&calls===1){
+          const call={type:'toolCall',id:'retry-tool-fixture-id',name:'s0_retry_tool',arguments:{},thoughtSignature:'retry-tool-signature'};
+          partial.content=[call];stream.push({type:'toolcall_start',contentIndex:0,partial});
+          stream.push({type:'toolcall_end',contentIndex:0,toolCall:call,partial});
+          partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
+        }
         if(calls>1&&['empty-error','refusal','empty-overflow'].includes(scenario)){
           partial.stopReason='error';
           partial.errorMessage=scenario==='empty-overflow'?'maximum context length exceeded for synthetic fixture':'synthetic non-retryable terminal error';
@@ -120,6 +131,20 @@ export default function(pi) {
     pi.registerTool({name:'rewind',label:'Controlled rewind',description:'Controlled native rewind result',
       parameters:schemaType({report:'string'}),async execute(_id,params){return {content:[{type:'text',text:'rewind requested'}],details:{report:params.report,rewound:true}};}});
   }
+  if(process.env.OMP_LIVE_FIXTURE_SCENARIO==='retry-tool')pi.registerTool({name:'s0_retry_tool',
+    label:'Controlled retry tool',description:'Synthetic slow tool that records every execution for retry replay',
+    parameters:schemaType({}),
+    async execute(_id,_params,signal){
+      const audit=path.join(profile,'retry-tool-audit.json');
+      let executions=0;
+      try{executions=Number(JSON.parse(fs.readFileSync(audit,'utf8')).executions??0)}catch{}
+      fs.writeFileSync(audit,JSON.stringify({stage:'running',executions:executions+1}));
+      await Bun.sleep(1500);
+      if(signal?.aborted){fs.writeFileSync(audit,JSON.stringify({stage:'aborted',executions:executions+1}));
+        throw Error('synthetic retry tool aborted');}
+      fs.writeFileSync(audit,JSON.stringify({stage:'completed',executions:executions+1}));
+      return {content:[{type:'text',text:'controlled retry tool result'}]};
+    }});
   if(pendingUi)pi.registerTool({name:'s0_pending_ui',label:'Controlled pending UI',
     description:'Synthetic pending native question for Stop cancellation',parameters:schemaType({}),
     async execute(_id,_params,_signal,_onUpdate,ctx){
