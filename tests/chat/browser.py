@@ -219,14 +219,20 @@ async def main():
             assert await page.locator("[data-chat-usage]").count() > 0, "native usage renders"
             scenarios.append("native-tool-call-result-pairing")
 
-            # A second live prompt on the same native Session must be accepted and append a new turn.
-            # The standalone shell renders the post-cut baseline after reopening the same Session.
+            # A second live prompt on the same native Session must append its turn from live frames alone:
+            # no reload, no Session switch, and no manual worker Refresh.
             await page.wait_for_timeout(4000)
+            await page.evaluate("""() => {
+              window.ompRefreshClicks = 0;
+              const refresh = document.querySelector('[data-chat-refresh]');
+              if (!refresh) throw new Error('missing refresh control');
+              refresh.addEventListener('click', () => { window.ompRefreshClicks += 1; }, true);
+            }""")
             await send(page, "second live prompt")
             await page.wait_for_timeout(2000)
-            await page.click("[data-chat-refresh]")
             await page.locator('#conversation').get_by_text("second live prompt", exact=True).last.wait_for(timeout=60000)
             await page.locator('#conversation').get_by_text("authoritative controlled final", exact=True).last.wait_for(timeout=60000)
+            assert await page.evaluate("() => window.ompRefreshClicks") == 0, "second live prompt must not need a manual Refresh worker"
             scenarios.append("second-live-prompt")
 
             # A fresh Session issues two calls in one step, then reuses both ids after their results.

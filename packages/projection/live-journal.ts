@@ -197,7 +197,11 @@ export class LiveJournal {
   subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
     this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
   }
-  #publish(frame: SessionFollowFrame): void { for (const listener of this.#listeners) listener(structuredClone(frame)); }
+  /** Every live frame carries this journal's projection identity: a generation-scoped client drops frames it cannot bind. */
+  #publish(frame: SessionFollowFrame): void {
+    const stamped = {...frame, projection: this.projection};
+    for (const listener of this.#listeners) listener(structuredClone(stamped));
+  }
   #event(type: string, data: JsonValue, surface = false): SessionHistoryRecord {
     const entry = historyEvent(this.#records.length, type, data, surface);
     const bytes = Buffer.byteLength(JSON.stringify(entry));
