@@ -1,0 +1,114 @@
+{
+  "generatedAt": "2026-11-20T18:56:23Z",
+  "productMeasurement": "unclaimed: product Host cutover (#59) is not available; component Host evidence only",
+  "admission": "blocked",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; actual runner recorded by the harness."
+  },
+  "actual": {
+    "cpus": 20,
+    "memoryMiB": 19844,
+    "runtime": "see corpus.json"
+  },
+  "corpus": {
+    "seed": "omp-webui-s5-performance-v1",
+    "limits": {
+      "catalogSessions": 1000,
+      "historyEntries": 10000,
+      "historyBytes": 104857600
+    },
+    "catalog": {
+      "sessions": 1000,
+      "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6"
+    },
+    "history": {
+      "entries": 10000,
+      "bytes": 112923786,
+      "sha256": "bcf9d2557e288d733d7a220adaef6648578464669092465e9de1785c6a1c69d2",
+      "typeDistribution": {
+        "message": 8980,
+        "message:user": 3100,
+        "message:assistant": 3880,
+        "toolCall": 1000,
+        "message:toolResult": 1000,
+        "branch": 100,
+        "message:fileMention": 1000,
+        "custom": 1000,
+        "custom:s5.performance-marker": 1000,
+        "reset_boundary": 10,
+        "compaction": 10
+      }
+    }
+  },
+  "protocol": {
+    "warmups": 0,
+    "samples": 0,
+    "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+    "rssSamplingMs": 45.0,
+    "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+    "chatJournalLimitBytes": 201326592
+  },
+  "limits": {
+    "firstPageP95Ms": 3000.0,
+    "oldPageP95Ms": 1000.0,
+    "hostPeakMiB": 512.0
+  },
+  "classes": [
+    {
+      "class": "chat",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 24,
+      "reachability": {
+        "nodes": 7880,
+        "steps": 30,
+        "more": false,
+        "firstSeqBefore": "1000444",
+        "firstSeqAfter": "978851",
+        "firstNode": "UserEntry 0 \u6570\u636e \ud83d\udcdc xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "allNativeReachable": true,
+        "elapsedMs": 155137.1
+      },
+      "coldOpenMs": 8743.1,
+      "firstPage": {
+        "class": "chat-first-page",
+        "samples": 1,
+        "all": [
+          8743.1
+        ],
+        "maxMs": 8743.1,
+        "medianMs": 8743.1,
+        "p95Ms": 8743.1,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 428.23828125,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "oldPage": {
+        "class": "chat-old-page",
+        "samples": 0,
+        "all": [],
+        "maxMs": null,
+        "medianMs": null,
+        "p95Ms": null,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 428.23828125,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "rss": {
+        "hostSampledPeakMiB": 422.69921875,
+        "hostOsPeakMiB": 428.23828125,
+        "hostPeakMiB": 428.23828125,
+        "ompPeakMiB": 2256.23046875,
+        "browserPeakMiB": 5426.6328125,
+        "toolsPeakMiB": 38.72265625,
+        "samples": 3273
+      }
+    }
+  ]
+}
