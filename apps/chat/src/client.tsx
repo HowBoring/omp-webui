@@ -464,7 +464,7 @@ const retryAttemptText = (attempt: RetryAttempt): string => `${({
 const retryTerminal = (attempt: RetryAttempt): boolean =>
   attempt.status !== "admitted" && attempt.status !== "unknown";
 function Surface() {
-  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
+  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [shown, setShown] = useState(50), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
   const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
@@ -523,8 +523,19 @@ function Surface() {
   };
   const catalog = async () => {
     setCataloging(true); setChoices([]);
-    try { setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices); }
-    finally { setCataloging(false); }
+    const revision = accessRevision, found: Choice[] = [], seen = new Set<string>();
+    try {
+      let cursor: string | undefined;
+      // A native scan reports intermediates; follow the bounded cursor instead of losing the catalog.
+      for (let step = 0; step < 1000; step++) {
+        const page = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32, ...(cursor === undefined ? {} : { cursor }) }));
+        if (revision !== accessRevision) return;
+        for (const choice of page.choices) if (!seen.has(choice.selectionId)) { seen.add(choice.selectionId); found.push(choice); }
+        setChoices([...found]);
+        if (page.nextCursor === undefined) return;
+        cursor = page.nextCursor;
+      }
+    } finally { setCataloging(false); }
   };
   const open = async (selectionId: SessionSelectionId) => {
     setOpening(true);
@@ -892,7 +903,9 @@ function Surface() {
     void perform(catalog);
     return () => { release(); };
   }, []);
+  useEffect(() => { setShown(50); }, [view?.registration.nativeSessionId]);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
+  const historyStart = Math.max(0, rows.length - shown);
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -915,7 +928,10 @@ function Surface() {
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
-      <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
+      {historyStart > 0 && <button data-chat-load-earlier onClick={() => setShown(count => count + 50)}>Load earlier history</button>}
+      <div id="conversation" data-chat-history-window={`${rows.length - historyStart}/${rows.length}`}>
+        {rows.slice(historyStart).map((row, index) => <NodeRow node={row} key={historyStart + index} />)}
+      </div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
         originals={historicalOriginals(view.registration.nativeSessionId)}
         affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
