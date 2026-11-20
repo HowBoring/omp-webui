@@ -19,6 +19,8 @@ class InteractionsService extends TypertRemoteService {
   constructor(ctx:Context,readonly bridge:InteractionBridge) {super(ctx,"ompInteractions");}
   @Remote("snapshot") snapshot() {return this.bridge.snapshot();}
   @Remote("answer") async answer(generation:string,interactionId:string,answer:UIAnswer) {
+    const admission=this.bridge.admission(generation,interactionId,answer);
+    if(admission) return await admission;
     const root=this.bridge.snapshot().pending.some(card=>card.id === interactionId && card.scope.kind === "startup");
     const result=await this.bridge.answer(generation,interactionId,answer);
     if(root && ["answered","cancelled","expired"].includes(result.status) && !this.state.initialized) {
