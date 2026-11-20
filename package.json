@@ -38,7 +38,8 @@
     "sessions:build": "bun apps/sessions/build.ts && bun scripts/build-session-host.ts",
     "sessions:enroll": "bun scripts/enroll-session-fixture.ts",
     "sessions:component": "bun --no-env-file vendor/host-sessions/session-component-main.js",
-    "test:sessions:browser": "bun scripts/prove-session-browser.ts"
+    "test:sessions:browser": "bun scripts/prove-session-browser.ts",
+    "test:sessions:interactions": "python3 tests/sessions/interactions-browser.py"
   },
   "devDependencies": {
     "@types/bun": "1.4.4",

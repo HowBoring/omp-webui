@@ -14,13 +14,13 @@ function controlledPort() {
   return {port,requests,emit,ask};
 }
 
-test("answer floods are rejected immediately while native invalid/valid/stale semantics remain authoritative",async()=>{
+test("only the first admitted settlement owns the native reply and later replies are stale",async()=>{
   const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
   try {
     worker.ask("first");
     const head=bridge.answer(bridge.generation,"first",{type:"confirm",confirmed:true});
     const flood=await Promise.all(Array.from({length:512},()=>bridge.answer(bridge.generation,"first",{type:"value",value:"retry"})));
-    expect(flood).toEqual(Array.from({length:512},()=>({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"})));
+    expect(flood).toEqual(Array.from({length:512},()=>({status:"stale"})));
     expect(worker.requests).toHaveLength(1);
     worker.requests[0]!.reply.resolve({status:"invalid"});expect(await head).toEqual({status:"invalid"});
     expect(bridge.snapshot().pending).toHaveLength(1);
@@ -33,20 +33,36 @@ test("answer floods are rejected immediately while native invalid/valid/stale se
   }finally{bridge.dispose();}
 });
 
-test("explicit cancellation bypasses a held answer without rewriting its delayed native reply",async()=>{
+test("a cancellation racing a held answer settles stale without a second native command",async()=>{
   const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
   try {
     worker.ask("cancel");const head=bridge.answer(bridge.generation,"cancel",{type:"value",value:"explicit"});
-    const cancel=bridge.answer(bridge.generation,"cancel",{type:"cancel"});
     const repeated=Array.from({length:512},()=>bridge.answer(bridge.generation,"cancel",{type:"cancel"}));
+    expect(await Promise.all(repeated)).toEqual(Array.from({length:512},()=>({status:"stale"})));
     expect(worker.requests.map(item=>item.command)).toEqual([
       {type:"respond_ui",targetId:"cancel",answer:{type:"value",value:"explicit"}},
-      {type:"respond_ui",targetId:"cancel",answer:{type:"cancel"}},
     ]);
-    worker.requests[1]!.reply.resolve({status:"stale"});expect(await cancel).toEqual({status:"stale"});
-    expect(await Promise.all(repeated)).toEqual(Array.from({length:512},()=>({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"})));
     worker.requests[0]!.reply.resolve({status:"answered"});expect(await head).toEqual({status:"answered"});
+    expect(bridge.snapshot().outcomes).toEqual([{id:"cancel",status:"answered",reason:"explicit-answer",stop:"none"}]);
   }finally{bridge.dispose();}
+});
+
+test("an answer racing a held cancellation settles stale in either arrival order",async()=>{
+  for(const order of ["cancel-first","answer-first"] as const) {
+    const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
+    try {
+      worker.ask("race");
+      const first=order === "cancel-first"
+        ? bridge.answer(bridge.generation,"race",{type:"cancel"})
+        : bridge.answer(bridge.generation,"race",{type:"value",value:"explicit"});
+      const second=order === "cancel-first"
+        ? bridge.answer(bridge.generation,"race",{type:"value",value:"explicit"})
+        : bridge.answer(bridge.generation,"race",{type:"cancel"});
+      expect(await second).toEqual({status:"stale"});
+      expect(worker.requests).toHaveLength(1);
+      worker.requests[0]!.reply.resolve({status:"answered"});expect(await first).toEqual({status:"answered"});
+    }finally{bridge.dispose();}
+  }
 });
 
 test("Host expiry sends cancellation and abort while an answer acknowledgement is held",async()=>{
@@ -56,9 +72,11 @@ test("Host expiry sends cancellation and abort while an answer acknowledgement i
     await Bun.sleep(40);
     expect(worker.requests.map(item=>item.command)).toContainEqual({type:"respond_ui",targetId:"expiry",answer:{type:"cancel",timedOut:true}});
     expect(worker.requests.map(item=>item.command)).toContainEqual({type:"abort"});
-    worker.requests[0]!.reply.resolve({status:"answered"});expect(await head).toEqual({status:"answered"});
     for(const item of worker.requests.slice(1))item.reply.resolve({status:"stale"});
-    expect(bridge.snapshot().pending).toHaveLength(0);
+    worker.requests[0]!.reply.resolve({status:"answered"});expect(await head).toEqual({status:"answered"});
+    const stopped=bridge.snapshot();
+    expect(stopped.pending).toHaveLength(0);
+    expect(stopped.outcomes).toContainEqual({id:"worker-stop",status:"stopping",reason:"expired",stop:"acknowledged"});
     bridge.dispose();worker.ask("after-disposal");expect(bridge.snapshot().pending).toHaveLength(0);
   }finally{bridge.dispose();}
 });
@@ -99,4 +117,45 @@ test("a Host deadline reached before its timer callback sends cancellation and r
     bridge.dispose();
     if(original)Object.defineProperty(performance,"now",original);else Reflect.deleteProperty(performance,"now");
   }
+});
+
+test("default wait is 30 minutes from creation, a native timeout configures the next request, and snapshots never renew",async()=>{
+  const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
+  try {
+    worker.ask("default");
+    const first=bridge.snapshot().pending[0]!;
+    expect(first.deadline-first.createdAt).toBe(30*60*1000);
+    worker.emit({type:"extension_ui_request",id:"configured",method:"input",title:"Configured",timeout:45_000});
+    const second=bridge.snapshot().pending.find(card=>card.id === "configured")!;
+    expect(second.deadline-second.createdAt).toBe(45_000);
+    const before=bridge.snapshot();
+    expect(bridge.snapshot()).toEqual(before);
+    expect(worker.requests).toHaveLength(0);
+  }finally{bridge.dispose();}
+});
+
+test("host tool, URI and presentation families never enter the interaction map or receive respond_ui",async()=>{
+  const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
+  try {
+    worker.emit({type:"host_tool_call",id:"tool",toolName:"synthetic",args:{}});
+    worker.emit({type:"host_tool_cancel",id:"tool-cancel",targetId:"tool"});
+    worker.emit({type:"host_uri_request",id:"uri",operation:"read",url:"synthetic://resource"});
+    worker.emit({type:"host_uri_cancel",id:"uri-cancel",targetId:"uri"});
+    worker.emit({type:"extension_ui_request",id:"notify",method:"notify",message:"Synthetic"});
+    expect(bridge.snapshot().pending).toHaveLength(0);
+    expect(worker.requests).toHaveLength(0);
+  }finally{bridge.dispose();}
+});
+
+test("an invalid public UI frame requests Stop with an observable reason and acknowledgement",async()=>{
+  const worker=controlledPort();const bridge=new InteractionBridge(worker.port);
+  try {
+    worker.emit({type:"extension_ui_request",id:"invalid",method:"input",title:42});
+    worker.requests[0]!.reply.resolve({});
+    await Bun.sleep(0);
+    expect(bridge.snapshot().pending).toHaveLength(0);
+    expect(bridge.snapshot().outcomes).toEqual([
+      {id:"worker-stop",status:"stopping",reason:"invalid-ui-contract",stop:"acknowledged"},
+    ]);
+  }finally{bridge.dispose();}
 });
