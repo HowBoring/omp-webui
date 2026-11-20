@@ -8,6 +8,7 @@ import { chatContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
 import { attachmentsContribution } from "../../../packages/contracts/attachment-remote.ts";
+import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
@@ -18,7 +19,10 @@ import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admissio
 export const preferenceMethods = Object.fromEntries(preferencesHostContribution.invocations
   .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods, ...preferenceMethods,
+  "ompTree/read": treeContribution.methods["ompTree/read"],
   "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
+/** Read-only tree RPC is admitted by the Chat Host without being part of a Chat presentation binding. */
+const treeUnary = new Set(["ompTree/read"]);
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
   "ompChatComponent/attach", ...Object.keys(preferenceMethods)]);
 export const chatMethods = {
@@ -28,6 +32,7 @@ export const chatMethods = {
   "ompChat/state": chatContribution.methods["ompChat/state"],
   ...attachmentsContribution.methods,
   "ompOriginals/exchange": attachmentContribution.methods["ompOriginals/exchange"],
+  "ompTree/read": treeContribution.methods["ompTree/read"],
 };
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();
@@ -50,6 +55,11 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
     if (request.method !== "POST") return new Response("POST required", { status: 405 });
     if (!chatEndpoints.has(new URL(request.url).pathname)) return new Response("Chat unavailable", { status: 404 });
     if (inflight >= 32) return new Response("Chat request limit", { status: 429 });
+    if (new URL(request.url).pathname === "/api/ompTree/read") {
+      ++inflight;
+      try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, () => true)); }
+      finally { --inflight; }
+    }
     let binding;
     try {
       const view = resolveView(request, identity);
@@ -80,7 +90,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const data = chat ? await readChatRequestBody(request, chat.signal, authority, original) : await request.json();
     const envelope = clientRequestSchema.parse(data);
     const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
-    if (!method || (!chat && !sessionUnary.has(envelope.method))
+    if (!method || (!chat && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
     const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(payload.args));

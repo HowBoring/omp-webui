@@ -447,6 +447,19 @@ export class SessionSupervisor {
     // The composition owns cohort selection; the component composition launches SessionWorker, not an owned adapter.
     return { view: this.#view(active), worker: active.worker as SupervisedSessionWorker };
   }
+  /**
+   * Exact live worker history for one bounded read-only Tree. This never opens, recovers or mutates a
+   * presentation journal, so tree reads cannot change what the Chat view is following.
+   */
+  treeAccess(identity: BrowserAccess, sessionId: string) {
+    this.#browser(identity); const active = this.#active;
+    if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    return { history: active.worker.history, sourceId: active.record.sourceId, sessionId,
+      epoch: active.generation };
+  }
   interactions(identity: BrowserAccess) {
     this.#browser(identity); const active = this.#active;
     if (!active) return undefined; this.#current(identity, active); return active.bridge?.snapshot();
