@@ -336,7 +336,6 @@ export class OriginalStore {
     }).immediate();
   }
 
-  /** Record a complete query from the matching Native worker for an already held submission. */
   /** Trusted gate notice after an accepted reservation; originals stay private but leave the draft budget. */
   associateReserved(access: OriginalAccess, clientSubmissionId: string, objectIds: readonly string[]): void {
     const scope = this.current(access);
@@ -347,6 +346,7 @@ export class OriginalStore {
     }).immediate();
   }
 
+  /** Record a complete query from the matching Native worker for an already held submission. */
   recordSubmission(access: OriginalAccess, clientSubmissionId: string, query: unknown): void {
     const scope = this.current(access);
     this.db.transaction(() => {

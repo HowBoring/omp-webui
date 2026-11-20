@@ -6,7 +6,7 @@ from playwright.async_api import async_playwright, expect
 ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("google-chrome") or shutil.which("chromium")
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
-HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+HOST = Path(os.environ.get("OMP_CHAT_HOST_DIR", ROOT / "vendor/host-chat")) / "chat-component-main.js"
 PORT = os.environ.get("OMP_CHAT_FIXTURE_PORT", "3193")
 ORIGIN = f"http://127.0.0.1:{PORT}"
 DATA = ROOT / "vendor/chat-images-access"
