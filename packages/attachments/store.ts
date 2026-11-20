@@ -434,6 +434,35 @@ export class OriginalStore {
       state: "native-associated", nativeAssociation: { clientSubmissionId, entryId, entryPart: association.entryPart }, bytes };
   }
 
+  /**
+   * Copies exact per-entry Original links into a Host-verified native branch. The new native session
+   * forwards those entry ids unchanged and has its own source instance, so the copied rows must name
+   * the new Session and instance: reads filter on both, and stored browser/page scope still gates them.
+   */
+  inheritBranchLinks(previousSessionId: string, previousInstanceId: string, nativeSessionId: string,
+    nativeInstanceId: string, entryIds: readonly string[]): number {
+    if (this.closed) fail("store_closed");
+    if (![previousSessionId, previousInstanceId, nativeSessionId, nativeInstanceId].every(id => entryPattern.test(id))
+      || previousSessionId === nativeSessionId) return 0;
+    const entries = [...new Set(entryIds)].filter(entryId => entryPattern.test(entryId));
+    if (!entries.length) return 0;
+    const marks = entries.map(() => "?").join(",");
+    const rows = this.db.query<{ entryId: string; objectId: string; target: string; submissionId: string },
+      string[]>(`SELECT entryId, objectId, target, submissionId FROM original_entry_links
+        WHERE sessionId=? AND instanceId=? AND entryId IN (${marks})`)
+      .all(previousSessionId, previousInstanceId, ...entries);
+    const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
+      (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+    let copied = 0;
+    this.db.transaction(() => {
+      for (const row of rows) {
+        insert.run(nativeSessionId, nativeInstanceId, row.entryId, row.objectId, row.target, row.submissionId);
+        copied++;
+      }
+    })();
+    return copied;
+  }
+
   private recordLinks(scope: OriginalBinding, clientSubmissionId: string, association: OriginalSubmissionAssociation): void {
     const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
       (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
@@ -455,11 +484,11 @@ export class OriginalStore {
     return scope;
   }
 
-  /** True only when the submission was created by this exact browser/page and source/instance. */
+  /** True only for the exact browser/page that created the submission. The Native session and source
+   * instance are bound by the link row, which a verified branch copy forwards to its own identity. */
   private sameRequester(stored: Readonly<OriginalBinding>, current: OriginalHistoryScope): boolean {
     return stored.hostId === current.hostId && stored.browserId === current.browserId
-      && stored.pageId === current.pageId && stored.profileId === current.profileId
-      && stored.sessionId === current.sessionId && stored.instanceId === current.instanceId;
+      && stored.pageId === current.pageId && stored.profileId === current.profileId;
   }
 
   /** Entry ids are supplied by the Host only after the current Native history retained them. */

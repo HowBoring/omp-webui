@@ -66,7 +66,7 @@
     "kind": "isolated-navigation-fixture",
     "bundle": {
       "path": "vendor/host-navigation/navigation-fixture-main.js",
-      "sha256": "07baf059d76dc08566566689c5d58994f370902fcd7119999ef08e3a8c5c44b7"
+      "sha256": "abcf3a76da84d25f0aa5719432df1cb7facdf3aea4dd11bb8edbb7b27fcd7535"
     },
     "inputs": 238,
     "digests": [
@@ -500,7 +500,7 @@
       },
       {
         "path": "packages/contracts/stop.ts",
-        "sha256": "f9eb62b24ddf01018bd613bb3597df2e615fb76aced2865674eb38d73304e1ec"
+        "sha256": "0c9bda0bceef116b64c348edd1e1c73e5ff90e01630491da7208edea769cb140"
       },
       {
         "path": "packages/history-navigation-source/results.ts",
@@ -1104,10 +1104,10 @@
       },
       {
         "path": "compatibility/omp/0002-readonly-catalog.patch",
-        "bytes": 77746,
-        "sha256": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616",
-        "actual": "c56b3df016852b9f1e7b39afb70a0e1fc8a034882097598e96bd4b39aa92a616",
-        "actualBytes": 77746
+        "bytes": 77748,
+        "sha256": "1849ca04a25b505a0c1af60aeb48b54c96d54a7c393c62fe54bf2c53c29ab3ce",
+        "actual": "1849ca04a25b505a0c1af60aeb48b54c96d54a7c393c62fe54bf2c53c29ab3ce",
+        "actualBytes": 77748
       },
       {
         "path": "compatibility/omp/0003-explicit-interactions.patch",
@@ -1132,10 +1132,10 @@
       },
       {
         "path": "compatibility/omp/0006-live-settlement.patch",
-        "bytes": 75038,
-        "sha256": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a",
-        "actual": "008cde6a01027d22791c40806fd41b999013ebd407fe9d8de109b6c31a1e099a",
-        "actualBytes": 75038
+        "bytes": 75150,
+        "sha256": "5893f22df1b829cb418332913677728737202673c2ed225e362e68e09c1b7886",
+        "actual": "5893f22df1b829cb418332913677728737202673c2ed225e362e68e09c1b7886",
+        "actualBytes": 75150
       },
       {
         "path": "compatibility/omp/0007-durable-submission.patch",
@@ -1171,6 +1171,13 @@
         "sha256": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8",
         "actual": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8",
         "actualBytes": 77932
+      },
+      {
+        "path": "compatibility/omp/0012-strict-branch-transition.patch",
+        "bytes": 3983,
+        "sha256": "c58a4634362e28ffcd63909de285406edd5d3b08d2802e80957ea88dd79ca821",
+        "actual": "c58a4634362e28ffcd63909de285406edd5d3b08d2802e80957ea88dd79ca821",
+        "actualBytes": 3983
       }
     ]
   },
