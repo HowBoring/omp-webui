@@ -115,7 +115,9 @@ export default function(pi) {
           partial.content[0].text+=delta;
           stream.push({type:'text_delta',contentIndex:0,delta,partial});
           if(calls>1&&index===1&&seed)pi.appendEntry('s0-append-during-prefix',{controlled:true});
-          await Bun.sleep(calls>1?Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80):80);
+          // The delay models a streaming turn of the configured length; exempting the first
+          // call made it a ~240ms turn, too fast for a busy refusal plus Stop to reach it.
+          await Bun.sleep(Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80));
         }
         if(process.env.OMP_LIVE_FIXTURE_BURST!=='1')partial.content[0].text='authoritative controlled final';
         stream.push({type:'text_end',contentIndex:0,content:partial.content[0].text,partial});
