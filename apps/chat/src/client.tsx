@@ -809,8 +809,14 @@ function Surface() {
           <p role="alert">This sends exactly one native /retry to the same Session. OMP may run tools again and repeat their side effects; earlier effects can remain. Nothing else is resent.</p>
           <button data-chat-retry-confirm onClick={() => void perform(async () => {
             const { requestId } = retryOffer;
-            const result: RetryResult = resultValue(await ctx.remote.ompRetry.confirm(requestId));
             setRetryOffer(undefined);
+            let result: RetryResult;
+            try { result = resultValue(await ctx.remote.ompRetry.confirm(requestId)); }
+            catch (failure) {
+              // The confirmation is consumed before dispatch: a lost response still leaves a real attempt to read back.
+              await ctx.remote.ompRetry.state().then(resultValue).then(applyRetry).catch(() => {});
+              throw failure;
+            }
             if (result.status === "refused") { setRetryNote(retryRefusalText(result.reason, result.detail)); return; }
             setRetryNote(retryAttemptText(result));
             applyRetry(resultValue(await ctx.remote.ompRetry.state()));
