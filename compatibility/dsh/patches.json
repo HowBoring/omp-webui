@@ -25,8 +25,8 @@
     },
     {
       "path": "patches/0006-parsed-tool-presentation.patch",
-      "sha256": "3d350c9fafa0dbba940e151e4f50036c8aeed6672ff3447782958eeb1a598996",
-      "treeAfter": "e6fb18243439ce0e71740c7ff2013f074e4db3c5"
+      "sha256": "921afd4b26e27740c92bd54d931c6ab3ca7754683c3c938838b31fa04936539d",
+      "treeAfter": "0f44b87875fea13d690ccd7c7adefd8840ba0123"
     }
   ]
 }

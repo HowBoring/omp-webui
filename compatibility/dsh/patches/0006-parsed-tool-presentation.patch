@@ -71,7 +71,7 @@ index e61bb531..81f54b6a 100644
 +    ? PartialArguments.fromText(value) : PartialArguments.fromObject(value) }
 +}
 diff --git a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
-index 3ed7b86d..04629fe0 100644
+index 3ed7b86d..66b19590 100644
 --- a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
 +++ b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
 @@ -7,6 +7,7 @@ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
@@ -106,7 +106,7 @@ index 3ed7b86d..04629fe0 100644
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -107,7 +110,11 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
+@@ -107,7 +111,11 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
@@ -119,7 +119,7 @@ index 3ed7b86d..04629fe0 100644
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -255,7 +262,11 @@ function projectBlock(
+@@ -255,7 +263,11 @@ function projectBlock(
        ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
        name: block.name,
        args: block.args,
@@ -132,7 +132,7 @@ index 3ed7b86d..04629fe0 100644
        callTime: block.time,
        content: [],
        isError: true,
-@@ -301,7 +312,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -301,7 +313,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
        }
        return chunk.type === 'tool-call-delta' ? { id: String(chunk.id), role: 'start' } : null
      }
@@ -141,7 +141,7 @@ index 3ed7b86d..04629fe0 100644
      if (event.type === 'tool/result' && isAppendSurfaceEvent(event)) {
        return { id: String(event.data.message.source.callId), role: 'update' }
      }
-@@ -315,11 +326,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -315,11 +327,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
    },
    start: (_context, match) => {
      const state: ToolState = { root: undefined, children: new Map(), parents: new Map() }
@@ -155,7 +155,7 @@ index 3ed7b86d..04629fe0 100644
      if (match.event.type === 'tool/result') {
        const root = context.state.root
        const running = root !== undefined && !('kind' in root) && root.phase === 'start' ? root : undefined
-@@ -363,6 +374,7 @@ export function registerToolConversationNode(ctx: Context): void {
+@@ -363,6 +375,7 @@ export function registerToolConversationNode(ctx: Context): void {
      match: {
        'assistant/live-chunk': match,
        'tool/call': match,
@@ -606,7 +606,7 @@ index 06c9015a..d99a2e07 100644
            ? {
              outputDetail: detailResult(sub, t),
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
-index ba06b40f..75d8a984 100644
+index ba06b40f..88214aed 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
 @@ -33,15 +33,19 @@ interface DispatchData {
@@ -632,7 +632,7 @@ index ba06b40f..75d8a984 100644
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -62,7 +65,11 @@ function rootResult(
+@@ -62,7 +66,11 @@ function rootResult(
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
@@ -645,7 +645,7 @@ index ba06b40f..75d8a984 100644
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -204,7 +211,11 @@ function projectCall(
+@@ -204,7 +212,11 @@ function projectCall(
      ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
      name: block.name,
      args: block.args,
@@ -658,7 +658,7 @@ index ba06b40f..75d8a984 100644
      callTime: block.time,
      content: [],
      isError: true,
-@@ -232,7 +243,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -232,7 +244,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
    kind: 'trajectory-tool-call',
    target: 'trajectory',
    match: (event) => {
@@ -667,6 +667,18 @@ index ba06b40f..75d8a984 100644
      if (event.type === 'tool/result') {
        return { id: String(event.data.message.source.callId), role: 'update' }
      }
+diff --git a/packages/context/session-reference/src/projection.ts b/packages/context/session-reference/src/projection.ts
+index 196c75b4..35638d29 100644
+--- a/packages/context/session-reference/src/projection.ts
++++ b/packages/context/session-reference/src/projection.ts
+@@ -54,6 +54,7 @@ function projectSessionConversation(snapshot: SessionSurfaceSnapshot): Projected
+       case 'developer/message':
+       case 'system/message':
+       case 'tool/result':
++      case 'omp/native-record':
+         break
+       /* v8 ignore next 2 -- SurfaceEventType is closed and every variant is handled above. */
+       default:
 diff --git a/packages/core/session/README.md b/packages/core/session/README.md
 index 3b55b1fc..7fa3eae1 100644
 --- a/packages/core/session/README.md
@@ -693,8 +705,53 @@ index 9ca25d8a..25de695d 100644
  `dsh-session` 在仅追加的会话日志中记录每个模型可见事实，并从该记录派生模型历史。消费方可以检查、回放、fork 和刷新会话，同时保留历史事件；压缩（compaction）会在活跃对话中隐藏被取代的条目，但不会删除它们。除非添加持久化后端，否则会话仅保留在内存中；持久性检查点会等待配置的后端。agent 需要可重建的会话记录时请选择本包；它本身不调用模型。
  
  ## 目录
+diff --git a/packages/core/session/src/index.ts b/packages/core/session/src/index.ts
+index ea6c337f..cca3b141 100644
+--- a/packages/core/session/src/index.ts
++++ b/packages/core/session/src/index.ts
+@@ -331,6 +331,8 @@ const MESSAGE_ROLE_BY_TYPE: Record<SurfaceEventType, Message['role']> = {
+   'user/message': 'user',
+   'assistant/message': 'assistant',
+   'tool/result': 'tool',
++  // Presentation-only native records are never projected into model messages.
++  'omp/native-record': 'developer',
+ }
+ 
+ /** Validate only the event-specific invariants needed to safely replay a message. */
+diff --git a/packages/core/session/src/known-event-types.ts b/packages/core/session/src/known-event-types.ts
+index 466e76bb..768abe05 100644
+--- a/packages/core/session/src/known-event-types.ts
++++ b/packages/core/session/src/known-event-types.ts
+@@ -47,6 +47,7 @@ export const KNOWN_SESSION_EVENT_TYPES: ReadonlySet<string> = new Set([
+   'llm/retry',
+   'llm/retry-started',
+   'model/selection',
++  'omp/native-record',
+   'permission/preset',
+   'plan/mode',
+   'request/context',
+@@ -74,6 +75,7 @@ export const KNOWN_SESSION_EVENT_TYPES: ReadonlySet<string> = new Set([
+   'tool-workflow/run-end',
+   'tool-workflow/run-start',
+   'tool/call',
++  'tool/parsed-call',
+   'tool/ptc-dispatch',
+   'tool/ptc-dispatch-start',
+   'tool/result',
+diff --git a/packages/core/session/src/surface.ts b/packages/core/session/src/surface.ts
+index 7a13bc1d..6cf3afe2 100644
+--- a/packages/core/session/src/surface.ts
++++ b/packages/core/session/src/surface.ts
+@@ -53,6 +53,7 @@ const SURFACE_EVENT_TYPES = new Set<string>([
+   'user/message',
+   'assistant/message',
+   'tool/result',
++  'omp/native-record',
+ ])
+ 
+ /**
 diff --git a/packages/core/session/src/types.ts b/packages/core/session/src/types.ts
-index 0cf13c86..f211197e 100644
+index 0cf13c86..46191ee9 100644
 --- a/packages/core/session/src/types.ts
 +++ b/packages/core/session/src/types.ts
 @@ -367,6 +367,23 @@ export interface SessionEventMap {
@@ -721,7 +778,49 @@ index 0cf13c86..f211197e 100644
    /**
     * A completed tool call's model-facing result, optional internal failure
     * identity and user-facing reason, and optional tool-private `meta`
-@@ -521,7 +538,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
+@@ -391,6 +408,33 @@ export interface SessionEventMap {
+     error?: { name: string; code: string; reason?: string }
+     meta?: JsonValue
+   }
++  /**
++   * A native harness record that has no model-facing message equivalent.
++   * Presentation is explicit and typed; the payload never carries provider
++   * payloads, credentials, configuration, or extension state. Required on
++   * read so an old reader refuses rather than silently dropping it.
++   * @mode event
++   */
++  'omp/native-record': {
++    id: string
++    kind: 'custom_message' | 'compaction' | 'branch_summary' | 'reset_boundary' | 'structural'
++    role?: string
++    text: string
++    display?: boolean
++    customType?: string
++    files?: {
++      path: string
++      available: boolean
++      hasImage: boolean
++      lineCount?: number
++      byteSize?: number
++      skippedReason?: string
++    }[]
++    boundary?: 'compaction' | 'reset' | 'branch'
++    unavailable?: true
++    truncated?: true
++    cancelled?: true
++  }
+   /**
+    * Full header for the next request, appended inside its step before dispatch.
+    * It is log-only; the latest snapshot reconstructs the request header.
+@@ -450,6 +494,7 @@ export type SurfaceEventType =
+   | 'user/message'
+   | 'assistant/message'
+   | 'tool/result'
++  | 'omp/native-record'
+ 
+ /** A message-producing event carrying its required surface operation. */
+ export type SurfaceEvent = SessionEvent<SurfaceEventType>
+@@ -521,7 +566,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
       * defaulting to required means a forgotten marker over-refuses (an
       * inconvenience) rather than silently resuming a gutted session.
       */
@@ -730,3 +829,15 @@ index 0cf13c86..f211197e 100644
    } & (K extends SurfaceEventType ? SurfaceIntent<K> : {
      surfaceOp?: never
      sourceEventSeqs?: never
+diff --git a/packages/session/session-log-deepseek/src/index.ts b/packages/session/session-log-deepseek/src/index.ts
+index 20d5dcf1..70c8a6df 100644
+--- a/packages/session/session-log-deepseek/src/index.ts
++++ b/packages/session/session-log-deepseek/src/index.ts
+@@ -99,6 +99,7 @@ function wireEvent(event: SessionEvent): DeepSeekSessionLogWireEvent {
+     case 'system/message':
+     case 'user/message':
+     case 'tool/result':
++    case 'omp/native-record':
+       return {
+         ...common,
+         type: event.type,

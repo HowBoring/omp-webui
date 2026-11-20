@@ -20,7 +20,7 @@ export function pageCoordinates(request: PageRequest, cursor: number) {
 
 export function historyEvent(seq: number, type: string, data: JsonValue, surface = false): SessionHistoryRecord {
   return { type: 'event', event: { type, seq, time: 0, data,
-    ...(surface ? { surfaceOp: 'append' } : { ignorable: true }) } };
+    ...(surface ? { surfaceOp: 'append' } : type === 'tool/parsed-call' ? {} : { ignorable: true }) } };
 }
 
 interface Counters { turn: number; step: number }
@@ -33,27 +33,27 @@ export function settledCoordinates(role: HistoryItem['role'], { turn, step }: Co
 
 type EmitEvent = (type: string, data: JsonValue, surface?: boolean) => SessionHistoryRecord;
 
-/** Native entry ids remain the only call owner; a reused id may never silently change owner. */
+/** Native call ids are ordered; an unanswered call may not silently change owner. */
 export class ToolCallLedger {
   readonly #calls = new Map<string, string>();
-  readonly #results = new Map<string, string>();
+  readonly #resolved = new Set<string>();
   call(callId: string, owner: string): void {
-    const seen = this.#calls.get(callId), result = this.#results.get(callId);
-    if ((seen !== undefined && seen !== owner) || (result !== undefined && result !== owner)) {
+    const seen = this.#calls.get(callId);
+    if (seen !== undefined && seen !== owner && !this.#resolved.has(callId)) {
       throw Error('live_tool_owner_unavailable');
     }
     this.#calls.set(callId, owner);
+    this.#resolved.delete(callId);
   }
-  result(callId: string, owner: string | null): void {
-    const seen = this.#calls.get(callId), prior = this.#results.get(callId);
-    if (owner !== null && ((seen !== undefined && seen !== owner) || (prior !== undefined && prior !== owner))) {
-      throw Error('live_tool_owner_unavailable');
-    }
-    if (owner !== null) this.#results.set(callId, owner);
+  result(callId: string, _owner: string | null): void {
+    if (this.#resolved.has(callId)) throw Error('live_tool_owner_unavailable');
+    this.#resolved.add(callId);
   }
 }
 
-const nativeKinds = new Set(['custom_message', 'fileMention', 'compaction', 'branch_summary', 'reset_boundary']);
+const visibleKinds = new Set(['custom_message', 'fileMention', 'compaction', 'branch_summary', 'reset_boundary']);
+const structuralKinds = new Set(['model_usage', 'thinking_level_change', 'model_change', 'service_tier_change',
+  'custom', 'label', 'title_change', 'ttsr_injection', 'session_init', 'mode_change', 'credential_pin']);
 const nativeRoles = new Set(['developer', 'custom', 'hookMessage', 'bashExecution', 'pythonExecution', 'toolResult',
   'fileMention', 'compactionSummary', 'branchSummary', 'resetBoundary']);
 
@@ -68,10 +68,14 @@ function usageValue(item: HistoryItem) {
 }
 
 function nativeRecord(item: HistoryItem, id: string): JsonValue {
-  if (!nativeKinds.has(item.kind) || !item.role || !nativeRoles.has(item.role)) {
+  if (!visibleKinds.has(item.kind) && !structuralKinds.has(item.kind)) {
     throw Error('live_native_record_unsupported');
   }
-  return { id, kind: item.kind, role: item.role, text: item.text,
+  if (item.role !== undefined && !nativeRoles.has(item.role)) {
+    throw Error('live_native_record_unsupported');
+  }
+  const kind = visibleKinds.has(item.kind) ? item.kind : 'structural';
+  return { id, kind, ...(item.role === undefined ? {} : { role: item.role }), text: item.text,
     ...(item.display !== undefined ? {display: item.display} : {}),
     ...(item.customType !== undefined ? {customType: item.customType} : {}),
     ...(item.files !== undefined ? {files: item.files} : {}),

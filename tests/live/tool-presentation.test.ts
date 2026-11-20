@@ -45,7 +45,8 @@ test('reused call id cannot silently change native owner',()=>{
     toolCalls:[{callId:'reused',name:'s0_fixture',arguments:{}}]},'a',ledger);
   expect(()=>collect({id:'b',active:true,parentId:'u',kind:'message',role:'assistant',text:'',provider:'p',model:'m',
     toolCalls:[{callId:'reused',name:'s0_fixture',arguments:{}}]},'b',ledger)).toThrow('live_tool_owner_unavailable');
-  expect(()=>ledger.result('reused','b')).toThrow('live_tool_owner_unavailable');
+  expect(()=>ledger.result('reused','b')).not.toThrow();
+  expect(()=>ledger.result('reused','a')).toThrow('live_tool_owner_unavailable');
 });
 
 test('special records are surface-typed, safe and honest about unavailable payloads',()=>{
@@ -65,4 +66,11 @@ test('unknown native kinds and roles are blocked rather than stringified',()=>{
   expect(()=>collect({id:'x',active:true,parentId:null,kind:'provider_payload',role:'assistant',text:'secret',provider:'p',model:'m'})).not.toThrow();
   expect(()=>collect({id:'x',active:true,parentId:null,kind:'provider_payload',role:'developer',text:'secret'})).toThrow('live_native_record_unsupported');
   expect(()=>collect({id:'x',active:true,parentId:null,kind:'custom_message',role:'system',text:'secret'})).toThrow('live_native_record_unsupported');
+});
+
+test('structural native entries stay typed and never expose credential or config state',()=>{
+  const structural=collect({id:'s',active:true,parentId:null,kind:'credential_pin',text:'[Native structural record]'},'s')[0];
+  expect(structural!.event.data).toEqual({id:'s',kind:'structural',text:'[Native structural record]'});
+  const hidden=collect({id:'c',active:true,parentId:'u',kind:'custom_message',text:'[Internal custom message]',display:false},'c')[0];
+  expect(hidden!.event.data).toEqual({id:'c',kind:'custom_message',text:'[Internal custom message]',display:false});
 });

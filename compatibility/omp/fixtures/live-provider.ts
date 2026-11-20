@@ -23,7 +23,7 @@ export default function(pi) {
       contextWindow:128000,maxTokens:8192,cost:{input:0,output:0,cacheRead:0,cacheWrite:0}}],
     streamSimple(model,context,options) {
       if(model.provider!=='s0-controlled'||model.id!=='deterministic-live') throw Error('unexpected_fixture_provider');
-      calls++; fs.writeFileSync(path.join(profile,'controlled-provider.json'),JSON.stringify({calls,kind:'controlled-in-process-provider',realProviderInference:false}));
+      calls++; fs.writeFileSync(path.join(profile,'controlled-provider.json'),JSON.stringify({calls,kind:'controlled-in-process-provider',realProviderInference:false,tools:process.env.OMP_LIVE_FIXTURE_TOOLS??null}));
       const stream=createAssistantMessageEventStream();
       const partial={role:'assistant',api:'s0-controlled',provider:'s0-controlled',model:'deterministic-live',
         timestamp:calls,stopReason:'stop',content:[],

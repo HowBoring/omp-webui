@@ -12,6 +12,7 @@ import { UiConversation } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { registerTrajectoryMessageDefinitions } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-message-definitions.ts";
 import { registerTrajectoryAssistantDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-assistant-definition.ts";
 import { registerTrajectoryConversationView } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-snapshot-builder.ts";
+import { registerTrajectoryToolDefinition } from "@deepseek-ai/dsh-client-ui-trajectory/src/client/trajectory-tool-definition.ts";
 import type { SessionBinding } from "@deepseek-ai/dsh-api-session-controller/client";
 import type { PropsRenderSlots, StandardSourceBinding, HostObservable } from "@deepseek-ai/dsh-client-ui-slots";
 import { useEffect, useRef, useState } from "react";
@@ -95,7 +96,11 @@ async function present(view: PublicSessionView) {
   if (reference !== retained || draftDirty) return;
   draftChanged(saved?.unresolved?.draft.text ?? saved?.draft.text ?? "");
   const target = ctx.uiConversation.binding(binding).target("trajectory");
-  const render = () => { if (reference === retained) historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]); };
+  const render = () => {
+    if (reference !== retained) return;
+    const next = target.getSnapshot()?.eventNodes ?? [];
+    historyChanged([...next]);
+  };
   unsubscribe = target.subscribe(render); render();
 }
 function Shell({ renderSlot }: PropsRenderSlots<"s1.chat">) {
@@ -126,9 +131,19 @@ function NodeRow({ node }: { node: unknown }) {
       {value.interrupted && <p className="native-unavailable" data-chat-interrupted>Native turn interrupted</p>}
     </article>;
   }
+  if (kind === "tool-call") {
+    const root = ((value.data ?? {}) as Node).root as Node | undefined;
+    if (!root) return <p className="row" data-chat-blocked="unknown-node">Tool call unavailable</p>;
+    return <article className="row tool" data-chat-tool={String(root.name)}>
+      <h3>Tool call · {String(root.name)}</h3>
+      <Arguments value={root.argsParsed ?? root.argsRaw ?? root.args} />
+      {root.thoughtSignature && <p className="meta" data-chat-signature>Thought signature retained</p>}
+      {root.phase !== "start" && !root.argsParsed && <p className="native-unavailable">Arguments unavailable; no reconstruction was substituted.</p>}
+    </article>;
+  }
   if (kind === "tool-result") {
     const call = (value.call ?? {}) as Node;
-    return <article className="row tool-result" data-chat-tool-result={String(value.name ?? value.callId ?? "")}>
+    return <article className="row tool-result" data-chat-tool={String(value.name ?? value.callId ?? "")} data-chat-tool-result={String(value.name ?? value.callId ?? "")}>
       <h3>Tool result · {String(value.name || value.callId || "unpaired")}</h3>
       <Arguments value={call.argsParsed ?? call.argsRaw ?? value.args} />
       {call.thoughtSignature && <p className="signature" data-chat-signature>{String(call.thoughtSignature)}</p>}
@@ -324,7 +339,7 @@ async function boot() {
     return response;
   } } });
   registry(ctx); gateway(ctx); renderer(ctx); sessions(ctx, { projectionRebuild: true });
-  new UiConversation(ctx, ctx.sessions); registerTrajectoryMessageDefinitions(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
+  new UiConversation(ctx, ctx.sessions); registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
   const absent: StandardSourceBinding = { key: undefined, hooks: {}, keyedHooks: {}, props: {} };
   const source: HostObservable<StandardSourceBinding> = { getSnapshot: () => absent, subscribe: () => () => {} };
   ctx.slots.installScope("session", { current: source, bindingSource: target => { if (target !== undefined) throw new Error("Root shell has no Session Slot"); return source; } });

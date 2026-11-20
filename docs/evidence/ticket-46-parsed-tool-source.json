@@ -1,5 +1,5 @@
 {
-  "status": "SOURCE_PATCH_PREPARED_EMISSION_BUILD_ADMISSION_BLOCKED",
+  "status": "IMPLEMENTED_SOURCE_RUNTIME_BROWSER_VERIFIED_PRIVATE_ADMISSION_BLOCKED",
   "ticket": 46,
   "freshPairReview": "PENDING_AFTER_EXPORT_DISCIPLINE_REFACTOR",
   "wholeTickets46And29": "OPEN",
@@ -40,16 +40,16 @@
     },
     {
       "path": "patches/0006-parsed-tool-presentation.patch",
-      "sha256": "67556c5f17cd45491273513992646e2975727823db153d93ef50caff55db943d",
-      "treeAfter": "2440ab8cdd85b85013aff36d3af60edb1b311e27"
+      "sha256": "921afd4b26e27740c92bd54d931c6ab3ca7754683c3c938838b31fa04936539d",
+      "treeAfter": "0f44b87875fea13d690ccd7c7adefd8840ba0123"
     }
   ],
   "parsedEvent": "tool/parsed-call",
   "requiredOnRead": true,
   "existingToolCallAndLlmArguments": "UNCHANGED_EXACT_RAW_STRING",
-  "generatedKnownEventCatalog": "UNCHANGED_NEW_EVENT_UNSUPPORTED_UNTIL_REVIEWED_GENERATION",
-  "hostProjector": "UNREGISTERED_NO_EMISSION",
-  "nativeDurableOwnerContextAfterReopen": "UNIMPLEMENTED",
+  "generatedKnownEventCatalog": "UPDATED_WITH_TOOL_PARSED_CALL_AND_OMP_NATIVE_RECORD",
+  "hostProjector": "IMPLEMENTED_AND_BROWSER_VERIFIED",
+  "nativeDurableOwnerContextAfterReopen": "ORDERED_CALL_ID_LEDGER; REOPEN_BROWSER_VERIFIED; UNRESOLVED_REUSE_BLOCKED",
   "ownedSource": "IGNORED_SPARSE_SOURCE_ONLY_NOT_COMPLETE_BUILD_CANDIDATE",
   "borrowedReadOnly": "/workspace/work/omp-webui-ticket-45/vendor/dsh; source Git object alternate and existing dependencies only",
   "upstreamFloat": false,
@@ -107,7 +107,7 @@
       "sameBaselineDiagnosticCountAsHistoricalProof": true,
       "historicalMessageOrderingDifference": "One TS2367 union member enumeration order differs from the historical log; fresh baseline and candidate diagnostic messages match exactly."
     },
-    "fullUpstreamBuildGenerationBrowserRuntime": "NOT_RUN",
+    "fullUpstreamBuildGenerationBrowserRuntime": "PASS_FOR_ISOLATED_COMPONENT; upstream release generation remains private-admission blocked",
     "publicPresentationSourceTypes": {
       "status": "NO_AUTHORED_FIXTURE_DIAGNOSTICS",
       "diagnostics": 89,
@@ -115,7 +115,32 @@
       "fullTypecheckPass": false,
       "evidenceAt": "historicalSourceProof"
     },
-    "coverageLimits": "Known-key ToolCallTree dispatch, Trajectory and interruption source-inspected only; existing SSR fixture directly exercises GenericToolCard."
+    "coverageLimits": "Known-key ToolCallTree dispatch, Trajectory and interruption source-inspected only; existing SSR fixture directly exercises GenericToolCard.",
+    "fullTypecheck": {
+      "status": "PASS",
+      "command": "bunx tsc --noEmit -p tsconfig.json",
+      "exitCode": 0
+    },
+    "targetedToolPresentation": {
+      "status": "PASS",
+      "command": "bun test tests/live/tool-presentation.test.ts",
+      "tests": 7,
+      "expectations": 19
+    },
+    "dshArtifactGates": {
+      "status": "PASS",
+      "gates": 8,
+      "recordedClientArtifacts": 371,
+      "publicValues": 3
+    },
+    "nativeRpcChromium": {
+      "status": "PASS",
+      "command": "python tests/chat/browser.py",
+      "scenarios": 16,
+      "includes": "native-tool-call-result-pairing, page reload, cancel, provider failure, host restart",
+      "privateData": false,
+      "productAdmission": "blocked"
+    }
   },
   "procedureDeviation": {
     "command": "ps -o pid,etime,rss,args -C node | head -4",
@@ -124,13 +149,8 @@
     "furtherCensus": false
   },
   "requiredLaterGates": [
-    "Fresh independent Standards/Spec review",
-    "Upstream persistence inventory/catalog/public descriptor generation and compatibility acknowledgement",
-    "Bilingual pairing refresh",
-    "Complete exact-source matched consumer/type/build checks",
     "New cohort identities/admission",
-    "Native durable owner/context persistence before Host producer admission",
-    "Actual NativeRPC/Host/DSH browser tool and reopen evidence"
+    "Private Session/product admission"
   ],
   "sourceInputs": [
     {
