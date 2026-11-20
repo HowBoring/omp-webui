@@ -8,6 +8,8 @@ ROOT=Path(__file__).resolve().parents[2]
 CHROME = os.environ.get('CHROME_EXECUTABLE') or shutil.which('chromium') or shutil.which('google-chrome')
 BUN = os.environ.get('OMP_WEB_BUN') or shutil.which('bun') or 'bun'
 async def main():
+ (ROOT/'vendor/sessions-fixture/interaction-script.json').unlink(missing_ok=True)
+ (ROOT/'vendor/sessions-fixture/interaction-record.jsonl').unlink(missing_ok=True)
  errors=[];wire=[]
  link=subprocess.check_output([BUN,'--no-env-file','vendor/host-sessions/session-component-main.js','--print-bootstrap'],cwd=ROOT,text=True).strip()
  async with async_playwright() as p:

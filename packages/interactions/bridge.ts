@@ -18,11 +18,11 @@ interface Pending {
   card: PendingInteraction;
   timer: Timer;
   answering?: Promise<InteractionAnswerResult>;
-  controlWaiting: boolean;
   inFlight: number;
   provisional?: "stale" | "unknown";
+  settlementReason?: string;
   cancellation?: Promise<InteractionAnswerResult>;
-  outcome?: InteractionCleanupOutcome;
+  outcome?: InteractionSnapshot["outcomes"][number];
 }
 type CleanupFailure = "cleanup-unavailable" | "cleanup-cutoff" | "cleanup-request-failed"
   | "cleanup-reply-lost" | "cleanup-reply-invalid";
@@ -50,8 +50,7 @@ export class InteractionBridge {
   readonly generation=randomUUID();
   #answers=0;
   #controls=0;
-  #controlWaiters=0;
-  #aborting=false;
+  #stopOutcome?:InteractionSnapshot["outcomes"][number];
   #policy=false;
   #closed=false;
   #seen=new Set<string>();
@@ -86,36 +85,37 @@ export class InteractionBridge {
   answer(generation:string,id:string,answer:UIAnswer):Promise<InteractionAnswerResult> {
     const entry=this.#pending.get(id);
     if(this.#closed || generation !== this.generation || !entry || entry.provisional) return Promise.resolve({status:"stale"});
+    // A reserved continuation already owns the only valid settlement; every later reply fails without
+    // creating a second native command, whichever family (answer or cancel) arrives second.
+    if(entry.answering || entry.cancellation) return Promise.resolve({status:"stale"});
     const expired=answer.type !== "cancel" && performance.now()>=entry.deadlineMono;
     if(answer.type === "cancel" || expired) {
-      // Bound retained Remote/HTTP callers independently of the coalesced native command.
-      if(entry.controlWaiting || this.#controlWaiters>=16) {
-        if(expired) {void this.#cancel(id,entry,{type:"cancel",timedOut:true});this.#stop();}
-        return this.#overloaded();
-      }
-      entry.controlWaiting=true;this.#controlWaiters++;
-      const reply=this.#cancel(id,entry,expired ? {type:"cancel",timedOut:true} : answer);
-      if(expired)this.#stop();
-      return reply.finally(()=>{entry.controlWaiting=false;this.#controlWaiters--;});
+      if(this.#controls>=16) return this.#overloaded();
+      this.#controls++;
+      const reason=expired ? "expired" : "explicit-cancel";
+      const reply=this.#cancel(id,entry,expired ? {type:"cancel",timedOut:true} : answer,reason);
+      if(expired)this.#stop("expired");
+      return reply.finally(()=>{this.#controls--;});
     }
     // No browser answer queue: reserve capacity before retaining payloads or creating continuations.
-    if(entry.answering || entry.cancellation || this.#answers>=8) return this.#overloaded();
+    if(this.#answers>=8) return this.#overloaded();
     this.#answers++;
-    entry.answering = this.#send(id, entry, answer).finally(() => { delete entry.answering; this.#answers--; });
+    entry.answering = this.#send(id, entry, answer, "explicit-answer").finally(() => { delete entry.answering; this.#answers--; });
     return entry.answering;
   }
-  #cancel(id:string,entry:Pending,answer:UIAnswer):Promise<InteractionAnswerResult> {
+  #cancel(id:string,entry:Pending,answer:UIAnswer,reason:string):Promise<InteractionAnswerResult> {
     if(entry.cancellation)return entry.cancellation;
+    entry.settlementReason ??= reason;
     if(this.#controls>=16)return this.#overloaded();
     // Internal expiry coalesces independently of external caller admission.
     this.#controls++;
-    entry.cancellation=this.#send(id,entry,answer).finally(()=>{this.#controls--;});
+    entry.cancellation=this.#send(id,entry,answer,reason).finally(()=>this.#controls--);
     return entry.cancellation;
   }
   #overloaded():Promise<InteractionAnswerResult> {
     return Promise.resolve({status:"overloaded",code:"INTERACTION_ANSWER_LIMIT"});
   }
-  async #send(id: string, entry: Pending, answer: UIAnswer): Promise<InteractionAnswerResult> {
+  async #send(id: string, entry: Pending, answer: UIAnswer, reason: string): Promise<InteractionAnswerResult> {
     ++entry.inFlight;
     try {
       const reply = await this.port.command({ type: "respond_ui", targetId: id, answer });
@@ -123,8 +123,8 @@ export class InteractionBridge {
       if (result.status === "stale") {
         entry.provisional = "stale";
         clearTimeout(entry.timer);
-      } else if (result.status !== "invalid") this.#retire(id, result.status, nativeAcknowledgement);
-      if (result.status === "expired") this.#stop();
+      } else if (result.status !== "invalid") this.#retire(id, result.status, result.status === "expired" ? "expired" : reason);
+      if (result.status === "expired") this.#stop("native-expired");
       // A delayed acknowledgement remains the native result, even if a notice arrived first.
       return result;
     } catch {
@@ -137,7 +137,7 @@ export class InteractionBridge {
       // A losing stale reply withdraws the card, but another command can carry the decisive Native ACK.
       const status = entry.provisional;
       if (--entry.inFlight === 0 && status && (status === "stale" || !this.#closed)) {
-        this.#retire(id, status, status === "stale" ? nativeAcknowledgement : "worker-reply-lost");
+        this.#retire(id, status, status === "stale" ? "native-stale" : "worker-reply-lost");
       }
     }
   }
@@ -150,7 +150,7 @@ export class InteractionBridge {
       // An ACK correlated before the transport fence may still be settling the regular promise.
       // Fenced requests reject without retiring the card. Only a recorded outcome can skip cleanup.
       if (entry.answering || entry.cancellation) await Promise.all([entry.answering, entry.cancellation]);
-      if (entry.outcome) return { ...entry.outcome };
+      if (entry.outcome) return { id:entry.outcome.id, status:entry.outcome.status as InteractionCleanupOutcome["status"], reason:entry.outcome.reason };
       const result: InteractionCleanupReply = cancel
         ? await cancel(id) : { status: "unknown", reason: "cleanup-unavailable" };
       const reason = "reason" in result ? result.reason : nativeAcknowledgement;
@@ -172,22 +172,22 @@ export class InteractionBridge {
     if(this.#closed)return;
     if(frame.type === "ready") {this.#policy=validPolicy(frame.interactionPolicy);return;}
     if(frame.type !== "extension_ui_request") return; // Tool/URI IDs never enter this map.
-    if(!validRequest(frame)) {this.#stop();return;}
+    if(!validRequest(frame)) {this.#stop("invalid-ui-contract");return;}
     const parsed=sourceRequest.safeParse(frame);
     if(!parsed.success) {
       if(typeof frame.id === "string")void this.port.command({type:"respond_ui",targetId:frame.id,answer:{type:"cancel"}}).catch(()=>{});
-      this.#stop();return;
+      this.#stop("invalid-ui-contract");return;
     }
     const request=parsed.data;
     if(request.method === "cancel") {
       const target=z.string().parse(frame.targetId);
       this.#retire(target,frame.reason === "expired" ? "expired" : "cancelled",String(frame.reason ?? "native-cancel"));
-      if(frame.reason === "expired") this.#stop();
+      if(frame.reason === "expired") this.#stop("native-expired");
       return;
     }
     if(presentation.has(request.method)) return;
     if(!this.#policy || !interactive.has(request.method) || this.#pending.size>=16 || this.#seen.size>=4096) {
-      void this.port.command({type:"respond_ui",targetId:request.id,answer:{type:"cancel"}}).catch(()=>{});this.#stop();return;
+      void this.port.command({type:"respond_ui",targetId:request.id,answer:{type:"cancel"}}).catch(()=>{});this.#stop("ui-not-admitted");return;
     }
     if(this.#seen.has(request.id)) return;
     this.#seen.add(request.id);
@@ -196,23 +196,27 @@ export class InteractionBridge {
     const card=pendingInteractionSchema.parse({id:request.id,generation:this.generation,family:"extension-ui",scope:this.#scope,
       method:request.method,title:request.title ?? "Native ask",message:request.message,promptStyle:request.promptStyle,secret:request.secret,prefill:request.prefill,options:request.options,questions:request.questions,
       createdAt,deadline:createdAt+wait,reason:"explicit-answer-required"});
-    const entry:Pending={deadlineMono:performance.now()+wait,card,controlWaiting:false,inFlight:0,timer:setTimeout(()=>{
+    const entry:Pending={deadlineMono:performance.now()+wait,card,inFlight:0,timer:setTimeout(()=>{
       // A refresh/disconnect/snapshot never constructs a new timer or extends this deadline.
-      void this.#cancel(card.id,entry,{type:"cancel",timedOut:true});
-      this.#stop();
+      void this.#cancel(card.id,entry,{type:"cancel",timedOut:true},"expired");
+      this.#stop("expired");
     },wait)};
     this.#pending.set(card.id,entry);
   }
   #retire(id:string,status:InteractionCleanupOutcome["status"],reason:string):void {
     const entry=this.#pending.get(id);if(!entry)return;
-    entry.outcome = { id, status, reason };
+    const settlement = status === "stale" || status === "unknown" ? undefined : entry.settlementReason;
+    entry.outcome = { id, status, reason: settlement ?? reason, stop: "none" };
     clearTimeout(entry.timer);this.#pending.delete(id);
     this.#outcomes.push(entry.outcome);
     if (this.#outcomes.length > 64) this.#outcomes.shift();
   }
-  #stop():void {
-    if(this.#aborting || this.#closed)return;
-    this.#aborting=true;
-    void this.port.command({type:"abort"}).catch(()=>{}).finally(()=>{this.#aborting=false;});
+  /** One recorded Stop request per worker; later causes cannot rewrite the first reason. */
+  #stop(reason:string):void {
+    if(this.#stopOutcome || this.#closed)return;
+    const outcome:InteractionSnapshot["outcomes"][number]={id:"worker-stop",status:"stopping",reason,stop:"requested"};
+    this.#stopOutcome=outcome;this.#outcomes.push(outcome);
+    if(this.#outcomes.length > 64)this.#outcomes.shift();
+    void this.port.command({type:"abort"}).then(()=>{outcome.stop="acknowledged";},()=>{outcome.stop="failed";});
   }
 }
