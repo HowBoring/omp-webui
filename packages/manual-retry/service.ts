@@ -138,8 +138,14 @@ export class ManualRetry {
       const reply = await this.#request({ type: "submission_submit", id: requestId, clientSubmissionId: requestId,
         ...this.#worker.target, preparationId: `manual-retry-v1:${requestId}`,
         inputType: "prompt", idleOnly: true, message: "/retry" });
-      if (reply === nativeBusy) attempt.reason = "native_busy";
-      else {
+      if (reply === nativeBusy) {
+        // A correlated SUBMISSION_BUSY is a deterministic local refusal before any model call.
+        // It must not masquerade as an unknown/lost receipt that holds admission forever.
+        attempt.status = "failed";
+        attempt.reason = "native_busy";
+        attempt.nativeSettled = true;
+        attempt.evidence = undefined;
+      } else {
         const facts = validateSubmitReceipt(reply);
         this.#acceptReceipt(attempt, facts?.receipt, facts?.invoked ?? false, true);
       }
