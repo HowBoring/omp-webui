@@ -109,3 +109,27 @@ controlled clock injection plus a separate store reconstruction.
 - Deleted/missing Originals stay as invalid items until the user removes them or
   recovery supersedes them; they are never silently dropped.
 - Windows evidence is deferred with the existing repository boundary.
+
+## Integration merge (mvp/spec-29)
+
+`mvp/spec-29` was merged as `a447c29` (`c6c4d26`). On the merged tree,
+`tests/chat/drafts.py` (5/5), `tests/chat/images.py` (18/18) and
+`bun test tests/chat` (67 pass) still pass. `tests/chat/browser.py` does **not**
+pass on the merged tree: it fails during `native-tool-history-reopen` with
+`AssertionError: reused id history survives reopen` (browser.py:582). Before the
+reopen, the fixture's two calls with the reused id each render two
+`[data-chat-tool-result]` entries; after reload and manual reopen of
+`native-0002`, the reopened history contains fewer than two entries for one of
+the duplicate tool ids. A second merged-tree run failed earlier in the Stop
+phase with `AssertionError: stop settles cancelled` (`result: succeeded`,
+`settled: true`), so the two reds are not identical.
+
+The only merged delta touching this path is the live tool-owner change in
+`compatibility/omp/0006-live-settlement.patch`
+(`live-message-observation.ts`, `#toolOwners` keyed without `contextId`). Chat's
+rendering does not dedupe history items (`apps/chat/src/client.tsx:402`), and
+`rpc-history.ts` emits one item per native entry, so the missing result is in
+native entry persistence/active-branch history, not the Chat projection. An
+experimental owner-spread removal moved the missing entry to the other duplicate
+id without making the suite green, so it was reverted; no unproven patch change
+is included here.
