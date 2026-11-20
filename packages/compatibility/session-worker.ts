@@ -27,7 +27,8 @@ import interactionRequest from "../contracts/generated/interaction-request.js";
 import liveNotification from "../contracts/generated/live-notification.js";
 import liveState from "../contracts/generated/live-state.js";
 import controls from "../contracts/generated/session-controls.js";
-import type { StrictStartState, SessionState, RespondUiParams } from "../contracts/generated/omp-wire.ts";
+import branchCommand from "../contracts/generated/branch-controls.js";
+import type { BranchMessage, StrictStartState, SessionState, RespondUiParams } from "../contracts/generated/omp-wire.ts";
 const frameSchema = z.object({ type: z.string() }).catchall(z.unknown());
 export type SessionWorkerFrame = z.infer<typeof frameSchema>;
 type Control = "abort_and_restore_queue" | "abort_branch_summary" | "abort_retry" | "abort_bash";
@@ -71,7 +72,7 @@ class SessionNotifications {
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
     validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value)
-      || submissionCommand(value) || attachmentCommand(value) || controls(value),
+      || submissionCommand(value) || attachmentCommand(value) || controls(value) || branchCommand(value),
     acceptReady: (frame, publish) => {
       if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
@@ -138,6 +139,19 @@ class SessionRpc {
     return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
   }
   state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
+  /** Native-authoritative list of user-message points that may start a new Session. */
+  async branchMessages(): Promise<readonly BranchMessage[]> {
+    const value = z.object({ messages: z.array(z.object({ entryId: z.string().min(1).max(256),
+      text: z.string().max(1_048_576) })).max(20_000) }).parse(
+      await this.core.request({ type: "get_branch_messages", id: crypto.randomUUID() }));
+    return value.messages;
+  }
+  /** Public native branch: creates a new Session file and switches to it. Returns only the unsent text. */
+  async branch(entryId: string): Promise<{ text: string; cancelled: boolean }> {
+    if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
+    return z.object({ text: z.string().max(1_048_576), cancelled: z.boolean() }).parse(
+      await this.core.request({ type: "branch", entryId, id: crypto.randomUUID() }));
+  }
   async models(): Promise<AvailableModel[]> {
     const value = z.object({ models: z.array(nativeModel).max(4096) }).parse(
       await this.core.request({ type: "get_available_models", id: crypto.randomUUID() }));

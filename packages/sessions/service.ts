@@ -157,6 +157,22 @@ export class SessionsService extends TypertRemoteService {
     this.identity(); const page = await this.options.index.page({ ...(options.cursor ? { cursor: options.cursor } : {}), ...(options.pageSize ? { pageSize: options.pageSize } : {}) }); this.identity();
     return { ...page, records: page.records.map(({ reference: _reference, attemptRevision: _revision, ...record }) => record) };
   }
+  /** Native-allowlisted historical user points. Reading them never opens, mutates or branches anything. */
+  @Remote("branchPoints") async branchPoints(workerId: string) {
+    const identity = this.identity(), runtime = this.runtime(identity, workerId);
+    const points = await runtime.worker.branchMessages(); this.identity();
+    const latest = this.runtime(identity, workerId);
+    if (latest.view.generation !== runtime.view.generation) settingsFailure("stale");
+    return { workerId: latest.view.workerId, generation: latest.view.generation,
+      points: points.slice(0, 20_000).map(point => ({ entryId: point.entryId, text: point.text })) };
+  }
+  /** Native branch cut. The returned text is the new Session's unsent draft, never a send. */
+  @Remote("branch") async branch(change: { workerId: string; generation: string; entryId: string }) {
+    const identity = this.identity();
+    const result = await this.options.supervisor.branch(identity, change.workerId, change.generation, change.entryId);
+    if (result.status === "cancelled") return result;
+    return { ...result, ...(result.view ? { view: publicView(result.view) } : {}) };
+  }
   @Remote("open") async open(selectionId: SessionSelectionId) {
     return publicView(await this.options.supervisor.open(this.identity(), this.selection(selectionId)));
   }

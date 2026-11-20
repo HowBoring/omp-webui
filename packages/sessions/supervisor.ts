@@ -95,6 +95,26 @@ interface Active {
   exitCode?: number;
   cooperativeDeadline?: number;
 }
+/** Public branch outcome. `view` is present only after the new Session was read back and verified. */
+export type BranchedSession =
+  | { status: "created"; nativeSessionId: string; previousSessionId: string; targetEntryId: string; retainedEntries: number;
+      text: string; view?: SessionView }
+  | { status: "cancelled"; previousSessionId: string; targetEntryId: string };
+interface RetainedHistory { sessionId: string; entries: Map<string, { parentId?: string; kind: string }> }
+/** Source ancestors of a branch target: the only history the native cut keeps. */
+const retainedAncestors = (history: RetainedHistory, target: string): Set<string> => {
+  const selected = history.entries.get(target);
+  if (!selected) throw new Error("SESSION_BRANCH_TARGET_UNAVAILABLE");
+  const kept = new Set<string>();
+  let cursor = selected.parentId;
+  while (cursor !== undefined) {
+    if (kept.has(cursor)) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+    const entry = history.entries.get(cursor);
+    if (!entry) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+    kept.add(cursor); cursor = entry.parentId;
+  }
+  return kept;
+};
 /** DSH retires projection generations; a new Active for the same Session must never reuse one. */
 let journalIdentity = 0;
 const directoryIdentity = (cwd: string): string => {
@@ -485,6 +505,137 @@ export class SessionSupervisor {
     this.#directory(selected.cwd.canonical);
     if (this.#active?.key === key(selected) && !this.#active.retired && !this.#active.exited) return this.open(identity, selected);
     await this.#prepareRetirement(identity, "explicit-switch"); this.#browser(identity); return this.open(identity, selected);
+  }
+  /**
+   * Native Branched Session at a historical user entry. Native owns the cut and the new file; the Host
+   * only reads it back. Nothing is sent, replayed or copied: `text` is the unsent draft of the new Session.
+   * The previous Session keeps its own file, registration and path.
+   */
+  async branch(identity: BrowserAccess, workerId: string, generation: string, entryId: string): Promise<BranchedSession> {
+    this.#browser(identity);
+    const active = this.#active;
+    if (!active || active.id !== workerId || active.generation !== generation || active.state !== "open" || !active.worker) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    const previousSessionId = active.record?.nativeSessionId;
+    if (!previousSessionId) throw new Error("SESSION_NATIVE_IDENTITY_UNCONFIRMED");
+    const worker = active.worker as SupervisedSessionWorker;
+    // Native is the only authority on which historical entries may start a branch.
+    const points = await worker.branchMessages(); this.#current(identity, active);
+    if (!points.some(point => point.entryId === entryId)) throw new Error("SESSION_BRANCH_TARGET_UNAVAILABLE");
+    const state = await worker.state(); this.#current(identity, active);
+    if (!nativeSettled(state) || active.bridge?.snapshot().pending.length) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    if (!state.sessionFile) throw new Error("SESSION_NATIVE_IDENTITY_UNCONFIRMED");
+    const sourceFile = state.sessionFile;
+    const before = await this.#readRetained(worker); this.#current(identity, active);
+    if (before.sessionId !== previousSessionId) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+    const retained = retainedAncestors(before, entryId);
+    let outcome: { text: string; cancelled: boolean };
+    try { outcome = await worker.branch(entryId); }
+    catch (failure) {
+      // The native transition may have switched before it failed; only an unchanged identity is a refusal.
+      let observed: SessionState | undefined;
+      try { observed = await worker.state(); } catch { observed = undefined; }
+      if (observed && observed.sessionId === previousSessionId) {
+        this.#current(identity, active); throw new Error(sessionFailureCode(failure));
+      }
+      await this.#branchUnknown(active, "branch-refused");
+      throw new Error("SESSION_BRANCH_OUTCOME_UNKNOWN");
+    }
+    if (outcome.cancelled) {
+      const unchanged = await worker.state(); this.#current(identity, active);
+      if (unchanged.sessionId !== previousSessionId) { await this.#branchUnknown(active, "branch-cancel-unknown"); throw new Error("SESSION_BRANCH_OUTCOME_UNKNOWN"); }
+      return { status: "cancelled", previousSessionId, targetEntryId: entryId };
+    }
+    const created = await worker.state();
+    if (created.sessionId === previousSessionId || !created.sessionFile) {
+      await this.#branchUnknown(active, "branch-identity-unknown");
+      throw new Error("SESSION_BRANCH_IDENTITY_UNCONFIRMED");
+    }
+    const nativeSessionId = created.sessionId;
+    await this.#retireForBranch(active);
+    this.#browser(identity);
+    const descriptor = await this.#branchDescriptor(identity, nativeSessionId, sourceFile, active.cwd);
+    let view: SessionView | undefined, retainedEntries = retained.size;
+    try {
+      view = await this.open(identity, descriptor);
+      const opened = this.runtime(identity, view.workerId);
+      const after = await this.#readRetained(opened.worker);
+      // The new Session holds exactly the source ancestors of the target, never the target itself.
+      if (after.sessionId !== nativeSessionId || after.entries.has(entryId) || after.entries.size !== retained.size
+        || [...retained].some(id => !after.entries.has(id))) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+      view = this.view(identity, view.workerId);
+    } catch (failure) {
+      const code = sessionFailureCode(failure);
+      if (code === "SESSION_AUTH_REQUIRED" || code === "SESSION_HOST_CLOSING") throw new Error(code);
+      if (code === "SESSION_BRANCH_RETAINED_MISMATCH") this.#branchUnverified();
+      view = undefined; retainedEntries = retained.size;
+    }
+    return { status: "created", nativeSessionId, previousSessionId, targetEntryId: entryId, retainedEntries,
+      text: outcome.text, ...(view ? { view } : {}) };
+  }
+  /** Bounded retained-path read: every item keeps its native parent, so ancestry is read, never guessed. */
+  async #readRetained(worker: Pick<SupervisedSessionWorker, "history">): Promise<RetainedHistory> {
+    const opened = await worker.history.open("tree");
+    try {
+      const entries: RetainedHistory["entries"] = new Map();
+      let cursor: string | undefined = opened.cursor, pages = 0;
+      while (cursor) {
+        if (++pages > 64) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+        const page = await worker.history.page(cursor);
+        for (const item of page.items) {
+          // Native drops label rows from a branch cut and re-authors them in the destination.
+          if (item.kind === "label") continue;
+          if (entries.size >= 20_000) throw new Error("SESSION_BRANCH_RETAINED_MISMATCH");
+          const parentId = typeof item.parentId === "string" ? item.parentId : undefined;
+          entries.set(item.id, { ...(parentId === undefined ? {} : { parentId }), kind: item.kind });
+        }
+        cursor = page.nextCursor;
+      }
+      return { sessionId: opened.cut.sessionId, entries };
+    } finally { void worker.history.close(opened.snapshot).catch(() => {}); }
+  }
+  /** Catalog owns the new descriptor; lineage must name the source file and the recorded cwd. */
+  async #branchDescriptor(identity: BrowserAccess, nativeSessionId: string, sourceFile: string, cwd: string): Promise<CatalogDescriptor> {
+    let cursor: string | undefined, pages = 0;
+    while (++pages <= 8) {
+      const page = await this.options.catalog.page({ pageSize: 32, ...(cursor ? { cursor } : {}) }); this.#browser(identity);
+      const found = page.items.find(item => item.nativeSessionId === nativeSessionId);
+      if (found) {
+        if (found.parentSession !== sourceFile) throw new Error("SESSION_BRANCH_LINEAGE_UNCONFIRMED");
+        if (found.cwd.status !== "known" || found.cwd.canonical !== cwd) throw new Error("SESSION_CWD_CHANGED");
+        return found;
+      }
+      if (!page.nextCursor) break;
+      cursor = page.nextCursor;
+    }
+    throw new Error("SESSION_BRANCH_LINEAGE_UNCONFIRMED");
+  }
+  async #retireForBranch(active: Active): Promise<void> {
+    const worker = active.worker;
+    if (!worker || active.retained || !("retireIdle" in worker)) throw new Error("SESSION_WORKER_BUSY_STOP_REQUIRED");
+    active.retired = true; active.state = "outcome_unknown";
+    this.#observe(active, { state: "outcome_unknown", code: "SESSION_BRANCH_EXIT_UNCONFIRMED" });
+    const start = performance.now(), atStop = worker.notificationCount;
+    try {
+      const retired = await worker.retireIdle();
+      const drain = retired.status === "pending" ? await retired.completion : retired.drain;
+      this.#finishIdle(active, "branched-session", start, atStop, drain);
+    } catch {
+      throw new Error("SESSION_BRANCH_OUTCOME_UNKNOWN");
+    }
+    if (!active.released) throw new Error("SESSION_WORKER_DRAINING");
+  }
+  /** An unknown native outcome ends this worker for good: the Host never replays the cut. */
+  async #branchUnknown(active: Active, reason: string): Promise<void> {
+    active.state = "outcome_unknown";
+    this.#observe(active, { state: "outcome_unknown", code: "SESSION_BRANCH_OUTCOME_UNKNOWN" });
+    try { await this.#stop(active, reason); } catch { /* the exit record owns the final observation */ }
+  }
+  #branchUnverified(): void {
+    const active = this.#active;
+    if (active) { active.state = "outcome_unknown"; this.#observe(active, { state: "outcome_unknown", code: "SESSION_BRANCH_RETAINED_MISMATCH" }); }
   }
   async #prepareRetirement(identity: BrowserAccess, reason: string): Promise<void> {
     const active = this.#active; if (!active || active.released) return;

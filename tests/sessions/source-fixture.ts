@@ -77,6 +77,8 @@ export async function sourceFixture(now: () => number = Date.now,
     async selectModel(provider: string, id: string) { controls.model = { ...controls.model, provider, id, name: id }; },
     async setThinkingLevel(level: "off" | "low" | "high") { controls.thinkingLevel = level; },
     async retireIdle() { return controls.retirement ?? { status: "closed", drain: controls.drain }; },
+    async branchMessages() { return [{ entryId: "entry-0", text: "Synthetic fixture input" }]; },
+    async branch() { return { text: "Synthetic fixture input", cancelled: false }; },
   };
   const catalog = new CatalogClient(async command => {
     if (controls.catalogFailure !== undefined) throw controls.catalogFailure;
