@@ -38,6 +38,19 @@ index e1d4a2e9..f5949a5e 100644
      }
      return undefined
    })
+diff --git a/packages/client/ui-chat/src/client/contract/snapshot.ts b/packages/client/ui-chat/src/client/contract/snapshot.ts
+index ea3c9707..b260e525 100644
+--- a/packages/client/ui-chat/src/client/contract/snapshot.ts
++++ b/packages/client/ui-chat/src/client/contract/snapshot.ts
+@@ -8,7 +8,7 @@ import type { TurnProcessSpec } from './turn-process.ts'
+ export type {
+   AssistantBlock, AssistantMessageNode, AssistantProviderMetadataView, AssistantRequestConfig,
+   AssistantTiming, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
+-  ModelRetryNode, PartialAssistant, PreparingToolCall, RunningToolCall, StartedToolCall, SteeringMessageNode, TodoItem,
++  ModelRetryNode, PartialAssistant, ParsedStartedToolCall, PreparingToolCall, RunningToolCall, StartedToolCall, StartedToolCallPresentation, SteeringMessageNode, TodoItem,
+   ToolArgs, ToolCallBlock, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UnknownSurfaceNode,
+   UserMessageNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
 diff --git a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts b/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
 index e61bb531..81f54b6a 100644
 --- a/packages/client/ui-chat/src/client/conversation-nodes/event-projection.ts
@@ -71,22 +84,37 @@ index e61bb531..81f54b6a 100644
 +    ? PartialArguments.fromText(value) : PartialArguments.fromObject(value) }
 +}
 diff --git a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
-index 3ed7b86d..66b19590 100644
+index 3ed7b86d..a6401fdd 100644
 --- a/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
 +++ b/packages/client/ui-chat/src/client/conversation-nodes/tool.ts
-@@ -7,6 +7,7 @@ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
+@@ -1,12 +1,18 @@
+ import type { Context } from '@deepseek-ai/cordis'
+ import type {
+-  ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, PreparingToolCall, StartedToolCall,
+-  ToolCallBlock, ToolResultNode,
++  ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, PreparingToolCall,
++  StartedToolCall, StartedToolCallPresentation, ToolCallBlock, ToolResultNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import { isAppendSurfaceEvent } from '@deepseek-ai/dsh-session/surface'
  import type {} from '@deepseek-ai/dsh-tool-executor-ptc/client'
  import { PartialArguments } from '@deepseek-ai/dsh-util-values'
++import type { JsonValue } from '@deepseek-ai/dsh-util-values'
  import type { ChatNode, ToolChatData } from '../contract/chat-nodes.ts'
 +import { toToolCallArguments } from './event-projection.ts'
++
++function isParsedCall(call: { readonly argumentRepresentation?: string } | null | undefined): call is { readonly argumentRepresentation: 'parsed-json'; readonly argsParsed: { [key: string]: JsonValue } } {
++  return call?.argumentRepresentation === 'parsed-json'
++}
  import { CHAT_SYNTHETIC_SEQ_OFFSETS, chatNode, contextLocation } from './common.ts'
  
  declare module '../contract/chat-nodes.ts' {
-@@ -39,15 +40,18 @@ function jsonArguments(value: unknown): string {
+@@ -38,16 +44,19 @@ function jsonArguments(value: unknown): string {
+   return JSON.stringify(value)
  }
  
- function rootCall(match: ConversationMatch, previous?: ToolCallBlock): StartedToolCall {
+-function rootCall(match: ConversationMatch, previous?: ToolCallBlock): StartedToolCall {
 -  if (match.event.type !== 'tool/call') throw new Error('tool-call start requires tool/call')
++function rootCall(match: ConversationMatch, previous?: ToolCallBlock): StartedToolCallPresentation {
 +  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
 +    throw new Error('tool-call start requires a call event')
 +  }
@@ -106,12 +134,21 @@ index 3ed7b86d..66b19590 100644
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -107,7 +111,11 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
+@@ -97,7 +106,7 @@ function preparingBlock(root: PreparingToolCall, current: ToolCallBlock | undefi
+   return changed ? { ...root } : root
+ }
+ 
+-function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolResultNode | undefined {
++function rootResult(match: ConversationMatch, previous?: StartedToolCallPresentation): ToolResultNode | undefined {
+   if (match.event.type !== 'tool/result') return undefined
+   const message = match.event.data.message
+   return {
+@@ -107,7 +116,11 @@ function rootResult(match: ConversationMatch, previous?: StartedToolCall): ToolR
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
 -    call: previous === undefined ? null : { name: previous.name, argsRaw: previous.argsRaw },
-+    call: previous === undefined ? null : previous.argumentRepresentation === 'parsed-json'
++    call: previous === undefined ? null : isParsedCall(previous)
 +      ? { name: previous.name, argumentRepresentation: 'parsed-json', argsParsed: previous.argsParsed,
 +        ...(previous.thoughtSignature ? { thoughtSignature: previous.thoughtSignature } : {}) }
 +      : { name: previous.name, argsRaw: previous.argsRaw,
@@ -119,7 +156,7 @@ index 3ed7b86d..66b19590 100644
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -255,7 +263,11 @@ function projectBlock(
+@@ -255,7 +268,11 @@ function projectBlock(
        ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
        name: block.name,
        args: block.args,
@@ -132,7 +169,7 @@ index 3ed7b86d..66b19590 100644
        callTime: block.time,
        content: [],
        isError: true,
-@@ -301,7 +313,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -301,7 +318,7 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
        }
        return chunk.type === 'tool-call-delta' ? { id: String(chunk.id), role: 'start' } : null
      }
@@ -141,7 +178,7 @@ index 3ed7b86d..66b19590 100644
      if (event.type === 'tool/result' && isAppendSurfaceEvent(event)) {
        return { id: String(event.data.message.source.callId), role: 'update' }
      }
-@@ -315,11 +327,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -315,11 +332,11 @@ export const toolDefinition: ConversationNodeDefinition<ToolState> = {
    },
    start: (_context, match) => {
      const state: ToolState = { root: undefined, children: new Map(), parents: new Map() }
@@ -155,7 +192,7 @@ index 3ed7b86d..66b19590 100644
      if (match.event.type === 'tool/result') {
        const root = context.state.root
        const running = root !== undefined && !('kind' in root) && root.phase === 'start' ? root : undefined
-@@ -363,6 +375,7 @@ export function registerToolConversationNode(ctx: Context): void {
+@@ -363,6 +380,7 @@ export function registerToolConversationNode(ctx: Context): void {
      match: {
        'assistant/live-chunk': match,
        'tool/call': match,
@@ -163,6 +200,19 @@ index 3ed7b86d..66b19590 100644
        'tool/result': match,
        'tool/ptc-dispatch-start': match,
        'tool/ptc-dispatch': match,
+diff --git a/packages/client/ui-chat/src/client/index.ts b/packages/client/ui-chat/src/client/index.ts
+index 72e7c9f2..f174883b 100644
+--- a/packages/client/ui-chat/src/client/index.ts
++++ b/packages/client/ui-chat/src/client/index.ts
+@@ -19,7 +19,7 @@ export type {
+   AssistantTiming, ChatLocationNodeIndex, ChatNodeProcessSource, ChatNodeSource, ChatNodeStore,
+   ChatSnapshot, ChatTurnNavigationIndex, ChatTurnProcessPresentation,
+   CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
+-  LegacyConversationSlice, ModelRetryNode, PartialAssistant, PreparingToolCall, RunningToolCall, StartedToolCall,
++  LegacyConversationSlice, ModelRetryNode, PartialAssistant, ParsedStartedToolCall, PreparingToolCall, RunningToolCall, StartedToolCall, StartedToolCallPresentation,
+   SteeringMessageNode, ToolArgs, ToolCallBlock, ToolResultNode, TurnErrorNode, TurnMaxTokensNode,
+   TurnNavigationItem, UnknownSurfaceNode, UserMessageNode,
+ } from './contract/snapshot.ts'
 diff --git a/packages/client/ui-conversation/README.md b/packages/client/ui-conversation/README.md
 index 9679a00b..666efae5 100644
 --- a/packages/client/ui-conversation/README.md
@@ -190,7 +240,7 @@ index 91286e2e..6bf8b7b6 100644
  
  ## 目录
 diff --git a/packages/client/ui-conversation/src/client/contract/records.ts b/packages/client/ui-conversation/src/client/contract/records.ts
-index daddf0aa..78628d4a 100644
+index daddf0aa..905c2b8a 100644
 --- a/packages/client/ui-conversation/src/client/contract/records.ts
 +++ b/packages/client/ui-conversation/src/client/contract/records.ts
 @@ -9,6 +9,7 @@ import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
@@ -219,28 +269,47 @@ index daddf0aa..78628d4a 100644
  }
  
  /**
-@@ -302,11 +305,17 @@ export interface PreparingToolCall extends ToolCallHead {
+@@ -302,14 +305,35 @@ export interface PreparingToolCall extends ToolCallHead {
    readonly phase: 'preparing'
  }
  
-+/** Argument presentation retains exact raw text or a parsed JSON object without an original-text claim. */
-+export type ToolCallArguments =
-+  | { readonly argsRaw: string; readonly argumentRepresentation?: never; readonly argsParsed?: never }
-+  | {
-+    readonly argumentRepresentation: 'parsed-json'
-+    readonly argsParsed: { [key: string]: JsonValue }
-+    readonly argsRaw?: never
-+  }
-+
- /** A dispatched tool call with complete arguments and no result yet. */
+-/** A dispatched tool call with complete arguments and no result yet. */
 -export interface StartedToolCall extends ToolCallHead {
 -  readonly phase: 'start'
 -  readonly argsRaw: string
--}
-+export type StartedToolCall = ToolCallHead & { readonly phase: 'start' } & ToolCallArguments
++/** Argument presentation retains exact raw text or a parsed JSON object without an original-text claim. */
++export type ToolCallArguments =
++  | { readonly argsRaw: string; readonly argumentRepresentation?: 'raw' }
++  | { readonly argumentRepresentation: 'parsed-json'; readonly argsParsed: { [key: string]: JsonValue } }
++
++/** @returns whether a call head carries native parsed JSON instead of original raw text. */
++export function isParsedToolCall(call: { readonly argumentRepresentation?: string } | null | undefined): call is { readonly argumentRepresentation: 'parsed-json'; readonly argsParsed: { [key: string]: JsonValue } } {
++  return call?.argumentRepresentation === 'parsed-json'
++}
++
++/** @returns exact original raw arguments for a raw call head, or undefined for parsed JSON. */
++export function rawToolCallArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return isParsedToolCall(call) ? undefined : call?.argsRaw
+ }
  
++/** A dispatched raw-text tool call with complete arguments and no result yet. */
++export type StartedToolCall = ToolCallHead & { readonly phase: 'start' } & { readonly argsRaw: string; readonly argumentRepresentation?: 'raw' }
++
++/** A dispatched native parsed-JSON tool call; it makes no original-text claim. */
++export type ParsedStartedToolCall = ToolCallHead & { readonly phase: 'start' } & {
++  readonly argumentRepresentation: 'parsed-json'
++  readonly argsParsed: { [key: string]: JsonValue }
++}
++
++/** A dispatched call in either lossless argument representation. */
++export type StartedToolCallPresentation = StartedToolCall | ParsedStartedToolCall
++
  /** A tool still preparing or awaiting its result. */
- export type RunningToolCall = PreparingToolCall | StartedToolCall
+-export type RunningToolCall = PreparingToolCall | StartedToolCall
++export type RunningToolCall = PreparingToolCall | StartedToolCallPresentation
+ 
+ /** One preparing, dispatched, or settled call, recursively owning its child calls. */
+ export type ToolCallBlock = RunningToolCall | ToolResultNode
 diff --git a/packages/client/ui-conversation/src/client/conversation/assembly.ts b/packages/client/ui-conversation/src/client/conversation/assembly.ts
 index 233a72e2..9e2ec277 100644
 --- a/packages/client/ui-conversation/src/client/conversation/assembly.ts
@@ -332,14 +401,16 @@ index 233a72e2..9e2ec277 100644
      if (releaseScope) record.disposeScope()
    }
 diff --git a/packages/client/ui-conversation/src/client/index.ts b/packages/client/ui-conversation/src/client/index.ts
-index 7595fc12..b5502274 100644
+index 7595fc12..699d886f 100644
 --- a/packages/client/ui-conversation/src/client/index.ts
 +++ b/packages/client/ui-conversation/src/client/index.ts
-@@ -56,7 +56,7 @@ export type {
+@@ -55,8 +55,8 @@ export type {
+ export type {
    AssistantBlock, AssistantMessageNode, AssistantProviderMetadataView, AssistantRequestConfig,
    AssistantTiming, CommandNode, CompactionSummaryNode, ContextMessageNode, ConversationNode,
-   ModelRetryNode, PartialAssistant, PreparingToolCall, RunningToolCall, StartedToolCall, SteeringMessageNode, TodoItem,
+-  ModelRetryNode, PartialAssistant, PreparingToolCall, RunningToolCall, StartedToolCall, SteeringMessageNode, TodoItem,
 -  ToolCallBlock, ToolArgs, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UnknownSurfaceNode,
++  ModelRetryNode, PartialAssistant, ParsedStartedToolCall, PreparingToolCall, RunningToolCall, StartedToolCall, StartedToolCallPresentation, SteeringMessageNode, TodoItem,
 +  ToolCallBlock, ToolCallArguments, ToolArgs, ToolResultNode, TurnErrorNode, TurnMaxTokensNode, UnknownSurfaceNode,
    UserMessageNode,
  } from './contract/records.ts'
@@ -412,19 +483,102 @@ index a29d8481..eccf0949 100644
    'row.output': 'OUT',
    'row.inspect': 'Inspecionar',
    'row.imageSize': '{width}x{height}px, {bytes} bytes',
+diff --git a/packages/client/ui-deliverables/src/client/PresentRow.tsx b/packages/client/ui-deliverables/src/client/PresentRow.tsx
+index 57d6006f..177c5653 100644
+--- a/packages/client/ui-deliverables/src/client/PresentRow.tsx
++++ b/packages/client/ui-deliverables/src/client/PresentRow.tsx
+@@ -28,6 +28,9 @@ function fileNames(raw: string): string {
+  * @param props - tool call and localized status copy.
+  * @returns a status row with a result disclosure.
+  */
++function rawArguments(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return call?.argumentRepresentation === 'parsed-json' ? undefined : call?.argsRaw
++}
+ export function PresentRow(props: PresentRowProps) {
+   return props.phase === 'preparing' ? <PreparingPresentRow {...props} /> : <StartedPresentRow {...props} />
+ }
+@@ -42,7 +45,7 @@ function PreparingPresentRow({ t }: Extract<PresentRowProps, { phase: 'preparing
+ function StartedPresentRow({ block, inspect, t }: Exclude<PresentRowProps, { phase: 'preparing' }>) {
+   const settled = 'kind' in block
+   const state = !settled ? 'running' : block.error?.code === 'interrupted' ? 'stopped' : block.isError ? 'error' : 'ok'
+-  const args = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
++  const args = (settled ? rawArguments(block.call) : rawArguments(block)) ?? ''
+   const output = settled ? block.content.map(item => item.type === 'text' ? item.text : JSON.stringify(item)).join('\n') : ''
+   const details = output || (settled && block.error ? `${block.error.name}: ${block.error.code}` : '')
+   const [expanded, setExpanded] = useState(false)
 diff --git a/packages/client/ui-schedule/src/client/schedule-create-card.ts b/packages/client/ui-schedule/src/client/schedule-create-card.ts
-index 20ec61fe..53922615 100644
+index 20ec61fe..605ee6f0 100644
 --- a/packages/client/ui-schedule/src/client/schedule-create-card.ts
 +++ b/packages/client/ui-schedule/src/client/schedule-create-card.ts
-@@ -145,7 +145,7 @@ export function scheduleCreateCardModel(block: ToolBlock, toolName: string): Sch
+@@ -18,6 +18,9 @@ type ToolBlock = ToolCallViewProps['block']
+ type SettledToolBlock = Extract<ToolBlock, { kind: 'tool-result' }>
+ 
+ /** Derived presentation of one `schedule_create` call. */
++function rawArguments(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return call?.argumentRepresentation === 'parsed-json' ? undefined : call?.argsRaw
++}
+ export interface ScheduleCreateCardModel {
+   /** Created task narrowed from the settled result, or undefined when the result carries none. */
+   readonly task: ScheduleRecord | undefined
+@@ -144,8 +147,8 @@ export function scheduleCreateCardModel(block: ToolBlock, toolName: string): Sch
+   const settled = 'kind' in block
    // A call still preparing carries no arguments, so its title falls back to the tool name.
    const argsRaw = settled
-     ? block.call?.argsRaw ?? ''
+-    ? block.call?.argsRaw ?? ''
 -    : block.phase === 'start' ? block.argsRaw : ''
-+    : block.phase === 'start' ? block.argsRaw ?? '' : ''
++    ? rawArguments(block.call) ?? ''
++    : block.phase === 'start' ? rawArguments(block) ?? '' : ''
    const output = settled ? resultText(block) : null
    const task = settled ? narrowScheduleRecord(parseJson(output ?? '')) : undefined
    return {
+diff --git a/packages/client/ui-skill/src/client/SkillRow.tsx b/packages/client/ui-skill/src/client/SkillRow.tsx
+index cee91367..2ffe0490 100644
+--- a/packages/client/ui-skill/src/client/SkillRow.tsx
++++ b/packages/client/ui-skill/src/client/SkillRow.tsx
+@@ -57,7 +57,7 @@ function resultText(block: StartedToolCallViewProps['block']): string | null {
+ /** Derive display state without consulting the live skill catalog. */
+ function skillRowModel(block: StartedToolCallViewProps['block']): SkillRowModel {
+   const settled = 'kind' in block
+-  const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
++  const argsRaw = (settled ? rawArguments(block.call) : rawArguments(block)) ?? ''
+   const state: SkillRowState = !settled
+     ? 'running'
+     : block.error?.code === 'interrupted'
+@@ -99,6 +99,9 @@ function stateStatus(state: SkillRowState, t: SkillRowProps['t']): string | null
+  * @param props - keyed toolview payload plus the skill locale seat.
+  * @returns the dedicated skill row.
+  */
++function rawArguments(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return call?.argumentRepresentation === 'parsed-json' ? undefined : call?.argsRaw
++}
+ export function SkillRow(props: SkillRowProps) {
+   if (props.phase === 'preparing') return <div className={css.card} data-tool="skill" data-state="preparing">
+     <div className={css.row}>
+diff --git a/packages/client/ui-skill/tests/skill-row.client.spec.tsx b/packages/client/ui-skill/tests/skill-row.client.spec.tsx
+index 29b95aaa..841ba44f 100644
+--- a/packages/client/ui-skill/tests/skill-row.client.spec.tsx
++++ b/packages/client/ui-skill/tests/skill-row.client.spec.tsx
+@@ -10,6 +10,11 @@ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { SkillRow } from '../src/client/SkillRow.tsx'
+ import { zh } from '../src/client/locales.ts'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ type SkillRowProps = Parameters<typeof SkillRow>[0]
+ 
+ const t: SkillRowProps['t'] = makeTranslate(zh, commonZh)
+@@ -23,7 +28,7 @@ function settled(over: Partial<ToolResultNode> = {}): ToolResultNode {
+     seq: 3,
+     time: 3_000,
+     callId: 'call-skill',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 2_000,
+     content: [{ type: 'text', text: 'Follow the issue workflow.\nKeep project fields in sync.' }],
 diff --git a/packages/client/ui-tool/README.md b/packages/client/ui-tool/README.md
 index 448a4e19..39416229 100644
 --- a/packages/client/ui-tool/README.md
@@ -451,6 +605,28 @@ index 37757c47..339b80d5 100644
  `dsh-client-ui-tool` 是 dsh Web 客户端的 Client 工具展示插件：它渲染对话中的每一次工具调用。`ui-conversation` 通过 `conversation.chat.node` 的匹配 key 分发每个已排序的 `tool-call` Conversation Node；本包渲染其中的 root 及其 PTC dispatch 子调用，并把每个原子调用通过 keyed slot `tool.call.toolview` 分发。没有注册的工具名称使用通用卡片。业务 UI 包只注册 wire 工具名称和原子视图——它们不配对会话事件、不重建 transcript（文本记录），也不拥有 root/subcall 拓扑，因为运行时仍对 call/result 配对、生命周期与递归 `subCalls` 投影拥有最终决定权。
  
  ## 目录
+diff --git a/packages/client/ui-tool/src/client/contract/slots.ts b/packages/client/ui-tool/src/client/contract/slots.ts
+index d3f45dc7..d377ca87 100644
+--- a/packages/client/ui-tool/src/client/contract/slots.ts
++++ b/packages/client/ui-tool/src/client/contract/slots.ts
+@@ -4,7 +4,7 @@ import type {
+ } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
+ import type {
+-  OpenFileOptions, PreparingToolCall, StartedToolCall,
++  OpenFileOptions, PreparingToolCall, StartedToolCallPresentation,
+   ToolResultNode, UseDisclosure,
+ } from '@deepseek-ai/dsh-client-ui-chat/client'
+ import type { MessageImageLoader, MessageImageSource } from '@deepseek-ai/dsh-client-ui-conversation/client'
+@@ -75,7 +75,7 @@ export interface ToolCallCommonProps {
+ /** Stage-specific tool data; only start/result expose the dispatched call material. */
+ export type ToolCallPhaseProps =
+   | { readonly phase: 'preparing'; readonly block: PreparingToolCall }
+-  | { readonly phase: 'start'; readonly block: StartedToolCall }
++  | { readonly phase: 'start'; readonly block: StartedToolCallPresentation }
+   | { readonly phase: 'result'; readonly block: ToolResultNode }
+ 
+ /** Common owner callbacks and the data admitted at the current tool stage. */
 diff --git a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx b/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
 index 9355ddac..d634e750 100644
 --- a/packages/client/ui-tool/src/client/tool/ToolCallTree.tsx
@@ -534,10 +710,21 @@ index e48d7d44..79b8f889 100644
      parsedCalls.set(block, null)
      return null
 diff --git a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
-index ae96145b..1c7fb3b3 100644
+index ae96145b..34d50432 100644
 --- a/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
 +++ b/packages/client/ui-tool/src/client/tool/models/tool-call-model.ts
-@@ -370,10 +370,22 @@ export function formatToolBody(variant: ToolRowVariant, argsRaw: string): string
+@@ -13,6 +13,10 @@ import { recordedAbsolutePath } from './recorded-path.ts'
+ 
+ export type { ToolCallBlock } from '@deepseek-ai/dsh-client-ui-chat/client'
+ 
++function rawArguments(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return call?.argumentRepresentation === 'parsed-json' ? undefined : call?.argsRaw
++}
++
+ /** Tool-call row variants selected by the generic atomic renderer. */
+ export type ToolRowVariant = 'search' | 'read' | 'bash' | 'write' | 'edit' | 'code' | 'others'
+ 
+@@ -370,10 +374,22 @@ export function formatToolBody(variant: ToolRowVariant, argsRaw: string): string
   * @returns the row model.
   */
  export function toolRowModel(toolName: string, block: ToolCallBlock, cwd?: string, home?: string): ToolRowModel {
@@ -557,7 +744,7 @@ index ae96145b..1c7fb3b3 100644
    const titleKey = toolTitleKey(toolName)
    const done = 'kind' in block
 -  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw : null
-+  const argsRaw = done ? block.call?.argsRaw ?? '' : block.phase === 'start' ? block.argsRaw ?? null : null
++  const argsRaw = done ? rawArguments(block.call) ?? '' : block.phase === 'start' ? rawArguments(block) ?? null : null
    // Result metadata marks a settled call that did not finish every requested effect.
    const stopped = done && typeof block.meta === 'object' && block.meta !== null
      && !Array.isArray(block.meta) && (block.meta as Record<string, unknown>).stopped === true
@@ -579,6 +766,357 @@ index 6ce48b99..e944699a 100644
    const autoReview = model.autoReviewDenial === null
      ? null
      : localizeAutoReviewDenial(model.autoReviewDenial, t)
+diff --git a/packages/client/ui-tool/tests/ask-question-row.client.spec.tsx b/packages/client/ui-tool/tests/ask-question-row.client.spec.tsx
+index 80b4d7c4..ba558b29 100644
+--- a/packages/client/ui-tool/tests/ask-question-row.client.spec.tsx
++++ b/packages/client/ui-tool/tests/ask-question-row.client.spec.tsx
+@@ -21,6 +21,11 @@ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ const ARGS = JSON.stringify({ questions: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] })
+@@ -35,7 +40,7 @@ const resultNode = (argsRaw: string, resultText: string | null, over?: Partial<T
+   const call = over?.call === undefined ? { name: 'ask_user_question', argsRaw } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callTime: 1_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     content: resultText === null ? [] : [{ type: 'text', text: resultText }],
+     isError: false, subCalls: [], ...over,
+diff --git a/packages/client/ui-tool/tests/assembly-surfaces.client.spec.tsx b/packages/client/ui-tool/tests/assembly-surfaces.client.spec.tsx
+index 5dc1711c..bbf27413 100644
+--- a/packages/client/ui-tool/tests/assembly-surfaces.client.spec.tsx
++++ b/packages/client/ui-tool/tests/assembly-surfaces.client.spec.tsx
+@@ -19,6 +19,11 @@ import { apply as applyConversation, inject as injectConversation } from '@deeps
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { apply as applyTool, inject as injectTool } from '../src/client/apply.ts'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ // The service reads its initial locale from the browser; these specs assert
+ // the shipped Chinese copy, so they state the browser they assume.
+ usePinnedBrowserLanguages('zh-CN')
+@@ -63,7 +68,7 @@ const bashResult = (seq: number, callId: string, over?: Partial<ToolResultNode>)
+   const call = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
+   return {
+     kind: 'tool-result', seq, time: seq * 1_000, callId,
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: seq * 1_000 - 500,
+     content: [{ type: 'text', text: 'total 2\ndemo.txt\n' }], isError: false,
+diff --git a/packages/client/ui-tool/tests/diff-card.client.spec.tsx b/packages/client/ui-tool/tests/diff-card.client.spec.tsx
+index 0458bf33..dbc0e1ed 100644
+--- a/packages/client/ui-tool/tests/diff-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/diff-card.client.spec.tsx
+@@ -17,6 +17,11 @@ import { FileMutationRow, fileMutationToolview } from '../src/client/tool/toolvi
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ type FileMutationRowProps = Parameters<typeof FileMutationRow>[0]
+@@ -41,7 +46,7 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'edit', argsRaw: ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'The file notes/demo.txt has been updated successfully.' }], isError: false,
+diff --git a/packages/client/ui-tool/tests/image-card.client.spec.tsx b/packages/client/ui-tool/tests/image-card.client.spec.tsx
+index 943220ad..f7d5c3e5 100644
+--- a/packages/client/ui-tool/tests/image-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/image-card.client.spec.tsx
+@@ -30,6 +30,11 @@ import type { ToolImagesOwnerProps, ToolTreeProps } from '../src/client/contract
+ import { imageCardModel } from '../src/client/tool/models/image-card-model.ts'
+ import { ReadImageRow, readImageToolview } from '../src/client/tool/toolviews/read-image-row.tsx'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ const SID = 's1' as SessionId
+@@ -75,7 +80,7 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'read_image', argsRaw: ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [
+diff --git a/packages/client/ui-tool/tests/read-card.client.spec.tsx b/packages/client/ui-tool/tests/read-card.client.spec.tsx
+index 20be4da3..97209b6a 100644
+--- a/packages/client/ui-tool/tests/read-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/read-card.client.spec.tsx
+@@ -16,6 +16,11 @@ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.t
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { ReadRow, readToolview } from '../src/client/tool/toolviews/read-row.tsx'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ const SID = 's1' as SessionId
+@@ -67,7 +72,7 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'read', argsRaw: ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: readContent() }], isError: false,
+diff --git a/packages/client/ui-tool/tests/search-card.client.spec.tsx b/packages/client/ui-tool/tests/search-card.client.spec.tsx
+index bdb0d861..a89eadc5 100644
+--- a/packages/client/ui-tool/tests/search-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/search-card.client.spec.tsx
+@@ -13,6 +13,11 @@ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/toolviews/GenericToolCard.tsx'
+ import { SearchRow, searchToolview } from '../src/client/tool/toolviews/search-row.tsx'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ type SearchRowProps = Parameters<typeof SearchRow>[0]
+ 
+ afterEach(cleanup)
+@@ -75,7 +80,7 @@ const settledGrep = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'grep', argsRaw: GREP_ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'a.ts\n  Line 12: const foo = 1' }], isError: false,
+@@ -87,7 +92,7 @@ const settledGlob = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'glob', argsRaw: GLOB_ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 11, time: 2_000, callId: 'c2',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'src/a.ts\nsrc/b.ts' }], isError: false,
+diff --git a/packages/client/ui-tool/tests/terminal-card.client.spec.tsx b/packages/client/ui-tool/tests/terminal-card.client.spec.tsx
+index 42617037..d0cfd33c 100644
+--- a/packages/client/ui-tool/tests/terminal-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/terminal-card.client.spec.tsx
+@@ -19,6 +19,11 @@ import { BashRow } from '../src/client/tool/toolviews/bash-sample.tsx'
+ import { en, zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ type BashRowProps = Parameters<typeof BashRow>[0]
+ 
+ const t: GenericToolCardProps['t'] = makeTranslate(zh, commonZh)
+@@ -58,7 +63,7 @@ const settled = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'bash', argsRaw: ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'a.ts  b.ts\nc.ts  d.ts\n' }], isError: false,
+@@ -639,7 +644,7 @@ describe('BashRow terminal card', () => {
+     expect(view.queryByText('无输出')).toBeNull()
+     expect(view.queryByText(acknowledgement)).toBeNull()
+     expect(view.queryByRole('button', { name: '复制' })).toBeNull()
+-    expect(result.call?.argsRaw).toBe(argsRaw)
++    expect(fixtureRawArgs(result.call)).toBe(argsRaw)
+     expect(result.content).toEqual([{ type: 'text', text: acknowledgement }])
+     fireEvent.click(view.getByRole('button', { name: t('row.inspect') }))
+     expect(inspect).toHaveBeenCalledOnce()
+diff --git a/packages/client/ui-tool/tests/todo-row.client.spec.tsx b/packages/client/ui-tool/tests/todo-row.client.spec.tsx
+index d2a608d8..1ebe7d76 100644
+--- a/packages/client/ui-tool/tests/todo-row.client.spec.tsx
++++ b/packages/client/ui-tool/tests/todo-row.client.spec.tsx
+@@ -13,6 +13,11 @@ import { CONVERSATION_NS as NS } from '../src/client/locale.ts'
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ type TodoRowProps = Parameters<typeof TodoRow>[0]
+ 
+ const t: TodoRowProps['t'] = makeTranslate(zh, commonZh)
+@@ -65,7 +70,7 @@ const resultNode = (argsRaw: string, over?: Partial<ToolResultNode>): ToolResult
+   const call = over?.call === undefined ? { name: 'todo_write', argsRaw } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callTime: 1_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     content: [], isError: false, subCalls: [], ...over,
+   }
+diff --git a/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx b/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx
+index ab63e546..1f4d1dc8 100644
+--- a/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx
++++ b/packages/client/ui-tool/tests/tool-call-tree.client.spec.tsx
+@@ -13,13 +13,18 @@ import { ToolCallTree } from '../src/client/tool/ToolCallTree.tsx'
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ const t: ToolTreeProps['t'] = makeTranslate(zh, commonZh)
+ 
+ const root = (callId: string, call: ToolResultNode['call']): ToolResultNode => ({
+   kind: 'tool-result', seq: 3, time: 3_000, callId, call, callTime: 2_000,
+-  name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++  name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+   content: [], isError: false, subCalls: [],
+ })
+ 
+diff --git a/packages/client/ui-tool/tests/tool-fixtures.client.ts b/packages/client/ui-tool/tests/tool-fixtures.client.ts
+index c0fea0b7..54af55f3 100644
+--- a/packages/client/ui-tool/tests/tool-fixtures.client.ts
++++ b/packages/client/ui-tool/tests/tool-fixtures.client.ts
+@@ -6,6 +6,11 @@ import type {
+   ChatConversationViewNode, ChatSnapshot, ConversationNode, StartedToolCall, ToolResultNode,
+ } from '@deepseek-ai/dsh-client-ui-chat/client'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ function jsonFixture(value: unknown): JsonValue {
+   if (!isJsonValue(value)) throw new Error('tool event fixture must be lossless JSON')
+   return value as JsonValue
+@@ -92,7 +97,7 @@ export function toolSessionEvents(nodes: readonly ToolResultNode[]): readonly Se
+           step: 1,
+           callId: node.callId,
+           name: node.call.name,
+-          arguments: node.call.argsRaw,
++          arguments: fixtureRawArgs(node.call),
+         },
+       } as unknown as SessionLiveEventEntry['event'],
+     }
+diff --git a/packages/client/ui-tool/tests/tool-row.client.spec.tsx b/packages/client/ui-tool/tests/tool-row.client.spec.tsx
+index beadba5f..974b21f1 100644
+--- a/packages/client/ui-tool/tests/tool-row.client.spec.tsx
++++ b/packages/client/ui-tool/tests/tool-row.client.spec.tsx
+@@ -17,6 +17,11 @@ import { GenericToolCard, type GenericToolCardProps } from '../src/client/tool/t
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(() => {
+   cleanup()
+   vi.restoreAllMocks()
+@@ -36,7 +41,7 @@ const result = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'bash', argsRaw: '{"command":"ls -la","description":"List files"}' } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [], isError: false, subCalls: [], ...over,
+diff --git a/packages/client/ui-tool/tests/toolview-slot.client.spec.tsx b/packages/client/ui-tool/tests/toolview-slot.client.spec.tsx
+index 0d16e96f..550974f7 100644
+--- a/packages/client/ui-tool/tests/toolview-slot.client.spec.tsx
++++ b/packages/client/ui-tool/tests/toolview-slot.client.spec.tsx
+@@ -23,6 +23,11 @@ import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { toolSessionEvents } from './tool-fixtures.client.ts'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ const SID = 's1' as SessionId
+ // jsdom omits font loading events used by the resident composer.
+ const fonts = Object.getOwnPropertyDescriptor(document, 'fonts')
+@@ -57,7 +62,7 @@ const toolResult = (
+   const call = over.call === undefined ? { name, argsRaw: args } : over.call
+   return {
+     kind: 'tool-result', seq, time: seq * 1_000, callId,
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: seq * 1_000 - 500,
+     content: [], isError: false, subCalls: [], ...over,
+diff --git a/packages/client/ui-tool/tests/web-card.client.spec.tsx b/packages/client/ui-tool/tests/web-card.client.spec.tsx
+index 9ec91503..4702b818 100644
+--- a/packages/client/ui-tool/tests/web-card.client.spec.tsx
++++ b/packages/client/ui-tool/tests/web-card.client.spec.tsx
+@@ -14,6 +14,11 @@ import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts
+ import { zh } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ afterEach(cleanup)
+ 
+ 
+@@ -62,7 +67,7 @@ const settledSearch = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'web_search', argsRaw: SEARCH_ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 10, time: 2_000, callId: 'c1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'search text' }], isError: false,
+@@ -74,7 +79,7 @@ const settledFetch = (over?: Partial<ToolResultNode>): ToolResultNode => {
+   const call = over?.call === undefined ? { name: 'web_fetch', argsRaw: FETCH_ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 11, time: 2_000, callId: 'c2',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call,
+     callTime: 1_000,
+     content: [{ type: 'text', text: 'fetch body' }], isError: false,
 diff --git a/packages/client/ui-trajectory/README.md b/packages/client/ui-trajectory/README.md
 index 265c6fff..9fd9a2b6 100644
 --- a/packages/client/ui-trajectory/README.md
@@ -696,14 +1234,41 @@ index 06c9015a..d99a2e07 100644
            ? {
              outputDetail: detailResult(sub, t),
 diff --git a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
-index ba06b40f..88214aed 100644
+index ba06b40f..66ef85ec 100644
 --- a/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
 +++ b/packages/client/ui-trajectory/src/client/trajectory-tool-definition.ts
-@@ -33,15 +33,19 @@ interface DispatchData {
+@@ -1,18 +1,22 @@
+ import type { Context } from '@deepseek-ai/cordis'
+ import type {
+   ConversationMatch, ConversationNodeContext, ConversationNodeDefinition, StartedToolCall,
+-  ToolResultNode,
++  StartedToolCallPresentation, ToolResultNode,
+ } from '@deepseek-ai/dsh-client-ui-conversation/client'
+ import type {} from '@deepseek-ai/dsh-tool-executor-ptc/client'
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { trajectoryNode } from './trajectory-definition-common.ts'
+ 
++function isParsedCall(call: { readonly argumentRepresentation?: string } | null | undefined): call is { readonly argumentRepresentation: 'parsed-json'; readonly argsParsed: { [key: string]: unknown } } {
++  return call?.argumentRepresentation === 'parsed-json'
++}
++
+ /* jscpd:ignore-start -- Target-owned Definitions intentionally keep their event
+  * state machines independent; see ../../../../../.agents/notes/implemented/
+  * architecture/2026-08-09-client-conversation-node-assembly.md. */
+ const MAX_DEPTH = 256
+ 
+-type ToolCallBlock = StartedToolCall | ToolResultNode
++type ToolCallBlock = StartedToolCallPresentation | ToolResultNode
+ 
+ interface ToolState {
+   readonly rootId: string
+@@ -32,16 +36,20 @@ interface DispatchData {
+   readonly meta?: ToolResultNode['meta']
  }
  
- function rootCall(match: ConversationMatch): StartedToolCall {
+-function rootCall(match: ConversationMatch): StartedToolCall {
 -  if (match.event.type !== 'tool/call') {
++function rootCall(match: ConversationMatch): StartedToolCallPresentation {
 +  if (match.event.type !== 'tool/call' && match.event.type !== 'tool/parsed-call') {
      throw new Error('trajectory-tool-call start requires tool/call')
    }
@@ -722,7 +1287,16 @@ index ba06b40f..88214aed 100644
      turn: match.event.data.turn,
      step: match.event.data.step,
      time: match.event.time,
-@@ -62,7 +66,11 @@ function rootResult(
+@@ -51,7 +59,7 @@ function rootCall(match: ConversationMatch): StartedToolCall {
+ 
+ function rootResult(
+   match: ConversationMatch,
+-  previous?: StartedToolCall,
++  previous?: StartedToolCallPresentation,
+ ): ToolResultNode | undefined {
+   if (match.event.type !== 'tool/result') return undefined
+   const message = match.event.data.message
+@@ -62,7 +70,11 @@ function rootResult(
      callId: String(message.source.callId),
      name: previous?.name ?? '',
      args: previous?.args ?? PartialArguments.EMPTY,
@@ -735,12 +1309,12 @@ index ba06b40f..88214aed 100644
      callTime: previous?.time ?? null,
      content: message.content,
      isError: message.isError === true,
-@@ -204,7 +212,11 @@ function projectCall(
+@@ -204,7 +216,11 @@ function projectCall(
      ...block.parentCallId === undefined ? {} : { parentCallId: block.parentCallId },
      name: block.name,
      args: block.args,
 -    call: { name: block.name, argsRaw: block.argsRaw },
-+    call: block.argumentRepresentation === 'parsed-json'
++    call: isParsedCall(block)
 +      ? { name: block.name, argumentRepresentation: 'parsed-json', argsParsed: block.argsParsed,
 +        ...(block.thoughtSignature ? { thoughtSignature: block.thoughtSignature } : {}) }
 +      : { name: block.name, argsRaw: block.argsRaw,
@@ -748,7 +1322,7 @@ index ba06b40f..88214aed 100644
      callTime: block.time,
      content: [],
      isError: true,
-@@ -232,7 +244,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
+@@ -232,7 +248,7 @@ const trajectoryToolDefinition: ConversationNodeDefinition<ToolState> = {
    kind: 'trajectory-tool-call',
    target: 'trajectory',
    match: (event) => {
@@ -919,6 +1493,72 @@ index 0cf13c86..46191ee9 100644
    } & (K extends SurfaceEventType ? SurfaceIntent<K> : {
      surfaceOp?: never
      sourceEventSeqs?: never
+diff --git a/packages/extensions/ui-cordis/src/client/card-model.ts b/packages/extensions/ui-cordis/src/client/card-model.ts
+index bccd1b61..cd607251 100644
+--- a/packages/extensions/ui-cordis/src/client/card-model.ts
++++ b/packages/extensions/ui-cordis/src/client/card-model.ts
+@@ -8,6 +8,9 @@ import type {
+ type Block = StartedToolCallViewProps['block']
+ 
+ /** Lifecycle of the tool call itself. */
++function rawArguments(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null | undefined): string | undefined {
++  return call?.argumentRepresentation === 'parsed-json' ? undefined : call?.argsRaw
++}
+ export type CordisToolState = 'running' | 'ok' | 'error' | 'stopped'
+ 
+ /** Frozen `cordis_define` presentation data. */
+@@ -94,7 +97,7 @@ function metaObject(block: Block): Record<string, unknown> | null {
+  */
+ export function cordisDefineCard(block: Block): CordisDefineCard {
+   const settled = 'kind' in block
+-  const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
++  const argsRaw = (settled ? rawArguments(block.call) : rawArguments(block)) ?? ''
+   const args = parseArgs(argsRaw)
+   const code = args === null ? null : objectAt(args, 'code')
+   const state = stateOf(block)
+@@ -121,7 +124,7 @@ export function cordisDefineCard(block: Block): CordisDefineCard {
+  */
+ export function cordisRunCard(block: Block): CordisRunCard {
+   const settled = 'kind' in block
+-  const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
++  const argsRaw = (settled ? rawArguments(block.call) : rawArguments(block)) ?? ''
+   const args = parseArgs(argsRaw)
+   const meta = metaObject(block)
+   const state = stateOf(block)
+@@ -148,7 +151,7 @@ export function cordisRunCard(block: Block): CordisRunCard {
+  */
+ export function cordisActionCard(block: Block): CordisActionCard {
+   const settled = 'kind' in block
+-  const argsRaw = (settled ? block.call?.argsRaw : block.argsRaw) ?? ''
++  const argsRaw = (settled ? rawArguments(block.call) : rawArguments(block)) ?? ''
+   const args = parseArgs(argsRaw)
+   const state = stateOf(block)
+   const output = settled ? resultText(block) : null
+diff --git a/packages/extensions/ui-cordis/tests/card-model.client.spec.ts b/packages/extensions/ui-cordis/tests/card-model.client.spec.ts
+index 14a81de6..ef2cd654 100644
+--- a/packages/extensions/ui-cordis/tests/card-model.client.spec.ts
++++ b/packages/extensions/ui-cordis/tests/card-model.client.spec.ts
+@@ -6,6 +6,11 @@ import type { StartedToolCall, ToolResultNode } from '@deepseek-ai/dsh-client-ui
+ import { PartialArguments } from '@deepseek-ai/dsh-util-values'
+ import { cordisActionCard, cordisDefineCard } from '../src/client/card-model.ts'
+ 
++function fixtureRawArgs(call: { readonly argsRaw?: string; readonly argumentRepresentation?: string } | null): string {
++  if (call === null || call.argumentRepresentation === 'parsed-json') return ''
++  return call.argsRaw ?? ''
++}
++
+ const ARGS = '{"name":"clock","purpose":"顶栏时钟","code":{"client":"return {}","host":"harness.handle(\'now\', () => Date.now())"}}'
+ 
+ function running(over: Partial<StartedToolCall> = {}): StartedToolCall {
+@@ -20,7 +25,7 @@ function settled(over: Partial<ToolResultNode> = {}): ToolResultNode {
+   const call = over.call === undefined ? { name: 'cordis_define', argsRaw: ARGS } : over.call
+   return {
+     kind: 'tool-result', seq: 2, time: 2_000, callId: 'call-1',
+-    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(call.argsRaw),
++    name: call?.name ?? '', args: call === null ? PartialArguments.EMPTY : PartialArguments.fromText(fixtureRawArgs(call)),
+     call, callTime: 1_000,
+     content: [{ type: 'text', text: 'defined dyn-1' }], isError: false,
+     meta: { pluginId: 'dyn-1', packageId: 'pkg-1' }, subCalls: [], ...over,
 diff --git a/packages/session/session-log-deepseek/src/index.ts b/packages/session/session-log-deepseek/src/index.ts
 index 20d5dcf1..70c8a6df 100644
 --- a/packages/session/session-log-deepseek/src/index.ts

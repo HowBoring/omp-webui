@@ -29,19 +29,14 @@
       "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
     },
     {
-      "path": "patches/0004-submission-settlement.patch",
-      "sha256": "10fa4d35bd5d8a58631e08d8e1fe75d05c510cf3a358edb60aed1a46b8b08859",
-      "treeAfter": "c50168120be5019ba36b193f8c000614869cd851"
-    },
-    {
-      "path": "patches/0005-local-prompt-refusal.patch",
-      "sha256": "f41c4a618449ca9a9ab3b22b6315cf6a787e7264c4849526db5b90cc2e56a241",
-      "treeAfter": "b7d45d6871e1b004df6d745738b8fc008c79b262"
+      "path": "patches/semantic-draft-esm.patch",
+      "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
+      "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
     },
     {
       "path": "patches/0006-parsed-tool-presentation.patch",
-      "sha256": "921afd4b26e27740c92bd54d931c6ab3ca7754683c3c938838b31fa04936539d",
-      "treeAfter": "0f44b87875fea13d690ccd7c7adefd8840ba0123"
+      "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+      "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
     }
   ],
   "parsedEvent": "tool/parsed-call",
@@ -131,7 +126,11 @@
       "status": "PASS",
       "gates": 8,
       "recordedClientArtifacts": 371,
-      "publicValues": 3
+      "publicValues": 3,
+      "aggregateCheckGates": 2,
+      "command": "bash scripts/prepare-dsh.sh (Node v24.22.1, pnpm 11.28.5)",
+      "sequence": "8 artifact gates + 2 aggregate check gates + semantic draft node+bun export check; source manifest .dsh-build/omp-webui-source.json",
+      "clientAggregateCheck": "PASS: host aggregate 12.19s, client aggregate 5.34s; no blanket casts or argsRaw fallbacks"
     },
     "nativeRpcChromium": {
       "status": "PASS",
@@ -141,6 +140,22 @@
       "privateData": false,
       "productAdmission": "blocked",
       "knownFailures": []
+    },
+    "dshPatchDigests": {
+      "status": "PASS",
+      "patch": "compatibility/dsh/patches/0006-parsed-tool-presentation.patch",
+      "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+      "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea",
+      "sourceTreeVerifiedBy": "bun scripts/dsh-source.ts vendor/dsh -> candidate",
+      "contract": "ToolCallArguments/StartedToolCall keep strict argsRaw; ParsedStartedToolCall/StartedToolCallPresentation represent native parsed JSON; consumers narrow explicitly; fixtures preserve raw assertions"
+    },
+    "dshAffectedClientSpecs": {
+      "status": "PASS",
+      "command": "pnpm exec vitest run packages/client/ui-tool/tests packages/client/ui-skill/tests packages/client/ui-trajectory/tests packages/extensions/ui-cordis/tests",
+      "testFiles": 44,
+      "tests": 919,
+      "failed": 0,
+      "durationSeconds": 14.67
     }
   },
   "procedureDeviation": {
@@ -602,5 +617,6 @@
     "newProcessCensusOrSignals": false,
     "freshIntegrationRead": "42769489183eedb20b371083c49f915fda2bb8cf already ancestor; no merge delta",
     "newNativeFfiKernelProductProcessListenerNetworkBrowserProbesGenerationFullBuildOrAdmission": false
-  }
+  },
+  "integratedAt": "bbe1d74b1f58a2254857e9146003165b95dd7149"
 }
