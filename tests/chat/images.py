@@ -64,14 +64,18 @@ async def grant(page):
 
 
 async def open_session(page, native_id="native-0000"):
-    await page.get_by_role("button", name="Refresh catalog").click()
-    await page.locator(f'li[data-native-id="{native_id}"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
-    try:
-        await page.wait_for_selector(f'[data-chat-native-session="{native_id}"]', timeout=60000)
-    except Exception:
-        print("OPEN_ALERTS", await page.get_by_role("alert").all_inner_texts())
-        print("OPEN_BODY", (await page.locator("body").inner_text())[:1200])
-        raise
+    # Catalog/projection reads can race a Host restart; the supported recovery is an explicit refresh and Open.
+    for attempt in range(2):
+        await page.get_by_role("button", name="Refresh catalog").click()
+        await page.locator(f'li[data-native-id="{native_id}"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
+        try:
+            await page.wait_for_selector(f'[data-chat-native-session="{native_id}"]', timeout=30000)
+            return
+        except Exception:
+            if attempt:
+                print("OPEN_ALERTS", await page.get_by_role("alert").all_inner_texts())
+                print("OPEN_BODY", (await page.locator("body").inner_text())[:1200])
+                raise
 
 
 def data_png(width=4, height=4, color=(12, 34, 56)):
@@ -466,7 +470,13 @@ async def main():
             scenarios.append("image-object-limit-enforced")
             await remove_all(limit)
 
-            entries = await limit.locator("[data-chat-native-entry]").count()
+            # #45 restart contract: manual refresh + Open for one admitted Chat View. Tabs whose View was
+            # already replaced must not compete for the single per-credential View across the Host restart.
+            await stale.close()
+            await page.close()
+            journal = ROOT / "vendor/chat-attachment-fixture/sessions/bucket/native-0000.jsonl"
+            effects = ROOT / "vendor/chat-attachment-fixture/attachment-effects.json"
+            effects_before = json.loads(effects.read_text())
             await upload(limit, "restart.pdf", "application/pdf", (FIXTURES / "minimal-text.pdf").read_bytes())
             await wait_original(limit, 1)
             await send_images(limit, "restart consent")
@@ -478,16 +488,29 @@ async def main():
             try:
                 await open_session(limit)
             except Exception as failure:
-                print("RESTART_RECOVERY", failure, await limit.get_by_role("alert").all_inner_texts())
+                # Known #55 boundary: rebuilding a Session projection whose native history carries prepared
+                # attachments closes the remote stream after a Host restart. #45's manual reopen contract holds
+                # for Sessions without attachment history; record this boundary without claiming recovery.
+                print("RESTART_REATTACH projection-unavailable", failure,
+                      await limit.get_by_role("alert").all_inner_texts())
+                assert await limit.locator('[data-chat-native-session="native-0000"]').count() == 0
+                assert any("projection failed" in text.lower()
+                           for text in await limit.get_by_role("alert").all_inner_texts())
             else:
                 assert await limit.get_by_label("Message").input_value() == "restart consent", "Host restart keeps the draft"
-            assert await limit.locator("[data-chat-native-entry]").count() == entries, "Host restart never dispatches an unconsented attempt"
+                assert await limit.locator("[data-chat-original-id]").count() == 0, "Host restart drops unprepared attachments"
+            assert any("restart consent" in value for value in
+                       await limit.evaluate("Object.values(localStorage)")), "the draft is retained in storage"
+            assert "restart consent" not in journal.read_text(), "Host restart never dispatches the unconsented draft"
+            effects_after = json.loads(effects.read_text())
+            if effects_after != effects_before:  # a fresh worker rewrites its zeroed effect journal on start
+                assert effects_after["inputCalls"] == 0 and effects_after["modelDispatches"] == 0
+                assert effects_after["requests"] == [], "Host restart never consumes an unconsented attachment"
             scenarios.append("host-restart-never-dispatches-unconsented-attempt")
-            await limit.close()
 
-            await stale.screenshot(path=str(ROOT / "vendor/chat-images.png"), full_page=True)
+            await limit.screenshot(path=str(ROOT / "vendor/chat-images.png"), full_page=True)
             assert not errors, errors
-            await stale.close()
+            await limit.close()
             print(json.dumps({"status": "PASS", "browser": browser.version, "scenarios": scenarios,
                               "privateData": False, "productAdmission": "blocked"}))
             await context.close()
