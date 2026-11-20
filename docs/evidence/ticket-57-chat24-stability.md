@@ -54,7 +54,7 @@ Fix: `OMP_LIVE_FIXTURE_DELAY_MS` now applies to every streamed call (default 80 
 unset, so the live/native suites are unchanged). A `delay=2000` prompt is a real ~6 s
 stream, so the busy refusal and Stop always reach an in-flight turn.
 
-## Reopen: native persistence is intact; failure not yet localized
+## Reopen: the records are intact, the assertion raced a row rebuild
 
 Native probe against the actual candidate (`vendor/omp-candidate/cli.js`, `tools=all`,
 prompt "use all controlled tools in background"): the active path and the full tree agree
@@ -63,26 +63,44 @@ on 22 items and **six distinct tool results** — `background-fixture-id`, `batc
 `batch-two-id_dup1` — with two assistant tool-call messages holding the same three ids
 before/after the `_dup1` repair. The repeated ids in the fixture are repaired upstream by
 `ensureUniqueToolCallIds` (`node_modules/@oh-my-pi/pi-agent-core/src/agent-loop.ts:3111`)
-before dispatch and persistence, so native entries are neither lost nor merged.
+before dispatch and persistence, so native entries are neither lost nor merged, and both
+the call record and its result carry the repaired id (so `ToolCallLedger` in
+`packages/projection/history-records.ts` finds an owner for every result).
 
-Browser observations:
+DOM evidence at the failing assertion, from a run that reproduced it:
 
-- opening `native-0002` alone, running the batch prompt, reloading and reopening renders
-  2 `s0_fixture`, 2 `s0_fixture_batch` and 2 bash results, with no `[data-chat-blocked]`;
-- a full replica of phase 1 + 1b (three iterations) also rendered 2/2/2 after reload;
-- only the real suite run 2 lost one `s0_fixture` result after reload (count 1) while the
-  `s0_fixture_batch` count stayed at 2.
+- the dump taken immediately before the failing count showed **all six result rows**:
+  `[bash, s0_fixture, s0_fixture_batch, bash, s0_fixture, s0_fixture_batch]`, no
+  `[data-chat-blocked]`, i.e. no row rendered under a `_dup1` call id and no unknown node;
+- sampling the reopened view 12 times at 250 ms after the reload selector resolved gave the
+  identical frame `[2 s0_fixture, 2 s0_fixture_batch, 6 results, scrollTop 0, scrollHeight 1854,
+  clientHeight 1854]` every time — the six rows are stable and the view is not virtualized
+  (scrollHeight equals clientHeight at the top).
 
-Next step that will settle it: the DBG loop used during this investigation (count and text
-of every `[data-chat-tool-result]` after reload) was removed before this commit; re-add it
-in `tests/chat/browser.py` at the reopen assertion and run the suite until the flake hits
-(~1/4). The dump distinguishes the two remaining candidates:
+So neither remaining candidate was right: no entry is lost on reopen and no result loses its
+tool name. The red was the assertion itself. `locator.all_inner_texts()` reads the DOM once
+with no auto-wait, and the reopened conversation rebuilds its rows when the live shell
+re-attaches after the reload, so a single frame with fewer than two `s0_fixture` result rows
+failed the assertion while the projection already held all six. The reopen check now waits
+for the native records (`wait_for_function` over `[data-chat-tool-result]` counts), which
+still fails if an entry is ever really missing.
 
-1. the second batch-one result renders under its repaired call id instead of its tool name
-   (`data-chat-tool-result` falls back to `value.callId` at `apps/chat/src/client.tsx:402`),
-   which is a client-side pairing gap for `_dup1` ids, or
-2. the Host history page omits one entry while `s0_fixture_batch` survives, which points at
-   the history/live handoff (`packages/projection/live-journal.ts`) rather than at Chat.
+## Port and process lifetime
+
+`start_host()` already killed leftovers and waited for the port, but it accepted health from
+whatever answered on the port. A predecessor still draining past the SIGTERM window could
+therefore pass the health probe while the freshly spawned child had not bound yet, and the
+next phase would talk to a host whose access authority was already closing — the
+`401 Access invalidated` replies on `ompChat/state`, `ompStop/confirmForce`, `ompRetry/offer`
+and the `net::ERR_CONNECTION_RESET` reconnects seen in the suite log. That is a shutdown-window
+reply, not a lost credential: `chat-component-main.ts` only closes the authority on SIGTERM
+(`access.close()`), never revokes, and `AccessStore` keeps credentials while the origin and
+data directory match, so a reload after restart stays admitted.
+
+The launcher now also verifies the listener is the child it started: it truncates
+`vendor/chat-host.log`, and the Host prints its `S2-isolated-chat` origin line only after it
+binds, so a health response without that line is a predecessor and the spawn is retried
+instead of adopted.
 
 ## Running the focused evidence
 
@@ -95,3 +113,24 @@ The isolated variants used here (not committed) import `tests/chat/browser.py` a
 regenerate the fixture, start the host with `tools="all"`/`delay=2000`, and drive only
 `open_session`, `send`, and the settlement paragraph. Native persistence was read directly
 through `LiveTransport.open` with `history.open("tree")` / `history.open("active")`.
+
+## Re-run evidence
+
+Full `tests/chat/browser.py` three consecutive times on this tree (port 32957, Linux
+Chromium 157.0.8103.38): PASS, PASS, PASS — 1242 s of wall time for all three, i.e. about
+414 s per run against a 351 s single-run baseline, so no run doubled the normal duration
+and no run was killed. All reopen and Stop scenarios are in every pass:
+`native-tool-history-reopen`, `native-background-tool-result`, `busy-refusal-retains-draft`,
+`ordinary-stop-settles-cancelled-keeps-draft`, `idle-stop-keeps-draft-no-force`,
+`stubborn-force-offered-after-30s`, `stubborn-force-confirm-terminated-reaped`,
+`pending-ui-cancelled-by-stop`, `retry-stop-settles-cancelled-and-recovers-admission`.
+
+The delayed fixture is what makes those Stop scenarios the same in every run: phase 2 waits
+for `data-chat-stop-status="stopping"` on a 2000 ms-per-delta stream and then for
+`data-chat-settlement="settled"` with `cancelled`, and phase 2b waits the full 30 s before
+the force offer appears. Both now pass 3/3, where the pre-fix tree settled `succeeded` in 2
+of 4 runs.
+
+Also green on this tree: `tests/chat/images.py` (18 scenarios), `tests/chat/drafts.py`
+(5 cases, no boundaries), `bun test tests/chat` (67 tests), 
+`bun test compatibility/omp/fixtures/live-public-rpc.test.js` (9 tests), `bun run typecheck`.
