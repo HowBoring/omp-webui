@@ -16,13 +16,14 @@ import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor, type SessionLaunchOptions } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
-import { createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
-  chatMethods, isSuccessfulSessionReply, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
+import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
+  chatMethods, isSuccessfulSessionReply, preferenceMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
 import { ChatAttachService, ChatCancelService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
 import { ChatViewAdmission } from "./chat-view-admission.ts";
 import { ChatComponentRuntime } from "./chat-component-runtime.ts";
+import { preferencesHostContribution, WebPreferences } from "../../../packages/preferences/service.ts";
 import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
 import { OriginalStore } from "../../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../../packages/attachments/service.ts";
@@ -224,9 +225,15 @@ export async function startSessionComponentServer(options: Options) {
     new ChatAttachService(ctx, input => {
       const identity = sessionCaller.getStore(); return identity ? runtime.attach(identity, input) : undefined;
     });
+    ctx.typert.register(preferencesHostContribution);
+    new WebPreferences(ctx, () => {
+      const identity = sessionCaller.getStore();
+      if (!identity || !access.revalidate(identity)) throw new Error("WEBUI_PREFERENCE_AUTHORITY");
+    });
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
       (_request, identity) => runtime.enrollment(identity)) };
-    unaryMethods = new Set([...unary, "ompChatComponent/attach", ...Object.keys(chatMethods)]);
+    unaryMethods = new Set([...unary, ...Object.keys(preferenceMethods),
+      "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }
   const detachRevocation = access.onRevokeAll(() => {
     chatComposition?.runtime.close();

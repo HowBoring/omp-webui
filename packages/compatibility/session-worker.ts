@@ -93,6 +93,11 @@ function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
 
 type Request = (command: StdioCommand) => Promise<unknown>;
 
+const nativeThinking = z.enum(["inherit", "off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+const nativeModel = z.object({ provider: z.string().min(1), id: z.string().min(1), name: z.string().min(1),
+  reasoning: z.boolean(), thinking: z.object({ efforts: z.array(nativeThinking).max(8) }).passthrough().optional() }).passthrough();
+export type AvailableModel = z.infer<typeof nativeModel>;
+
 async function readSessionState(request: Request): Promise<SessionState> {
   const value = await request({ type: "get_state", id: crypto.randomUUID() });
   if (!liveState(value)) throw new Error("SESSION_STATE_SCHEMA");
@@ -133,6 +138,26 @@ class SessionRpc {
     return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
   }
   state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
+  async models(): Promise<AvailableModel[]> {
+    const value = z.object({ models: z.array(nativeModel).max(4096) }).parse(
+      await this.core.request({ type: "get_available_models", id: crypto.randomUUID() }));
+    return value.models;
+  }
+  async thinkingLevels(): Promise<z.infer<typeof nativeThinking>[]> {
+    const value = z.object({ levels: z.array(nativeThinking).max(8) }).parse(
+      await this.core.request({ type: "get_available_thinking_levels", id: crypto.randomUUID() }));
+    return value.levels;
+  }
+  async selectModel(provider: string, modelId: string): Promise<void> {
+    const command = { type: "set_model", provider, modelId, id: crypto.randomUUID() };
+    if (!controls(command)) throw new Error("SESSION_CONTROL_SCHEMA");
+    await this.core.request(command);
+  }
+  async setThinkingLevel(level: z.infer<typeof nativeThinking>): Promise<void> {
+    const command = { type: "set_thinking_level", level, id: crypto.randomUUID() };
+    if (!controls(command)) throw new Error("SESSION_CONTROL_SCHEMA");
+    await this.core.request(command);
+  }
   /** Host-owned adapter for the matched public submission commands; never a browser tunnel. */
   async submitCommand(command: StdioCommand): Promise<unknown> {
     if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");

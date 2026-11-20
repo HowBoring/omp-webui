@@ -1,1 +1,8 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OMP Chat component</title></head><body><div id="app"></div><script type="module" src="/client.js"></script></body></html>
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>OMP Chat component</title>
+<style>
+  [data-chat-root-slot] { --om-bg: #fffdf8; --om-ink: #16352a; --om-panel: #f3f0e7; background: var(--om-bg); color: var(--om-ink); min-height: 100vh; padding: 1rem; }
+  [data-chat-root-slot][data-om-theme="dark"] { --om-bg: #12211c; --om-ink: #f2efe6; --om-panel: #1d332b; }
+  @media (prefers-color-scheme: dark) { [data-chat-root-slot][data-om-theme="system"] { --om-bg: #12211c; --om-ink: #f2efe6; --om-panel: #1d332b; } }
+  [data-chat-root-slot] section { background: var(--om-panel); margin: .5rem 0; padding: .75rem; border-radius: .25rem; }
+  [data-chat-root-slot] label { display: inline-flex; gap: .35rem; align-items: center; margin: .25rem .75rem .25rem 0; }
+</style></head><body><div id="app"></div><script type="module" src="/client.js"></script></body></html>
