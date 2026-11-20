@@ -1294,8 +1294,6 @@ async function boot() {
       const result = await ctx.remote.ompSessions.current();
       // A manual Open during the restore wins: never replace a Session the user already presented.
       if (current !== accessRevision || presented !== presentationRevision) return;
-      if (result.ok && result.value?.view) await present(result.value.view);
-    } catch { /* A later explicit Open remains available. */ }
       if (result.ok && result.value?.view) {
         if (result.value.view.state !== "open") throw new Error("Its worker is no longer live.");
         await present(result.value.view);
