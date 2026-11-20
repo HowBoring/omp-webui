@@ -99,7 +99,6 @@ export async function startSessionComponentServer(options: Options) {
   let access: ReturnType<typeof openBrowserAccess>;
   let interactionCarrier: InteractionBrokerCarrier | undefined;
   const interactionBroker = options.interactionBroker;
-  access = openBrowserAccess({ dataDir: options.dataDir, origin: `http://127.0.0.1:${options.port ?? 3180}` });
   const server = Bun.serve<SocketData>({
     // The strict reader still enforces 2 MiB for prompt work and 16 MiB for one base64 image original.
     hostname: "127.0.0.1", port: options.port ?? 3180, maxRequestBodySize: 20 * 1024 * 1024,
@@ -196,6 +195,7 @@ export async function startSessionComponentServer(options: Options) {
       },
     },
   });
+  access = openBrowserAccess({ dataDir: options.dataDir, origin: server.url.origin });
   if (interactionBroker) interactionCarrier = new InteractionBrokerCarrier(ctx, access, interactionBroker,
     options.interactionBrokerMode);
   const { launch, launchOwned } = options;
