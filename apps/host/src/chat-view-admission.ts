@@ -99,7 +99,8 @@ export class ChatViewAdmission {
     const current = () => {
       if (signal.aborted) return false;
       const worker = this.#worker(identity, record.selection.workerId, record.selection.grantId);
-      if (!worker || worker.generation !== record.worker.generation || !sameSubmissionTarget(worker.target, record.worker.target)
+      if (!worker) return false;
+      if (worker.generation !== record.worker.generation || !sameSubmissionTarget(worker.target, record.worker.target)
         || worker.cwd !== record.worker.cwd || worker.grantIdentity !== record.worker.grantIdentity) {
         enrollment.revoke();
         return false;

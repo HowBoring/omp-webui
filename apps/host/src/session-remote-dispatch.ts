@@ -7,7 +7,10 @@ import { chatRequestFailure } from "../../../packages/chat/service.ts";
 import { chatContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
 import { sessionsContribution } from "../../../packages/contracts/sessions.ts";
+import { attachmentsContribution } from "../../../packages/contracts/attachment-remote.ts";
+import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
+import { sessionCaller } from "../../../packages/sessions/service.ts";
 import { ChatBodyError, hasCurrentChatAuthority, readChatRequestBody } from "./chat-request-body.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
@@ -19,6 +22,8 @@ export const chatMethods = {
   "session/cancel": sessionContribution.methods["session/cancel"],
   "ompChat/lookup": chatContribution.methods["ompChat/lookup"],
   "ompChat/state": chatContribution.methods["ompChat/state"],
+  ...attachmentsContribution.methods,
+  "ompOriginals/exchange": attachmentContribution.methods["ompOriginals/exchange"],
 };
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();
@@ -31,9 +36,11 @@ type ResolveChatView = (request: Request, identity: BrowserAccess) => ChatViewEn
 type ChatBinding = NonNullable<ReturnType<ChatViewAdmission["bind"]>>;
 
 /** Opt-in unary dispatch with an authenticated View resolver and a bounded body read. */
-export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView) {
+export type ChatSessionDispatch = (request: Request, ctx: Context, peer: Peer) => Promise<Response>;
+
+export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView): ChatSessionDispatch {
   let inflight = 0;
-  return async (request: Request, ctx: Context, peer: Peer): Promise<Response> => {
+  return async (request, ctx, peer) => {
     const identity = admission.authority.admit(request, "write");
     if (identity instanceof Response) return identity;
     if (request.method !== "POST") return new Response("POST required", { status: 405 });
@@ -46,7 +53,7 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
     } catch { return invalidated(); }
     if (!binding) return invalidated();
     ++inflight;
-    try { return await dispatch(request, ctx, peer, binding.current, binding); }
+    try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, binding.current, binding)); }
     finally { --inflight; }
   };
 }
@@ -65,7 +72,8 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
   const current = chat ? () => hasCurrentChatAuthority(authority) : authority;
   let decoded;
   try {
-    const data = chat ? await readChatRequestBody(request, chat.signal, authority) : await request.json();
+    const original = new URL(request.url).pathname === "/api/ompOriginals/exchange";
+    const data = chat ? await readChatRequestBody(request, chat.signal, authority, original) : await request.json();
     const envelope = clientRequestSchema.parse(data);
     const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
     if (!method || (!chat && !sessionUnary.has(envelope.method))

@@ -15,8 +15,11 @@ import type { SessionState } from "../../../packages/contracts/generated/omp-wir
 import type { StopSnapshot } from "../../../packages/contracts/stop.ts";
 import type { DirectoryGrants } from "../../../packages/workspaces/grants.ts";
 import { ChatGateway, type ChatWorkerPort } from "../../../packages/chat/gateway.ts";
+import type { AttachmentSubmissionGate } from "../../../packages/attachments/submission-gate.ts";
+import type { AttachmentNativePort } from "../../../packages/attachments/bridge.ts";
+import type { SubmissionTarget } from "../../../packages/contracts/generated/omp-wire.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
-import type { SessionSupervisor, SupervisedSessionWorker } from "../../../packages/sessions/supervisor.ts";
+import type { SessionSupervisor, SessionView, SupervisedSessionWorker } from "../../../packages/sessions/supervisor.ts";
 
 interface Entry {
   readonly workerId: string;
@@ -24,6 +27,7 @@ interface Entry {
   readonly sessionId: string;
   readonly target: ChatWorkerPort["target"];
   readonly grantId: string;
+  readonly worker: SupervisedSessionWorker;
   readonly gateway: ChatGateway;
   readonly lifetime: AbortController;
   readonly idleGeneration: string;
@@ -45,7 +49,8 @@ export class ChatComponentRuntime {
   #closed = false;
 
   constructor(private readonly authority: BrowserAuthority, private readonly grants: DirectoryGrants,
-    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view">, private readonly admission: ChatViewAdmission) {}
+    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view">, private readonly admission: ChatViewAdmission,
+    private readonly gate?: AttachmentSubmissionGate) {}
 
   attach(identity: BrowserAccess, input: ChatAttachment): ChatAttachmentResult | undefined {
     if (this.#closed) return;
@@ -90,6 +95,36 @@ export class ChatComponentRuntime {
 
   gateway(sessionId: string): ChatGateway | undefined {
     for (const entry of this.#entries.values()) if (entry.sessionId === sessionId) return entry.gateway;
+  }
+
+  /** The gate's native port is the exact retained worker for the prepared target, never a browser tunnel. */
+  native(target: SubmissionTarget): AttachmentNativePort {
+    for (const entry of this.#entries.values()) {
+      if (entry.target.nativeSessionId !== target.nativeSessionId || entry.target.sourceId !== target.sourceId
+        || entry.target.instanceId !== target.instanceId) continue;
+      return {
+        prepare: input => entry.worker.attachments.prepare(input),
+        cancel: preparationId => entry.worker.attachments.cancel(preparationId),
+        submit: input => entry.worker.submissions.submit(input),
+        query: (clientSubmissionId, offset, limit) => entry.worker.submissions.query(clientSubmissionId, offset, limit),
+      };
+    }
+    throw Error("ATTACHMENT_TARGET_CHANGED");
+  }
+
+  /** Rechecks the attached View, grant and live worker before any original or preparation authority is granted. */
+  attachment(identity: BrowserAccess, sessionId: string, draftId: string): { view: SessionView; entry: Entry } | undefined {
+    if (this.#closed || !this.authority.revalidate(identity)) return;
+    const held = this.#views.get(identity.credentialId);
+    if (!held || held.draftId !== draftId) return;
+    const entry = this.#entries.get(`${held.workerId}\u0000${held.generation}`);
+    if (!entry || entry.sessionId !== sessionId) return;
+    let current: SessionView;
+    try { current = this.supervisor.runtime(identity, held.workerId).view; } catch { return; }
+    if (current.state !== "open" || current.workerId !== held.workerId || current.generation !== held.generation
+      || current.registration.nativeSessionId !== sessionId || current.registration.sourceId !== entry.target.sourceId
+      || current.registration.instanceId !== entry.target.instanceId || this.#grantId(current.cwd) !== entry.grantId) return;
+    return { view: current, entry };
   }
 
   close(): void {
@@ -137,9 +172,14 @@ export class ChatComponentRuntime {
         return reply;
       },
       cancel: async () => await worker.control("abort_and_restore_queue"),
+      ...(this.gate ? { attachments: {
+        has: (requestId: string) => this.gate!.has(requestId),
+        submit: (requestId: string, message: string, signal: AbortSignal) => this.gate!.submit(requestId, message, signal),
+        recovery: (requestId: string) => this.gate!.recovery(requestId),
+      } } : {}),
     });
     const unsubscribe = worker.subscribe(frame => gateway.observe(frame));
-    return { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId,
+    return { workerId: view.workerId, generation: view.generation, sessionId: nativeSessionId, target, grantId, worker,
       gateway, lifetime, idleGeneration, unsubscribe, idle };
   }
 

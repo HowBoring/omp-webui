@@ -337,6 +337,16 @@ export class OriginalStore {
   }
 
   /** Record a complete query from the matching Native worker for an already held submission. */
+  /** Trusted gate notice after an accepted reservation; originals stay private but leave the draft budget. */
+  associateReserved(access: OriginalAccess, clientSubmissionId: string, objectIds: readonly string[]): void {
+    const scope = this.current(access);
+    this.db.transaction(() => {
+      this.current(access, scope);
+      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND scope=? AND state='staged-unprepared'");
+      for (const objectId of objectIds) mark.run(objectId, scopeKey(scope));
+    }).immediate();
+  }
+
   recordSubmission(access: OriginalAccess, clientSubmissionId: string, query: unknown): void {
     const scope = this.current(access);
     this.db.transaction(() => {

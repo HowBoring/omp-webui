@@ -9,7 +9,7 @@ import type { AttachmentReadyItem, PreparedAttachmentLink } from "../contracts/g
 
 interface Flow {
   attempt: AttachmentAttempt; preparationId: string; abort: AbortController; phase: AttachmentGatePhase;
-  nativeStarted: boolean; message?: string; receipt?: AttachmentReceipt; code?: string; result?: SubmissionResult;
+  nativeStarted: boolean; cancelled: boolean; message?: string; receipt?: AttachmentReceipt; code?: string; result?: SubmissionResult;
   consent: PromiseWithResolvers<string>; operation?: Promise<SubmissionResult>;
 }
 const codeOf = (error: unknown): string => error instanceof Error && /^(?:ATTACHMENT|SUBMISSION|STRICT)_[A-Z_]+$/.test(error.message)
@@ -38,9 +38,15 @@ export class AttachmentSubmissionGate {
     if (this.#flows.size >= 2) throw Error("ATTACHMENT_ATTEMPT_LIMIT");
     const consent = Promise.withResolvers<string>(); void consent.promise.catch(() => {});
     this.#flows.set(attempt.requestId, { attempt: structuredClone(attempt), preparationId: crypto.randomUUID(),
-      abort: new AbortController(), phase: "registered", nativeStarted: false, consent });
+      abort: new AbortController(), phase: "registered", nativeStarted: false, cancelled: false, consent });
     return { registered: true };
   }
+
+  /** Presence only; no state or content leaves the Host without an authorized attempt check. */
+  has(requestId: string): boolean { return this.#flows.has(requestId); }
+
+  /** Read-only acceptance judgement for the trusted Chat adapter; never dispatches. */
+  recovery(requestId: string): AttachmentGateStatus["recovery"] { return this.#recovery(this.#flow(requestId)); }
 
   /** The trusted existing Session Remote handler supplies its actual serialized text, once, for this exact request. */
   async submit(requestId: string, exactMessage: string, signal: AbortSignal): Promise<SubmissionResult> {
@@ -89,7 +95,8 @@ export class AttachmentSubmissionGate {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     if (!isSubmissionResult(value) || value.clientSubmissionId !== flow.attempt.submissionId) throw Error("ATTACHMENT_NATIVE_RESULT_INVALID");
     flow.result = value;
-    if (this.#matchesReservation(flow, value)) flow.phase = "submitted";
+    if (flow.cancelled) flow.phase = "unresolved";
+    else if (this.#matchesReservation(flow, value)) flow.phase = "submitted";
     else if (flow.nativeStarted) flow.phase = "unresolved";
   }
 
@@ -111,6 +118,8 @@ export class AttachmentSubmissionGate {
   }
   #recovery(flow: Flow): AttachmentGateStatus["recovery"] {
     if (!flow.nativeStarted && ["failed", "cancelled"].includes(flow.phase)) return "not-submitted";
+    // A cancelled attempt is never retroactively accepted by a late publication; recovery stays explicit.
+    if (flow.cancelled) return "unresolved";
     const result = flow.result;
     if (!result || !this.#matchesReservation(flow, result) || result.persistence !== "committed") return "unresolved";
     if (result.inputOutcome === "no_input" && result.terminal && result.operationOutcome === "succeeded"
@@ -143,7 +152,7 @@ export class AttachmentSubmissionGate {
       const result = await this.bridge.submitForRequest(flow.attempt.requestId, () => { flow.nativeStarted = true; });
       if (!isSubmissionResult(result) || result.clientSubmissionId !== flow.attempt.submissionId) throw Error("ATTACHMENT_NATIVE_RESULT_INVALID");
       flow.result = result;
-      flow.phase = this.#matchesReservation(flow, result) ? "submitted" : "unresolved";
+      flow.phase = flow.cancelled ? "unresolved" : this.#matchesReservation(flow, result) ? "submitted" : "unresolved";
       return result;
     } catch (error) {
       flow.code = flow.abort.signal.aborted ? "ATTACHMENT_CANCELLED" : codeOf(error);
@@ -154,6 +163,7 @@ export class AttachmentSubmissionGate {
   }
   async #cancel(flow: Flow): Promise<void> {
     flow.abort.abort(); flow.consent.reject(Error("ATTACHMENT_CANCELLED"));
+    if (flow.nativeStarted) flow.cancelled = true;
     flow.phase = flow.nativeStarted ? "unresolved" : "cancelled";
     if (!flow.nativeStarted) await this.bridge.discardUnsubmitted(flow.attempt.selection, flow.preparationId).catch(() => {});
   }
