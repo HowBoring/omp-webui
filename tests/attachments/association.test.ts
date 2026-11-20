@@ -277,3 +277,20 @@ test("a mixed preparation commits only when both Native input and companion loca
   });
   expect((await store.readAssociated(access, "files", note.objectId, committed)).bytes).toEqual(bytes);
 });
+
+test("a verified branch forwards exact Original links to its own Session and instance only", async () => {
+  const store = fixture().open();
+  const original = await store.stage(access, descriptor, body());
+  const { receipt, result } = publicEvidence(original.objectId);
+  store.reserveForSubmission(access, attempt, [original.objectId], receipt);
+  store.recordSubmission(access, attempt.clientSubmissionId, result);
+  expect(store.inheritBranchLinks(scope.sessionId, scope.instanceId, "native-branch", "branch-instance", ["files"])).toBe(1);
+  expect(store.inheritBranchLinks(scope.sessionId, scope.instanceId, "native-branch", "branch-instance", ["files"])).toBe(1);
+
+  const branch = () => ({ ...scope, sessionId: "native-branch", instanceId: "branch-instance" });
+  expect(store.history(branch, ["files"])).toMatchObject([{ entryId: "files", objectId: original.objectId, availability: "available" }]);
+  expect((await store.readHistorical(branch, "files", original.objectId, ["files"])).bytes).toEqual(bytes);
+  expect(store.history(() => ({ ...branch(), pageId: "other-page" }), ["files"])).toEqual([]);
+  await expect(store.readHistorical(branch, "files", original.objectId, []))
+    .rejects.toThrow("attachment_object_unavailable");
+});

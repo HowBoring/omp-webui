@@ -11,15 +11,16 @@ import { apply as gateway } from "@deepseek-ai/dsh-api-gateway/client";
 import { z } from "zod";
 import { attachmentContribution, attachmentHostContribution, attachmentResult,
   type AttachmentRequest } from "../../packages/contracts/attachments.ts";
-import { OriginalStore } from "../../packages/attachments/store.ts";
+import { OriginalStore, type OriginalProtection } from "../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../packages/attachments/service.ts";
 
 const base64 = "R0lGODlhAQABAAAAADs=";
 const target = { sessionId: "native", draftId: "draft" };
 const descriptor = { displayName: "../../unsafe.gif", mediaType: "image/gif" as const, byteLength: 14 };
-async function fixture() {
+async function fixture(protection?: () => OriginalProtection) {
   const dataDir = mkdtempSync("/tmp/attachment-remote-");
-  const store = new OriginalStore({ dataDir, recovery: "exclusive-host-startup", limits: { totalBytes: 1024 } });
+  const store = new OriginalStore({ dataDir, recovery: "exclusive-host-startup", limits: { totalBytes: 1024 },
+    ...(protection ? { protection } : {}) });
   const host = new Context(), client = new Context();
   await host.plugin(TypertRegistry); await host.plugin(RemoteAccessService); await host.plugin(TypertGatewayService, {});
   host.typert.register(attachmentHostContribution);
@@ -49,7 +50,7 @@ async function fixture() {
     }, openStream: async function* () {},
   } });
   registry(client); gateway(client); await client.remote.$mount(attachmentContribution);
-  return { remote: client.remote.ompOriginals,
+  return { remote: client.remote.ompOriginals, store,
     revoke: () => { permitted = false; }, unopen: () => { opened = false; }, otherPage: () => { pageId = "other"; },
     dispose: async () => { await client.fiber.dispose(); await peer.dispose(); await host.fiber.dispose();
       store.close(); rmSync(dataDir, { recursive: true, force: true }); } };
@@ -186,5 +187,70 @@ test("typed Host Remote renews only exact current staged Originals for an explic
     f.revoke();
     const refused = await f.remote.exchange({ operation: "touch", target, activity: "explicit-edit", objectIds: [objectId] });
     expect(refused.ok && refused.value.status).toBe("error");
+  } finally { await f.dispose(); }
+});
+
+test("authorized usage and confirmed deletion preview the whole logical Original over the Host Remote", async () => {
+  let protection: OriginalProtection = { status: "unreferenced", revision: "review-1" };
+  const f = await fixture(() => protection);
+  try {
+    const source = { displayName: "notes.txt", mediaType: "text/plain" as const, byteLength: 4 };
+    const first = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "bm90ZQ==" });
+    const second = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "bm90ZQ==" });
+    if (!first.ok || first.value.status !== "staged" || !second.ok || second.value.status !== "staged") throw Error("stage refused");
+    const objectId = first.value.original.objectId;
+    const usage = await f.remote.exchange({ operation: "usage", target });
+    expect(usage.ok && usage.value).toEqual({ status: "usage", chargedBytes: 8, objects: 2, totalBytes: 1024 });
+
+    const preview = await f.remote.exchange({ operation: "preview-delete", target, objectId });
+    if (!preview.ok || preview.value.status !== "deletion-preview") throw Error("preview refused");
+    expect(preview.value).toMatchObject({ original: { objectId }, impact: { draftId: "draft",
+      losesOriginalAccess: true, laterToolReadsMayFail: true } });
+    expect(preview.value.expiresAt).toBeGreaterThan(Date.now());
+    protection = { status: "unreferenced", revision: "review-2" };
+    expect(await f.remote.exchange({ operation: "delete", target, objectId,
+      confirmationId: preview.value.confirmationId })).toEqual({ ok: true,
+      value: { status: "error", code: "attachment_deletion_confirmation_required" } });
+
+    const reviewed = await f.remote.exchange({ operation: "preview-delete", target, objectId });
+    if (!reviewed.ok || reviewed.value.status !== "deletion-preview") throw Error("preview refused again");
+    expect(await f.remote.exchange({ operation: "delete", target, objectId,
+      confirmationId: reviewed.value.confirmationId })).toEqual({ ok: true,
+      value: { status: "deleted", objectId, reclaimed: true } });
+    expect(await f.remote.exchange({ operation: "delete", target, objectId,
+      confirmationId: reviewed.value.confirmationId })).toEqual({ ok: true,
+      value: { status: "error", code: "attachment_deletion_confirmation_required" } });
+    expect(await f.remote.exchange({ operation: "read-base64", target, objectId })).toEqual({ ok: true,
+      value: { status: "error", code: "attachment_object_unavailable" } });
+    const sibling = await f.remote.exchange({ operation: "read-base64", target, objectId: second.value.original.objectId });
+    expect(sibling.ok && sibling.value).toMatchObject({ status: "read", base64: "bm90ZQ==" });
+    const afterUsage = await f.remote.exchange({ operation: "usage", target });
+    expect(afterUsage.ok && afterUsage.value).toEqual({ status: "usage", chargedBytes: 4, objects: 1, totalBytes: 1024 });
+  } finally { await f.dispose(); }
+});
+
+test("occupation, execution, unresolved submission, expiry or revoked authority refuse deletion", async () => {
+  let protection: OriginalProtection = { status: "occupied" };
+  const f = await fixture(() => protection);
+  try {
+    const source = { displayName: "notes.txt", mediaType: "text/plain" as const, byteLength: 4 };
+    const staged = await f.remote.exchange({ operation: "stage-base64", target, descriptor: source, base64: "bm90ZQ==" });
+    if (!staged.ok || staged.value.status !== "staged") throw Error("stage refused");
+    const objectId = staged.value.original.objectId;
+    for (const status of ["occupied", "executing", "unresolved-submission", "native-associated", "unknown"] as const) {
+      protection = { status };
+      expect(await f.remote.exchange({ operation: "preview-delete", target, objectId })).toEqual({ ok: true,
+        value: { status: "error", code: "attachment_original_protected" } });
+    }
+    protection = { status: "unreferenced", revision: "review" };
+    const preview = await f.remote.exchange({ operation: "preview-delete", target, objectId });
+    if (!preview.ok || preview.value.status !== "deletion-preview") throw Error("preview refused");
+    f.revoke();
+    const refused = await f.remote.exchange({ operation: "delete", target, objectId,
+      confirmationId: preview.value.confirmationId });
+    expect(refused.ok && refused.value.status).toBe("error");
+    await expect(f.store.read(() => ({ hostId: "host", browserId: "browser", pageId: "page", profileId: "profile",
+      sourceId: "source", instanceId: "instance", sessionId: "native", canonicalCwd: "/synthetic/project",
+      draftId: "draft", authorityEpoch: "epoch", explicitOpen: true }), objectId)).resolves.toMatchObject({ objectId });
   } finally { await f.dispose(); }
 });

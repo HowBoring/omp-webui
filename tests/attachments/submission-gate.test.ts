@@ -183,3 +183,37 @@ test("a cancelled attempt stays unresolved when a late publication arrives and i
   expect(late.recovery).toBe("unresolved");
   await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
 });
+
+test("deletion protection refuses occupancy or execution and changes revision after resolution", async () => {
+  const f = fixture();
+  const binding = { sessionId: "projection", draftId: "draft" };
+  const initial = f.gate.protection(binding, "original");
+  expect(initial.status).toBe("unreferenced");
+  expect(f.gate.protection({ sessionId: "projection", draftId: "other" }, "original")).toEqual(initial);
+  expect(f.gate.protection(binding, "another-original")).toEqual(initial);
+
+  await f.gate.begin(attempt);
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  const state = await awaiting(f.gate);
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  await f.gate.consent(accept(state)); await pending;
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "executing" });
+  await f.gate.finish("request", "accepted");
+  const resolved = f.gate.protection(binding, "original");
+  expect(resolved.status).toBe("unreferenced");
+  expect("revision" in resolved && resolved.revision).not.toBe("revision" in initial && initial.revision);
+});
+
+test("a lost publication blocks deletion until explicit recovery resolves the attempt", async () => {
+  const f = fixture();
+  f.loseReply();
+  await f.gate.begin(attempt);
+  const pending = f.gate.submit("request", "serialized", new AbortController().signal);
+  void pending.catch(() => {});
+  const state = await awaiting(f.gate); await f.gate.consent(accept(state));
+  await expect(pending).rejects.toThrow("ATTACHMENT_SEND_FAILED");
+  expect(f.gate.protection({ sessionId: "projection", draftId: "draft" }, "original"))
+    .toEqual({ status: "unresolved-submission" });
+  expect(await f.gate.status("request")).toMatchObject({ phase: "unresolved", recovery: "unresolved" });
+});

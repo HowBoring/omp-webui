@@ -106,6 +106,7 @@ export async function startSessionComponentServer(options: Options) {
   let supervisor: SessionSupervisor;
   let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
   let attachmentStore: OriginalStore | undefined;
+  let expirySweep: Timer | undefined;
   let unaryMethods = unary;
   const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
@@ -238,19 +239,22 @@ export async function startSessionComponentServer(options: Options) {
       ...(cancelDescriptor ? [{ ...cancelDescriptor, service: "chatCancel" }] : [])] });
     ctx.typert.register(chatComponentHostContribution);
     const admission = new ChatViewAdmission(access, directories, supervisor);
+    let gate: AttachmentSubmissionGate | undefined;
     attachmentStore = new OriginalStore({ dataDir: join(options.dataDir, "attachments"), recovery: "exclusive-host-startup",
-      // Isolated Chat has no other trusted reference owner; submission holds are checked by the Store itself.
-      protection: () => ({ status: "unreferenced", revision: "isolated-chat" }) });
-    // Restart never resets the staged clock: expire from the persisted activity time before serving.
-    for (let page = 0, after: string | undefined; page < 32; page++) {
-      const passed = attachmentStore.collectExpired(after);
-      after = passed.next ?? undefined;
-      if (after === undefined) break;
-    }
+      // Late-bound: startup recovery runs before the gate exists, and an absent gate must refuse deletion.
+      protection: original => gate?.protection(original.binding, original.objectId) ?? { status: "unknown" } });
     let runtime: ChatComponentRuntime;
     const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
     const bridge = new AttachmentBridge(authority, target => runtime.native(target));
-    const gate = new AttachmentSubmissionGate(bridge, attempt => authority.authorizeAttempt(attempt));
+    gate = new AttachmentSubmissionGate(bridge, attempt => authority.authorizeAttempt(attempt));
+    // Restart never resets the staged clock: drain the persisted inventory in bounded pages before serving.
+    attachmentStore.collectExpiredPages(32);
+    // ponytail: one bounded pass per minute; replace with an activityAt index if 100k-row scans matter.
+    expirySweep = setInterval(() => {
+      try { attachmentStore?.collectExpiredPages(4); }
+      catch (error) { console.error("ATTACHMENT_EXPIRY_SWEEP_FAILED", error); }
+    }, 60_000);
+    expirySweep.unref?.();
     ctx.typert.register(attachmentHostContribution);
     new AttachmentRemote(ctx, attachmentStore, (_peer, target) => authority.scope(target));
     installAttachmentRemote(ctx, gate);
@@ -302,6 +306,8 @@ export async function startSessionComponentServer(options: Options) {
     bootstrapLink: () => access.bootstrapLink(),
     async stop(): Promise<void> {
       stopping = true;
+      if (expirySweep !== undefined) clearInterval(expirySweep);
+      expirySweep = undefined;
       chatComposition?.runtime.close();
       attachmentStore?.close();
       attachmentStore = undefined;

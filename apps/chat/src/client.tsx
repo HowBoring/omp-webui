@@ -20,7 +20,7 @@ import { sessionsContribution, type PublicSessionView, type SessionPreferences, 
 import { preferencesRemoteContribution } from "../../../packages/preferences/remote.ts";
 import { chatContribution, type ChatRecovery } from "../../../packages/contracts/chat.ts";
 import { chatComponentContribution } from "../../../packages/contracts/chat-component.ts";
-import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
+import { attachmentContribution, type AttachmentResult } from "../../../packages/contracts/attachments.ts";
 import { attachmentsContribution, type AttachmentSelection } from "../../../packages/contracts/attachment-remote.ts";
 import { AttachmentPreparationController } from "../../../packages/client-extensions/attachment-preparation.ts";
 import { AttachmentPreparationPanel, attachmentFailures } from "../../../packages/client-extensions/attachment-preparation-panel.tsx";
@@ -433,6 +433,15 @@ function NodeRow({ node }: { node: unknown }) {
 
 type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state: "sending" | "accepted" | "refused" | "unknown"; error?: string };
 type Uploaded = { objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number; width?: number; height?: number; pixels: number; invalid?: string };
+type Usage = Extract<AttachmentResult, { status: "usage" }>;
+type DeletionPreview = Extract<AttachmentResult, { status: "deletion-preview" }>;
+const formatBytes = (bytes: number) => bytes >= 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} GiB` : `${Math.ceil(bytes / 1024 ** 2)} MiB`;
+const deletionRefusal = (code: string): string => code.includes("original_protected")
+  ? "This Original is in use by an executing or unresolved submission. Resolve it, then start a new deletion review."
+  : code.includes("deletion_confirmation_required")
+  ? "The review expired or the Original changed. Start a new deletion review."
+  : code.includes("object_unavailable") ? "That Original is already gone or is not authorized for this draft."
+  : `The Host refused deletion: ${code}`;
 const retryRefusalText = (reason: string, detail?: string): string => `${({
   unavailable: "Retry is unavailable for this worker.",
   forbidden: "This Chat view no longer authorizes Retry.",
@@ -483,6 +492,7 @@ function Surface() {
   const [choices, setChoices] = useState<Choice[]>([]);
   const [opening, setOpening] = useState(false), [cataloging, setCataloging] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [usage, setUsage] = useState<Usage>(), [deletion, setDeletion] = useState<DeletionPreview>(), [deleting, setDeleting] = useState(false);
   const [tree, setTree] = useState<TreeBrowser>();
   const [branchPoints, setBranchPoints] = useState<ReadonlySet<string>>(new Set());
   const [branchTarget, setBranchTarget] = useState<TreeNode>(), [branchNotice, setBranchNotice] = useState("");
@@ -669,7 +679,7 @@ function Surface() {
     try {
       for (const file of Array.from(files)) {
         const uploaded = await stage(new Uint8Array(await file.arrayBuffer()), file.name, file.type, next);
-        next = [...next, uploaded]; ++revision.current; originalsRef.current = next; setOriginals(next);
+        next = [...next, uploaded]; ++revision.current; originalsRef.current = next; setOriginals(next); void refreshUsage();
         void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
       }
     } catch (failure) { setError(message(failure)); }
@@ -682,11 +692,48 @@ function Surface() {
       const bytes = bytesOfBase64(base64Draft);
       if (bytes.length === 0) throw new Error("The pasted value has no file bytes.");
       const uploaded = await stage(bytes, "pasted-file", "", originals);
-      const next = [...originals, uploaded]; originalsRef.current = next; setOriginals(next); ++revision.current; setBase64Draft(""); setError("");
+      const next = [...originals, uploaded]; originalsRef.current = next; setOriginals(next); ++revision.current; setBase64Draft(""); setError(""); void refreshUsage();
       void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
     } catch (failure) { setError(message(failure)); }
     finally { setUploading(false); }
   };
+  const refreshUsage = async () => {
+    if (!view) return;
+    try {
+      const value = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "usage",
+        target: { sessionId: view.registration.nativeSessionId, draftId } }));
+      if (value.status === "usage") setUsage(value);
+    } catch { /* Usage is informative; staging/read refusals still carry the exact code. */ }
+  };
+  const reviewDeletion = async (objectId: string) => {
+    if (!view || frozen) return;
+    await perform(async () => {
+      const value = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "preview-delete",
+        target: { sessionId: view.registration.nativeSessionId, draftId }, objectId }));
+      if (value.status !== "deletion-preview") throw Error(deletionRefusal(value.status === "error" ? value.code : value.status));
+      setDeletion(value); void refreshUsage();
+    });
+  };
+  const confirmDeletion = async () => {
+    const pending = deletion;
+    if (!view || !pending) return;
+    setDeleting(true);
+    try {
+      const value = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "delete",
+        target: { sessionId: view.registration.nativeSessionId, draftId }, objectId: pending.original.objectId,
+        confirmationId: pending.confirmationId }));
+      if (value.status !== "deleted") throw Error(deletionRefusal(value.status === "error" ? value.code : value.status));
+      const next = originalsRef.current.filter(item => item.objectId !== pending.original.objectId);
+      originalsRef.current = next; setOriginals(next); ++revision.current;
+      setDeletion(undefined); setError(""); void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
+    } catch (failure) {
+      setDeletion(undefined); setError(deletionRefusal(message(failure)));
+    } finally { setDeleting(false); void refreshUsage(); }
+  };
+  useEffect(() => {
+    if (!view) { setUsage(undefined); setDeletion(undefined); return; }
+    void refreshUsage();
+  }, [view?.workerId, view?.generation]);
   const removeOriginal = async (objectId: string) => {
     draftDirty = true; removedOriginals.add(objectId);
     try {
@@ -697,7 +744,7 @@ function Surface() {
         throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
       const next = originalsRef.current.filter(item => item.objectId !== objectId);
       originalsRef.current = next; setOriginals(next); ++revision.current;
-      void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
+      void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit"); void refreshUsage();
     } catch (failure) {
       // The Host still owns the original, so the record must keep listing it.
       removedOriginals.delete(objectId); setError(message(failure));
@@ -920,12 +967,23 @@ function Surface() {
         <button data-chat-base64-add disabled={!view || !draftReady || busy || uploading || frozen || base64Draft.trim() === ""}
           onClick={() => void addBase64()}>Add pasted file</button>
         {uploading && <p role="status">Inspecting and staging the file…</p>}
+        {usage && <p data-chat-originals-usage={usage.chargedBytes} data-chat-originals-usage-limit={usage.totalBytes}>
+          {`Host storage: ${formatBytes(usage.chargedBytes)} of ${formatBytes(usage.totalBytes)} · ${usage.objects} Originals`}</p>}
         <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}
           data-chat-original-invalid={item.invalid === undefined ? undefined : "true"}>
           {item.displayName} · {item.mediaType}{item.width === undefined ? "" : ` · ${item.width}×${item.height}`} · {item.byteLength} bytes
           {item.invalid === undefined ? "" : <span data-chat-original-invalid-reason> · {item.invalid}</span>}
           <button disabled={busy || frozen} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
+          <button data-chat-original-delete={item.objectId} disabled={busy || frozen || uploading || item.invalid !== undefined}
+            onClick={() => void reviewDeletion(item.objectId)}>Delete original…</button>
         </li>)}</ul>
+        {deletion && <section data-chat-deletion-preview={deletion.original.objectId} role="alertdialog" aria-label="Confirm original deletion">
+          <p><strong>{`Delete “${deletion.original.displayName}”?`}</strong> {`${deletion.original.byteLength} bytes · ${deletion.original.mediaType}`}</p>
+          <p>{`Draft ${deletion.impact.draftId} loses access to this whole logical Original; later tool reads may fail. Native history and saved model input are not changed. Independent Originals with the same bytes are kept.`}</p>
+          <p>{`Review expires ${new Date(deletion.expiresAt).toLocaleTimeString()}; a changed draft, submission, or authority needs a new review.`}</p>
+          <button data-chat-delete-confirm disabled={deleting} onClick={() => void confirmDeletion()}>Delete this Original</button>
+          <button disabled={deleting} onClick={() => setDeletion(undefined)}>Keep it</button>
+        </section>}
         <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>
       {controller && <AttachmentPreparationPanel controller={controller} />}

@@ -314,3 +314,18 @@ test("exclusive recovery preserves an oversized interrupted publication for inve
   expect(reopened.usage(access).chargedBytes).toBe(0);
   expect((await reopened.stage(access, descriptor, body())).byteLength).toBe(4);
 });
+
+test("repeating bounded expiry passes drain a large stale inventory without an unbounded pause", async () => {
+  const { advance, open } = fixture(clearProtection, { totalBytes: 1024 });
+  const store = open();
+  const one = { displayName: "one.txt", mediaType: "text/plain" as const, byteLength: 1 };
+  for (let index = 0; index < 130; index++) {
+    await store.stage(() => ({ ...scope, draftId: `draft-${index}` }), one,
+      (async function* () { yield new Uint8Array([97]); })());
+  }
+  expect(store.usage(access)).toMatchObject({ chargedBytes: 130, objects: 130 });
+  advance(24 * hour);
+  expect(store.collectExpiredPages(1)).toEqual({ expired: 128, reclaimed: 128 });
+  expect(store.collectExpiredPages(1)).toEqual({ expired: 2, reclaimed: 2 });
+  expect(store.usage(access)).toMatchObject({ chargedBytes: 0, objects: 0 });
+});

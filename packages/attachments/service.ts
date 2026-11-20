@@ -29,6 +29,23 @@ export class AttachmentRemote extends TypertRemoteService {
         const { reclaimed } = this.store.release(scope, request.objectId);
         return { status: "released", objectId: request.objectId, reclaimed };
       }
+      if (request.operation === "usage") {
+        const scope = this.authorize(invocation.peer, request.target);
+        return { status: "usage", ...this.store.usage(() => scope) };
+      }
+      // Re-resolve the exact live Scope on every closure call: confirmation and reply races must see revocation.
+      const access = () => {
+        if (signal.aborted) throw Error("attachment_authority_unavailable");
+        return this.authorize(invocation.peer, request.target);
+      };
+      if (request.operation === "preview-delete") {
+        const preview = this.store.previewDeletion(access, request.objectId);
+        return { status: "deletion-preview", ...preview };
+      }
+      if (request.operation === "delete") {
+        const { reclaimed } = this.store.confirmDeletion(access, request.objectId, request.confirmationId);
+        return { status: "deleted", objectId: request.objectId, reclaimed };
+      }
       if (request.operation === "touch") {
         const scope = this.authorize(invocation.peer, request.target);
         return { status: "touched", ...this.store.touchDraft(() => scope, request.activity, request.objectIds) };

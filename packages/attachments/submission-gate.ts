@@ -1,5 +1,6 @@
 /** Exact-content gate inside the existing typed DSH Session prompt Remote, before native admission. */
 import type { AttachmentBridge } from "./bridge.ts";
+import type { OriginalProtection } from "./store.ts";
 import type { AttachmentConsentRequest, AttachmentAttempt, AttachmentFinishOutcome, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 export type { AttachmentAttempt, AttachmentGatePhase, AttachmentGateStatus } from "../contracts/attachment-remote.ts";
 import type { AttachmentReceipt } from "../contracts/attachment-preparation.ts";
@@ -25,7 +26,27 @@ const savedAttachmentMatches = (link: PreparedAttachmentLink, item: AttachmentRe
 export type AuthorizeAttachmentAttempt = (attempt: AttachmentAttempt) => Promise<void>;
 export class AttachmentSubmissionGate {
   readonly #flows = new Map<string, Flow>();
+  #epoch = 0;
   constructor(readonly bridge: AttachmentBridge, readonly authorizeAttempt: AuthorizeAttachmentAttempt) {}
+
+  /**
+   * Trusted deletion/GC view for one exact staged binding. Every transition advances an epoch, so a
+   * preview issued before any attempt (or before its resolution) can never confirm against the later state.
+   */
+  protection(binding: Readonly<{ sessionId: string; draftId: string }>, objectId: string): OriginalProtection {
+    const matching = [...this.#flows.values()].filter(flow => flow.attempt.selection.session === binding.sessionId
+      && flow.attempt.selection.draftId === binding.draftId && flow.attempt.selection.originalIds.includes(objectId));
+    if (!matching.length) return { status: "unreferenced", revision: `gate:${this.#epoch}` };
+    if (matching.some(flow => flow.phase === "unresolved" || (flow.cancelled && flow.nativeStarted))) {
+      return { status: "unresolved-submission" };
+    }
+    // A cancel before native dispatch resolved without consuming the reservation.
+    if (matching.some(flow => flow.cancelled)) return { status: "unreferenced", revision: `gate:${this.#epoch}` };
+    if (matching.some(flow => flow.nativeStarted || flow.phase === "submitting" || flow.phase === "submitted")) {
+      return { status: "executing" };
+    }
+    return { status: "occupied" };
+  }
 
   /** Awaited by public semantic provider.beforeDispatch after its local checkpoint, before the Session Remote call. */
   async begin(attempt: AttachmentAttempt): Promise<{ registered: true }> {
@@ -37,6 +58,7 @@ export class AttachmentSubmissionGate {
     }
     if (this.#flows.size >= 2) throw Error("ATTACHMENT_ATTEMPT_LIMIT");
     const consent = Promise.withResolvers<string>(); void consent.promise.catch(() => {});
+    this.#epoch++;
     this.#flows.set(attempt.requestId, { attempt: structuredClone(attempt), preparationId: crypto.randomUUID(),
       abort: new AbortController(), phase: "registered", nativeStarted: false, cancelled: false, consent });
     return { registered: true };
@@ -94,7 +116,7 @@ export class AttachmentSubmissionGate {
   async observe(requestId: string, value: unknown): Promise<void> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     if (!isSubmissionResult(value) || value.clientSubmissionId !== flow.attempt.submissionId) throw Error("ATTACHMENT_NATIVE_RESULT_INVALID");
-    flow.result = value;
+    this.#epoch++; flow.result = value;
     if (flow.cancelled) flow.phase = "unresolved";
     else if (this.#matchesReservation(flow, value)) flow.phase = "submitted";
     else if (flow.nativeStarted) flow.phase = "unresolved";
@@ -104,7 +126,7 @@ export class AttachmentSubmissionGate {
   async finish(requestId: string, outcome: AttachmentFinishOutcome): Promise<{ finished: true }> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
     if (this.#recovery(flow) !== outcome) throw Error("ATTACHMENT_OUTCOME_UNRESOLVED");
-    this.#flows.delete(requestId); return { finished: true };
+    this.#epoch++; this.#flows.delete(requestId); return { finished: true };
   }
 
   #matchesReservation(flow: Flow, value: SubmissionResult): boolean {
@@ -138,31 +160,31 @@ export class AttachmentSubmissionGate {
   async #run(flow: Flow): Promise<SubmissionResult> {
     let timer: Timer | undefined;
     try {
-      flow.phase = "preparing";
+      this.#epoch++; flow.phase = "preparing";
       flow.receipt = await this.bridge.prepare(flow.attempt.selection, flow.preparationId, flow.message!);
       flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
       if (flow.receipt.status !== "ready") throw Error("ATTACHMENT_NOT_READY");
-      flow.phase = "awaiting-consent";
+      this.#epoch++; flow.phase = "awaiting-consent";
       timer = setTimeout(() => { void this.#cancel(flow); }, Math.max(0, flow.receipt.expiresAt - Date.now()));
       const consentId = await flow.consent.promise;
       flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
       await this.bridge.bind({ ...flow.attempt, consentId });
       flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
-      flow.phase = "submitting";
+      this.#epoch++; flow.phase = "submitting";
       const result = await this.bridge.submitForRequest(flow.attempt.requestId, () => { flow.nativeStarted = true; });
       if (!isSubmissionResult(result) || result.clientSubmissionId !== flow.attempt.submissionId) throw Error("ATTACHMENT_NATIVE_RESULT_INVALID");
-      flow.result = result;
+      this.#epoch++; flow.result = result;
       flow.phase = flow.cancelled ? "unresolved" : this.#matchesReservation(flow, result) ? "submitted" : "unresolved";
       return result;
     } catch (error) {
-      flow.code = flow.abort.signal.aborted ? "ATTACHMENT_CANCELLED" : codeOf(error);
+      this.#epoch++; flow.code = flow.abort.signal.aborted ? "ATTACHMENT_CANCELLED" : codeOf(error);
       flow.phase = flow.nativeStarted ? "unresolved" : flow.abort.signal.aborted ? "cancelled" : "failed";
       if (!flow.nativeStarted) await this.bridge.discardUnsubmitted(flow.attempt.selection, flow.preparationId).catch(() => {});
       throw Error(flow.code);
     } finally { if (timer !== undefined) clearTimeout(timer); }
   }
   async #cancel(flow: Flow): Promise<void> {
-    flow.abort.abort(); flow.consent.reject(Error("ATTACHMENT_CANCELLED"));
+    this.#epoch++; flow.abort.abort(); flow.consent.reject(Error("ATTACHMENT_CANCELLED"));
     if (flow.nativeStarted) flow.cancelled = true;
     flow.phase = flow.nativeStarted ? "unresolved" : "cancelled";
     if (!flow.nativeStarted) await this.bridge.discardUnsubmitted(flow.attempt.selection, flow.preparationId).catch(() => {});

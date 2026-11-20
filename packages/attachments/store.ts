@@ -317,10 +317,10 @@ export class OriginalStore {
     // Hold the SQLite read lock until the file closes so removal cannot reclaim its charge early.
     const { row, bytes } = this.db.transaction(() => {
       const row = this.stagedObject(objectId, scope);
-      this.requireStagingView(row);
+      this.requireReadableView(row);
       return { row, bytes: this.payload(row) };
     }).deferred();
-    this.requireStagingView(row);
+    this.requireReadableView(row);
     this.current(access, scope, signal);
     this.checkBytes(row, bytes);
     // The final authority check can admit a hold on another connection. Read eligibility in one snapshot.
@@ -331,12 +331,6 @@ export class OriginalStore {
     if (!staged) fail("object_unavailable");
     if (staged.held) fail("original_protected");
     return { ...this.metadata(row), bytes };
-  }
-
-  private requireStagingView(row: Row): void {
-    if (this.protection ? this.unreferencedRevision(row) === undefined : this.associationHeld(row.id)) {
-      fail("original_protected");
-    }
   }
 
   private stagedObject(objectId: string, scope: OriginalBinding): Row {
@@ -690,6 +684,31 @@ export class OriginalStore {
       if (this.cleanup(id, "deleting")) reclaimed++;
     }
     return { expired, reclaimed, next: candidates.length > expiryBatchSize ? candidates[expiryBatchSize - 1]!.id : null };
+  }
+
+  /** Repeats the bounded pass so a large stale inventory drains without one unbounded Host pause. */
+  collectExpiredPages(pages = 1): { expired: number; reclaimed: number } {
+    if (!Number.isInteger(pages) || pages < 1 || pages > 32) fail("invalid_target");
+    let after: string | undefined, expired = 0, reclaimed = 0;
+    for (let page = 0; page < pages; page++) {
+      const result = this.collectExpired(after);
+      expired += result.expired; reclaimed += result.reclaimed;
+      if (result.next === null || result.next === undefined || result.next === after) break;
+      after = result.next;
+    }
+    return { expired, reclaimed };
+  }
+
+  /** An in-flight attempt may still read its exact staged bytes; deletion/GC protection stays absolute. */
+  private requireReadableView(row: Row): void {
+    if (this.associationHeld(row.id)) fail("original_protected");
+    if (!this.protection) return;
+    const binding = storedBinding(row.scope);
+    if (!binding) fail("original_protected");
+    let status: OriginalProtection["status"];
+    try { status = this.protection(Object.freeze({ objectId: row.id, binding })).status; }
+    catch { fail("original_protected"); }
+    if (status !== "occupied" && status !== "executing" && status !== "unreferenced") fail("original_protected");
   }
 
   private unreferencedRevision(row: Row): string | undefined {
