@@ -461,6 +461,23 @@ export class SessionSupervisor {
     return { history: active.worker.history, sourceId: active.record.sourceId, sessionId,
       epoch: active.generation };
   }
+  /** Exact live worker plus its current presented journal for a native navigation request. */
+  async navigationAccess(identity: BrowserAccess, sessionId: string) {
+    this.#browser(identity); const active = this.#active;
+    if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId
+      || !("navigation" in active.worker)) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    this.#current(identity, active);
+    const journal = await this.presentation(identity, sessionId);
+    this.#current(identity, active);
+    const record = active.record, grant = this.options.grants.list()
+      .find(item => item.status === "valid" && item.path === active.cwd);
+    return { worker: active.worker, view: this.#view(active), journal,
+      scope: { browser: identity.credentialId, grant: grant?.id ?? record.id, directory: active.cwd,
+        epoch: `${active.generation}:${journal.generation}`, sourceId: record.sourceId,
+        instanceId: record.instanceId, nativeSessionId: sessionId, sessionId, workerId: active.id,
+        workerGeneration: active.generation, contextId: journal.opened.cut.contextId,
+        projection: journal.projection } };
+  }
   interactions(identity: BrowserAccess): InteractionSnapshot | undefined {
     this.#browser(identity); const active = this.#active;
     if (!active) return undefined;
@@ -553,6 +570,15 @@ export class SessionSupervisor {
     active.journalValue = journal;
     if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
     return journal;
+  }
+  /** Retire the current presentation before a possible native effect; followers must rebuild, never continue. */
+  invalidatePresentation(identity: BrowserAccess, workerId: string, sessionId: string): void {
+    this.#browser(identity); const active = this.#active;
+    if (!active?.worker || active.state !== "open" || active.id !== workerId
+      || active.record?.nativeSessionId !== sessionId || !active.journalValue) return;
+    this.#current(identity, active);
+    active.journalValue.invalidate("navigation_pending");
+    active.journalEpoch = ++journalIdentity;
   }
   /** Replace an already-presented journal after a native cut change; a Session with no viewer stays lazy. */
   async refreshPresentation(identity: BrowserAccess, workerId: string, sessionId: string): Promise<LiveJournal | undefined> {

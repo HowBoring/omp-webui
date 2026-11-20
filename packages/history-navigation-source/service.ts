@@ -18,6 +18,9 @@ const identity = (scope: NavigationScope) => JSON.stringify([scope.browser, scop
   scope.contextId, scope.projection.source, scope.projection.generation]);
 const sameTarget = (left: NavigationPreview["target"], right: NavigationPreview["target"]) =>
   left.sourceId === right.sourceId && left.instanceId === right.instanceId && left.nativeSessionId === right.nativeSessionId;
+const stableIdentity = (scope: NavigationScope) => JSON.stringify([scope.browser, scope.grant, scope.directory,
+  scope.sourceId, scope.instanceId, scope.nativeSessionId, scope.sessionId, scope.workerId, scope.workerGeneration,
+  scope.epoch.split(":")[0]]);
 const workerKey = (scope: NavigationScope) => JSON.stringify([
   scope.sourceId, scope.instanceId, scope.nativeSessionId, scope.workerId, scope.workerGeneration,
 ]);
@@ -47,14 +50,14 @@ export class HistoryNavigationSource extends TypertRemoteService {
     });
   }
   private now(): number { return this.ports?.now?.() ?? Date.now(); }
-  private bind(sessionId: string): Binding {
+  private async bind(sessionId: string): Promise<Binding> {
     const invocation = this.ctx.invocation;
     if (!this.ports || this.disposed) return fail("navigation_unavailable");
     if (!invocation || invocation.signal.aborted || invocation.peer.signal.aborted) {
       return fail("navigation_authority_unavailable");
     }
     try {
-      const access = this.ports.authorize(invocation.peer, sessionId);
+      const access = await this.ports.authorize(invocation.peer, sessionId);
       const scope = snapshotScope(access.scope), policy = Object.freeze({ ...access.policy });
       const repository = this.ports.repository, projectionOwner = this.ports.projectionOwner;
       if (scope.sessionId !== sessionId || access.authoritySignal.aborted
@@ -72,13 +75,14 @@ export class HistoryNavigationSource extends TypertRemoteService {
           matchedCohort: access.matchedCohort }) };
     } catch { return fail("navigation_authority_unavailable"); }
   }
-  private recheck(binding: Binding, projection = binding.access.scope.projection): void {
-    const current = this.bind(binding.access.scope.sessionId);
-    if (binding.signal.aborted || binding.owner !== current.owner || binding.owner.signal.aborted
-      || binding.access.authoritySignal.aborted || current.access.authoritySignal !== binding.access.authoritySignal
+  private async recheck(binding: Binding, projection = binding.access.scope.projection): Promise<void> {
+    const current = await this.bind(binding.access.scope.sessionId);
+    if (binding.signal.aborted || binding.owner.signal.aborted || current.owner.signal.aborted
+      || binding.access.authoritySignal.aborted || current.access.authoritySignal.aborted
+      || JSON.stringify(binding.owner.principal) !== JSON.stringify(current.owner.principal)
       || current.access.client !== binding.access.client || current.access.matchedCohort !== binding.access.matchedCohort
       || JSON.stringify(current.access.policy) !== JSON.stringify(binding.access.policy)
-      || identity(current.access.scope) !== identity({ ...binding.access.scope, projection })) fail("navigation_binding_changed");
+      || stableIdentity(current.access.scope) !== stableIdentity(binding.access.scope)) fail("navigation_binding_changed");
   }
   private purge(): void {
     for (const [key, value] of this.confirmations) {
@@ -105,7 +109,7 @@ export class HistoryNavigationSource extends TypertRemoteService {
       if (!saved || !invocation || saved.owner !== invocation.peer) fail("navigation_confirmation_unavailable");
       this.dropConfirmation(request.token);
       const binding = { ...saved, signal: invocation.signal };
-      this.recheck(binding);
+      await this.recheck(binding);
       if (request.operation === "cancel") return { status: "cancelled" };
       return await this.confirm(binding);
     } catch (error) {
@@ -114,9 +118,9 @@ export class HistoryNavigationSource extends TypertRemoteService {
       return { status: "error", code };
     }
   }
-  private requireIdle(scope: NavigationScope): void {
+  private async requireIdle(scope: NavigationScope): Promise<void> {
     let state: StopSnapshot;
-    try { state = stopSnapshotSchema.parse(this.ports?.idle(scope)); }
+    try { state = stopSnapshotSchema.parse(await this.ports?.idle(scope)); }
     catch {
       this.dropWorkerConfirmations(scope);
       return fail("navigation_stop_required_new_action");
@@ -132,7 +136,7 @@ export class HistoryNavigationSource extends TypertRemoteService {
     const scope = saved.access.scope;
     const worker = workerKey(scope);
     if (this.active.has(worker)) fail("navigation_worker_busy_new_action");
-    this.requireIdle(scope);
+    await this.requireIdle(scope);
     this.active.add(worker);
     const record: NavigationOperationMetadata = Object.freeze({ navigationId: saved.navigationId, scope,
       matchedCohort: saved.access.matchedCohort, confirmation: saved.preview, options: "native_defaults", state: "unknown" });
@@ -140,7 +144,7 @@ export class HistoryNavigationSource extends TypertRemoteService {
       if (!await this.ports!.repository.reserveUnknown(record, Math.min(256, saved.access.policy.maxOperations))) {
         fail("navigation_operation_unresolved");
       }
-      try { this.prepareDispatch(saved, record.navigationId); }
+      try { await this.prepareDispatch(saved, record.navigationId); }
       catch (error) {
         await this.ports!.repository.recordResult(Object.freeze({ ...record, state: "not_dispatched" })).catch(() => {});
         throw error;
@@ -151,31 +155,31 @@ export class HistoryNavigationSource extends TypertRemoteService {
           sourceId: scope.sourceId, instanceId: scope.instanceId, nativeSessionId: scope.nativeSessionId,
           entryId: saved.preview.entryId, expectedContextRevision: saved.preview.contextRevision,
           expectedTargetRevision: saved.preview.targetRevision });
-        this.recheck(saved);
+        await this.recheck(saved);
         validateFacts(result, record);
       } catch { return operationView(record, "invalidated"); }
       const facts = resultMetadata(record, result);
       try { await this.ports!.repository.recordResult(facts); }
       catch { return operationView(facts, "failed"); }
-      try { this.recheck(saved); } catch { return operationView(record, "invalidated"); }
+      try { await this.recheck(saved); } catch { return operationView(record, "invalidated"); }
       return await this.present(saved, facts, result);
     } finally { this.active.delete(worker); }
   }
-  private prepareDispatch(saved: Confirmation, navigationId: string): void {
-    this.recheck(saved); this.requireIdle(saved.access.scope);
+  private async prepareDispatch(saved: Confirmation, navigationId: string): Promise<void> {
+    await this.recheck(saved); await this.requireIdle(saved.access.scope);
     if (this.now() >= saved.expiresAt) fail("navigation_confirmation_expired");
     // Withdraw presentation before the first possible native effect, including a lost response.
     this.ports!.projectionOwner.invalidateAll(saved.access.scope, navigationId);
     this.dropWorkerConfirmations(saved.access.scope);
-    this.recheck(saved); this.requireIdle(saved.access.scope);
+    await this.recheck(saved); await this.requireIdle(saved.access.scope);
   }
   private async query(sessionId: string, navigationId: string): Promise<HistoryNavigationSourceResult> {
-    const binding = this.bind(sessionId), worker = workerKey(binding.access.scope);
+    const binding = await this.bind(sessionId), worker = workerKey(binding.access.scope);
     if (this.active.has(worker)) fail("navigation_worker_busy_new_action");
     this.active.add(worker);
     try {
       const saved = await this.ports!.repository.read(navigationId);
-      this.recheck(binding);
+      await this.recheck(binding);
       if (!saved || saved.navigationId !== navigationId || saved.matchedCohort !== binding.access.matchedCohort
         || !sameRecoveryScope(saved.scope, binding.access.scope)) {
         return fail("navigation_operation_unavailable");
@@ -183,16 +187,16 @@ export class HistoryNavigationSource extends TypertRemoteService {
       const record: NavigationOperationMetadata = Object.freeze({ ...saved, scope: snapshotScope(saved.scope),
         confirmation: Object.freeze({ ...saved.confirmation, target: Object.freeze({ ...saved.confirmation.target }) }) });
       this.ports!.projectionOwner.invalidateAll(binding.access.scope, navigationId);
-      this.recheck(binding);
+      await this.recheck(binding);
       let result: NavigationResult;
       try {
         result = await binding.access.client.query(navigationId);
-        this.recheck(binding); validateFacts(result, record);
+        await this.recheck(binding); validateFacts(result, record);
       } catch { return operationView(record, "invalidated"); }
       const facts = resultMetadata(record, result);
       try { await this.ports!.repository.recordResult(facts); }
       catch { return operationView(facts, "failed"); }
-      try { this.recheck(binding); } catch { return operationView(record, "invalidated"); }
+      try { await this.recheck(binding); } catch { return operationView(record, "invalidated"); }
       return await this.present(binding, facts, result);
     } finally { this.active.delete(worker); }
   }
@@ -208,25 +212,25 @@ export class HistoryNavigationSource extends TypertRemoteService {
         || previous.source !== binding.access.scope.projection.source
         || previous.generation !== binding.access.scope.projection.generation || current.source !== previous.source
         || current.generation === previous.generation) fail("navigation_projection_unavailable");
-      this.recheck(binding, current);
+      await this.recheck(binding, current);
       return operationView(record, "ready", result);
     } catch {
       try {
-        const current = this.bind(binding.access.scope.sessionId);
-        this.recheck(binding, current.access.scope.projection);
+        const current = await this.bind(binding.access.scope.sessionId);
+        await this.recheck(binding, current.access.scope.projection);
         return operationView(record, "failed", result);
       } catch { return operationView(record, "invalidated"); }
     }
   }
   private async inspect(sessionId: string, entryId: string): Promise<HistoryNavigationSourceResult> {
-    const binding = this.bind(sessionId);
-    this.requireIdle(binding.access.scope);
+    const binding = await this.bind(sessionId);
+    await this.requireIdle(binding.access.scope);
     if (this.confirmations.size + this.pending >= 8) fail("navigation_confirmation_budget");
     this.pending++;
     try {
       const result = await binding.access.client.inspect(entryId);
-      this.recheck(binding);
-      this.requireIdle(binding.access.scope);
+      await this.recheck(binding);
+      await this.requireIdle(binding.access.scope);
       if (!sameTarget(result.target, binding.access.scope)
         || [result.targetRevision, result.contextRevision].some(value => !value || value.length > 256)
         || (result.targetParentId !== null && (!result.targetParentId || result.targetParentId.length > 256))) {

@@ -15,6 +15,7 @@ import { HistoryClient } from "../../packages/contracts/generated/history-client
 import { StrictStartClient } from "../../packages/contracts/generated/strict-client.ts";
 import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/submissions.ts";
 import { AttachmentClient } from "../../packages/contracts/generated/attachment-client.ts";
+import { NavigationClient } from "../../packages/contracts/generated/navigation-client.ts";
 import { isAttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
 import validState from "../../packages/contracts/generated/strict-state.js";
 import type { CatalogDescriptor, HistoryCut, HistoryOpen, HistoryItem, StrictStartState } from "../../packages/contracts/generated/omp-wire.ts";
@@ -85,6 +86,7 @@ test("the product Chat Host serves the read-only tree to a real DSH client and n
         subscribe: () => () => {},
         submissions: new SubmissionClient(async () => { throw new Error("UNUSED"); }, isSubmissionResult),
         attachments: new AttachmentClient(async () => { throw new Error("UNUSED"); }, isAttachmentReceipt),
+        navigation: new NavigationClient(async () => { throw new Error("UNUSED"); }, (_value): _value is never => false, (_value): _value is never => false),
         async submitCommand() { throw new Error("UNUSED"); },
         async command() { return { status: "answered" }; }, async control() { return {}; },
         async state() { return { sessionId: selected.nativeSessionId, isSettled: true, isStreaming: false,
