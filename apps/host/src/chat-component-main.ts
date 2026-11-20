@@ -26,11 +26,11 @@ const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home,
   NO_COLOR: "1", PI_NOTIFICATIONS: "off", ...fixtureEnv };
 const prefix = [process.execPath, "--no-env-file", "--preload",
   resolve(attachments ? "compatibility/omp/fixtures/no-provider.ts" : "compatibility/omp/fixtures/history-network-guard.js"),
-  resolve("vendor/omp-candidate/cli.js")];
+  resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate", "cli.js")];
 const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: home, readyTimeoutMs: 10_000 });
 const host = await startSessionComponentServer({ manifest: resolve("vendor/chat/installation.json"),
   assets: resolve("vendor/dsh-chat"),
-  launcher: resolve("vendor/omp-candidate/omp"), port, dataDir, catalog: catalog.catalog, chat: true,
+  launcher: resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate", "omp"), port, dataDir, catalog: catalog.catalog, chat: true,
   launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--strict-start", "--offline",
     "--model", attachments ? "attachment-controlled/literal" : "s0-controlled/deterministic-live",
     "--no-lsp", "--no-skills", "--no-rules", "--no-spotlight", "--no-judge",

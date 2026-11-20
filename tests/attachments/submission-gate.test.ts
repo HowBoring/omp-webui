@@ -11,7 +11,7 @@ function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
   let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
-  let terminal = true;
+  let terminal = true; let deferred: PromiseWithResolvers<void> | undefined;
   let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
   const bridge = new AttachmentBridge({ async authorize(request) {
     if (!owner) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
@@ -28,6 +28,7 @@ function fixture() {
         degradations: ["text_truncated"] }] } satisfies AttachmentReceipt;
   }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
     submits++; submittedMessage = input.message; if (failSubmit) throw Error("RPC_LOST_RESPONSE");
+    if (deferred) await deferred.promise;
     return { version: "durable-submission-v1", clientSubmissionId: input.clientSubmissionId,
       target: mismatchTarget ? { ...target, nativeSessionId: "another-session" } : target, found: true, duplicate: false,
       admission: "local", reservation: "committed", inputOutcome: noInput ? "no_input" : "generated", operationOutcome,
@@ -44,7 +45,8 @@ function fixture() {
     edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; },
     handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
     mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
-    unavailablePart: () => { unavailablePart = true; } };
+    unavailablePart: () => { unavailablePart = true; },
+    deferSubmit: () => { deferred = Promise.withResolvers<void>(); return () => { deferred?.resolve(); deferred = undefined; }; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
   for (let i = 0; i < 40; i++) { const state = await gate.status("request"); if (state.phase === "awaiting-consent") return state; await Promise.resolve(); }
@@ -144,4 +146,28 @@ test("only a correlated successful terminal no-input result completes without ac
     else await expect(f.gate.finish("request", "completed-without-input")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
     expect(f.counts().submits).toBe(1);
   }
+});
+
+test("a cancelled attempt stays unresolved when a late publication arrives and is never retroactively accepted", async () => {
+  const f = fixture();
+  const release = f.deferSubmit();
+  await f.gate.begin(attempt);
+  const controller = new AbortController();
+  const running = f.gate.submit("request", "late publication", controller.signal);
+  const state = await awaiting(f.gate);
+  await f.gate.consent(accept(state));
+  let submitting = false;
+  for (let index = 0; index < 200; index++) {
+    if ((await f.gate.status("request")).phase === "submitting") { submitting = true; break; }
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
+  expect(submitting).toBe(true);
+  expect(await f.gate.cancel("request")).toEqual({ cancelled: false });
+  expect((await f.gate.status("request")).phase).toBe("unresolved");
+  release();
+  await running.catch(() => {});
+  const late = await f.gate.status("request");
+  expect(late.phase).toBe("unresolved");
+  expect(late.recovery).toBe("unresolved");
+  await expect(f.gate.finish("request", "accepted")).rejects.toThrow("ATTACHMENT_OUTCOME_UNRESOLVED");
 });

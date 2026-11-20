@@ -140,7 +140,7 @@ export async function startSessionComponentServer(options: Options) {
         ++inflight;
         try {
           if (brokerRoute) return await brokerRoute.dispatch(request, identity);
-          if (chatComposition && chatEndpoints.has(path)) return await chatComposition.dispatch(request, ctx, owner);
+          if (chatComposition && chatEndpoints.has(path)) return chatComposition.dispatch(request, ctx, owner);
           const current = () => access.revalidate(identity);
           const response = registeredWorkspace ? await dispatchWorkspaceRequest(request, ctx, owner, current)
             : await sessionCaller.run(identity, () => dispatch(request, ctx, owner, current));

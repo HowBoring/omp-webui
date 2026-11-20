@@ -46,3 +46,15 @@ export async function decodeImage(bytes: Uint8Array, kind: ImageKind): Promise<{
     return { width, height, pixels };
   } finally { bitmap.close(); }
 }
+
+export type DraftImage = { readonly byteLength: number; readonly pixels: number };
+export type DraftBudgetFailure = "objects" | "bytes" | "pixels";
+
+/** Client-side mirror of the public originals target; the Host remains the authority on every byte. */
+export function draftBudgetFailure(current: readonly DraftImage[], next: { byteLength: number; pixels?: number }): DraftBudgetFailure | undefined {
+  if (current.length >= imageLimits.objects) return "objects";
+  if (next.byteLength > imageLimits.bytes) return "bytes";
+  if (current.reduce((sum, item) => sum + item.byteLength, 0) + next.byteLength > imageLimits.draftBytes) return "bytes";
+  const pixels = current.reduce((sum, item) => sum + item.pixels, 0) + (next.pixels ?? 0);
+  return pixels > imageLimits.draftPixels ? "pixels" : undefined;
+}

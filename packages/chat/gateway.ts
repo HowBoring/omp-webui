@@ -7,7 +7,7 @@ import type {
 } from "@deepseek-ai/dsh-api-session-controller/types";
 import type { SubmissionClientCommand } from "../contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionOrigin, SubmissionTarget } from "../contracts/candidates/durable-submission-v1/omp-wire.ts";
-import type { SessionState, PromptResultEvent } from "../contracts/generated/omp-wire.ts";
+import type { PromptResultEvent, SessionState, SubmissionResult } from "../contracts/generated/omp-wire.ts";
 import liveNotification from "../contracts/generated/live-notification.js";
 import { chatRequestId, chatSessionId, type ChatRecovery, type ChatState } from "../contracts/chat.ts";
 import { stopSnapshotSchema } from "../contracts/stop.ts";
@@ -64,7 +64,7 @@ interface Attempt {
 }
 
 export class ChatError extends Error {
-  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown") {
+  constructor(readonly code: "invalid" | "authority" | "busy" | "conflict" | "limit" | "unknown" | "cancelled") {
     super(`chat_${code}`);
   }
 }
@@ -179,17 +179,29 @@ export class ChatGateway {
     if (busy) throw new ChatError("busy");
     this.#latest = attempt;
     if (this.port.attachments?.has(attempt.id)) {
+      const snapshot = await this.port.state();
+      if (!isNativeIdle(snapshot, this.#target.nativeSessionId) || !this.#idle()) {
+        attempt.phase = "refused"; throw new ChatError("busy");
+      }
       attempt.phase = "dispatching";
       try {
         // The gate prepared and consented before this call; it owns the native reservation for this exact request.
-        await this.port.attachments.submit(attempt.id, text, signal);
+        const reply = await this.port.attachments.submit(attempt.id, text, signal) as SubmissionResult | undefined;
         current();
+        if (reply && reply.terminal && reply.operationOutcome !== "unknown") {
+          const input = reply.relations?.some(relation => relation.role === "input" && relation.status === "observed"
+            && !!relation.entryId) === true;
+          attempt.result = { agentInvoked: input, sessionSettled: true,
+            status: reply.operationOutcome === "succeeded" ? "completed" : reply.operationOutcome === "cancelled" ? "aborted" : "error" };
+        }
         attempt.phase = "admitted";
       } catch (error) {
-        attempt.phase = "unknown";
+        const cancelled = error instanceof Error && error.message === "ATTACHMENT_CANCELLED";
+        attempt.phase = cancelled ? "refused" : "unknown";
+        if (cancelled) attempt.settled = true;
         delete attempt.result;
         current();
-        throw error instanceof ChatError ? error : new ChatError("unknown");
+        throw error instanceof ChatError ? error : new ChatError(cancelled ? "cancelled" : "unknown");
       }
       return this.#accept(attempt, current, signal);
     }

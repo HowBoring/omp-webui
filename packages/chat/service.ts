@@ -36,6 +36,9 @@ function publicError(error: unknown): never {
   if (code === "unknown") {
     throw new ChatRemoteError("gateway/bad-request", "Submission outcome is unresolved. Check Native recovery.", {});
   }
+  if (code === "cancelled") {
+    throw new ChatRemoteError("gateway/bad-request", "Send attempt was cancelled before Native dispatch. Your draft is retained.", {});
+  }
   throw new ChatRemoteError("gateway/bad-request", "Chat request is unavailable for this Session view.", {});
 }
 

@@ -22,7 +22,7 @@ import { attachmentContribution } from "../../../packages/contracts/attachments.
 import { attachmentsContribution, type AttachmentSelection } from "../../../packages/contracts/attachment-remote.ts";
 import { AttachmentPreparationController } from "../../../packages/client-extensions/attachment-preparation.ts";
 import { AttachmentPreparationPanel } from "../../../packages/client-extensions/attachment-preparation-panel.tsx";
-import { base64Of, bytesOfBase64, decodeImage, imageLimits, sniffImage, type ImageKind } from "./images.ts";
+import { base64Of, bytesOfBase64, decodeImage, draftBudgetFailure, imageLimits, sniffImage, type ImageKind } from "./images.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
 import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
 
@@ -153,14 +153,14 @@ function Surface() {
   const stage = async (bytes: Uint8Array, displayName: string, current: Uploaded[]): Promise<Uploaded> => {
     const mediaType = sniffImage(bytes);
     if (!mediaType) throw new Error("Unsupported image. Use PNG, JPEG, WebP, or GIF whose bytes match the format.");
-    if (current.length >= imageLimits.objects) throw new Error(`A draft can hold at most ${imageLimits.objects} images.`);
-    if (bytes.byteLength > imageLimits.bytes) throw new Error(`Each image must be at most ${imageLimits.bytes / 1024 ** 2} MiB.`);
-    if (current.reduce((sum, item) => sum + item.byteLength, 0) + bytes.byteLength > imageLimits.draftBytes)
-      throw new Error(`The draft's images must total at most ${imageLimits.draftBytes / 1024 ** 2} MiB.`);
-    if (current.reduce((sum, item) => sum + item.pixels, 0) > imageLimits.draftPixels)
-      throw new Error("The draft exceeds its independent image decode budget.");
+    const refusal = draftBudgetFailure(current, { byteLength: bytes.byteLength });
+    if (refusal === "objects") throw new Error(`A draft can hold at most ${imageLimits.objects} images.`);
+    if (refusal === "bytes" && bytes.byteLength > imageLimits.bytes)
+      throw new Error(`Each image must be at most ${imageLimits.bytes / 1024 ** 2} MiB.`);
+    if (refusal === "bytes") throw new Error(`The draft's images must total at most ${imageLimits.draftBytes / 1024 ** 2} MiB.`);
+    if (refusal === "pixels") throw new Error("The draft exceeds its independent image decode budget.");
     const decoded = await decodeImage(bytes, mediaType);
-    if (current.reduce((sum, item) => sum + item.pixels, 0) + decoded.pixels > imageLimits.draftPixels)
+    if (draftBudgetFailure(current, { byteLength: 0, pixels: decoded.pixels }) === "pixels")
       throw new Error("The draft exceeds its independent image decode budget.");
     const staged = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "stage-base64",
       target: { sessionId: view!.registration.nativeSessionId, draftId },
@@ -260,9 +260,13 @@ function Surface() {
     const resolvePreparation = async () => {
       if (!preparation) return;
       await preparation.refresh().catch(() => {});
-      const snapshot = preparation.getSnapshot();
-      const recovery = "recovery" in snapshot ? snapshot.recovery : undefined;
-      if (recovery === "not-submitted") {
+      let snapshot = preparation.getSnapshot();
+      if (snapshot.phase === "registered" || snapshot.phase === "preparing") {
+        await preparation.cancel().catch(() => {});
+        await preparation.refresh().catch(() => {});
+        snapshot = preparation.getSnapshot();
+      }
+      if (("recovery" in snapshot && snapshot.recovery === "not-submitted") || snapshot.phase === "cancelled") {
         await preparation.finishAfterRecovery("not-submitted").catch(() => {});
         setController(undefined);
       }

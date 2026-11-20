@@ -9,7 +9,8 @@ from playwright.async_api import async_playwright, expect
 ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shutil.which("google-chrome")
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
-HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+HOST = Path(os.environ.get("OMP_CHAT_HOST_DIR", ROOT / "vendor/host-chat")) / "chat-component-main.js"
+PORT = int(os.environ.get("OMP_CHAT_FIXTURE_PORT", "3188"))
 CHAT_BUTTON = re.compile(r"(Open|Switch) Chat Session")
 
 
@@ -21,7 +22,7 @@ async def wait_health(timeout=15.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            urllib.request.urlopen("http://127.0.0.1:3188/healthz", timeout=1)
+            urllib.request.urlopen(f"http://127.0.0.1:{PORT}/healthz", timeout=1)
             return
         except Exception:
             await asyncio.sleep(0.1)
@@ -125,7 +126,7 @@ async def new_page(browser, errors):
 
 async def main():
     kill_worker()
-    subprocess.run(["pkill", "-f", "vendor/host-chat/chat-component-main.js"], check=False)
+    subprocess.run(["pkill", "-f", f"{HOST}"], check=False)
     await asyncio.sleep(0.5)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL)

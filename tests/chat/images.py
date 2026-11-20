@@ -10,7 +10,9 @@ HOST = ROOT / "vendor/host-chat/chat-component-main.js"
 PORT = os.environ.get("OMP_CHAT_FIXTURE_PORT", "3193")
 ORIGIN = f"http://127.0.0.1:{PORT}"
 DATA = ROOT / "vendor/chat-images-access"
-FIXTURE_ENV = {"OMP_CHAT_ATTACHMENTS": "1", "OMP_CHAT_FIXTURE_PORT": PORT, "OMP_CHAT_FIXTURE_DATA": str(DATA)}
+CANDIDATE = ROOT / "vendor/omp-candidate-image-t54"
+FIXTURE_ENV = {"OMP_CHAT_ATTACHMENTS": "1", "OMP_CHAT_FIXTURE_PORT": PORT, "OMP_CHAT_FIXTURE_DATA": str(DATA),
+               "OMP_CHAT_CANDIDATE": "vendor/omp-candidate-image-t54"}
 
 
 def free_port():
@@ -95,6 +97,36 @@ async def upload(page, name, mime, data):
     await page.get_by_label("Add image files").set_input_files({"name": name, "mimeType": mime, "buffer": data})
 
 
+async def wait_phase(page, phase):
+    try:
+        await page.wait_for_selector(f'[data-attachment-phase="{phase}"]', timeout=60000)
+    except Exception:
+        print("PHASE_ALERTS", await page.get_by_role("alert").all_inner_texts())
+        print("PHASE_ATTEMPT", await page.locator("[data-chat-attempt]").all_inner_texts())
+        print("PHASE_PANEL", (await page.locator('[aria-label="Prepared attachments"]').all_inner_texts())[:800])
+        print("PHASE_COUNT", await page.locator("[data-chat-original-id]").count())
+        print("PHASE_SETTLEMENT", await page.locator("[data-chat-settlement]").all_inner_texts())
+        raise
+
+async def wait_alert(page, text, timeout=30000):
+    deadline = time.monotonic() + timeout / 1000
+    while time.monotonic() < deadline:
+        texts = await page.get_by_role("alert").all_inner_texts()
+        if any(text in value for value in texts):
+            return
+        await asyncio.sleep(0.2)
+    print("ALERT_TEXTS", await page.get_by_role("alert").all_inner_texts())
+    raise AssertionError(f"alert did not contain {text!r}")
+
+async def wait_attempt(page, state, timeout=60000):
+    try:
+        await page.wait_for_selector(f'[data-chat-attempt="{state}"]', timeout=timeout)
+    except Exception:
+        print("ATTEMPT_TEXTS", await page.locator("[data-chat-attempt]").all_inner_texts())
+        print("ATTEMPT_ALERTS", await page.get_by_role("alert").all_inner_texts())
+        print("ATTEMPT_PANEL", (await page.locator('[aria-label="Prepared attachments"]').all_inner_texts())[:600])
+        raise
+
 async def wait_original(page, count):
     await expect(page.locator("[data-chat-image-count]")).to_have_attribute("data-chat-image-count", str(count), timeout=30000)
 
@@ -121,6 +153,8 @@ async def send_images(page, text):
 async def main():
     free_port()
     await asyncio.sleep(0.5)
+    if not CANDIDATE.exists():
+        shutil.copytree(ROOT / "vendor/omp-candidate", CANDIDATE, symlinks=True)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True, stdout=subprocess.DEVNULL)
     shutil.rmtree(DATA, ignore_errors=True)
     errors, scenarios = [], []
@@ -155,7 +189,7 @@ async def main():
             scenarios.append("image-upload-staged-no-send")
 
             await send_images(page, "image provenance check")
-            await page.wait_for_selector('[data-attachment-phase="awaiting-consent"]', timeout=60000)
+            await wait_phase(page, "awaiting-consent")
             await page.get_by_role("button", name=re.compile(r"Continue this Send attempt|Accept listed changes and continue Send")).click()
             await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
             await page.wait_for_selector('[data-chat-native-entry="accepted"]', timeout=60000)
@@ -177,34 +211,36 @@ async def main():
 
             await page.get_by_label("Add image files").set_input_files({"name": "spoof.png", "mimeType": "image/png",
                                                                         "buffer": b"this is not an image"})
-            await expect(page.get_by_role("alert")).to_contain_text("Unsupported image", timeout=30000)
+            await wait_alert(page, "Unsupported image")
             await wait_original(page, 3)
             await page.get_by_label("Add image files").set_input_files({"name": "broken.png", "mimeType": "image/png",
                                                                         "buffer": b"\x89PNG\r\n\x1a\n" + b"\x00" * 32})
-            await expect(page.get_by_role("alert")).to_contain_text("not a decodable", timeout=30000)
+            await wait_alert(page, "not a decodable")
             await wait_original(page, 3)
             await page.get_by_label("Add image files").set_input_files({"name": "huge.png", "mimeType": "image/png",
                                                                         "buffer": png + b"\x00" * (10 * 1024 * 1024)})
-            await expect(page.get_by_role("alert")).to_contain_text("at most 10 MiB", timeout=30000)
+            await wait_alert(page, "at most 10 MiB")
             await wait_original(page, 3)
             scenarios.append("image-spoof-bad-and-size-rejected")
 
+            cancel_before = await page.locator("[data-chat-original-id]").count()
             await upload(page, "cancel.png", "image/png", data_png(3, 3, (90, 10, 10)))
             await send_images(page, "image provenance check")
-            await page.wait_for_selector('[data-attachment-phase="awaiting-consent"]', timeout=60000)
+            await wait_phase(page, "awaiting-consent")
             await page.get_by_role("button", name="Cancel this Send attempt").click()
-            await page.wait_for_selector('[data-chat-attempt="refused"]', timeout=60000)
+            await wait_attempt(page, "refused")
             assert await page.get_by_label("Message").input_value() == "image provenance check", "cancelled preparation keeps the draft"
-            await wait_original(page, 1)
+            await wait_original(page, cancel_before + 1)
             scenarios.append("image-cancel-keeps-draft-original")
 
             await send_images(page, "transform")
-            await page.wait_for_selector('[data-attachment-phase="awaiting-consent"]', timeout=60000)
+            await wait_phase(page, "awaiting-consent")
             await page.get_by_role("button", name="Accept listed changes and continue Send").click()
             await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
             await wait_original(page, 0)
             scenarios.append("image-degradation-consent-accepted")
 
+            stale_before = await page.locator("[data-chat-original-id]").count()
             await upload(page, "stale.png", "image/png", data_png(5, 5, (10, 90, 10)))
             stale = await context.new_page()
             stale_errors = []
@@ -213,9 +249,9 @@ async def main():
             await stale.wait_for_selector("[data-chat-root-slot]")
             await open_session(stale)
             await send_images(page, "stale grant")
-            await expect(page.get_by_role("alert")).to_contain_text("ATTACHMENT_", timeout=60000)
+            await wait_alert(page, "ATTACHMENT_", 60000)
             assert await page.get_by_label("Message").input_value() == "stale grant", "stale grant keeps the draft"
-            await wait_original(page, 1)
+            await wait_original(page, stale_before + 1)
             assert not stale_errors, stale_errors
             scenarios.append("image-stale-grant-rejected-draft-kept")
             await stale.close()
@@ -230,7 +266,7 @@ async def main():
             await wait_original(limit, 8)
             await limit.get_by_label("Add image files").set_input_files({"name": "ninth.png", "mimeType": "image/png",
                                                                          "buffer": data_png(2, 2, (9, 9, 9))})
-            await expect(limit.get_by_role("alert")).to_contain_text("at most 8 images", timeout=30000)
+            await wait_alert(limit, "at most 8 images")
             assert await limit.locator("[data-chat-original-id]").count() == 8, "the ninth image is refused"
             await limit.close()
             scenarios.append("image-object-limit-enforced")
