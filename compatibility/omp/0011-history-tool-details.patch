@@ -1,0 +1,173 @@
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+index 4eeffe1..93eda64 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -19,6 +19,17 @@ export type HistoryScope = "tree" | "active" | "running" | "live";
+ export interface HistoryContent {
+   cursor: string; mimeType: string; bytes: number; sha256: string; origin: "retained_native"; originalAssociation: "unproven";
+ }
++export interface HistoryUsage {
++  inputTokens: number; outputTokens: number; totalTokens?: number;
++  cacheReadTokens?: number; cacheWriteTokens?: number; reasoningTokens?: number;
++}
++export interface HistoryToolCall {
++  callId: string; name: string; arguments: Record<string, unknown>; thoughtSignature?: string;
++}
++export interface HistoryFile {
++  path: string; available: boolean; hasImage: boolean; lineCount?: number; byteSize?: number; skippedReason?: string;
++}
++export interface HistoryError { reason: string; status?: number; code?: number }
+ export interface HistoryLiveIdentity extends NativeMessageIdentity { workerId: string }
+ export interface HistoryItem {
+   /** Exact native origin; observational history is not a durable submission receipt. */
+@@ -26,6 +37,8 @@ export interface HistoryItem {
+   live?: HistoryLiveIdentity; settlement?: NativeMessageSettlement; livePhase?: "streaming" | "ended";
+   id: string; parentId: string | null; kind: string; active: boolean; text: string;
+   provider?: string; model?: string; contents?: HistoryContent[]; entryId?: string; partIndex?: number; partCount?: number; toolCallId?: string; toolName?: string; isError?: boolean; stopReason?: string; role?: string; timestamp?: string; boundary?: "compaction" | "reset" | "branch";
++  reasoning?: string; toolCalls?: HistoryToolCall[]; usage?: HistoryUsage; files?: HistoryFile[]; error?: HistoryError;
++  display?: boolean; customType?: string; unavailable?: boolean; truncated?: boolean; cancelled?: boolean;
+ }
+ export interface HistoryCut {
+   durability: "not_attested";
+@@ -87,7 +100,59 @@ function textContent(value: unknown): string {
+     throw new Error("history_unknown_content");
+   }).join("\n");
+ }
+-function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "provider" | "model" | "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason"> {
++function numberField(value: unknown, key: string): number | undefined {
++  const field = record(value)[key];
++  return typeof field === "number" && Number.isFinite(field) ? field : undefined;
++}
++function usageValue(value: unknown): HistoryUsage | undefined {
++  const inputTokens = numberField(value, "input"), outputTokens = numberField(value, "output");
++  if (inputTokens === undefined || outputTokens === undefined) return undefined;
++  const totalTokens = numberField(value, "totalTokens");
++  const cacheReadTokens = numberField(value, "cacheRead"), cacheWriteTokens = numberField(value, "cacheWrite");
++  const reasoningTokens = numberField(value, "reasoningTokens");
++  return { inputTokens, outputTokens, ...(totalTokens === undefined ? {} : { totalTokens }),
++    ...(cacheReadTokens === undefined ? {} : { cacheReadTokens }),
++    ...(cacheWriteTokens === undefined ? {} : { cacheWriteTokens }),
++    ...(reasoningTokens === undefined ? {} : { reasoningTokens }) };
++}
++function toolCallValues(value: unknown): HistoryToolCall[] {
++  if (!Array.isArray(value)) return [];
++  return value.flatMap(part => {
++    const block = record(part);
++    if (block.type !== "toolCall") return [];
++    const args = record(block.arguments);
++    if (typeof block.id !== "string" || typeof block.name !== "string" || block.arguments === null
++      || typeof block.arguments !== "object" || Array.isArray(block.arguments)) return [];
++    return [{ callId: block.id, name: block.name, arguments: args,
++      ...(typeof block.thoughtSignature === "string" ? { thoughtSignature: block.thoughtSignature } : {}) }];
++  });
++}
++function reasoningValue(value: unknown): string | undefined {
++  if (!Array.isArray(value)) return undefined;
++  const text = value.map(part => {
++    const block = record(part);
++    return block.type === "thinking" && typeof block.thinking === "string" ? block.thinking : "";
++  }).filter(Boolean).join("\n");
++  return text === "" ? undefined : text;
++}
++function fileValues(value: unknown): HistoryFile[] {
++  if (!Array.isArray(value)) return [];
++  return value.map(item => {
++    const file = record(item);
++    return { path: typeof file.path === "string" ? file.path : "unknown",
++      available: typeof file.content === "string", hasImage: Boolean(file.image),
++      ...(typeof file.lineCount === "number" ? { lineCount: file.lineCount } : {}),
++      ...(typeof file.byteSize === "number" ? { byteSize: file.byteSize } : {}),
++      ...(typeof file.skippedReason === "string" ? { skippedReason: file.skippedReason } : {}) };
++  });
++}
++function errorValue(message: Record<string, unknown>): HistoryError | undefined {
++  if (typeof message.errorMessage !== "string" || message.errorMessage === "") return undefined;
++  return { reason: message.errorMessage,
++    ...(typeof message.errorStatus === "number" ? { status: message.errorStatus } : {}),
++    ...(typeof message.errorId === "number" ? { code: message.errorId } : {}) };
++}
++function readableMessage(value: unknown, content?: (value: unknown) => HistoryContent[]): Pick<HistoryItem, "provider" | "model" | "text" | "role" | "contents" | "toolCallId" | "toolName" | "isError" | "stopReason" | "reasoning" | "toolCalls" | "usage" | "files" | "error" | "unavailable" | "truncated" | "cancelled"> {
+   const message = record(value);
+   const role = typeof message.role === "string" ? message.role : "unknown";
+   if (role === "developer") return { role, text: "[Native developer context record]" };
+@@ -97,14 +162,28 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+       (typeof file.content === "string" ? file.content : "") +
+       (typeof file.skippedReason === "string" ? `\n[Native unavailable: ${file.skippedReason}]` : "") +
+       (file.image ? "\n[Retained native image; original association unproven]" : "")).join("\n"),
++      files: fileValues(message.files),
+       ...(content ? { contents: content(files.flatMap(file => file.image ? [file.image] : [])) } : {}) };
+   }
+   if (role === "branchSummary" || role === "compactionSummary") return { role, text: typeof message.summary === "string" ? message.summary : "[Native summary]" };
+   if (["user", "assistant", "toolResult", "custom", "hookMessage"].includes(role)) {
+     if ((role === "custom" || role === "hookMessage") && message.display !== true) return { text: "[Internal custom message]" };
++    const toolCalls = role === "assistant" ? toolCallValues(message.content) : [];
++    const reasoning = role === "assistant" ? reasoningValue(message.content) : undefined;
++    const usage = role === "assistant" ? usageValue(message.usage) : undefined;
++    const error = errorValue(message);
++    const unavailable = typeof message.prunedAt === "number"
++      || (Array.isArray(message.content) && message.content.some(part => record(part).type === "image" && record(part).data === ""));
+     return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: (textContent(message.content) || `[${role}]`) +
+       (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
+       (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
++      ...(toolCalls.length === 0 ? {} : { toolCalls }),
++      ...(reasoning === undefined ? {} : { reasoning }),
++      ...(usage === undefined ? {} : { usage }),
++      ...(error === undefined ? {} : { error }),
++      ...(unavailable ? { unavailable: true } : {}),
++      ...(message.truncated === true ? { truncated: true } : {}),
++      ...(message.cancelled === true ? { cancelled: true } : {}),
+       ...(typeof message.toolCallId === "string" ? {toolCallId:message.toolCallId} : {}),
+       ...(typeof message.toolName === "string" ? {toolName:message.toolName} : {}),
+       ...(typeof message.isError === "boolean" ? {isError:message.isError} : {}),
+@@ -113,7 +192,11 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+   }
+   if (role === "bashExecution" || role === "pythonExecution") return { role,
+     text: (typeof message.output === "string" ? message.output : "[Native execution]") +
+-      (message.cancelled === true ? "\n[Native execution cancelled]" : ""),
++      (message.cancelled === true ? "\n[Native execution cancelled]" : "") +
++      (message.truncated === true ? "\n[Native execution truncated]" : ""),
++    ...(message.cancelled === true ? { cancelled: true } : {}),
++    ...(message.truncated === true ? { truncated: true } : {}),
++    ...(typeof message.exitCode === "number" && message.exitCode !== 0 ? { error: { reason: `Native execution exit code ${message.exitCode}`, code: message.exitCode } } : {}),
+     ...(content && Array.isArray(message.images) ? {contents:content(message.images)} : {}) };
+   throw new Error("history_unknown_message");
+ }
+@@ -132,9 +215,14 @@ function readableEntry(value: unknown, active: Set<string>, content: (value: unk
+   if (typeof entry.timestamp === "string") item.timestamp = entry.timestamp;
+   if (entry.type === "message") Object.assign(item, readableMessage(entry.message, content));
+   if (entry.type === "custom_message") {
+-    item.text = entry.display === true ? textContent(entry.content) : "[Internal custom message]";
+-    if (entry.display === true) item.role = "custom";
+-    if (entry.display === true) item.contents = content(entry.content);
++    const display = entry.display === true;
++    item.display = display;
++    item.text = display ? textContent(entry.content) : "[Internal custom message]";
++    if (display) {
++      item.role = "custom";
++      item.contents = content(entry.content);
++      if (typeof entry.customType === "string") item.customType = entry.customType;
++    }
+   }
+   if (entry.type === "compaction" || entry.type === "branch_summary") {
+     item.boundary = entry.type === "compaction" ? "compaction" : "branch";
+diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
+index 0b28662..1f605e5 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/history.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
+@@ -10,8 +10,15 @@ export const historyDefs = {
+     contextId: "string", branchLeafId: "string | null", "toolOwnerMessageId?": "string" },
+   HistorySettlement: { status: "'observed' | 'no_entry' | 'failed'", durability: "'not_attested'", "entryId?": "string", "reason?": "string" },
+   HistoryNativeChange: { kind: "string", revision: "number.integer", contextRevision: "number.integer", sessionId: "string", leafId: "string | null", "entryId?": "string" },
++  HistoryUsage: { inputTokens: "number.integer", outputTokens: "number.integer", "totalTokens?": "number.integer",
++    "cacheReadTokens?": "number.integer", "cacheWriteTokens?": "number.integer", "reasoningTokens?": "number.integer" },
++  HistoryToolCall: { callId: "string", name: "string", arguments: "Record<string, unknown>", "thoughtSignature?": "string" },
++  HistoryFile: { path: "string", available: "boolean", hasImage: "boolean", "lineCount?": "number.integer", "byteSize?": "number.integer", "skippedReason?": "string" },
++  HistoryError: { reason: "string", "status?": "number.integer", "code?": "number.integer" },
+   HistoryItem: { "submission?": "SubmissionCausality", "provider?": "string", "model?": "string", "live?": "HistoryLiveIdentity", "settlement?": "HistorySettlement", "livePhase?": "'streaming' | 'ended'", id: "string", parentId: "string | null", kind: "string", active: "boolean", text: "string",
+-    "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'" },
++    "toolCallId?": "string", "toolName?": "string", "isError?": "boolean", "stopReason?": "string", "contents?": "HistoryContent[]", "entryId?": "string", "partIndex?": "number.integer", "partCount?": "number.integer", "role?": "string", "timestamp?": "string", "boundary?": "'compaction' | 'reset' | 'branch'",
++    "reasoning?": "string", "toolCalls?": "HistoryToolCall[]", "usage?": "HistoryUsage", "files?": "HistoryFile[]", "error?": "HistoryError",
++    "display?": "boolean", "customType?": "string", "unavailable?": "boolean", "truncated?": "boolean", "cancelled?": "boolean" },
+   HistorySourceBinding: { sourceId: "string", instanceId: "string", nativeSessionId: "string", reference: "string" },
+   HistoryCut: { durability: "'not_attested'", sourceBindingStatus: "'worker' | 'catalog'", "catalogBinding?": "HistorySourceBinding", sourceId: "string", sessionId: "string", workerId: "string", contextId: "string",
+     contentRevision: "string", nativeRevision: "number.integer", retainedRevision: "string", leafId: "string | null", observationSeq: "number.integer" },

@@ -10,7 +10,7 @@ import type { HistoryCut, HistoryItem, HistorySourceBinding } from '../contracts
 import type { StopSnapshot } from '../contracts/stop.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
 import { MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
-  pageCoordinates, settledCoordinates, settledHistoryRecords, type PageRequest } from './history-records.ts';
+  pageCoordinates, settledCoordinates, settledHistoryRecords, ToolCallLedger, type PageRequest } from './history-records.ts';
 
 const INDEX_BYTES = 8 * 1024 * 1024;
 const INDEX_ENTRIES = 20_000;
@@ -22,7 +22,7 @@ const MAX_READERS = 4;
 const digest = /^[0-9a-f]{64}$/;
 const handle = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/;
 const entryFields = new Set<string>(['ordinal', 'entryId', 'digest', 'parentId', 'kind',
-  'role', 'provider', 'model', 'stopReason', 'live'] satisfies (keyof ActiveHistoryEntry)[]);
+  'role', 'provider', 'model', 'stopReason', 'toolCallCount', 'live'] satisfies (keyof ActiveHistoryEntry)[]);
 const encodedBytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value));
 
 export interface ArchivedHistoryOwner {
@@ -125,6 +125,7 @@ export class ArchivedJournal {
   /** Same stable Host-journal identity as the eager presentation for this Native Session. */
   get projection() { return parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: this.generation}); }
   readonly #rows: ArchivedRow[] = [];
+  readonly #toolCalls = new ToolCallLedger();
   readonly #source: ActiveHistorySource;
   readonly #owner: ArchivedHistoryOwner;
   readonly #opened: ActiveHistoryOpen;
@@ -228,7 +229,7 @@ export class ArchivedJournal {
         bytes += size;
         if (size > MAX_ITEM_BYTES || bytes > indexBytes) throw Error('live_archive_index_budget');
         this.#validateEntry(item, leaf, seen);
-        const position = settledCoordinates(item.role, counters);
+        const position = settledCoordinates(item.role, counters, item.toolCallCount ?? 0);
         this.#rows.push({ entry: structuredClone(item), start: this.#nextSeq,
           turn: position.turn, step: position.step });
         this.#nextSeq += position.length;
@@ -294,7 +295,7 @@ export class ArchivedJournal {
         pending ??= new HistoryRecordParts({ ...item, text: '' }, partCount, true);
         const assembled = pending.append(item, partIndex++);
         if (!assembled) continue;
-        window.append(settledHistoryRecords(assembled, row.entry.entryId, row.start, row), end - row.start);
+        window.append(settledHistoryRecords(assembled, row.entry.entryId, row.start, row, this.#toolCalls), end - row.start);
         pending = undefined; ordinal++; partIndex = 0;
       }
       const next: ActiveHistoryPosition | undefined = ordinal <= last ? { ordinal, partIndex } : undefined;

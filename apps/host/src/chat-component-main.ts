@@ -8,8 +8,8 @@ import { startSessionComponentServer } from "./session-component-server.ts";
 
 const attachments = process.env.OMP_CHAT_ATTACHMENTS === "1";
 const home = resolve(attachments ? "vendor/chat-attachment-fixture" : "vendor/chat-fixture"),
-  dataDir = resolve(process.env.OMP_CHAT_FIXTURE_DATA ?? "vendor/chat-access");
-const port = Number(process.env.OMP_CHAT_PORT ?? process.env.OMP_CHAT_FIXTURE_PORT ?? 3188);
+  dataDir = resolve(process.env.OMP_CHAT_FIXTURE_DATA ?? "vendor/chat-access"),
+  port = Number(process.env.OMP_CHAT_PORT ?? process.env.OMP_CHAT_FIXTURE_PORT ?? 3188);
 if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error("OMP_CHAT_PORT must be a TCP port");
 if (process.argv.includes("--print-bootstrap")) {
   const authority = openBrowserAccess({ dataDir, origin: `http://127.0.0.1:${port}` });
@@ -18,8 +18,10 @@ if (process.argv.includes("--print-bootstrap")) {
 z.strictObject({ kind: z.literal("S2-synthetic-chat-fixture"), privateData: z.literal(false) })
   .parse(await Bun.file(join(home, "fixture-marker.json")).json());
 const scenario = process.env.OMP_CHAT_FIXTURE_SCENARIO, delay = process.env.OMP_CHAT_FIXTURE_DELAY_MS;
+const tools = process.env.OMP_CHAT_FIXTURE_TOOLS;
 const fixtureEnv = { ...(scenario === undefined ? {} : { OMP_LIVE_FIXTURE_SCENARIO: scenario }),
-  ...(delay === undefined ? {} : { OMP_LIVE_FIXTURE_DELAY_MS: delay }) };
+  ...(delay === undefined ? {} : { OMP_LIVE_FIXTURE_DELAY_MS: delay }),
+  ...(tools === undefined ? {} : { OMP_LIVE_FIXTURE_TOOLS: tools }) };
 const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home,
   PI_CODING_AGENT_DIR: attachments ? join(home, ".omp/agent") : home,
   ...(attachments ? {} : { OMP_HISTORY_FIXTURE_PROFILE: home }),
@@ -29,8 +31,7 @@ const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home,
 const candidate = resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate/cli.js");
 const launcher = resolve(process.env.OMP_CHAT_LAUNCHER ?? "vendor/omp-candidate/omp");
 const prefix = [process.execPath, "--no-env-file", "--preload",
-  resolve(attachments ? "compatibility/omp/fixtures/no-provider.ts" : "compatibility/omp/fixtures/history-network-guard.js"),
-  candidate];
+  resolve(attachments ? "compatibility/omp/fixtures/no-provider.ts" : "compatibility/omp/fixtures/history-network-guard.js"), candidate];
 const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: home, readyTimeoutMs: 10_000 });
 const host = await startSessionComponentServer({ manifest: resolve("vendor/chat/installation.json"),
   assets: resolve("vendor/dsh-chat"),

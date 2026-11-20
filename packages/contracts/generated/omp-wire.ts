@@ -1989,6 +1989,37 @@ export interface HistoryNativeChange {
 	entryId?: string;
 }
 
+export interface HistoryUsage {
+	inputTokens: number;
+	outputTokens: number;
+	totalTokens?: number;
+	cacheReadTokens?: number;
+	cacheWriteTokens?: number;
+	reasoningTokens?: number;
+}
+
+export interface HistoryToolCall {
+	callId: string;
+	name: string;
+	arguments: Record<string, unknown>;
+	thoughtSignature?: string;
+}
+
+export interface HistoryFile {
+	path: string;
+	available: boolean;
+	hasImage: boolean;
+	lineCount?: number;
+	byteSize?: number;
+	skippedReason?: string;
+}
+
+export interface HistoryError {
+	reason: string;
+	status?: number;
+	code?: number;
+}
+
 export interface HistoryItem {
 	id: string;
 	parentId: string | null;
@@ -2012,6 +2043,16 @@ export interface HistoryItem {
 	role?: string;
 	timestamp?: string;
 	boundary?: "compaction" | "reset" | "branch";
+	reasoning?: string;
+	toolCalls?: HistoryToolCall[];
+	usage?: HistoryUsage;
+	files?: HistoryFile[];
+	error?: HistoryError;
+	display?: boolean;
+	customType?: string;
+	unavailable?: boolean;
+	truncated?: boolean;
+	cancelled?: boolean;
 }
 
 export interface HistorySourceBinding {

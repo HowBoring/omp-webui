@@ -1,6 +1,7 @@
 /** Public native RPC plus derived DSH page contracts; controlled provider, never real AI. */
 import {test,expect} from 'bun:test';
 import {openLiveFixture} from '../../compatibility/omp/fixtures/live-worker.ts';
+import type {SessionFollowFrame} from '@deepseek-ai/dsh-api-session-controller/types';
 import {LiveJournal} from '../../packages/projection/live-journal.ts';
 
 test('derived pages keep exact inclusive cuts and exclusive backward bounds across observed appends',async()=>{
@@ -8,7 +9,7 @@ test('derived pages keep exact inclusive cuts and exclusive backward bounds acro
   try {
     const journal=await LiveJournal.open(fixture.transport.history);
     const cut=journal.cursor,original=journal.page({throughSeq:cut,maxMessages:128});
-    const frames:unknown[]=[];journal.subscribe(frame=>frames.push(frame));
+    const frames:SessionFollowFrame[]=[];journal.subscribe(frame=>frames.push(frame));
     await fixture.transport.prompt();
     for(let i=0;i<160;i++){
       journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
@@ -23,8 +24,11 @@ test('derived pages keep exact inclusive cuts and exclusive backward bounds acro
     const previous=journal.page({throughSeq:cut,beforeSeq:before,maxMessages:128});
     expect([...previous.records,...tail.records]).toEqual([...original.records]);
     expect(journal.snapshot().assistantStream).toEqual({revision:expect.any(Number)});
-    const liveFrames=frames.filter((frame):frame is {type:'assistant-stream';frame:{revision:number;type:string;index:number}}=>
-      typeof frame==='object'&&frame!==null&&'type' in frame&&frame.type==='assistant-stream');
+    // A generation-scoped follower drops any live frame it cannot bind to its opening projection.
+    expect(frames.length).toBeGreaterThan(0);
+    for(const frame of frames) expect(frame.projection).toEqual(journal.projection);
+    const liveFrames=frames.filter((frame):frame is Extract<SessionFollowFrame,{type:'assistant-stream'}>=>
+      frame.type==='assistant-stream');
     expect(liveFrames.map(frame=>frame.frame.revision)).toEqual(liveFrames.map((_,i)=>i+1));
     expect(liveFrames.at(-1)?.frame.type).toBe('end');
     expect(()=>journal.page({throughSeq:journal.cursor+1})).toThrow('live_stale_page');

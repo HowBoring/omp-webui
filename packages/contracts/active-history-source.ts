@@ -11,6 +11,8 @@ export interface ActiveHistoryEntry extends ActiveHistoryEntryKey {
   provider?: string;
   model?: string;
   stopReason?: string;
+  /** Presentation-only parsed calls retained by the native index for coordinate accounting. */
+  toolCallCount?: number;
   live?: HistoryLiveIdentity;
 }
 interface ActiveHistoryEnvelope { snapshot: string; cut: HistoryCut; expiresAt: number }
