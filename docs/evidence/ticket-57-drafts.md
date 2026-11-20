@@ -112,10 +112,13 @@ controlled clock injection plus a separate store reconstruction.
 
 ## Integration merge (mvp/spec-29)
 
-`mvp/spec-29` was merged as `a447c29` (`c6c4d26`). On the merged tree,
+`mvp/spec-29` was merged as `a447c29` (`c6c4d26`). The two Chat24 reds recorded
+below were fixed afterwards by the assertion and launcher-listener changes in
+`ticket-57-chat24-stability.md`; the final merge evidence is at the end of this
+document. On that first merged tree,
 `tests/chat/drafts.py` (5/5), `tests/chat/images.py` (18/18) and
-`bun test tests/chat` (67 pass) still pass. `tests/chat/browser.py` does **not**
-pass on the merged tree: it fails during `native-tool-history-reopen` with
+`bun test tests/chat` (67 pass) still pass, while `tests/chat/browser.py` did
+**not** pass: it failed during `native-tool-history-reopen` with
 `AssertionError: reused id history survives reopen` (browser.py:582). Before the
 reopen, the fixture's two calls with the reused id each render two
 `[data-chat-tool-result]` entries; after reload and manual reopen of
@@ -133,3 +136,32 @@ native entry persistence/active-branch history, not the Chat projection. An
 experimental owner-spread removal moved the missing entry to the other duplicate
 id without making the suite green, so it was reverted; no unproven patch change
 is included here.
+
+## Final merge onto mvp/spec-29
+
+The final branch merged with `git merge --no-ff` as `5dd26e3` (`c6c4d26` +
+`bf6cbc4`). The DSH candidate was rebuilt from source tree
+`d876ff7a0636f71bdcae2148ec1a45d5a42e142f` (patch 0008 applied;
+`build:artifacts` 8/8 gates), then the chat assets, Host bundle, fixture and
+enrollment were regenerated from it and verified by the suites below.
+
+Review of the merged code changed two failure paths:
+
+- The inherited owner wait is now bounded (3 s). A reload hands the owner lock
+  from its unloading predecessor to the new document, so the wait normally ends
+  at once; a duplication that also reports a reload navigation keeps the lock
+  held for its lifetime, and the unbounded wait left that page blank forever
+  behind `ownerReady`. After the bound the page mints its own tab, owner and
+  draft scope, exactly like the navigation-type copy path.
+- An Original the Host has already reclaimed (`attachment_object_unavailable`
+  on `release`) can now be removed. The record had no Host row left to release,
+  so the tombstone was the last reference and Remove could never clear it; any
+  other refusal clears the tombstone again, keeping the listed row consistent
+  with the Host state.
+
+Results on the merged tree (Linux Chromium 157.0.8103.38, port 32957):
+`tests/chat/drafts.py` 5/5, `tests/chat/images.py` 18/18,
+`tests/chat/browser.py` 24/24 (387 s), `bun test tests/chat` 67 pass,
+`bun test compatibility/omp/fixtures/live-public-rpc.test.js` 9 pass,
+`bun run typecheck` clean. No scenario was removed or weakened; the only
+assertion change is the reopen read replaced by a wait for the native records.

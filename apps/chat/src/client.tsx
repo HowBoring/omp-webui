@@ -47,19 +47,22 @@ const ctx = new Context();
 let tab = (() => { const saved = sessionStorage.getItem("omp-chat-tab"); if (saved) return saved; const created = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", created); return created; })();
 /**
  * A live Web Lock distinguishes this tab from a copied tab that inherited the same sessionStorage.
- * A reload reuses the inherited identity and waits for its unloaded predecessor, never minting an
- * identity on lock failure; a copy is recognized by its navigation type and starts its own scope.
+ * A reload reuses the inherited identity while its unloaded predecessor still holds the lock; a
+ * duplication that also reports a reload keeps the lock held for its lifetime, so the wait is
+ * bounded and the page starts its own scope rather than staying blank forever.
  */
-async function claimOwner(candidate: string, reload: boolean): Promise<string> {
-  if (reload) {
+async function claimOwner(candidate: string, inherited: boolean): Promise<string | undefined> {
+  if (inherited) {
     // The predecessor document is being replaced and releases its lock as it unloads.
-    const acquired = Promise.withResolvers<void>();
+    const acquired = Promise.withResolvers<boolean>();
     void navigator.locks.request(`omp.chat.owner.${candidate}`, () => {
-      acquired.resolve();
+      acquired.resolve(true);
       return new Promise<void>(() => {});
     });
-    await acquired.promise;
-    return candidate;
+    const timer = setTimeout(() => acquired.resolve(false), 3000);
+    const claimed = await acquired.promise;
+    clearTimeout(timer);
+    return claimed ? candidate : undefined;
   }
   for (let attempt = 0; attempt < 20; attempt++) {
     const probe = Promise.withResolvers<boolean>();
@@ -71,22 +74,23 @@ async function claimOwner(candidate: string, reload: boolean): Promise<string> {
     if (await probe.promise) return candidate;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  // A contended lock never mints an identity; only an actual copied tab does that below.
-  return candidate;
+  // A contended lock never mints an identity; a live owner means this page starts its own scope below.
+  return undefined;
 }
 let tabOwner = "";
 const ownTab = async () => {
   const saved = sessionStorage.getItem("omp-chat-owner");
   const navigation = (performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type;
   const copied = saved !== undefined && navigation !== "reload" && navigation !== "back_forward";
-  if (copied) {
+  const claimed = copied ? undefined : await claimOwner(saved ?? tab, saved !== undefined);
+  if (claimed === undefined) {
     // The inherited draft record belongs to the live original tab; take a fresh page and draft scope
     // instead of writing through its Host authority or stealing its draft id.
     tab = crypto.randomUUID(); sessionStorage.setItem("omp-chat-tab", tab);
     draftId = crypto.randomUUID(); sessionStorage.setItem("omp-chat-draft", draftId);
     tabOwner = crypto.randomUUID();
   } else {
-    tabOwner = await claimOwner(saved ?? tab, saved !== undefined);
+    tabOwner = claimed;
   }
   sessionStorage.setItem("omp-chat-owner", tabOwner);
 };
@@ -684,15 +688,20 @@ function Surface() {
     finally { setUploading(false); }
   };
   const removeOriginal = async (objectId: string) => {
-        draftDirty = true; removedOriginals.add(objectId);
+    draftDirty = true; removedOriginals.add(objectId);
     try {
       const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
         target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
-      if (released.status !== "released") throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
+      // An original the Host already reclaimed has no record left to release; the tombstone is the last reference.
+      if (released.status !== "released" && !(released.status === "error" && released.code === "attachment_object_unavailable"))
+        throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
       const next = originalsRef.current.filter(item => item.objectId !== objectId);
       originalsRef.current = next; setOriginals(next); ++revision.current;
       void persist({ draft: { text, references: [] }, originals: draftRefs() }, "edit");
-    } catch (failure) { setError(message(failure)); }
+    } catch (failure) {
+      // The Host still owns the original, so the record must keep listing it.
+      removedOriginals.delete(objectId); setError(message(failure));
+    }
   };
   const recover = async (requestId: string) => {
     const result = resultValue(await ctx.remote.ompChat.lookup(view!.registration.nativeSessionId, requestId));
