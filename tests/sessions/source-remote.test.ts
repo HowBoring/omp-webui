@@ -130,7 +130,7 @@ test("known typed errors keep safe codes while arbitrary native messages and for
     for (const thrown of [new Error(secret), secret, { code: "STRICT_OCCUPIED", message: secret,
       details: { secret }, isDSHRemoteError: true }, Object.assign(new Error(secret), { code: "STRICT_" + "A".repeat(200) })]) {
       f.controls.catalogFailure = thrown;
-      expect(await f.remote.catalog({})).toMatchObject({ ok: false,
+      expect(await f.remote.catalog({ refresh: true })).toMatchObject({ ok: false,
         error: { code: "gateway/internal", message: "Session request failed.", details: {} } });
     }
     for (const [thrown, code] of [
@@ -140,7 +140,7 @@ test("known typed errors keep safe codes while arbitrary native messages and for
       [new Error("STRICT_OCCUPIED"), "STRICT_OCCUPIED"],
     ] as const) {
       f.controls.catalogFailure = thrown;
-      expect(await f.remote.catalog({})).toMatchObject({ ok: false, error: { code, details: {} } });
+      expect(await f.remote.catalog({ refresh: true })).toMatchObject({ ok: false, error: { code, details: {} } });
     }
     for (const call of f.observed) {
       expect(call.status).toBe(200); expect(JSON.parse(call.body).rpcId).toBe(call.requestId);
