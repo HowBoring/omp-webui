@@ -577,9 +577,12 @@ async def main():
             await page.reload()
             await page.wait_for_selector("[data-chat-root-slot]")
             await open_session(page, "native-0002")
-            await page.wait_for_selector('[data-chat-tool-result="s0_fixture_batch"]', timeout=60000)
-            assert len(await page.locator('[data-chat-tool-result="s0_fixture_batch"]').all_inner_texts()) >= 2, "batch history survives reopen"
-            assert len(await page.locator('[data-chat-tool-result="s0_fixture"]').all_inner_texts()) >= 2, "reused id history survives reopen"
+            # The reopened view mounts from native history; a mounting/rebuilding view is waited for, so
+            # this asserts the native records, not the instant the first frame happens to be in the DOM.
+            await page.wait_for_function("""() => {
+              const count = id => document.querySelectorAll(`[data-chat-tool-result="${id}"]`).length;
+              return count('s0_fixture') >= 2 && count('s0_fixture_batch') >= 2;
+            }""", timeout=60000)
             scenarios.append("native-tool-history-reopen")
 
             # The same first turn also starts a real async bash call: call first, native output later.
