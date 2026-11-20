@@ -3,6 +3,7 @@ import { attachmentSelectionSchema, attachmentConsentRequestSchema, attachmentPr
 import type { AttachmentSelection, AttachmentConsentRequest, AttachmentDispatchBinding } from "../contracts/attachment-remote.ts";
 import { isSubmissionResult } from "../contracts/submissions.ts";
 import type { AttachmentReceipt, AttachmentConsent } from "../contracts/attachment-preparation.ts";
+import type { SubmissionResult } from "../contracts/submissions.ts";
 import type { RpcWireCommands, SubmissionTarget } from "../contracts/generated/omp-wire.ts";
 
 type Preparation = RpcWireCommands["attachment_prepare"]["params"];
@@ -11,8 +12,13 @@ export interface AuthorizedAttachmentDraft extends Omit<Preparation, "preparatio
 /** Must recheck live browser ownership, trusted projection, draft, originals and authority at every call. */
 export interface AttachmentAuthority {
   authorize(selection: AttachmentSelection): Promise<AuthorizedAttachmentDraft>;
+  /** Durable hold for the exact Originals of this correlated attempt, before Native can consume them. */
+  reserve?(selection: AttachmentSelection, attempt: { clientSubmissionId: string; preparationId: string;
+    draftRevision: string; authorityGeneration: string }, objectIds: readonly string[], receipt: AttachmentReceipt): Promise<void>;
   /** Trusted notice that Native now owns these staged originals for this committed submission. */
   associated?(selection: AttachmentSelection, objectIds: readonly string[], clientSubmissionId: string): void;
+  /** Complete first-page Native query recorded as the durable Original-to-entry association. */
+  record?(selection: AttachmentSelection, clientSubmissionId: string, result: SubmissionResult): Promise<void>;
 }
 /** This port must be implemented by the same-source public native clients and an owned RPC worker. */
 export interface AttachmentNativePort {
@@ -106,6 +112,10 @@ export class AttachmentBridge {
     const draft = await this.#current(prepared, prepared.selection);
     prepared.nativeStarted = true; beforeNativeCall?.();
     const native = this.native(draft.target);
+    const objectIds = prepared.receipt.items.map(item => item.originalId);
+    await this.authority.reserve?.(prepared.selection, { clientSubmissionId: prepared.bound.submissionId,
+      preparationId: prepared.receipt.preparationId, draftRevision: prepared.receipt.draftRevision,
+      authorityGeneration: prepared.receipt.authorityGeneration }, objectIds, prepared.receipt);
     let result = await native.submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
       preparationId: prepared.receipt.preparationId, inputType: "prompt", idleOnly: true, message: prepared.message,
       preparationConsent: structuredClone(prepared.consent.value) });
@@ -115,6 +125,12 @@ export class AttachmentBridge {
       result = await native.query(prepared.bound.submissionId, 0, 128).catch(() => result);
     }
     this.observeNativeResult(requestId, result);
+    if (isSubmissionResult(result) && result.terminal) {
+      // The submit acknowledgement can omit resolved attachment links; the durable query owns them.
+      const queried = native.query ? await native.query(prepared.bound.submissionId, 0, 128).catch(() => undefined) : undefined;
+      await this.authority.record?.(prepared.selection, prepared.bound.submissionId,
+        isSubmissionResult(queried) ? queried : result).catch(error => console.error("ASSOCIATION_RECORD_FAILED", error));
+    }
     return result;
   }
 

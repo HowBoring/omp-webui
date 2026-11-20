@@ -13,6 +13,63 @@ export interface TreeNavigation {
   action(request: HistoryNavigationSourceRequest): Promise<HistoryNavigationSourceResult>;
   ready(result: Extract<HistoryNavigationSourceResult, { status: "operation" }>): void;
 }
+export interface OriginalLink {
+  entryId: string; objectId: string; displayName: string; mediaType: string; byteLength: number;
+  sha256: string; availability: "available" | "missing";
+}
+/** Public read-only links. The URL re-authorizes and rechecks retention on every open, never once for the page. */
+export interface OriginalLinks {
+  sessionId: string;
+  load(entryId: string): Promise<OriginalLink[]>;
+  href(entryId: string, objectId: string, disposition: "inline" | "attachment"): string;
+}
+
+/** Same-origin read-only links; the Host re-authorizes and rechecks retention on every open. */
+export function historicalOriginals(sessionId: string): OriginalLinks {
+  return {
+    sessionId,
+    load: async entryId => {
+      const query = new URLSearchParams({ sessionId, entryId });
+      const response = await fetch(`/api/ompOriginals/history?${query}`, { credentials: "same-origin",
+        headers: { accept: "application/json" } });
+      if (!response.ok) throw new Error(`originals_http_${response.status}`);
+      const body = await response.json() as { items?: OriginalLink[] };
+      return body.items ?? [];
+    },
+    href: (entryId, objectId, disposition) =>
+      `/api/ompOriginals/original?${new URLSearchParams({ sessionId, entryId, objectId, disposition })}`,
+  };
+}
+
+function OriginalFiles({ entryId, links }: { entryId: string; links: OriginalLinks | undefined }) {
+  const [state, setState] = useState<{ entryId?: string; phase: "idle" | "loading" | "ready" | "error";
+    items?: OriginalLink[]; code?: string }>({ phase: "idle" });
+  useEffect(() => {
+    if (!links || !entryId) { setState({ phase: "idle" }); return; }
+    let live = true;
+    setState({ entryId, phase: "loading" });
+    void links.load(entryId).then(items => { if (live) setState({ entryId, phase: "ready", items }); },
+      error => { if (live) setState({ entryId, phase: "error", code: error instanceof Error ? error.message : String(error) }); });
+    return () => { live = false; };
+  }, [entryId, links?.sessionId]);
+  return <section aria-label="Original files" data-originals-entry={entryId} data-originals-phase={state.entryId === entryId ? state.phase : "loading"}>
+    <h4>Original files</h4>
+    <p>These are the files that were attached, not the model input or the extracted text. Each open rechecks this browser,
+      the directory grant and this exact Session.</p>
+    {state.entryId === entryId && state.phase === "loading" && <p role="status">Checking retained Originals…</p>}
+    {state.entryId === entryId && state.phase === "error" && <p role="alert">Originals unavailable ({state.code}).
+      The retained Native history is unchanged.</p>}
+    {state.entryId === entryId && state.phase === "ready" && links && (state.items?.length
+      ? <ul>{state.items.map(item => <li key={item.objectId} data-original-object={item.objectId}
+        data-original-availability={item.availability}><span>{item.displayName} · {item.mediaType} · {item.byteLength} bytes</span>
+        {item.availability === "available" ? <> <a href={links.href(entryId, item.objectId, "inline")} target="_blank"
+          rel="noreferrer">Open original</a> <a href={links.href(entryId, item.objectId, "attachment")}
+          download={item.displayName}>Download original</a></> : <span> The stored original file is missing;
+          the Native history and its causal association are preserved.</span>}</li>)}</ul>
+      : <p>No original is associated with this retained entry. Imported native history, messages without
+        attachments and non-original model inputs have none.</p>)}
+  </section>;
+}
 
 function NodeButton({ node, browser, affordance, navigation, inspect }: { node: TreeNode; browser: TreeBrowser;
   affordance?: BranchAffordance | undefined; navigation: TreeNavigation | undefined; inspect: ((entryId: string) => void) | undefined }) {
@@ -56,8 +113,8 @@ function ActivePath({ browser, affordance, navigation, inspect }: { browser: Tre
       inspect={inspect}/>}</section>)}</section>;
 }
 /** Small public React surface. Explicit Open/Page/Select; rendering never opens a Session or sends input. */
-export function TreePanel({ browser, affordance, navigation }: { browser: TreeBrowser; affordance?: BranchAffordance | undefined;
-  navigation?: TreeNavigation }) {
+export function TreePanel({ browser, affordance, navigation, originals }: { browser: TreeBrowser;
+  affordance?: BranchAffordance | undefined; navigation?: TreeNavigation; originals?: OriginalLinks }) {
   const state = useSyncExternalStore(browser.subscribe, browser.getSnapshot, browser.getSnapshot);
   const [returnState, setReturnState] = useState<{ busy: boolean; result?: HistoryNavigationSourceResult; error?: string }>({ busy: false });
   async function act(request: HistoryNavigationSourceRequest): Promise<void> {
@@ -125,7 +182,8 @@ export function TreePanel({ browser, affordance, navigation }: { browser: TreeBr
       </div>}
     </section>}
     {state.preview && <section aria-label="Selected node preview"><h3>Preview {state.preview.node.id}</h3>
-      <pre>{state.preview.text}</pre><p>Attachment Originals: association unproven; no original download is offered here.</p></section>}
+      <pre>{state.preview.text}</pre>
+      <OriginalFiles entryId={state.preview.node.id} links={originals}/></section>}
   </section>;
 }
 
@@ -144,7 +202,7 @@ export async function registerReadonlyTree(ctx: Context): Promise<() => void> {
       return result.ok ? result.value : { status: "error", code: "tree_remote_unavailable" };
     }));
     useEffect(() => () => browser.dispose(), [browser]);
-    return <TreePanel browser={browser}/>;
+    return <TreePanel browser={browser} originals={historicalOriginals(sessionId)}/>;
   }
   const unregister = ctx.slots.register({ name: "omp.history" }, BoundTree);
   return () => { unregister(); void unmount(); };

@@ -68,14 +68,17 @@ must round-trip canonically, and the decoded bytes must match the reservation.
 The schema bounds encoded data for a 10 MiB original. Native/RPC and renderer
 budgets require separate checks.
 
-No HTTP/WS route is provided. Before mounting either port the carrier must admit
-Host/Origin, current credentials, CSRF for writes and exact resource rights before
-reading a large body, parsing sensitive arguments or looking up an object. It
-must bound the full JSON envelope, raw stream, request deadline, connection and
-output buffering, propagate request/Peer cancellation, and use safe download
-headers/rendering. Base64 in typed JSON cannot execute an HTML/SVG original;
-there is no inline preview route in this slice. Real browser raw/paste/drop and
-fallback behavior remain unexecuted.
+No HTTP/WS route is provided by this package. The composed Session carrier exposes
+read-only `GET`/`HEAD` `/api/ompOriginals/history` and `/api/ompOriginals/original`
+through `apps/host/src/original-history.ts`; they admit Host/Origin and current
+credentials, recheck Session retention, and use `nosniff`, sandbox CSP,
+`Content-Disposition: attachment` except images, and digest headers. Any new port
+must admit exact resource rights before reading a large body, parsing sensitive
+arguments or looking up an object. It must bound the full JSON envelope, raw
+stream, request deadline, connection and output buffering, propagate request/Peer
+cancellation, and use safe download headers/rendering. Base64 in typed JSON cannot
+execute an HTML/SVG original; there is no inline HTML preview. Real browser
+raw/paste/drop and fallback behavior remain unexecuted.
 
 ## Private filesystem and durable quota
 

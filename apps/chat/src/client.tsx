@@ -28,14 +28,15 @@ import { base64Of, bytesOfBase64, decodeImage, type ImageKind } from "./images.t
 import { attachmentLimits, attachmentName, classifyAttachment, draftBudgetFailure } from "./attachments.ts";
 import type { OriginalMediaType } from "../../../packages/attachments/media.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
-import { DraftOriginalId, DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
+import { DraftOriginalId, DraftSubmissionId, type DraftScope, type PreparedDraftOriginal,
+  type SemanticDraftRecord } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
 import { retryContribution, type RetryAttempt, type RetryResult, type RetryState } from
   "../../../packages/contracts/manual-retry.ts";
 import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
-import { TreePanel } from "../../../packages/tree/panel.tsx";
+import { TreePanel, historicalOriginals } from "../../../packages/tree/panel.tsx";
 import type { TreeNode } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
@@ -102,7 +103,9 @@ let currentScope: DraftScope | undefined, draftDirty = false;
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
-let draftRestored: () => void = () => {};
+let draftRestored: () => void = () => {}, draftPending: () => void = () => {};
+/** Persisted identity of the frozen submission; hydration is the only source after a reload. */
+let protectedSubmission: string | undefined;
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
 let renewEnrollment: ((projection: SessionProjectionBinding) => Promise<void>) | undefined;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
@@ -180,17 +183,20 @@ async function present(view: PublicSessionView) {
     cwd: view.cwd, draft: draftId, epoch: attached.generation });
   attachedTarget = { sessionId: view.registration.nativeSessionId, draftId };
   draftDirty = false;
+  // Input stays closed and empty until this Session's record is authoritative: no other Session's text or files.
+  draftPending(); draftChanged(""); draftOriginals([]);
   viewChanged(view);
-  let saved: Awaited<ReturnType<typeof provider.read>>;
+  let saved: SemanticDraftRecord | undefined;
   try {
     await waitProjection(binding);
     currentScope = provider.scope(binding);
     saved = await provider.read(currentScope, new AbortController().signal);
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
-  if (reference !== retained || draftDirty) return;
-  if (!saved) { draftNotice(undefined); draftChanged(""); draftOriginals([]); draftRestored(); watch(binding, retained); return; }
+  if (reference !== retained) return;
+  if (draftDirty) { draftRestored(); return; }
+  if (!saved) { protectedSubmission = undefined; draftNotice(undefined); draftChanged(""); draftOriginals([]); draftRestored(); watch(binding, retained); return; }
   // Reauthorize every stable Original through the Host before publishing text and items together.
-  let prepared: Awaited<ReturnType<typeof provider.prepare>> | undefined;
+  let prepared: readonly PreparedDraftOriginal[] | undefined;
   if (!saved.unresolved) {
     try { prepared = await provider.prepare(currentScope!, saved.originals, new AbortController().signal); }
     catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
@@ -206,6 +212,7 @@ async function present(view: PublicSessionView) {
   });
   draftOriginals(items);
   draftChanged(saved.unresolved?.draft.text ?? saved.draft.text);
+  protectedSubmission = saved.unresolved ? String(saved.unresolved.id) : undefined;
   draftNotice(saved.unresolved ? "An unresolved submission is protected. Check Native recovery before editing or sending." : undefined);
   draftRestored();
   watch(binding, retained);
@@ -435,6 +442,7 @@ function Surface() {
     draftOriginals = (items) => setOriginals(items);
     draftNotice = (notice) => { setRecovery(notice); setFrozen(notice !== undefined && notice.startsWith("An unresolved submission")); };
     draftRestored = () => setDraftReady(true);
+    draftPending = () => setDraftReady(false);
   }, []);
   // One presentation controller per attached worker. Opening or paging it is explicit and read-only.
   useEffect(() => {
@@ -662,9 +670,11 @@ function Surface() {
     applyRecovery(result, requestId);
   };
   const applyRecovery = (result: ChatRecovery, requestId: string) => {
-    if (result.outcome === "accepted" || result.outcome === "not-submitted") recoveryAuthorized.add(requestId);
+    if (result.outcome === "accepted" || result.outcome === "not-submitted") {
+      recoveryAuthorized.add(requestId); protectedSubmission = undefined;
+    }
     if (result.outcome === "accepted") {
-      setRecovery(undefined); setText(""); draftChanged(""); void persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
+      setRecovery(undefined); setFrozen(false); setText(""); draftChanged(""); void persist({ draft: { text: "", references: [] }, originals: [] }, "recovery");
     } else if (result.outcome === "not-submitted") {
       setRecovery(undefined); setFrozen(false); touch("active-recovery");
       void persist({ draft: { text, references: [] }, originals: draftRefs() }, "recovery");
@@ -829,6 +839,7 @@ function Surface() {
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
+        originals={historicalOriginals(view.registration.nativeSessionId)}
         affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
         navigation={{ sessionId: view.registration.nativeSessionId,
           action: request => ctx.remote.ompHistoryNavigationSource.action(request).then(resultValue),
@@ -861,17 +872,21 @@ function Surface() {
       <span data-chat-draft-ready={draftReady ? "true" : "false"} hidden />
       <span data-chat-retention={retention} hidden />
       <span data-chat-frozen={frozen ? "true" : "false"} hidden />
-      {recovery && <p role="alert">{recovery} <button onClick={() => void perform(() => recover(attempt!.requestId))}>Check Native recovery</button></p>}
-      <textarea aria-label="Message" data-chat-draft value={text} disabled={!view}
+      {recovery && <p role="alert">{recovery} <button onClick={() => void perform(async () => {
+        const requestId = protectedSubmission ?? attempt?.requestId;
+        if (!requestId) { setError("This protected submission has no recoverable request identity; reopen the Session."); return; }
+        await recover(requestId);
+      })}>Check Native recovery</button></p>}
+      <textarea aria-label="Message" data-chat-draft value={text} disabled={!view || !draftReady}
         onChange={event => edit(event.target.value)}
         onPaste={event => { const files = Array.from(event.clipboardData.files); if (files.length > 0) { event.preventDefault(); if (!busy) void addFiles(files); } }} />
       <fieldset data-chat-attachments>
         <legend>Files for this Send</legend>
-        <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || busy || uploading || frozen}
+        <input aria-label="Add files" data-chat-file-input type="file" multiple disabled={!view || !draftReady || busy || uploading || frozen}
           onChange={event => { const files = event.target.files; if (files) void addFiles(files).finally(() => { event.target.value = ""; }); }} />
-        <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || busy || uploading}
+        <textarea aria-label="Base64 file" data-chat-base64 value={base64Draft} disabled={!view || !draftReady || busy || uploading}
           placeholder="Paste base64 or a data:…;base64 URL" onChange={event => setBase64Draft(event.target.value)} />
-        <button data-chat-base64-add disabled={!view || busy || uploading || frozen || base64Draft.trim() === ""}
+        <button data-chat-base64-add disabled={!view || !draftReady || busy || uploading || frozen || base64Draft.trim() === ""}
           onClick={() => void addBase64()}>Add pasted file</button>
         {uploading && <p role="status">Inspecting and staging the file…</p>}
         <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}
@@ -883,8 +898,8 @@ function Surface() {
         <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>
       {controller && <AttachmentPreparationPanel controller={controller} />}
-      <button data-chat-send disabled={!view || busy || uploading || frozen || originals.some(item => item.invalid !== undefined) || text.trim() === ""} onClick={() => void send("queue")}>Send</button>
-      <button data-chat-steer disabled={!view || busy || uploading || frozen || text.trim() === "" || originals.length > 0} onClick={() => void send("steer")}>Steer</button>
+      <button data-chat-send disabled={!view || !draftReady || busy || uploading || frozen || originals.some(item => item.invalid !== undefined) || text.trim() === ""} onClick={() => void send("queue")}>Send</button>
+      <button data-chat-steer disabled={!view || !draftReady || busy || uploading || frozen || text.trim() === "" || originals.length > 0} onClick={() => void send("steer")}>Steer</button>
       <button data-chat-stop disabled={!view || stop?.status === "terminating"} onClick={() => void perform(async () => {
         setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop()));
       })}>Stop</button>
