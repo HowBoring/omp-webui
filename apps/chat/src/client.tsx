@@ -1013,11 +1013,15 @@ function Surface() {
   }, []);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   const productHandlers = useRef<ProductActions>({ newSession: () => {}, send: () => {}, stop: () => {}, retry: () => {}, settings: () => {} });
+  // The Retry shortcut must wait like the button: a key pressed while a turn or Stop is still
+  // settling would dispatch /retry into a busy worker and leave an unsettled unknown attempt.
+  const retryAvailable = view !== undefined && !busy && retryOffer === undefined
+    && !(retry?.status !== "refused" && retry?.attempt !== undefined && !retryTerminal(retry.attempt) && !retry.attempt.settled);
   productHandlers.current = {
     newSession: grantId => { void perform(() => newSession(grantId)); },
     send: () => { void send("queue"); },
     stop: () => { void perform(async () => { setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop())); }); },
-    retry: () => { void perform(async () => {
+    retry: () => { if (!retryAvailable) return; void perform(async () => {
       const offer = resultValue(await ctx.remote.ompRetry.offer());
       if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
       else setRetryNote(retryRefusalText(offer.reason, offer.detail));
@@ -1194,8 +1198,7 @@ function Surface() {
             setRetryOffer(undefined); setRetryNote("Retry was not sent.");
           })}>Cancel</button>
         </div>}
-        <button data-chat-retry-offer disabled={!view || busy || retryOffer !== undefined
-          || (retry?.status !== "refused" && retry?.attempt !== undefined && !retryTerminal(retry.attempt) && !retry.attempt.settled)}
+        <button data-chat-retry-offer disabled={!retryAvailable}
           onClick={() => void perform(async () => {
             const offer = resultValue(await ctx.remote.ompRetry.offer());
             if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
