@@ -30,6 +30,7 @@ CATALOG_P95_MS = 3000.0
 OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
 CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
+REACH_STEP_MS = int(os.environ.get("OMP_PERF_REACH_STEP_MS", "30000"))
 
 
 def nearest_rank(values, fraction=0.95):
@@ -498,6 +499,7 @@ async def chat_run(browser_args, product=False):
                     await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
                 steps = 0
+                reach_reset = None
                 first_before = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
                 while steps < 400:
                     more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
@@ -513,9 +515,19 @@ async def chat_run(browser_args, product=False):
                     stage(f"reach-{steps}:nodes={before_nodes}:seq={before_seq}:more={more}")
                     await control.click()
                     try:
-                        await wait_until(lambda: advanced(), CHAT_TIMEOUT_MS)
+                        await wait_until(lambda: advanced(), REACH_STEP_MS)
                     except TimeoutError:
-                        stage(f"reach-{steps}-timeout:status={await page.locator('#conversation').get_attribute('data-chat-history-status')}:nodes={await page.locator('#conversation').get_attribute('data-chat-history-nodes')}:seq={await page.locator('#conversation').get_attribute('data-chat-history-first-seq')}:more={await page.locator('#conversation').get_attribute('data-chat-history-more')}:errors={errors[-2:]}")
+                        nodes_now = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
+                        if nodes_now is not None and int(nodes_now) < before_nodes:
+                            reach_reset = {"step": steps, "nodesBefore": before_nodes, "nodesAfter": int(nodes_now),
+                                "seqBefore": before_seq,
+                                "seqAfter": await page.locator("#conversation").get_attribute("data-chat-history-first-seq"),
+                                "status": await page.locator("#conversation").get_attribute("data-chat-history-status"),
+                                "detail": f"projection reset to the first page during load-earlier from seq {before_seq}",
+                                "errors": errors[-2:]}
+                            stage(f"reach-{steps}-reset:{json.dumps(reach_reset)}")
+                            break
+                        stage(f"reach-{steps}-timeout:status={await page.locator('#conversation').get_attribute('data-chat-history-status')}:nodes={nodes_now}:seq={await page.locator('#conversation').get_attribute('data-chat-history-first-seq')}:more={await page.locator('#conversation').get_attribute('data-chat-history-more')}:errors={errors[-2:]}")
                         raise
                     steps += 1
                 reachable_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
@@ -525,7 +537,10 @@ async def chat_run(browser_args, product=False):
                 reachability = {"nodes": reachable_nodes, "steps": steps, "more": reachable_more,
                     "firstSeqBefore": first_before, "firstSeqAfter": reachable_first,
                     "firstNode": (oldest or "")[:120],
-                    "allNativeReachable": not reachable_more and steps > 0 and "Entry 0 " in (oldest or ""),
+                    "allNativeReachable": not reachable_more and reach_reset is None and steps > 0 and "Entry 0 " in (oldest or ""),
+                    "reset": reach_reset,
+                    "reason": reach_reset["detail"] if reach_reset is not None else (
+                        None if not reachable_more else f"stopped after 400 steps at seq {reachable_first}"),
                     "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
                 stage(f"reachability={reachability}")
             finally:
