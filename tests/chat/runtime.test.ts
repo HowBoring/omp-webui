@@ -81,3 +81,22 @@ test("a Session relaunched after switching away resolves Chat to the new worker 
     await source.close();
   }
 });
+
+test("a replacement browser attaches to the live worker after the first browser is gone", async () => {
+  const source = await sourceFixture();
+  const admission = new ChatViewAdmission(source.authority, source.grants, source.supervisor);
+  const runtime = new ChatComponentRuntime(source.authority, source.grants, source.supervisor, admission);
+  try {
+    const opened = await source.supervisor.open(source.identity, source.selected);
+    expect(runtime.attach(source.identity, { workerId: opened.workerId, projection, draftId: "first" })?.generation)
+      .toBe(opened.generation);
+    // The first browser disappears without releasing the worker; a new browser bootstraps its own credential.
+    const replacement = await source.browser();
+    expect(replacement.identity.credentialId).not.toBe(source.identity.credentialId);
+    expect(runtime.attach(replacement.identity, { workerId: opened.workerId, projection, draftId: "replacement" })?.generation)
+      .toBe(opened.generation);
+  } finally {
+    runtime.close();
+    await source.close();
+  }
+});

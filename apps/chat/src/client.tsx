@@ -200,7 +200,14 @@ async function present(view: PublicSessionView) {
   const projection = await waitProjection(binding);
   presentationGeneration = projection.generation;
   if (reference !== retained) return;
-  const attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId }));
+  let attached;
+  try { attached = resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: projection!, draftId })); }
+  catch (failure) {
+    // A worker can outlive its browser but still be unattachable after a crash or revoke. Drop the stale
+    // restore so every later reload goes through explicit Open/Recheck instead of failing silently again.
+    sessionStorage.removeItem("omp-supervised-worker");
+    throw new Error(`${message(failure)} Use “Recheck this Session” or open a Session from the list.`);
+  }
   if (reference !== retained) return;
   renewEnrollment = async projection => {
     if (reference !== retained) return;
@@ -1012,11 +1019,15 @@ function Surface() {
   }, []);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   const productHandlers = useRef<ProductActions>({ newSession: () => {}, send: () => {}, stop: () => {}, retry: () => {}, settings: () => {} });
+  // The Retry shortcut must wait like the button: a key pressed while a turn or Stop is still
+  // settling would dispatch /retry into a busy worker and leave an unsettled unknown attempt.
+  const retryAvailable = view !== undefined && !busy && retryOffer === undefined
+    && !(retry?.status !== "refused" && retry?.attempt !== undefined && !retryTerminal(retry.attempt) && !retry.attempt.settled);
   productHandlers.current = {
     newSession: grantId => { void perform(() => newSession(grantId)); },
     send: () => { void send("queue"); },
     stop: () => { void perform(async () => { setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop())); }); },
-    retry: () => { void perform(async () => {
+    retry: () => { if (!retryAvailable) return; void perform(async () => {
       const offer = resultValue(await ctx.remote.ompRetry.offer());
       if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
       else setRetryNote(retryRefusalText(offer.reason, offer.detail));
@@ -1200,8 +1211,7 @@ function Surface() {
             setRetryOffer(undefined); setRetryNote("Retry was not sent.");
           })}>Cancel</button>
         </div>}
-        <button data-chat-retry-offer disabled={!view || busy || retryOffer !== undefined
-          || (retry?.status !== "refused" && retry?.attempt !== undefined && !retryTerminal(retry.attempt) && !retry.attempt.settled)}
+        <button data-chat-retry-offer disabled={!retryAvailable}
           onClick={() => void perform(async () => {
             const offer = resultValue(await ctx.remote.ompRetry.offer());
             if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
@@ -1300,8 +1310,14 @@ async function boot() {
       const result = await ctx.remote.ompSessions.current();
       // A manual Open during the restore wins: never replace a Session the user already presented.
       if (current !== accessRevision || presented !== presentationRevision) return;
-      if (result.ok && result.value?.view) await present(result.value.view);
-    } catch { /* A later explicit Open remains available. */ }
+      if (result.ok && result.value?.view) {
+        if (result.value.view.state !== "open") throw new Error("Its worker is no longer live.");
+        await present(result.value.view);
+      }
+    } catch (failure) {
+      sessionStorage.removeItem("omp-supervised-worker");
+      errorChanged(`The previous Session is not attached. ${message(failure)}`);
+    }
   }
 }
 window.addEventListener("pageshow", event => { if (event.persisted) location.reload(); });
