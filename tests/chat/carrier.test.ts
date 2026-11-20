@@ -16,7 +16,12 @@ import { ChatViewAdmission, type ChatViewEnrollment } from "../../apps/host/src/
 import { createChatSessionDispatch, dispatchSessionRequest } from "../../apps/host/src/session-remote-dispatch.ts";
 import { ChatGateway, type ChatWorkerPort } from "../../packages/chat/gateway.ts";
 import { ChatCancelService, ChatLookupService, ChatPromptService } from "../../packages/chat/service.ts";
+import { ManualRetry } from "../../packages/manual-retry/service.ts";
+import { RetryService } from "../../packages/manual-retry/remote-service.ts";
+import { retryContribution, retryHostContribution } from "../../packages/contracts/manual-retry.ts";
+import type { BrowserAccess } from "../../packages/access/index.ts";
 import { chatContribution, chatHostContribution } from "../../packages/contracts/chat.ts";
+import { stopSnapshotSchema } from "../../packages/contracts/stop.ts";
 import type { SubmissionResult } from "../../packages/contracts/candidates/durable-submission-v1/omp-wire.ts";
 import { sourceFixture } from "../sessions/source-fixture.ts";
 
@@ -75,10 +80,21 @@ async function fixture() {
       },
     };
     const chat = new ChatGateway(port);
+    const openViews = new Map<string, { view: ChatViewEnrollment; identity: BrowserAccess; lifetime: AbortController }>();
+    const retry = new ManualRetry({ sessionId: nativeSessionId, workerGeneration: worker.generation, target }, {
+      authorize: view => {
+        const found = openViews.get(view.credentialId);
+        if (!found || found.lifetime.signal.aborted || !source.authority.revalidate(found.identity)) return;
+        return { authority: workerLifetime.signal, contextRevision: "projection" };
+      },
+      stop: () => stopSnapshotSchema.parse(port.stop()),
+      request: async command => await port.request(command),
+    });
     await host.plugin(TypertRegistry);
     await host.plugin(RemoteAccessService);
     await host.plugin(TypertGatewayService, {});
     host.typert.register(chatHostContribution);
+    host.typert.register(retryHostContribution);
     const promptDescriptor = sessionContribution.descriptors.find(descriptor =>
       descriptor.namespace === "session" && descriptor.method === "prompt");
     if (!promptDescriptor) throw new Error("Missing DSH session/prompt descriptor");
@@ -93,15 +109,19 @@ async function fixture() {
     new ChatPromptService(host, id => id === sessionId ? chat : undefined);
     new ChatCancelService(host, id => id === sessionId ? chat : undefined);
     new ChatLookupService(host, id => id === sessionId ? chat : undefined);
+    new RetryService(host);
     const peer = new Peer(host, { principal: { kind: "owner" }, interactions: "none" });
     const attached = new WeakMap<Request, ChatViewEnrollment>();
-    const dispatch = createChatSessionDispatch(enrollment, request => attached.get(request));
-    function openView() {
+    const dispatch = createChatSessionDispatch(enrollment, request => attached.get(request), undefined,
+      (identity: BrowserAccess) => ({ retry,
+        view: { clientId: identity.credentialId, credentialId: identity.credentialId } }));
+    function openView(identity: BrowserAccess = source.identity) {
       const lifetime = new AbortController();
-      const view = enrollment.enroll(source.identity, { workerId: worker.workerId, grantId: source.grant.id,
+      const view = enrollment.enroll(identity, { workerId: worker.workerId, grantId: source.grant.id,
         lifetime: AbortSignal.any([lifetime.signal, workerLifetime.signal]), projection: () => projection });
       if (!view) throw new Error("Fixture view unavailable");
-      return { view, lifetime };
+      openViews.set(identity.credentialId, { view, identity, lifetime });
+      return { view, lifetime, identity };
     }
     async function getCsrf(cookie: string): Promise<string> {
       const status = await source.authority.handle(new Request(`${source.origin}/auth/status`, {
@@ -145,6 +165,7 @@ async function fixture() {
       gateway(ctx);
       await ctx.remote.$mount(sessionContribution);
       await ctx.remote.$mount(chatContribution);
+      await ctx.remote.$mount(retryContribution);
       return { remote: ctx.remote, responses };
     }
     return { source, host, peer, worker, sessionId, admissions, cancels, openView, connect, chatRequest, close,
@@ -399,4 +420,54 @@ test("a throwing authority check invalidates a stalled Chat body before the read
     stream.release();
     await f.close();
   }
+});
+
+test("Retry requires an explicit confirmation before exactly one idle-only native dispatch", async () => {
+  const f = await fixture();
+  try {
+    const client = await f.connect(f.openView().view);
+    const offer = await client.remote.ompRetry.offer();
+    expect(offer).toMatchObject({ ok: true, value: { status: "confirmation" } });
+    if (!offer.ok || offer.value.status !== "confirmation") throw new Error("expected confirmation");
+    expect(offer.value.notice).toContain("run tools again");
+    expect(f.admissions).toEqual([]);
+    const confirmed = await client.remote.ompRetry.confirm(offer.value.requestId);
+    expect(confirmed).toMatchObject({ ok: true, value: { status: "admitted", requestId: offer.value.requestId } });
+    expect(f.admissions).toEqual([offer.value.requestId]);
+    expect(await client.remote.ompRetry.confirm(offer.value.requestId))
+      .toMatchObject({ ok: true, value: { status: "refused", reason: "stale_confirmation" } });
+    expect(f.admissions).toEqual([offer.value.requestId]);
+  } finally { await f.close(); }
+});
+
+test("two pages share one Retry attempt and cannot confirm each other's request", async () => {
+  const f = await fixture();
+  try {
+    const other = await f.source.browser();
+    const first = f.openView(f.source.identity), second = f.openView(other.identity);
+    const a = await f.connect(first.view), b = await f.connect(second.view, other.cookie);
+    const offer = await a.remote.ompRetry.offer();
+    if (!offer.ok || offer.value.status !== "confirmation") throw new Error("expected confirmation");
+    expect(await a.remote.ompRetry.confirm(offer.value.requestId)).toMatchObject({ ok: true,
+      value: { status: "admitted" } });
+    expect(await b.remote.ompRetry.confirm(offer.value.requestId))
+      .toMatchObject({ ok: true, value: { status: "refused", reason: "stale_confirmation" } });
+    expect(await b.remote.ompRetry.state()).toMatchObject({ ok: true,
+      value: { attempt: { requestId: offer.value.requestId } } });
+    expect(await b.remote.ompRetry.offer()).toMatchObject({ ok: true, value: { status: "refused", reason: "busy" } });
+    expect(f.admissions).toEqual([offer.value.requestId]);
+  } finally { await f.close(); }
+});
+
+test("a detached page loses Retry authority without a native dispatch", async () => {
+  const f = await fixture();
+  try {
+    const page = f.openView();
+    const client = await f.connect(page.view);
+    page.lifetime.abort();
+    expect(await client.remote.ompRetry.offer()).toMatchObject({ ok: true,
+      value: { status: "refused", reason: "forbidden" } });
+    expect(await client.remote.ompRetry.state()).toMatchObject({ ok: true, value: { status: "refused" } });
+    expect(f.admissions).toEqual([]);
+  } finally { await f.close(); }
 });

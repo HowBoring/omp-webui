@@ -32,6 +32,8 @@ import { DraftOriginalId, DraftSubmissionId, type DraftScope, type PreparedDraft
   type SemanticDraftRecord } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
+import { retryContribution, type RetryAttempt, type RetryResult, type RetryState } from
+  "../../../packages/contracts/manual-retry.ts";
 import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel, historicalOriginals } from "../../../packages/tree/panel.tsx";
@@ -424,6 +426,27 @@ function NodeRow({ node }: { node: unknown }) {
 
 type Attempt = { requestId: string; text: string; mode: "queue" | "steer"; state: "sending" | "accepted" | "refused" | "unknown"; error?: string };
 type Uploaded = { objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number; width?: number; height?: number; pixels: number; invalid?: string };
+const retryRefusalText = (reason: string, detail?: string): string => `${({
+  unavailable: "Retry is unavailable for this worker.",
+  forbidden: "This Chat view no longer authorizes Retry.",
+  busy: "Retry is blocked until the current turn, Stop, or the previous Retry settles.",
+  stale_confirmation: "That confirmation expired or the Session changed; review it again.",
+} as Record<string, string>)[reason] ?? "Retry was refused."}${detail ? ` ${detail}` : ""}`;
+const retryAttemptText = (attempt: RetryAttempt): string => `${({
+  admitted: "OMP accepted one retry attempt.",
+  unknown: "The native outcome is unknown.",
+  succeeded: "The retried turn succeeded.",
+  failed: "The retried turn failed.",
+  cancelled: "The retried turn was cancelled.",
+} as Record<RetryAttempt["status"], string>)[attempt.status]}${attempt.reason === "native_refused"
+  ? " OMP refused it; nothing retryable remained." : attempt.reason === "native_busy"
+  ? " OMP reported the Session was busy; no new model call was made."
+  : attempt.evidence === "no_response" ? " The worker returned no response; OMP may still have received it."
+  : attempt.evidence === "receipt_unknown" ? " The native receipt is not conclusive yet."
+  : attempt.evidence === "conflict" ? " Public facts conflict; no recovery is assumed." : ""}${
+  attempt.detail ? ` ${attempt.detail}` : ""}${attempt.settled ? "" : " Not settled yet."}`;
+const retryTerminal = (attempt: RetryAttempt): boolean =>
+  attempt.status !== "admitted" && attempt.status !== "unknown";
 function Surface() {
   const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
@@ -471,6 +494,10 @@ function Surface() {
   const [stop, setStop] = useState<StopSnapshot>(), [force, setForce] = useState<ForceOffer>();
   const [stopNote, setStopNote] = useState("");
   const stopPoller = useRef<ReturnType<typeof setInterval>>(), restoredFor = useRef("");
+  const [retry, setRetry] = useState<RetryState>();
+  const [retryOffer, setRetryOffer] = useState<{ requestId: string }>();
+  const [retryNote, setRetryNote] = useState("");
+  const retryPoller = useRef<ReturnType<typeof setInterval>>(), retryRenewed = useRef("");
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -574,6 +601,35 @@ function Surface() {
   useEffect(() => {
     if (!view) { setStop(undefined); return; }
     void ctx.remote.ompStop.state().then(resultValue).then(applyStop).catch(() => {});
+  }, [view?.workerId, view?.generation]);
+  const stopRetryPolling = () => { clearInterval(retryPoller.current); retryPoller.current = undefined; };
+  const applyRetry = (state: RetryState) => {
+    if (state.status === "refused") { setRetryNote(retryRefusalText(state.reason, state.detail)); return; }
+    setRetry(state);
+    const attempt = state.attempt;
+    if (!attempt) return;
+    setRetryNote(retryAttemptText(attempt));
+    if (!retryTerminal(attempt) && !attempt.settled) return;
+    stopRetryPolling();
+    // A retried native turn moves the journal cut; re-enroll once, and only after a real attempt.
+    if (attempt.settled && attempt.reason === undefined && retryRenewed.current !== attempt.requestId && view) {
+      retryRenewed.current = attempt.requestId;
+      void renewSessionProjection(view).catch(() => {});
+    }
+  };
+  const pollRetry = () => {
+    if (retryPoller.current) return;
+    let remaining = 120;
+    retryPoller.current = setInterval(() => {
+      if (--remaining <= 0) { stopRetryPolling(); return; }
+      void ctx.remote.ompRetry.state().then(resultValue).then(applyRetry).catch(() => {});
+    }, 250);
+  };
+  useEffect(() => () => stopRetryPolling(), []);
+  useEffect(() => {
+    stopRetryPolling(); setRetryOffer(undefined); retryRenewed.current = "";
+    if (!view) { setRetry(undefined); setRetryNote(""); return; }
+    void ctx.remote.ompRetry.state().then(resultValue).then(applyRetry).catch(() => {});
   }, [view?.workerId, view?.generation]);
   const selection = (): AttachmentSelection => ({ session: view!.registration.nativeSessionId, draftId,
     revision: String(revision.current), originalIds: originals.filter(item => item.invalid === undefined).map(item => item.objectId) });
@@ -882,6 +938,51 @@ function Surface() {
         })}>Confirm force termination</button>}
       </div>}
       {stopNote && <p role="status" data-chat-stop-restored>{stopNote}</p>}
+      <section data-chat-retry aria-label="Retry the last failed turn">
+        <p data-chat-retry-notice>{retry?.status === "refused" ? retryRefusalText(retry.reason, retry.detail)
+          : retry?.notice ?? "Retry the last failed turn once OMP refuses it or reports nothing to retry."}</p>
+        {retryOffer && <div data-chat-retry-confirmation>
+          <p role="alert">This sends exactly one native /retry to the same Session. OMP may run tools again and repeat their side effects; earlier effects can remain. Nothing else is resent.</p>
+          <button data-chat-retry-confirm onClick={() => void perform(async () => {
+            const { requestId } = retryOffer;
+            setRetryOffer(undefined);
+            let result: RetryResult;
+            try { result = resultValue(await ctx.remote.ompRetry.confirm(requestId)); }
+            catch (failure) {
+              // The confirmation is consumed before dispatch: a lost response still leaves a real attempt to read back.
+              await ctx.remote.ompRetry.state().then(resultValue).then(applyRetry).catch(() => {});
+              throw failure;
+            }
+            if (result.status === "refused") { setRetryNote(retryRefusalText(result.reason, result.detail)); return; }
+            setRetryNote(retryAttemptText(result));
+            applyRetry(resultValue(await ctx.remote.ompRetry.state()));
+            pollRetry();
+          })}>Confirm Retry</button>
+          <button data-chat-retry-cancel onClick={() => void perform(async () => {
+            const { requestId } = retryOffer;
+            await ctx.remote.ompRetry.cancel(requestId);
+            setRetryOffer(undefined); setRetryNote("Retry was not sent.");
+          })}>Cancel</button>
+        </div>}
+        <button data-chat-retry-offer disabled={!view || busy || retryOffer !== undefined
+          || (retry?.status !== "refused" && retry?.attempt !== undefined && !retryTerminal(retry.attempt) && !retry.attempt.settled)}
+          onClick={() => void perform(async () => {
+            const offer = resultValue(await ctx.remote.ompRetry.offer());
+            if (offer.status === "confirmation") { setRetryOffer({ requestId: offer.requestId }); setRetryNote(""); }
+            else setRetryNote(retryRefusalText(offer.reason, offer.detail));
+          })}>Retry last failed turn</button>
+        {retry?.status !== "refused" && retry?.attempt && <div data-chat-retry-attempt={retry.attempt.status}
+          data-chat-retry-settled={String(retry.attempt.settled)}
+          data-chat-retry-evidence={retry.attempt.evidence ?? ""} data-chat-retry-reason={retry.attempt.reason ?? ""}>
+          {!retryTerminal(retry.attempt) && !retry.attempt.settled && <button data-chat-retry-lookup
+            onClick={() => void perform(async () => {
+              const result = resultValue(await ctx.remote.ompRetry.lookup(retry.attempt!.requestId));
+              if (result.status === "refused") setRetryNote(retryRefusalText(result.reason, result.detail));
+              else applyRetry(resultValue(await ctx.remote.ompRetry.state()));
+            })}>Check outcome</button>}
+        </div>}
+        {retryNote && <p role="status" data-chat-retry-status>{retryNote}</p>}
+      </section>
       <button data-chat-refresh disabled={!view} onClick={() => void perform(async () => {
         const latest = resultValue(await ctx.remote.ompSessions.view(view!.workerId)); await present(latest);
       })}>Refresh worker</button>
@@ -927,6 +1028,7 @@ async function boot() {
   await ctx.remote.$mount(treeContribution);
   await ctx.remote.$mount(historyNavigationSourceContribution);
   await ctx.remote.$mount(stopContribution);
+  await ctx.remote.$mount(retryContribution);
   await ctx.remote.$mount(attachmentContribution);
   await ctx.remote.$mount(attachmentsContribution);
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);

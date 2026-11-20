@@ -33,7 +33,9 @@ import { installAttachmentRemote } from "../../../packages/attachments/remote.ts
 import { attachmentHostContribution } from "../../../packages/contracts/attachments.ts";
 import { treeHostContribution } from "../../../packages/contracts/tree.ts";
 import { stopHostContribution } from "../../../packages/contracts/stop.ts";
+import { retryHostContribution } from "../../../packages/contracts/manual-retry.ts";
 import { StopService } from "../../../packages/interactions/stop-service.ts";
+import { RetryService } from "../../../packages/manual-retry/remote-service.ts";
 import { ReadonlyTree } from "../../../packages/tree/service.ts";
 import { historyNavigationSourceHostContribution } from "../../../packages/contracts/history-navigation-source.ts";
 import { HistoryNavigationSource } from "../../../packages/history-navigation-source/service.ts";
@@ -259,6 +261,8 @@ export async function startSessionComponentServer(options: Options) {
     ctx.typert.register(treeHostContribution);
     ctx.typert.register(stopHostContribution);
     new StopService(ctx);
+    ctx.typert.register(retryHostContribution);
+    new RetryService(ctx);
     new ReadonlyTree(ctx, (_peer, sessionId) => {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) throw new Error("TREE_AUTHORITY_UNAVAILABLE");
@@ -273,7 +277,8 @@ export async function startSessionComponentServer(options: Options) {
       if (!identity || !access.revalidate(identity)) throw new Error("WEBUI_PREFERENCE_AUTHORITY");
     });
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
-      (_request, identity) => runtime.enrollment(identity), identity => runtime.stopBinding(identity)) };
+      (_request, identity) => runtime.enrollment(identity), identity => runtime.stopBinding(identity),
+      identity => runtime.retryBinding(identity)) };
     unaryMethods = new Set([...unary, ...Object.keys(preferenceMethods),
       "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }

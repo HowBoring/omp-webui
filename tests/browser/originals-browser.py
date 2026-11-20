@@ -105,39 +105,25 @@ async def main():
             assert database.execute("SELECT count(*) FROM original_entry_links").fetchone()[0] == 1
             assert database.execute("SELECT count(*) FROM originals WHERE state='native-associated'").fetchone()[0] == 1
             assert database.execute("SELECT count(*) FROM originals WHERE state='staged-unprepared'").fetchone()[0] == 0
+            linked_entry = database.execute("SELECT entryId FROM original_entry_links").fetchone()[0]
             database.close()
 
             tree = page.locator("[data-chat-tree]")
             await tree.get_by_role("button", name="Open current tree").click()
             await expect(tree.get_by_text("Complete native tree", exact=True)).to_be_visible(timeout=30000)
             nodes = tree.locator("ol li button:not([data-chat-branch-point])")
-            found = None
-            for index in range(await nodes.count()):
-                await nodes.nth(index).click()
-                links = tree.locator("[data-original-object]")
-                try:
-                    await until(lambda: links.count(), timeout=5.0, interval=0.1)
-                except AssertionError:
-                    continue
-                found = links.first
-                break
-            assert found is not None, (await tree.inner_text())[:2000]
+            await nodes.filter(has_text=linked_entry).first.click()
+            await expect(tree.locator("[data-original-object]")).to_have_count(1, timeout=30000)
+            found = tree.locator("[data-original-object]").first
             assert await tree.locator('[aria-label="Original files"]').get_by_text(
                 "witness.txt").count() == 1
 
             await tree.get_by_role("button").filter(has_text="· assistant ·").last.click()
             await expect(tree.locator('[aria-label="Original files"]')).to_contain_text(
                 "No original is associated", timeout=30000)
-            for index in range(await nodes.count()):
-                await nodes.nth(index).click()
-                links = tree.locator("[data-original-object]")
-                try:
-                    await until(lambda: links.count(), timeout=5.0, interval=0.1)
-                except AssertionError:
-                    continue
-                found = links.first
-                break
-            assert await tree.locator("[data-original-object]").count() == 1
+            await nodes.filter(has_text=linked_entry).first.click()
+            await expect(tree.locator("[data-original-object]")).to_have_count(1, timeout=30000)
+            found = tree.locator("[data-original-object]").first
             href = await found.get_by_role("link", name="Download original").get_attribute("href")
             assert href and "/api/ompOriginals/original" in href and "disposition=attachment" in href, href
             response = await page.request.get(ORIGIN + href)
