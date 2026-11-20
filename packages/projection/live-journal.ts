@@ -100,8 +100,9 @@ export class LiveJournal {
       await journal.#catchUp(history);
       return journal;
     } catch (error) {
+      await history.close(opened.snapshot).catch(() => {});
       journal.invalidate(error instanceof Error ? error.message : 'live_open_failed'); throw error;
-    } finally { await history.close(opened.snapshot); }
+    }
   }
   async #loadOpening(history: HistoryClient, budget: OpeningBudget): Promise<void> {
     await this.#loadActiveTail(history, budget);

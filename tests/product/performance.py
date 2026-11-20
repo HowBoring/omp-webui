@@ -411,14 +411,17 @@ async def chat_run(browser_args):
                         break
                     before_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
                     before_seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                    async def advanced(timeout, before_nodes=before_nodes, before_seq=before_seq):
-                        async def loaded():
-                            nodes = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
-                            seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                            return nodes is not None and int(nodes) >= before_nodes and seq != before_seq
-                        await wait_until(loaded, timeout)
+                    async def advanced(before_nodes=before_nodes, before_seq=before_seq):
+                        nodes = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
+                        seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                        return nodes is not None and int(nodes) >= before_nodes and seq != before_seq
+                    stage(f"reach-{steps}:nodes={before_nodes}:seq={before_seq}:more={more}")
                     await control.click()
-                    await wait_until(lambda: advanced(CHAT_TIMEOUT_MS), CHAT_TIMEOUT_MS)
+                    try:
+                        await wait_until(lambda: advanced(), CHAT_TIMEOUT_MS)
+                    except TimeoutError:
+                        stage(f"reach-{steps}-timeout:status={await page.locator('#conversation').get_attribute('data-chat-history-status')}:nodes={await page.locator('#conversation').get_attribute('data-chat-history-nodes')}:seq={await page.locator('#conversation').get_attribute('data-chat-history-first-seq')}:more={await page.locator('#conversation').get_attribute('data-chat-history-more')}:errors={errors[-2:]}")
+                        raise
                     steps += 1
                 reachable_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
                 reachable_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"

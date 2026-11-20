@@ -126,7 +126,7 @@ let unsubscribeProjection: (() => void) | undefined, presentationGeneration: str
 let currentScope: DraftScope | undefined, draftDirty = false;
 const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
-let olderChanged: (older: { hasMore: boolean; loading: boolean }) => void = () => {};
+let olderChanged: (older: { hasMore: boolean; loading: boolean; status: string }) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
 let draftRestored: () => void = () => {}, draftPending: () => void = () => {};
@@ -252,7 +252,7 @@ function watch(binding: SessionBinding, retained: SessionReference) {
       if (reference !== retained) return;
       historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]);
       const current = binding.session.getSnapshot();
-      olderChanged({ hasMore: current.hasMore, loading: current.loadingOlder });
+      olderChanged({ hasMore: current.hasMore, loading: current.loadingOlder, status: current.historyLoadStatus });
     };
     unsubscribeSession?.(); unsubscribeSession = binding.session.subscribe(render);
     unsubscribe?.(); unsubscribe = target.subscribe(render); render();
@@ -468,7 +468,7 @@ const retryAttemptText = (attempt: RetryAttempt): string => `${({
 const retryTerminal = (attempt: RetryAttempt): boolean =>
   attempt.status !== "admitted" && attempt.status !== "unknown";
 function Surface() {
-  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [older, setOlder] = useState({ hasMore: false, loading: false }), [error, setError] = useState("");
+  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [older, setOlder] = useState({ hasMore: false, loading: false, status: "idle" }), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
   const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
@@ -934,6 +934,7 @@ function Surface() {
         onClick={() => void perform(async () => { await liveBinding?.session.loadOlder(); })}>
         {older.loading ? "Loading earlier history…" : "Load earlier history"}</button>}
       <div id="conversation" data-chat-history-nodes={rows.length} data-chat-history-more={older.hasMore ? "true" : "false"}
+        data-chat-history-status={older.status}
         data-chat-history-first-seq={(rows[0] as { seq?: number } | undefined)?.seq ?? ""}>
         {rows.map((row, index) => <NodeRow node={row} key={index} />)}
       </div>
