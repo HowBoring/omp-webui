@@ -11,7 +11,9 @@ import { attachmentsContribution } from "../../../packages/contracts/attachment-
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution } from "../../../packages/contracts/history-navigation-source.ts";
 import { stopContribution } from "../../../packages/contracts/stop.ts";
+import { retryContribution } from "../../../packages/contracts/manual-retry.ts";
 import { stopCaller, type StopCaller } from "../../../packages/interactions/stop-service.ts";
+import { retryCaller, type RetryCaller } from "../../../packages/manual-retry/remote-service.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
@@ -41,6 +43,7 @@ export const chatMethods = {
   "ompTree/read": treeContribution.methods["ompTree/read"],
   "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
   ...stopContribution.methods,
+  ...retryContribution.methods,
 };
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();
@@ -51,13 +54,14 @@ const invalidated = () => new Response("Access invalidated", { status: 401, head
 /** Resolve the already attached View from Host-owned carrier state after browser admission. */
 type ResolveChatView = (request: Request, identity: BrowserAccess) => ChatViewEnrollment | undefined;
 type ResolveStop = (identity: BrowserAccess) => StopCaller | undefined;
+type ResolveRetry = (identity: BrowserAccess) => RetryCaller | undefined;
 type ChatBinding = NonNullable<ReturnType<ChatViewAdmission["bind"]>>;
 
 /** Opt-in unary dispatch with an authenticated View resolver and a bounded body read. */
 export type ChatSessionDispatch = (request: Request, ctx: Context, peer: Peer) => Promise<Response>;
 
 export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView,
-  resolveStop?: ResolveStop): ChatSessionDispatch {
+  resolveStop?: ResolveStop, resolveRetry?: ResolveRetry): ChatSessionDispatch {
   let inflight = 0;
   return async (request, ctx, peer) => {
     const identity = admission.authority.admit(request, "write");
@@ -78,9 +82,13 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
     } catch { return invalidated(); }
     if (!binding) return invalidated();
     const stop = resolveStop?.(identity);
+    const retry = resolveRetry?.(identity);
     ++inflight;
-    try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, binding.current, binding, stop)); }
-    finally { --inflight; }
+    try {
+      const invokeWithStop = () => stop ? stopCaller.run(stop, () => dispatch(request, ctx, peer, binding.current,
+        binding, stop)) : dispatch(request, ctx, peer, binding.current, binding, stop);
+      return await sessionCaller.run(identity, () => retry ? retryCaller.run(retry, invokeWithStop) : invokeWithStop());
+    } finally { --inflight; }
   };
 }
 

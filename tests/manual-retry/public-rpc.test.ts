@@ -85,7 +85,7 @@ test("a lost submit reply stays unknown and explicit recovery only queries the o
   });
 
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "no_response", settled: false,
   });
   expect(await f.service.confirm(f.identity, offer.requestId)).toMatchObject({ status: "refused" });
   expect(f.service.offer(f.identity)).toEqual({ status: "refused", reason: "busy" });
@@ -197,7 +197,7 @@ test("transport error text cannot establish a Native busy refusal code", async (
   if (offer.status !== "confirmation") throw Error("expected confirmation");
   f.reply(async () => { throw Error("SUBMISSION_BUSY"); });
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "no_response", settled: false,
   });
 });
 
@@ -240,11 +240,13 @@ test("native receipts for another Session or a generated prompt cannot establish
     target: { ...target, nativeSessionId: "unrelated" }, terminal: true, persistence: "committed",
     operationOutcome: "succeeded", inputOutcome: "no_input",
   }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   f.reply(async command => receipt(command.clientSubmissionId, {
     terminal: true, persistence: "committed", operationOutcome: "succeeded", inputOutcome: "generated",
   }));
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
 });
 
 test("the source module without a trusted Host binding offers no capability", () => {
@@ -318,7 +320,8 @@ test.each([true, false])("committed builtin evidence contradicts a completed loc
       expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "succeeded", requestId, settled: false });
     }
     f.service.observe(binding.workerGeneration, local);
-    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+      evidence: "conflict", settled: false });
     expect(f.service.blocksAdmission()).toBe(true);
   });
 
@@ -348,7 +351,8 @@ test.each(["backward cursor", "mismatched origin", "changed outcome"] as const)(
         origin: { ...target, clientSubmissionId: "other-submission" } };
       return { ...page, operationOutcome: "failed" };
     });
-    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+    expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+      evidence: "receipt_unknown", settled: false });
     expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_query", "submission_query"]);
     expect(f.service.blocksAdmission()).toBe(true);
   },
@@ -375,7 +379,8 @@ test.each([true, false])("recovery resumes beyond the per-call page budget (earl
     if (offset === 4096) page.relations = earlyMarker ? page.relations.slice(0, 1) : [invoked];
     return page;
   });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(32);
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(1);
   expect(f.service.offer(f.otherView)).toEqual({ status: "refused", reason: "busy" });
@@ -399,8 +404,10 @@ test("a resumed page cannot reuse a relation from a previous lookup", async () =
     if (command.offset === undefined) page.relations[127] = invoked;
     return page;
   });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
-  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
+  expect(await f.service.lookup(f.otherView, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.filter(command => command.type === "submission_query")).toHaveLength(33);
   expect(f.service.blocksAdmission()).toBe(true);
 });
@@ -416,8 +423,10 @@ test("contradictory committed input evidence fails through submit and query alik
         reason: "native_builtin_consumed" },
       { relationId: "entry:user", role: "input", status: "observed", persistence: "committed", entryId: "user" },
     ] }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
-  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
+  expect(await f.service.lookup(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "receipt_unknown", settled: false });
   expect(f.commands.map(command => command.type)).toEqual(["submission_submit", "submission_query"]);
 });
 
@@ -443,7 +452,7 @@ test.each(["missing code", "wrong id"] as const)("Native busy requires a correla
   f.rawReply(async command => ({ type: "response", command: command.type, success: false, error: "SUBMISSION_BUSY",
     ...(defect === "missing code" ? { id: command.id } : { id: "earlier-request", code: "SUBMISSION_BUSY" }) }));
   expect(await f.service.confirm(f.identity, offer.requestId)).toEqual({
-    status: "unknown", requestId: offer.requestId, settled: false,
+    status: "unknown", requestId: offer.requestId, evidence: "receipt_unknown", settled: false,
   });
 });
 
@@ -453,7 +462,8 @@ test("a duplicate submission reply cannot lend admission to a same-ID live frame
   if (offer.status !== "confirmation") throw Error("expected confirmation");
   const { requestId } = offer;
   f.reply(async command => receipt(command.clientSubmissionId, { duplicate: true }));
-  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId, settled: false });
+  expect(await f.service.confirm(f.identity, requestId)).toEqual({ status: "unknown", requestId,
+    evidence: "conflict", settled: false });
 
   f.service.observe(binding.workerGeneration, {
     type: "prompt_result", id: requestId, status: "completed", agentInvoked: true, sessionSettled: true,
