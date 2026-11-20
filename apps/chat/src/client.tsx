@@ -30,6 +30,8 @@ import type { OriginalMediaType } from "../../../packages/attachments/media.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
 import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
 import { treeContribution } from "../../../packages/contracts/tree.ts";
+import { stopContribution, type ForceOffer, type StopSnapshot } from "../../../packages/contracts/stop.ts";
+import { restoredDraft } from "./restore.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
 import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
@@ -348,6 +350,9 @@ function Surface() {
   const [uploading, setUploading] = useState(false);
   const [tree, setTree] = useState<TreeBrowser>();
   const [returned, setReturned] = useState<ConflictSafeDraftOffer>();
+  const [stop, setStop] = useState<StopSnapshot>(), [force, setForce] = useState<ForceOffer>();
+  const [stopNote, setStopNote] = useState("");
+  const stopPoller = useRef<ReturnType<typeof setInterval>>(), restoredFor = useRef("");
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -374,6 +379,30 @@ function Surface() {
     draftDirty = true; setText(value); draftChanged(value);
     void persist({ draft: { text: value, references: [] }, originals: [] }, "edit");
   };
+  /** Restored input is only ever an unsent draft: a nonempty composer wins and is never overwritten. */
+  const restore = (snapshot: StopSnapshot) => {
+    if (restoredFor.current === snapshot.generation) return;
+    const draft = restoredDraft(snapshot, text);
+    if (!draft) return;
+    restoredFor.current = snapshot.generation;
+    if (draft.text !== "") edit(draft.text);
+    setStopNote(draft.note);
+  };
+  const applyStop = (snapshot: StopSnapshot) => {
+    setStop(snapshot); restore(snapshot);
+    if (snapshot.status === "stopping" || snapshot.status === "terminating") {
+      if (!stopPoller.current) stopPoller.current = setInterval(() => {
+        void ctx.remote.ompStop.state().then(resultValue).then(applyStop).catch(() => {});
+      }, 250);
+    } else {
+      clearInterval(stopPoller.current); stopPoller.current = undefined; setForce(undefined);
+    }
+  };
+  useEffect(() => () => clearInterval(stopPoller.current), []);
+  useEffect(() => {
+    if (!view) { setStop(undefined); return; }
+    void ctx.remote.ompStop.state().then(resultValue).then(applyStop).catch(() => {});
+  }, [view?.workerId, view?.generation]);
   const selection = (): AttachmentSelection => ({ session: view!.registration.nativeSessionId, draftId,
     revision: String(revision.current), originalIds: originals.map(item => item.objectId) });
   const stage = async (bytes: Uint8Array, displayName: string, declaredType: string, current: Uploaded[]): Promise<Uploaded> => {
@@ -642,7 +671,25 @@ function Surface() {
       {controller && <AttachmentPreparationPanel controller={controller} />}
       <button data-chat-send disabled={!view || busy || uploading || text.trim() === ""} onClick={() => void send("queue")}>Send</button>
       <button data-chat-steer disabled={!view || busy || uploading || text.trim() === "" || originals.length > 0} onClick={() => void send("steer")}>Steer</button>
-      <button data-chat-cancel disabled={!view} onClick={() => void perform(async () => { resultValue(await binding.current!.session.cancel()); })}>Cancel</button>
+      <button data-chat-stop disabled={!view || stop?.status === "terminating"} onClick={() => void perform(async () => {
+        setStopNote(""); applyStop(resultValue(await ctx.remote.ompStop.stop()));
+      })}>Stop</button>
+      {stop && stop.status !== "idle" && <div data-chat-stop-status={stop.status} data-chat-stop-interactions={stop.pending.interactions}>
+        <p role="status">{`stop ${stop.status} · native ${stop.nativeSettled ? "settled" : "running"} · answers ${stop.pending.interactions} · summary ${stop.pending.history} · queue ${stop.pending.queued} · other ${stop.pending.other}`}
+          {stop.failures.length > 0 ? ` · ${stop.failures.join(", ")}` : ""}</p>
+        {stop.forceAvailable && !force && <button data-chat-stop-offer onClick={() => void perform(async () => {
+          setForce(resultValue(await ctx.remote.ompStop.offerForce()));
+        })}>Offer force termination</button>}
+        {force?.status === "offered" && force.token && <button data-chat-stop-confirm onClick={() => void perform(async () => {
+          const token = force.token;
+          if (!token) throw new Error("The force offer has no token.");
+          const result = resultValue(await ctx.remote.ompStop.confirmForce(token));
+          setForce(undefined);
+          if (result.status === "stale") setError("That force confirmation is stale; request a new offer.");
+          else applyStop(resultValue(await ctx.remote.ompStop.state()));
+        })}>Confirm force termination</button>}
+      </div>}
+      {stopNote && <p role="status" data-chat-stop-restored>{stopNote}</p>}
       <button data-chat-refresh disabled={!view} onClick={() => void perform(async () => {
         const latest = resultValue(await ctx.remote.ompSessions.view(view!.workerId)); await present(latest);
       })}>Refresh worker</button>
@@ -674,6 +721,7 @@ async function boot() {
   await ctx.remote.$mount(chatComponentContribution);
   await ctx.remote.$mount(treeContribution);
   await ctx.remote.$mount(historyNavigationSourceContribution);
+  await ctx.remote.$mount(stopContribution);
   await ctx.remote.$mount(attachmentContribution);
   await ctx.remote.$mount(attachmentsContribution);
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);

@@ -2,7 +2,7 @@
 
 Explicit synthetic S2 fixture; live-provider scenarios are controlled, never real inference.
 """
-import asyncio, json, os, re, shutil, signal, subprocess, time, urllib.request
+import asyncio, json, os, re, shutil, signal, socket, subprocess, time, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
@@ -29,6 +29,12 @@ async def wait_health(timeout=15.0):
     raise RuntimeError("chat Host did not become healthy")
 
 
+def port_open():
+    with socket.socket() as probe:
+        probe.settimeout(0.2)
+        return probe.connect_ex(("127.0.0.1", PORT)) == 0
+
+
 async def start_host(scenario=None, delay=None, tools=None):
     env = os.environ.copy()
     env["OMP_CHAT_PORT"] = str(PORT)
@@ -39,10 +45,24 @@ async def start_host(scenario=None, delay=None, tools=None):
         env["OMP_CHAT_FIXTURE_DELAY_MS"] = str(delay)
     if tools:
         env["OMP_CHAT_FIXTURE_TOOLS"] = str(tools)
-    host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
-                            stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
-    await wait_health()
-    return host
+    # A force-terminated scenario can leave its predecessor draining past the SIGTERM wait. Kill any
+    # leftover hard and wait for the port itself to be released: health from a predecessor that still
+    # owns the port must never be mistaken for the new host.
+    for _ in range(3):
+        subprocess.run(["pkill", "-9", "-f", str(HOST)], check=False)
+        for _ in range(150):
+            if not port_open():
+                break
+            await asyncio.sleep(0.1)
+        host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
+                                stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
+        try:
+            await wait_health()
+        except RuntimeError:
+            continue
+        if host.poll() is None:
+            return host
+    raise RuntimeError("chat Host did not become healthy on a free port")
 
 
 def bootstrap():
@@ -132,7 +152,44 @@ async def new_page(browser, errors):
     return context, page
 
 
+async def phase_pending_ui(browser, errors, scenarios=None, grant_first=False):
+    host = await start_host(scenario="pending-ui", delay=100)
+    try:
+        context, page = await new_page(browser, errors)
+        if grant_first:
+            await grant(page)
+        await open_session(page)
+        await send(page, "pending native question before stop")
+        await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
+        audit_path = ROOT / "vendor/chat-fixture/pending-ui-audit.json"
+        for _ in range(100):
+            if audit_path.exists() and json.loads(audit_path.read_text()).get("stage") == "awaiting": break
+            await page.wait_for_timeout(100)
+        assert audit_path.exists() and json.loads(audit_path.read_text()).get("stage") == "awaiting", \
+            "the native question reached the #47 Broker before Stop"
+        await page.get_by_role("button", name="Stop", exact=True).click()
+        await page.wait_for_selector('[data-chat-stop-status="stopping"]', timeout=10000)
+        # The broker cancels the native question; settlement is only shown when the gateway sees every
+        # pending interaction at zero, so this wait proves the UI cancellation and joint quiescence.
+        await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=30000)
+        audit = json.loads(audit_path.read_text())
+        assert audit["answer"] == "cancelled", f"native question was cancelled: {audit}"
+        if scenarios is not None:
+            scenarios.append("pending-ui-cancelled-by-stop")
+        await context.close()
+    finally:
+        await stop_host(host)
+
+
 async def main():
+    if os.environ.get("OMP_BROWSER_ONLY_PENDING_UI") == "1":
+        subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
+                       stdout=subprocess.DEVNULL)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
+            await phase_pending_ui(browser, [], grant_first=True)
+            await browser.close()
+        return
     kill_worker()
     subprocess.run(["pkill", "-f", f"{HOST}"], check=False)
     await asyncio.sleep(0.5)
@@ -286,13 +343,56 @@ async def main():
             await expect(page.get_by_role("alert")).to_contain_text("Native Session is busy. Your draft is retained.", timeout=60000)
             assert await page.get_by_label("Message").input_value() == "second while busy", "busy refusal retains the draft"
             scenarios.append("busy-refusal-retains-draft")
-            await page.get_by_role("button", name="Cancel", exact=True).click()
+            await page.get_by_role("button", name="Stop", exact=True).click()
             await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
             settlement = await page.locator("[data-chat-settlement]").inner_text()
-            assert "cancelled" in settlement, f"cancel settles cancelled: {settlement}"
-            assert await page.get_by_label("Message").input_value() == "second while busy", "cancel keeps the queued draft"
-            scenarios.append("native-cancel-settles")
+            assert "cancelled" in settlement, f"stop settles cancelled: {settlement}"
+            await page.wait_for_selector("[data-chat-stop-status]", state="detached", timeout=60000)
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "ordinary stop offers no force before 30s"
+            assert await page.get_by_label("Message").input_value() == "second while busy", "stop keeps the queued draft"
+            scenarios.append("ordinary-stop-settles-cancelled-keeps-draft")
+
+            # Idle Stop is a no-op for input: no force offer, no restored draft, draft intact.
+            await page.get_by_role("button", name="Stop", exact=True).click()
+            await page.wait_for_timeout(2000)
+            assert await page.locator("[data-chat-stop-status]").count() == 0, "idle stop returns to idle"
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "idle stop offers no force"
+            assert await page.get_by_label("Message").input_value() == "second while busy", "idle stop keeps the draft"
+            scenarios.append("idle-stop-keeps-draft-no-force")
             await context.close()
+
+            # Phase 2b: stubborn public worker -> 30s one-use force -> SIGTERM/SIGKILL reap.
+            await stop_host(host)
+            host = await start_host(scenario="stubborn", delay=100)
+            context, page = await new_page(browser, errors)
+            await open_session(page)
+            await send(page, "stubborn worker before stop")
+            await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
+            await page.wait_for_timeout(1500)
+            await page.get_by_label("Message").fill("draft during stubborn stop")
+            await page.get_by_role("button", name="Stop", exact=True).click()
+            await page.wait_for_selector('[data-chat-stop-status="stopping"]', timeout=10000)
+            await page.wait_for_timeout(5000)
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "force is not offered before 30s"
+            await page.wait_for_selector("[data-chat-stop-offer]", timeout=40000)
+            scenarios.append("stubborn-force-offered-after-30s")
+            pid = subprocess.run(["pgrep", "-f", re.escape(f"{ROOT}/vendor/omp-candidate/cli.js") + ".*--mode rpc-ui"],
+                                 capture_output=True, text=True).stdout.split()[0]
+            await page.locator("[data-chat-stop-offer]").click()
+            await page.locator("[data-chat-stop-confirm]").click()
+            for _ in range(300):
+                alive = subprocess.run(["pgrep", "-f", re.escape(f"{ROOT}/vendor/omp-candidate/cli.js") + ".*--mode rpc-ui"],
+                                       capture_output=True, text=True).stdout.split()
+                if pid not in alive: break
+                await page.wait_for_timeout(100)
+            else: raise AssertionError(f"stubborn worker {pid} was not reaped")
+            audit = json.loads((ROOT / "vendor/chat-fixture/stubborn-audit.json").read_text())
+            assert audit["exitAt"] > 0, f"stubborn worker exited after force: {audit}"
+            assert await page.get_by_label("Message").input_value() == "draft during stubborn stop", "force keeps the draft"
+            scenarios.append("stubborn-force-confirm-terminated-reaped")
+            await context.close()
+
+            await phase_pending_ui(browser, errors, scenarios)
 
             # Phase 3: controlled provider terminal error is accepted then settles failed, never resent.
             await stop_host(host)

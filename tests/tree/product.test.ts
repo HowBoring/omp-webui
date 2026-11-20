@@ -89,6 +89,8 @@ test("the product Chat Host serves the read-only tree to a real DSH client and n
         navigation: new NavigationClient(async () => { throw new Error("UNUSED"); }, (_value): _value is never => false, (_value): _value is never => false),
         async submitCommand() { throw new Error("UNUSED"); },
         async command() { return { status: "answered" }; }, async control() { return {}; },
+        async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
+        async setAskDialog() { return { enabled: true }; }, get readyPolicy(): unknown { return undefined; },
         async state() { return { sessionId: selected.nativeSessionId, isSettled: true, isStreaming: false,
           isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0,
           queuedMessages: { steering: [], followUp: [] }, model: { provider: "synthetic", id: "fixture", name: "Fixture",
