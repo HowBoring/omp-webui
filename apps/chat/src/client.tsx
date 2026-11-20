@@ -71,6 +71,25 @@ async function waitProjection(binding: SessionBinding) {
   }
   throw new Error("Projection is not ready for an attached Chat draft.");
 }
+async function waitProjectionGeneration(binding: SessionBinding, generation: string) {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const state = binding.projection.getSnapshot();
+    if (state.phase === "ready" && state.binding.generation === generation) return;
+    if (state.phase === "failed") throw new Error(`The rebuilt Session projection failed: ${String(state.error)}.`);
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  throw new Error("The rebuilt Session projection did not become ready.");
+}
+async function renewSessionProjection(view: PublicSessionView) {
+  const sessionId = SessionId(view.registration.nativeSessionId);
+  const result = resultValue(await ctx.remote.session.projections({ sessionId }));
+  if (result?.kind !== "sequenced" || !result.projection) return;
+  const binding = liveBinding;
+  if (!binding) return;
+  await waitProjectionGeneration(binding, result.projection.generation);
+  if (liveBinding !== binding) return;
+  resultValue(await ctx.remote.ompChatComponent.attach({ workerId: view.workerId, projection: result.projection, draftId }));
+}
 async function present(view: PublicSessionView) {
   release();
   const current = presentationRevision, access = accessRevision;
@@ -284,7 +303,12 @@ function Surface() {
     for (let i = 0; i < 60; ++i) {
       try { const state = resultValue(await ctx.remote.ompChat.state(sessionId)); if (!state) continue;
         setSettlement({ requestId: state.requestId, terminal: state.terminal ?? false, operationOutcome: state.operationOutcome ?? "pending", settled: state.settled });
-        if (state.settled) return; } catch { return; }
+        if (state.settled) {
+          // A settled turn may have moved the native cut. Re-enroll against the rebuilt journal before
+          // the next prompt so the Host never authorizes a stale Chat view.
+          if (view) await renewSessionProjection(view).catch(() => {});
+          return;
+        } } catch { return; }
       await new Promise(resolve => setTimeout(resolve, 250));
     }
   };
@@ -296,6 +320,9 @@ function Surface() {
       const recovered = resultValue(await ctx.remote.ompChat.lookup(sessionId, requestId));
       applyRecovery(recovered, requestId); setEntry(recovered.outcome);
       void settle(sessionId);
+      // The accepted turn may create a new native cut. Reattach once the response has landed so the
+      // rebuilt journal includes the completed turn before the next prompt.
+      if (view) setTimeout(() => { void renewSessionProjection(view).catch(() => {}); }, 1200);
     } catch (failure) { setError(message(failure)); }
   };
   const send = async (mode: "queue" | "steer") => {
@@ -319,7 +346,7 @@ function Surface() {
     const content = text, hasImages = originals.length > 0;
     sending.current = true;
     setError(""); setRecovery(undefined);
-    try { await waitProjection(current); } catch (failure) { setError(message(failure)); sending.current = false; return; }
+    try { await waitProjection(current); await renewSessionProjection(view); } catch (failure) { setError(message(failure)); sending.current = false; return; }
     setBusy(true);
     const handle = current.session.beginSubmission({ mode, text: content, attachments: [] });
     const requestId = String(handle.requestId);

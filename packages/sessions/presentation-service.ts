@@ -27,11 +27,25 @@ export class SessionPresentationService extends TypertRemoteService {
     return { cursor: request.throughSeq ?? journal.cursor, ...journal.page(request) };
   }
   @Remote({ mode: "stream" }) async *control(signal: AbortSignal): AsyncGenerator<SessionControlFrame> {
-    yield { type: "baseline", value: { projections: {} } };
-    while (!signal.aborted) await Bun.sleep(100);
+    const identity = this.identity();
+    let epoch = this.supervisor.presentationEpoch(identity);
+    const journal = this.supervisor.activeJournal(identity);
+    yield { type: "baseline", value: { projections: journal ? { [journal.sessionId]: {
+      projection: journal.projection, asOfSeq: journal.cursor, values: {},
+    } } : {} } };
+    while (!signal.aborted) {
+      await Bun.sleep(100);
+      const next = this.supervisor.presentationEpoch(this.identity());
+      if (next === epoch) continue;
+      epoch = next;
+      const current = this.supervisor.activeJournal(this.identity());
+      if (!current) continue;
+      yield { type: "projection-invalidated", sessionId: SessionId(current.sessionId), projection: current.projection };
+    }
   }
   @Remote({ mode: "stream" }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncGenerator<SessionFollowFrame> {
-    const identity = this.identity(), id = this.addressId(request.address), journal = await this.supervisor.presentation(identity, id);
+    const identity = this.identity(), id = this.addressId(request.address);
+    const journal = await this.supervisor.presentation(identity, id);
     const queue: SessionFollowFrame[] = []; let bytes = 0;
     const dispose = journal.subscribe(frame => {
       const size = Buffer.byteLength(JSON.stringify(frame));

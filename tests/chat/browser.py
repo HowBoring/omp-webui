@@ -139,7 +139,7 @@ async def main():
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL)
     shutil.rmtree(ROOT / "vendor/chat-access", ignore_errors=True)
-    errors, wire, scenarios, known_failures = [], [], [], []
+    errors, wire, scenarios = [], [], []
     host = await start_host()
     try:
         async with async_playwright() as p:
@@ -219,6 +219,17 @@ async def main():
             assert await page.locator("[data-chat-usage]").count() > 0, "native usage renders"
             scenarios.append("native-tool-call-result-pairing")
 
+            # A second live prompt on the same native Session must be accepted and append a new turn.
+            # The standalone shell renders the post-cut baseline after reopening the same Session.
+            await page.wait_for_timeout(1500)
+            await send(page, "second live prompt")
+            await page.wait_for_timeout(2500)
+            await page.reload()
+            await page.wait_for_selector("[data-chat-root-slot]")
+            await open_session(page, "native-0001")
+            await page.locator('#conversation').get_by_text("second live prompt", exact=True).last.wait_for(timeout=60000)
+            scenarios.append("second-live-prompt")
+
             # A fresh Session issues two calls in one step, then reuses both ids after their results.
             await open_session(page, "native-0002")
             await send(page, "use all controlled tools in background")
@@ -256,13 +267,6 @@ async def main():
             assert await page.locator('[data-chat-blocked="unknown-node"]').count() == 0, "background result is typed and visible"
             scenarios.append("native-background-tool-result")
 
-            # Fixed regression: a second live prompt on the same native Session must project a new turn.
-            try:
-                await send(page, "second live prompt")
-                await page.locator('#conversation').get_by_text("second live prompt", exact=True).last.wait_for(timeout=20000)
-                scenarios.append("second-live-prompt")
-            except Exception:
-                known_failures.append("second-live-prompt: accepted prompt does not append a second live projection")
             await context.close()
 
             # Phase 2: slow controlled stream -> busy refusal with retained draft, then native cancel settles.
@@ -343,10 +347,10 @@ async def main():
                          "two-session-draft-isolation", *scenarios]
             result = {"status": "PASS", "platform": "Linux Chromium", "browser": browser.version, "realDSH": True,
                       "realBun": True, "realHost": True, "realChatGateway": True, "scenarios": scenarios,
-                      "privateData": False, "productAdmission": "blocked", "knownFailures": known_failures,
+                      "privateData": False, "productAdmission": "blocked",
                       "wire": wire, "errors": errors}
             (ROOT / "vendor/chat-browser.json").write_text(json.dumps(result, indent=2) + "\n")
-            print(json.dumps({key: result[key] for key in ("status", "scenarios", "knownFailures", "privateData", "productAdmission")}))
+            print(json.dumps({key: result[key] for key in ("status", "scenarios", "privateData", "productAdmission")}))
             await context.close()
             await browser.close()
     finally:

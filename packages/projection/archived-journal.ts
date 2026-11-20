@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import { parseProjectionBinding } from '@deepseek-ai/dsh-api-session-controller/projection';
 import { SessionId } from '@deepseek-ai/dsh-session/types';
 import type {
   SessionFollowFrame, SessionHistoryRecord, SessionPage,
@@ -119,8 +120,10 @@ class PageWindow {
 
 /** An immutable settled Conversation prefix, scoped to one Native cut. All body reads are request-local. */
 export class ArchivedJournal {
-  readonly generation = crypto.randomUUID();
+  readonly generation: string = crypto.randomUUID();
   readonly sessionId;
+  /** Same stable Host-journal identity as the eager presentation for this Native Session. */
+  get projection() { return parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: this.generation}); }
   readonly #rows: ArchivedRow[] = [];
   readonly #toolCalls = new ToolCallLedger();
   readonly #source: ActiveHistorySource;
@@ -174,8 +177,9 @@ export class ArchivedJournal {
     return this.#closing;
   }
 
-  page(access: ArchivedHistoryAccess, request: PageRequest): Promise<SessionPage> {
-    return this.#page({ generation: access.generation, current: access.current.bind(access) }, request, PAGE_BYTES);
+  async page(access: ArchivedHistoryAccess, request: PageRequest): Promise<SessionPage> {
+    return { ...await this.#page({ generation: access.generation, current: access.current.bind(access) }, request, PAGE_BYTES),
+      projection: this.projection };
   }
 
   async snapshot(access: ArchivedHistoryAccess): Promise<Extract<SessionFollowFrame, { type: 'snapshot' }>> {
@@ -184,8 +188,8 @@ export class ArchivedJournal {
     const reserve = encodedBytes(assistantStream) + 8192;
     const page = await this.#page(requestAccess, {}, PAGE_BYTES - reserve);
     this.#assertAccess(requestAccess);
-    return { type: 'snapshot', header: { version: 4, id: this.sessionId, createdAt: 0, isSeeded: false },
-      cursor: this.cursor, ...page, projections: { asOfSeq: this.cursor, values: {} }, assistantStream };
+    return { type: 'snapshot', projection: this.projection, header: { version: 4, id: this.sessionId, createdAt: 0, isSeeded: false },
+      cursor: this.cursor, ...page, projections: { projection: this.projection, asOfSeq: this.cursor, values: {} }, assistantStream };
   }
 
   #binding() { return { snapshot: this.#opened.snapshot, contentRevision: this.#opened.cut.contentRevision }; }

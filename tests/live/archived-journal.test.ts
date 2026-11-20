@@ -207,8 +207,8 @@ test('multipart archived groups match eager DSH pages under cut and encoded byte
     return { ...envelope, items: matches.slice(0, sourcePageParts),
       ...(next ? { next: { ordinal: Number(next.entryId), partIndex: next.partIndex! } } : {}) };
   };
-  const eager = await LiveJournal.open(eagerFixture(envelope, parts));
   const archive = await ArchivedJournal.open(source, owner);
+  const eager = await LiveJournal.open(eagerFixture(envelope, parts), archive.generation);
   const view = { generation: archive.generation, current: () => true };
   const current = await archive.snapshot(view);
   expect(current).toEqual(eager.snapshot());
@@ -275,8 +275,8 @@ test('archived user rows require the same stop reason in Native metadata and pay
   source.index = async () => ({ ...envelope, items: [user] });
   source.range = async () => ({ ...envelope, items: [body!] });
 
-  const eager = await LiveJournal.open(eagerFixture(envelope, [body!]));
   const archive = await ArchivedJournal.open(source, owner);
+  const eager = await LiveJournal.open(eagerFixture(envelope, [body!]), archive.generation);
   const view = { generation: archive.generation, current: () => true };
   expect(await archive.page(view, {})).toEqual(eager.page({}));
 

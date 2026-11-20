@@ -136,13 +136,11 @@
     "nativeRpcChromium": {
       "status": "PASS",
       "command": "python tests/chat/browser.py",
-      "scenarios": 19,
-      "includes": "native-tool-call-result-pairing, native-tool-batch-id-reuse, native-tool-history-reopen, native-background-tool-result, page reload, cancel, provider failure, worker EOF, host restart",
+      "scenarios": 20,
+      "includes": "native-tool-call-result-pairing, second-live-prompt on the same native Session, native-tool-batch-id-reuse, native-tool-history-reopen, native-background-tool-result, page reload, cancel, provider failure, worker EOF, host restart",
       "privateData": false,
       "productAdmission": "blocked",
-      "knownFailures": [
-        "second-live-prompt: accepted prompt does not append a second live projection; preserved as fixed regression, pending shared post-cut projection repair"
-      ]
+      "knownFailures": []
     }
   },
   "procedureDeviation": {

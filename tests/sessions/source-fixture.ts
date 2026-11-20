@@ -24,7 +24,8 @@ interface NativeFixtureControls {
 }
 
 export async function sourceFixture(now: () => number = Date.now,
-  launchOwned?: (cwd: string, retirement: AbortSignal) => OwnedSessionConnection | Promise<OwnedSessionConnection>) {
+  launchOwned?: (cwd: string, retirement: AbortSignal) => OwnedSessionConnection | Promise<OwnedSessionConnection>,
+  history?: HistoryClient) {
   const home = await mkdtemp(join(tmpdir(), "session-source-")), cwd = join(home, "project"), dataDir = join(home, "state");
   await mkdir(cwd);
   const origin = "http://127.0.0.1:4321", authority = openBrowserAccess({ dataDir, origin });
@@ -55,7 +56,7 @@ export async function sourceFixture(now: () => number = Date.now,
     startup: new StrictStartClient(async command => command.type === "strict_start" ? controls.start()
       : command.type === "get_strict_state" ? controls.observe() : opened,
       (value): value is StrictStartState => validState(value)),
-    history: new HistoryClient(async () => { throw new Error("SYNTHETIC_HISTORY_UNUSED"); }),
+    history: history ?? new HistoryClient(async () => { throw new Error("SYNTHETIC_HISTORY_UNUSED"); }),
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     submissions: new SubmissionClient(async () => { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); }, isSubmissionResult),
     attachments: new AttachmentClient(async () => { throw new Error("SYNTHETIC_ATTACHMENT_UNUSED"); }, isAttachmentReceipt),
