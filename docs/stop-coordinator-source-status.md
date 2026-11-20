@@ -161,7 +161,7 @@ Validation (Bun 1.4.4 `38afee6c8`, strict TypeScript):
 - Draft recovery: `apps/chat/src/restore.ts` is the single browser-side merge rule
   (join steering then follow-up, explain dropped images/truncation, never
   overwrite a non-empty composer) and is covered by `tests/chat/restore.test.ts`.
-- Chromium matrix: 25 scenarios pass, including ordinary Stop keeping the draft,
+- Chromium matrix: 24 scenarios pass, including ordinary Stop keeping the draft,
   idle Stop offering no force, busy refusal, pending-UI cancellation, stubborn
   30s force termination/reap, provider error, worker EOF, and Host restart.
 

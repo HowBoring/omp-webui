@@ -2,7 +2,7 @@
 
 Explicit synthetic S2 fixture; live-provider scenarios are controlled, never real inference.
 """
-import asyncio, json, os, re, shutil, signal, subprocess, time, urllib.request
+import asyncio, json, os, re, shutil, signal, socket, subprocess, time, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
@@ -29,6 +29,12 @@ async def wait_health(timeout=15.0):
     raise RuntimeError("chat Host did not become healthy")
 
 
+def port_open():
+    with socket.socket() as probe:
+        probe.settimeout(0.2)
+        return probe.connect_ex(("127.0.0.1", PORT)) == 0
+
+
 async def start_host(scenario=None, delay=None, tools=None):
     env = os.environ.copy()
     env["OMP_CHAT_PORT"] = str(PORT)
@@ -40,10 +46,14 @@ async def start_host(scenario=None, delay=None, tools=None):
     if tools:
         env["OMP_CHAT_FIXTURE_TOOLS"] = str(tools)
     # A force-terminated scenario can leave its predecessor draining past the SIGTERM wait. Kill any
-    # leftover hard, and never accept health from a predecessor while the new process already died.
+    # leftover hard and wait for the port itself to be released: health from a predecessor that still
+    # owns the port must never be mistaken for the new host.
     for _ in range(3):
         subprocess.run(["pkill", "-9", "-f", str(HOST)], check=False)
-        await asyncio.sleep(0.3)
+        for _ in range(150):
+            if not port_open():
+                break
+            await asyncio.sleep(0.1)
         host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
                                 stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
         try:
@@ -142,7 +152,7 @@ async def new_page(browser, errors):
     return context, page
 
 
-async def phase_pending_ui(browser, errors, grant_first=False):
+async def phase_pending_ui(browser, errors, scenarios=None, grant_first=False):
     host = await start_host(scenario="pending-ui", delay=100)
     try:
         context, page = await new_page(browser, errors)
@@ -164,6 +174,8 @@ async def phase_pending_ui(browser, errors, grant_first=False):
         await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=30000)
         audit = json.loads(audit_path.read_text())
         assert audit["answer"] == "cancelled", f"native question was cancelled: {audit}"
+        if scenarios is not None:
+            scenarios.append("pending-ui-cancelled-by-stop")
         await context.close()
     finally:
         await stop_host(host)
@@ -380,7 +392,7 @@ async def main():
             scenarios.append("stubborn-force-confirm-terminated-reaped")
             await context.close()
 
-            await phase_pending_ui(browser, errors)
+            await phase_pending_ui(browser, errors, scenarios)
 
             # Phase 3: controlled provider terminal error is accepted then settles failed, never resent.
             await stop_host(host)
