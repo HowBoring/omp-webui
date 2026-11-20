@@ -52,7 +52,8 @@ async def main():
             def observe(request):
                 if request.method == "POST" and "/api/" in request.url:
                     writes.append(request.url.split("/api/", 1)[1])
-            page.on("pageerror", lambda error: errors.append(str(error)))
+            page.on("pageerror", lambda error: (errors.append(str(error)), print("PAGEERROR", error, flush=True)))
+            page.on("console", lambda message: print("CONSOLE", message.type, message.text, flush=True) if message.type == "error" else None)
             page.on("request", observe)
             await page.goto(bootstrap)
             await page.get_by_label("Directory to authorize").fill(str(ROOT / "vendor/chat-fixture/project"))

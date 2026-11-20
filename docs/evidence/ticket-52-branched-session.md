@@ -56,8 +56,8 @@ Decision record: `docs/adr/0033-branched-session-native-branch.md`.
 ## Evidence tuple
 
 - OMP base `57771ae562b9345e0579bceb2d68d585e3e6927e`
-- candidate source `65e7de674cc3290ef0776d401c085c203814317df822a1f3a96c5935e1b621fd`
-- candidate patch set `e4c46f32c55a9e2b71901adef2a350ab693e2528f8ac46983b6b85f39a2b52c8`
+- candidate source `e9e00d47306d8885563fc271f5a79ea3330f18a5ec52de4f54688c64101b0530`
+- candidate patch set `99b33a85b209f7f3e29beb97ee531a8399eb5e9069f2eb4abc7f1e3e146bd5cb`
 - candidate CLI `f23d51e71478642dd5b9768737033fbe68a7d289a560a8ddd394ddb1f585ed8f`
 - Chat host bundle `ee3034a43c9d7c77789e8f718017f73d52de8929c29a684f41937fdc8a69c0f7`
 - enrolled chat assets `849d65c44fc3b94eb4181e822f43840d8719dc650d1eb22fb5683c3f62232855`
@@ -85,3 +85,23 @@ The browser run writes `vendor/branch-browser.json` (`status: PASS`, `productAdm
   association work (ticket 56) but is not used here.
 - Branching while a turn is running: the request refuses and asks the operator to Stop and re-initiate.
 - Same-Session historical navigation (ticket 51) and historical-original access (ticket 56).
+
+## After the integration merge
+
+The evidence was rerun on the merged branch (mvp/spec-29 at af276c1, authored stack
+with `0008-durable-navigation` before `0012-strict-branch-transition`). All eleven
+cases pass again: native user points only, tool/special/compaction/reset rendering,
+preview before branch, cancel keeps the input, native identity verified, atomic
+presentation replacement, unsent returned draft, common history only, source and
+destination known, reload rebuilds the new Session, and no replay prompt or model
+call. `docs/evidence/ticket-52-browser.json` is that run.
+
+Merged digests: candidate source `e9e00d47306d8885563fc271f5a79ea3330f18a5ec52de4f54688c64101b0530`,
+patch `99b33a85b209f7f3e29beb97ee531a8399eb5e9069f2eb4abc7f1e3e146bd5cb`,
+schema `b13a75ebfb36a0c48edb5d796e8335d6ab0a6a6b6fad7eda06be40c7f7c5a1ff`.
+
+Known failures outside this ticket after the merge: `tests/navigation/validators.test.ts`
+needs the ticket 51 staged worker tree (`vendor/omp-strict`), which this worktree never
+builds, and the continuation fault-shim suite still fails eleven native syscall cases
+under the system-fixture prefix. `tests/sessions`, `tests/tree` and
+`tests/attachments/public-rpc.test.ts` pass, and `bun run typecheck` is clean.
