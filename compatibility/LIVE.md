@@ -104,7 +104,7 @@ only**, not integrated #39/#40 draft/attachment preservation. Native execution/I
 this fixture does not claim an Interaction redelivery or integrated draft policy proof.
 
 Fixed bounds: native journal/entry association and tool-owner tables 4096; native notification bytes 8 MiB;
-per-live item 512 KiB; derived journal 60,000 records/192 MiB; per-follow queue 256 frames/1 MiB; source history limits
+per-live item 512 KiB; derived journal 60,000 records/32 MiB; per-follow queue 256 frames/1 MiB; source history limits
 remain #34's limits plus live fingerprints (scanItems 40,004). Native polls cap 128 events / 768 KiB. Opening stage is
 bounded to 60,000 parts / 256 MiB, pending associations/attempt chunks 4096 / 8 MiB; snapshot baseline must fit 768 KiB. Oversized/unrepresentable observations emit an explicit live gap, and native/derived eviction
 fails affected cursors/generations. No transcript or provider chunks are persisted by Host.
@@ -155,7 +155,7 @@ same-ID reopen; and a **separate** native first-materialization source/context t
 and then manually reopens. Each old physical follow receives one snapshot. Both paths preserve the independent
 fixture textarea. Native tests cover nested external/custom messages, no-entry dedup/one-run contexts, background
 append, same-shape rewrite, delete/reparent, scoped reused tool IDs, original-object branch re-emission, 4096-association
-eviction and a real native ~36 MiB source that stays within the 192 MiB derived journal budget. The actual CLI
+eviction and a real native ~36 MiB source that explicitly exceeds the 32 MiB derived journal budget. The S5 harness may pin `OMP_LIVE_JOURNAL_MAX_BYTES` for the 100 MiB reachability corpus; the default fails closed. The actual CLI
 also exercises genuine controlled tool execution and native live-buffer overflow with event filtering enabled.
 
 Final verification: clean native build/generation and authored native TypeScript PASS; full suite 194 tests / 1,619 assertions / 42 files plus Host build PASS; six Chromium scenarios PASS. Exact reproducible identities are recorded in `evidence/live-checkpoint.json`.

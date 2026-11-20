@@ -186,6 +186,7 @@ def chat_env(manifest, data):
         "OMP_CHAT_FIXTURE_HOME": str(CORPUS),
         "OMP_CHAT_PORT": str(CHAT_PORT),
         "OMP_CHAT_FIXTURE_DATA": str(data),
+        "OMP_LIVE_JOURNAL_MAX_BYTES": os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"),
     }
 
 
@@ -471,7 +472,7 @@ async def main():
         "reference": manifest["reference"],
         "actual": {"cpus": cpus, "memoryMiB": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1048576), "runtime": "see corpus.json"},
         "corpus": {"seed": manifest["seed"], "limits": manifest["limits"], "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256")}, "history": {key: manifest["history"][key] for key in ("entries", "bytes", "sha256", "typeDistribution")}},
-        "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]", "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM"},
+        "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]", "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM", "chatJournalLimitBytes": int(os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"))},
         "limits": {"firstPageP95Ms": CATALOG_P95_MS, "oldPageP95Ms": OLD_PAGE_P95_MS, "hostPeakMiB": HOST_RSS_MIB},
         "classes": [],
     }

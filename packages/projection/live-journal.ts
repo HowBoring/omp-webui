@@ -16,7 +16,9 @@ import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, P
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
 }[SessionAssistantStreamFrame['type']];
-const MAX_BYTES = 192 * 1024 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
+const configuredMaxBytes = Number(process.env.OMP_LIVE_JOURNAL_MAX_BYTES);
+const MAX_BYTES = Number.isSafeInteger(configuredMaxBytes) && configuredMaxBytes > 0
+  ? configuredMaxBytes : 32 * 1024 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
 const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
   live.workerId, live.sourceId, live.sessionId, live.contextId, live.branchLeafId, live.messageId,
