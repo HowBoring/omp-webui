@@ -79,7 +79,7 @@ export class LiveJournal {
   /** Native boundaries already served, keyed by the seq an older page must end at. */
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
-  #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null;
+  #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
   private constructor(readonly opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
     if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
@@ -238,7 +238,12 @@ export class LiveJournal {
   get cursor(): number { return this.#firstSeq + this.#records.length - 1; }
   get after(): number { return this.#after; }
   get failure(): string | undefined { return this.#failure; }
-  invalidate(code: string): void { this.#failure ??= code; this.#listeners.clear(); }
+  /** Release the retained native cut; older-page paging is impossible after this. */
+  dispose(): void {
+    if (this.#closed) return; this.#closed = true;
+    Promise.resolve().then(() => this.history.close(this.opened.snapshot)).catch(() => {});
+  }
+  invalidate(code: string): void { this.#failure ??= code; this.#listeners.clear(); this.dispose(); }
   #fail(code: string): never { this.invalidate(code); throw Error(code); }
   #assert(): void { if (this.#failure) throw Error(this.#failure); }
   #remember(seq: number, value: {offset: number; turn: number; step: number; parent: string | null}): void {

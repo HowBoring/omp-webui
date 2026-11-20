@@ -766,6 +766,7 @@ export class SessionSupervisor {
     // history instead of permanently failing presentation for the rest of the worker's life.
     if (journal.sessionId !== sessionId || journal.failure) {
       const epoch = ++journalIdentity;
+      active.journalValue?.dispose();
       journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
       active.journal = Promise.resolve(journal); active.journalEpoch = epoch;
     }
@@ -788,6 +789,7 @@ export class SessionSupervisor {
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return undefined;
     const epoch = ++journalIdentity;
+    active.journalValue?.dispose();
     const journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
     if (active.state !== "open" || active.id !== workerId || active.record?.nativeSessionId !== sessionId) {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
