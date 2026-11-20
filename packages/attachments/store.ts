@@ -481,11 +481,12 @@ export class OriginalStore {
     return scope;
   }
 
-  /** True only when the submission was created by this exact browser/page and source/instance. */
+  /** True only for the exact browser/page and source/instance that created the submission. The
+   * Native session is bound by the link row, which a verified branch copy forwards to its own id. */
   private sameRequester(stored: Readonly<OriginalBinding>, current: OriginalHistoryScope): boolean {
     return stored.hostId === current.hostId && stored.browserId === current.browserId
       && stored.pageId === current.pageId && stored.profileId === current.profileId
-      && stored.sessionId === current.sessionId && stored.instanceId === current.instanceId;
+      && stored.instanceId === current.instanceId;
   }
 
   /** Entry ids are supplied by the Host only after the current Native history retained them. */

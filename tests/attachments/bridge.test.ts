@@ -4,10 +4,11 @@ import type { RpcWireCommands } from "../../packages/contracts/generated/omp-wir
 import type { AttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
 const selection = { session: "projection", draftId: "draft", revision: "1", originalIds: ["original"] };
 const target = { sourceId: "a".repeat(64), instanceId: "b".repeat(64), nativeSessionId: "session" };
-function fixture() {
+function fixture(options: { reserve?: AttachmentAuthority["reserve"] } = {}) {
   let authorized = true, revision = "1", prepared = 0, submitted = 0;
   let lastSubmitted: RpcWireCommands["submission_submit"]["params"] | undefined;
-  const authority: AttachmentAuthority = { async authorize(request) {
+  const authority: AttachmentAuthority = { ...(options.reserve ? { reserve: options.reserve } : {}),
+    async authorize(request) {
     if (!authorized || request.revision !== revision) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
     return { target, authorityGeneration: "grant", draftId: "draft", draftRevision: revision, message: "prose",
       objects: [{ originalId: "original", format: "utf8", sha256: "c".repeat(64), data: "aGk=" }] };
@@ -54,6 +55,20 @@ test("revocation after consent refuses consumption before native submission effe
   await f.bridge.bind({ selection, consentId: accepted.consentId, submissionId: "attempt", requestId: "dsh-request" });
   f.revoke(); await expect(f.bridge.submitForRequest("dsh-request")).rejects.toThrow("ATTACHMENT_AUTHORITY_CHANGED");
   expect(f.counts().submitted).toBe(0);
+});
+
+test("a refused reservation never marks Native started or dispatches the input", async () => {
+  let dispatched = false;
+  const f = fixture({ reserve: async () => { throw Error("attachment_original_protected"); } });
+  const receipt = await f.bridge.prepare(selection);
+  const accepted = await f.bridge.consent({ selection, receiptId: receipt.receiptId, resultDigest: receipt.resultDigest,
+    acceptedDegradations: ["text_truncated"] });
+  await f.bridge.bind({ selection, consentId: accepted.consentId, submissionId: "attempt", requestId: "dsh-request" });
+  await expect(f.bridge.submitForRequest("dsh-request", () => { dispatched = true; }))
+    .rejects.toThrow("attachment_original_protected");
+  expect(dispatched).toBe(false);
+  expect(f.counts()).toMatchObject({ submitted: 0 });
+  expect(f.lastSubmitted()).toBeUndefined();
 });
 
 test("draft edit after preparation refuses old consent and preserves the whole input", async () => {

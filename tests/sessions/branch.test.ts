@@ -9,6 +9,7 @@ import type { CatalogDescriptor } from "../../packages/contracts/generated/omp-w
 import { DirectoryGrants } from "../../packages/workspaces/grants.ts";
 import { SessionIndex } from "../../packages/sessions/index.ts";
 import { SessionSupervisor } from "../../packages/sessions/supervisor.ts";
+import { OriginalStore, type OriginalScope } from "../../packages/attachments/store.ts";
 import { nativeFixture } from "../catalog/fixture.ts";
 import { catalog, launch } from "./worker.ts";
 
@@ -24,7 +25,8 @@ interface Fixture {
   authority: BrowserAuthority; grants: DirectoryGrants; index: SessionIndex; discovery: CatalogTransport;
   identity: BrowserAccess; selected: CatalogDescriptor; supervisor: SessionSupervisor; disposed(): Promise<void>;
 }
-async function fixture(): Promise<Fixture> {
+async function fixture(onBranch?: (identity: BrowserAccess, previousSessionId: string, nativeSessionId: string,
+  entryIds: readonly string[]) => void | Promise<void>): Promise<Fixture> {
   const home = await mkdtemp(join(tmpdir(), "session-branch-"));
   const root = await nativeFixture(home, 2);
   const file = join(root, "bucket", "native-0000.jsonl");
@@ -38,7 +40,8 @@ async function fixture(): Promise<Fixture> {
   const cookie = exchange!.headers.get("set-cookie")!.split(";")[0]!;
   const identity = authority.admit(new Request(origin + "/api/sessions", { headers: { host: "127.0.0.1:4321", cookie } }), "read");
   if (identity instanceof Response) throw new Error("SYNTHETIC_AUTHENTICATION_FAILED");
-  const supervisor = new SessionSupervisor({ authority, grants, index, catalog: discovery.catalog, launch: directory => launch(home, directory) });
+  const supervisor = new SessionSupervisor({ authority, grants, index, catalog: discovery.catalog, launch: directory => launch(home, directory),
+    ...(onBranch ? { onBranch } : {}) });
   async function disposed() { await supervisor.close(); await discovery.close(); authority.close(); grants.close(); index.close(); await rm(home, { recursive: true, force: true }); }
   return { home, cwd, dataDir, root, file, origin, cookie, authority, grants, index, discovery, identity, selected, supervisor, disposed };
 }
@@ -89,6 +92,36 @@ test("a native branch keeps only the target's source ancestors and leaves the so
   } finally { await f.disposed(); }
 }, 90_000);
 
+test("a Host-verified native branch inherits Originals only for forwarded entry ids", async () => {
+  const copied: number[] = [];
+  let store: OriginalStore | undefined;
+  const f = await fixture((_identity, previousSessionId, nativeSessionId, entryIds) => {
+    copied.push(store!.inheritBranchLinks(previousSessionId, nativeSessionId, entryIds));
+  });
+  const dataDir = await mkdtemp(join(tmpdir(), "branch-links-"));
+  try {
+    store = new OriginalStore({ dataDir, recovery: "exclusive-host-startup", clock: () => 0 });
+    const source = branchSource();
+    const originalId = await associate(store, source);
+    expect(store.history(() => source, ["entry-0"])).toHaveLength(1);
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    const result = await f.supervisor.branch(f.identity, opened.workerId, opened.generation, "entry-2");
+    if (result.status !== "created") throw new Error("BRANCH_NOT_CREATED");
+    expect(result.nativeSessionId).not.toBe("native-0000");
+    const branch: OriginalScope = { ...source, sessionId: result.nativeSessionId, sourceId: "c".repeat(64) };
+    expect(store.history(() => branch, ["entry-0", "entry-1"])).toEqual([{ entryId: "entry-0", objectId: originalId,
+      displayName: "photo.gif", mediaType: "image/gif", byteLength: branchImage.length, sha256: branchSha,
+      availability: "available" }]);
+    expect(new Uint8Array((await store.readHistorical(() => branch, "entry-0", originalId, ["entry-0"])).bytes))
+      .toEqual(branchImage);
+    expect(copied).toEqual([1]);
+    expect(store.history(() => ({ ...branch, browserId: "other" }), ["entry-0"])).toEqual([]);
+    await expect(store.readHistorical(() => ({ ...branch, pageId: "other" }), "entry-0", originalId, ["entry-0"]))
+      .rejects.toThrow("attachment_object_unavailable");
+    expect(await f.supervisor.switchTo(f.identity, f.selected)).toMatchObject({ registration: { nativeSessionId: "native-0000" } });
+  } finally { store?.close(); await rm(dataDir, { recursive: true, force: true }); await f.disposed(); }
+}, 90_000);
+
 test("a native branch at the first user message creates an empty Session with the unsent text", async () => {
   const f = await fixture();
   try {
@@ -137,3 +170,37 @@ test("a branched Session survives a Host restart and keeps the source independen
     expect(await retained(f, supervisor)).toEqual(["entry-0", "entry-1", "entry-2"]);
   } finally { await supervisor.close(); await discovery.close(); index.close(); await f.disposed(); }
 }, 90_000);
+
+const branchImage = Uint8Array.from([71, 73, 70, 56, 57, 97, 1, 0, 1, 0, 0, 0, 0, 59]);
+const branchSha = createHash("sha256").update(branchImage).digest("hex");
+function branchSource(): OriginalScope {
+  return { hostId: "host", browserId: "browser", pageId: "page", profileId: "profile", sourceId: "a".repeat(64),
+    instanceId: "b".repeat(64), sessionId: "native-0000", canonicalCwd: "/synthetic/project", draftId: "draft",
+    authorityEpoch: "epoch", explicitOpen: true };
+}
+async function associate(store: OriginalStore, scope: OriginalScope) {
+  async function* body() { yield branchImage; }
+  const original = await store.stage(() => scope, { displayName: "photo.gif", mediaType: "image/gif",
+    byteLength: branchImage.length }, body());
+  const consent = { receiptId: "receipt", resultDigest: "d".repeat(64), draftRevision: "v1", authorityGeneration: "grant-v1" };
+  const attachment = { originalId: original.objectId, originalSha256: branchSha, preparedId: "prepared-object",
+    preparedSha256: "c".repeat(64), representationKind: "image" as const };
+  const target = { sourceId: scope.sourceId, instanceId: scope.instanceId, nativeSessionId: scope.sessionId };
+  const { representationKind, ...preparedItem } = attachment;
+  store.reserveForSubmission(() => scope, { clientSubmissionId: "send", preparationId: "prepared-draft",
+    draftRevision: "v1", authorityGeneration: "grant-v1" }, [original.objectId], {
+    version: "attachment-preparation-v1", budgetVersion: "attachment-budgets-v1", ...consent,
+    preparationId: "prepared-draft", draftId: scope.draftId, draftFingerprint: "e".repeat(64),
+    binding: { ...target, contextId: "context", modelFingerprint: "model", imageCapable: true },
+    expiresAt: 60_000, status: "ready", items: [{ ...preparedItem, status: "ready", degradations: [],
+      representation: { kind: representationKind, mimeType: "image/gif", data: "R0lGODlhAQABAAAAADs=", width: 1, height: 1 } }] });
+  store.recordSubmission(() => scope, "send", { version: "durable-submission-v1", clientSubmissionId: "send",
+    target, origin: { ...target, clientSubmissionId: "send" }, found: true, admission: "local",
+    reservation: "committed", persistence: "committed", operationOutcome: "succeeded", terminal: true,
+    inputOutcome: "generated", duplicate: false, nextOffset: null,
+    preparation: { ...consent, acceptedDegradations: [], attachments: [attachment] },
+    relations: [{ relationId: "entry:entry-0", entryId: "entry-0", role: "input", availability: "retained",
+      status: "observed", persistence: "committed", attachments: [{ ...attachment,
+        entryPart: { kind: "content", index: 0 } }] }] });
+  return original.objectId;
+}
