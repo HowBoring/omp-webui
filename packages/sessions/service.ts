@@ -181,6 +181,10 @@ export class SessionsService extends TypertRemoteService {
     if (!grant) throw new Error("SESSION_DIRECTORY_DENIED"); return publicView(await this.options.supervisor.create(identity, grant.path));
   }
   @Remote("view") view(workerId: string) { return publicView(this.options.supervisor.view(this.identity(), workerId)); }
+  @Remote("current") async current() {
+    const listed = await this.options.supervisor.listed(this.identity());
+    return listed === undefined ? undefined : { view: publicView(listed.view), running: listed.running, blank: listed.blank };
+  }
   @Remote("recheck") async recheck() { return publicView(await this.options.supervisor.recheck(this.identity())); }
   @Remote("interactions") interactions() { return this.options.supervisor.interactions(this.identity()); }
   @Remote("answer") answer(generation: string, id: string, answer: UIAnswer) {
