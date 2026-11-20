@@ -8,6 +8,7 @@ import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startSessionComponentServer } from "../../apps/host/src/session-component-server.ts";
+import { NavigationOperationStore } from "../../apps/host/src/navigation-operations.ts";
 import { sessionsContribution } from "../../packages/contracts/sessions.ts";
 import { historyNavigationSourceContribution } from "../../packages/contracts/history-navigation-source.ts";
 import { CatalogClient } from "../../packages/contracts/generated/catalog-client.ts";
@@ -204,8 +205,10 @@ test("the product Chat Host serves durable native navigation to a real DSH clien
       .toBe("navigation_operation_unavailable");
     const stored = await Bun.file(`${dataDir}/history-navigation-operations.json`).json() as
       { operations: { state: string; outcome?: string; persistence?: string; actualLeafId?: string }[] };
-    expect(stored.operations.find(operation => operation.state === "resolved")).toMatchObject({ state: "resolved", outcome: "committed",
-      persistence: "committed", actualLeafId: "e" });
+    const resolved = stored.operations.find(operation => operation.state === "resolved");
+    expect(resolved).toMatchObject({ state: "resolved", outcome: "committed", persistence: "committed", actualLeafId: "e" });
+    const reopened = await new NavigationOperationStore(dataDir).read((resolved as unknown as { navigationId: string }).navigationId);
+    expect(reopened).toMatchObject({ state: "resolved", outcome: "committed", persistence: "committed", actualLeafId: "e" });
     await host.revokeAll();
     let revoked: unknown;
     try { revoked = await ctx.remote.ompTree.read({ operation: "open", sessionId: "native-session" }); } catch { revoked = undefined; }
