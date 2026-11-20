@@ -11,7 +11,9 @@ import { attachmentsContribution } from "../../../packages/contracts/attachment-
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution } from "../../../packages/contracts/history-navigation-source.ts";
 import { stopContribution } from "../../../packages/contracts/stop.ts";
+import { retryContribution } from "../../../packages/contracts/manual-retry.ts";
 import { stopCaller, type StopCaller } from "../../../packages/interactions/stop-service.ts";
+import { retryCaller, type RetryCaller } from "../../../packages/manual-retry/remote-service.ts";
 import { attachmentContribution } from "../../../packages/contracts/attachments.ts";
 import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
@@ -41,7 +43,13 @@ export const chatMethods = {
   "ompTree/read": treeContribution.methods["ompTree/read"],
   "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
   ...stopContribution.methods,
+  ...retryContribution.methods,
 };
+/** Retry is authorized by its own service caller and needs no Chat presentation binding. */
+type MethodTable = Record<string, (typeof chatMethods)[keyof typeof chatMethods] | undefined>;
+const retryMethods: MethodTable = Object.fromEntries(Object.entries(chatMethods)
+  .filter(([method]) => method.startsWith("ompRetry/")));
+const retryUnary = new Set(Object.keys(retryMethods));
 const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
 const successfulReplies = new WeakSet<Response>();
 export const isSuccessfulSessionReply = (response: Response): boolean => successfulReplies.has(response);
@@ -51,13 +59,14 @@ const invalidated = () => new Response("Access invalidated", { status: 401, head
 /** Resolve the already attached View from Host-owned carrier state after browser admission. */
 type ResolveChatView = (request: Request, identity: BrowserAccess) => ChatViewEnrollment | undefined;
 type ResolveStop = (identity: BrowserAccess) => StopCaller | undefined;
+type ResolveRetry = (identity: BrowserAccess) => RetryCaller | undefined;
 type ChatBinding = NonNullable<ReturnType<ChatViewAdmission["bind"]>>;
 
 /** Opt-in unary dispatch with an authenticated View resolver and a bounded body read. */
 export type ChatSessionDispatch = (request: Request, ctx: Context, peer: Peer) => Promise<Response>;
 
 export function createChatSessionDispatch(admission: ChatViewAdmission, resolveView: ResolveChatView,
-  resolveStop?: ResolveStop): ChatSessionDispatch {
+  resolveStop?: ResolveStop, resolveRetry?: ResolveRetry): ChatSessionDispatch {
   let inflight = 0;
   return async (request, ctx, peer) => {
     const identity = admission.authority.admit(request, "write");
@@ -71,6 +80,14 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
       try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, () => true)); }
       finally { --inflight; }
     }
+    if (retryUnary.has(unbound)) {
+      const retry = resolveRetry?.(identity);
+      if (!retry) return invalidated();
+      ++inflight;
+      try { return await sessionCaller.run(identity, () => retryCaller.run(retry,
+        () => dispatch(request, ctx, peer, () => true, undefined, undefined, retryMethods))); }
+      finally { --inflight; }
+    }
     let binding;
     try {
       const view = resolveView(request, identity);
@@ -78,9 +95,13 @@ export function createChatSessionDispatch(admission: ChatViewAdmission, resolveV
     } catch { return invalidated(); }
     if (!binding) return invalidated();
     const stop = resolveStop?.(identity);
+    const retry = resolveRetry?.(identity);
     ++inflight;
-    try { return await sessionCaller.run(identity, () => dispatch(request, ctx, peer, binding.current, binding, stop)); }
-    finally { --inflight; }
+    try {
+      const invokeWithStop = () => stop ? stopCaller.run(stop, () => dispatch(request, ctx, peer, binding.current,
+        binding, stop)) : dispatch(request, ctx, peer, binding.current, binding, stop);
+      return await sessionCaller.run(identity, () => retry ? retryCaller.run(retry, invokeWithStop) : invokeWithStop());
+    } finally { --inflight; }
   };
 }
 
@@ -91,24 +112,26 @@ export function dispatchSessionRequest(request: Request, ctx: Context, peer: Pee
 
 /** Validate before invocation, preserve request correlation and sanitize failures. */
 async function dispatch(request: Request, ctx: Context, peer: Peer, authority: () => boolean,
-  chat?: ChatBinding, stop?: StopCaller): Promise<Response> {
+  chat?: ChatBinding, stop?: StopCaller, methods?: MethodTable): Promise<Response> {
   if (request.headers.get("content-type")?.split(";", 1)[0] !== "application/json") {
     return new Response("JSON required", { status: 415 });
   }
+  const scoped = chat !== undefined || methods !== undefined;
   const current = chat ? () => hasCurrentChatAuthority(authority) : authority;
   let decoded;
   try {
     const original = new URL(request.url).pathname === "/api/ompOriginals/exchange";
-    const data = chat ? await readChatRequestBody(request, chat.signal, authority, original) : await request.json();
+    const data = scoped ? await readChatRequestBody(request, chat?.signal ?? request.signal, authority, original)
+      : await request.json();
     const envelope = clientRequestSchema.parse(data);
-    const method = Object.entries(chat ? chatMethods : sessionMethods).find(([name]) => name === envelope.method)?.[1];
-    if (!method || (!chat && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
+    const method = Object.entries(chat ? chatMethods : methods ?? sessionMethods).find(([name]) => name === envelope.method)?.[1];
+    if (!method || (!scoped && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.strictObject({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
     const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(payload.args));
     decoded = { envelope, method, args };
   } catch (error) {
-    if (chat) {
+    if (scoped) {
       if (!current()) return invalidated();
       if (error instanceof ChatBodyError) return new Response(error.message, { status: error.status, headers: noStore });
     }
@@ -116,7 +139,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
   }
   const { envelope, method, args } = decoded;
   if (!current()) return invalidated();
-  const options = chat ? { headers: noStore } : undefined;
+  const options = scoped ? { headers: noStore } : undefined;
   try {
     const signal = chat?.signal ?? request.signal;
     signal.throwIfAborted();
@@ -125,7 +148,7 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const value = await (chat ? chat.run(() => stop ? stopCaller.run(stop, invoke) : invoke()) : invoke());
     if (chat && !current()) return invalidated();
     const response = Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } }, options);
-    if (!chat) successfulReplies.add(response);
+    if (!scoped) successfulReplies.add(response);
     return response;
   } catch (error) {
     if (chat && !current()) return invalidated();

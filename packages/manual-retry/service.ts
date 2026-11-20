@@ -5,6 +5,8 @@ import validateLiveNotification from "../contracts/generated/live-notification.j
 import type { PromptResultEvent } from "../contracts/generated/omp-wire.ts";
 import { requestLocalSubmission, submissionBusy as nativeBusy, submissionConflict } from "../contracts/submission-reply.ts";
 import type { StopSnapshot } from "../contracts/stop.ts";
+import type { RetryAttempt, RetryEvidence, RetryOffer, RetryRefusal, RetryResult, RetryState } from
+  "../contracts/manual-retry.ts";
 import { ReceiptLookup, validateSubmitReceipt } from "./native-results.ts";
 
 const confirmationMs = 30_000;
@@ -27,21 +29,17 @@ interface Access {
 export interface ManualRetryHost {
   /** Recheck the exact view, browser credential, grant, directory, worker and current native context synchronously. */
   authorize(view: RetryView): Access | undefined;
-  /** Joint Stop state from the current supervised worker, including when no Browser View is attached. */
-  stop(): StopSnapshot | undefined;
+  /** Joint Stop state from the current supervised worker for this exact View. */
+  stop(view: RetryView): StopSnapshot | undefined;
   /** Return the public response envelope from this exact worker, including the Native error code when present. */
   request(command: SubmissionClientCommand): Promise<unknown>;
   now?(): number;
 }
-type Refusal = { status: "refused"; reason: "unavailable" | "forbidden" | "busy" | "stale_confirmation" };
-type Offer = { status: "confirmation"; requestId: string; notice: string; expiresInMs: number };
+type Offer = RetryOffer & { status: "confirmation" };
+type Refusal = RetryRefusal;
 type Outcome = "succeeded" | "failed" | "cancelled";
-type Result = {
-  status: "admitted" | "unknown" | Outcome;
-  requestId: string;
-  settled: boolean;
-  reason?: "native_refused" | "native_busy";
-};
+type Result = RetryAttempt | Refusal;
+type Status = RetryAttempt["status"];
 interface Confirmation {
   requestId: string;
   expiry: number;
@@ -51,31 +49,50 @@ interface Confirmation {
 }
 interface Attempt {
   readonly requestId: string;
+  readonly view: RetryView;
   readonly stopGeneration: string;
   readonly receiptLookup: ReceiptLookup;
-  status: Result["status"];
-  reason?: Result["reason"];
+  status: Status;
+  reason?: RetryAttempt["reason"] | undefined;
+  evidence?: RetryEvidence | undefined;
+  detail?: string | undefined;
   reading: boolean;
+  dispatching: boolean;
   settled: boolean;
   nativeSettled: boolean;
   liveResult?: Pick<PromptResultEvent, "status" | "agentInvoked">;
   receiptInvoked: boolean;
   conflict: boolean;
+  outputs: string[];
 }
 const outcomeFor = (event: NonNullable<Attempt["liveResult"]>): Outcome =>
   event.status === "completed" ? "succeeded" : event.status === "aborted" ? "cancelled" : "failed";
 const completedLocally = (event: NonNullable<Attempt["liveResult"]>): boolean =>
   event.status === "completed" && !event.agentInvoked;
-const terminal = (status: Result["status"]): status is Outcome => status !== "admitted" && status !== "unknown";
+const terminal = (status: Status): status is Outcome => status !== "admitted" && status !== "unknown";
+/** Confirmations must survive the wire: equal views are not the same object on later requests. */
+const key = (view: RetryView): string => `${view.clientId}\u0000${view.credentialId}`;
 
 /** SOURCE Host entry point for one supervised worker. All Browser Views share this instance. */
 export class ManualRetry {
   readonly #worker: ManualRetryWorker;
-  readonly #confirmations = new Map<RetryView, Confirmation>();
+  readonly #confirmations = new Map<string, Confirmation>();
   #attempt: Attempt | undefined;
 
   constructor(worker: ManualRetryWorker, private readonly host?: ManualRetryHost) {
     this.#worker = Object.freeze({ ...worker, target: Object.freeze({ ...worker.target }) });
+  }
+
+  /** Current confirmation and attempt for this view; never sends or mutates native state. */
+  state(view: RetryView): RetryState | Refusal {
+    if (!this.host) return { status: "refused", reason: "unavailable" };
+    if (!this.#authorize(view)) return { status: "refused", reason: "forbidden" };
+    const now = this.#now();
+    const saved = this.#confirmations.get(key(view));
+    if (saved && saved.expiry <= now) this.#confirmations.delete(key(view));
+    const confirmation = saved && saved.expiry > now
+      ? { requestId: saved.requestId, expiresInMs: saved.expiry - now } : undefined;
+    return { status: "state" as const, notice, ...(confirmation ? { confirmation } : {}), ...(this.#attempt ? { attempt: this.#snapshot(this.#attempt) } : {}) };
   }
 
   offer(view: RetryView): Offer | Refusal {
@@ -90,19 +107,19 @@ export class ManualRetry {
     for (const [owner, saved] of this.#confirmations) {
       if (saved.authority.aborted || saved.expiry <= now) this.#confirmations.delete(owner);
     }
-    if (this.#confirmations.size >= 64 && !this.#confirmations.has(view)) {
+    if (this.#confirmations.size >= 64 && !this.#confirmations.has(key(view))) {
       return { status: "refused", reason: "unavailable" };
     }
     const requestId = randomUUID();
-    this.#confirmations.set(view, { requestId, expiry: now + confirmationMs,
+    this.#confirmations.set(key(view), { requestId, expiry: now + confirmationMs,
       authority: access.authority, contextRevision: access.contextRevision, stopGeneration: access.stop.generation });
     return { status: "confirmation", requestId, notice, expiresInMs: confirmationMs };
   }
 
   async confirm(view: RetryView, requestId: string): Promise<Result | Refusal> {
-    const saved = this.#confirmations.get(view);
+    const saved = this.#confirmations.get(key(view));
     if (!saved || saved.requestId !== requestId) return { status: "refused", reason: "stale_confirmation" };
-    this.#confirmations.delete(view);
+    this.#confirmations.delete(key(view));
     const access = this.#authorize(view);
     if (!access) return { status: "refused", reason: "forbidden" };
     if (saved.expiry <= this.#now() || saved.authority !== access.authority
@@ -112,10 +129,10 @@ export class ManualRetry {
     this.#confirmations.clear();
     if (this.blocksAdmission() || !this.#idle(access.stop)) return { status: "refused", reason: "busy" };
 
-    const attempt: Attempt = { requestId, stopGeneration: saved.stopGeneration, receiptLookup: new ReceiptLookup(),
+    const attempt: Attempt = { requestId, view, stopGeneration: saved.stopGeneration, receiptLookup: new ReceiptLookup(),
       status: "unknown",
-      reading: true, settled: false,
-      nativeSettled: false, receiptInvoked: false, conflict: false };
+      reading: true, dispatching: true, settled: false,
+      nativeSettled: false, receiptInvoked: false, conflict: false, outputs: [] };
     this.#attempt = attempt;
     try {
       const reply = await this.#request({ type: "submission_submit", id: requestId, clientSubmissionId: requestId,
@@ -126,8 +143,10 @@ export class ManualRetry {
         const facts = validateSubmitReceipt(reply);
         this.#acceptReceipt(attempt, facts?.receipt, facts?.invoked ?? false, true);
       }
-    } catch { /* A possibly delivered request stays unknown, including rejected submissions with effects. */ }
-    finally { attempt.reading = false; this.#reconcile(attempt); }
+    } catch { /* A possibly delivered request stays unknown, including rejected submissions with effects. */
+      attempt.evidence ??= "no_response";
+    }
+    finally { attempt.reading = false; attempt.dispatching = false; this.#reconcile(attempt); }
     return this.#result(view, attempt, saved.authority);
   }
 
@@ -160,9 +179,9 @@ export class ManualRetry {
   }
 
   cancel(view: RetryView, requestId: string): boolean {
-    const saved = this.#confirmations.get(view);
+    const saved = this.#confirmations.get(key(view));
     if (!saved || saved.requestId !== requestId) return false;
-    this.#confirmations.delete(view);
+    this.#confirmations.delete(key(view));
     return this.#authorize(view)?.authority === saved.authority && saved.expiry > this.#now();
   }
 
@@ -190,8 +209,25 @@ export class ManualRetry {
         || (attempt.receiptInvoked && completedLocally(next))) this.#recordConflict(attempt);
       attempt.liveResult = { status: next.status, agentInvoked: next.agentInvoked };
       attempt.nativeSettled ||= next.sessionSettled;
+      // A committed admission reserves the request; the exact live result is what makes its outcome observable.
+      // A completed-local frame is not an agent turn: only the receipt can tell a consumed builtin from a conflict.
+      if (!attempt.conflict && attempt.status === "admitted" && !completedLocally(attempt.liveResult)) {
+        attempt.status = outcomeFor(attempt.liveResult);
+        attempt.evidence = undefined;
+      }
     }
     this.#reconcile(attempt);
+  }
+
+  /** Only the exact in-flight Retry dispatch may contribute a native refusal reason from public output. */
+  observeOutput(workerGeneration: string, text: unknown): void {
+    const attempt = this.#attempt;
+    if (!attempt?.dispatching || attempt.conflict || workerGeneration !== this.#worker.workerGeneration
+      || typeof text !== "string") return;
+    const notice = text.trim();
+    if (!notice) return;
+    attempt.outputs.push(notice.slice(0, 4096));
+    if (attempt.outputs.length > 8) attempt.outputs.shift();
   }
 
   #result(view: RetryView, attempt: Attempt, authority: AbortSignal): Result | Refusal {
@@ -199,20 +235,27 @@ export class ManualRetry {
     if (!access || access.authority !== authority || access.stop.generation !== attempt.stopGeneration) {
       return { status: "refused", reason: "forbidden" };
     }
+    return this.#snapshot(attempt);
+  }
+
+  #snapshot(attempt: Attempt): RetryAttempt {
     return { status: attempt.status, requestId: attempt.requestId, settled: attempt.settled,
-      ...(attempt.reason ? { reason: attempt.reason } : {}) };
+      ...(attempt.reason ? { reason: attempt.reason } : {}), ...(attempt.evidence ? { evidence: attempt.evidence } : {}),
+      ...(attempt.detail ? { detail: attempt.detail } : {}) };
   }
 
   #reconcile(attempt: Attempt): void {
     if (attempt.settled || attempt.reading || attempt.conflict || !attempt.nativeSettled) return;
     // A committed admission and the exact live result can prove quiescence before the terminal receipt is published.
     if (!terminal(attempt.status) && (attempt.status !== "admitted" || !attempt.liveResult?.agentInvoked)) return;
-    const stop = this.#currentStop();
+    const stop = this.#currentStop(attempt.view);
     if (stop?.generation === attempt.stopGeneration && this.#idle(stop)) attempt.settled = true;
   }
 
   #acceptReceipt(attempt: Attempt, receipt: SubmissionResult | undefined, consumed: boolean, submitReply: boolean): void {
     attempt.status = "unknown";
+    attempt.evidence = "receipt_unknown";
+    attempt.detail = undefined;
     if (!receipt || attempt.conflict || receipt.inputOutcome === "generated" ||
       receipt.persistence === "failed" || receipt.persistence === "unknown") return;
     if (submitReply && receipt.duplicate) {
@@ -221,6 +264,7 @@ export class ManualRetry {
     }
     if (!receipt.terminal || (submitReply && receipt.nextOffset !== null)) {
       attempt.status = "admitted";
+      attempt.evidence = undefined;
       return;
     }
     if (receipt.persistence !== "committed" || receipt.inputOutcome !== "no_input"
@@ -233,9 +277,11 @@ export class ManualRetry {
     if (receipt.operationOutcome === "succeeded" && !consumed && !result?.agentInvoked) return;
     attempt.receiptInvoked ||= consumed;
     attempt.status = receipt.operationOutcome;
+    attempt.evidence = undefined;
     if (submitReply && attempt.status === "failed" && !result && !consumed) {
       // A successful response envelope carrying a durably failed local builtin has no later prompt_result.
       attempt.reason = "native_refused";
+      attempt.detail = attempt.outputs.at(-1);
       attempt.nativeSettled = true;
     }
   }
@@ -243,20 +289,22 @@ export class ManualRetry {
   #recordConflict(attempt: Attempt): void {
     attempt.conflict = true;
     attempt.status = "unknown";
+    attempt.evidence = "conflict";
+    attempt.detail = undefined;
     attempt.settled = false;
   }
 
   #authorize(view: RetryView): (Access & { readonly stop: StopSnapshot }) | undefined {
     try {
       const access = this.host?.authorize(view);
-      const stop = this.#currentStop();
+      const stop = this.#currentStop(view);
       if (access && !access.authority.aborted && access.contextRevision && stop) return { ...access, stop };
     } catch { /* Missing current authority fails closed. */ }
   }
 
-  #currentStop(): StopSnapshot | undefined {
+  #currentStop(view: RetryView): StopSnapshot | undefined {
     try {
-      const stop = this.host?.stop();
+      const stop = this.host?.stop(view);
       if (stop?.workerGeneration === this.#worker.workerGeneration && stop.scope.kind === "session"
         && stop.scope.sessionId === this.#worker.sessionId && stop.status !== "forbidden") return stop;
     } catch { /* Missing worker authority fails closed. */ }
