@@ -228,6 +228,18 @@ test("exact originals survive Host restart without becoming prepared or sent", a
   expect(original.objectId).not.toContain("gif");
 });
 
+test("released draft originals free shared accounting across Host restart", async () => {
+  const { store, dataDir } = open();
+  const original = await store.stage(access, descriptor, bytes());
+  expect(store.usage(access).objects).toBe(1);
+  expect(store.release(access(), original.objectId)).toEqual({ reclaimed: true });
+  expect(store.usage(access)).toMatchObject({ chargedBytes: 0, objects: 0 });
+  store.close();
+  const reopened = new OriginalStore({ dataDir, recovery: "exclusive-host-startup" }); stores.push(reopened);
+  expect(reopened.usage(access).objects).toBe(0);
+  await expect(reopened.read(access, original.objectId)).rejects.toThrow("attachment_object_unavailable");
+});
+
 test("aborting a stalled upload releases its reservation without waiting for another chunk", async () => {
   const { store } = open();
   const abort = new AbortController();

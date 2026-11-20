@@ -68,6 +68,14 @@ export class ChatComponentRuntime {
       }
       const previous = this.#views.get(identity.credentialId);
       previous?.enrollment.revoke();
+      // One admitted Chat View owns a prepared target: a newer tab revokes the older credential's view so
+      // its staged originals can no longer be authorized or consumed.
+      for (const [credential, held] of this.#views) {
+        if (credential === identity.credentialId) continue;
+        if (held.workerId !== view.workerId || held.generation !== view.generation) continue;
+        held.enrollment.revoke();
+        this.#views.delete(credential);
+      }
       const lifetime = new AbortController();
       const enrollment = this.admission.enroll(identity, { workerId: view.workerId, grantId, lifetime: lifetime.signal,
         projection: () => projection });

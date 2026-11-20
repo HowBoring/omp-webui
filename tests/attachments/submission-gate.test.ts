@@ -80,6 +80,18 @@ test("newer draft edit after preparation refuses consumption without creating an
   expect(f.counts().submits).toBe(0); expect(await f.gate.status("request")).toMatchObject({ recovery: "not-submitted" });
 });
 
+test("revoking the View before consent admits no native dispatch for the pending attempt", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const abort = new AbortController();
+  const pending = f.gate.submit("request", "revoked before consent", abort.signal);
+  const state = await awaiting(f.gate);
+  f.revoke(); abort.abort();
+  await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  await expect(f.gate.consent(accept(state))).rejects.toThrow("ATTACHMENT_AUTHORITY_CHANGED");
+  expect(f.counts().submits).toBe(0);
+  await expect(f.gate.status("request")).rejects.toThrow("ATTACHMENT_AUTHORITY_CHANGED");
+});
+
 test("cancelled Remote before consent seals the request against any later native dispatch", async () => {
   const f = fixture(); await f.gate.begin(attempt); const abort = new AbortController();
   const pending = f.gate.submit("request", "serialized", abort.signal); void pending.catch(() => {});

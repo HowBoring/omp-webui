@@ -432,6 +432,21 @@ export class OriginalStore {
     }).immediate();
   }
 
+  /** Explicit Chat draft removal releases this page's own reserved bytes before Native association. */
+  release(scope: OriginalScope, objectId: string): { reclaimed: boolean } {
+    if (!idPattern.test(objectId)) fail("object_unavailable");
+    const key = scopeKey(scope);
+    this.db.transaction(() => {
+      this.assertRoot();
+      const row = this.db.query<Row, [string, string]>(`SELECT * FROM originals
+        WHERE id=? AND scope=? AND state='staged-unprepared'`).get(objectId, key);
+      if (!row) fail("object_unavailable");
+      this.assertRoot();
+      this.markForCleanup(objectId);
+    }).immediate();
+    return { reclaimed: this.cleanup(objectId, "deleting") };
+  }
+
   /** Presents the known staged-draft impact and issues a short-lived confirmation for the current authority. */
   previewDeletion(access: OriginalAccess, objectId: string): OriginalDeletionPreview {
     const scope = this.current(access);

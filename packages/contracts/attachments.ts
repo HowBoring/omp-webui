@@ -21,10 +21,12 @@ const base64 = z.string().max(4 * Math.ceil(imageOriginalBytes / 3));
 export const attachmentRequest = z.discriminatedUnion("operation", [
   z.strictObject({ operation: z.literal("stage-base64"), target: attachmentTarget, descriptor: originalDescriptor, base64 }),
   z.strictObject({ operation: z.literal("read-base64"), target: attachmentTarget, objectId: token }),
+  z.strictObject({ operation: z.literal("release"), target: attachmentTarget, objectId: token }),
 ]);
 export const attachmentResult = z.discriminatedUnion("status", [
   z.strictObject({ status: z.literal("staged"), original }),
   z.strictObject({ status: z.literal("read"), original, base64 }),
+  z.strictObject({ status: z.literal("released"), objectId: token, reclaimed: z.boolean() }),
   z.strictObject({ status: z.literal("error"), code: z.enum(attachmentErrorCodes) }),
 ]);
 export type AttachmentTarget = z.infer<typeof attachmentTarget>;

@@ -1,5 +1,5 @@
 """Actual Chromium -> public originals/attachments RPCs -> Chat Gateway -> controlled native attachment provider."""
-import asyncio, base64, json, os, re, shutil, signal, struct, subprocess, time, urllib.request, zlib
+import asyncio, base64, io, json, os, re, shutil, signal, struct, subprocess, time, urllib.request, zipfile, zlib
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 
@@ -11,7 +11,7 @@ PORT = os.environ.get("OMP_CHAT_FIXTURE_PORT", "3193")
 ORIGIN = f"http://127.0.0.1:{PORT}"
 DATA = ROOT / "vendor/chat-images-access"
 FIXTURE_ENV = {"OMP_CHAT_ATTACHMENTS": "1", "OMP_CHAT_FIXTURE_PORT": PORT, "OMP_CHAT_FIXTURE_DATA": str(DATA),
-               "OMP_CHAT_CANDIDATE": "vendor/omp-candidate-image-t54/cli.js"}
+               "OMP_CHAT_CANDIDATE": "vendor/omp-candidate/cli.js"}
 
 
 def free_port():
@@ -82,6 +82,30 @@ def data_png(width=4, height=4, color=(12, 34, 56)):
             + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b""))
 
 
+def png_with_size(size):
+    base = data_png()
+    end = base.rindex(b"IEND") - 4
+    pad = size - len(base) - 12
+    chunk = struct.pack(">I", pad) + b"zzZz" + b"\x00" * pad
+    return base[:end] + chunk + struct.pack(">I", zlib.crc32(b"zzZz" + b"\x00" * pad) & 0xffffffff) + base[end:]
+
+
+def docx_with_text(text):
+    xml = ('<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/'
+           'wordprocessingml/2006/main"><w:body><w:p><w:r><w:t xml:space="preserve">' + text
+           + '</w:t></w:r></w:p><w:sectPr/></w:body></w:document>')
+    members = {
+        "[Content_Types].xml": '<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>',
+        "_rels/.rels": '<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>',
+        "word/document.xml": xml,
+    }
+    out = io.BytesIO()
+    with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as archive:
+        for name, value in members.items():
+            archive.writestr(name, value)
+    return out.getvalue()
+
+
 TINY = {
     "image/gif": base64.b64decode("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"),
     "image/jpeg": base64.b64decode(
@@ -94,6 +118,7 @@ TINY = {
 
 async def upload(page, name, mime, data):
     await page.get_by_label("Add files").set_input_files({"name": name, "mimeType": mime, "buffer": data})
+    await page.get_by_text("Inspecting and staging the file…").wait_for(state="detached")
 
 
 async def wait_phase(page, phase):
@@ -121,6 +146,17 @@ async def wait_alert(page, text, timeout=30000):
     print("ALERT_SETTLEMENT", await page.locator("[data-chat-settlement]").all_inner_texts())
     print("ALERT_DRAFT", await page.get_by_label("Message").input_value())
     raise AssertionError(f"alert did not contain {text!r}")
+
+async def wait_attempt_text(page, text, timeout=60000):
+    deadline = time.monotonic() + timeout / 1000
+    while time.monotonic() < deadline:
+        value = await page.locator("[data-chat-attempt]").inner_text()
+        if text in value:
+            return
+        await asyncio.sleep(0.2)
+    print("ATTEMPT_TEXT", await page.locator("[data-chat-attempt]").all_inner_texts())
+    raise AssertionError(f"attempt did not contain {text!r}")
+
 
 async def wait_attempt(page, state, timeout=60000):
     try:
@@ -162,8 +198,14 @@ FIXTURES = ROOT / "tests/attachments/fixtures"
 
 
 async def remove_all(page):
-    while await page.locator("[data-chat-original-id]").count():
-        await page.locator("[data-chat-original-id]").first.get_by_role("button", name="Remove", exact=True).click()
+    while True:
+        ids = await page.locator("[data-chat-original-id]").evaluate_all(
+            "elements => elements.map(element => element.getAttribute('data-chat-original-id'))")
+        if not ids:
+            return
+        item = page.locator(f'[data-chat-original-id="{ids[0]}"]')
+        await item.get_by_role("button", name="Remove", exact=True).click()
+        await item.wait_for(state="detached")
 
 
 async def documents(page, scenarios):
@@ -223,6 +265,10 @@ async def documents(page, scenarios):
     await send_images(page, "office and ebook provenance")
     await wait_phase(page, "awaiting-consent")
     assert await page.locator("[data-attachment-representation='text']").count() == 3
+    prepared = await page.locator('[aria-label="Prepared attachments"]').inner_text()
+    assert "<!-- Slide 1 -->" in prepared and "# Controlled prepared document" in prepared, "slide scope is converted"
+    assert "## Evidence" in prepared and "| Source |" in prepared, "sheet and table scope is converted"
+    assert "EPUB witness" in prepared, "EPUB chapter scope is converted"
     await page.get_by_role("button", name=re.compile(r"Accept listed changes and continue Send|Continue this Send attempt")).click()
     await wait_attempt(page, "accepted")
     await wait_original(page, 0)
@@ -252,11 +298,43 @@ async def documents(page, scenarios):
     await remove_all(page)
     scenarios.append("document-cancel-keeps-draft-original")
 
+    long_text = "TRUNC-START\n" + "witness line\n" * 6000
+    await upload(page, "long.docx", DOCX_MIME, docx_with_text(long_text))
+    await wait_original(page, 1)
+    await send_images(page, "truncated conversion")
+    await wait_phase(page, "awaiting-consent")
+    assert await page.get_by_text("Text was shortened").count() >= 1, "truncation is declared before consent"
+    await page.get_by_role("button", name=re.compile(r"Accept listed changes and continue Send|Continue this Send attempt")).click()
+    await wait_attempt(page, "accepted")
+    await wait_original(page, 0)
+    scenarios.append("document-truncation-declared-and-consented")
+
+    await upload(page, "empty.docx", DOCX_MIME, docx_with_text(""))
+    await wait_original(page, 1)
+    await send_images(page, "empty conversion")
+    await wait_attempt_text(page, "no extractable text")
+    assert await page.get_by_label("Message").input_value() == "empty conversion", "empty conversion keeps the draft"
+    await wait_original(page, 1)
+    await page.reload()
+    await page.wait_for_selector("[data-chat-root-slot]")
+    await open_session(page)
+
+    await upload(page, "oversize.docx", DOCX_MIME, docx_with_text("x" * (2 * 1024 * 1024 + 1024)))
+    await wait_original(page, 1)
+    await send_images(page, "output budget conversion")
+    await wait_attempt_text(page, "prepared-text ceiling")
+    assert await page.get_by_label("Message").input_value() == "output budget conversion", "output budget keeps the draft"
+    await wait_original(page, 1)
+    await page.reload()
+    await page.wait_for_selector("[data-chat-root-slot]")
+    await open_session(page)
+    scenarios.append("document-conversion-failure-matrix")
+
     await upload(page, "broken.pdf", "application/pdf", b"%PDF-1.7\nnot a real pdf\n")
     await wait_original(page, 1)
     before = await page.locator("[data-chat-native-entry]").count()
     await send_images(page, "corrupt conversion")
-    await wait_alert(page, "converter failed")
+    await wait_attempt_text(page, "converter failed")
     assert await page.get_by_label("Message").input_value() == "corrupt conversion", "failed conversion keeps the draft"
     await wait_original(page, 1)
     assert await page.locator("[data-chat-native-entry]").count() == before, "failed conversion is not sent to Native"
@@ -332,6 +410,10 @@ async def main():
                                                                         "buffer": png + b"\x00" * (10 * 1024 * 1024)})
             await wait_alert(page, "at most 10 MiB")
             await wait_original(page, 3)
+            await upload(page, "boundary.png", "image/png", png_with_size(10 * 1024 * 1024))
+            await wait_original(page, 4)
+            assert await page.locator("[data-chat-original-type='image/png']").count() >= 1, "exact 10 MiB image is admitted"
+            await remove_all(page)
             scenarios.append("image-spoof-bad-and-size-rejected")
 
             cancel_before = await page.locator("[data-chat-original-id]").count()
@@ -354,6 +436,21 @@ async def main():
 
             await documents(page, scenarios)
 
+            stale_before = await page.locator("[data-chat-original-id]").count()
+            await upload(page, "stale.png", "image/png", data_png(5, 5, (10, 90, 10)))
+            stale = await page.context.new_page()
+            stale_errors = []
+            stale.on("pageerror", lambda error: stale_errors.append(str(error)))
+            await stale.goto(f"{ORIGIN}/")
+            await stale.wait_for_selector("[data-chat-root-slot]")
+            await open_session(stale)
+            await send_images(page, "stale grant")
+            await wait_attempt(page, "refused", 60000)
+            assert await page.get_by_label("Message").input_value() == "stale grant", "stale grant keeps the draft"
+            await wait_original(page, stale_before + 1)
+            assert not stale_errors, stale_errors
+            scenarios.append("image-stale-grant-rejected-draft-kept")
+
             limit = await context.new_page()
             await limit.goto(f"{ORIGIN}/")
             await limit.wait_for_selector("[data-chat-root-slot]")
@@ -366,11 +463,31 @@ async def main():
                                                                          "buffer": data_png(2, 2, (9, 9, 9))})
             await wait_alert(limit, "at most 8 files")
             assert await limit.locator("[data-chat-original-id]").count() == 8, "the ninth image is refused"
-            await limit.close()
             scenarios.append("image-object-limit-enforced")
+            await remove_all(limit)
 
-            await page.screenshot(path=str(ROOT / "vendor/chat-images.png"), full_page=True)
+            entries = await limit.locator("[data-chat-native-entry]").count()
+            await upload(limit, "restart.pdf", "application/pdf", (FIXTURES / "minimal-text.pdf").read_bytes())
+            await wait_original(limit, 1)
+            await send_images(limit, "restart consent")
+            await wait_phase(limit, "awaiting-consent")
+            await stop_host(host)
+            host = await start_host()
+            await limit.reload()
+            await limit.wait_for_selector("[data-chat-root-slot]")
+            try:
+                await open_session(limit)
+            except Exception as failure:
+                print("RESTART_RECOVERY", failure, await limit.get_by_role("alert").all_inner_texts())
+            else:
+                assert await limit.get_by_label("Message").input_value() == "restart consent", "Host restart keeps the draft"
+            assert await limit.locator("[data-chat-native-entry]").count() == entries, "Host restart never dispatches an unconsented attempt"
+            scenarios.append("host-restart-never-dispatches-unconsented-attempt")
+            await limit.close()
+
+            await stale.screenshot(path=str(ROOT / "vendor/chat-images.png"), full_page=True)
             assert not errors, errors
+            await stale.close()
             print(json.dumps({"status": "PASS", "browser": browser.version, "scenarios": scenarios,
                               "privateData": False, "productAdmission": "blocked"}))
             await context.close()

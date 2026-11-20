@@ -406,8 +406,13 @@ function Surface() {
     } catch (failure) { setError(message(failure)); }
     finally { setUploading(false); }
   };
-  const removeOriginal = (objectId: string) => {
-    setOriginals(current => current.filter(item => item.objectId !== objectId)); ++revision.current;
+  const removeOriginal = async (objectId: string) => {
+    try {
+      const released = resultValue(await ctx.remote.ompOriginals.exchange({ operation: "release",
+        target: { sessionId: view!.registration.nativeSessionId, draftId }, objectId }));
+      if (released.status !== "released") throw new Error(`The Host refused removal: ${released.status === "error" ? released.code : released.status}`);
+      setOriginals(current => current.filter(item => item.objectId !== objectId)); ++revision.current;
+    } catch (failure) { setError(message(failure)); }
   };
   const recover = async (requestId: string) => {
     const result = resultValue(await ctx.remote.ompChat.lookup(view!.registration.nativeSessionId, requestId));
@@ -598,7 +603,7 @@ function Surface() {
         {uploading && <p role="status">Inspecting and staging the file…</p>}
         <ul>{originals.map(item => <li key={item.objectId} data-chat-original-id={item.objectId} data-chat-original-type={item.mediaType}>
           {item.displayName} · {item.mediaType}{item.width === undefined ? "" : ` · ${item.width}×${item.height}`} · {item.byteLength} bytes
-          <button disabled={busy} onClick={() => removeOriginal(item.objectId)}>Remove</button>
+          <button disabled={busy} onClick={() => void removeOriginal(item.objectId)}>Remove</button>
         </li>)}</ul>
         <p>PNG, JPEG, WebP, GIF, UTF-8 text, PDF, DOCX, PPTX, XLSX, or EPUB · up to {attachmentLimits.objects} files · {attachmentLimits.imageBytes / 1024 ** 2} MiB image, {attachmentLimits.documentBytes / 1024 ** 2} MiB text or document · {attachmentLimits.draftBytes / 1024 ** 2} MiB draft.</p>
       </fieldset>

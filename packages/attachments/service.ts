@@ -24,6 +24,11 @@ export class AttachmentRemote extends TypertRemoteService {
         if (peer !== invocation.peer || signal.aborted) throw Error("attachment_authority_unavailable");
         return this.authorize(peer, target);
       });
+      if (request.operation === "release") {
+        const scope = this.authorize(invocation.peer, request.target);
+        const { reclaimed } = this.store.release(scope, request.objectId);
+        return { status: "released", objectId: request.objectId, reclaimed };
+      }
       if (request.operation === "read-base64") {
         const { bytes, ...original } = await intake.read(invocation.peer, request.target, request.objectId, signal);
         return { status: "read", original, base64: Buffer.from(bytes).toString("base64") };

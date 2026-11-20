@@ -59,6 +59,10 @@ test("shared budgets mirror the native refusal ceilings", () => {
   expect(draftBudgetFailure(Array.from({ length: 8 }, () => draft("text/plain")), draft("text/plain"))).toBe("objects");
   expect(draftBudgetFailure(Array.from({ length: 6 }, () => draft("text/plain", documentOriginalBytes)), draft("text/plain", 3 * 1024 ** 2)))
     .toBe("bytes");
+  expect(draftBudgetFailure(Array.from({ length: 3 }, () => draft("image/png", imageOriginalBytes)), draft("text/plain", 3 * 1024 ** 2)))
+    .toBe("bytes");
+  expect(draftBudgetFailure(Array.from({ length: 3 }, () => draft("image/png", imageOriginalBytes)), draft("text/plain", 2 * 1024 ** 2)))
+    .toBeUndefined();
   expect(draftBudgetFailure([], draft("image/png", 1, imageLimits.draftPixels + 1))).toBe("pixels");
   expect(draftBudgetFailure([draft("image/png", 1, imageLimits.draftPixels)], draft("image/png", 1, 1))).toBe("pixels");
 });
