@@ -43,6 +43,7 @@ import { LocaleRuntime } from "@deepseek-ai/dsh-client-locale/client";
 import ShortcutsService from "@deepseek-ai/dsh-client-shortcuts/client";
 import type { ShortcutCommand, ShortcutCommandId } from "@deepseek-ai/dsh-client-shortcuts/client";
 import { isProductShell } from "./product-flag.ts";
+import { registerTrajectoryNativeRecordDefinition } from "./trajectory-native-record-definition.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -1275,7 +1276,7 @@ async function boot() {
   // The Chat surface owns its composer but not the draft protocol: provider mode owns the
   // semantic scope, hydration and submission checkpoint while this tab keeps its own authorization.
   (await createProviderRuntime(ctx)).input.registerDraftProvider(ctx, provider);
-  registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
+  registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx); registerTrajectoryNativeRecordDefinition(ctx);
   const absent: StandardSourceBinding = { key: undefined, hooks: {}, keyedHooks: {}, props: {} };
   const source: HostObservable<StandardSourceBinding> = { getSnapshot: () => absent, subscribe: () => () => {} };
   ctx.slots.installScope("session", { current: source, bindingSource: target => { if (target !== undefined) throw new Error("Root shell has no Session Slot"); return source; } });
