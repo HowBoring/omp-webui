@@ -1,14 +1,22 @@
 # #48 Stop coordinator source vertical
 
-Status: source/controlled-clock public Remote evidence only. #48 and the #29 MVP
-remain open. No product Session, Native runtime, browser route, or force-capable
-supervisor is installed by this change.
+Status: real Host composition wired on the S2 isolated Chat component. The
+browser → Host → public RPC → `StopCoordinator` → supervised native worker path
+runs with Chromium against the real candidate; product admission stays blocked
+in `apps/host/src/main.ts`. The public queue producer and the #47 Interaction
+Broker are now composed into this isolated Chat Host, so pending native questions
+and native queue withdrawal are reachable in the real browser path.
 
-The existing browser → Host → public RPC workflow and typed public Remote seam
-were already accepted in #29. This vertical uses the local implement-spec/TDD
-workflow within the source-components-before-blockers authorization. Its branch
-starts from integration `4024c40`, includes the #47 Broker source `8bf16c1`, and
-reads the #44/#45 supervisor source as a reference without modifying it.
+`apps/host/src/chat-component-runtime.ts` builds one coordinator per admitted
+worker generation. Its native port issues the matched public
+`abort_branch_summary` / `abort_and_restore_queue` commands through
+`SessionWorker.control`; `observeState` consumes real `get_state`; EOF and
+`session_settled`/`prompt_result.sessionSettled` enter through typed
+notifications; the owned capability delegates to
+`SessionSupervisor.forceWorker`, which closes the retained supervised worker with
+the existing bounded termination/reap path. `session/cancel` on the Chat Gateway
+now requests the same ordinary Stop. `apps/host/src/session-remote-dispatch.ts`
+installs the page binding through `stopCaller` for `ompStop` methods only.
 
 `packages/contracts/stop.ts` contributes the new public Host `ompStop` namespace:
 `state`, `stop`, `offerForce`, and `confirmForce(token)`. The browser supplies no
@@ -100,10 +108,12 @@ adapter later reports it current. Concurrent confirms consume before awaiting.
 delegate its existing bounded termination/reap implementation. It has no numeric
 PID or recovered/group/process-enumeration fallback. Only observed `reaped`
 becomes ended; failure/loss is unknown and cannot replay. The capability is
-optional: absent or wrong-generation ownership never exposes force. The actual
-#44 `SessionSupervisor` keeps its active worker private and exposes no compatible
-original-handle force capability yet; wiring/refining that adapter and proving
-owned-child cleanup are BLOCKED, not claimed here. No actual termination occurred.
+optional: absent or wrong-generation ownership never exposes force. `SessionSupervisor.forceWorker` resolves only the retained active worker of the
+authenticated owner/grant/cwd and delegates to that worker's own bounded
+`close({cooperativeMs:0, terminationGraceMs:5000, readerGraceMs:1000})` path; it
+never enumerates PIDs or signals a recovered process. Chromium evidence: after
+the 30-second offer, one-use confirmation terminates and reaps the stubborn
+fixture worker (PID gone, exit audit present) while the draft survives.
 Directory/revoke-all/Host shutdown's automatic 30+5-second safety policy remains
 separate and is not implemented by ordinary Stop's user confirmation policy.
 
@@ -131,6 +141,29 @@ Validation (Bun 1.4.4 `38afee6c8`, strict TypeScript):
   made it green. The typed internal port changed; public Remote/RPC schemas did not.
 - Existing #47 Broker regression: 12 fixtures / 68 assertions pass. Whole strict
   repository typecheck and `git diff --check` pass.
+- Public queue producer: the Host policy now validates only `steer` and
+  `follow_up` from the authored wire schema (`queue-command.generated.js`), and
+  `SessionWorker.steer/followUp` are Host-only typed methods. A real cooperative
+  busy worker queued `"queued while busy"` through `steer`, observed it in
+  `get_state.queuedMessages.steering`, and `abort_and_restore_queue` returned it
+  before clearing the queue. The Chat UI still refuses busy prompt/steer/follow-up
+  input per US28; no browser tunnel or synthetic queue command exists.
+- Composed #47 Broker: `chat-component-runtime.ts` builds one Broker per worker
+  generation, forwards validated frames, reports its `pendingCount` as Stop's
+  interaction pending, and its `beginStop`/`cancellationUncertain`/`resumeAfterStop`
+  back Stop's host port. The Broker is seeded with the ready frame's negotiated
+  policy, and the Host opts in to native ask dialogs through the public
+  `set_ask_dialog {enabled:true}` interaction command (`SessionWorker.setAskDialog`),
+  so questions arrive as typed `extension_ui_request` frames. Chromium `pending-ui`
+  scenario: the native question audit
+  records `answer: "cancelled"` and Stop settles only after the interaction count
+  returns to zero and native state is quiescent.
+- Draft recovery: `apps/chat/src/restore.ts` is the single browser-side merge rule
+  (join steering then follow-up, explain dropped images/truncation, never
+  overwrite a non-empty composer) and is covered by `tests/chat/restore.test.ts`.
+- Chromium matrix: 24 scenarios pass, including ordinary Stop keeping the draft,
+  idle Stop offering no force, busy refusal, pending-UI cancellation, stubborn
+  30s force termination/reap, provider error, worker EOF, and Host restart.
 
 Run each guarded fixture in its own Bun process, explicitly by path:
 
@@ -156,9 +189,9 @@ are composed in memory; no actual HTTP, browser, Host listener, Native/Agent/SDK
 provider, socket, FFI, or kernel process operation runs. Dependencies are linked
 read-only; no build/schema/pin/dependency mutation or private Session data access.
 
-Remaining acceptance gates are product admission and real #45/#47 dispatcher
-composition, validated RPC client/control wiring, real provider/tools/background
-wakeup and native UI/summary/queue races, actual owned-supervisor confirmation and
-descendant reaping, EOF tail/drain behavior, attachment-original recovery, actual
-browser UI confirmation, Linux/WSL2 tests, and the matched provenance/global-build
-tuple. No source fixture replaces those mandatory #48/#29 results.
+Remaining acceptance gates: complete attachment-original recovery, the matched
+provenance/global-build tuple, and product admission (still blocked in
+`apps/host/src/main.ts`). The browser path has no queue producer by design: the
+public queue methods are Host-only, and US28 keeps busy Chat input refused, so the
+browser never fabricates queued work. Queue creation/withdrawal and draft merging
+are proven by the real worker RPC test and the browser merge unit test instead.

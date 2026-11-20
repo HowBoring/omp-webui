@@ -123,6 +123,8 @@ test("the product Chat Host serves durable native navigation to a real DSH clien
           (value): value is NavigationPreview => typeof value === "object" && value !== null),
         async submitCommand() { throw new Error("UNUSED"); },
         async command() { return { status: "answered" }; }, async control() { return {}; },
+        async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
+        readyPolicy: undefined as unknown, async setAskDialog() { return { enabled: true }; },
         async state() { return { sessionId: selected.nativeSessionId, isSettled: !navBusy, isStreaming: false,
           isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0,
           queuedMessages: { steering: [], followUp: [] }, model: { provider: "synthetic", id: "fixture", name: "Fixture",

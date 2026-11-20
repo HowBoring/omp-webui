@@ -14,7 +14,7 @@ import { HistoryClient } from "../contracts/generated/history-client.ts";
 import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
 import { AttachmentClient } from "../contracts/generated/attachment-client.ts";
 import { NavigationClient } from "../contracts/generated/navigation-client.ts";
-import type { AttachmentReceipt, NavigationPreview, NavigationResult } from "../contracts/generated/omp-wire.ts";
+import type { AttachmentReceipt, ImageContent, NavigationPreview, NavigationResult } from "../contracts/generated/omp-wire.ts";
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import strictCommand from "../contracts/generated/strict-command.js";
 import submissionCommand from "../contracts/generated/submission-command.js";
@@ -26,6 +26,7 @@ import navigationResult from "../contracts/generated/navigation-result.js";
 import strictState from "../contracts/generated/strict-state.js";
 import strictPolicy from "../contracts/generated/strict-policy.js";
 import interactionCommand from "../contracts/generated/interaction-command.js";
+import queueCommand from "../contracts/generated/queue-command.js";
 import interactionPolicy from "../contracts/generated/interaction-policy.js";
 import interactionRequest from "../contracts/generated/interaction-request.js";
 import liveNotification from "../contracts/generated/live-notification.js";
@@ -46,6 +47,7 @@ class SessionNotifications {
   count = 0;
   #bufferedBytes = 0;
   #retired = false;
+  readyFrame: { interactionPolicy?: unknown } | undefined;
   #interactionSubscriber: ((frame: SessionWorkerFrame) => void) | undefined;
 
   retire(): void { this.#retired = true; }
@@ -75,7 +77,7 @@ class SessionNotifications {
 
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
-    validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value)
+    validateCommand: value => strictCommand(value) || interactionCommand(value) || queueCommand(value) || validateHistoryCommand(value)
       || submissionCommand(value) || navigationCommand(value) || attachmentCommand(value) || controls(value)
       || branchCommand(value),
     acceptReady: (frame, publish) => {
@@ -83,6 +85,7 @@ function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
         || frame.strictStartup !== "strict-start-v1" || !strictPolicy(frame.strictStartupPolicy)
         || !interactionPolicy(frame.interactionPolicy)) return false;
+      notifications.readyFrame = { interactionPolicy: frame.interactionPolicy };
       if (publish) notifications.publish(frame);
       return true;
     },
@@ -139,6 +142,12 @@ class SessionRpc {
     if (subscribers.size >= 64) throw new Error("SESSION_SUBSCRIBER_LIMIT");
     subscribers.add(listener); return () => subscribers.delete(listener);
   }
+  /** The ready frame's negotiated interaction policy, for hosts that route native questions through a broker. */
+  get readyPolicy(): unknown { return this.notifications.readyFrame?.interactionPolicy; }
+  /** Opt in to the native ask dialog so questions arrive as `extension_ui_request` frames. */
+  async setAskDialog(enabled = true): Promise<{ enabled: boolean }> {
+    return z.object({ enabled: z.boolean() }).parse(await this.command({ type: "set_ask_dialog", enabled }));
+  }
   /** InteractionBridge is the only caller; generated interaction schema enforces the family and payload. */
   async command(fields: object): Promise<unknown> {
     if (this.#retired) throw new Error("SESSION_WORKER_RETIRED");
@@ -189,6 +198,17 @@ class SessionRpc {
     return { type: "response", id: (command as { id?: string }).id, command: (command as { type?: string }).type, success: true, data };
   }
   control(type: Control): Promise<unknown> { return this.core.request({ type, id: crypto.randomUUID() }); }
+  /** Host-owned public queue creation for native Stop recovery; never a browser tunnel. */
+  async steer(message: string, images?: ImageContent[]): Promise<unknown> {
+    const command = { type: "steer", id: crypto.randomUUID(), message, ...(images ? { images } : {}) };
+    if (!queueCommand(command)) throw new Error("SESSION_QUEUE_SCHEMA");
+    return await this.submitCommand(command);
+  }
+  async followUp(message: string, images?: ImageContent[]): Promise<unknown> {
+    const command = { type: "follow_up", id: crypto.randomUUID(), message, ...(images ? { images } : {}) };
+    if (!queueCommand(command)) throw new Error("SESSION_QUEUE_SCHEMA");
+    return await this.submitCommand(command);
+  }
   protected retire(): void { this.#retired = true; }
 }
 

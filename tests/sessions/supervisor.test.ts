@@ -253,3 +253,74 @@ test("root revocation cancels genuine unbound startup UI and retains an honest u
     expect(code === 0 || code === 1).toBe(true);
   } finally { await f.close(); }
 }, 45_000);
+
+test("real public Stop commands withdraw busy native work and reach joint quiescence", async () => {
+  let actual: SessionWorker | undefined;
+  const f = await fixture(false, async (home, cwd) => {
+    const selected = selection(home, cwd);
+    const filtered: string[] = [];
+    for (let index = 0; index < selected.argv.length; index++) {
+      const arg = selected.argv[index]!;
+      if (arg === "--provider" || arg === "--model") { index++; continue; }
+      if (arg !== "--no-extensions" && arg !== "--no-tools") filtered.push(arg);
+    }
+    selected.argv = filtered;
+    selected.argv.push("--model", "s1-controlled/busy", "--trusted-extension", resolve("tests/sessions/busy-provider.ts"));
+    Object.assign(selected.env, { OMP_SESSION_BUSY: "cooperative" });
+    actual = await SessionWorker.open(selected); return actual;
+  });
+  try {
+    await f.supervisor.open(f.identity, f.selected);
+    await Bun.write(join(f.home, "start-busy-fixture"), "synthetic controlled start after final native binding");
+    for (let attempt = 0; attempt < 200; attempt++) {
+      if ((await actual!.state()).isStreaming === true) break;
+      if (attempt === 199) throw new Error("SYNTHETIC_BUSY_NOT_OBSERVED"); await Bun.sleep(10);
+    }
+    const mark = f.supervisor.exits().length;
+    expect(await actual!.control("abort_branch_summary")).toBeUndefined();
+    expect(await actual!.control("abort_and_restore_queue")).toMatchObject({ steering: [], followUp: [] });
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const state = await actual!.state();
+      if (state.isSettled === true && state.isStreaming !== true) {
+        expect(state).toMatchObject({ queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
+        break;
+      }
+      if (attempt === 199) throw new Error("NATIVE_STOP_NOT_SETTLED"); await Bun.sleep(10);
+    }
+    await f.supervisor.close();
+    expect(f.supervisor.exits()[mark]).toMatchObject({ nativeSettled: true, drain: { code: 0, forced: false } });
+  } finally { await f.close(); }
+}, 45_000);
+
+test("public steer queues during a real busy turn and abort_and_restore_queue returns it unsent", async () => {
+  let actual: SessionWorker | undefined;
+  const f = await fixture(false, async (home, cwd) => {
+    const selected = selection(home, cwd);
+    const filtered: string[] = [];
+    for (let index = 0; index < selected.argv.length; index++) {
+      const arg = selected.argv[index]!;
+      if (arg === "--provider" || arg === "--model") { index++; continue; }
+      if (arg !== "--no-extensions" && arg !== "--no-tools") filtered.push(arg);
+    }
+    selected.argv = filtered;
+    selected.argv.push("--model", "s1-controlled/busy", "--trusted-extension", resolve("tests/sessions/busy-provider.ts"));
+    Object.assign(selected.env, { OMP_SESSION_BUSY: "cooperative" });
+    actual = await SessionWorker.open(selected); return actual;
+  });
+  try {
+    await f.supervisor.open(f.identity, f.selected);
+    await Bun.write(join(f.home, "start-busy-fixture"), "synthetic controlled start after final native binding");
+    for (let attempt = 0; attempt < 200; attempt++) {
+      if ((await actual!.state()).isStreaming === true) break;
+      if (attempt === 199) throw new Error("SYNTHETIC_BUSY_NOT_OBSERVED"); await Bun.sleep(10);
+    }
+    await actual!.steer("queued while busy");
+    for (let attempt = 0; attempt < 200; attempt++) {
+      if (((await actual!.state()).queuedMessages?.steering.length ?? 0) === 1) break;
+      if (attempt === 199) throw new Error("NATIVE_STEER_NOT_QUEUED"); await Bun.sleep(10);
+    }
+    expect(await actual!.control("abort_and_restore_queue"))
+      .toMatchObject({ steering: [{ text: "queued while busy" }], followUp: [] });
+    expect(await actual!.state()).toMatchObject({ queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
+  } finally { await f.close(); }
+}, 45_000);

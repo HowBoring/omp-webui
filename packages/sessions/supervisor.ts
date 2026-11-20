@@ -472,6 +472,31 @@ export class SessionSupervisor {
     return { view: this.#view(active), worker: active.worker as SupervisedSessionWorker };
   }
   /**
+   * User-confirmed force for the exact live worker after ordinary Stop offered it. No PID, recovery or
+   * process-group fallback: the retained supervised worker performs its own bounded termination/reap.
+   */
+  async forceWorker(identity: BrowserAccess, workerId: string, generation: string): Promise<"reaped" | "unknown"> {
+    this.#browser(identity);
+    const active = this.#active;
+    if (!active || active.id !== workerId || active.generation !== generation) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    this.#ownedCurrent(active);
+    const worker = active.worker;
+    if (active.stopping || !worker || !("close" in worker)) return "unknown";
+    const stopping = Promise.withResolvers<WorkerExit>();
+    active.stopping = stopping.promise;
+    active.retired = true; active.state = "outcome_unknown";
+    const start = performance.now();
+    const drain = await this.#closeWorker(active, worker, { cooperativeMs: 0, terminationGraceMs,
+      readerGraceMs });
+    const reaped = !("status" in drain) && observedEOF(drain);
+    const exit = this.#appendExit({ workerId: active.id, reason: "user-confirmed-force",
+      elapsedMs: performance.now() - start, nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false,
+      drain, notificationCount: worker.notificationCount, tailNotifications: 0 });
+    if (active.bridge) active.finalInteractions = active.bridge.snapshot();
+    stopping.resolve(exit);
+    return reaped ? "reaped" : "unknown";
+  }
+  /**
    * Exact live worker history for one bounded read-only Tree. This never opens, recovers or mutates a
    * presentation journal, so tree reads cannot change what the Chat view is following.
    */
