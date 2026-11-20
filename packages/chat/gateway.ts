@@ -44,6 +44,12 @@ export interface ChatWorkerPort {
   request(command: SubmissionClientCommand): Promise<unknown>;
   /** Native cancel of the active turn; keeps the pending inbox. */
   cancel(): Promise<unknown>;
+  /** Present only when the Host composes the attachment gate for this worker. */
+  readonly attachments?: {
+    has(requestId: string): boolean;
+    submit(requestId: string, message: string, signal: AbortSignal): Promise<unknown>;
+    recovery(requestId: string): "accepted" | "not-submitted" | "completed-without-input" | "unresolved";
+  };
 }
 
 interface Attempt {
@@ -172,6 +178,21 @@ export class ChatGateway {
     this.#attempts.set(attempt.id, attempt);
     if (busy) throw new ChatError("busy");
     this.#latest = attempt;
+    if (this.port.attachments?.has(attempt.id)) {
+      attempt.phase = "dispatching";
+      try {
+        // The gate prepared and consented before this call; it owns the native reservation for this exact request.
+        await this.port.attachments.submit(attempt.id, text, signal);
+        current();
+        attempt.phase = "admitted";
+      } catch (error) {
+        attempt.phase = "unknown";
+        delete attempt.result;
+        current();
+        throw error instanceof ChatError ? error : new ChatError("unknown");
+      }
+      return this.#accept(attempt, current, signal);
+    }
     await this.#dispatch(attempt, text, current);
     return this.#accept(attempt, current, signal);
   }
@@ -242,6 +263,18 @@ export class ChatGateway {
   }
 
   async #pollAcceptance(attempt: Attempt, current: () => void, signal: AbortSignal) {
+    if (this.port.attachments?.has(attempt.id)) {
+      for (let i = 0; i < waitAttempts; ++i) {
+        const recovery = this.port.attachments.recovery(attempt.id);
+        if (recovery === "accepted") return { accepted: true as const };
+        if (recovery === "completed-without-input") return { accepted: true as const,
+          noInput: { requestId: attempt.id, projection: attempt.projection } };
+        if (recovery === "not-submitted" || i === waitAttempts - 1) break;
+        await wait(100, undefined, { signal }).catch(() => { throw new ChatError("authority"); });
+        current();
+      }
+      return;
+    }
     for (let i = 0; i < waitAttempts; ++i) {
       const outcome = await this.#recover(attempt, current);
       if (!outcome) break;

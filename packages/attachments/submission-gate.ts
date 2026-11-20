@@ -42,6 +42,12 @@ export class AttachmentSubmissionGate {
     return { registered: true };
   }
 
+  /** Presence only; no state or content leaves the Host without an authorized attempt check. */
+  has(requestId: string): boolean { return this.#flows.has(requestId); }
+
+  /** Read-only acceptance judgement for the trusted Chat adapter; never dispatches. */
+  recovery(requestId: string): AttachmentGateStatus["recovery"] { return this.#recovery(this.#flow(requestId)); }
+
   /** The trusted existing Session Remote handler supplies its actual serialized text, once, for this exact request. */
   async submit(requestId: string, exactMessage: string, signal: AbortSignal): Promise<SubmissionResult> {
     const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);

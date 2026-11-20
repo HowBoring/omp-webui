@@ -11,12 +11,15 @@ export interface AuthorizedAttachmentDraft extends Omit<Preparation, "preparatio
 /** Must recheck live browser ownership, trusted projection, draft, originals and authority at every call. */
 export interface AttachmentAuthority {
   authorize(selection: AttachmentSelection): Promise<AuthorizedAttachmentDraft>;
+  /** Trusted notice that Native now owns these staged originals for this committed submission. */
+  associated?(selection: AttachmentSelection, objectIds: readonly string[], clientSubmissionId: string): void;
 }
 /** This port must be implemented by the same-source public native clients and an owned RPC worker. */
 export interface AttachmentNativePort {
   prepare(input: Preparation): Promise<AttachmentReceipt>;
   cancel(preparationId: string): Promise<{ cancelled: boolean }>;
   submit(input: Submission): Promise<unknown>;
+  query?(clientSubmissionId: string, offset?: number, limit?: number): Promise<unknown>;
 }
 interface Prepared {
   selection: AttachmentSelection; authorityFingerprint: string; receipt: AttachmentReceipt;
@@ -102,9 +105,15 @@ export class AttachmentBridge {
     if (!prepared?.bound || !prepared.consent) throw Error("ATTACHMENT_DISPATCH_UNBOUND");
     const draft = await this.#current(prepared, prepared.selection);
     prepared.nativeStarted = true; beforeNativeCall?.();
-    const result = await this.native(draft.target).submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
+    const native = this.native(draft.target);
+    let result = await native.submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
       preparationId: prepared.receipt.preparationId, inputType: "prompt", idleOnly: true, message: prepared.message,
       preparationConsent: structuredClone(prepared.consent.value) });
+    // Native publication can trail the submit acknowledgement; poll the same durable submission until terminal.
+    for (let count = 0; native.query && count < 200 && isSubmissionResult(result) && !result.terminal; ++count) {
+      await Bun.sleep(100);
+      result = await native.query(prepared.bound.submissionId, 0, 128).catch(() => result);
+    }
     this.observeNativeResult(requestId, result);
     return result;
   }
@@ -120,7 +129,9 @@ export class AttachmentBridge {
     if (!value.found || value.reservation !== "committed" || !value.origin || value.origin.sourceId !== target.sourceId ||
       value.origin.instanceId !== target.instanceId || value.origin.nativeSessionId !== target.nativeSessionId ||
       value.preparation?.receiptId !== prepared.receipt.receiptId) return;
-    // Native owns the verified reserved bundle now. Discard large ephemeral browser receipt bytes, not the draft checkpoint.
+    // Native owns the verified reserved bundle now; the draft stops paying for these originals.
+    this.authority.associated?.(prepared.selection, prepared.receipt.items.map(item => item.originalId), prepared.bound.submissionId);
+    // Discard large ephemeral browser receipt bytes, not the draft checkpoint.
     this.#prepared.delete(prepared.receipt.receiptId); this.#requests.delete(requestId);
   }
 

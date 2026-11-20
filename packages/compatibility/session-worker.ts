@@ -12,9 +12,13 @@ import { PrivateHelperError } from "../supervision/errors.ts";
 import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import { HistoryClient } from "../contracts/generated/history-client.ts";
 import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
+import { AttachmentClient } from "../contracts/generated/attachment-client.ts";
+import type { AttachmentReceipt } from "../contracts/generated/omp-wire.ts";
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import strictCommand from "../contracts/generated/strict-command.js";
 import submissionCommand from "../contracts/generated/submission-command.js";
+import attachmentCommand from "../contracts/generated/attachment-command.js";
+import attachmentReceipt from "../contracts/generated/attachment-receipt.js";
 import strictState from "../contracts/generated/strict-state.js";
 import strictPolicy from "../contracts/generated/strict-policy.js";
 import interactionCommand from "../contracts/generated/interaction-command.js";
@@ -67,7 +71,7 @@ class SessionNotifications {
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
     validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value)
-      || submissionCommand(value) || controls(value),
+      || submissionCommand(value) || attachmentCommand(value) || controls(value),
     acceptReady: (frame, publish) => {
       if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
@@ -77,8 +81,8 @@ function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
       return true;
     },
     remoteError: nativeWorkerFailureCode,
-    physicalFrameBytes: MAX_RPC_FRAME_BYTES, allowChunks: true, commandBytes: 16_384,
-    queuedBytes: 262_144, pendingLimit: 32, settledLimit: 256, stderrBytes: 65_536, defaultTimeoutMs: 10_000,
+    physicalFrameBytes: MAX_RPC_FRAME_BYTES, allowChunks: true, commandBytes: 48 * 1024 * 1024,
+    queuedBytes: 64 * 1024 * 1024, pendingLimit: 32, settledLimit: 256, stderrBytes: 65_536, defaultTimeoutMs: 60_000,
     notification: (frame, publish) => {
       if (!interactionRequest(frame) && !liveNotification(frame)) return false;
       if (publish) notifications.publish(frame);
@@ -209,10 +213,14 @@ export interface OwnedSessionConnection {
 export class SessionWorker extends SessionRpc {
   /** Matched public native durable submission boundary; the Host, never a browser, supplies commands. */
   readonly submissions: SubmissionClient;
+  /** Matched public native preparation boundary; original bytes never enter the browser transport. */
+  readonly attachments: AttachmentClient;
   private constructor(private readonly transport: BoundedStdioTransport, notifications: SessionNotifications,
     options: SessionOptions) {
     super(transport, notifications, options);
     this.submissions = new SubmissionClient(command => transport.request(command), isSubmissionResult);
+    this.attachments = new AttachmentClient(command => transport.request({ ...command, id: command.id ?? crypto.randomUUID() }),
+      (value): value is AttachmentReceipt => attachmentReceipt(value));
   }
 
   static async open(selection: ProcessSelection, options: SessionOptions = {}): Promise<SessionWorker> {
