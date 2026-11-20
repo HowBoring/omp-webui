@@ -121,11 +121,12 @@ async function prepareOriginals(scope: DraftScope, refs: readonly { id: unknown;
 }
 const provider = createDraftProvider({ owner, storage: sessionStorage, authority: sessionId => authorities.get(sessionId),
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)), prepareOriginals });
-let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
+let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined, unsubscribeSession: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
+let olderChanged: (older: { hasMore: boolean; loading: boolean }) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
 let draftRestored: () => void = () => {}, draftPending: () => void = () => {};
@@ -250,7 +251,10 @@ function watch(binding: SessionBinding, retained: SessionReference) {
     const render = () => {
       if (reference !== retained) return;
       historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]);
+      const current = binding.session.getSnapshot();
+      olderChanged({ hasMore: current.hasMore, loading: current.loadingOlder });
     };
+    unsubscribeSession?.(); unsubscribeSession = binding.session.subscribe(render);
     unsubscribe?.(); unsubscribe = target.subscribe(render); render();
   };
   attach();
@@ -464,7 +468,7 @@ const retryAttemptText = (attempt: RetryAttempt): string => `${({
 const retryTerminal = (attempt: RetryAttempt): boolean =>
   attempt.status !== "admitted" && attempt.status !== "unknown";
 function Surface() {
-  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [shown, setShown] = useState(50), [error, setError] = useState("");
+  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [older, setOlder] = useState({ hasMore: false, loading: false }), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
   const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
@@ -898,14 +902,12 @@ function Surface() {
     } finally { attemptAbort.current = undefined; setBusy(false); sending.current = false; }
   };
   useEffect(() => {
-    viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
+    viewChanged = setView; historyChanged = setRows; olderChanged = setOlder; errorChanged = setError; draftChanged = setText;
     if (liveBinding) scope.current = provider.scope(liveBinding);
     void perform(catalog);
     return () => { release(); };
   }, []);
-  useEffect(() => { setShown(50); }, [view?.registration.nativeSessionId]);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
-  const historyStart = Math.max(0, rows.length - shown);
   return <div><Appearance />
     <p role="alert">{error}</p>
     <input aria-label="Directory to authorize" value={cwd} onChange={event => { setCwd(event.target.value); setConfirmation(undefined); }} />
@@ -928,9 +930,12 @@ function Surface() {
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
-      {historyStart > 0 && <button data-chat-load-earlier onClick={() => setShown(count => count + 50)}>Load earlier history</button>}
-      <div id="conversation" data-chat-history-window={`${rows.length - historyStart}/${rows.length}`}>
-        {rows.slice(historyStart).map((row, index) => <NodeRow node={row} key={historyStart + index} />)}
+      {older.hasMore && <button data-chat-load-earlier disabled={older.loading}
+        onClick={() => void perform(async () => { await liveBinding?.session.loadOlder(); })}>
+        {older.loading ? "Loading earlier history…" : "Load earlier history"}</button>}
+      <div id="conversation" data-chat-history-nodes={rows.length} data-chat-history-more={older.hasMore ? "true" : "false"}
+        data-chat-history-first-seq={(rows[0] as { seq?: number } | undefined)?.seq ?? ""}>
+        {rows.map((row, index) => <NodeRow node={row} key={index} />)}
       </div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
         originals={historicalOriginals(view.registration.nativeSessionId)}

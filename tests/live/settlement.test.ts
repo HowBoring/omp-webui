@@ -21,8 +21,8 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
         if(attempt===159)throw Error('fixture_settlement_timeout');await Bun.sleep(25);
       }
       if(invalidated){expect(()=>journal.snapshot()).toThrow('live_projection_invalidated');return;}
-      const records=journal.page({maxMessages:128}).records;
-      expect(records.map(record=>record.event.seq)).toEqual(Array.from({length:journal.cursor+1},(_,index)=>index));
+      const records=(await journal.page({maxMessages:128})).records;
+      expect(records.map(record=>record.event.seq)).toEqual(Array.from({length:records.length},(_,index)=>journal.cursor-records.length+1+index));
       expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
       const assistant=records.filter(record=>record.event.type==='assistant/message');
       expect(assistant).toHaveLength(['empty-error','transform'].includes(scenario)?2:1);

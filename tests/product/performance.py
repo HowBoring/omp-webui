@@ -376,22 +376,26 @@ async def chat_run(browser_args):
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         first.append(elapsed)
-                window = await page.locator("#conversation").get_attribute("data-chat-history-window")
-                rows = int(window.split("/")[1])
-                stage(f"history-rows={rows}")
+                rows = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
+                initial_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
+                initial_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                stage(f"history-nodes={rows} more={initial_more} first-seq={initial_first}")
                 old_unavailable = None
                 for index in range(WARMUPS + SAMPLES):
-                    if not await page.locator("[data-chat-load-earlier]").count():
-                        old_unavailable = "no older page control: the live component window has no resident older records"
+                    control = page.locator("[data-chat-load-earlier]")
+                    if not await control.count() or await control.is_disabled():
+                        old_unavailable = "no enabled older page control: the native window has no older records"
                         stage(f"old-page-unavailable:{old_unavailable}")
                         break
-                    before = int((await page.locator("#conversation").get_attribute("data-chat-history-window")).split("/")[0])
+                    before = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
                     async def ready(timeout, before=before):
-                        async def windowed():
-                            value = await page.locator("#conversation").get_attribute("data-chat-history-window")
-                            return value is not None and int(value.split("/")[0]) == before + 50
-                        await wait_until(windowed, timeout)
-                    elapsed = await timed(page, lambda: page.locator("[data-chat-load-earlier]").click(), ready)
+                        async def advanced():
+                            current = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
+                            control = page.locator("[data-chat-load-earlier]")
+                            return current is not None and int(current) > before and (
+                                not await control.count() or not await control.is_disabled())
+                        await wait_until(advanced, timeout)
+                    elapsed = await timed(page, lambda: control.click(), ready)
                     stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
@@ -399,22 +403,33 @@ async def chat_run(browser_args):
                     await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
                 steps = 0
-                while steps < 300:
-                    value = await page.locator("#conversation").get_attribute("data-chat-history-window")
-                    shown_now, total = (int(part) for part in value.split("/"))
-                    if shown_now >= total or not await page.locator("[data-chat-load-earlier]").count():
+                first_before = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                while steps < 400:
+                    more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
+                    control = page.locator("[data-chat-load-earlier]")
+                    if not more or not await control.count():
                         break
-                    await page.locator("[data-chat-load-earlier]").click()
-                    async def advanced(before=shown_now):
-                        current = await page.locator("#conversation").get_attribute("data-chat-history-window")
-                        return current is not None and int(current.split("/")[0]) == before + 50
-                    await wait_until(advanced, CHAT_TIMEOUT_MS)
+                    before_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
+                    before_seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                    async def advanced(timeout, before_nodes=before_nodes, before_seq=before_seq):
+                        async def loaded():
+                            nodes = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
+                            seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                            return nodes is not None and int(nodes) >= before_nodes and seq != before_seq
+                        await wait_until(loaded, timeout)
+                    await control.click()
+                    await wait_until(lambda: advanced(CHAT_TIMEOUT_MS), CHAT_TIMEOUT_MS)
                     steps += 1
-                reachable_window = await page.locator("#conversation").get_attribute("data-chat-history-window")
-                reachable_nodes = await page.locator("[data-chat-node]").count()
-                reachability = {"window": reachable_window, "nodes": reachable_nodes, "steps": steps,
-                    "allRecordsRendered": reachable_window == f"{rows}/{rows}" and reachable_nodes == rows,
+                reachable_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
+                reachable_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
+                reachable_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                oldest = await page.locator("#conversation [data-chat-node]").first.text_content()
+                reachability = {"nodes": reachable_nodes, "steps": steps, "more": reachable_more,
+                    "firstSeqBefore": first_before, "firstSeqAfter": reachable_first,
+                    "firstNode": (oldest or "")[:120],
+                    "allNativeReachable": not reachable_more and steps > 0 and "Entry 0 " in (oldest or ""),
                     "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
+                stage(f"reachability={reachability}")
             finally:
                 if debug_task is not None:
                     debug_task.cancel()

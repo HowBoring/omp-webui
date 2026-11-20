@@ -17,7 +17,7 @@ test('one derived opening spans sustained prefix and native append progress, the
     let opens=0,pages=0;
     const delayed=new HistoryClient(async command=>{
       if(command.type==='history_snapshot_open'){opens++;return fixture.transport.history.open(command.scope,command.handoff);}
-      if(command.type==='history_snapshot_page'){pages++;await Bun.sleep(120);return fixture.transport.history.page(command.cursor);}
+      if(command.type==='history_snapshot_page'){pages++;await Bun.sleep(120);return fixture.transport.history.page(command.cursor,command.before);}
       if(command.type==='history_snapshot_close')return fixture.transport.history.close(command.snapshot).then(()=>({closed:true}));
       if(command.type==='history_observation_poll')return fixture.transport.history.poll(command.workerId,command.after);
       throw Error('unexpected_history_command');
@@ -35,7 +35,7 @@ test('one derived opening spans sustained prefix and native append progress, the
       if(journal.snapshot().assistantStream?.activeAttempt===undefined)break;
       await Bun.sleep(15);
     }
-    const all=journal.page({maxMessages:128}).records;
+    const all=(await journal.page({maxMessages:128})).records;
     const assistants=all.filter(record=>record.event.type==='assistant/message');
     expect(assistants).toHaveLength(2);
     expect(JSON.stringify(assistants.at(-1)?.event.data)).toContain('authoritative controlled final');

@@ -24,7 +24,7 @@ export class SessionPresentationService extends TypertRemoteService {
   }
   @Remote("page") async page(request: SessionPageRequest) {
     const journal = await this.supervisor.presentation(this.identity(), this.addressId(request.address));
-    return { cursor: request.throughSeq ?? journal.cursor, ...journal.page(request) };
+    return { cursor: request.throughSeq ?? journal.cursor, ...await journal.page(request) };
   }
   @Remote({ mode: "stream" }) async *control(signal: AbortSignal): AsyncGenerator<SessionControlFrame> {
     const identity = this.identity();

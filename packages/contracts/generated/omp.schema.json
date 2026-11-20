@@ -99,7 +99,7 @@
       },
       {
         "name": "history_snapshot_page",
-        "doc": "Immutable same-cut native history page. Default rejects any content change; opt-in live handoff rejects discontinuities.",
+        "doc": "Immutable same-cut native history page. Optional before reads the last whole records before an absolute row offset. Default rejects any content change; opt-in live handoff rejects discontinuities.",
         "params": "HistorySnapshotPageParams",
         "result": "HistoryPage",
         "nullable": false,
@@ -8786,6 +8786,9 @@
         },
         "nextCursor": {
           "type": "string"
+        },
+        "offset": {
+          "type": "integer"
         }
       },
       "required": [
@@ -9054,6 +9057,9 @@
       "properties": {
         "cursor": {
           "type": "string"
+        },
+        "before": {
+          "type": "integer"
         }
       },
       "required": [

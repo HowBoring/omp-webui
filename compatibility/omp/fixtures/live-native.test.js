@@ -166,7 +166,7 @@ test('real native bounded pages explicitly refuse a derived journal that exceeds
   const observation=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
   const client=new HistoryClient(async command=>{
     if(command.type==='history_snapshot_open')return observation.open(command.scope,command.handoff);
-    if(command.type==='history_snapshot_page')return observation.page(command.cursor);
+    if(command.type==='history_snapshot_page')return observation.page(command.cursor,command.before);
     if(command.type==='history_snapshot_close')return observation.close(command.snapshot);
     throw Error('unexpected_native_read');
   });
@@ -367,7 +367,7 @@ test('late native frames for an already settled original object cannot reopen th
   const {agent,session,history}=await fixture();
   const client=new HistoryClient(async command=>{
     if(command.type==='history_snapshot_open')return history.open(command.scope,command.handoff);
-    if(command.type==='history_snapshot_page')return history.page(command.cursor);
+    if(command.type==='history_snapshot_page')return history.page(command.cursor,command.before);
     if(command.type==='history_snapshot_close')return history.close(command.snapshot);
     if(command.type==='history_observation_poll')return history.poll(command.workerId,command.after);
     throw Error('unexpected_native_read');

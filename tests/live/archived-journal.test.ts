@@ -173,6 +173,10 @@ function eagerFixture(envelope: ReturnType<typeof fixture>['envelope'], parts: H
             contentPageBytes: 256 * 1024, liveEvents: 4096, liveBytes: 8 * 1024 * 1024, pollItems: 128 } };
       case 'history_snapshot_page': {
         if (command.cursor === 'live') return { ...envelope, scope: 'live', items: [], complete: true };
+        if (command.before !== undefined) {
+          const end = Math.min(command.before, parts.length), start = Math.max(0, end - sourcePageParts);
+          return {...envelope, scope: 'active', items: parts.slice(start, end), complete: true, offset: start};
+        }
         const start = Number(command.cursor);
         const end = Math.min(start + sourcePageParts, parts.length);
         return { ...envelope, scope: 'active', items: parts.slice(start, end), complete: true,
@@ -218,7 +222,7 @@ test('multipart archived groups match eager DSH pages under cut and encoded byte
       content: [{ type: 'text', text: assistantText }] } });
   const split = { throughSeq: 4, beforeSeq: 3, maxMessages: 3 };
   const old = await archive.page(view, split);
-  expect(old).toEqual(eager.page(split));
+  expect(old).toEqual(await eager.page(split));
   expect(old.records.map(record => record.event.type)).toEqual(['turn/start', 'user/message', 'step/start']);
   expect(old.hasMore).toBe(false);
 
@@ -249,7 +253,7 @@ test('the eager journal continues a live assistant through the shared record enc
       status: 'observed', durability: 'not_attested', entryId: item.id } },
   ] });
   expect(published).toEqual(['step/start', 'start', 'assistant/message', 'end', 'step/end']);
-  expect(journal.page({ maxMessages: 1 }).records.map(record => record.event.seq)).toEqual([0, 1, 2]);
+  expect((await journal.page({ maxMessages: 1 })).records.map(record => record.event.seq)).toEqual([0, 1, 2]);
 });
 
 test('a single archived DSH event that exceeds the encoded budget fails before publication', async () => {
@@ -278,7 +282,7 @@ test('archived user rows require the same stop reason in Native metadata and pay
   const archive = await ArchivedJournal.open(source, owner);
   const eager = await LiveJournal.open(eagerFixture(envelope, [body!]), archive.generation);
   const view = { generation: archive.generation, current: () => true };
-  expect(await archive.page(view, {})).toEqual(eager.page({}));
+  expect(await archive.page(view, {})).toEqual(await eager.page({}));
 
   source.range = async () => ({ ...envelope, items: [{ ...body!, stopReason: 'changed' }] });
   await expect(archive.page(view, {})).rejects.toThrow('live_archive_part');

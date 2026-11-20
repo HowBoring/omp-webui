@@ -2192,6 +2192,7 @@ export interface HistoryPage {
 	items: HistoryItem[];
 	complete: true;
 	nextCursor?: string;
+	offset?: number;
 }
 
 export interface HistoryChange {
@@ -2255,6 +2256,7 @@ export interface HistorySnapshotOpenParams {
 
 export interface HistorySnapshotPageParams {
 	cursor: string;
+	before?: number;
 }
 
 export interface HistoryContentPageParams {
