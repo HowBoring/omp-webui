@@ -24,7 +24,8 @@ export type PendingInteraction=z.infer<typeof pendingInteractionSchema>;
 export const interactionSnapshotSchema=z.strictObject({
   stage:z.literal("S0-isolated-interactions"),sessionAdmission:z.literal("blocked"),generation:id,
   policyVerified:z.boolean(),pending:z.array(pendingInteractionSchema).max(16),
-  outcomes:z.array(z.strictObject({id,status:z.string(),reason:z.string()})).max(64),
+  outcomes:z.array(z.strictObject({id,status:z.string(),reason:z.string(),
+    stop:z.enum(["none","requested","acknowledged","failed"])})).max(64),
 });
 export type InteractionSnapshot=z.infer<typeof interactionSnapshotSchema>;
 export const interactionReplySchema=z.strictObject({status:z.enum(["answered","cancelled","expired","invalid","stale"])});

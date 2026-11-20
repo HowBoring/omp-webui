@@ -5,7 +5,7 @@ import { sameNativeSession } from "../contracts/catalog-identity.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
-import type { UIAnswer } from "../contracts/interactions.ts";
+import type { InteractionSnapshot, UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { OwnedSessionCleanup, OwnedSessionConnection, SessionWorker } from "../compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult, StdioOutput } from "../compatibility/stdio-transport.ts";
@@ -88,6 +88,7 @@ interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<LaunchResult>; retained?: RetainedLaunch; state: SessionView["state"];
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
+  finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
@@ -447,9 +448,25 @@ export class SessionSupervisor {
     // The composition owns cohort selection; the component composition launches SessionWorker, not an owned adapter.
     return { view: this.#view(active), worker: active.worker as SupervisedSessionWorker };
   }
-  interactions(identity: BrowserAccess) {
+  /**
+   * Exact live worker history for one bounded read-only Tree. This never opens, recovers or mutates a
+   * presentation journal, so tree reads cannot change what the Chat view is following.
+   */
+  treeAccess(identity: BrowserAccess, sessionId: string) {
     this.#browser(identity); const active = this.#active;
-    if (!active) return undefined; this.#current(identity, active); return active.bridge?.snapshot();
+    if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    return { history: active.worker.history, sourceId: active.record.sourceId, sessionId,
+      epoch: active.generation };
+  }
+  interactions(identity: BrowserAccess): InteractionSnapshot | undefined {
+    this.#browser(identity); const active = this.#active;
+    if (!active) return undefined;
+    // A stopped worker keeps its final interaction/Stop record readable; pending is always empty there.
+    if (active.retired || active.exited) return active.finalInteractions ?? active.bridge?.snapshot();
+    this.#current(identity, active); return active.bridge?.snapshot();
   }
   async answer(identity: BrowserAccess, generation: string, id: string, answer: UIAnswer) {
     this.#browser(identity); const active = this.#active;
@@ -493,6 +510,8 @@ export class SessionSupervisor {
     active.exited = true; active.released = observedEOF(drain);
     active.state = active.released ? "closed" : "outcome_unknown";
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
+    const finalInteractions = active.bridge?.snapshot();
+    if (finalInteractions) active.finalInteractions = finalInteractions;
     const clean = cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
@@ -696,6 +715,8 @@ export class SessionSupervisor {
     uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
+    const finalInteractions = active.bridge?.snapshot();
+    if (finalInteractions) active.finalInteractions = finalInteractions;
     const now = performance.now();
     const drain = await this.#closeWorker(active, worker, { cooperativeMs: alreadyExited ? 0 : Math.max(0, deadline - now),
       terminationGraceMs: remainingTerminationGrace(deadline + terminationGraceMs, now), readerGraceMs });

@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { PendingInteraction, UIAnswer } from "../../../packages/contracts/interactions.ts";
 export function NativeInteractionCard({card,onAnswer}:{card:PendingInteraction;onAnswer:(answer:UIAnswer)=>Promise<void>}) {
   const [value,setValue]=useState(card.prefill ?? "");
-  return <section data-interaction-id={card.id} data-created-at={card.createdAt} data-scope={card.scope.kind}>
+  return <section data-interaction-id={card.id} data-generation={card.generation} data-created-at={card.createdAt} data-scope={card.scope.kind}>
     <h2>{card.title}</h2>{card.message && <p>{card.message}</p>}<p>{card.scope.kind === "startup" ? "Startup context — no Session required" : `Native Session ${card.scope.sessionId}`}</p>
     <p data-deadline={card.deadline}>Original deadline: {new Date(card.deadline).toISOString()}</p>
     {card.method === "select" ? card.options?.map(option=><button key={option} onClick={()=>void onAnswer({type:"value",value:option})}>{option}</button>)

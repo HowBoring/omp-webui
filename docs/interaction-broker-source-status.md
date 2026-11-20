@@ -1,9 +1,11 @@
 # Interaction Broker source vertical (#47)
 
 **Status** — Source, public Remote, isolated loopback carrier, and isolated Linux
-Chromium evidence. Private Session admission depends on #46 and #41. Linux
-product-browser and real Native Broker verification are pending. Windows
-Chrome/WSL2 is deferred by the owner.
+Chromium evidence. Private Session admission depends on #46 and #41. The product
+S1 bridge now has real Linux Chromium/DSH/Bun/strict-native Browser evidence for
+its public `ompSessions` interaction path (see below); the isolated Broker
+carrier itself is still fixture-only. Windows Chrome/WSL2 is deferred by the
+owner.
 
 `packages/interactions/broker.ts` supplies an in-memory Broker for one worker
 incarnation, with a separate verified Session or explicit startup-context scope.
@@ -93,7 +95,9 @@ page receives only pending UI and the original deadline. Refresh, reconnect and
 wait-configuration changes cannot renew existing requests. A fresh Broker has no
 old pending records, even when the Session id is unchanged. Limits are 64 current
 pages, 16 pending/settling UI records, 4,096 seen Native UI ids per incarnation,
-and 64 bounded outcome records; no transcript or pending UI is persisted.
+and 64 bounded outcome records; no transcript or pending UI is persisted. The
+product `InteractionBridge` applies the same first-settlement rule and the
+snapshot outcome now also carries the additive `stop` state.
 
 Locally invalid answers never reserve a request. The first locally valid answer
 reserves it synchronously before awaiting Native RPC. Concurrent Browser View
@@ -141,7 +145,8 @@ notice resolves it. Tracking shares the 4,096 seen-UI bound, and overflow latche
 worker-lifetime blocker without evicting unresolved evidence. The Stop adapter must
 read both `pendingCount` and the required live `cancellationUncertain` signal;
 [Stop source status](stop-coordinator-source-status.md) documents that composition
-and its 30 controlled public Remote fixtures. Public Remote/RPC schemas are unchanged.
+and its 30 controlled public Remote fixtures. Public Remote/RPC methods are unchanged;
+the interaction snapshot outcome gained the additive `stop` field described below.
 It does still need an admitted, provenance-verified worker transport wired to
 public `respond_ui`, validated notification dispatch, and the actual #48 Stop
 coordinator before product use. `requestStop(reason)` is that injected coordinator
@@ -218,3 +223,46 @@ require separate verification.
 | Browser client bundle SHA-256 | `41537312d88fa027173877a4b7059728b09c45231f3be8621e422d385cea7588` |
 | Chromium executable SHA-256 | `ce1ff960ce428a4a88b1b1c38516bdf1954a57fc24036161b7a0d8d0f8aec511` |
 | Validated fixture result SHA-256 | `71f441d55c667dafa571103def0e88f1e581fb2d535565997a0e66a6faf68fa4` |
+
+## Product S1 bridge verification (ticket #47)
+
+`packages/interactions/bridge.ts` is the adapter behind the product
+`ompSessions/interactions` and `ompSessions/answer` Remotes. It now reserves one
+continuation synchronously for the first locally valid reply: any concurrent
+answer or cancel, in either arrival order, returns `stale` without a second
+Native command. Native remains the business authority for that one command.
+Outcomes carry the observed reason (`explicit-answer`, `explicit-cancel`,
+`expired`, `native-stale`, `worker-reply-lost`, `native-expired`) and a `stop`
+state (`none`/`requested`/`acknowledged`/`failed`). A Stop request is recorded
+once with its cause, and a stopped worker's final outcome list stays readable
+through `ompSessions.interactions` while its pending list is empty. Host tool
+and URI frames still never enter the interaction map.
+
+Actual Linux Chromium `157.0.8103.38` drove the product pages through the public
+DSH Remote and Bun Host into the strict native OMP worker
+(`tests/sessions/interactions-browser.py`; result
+`vendor/session-interactions-browser.json`):
+
+- Two authorized pages saw one startup card with the same id and the default
+  30-minute creation deadline; refresh preserved that deadline. Concurrent
+  public answers from both pages produced exactly one `answered` and one
+  `stale`, with one native value record.
+- An ordered later cancel after an answer, and a later answer after a cancel,
+  each returned `stale` and left the settled outcome's reason observable.
+- A native-timeout follow-up produced a session-scoped 45-second deadline; an
+  explicit cancel recorded `cancelled`/`explicit-cancel`.
+- A 3-second native timeout expired without any default value, retired the card,
+  and exposed the recorded Stop request.
+- Closing every page preserved the pending card and worker; a reconnect saw the
+  original id and deadline and answered on the same worker generation.
+- SIGKILLing the native worker cleared its card; manual reopen created a new
+  worker and a new interaction id, never reviving the old one. Host SIGKILL is
+  covered by `tests/sessions/restart-browser.py` with the same non-revival
+  assertion.
+- A revoke-all racing an answer never double-settled, removed the pending card,
+  stopped the worker, and made the browser require authorization again.
+
+Limits: this is the synthetic no-provider fixture with normal product admission
+still blocked. It does not exercise real provider/tool execution, the #48 Stop
+coordinator's joint quiescence, force escalation, or the 30+5 second revoke
+drain. The native records are fixture observations, not product consensus.

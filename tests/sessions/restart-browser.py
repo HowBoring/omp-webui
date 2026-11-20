@@ -12,6 +12,8 @@ def start():
  if '"sessionAdmission":"blocked"' not in line: raise RuntimeError('synthetic Host failed startup')
  return child
 async def main():
+ (ROOT/'vendor/sessions-fixture/interaction-script.json').unlink(missing_ok=True)
+ (ROOT/'vendor/sessions-fixture/interaction-record.jsonl').unlink(missing_ok=True)
  host=start();errors=[]
  try:
   link=subprocess.check_output(COMMAND+['--print-bootstrap'],cwd=ROOT,text=True).strip()
@@ -20,7 +22,8 @@ async def main():
    context=await browser.new_context();page=await context.new_page();page.on('pageerror',lambda e:errors.append(str(e)))
    await page.goto(link);await page.wait_for_selector('article[data-native-id="native-0000"]')
    await page.locator('article[data-native-id="native-0000"]').get_by_role('button',name='Open Session',exact=True).click()
-   await page.wait_for_selector('[data-interaction-id][data-scope="startup"]',timeout=20000)
+   old_card=await page.wait_for_selector('[data-interaction-id][data-scope="startup"]',timeout=20000)
+   old_id=await old_card.get_attribute('data-interaction-id')
    await page.get_by_label('Explicit answer').fill('Synthetic before crash');await page.get_by_role('button',name='Submit explicit answer',exact=True).click()
    await page.wait_for_selector('[data-native-binding="native-0000"]');await expect(page.locator('#conversation')).to_contain_text('Synthetic fixture input')
    before=await page.locator('[data-worker-id]').get_attribute('data-worker-id')
@@ -29,14 +32,17 @@ async def main():
    await expect(page.locator('[data-session-index]')).to_contain_text('SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED')
    assert await page.locator('[data-native-binding]').get_attribute('data-native-binding')=='unconfirmed'
    await page.wait_for_timeout(500);assert not await page.locator('[data-interaction-id]').count()
+   assert not await page.locator(f'[data-interaction-id="{old_id}"]').count()
    assert await page.locator('#conversation').inner_text()==''
    await page.locator('article[data-native-id="native-0000"]').get_by_role('button',name='Open Session',exact=True).click()
-   await page.wait_for_selector('[data-interaction-id][data-scope="startup"]',timeout=20000)
+   fresh=await page.wait_for_selector('[data-interaction-id][data-scope="startup"]',timeout=20000)
+   fresh_id=await fresh.get_attribute('data-interaction-id')
+   assert fresh_id!=old_id
    await page.get_by_label('Explicit answer').fill('Synthetic manual reopen');await page.get_by_role('button',name='Submit explicit answer',exact=True).click()
    await page.wait_for_selector('[data-native-binding="native-0000"]');await expect(page.locator('#conversation')).to_contain_text('Synthetic fixture input')
    after=await page.locator('[data-worker-id]').get_attribute('data-worker-id');assert after!=before
    assert not errors,errors
-   result={'status':'PASS','platform':'Linux Chromium','browser':browser.version,'scenario':'actual Host SIGKILL/restart/manual same-native-ID reopen','credentialSurvived':True,'indexSurvived':True,'automaticOpen':False,'automaticReplay':False,'sameNativeSession':'native-0000','newWorkerGeneration':True,'privateData':False,'normalProductAdmission':'blocked','limits':['SIGKILL cannot run Host cooperative cleanup; worker pipe EOF and manual reopening provide subsequent native ownership checks.']}
+   result={'status':'PASS','platform':'Linux Chromium','browser':browser.version,'scenario':'actual Host SIGKILL/restart/manual same-native-ID reopen','credentialSurvived':True,'indexSurvived':True,'automaticOpen':False,'automaticReplay':False,'sameNativeSession':'native-0000','newWorkerGeneration':True,'oldInteractionNeverRevived':True,'privateData':False,'normalProductAdmission':'blocked','limits':['SIGKILL cannot run Host cooperative cleanup; worker pipe EOF and manual reopening provide subsequent native ownership checks.']}
    (ROOT/'vendor/session-restart-browser.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result))
    await context.close();await browser.close()
  finally:

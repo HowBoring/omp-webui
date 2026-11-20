@@ -389,7 +389,7 @@ test("an authoritative answer correlated at the owned fence does not confirm UI 
       { type: "session_settled" },
     );
     expect(await f.connection.interactionCleanup).toEqual([
-      { id: card.id, status: "answered", reason: "explicit-native-acknowledgement" },
+      { id: card.id, status: "answered", reason: "explicit-answer" },
     ]);
     await expect(answer).rejects.toThrow("SESSION_HOST_CLOSING");
     expect(peer.commands.filter(item => item.type === "respond_ui")).toEqual([command]);
@@ -708,8 +708,9 @@ test("owned UI cleanup preserves an answer acknowledged before retirement in the
     expect(cancel).toMatchObject({ type: "respond_ui", targetId: "fenced-answer", answer: { type: "cancel" } });
     // The fenced answer could have reached Native. Its stale cancellation does not prove a cancellation happened.
     peer.respond(cancel, { status: "stale" });
+    // The settled card keeps the reason of the reply that won its single continuation.
     expect(await connected.interactionCleanup).toEqual([
-      { id: "confirmed-answer", status: "answered", reason: "explicit-native-acknowledgement" },
+      { id: "confirmed-answer", status: "answered", reason: "explicit-answer" },
       { id: "fenced-answer", status: "stale", reason: "explicit-native-acknowledgement" },
     ]);
     expect(interactions.snapshot().outcomes).toHaveLength(2);
@@ -738,26 +739,36 @@ test.each(["before", "after"] as const)("owned UI cleanup with a same-card decis
     const answering = peer.nextCommand();
     const answer = interactions.answer(interactions.generation, "same-card", { type: "value", value: "winner" });
     const answerCommand = await answering;
-    const cancelling = peer.nextCommand();
+    // The held answer owns this card's only continuation: a racing cancel is stale and sends nothing.
     const cancel = interactions.answer(interactions.generation, "same-card", { type: "cancel" });
-    const cancelCommand = await cancelling;
+    expect(await cancel).toEqual({ status: "stale" });
     expect(answerCommand.targetId).toBe("same-card");
-    expect(cancelCommand.targetId).toBe("same-card");
+    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "respond_ui"]);
 
     const decisive = { type: "response", id: answerCommand.id, command: "respond_ui", success: true,
       data: { status: "answered" } };
     const fence = { type: "session_settled" };
-    peer.stdout.send(
-      { type: "response", id: cancelCommand.id, command: "respond_ui", success: true, data: { status: "stale" } },
-      ...(when === "before" ? [decisive, fence] : [fence, decisive]),
-    );
-    const status = when === "before" ? "answered" : "stale";
-    expect(await cancel).toEqual({ status: "stale" });
-    expect(await answer).toEqual({ status });
-    const outcome = { id: "same-card", status, reason: "explicit-native-acknowledgement" } as const;
+    const expected: Command[] = [];
+    let outcome: { id: string; status: "answered" | "cancelled"; reason: string };
+    if (when === "before") {
+      peer.stdout.send(decisive, fence);
+      expect(await answer).toEqual({ status: "answered" });
+      outcome = { id: "same-card", status: "answered", reason: "explicit-answer" };
+    } else {
+      peer.stdout.send(fence, decisive);
+      expect(await answer).toEqual({ status: "stale" });
+      // Fenced answers reject without retiring the card; the cleanup lane carries the only cancellation.
+      const cancelling = peer.nextCommand();
+      const command = await cancelling;
+      expected.push(command);
+      expect(command).toMatchObject({ type: "respond_ui", targetId: "same-card", answer: { type: "cancel" } });
+      peer.respond(command, { status: "cancelled" });
+      outcome = { id: "same-card", status: "cancelled", reason: "explicit-native-acknowledgement" };
+    }
     expect(await connected.interactionCleanup).toEqual([outcome]);
     expect(interactions.snapshot()).toMatchObject({ pending: [], outcomes: [outcome] });
-    expect(peer.commands.map(command => command.type)).toEqual(["negotiate_protocol", "respond_ui", "respond_ui"]);
+    expect(peer.commands.map(command => command.type))
+      .toEqual(["negotiate_protocol", "respond_ui", ...expected.map(command => command.type)]);
 
     peer.stdout.close(); peer.stderr.close();
     expect((await connected.output).protocolFailure).toBeUndefined();

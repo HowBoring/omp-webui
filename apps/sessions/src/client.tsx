@@ -163,6 +163,13 @@ function Surface() {
       <div id="conversation">{rows.map((row, index) => <pre className="row" key={index}>{row}</pre>)}</div>
     </div>
     {interaction?.pending.map(card => <NativeInteractionCard key={card.id} card={card} onAnswer={async answer => { await perform(async () => { resultValue(await ctx.remote.ompSessions.answer(card.generation, card.id, answer)); }); }} />)}
+    {interaction && interaction.outcomes.length > 0 && <section data-interaction-outcomes="true">
+      <h2>Interaction results and Stop requests</h2>
+      <ol>{interaction.outcomes.slice(-8).map((outcome, index) => <li key={`${outcome.id}-${index}`}
+        data-interaction-outcome={outcome.id} data-status={outcome.status} data-reason={outcome.reason} data-stop={outcome.stop}>
+        {outcome.id === "worker-stop" ? `Worker Stop ${outcome.stop}` : `${outcome.status}: ${outcome.reason}`}
+      </li>)}</ol>
+    </section>}
   </div>;
 }
 async function boot() {

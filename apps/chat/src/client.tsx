@@ -29,6 +29,9 @@ import { attachmentLimits, attachmentName, classifyAttachment, draftBudgetFailur
 import type { OriginalMediaType } from "../../../packages/attachments/media.ts";
 import { createDraftProvider, type DraftAuthority } from "../../../packages/drafts/provider.ts";
 import { DraftSubmissionId, type DraftScope } from "@deepseek-ai/dsh-client-ui-conversation/client";
+import { treeContribution } from "../../../packages/contracts/tree.ts";
+import { TreeBrowser } from "../../../packages/tree/browser.ts";
+import { TreePanel } from "../../../packages/tree/panel.tsx";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -72,6 +75,7 @@ async function waitProjection(binding: SessionBinding) {
   for (let attempt = 0; attempt < 2000; attempt++) {
     const state = current();
     if (state.phase === "ready") return state.binding;
+    if (state.phase === "failed") throw new Error(`The Session projection failed: ${String(state.error)}.`);
     if (state.phase === "stock" && attempt >= 200) throw new Error("A projection generation is required for Chat.");
     await new Promise(resolve => setTimeout(resolve, 25));
   }
@@ -329,10 +333,19 @@ function Surface() {
   const [originals, setOriginals] = useState<Uploaded[]>([]), [base64Draft, setBase64Draft] = useState("");
   const [controller, setController] = useState<AttachmentPreparationController>();
   const revision = useRef(0);
+  // One presentation controller per attached worker. Opening or paging it is explicit and read-only.
+  useEffect(() => {
+    if (!view) { setTree(undefined); return; }
+    const browser = new TreeBrowser(view.registration.nativeSessionId,
+      request => ctx.remote.ompTree.read(request).then(resultValue));
+    setTree(browser);
+    return () => browser.dispose();
+  }, [view?.workerId, view?.generation, view?.registration?.nativeSessionId]);
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
   const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [tree, setTree] = useState<TreeBrowser>();
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -583,6 +596,7 @@ function Surface() {
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
+      {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree} /></div>}
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}
@@ -640,6 +654,7 @@ async function boot() {
   await ctx.remote.$mount(preferencesRemoteContribution);
   await ctx.remote.$mount(chatContribution);
   await ctx.remote.$mount(chatComponentContribution);
+  await ctx.remote.$mount(treeContribution);
   await ctx.remote.$mount(attachmentContribution);
   await ctx.remote.$mount(attachmentsContribution);
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);
