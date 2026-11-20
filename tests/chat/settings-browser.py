@@ -6,11 +6,13 @@ ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shutil.which("google-chrome")
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
 HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+CANDIDATE = ROOT / "vendor/omp-candidate-t49/cli.js"
+LAUNCHER = ROOT / "vendor/omp-candidate-t49/omp"
 BUTTON = re.compile(r"(Open|Switch) Chat Session")
 PORT = int(os.environ.get("OMP_CHAT_PORT", "3198"))
 
 def kill_worker():
-    subprocess.run(["pkill", "-f", f"{ROOT}/vendor/omp-candidate/cli.js.*--mode rpc-ui"], check=False)
+    subprocess.run(["pkill", "-f", f"{CANDIDATE}.*--mode rpc-ui"], check=False)
 
 async def wait_health(timeout=20.0):
     deadline = time.monotonic() + timeout
@@ -22,7 +24,8 @@ async def wait_health(timeout=20.0):
 async def main():
     kill_worker(); subprocess.run(["pkill", "-f", str(HOST)], check=False); await asyncio.sleep(0.5)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True)
-    env = {**os.environ, "OMP_CHAT_PORT": str(PORT)}
+    env = {**os.environ, "OMP_CHAT_PORT": str(PORT), "OMP_CHAT_CANDIDATE": str(CANDIDATE),
+           "OMP_CHAT_LAUNCHER": str(LAUNCHER)}
     host = subprocess.Popen([BUN, "--no-env-file", str(HOST)], cwd=ROOT, env=env,
         stdout=open(ROOT / "vendor/chat-host.log", "w"), stderr=subprocess.STDOUT)
     errors = []
@@ -33,6 +36,7 @@ async def main():
             browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
             context = await browser.new_context(); a = await context.new_page()
             a.on("pageerror", lambda error: errors.append(str(error)))
+            a.on("console", lambda message: print("CONSOLE", message.type, message.text[:700]) if message.type in ("error", "warning") else None)
             await a.goto(link); await a.wait_for_selector("[data-chat-root-slot]")
             await a.get_by_label("Directory to authorize").fill(str(ROOT / "vendor/chat-fixture/project"))
             await a.get_by_role("button", name="Review directory", exact=True).click()
@@ -117,7 +121,13 @@ async def main():
             await a.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
             assert "succeeded" in await a.locator("[data-chat-settlement]").inner_text()
             assert await a.get_by_label("Message").input_value() == ""
-            await expect(a.locator("#conversation")).to_contain_text("authoritative controlled final", timeout=30000)
+            try:
+                await expect(a.locator("#conversation")).to_contain_text("authoritative controlled final", timeout=30000)
+            except AssertionError:
+                print("CONVERSATION", await a.locator("#conversation").inner_text())
+                print("SETTLEMENT", await a.locator("[data-chat-settlement]").inner_text() if await a.locator("[data-chat-settlement]").count() else "MISSING")
+                print("ATTEMPT", await a.locator("[data-chat-attempt]").inner_text() if await a.locator("[data-chat-attempt]").count() else "MISSING")
+                raise
 
             # The same public RPC refuses a stale revision over Chromium, never a false success.
             assert captured, "no public applyPreferences request was observed"
@@ -134,6 +144,23 @@ async def main():
             assert refused["result"]["ok"] is False and refused["result"]["error"]["code"] == "gateway/bad-request", refused
             assert "changed" in refused["result"]["error"]["message"], refused
 
+            # Unknown capability at the current revision is refused, never a false success.
+            capability = await a.evaluate("""async ([body, revision]) => {
+                const status = await (await fetch("/auth/status")).json();
+                const request = JSON.parse(body); request.rpcId = crypto.randomUUID();
+                const change = request.payload.args.change; change.revision = revision;
+                change.model = { provider: "openai", id: "not-a-real-native-model" };
+                delete change.thinking;
+                const response = await fetch("/api/ompSessions/applyPreferences", { method: "POST",
+                    headers: { "content-type": "application/json", "x-omp-csrf": status.csrf },
+                    body: JSON.stringify(request) });
+                return { status: response.status, body: await response.text() };
+            }""", [captured[-1], int(next_revision)])
+            assert capability["status"] == 200, capability
+            missing = json.loads(capability["body"])["result"]
+            assert missing["ok"] is False and missing["error"]["code"] == "gateway/bad-request", missing
+            assert "not available" in missing["error"]["message"], missing
+
             await a.reload(); await a.wait_for_selector('[data-chat-native-session="native-0000"]', timeout=60000)
             await a.wait_for_selector('[data-session-settings-revision]', timeout=30000)
             assert await a.locator("[data-chat-root-slot]").get_attribute("data-om-theme") == "dark"
@@ -143,6 +170,39 @@ async def main():
             final_thinking = await a.get_by_label("Session thinking level").input_value()
             assert final_model == fixture_option["value"], (final_model, fixture_option)
             await a.screenshot(path=str(ROOT / "vendor/settings-browser.png"), full_page=True)
+
+            # Revoking the directory stops the native Session; settings writes cannot report success.
+            grants = await a.evaluate("""async () => {
+                const status = await (await fetch("/auth/status")).json();
+                const response = await fetch("/api/ompSessions/grants", { method: "POST",
+                    headers: { "content-type": "application/json", "x-omp-csrf": status.csrf },
+                    body: JSON.stringify({ type: "client-request", rpcId: crypto.randomUUID(), method: "ompSessions/grants", payload: { args: {} } }) });
+                return { status: response.status, body: await response.text() };
+            }""")
+            assert grants["status"] == 200, grants
+            listed = json.loads(grants["body"])["result"]
+            assert listed["ok"] is True, listed
+            grant = next(item for item in listed["value"] if item["path"].endswith("vendor/chat-fixture/project"))
+            revoked = await a.evaluate("""async grantId => {
+                const status = await (await fetch("/auth/status")).json();
+                const response = await fetch("/api/ompSessions/revoke", { method: "POST",
+                    headers: { "content-type": "application/json", "x-omp-csrf": status.csrf },
+                    body: JSON.stringify({ type: "client-request", rpcId: crypto.randomUUID(), method: "ompSessions/revoke", payload: { args: { grantId } } }) });
+                return { status: response.status, body: await response.text() };
+            }""", grant["id"])
+            assert revoked["status"] == 200 and json.loads(revoked["body"])["result"]["ok"] is True, revoked
+            denied = await a.evaluate("""async ([body, revision]) => {
+                const status = await (await fetch("/auth/status")).json();
+                const request = JSON.parse(body); request.rpcId = crypto.randomUUID(); request.payload.args.change.revision = revision;
+                const response = await fetch("/api/ompSessions/applyPreferences", { method: "POST",
+                    headers: { "content-type": "application/json", "x-omp-csrf": status.csrf },
+                    body: JSON.stringify(request) });
+                return { status: response.status, body: await response.text() };
+            }""", [captured[-1], int(next_revision)])
+            assert denied["status"] == 200, denied
+            lost = json.loads(denied["body"])["result"]
+            assert lost["ok"] is False and lost["error"]["code"] == "gateway/bad-request", lost
+            assert "Reopen it" in lost["error"]["message"], lost
             assert not errors, errors
             result = {"status": "PASS", "platform": "Linux Chromium", "browser": browser.version, "realDSH": True,
               "realBun": True, "realStrictNative": True, "modelOptions": options, "thinkingOptions": levels,
@@ -151,6 +211,7 @@ async def main():
               "finalModel": final_model, "finalThinking": final_thinking,
               "revision": next_revision, "scenarios": ["scoped-appearance-dark-zh", "reload-persistence",
                 "native-settings-read", "native-settings-apply-readback", "stale-revision-refused",
+                "capability-refused", "permission-revoked-refused",
                 "draft-and-history-preserved", "stream-settled-after-settings"],
               "privateData": False, "normalProductAdmission": "blocked", "errors": errors}
             (ROOT / "vendor/settings-browser.json").write_text(json.dumps(result, indent=2) + "\n")

@@ -61,9 +61,9 @@ async function* readItems(history: HistoryClient, opened: HistoryOpen, scope: 'a
 
 /** Disposable bounded DSH generation. Native observations remain authoritative and not-attested. */
 export class LiveJournal {
-  readonly generation = crypto.randomUUID();
-  /** Opaque Host-journal identity; each opened cut is its own presentation generation so DSH
-   * replaces a journal whose native branch/cut changed instead of following stale pages. */
+  readonly generation: string = crypto.randomUUID();
+  /** Opaque Host-journal identity: every reopened journal is a new generation so DSH rejects
+   * stale pages and rebuilds its trajectory instead of following retired content. */
   get projection() { return parseProjectionBinding({source: 'omp-webui/live-journal/v1', generation: this.generation}); }
   readonly sessionId;
   readonly #records: SessionHistoryRecord[] = [];
@@ -76,12 +76,14 @@ export class LiveJournal {
   readonly #listeners = new Set<(frame: SessionFollowFrame) => void>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null;
-  private constructor(readonly opened: HistoryOpen) {
+  private constructor(readonly opened: HistoryOpen, generation?: string) {
+    if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
     this.#nativeLeaf = opened.cut.leafId;
   }
-  static async open(history: HistoryClient): Promise<LiveJournal> {
-    const opened = await history.open('active', 'live'), journal = new LiveJournal(opened);
+  static async open(history: HistoryClient, generation?: string): Promise<LiveJournal> {
+    const opened = await history.open('active', 'live');
+    const journal = new LiveJournal(opened, generation);
     try {
       if (opened.compacting) throw Error('live_open_compacting');
       if (opened.scope !== 'active' || opened.handoff !== 'live' || !opened.cursor || !opened.cursors.live

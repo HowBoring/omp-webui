@@ -88,12 +88,14 @@ interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<LaunchResult>; retained?: RetainedLaunch; state: SessionView["state"];
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
-  journal?: Promise<LiveJournal>; journalValue?: LiveJournal;
+  journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
   exitCode?: number;
   cooperativeDeadline?: number;
 }
+/** DSH retires projection generations; a new Active for the same Session must never reuse one. */
+let journalIdentity = 0;
 const directoryIdentity = (cwd: string): string => {
   try {
     const stat = fs.statSync(cwd, { bigint: true });
@@ -525,8 +527,9 @@ export class SessionSupervisor {
     // A new submission starts a new native cut/context. Re-open the journal from the authoritative
     // history instead of permanently failing presentation for the rest of the worker's life.
     if (journal.sessionId !== sessionId || journal.failure) {
-      journal = await LiveJournal.open(active.worker.history); this.#current(identity, active);
-      active.journal = Promise.resolve(journal);
+      const epoch = ++journalIdentity;
+      journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
+      active.journal = Promise.resolve(journal); active.journalEpoch = epoch;
     }
     active.journalValue = journal;
     if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
@@ -537,17 +540,24 @@ export class SessionSupervisor {
     const active = this.#active; this.#browser(identity);
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return undefined;
-    const journal = await LiveJournal.open(active.worker.history); this.#current(identity, active);
+    const epoch = ++journalIdentity;
+    const journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
     if (active.state !== "open" || active.id !== workerId || active.record?.nativeSessionId !== sessionId) {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     active.journal = Promise.resolve(journal); active.journalValue = journal;
+    active.journalEpoch = epoch;
     return journal;
   }
   /** The currently presented journal for this authority, when a viewer is attached. */
   activeJournal(identity: BrowserAccess): LiveJournal | undefined {
     const active = this.#active; this.#browser(identity);
     return active?.state === "open" ? active.journalValue : undefined;
+  }
+  /** Last explicit journal epoch; ordinary cut recovery also advances it so DSH rebuilds its window. */
+  presentationEpoch(identity: BrowserAccess): number | undefined {
+    const active = this.#active; this.#browser(identity);
+    return active?.state === "open" ? active.journalEpoch : undefined;
   }
   requirePresentation(identity: BrowserAccess, sessionId: string, journal: LiveJournal): void {
     const active = this.#active;

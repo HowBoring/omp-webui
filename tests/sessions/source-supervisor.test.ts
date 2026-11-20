@@ -1,6 +1,8 @@
 import { expect, spyOn, test } from "bun:test";
 import { z } from "zod";
 import { rm, rename, mkdir } from "node:fs/promises";
+import { HistoryClient } from "../../packages/contracts/generated/history-client.ts";
+import type { HistoryCut, HistoryOpen, HistoryPage } from "../../packages/contracts/generated/omp-wire.ts";
 import { sourceFixture } from "./source-fixture.ts";
 import type { OwnedSessionConnection } from "../../packages/compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult } from "../../packages/compatibility/stdio-transport.ts";
@@ -769,4 +771,56 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
     await opening.catch(() => {});
     await f.close();
   }
+});
+
+test("ordinary native cut recovery after a settings renewal advances to a fresh presentation generation", async () => {
+  let cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  let current: HistoryOpen | undefined;
+  const history = new HistoryClient(async command => {
+    switch (command.type) {
+      case "history_snapshot_open": {
+        current = {
+          version: "coherent-history-v1", handoff: "live", snapshot: "snapshot", cursor: "active-0", scope: "active",
+          cut, cursors: { active: "active-0", live: "live-0", tree: "tree-0", running: "running-0" },
+          expiresAt: Date.now() + 10_000, count: 1, prefix: null, streaming: false, compacting: false,
+          scannedBytes: 0, scanMs: 0, snapshotMs: 0,
+          limits: { entries: 20_000, runningMessages: 10_000, scanItems: 60_000, bytes: 320 * 1024 * 1024,
+            nativeItemBytes: 64 * 1024 * 1024, itemBytes: 512 * 1024, ms: 10_000, snapshotBytes: 256 * 1024 * 1024,
+            cacheBytes: 512 * 1024 * 1024, snapshots: 2, pageItems: 128, pageBytes: 768 * 1024,
+            responseBytes: 1024 * 1024, ttlMs: 10_000, contentItems: 64, contentPageBytes: 256 * 1024,
+            liveEvents: 1024, liveBytes: 1024 * 1024, pollItems: 100 },
+        };
+        return current;
+      }
+      case "history_snapshot_close": return { closed: true };
+      case "history_observation_poll":
+        return { cut, after: cut.observationSeq, through: cut.observationSeq, events: [], hasMore: false };
+      case "history_snapshot_page": {
+        const opened = current!;
+        const scope = command.cursor.startsWith("active-") ? "active" : "live";
+        const page: HistoryPage = { snapshot: opened.snapshot, scope, cut: opened.cut, expiresAt: opened.expiresAt,
+          complete: true,
+          items: scope === "active"
+            ? [{ id: "leaf", parentId: null, active: true, kind: "message", role: "user", text: "Hello" }] : [] };
+        return page;
+      }
+    }
+  });
+  const f = await sourceFixture(undefined, undefined, history);
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const initial = (await f.supervisor.presentation(f.identity, sessionId)).projection.generation;
+    const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
+    expect(renewed?.projection.generation).not.toBe(initial);
+    cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
+    expect(() => renewed!.accept({ cut, after: renewed!.after, through: renewed!.after, events: [], hasMore: false }))
+      .toThrow("live_context_changed");
+    const recovered = await f.supervisor.presentation(f.identity, sessionId);
+    expect(recovered).not.toBe(renewed!);
+    expect(recovered.projection.generation).not.toBe(renewed!.projection.generation);
+  } finally { await f.close(); }
 });

@@ -22,12 +22,14 @@ const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home, PI_CODING_AGENT_D
   OMP_HISTORY_FIXTURE_PROFILE: home, XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
   XDG_DATA_HOME: join(home, "data"), BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", OPENAI_API_KEY: "synthetic-unused-no-provider-calls",
   NO_COLOR: "1", PI_NOTIFICATIONS: "off", ...fixtureEnv };
+const candidate = resolve(process.env.OMP_CHAT_CANDIDATE ?? "vendor/omp-candidate/cli.js");
+const launcher = resolve(process.env.OMP_CHAT_LAUNCHER ?? "vendor/omp-candidate/omp");
 const prefix = [process.execPath, "--no-env-file", "--preload", resolve("compatibility/omp/fixtures/history-network-guard.js"),
-  resolve("vendor/omp-candidate/cli.js")];
+  candidate];
 const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: home, readyTimeoutMs: 10_000 });
 const host = await startSessionComponentServer({ manifest: resolve("vendor/chat/installation.json"),
   assets: resolve("vendor/dsh-chat"),
-  launcher: resolve("vendor/omp-candidate/omp"), port, dataDir, catalog: catalog.catalog, chat: true,
+  launcher, port, dataDir, catalog: catalog.catalog, chat: true,
   launch: cwd => SessionWorker.open({ argv: [...prefix, "--mode", "rpc-ui", "--strict-start", "--offline", "--model", "s0-controlled/deterministic-live",
     "--no-lsp", "--no-skills", "--no-rules", "--no-spotlight", "--no-judge",
     "--trusted-extension", resolve("compatibility/omp/fixtures/live-provider.ts")], env, cwd, readyTimeoutMs: 20_000 }) });

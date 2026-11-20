@@ -10,18 +10,20 @@ ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME_EXECUTABLE") or shutil.which("chromium") or shutil.which("google-chrome")
 BUN = os.environ.get("OMP_WEB_BUN") or shutil.which("bun") or "bun"
 HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+CANDIDATE = ROOT / "vendor/omp-candidate-t49/cli.js"
+PORT = int(os.environ.get("OMP_CHAT_PORT", "3188"))
 CHAT_BUTTON = re.compile(r"(Open|Switch) Chat Session")
 
 
 def kill_worker():
-    subprocess.run(["pkill", "-f", "vendor/omp-candidate/cli.js.*--mode rpc-ui"], check=False)
+    subprocess.run(["pkill", "-f", f"{CANDIDATE}.*--mode rpc-ui"], check=False)
 
 
 async def wait_health(timeout=15.0):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            urllib.request.urlopen("http://127.0.0.1:3188/healthz", timeout=1)
+            urllib.request.urlopen(f"http://127.0.0.1:{PORT}/healthz", timeout=1)
             return
         except Exception:
             await asyncio.sleep(0.1)
@@ -30,6 +32,9 @@ async def wait_health(timeout=15.0):
 
 async def start_host(scenario=None, delay=None):
     env = os.environ.copy()
+    env["OMP_CHAT_PORT"] = str(PORT)
+    env["OMP_CHAT_CANDIDATE"] = str(CANDIDATE)
+    env["OMP_CHAT_LAUNCHER"] = str(ROOT / "vendor/omp-candidate-t49/omp")
     if scenario:
         env["OMP_CHAT_FIXTURE_SCENARIO"] = scenario
     if delay is not None:
@@ -41,7 +46,10 @@ async def start_host(scenario=None, delay=None):
 
 
 def bootstrap():
-    return subprocess.check_output([BUN, "--no-env-file", str(HOST), "--print-bootstrap"], cwd=ROOT, text=True).strip()
+    env = {**os.environ, "OMP_CHAT_PORT": str(PORT), "OMP_CHAT_CANDIDATE": str(CANDIDATE),
+           "OMP_CHAT_LAUNCHER": str(ROOT / "vendor/omp-candidate-t49/omp")}
+    return subprocess.check_output([BUN, "--no-env-file", str(HOST), "--print-bootstrap"], cwd=ROOT,
+                                   env=env, text=True).strip()
 
 
 async def stop_host(host):
@@ -125,7 +133,7 @@ async def new_page(browser, errors):
 
 async def main():
     kill_worker()
-    subprocess.run(["pkill", "-f", "vendor/host-chat/chat-component-main.js"], check=False)
+    subprocess.run(["pkill", "-f", f"{ROOT}/vendor/host-chat/chat-component-main.js"], check=False)
     await asyncio.sleep(0.5)
     subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
                    stdout=subprocess.DEVNULL)
