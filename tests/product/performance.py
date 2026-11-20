@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""S5 performance evidence over the real isolated component Hosts and a real browser.
+"""S5 performance evidence over the real isolated Hosts and a real browser.
 
 Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/100MiB history).
-No fixture is measured as product: product admission remains blocked and this records component evidence.
+`catalog` and `chat` measure isolated component Hosts. `product` measures the product Host
+(apps/host/src/main.ts) against the enrolled installation; only `product` is product measurement.
 """
-import argparse, asyncio, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
+import argparse, asyncio, hashlib, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from statistics import median
 from playwright.async_api import async_playwright
@@ -15,8 +16,13 @@ BUN = os.environ.get("BUN") or shutil.which("bun")
 CORPUS = ROOT / "vendor/performance-fixture"
 CATALOG_HOST = ROOT / "vendor/host-catalog/catalog-fixture-main.js"
 CHAT_HOST = ROOT / "vendor/host-chat/chat-component-main.js"
+PRODUCT_HOST = ROOT / "apps/host/src/main.ts"
+PRODUCT_MANIFEST = ROOT / "vendor/product/installation.json"
+PRODUCT_LAUNCHER = ROOT / "vendor/omp-candidate/omp"
+PRODUCT_ASSETS = ROOT / "vendor/dsh-product"
 CATALOG_PORT = int(os.environ.get("OMP_PERF_CATALOG_PORT", "3191"))
 CHAT_PORT = int(os.environ.get("OMP_PERF_CHAT_PORT", "3198"))
+PRODUCT_PORT = int(os.environ.get("OMP_PERF_PRODUCT_PORT", "3193"))
 SAMPLES = int(os.environ.get("OMP_PERF_SAMPLES", "30"))
 WARMUPS = int(os.environ.get("OMP_PERF_WARMUPS", "2"))
 RSS_INTERVAL = 0.045
@@ -153,6 +159,11 @@ def start_host(host, port, env, log):
                 time.sleep(0.1)
         except OSError:
             break
+    try:
+        with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+            raise RuntimeError(f"port {port} is already serving another workload; refusing to measure")
+    except OSError:
+        pass
     log.parent.mkdir(parents=True, exist_ok=True)
     handle = log.open("w")
     process = subprocess.Popen([BUN, "--no-env-file", str(host)], cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
@@ -190,8 +201,30 @@ def chat_env(manifest, data):
     }
 
 
-def bootstrap(env):
-    output = subprocess.check_output([BUN, "--no-env-file", str(CHAT_HOST), "--print-bootstrap"], cwd=ROOT, env=env, text=True)
+def product_env(data):
+    """Real product Host: enrolled installation, corpus as the session source, no fixture injection."""
+    manifest = PRODUCT_MANIFEST.read_bytes()
+    home = data / "home"
+    for name in ("state", "cache"):
+        (home / ".local" / name).mkdir(parents=True, exist_ok=True)
+    return {
+        **os.environ,
+        "HOME": str(home),
+        "PI_CODING_AGENT_DIR": str(CORPUS),
+        "XDG_STATE_HOME": str(home / ".local" / "state"),
+        "XDG_CACHE_HOME": str(home / ".local" / "cache"),
+        "OMP_CATALOG_SOURCES": json.dumps([str(CORPUS / "sessions")]),
+        "OMP_WEB_MANIFEST": str(PRODUCT_MANIFEST),
+        "OMP_WEB_LAUNCHER": str(PRODUCT_LAUNCHER),
+        "OMP_WEB_MANIFEST_SHA256": hashlib.sha256(manifest).hexdigest(),
+        "OMP_WEB_PORT": str(PRODUCT_PORT),
+        "OMP_WEB_DATA_DIR": str(data / "access"),
+        "OMP_WEB_ASSETS": str(PRODUCT_ASSETS),
+    }
+
+
+def bootstrap(env, host=CHAT_HOST):
+    output = subprocess.check_output([BUN, "--no-env-file", str(host), "--print-bootstrap"], cwd=ROOT, env=env, text=True)
     return output.strip()
 
 
@@ -300,14 +333,43 @@ def stage(name: str):
     print(f"chat-stage: {elapsed}ms {name}", file=sys.stderr, flush=True)
 
 
-async def chat_run(browser_args):
-    data = Path(tempfile.mkdtemp(prefix="omp-perf-chat-"))
-    env = chat_env(ROOT / "vendor/chat/installation.json", data)
-    link = bootstrap(env)
-    host, log = start_host(CHAT_HOST, CHAT_PORT, env, ROOT / "vendor/performance-evidence/chat-host.log")
+def startup_line(path):
+    try:
+        return json.loads(Path(path).read_text().splitlines()[0])
+    except (OSError, IndexError, ValueError):
+        return None
+
+
+def wait_startup(path, process, timeout=180):
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        line = startup_line(path)
+        if line is not None:
+            return line
+        if process.poll() is not None:
+            raise RuntimeError(f"host exited before startup ({process.returncode}): {Path(path).read_text()[:4000]}")
+        time.sleep(0.05)
+    raise RuntimeError(f"host produced no startup line: {Path(path).read_text()[:4000]}")
+
+
+async def chat_run(browser_args, product=False):
+    kind = "product" if product else "chat"
+    data = Path(tempfile.mkdtemp(prefix=f"omp-perf-{kind}-"))
+    if product:
+        env, host_path, port = product_env(data), PRODUCT_HOST, PRODUCT_PORT
+    else:
+        env, host_path, port = chat_env(ROOT / "vendor/chat/installation.json", data), CHAT_HOST, CHAT_PORT
+    link = bootstrap(env, host_path)
+    log_path = ROOT / f"vendor/performance-evidence/{kind}-host.log"
+    host, log = start_host(host_path, port, env, log_path)
     errors = []
     try:
-        await wait_port(CHAT_PORT)
+        await wait_port(port)
+        startup = wait_startup(log_path, host)
+        if product:
+            if (startup or {}).get("sessionAdmission") != "admitted":
+                raise RuntimeError(f"product Host did not admit the installation: {startup}")
+            print(f"product-admission: {json.dumps(startup)}", file=sys.stderr, flush=True)
         stage("host-ready")
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(executable_path=CHROME, headless=True, args=browser_args)
@@ -348,7 +410,7 @@ async def chat_run(browser_args):
                 await page.get_by_role("button", name="Review directory", exact=True).click()
                 await page.get_by_role("button", name="Grant this directory and descendants", exact=True).click()
                 stage("granted")
-                refresh = page.get_by_role("button", name="Refresh catalog", exact=True)
+                refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
                 await wait_until(lambda: refresh.is_enabled(), CHAT_TIMEOUT_MS)
                 if await page.locator("li[data-native-id]").count() < 1000:
                     await refresh.click()
@@ -363,7 +425,7 @@ async def chat_run(browser_args):
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
-                    refresh = page.get_by_role("button", name="Refresh catalog", exact=True)
+                    refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
                     await wait_until(lambda: refresh.is_enabled(), timeout)
                     if await page.locator("li[data-native-id]").count() < 1000:
                         await refresh.click()
@@ -440,18 +502,21 @@ async def chat_run(browser_args):
                 await sampling
                 peak = sampler.report()
                 await browser.close()
-        return {
-            "class": "chat",
+        result = {
+            "class": kind,
             "nativeSessionId": "10000000-0000-4000-8000-000000000000",
             "historyRows": rows,
             "reachability": reachability,
             "coldOpenMs": cold_open_ms,
-            "firstPage": summarize("chat-first-page", first + [cold_open_ms], CATALOG_P95_MS, peak["hostPeakMiB"], errors),
-            "oldPage": summarize("chat-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
+            "firstPage": summarize(f"{kind}-first-page", first + [cold_open_ms], CATALOG_P95_MS, peak["hostPeakMiB"], errors),
+            "oldPage": summarize(f"{kind}-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
             "rss": peak,
         }
+        if product:
+            result["productAdmission"] = startup
+        return result
     except Exception as failure:
-        evidence = ROOT / "vendor/performance-evidence/chat-failure.json"
+        evidence = ROOT / f"vendor/performance-evidence/{kind}-failure.json"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text(json.dumps({
             "nativeSessionId": "10000000-0000-4000-8000-000000000000",
@@ -473,7 +538,7 @@ async def chat_run(browser_args):
 async def main():
     global SAMPLES
     parser = argparse.ArgumentParser()
-    parser.add_argument("--class", dest="classes", choices=["catalog", "chat", "all"], default="all")
+    parser.add_argument("--class", dest="classes", choices=["catalog", "chat", "product", "all"], default="all")
     parser.add_argument("--samples", type=int, default=SAMPLES)
     args = parser.parse_args()
     SAMPLES = args.samples
@@ -483,12 +548,27 @@ async def main():
         sys.exit("google-chrome and bun are required")
     manifest = json.loads((CORPUS / "corpus.json").read_text())
     cpus = len(os.sched_getaffinity(0))
+    physical_cpus = os.cpu_count() or cpus
+    try:
+        browser_version = subprocess.check_output([CHROME, "--version"], text=True).strip()
+    except (OSError, subprocess.SubprocessError):
+        browser_version = None
+    mount = subprocess.run(["findmnt", "-no", "FSTYPE", "--target", str(ROOT)], capture_output=True, text=True)
     evidence = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "productMeasurement": "unclaimed: this run measured the component Host only; the #59 product Host was not exercised",
-        "admission": "blocked",
+        "productMeasurement": "unclaimed: this run measured component Hosts only; run --class product to measure the product Host",
+        "admission": "not-exercised: this run did not start the product Host",
         "reference": manifest["reference"],
-        "actual": {"cpus": cpus, "memoryMiB": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1048576), "runtime": "see corpus.json"},
+        "actual": {
+            "cpus": cpus,
+            "machineCpus": physical_cpus,
+            "cpuAffinityEmulation": None if cpus == physical_cpus else f"{cpus} of {physical_cpus} processors by affinity (taskset); not 4-vCPU hardware",
+            "memoryMiB": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1048576),
+            "kernel": Path("/proc/version").read_text().strip(),
+            "filesystem": mount.stdout.strip() or None,
+            "browser": browser_version,
+            "runtime": "see corpus.json",
+        },
         "corpus": {"seed": manifest["seed"], "limits": manifest["limits"], "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256")}, "history": {key: manifest["history"][key] for key in ("entries", "bytes", "sha256", "typeDistribution")}},
         "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]", "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM", "chatJournalLimitBytes": int(os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"))},
         "limits": {"firstPageP95Ms": CATALOG_P95_MS, "oldPageP95Ms": OLD_PAGE_P95_MS, "hostPeakMiB": HOST_RSS_MIB},
@@ -499,6 +579,13 @@ async def main():
             evidence["classes"].append(await catalog_run(["--no-sandbox"]))
         if args.classes in ("chat", "all"):
             evidence["classes"].append(await chat_run(["--no-sandbox"]))
+        if args.classes in ("product", "all"):
+            evidence["classes"].append(await chat_run(["--no-sandbox"], product=True))
+            evidence["productMeasurement"] = (
+                "measured: product Host apps/host/src/main.ts over the enrolled installation "
+                f"({hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest()}) serving the 1000-Session corpus "
+                "and the 10000-entry/100MiB history through the real catalog and session worker")
+            evidence["admission"] = "admitted: product Host verified the enrolled installation and served the measured session"
     finally:
         output = ROOT / "vendor/performance-evidence/performance.json"
         output.parent.mkdir(parents=True, exist_ok=True)
