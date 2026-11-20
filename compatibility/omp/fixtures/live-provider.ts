@@ -50,15 +50,20 @@ export default function(pi) {
         const promptText=lastUser===undefined?'':lastUser.content.flatMap(content=>content.type==='text'?[content.text]:[]).join(' ');
         const toolResults=context.messages.filter(message=>message.role==='toolResult').length;
         const batch=toolMode==='batch'||(toolMode==='all'&&(promptText.includes('both')||promptText.includes('all')));
-        const toolCalls=batch
-          ? [
-            {type:'toolCall',id:'batch-one-id',name:'s0_fixture',arguments:{path:'batch-one.txt',count:1},thoughtSignature:'batch-one-signature'},
-            {type:'toolCall',id:'batch-two-id',name:'s0_fixture_batch',arguments:{path:'batch-two.txt',count:2},thoughtSignature:'batch-two-signature'},
-          ]
+        const background=toolMode==='background'||(toolMode==='all'&&promptText.includes('background'));
+        const batchCalls=[
+          {type:'toolCall',id:'batch-one-id',name:'s0_fixture',arguments:{path:'batch-one.txt',count:1},thoughtSignature:'batch-one-signature'},
+          {type:'toolCall',id:'batch-two-id',name:'s0_fixture_batch',arguments:{path:'batch-two.txt',count:2},thoughtSignature:'batch-two-signature'},
+        ];
+        const backgroundCall={type:'toolCall',id:'background-fixture-id',name:'bash',arguments:{command:"sleep 2; printf 'background fixture result\\n'",async:true},thoughtSignature:'background-signature'};
+        const toolCalls=background
+          ? [backgroundCall, ...batchCalls]
+          : batch
+          ? batchCalls
           : toolMode==='reuse'||toolMode==='all'||toolMode==='1'
             ? [{type:'toolCall',id:'reusable-fixture-id',name:'s0_fixture',arguments:{path:'controlled.txt',count:2},thoughtSignature:'controlled-signature'}]
             : [];
-        const repeat=toolMode==='all'&&toolResults>=2&&toolResults<4;
+        const repeat=toolMode==='all'&&toolResults===3;
         if(toolCalls.length>0&&(toolResults===0||repeat)){
           partial.content=toolCalls;
           for(const [contentIndex,toolCall] of toolCalls.entries()){
