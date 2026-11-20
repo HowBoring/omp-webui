@@ -485,7 +485,7 @@ async def main():
     cpus = len(os.sched_getaffinity(0))
     evidence = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "productMeasurement": "unclaimed: product Host cutover (#59) is not available; component Host evidence only",
+        "productMeasurement": "unclaimed: this run measured the component Host only; the #59 product Host was not exercised",
         "admission": "blocked",
         "reference": manifest["reference"],
         "actual": {"cpus": cpus, "memoryMiB": round(os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES") / 1048576), "runtime": "see corpus.json"},

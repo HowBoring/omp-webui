@@ -84,7 +84,7 @@ export const sessionsHostContribution: TypertContribution = { package: sessionsC
 declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompSessions: {
-      catalog(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof catalog>>>;
+      catalog(options: z.infer<typeof catalogPage>): Promise<RemoteResult<z.infer<typeof catalog>>>;
       index(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof index>>>;
       branchPoints(workerId: string): Promise<RemoteResult<z.infer<typeof branchPointsSchema>>>;
       branch(change: { workerId: string; generation: string; entryId: string }): Promise<RemoteResult<BranchOutcome>>;
