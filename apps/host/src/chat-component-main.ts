@@ -28,7 +28,7 @@ const fixtureEnv = { ...(scenario === undefined ? {} : { OMP_LIVE_FIXTURE_SCENAR
   ...(tools === undefined ? {} : { OMP_LIVE_FIXTURE_TOOLS: tools }) };
 const env = { HOME: home, PATH: "/usr/bin:/bin", TMPDIR: home,
   PI_CODING_AGENT_DIR: attachments ? join(home, ".omp/agent") : home,
-  ...(attachments || performance ? {} : { OMP_HISTORY_FIXTURE_PROFILE: home }),
+  ...(attachments ? {} : { OMP_HISTORY_FIXTURE_PROFILE: home }),
   XDG_CONFIG_HOME: join(home, "config"), XDG_CACHE_HOME: join(home, "cache"),
   XDG_DATA_HOME: join(home, "data"), BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0", OPENAI_API_KEY: "synthetic-unused-no-provider-calls",
   NO_COLOR: "1", PI_NOTIFICATIONS: "off", ...fixtureEnv };

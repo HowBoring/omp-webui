@@ -9,7 +9,7 @@ type AuthoringManager = {
 	ensureOnDisk(): Promise<void>;
 	appendCompaction(summary: string, shortSummary: string | undefined, firstKeptEntryId: string, tokensBefore: number): string;
 	appendResetBoundary(): string;
-	appendMessageToBranch(message: unknown, parentId: string | null): string;
+	appendMessageToBranch(message: unknown, parentId: string | null, options?: { preserveActiveLeaf?: boolean }): string;
 	appendMessage(message: unknown): string;
 	appendCustomEntry(customType: string, data?: unknown): string;
 	flush(): Promise<void>;
@@ -58,6 +58,7 @@ for (let index = 0; index < ENTRIES; index++) {
 		manager.appendMessageToBranch(
 			{ role: "user", content: [{ type: "text", text: `Abandoned branch probe ${index}` }], timestamp },
 			users[index % Math.max(1, users.length)] ?? null,
+			{ preserveActiveLeaf: true },
 		);
 	} else if (slot === 0) {
 		last = manager.appendMessage({ role: "user", content: [{ type: "text", text: padded(index) }], timestamp });

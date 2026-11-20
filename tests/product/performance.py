@@ -289,8 +289,14 @@ async def catalog_run(browser_args):
         log.close()
 
 
+_STAGE_START = time.monotonic()
+CHAT_STAGES = []
+
+
 def stage(name: str):
-    print(f"chat-stage: {name}", file=sys.stderr, flush=True)
+    elapsed = int((time.monotonic() - _STAGE_START) * 1000)
+    CHAT_STAGES.append({"name": name, "atMs": elapsed})
+    print(f"chat-stage: {elapsed}ms {name}", file=sys.stderr, flush=True)
 
 
 async def chat_run(browser_args):
@@ -352,10 +358,17 @@ async def chat_run(browser_args):
                 stage("session-present")
                 await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
                 stage("first-node")
+                async def reopen(timeout):
+                    refresh = page.get_by_role("button", name="Refresh catalog", exact=True)
+                    await wait_until(lambda: refresh.is_enabled(), timeout)
+                    if await page.locator("li[data-native-id]").count() < 1000:
+                        await refresh.click()
+                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
+                    await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
+                    await page.wait_for_selector('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]', timeout=timeout)
+                    await page.wait_for_selector("[data-chat-node]", timeout=timeout)
                 for index in range(WARMUPS + SAMPLES):
-                    async def ready(timeout):
-                        await page.wait_for_selector("[data-chat-node]", timeout=timeout)
-                    elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), ready)
+                    elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         first.append(elapsed)
@@ -364,7 +377,7 @@ async def chat_run(browser_args):
                 stage(f"history-rows={rows}")
                 for index in range(WARMUPS + SAMPLES):
                     await page.wait_for_selector("[data-chat-load-earlier]", timeout=CHAT_TIMEOUT_MS)
-                    before = int(re.search(r"/(\d+)$", await page.locator("#conversation").get_attribute("data-chat-history-window")).group(1))
+                    before = int((await page.locator("#conversation").get_attribute("data-chat-history-window")).split("/")[0])
                     async def ready(timeout, before=before):
                         async def windowed():
                             value = await page.locator("#conversation").get_attribute("data-chat-history-window")
@@ -375,7 +388,7 @@ async def chat_run(browser_args):
                     if index >= WARMUPS:
                         old.append(elapsed)
                     await page.reload(wait_until="domcontentloaded")
-                    await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
+                    await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
                 steps = 0
                 while steps < 300:
@@ -410,6 +423,19 @@ async def chat_run(browser_args):
             "oldPage": summarize("chat-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors),
             "rss": peak,
         }
+    except Exception as failure:
+        evidence = ROOT / "vendor/performance-evidence/chat-failure.json"
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_text(json.dumps({
+            "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+            "stageTimingMs": CHAT_STAGES,
+            "firstPageSamplesMs": locals().get("first", []),
+            "oldPageSamplesMs": locals().get("old", []),
+            "historyRows": locals().get("rows"),
+            "error": f"{type(failure).__name__}: {failure}",
+            "note": "Cold open retained in the sample set; no over-budget sample is excluded.",
+        }, indent=2) + "\n")
+        raise
     finally:
         stop_host(host)
         log.close()
