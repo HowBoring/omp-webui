@@ -157,9 +157,9 @@ export class OriginalStore {
         CREATE TABLE IF NOT EXISTS original_submission_holds (objectId TEXT PRIMARY KEY REFERENCES originals(id),
           target TEXT NOT NULL, submissionId TEXT NOT NULL,
           FOREIGN KEY(target, submissionId) REFERENCES original_submissions(target, submissionId));
-        CREATE TABLE IF NOT EXISTS original_entry_links (sourceId TEXT NOT NULL, instanceId TEXT NOT NULL,
+        CREATE TABLE IF NOT EXISTS original_entry_links (sessionId TEXT NOT NULL, instanceId TEXT NOT NULL,
           entryId TEXT NOT NULL, objectId TEXT NOT NULL, target TEXT NOT NULL, submissionId TEXT NOT NULL,
-          PRIMARY KEY(sourceId, instanceId, entryId, objectId));`);
+          PRIMARY KEY(sessionId, instanceId, entryId, objectId));`);
       this.db.transaction(() => {
         const saved = this.db.query<{ limits: string }, []>("SELECT limits FROM budget WHERE id=1").get();
         if (saved && saved.limits !== JSON.stringify(this.limits)) fail("limits_changed");
@@ -388,7 +388,7 @@ export class OriginalStore {
     const scope = this.current(access);
     this.db.transaction(() => {
       this.current(access, scope);
-      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND scope=? AND state='staged-unprepared'");
+      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND scope=? AND state IN ('staged-unprepared','native-associated')");
       for (const objectId of objectIds) mark.run(objectId, scopeKey(scope));
     }).immediate();
   }
@@ -401,8 +401,8 @@ export class OriginalStore {
       const record = this.submission(scope, clientSubmissionId);
       const association = this.verifyAssociation(scope, clientSubmissionId, record, query);
       if (!record || record.associations !== null) return;
-      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND state='staged-unprepared'");
-      for (const { objectId } of association.links) if (mark.run(objectId).changes !== 1) fail("association_conflict");
+      const mark = this.db.query("UPDATE originals SET state='native-associated' WHERE id=? AND scope=? AND state IN ('staged-unprepared','native-associated')");
+      for (const { objectId } of association.links) if (mark.run(objectId, scopeKey(scope)).changes !== 1) fail("association_conflict");
       this.db.query("UPDATE original_submissions SET associations=? WHERE target=? AND submissionId=?")
         .run(JSON.stringify(association), submissionTargetKey(scope), clientSubmissionId);
       this.recordLinks(scope, clientSubmissionId, association);
