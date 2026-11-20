@@ -13,12 +13,16 @@ import { StrictStartClient } from "../contracts/generated/strict-client.ts";
 import { HistoryClient } from "../contracts/generated/history-client.ts";
 import { SubmissionClient, isSubmissionResult } from "../contracts/submissions.ts";
 import { AttachmentClient } from "../contracts/generated/attachment-client.ts";
-import type { AttachmentReceipt } from "../contracts/generated/omp-wire.ts";
+import { NavigationClient } from "../contracts/generated/navigation-client.ts";
+import type { AttachmentReceipt, NavigationPreview, NavigationResult } from "../contracts/generated/omp-wire.ts";
 import { validateHistoryCommand } from "../contracts/generated/history.generated.ts";
 import strictCommand from "../contracts/generated/strict-command.js";
 import submissionCommand from "../contracts/generated/submission-command.js";
 import attachmentCommand from "../contracts/generated/attachment-command.js";
 import attachmentReceipt from "../contracts/generated/attachment-receipt.js";
+import navigationCommand from "../contracts/generated/navigation-command.js";
+import navigationPreview from "../contracts/generated/navigation-preview.js";
+import navigationResult from "../contracts/generated/navigation-result.js";
 import strictState from "../contracts/generated/strict-state.js";
 import strictPolicy from "../contracts/generated/strict-policy.js";
 import interactionCommand from "../contracts/generated/interaction-command.js";
@@ -72,7 +76,8 @@ class SessionNotifications {
 function sessionPolicy(notifications: SessionNotifications): StdioPolicy {
   return {
     validateCommand: value => strictCommand(value) || interactionCommand(value) || validateHistoryCommand(value)
-      || submissionCommand(value) || attachmentCommand(value) || controls(value) || branchCommand(value),
+      || submissionCommand(value) || navigationCommand(value) || attachmentCommand(value) || controls(value)
+      || branchCommand(value),
     acceptReady: (frame, publish) => {
       if (frame.protocolVersion !== 1 || frame.supportedProtocolVersions?.includes(2) !== true
         || frame.maxFrameBytes !== MAX_RPC_FRAME_BYTES || frame.maxReassembledFrameBytes !== MAX_RPC_REASSEMBLED_BYTES
@@ -109,6 +114,8 @@ async function readSessionState(request: Request): Promise<SessionState> {
 class SessionRpc {
   readonly startup: StrictStartClient;
   readonly history: HistoryClient;
+  /** Matched public native navigation boundary; previews and confirmed returns only. */
+  readonly navigation: NavigationClient;
   readonly frames: readonly SessionWorkerFrame[];
   #retired = false;
   readonly #initialCount: number;
@@ -121,6 +128,9 @@ class SessionRpc {
     this.startup = new StrictStartClient(command => core.request(command,
       command.type === "strict_start" ? startTimeoutMs : undefined), (value): value is StrictStartState => strictState(value));
     this.history = new HistoryClient(command => core.request(command));
+    this.navigation = new NavigationClient(command => core.request(command),
+      (value): value is NavigationResult => navigationResult(value),
+      (value): value is NavigationPreview => navigationPreview(value));
   }
 
   get notificationCount(): number { return this.notifications.count - this.#initialCount; }

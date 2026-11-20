@@ -525,8 +525,8 @@ test("joint idle cannot be asserted by acceptingWork alone or by another worker/
     const f = await fixture();
     try {
       const offer = await confirmation(f), idle = f.ports.idle;
-      f.ports.idle = scope => {
-        const value = idle(scope);
+      f.ports.idle = async scope => {
+        const value = await idle(scope);
         if (mismatch === "worker") return { ...value, workerGeneration: "another-worker" };
         if (mismatch === "broker") return { ...value, scope: { kind: "session", sessionId: "another-session" } };
         return { ...value, pending: { ...value.pending, history: 1 } };

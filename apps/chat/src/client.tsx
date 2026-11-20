@@ -33,6 +33,7 @@ import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
 import { TreePanel } from "../../../packages/tree/panel.tsx";
 import type { TreeNode } from "../../../packages/contracts/tree.ts";
+import { historyNavigationSourceContribution, type ConflictSafeDraftOffer, type HistoryNavigationSourceResult } from "../../../packages/contracts/history-navigation-source.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -360,6 +361,7 @@ function Surface() {
     }).catch(() => {});
     return () => { active = false; };
   }, [view?.workerId, view?.generation]);
+  const [returned, setReturned] = useState<ConflictSafeDraftOffer>();
   const binding = useRef<SessionBinding>(), scope = useRef<DraftScope>();
   const perform = async (action: () => Promise<void>) => {
     const current = accessRevision;
@@ -643,7 +645,13 @@ function Surface() {
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
-        affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }} /></div>}
+        affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
+        navigation={{ sessionId: view.registration.nativeSessionId,
+          action: request => ctx.remote.ompHistoryNavigationSource.action(request).then(resultValue),
+          ready: (result: Extract<HistoryNavigationSourceResult, { status: "operation" }>) => {
+            setReturned(result.draft);
+            void perform(() => renewSessionProjection(view));
+          } }}/></div>}
       {branchTarget && <section aria-label="Branch confirmation" data-chat-branch>
         <h3>Branch into a new Session?</h3>
         <p>Target {branchTarget.id}. Only the history before this message is kept; this message and everything after it stay in the current Session.</p>
@@ -652,6 +660,16 @@ function Surface() {
           onClick={() => void perform(() => branch(branchTarget))}>Branch at {branchTarget.id}</button>
         <button data-chat-branch-cancel onClick={() => setBranchTarget(undefined)}>Cancel</button></section>}
       {branchNotice && <p role="status" data-chat-branch-notice>{branchNotice}</p>}
+      {returned && <section data-chat-returned-draft data-returned-conflict={text.trim() === "" ? "false" : "true"}>
+        <h3>Returned text from {returned.originEntryId}</h3>
+        <p>It was not sent. Files and external effects were not rolled back.</p>
+        <pre>{returned.text}</pre>
+        {text.trim() === "" ? <button data-returned-use
+          onClick={() => { edit(returned.text); setReturned(undefined); }}>Put returned text in the composer</button>
+          : <><p role="alert">The composer already has unsubmitted text; it is never overwritten.</p>
+            <button data-returned-replace onClick={() => { edit(returned.text); setReturned(undefined); }}>Replace the current draft</button>
+            <button data-returned-keep onClick={() => setReturned(undefined)}>Keep the current draft</button></>}
+      </section>}
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}
@@ -710,6 +728,7 @@ async function boot() {
   await ctx.remote.$mount(chatContribution);
   await ctx.remote.$mount(chatComponentContribution);
   await ctx.remote.$mount(treeContribution);
+  await ctx.remote.$mount(historyNavigationSourceContribution);
   await ctx.remote.$mount(attachmentContribution);
   await ctx.remote.$mount(attachmentsContribution);
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);

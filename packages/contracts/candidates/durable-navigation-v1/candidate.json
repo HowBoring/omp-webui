@@ -17,9 +17,9 @@
     "nativePublicBase": "57771ae562b9345e0579bceb2d68d585e3e6927e",
     "buildIdentity": {
       "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
-      "sourceSha256": "01bf0151fc7171166630bc4680fe7314172117b349a1bedd55936220fe3e4fd0",
-      "patchSha256": "227cf161b74c0fcb2bda419f760c02de38ce452ba7326f091c97c1046e03160c",
-      "schemaSha256": "e4fe30c9ed9cf053b4b8dada0691c2a3e2d31e4f915a83a55277da3a8d3ecf62"
+      "sourceSha256": "f89ce77211da98c57330b5ea2f196ee8042cf22ee6b2b63a55b8d0f6ed734822",
+      "patchSha256": "188feccee2848c14f250af40c5b3dfc1804f04d33071a4f74ad024d97f6e17e8",
+      "schemaSha256": "b13a75ebfb36a0c48edb5d796e8335d6ab0a6a6b6fad7eda06be40c7f7c5a1ff"
     },
     "sourcePatchFormula": "sha256(base + newline + concatenated ordered patches)",
     "patches": [
@@ -67,6 +67,16 @@
         "path": "compatibility/omp/0010-image-original-budget.patch",
         "bytes": 3262,
         "sha256": "006be7825460e05f7aa1cba74462ab057f87b8909877416610fde128cdddabc7"
+      },
+      {
+        "path": "compatibility/omp/0011-history-tool-details.patch",
+        "bytes": 13480,
+        "sha256": "3598548a00c93c161221415ea32e2617855a884b21b96c7de9887b9709199f64"
+      },
+      {
+        "path": "compatibility/omp/0008-durable-navigation.patch",
+        "bytes": 77932,
+        "sha256": "356f8c2a5d6002961e12cf39e979e471e6dda6728b02de5a7703ddf0dad8f6b8"
       }
     ],
     "immutableFreeze": {

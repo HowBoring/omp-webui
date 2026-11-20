@@ -2,12 +2,12 @@ import * as path from "node:path";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import { fixtureCandidatePath, type FixtureCandidate } from "../continuation/worker.ts";
 
-// Independent expected authored tuple for the OMP19 1-6,7,9,10,11 stack (navigation 0008 belongs to #37),
+// Independent expected authored tuple for the merged OMP19 stack (0012 strict branch belongs to #52),
 // recomputed from the authored patches and emitted schema rather than read back from the running build.
 const expectedBuild = {
   base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
-  sourceSha256: "8b5420ab340afb947fe4620fe6e84909ae0bd5ad36f19b91d1794b7308a2b7c3",
-  patchSha256: "ddcbf9213eeec575065fd5436ab9262bb7fd85b8a4c6d32b0bda26bd61dd03f5",
+  sourceSha256: "e9e00d47306d8885563fc271f5a79ea3330f18a5ec52de4f54688c64101b0530",
+  patchSha256: "99b33a85b209f7f3e29beb97ee531a8399eb5e9069f2eb4abc7f1e3e146bd5cb",
   schemaSha256: "6520b1017637db3d3bb8b49a6e9ddea67bb6889152664e4a89b252bf15c1b044",
 } as const;
 

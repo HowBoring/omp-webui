@@ -15,6 +15,7 @@ import type { DrainPolicy, DrainResult, GracefulDrainResult } from "../../packag
 import type { OwnedSessionConnection, SessionWorkerFrame } from "../../packages/compatibility/session-worker.ts";
 import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/submissions.ts";
 import { AttachmentClient } from "../../packages/contracts/generated/attachment-client.ts";
+import { NavigationClient } from "../../packages/contracts/generated/navigation-client.ts";
 import { isAttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
 
 interface NativeFixtureControls {
@@ -71,6 +72,7 @@ export async function sourceFixture(now: () => number = Date.now,
     subscribe(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
     submissions: new SubmissionClient(async () => { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); }, isSubmissionResult),
     attachments: new AttachmentClient(async () => { throw new Error("SYNTHETIC_ATTACHMENT_UNUSED"); }, isAttachmentReceipt),
+    navigation: new NavigationClient(async () => { throw new Error("SYNTHETIC_NAVIGATION_UNUSED"); }, (_value): _value is never => false, (_value): _value is never => false),
     async submitCommand() { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async state() { return { sessionId: controls.sessionId, sessionFile: controls.sessionFile, isSettled: !controls.busy, isStreaming: controls.busy,
