@@ -85,7 +85,7 @@ function route(store: OriginalStore, options: { retained?: string[]; revoke?: ()
   });
 }
 
-test("historical Originals stay readable after Host restart and in a branch copy of the same source", async () => {
+test("historical Originals stay readable after Host restart and reject another browser, page or session", async () => {
   const { open } = fixture();
   const first = open();
   const original = await committed(first);
@@ -96,10 +96,10 @@ test("historical Originals stay readable after Host restart and in a branch copy
     availability: "available" }]);
   expect(new Uint8Array((await reopened.readHistorical(access, "user", original.objectId, ["user"])).bytes))
     .toEqual(image);
-  const branch = () => ({ ...scope, sourceId: "c".repeat(64) });
-  expect(await reopened.history(branch, ["user"])).toHaveLength(1);
+  const copy = () => ({ ...scope, sourceId: "c".repeat(64) });
+  expect(await reopened.history(copy, ["user"])).toHaveLength(1);
   for (const field of ["browserId", "pageId", "hostId", "profileId", "instanceId", "sessionId"] as const) {
-    expect(await reopened.history(() => ({ ...branch(), [field]: "other" }), ["user"])).toEqual([]);
+    expect(await reopened.history(() => ({ ...copy(), [field]: "other" }), ["user"])).toEqual([]);
   }
   await expect(reopened.readHistorical(() => ({ ...scope, browserId: "other" }), "user", original.objectId, ["user"]))
     .rejects.toThrow("attachment_object_unavailable");
