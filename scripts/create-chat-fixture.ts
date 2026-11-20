@@ -12,7 +12,7 @@ const authored = Bun.spawn([process.execPath, "--no-env-file", "-e", `
   const manager = SessionManager.create(${JSON.stringify(resolve(home, "project"))});
   await manager.ensureOnDisk();
   manager.appendMessage({ role: "user", content: [{ type: "text", text: "Earlier retained question" }], timestamp: 1767225601000 });
-  manager.appendMessage({ role: "assistant", content: [{ type: "text", text: "Earlier retained answer" }], timestamp: 1767225602000 });
+  manager.appendMessage({ role: "assistant", content: [{ type: "text", text: "Earlier retained answer" }], provider: "s0-controlled", model: "deterministic-live", timestamp: 1767225602000 });
   const kept = manager.appendMessage({ role: "user", content: [{ type: "text", text: "Before reset" }], timestamp: 1767225603000 });
   manager.appendCompaction("Synthetic native summary", undefined, kept, 120);
   manager.appendResetBoundary();

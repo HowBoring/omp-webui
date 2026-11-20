@@ -338,7 +338,7 @@ function Surface() {
       request => ctx.remote.ompTree.read(request).then(resultValue));
     setTree(browser);
     return () => browser.dispose();
-  }, [view?.workerId, view?.generation, view?.registration.nativeSessionId]);
+  }, [view?.workerId, view?.generation, view?.registration?.nativeSessionId]);
   type Choice = Extract<Awaited<ReturnType<typeof ctx.remote.ompSessions.catalog>>, { ok: true }>["value"]["choices"][number];
   const [choices, setChoices] = useState<Choice[]>([]);
   const [opening, setOpening] = useState(false), [busy, setBusy] = useState(false), [draftReady, setDraftReady] = useState(false);
@@ -575,7 +575,7 @@ function Surface() {
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
       <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
-      {tree && <div data-chat-tree><TreePanel key={`${view!.workerId}:${view!.generation}`} browser={tree} /></div>}
+      {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree} /></div>}
       {attempt && <p role="status" data-chat-attempt={attempt.state}>
         {attempt.state} · {attempt.mode} · {attempt.requestId}{attempt.error ? ` · ${attempt.error}` : ""}</p>}
       {entry && <span data-chat-native-entry={entry}>{entry}</span>}

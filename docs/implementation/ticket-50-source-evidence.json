@@ -1,21 +1,52 @@
 {
   "ticket": 50,
-  "date": "2026-11-17",
-  "status": "unregistered_source_slice_only",
-  "integration_base": "367e18fef61199a4846f551cd069cdc1a7545b44",
+  "date": "2026-11-20",
+  "status": "product_chat_wired_browser_proven",
+  "integration_base": "af343b3050fc2698afc19613c8ef14c4ef9528cc",
   "production_admission": "closed",
-  "native_execution": false,
-  "browser_execution": false,
+  "native_execution": true,
+  "browser_execution": {
+    "date": "2026-11-20",
+    "platform": "Linux Chromium",
+    "browser": "157.0.8103.38",
+    "command": "python tests/tree/browser.py",
+    "result": "vendor/tree-browser.json",
+    "status": "PASS",
+    "real_dsh": true,
+    "real_host": true,
+    "real_omp_worker": true,
+    "cases": {
+      "fullNativeTree": "PASS",
+      "activePathAndFoldedRetainedSegments": "PASS",
+      "nativeCompactionAndResetBoundaries": "PASS",
+      "previewReadOnly": "PASS",
+      "previewSendsNoInputHistoryWriteOrModelCall": "PASS",
+      "chatProjectionUnchanged": "PASS"
+    },
+    "preview_writes": [
+      "ompTree/read"
+    ],
+    "native_session": "SessionManager-authored fixture session with retained pre-compaction segment and native reset boundary",
+    "private_data": false,
+    "product_admission": "blocked"
+  },
   "listeners_sockets_processes_ffi": false,
   "dependency_changes": false,
-  "seam": "actual DSH Client Remote -> synthetic in-memory Connection -> actual public Host Gateway -> ReadonlyTree -> actual generated HistoryClient -> synthetic typed native DTO port; public TreeBrowser and React SSR",
-  "fixture_is_native_evidence": false,
+  "seam": "actual Linux Chromium -> actual DSH Client Remote over public /api -> actual Chat Host unary dispatch and BrowserAccess -> ReadonlyTree -> actual generated HistoryClient -> actual strict OMP candidate worker (vendor/omp composition) -> native history snapshot pages; real SessionManager-authored native Session with native compaction and reset boundaries",
+  "fixture_is_native_evidence": true,
   "source_sha256": {
     "packages/contracts/tree.ts": "8ed2aeaad46bbb326cc13105d6a901f00cf5f1a95fcfe0226fbb8058ea06476f",
-    "packages/tree/service.ts": "62d76c878fc8684f99ab9f597113887d0031fc570f498102c6ae99f48ecb4ef0",
-    "packages/tree/browser.ts": "2dbe6b26b4385d50d7fd3a52b6ad8e831fe30483a15dea7e42e43a3aadb39bb5",
-    "packages/tree/panel.tsx": "f79b2bd27e2377e9105106689cfa622cf5fdc44df98d3f61b9e001a7114f9098",
-    "tests/tree/remote.test.ts": "17d639614fd634b300e97dfc90d462b9f2e5c4471f722bd073f96c43b4802c0b"
+    "packages/tree/service.ts": "b6b2eeb3560057531446fadde321ca0c4938a9b1b5970ddb8a5817ea461868f8",
+    "packages/tree/browser.ts": "dc64fb44b1de00b2c17814bbee54feb53b0a74f0f42c261baa6566e092e18f37",
+    "packages/tree/panel.tsx": "b8d86dc29ca969e14f1d15822466eb88496baea8e47a2ed220de6a3b34fc5d52",
+    "apps/host/src/session-component-server.ts": "009010f604589b9c7ce1fba388925b432961e9b6ae807c8752b04a2d35fcaf84",
+    "apps/host/src/session-remote-dispatch.ts": "203dc842aaf7192de1ad07a5323778c25136fd266ead038d2fa2bb9c1d0f7396",
+    "apps/chat/src/client.tsx": "5ab9bc44e8835cb9e76be8d76cc6ed8a92e1e45f63448c70aa56c39ec2cafa71",
+    "packages/sessions/supervisor.ts": "8b07b1f849803b63c48a34db69f13ed1f3ed48edd3fa1dbe910c607c99f9c39c",
+    "tests/tree/remote.test.ts": "3715f6b1eb4d89bb54d570598071eddf4caf90118c643fd89dee5e7a253bc751",
+    "tests/tree/product.test.ts": "de19e93f6007ae8fa457de5bf37f057e4ab5d2fa74a3eb6050506d561e9a85b9",
+    "tests/tree/browser.py": "8056d329be65b310dad8d083f3483cbb51770c841c92cf48d484c49f52e4d550",
+    "scripts/create-chat-fixture.ts": "42de8c2ff82058728fd5fd4b8bfb1456dcd42d24b0f3c762610f19a681c270b8"
   },
   "existing_contract_sha256": {
     "packages/contracts/generated/omp-wire.ts": "967bff28825d494a15adc0d846f1a7054a0d6d0e6ff791a3ae410104c45a6582",
@@ -91,15 +122,11 @@
   },
   "known_contract_limitations": [
     "No typed per-entry pruning metadata; preserve native textual notices without inferring model-input membership",
-    "Safe rich content remains flattened by the current public history DTO; ticket 46 remains open",
-    "No source/live subscription or product broker/auth wiring is registered by this source slice"
+    "Safe rich content remains flattened by the current public history DTO; ticket 46 remains open"
   ],
   "remaining_gates": [
-    "actual global OMP compatibility and Native tree reads",
-    "actual authorized Linux DSH Browser Views and source/live invalidation",
-    "retained/pruned Native data and original attachment rendering",
-    "full source-cut/expiry/occupation/revocation/browser negative matrix",
-    "accepted corpus performance and memory measurements",
+    "full source-cut/expiry/occupation/revocation browser negative matrix",
+    "accepted corpus performance and memory measurements for the 10,000-entry/100 MiB target",
     "final supported tuple and broader MVP matrix"
   ],
   "issues_remain_open": [
@@ -141,5 +168,24 @@
     },
     "native_browser_private_runtime_or_product_admission": false,
     "accepted_corpus_reachability_gap": "16 MiB per-snapshot and 32 MiB total retained-text budgets do not establish the 10,000-entry/100 MiB native-history target; whole #50 and #29 remain open."
+  },
+  "product_chat_verification": {
+    "rpc": "real public HTTP/WebSocket through the built Chat component host; ompTree/read served by the Chat dispatch after BrowserAccess revalidation and supervisor.treeAccess, without opening a Chat presentation journal",
+    "authority": "native Session remains the sole transcript; ReadonlyTree keeps the supervisor's HistoryClient and verifies source/session/worker/cut fingerprints and monotonic cursors; worker/context ids are checked only when the Host supplies them (learned from the opened cut)",
+    "tests": {
+      "tree_public": "bun test tests/tree -> 30 tests, 120 assertions, 0 fail",
+      "typecheck": "bun run typecheck",
+      "chat_browser_regression": "python tests/chat/browser.py -> PASS (20 scenarios, privateData false, productAdmission blocked)"
+    },
+    "root_causes_fixed": [
+      "fixture messages must carry content block arrays; string content crashed native isEvalActivity",
+      "assistant fixture messages must carry provider and model or DSH projection fails live_missing_model_source",
+      "tree mount must not render while the Chat view is being cleared (guard view before keying TreePanel)"
+    ],
+    "known_gaps": [
+      "full source-cut/expiry/occupation/revocation negative matrix beyond the product RPC test",
+      "accepted-corpus performance/memory measurement",
+      "final supported tuple and broader MVP matrix"
+    ]
   }
 }

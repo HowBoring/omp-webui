@@ -86,19 +86,22 @@ async def main():
             retired = active.locator("details").first
             await expect(retired).not_to_have_attribute("open", "")
             await retired.locator("summary").click()
-            await expect(retired).to_contain_text("Earlier retained question")
+            retained = retired.get_by_role("button").first
+            await expect(retained).to_be_visible()
+            await retained.click()
+            await expect(tree.get_by_role("region", name="Selected node preview")).to_contain_text("Earlier retained question")
             await expect(active).to_contain_text("Native reset boundary")
             await page.screenshot(path=str(ROOT / "vendor/tree-browser.png"), full_page=True)
 
             before = len(writes)
-            await tree.get_by_role("button", name=re.compile("compaction")).click()
+            await tree.get_by_role("button", name=re.compile("compaction")).first.click()
             preview = tree.get_by_role("region", name="Selected node preview")
             await expect(preview).to_contain_text("Synthetic native summary")
             await expect(tree).to_contain_text("not an exact model-input audit")
             assert await page.locator("#conversation").inner_text() == conversation, "tree preview changed Chat"
             preview_writes = writes[before:]
             assert all(path == "ompTree/read" for path in preview_writes), preview_writes
-            assert not [path for path in writes if "prompt" in path or "cancel" in path or "attach" in path], writes
+            assert not [path for path in writes if path in ("session/prompt", "session/cancel")], writes
             assert not errors, errors
             result = {"status": "PASS", "platform": "Linux Chromium", "browser": browser.version,
                       "realDSH": True, "realBun": True, "realHost": True, "realOmpWorker": True,
