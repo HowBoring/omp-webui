@@ -340,6 +340,7 @@ async def chat_run(browser_args):
                         print(f"chat-stall: t={(tick+1)*15}s rows={await page.locator('li[data-native-id]').count()} alert={alert!r}", file=sys.stderr, flush=True)
                 debug_task = asyncio.create_task(report_stalls())
             try:
+                cold_started = time.perf_counter()
                 await page.goto(link)
                 stage("page-loaded")
                 await page.get_by_label("Directory to authorize").fill(str(CORPUS / "project"))
@@ -358,6 +359,8 @@ async def chat_run(browser_args):
                 stage("session-present")
                 await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
                 stage("first-node")
+                cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
+                stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
                     refresh = page.get_by_role("button", name="Refresh catalog", exact=True)
                     await wait_until(lambda: refresh.is_enabled(), timeout)
@@ -375,8 +378,12 @@ async def chat_run(browser_args):
                 window = await page.locator("#conversation").get_attribute("data-chat-history-window")
                 rows = int(window.split("/")[1])
                 stage(f"history-rows={rows}")
+                old_unavailable = None
                 for index in range(WARMUPS + SAMPLES):
-                    await page.wait_for_selector("[data-chat-load-earlier]", timeout=CHAT_TIMEOUT_MS)
+                    if not await page.locator("[data-chat-load-earlier]").count():
+                        old_unavailable = "no older page control: the live component window has no resident older records"
+                        stage(f"old-page-unavailable:{old_unavailable}")
+                        break
                     before = int((await page.locator("#conversation").get_attribute("data-chat-history-window")).split("/")[0])
                     async def ready(timeout, before=before):
                         async def windowed():
@@ -394,7 +401,7 @@ async def chat_run(browser_args):
                 while steps < 300:
                     value = await page.locator("#conversation").get_attribute("data-chat-history-window")
                     shown_now, total = (int(part) for part in value.split("/"))
-                    if shown_now >= total:
+                    if shown_now >= total or not await page.locator("[data-chat-load-earlier]").count():
                         break
                     await page.locator("[data-chat-load-earlier]").click()
                     async def advanced(before=shown_now):
@@ -419,8 +426,9 @@ async def chat_run(browser_args):
             "nativeSessionId": "10000000-0000-4000-8000-000000000000",
             "historyRows": rows,
             "reachability": reachability,
-            "firstPage": summarize("chat-first-page", first, CATALOG_P95_MS, peak["hostPeakMiB"], errors),
-            "oldPage": summarize("chat-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors),
+            "coldOpenMs": cold_open_ms,
+            "firstPage": summarize("chat-first-page", first + [cold_open_ms], CATALOG_P95_MS, peak["hostPeakMiB"], errors),
+            "oldPage": summarize("chat-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
             "rss": peak,
         }
     except Exception as failure:
@@ -432,6 +440,7 @@ async def chat_run(browser_args):
             "firstPageSamplesMs": locals().get("first", []),
             "oldPageSamplesMs": locals().get("old", []),
             "historyRows": locals().get("rows"),
+            "rss": locals().get("peak"),
             "error": f"{type(failure).__name__}: {failure}",
             "note": "Cold open retained in the sample set; no over-budget sample is excluded.",
         }, indent=2) + "\n")
