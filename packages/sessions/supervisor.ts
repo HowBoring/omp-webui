@@ -760,19 +760,42 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     this.#current(identity, active);
-    let journal = await (active.journal ??= LiveJournal.open(active.worker.history));
-    this.#current(identity, active);
-    // A new submission starts a new native cut/context. Re-open the journal from the authoritative
-    // history instead of permanently failing presentation for the rest of the worker's life.
-    if (journal.sessionId !== sessionId || journal.failure) {
+    for (let rebuilt = false; ;) {
+      const pending = (active.journal ??= LiveJournal.open(active.worker.history));
+      let journal: LiveJournal;
+      try { journal = await pending; } catch (error) {
+        if (active.journal === pending) delete active.journal;
+        throw error;
+      }
+      this.#current(identity, active);
+      if (active.journal !== pending) continue; // a concurrent caller retired this opening first
+      if (journal.sessionId === sessionId && !journal.failure) {
+        active.journalValue = journal;
+        return journal;
+      }
+      if (rebuilt) { delete active.journal; break; } // the replacement is unusable; the next viewer retries
+      // A new submission starts a new native cut/context. Re-open the journal from the authoritative
+      // history instead of permanently failing presentation for the rest of the worker's life. Every
+      // concurrent viewer waits on this one replacement, so one cut announces exactly one generation.
       const epoch = ++journalIdentity;
-      active.journalValue?.dispose();
-      journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
-      active.journal = Promise.resolve(journal); active.journalEpoch = epoch;
+      const replacement = LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`);
+      active.journal = replacement;
+      rebuilt = true;
+      try { journal = await replacement; } catch (error) {
+        if (active.journal === replacement) delete active.journal;
+        throw error;
+      }
+      this.#current(identity, active);
+      if (active.journal !== replacement) continue;
+      if (journal.sessionId !== sessionId) { delete active.journal; break; }
+      const previous = active.journalValue;
+      // Publish the successor and retire the predecessor together: control must never advertise a
+      // generation that the next follow can no longer open.
+      active.journalValue = journal; active.journalEpoch = epoch;
+      if (previous !== undefined && previous !== journal) previous.invalidate("presentation_replaced");
+      return journal;
     }
-    active.journalValue = journal;
-    if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
-    return journal;
+    throw new Error("SESSION_PRESENTATION_INVALIDATED");
   }
   /** Retire the current presentation before a possible native effect; followers must rebuild, never continue. */
   invalidatePresentation(identity: BrowserAccess, workerId: string, sessionId: string): void {

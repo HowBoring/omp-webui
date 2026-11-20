@@ -324,3 +324,30 @@ test("public steer queues during a real busy turn and abort_and_restore_queue re
     expect(await actual!.state()).toMatchObject({ queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
   } finally { await f.close(); }
 }, 45_000);
+
+test("a cut recovery rebuilds one presentation generation for every concurrent viewer", async () => {
+  const f = await fixture();
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    const nativeSessionId = opened.registration.nativeSessionId;
+    const retired = await f.supervisor.presentation(f.identity, nativeSessionId);
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, nativeSessionId);
+    expect(retired.failure).toBe("navigation_pending");
+    const [first, second] = await Promise.all([
+      f.supervisor.presentation(f.identity, nativeSessionId),
+      f.supervisor.presentation(f.identity, nativeSessionId),
+    ]);
+    expect(first.generation).toBe(second.generation);
+    expect(first.generation).not.toBe(retired.generation);
+    expect(f.supervisor.activeJournal(f.identity)).toBe(first);
+    expect(String(first.sessionId)).toBe(nativeSessionId);
+    expect((first as { failure?: string }).failure).toBeUndefined();
+    // The announced generation is the one control publishes, and the retired stream is told to stop.
+    expect(f.supervisor.presentationEpoch(f.identity)).toBeGreaterThan(0);
+    expect(() => f.supervisor.requirePresentation(f.identity, nativeSessionId, retired))
+      .toThrow("SESSION_PRESENTATION_INVALIDATED");
+    const page = await first.page({ address: { kind: "session", sessionId: nativeSessionId }, projection: first.projection,
+      maxMessages: 1 } as never);
+    expect(page.projection).toEqual(first.projection);
+  } finally { await f.close(); }
+}, 30_000);
