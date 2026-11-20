@@ -8,7 +8,13 @@ import { treeRequest, type TreeRequest, type TreeResult, type TreeNode, type Tre
 /** The port cannot write, open a worker, send input, read files or fetch binary content. */
 export type TreeHistory = Pick<HistoryClient, "open" | "page" | "close">;
 export interface TreeAccess {
-  epoch: string; sourceId: string; sessionId: string; workerId: string; contextId: string; history: TreeHistory;
+  epoch: string; sourceId: string; sessionId: string; history: TreeHistory;
+  /**
+   * Native worker/context ids are minted by the RPC worker, so the Host learns them only from a cut.
+   * When a binding is supplied it must match exactly; the opened cut's fingerprint and this exact
+   * HistoryClient remain the authority either way.
+   */
+  workerId?: string; contextId?: string;
 }
 interface PageLocation { cursor: string; nextCursor: string | undefined; itemCount: number }
 interface PartLocation { page: PageLocation; offset: number; textDigest: string | undefined }
@@ -80,14 +86,19 @@ export class ReadonlyTree extends TypertRemoteService {
       const { epoch, sourceId, sessionId: admittedSessionId, workerId, contextId, history }
         = this.authorize(invocation.peer, sessionId);
       if (admittedSessionId !== sessionId || !validToken(epoch)) fail("tree_authority_unavailable");
-      return { owner: invocation.peer, access: { epoch, sourceId, sessionId, workerId, contextId, history } };
+      return { owner: invocation.peer, access: { epoch, sourceId, sessionId, history,
+        ...(workerId === undefined ? {} : { workerId }), ...(contextId === undefined ? {} : { contextId }) } };
     } catch { return fail("tree_authority_unavailable"); }
   }
   private recheck(snapshot: Snapshot): void {
     const current = this.access(snapshot.access.sessionId);
     if (current.owner !== snapshot.owner || current.access.history !== snapshot.access.history
-      || ["epoch", "sourceId", "sessionId", "workerId", "contextId"].some(key =>
-        current.access[key as keyof TreeAccess] !== snapshot.access[key as keyof TreeAccess])) fail("tree_binding_changed");
+      || (["epoch", "sourceId", "sessionId"] as const).some(key =>
+        current.access[key] !== snapshot.access[key])
+      || (current.access.workerId !== undefined && current.access.workerId !== snapshot.access.workerId)
+      || (current.access.contextId !== undefined && current.access.contextId !== snapshot.access.contextId)) {
+      fail("tree_binding_changed");
+    }
     if (Date.now() >= snapshot.opened.expiresAt) fail("tree_snapshot_expired");
   }
   private async drop(id: string): Promise<void> {
@@ -140,7 +151,8 @@ export class ReadonlyTree extends TypertRemoteService {
       this.recheck(snapshot);
       if (opened.scope !== "tree" || opened.handoff !== "current" || opened.cursor !== opened.cursors.tree
         || opened.cut.sourceId !== binding.access.sourceId || opened.cut.sessionId !== sessionId
-        || opened.cut.workerId !== binding.access.workerId || opened.cut.contextId !== binding.access.contextId) {
+        || (binding.access.workerId !== undefined && opened.cut.workerId !== binding.access.workerId)
+        || (binding.access.contextId !== undefined && opened.cut.contextId !== binding.access.contextId)) {
         fail("tree_binding_changed");
       }
       this.checkIndexBudget(snapshot);
