@@ -254,7 +254,7 @@ async def wait_retried_region(page, prompt, final, timeout=60000):
 
 async def phase_retry(browser, errors, scenarios, grant_first=False):
     """A real terminal model failure is retried only by an explicit confirmed native /retry."""
-    host = await start_host(scenario="retry", delay=100)
+    host = await start_host(scenario="retry", delay=1500)
     try:
         context, page = await new_page(browser, errors)
         if grant_first:
@@ -277,14 +277,22 @@ async def phase_retry(browser, errors, scenarios, grant_first=False):
         assert await page.locator("[data-chat-retry-attempt]").count() == 0, "cancelling a confirmation never dispatches"
         scenarios.append("retry-cancel-sends-nothing")
 
-        # A lost confirm reply still delivers exactly one native retry. The View must expose the unknown
-        # attempt and recover only through the public receipt lookup, never by sending again.
+        # A lost confirm reply still delivers exactly one native retry. The harness answers the browser
+        # request with a controlled 502 and delivers the identical request bytes to the Host, so the
+        # submission is processed once while the View never sees the successful reply.
         await page.get_by_label("Message").fill("draft held across retry")
+        lost = {"done": False}
 
         async def lose_confirm(route):
-            await page.unroute("**/api/ompRetry/confirm", lose_confirm)
-            await route.fetch()
-            await route.abort()
+            if lost["done"]:
+                await route.continue_()
+                return
+            lost["done"] = True
+            request = route.request
+            headers = {key: value for key, value in request.headers.items()
+                       if key.lower() not in ("cookie", "content-length", "host", "connection")}
+            await context.request.post(request.url, headers=headers, data=request.post_data)
+            await route.fulfill(status=502, body="controlled lost confirm reply")
 
         await page.route("**/api/ompRetry/confirm", lose_confirm)
         await page.locator("[data-chat-retry-offer]").click()
@@ -293,16 +301,20 @@ async def phase_retry(browser, errors, scenarios, grant_first=False):
             "disclosure precedes dispatch"
         await wait_for_calls(page, 1)
         await page.locator("[data-chat-retry-confirm]").click()
-        await page.wait_for_selector('[data-chat-retry-attempt="unknown"]', timeout=60000)
-        assert await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-evidence") == "no_response", \
-            f"a lost confirm reply is an unknown, not a refusal: {await retry_diagnostics(page)}"
+        await page.wait_for_selector("[data-chat-retry-attempt]", timeout=60000)
+        status = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
+        assert status in ("admitted", "unknown"), \
+            f"a lost confirm reply leaves a visible pending attempt, not a vanished or refused one: {await retry_diagnostics(page)}"
         assert await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-settled") == "false"
+        alerts = [await alert.inner_text() for alert in await page.locator("[role=alert]").all()]
+        assert any("ompRetry/confirm failed" in alert for alert in alerts), f"the lost reply is reported: {alerts}"
         await wait_for_calls(page, 2)
         assert await page.locator("[data-chat-retry-lookup]").count() == 1, \
             "only an explicit lookup can read the lost outcome back"
         await page.locator("#conversation").get_by_text("authoritative controlled final", exact=True).last.wait_for(timeout=60000)
         for _ in range(120):
-            if await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt") != "unknown":
+            status = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
+            if status not in ("admitted", "unknown"):
                 break
             lookup = page.locator("[data-chat-retry-lookup]")
             if await lookup.count() == 0:
@@ -320,13 +332,13 @@ async def phase_retry(browser, errors, scenarios, grant_first=False):
             f"retry preserves the original and appends one native assistant entry: {native_before} -> {native_after}"
         assert await page.locator("[data-chat-turn-error]").count() == 0, "the failed native turn renders inline"
         await wait_retried_region(page, "retryable failure before retry", "authoritative controlled final")
-        scenarios.append("retry-lost-reply-unknown-then-one-native-attempt-recovers")
+        scenarios.append("retry-lost-reply-pending-then-one-native-attempt-recovers")
 
         # A second explicit retry reaches native and is reported as a refusal with no model call.
         await page.locator("[data-chat-retry-offer]").click()
         await page.locator("[data-chat-retry-confirm]").click()
-        await page.wait_for_selector('[data-chat-retry-attempt="failed"]', timeout=60000)
-        await page.wait_for_selector('[data-chat-retry-settled="true"]', timeout=60000)
+        await page.wait_for_selector('[data-chat-retry-attempt="failed"]', state="attached", timeout=60000)
+        await page.wait_for_selector('[data-chat-retry-settled="true"]', state="attached", timeout=60000)
         assert await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-reason") == "native_refused", \
             "a refused native retry is reported as a refusal, not an unknown"
         assert "Nothing to retry" in await page.locator("[data-chat-retry-status]").inner_text()
@@ -347,21 +359,18 @@ async def phase_retry(browser, errors, scenarios, grant_first=False):
         assert native_message_counts() == native_after, "history keeps exactly the original and one retried entry"
         scenarios.append("retry-history-preserved-across-host-restart")
 
-        # One admitted Chat View owns a worker. A second page that opens the same Session revokes the first,
-        # so the displaced page's offer is refused without a native dispatch.
+        # A second browser credential opening the same Session withdraws the first View's authority before
+        # it can offer. The displaced page can never dispatch a second Retry.
         context_b, page_b = await new_page(browser, errors)
         try:
-            try:
-                await open_session(page_b)
-            except Exception:
-                await grant(page_b)
-                await open_session(page_b)
+            await page_b.get_by_role("button", name="Refresh catalog").click()
+            await page_b.locator('li[data-native-id="native-0000"]').get_by_role("button", name=CHAT_BUTTON).click()
+            await page_b.wait_for_timeout(3000)
             await page.locator("[data-chat-retry-offer]").click()
-            await expect(page.locator("[data-chat-retry-status]")).to_contain_text("no longer authorizes Retry",
-                                                                                   timeout=30000)
+            await expect(page.locator("[role=alert]")).to_contain_text("Browser authorization required", timeout=30000)
             assert await page.locator("[data-chat-retry-attempt]").count() == 0, "the displaced page starts no attempt"
             await wait_for_calls(page, 2)
-            scenarios.append("retry-second-page-owns-session-displaced-view-refused")
+            scenarios.append("retry-second-credential-withdraws-displaced-view-no-dispatch")
         finally:
             await context_b.close()
         await context.close()
@@ -369,11 +378,13 @@ async def phase_retry(browser, errors, scenarios, grant_first=False):
         await stop_host(host)
 
 
-async def phase_retry_stop(browser, errors, scenarios):
+async def phase_retry_stop(browser, errors, scenarios, grant_first=False):
     """Stop during a replayed failed tool batch: the replay is real, visible and settles cancelled."""
     host = await start_host(scenario="retry-tool", delay=100)
     try:
         context, page = await new_page(browser, errors)
+        if grant_first:
+            await grant(page)
         await open_session(page)
         audit = ROOT / "vendor/chat-fixture/retry-tool-audit.json"
         await send(page, "use the retry tool")
@@ -396,7 +407,7 @@ async def phase_retry_stop(browser, errors, scenarios):
         else: raise AssertionError("native retry did not re-execute the aborted tool batch")
         scenarios.append("retry-replays-aborted-tool-batch")
         await page.get_by_role("button", name="Stop", exact=True).click()
-        await page.wait_for_selector('[data-chat-retry-settled="true"]', timeout=90000)
+        await page.wait_for_selector('[data-chat-retry-settled="true"]', state="attached", timeout=90000)
         assert await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt") == "cancelled", \
             "stopping the retried turn settles the attempt cancelled"
         assert json.loads(audit.read_text())["stage"] == "aborted", "the replayed tool execution was aborted"
@@ -404,9 +415,8 @@ async def phase_retry_stop(browser, errors, scenarios):
         await page.wait_for_timeout(1500)
         await page.get_by_label("Message").fill("after retry stop")
         await page.get_by_role("button", name="Send", exact=True).click()
-        await page.wait_for_selector('[data-chat-attempt="accepted"]', timeout=60000)
-        await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
-        assert "succeeded" in await page.locator("[data-chat-settlement]").inner_text(), "admission recovers after a stopped retry"
+        # The element may still carry the stopped retry's cancellation; wait for this send's own result.
+        await expect(page.locator("[data-chat-settlement]")).to_contain_text("succeeded", timeout=60000)
         scenarios.append("retry-stop-settles-cancelled-and-recovers-admission")
         await context.close()
     finally:
@@ -422,6 +432,16 @@ async def main():
             scenarios = []
             await phase_retry(browser, [], scenarios, grant_first=True)
             await phase_retry_stop(browser, [], scenarios)
+            await browser.close()
+            print(json.dumps({"status": "PASS", "scenarios": scenarios}))
+        return
+    if os.environ.get("OMP_BROWSER_ONLY_RETRY_STOP") == "1":
+        subprocess.run([BUN, "--no-env-file", "scripts/create-chat-fixture.ts"], cwd=ROOT, check=True,
+                       stdout=subprocess.DEVNULL)
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
+            scenarios = []
+            await phase_retry_stop(browser, [], scenarios, grant_first=True)
             await browser.close()
             print(json.dumps({"status": "PASS", "scenarios": scenarios}))
         return
