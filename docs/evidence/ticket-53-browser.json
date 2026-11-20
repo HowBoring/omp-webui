@@ -1,0 +1,328 @@
+{
+  "status": "PASS",
+  "platform": "Linux Chromium",
+  "browser": "157.0.8103.38",
+  "realDSH": true,
+  "realBun": true,
+  "realHost": true,
+  "realChatGateway": true,
+  "scenarios": [
+    "authenticated-explicit-grant",
+    "explicit-open",
+    "real-text-success",
+    "accepted-echo",
+    "native-input-reconciliation",
+    "settlement-succeeded",
+    "draft-retained-while-projection-synchronizes",
+    "two-session-draft-isolation",
+    "page-reload-same-worker",
+    "two-session-source-isolation",
+    "native-tool-call-result-pairing",
+    "second-live-prompt",
+    "native-tool-batch-id-reuse",
+    "native-tool-history-reopen",
+    "native-background-tool-result",
+    "busy-refusal-retains-draft",
+    "ordinary-stop-settles-cancelled-keeps-draft",
+    "idle-stop-keeps-draft-no-force",
+    "stubborn-force-offered-after-30s",
+    "stubborn-force-confirm-terminated-reaped",
+    "pending-ui-cancelled-by-stop",
+    "provider-error-settles-failed-no-resend",
+    "worker-eof-manual-reopen",
+    "host-restart-manual-reopen",
+    "retry-failed-turn-not-resubmitted",
+    "retry-cancel-sends-nothing",
+    "retry-lost-reply-pending-then-one-native-attempt-recovers",
+    "retry-native-refusal-explicit-no-model-call",
+    "retry-history-preserved-across-host-restart",
+    "retry-second-credential-withdraws-displaced-view-no-dispatch",
+    "retry-replays-aborted-tool-batch",
+    "retry-stop-settles-cancelled-and-recovers-admission"
+  ],
+  "privateData": false,
+  "productAdmission": "blocked",
+  "wire": [
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preview"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/confirm"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/open"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompStop/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompRetry/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/branchPoints"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/projections"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preferences"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/prompt"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/lookup"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/projections"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/settings/describe"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/view"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompStop/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompRetry/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/branchPoints"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preferences"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/switch"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompStop/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompRetry/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/branchPoints"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preferences"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/settings/describe"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/view"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompStop/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompRetry/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/branchPoints"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preferences"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/catalog"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/switch"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/list"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompStop/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompRetry/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/branchPoints"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompSessions/preferences"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/projections"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/prompt"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/lookup"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChat/state"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/session/projections"
+    },
+    {
+      "status": 200,
+      "path": "http://127.0.0.1:32953/api/ompChatComponent/attach"
+    }
+  ],
+  "errors": []
+}
