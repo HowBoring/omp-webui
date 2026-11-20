@@ -1,8 +1,25 @@
 /**
  * S5 performance corpus history authoring only. Spawned by
  * scripts/create-performance-corpus.ts with native OMP session env.
+ *
+ * The pinned manager is loaded at runtime so this authoring script does not pull
+ * the vendored OMP source graph into the repository's script typecheck.
  */
-import { SessionManager } from "../vendor/omp/packages/coding-agent/src/session/session-manager.ts";
+type AuthoringManager = {
+	ensureOnDisk(): Promise<void>;
+	appendCompaction(summary: string, shortSummary: string | undefined, firstKeptEntryId: string, tokensBefore: number): string;
+	appendResetBoundary(): string;
+	appendMessageToBranch(message: unknown, parentId: string | null): string;
+	appendMessage(message: unknown): string;
+	appendCustomEntry(customType: string, data?: unknown): string;
+	flush(): Promise<void>;
+	getSessionFile(): string;
+	close(): Promise<void>;
+};
+const managerModule = new URL("../vendor/omp/packages/coding-agent/src/session/session-manager.ts", import.meta.url).pathname;
+const { SessionManager } = await import(managerModule) as {
+	SessionManager: { create(cwd: string, sessionDir?: string): AuthoringManager };
+};
 
 const ENTRIES = 10_000;
 const LONG_TEXT_BYTES = 13_824;

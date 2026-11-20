@@ -4,7 +4,7 @@
 Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/100MiB history).
 No fixture is measured as product: product admission remains blocked and this records component evidence.
 """
-import argparse, asyncio, json, math, os, re, shutil, signal, subprocess, sys, tempfile, time
+import argparse, asyncio, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from statistics import median
 from playwright.async_api import async_playwright
@@ -23,6 +23,7 @@ RSS_INTERVAL = 0.045
 CATALOG_P95_MS = 3000.0
 OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
+CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
 
 
 def nearest_rank(values, fraction=0.95):
@@ -144,6 +145,14 @@ async def wait_port(port, timeout=60):
 
 
 def start_host(host, port, env, log):
+    subprocess.run(["pkill", "-9", "-f", str(host)], check=False)
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                time.sleep(0.1)
+        except OSError:
+            break
     log.parent.mkdir(parents=True, exist_ok=True)
     handle = log.open("w")
     process = subprocess.Popen([BUN, "--no-env-file", str(host)], cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
@@ -201,7 +210,7 @@ async def count_at_least(locator, minimum):
     return await locator.count() >= minimum
 
 
-async def timed(page, action, ready, timeout=180_000):
+async def timed(page, action, ready, timeout=CHAT_TIMEOUT_MS):
     started = time.perf_counter()
     await action()
     await ready(timeout)
@@ -280,6 +289,10 @@ async def catalog_run(browser_args):
         log.close()
 
 
+def stage(name: str):
+    print(f"chat-stage: {name}", file=sys.stderr, flush=True)
+
+
 async def chat_run(browser_args):
     data = Path(tempfile.mkdtemp(prefix="omp-perf-chat-"))
     env = chat_env(ROOT / "vendor/chat/installation.json", data)
@@ -288,6 +301,7 @@ async def chat_run(browser_args):
     errors = []
     try:
         await wait_port(CHAT_PORT)
+        stage("host-ready")
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(executable_path=CHROME, headless=True, args=browser_args)
             sampler = RssSampler(host.pid, browser_process_pid())
@@ -297,29 +311,59 @@ async def chat_run(browser_args):
             page.on("console", lambda message: errors.append(f"console: {message.text}") if message.type == "error" and "404" not in message.text else None)
             first, old = [], []
             rows = 0
+            debug_task = None
+            if os.environ.get("OMP_PERF_DEBUG") == "1":
+                async def log_response(response):
+                    if "/api/" not in response.url:
+                        return
+                    try:
+                        body = await response.text()
+                    except Exception as error:
+                        body = f"<unreadable: {error}>"
+                    if "catalog" in response.url:
+                        body = body[:1200]
+                    print(f"chat-response: {response.status} {response.url} {body}", file=sys.stderr, flush=True)
+                page.on("response", lambda response: asyncio.create_task(log_response(response)))
+                async def report_stalls():
+                    for tick in range(12):
+                        await asyncio.sleep(15)
+                        try:
+                            alert = await page.locator('[role="alert"]').first.inner_text()
+                        except Exception:
+                            alert = ""
+                        print(f"chat-stall: t={(tick+1)*15}s rows={await page.locator('li[data-native-id]').count()} alert={alert!r}", file=sys.stderr, flush=True)
+                debug_task = asyncio.create_task(report_stalls())
             try:
                 await page.goto(link)
+                stage("page-loaded")
                 await page.get_by_label("Directory to authorize").fill(str(CORPUS / "project"))
                 await page.get_by_role("button", name="Review directory", exact=True).click()
                 await page.get_by_role("button", name="Grant this directory and descendants", exact=True).click()
-                try:
-                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), 180_000)
-                except Exception:
-                    await page.get_by_role("button", name="Refresh catalog", exact=True).click()
-                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), 180_000)
+                stage("granted")
+                refresh = page.get_by_role("button", name="Refresh catalog", exact=True)
+                await wait_until(lambda: refresh.is_enabled(), CHAT_TIMEOUT_MS)
+                if await page.locator("li[data-native-id]").count() < 1000:
+                    await refresh.click()
+                await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), CHAT_TIMEOUT_MS)
+                stage("catalog-1000")
                 await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
-                await page.wait_for_selector('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]', timeout=180_000)
-                await page.wait_for_selector("[data-chat-node]", timeout=180_000)
+                stage("open-clicked")
+                await page.wait_for_selector('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]', timeout=CHAT_TIMEOUT_MS)
+                stage("session-present")
+                await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
+                stage("first-node")
                 for index in range(WARMUPS + SAMPLES):
                     async def ready(timeout):
                         await page.wait_for_selector("[data-chat-node]", timeout=timeout)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), ready)
+                    stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         first.append(elapsed)
                 window = await page.locator("#conversation").get_attribute("data-chat-history-window")
                 rows = int(window.split("/")[1])
+                stage(f"history-rows={rows}")
                 for index in range(WARMUPS + SAMPLES):
-                    await page.wait_for_selector("[data-chat-load-earlier]", timeout=180_000)
+                    await page.wait_for_selector("[data-chat-load-earlier]", timeout=CHAT_TIMEOUT_MS)
                     before = int(re.search(r"/(\d+)$", await page.locator("#conversation").get_attribute("data-chat-history-window")).group(1))
                     async def ready(timeout, before=before):
                         async def windowed():
@@ -327,11 +371,32 @@ async def chat_run(browser_args):
                             return value is not None and int(value.split("/")[0]) == before + 50
                         await wait_until(windowed, timeout)
                     elapsed = await timed(page, lambda: page.locator("[data-chat-load-earlier]").click(), ready)
+                    stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
                     await page.reload(wait_until="domcontentloaded")
-                    await page.wait_for_selector("[data-chat-node]", timeout=180_000)
+                    await page.wait_for_selector("[data-chat-node]", timeout=CHAT_TIMEOUT_MS)
+                reach_started = time.perf_counter()
+                steps = 0
+                while steps < 300:
+                    value = await page.locator("#conversation").get_attribute("data-chat-history-window")
+                    shown_now, total = (int(part) for part in value.split("/"))
+                    if shown_now >= total:
+                        break
+                    await page.locator("[data-chat-load-earlier]").click()
+                    async def advanced(before=shown_now):
+                        current = await page.locator("#conversation").get_attribute("data-chat-history-window")
+                        return current is not None and int(current.split("/")[0]) == before + 50
+                    await wait_until(advanced, CHAT_TIMEOUT_MS)
+                    steps += 1
+                reachable_window = await page.locator("#conversation").get_attribute("data-chat-history-window")
+                reachable_nodes = await page.locator("[data-chat-node]").count()
+                reachability = {"window": reachable_window, "nodes": reachable_nodes, "steps": steps,
+                    "allRecordsRendered": reachable_window == f"{rows}/{rows}" and reachable_nodes == rows,
+                    "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
             finally:
+                if debug_task is not None:
+                    debug_task.cancel()
                 sampler.stop()
                 await sampling
                 peak = sampler.report()
@@ -340,6 +405,7 @@ async def chat_run(browser_args):
             "class": "chat",
             "nativeSessionId": "10000000-0000-4000-8000-000000000000",
             "historyRows": rows,
+            "reachability": reachability,
             "firstPage": summarize("chat-first-page", first, CATALOG_P95_MS, peak["hostPeakMiB"], errors),
             "oldPage": summarize("chat-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors),
             "rss": peak,
