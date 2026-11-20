@@ -403,7 +403,9 @@ function registerProductShortcuts(service: ShortcutsService): void {
     regions: ["page", "editable"], modals: [],
     resolve: context => {
       if (id === "omp.new-session") {
-        const grant = context.target?.closest?.("[data-product-grant]")?.getAttribute("data-product-grant");
+        const target = context.target?.closest?.("[data-product-grant]")
+          ?? document.querySelector('[data-product-grant][data-product-grant-status="valid"]');
+        const grant = target?.getAttribute("data-product-grant");
         return grant ? { status: "handled", run: () => action(grant) } : { status: "blocked", reason: "Choose a granted directory first" };
       }
       return { status: "handled", run: () => action("") };
@@ -584,8 +586,17 @@ function Surface() {
   };
   const catalog = async () => {
     setCataloging(true); setChoices([]);
-    try { setChoices(resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32 })).choices); }
-    finally { setCataloging(false); }
+    try {
+      const found: Choice[] = []; let cursor: string | undefined;
+      // Native catalog scans in bounded pages; one page can be empty while its snapshot is still scanning.
+      for (let page = 0; page < 64; page++) {
+        const result = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32, ...(cursor ? { cursor } : {}) }));
+        found.push(...result.choices);
+        cursor = result.nextCursor;
+        if (!cursor) break;
+      }
+      setChoices(found);
+    } finally { setCataloging(false); }
   };
   const refreshGrants = async () => {
     setGrants(resultValue(await ctx.remote.ompSessions.grants()));
@@ -622,8 +633,15 @@ function Surface() {
   };
   const open = async (selectionId: SessionSelectionId) => {
     setOpening(true);
-    try { await present(resultValue(await (view ? ctx.remote.ompSessions.switch(selectionId) : ctx.remote.ompSessions.open(selectionId)))); }
-    finally { setOpening(false); }
+    try {
+      if (view) { await present(resultValue(await ctx.remote.ompSessions.switch(selectionId))); return; }
+      try { await present(resultValue(await ctx.remote.ompSessions.open(selectionId))); }
+      catch (failure) {
+        // The Host keeps the current Session across page reloads; reopening the entry point must switch, not fail.
+        if (!message(failure).includes("explicit Switch action")) throw failure;
+        await present(resultValue(await ctx.remote.ompSessions.switch(selectionId)));
+      }
+    } finally { setOpening(false); }
   };
   /** Stable Original references; invalid items stay in the record so a missing file remains visible. */
   const draftRefs = () => originalsRef.current.map(item => ({ id: DraftOriginalId(item.objectId), name: item.displayName, mediaType: item.mediaType }));
@@ -1035,7 +1053,7 @@ function Surface() {
     </section>
     <section data-product-catalog aria-label="Native Sessions">
       <h2>Native Sessions</h2>
-      <ul>{choices.map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
+      <ul>{choices.filter(choice => choice.directory === "authorized").map(choice => <li key={choice.selectionId} data-native-id={choice.nativeSessionId}>
         <span>{choice.title ?? choice.nativeSessionId} · {choice.cwd ?? "unknown cwd"} · {choice.directory}</span>
         <button disabled={opening || cataloging || choice.directory !== "authorized"} onClick={() => void perform(() => open(choice.selectionId))}>{view ? "Switch Chat Session" : "Open Chat Session"}</button>
       </li>)}</ul>
