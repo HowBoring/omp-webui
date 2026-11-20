@@ -20,7 +20,7 @@ afterAll(restoreFixture);
 async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: InstanceType<typeof InteractionBroker>) {
   const host = new Context();
   await host.plugin(HostRegistry); await host.plugin(RemoteAccess); await host.plugin(TypertGatewayService, {});
-  host.typert.register(stopHostContribution); new StopService(host, stop);
+  host.typert.register(stopHostContribution); new StopService(host);
   if (broker) { host.typert.register(brokerHostContribution); new InteractionBrokerService(host, broker); }
   const clients: InstanceType<typeof Context>[] = [], peers: InstanceType<typeof Peer>[] = [];
   async function page(clientId: string) {
@@ -38,7 +38,7 @@ async function publicPages(stop: InstanceType<typeof StopCoordinator>, broker?: 
       const namespace = envelope.method.split("/")[0];
       const invoke = () => host.typertGateway.invoke({ namespace: namespace ?? "", method, args, peer,
         signal: new AbortController().signal });
-      const value = namespace === "ompStop" ? await stopCaller.run(binding, invoke)
+      const value = namespace === "ompStop" ? await stopCaller.run({ coordinator: stop, page: binding }, invoke)
         : uiBinding ? await interactionCaller.run({ page: uiBinding, current: () => true }, invoke) : (() => { throw new Error("UNKNOWN_REMOTE"); })();
       return Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } });
     }, openStream: async function* () {} } });

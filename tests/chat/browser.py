@@ -286,12 +286,22 @@ async def main():
             await expect(page.get_by_role("alert")).to_contain_text("Native Session is busy. Your draft is retained.", timeout=60000)
             assert await page.get_by_label("Message").input_value() == "second while busy", "busy refusal retains the draft"
             scenarios.append("busy-refusal-retains-draft")
-            await page.get_by_role("button", name="Cancel", exact=True).click()
+            await page.get_by_role("button", name="Stop", exact=True).click()
             await page.wait_for_selector('[data-chat-settlement="settled"]', timeout=60000)
             settlement = await page.locator("[data-chat-settlement]").inner_text()
-            assert "cancelled" in settlement, f"cancel settles cancelled: {settlement}"
-            assert await page.get_by_label("Message").input_value() == "second while busy", "cancel keeps the queued draft"
-            scenarios.append("native-cancel-settles")
+            assert "cancelled" in settlement, f"stop settles cancelled: {settlement}"
+            await page.wait_for_selector("[data-chat-stop-status]", state="detached", timeout=60000)
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "ordinary stop offers no force before 30s"
+            assert await page.get_by_label("Message").input_value() == "second while busy", "stop keeps the queued draft"
+            scenarios.append("ordinary-stop-settles-cancelled-keeps-draft")
+
+            # Idle Stop is a no-op for input: no force offer, no restored draft, draft intact.
+            await page.get_by_role("button", name="Stop", exact=True).click()
+            await page.wait_for_timeout(2000)
+            assert await page.locator("[data-chat-stop-status]").count() == 0, "idle stop returns to idle"
+            assert await page.locator("[data-chat-stop-offer]").count() == 0, "idle stop offers no force"
+            assert await page.get_by_label("Message").input_value() == "second while busy", "idle stop keeps the draft"
+            scenarios.append("idle-stop-keeps-draft-no-force")
             await context.close()
 
             # Phase 3: controlled provider terminal error is accepted then settles failed, never resent.
