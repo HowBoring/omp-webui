@@ -9,10 +9,12 @@ stays blocked; no real user data is used.
   protection, late-bound so startup recovery cannot observe a permissive stub.
   The gate reports `occupied`, `executing` or `unresolved-submission` for the exact
   Session/draft/original binding and advances a monotonic revision on every
-  transition. An absent gate yields `unknown`, which never authorizes deletion.
+  transition. A cancel before native dispatch releases only its own reference; a
+  newer live attempt for the same Original keeps it occupied until that attempt is
+  resolved. An absent gate yields `unknown`, which never authorizes deletion.
 - Startup and a repeating one-minute sweep call `collectExpiredPages`; each pass is
-  bounded to 128 ids and at most four passes, and `next` is persisted only as the
-  in-memory cursor for the next pass. Expiry is measured from the persisted
+  bounded to 128 ids (32 passes at startup, four per sweep), and `next` is persisted
+  only as the in-memory cursor for the next pass. Expiry is measured from the persisted
   `activityAt`, which only `explicit-edit` or `active-recovery` can renew.
 - The typed Originals Remote adds `usage`, `preview-delete` and `delete`.
   Preview returns the Host-known impact (the exact draft that loses access,
@@ -30,7 +32,7 @@ stays blocked; no real user data is used.
   or held, but allows reads while its own attempt is occupied/executing so
   preparation can read the exact bytes it is about to send.
 
-## Verification (ticket worktree `mvp/ticket-58-cleanup`)
+## Verification (ticket worktree `mvp/ticket-58-cleanup`; attachment and browser suites rerun on final `main`)
 
 - Candidate rebuilt in the ticket worktree with `bun scripts/build-compatibility.ts`
   (OMP `57771ae5`, authored source `b245d8ec…`, patch `b91a8571…`) and Chat
@@ -41,11 +43,17 @@ stays blocked; no real user data is used.
   tuple was updated from the pre-#54 tuple (`e9e00d47…`/`99b33a85…`) to the
   current patches; the worker-exit diagnostic now records exit code and stderr
   if that process fails again.
+- Final integration on `main` (`ab8a386` plus the pre-dispatch-cancel protection
+  fix) rebuilt the browser bundle first (`bun apps/chat/build.ts`, then
+  `scripts/build-chat-host.ts`, then `scripts/enroll-chat-fixture.ts`); a stale
+  `vendor/dsh-chat` bundle serves the pre-#58 UI and never requests usage, which
+  looks like a usage failure. Candidate preflight on this tree returned the tuple
+  above with `safePreflight: true` and `sessionAdmission: blocked`.
 - `bun run typecheck` — PASS.
-- `bun test tests/attachments` — PASS, 110 tests / 16 files (store, lifecycle,
+- `bun test tests/attachments` — PASS, 111 tests / 16 files (store, lifecycle,
   association, remote, public RPC, submission gate; includes bounded 130-row
-  expiry, same-hash independence, lost-publication refusal, revocation, branch
-  inheritance and worker-exit capture).
+  expiry, same-hash independence, lost-publication refusal, pre-dispatch cancel
+  coexistence, revocation, branch inheritance and worker-exit capture).
 - `tests/chat/images.py` on the rebuilt ticket Host — PASS, 18 scenarios,
   Chromium 157.0.8103.38. Covers staging, Send consent/native entry, paste/drop,
   Base64, spoofing, cancellation retaining the draft original, degradation and

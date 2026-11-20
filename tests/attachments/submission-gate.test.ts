@@ -217,3 +217,21 @@ test("a lost publication blocks deletion until explicit recovery resolves the at
     .toEqual({ status: "unresolved-submission" });
   expect(await f.gate.status("request")).toMatchObject({ phase: "unresolved", recovery: "unresolved" });
 });
+
+test("a cancelled attempt never exposes an Original that a newer live attempt still holds", async () => {
+  const f = fixture();
+  const binding = { sessionId: "projection", draftId: "draft" };
+  const initial = f.gate.protection(binding, "original");
+  await f.gate.begin(attempt);
+  const pending = f.gate.submit("request", "attempt one", new AbortController().signal);
+  void pending.catch(() => {});
+  await awaiting(f.gate);
+  await f.gate.begin({ selection, submissionId: "attempt-2", requestId: "request-2" });
+  await f.gate.cancel("request");
+  await expect(pending).rejects.toThrow("ATTACHMENT_CANCELLED");
+  expect(f.gate.protection(binding, "original")).toEqual({ status: "occupied" });
+  await f.gate.cancel("request-2");
+  const resolved = f.gate.protection(binding, "original");
+  expect(resolved.status).toBe("unreferenced");
+  expect("revision" in resolved && resolved.revision).not.toBe("revision" in initial && initial.revision);
+});

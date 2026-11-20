@@ -40,9 +40,11 @@ export class AttachmentSubmissionGate {
     if (matching.some(flow => flow.phase === "unresolved" || (flow.cancelled && flow.nativeStarted))) {
       return { status: "unresolved-submission" };
     }
-    // A cancel before native dispatch resolved without consuming the reservation.
-    if (matching.some(flow => flow.cancelled)) return { status: "unreferenced", revision: `gate:${this.#epoch}` };
-    if (matching.some(flow => flow.nativeStarted || flow.phase === "submitting" || flow.phase === "submitted")) {
+    // A cancel before native dispatch releases only its own reference; a newer live attempt for
+    // the same Original still occupies it until that attempt is resolved too.
+    const live = matching.filter(flow => flow.phase !== "cancelled");
+    if (!live.length) return { status: "unreferenced", revision: `gate:${this.#epoch}` };
+    if (live.some(flow => flow.nativeStarted || flow.phase === "submitting" || flow.phase === "submitted")) {
       return { status: "executing" };
     }
     return { status: "occupied" };
