@@ -110,12 +110,13 @@ export class AttachmentBridge {
     const prepared = this.#requests.get(requestId);
     if (!prepared?.bound || !prepared.consent) throw Error("ATTACHMENT_DISPATCH_UNBOUND");
     const draft = await this.#current(prepared, prepared.selection);
-    prepared.nativeStarted = true; beforeNativeCall?.();
     const native = this.native(draft.target);
     const objectIds = prepared.receipt.items.map(item => item.originalId);
     await this.authority.reserve?.(prepared.selection, { clientSubmissionId: prepared.bound.submissionId,
       preparationId: prepared.receipt.preparationId, draftRevision: prepared.receipt.draftRevision,
       authorityGeneration: prepared.receipt.authorityGeneration }, objectIds, prepared.receipt);
+    // A refused reservation never reached Native and must classify as refused, not unresolved.
+    prepared.nativeStarted = true; beforeNativeCall?.();
     let result = await native.submit({ ...draft.target, clientSubmissionId: prepared.bound.submissionId,
       preparationId: prepared.receipt.preparationId, inputType: "prompt", idleOnly: true, message: prepared.message,
       preparationConsent: structuredClone(prepared.consent.value) });

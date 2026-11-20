@@ -224,6 +224,9 @@ export async function startSessionComponentServer(options: Options) {
     options.interactionBrokerMode);
   const { launch, launchOwned } = options;
   supervisor = new SessionSupervisor({ authority: access, grants: directories, index, catalog: options.catalog,
+    onBranch: (_identity, previousSessionId, nativeSessionId, entryIds) => {
+      attachmentStore?.inheritBranchLinks(previousSessionId, nativeSessionId, entryIds);
+    },
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
   new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
   new SessionPresentationService(ctx, supervisor);

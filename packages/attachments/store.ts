@@ -434,6 +434,32 @@ export class OriginalStore {
       state: "native-associated", nativeAssociation: { clientSubmissionId, entryId, entryPart: association.entryPart }, bytes };
   }
 
+  /**
+   * Copies exact per-entry Original links into a Host-verified native branch. The new native session
+   * forwards those entry ids unchanged; stored browser/page/source scope still gates every read.
+   */
+  inheritBranchLinks(previousSessionId: string, nativeSessionId: string, entryIds: readonly string[]): number {
+    if (this.closed) fail("store_closed");
+    if (!entryPattern.test(previousSessionId) || !entryPattern.test(nativeSessionId) || previousSessionId === nativeSessionId) return 0;
+    const entries = [...new Set(entryIds)].filter(entryId => entryPattern.test(entryId));
+    if (!entries.length) return 0;
+    const marks = entries.map(() => "?").join(",");
+    const rows = this.db.query<{ instanceId: string; entryId: string; objectId: string; target: string;
+      submissionId: string }, string[]>(`SELECT instanceId, entryId, objectId, target, submissionId
+        FROM original_entry_links WHERE sessionId=? AND entryId IN (${marks})`)
+      .all(previousSessionId, ...entries);
+    const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
+      (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
+    let copied = 0;
+    this.db.transaction(() => {
+      for (const row of rows) {
+        insert.run(nativeSessionId, row.instanceId, row.entryId, row.objectId, row.target, row.submissionId);
+        copied++;
+      }
+    })();
+    return copied;
+  }
+
   private recordLinks(scope: OriginalBinding, clientSubmissionId: string, association: OriginalSubmissionAssociation): void {
     const insert = this.db.query(`INSERT OR IGNORE INTO original_entry_links
       (sessionId, instanceId, entryId, objectId, target, submissionId) VALUES (?, ?, ?, ?, ?, ?)`);
