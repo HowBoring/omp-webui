@@ -140,5 +140,6 @@ fixture 来源、操作/期望/实际状态、测试及脱敏日志/trace/截图
 虚假成功解除阻塞。先处理 S0 的已知协议/客户端缺口，接口定义由同版本 wire/schema/client/server 一起设计。
 初始目标未达标、公共语义无法实现或补丁扩成核心重写时，带证据返回相应决定；不默默改变范围。
 
-本规划工单和地图关闭只确认开发方向、验收与交接依据。当前 runtime 仍是 health-only scaffold，
-公开兼容产物、最终 roster、真实全局安装及整套产品验收尚待交付。
+本规划工单和地图关闭只确认开发方向、验收与交接依据。最终组合已冻结、验证并录入身份
+（`docs/release-final.md`、`docs/evidence/ticket-61-freeze.json`）；不可变公开发布仍被
+`packages/delivery/gate.ts` 阻断，维护者操作验收尚未执行，见 `docs/evidence/ticket-61-acceptance.md`。

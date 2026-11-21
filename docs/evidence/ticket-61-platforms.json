@@ -1,0 +1,118 @@
+{
+  "ticket": 61,
+  "kind": "final-combination-platform-evidence",
+  "recordedAt": "2026-11-22T04:55:00+08:00",
+  "combination": {
+    "installation": "vendor/product/installation.json",
+    "installationSha256": "d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924",
+    "ompBase": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+    "ompPatchSha256": "265e1741e31c78eb209f0905a31a8cc1bb8dd740ecc58d76bb47172e8e7f1d23",
+    "dshSourceTree": "52c982f334decf8c27e2296445dedada1e6d0309",
+    "freeze": "docs/evidence/ticket-61-freeze.json"
+  },
+  "linux": {
+    "hostStart": {
+      "status": "PASS",
+      "origin": "http://127.0.0.1:3197",
+      "healthz": {
+        "service": "omp-webui-host",
+        "status": "ok",
+        "stage": "product",
+        "sessionAdmission": "admitted"
+      },
+      "log": "{\"stage\":\"product\",\"sessionAdmission\":\"admitted\",\"origin\":\"http://127.0.0.1:3197\",\"runtime\":{\"name\":\"bun\",\"version\":\"1.4.4\",\"platform\":\"linux\",\"arch\":\"x64\"},\"installation\":\"d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924\"}"
+    },
+    "bootstrapAdmission": {
+      "status": "PASS",
+      "printBootstrap": "http://localhost:3197/?bootstrap=… (single use)",
+      "unauthenticated": "GET / -> 401",
+      "exchange": "303 -> 200 with cookie jar, page rendered",
+      "reuse": "consumed link -> 401"
+    },
+    "assets": {
+      "status": "PASS",
+      "indexHtml": "docs served sha256 f19cdbe5ec763722cbdb42efb281ba08ec7d30344e39c82818de755bdbba7315 (identical to manifest asset)",
+      "clientJs": "docs served sha256 4884905cbd0e962d92af96aebe320189dcd1b2ce7308623270462c2084dd45d9 (identical to manifest asset)"
+    },
+    "grant": {
+      "status": "PASS",
+      "action": "Directory to authorize -> Review directory -> Grant this directory and descendants -> grant row [data-product-grant-status=valid]",
+      "directory": "isolated synthetic project directory"
+    },
+    "revokeAll": {
+      "status": "PASS",
+      "signal": "kill -USR1 <host pid>",
+      "observed": "GET / -> 401 and a previously printed bootstrap link -> 401"
+    },
+    "productFlow": {
+      "status": "PARTIAL",
+      "harness": "tests/product/product-flow.py",
+      "browser": "Linux Chromium 157.0.8103.38 (google-chrome), headless, CDP",
+      "provider": "compatibility/omp/fixtures/live-provider.ts",
+      "providerLabel": "controlled-in-process-provider, realProviderInference false",
+      "newSession": {
+        "status": "PASS",
+        "nativeIdentity": "01a1ffda-5d95-71d9-ad2e-e75348a7bf11",
+        "createdBy": "New Session here on a valid grant row"
+      },
+      "send": {
+        "status": "PASS",
+        "prompt": "final tuple turn one",
+        "observed": "assistant text 'authoritative controlled final' streamed into the product chat and persisted to the native journal",
+        "nativeJournalSha256": "b4cdf09d89e04a11b222a24a82d6aba1bbdc50f19031d459226a01f9e3f31551"
+      },
+      "stop": {
+        "status": "NOT RUN",
+        "reason": "the browser harness did not drive Stop to settlement on this combination before the run deadline; no result is claimed for the final tuple"
+      },
+      "retry": {
+        "status": "NOT RUN",
+        "reason": "same run deadline; the component-level retry contract is recorded in docs/evidence/ticket-55-*.json"
+      },
+      "consoleErrors": [],
+      "note": "ticket-59 recorded stop/retry with provider calls 12->16 on patch b91a857; the final combination carries patch 265e1741, so that result is not inherited"
+    },
+    "keymap": {
+      "status": "NOT RUN on this combination",
+      "chords": "Control+Alt+Enter / KeyN / KeyS / KeyK / KeyR (Linux web)",
+      "recorded": "docs/evidence/ticket-59-platforms.json linuxKeyboard (older patch set)"
+    }
+  },
+  "windowsChrome": {
+    "status": "PASS (shell and admission only)",
+    "scope": "actual Win32 Chrome Dev driven from WSL2 over CDP; WSL2 Linux Host on 127.0.0.1 with Windows localhost forwarding",
+    "browser": {
+      "path": "C:\\Program Files\\Google Chrome Dev\\Application\\chrome.exe",
+      "version": "Chrome/160.0.8171.0",
+      "userAgentPlatform": "Windows NT 10.0; Win64; x64",
+      "headless": "new",
+      "cdp": "http://localhost:9224",
+      "profile": "C:\\t61-chrome"
+    },
+    "host": {
+      "port": 3201,
+      "origin": "http://localhost:3201",
+      "reachability": "Windows Chrome reached the WSL2 Host through loopback forwarding; 172.19.0.1:3198 refused because the Host binds 127.0.0.1 only"
+    },
+    "observed": {
+      "title": "OMP WebUI",
+      "shellText": "Real OMP 19 product Host · pinned DSH Client · the native Session stays in your authorized directories.",
+      "clientLoaded": true,
+      "sameOriginRequests": 17,
+      "allSucceededExcept": ["/favicon.ico 404"],
+      "consoleErrors": [],
+      "failedRequests": [],
+      "screenshot": "docs/evidence/ticket-61-windows-chrome.png"
+    },
+    "inputInjection": {
+      "status": "NOT RUN",
+      "reason": "requires an interactive Windows desktop session; the WSL2 automation used here cannot deliver real keyboard, menu, clipboard or Explorer-drop input. #59 recorded those on Chrome Dev 160.0.8157.0 and they are not inherited by this build."
+    }
+  },
+  "notRun": [
+    "Windows keyboard, menu, clipboard paste and Explorer drag/drop on the final combination",
+    "Linux keymap chords on the final combination",
+    "Stop and retry product flow on the final combination",
+    "Maintainer operational acceptance"
+  ]
+}

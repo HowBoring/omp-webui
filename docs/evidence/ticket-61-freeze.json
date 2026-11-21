@@ -1,0 +1,420 @@
+{
+  "ticket": 61,
+  "kind": "final-combination-freeze",
+  "spec": 29,
+  "recordedAt": "2026-11-22T04:40:00+08:00",
+  "host": {
+    "repository": "HowBoring/omp-webui",
+    "worktree": "/home/howboring/Projects/omp-webui-ticket-61",
+    "branch": "mvp/ticket-61-delivery",
+    "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77",
+    "integrationBase": {
+      "branch": "mvp/spec-29",
+      "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77"
+    },
+    "productSourceDirty": false,
+    "note": "Identity of the tree the product was built from. Documentation-only commits that record this freeze come later on the same branch.",
+    "entry": "apps/host/src/main.ts",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4",
+      "path": "/home/howboring/.bun/bin/bun",
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "platform": "linux",
+    "arch": "x64",
+    "bind": "127.0.0.1",
+    "defaultPort": 3180
+  },
+  "machine": {
+    "os": "Ubuntu 26.04.1 LTS",
+    "kernel": "6.18.58.1-microsoft-standard-WSL2",
+    "filesystem": "ext4",
+    "machineCpus": 20,
+    "memoryMiB": 19844,
+    "acceptanceProfile": {
+      "cpus": 4,
+      "memoryMiB": 8192,
+      "storage": "SSD",
+      "emulation": "4 of 20 processors by affinity (taskset), not 4-vCPU hardware"
+    }
+  },
+  "omp": {
+    "source": {
+      "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+      "sourceSha256": "66552c62215affe6f504d5d7204a61f62397017352ad8d50c8f2321d765cb551",
+      "patchSha256": "265e1741e31c78eb209f0905a31a8cc1bb8dd740ecc58d76bb47172e8e7f1d23",
+      "schemaSha256": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
+      "generatedIdentity": "packages/contracts/generated/identity.ts"
+    },
+    "launcher": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/omp",
+    "target": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/cli.js",
+    "runtime": {
+      "path": "/home/howboring/.bun/bin/bun",
+      "kind": "file",
+      "identity": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "mode": 493
+    },
+    "nativeClosure": [
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "kind": "file",
+        "identity": "c0b20d6e1ced12abfe0b1ef2b5b68017950beaaea3df69eb6949d73e0ecf7b40"
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+        "kind": "file",
+        "identity": "9941dc28e68bc5fd788d9cd024c69e68c791d63799e7538a97b6040dd9f50fb6"
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libdl.so.2",
+        "kind": "file",
+        "identity": "403a5f4b5fb7468b8e59dcfaa290d3bccf89722b482c5a0e1802f62fca0a7a15"
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+        "kind": "file",
+        "identity": "37b9e6c977b2a0b02a110d93eb8f01b643c9848653f18bd51682c5279ac88f54"
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libpthread.so.0",
+        "kind": "file",
+        "identity": "e059c2f9742c5de70a7f813501069ea85bab210b365f8b37fc5c205fc1c097e9"
+      }
+    ],
+    "installationManifest": {
+      "path": "vendor/product/installation.json",
+      "sha256": "d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924"
+    },
+    "installationAssets": [
+      {
+        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate",
+        "kind": "directory",
+        "identity": "18aefb17923aca93637c3428fcc4c51ba58d849d05b2006a7a75d081fa75f2b1",
+        "mode": 493
+      },
+      {
+        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/chunk-rpab59at.js",
+        "kind": "file",
+        "identity": "17b24b65ff725e7c34ae9b564383e207b83fbd4ca5cbb16b23cd0d8be5defa8c",
+        "mode": 420
+      },
+      {
+        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/cli.js",
+        "kind": "file",
+        "identity": "6385297622ab2a79ca2923c374fe6902b2efd65886775827adcb3db51a03b07a",
+        "mode": 493
+      },
+      {
+        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/omp",
+        "kind": "link",
+        "identity": "cli.js",
+        "mode": 511
+      },
+      {
+        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/rpc-wire.schema.json",
+        "kind": "file",
+        "identity": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/client.js",
+        "kind": "file",
+        "identity": "4884905cbd0e962d92af96aebe320189dcd1b2ce7308623270462c2084dd45d9",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/index.html",
+        "kind": "file",
+        "identity": "f19cdbe5ec763722cbdb42efb281ba08ec7d30344e39c82818de755bdbba7315",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product",
+        "kind": "directory",
+        "identity": "4d459f4cb1bfe0efa33b4baea82bb6440d90e4cbba26b7c5d7933b1e035a9348",
+        "mode": 493
+      }
+    ]
+  },
+  "dsh": {
+    "base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "mode": "candidate",
+    "sourceTree": "52c982f334decf8c27e2296445dedada1e6d0309",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      },
+      {
+        "path": "patches/0003-projection-rebuild.patch",
+        "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+        "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+      },
+      {
+        "path": "patches/semantic-draft-esm.patch",
+        "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
+        "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
+      },
+      {
+        "path": "patches/0006-parsed-tool-presentation.patch",
+        "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+        "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
+      },
+      {
+        "path": "patches/0008-provider-runtime.patch",
+        "sha256": "48887717d2e13ab5a9b77a91fdecc29c7e72c250851030b05c58c2d38a87ca08",
+        "treeAfter": "d876ff7a0636f71bdcae2148ec1a45d5a42e142f"
+      },
+      {
+        "path": "patches/0009-linux-web-shortcuts.patch",
+        "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
+        "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+      }
+    ],
+    "lockSha256": "9bf7a9ee0e6c446d82e6f21677009fa65cb2593b3460cff00abb9d65a17b8d54",
+    "contractSha256": "908da595283046b7ccea89426a7f7a28814d5d2b35ae5644eca046d821e8752c",
+    "sourceSha256": "a50d24d2d31d740340d031ea74066b319e40020961ed8ff4485688c6a5e87f04",
+    "sourceInputs": 768,
+    "roster": {
+      "packages": 125,
+      "pluginRuntime": "none: the product manifest declares no runtime plugins; the composition is the pinned client bundle"
+    },
+    "assets": [
+      {
+        "path": "vendor/dsh-product/client.js",
+        "sha256": "4884905cbd0e962d92af96aebe320189dcd1b2ce7308623270462c2084dd45d9"
+      },
+      {
+        "path": "vendor/dsh-product/index.html",
+        "sha256": "f19cdbe5ec763722cbdb42efb281ba08ec7d30344e39c82818de755bdbba7315"
+      }
+    ],
+    "manifest": {
+      "path": "vendor/dsh-product/manifest.json",
+      "sha256": "77db5abdf9f82c3e126b3fb5c87d44bf9d7daee7554c0c42be73653b81ad0dc6"
+    },
+    "patchesLock": {
+      "path": "compatibility/dsh/patches.json",
+      "sha256": "f84b90d15de687838af8f6d6ba6f54efccb76d09606ebc13523426502ade362d"
+    }
+  },
+  "keymap": [
+    {
+      "command": "omp.send",
+      "linuxWeb": [
+        "Control+Alt+Enter"
+      ],
+      "windowsWeb": [
+        "Control+Shift+Slash"
+      ],
+      "source": "apps/chat/src/client.tsx:461-463"
+    },
+    {
+      "command": "omp.new-session",
+      "linuxWeb": [
+        "Control+Alt+KeyN"
+      ],
+      "windowsWeb": [
+        "Control+Shift+KeyN"
+      ],
+      "source": "apps/chat/src/client.tsx:464-466"
+    },
+    {
+      "command": "omp.settings",
+      "linuxWeb": [
+        "Control+Alt+KeyS"
+      ],
+      "windowsWeb": [
+        "Control+Comma"
+      ],
+      "source": "apps/chat/src/client.tsx:467-469"
+    },
+    {
+      "command": "omp.stop",
+      "linuxWeb": [
+        "Control+Alt+KeyK"
+      ],
+      "windowsWeb": [
+        "Control+Shift+Period"
+      ],
+      "source": "apps/chat/src/client.tsx:470-472"
+    },
+    {
+      "command": "omp.retry",
+      "linuxWeb": [
+        "Control+Alt+KeyR"
+      ],
+      "windowsWeb": [
+        "Control+Shift+KeyR"
+      ],
+      "source": "apps/chat/src/client.tsx:473-475"
+    }
+  ],
+  "budgets": [
+    {
+      "name": "browser authorization lifetime",
+      "value": "30 days absolute",
+      "source": "packages/access/store.ts:7"
+    },
+    {
+      "name": "catalog page size",
+      "value": "1-32 entries per page",
+      "source": "packages/contracts/catalog.ts:8"
+    },
+    {
+      "name": "approval/question wait",
+      "value": "30 minutes from creation, non-renewing",
+      "source": "packages/interactions/broker.ts:55"
+    },
+    {
+      "name": "ordinary Stop confirmation",
+      "value": "30000 ms before offering force",
+      "source": "packages/interactions/stop.ts:168"
+    },
+    {
+      "name": "revoke/shutdown phases",
+      "value": "30 s cooperative drain + 5 s termination grace",
+      "source": "packages/supervision/README.md"
+    },
+    {
+      "name": "live journal payload",
+      "value": "32 MiB default (OMP_LIVE_JOURNAL_MAX_BYTES)",
+      "source": "packages/projection/live-journal.ts:20-23"
+    },
+    {
+      "name": "single attempt bytes",
+      "value": "8 MiB",
+      "source": "packages/projection/live-journal.ts:24"
+    },
+    {
+      "name": "chat request body",
+      "value": "2 MiB text + 16 MiB attachments",
+      "source": "apps/host/src/chat-request-body.ts:4-6"
+    },
+    {
+      "name": "concurrent browser views",
+      "value": "128",
+      "source": "apps/host/src/chat-view-admission.ts:42"
+    },
+    {
+      "name": "interaction broker body",
+      "value": "16384 bytes",
+      "source": "apps/host/src/interaction-broker-carrier.ts:15"
+    },
+    {
+      "name": "original history pages",
+      "value": "64 pages / 20000 entries",
+      "source": "apps/host/src/original-history.ts:22"
+    },
+    {
+      "name": "native frame bytes",
+      "value": "1048576 physical JSONL / 67108864 reassembled v2",
+      "source": "packages/compatibility/session-worker.ts:94, packages/contracts/generated/omp-wire.ts"
+    },
+    {
+      "name": "worker queue limits",
+      "value": "67108864 queued bytes, 32 pending, 256 settled, 65536 stderr bytes, 60000 ms timeout",
+      "source": "packages/compatibility/session-worker.ts:94"
+    },
+    {
+      "name": "image original",
+      "value": "10 MiB each",
+      "source": "packages/attachments/media.ts:11"
+    },
+    {
+      "name": "text/document original",
+      "value": "5 MiB each",
+      "source": "packages/attachments/media.ts:12"
+    },
+    {
+      "name": "draft originals",
+      "value": "8 objects / 32 MiB per input",
+      "source": "packages/attachments/store.ts:65-66, apps/chat/src/attachments.ts:5"
+    },
+    {
+      "name": "original store total",
+      "value": "10 GiB, 100000 objects, 16 concurrent intakes",
+      "source": "packages/attachments/store.ts:65-66"
+    },
+    {
+      "name": "unsent original lifetime",
+      "value": "24 hours from explicit edit or active recovery",
+      "source": "packages/attachments/store.ts:98"
+    },
+    {
+      "name": "deletion confirmation",
+      "value": "5 minutes / 128 pending",
+      "source": "packages/attachments/store.ts:101-102"
+    },
+    {
+      "name": "host monotonic source/binary",
+      "value": "1048576 / 16777216 bytes",
+      "source": "packages/supervision/host-monotonic.ts:55-56"
+    },
+    {
+      "name": "Q3 catalog/session first page",
+      "value": "P95 <= 3000 ms",
+      "source": "tests/product/evidence/performance-2026-11-22-product.json"
+    },
+    {
+      "name": "Q3 old page",
+      "value": "P95 <= 1000 ms",
+      "source": "tests/product/evidence/performance-2026-11-22-product.json"
+    },
+    {
+      "name": "Q3 Host RSS",
+      "value": "peak <= 512 MiB, sampled <= 45 ms",
+      "source": "tests/product/evidence/performance-2026-11-22-product.json"
+    }
+  ],
+  "platforms": {
+    "linux": {
+      "host": "Linux x64 (WSL2 kernel)",
+      "runtime": "bun 1.4.4",
+      "browser": "Google Chrome 157.0.8103.38",
+      "evidence": [
+        "docs/evidence/ticket-59-platforms.json",
+        "docs/evidence/ticket-61-platforms.json",
+        "tests/product/evidence/performance-2026-11-22-product.json"
+      ]
+    },
+    "windows": {
+      "host": "WSL2 Linux Host, Microsoft Windows NT 10.0",
+      "browser": "Chrome Dev 160.0.8171.0 (real Win32 process, headless=new)",
+      "origin": "http://localhost loopback forwarding",
+      "evidence": [
+        "docs/evidence/ticket-59-platforms.json",
+        "docs/evidence/ticket-61-windows-chrome.json"
+      ]
+    }
+  },
+  "evidence": {
+    "docs/evidence/ticket-61-native-data.json": "89ee21dd49f5687d1496f888e42412e1fe07a988a8f75a9807d7c7f7587b9508",
+    "docs/evidence/ticket-61-windows-chrome.json": "659e34286f4a9da0f4efdab1db3c0d004da174eb24c53f9b123a94f3011e043d",
+    "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
+    "docs/evidence/ticket-59-platforms.json": "01a8ebb81a2b05b8f6e0dd58a3755cb21a12e03fd03ac0eabf303b7a75955776",
+    "tests/product/evidence/performance-2026-11-22-product.json": "2e32d0e43ab2674cf2282e183be554ea95be5047e42145cc3168a301e43d01d3"
+  },
+  "harness": {
+    "nativeData": {
+      "path": "tests/continuation/native-data.py",
+      "sha256": "903125106bb4cb2bae4a5745dee24dd3504990519f110e66604400ba235fde64"
+    },
+    "windowsChrome": {
+      "path": "tests/product/windows-chrome.ts",
+      "sha256": "0fc0d248879d5082aad87def5b50e97229c1ebe76e2b3ba5620a5d8b441aa6f3"
+    }
+  },
+  "notFrozen": [
+    "a real model provider (all product flows used the controlled in-process provider)",
+    "the delivery lease and package distribution (packages/delivery/gate.ts still blocks globally)",
+    "maintainer operational acceptance (NOT RUN)"
+  ]
+}

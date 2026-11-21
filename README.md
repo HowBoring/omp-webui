@@ -4,7 +4,11 @@ An RPC-first browser interface for [Oh-My-Pi](https://github.com/can1357/oh-my-p
 
 OMP remains the only Agent Runtime. This repository owns the Web Host, OMP RPC process lifecycle, DSH Remote compatibility layer, and small OMP-specific DSH client extensions.
 
-> **Project status: scaffold / M0.** The initial commit establishes the architecture and development baseline. The health endpoint works; the DSH Gateway, OMP RPC transport, Session projection, and browser UI are not implemented yet.
+> **Project status: validated MVP combination, delivery blocked.** The product Host, DSH Gateway,
+> OMP RPC transport, Session projection and browser UI run together on one frozen combination
+> (`docs/release-final.md`, `docs/evidence/ticket-61-freeze.json`). Immutable public delivery is still
+> blocked by `packages/delivery/gate.ts`, and maintainer operational acceptance is not run
+> (`docs/evidence/ticket-61-acceptance.md`).
 
 The accepted MVP plan is recorded in [OMP WebUI 可用 MVP：原生会话发现与历史导航决策地图](https://github.com/HowBoring/omp-webui/issues/14)
 and the [acceptance and implementation handoff](docs/mvp-acceptance-and-handoff.md).
@@ -19,8 +23,9 @@ and occupied-Session behavior; its required public OMP extensions remain pending
 The Host will use a local Bun transport over OMP's public decoder/wire/schema capabilities;
 see [ADR 0004](docs/adr/0004-local-public-rpc-transport.md) and the [transport contract](docs/rpc-client-contract.md).
 The [client composition](docs/client-composition.md) retains the DSH foundation with a small public
-navigation/action seam and OMP modules. New image/file input is required for the MVP, alongside
-Session-local model/thinking selection and WebUI appearance/language preferences; these remain unimplemented.
+navigation/action seam and OMP modules. Image/file input, Session-local model/thinking selection and
+WebUI appearance/language preferences are implemented and covered by the tickets cited in
+`docs/evidence/ticket-61-story-matrix.md`.
 The [public Client policy experiment](docs/dsh-policy-validation.md) now passes isolated patched/baseline
 checks; its patch and fixture assets remain on a separate experiment branch, without product runtime integration.
 The [local access policy](docs/local-access-contract.md) remembers browser authorization for 30 days,
