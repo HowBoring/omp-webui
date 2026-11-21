@@ -805,7 +805,8 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
         const page: HistoryPage = { snapshot: opened.snapshot, scope, cut: opened.cut, expiresAt: opened.expiresAt,
           complete: true,
           items: scope === "active"
-            ? [{ id: "leaf", parentId: null, active: true, kind: "message", role: "user", text: "Hello" }] : [] };
+            ? [{ id: "leaf", parentId: null, active: true, kind: "message", role: "user", text: "Hello" }] : [],
+          ...(scope === "active" ? { offset: Math.max(0, (command.before ?? 1) - 1) } : {}) };
         return page;
       }
     }

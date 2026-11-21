@@ -16,9 +16,12 @@ import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, P
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
 }[SessionAssistantStreamFrame['type']];
-const configuredMaxBytes = Number(process.env.OMP_LIVE_JOURNAL_MAX_BYTES);
-const MAX_BYTES = Number.isSafeInteger(configuredMaxBytes) && configuredMaxBytes > 0
-  ? configuredMaxBytes : 32 * 1024 * 1024, ATTEMPT_BYTES = 8 * 1024 * 1024;
+/** Read per journal, not at module load: a harness cap must not depend on import order. */
+function journalMaxBytes(): number {
+  const configured = Number(process.env.OMP_LIVE_JOURNAL_MAX_BYTES);
+  return Number.isSafeInteger(configured) && configured > 0 ? configured : 32 * 1024 * 1024;
+}
+const ATTEMPT_BYTES = 8 * 1024 * 1024;
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
 /** The Native cut moves while a cold Session activates (bookkeeping is appended), so an opening
  * that observed a changed cut retries the same journal instead of failing the projection. */
@@ -99,6 +102,7 @@ export class LiveJournal {
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
+  readonly #maxBytes = journalMaxBytes();
   private constructor(public opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
     if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
@@ -396,7 +400,7 @@ export class LiveJournal {
     const bytes = Buffer.byteLength(JSON.stringify(entry));
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
     const end = this.#recordBytesBefore(this.#records.length) + bytes;
-    if (this.#records.length >= MAX_EVENTS || end > MAX_BYTES) this.#fail('live_projection_evicted');
+    if (this.#records.length >= MAX_EVENTS || end > this.#maxBytes) this.#fail('live_projection_evicted');
     this.#records.push(entry); this.#recordByteEnds.push(end); this.#publish(entry); return entry;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {

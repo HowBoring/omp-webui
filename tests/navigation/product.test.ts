@@ -79,8 +79,11 @@ test("the product Chat Host serves durable native navigation to a real DSH clien
     if (command.type === "history_observation_poll") return { cut, after: command.after, through: cut.observationSeq,
       events: [], hasMore: false };
     if (command.type !== "history_snapshot_page") throw Error(`UNEXPECTED_NATIVE_OPERATION ${command.type}`);
-    if (command.cursor === "active") return { snapshot: "native-snapshot", scope: "active", cut, expiresAt,
-      items: items.flat().filter(item => item.active), complete: true };
+    if (command.cursor === "active") {
+      const active = items.flat().filter(item => item.active);
+      return { snapshot: "native-snapshot", scope: "active", cut, expiresAt, items: active, complete: true,
+        offset: Math.max(0, (command.before ?? active.length) - active.length) };
+    }
     if (command.cursor === "live") return { snapshot: "native-snapshot", scope: "live", cut, expiresAt, complete: true,
       items: [{ id: "live-e", parentId: "r", active: true, kind: "message", role: "user", text: "Current question",
         livePhase: "ended", live: { workerId: "native-worker", messageId: "live-e", sourceId: "source",
