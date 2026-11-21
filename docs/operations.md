@@ -94,8 +94,10 @@ Originals live under `<data>/attachments` in private storage with display-only f
 
 ## 8. Known gaps
 
-* Immutable public delivery is **not** available: `packages/delivery/gate.ts` still reports
-  `blocked` / `GLOBAL_TARGET_NOT_SELECTED` with nine missing-evidence items.
+* Public distribution and automatic update are out of MVP scope (spec *Out of Scope*). The unwired
+  inventory module `packages/delivery/gate.ts` still reports `blocked` /
+  `GLOBAL_TARGET_NOT_SELECTED`; installation is reproducible from source instead
+  (`bun run product:build && bun run product:verify && bun run product:enroll`).
 * Real model-provider inference is out of scope for every recorded product run; the controlled
   provider is always labelled `realProviderInference: false`.
 * Windows input (keyboard, menus, paste, drop) was **not** executed on this combination; see

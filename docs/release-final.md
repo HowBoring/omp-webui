@@ -1,8 +1,10 @@
 # Final release record — validated combination
 
-Status of this record: **combination validated, delivery not immutable.** Public distribution is
-still blocked (`packages/delivery/gate.ts`: `status: "blocked"`, `sessionAdmission: "blocked"`,
-`GLOBAL_TARGET_NOT_SELECTED`, nine missing-evidence items). Nothing here claims a released package.
+Status of this record: **combination validated, installation reproducible, no public
+distribution.** Decision 4's auditable deltas plus immutable build/schema/asset identities are
+recorded and drift-tested here; the automatic update/distribution framework is out of MVP scope, so
+the unused inventory module `packages/delivery/gate.ts` (only caller `scripts/inspect-delivery.ts`)
+keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a released package.
 
 ## The combination
 
@@ -33,7 +35,7 @@ Full machine-readable identities, keymap chords and budgets: `docs/evidence/tick
 | Windows input (keyboard, menus, paste, drop) | NOT RUN on this combination | `ticket-61-platforms.json` `windowsChrome.inputInjection` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS, 6/6 checks | `ticket-61-native-data.json` + `.md` |
 | Performance (3 s / 1 s / 512 MiB) | PASS on the source-identical #60 build | `tests/product/evidence/performance-2026-11-22-product.json` |
-| Immutable delivery | BLOCKED | `packages/delivery/gate.ts` |
+| Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The #60 performance artifact is recorded against a build whose source/patch/schema and DSH assets

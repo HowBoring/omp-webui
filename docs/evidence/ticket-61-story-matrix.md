@@ -104,6 +104,7 @@ tuple rather than inherited (see `ticket-61-platforms.json`).
 
 | Item | Status | Reason |
 |---|---|---|
-| Immutable public delivery (decision 4, 14) | BLOCKED | `packages/delivery/gate.ts` still reports `status: "blocked"`, `sessionAdmission: "blocked"`, code `GLOBAL_TARGET_NOT_SELECTED` and nine missing-evidence items. No release lease, package distribution or immutable delivery claim is made. |
+| Auditable deltas and immutable identities (decision 4) | PASS | `docs/evidence/ticket-61-freeze.json` + `tests/product/freeze.test.ts`; see acceptance row 1. |
+| Automatic update / public distribution | out of MVP scope | Spec *Out of Scope*; `packages/delivery/gate.ts` is unwired (`scripts/inspect-delivery.ts` only) and still reports `blocked`/`GLOBAL_TARGET_NOT_SELECTED`. No released package or immutable public delivery is claimed. |
 | Maintainer-operated workflow acceptance (decision 14) | NOT RUN | Requires the maintainer on their own machine; checklist in `docs/evidence/ticket-61-acceptance.md` and `docs/operations.md`. Agent-run substitution is not offered. |
 | Real model-provider inference | NOT RUN by design | Every product flow uses `compatibility/omp/fixtures/live-provider.ts` with `realProviderInference: false`. |
