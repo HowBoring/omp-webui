@@ -7,7 +7,7 @@
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-ticket-61",
     "branch": "mvp/ticket-61-delivery",
-    "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77",
+    "commit": "7a5be8faf2cb164bfcf76e5e47e0f6bd838dacf0",
     "integrationBase": {
       "branch": "mvp/spec-29",
       "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77"
