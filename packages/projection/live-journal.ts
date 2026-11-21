@@ -320,7 +320,7 @@ export class LiveJournal {
   async #olderPage(before: number): Promise<SessionPage> {
     const boundary = this.#boundaries.get(before);
     if (!boundary) throw Error('live_stale_page');
-    if (boundary.offset === 0) return {...structuredClone({records: [], hasMore: false}), projection: this.projection};
+    if (boundary.offset === 0) return {records: [], hasMore: false, projection: this.projection};
     const older = await this.#nativeOlder(this.history, boundary.offset, boundary.parent);
     let users = 0, assistants = 0;
     for (const item of older.items) { if (item.role === 'user') users++; if (item.role === 'assistant') assistants++; }
@@ -333,7 +333,8 @@ export class LiveJournal {
     const records = built.records.map(record => record.type === 'event'
       ? {...record, event: {...record.event, seq: record.event.seq + base}} : record);
     this.#remember(base, {offset: older.offset, turn: start.turn, step: start.step, parent: older.items[0]?.parentId ?? null});
-    return {...structuredClone({records, hasMore: older.offset > 0}), projection: this.projection};
+    // Freshly built per page and never mutated after publication: the wire encoder is the only reader.
+    return {records, hasMore: older.offset > 0, projection: this.projection};
   }
   async page(request: PageRequest): Promise<SessionPage> {
     this.#assert();
@@ -353,7 +354,9 @@ export class LiveJournal {
       if (bytes + size > limit) { if (!count) throw Error('live_page_group_bytes'); break; }
       bytes += size; start = candidate; count++;
     }
-    return structuredClone({records: this.#records.slice(start, localEnd), hasMore: start > 0 || this.#hasOlder()});
+    // `slice` copies the window; the records themselves stay immutable after publication, so a deep
+    // clone here would only double the transient copy of every page (the biggest reload allocation).
+    return {records: this.#records.slice(start, localEnd), hasMore: start > 0 || this.#hasOlder()};
   }
   #groupBefore(end: number): number {
     let low = 0, high = this.#groups.length;

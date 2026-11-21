@@ -373,6 +373,17 @@
         "clientOmit": []
       },
       {
+        "name": "get_status",
+        "doc": "Snapshot only the settlement and membership inputs of the session, without transcript scans.",
+        "params": null,
+        "result": "SessionStatus",
+        "nullable": false,
+        "unwrap": null,
+        "timeoutMs": null,
+        "completion": null,
+        "clientOmit": []
+      },
+      {
         "name": "set_fast_mode",
         "doc": "Enable or disable fast mode for the session.",
         "params": "SetFastModeParams",
@@ -3524,6 +3535,49 @@
           ],
           "description": "Current goal mode; null when the session has no goal.",
           "default": null
+        }
+      },
+      "required": [
+        "sessionId"
+      ]
+    },
+    "SessionStatus": {
+      "type": "object",
+      "properties": {
+        "sessionId": {
+          "type": "string"
+        },
+        "isStreaming": {
+          "type": "boolean",
+          "default": false
+        },
+        "isCompacting": {
+          "type": "boolean",
+          "default": false
+        },
+        "isSettled": {
+          "type": "boolean",
+          "description": "Idle with nothing queued or pending; same predicate as `session_settled`.",
+          "default": false
+        },
+        "hasPendingAsyncWork": {
+          "type": "boolean",
+          "description": "Background jobs, their deliveries, child agents or queued peer messages can still wake the session.",
+          "default": false
+        },
+        "queuedMessageCount": {
+          "type": "integer",
+          "default": 0
+        },
+        "steeringCount": {
+          "type": "integer",
+          "description": "Queued steering messages.",
+          "default": 0
+        },
+        "followUpCount": {
+          "type": "integer",
+          "description": "Queued follow-up messages.",
+          "default": 0
         }
       },
       "required": [

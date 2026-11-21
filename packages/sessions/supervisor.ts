@@ -153,6 +153,13 @@ export function nativeSettled(state: SessionState): boolean {
     && state.queuedMessages?.steering.length === 0 && state.queuedMessages.followUp.length === 0;
 }
 
+/** Same predicate as `nativeSettled`, over the cheap status projection a membership read uses. */
+export function statusSettled(status: { isSettled: boolean; isStreaming: boolean; isCompacting: boolean;
+  hasPendingAsyncWork: boolean; queuedMessageCount: number; steeringCount: number; followUpCount: number }): boolean {
+  return status.isSettled && !status.isStreaming && !status.isCompacting && !status.hasPendingAsyncWork
+    && status.queuedMessageCount === 0 && status.steeringCount === 0 && status.followUpCount === 0;
+}
+
 /** One active top-level worker. Views are disposable; only explicit native references survive Host loss. */
 export class SessionSupervisor {
   #active: Active | undefined;
@@ -747,11 +754,11 @@ export class SessionSupervisor {
     this.#browser(identity); const active = this.#active;
     if (!active) return undefined;
     try { this.#current(identity, active); } catch { return undefined; }
-    const state = active.state === "open" && active.worker ? await active.worker.state() : undefined;
+    const status = active.state === "open" && active.worker ? await active.worker.status() : undefined;
     this.#current(identity, active);
     // Membership must not depend on (or mutate) a presentation journal: a catalog read must never
     // invalidate a page that is already following it. `blank` uses the last opened journal only.
-    return { view: this.#view(active), running: state !== undefined && !nativeSettled(state),
+    return { view: this.#view(active), running: status !== undefined && !statusSettled(status),
              blank: active.journalValue !== undefined && active.journalValue.cursor < 0 };
   }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {

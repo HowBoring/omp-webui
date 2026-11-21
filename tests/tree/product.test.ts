@@ -97,6 +97,8 @@ test("the product Chat Host serves the read-only tree to a real DSH client and n
             api: "synthetic", baseUrl: "http://127.0.0.1/", reasoning: false, input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }, contextWindow: 128000, maxTokens: 4096 },
           thinkingLevel: "off" as const }; },
+        async status() { return { sessionId: selected.nativeSessionId, isSettled: true, isStreaming: false,
+          isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, steeringCount: 0, followUpCount: 0 }; },
         async models() { return []; }, async thinkingLevels(): Promise<("off" | "low" | "high")[]> { return ["off"]; },
         async selectModel() {}, async setThinkingLevel() {},
         async branchMessages() { return [{ entryId: "synthetic", text: "Synthetic fixture input" }]; },

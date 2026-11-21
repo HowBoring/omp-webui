@@ -197,25 +197,22 @@ async function renewSessionProjection(view: PublicSessionView, progress: (status
   if (liveBinding) { progress("Waiting for the rebuilt Session projection…"); await waitRebuiltProjection(liveBinding, current.projection.generation); }
   if (renewEnrollment) { progress("Renewing the Chat attachment…"); await renewEnrollment(current.projection); }
 }
-/** The presentation still running, so a second caller joins it instead of releasing and reopening the window. */
-let presenting: { view: PublicSessionView; promise: Promise<void> } | undefined;
+/** Presentations run one at a time: two concurrent releases would tear down each other's binding. */
+let presenting: Promise<void> = Promise.resolve();
 function present(view: PublicSessionView): Promise<void> {
-  // A reload restore and an Open/Switch click can resolve at different times for the same Session. Presenting
+  // A reload restore and an Open/Switch click resolve at different times for the same Session. Presenting
   // it twice would release the live window and throw away every older page the reader had loaded, so an
-  // identical presentation — finished or still running — only refreshes its view metadata.
-  const known = presentedView, running = presenting;
-  if (reference !== undefined && liveBinding !== undefined && known !== undefined && known.workerId === view.workerId
-    && known.generation === view.generation && known.registration.nativeSessionId === view.registration.nativeSessionId) {
-    viewChanged(view);
-    return Promise.resolve();
-  }
-  if (running !== undefined && running.view.workerId === view.workerId && running.view.generation === view.generation
-    && running.view.registration.nativeSessionId === view.registration.nativeSessionId) {
-    return running.promise.then(() => viewChanged(view));
-  }
-  const promise = presentOnce(view), record = { view, promise };
-  presenting = record;
-  return promise.finally(() => { if (presenting === record) presenting = undefined; });
+  // identical presentation — finished or still queued — only refreshes its view metadata.
+  const same = () => reference !== undefined && liveBinding !== undefined && presentedView !== undefined
+    && presentedView.workerId === view.workerId && presentedView.generation === view.generation
+    && presentedView.registration.nativeSessionId === view.registration.nativeSessionId;
+  if (same()) { viewChanged(view); return Promise.resolve(); }
+  const task = presenting.then(async () => {
+    if (same()) { viewChanged(view); return; }
+    await presentOnce(view);
+  });
+  presenting = task.catch(() => {});
+  return task;
 }
 async function presentOnce(view: PublicSessionView) {
   release("present");
