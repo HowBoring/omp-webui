@@ -1,1 +1,203 @@
-  "evidenceStatus": "blocked precondition; the product class produced no samples in this run",
+{
+  "generatedAt": "2026-11-21T15:35:47Z",
+  "productMeasurement": "measured: product Host apps/host/src/main.ts over the enrolled installation (fb6743ad1847865b06e17b7d7b5997768da91efdc183264016db225d852bbbf8) serving the 1000-Session corpus and the 10000-entry/100MiB history through the real catalog and session worker",
+  "admission": "admitted: product Host verified the enrolled installation and served the measured session",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; actual runner recorded by the harness."
+  },
+  "actual": {
+    "cpus": 4,
+    "machineCpus": 20,
+    "cpuAffinityEmulation": "4 of 20 processors by affinity (taskset); not 4-vCPU hardware",
+    "memoryMiB": 19844,
+    "memoryLimitMiB": 8192,
+    "kernel": "Linux version 6.18.58.1-microsoft-standard-WSL2 (root@6869314ecc53) (gcc (GCC) 13.2.0, GNU ld (GNU Binutils) 2.41) #1 SMP PREEMPT_DYNAMIC Tue Oct 27 00:24:11 UTC 2026",
+    "filesystem": "ext4",
+    "browser": "Google Chrome 157.0.8103.38",
+    "controlledProvider": "config.yml extension compatibility/omp/fixtures/live-provider.ts with modelRoles.default s0-controlled/deterministic-live; deterministic fixture, not real model inference",
+    "runtime": "see corpus.json"
+  },
+  "corpus": {
+    "seed": "omp-webui-s5-performance-v1",
+    "limits": {
+      "catalogSessions": 1000,
+      "historyEntries": 10000,
+      "historyBytes": 104857600
+    },
+    "catalog": {
+      "sessions": 1000,
+      "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6"
+    },
+    "history": {
+      "entries": 10000,
+      "bytes": 112923786,
+      "sha256": "bcf9d2557e288d733d7a220adaef6648578464669092465e9de1785c6a1c69d2",
+      "typeDistribution": {
+        "message": 8980,
+        "message:user": 3100,
+        "message:assistant": 3880,
+        "toolCall": 1000,
+        "message:toolResult": 1000,
+        "branch": 100,
+        "message:fileMention": 1000,
+        "custom": 1000,
+        "custom:s5.performance-marker": 1000,
+        "reset_boundary": 10,
+        "compaction": 10
+      }
+    }
+  },
+  "protocol": {
+    "warmups": 2,
+    "samples": 30,
+    "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+    "rssSamplingMs": 45.0,
+    "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+    "chatJournalLimitBytes": 201326592
+  },
+  "limits": {
+    "firstPageP95Ms": 3000.0,
+    "oldPageP95Ms": 1000.0,
+    "hostPeakMiB": 512.0
+  },
+  "classes": [
+    {
+      "class": "product",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 32,
+      "reachability": {
+        "nodes": 10239,
+        "steps": 42,
+        "more": false,
+        "firstSeqBefore": "1000915",
+        "firstSeqAfter": "978949",
+        "firstNode": "UserEntry 0 \u6570\u636e \ud83d\udcdc xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "allNativeReachable": true,
+        "duplicatePresent": {
+          "nodesBefore": 10239,
+          "nodesAfter": 10239,
+          "firstSeqBefore": "978949",
+          "firstSeqAfter": "978949",
+          "preserved": true
+        },
+        "reset": null,
+        "reason": null,
+        "elapsedMs": 280716.0
+      },
+      "coldOpenMs": 27409.0,
+      "firstPage": {
+        "class": "product-first-page",
+        "samples": 31,
+        "all": [
+          2185.550165000677,
+          2260.9348250007315,
+          2221.1038900004496,
+          2334.601566000856,
+          2123.3235409999907,
+          2071.911283999725,
+          2498.6851060002664,
+          2194.5052150003903,
+          1987.6146389997302,
+          2199.978815000577,
+          2592.5155479999376,
+          2098.8969940008246,
+          2227.8307859996858,
+          2505.1357060001465,
+          2624.0583260005224,
+          2455.973340000128,
+          3167.332664999776,
+          3418.703784000172,
+          2447.604816999956,
+          2263.2654400003958,
+          2302.34650499915,
+          2608.5684899990156,
+          2621.380175000013,
+          2572.3852080009237,
+          2438.921687000402,
+          2325.4702310005086,
+          2438.2692529998167,
+          2405.1740400009294,
+          2267.4004399996193,
+          2642.7495169991744,
+          27409.0
+        ],
+        "maxMs": 27409.0,
+        "medianMs": 2405.1740400009294,
+        "p95Ms": 3418.703784000172,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 479.8515625,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "oldPage": {
+        "class": "product-old-page",
+        "samples": 30,
+        "all": [
+          165.20020399912028,
+          169.81163199852745,
+          126.95656200048688,
+          129.53602299967315,
+          414.8815989992727,
+          177.69614099961473,
+          274.3772750000062,
+          187.2151900006429,
+          140.46775099996012,
+          180.29456099975505,
+          228.88043800048763,
+          169.32997699950647,
+          201.37295399945287,
+          148.6452150002151,
+          138.26919399980397,
+          282.4955609994504,
+          194.66072999966855,
+          235.9507829987706,
+          138.9384140002221,
+          122.79283400130225,
+          140.96392200008268,
+          183.2206250001036,
+          211.99301799970272,
+          145.99194500078738,
+          202.39129299989145,
+          198.87317400025495,
+          172.4030329987727,
+          275.91056799974467,
+          154.76950499942177,
+          211.9205469989538
+        ],
+        "maxMs": 414.8815989992727,
+        "medianMs": 178.9953509996849,
+        "p95Ms": 282.4955609994504,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 479.8515625,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": true
+      },
+      "rss": {
+        "hostSampledPeakMiB": 465.19140625,
+        "hostOsPeakMiB": 479.8515625,
+        "hostPeakMiB": 479.8515625,
+        "ompPeakMiB": 2113.9921875,
+        "browserPeakMiB": 4067.1875,
+        "toolsPeakMiB": 39.9375,
+        "samples": 8637
+      },
+      "productAdmission": {
+        "stage": "product",
+        "sessionAdmission": "admitted",
+        "origin": "http://127.0.0.1:3193",
+        "runtime": {
+          "name": "bun",
+          "version": "1.4.4",
+          "platform": "linux",
+          "arch": "x64"
+        },
+        "installation": "fb6743ad1847865b06e17b7d7b5997768da91efdc183264016db225d852bbbf8"
+      }
+    }
+  ]
+}
