@@ -41,6 +41,7 @@
     "test:sessions:browser": "bun scripts/prove-session-browser.ts",
     "test:sessions:interactions": "python3 tests/sessions/interactions-browser.py",
     "product:build": "bun scripts/build-product.ts",
+    "product:verify": "bun scripts/verify-product.ts",
     "product:enroll": "bun scripts/enroll-product.ts",
     "product:start": "bun --no-env-file apps/host/src/main.ts"
   },

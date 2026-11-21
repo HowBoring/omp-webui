@@ -271,7 +271,7 @@ async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
         if "Session projection failed" in alerts:
             raise BlockedSession("SESSION_PROJECTION_FAILED", alerts)
         if await page.locator('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]').count() \
-                and await page.locator("[data-chat-node]").count():
+                and await page.locator("[data-chat-node], [data-chat-native-record]").count():
             return
         await asyncio.sleep(0.05)
     raise TimeoutError("session nodes did not render before timeout")
@@ -414,31 +414,16 @@ async def chat_run(browser_args, product=False):
             sampling = asyncio.create_task(sampler.run())
             page = await browser.new_page()
             page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
-            page.on("console", lambda message: errors.append(f"console: {message.text}") if message.type == "error" and "404" not in message.text else None)
+            if os.environ.get("OMP_PERF_DEBUG"):
+                await page.add_init_script("globalThis.__OMP_CHAT_DEBUG__ = true")
+            async def log_console(message):
+                if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
+                    print("PRODUCT_CONSOLE", message.text, flush=True)
+                if message.type == "error" and "404" not in message.text:
+                    errors.append(f"console: {message.text}")
+            page.on("console", lambda message: asyncio.create_task(log_console(message)))
             first, old = [], []
             rows = 0
-            debug_task = None
-            if os.environ.get("OMP_PERF_DEBUG") == "1":
-                async def log_response(response):
-                    if "/api/" not in response.url:
-                        return
-                    try:
-                        body = await response.text()
-                    except Exception as error:
-                        body = f"<unreadable: {error}>"
-                    if "catalog" in response.url:
-                        body = body[:1200]
-                    print(f"chat-response: {response.status} {response.url} {body}", file=sys.stderr, flush=True)
-                page.on("response", lambda response: asyncio.create_task(log_response(response)))
-                async def report_stalls():
-                    for tick in range(12):
-                        await asyncio.sleep(15)
-                        try:
-                            alert = await page.locator('[role="alert"]').first.inner_text()
-                        except Exception:
-                            alert = ""
-                        print(f"chat-stall: t={(tick+1)*15}s rows={await page.locator('li[data-native-id]').count()} alert={alert!r}", file=sys.stderr, flush=True)
-                debug_task = asyncio.create_task(report_stalls())
             try:
                 cold_started = time.perf_counter()
                 await page.goto(link)
@@ -533,7 +518,7 @@ async def chat_run(browser_args, product=False):
                 reachable_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
                 reachable_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
                 reachable_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                oldest = await page.locator("#conversation [data-chat-node]").first.text_content()
+                oldest = await page.locator("#conversation [data-chat-node], #conversation [data-chat-native-record]").first.text_content()
                 reachability = {"nodes": reachable_nodes, "steps": steps, "more": reachable_more,
                     "firstSeqBefore": first_before, "firstSeqAfter": reachable_first,
                     "firstNode": (oldest or "")[:120],
@@ -544,8 +529,6 @@ async def chat_run(browser_args, product=False):
                     "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
                 stage(f"reachability={reachability}")
             finally:
-                if debug_task is not None:
-                    debug_task.cancel()
                 sampler.stop()
                 await sampling
                 peak = sampler.report()

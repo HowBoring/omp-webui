@@ -140,6 +140,11 @@ let protectedSubmission: string | undefined;
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
 let renewEnrollment: ((projection: SessionProjectionBinding) => Promise<void>) | undefined;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
+const debugChat = (event: string, details: Record<string, unknown> = {}) => {
+  if ((globalThis as { __OMP_CHAT_DEBUG__?: boolean }).__OMP_CHAT_DEBUG__) {
+    console.info("OMP_CHAT", JSON.stringify({ event, ...details }));
+  }
+};
 const resultValue = <T,>(result: { ok: true; value: T } | { ok: false; error: { message: string } }): T => {
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
@@ -151,9 +156,10 @@ let draftId = (() => {
 })();
 const ownerReady = ownTab();
 function invalidateAccess(text: string) {
-  ++accessRevision; release(); viewChanged(undefined); errorChanged(text);
+  ++accessRevision; release("access"); viewChanged(undefined); errorChanged(text);
 }
-function release() {
+function release(reason: "access" | "present" | "surface-unmount" | "pagehide") {
+  debugChat("session-release", { reason, sessionId: reference?.sessionId, stack: new Error().stack });
   ++presentationRevision; unsubscribe?.(); unsubscribe = undefined;
   unsubscribeProjection?.(); unsubscribeProjection = undefined;
   if (reference) { authorities.delete(String(reference.sessionId)); reference.release(); reference = undefined; }
@@ -189,12 +195,13 @@ async function renewSessionProjection(view: PublicSessionView, progress: (status
   if (renewEnrollment) { progress("Renewing the Chat attachment…"); await renewEnrollment(current.projection); }
 }
 async function present(view: PublicSessionView) {
-  release();
+  release("present");
   const current = presentationRevision, access = accessRevision;
   await ctx.sessions.refresh();
   if (current !== presentationRevision || access !== accessRevision) return;
   const retained = ctx.sessions.retain(SessionId(view.registration.nativeSessionId), { source: "supervisedChat" });
   reference = retained;
+  debugChat("session-acquire", { sessionId: view.registration.nativeSessionId });
   const binding = await retained.ready;
   if (reference !== retained) return;
   liveBinding = binding;
@@ -231,7 +238,7 @@ async function present(view: PublicSessionView) {
     saved = await provider.read(currentScope, new AbortController().signal);
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
   if (reference !== retained) return;
-  if (draftDirty) { draftRestored(); return; }
+  if (draftDirty) { draftRestored(); watch(binding, retained); return; }
   if (!saved) { protectedSubmission = undefined; draftNotice(undefined); draftChanged(""); draftOriginals([]); draftRestored(); watch(binding, retained); return; }
   // Reauthorize every stable Original through the Host before publishing text and items together.
   let prepared: readonly PreparedDraftOriginal[] | undefined;
@@ -239,7 +246,8 @@ async function present(view: PublicSessionView) {
     try { prepared = await provider.prepare(currentScope!, saved.originals.filter(ref => !removedOriginals.has(String(ref.id))), new AbortController().signal); }
     catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
   }
-  if (reference !== retained || draftDirty) return;
+  if (reference !== retained) return;
+  if (draftDirty) { watch(binding, retained); return; }
     // A removal that happened while this record was being read must not be republished by the stale read.
   const retainedOriginals = saved.originals.filter(ref => !removedOriginals.has(String(ref.id)));
   const items = retainedOriginals.map((ref, index) => {
@@ -272,7 +280,12 @@ function watch(binding: SessionBinding, retained: SessionReference) {
   attach();
   unsubscribeProjection?.();
   unsubscribeProjection = binding.projection.subscribe(() => {
-    if (reference === retained && binding.projection.getSnapshot().phase === "ready") attach();
+    const state = binding.projection.getSnapshot();
+    debugChat("journal-projection", {
+      phase: state.phase,
+      generation: state.phase === "ready" ? state.binding.generation : undefined,
+    });
+    if (reference === retained && state.phase === "ready") attach();
   });
 }
 function SessionSettings({ view }: { view: PublicSessionView }) {
@@ -1013,10 +1026,11 @@ function Surface() {
     } finally { attemptAbort.current = undefined; setBusy(false); sending.current = false; }
   };
   useEffect(() => {
+    debugChat("surface-mount");
     viewChanged = setView; historyChanged = setRows; olderChanged = setOlder; errorChanged = setError; draftChanged = setText;
     if (liveBinding) scope.current = provider.scope(liveBinding);
     void perform(async () => { await catalog(); await refreshGrants(); });
-    return () => { release(); }; // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { debugChat("surface-unmount"); release("surface-unmount"); }; // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   const productHandlers = useRef<ProductActions>({ newSession: () => {}, send: () => {}, stop: () => {}, retry: () => {}, settings: () => {} });
@@ -1294,7 +1308,7 @@ async function boot() {
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);
   ctx.slots.register({ name: "s1.chat" }, Surface);
   const unmount = ctx.uiRenderer.mount(document.getElementById("app")!);
-  window.addEventListener("pagehide", () => { release(); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
+  window.addEventListener("pagehide", () => { release("pagehide"); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
   const previous = sessionStorage.getItem("omp-supervised-worker");
   if (previous) {
     const current = accessRevision, presented = presentationRevision;

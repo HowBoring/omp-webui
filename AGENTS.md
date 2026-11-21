@@ -84,3 +84,4 @@ Use the five canonical labels mapped in docs/agents/triage-labels.md.
 
 Single-context: CONTEXT.md and docs/adr/.
 Before domain exploration or design, read docs/agents/domain.md.
+Before changing or debugging the real browser product, read docs/agents/product-runtime.md.

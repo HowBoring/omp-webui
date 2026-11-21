@@ -30,7 +30,7 @@ test("structural native records remain visible in an otherwise empty trajectory 
   events.register(trajectoryNativeRecordDefinition);
   views.register(trajectoryViewDefinition);
   const assembler = new ConversationNodeAssembler(events, views);
-  assembler.replaceWindow([{ event }], true);
+  assembler.replaceWindow([{ type: "event", event }], true);
   assembler.activateTarget("trajectory");
   expect(assembler.snapshot("trajectory")).toMatchObject({ eventNodes: [event] });
 });
