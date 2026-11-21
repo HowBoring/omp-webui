@@ -793,7 +793,16 @@ export class SessionSupervisor {
       this.#current(identity, active);
       if (active.journal !== pending) continue; // a concurrent caller retired this opening first
       if (journal.sessionId === sessionId && !journal.failure) {
+        const previous = active.journalValue;
+        if (previous === journal) return journal;
         active.journalValue = journal;
+        // A fresh opening may replace a failed generation the viewer still follows (for example after a
+        // cut rebuild could not settle during the turn). Announce every replacement so control can move
+        // that viewer onto this journal instead of leaving it on the retired one.
+        if (previous !== undefined) {
+          active.journalEpoch = ++journalIdentity;
+          previous.invalidate("presentation_replaced");
+        }
         return journal;
       }
       if (rebuilt) { delete active.journal; break; } // the replacement is unusable; the next viewer retries
@@ -813,9 +822,12 @@ export class SessionSupervisor {
       if (journal.sessionId !== sessionId) { delete active.journal; break; }
       const previous = active.journalValue;
       // Publish the successor and retire the predecessor together: control must never advertise a
-      // generation that the next follow can no longer open.
-      active.journalValue = journal; active.journalEpoch = epoch;
-      if (previous !== undefined && previous !== journal) previous.invalidate("presentation_replaced");
+      // generation that the next follow can no longer open. A concurrent caller may have published this
+      // same replacement first; keep its (later) epoch rather than moving the announcement backwards.
+      if (previous !== journal) {
+        active.journalValue = journal; active.journalEpoch = epoch;
+        if (previous !== undefined) previous.invalidate("presentation_replaced");
+      }
       return journal;
     }
     throw new Error("SESSION_PRESENTATION_INVALIDATED");
@@ -866,7 +878,14 @@ export class SessionSupervisor {
     if (!active?.worker || active.record?.nativeSessionId !== sessionId) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     this.requirePresentation(identity, sessionId, journal);
     const poll = await active.worker.history.poll(journal.opened.cut.workerId, journal.after); this.requirePresentation(identity, sessionId, journal);
-    journal.accept(poll);
+    try { journal.accept(poll); }
+    catch (error) {
+      // A new submission moves a cold Session's native cut/context, so the polling journal dies before it
+      // sees the turn. Publish the authoritative replacement now: control then announces a generation the
+      // viewer's next follow can open, instead of leaving it on a dead follow until a manual reload.
+      if (this.#active?.journalValue === journal) await this.presentation(identity, sessionId).catch(() => undefined);
+      throw error;
+    }
   }
   /** Recompute overlapping root grants. Browser logout withdraws only that browser's view/answer rights. */
   async permissionsChanged(): Promise<void> {

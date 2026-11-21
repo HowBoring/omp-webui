@@ -67,7 +67,10 @@ bun test
 bun run check
 ~~~
 
-The initial Host is only a health-check scaffold. Do not describe the DSH Gateway or OMP RPC integration as implemented until the corresponding end-to-end tests pass.
+The product Host, DSH Gateway and OMP RPC integration are implemented on the frozen combination in
+`docs/release-final.md`. Do not describe a *new* combination (upstream bump, patch change, re-enroll) as
+implemented until `bun run product:verify`, `bun test tests/product/freeze.test.ts` and the affected
+product/native scenarios pass again.
 
 ## Agent skills
 

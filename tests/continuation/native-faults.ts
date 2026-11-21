@@ -1,3 +1,4 @@
+export {};
 /** Child-only native OS/wire boundary faults on an explicitly synthetic profile, installed before OMP imports. */
 const home = process.env.HOME, target = process.env.OMP_STRICT_FAULT_TARGET, fault = process.env.OMP_STRICT_FAULT;
 if (!home || !target?.startsWith(home + "/") || !fault) throw new Error("STRICT_SYNTHETIC_FAULT_REQUIRED");
