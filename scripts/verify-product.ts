@@ -16,6 +16,14 @@ const actual = resolve("vendor/dsh-product");
 const temporary = await mkdtemp(join(tmpdir(), "omp-product-verify-"));
 try {
   await buildProduct(temporary);
+  // The committed shell must not depend on which directory invoked the build.
+  const invoking = process.cwd();
+  try {
+    process.chdir(tmpdir());
+    await buildProduct(temporary);
+  } finally {
+    process.chdir(invoking);
+  }
   const [actualFiles, expectedFiles] = await Promise.all([files(actual), files(temporary)]);
   const actualPaths = actualFiles.map(path => relative(actual, path));
   const expectedPaths = expectedFiles.map(path => relative(temporary, path));

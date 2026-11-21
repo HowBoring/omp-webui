@@ -47,8 +47,8 @@
       "schemaSha256": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
       "generatedIdentity": "packages/contracts/generated/identity.ts"
     },
-    "launcher": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/omp",
-    "target": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/cli.js",
+    "launcher": "vendor/omp-candidate/omp",
+    "target": "vendor/omp-candidate/cli.js",
     "runtime": {
       "path": "/home/howboring/.bun/bin/bun",
       "kind": "file",
@@ -84,35 +84,36 @@
     ],
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924"
+      "sha256": "5796b8e455685a5cbc0cf8ab8e348a30c607677949338e60b35bfbcfcf5b93ba",
+      "canonicalization": "checkout-relative asset paths; runtime and system dependency paths tokenized"
     },
     "installationAssets": [
       {
-        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate",
+        "path": "vendor/omp-candidate",
         "kind": "directory",
         "identity": "18aefb17923aca93637c3428fcc4c51ba58d849d05b2006a7a75d081fa75f2b1",
         "mode": 493
       },
       {
-        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/chunk-rpab59at.js",
+        "path": "vendor/omp-candidate/chunk-rpab59at.js",
         "kind": "file",
         "identity": "17b24b65ff725e7c34ae9b564383e207b83fbd4ca5cbb16b23cd0d8be5defa8c",
         "mode": 420
       },
       {
-        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/cli.js",
+        "path": "vendor/omp-candidate/cli.js",
         "kind": "file",
         "identity": "6385297622ab2a79ca2923c374fe6902b2efd65886775827adcb3db51a03b07a",
         "mode": 493
       },
       {
-        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/omp",
+        "path": "vendor/omp-candidate/omp",
         "kind": "link",
         "identity": "cli.js",
         "mode": 511
       },
       {
-        "path": "/home/howboring/Projects/omp-webui-ticket-61/vendor/omp-candidate/rpc-wire.schema.json",
+        "path": "vendor/omp-candidate/rpc-wire.schema.json",
         "kind": "file",
         "identity": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
         "mode": 420

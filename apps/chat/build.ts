@@ -20,6 +20,10 @@ export interface ClientBuildOptions {
 
 /** Compile one standalone Client shell against the pinned DSH source realm. */
 export async function buildClient(options: ClientBuildOptions): Promise<void> {
+  // Bun derives scoped CSS-module names from the path relative to the working directory.
+  // Pin it to the repository root so one authored source produces one committed shell,
+  // however and wherever the build is invoked.
+  process.chdir(root);
   const outdir = resolve(root, options.outdir);
   const lockBytes = await readFile(resolve(root, "upstreams.lock.json"));
   const lock = z.object({ dsh: z.object({ commit: z.string().regex(/^[a-f0-9]{40}$/) }) })

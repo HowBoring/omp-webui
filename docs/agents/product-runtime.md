@@ -55,10 +55,12 @@ bun run product:verify && bun run product:enroll
 bun test tests/product/freeze.test.ts      # fails when the enrolled installation drifts
 ```
 
-The enrolled manifest was `vendor/product/installation.json` sha256
-`d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924` when the ticket-61 evidence was
-recorded; the digest is path-bound, so a different worktree legitimately enrolls a different digest
-while the source/patch/schema and asset identities stay equal.
+The freeze gate hashes the enrolled manifest with checkout-relative asset paths and tokenized runtime
+and system dependency paths. The canonical digest is
+`5796b8e455685a5cbc0cf8ab8e348a30c607677949338e60b35bfbcfcf5b93ba`; every checkout that enrolls the
+same closure produces it, while source/patch/schema and each asset identity stay pinned individually.
+The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
+admission executes.
 
 Host environment: `OMP_WEB_MANIFEST`, `OMP_WEB_LAUNCHER`, `OMP_WEB_MANIFEST_SHA256` (all required),
 `OMP_WEB_PORT` (3180), `OMP_WEB_ORIGIN`, `OMP_WEB_DATA_DIR` (`~/.local/share/omp-webui`),
