@@ -665,6 +665,21 @@ export interface SessionState {
 	goal?: GoalModeState | null;
 }
 
+export interface SessionStatus {
+	sessionId: string;
+	isStreaming?: boolean;
+	isCompacting?: boolean;
+	/** Idle with nothing queued or pending; same predicate as `session_settled`. */
+	isSettled?: boolean;
+	/** Background jobs, their deliveries, child agents or queued peer messages can still wake the session. */
+	hasPendingAsyncWork?: boolean;
+	queuedMessageCount?: number;
+	/** Queued steering messages. */
+	steeringCount?: number;
+	/** Queued follow-up messages. */
+	followUpCount?: number;
+}
+
 export interface BashResult {
 	output: string;
 	cancelled: boolean;
@@ -2192,6 +2207,7 @@ export interface HistoryPage {
 	items: HistoryItem[];
 	complete: true;
 	nextCursor?: string;
+	offset?: number;
 }
 
 export interface HistoryChange {
@@ -2255,6 +2271,7 @@ export interface HistorySnapshotOpenParams {
 
 export interface HistorySnapshotPageParams {
 	cursor: string;
+	before?: number;
 }
 
 export interface HistoryContentPageParams {
@@ -2731,6 +2748,7 @@ export interface RpcWireCommands {
 	new_session: { params: NewSessionParams; result: CancellationResult };
 	open_session: { params: OpenSessionParams; result: OpenSessionResult };
 	get_state: { params: undefined; result: SessionState };
+	get_status: { params: undefined; result: SessionStatus };
 	set_fast_mode: { params: SetFastModeParams; result: FastModeResult };
 	set_slow_mode: { params: SetSlowModeParams; result: SetSlowModeResult };
 	goal: { params: GoalParams; result: GoalResult };

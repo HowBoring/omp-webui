@@ -80,6 +80,8 @@ export async function sourceFixture(now: () => number = Date.now,
     async state() { return { sessionId: controls.sessionId, sessionFile: controls.sessionFile, isSettled: !controls.busy, isStreaming: controls.busy,
       isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] },
       model: controls.model, thinkingLevel: controls.thinkingLevel }; },
+    async status() { return { sessionId: controls.sessionId, isSettled: !controls.busy, isStreaming: controls.busy,
+      isCompacting: false, hasPendingAsyncWork: false, queuedMessageCount: 0, steeringCount: 0, followUpCount: 0 }; },
     async models() { return [
       { provider: "synthetic", id: "fixture", name: "Fixture", reasoning: true, thinking: { efforts: ["low", "high"] } },
       { provider: "synthetic", id: "other", name: "Other", reasoning: false }]; },

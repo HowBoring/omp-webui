@@ -66,9 +66,13 @@ function usageValue(item: HistoryItem) {
 }
 
 function nativeRecord(item: HistoryItem, id: string): JsonValue {
-  // Native file mentions arrive as kind "message" with role "fileMention"; the role is the surface.
-  const surface = item.kind === 'message' && item.role !== undefined ? item.role : item.kind;
-  if (!visibleKinds.has(surface) && !structuralKinds.has(surface)) {
+  // Native terminal roles arrive as kind "message"; native file mentions carry role "fileMention".
+  const roleKind = item.role === 'fileMention' ? 'fileMention'
+    : item.role === 'compactionSummary' ? 'compaction'
+    : item.role === 'branchSummary' ? 'branch_summary'
+    : item.role === 'resetBoundary' ? 'reset_boundary' : undefined;
+  const surface = roleKind ?? (item.kind === 'message' && item.role !== undefined ? item.role : item.kind);
+  if (!visibleKinds.has(surface) && !structuralKinds.has(surface) && item.kind !== 'message') {
     throw Error('live_native_record_unsupported');
   }
   if (item.role !== undefined && !nativeRoles.has(item.role)) {

@@ -40,6 +40,26 @@ test("simultaneous explicit opens and warm views share one actual native worker"
   } finally { await f.close(); }
 }, 30_000);
 
+test("an unchanged cut serves the Native branch points once instead of rescanning per load", async () => {
+  const f = await fixture();
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.supervisor.presentation(f.identity, opened.registration.nativeSessionId);
+    const first = await f.supervisor.branchPoints(f.identity, opened.workerId);
+    const second = await f.supervisor.branchPoints(f.identity, opened.workerId);
+    expect(first.points.map(point => point.entryId)).toEqual(["entry-0"]);
+    // The cut did not move: the memo answers, so no second Native transcript scan is issued.
+    expect(second.points).toBe(first.points);
+    expect(second.generation).toBe(first.generation);
+    // A different Session never inherits the previous cut's points.
+    const sibling = (await f.discovery.catalog.page()).items.find(item => item.nativeSessionId === "native-0001")!;
+    const switched = await f.supervisor.switchTo(f.identity, sibling);
+    await f.supervisor.presentation(f.identity, switched.registration.nativeSessionId);
+    const other = await f.supervisor.branchPoints(f.identity, switched.workerId);
+    expect(other.points.map(point => point.entryId)).toEqual(["entry-1"]);
+  } finally { await f.close(); }
+}, 30_000);
+
 test("revoking one overlapping root preserves the worker; revoking effective access denies then reaps it", async () => {
   const f = await fixture();
   try {
@@ -324,3 +344,30 @@ test("public steer queues during a real busy turn and abort_and_restore_queue re
     expect(await actual!.state()).toMatchObject({ queuedMessageCount: 0, queuedMessages: { steering: [], followUp: [] } });
   } finally { await f.close(); }
 }, 45_000);
+
+test("a cut recovery rebuilds one presentation generation for every concurrent viewer", async () => {
+  const f = await fixture();
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    const nativeSessionId = opened.registration.nativeSessionId;
+    const retired = await f.supervisor.presentation(f.identity, nativeSessionId);
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, nativeSessionId);
+    expect(retired.failure).toBe("navigation_pending");
+    const [first, second] = await Promise.all([
+      f.supervisor.presentation(f.identity, nativeSessionId),
+      f.supervisor.presentation(f.identity, nativeSessionId),
+    ]);
+    expect(first.generation).toBe(second.generation);
+    expect(first.generation).not.toBe(retired.generation);
+    expect(f.supervisor.activeJournal(f.identity)).toBe(first);
+    expect(String(first.sessionId)).toBe(nativeSessionId);
+    expect((first as { failure?: string }).failure).toBeUndefined();
+    // The announced generation is the one control publishes, and the retired stream is told to stop.
+    expect(f.supervisor.presentationEpoch(f.identity)).toBeGreaterThan(0);
+    expect(() => f.supervisor.requirePresentation(f.identity, nativeSessionId, retired))
+      .toThrow("SESSION_PRESENTATION_INVALIDATED");
+    const page = await first.page({ address: { kind: "session", sessionId: nativeSessionId }, projection: first.projection,
+      maxMessages: 1 } as never);
+    expect(page.projection).toEqual(first.projection);
+  } finally { await f.close(); }
+}, 30_000);

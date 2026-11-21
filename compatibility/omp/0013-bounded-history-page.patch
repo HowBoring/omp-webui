@@ -1,0 +1,119 @@
+diff --git a/packages/coding-agent/src/modes/rpc/history-client.ts b/packages/coding-agent/src/modes/rpc/history-client.ts
+index f65fb992..fbd61d43 100644
+--- a/packages/coding-agent/src/modes/rpc/history-client.ts
++++ b/packages/coding-agent/src/modes/rpc/history-client.ts
+@@ -12,8 +12,9 @@ export class HistoryClient {
+     const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope, ...(handoff ? { handoff } : {}) });
+     if (!validHistoryOpen(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
+   }
+-  async page(cursor: string): Promise<HistoryPage> {
+-    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor });
++  async page(cursor: string, before?: number): Promise<HistoryPage> {
++    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor,
++      ...(before === undefined ? {} : { before }) });
+     if (!validHistoryPage(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
+   }
+   async content(cursor: string): Promise<HistoryContentPage> {
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+index 93eda64d..84ab9300 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -54,7 +54,7 @@ export interface HistoryOpen {
+ }
+ export interface HistoryPage {
+   snapshot: string; scope: HistoryScope; cut: HistoryCut; expiresAt: number; items: HistoryItem[];
+-  complete: true; nextCursor?: string;
++  complete: true; nextCursor?: string; offset?: number;
+ }
+ export interface HistoryContentPage {
+   snapshot: string; cut: HistoryCut; expiresAt: number; content: HistoryContent; encoding: "base64";
+@@ -510,16 +510,38 @@ export class RpcHistoryObservation {
+   #expire(): void {
+     for (const [id, snapshot] of this.#snapshots) if (Date.now() >= snapshot.open.expiresAt) { clearTimeout(snapshot.timer); this.#snapshots.delete(id); }
+   }
+-  page(cursor: string): HistoryPage {
++  page(cursor: string, before?: number): HistoryPage {
+     this.#expire();
+     const snapshot = [...this.#snapshots.values()].find(value => value.cursors.has(cursor));
+     if (!snapshot) throw new Error("history_stale_cursor");
+     this.#validateSnapshot(snapshot);
+     const position = snapshot.cursors.get(cursor)!;
+-    const start = position.offset;
+     const rows = snapshot.rows[position.scope];
+     const result: HistoryPage = { snapshot: snapshot.open.snapshot, scope: position.scope,
+       cut: structuredClone(snapshot.open.cut), expiresAt: snapshot.open.expiresAt, items: [], complete: true };
++    if (before !== undefined) {
++      // Backward page: the last whole records ending before an absolute row offset. The
++      // caller keeps native order and never receives a mid-record part.
++      if (!Number.isSafeInteger(before) || before < 0 || before > rows.length) throw new Error("history_page_offset");
++      const end = before;
++      let start = end, used = Buffer.byteLength(JSON.stringify(result)) + 1024, count = 0;
++      while (start > 0 && count < HISTORY_LIMITS.pageItems) {
++        const size = Buffer.byteLength(rows[start - 1]!) + (count === 0 ? 0 : 1);
++        if (used + size > HISTORY_LIMITS.pageBytes) break;
++        used += size; start--; count++;
++      }
++      while (start > 0 && (JSON.parse(rows[start]!).partIndex ?? 0) > 0) {
++        const size = Buffer.byteLength(rows[start - 1]!) + 1;
++        if (used + size > HISTORY_LIMITS.pageBytes) throw new Error("history_unpageable_item");
++        used += size; start--; count++;
++      }
++      if (start === end && end > 0) throw new Error("history_unpageable_item");
++      result.items = rows.slice(start, end).map(encoded => JSON.parse(encoded));
++      result.offset = start;
++      if (Buffer.byteLength(JSON.stringify(result)) + 1024 > HISTORY_LIMITS.responseBytes) throw new Error("history_response_bytes");
++      return result;
++    }
++    const start = position.offset;
+     let index = start;
+     let used = Buffer.byteLength(JSON.stringify(result)) + 1024;
+     while (index < rows.length && result.items.length < HISTORY_LIMITS.pageItems) {
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-mode.ts b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+index 3553180d..23a8a829 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-mode.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-mode.ts
+@@ -2517,7 +2517,7 @@ export async function runRpcMode(session: AgentSession, options: RpcModeOptions
+ 					if (!validateHistoryCommand(command)) return error(typeof id === "string" && id.length <= 96 ? id : undefined, command.type, "history_command_schema", "history_command_schema");
+ 					const data = command.type === "history_snapshot_open" ? historyObservation.open(command.scope, command.handoff)
+ 						: command.type === "history_content_page" ? historyObservation.contentPage(command.cursor)
+-						: command.type === "history_snapshot_page" ? historyObservation.page(command.cursor)
++						: command.type === "history_snapshot_page" ? historyObservation.page(command.cursor, command.before)
+ 						: command.type === "history_snapshot_close" ? historyObservation.close(command.snapshot)
+ 						: historyObservation.poll(command.workerId, command.after);
+ 					return success(id, command.type, data);
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-types.ts b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+index a2e338ce..137c8aef 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-types.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-types.ts
+@@ -62,7 +62,7 @@ export type RpcCommand =
+   | NavigationCommand
+   | { id?: string; type: "history_snapshot_open"; scope: HistoryScope }
+   | { id?: string; type: "history_content_page"; cursor: string }
+-  | { id?: string; type: "history_snapshot_page"; cursor: string }
++  | { id?: string; type: "history_snapshot_page"; cursor: string; before?: number }
+   | { id?: string; type: "history_snapshot_close"; snapshot: string }
+   | { id?: string; type: "history_observation_poll"; workerId: string; after: number }
+ 	// Protocol
+diff --git a/packages/coding-agent/src/modes/rpc/wire/history.ts b/packages/coding-agent/src/modes/rpc/wire/history.ts
+index 1f605e5f..0546bcb8 100644
+--- a/packages/coding-agent/src/modes/rpc/wire/history.ts
++++ b/packages/coding-agent/src/modes/rpc/wire/history.ts
+@@ -31,15 +31,15 @@ export const historyDefs = {
+     cursors: "HistoryCursors", expiresAt: "number.integer", count: "number.integer", streaming: "boolean", compacting: "boolean", prefix: "HistoryItem | null",
+     scannedBytes: "number.integer", scanMs: "number", snapshotMs: "number", limits: "HistoryLimits" },
+   HistoryPage: { snapshot: "string", scope: "HistoryScope", cut: "HistoryCut", expiresAt: "number.integer", items: "HistoryItem[]",
+-    complete: "true", "nextCursor?": "string" },
++    complete: "true", "nextCursor?": "string", "offset?": "number.integer" },
+   HistoryChange: { seq: "number.integer", kind: "string", "source?": "HistoryNativeChange", "live?": "HistoryLiveIdentity", "item?": "HistoryItem", "settlement?": "HistorySettlement" },
+   HistoryPoll: { cut: "HistoryCut", after: "number.integer", through: "number.integer", events: "HistoryChange[]", hasMore: "boolean" },
+ };
+ export const historyCommands = [
+   { name: "history_snapshot_open", doc: "Atomic native retained-tree/active-chain/running/live observation. Optional live handoff permits only verified append/prefix progress.",
+     params: { scope: "HistoryScope", "handoff?": "HistoryHandoff" }, result: "HistoryOpen" },
+-  { name: "history_snapshot_page", doc: "Immutable same-cut native history page. Default rejects any content change; opt-in live handoff rejects discontinuities.",
+-    params: { cursor: "string" }, result: "HistoryPage" },
++  { name: "history_snapshot_page", doc: "Immutable same-cut native history page. Optional before reads the last whole records before an absolute row offset. Default rejects any content change; opt-in live handoff rejects discontinuities.",
++    params: { cursor: "string", "before?": "number.integer" }, result: "HistoryPage" },
+   { name: "history_content_page", doc: "Bounded retained native image bytes tied to immutable observation; never asserts exact original association.",
+     params: { cursor: "string" }, result: "HistoryContentPage" },
+   { name: "history_snapshot_close", doc: "Release one native snapshot without changing history.",

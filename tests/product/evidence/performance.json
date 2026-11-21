@@ -1,0 +1,225 @@
+{
+  "generatedAt": "2026-11-20T18:05:21Z",
+  "productMeasurement": "unclaimed: product Host cutover (#59) is not available; component Host evidence only",
+  "admission": "blocked",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; actual runner recorded by the harness."
+  },
+  "actual": {
+    "cpus": 20,
+    "memoryMiB": 19844,
+    "runtime": "see corpus.json"
+  },
+  "corpus": {
+    "seed": "omp-webui-s5-performance-v1",
+    "limits": {
+      "catalogSessions": 1000,
+      "historyEntries": 10000,
+      "historyBytes": 104857600
+    },
+    "catalog": {
+      "sessions": 1000,
+      "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6"
+    },
+    "history": {
+      "entries": 10000,
+      "bytes": 112923786,
+      "sha256": "bcf9d2557e288d733d7a220adaef6648578464669092465e9de1785c6a1c69d2",
+      "typeDistribution": {
+        "message": 8980,
+        "message:user": 3100,
+        "message:assistant": 3880,
+        "toolCall": 1000,
+        "message:toolResult": 1000,
+        "branch": 100,
+        "message:fileMention": 1000,
+        "custom": 1000,
+        "custom:s5.performance-marker": 1000,
+        "reset_boundary": 10,
+        "compaction": 10
+      }
+    }
+  },
+  "protocol": {
+    "warmups": 2,
+    "samples": 30,
+    "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+    "rssSamplingMs": 45.0,
+    "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+    "chatJournalLimitBytes": 201326592
+  },
+  "limits": {
+    "firstPageP95Ms": 3000.0,
+    "oldPageP95Ms": 1000.0,
+    "hostPeakMiB": 512.0
+  },
+  "classes": [
+    {
+      "class": "chat",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 24,
+      "reachability": {
+        "window": "24/24",
+        "nodes": 21,
+        "steps": 0,
+        "allRecordsRendered": false,
+        "elapsedMs": 11.1
+      },
+      "coldOpenMs": 48076.6,
+      "firstPage": {
+        "class": "chat-first-page",
+        "samples": 31,
+        "all": [
+          2593.9777119929204,
+          2753.5861380019924,
+          3142.079648998333,
+          2764.062788002775,
+          4589.612894007587,
+          2918.229215007159,
+          2409.2944860021817,
+          2827.098041001591,
+          2624.425539994263,
+          3736.8637820036383,
+          2801.0862869996345,
+          2647.554063994903,
+          4365.207370996359,
+          2587.630287001957,
+          2864.899312990019,
+          2774.195410005632,
+          2635.232698987238,
+          2534.532860998297,
+          3659.3534130079206,
+          2664.8022410081467,
+          2589.8587279953063,
+          2655.381143995328,
+          2924.5906350115547,
+          2830.8958240086213,
+          2593.6008479911834,
+          4440.384529007133,
+          2865.226509005879,
+          2928.4416760056047,
+          4872.247467996203,
+          2712.877233992913,
+          48076.6
+        ],
+        "maxMs": 48076.6,
+        "medianMs": 2801.0862869996345,
+        "p95Ms": 4872.247467996203,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 888.703125,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "oldPage": {
+        "class": "chat-old-page",
+        "samples": 0,
+        "all": [],
+        "maxMs": null,
+        "medianMs": null,
+        "p95Ms": null,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 888.703125,
+        "hostLimitMiB": 512.0,
+        "failures": [
+          "no older page control: the live component window has no resident older records"
+        ],
+        "pass": false
+      },
+      "rss": {
+        "hostSampledPeakMiB": 886.6640625,
+        "hostOsPeakMiB": 888.703125,
+        "hostPeakMiB": 888.703125,
+        "ompPeakMiB": 2325.6015625,
+        "browserPeakMiB": 1628.8046875,
+        "toolsPeakMiB": 84.53125,
+        "samples": 2924
+      }
+    },
+    {
+      "class": "chat",
+      "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+      "historyRows": 24,
+      "reachability": {
+        "window": "24/24",
+        "nodes": 21,
+        "steps": 0,
+        "allRecordsRendered": false,
+        "elapsedMs": 13.7
+      },
+      "coldOpenMs": 48866.8,
+      "firstPage": {
+        "class": "chat-first-page",
+        "samples": 31,
+        "all": [
+          3819.45463399461,
+          2450.48749500711,
+          4212.997416005237,
+          2626.7783980001695,
+          2206.234213008429,
+          2491.472128996975,
+          2392.9743569897255,
+          2812.525353001547,
+          2386.168044002261,
+          2632.5041899981443,
+          2624.2538649967173,
+          2669.540204995428,
+          2694.734693010105,
+          2837.1820580068743,
+          2302.498632998322,
+          2981.6202269867063,
+          2874.2181949928636,
+          2276.072908003698,
+          2772.1365739998873,
+          3706.9646040035877,
+          2158.0331979930634,
+          2775.698376004584,
+          2737.704671002575,
+          2768.9403490076074,
+          2771.842995993211,
+          4505.626750993542,
+          3119.548874994507,
+          4237.649395989138,
+          2306.2340280011995,
+          2836.2976369971875,
+          48866.8
+        ],
+        "maxMs": 48866.8,
+        "medianMs": 2768.9403490076074,
+        "p95Ms": 4505.626750993542,
+        "limitMs": 3000.0,
+        "hostPeakMiB": 922.984375,
+        "hostLimitMiB": 512.0,
+        "failures": [],
+        "pass": false
+      },
+      "oldPage": {
+        "class": "chat-old-page",
+        "samples": 0,
+        "all": [],
+        "maxMs": null,
+        "medianMs": null,
+        "p95Ms": null,
+        "limitMs": 1000.0,
+        "hostPeakMiB": 922.984375,
+        "hostLimitMiB": 512.0,
+        "failures": [
+          "no older page control: the live component window has no resident older records"
+        ],
+        "pass": false
+      },
+      "rss": {
+        "hostSampledPeakMiB": 906.15625,
+        "hostOsPeakMiB": 922.984375,
+        "hostPeakMiB": 922.984375,
+        "ompPeakMiB": 2110.62109375,
+        "browserPeakMiB": 1683.4453125,
+        "toolsPeakMiB": 81.87890625,
+        "samples": 2834
+      }
+    }
+  ]
+}

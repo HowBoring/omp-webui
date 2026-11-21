@@ -159,6 +159,9 @@ test('bounded association eviction is explicit and old entries remain readable w
 },30000);
 
 test('real native bounded pages explicitly refuse a derived journal that exceeds its byte budget',async()=>{
+  // Bounded opening keeps only one native tail page, so the default 32MiB budget would never trip here:
+  // pin a budget smaller than one native page to prove the derived journal still refuses explicitly.
+  process.env.OMP_LIVE_JOURNAL_MAX_BYTES='65536';
   const {LiveJournal}=await import('../../../packages/projection/live-journal.ts');
   const {HistoryClient}=await import('../../../packages/contracts/generated/history-client.ts');
   const manager=SessionManager.inMemory(profile);
@@ -166,9 +169,10 @@ test('real native bounded pages explicitly refuse a derived journal that exceeds
   const observation=new RpcHistoryObservation(manager,()=>({messages:[],streaming:false,compacting:false}));
   const client=new HistoryClient(async command=>{
     if(command.type==='history_snapshot_open')return observation.open(command.scope,command.handoff);
-    if(command.type==='history_snapshot_page')return observation.page(command.cursor);
+    if(command.type==='history_snapshot_page')return observation.page(command.cursor,command.before);
     if(command.type==='history_snapshot_close')return observation.close(command.snapshot);
-    throw Error('unexpected_native_read');
+    if(command.type==='history_observation_poll')return observation.poll(command.workerId,command.after);
+    throw Error('unexpected_native_read:'+command.type);
   });
   await expect(LiveJournal.open(client)).rejects.toThrow('live_projection_evicted');
 },30000);
@@ -367,7 +371,7 @@ test('late native frames for an already settled original object cannot reopen th
   const {agent,session,history}=await fixture();
   const client=new HistoryClient(async command=>{
     if(command.type==='history_snapshot_open')return history.open(command.scope,command.handoff);
-    if(command.type==='history_snapshot_page')return history.page(command.cursor);
+    if(command.type==='history_snapshot_page')return history.page(command.cursor,command.before);
     if(command.type==='history_snapshot_close')return history.close(command.snapshot);
     if(command.type==='history_observation_poll')return history.poll(command.workerId,command.after);
     throw Error('unexpected_native_read');
@@ -378,7 +382,7 @@ test('late native frames for an already settled original object cannot reopen th
   const cut=journal.cursor;
   agent.emitExternalEvent({type:'message_update',message,assistantMessageEvent:{type:'text_delta',contentIndex:0,delta:'late',partial:message}});
   journal.accept(history.poll(journal.opened.cut.workerId,journal.after));
-  expect(journal.cursor).toBe(cut);expect(journal.page({maxMessages:128}).records.filter(record=>record.event.type==='assistant/message')).toHaveLength(1);
+  expect(journal.cursor).toBe(cut);expect((await journal.page({maxMessages:128})).records.filter(record=>record.event.type==='assistant/message')).toHaveLength(1);
 });
 
 test('same original object reused before queued persistence still settles both exact native lifecycles',async()=>{

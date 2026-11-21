@@ -13,6 +13,9 @@ import { nativeSettled, type SessionSupervisor, type SessionView } from "./super
 import type { CatalogPageInput } from "../contracts/catalog.ts";
 import { sameNativeSession } from "../contracts/catalog-identity.ts";
 export const sessionCaller = new AsyncLocalStorage<BrowserAccess>();
+/** The catalog snapshot is a bounded read-only native scan; pages slice it so a reopen never rescans storage. */
+const CATALOG_LIMIT = 4_096, CATALOG_PAGES = 256, CATALOG_CURSOR = "snap:";
+type CatalogStatus = "complete" | "partial" | "scanning";
 interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor }
 class SessionSettingsError extends RemoteError<"gateway/bad-request"> {}
 const settingsFailure = (reason: "stale" | "busy" | "conflict" | "capability" | "unconfirmed" | "projection"): never => {
@@ -33,6 +36,8 @@ const publicView = (view: SessionView) => {
 /** All public invocations get a fresh authenticated BrowserAccess from the carrier, never browser-supplied authority. */
 export class SessionsService extends TypertRemoteService {
   private readonly choices = new Map<SessionSelectionId, { descriptor: CatalogDescriptor; expires: number }>();
+  private catalogSnapshot: { status: CatalogStatus; items: CatalogDescriptor[] } | undefined;
+  private catalogScan: Promise<{ status: CatalogStatus; items: CatalogDescriptor[] }> | undefined;
   private readonly settingsRevisions = new Map<string, number>();
   private readonly settingsQueue = new Map<string, Promise<unknown>>();
   constructor(ctx: Context, readonly options: Options) { super(ctx, "ompSessions"); }
@@ -140,18 +145,44 @@ export class SessionsService extends TypertRemoteService {
     }
     return choice.descriptor;
   }
-  @Remote("catalog") async catalog(options: CatalogPageInput) {
-    this.identity(); const page = await this.options.catalog.page({ ...(options.cursor ? { cursor: options.cursor } : {}), ...(options.pageSize ? { pageSize: options.pageSize } : {}) }); this.identity();
+  @Remote("catalog") async catalog(options: CatalogPageInput & { refresh?: boolean }) {
+    this.identity();
+    const offset = options.cursor === undefined ? 0 : options.cursor.startsWith(CATALOG_CURSOR) ? Number(options.cursor.slice(CATALOG_CURSOR.length)) : Number.NaN;
+    if (!Number.isSafeInteger(offset) || offset < 0) throw new Error("SESSION_CATALOG_CURSOR_INVALID");
+    const snapshot = await this.catalogSnapshotFor(options.refresh === true);
+    this.identity();
+    const items = snapshot.items.slice(offset, offset + (options.pageSize ?? 32));
     for (const [id, choice] of this.choices) if (choice.expires <= Date.now()) this.choices.delete(id);
-    const choices = page.items.map(descriptor => {
+    const choices = items.map(descriptor => {
       let id = [...this.choices].find(([, choice]) => sameNativeSession(choice.descriptor, descriptor))?.[0];
-      if (!id) { if (this.choices.size >= 1024) throw new Error("SESSION_SELECTION_LIMIT"); id = brandString<SessionSelectionId>(crypto.randomUUID()); }
+      if (!id) {
+        while (this.choices.size >= CATALOG_LIMIT) { const oldest = this.choices.keys().next(); if (oldest.done) break; this.choices.delete(oldest.value); }
+        id = brandString<SessionSelectionId>(crypto.randomUUID()); }
       this.choices.set(id, { descriptor, expires: Date.now() + 60_000 });
       return { selectionId: id, nativeSessionId: descriptor.nativeSessionId, sourceId: descriptor.sourceId, instanceId: descriptor.instanceId,
         ...(descriptor.cwd.canonical ? { cwd: descriptor.cwd.canonical } : {}), ...(descriptor.title ? { title: descriptor.title } : {}),
         ownership: descriptor.ownership.state, directory: this.options.grants.authorize(descriptor.cwd.recorded, descriptor.cwd.canonical).status };
     });
-    return { status: page.status, choices, ...(page.nextCursor ? { nextCursor: page.nextCursor } : {}) };
+    const next = offset + items.length;
+    return { status: snapshot.status, choices, ...(next < snapshot.items.length ? { nextCursor: `${CATALOG_CURSOR}${next}` } : {}) };
+  }
+  /** One bounded native scan backs every catalog page and reopen; Refresh and new Sessions invalidate it. */
+  private async catalogSnapshotFor(refresh: boolean) {
+    if (!refresh && this.catalogSnapshot) return this.catalogSnapshot;
+    this.catalogScan ??= (async () => {
+      const items: CatalogDescriptor[] = [];
+      let cursor: string | undefined, status: CatalogStatus = "complete";
+      for (let page = 0; page < CATALOG_PAGES; page++) {
+        const result = await this.options.catalog.page({ pageSize: 32, ...(cursor === undefined ? {} : { cursor }) });
+        items.push(...result.items); status = result.status;
+        if (result.nextCursor === undefined) break;
+        if (items.length >= CATALOG_LIMIT) { status = "partial"; break; }
+        cursor = result.nextCursor;
+      }
+      return { status, items: items.slice(0, CATALOG_LIMIT) };
+    })().finally(() => { this.catalogScan = undefined; });
+    this.catalogSnapshot = await this.catalogScan;
+    return this.catalogSnapshot;
   }
   @Remote("index") async index(options: CatalogPageInput) {
     this.identity(); const page = await this.options.index.page({ ...(options.cursor ? { cursor: options.cursor } : {}), ...(options.pageSize ? { pageSize: options.pageSize } : {}) }); this.identity();
@@ -168,6 +199,7 @@ export class SessionsService extends TypertRemoteService {
     const identity = this.identity();
     const result = await this.options.supervisor.branch(identity, change.workerId, change.generation, change.entryId);
     if (result.status === "cancelled") return result;
+    this.catalogSnapshot = undefined;
     return { ...result, ...(result.view ? { view: publicView(result.view) } : {}) };
   }
   @Remote("open") async open(selectionId: SessionSelectionId) {
@@ -178,7 +210,10 @@ export class SessionsService extends TypertRemoteService {
   }
   @Remote("new") async new(grantId: string) {
     const identity = this.identity(), grant = this.options.grants.list().find(item => item.id === grantId && item.status === "valid");
-    if (!grant) throw new Error("SESSION_DIRECTORY_DENIED"); return publicView(await this.options.supervisor.create(identity, grant.path));
+    if (!grant) throw new Error("SESSION_DIRECTORY_DENIED");
+    const view = await this.options.supervisor.create(identity, grant.path);
+    this.catalogSnapshot = undefined;
+    return publicView(view);
   }
   @Remote("view") view(workerId: string) { return publicView(this.options.supervisor.view(this.identity(), workerId)); }
   @Remote("current") async current() {

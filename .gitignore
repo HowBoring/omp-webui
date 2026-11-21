@@ -127,6 +127,8 @@ data/
 # Local environment files; keep the example template
 .env.*
 !.env.example
+__pycache__/
+*.pyc
 
 # Local projection acceptance process state and raw execution captures.
 /experiments/projection-seam/**/server.json

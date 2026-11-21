@@ -24,7 +24,7 @@ export class LiveFixtureActions extends TypertRemoteService {
     if(operation==='prompt'){if(this.state.journal.failure)throw Error('live_projection_invalidated');await this.state.transport.prompt();}
     if(operation==='rewind'){
       if(!this.state.settled)throw new RemoteError('gateway/bad-request','Native worker is busy; wait for quiescence and choose navigation again',{});
-      const records=this.state.journal.page({maxMessages:128}).records;
+      const records=(await this.state.journal.page({maxMessages:128})).records;
       const user=records.find(record=>record.event.type==='user/message');
       const data=user?.event.data;
       if(typeof data!=='object'||data===null||Array.isArray(data)||typeof data.id!=='string')throw Error('live_no_navigation_target');
@@ -42,7 +42,7 @@ export class LiveSessionService extends TypertRemoteService {
   @Remote("list") async list(_request:SessionListRequest){return {items:[{sessionId:this.state.journal.sessionId,updatedAt:0,
     agentAvailable:true,running:false,blank:false,formatStatus:'current' as const}]};}
   @Remote("projections") async projections(_request:SessionProjectionsRequest){return {kind:'sequenced' as const,asOfSeq:this.state.journal.cursor,values:{}};}
-  @Remote("page") async page(request:SessionPageRequest){this.assertAddress(request.address);return {cursor:request.throughSeq??this.state.journal.cursor,...this.state.journal.page(request)};}
+  @Remote("page") async page(request:SessionPageRequest){this.assertAddress(request.address);return {cursor:request.throughSeq??this.state.journal.cursor,...await this.state.journal.page(request)};}
   @Remote({mode:'stream'}) async *control(signal:AbortSignal):AsyncGenerator<SessionControlFrame>{
     yield {type:'baseline',value:{projections:{}}};while(!signal.aborted&&!this.state.closed)await Bun.sleep(25);
   }

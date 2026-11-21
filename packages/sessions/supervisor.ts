@@ -88,12 +88,16 @@ interface RetainedLaunch {
   cleanupFacts: OwnedCleanupFacts;
   report?(): WorkerExit;
 }
+/** A Native branchable entry. Only its identity leaves the Host; the browser decides where to offer a cut. */
+interface BranchPoint { entryId: string }
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<LaunchResult>; retained?: RetainedLaunch; state: SessionView["state"];
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
   finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
+  /** Last Native branch-point read and the worker cut it describes; one entry per Session. */
+  branchPoints?: { cut: string; points: readonly BranchPoint[] };
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
   exitCode?: number;
@@ -151,6 +155,13 @@ export function nativeSettled(state: SessionState): boolean {
   return state.isSettled === true && state.isStreaming === false && state.isCompacting === false
     && state.hasPendingAsyncWork === false && state.queuedMessageCount === 0
     && state.queuedMessages?.steering.length === 0 && state.queuedMessages.followUp.length === 0;
+}
+
+/** Same predicate as `nativeSettled`, over the cheap status projection a membership read uses. */
+export function statusSettled(status: { isSettled: boolean; isStreaming: boolean; isCompacting: boolean;
+  hasPendingAsyncWork: boolean; queuedMessageCount: number; steeringCount: number; followUpCount: number }): boolean {
+  return status.isSettled && !status.isStreaming && !status.isCompacting && !status.hasPendingAsyncWork
+    && status.queuedMessageCount === 0 && status.steeringCount === 0 && status.followUpCount === 0;
 }
 
 /** One active top-level worker. Views are disposable; only explicit native references survive Host loss. */
@@ -562,9 +573,21 @@ export class SessionSupervisor {
    */
   /** Native allows only historical user messages; the Host never decides this on its own. */
   async branchPoints(identity: BrowserAccess, workerId: string) {
-    const runtime = this.runtime(identity, workerId);
-    const points = await runtime.worker.branchMessages(), latest = this.runtime(identity, workerId);
+    const runtime = this.runtime(identity, workerId), active = this.#active;
+    // The client rereads this on every load, but the Native list changes only with the Session's cut:
+    // every accepted Native event advances the worker's notification count, and a new worker brings a
+    // new generation. One memo entry per Session, so an unchanged cut is not re-read as a tens-of-MiB
+    // transcript scan per load; any published change drops it.
+    const cut = `${runtime.view.generation}\u0000${runtime.worker.notificationCount}`;
+    const memo = active?.branchPoints;
+    // Only IDs leave the Host: the browser needs membership, and the text of every branchable message is
+    // the better part of the whole transcript. Keeping IDs in the memo also stops the Session retaining it.
+    const points = memo?.cut === cut ? memo.points
+      : (await runtime.worker.branchMessages()).map(message => ({ entryId: message.entryId }));
+    const latest = this.runtime(identity, workerId);
     if (latest.view.generation !== runtime.view.generation) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    const current = this.#active;
+    if (memo?.cut !== cut && current !== undefined) current.branchPoints = { cut, points };
     return { workerId: latest.view.workerId, generation: latest.view.generation, points };
   }
   async branch(identity: BrowserAccess, workerId: string, generation: string, entryId: string): Promise<BranchedSession> {
@@ -747,11 +770,11 @@ export class SessionSupervisor {
     this.#browser(identity); const active = this.#active;
     if (!active) return undefined;
     try { this.#current(identity, active); } catch { return undefined; }
-    const state = active.state === "open" && active.worker ? await active.worker.state() : undefined;
+    const status = active.state === "open" && active.worker ? await active.worker.status() : undefined;
     this.#current(identity, active);
     // Membership must not depend on (or mutate) a presentation journal: a catalog read must never
     // invalidate a page that is already following it. `blank` uses the last opened journal only.
-    return { view: this.#view(active), running: state !== undefined && !nativeSettled(state),
+    return { view: this.#view(active), running: status !== undefined && !statusSettled(status),
              blank: active.journalValue !== undefined && active.journalValue.cursor < 0 };
   }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {
@@ -760,18 +783,42 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     this.#current(identity, active);
-    let journal = await (active.journal ??= LiveJournal.open(active.worker.history));
-    this.#current(identity, active);
-    // A new submission starts a new native cut/context. Re-open the journal from the authoritative
-    // history instead of permanently failing presentation for the rest of the worker's life.
-    if (journal.sessionId !== sessionId || journal.failure) {
+    for (let rebuilt = false; ;) {
+      const pending = (active.journal ??= LiveJournal.open(active.worker.history));
+      let journal: LiveJournal;
+      try { journal = await pending; } catch (error) {
+        if (active.journal === pending) delete active.journal;
+        throw error;
+      }
+      this.#current(identity, active);
+      if (active.journal !== pending) continue; // a concurrent caller retired this opening first
+      if (journal.sessionId === sessionId && !journal.failure) {
+        active.journalValue = journal;
+        return journal;
+      }
+      if (rebuilt) { delete active.journal; break; } // the replacement is unusable; the next viewer retries
+      // A new submission starts a new native cut/context. Re-open the journal from the authoritative
+      // history instead of permanently failing presentation for the rest of the worker's life. Every
+      // concurrent viewer waits on this one replacement, so one cut announces exactly one generation.
       const epoch = ++journalIdentity;
-      journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
-      active.journal = Promise.resolve(journal); active.journalEpoch = epoch;
+      const replacement = LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`);
+      active.journal = replacement;
+      rebuilt = true;
+      try { journal = await replacement; } catch (error) {
+        if (active.journal === replacement) delete active.journal;
+        throw error;
+      }
+      this.#current(identity, active);
+      if (active.journal !== replacement) continue;
+      if (journal.sessionId !== sessionId) { delete active.journal; break; }
+      const previous = active.journalValue;
+      // Publish the successor and retire the predecessor together: control must never advertise a
+      // generation that the next follow can no longer open.
+      active.journalValue = journal; active.journalEpoch = epoch;
+      if (previous !== undefined && previous !== journal) previous.invalidate("presentation_replaced");
+      return journal;
     }
-    active.journalValue = journal;
-    if (journal.sessionId !== sessionId) throw new Error("SESSION_PRESENTATION_INVALIDATED");
-    return journal;
+    throw new Error("SESSION_PRESENTATION_INVALIDATED");
   }
   /** Retire the current presentation before a possible native effect; followers must rebuild, never continue. */
   invalidatePresentation(identity: BrowserAccess, workerId: string, sessionId: string): void {
@@ -788,6 +835,7 @@ export class SessionSupervisor {
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return undefined;
     const epoch = ++journalIdentity;
+    active.journalValue?.dispose();
     const journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
     if (active.state !== "open" || active.id !== workerId || active.record?.nativeSessionId !== sessionId) {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");

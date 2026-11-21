@@ -26,6 +26,11 @@ const env: Record<string, string> = Object.fromEntries(Object.entries(process.en
 
 const admission = await admitProduct({ manifest: resolve(manifest), launcher: resolve(launcher), expectedIdentity });
 if (admission.status !== "admitted" || admission.verified === undefined) {
+  if (process.argv.includes("--print-bootstrap")) {
+    console.error(JSON.stringify({ code: "PRODUCT_BOOTSTRAP_BLOCKED", reason: admission.code,
+      missingCapabilities: admission.missingCapabilities }));
+    process.exit(1);
+  }
   const blocked = Bun.serve({
     hostname: "127.0.0.1", port,
     fetch(request) {

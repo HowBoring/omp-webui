@@ -155,7 +155,7 @@ same-ID reopen; and a **separate** native first-materialization source/context t
 and then manually reopens. Each old physical follow receives one snapshot. Both paths preserve the independent
 fixture textarea. Native tests cover nested external/custom messages, no-entry dedup/one-run contexts, background
 append, same-shape rewrite, delete/reparent, scoped reused tool IDs, original-object branch re-emission, 4096-association
-eviction and a real native ~36 MiB source that explicitly exceeds the 32 MiB derived journal budget. The actual CLI
+eviction and a real native ~36 MiB source that explicitly exceeds the 32 MiB derived journal budget. The S5 harness may pin `OMP_LIVE_JOURNAL_MAX_BYTES` for the 100 MiB reachability corpus; the default fails closed. The actual CLI
 also exercises genuine controlled tool execution and native live-buffer overflow with event filtering enabled.
 
 Final verification: clean native build/generation and authored native TypeScript PASS; full suite 194 tests / 1,619 assertions / 42 files plus Host build PASS; six Chromium scenarios PASS. Exact reproducible identities are recorded in `evidence/live-checkpoint.json`.

@@ -30,8 +30,12 @@ export type SessionPreferences = z.infer<typeof sessionPreferencesSchema>;
 const preferencesChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), revision: z.number().int().min(0),
   model: z.strictObject({ provider: token, id: token }).optional(), thinking: thinkingLevel.optional() })
   .refine(value => value.model !== undefined || value.thinking !== undefined, "Choose a model or thinking level.");
-const branchPoint = z.strictObject({ entryId: path, text: z.string().max(1_048_576) });
-/** Native branch-message list; the Host re-checks membership when a branch is committed. */
+const branchPoint = z.strictObject({ entryId: path });
+/**
+ * Native branchable entry IDs only. The browser only decides where to offer a branch, so it needs membership,
+ * not transcript text: carrying the text of every branchable message resent the whole Session per load.
+ * `branch` re-reads the Native allow-list and checks the chosen entry before cutting.
+ */
 export const branchPointsSchema = z.strictObject({ workerId: worker, generation: z.string().uuid(), points: z.array(branchPoint).max(20_000) });
 const branchChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), entryId: path });
 const branchOutcome = z.discriminatedUnion("status", [
@@ -43,9 +47,12 @@ export type BranchOutcome = z.infer<typeof branchOutcome>;
 const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scanning"]),
   choices: z.array(z.strictObject({ selectionId: selection, nativeSessionId: path, sourceId: path, instanceId: path,
     cwd: path.optional(), title: z.string().max(8192).optional(), ownership: z.enum(["held", "free", "unknown"]),
-    directory: z.string().max(32) })).max(32), nextCursor: token.optional() });
+    directory: z.string().max(32) })).max(1000), nextCursor: token.optional() });
 const index = z.strictObject({ records: z.array(record).max(32), nextCursor: token.optional() });
 const page = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(32).optional() });
+/** Catalog reads may additionally ask the Host to rescan native sessions; every other page stays cache-only. */
+const catalogPage = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(1000).optional(),
+  refresh: z.boolean().optional() });
 const currentSession = z.strictObject({ view: sessionViewSchema.optional(), running: z.boolean(), blank: z.boolean() });
 const grant = z.strictObject({ id: z.string().uuid(), path, grantedAt: z.string().datetime(), status: z.enum(["valid", "changed"]) });
 const preview = z.strictObject({ path, confirmation: z.string().uuid(), expiresAt: z.string().datetime() });
@@ -58,7 +65,7 @@ const method = <T>(parameters: ReturnType<typeof parameter>[], result: z.ZodType
   ({ service: "ompSessions", invocation: { kind: "direct" as const }, parameters, result: codec(result, "result") });
 /** Authenticated isolated S1 component. Fixed actions only; no prompt sender or arbitrary native RPC/path selector. */
 export const sessionsContribution = createTypertRemoteInfo({ package: "@omp-webui/sessions", methods: {
-  "ompSessions/catalog": method([parameter("options", page)], catalog),
+  "ompSessions/catalog": method([parameter("options", catalogPage)], catalog),
   "ompSessions/index": method([parameter("options", page)], index),
   "ompSessions/branchPoints": method([parameter("workerId", worker)], branchPointsSchema),
   "ompSessions/branch": method([parameter("change", branchChange)], branchOutcome),
@@ -82,7 +89,7 @@ export const sessionsHostContribution: TypertContribution = { package: sessionsC
 declare module "@deepseek-ai/dsh-typert-protocol" {
   interface TypertRemoteNamespaceMap {
     ompSessions: {
-      catalog(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof catalog>>>;
+      catalog(options: z.infer<typeof catalogPage>): Promise<RemoteResult<z.infer<typeof catalog>>>;
       index(options: z.infer<typeof page>): Promise<RemoteResult<z.infer<typeof index>>>;
       branchPoints(workerId: string): Promise<RemoteResult<z.infer<typeof branchPointsSchema>>>;
       branch(change: { workerId: string; generation: string; entryId: string }): Promise<RemoteResult<BranchOutcome>>;

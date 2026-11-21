@@ -1,0 +1,41 @@
+chat-stage: 350ms host-ready
+chat-stage: 1142ms page-loaded
+chat-stage: 1440ms granted
+chat-stage: 4087ms catalog-1000
+chat-stage: 4123ms open-clicked
+chat-stage: 9535ms session-present
+chat-stage: 9562ms first-node
+chat-stage: 9562ms cold-open:8743ms
+chat-stage: 9571ms history-nodes=24 more=True first-seq=1000444
+chat-stage: 9587ms reach-0:nodes=24:seq=1000444:more=True
+chat-stage: 9739ms reach-1:nodes=86:seq=1000274:more=True
+chat-stage: 9910ms reach-2:nodes=147:seq=1000105:more=True
+chat-stage: 10121ms reach-3:nodes=185:seq=1000001:more=True
+chat-stage: 12119ms reach-4:nodes=373:seq=999486:more=True
+chat-stage: 13457ms reach-5:nodes=498:seq=999142:more=True
+chat-stage: 17914ms reach-6:nodes=870:seq=998118:more=True
+chat-stage: 20660ms reach-7:nodes=1058:seq=997603:more=True
+chat-stage: 25270ms reach-8:nodes=1430:seq=996579:more=True
+chat-stage: 28772ms reach-9:nodes=1680:seq=995893:more=True
+chat-stage: 33948ms reach-10:nodes=2052:seq=994869:more=True
+chat-stage: 37772ms reach-11:nodes=2240:seq=994354:more=True
+chat-stage: 43726ms reach-12:nodes=2612:seq=993330:more=True
+chat-stage: 48564ms reach-13:nodes=2862:seq=992644:more=True
+chat-stage: 54700ms reach-14:nodes=3234:seq=991620:more=True
+chat-stage: 58937ms reach-15:nodes=3422:seq=991105:more=True
+chat-stage: 65619ms reach-16:nodes=3794:seq=990081:more=True
+chat-stage: 70924ms reach-17:nodes=4044:seq=989395:more=True
+chat-stage: 77550ms reach-18:nodes=4416:seq=988371:more=True
+chat-stage: 82337ms reach-19:nodes=4604:seq=987856:more=True
+chat-stage: 89652ms reach-20:nodes=4976:seq=986832:more=True
+chat-stage: 95534ms reach-21:nodes=5226:seq=986146:more=True
+chat-stage: 103350ms reach-22:nodes=5598:seq=985122:more=True
+chat-stage: 109516ms reach-23:nodes=5786:seq=984607:more=True
+chat-stage: 117537ms reach-24:nodes=6158:seq=983583:more=True
+chat-stage: 124686ms reach-25:nodes=6408:seq=982897:more=True
+chat-stage: 133512ms reach-26:nodes=6780:seq=981873:more=True
+chat-stage: 140215ms reach-27:nodes=6968:seq=981358:more=True
+chat-stage: 148554ms reach-28:nodes=7340:seq=980334:more=True
+chat-stage: 156384ms reach-29:nodes=7590:seq=979648:more=True
+chat-stage: 164710ms reachability={'nodes': 7880, 'steps': 30, 'more': False, 'firstSeqBefore': '1000444', 'firstSeqAfter': '978851', 'firstNode': 'UserEntry 0 数据 📜 xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'allNativeReachable': True, 'elapsedMs': 155137.1}
+FAILED_CLASSES=['chat-first-page', 'chat-old-page']

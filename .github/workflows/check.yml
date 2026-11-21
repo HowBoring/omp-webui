@@ -1,0 +1,25 @@
+name: check
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24.22.1
+      - run: corepack enable
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/prepare-compatibility.ts --source-only
+      - run: bun run dsh:prepare
+      - run: bun run dsh:link
+      - run: bun run check
+      - run: bun run product:build
+      - run: bun run product:verify

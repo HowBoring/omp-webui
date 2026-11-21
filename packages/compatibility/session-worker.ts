@@ -113,6 +113,23 @@ async function readSessionState(request: Request): Promise<SessionState> {
   return value as SessionState;
 }
 
+const nativeStatus = z.object({ sessionId: z.string().min(1), isStreaming: z.boolean(), isCompacting: z.boolean(),
+  isSettled: z.boolean(), hasPendingAsyncWork: z.boolean(), queuedMessageCount: z.number().int().nonnegative(),
+  steeringCount: z.number().int().nonnegative(), followUpCount: z.number().int().nonnegative() }).strict();
+export type SessionStatus = z.infer<typeof nativeStatus>;
+
+/** Settlement and membership inputs only: `get_state` scans the transcript, `get_status` must not. */
+/** A malformed or absent Native status is a protocol failure, never an idle Session. */
+export function parseSessionStatus(value: unknown): SessionStatus {
+  const status = nativeStatus.safeParse(value);
+  if (!status.success) throw new Error("SESSION_STATUS_SCHEMA");
+  return status.data;
+}
+
+async function readSessionStatus(request: Request): Promise<SessionStatus> {
+  return parseSessionStatus(await request({ type: "get_status", id: crypto.randomUUID() }));
+}
+
 /** Fixed public Session RPC operations shared across the two construction paths. */
 class SessionRpc {
   readonly startup: StrictStartClient;
@@ -158,6 +175,7 @@ class SessionRpc {
     return this.core.request(z.object({ type: z.string(), id: z.string() }).passthrough().parse(command));
   }
   state(): Promise<SessionState> { return readSessionState(command => this.core.request(command)); }
+  status(): Promise<SessionStatus> { return readSessionStatus(command => this.core.request(command)); }
   /** Native-authoritative list of user-message points that may start a new Session. */
   async branchMessages(): Promise<readonly BranchMessage[]> {
     const value = z.object({ messages: z.array(z.object({ entryId: z.string().min(1).max(256),
@@ -220,6 +238,7 @@ export interface OwnedSessionCleanup {
   abortRetry(): Promise<void>;
   abortBash(): Promise<void>;
   state(): Promise<SessionState>;
+  status(): Promise<SessionStatus>;
 }
 
 function ownedCleanup(request: Request): OwnedSessionCleanup {
@@ -237,6 +256,7 @@ function ownedCleanup(request: Request): OwnedSessionCleanup {
     abortRetry: () => abort("abort_retry"),
     abortBash: () => abort("abort_bash"),
     state: () => readSessionState(request),
+    status: () => readSessionStatus(request),
   });
 }
 

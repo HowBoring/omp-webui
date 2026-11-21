@@ -43,6 +43,7 @@ import { LocaleRuntime } from "@deepseek-ai/dsh-client-locale/client";
 import ShortcutsService from "@deepseek-ai/dsh-client-shortcuts/client";
 import type { ShortcutCommand, ShortcutCommandId } from "@deepseek-ai/dsh-client-shortcuts/client";
 import { isProductShell } from "./product-flag.ts";
+import { registerTrajectoryNativeRecordDefinition } from "./trajectory-native-record-definition.ts";
 
 declare module "@deepseek-ai/dsh-client-ui-slots" { interface SlotMap { "s1.chat": { kind: "single"; scope: "root"; owner: Record<never, never> } } }
 declare module "@deepseek-ai/dsh-api-session-controller/client" { interface SessionReferenceSourceMap { supervisedChat: unknown } }
@@ -125,11 +126,14 @@ async function prepareOriginals(scope: DraftScope, refs: readonly { id: unknown;
 }
 const provider = createDraftProvider({ owner, storage: sessionStorage, authority: sessionId => authorities.get(sessionId),
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)), prepareOriginals });
-let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined;
+let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined, unsubscribeSession: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
+/** Identity of the live presentation; a reload restore and a manual Open can race to present it twice. */
+let presentedView: PublicSessionView | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
+let olderChanged: (older: { hasMore: boolean; loading: boolean; status: string }) => void = () => {};
 let errorChanged: (error: string) => void = () => {}, draftChanged: (text: string) => void = () => {};
 let draftOriginals: (items: Uploaded[]) => void = () => {}, draftNotice: (notice: string | undefined) => void = () => {};
 let draftRestored: () => void = () => {}, draftPending: () => void = () => {};
@@ -138,6 +142,11 @@ let protectedSubmission: string | undefined;
 let accessRevision = 0, presentationRevision = 0, authorizationWithdrawn = false;
 let renewEnrollment: ((projection: SessionProjectionBinding) => Promise<void>) | undefined;
 const message = (failure: unknown) => failure instanceof Error ? failure.message : String(failure);
+const debugChat = (event: string, details: Record<string, unknown> = {}) => {
+  if ((globalThis as { __OMP_CHAT_DEBUG__?: boolean }).__OMP_CHAT_DEBUG__) {
+    console.info("OMP_CHAT", JSON.stringify({ event, ...details }));
+  }
+};
 const resultValue = <T,>(result: { ok: true; value: T } | { ok: false; error: { message: string } }): T => {
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
@@ -149,11 +158,13 @@ let draftId = (() => {
 })();
 const ownerReady = ownTab();
 function invalidateAccess(text: string) {
-  ++accessRevision; release(); viewChanged(undefined); errorChanged(text);
+  ++accessRevision; release("access"); viewChanged(undefined); errorChanged(text);
 }
-function release() {
+function release(reason: "access" | "present" | "surface-unmount" | "pagehide") {
+  debugChat("session-release", { reason, sessionId: reference?.sessionId, stack: new Error().stack });
   ++presentationRevision; unsubscribe?.(); unsubscribe = undefined;
   unsubscribeProjection?.(); unsubscribeProjection = undefined;
+  presentedView = undefined;
   if (reference) { authorities.delete(String(reference.sessionId)); reference.release(); reference = undefined; }
   historyChanged([]); liveBinding = undefined;
 }
@@ -186,13 +197,31 @@ async function renewSessionProjection(view: PublicSessionView, progress: (status
   if (liveBinding) { progress("Waiting for the rebuilt Session projection…"); await waitRebuiltProjection(liveBinding, current.projection.generation); }
   if (renewEnrollment) { progress("Renewing the Chat attachment…"); await renewEnrollment(current.projection); }
 }
-async function present(view: PublicSessionView) {
-  release();
+/** Presentations run one at a time: two concurrent releases would tear down each other's binding. */
+let presenting: Promise<void> = Promise.resolve();
+function present(view: PublicSessionView): Promise<void> {
+  // A reload restore and an Open/Switch click resolve at different times for the same Session. Presenting
+  // it twice would release the live window and throw away every older page the reader had loaded, so an
+  // identical presentation — finished or still queued — only refreshes its view metadata.
+  const same = () => reference !== undefined && liveBinding !== undefined && presentedView !== undefined
+    && presentedView.workerId === view.workerId && presentedView.generation === view.generation
+    && presentedView.registration.nativeSessionId === view.registration.nativeSessionId;
+  if (same()) { viewChanged(view); return Promise.resolve(); }
+  const task = presenting.then(async () => {
+    if (same()) { viewChanged(view); return; }
+    await presentOnce(view);
+  });
+  presenting = task.catch(() => {});
+  return task;
+}
+async function presentOnce(view: PublicSessionView) {
+  release("present");
   const current = presentationRevision, access = accessRevision;
   await ctx.sessions.refresh();
   if (current !== presentationRevision || access !== accessRevision) return;
   const retained = ctx.sessions.retain(SessionId(view.registration.nativeSessionId), { source: "supervisedChat" });
   reference = retained;
+  debugChat("session-acquire", { sessionId: view.registration.nativeSessionId });
   const binding = await retained.ready;
   if (reference !== retained) return;
   liveBinding = binding;
@@ -221,6 +250,7 @@ async function present(view: PublicSessionView) {
   draftDirty = false;
   // Input stays closed and empty until this Session's record is authoritative: no other Session's text or files.
   draftPending(); draftChanged(""); draftOriginals([]);
+  presentedView = view;
   viewChanged(view);
   let saved: SemanticDraftRecord | undefined;
   try {
@@ -229,7 +259,7 @@ async function present(view: PublicSessionView) {
     saved = await provider.read(currentScope, new AbortController().signal);
   } catch (failure) { errorChanged(`Draft storage is not ready for this Session. ${message(failure)}`); saved = undefined; }
   if (reference !== retained) return;
-  if (draftDirty) { draftRestored(); return; }
+  if (draftDirty) { draftRestored(); watch(binding, retained); return; }
   if (!saved) { protectedSubmission = undefined; draftNotice(undefined); draftChanged(""); draftOriginals([]); draftRestored(); watch(binding, retained); return; }
   // Reauthorize every stable Original through the Host before publishing text and items together.
   let prepared: readonly PreparedDraftOriginal[] | undefined;
@@ -237,7 +267,8 @@ async function present(view: PublicSessionView) {
     try { prepared = await provider.prepare(currentScope!, saved.originals.filter(ref => !removedOriginals.has(String(ref.id))), new AbortController().signal); }
     catch (failure) { errorChanged(`Draft originals could not be revalidated: ${message(failure)}`); }
   }
-  if (reference !== retained || draftDirty) return;
+  if (reference !== retained) return;
+  if (draftDirty) { watch(binding, retained); return; }
     // A removal that happened while this record was being read must not be republished by the stale read.
   const retainedOriginals = saved.originals.filter(ref => !removedOriginals.has(String(ref.id)));
   const items = retainedOriginals.map((ref, index) => {
@@ -261,13 +292,21 @@ function watch(binding: SessionBinding, retained: SessionReference) {
     const render = () => {
       if (reference !== retained) return;
       historyChanged([...(target.getSnapshot()?.eventNodes ?? [])]);
+      const current = binding.session.getSnapshot();
+      olderChanged({ hasMore: current.hasMore, loading: current.loadingOlder, status: current.historyLoadStatus });
     };
+    unsubscribeSession?.(); unsubscribeSession = binding.session.subscribe(render);
     unsubscribe?.(); unsubscribe = target.subscribe(render); render();
   };
   attach();
   unsubscribeProjection?.();
   unsubscribeProjection = binding.projection.subscribe(() => {
-    if (reference === retained && binding.projection.getSnapshot().phase === "ready") attach();
+    const state = binding.projection.getSnapshot();
+    debugChat("journal-projection", {
+      phase: state.phase,
+      generation: state.phase === "ready" ? state.binding.generation : undefined,
+    });
+    if (reference === retained && state.phase === "ready") attach();
   });
 }
 function SessionSettings({ view }: { view: PublicSessionView }) {
@@ -532,7 +571,7 @@ const retryAttemptText = (attempt: RetryAttempt): string => `${({
 const retryTerminal = (attempt: RetryAttempt): boolean =>
   attempt.status !== "admitted" && attempt.status !== "unknown";
 function Surface() {
-  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [error, setError] = useState("");
+  const [view, setView] = useState<PublicSessionView>(), [rows, setRows] = useState<unknown[]>([]), [older, setOlder] = useState({ hasMore: false, loading: false, status: "idle" }), [error, setError] = useState("");
   const [text, setText] = useState(""), [attempt, setAttempt] = useState<Attempt>(), [recovery, setRecovery] = useState<string>();
   const [entry, setEntry] = useState("");
   const [settlement, setSettlement] = useState<{ requestId: string; terminal?: boolean; operationOutcome?: string; settled: boolean }>();
@@ -593,14 +632,17 @@ function Surface() {
   };
   const catalog = async () => {
     setCataloging(true); setChoices([]);
+    const revision = accessRevision, found: Choice[] = [], seen = new Set<string>();
     try {
-      const found: Choice[] = []; let cursor: string | undefined;
-      // Native catalog scans in bounded pages; one page can be empty while its snapshot is still scanning.
-      for (let page = 0; page < 64; page++) {
-        const result = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32, ...(cursor ? { cursor } : {}) }));
-        found.push(...result.choices);
-        cursor = result.nextCursor;
-        if (!cursor) break;
+      let cursor: string | undefined;
+      // A native scan reports intermediates; follow the bounded cursor instead of losing the catalog.
+      // One page per round trip: 1000 Sessions render once instead of once per 32-item page.
+      for (let step = 0; step < 1000; step++) {
+        const page = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 1000, ...(cursor === undefined ? {} : { cursor }) }));
+        if (revision !== accessRevision) return;
+        for (const choice of page.choices) if (!seen.has(choice.selectionId)) { seen.add(choice.selectionId); found.push(choice); }
+        if (page.nextCursor === undefined) break;
+        cursor = page.nextCursor;
       }
       setChoices(found);
     } finally { setCataloging(false); }
@@ -1006,10 +1048,11 @@ function Surface() {
     } finally { attemptAbort.current = undefined; setBusy(false); sending.current = false; }
   };
   useEffect(() => {
-    viewChanged = setView; historyChanged = setRows; errorChanged = setError; draftChanged = setText;
+    debugChat("surface-mount");
+    viewChanged = setView; historyChanged = setRows; olderChanged = setOlder; errorChanged = setError; draftChanged = setText;
     if (liveBinding) scope.current = provider.scope(liveBinding);
     void perform(async () => { await catalog(); await refreshGrants(); });
-    return () => { release(); }; // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { debugChat("surface-unmount"); release("surface-unmount"); }; // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { if (view && liveBinding) scope.current = provider.scope(liveBinding); }, [view?.workerId]);
   const productHandlers = useRef<ProductActions>({ newSession: () => {}, send: () => {}, stop: () => {}, retry: () => {}, settings: () => {} });
@@ -1079,7 +1122,14 @@ function Surface() {
       <h2>{view ? `Native Session ${view.registration.nativeSessionId}` : "No attached Chat Session"}</h2>
       {view && <p>Source {view.registration.sourceId} · instance {view.registration.instanceId} · actual cwd {view.cwd}</p>}
       {view && <SessionSettings key={`${view.workerId}:${view.generation}`} view={view} />}
-      <div id="conversation">{rows.map((row, index) => <NodeRow node={row} key={index} />)}</div>
+      {older.hasMore && <button data-chat-load-earlier disabled={older.loading}
+        onClick={() => void perform(async () => { await liveBinding?.session.loadOlder(); })}>
+        {older.loading ? "Loading earlier history…" : "Load earlier history"}</button>}
+      <div id="conversation" data-chat-history-nodes={rows.length} data-chat-history-more={older.hasMore ? "true" : "false"}
+        data-chat-history-status={older.status}
+        data-chat-history-first-seq={(rows[0] as { seq?: number } | undefined)?.seq ?? ""}>
+        {rows.map((row, index) => <NodeRow node={row} key={index} />)}
+      </div>
       {view && tree && <div data-chat-tree><TreePanel key={`${view.workerId}:${view.generation}`} browser={tree}
         originals={historicalOriginals(view.registration.nativeSessionId)}
         affordance={{ points: branchPoints, branch: target => { setBranchTarget(target); setBranchNotice(""); } }}
@@ -1262,7 +1312,7 @@ async function boot() {
   // The Chat surface owns its composer but not the draft protocol: provider mode owns the
   // semantic scope, hydration and submission checkpoint while this tab keeps its own authorization.
   (await createProviderRuntime(ctx)).input.registerDraftProvider(ctx, provider);
-  registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx);
+  registerTrajectoryMessageDefinitions(ctx); registerTrajectoryToolDefinition(ctx); registerTrajectoryAssistantDefinition(ctx); registerTrajectoryConversationView(ctx); registerTrajectoryNativeRecordDefinition(ctx);
   const absent: StandardSourceBinding = { key: undefined, hooks: {}, keyedHooks: {}, props: {} };
   const source: HostObservable<StandardSourceBinding> = { getSnapshot: () => absent, subscribe: () => () => {} };
   ctx.slots.installScope("session", { current: source, bindingSource: target => { if (target !== undefined) throw new Error("Root shell has no Session Slot"); return source; } });
@@ -1280,7 +1330,7 @@ async function boot() {
   ctx.slots.register({ name: "root", children: { "s1.chat": { kind: "single", scope: "root" } } }, Shell);
   ctx.slots.register({ name: "s1.chat" }, Surface);
   const unmount = ctx.uiRenderer.mount(document.getElementById("app")!);
-  window.addEventListener("pagehide", () => { release(); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
+  window.addEventListener("pagehide", () => { release("pagehide"); provider.dispose(); unmount(); void ctx.fiber.dispose(); }, { once: true });
   const previous = sessionStorage.getItem("omp-supervised-worker");
   if (previous) {
     const current = accessRevision, presented = presentationRevision;

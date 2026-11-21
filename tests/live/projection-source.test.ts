@@ -24,6 +24,7 @@ function fixture(active: HistoryItem[][], options: {
   refusePage?: number;
   live?: HistoryItem[][];
   prefix?: HistoryItem;
+  staleOpen?: boolean;
 } = {}) {
   const cut = options.cut ?? initialCut;
   const opened: HistoryOpen = {
@@ -38,12 +39,14 @@ function fixture(active: HistoryItem[][], options: {
       responseBytes: 1024 * 1024, ttlMs: 10_000, contentItems: 64, contentPageBytes: 256 * 1024,
       liveEvents: 1024, liveBytes: 1024 * 1024, pollItems: 100},
   };
+  let opens = 0;
   const history = new HistoryClient(async command => {
     switch (command.type) {
       case 'history_snapshot_open':
         assert.equal(command.scope, 'active');
         assert.equal(command.handoff, 'live');
-        return opened;
+        // A cold Session moves its cut while it activates; the first opening observes the older cut.
+        return options.staleOpen && opens++ === 0 ? {...opened, cut: {...cut, contextId: 'context-0'}} : opened;
       case 'history_snapshot_close':
         assert.equal(command.snapshot, opened.snapshot);
         return {closed: true};
@@ -52,11 +55,23 @@ function fixture(active: HistoryItem[][], options: {
         return {cut, after: cut.observationSeq, through: cut.observationSeq, events: [], hasMore: false};
       case 'history_snapshot_page': {
         const scope = command.cursor.startsWith('active-') ? 'active' : 'live';
-        const index = Number(command.cursor.split('-')[1]);
-        if (scope === 'active' && index === options.refusePage) throw Error('fixture_read_past_oversized_record');
         const pages = scope === 'active' ? active : options.live ?? [[]];
+        let index = Number(command.cursor.split('-')[1]);
+        let offset = pages.slice(0, index).reduce((sum, page) => sum + page.length, 0);
+        if (scope === 'active' && command.before !== undefined) {
+          const rows = pages.flat();
+          offset = Math.max(0, Math.min(command.before, rows.length) - 128);
+          index = 0;
+          const items = rows.slice(offset, Math.min(command.before, rows.length));
+          if (options.refusePage !== undefined && options.refusePage < index) throw Error('fixture_read_past_oversized_record');
+          const page: HistoryPage = {snapshot: opened.snapshot, scope, cut, expiresAt: opened.expiresAt,
+            items, complete: true, offset};
+          return options.page ? options.page(page, index) : page;
+        }
+        if (scope === 'active' && index === options.refusePage) throw Error('fixture_read_past_oversized_record');
+        const items = pages[index] ?? [];
         const page: HistoryPage = {snapshot: opened.snapshot, scope, cut, expiresAt: opened.expiresAt,
-          items: pages[index] ?? [], complete: true,
+          items, complete: true, ...(scope === 'active' && command.before !== undefined ? {offset} : {}),
           ...(index + 1 < pages.length ? {nextCursor: `${scope}-${index + 1}`} : {})};
         return scope === 'active' && options.page ? options.page(page, index) : page;
       }
@@ -64,6 +79,12 @@ function fixture(active: HistoryItem[][], options: {
   });
   return history;
 }
+
+test('an opening whose cut moves while a cold Session activates retries instead of failing the projection', async () => {
+  const journal = await LiveJournal.open(fixture([], {staleOpen: true}));
+  assert.equal(journal.failure, undefined);
+  assert.equal(journal.opened.cut.contextId, 'context');
+});
 
 test('opening refuses an oversized active record before asking for more native pages', async () => {
   const pages = Array.from({length: 20}, (_, partIndex) => [{
@@ -94,14 +115,14 @@ test('opening counts paired surrogates once when parts split them near the event
     entryId: 'last', partIndex, partCount: textParts.length,
   }]);
   const journal = await LiveJournal.open(fixture(pages));
-  assert.deepEqual(journal.page({maxMessages: 1}).records[1]?.event.data, {
+  assert.deepEqual((await journal.page({maxMessages: 1})).records[1]?.event.data, {
     id: 'last', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: ascii + '🙂'.repeat(emojiCount)}],
   });
 });
 
 test('opening rejects a page with a different Native revision under the same content revision', async () => {
   const history = fixture([[item('first', null, 'Older')], [item('last', 'first', 'Current')]], {
-    page: (page, index) => index === 0 ? page : {...page, cut: {...page.cut, nativeRevision: 2}},
+    page: (page, index) => index === 0 ? {...page, cut: {...page.cut, nativeRevision: 2}} : page,
   });
   await assert.rejects(LiveJournal.open(history), /live_open_cut_changed/);
 });
@@ -158,7 +179,7 @@ test('multipart opening keeps older pages and the in-flight assistant settlement
   assert.deepEqual(opening.assistantStream?.activeAttempt?.stream, [
     {type: 'chunk', time: 0, chunk: {type: 'block-end', index: 0, block: {type: 'text', text: 'In flight'}}},
   ]);
-  const older = journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2});
+  const older = await journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2});
   assert.deepEqual(older.records[1]?.event.data, {
     id: 'first', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: 'Old 🙂 question'}],
   });
@@ -174,8 +195,8 @@ test('multipart opening keeps older pages and the in-flight assistant settlement
         settlement: {status: 'observed', durability: 'not_attested', entryId: final.id}},
     ],
   });
-  assert.deepEqual(journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2}), older);
-  const latest = journal.page({maxMessages: 1});
+  assert.deepEqual(await journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2}), older);
+  const latest = await journal.page({maxMessages: 1});
   assert.deepEqual(latest.records.map(record => [record.event.seq, record.event.type]), [
     [5, 'step/start'], [6, 'assistant/message'], [7, 'step/end'],
   ]);
@@ -189,10 +210,10 @@ test('page byte limits keep chronological message groups separately addressable'
     entryId: id, partIndex, partCount: 13,
   }));
   const journal = await LiveJournal.open(fixture([parts('first', null), parts('last', 'first')]));
-  const recent = journal.page({maxMessages: 2});
+  const recent = await journal.page({maxMessages: 2});
   assert.deepEqual(recent.records.map(record => record.event.seq), [2, 3]);
   assert.equal(recent.hasMore, true);
-  const older = journal.page({maxMessages: 2, throughSeq: 3, beforeSeq: 2});
+  const older = await journal.page({maxMessages: 2, throughSeq: 3, beforeSeq: 2});
   assert.deepEqual(older.records.map(record => record.event.seq), [0, 1]);
   assert.equal(older.hasMore, false);
 });
@@ -204,14 +225,14 @@ test('a branch change withdraws old pages and a fresh opening uses the same Nati
   const oldCursor = old.cursor;
   assert.throws(() => old.accept({cut, after: 0, through: 1, hasMore: false,
     events: [{seq: 1, kind: 'native_setLeaf'}]}), /live_projection_invalidated/);
-  assert.throws(() => old.page({throughSeq: oldCursor}), /live_projection_invalidated/);
+  await assert.rejects(old.page({throughSeq: oldCursor}), /live_projection_invalidated/);
 
   const current = await LiveJournal.open(fixture([[first], [item('new-leaf', 'first', 'Current')]], {cut}));
   assert.equal(current.sessionId, old.sessionId);
   assert.notEqual(current.generation, old.generation);
   assert.equal(old.projection.generation, old.generation);
   assert.notEqual(current.projection.generation, old.projection.generation);
-  assert.deepEqual(current.page({maxMessages: 1}).records[1]?.event.data, {
+  assert.deepEqual((await current.page({maxMessages: 1})).records[1]?.event.data, {
     id: 'new-leaf', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: 'Current'}],
   });
 });

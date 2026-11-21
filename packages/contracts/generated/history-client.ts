@@ -12,8 +12,9 @@ export class HistoryClient {
     const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_open", scope, ...(handoff ? { handoff } : {}) });
     if (!validHistoryOpen(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
   }
-  async page(cursor: string): Promise<HistoryPage> {
-    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor });
+  async page(cursor: string, before?: number): Promise<HistoryPage> {
+    const result = await this.#request({ id: crypto.randomUUID(), type: "history_snapshot_page", cursor,
+      ...(before === undefined ? {} : { before }) });
     if (!validHistoryPage(result)) throw new Error("HISTORY_RESULT_SCHEMA"); return result;
   }
   async content(cursor: string): Promise<HistoryContentPage> {

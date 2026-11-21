@@ -1,0 +1,41 @@
+{
+  "kind": "S5-native-performance-corpus",
+  "generator": "scripts/create-performance-corpus.ts",
+  "seed": "omp-webui-s5-performance-v1",
+  "reference": {
+    "cpus": 4,
+    "memoryMiB": 8192,
+    "storage": "SSD",
+    "note": "Declared acceptance profile; the harness records the actual runner."
+  },
+  "limits": {
+    "catalogSessions": 1000,
+    "historyEntries": 10000,
+    "historyBytes": 104857600
+  },
+  "catalog": {
+    "sessions": 1000,
+    "bytes": 665780,
+    "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6"
+  },
+  "history": {
+    "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+    "entries": 10000,
+    "bytes": 112904386,
+    "sha256": "bc16c63357c11e58829d730013c451176e9445c84af0f66a40bef4b8b467851e",
+    "encoding": "UTF-8",
+    "typeDistribution": {
+      "message": 8980,
+      "message:user": 3100,
+      "message:assistant": 3880,
+      "message:toolResult": 1000,
+      "message:fileMention": 1000,
+      "toolCall": 1000,
+      "custom": 1000,
+      "custom:s5.performance-marker": 1000,
+      "branch": 100,
+      "reset_boundary": 10,
+      "compaction": 10
+    }
+  }
+}
