@@ -2,13 +2,14 @@ import * as path from "node:path";
 import { PreflightTransport } from "../../packages/compatibility/transport.ts";
 import { fixtureCandidatePath, type FixtureCandidate } from "../continuation/worker.ts";
 
-// Independent expected authored tuple for the merged OMP19 stack (0012 strict branch belongs to #52),
-// recomputed from the authored patches and emitted schema rather than read back from the running build.
+// Independent expected authored tuple for the merged OMP19 stack with 0014 rpc-session-status
+// (0012 strict branch belongs to #52), recomputed from the authored patches and emitted schema
+// rather than read back from the running build.
 const expectedBuild = {
   base: "57771ae562b9345e0579bceb2d68d585e3e6927e",
-  sourceSha256: "032a00639b2d9a8df65044b1d35694fad060d76d6d5a336134d93b5408b43a88",
-  patchSha256: "474a849bcc3583815e0620b121c5b5fd24f9ed6c2557412e3b64f4d44a274e8e",
-  schemaSha256: "cbf3af1e9ecf5e53ace430a004855b275c4be500e10d3b1dab369a1fce603145",
+  sourceSha256: "66552c62215affe6f504d5d7204a61f62397017352ad8d50c8f2321d765cb551",
+  patchSha256: "265e1741e31c78eb209f0905a31a8cc1bb8dd740ecc58d76bb47172e8e7f1d23",
+  schemaSha256: "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
 } as const;
 
 /** Public diagnostic-only child before synthetic Session authoring; no global installation or product admission. */

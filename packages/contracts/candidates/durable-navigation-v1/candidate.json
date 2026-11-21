@@ -82,6 +82,16 @@
         "path": "compatibility/omp/0012-strict-branch-transition.patch",
         "bytes": 3983,
         "sha256": "c58a4634362e28ffcd63909de285406edd5d3b08d2802e80957ea88dd79ca821"
+      },
+      {
+        "path": "compatibility/omp/0013-bounded-history-page.patch",
+        "bytes": 8548,
+        "sha256": "9a9947af33b1a359f181a15cb09ba9f0ba05b394212bbd6cbcccead5005bed9a"
+      },
+      {
+        "path": "compatibility/omp/0014-rpc-session-status.patch",
+        "bytes": 5736,
+        "sha256": "fac9ecf821336364f8ddc8c4240f41309021a32e6e9fd397d2718f411fd30128"
       }
     ],
     "immutableFreeze": {
