@@ -1,7 +1,7 @@
 {
   "ticket": 61,
   "kind": "final-combination-platform-evidence",
-  "recordedAt": "2026-11-22T04:55:00+08:00",
+  "recordedAt": "2026-11-22T06:40:00+08:00",
   "combination": {
     "installation": "vendor/product/installation.json",
     "installationSha256": "d5f4871604dab045b6d7c7e98a2d19447747e0b44cc9abf0fd47f1f54a9ee924",
@@ -24,7 +24,7 @@
     },
     "bootstrapAdmission": {
       "status": "PASS",
-      "printBootstrap": "http://localhost:3197/?bootstrap=… (single use)",
+      "printBootstrap": "http://localhost:3197/?bootstrap=\u2026 (single use)",
       "unauthenticated": "GET / -> 401",
       "exchange": "303 -> 200 with cookie jar, page rendered",
       "reuse": "consumed link -> 401"
@@ -45,41 +45,65 @@
       "observed": "GET / -> 401 and a previously printed bootstrap link -> 401"
     },
     "productFlow": {
-      "status": "PARTIAL",
+      "status": "PASS",
       "harness": "tests/product/product-flow.py",
       "browser": "Linux Chromium 157.0.8103.38 (google-chrome), headless, CDP",
       "provider": "compatibility/omp/fixtures/live-provider.ts",
       "providerLabel": "controlled-in-process-provider, realProviderInference false",
       "newSession": {
         "status": "PASS",
-        "nativeIdentity": "01a1ffda-5d95-71d9-ad2e-e75348a7bf11",
+        "nativeIdentity": "01a20027-38bc-735c-ac36-7ac1ee487ee0",
         "createdBy": "New Session here on a valid grant row"
+      },
+      "liveAttach": {
+        "status": "PASS",
+        "nodes": "11",
+        "rendered": "authoritative controlled final",
+        "assertion": "the consumer-visible text is asserted before reload, not only recorded"
+      },
+      "reopen": {
+        "status": "PASS",
+        "nodes": "11",
+        "parity": "attached 11 nodes equals reopened 11 nodes"
       },
       "send": {
         "status": "PASS",
         "prompt": "final tuple turn one",
-        "observed": "assistant text 'authoritative controlled final' streamed into the product chat and persisted to the native journal",
-        "nativeJournalSha256": "b4cdf09d89e04a11b222a24a82d6aba1bbdc50f19031d459226a01f9e3f31551"
+        "nativeJournalSha256": "cabb69d7a7f12da2882a8d90db948e50fee5b00133911d916d0e3749a06f344a"
       },
       "stop": {
-        "status": "NOT RUN",
-        "reason": "the browser harness did not drive Stop to settlement on this combination before the run deadline; no result is claimed for the final tuple"
+        "status": "PASS",
+        "outcome": "cancelled",
+        "detail": "explicit Stop clicked only after data-chat-settlement=running"
       },
       "retry": {
-        "status": "NOT RUN",
-        "reason": "same run deadline; the component-level retry contract is recorded in docs/evidence/ticket-55-*.json"
+        "status": "PASS",
+        "outcome": "succeeded",
+        "detail": "[data-chat-retry-offer] and [data-chat-retry-confirm] clicked; native retry settled"
       },
+      "recovery": {
+        "status": "PASS",
+        "detail": "send after retry succeeded; provider calls 18 -> 22"
+      },
+      "keymap": {
+        "status": "PASS",
+        "Control+Alt+KeyK": "cancelled",
+        "Control+Alt+KeyR": "succeeded",
+        "Control+Alt+Enter": "succeeded",
+        "Control+Alt+KeyN": "new native session 01a20027-8ff4-70f2-ad98-4ac59eeb6042"
+      },
+      "providerCalls": 18,
       "consoleErrors": [],
-      "note": "ticket-59 recorded stop/retry with provider calls 12->16 on patch b91a857; the final combination carries patch 265e1741, so that result is not inherited"
+      "note": "The four Stop/retry phases wait for the page to report a running turn, so Stop is asserted against a streaming turn rather than racing it."
     },
     "keymap": {
-      "status": "NOT RUN on this combination",
-      "chords": "Control+Alt+Enter / KeyN / KeyS / KeyK / KeyR (Linux web)",
-      "recorded": "docs/evidence/ticket-59-platforms.json linuxKeyboard (older patch set)"
+      "status": "PASS on this combination",
+      "chords": "Control+Alt+KeyK / KeyR / Enter / KeyN exercised through real browser key events; Control+Alt+KeyS not exercised",
+      "recorded": "linux.productFlow.keymap"
     }
   },
   "windowsChrome": {
-    "status": "PASS (shell and admission only)",
+    "status": "PASS (shell, admission and real input)",
     "scope": "actual Win32 Chrome Dev driven from WSL2 over CDP; WSL2 Linux Host on 127.0.0.1 with Windows localhost forwarding",
     "browser": {
       "path": "C:\\Program Files\\Google Chrome Dev\\Application\\chrome.exe",
@@ -96,23 +120,53 @@
     },
     "observed": {
       "title": "OMP WebUI",
-      "shellText": "Real OMP 19 product Host · pinned DSH Client · the native Session stays in your authorized directories.",
+      "shellText": "Real OMP 19 product Host \u00b7 pinned DSH Client \u00b7 the native Session stays in your authorized directories.",
       "clientLoaded": true,
       "sameOriginRequests": 17,
-      "allSucceededExcept": ["/favicon.ico 404"],
+      "allSucceededExcept": [
+        "/favicon.ico 404"
+      ],
       "consoleErrors": [],
       "failedRequests": [],
       "screenshot": "docs/evidence/ticket-61-windows-chrome.png"
     },
     "inputInjection": {
-      "status": "NOT RUN",
-      "reason": "requires an interactive Windows desktop session; the WSL2 automation used here cannot deliver real keyboard, menu, clipboard or Explorer-drop input. #59 recorded those on Chrome Dev 160.0.8157.0 and they are not inherited by this build."
+      "status": "PASS for keyboard, menu, file input and rendered turn",
+      "harness": "tests/product/windows-input.ts",
+      "browserVersion": "Chrome/160.0.8171.0",
+      "inputPath": "CDP Input.dispatchKeyEvent / dispatchMouseEvent / DOM.setFileInputFiles in the Windows Chrome process",
+      "directoryMechanism": "Input.dispatchKeyEvent (real key events, not Runtime.insertText)",
+      "nativeSession": "01a20033-8f5a-749e-97d7-fcc7fecbf58a (run that produced docs/evidence/ticket-61-windows-input.json)",
+      "prompt": "windows browser key turn typed through key events",
+      "turnRendered": true,
+      "attachment": {
+        "fileInput": {
+          "ok": true,
+          "bytes": 19
+        },
+        "pathStyle": "Windows C: path resolved by Chrome; Bun measured it through /mnt/c"
+      },
+      "dropObserved": false,
+      "consoleErrors": [],
+      "failedRequests": [],
+      "screenshot": "docs/evidence/ticket-61-windows-input.png",
+      "evidence": "docs/evidence/ticket-61-windows-input.json",
+      "limitations": "A CDP drag carrying a real Windows file was dispatched into the Session section but the page did not surface an attachment; the coordinate was outside the headless viewport in the last attempt, so no drop PASS is claimed. OS clipboard paste and an Explorer-originated drag cannot be delivered from WSL2 automation without a visible Windows desktop."
     }
   },
   "notRun": [
-    "Windows keyboard, menu, clipboard paste and Explorer drag/drop on the final combination",
-    "Linux keymap chords on the final combination",
-    "Stop and retry product flow on the final combination",
+    "Windows Explorer-originated drag/drop and OS clipboard paste (need a visible Windows desktop)",
+    "Control+Alt+KeyS on the final combination",
     "Maintainer operational acceptance"
-  ]
+  ],
+  "projectionRegression": {
+    "symptom": "A product-created Session showed only structural native rows (model_change, thinking_level_change) while attached; reopening the page rendered the full journal.",
+    "cause": "The first prompt moves the native cut context. The presented LiveJournal then failed live_context_changed before applying any turn event; the Host did not retire it, so the control stream advertised no new projection and the DSH follow stream stayed in its error state.",
+    "fix": [
+      "packages/sessions/supervisor.ts pollPresentation retires and republishes a presentation whose live journal fails",
+      "packages/sessions/presentation-service.ts retries a failed presentation on its next control tick",
+      "tests/sessions/source-supervisor.test.ts covers a live cut change republishing the presentation for control"
+    ],
+    "verification": "Linux product flow: liveAttachNodes 11 equals historyNodes 11, with the assistant text asserted before reload; the focused regression test is green."
+  }
 }

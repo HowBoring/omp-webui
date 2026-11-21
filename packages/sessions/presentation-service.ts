@@ -51,7 +51,15 @@ export class SessionPresentationService extends TypertRemoteService {
     } } : {} } };
     while (!signal.aborted) {
       await Bun.sleep(100);
-      const current = this.supervisor.activeJournal(identity);
+      let current = this.supervisor.activeJournal(identity);
+      // A live journal can fail on a native cut change before its viewer reopens. Rebuild it from the
+      // authoritative history here: the epoch advances only with the replacement, so the invalidation
+      // below always names a generation the viewer's next follow can open. A still-busy cut retries on
+      // the next tick instead of stranding the page on the retired snapshot.
+      if (current?.failure) {
+        try { await this.supervisor.presentation(identity, current.sessionId); } catch { /* retry next tick */ }
+        current = this.supervisor.activeJournal(identity);
+      }
       const next = this.supervisor.presentationEpoch(identity);
       if (next === epoch || !current) continue; // never consume an epoch that names no journal
       epoch = next;

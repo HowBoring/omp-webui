@@ -123,6 +123,11 @@ async def settle(page, outcome="succeeded"):
     await expect(page.locator("[data-chat-settlement]")).to_contain_text(outcome, timeout=120000)
 
 
+async def streaming(page):
+    await expect(page.locator("[data-chat-settlement]")).to_have_attribute(
+        "data-chat-settlement", "running", timeout=120000)
+
+
 async def phase_linux(browser, errors, scenarios, checks, link):
     context = await browser.new_context()
     page = await context.new_page()
@@ -154,6 +159,7 @@ async def phase_linux(browser, errors, scenarios, checks, link):
     await settle(page)
     checks["liveAttachNodes"] = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
     checks["liveAttachRenderedText"] = "authoritative controlled final" in await page.locator("body").inner_text()
+    await expect(page.locator("body")).to_contain_text("authoritative controlled final", timeout=180000)
     reopened = False
     for attempt in range(3):
         await page.reload(wait_until="domcontentloaded")
@@ -174,13 +180,14 @@ async def phase_linux(browser, errors, scenarios, checks, link):
     scenarios.append("new-native-session-and-send")
     await page.get_by_label("Message").fill("second turn")
     await send(page, "second turn")
+    await streaming(page)
     await page.get_by_role("button", name="Stop", exact=True).click()
     await settle(page, "cancelled")
     checks["stop"] = "cancelled"
     scenarios.append("stop-settles-cancelled")
     await page.locator("[data-chat-retry-offer]").click(timeout=60000)
     await page.locator("[data-chat-retry-confirm]").click()
-    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', timeout=180000)
+    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', state="attached", timeout=180000)
     attempt = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
     checks["retry"] = attempt
     scenarios.append(f"explicit-confirmed-native-retry:{attempt}")
@@ -190,11 +197,12 @@ async def phase_linux(browser, errors, scenarios, checks, link):
     checks["recovery"] = provider_calls()
     scenarios.append("send-after-retry")
     await send(page, "chord stop turn")
+    await streaming(page)
     await page.keyboard.press("Control+Alt+KeyK")
     await settle(page, "cancelled")
     checks["stopChord"] = "cancelled"
     await page.keyboard.press("Control+Alt+KeyR")
-    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', timeout=180000)
+    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', state="attached", timeout=180000)
     checks["retryChord"] = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
     await expect(page.get_by_label("Message")).to_be_enabled(timeout=120000)
     await page.get_by_label("Message").fill("chord send turn")

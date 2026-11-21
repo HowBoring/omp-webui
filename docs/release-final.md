@@ -30,9 +30,9 @@ Full machine-readable identities, keymap chords and budgets: `docs/evidence/tick
 |---|---|---|
 | Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":4}`) | `ticket-61-freeze.json` |
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `ticket-61-platforms.json` `linux` |
-| Linux product flow: new native Session, send/stream, Stop, retry | see `ticket-61-platforms.json` `linux.productFlow` | `tests/product/product-flow.py` |
+| Linux product flow: new native Session, live attach, send/stream, Stop, retry, keymap chords | PASS | `ticket-61-platforms.json` `linux.productFlow`; `tests/product/product-flow.py` |
 | Windows Chrome (real Win32 browser) shell, admission, console | PASS | `ticket-61-platforms.json` `windowsChrome` |
-| Windows input (keyboard, menus, paste, drop) | NOT RUN on this combination | `ticket-61-platforms.json` `windowsChrome.inputInjection` |
+| Windows input (keyboard, menus, file input) | PASS; CDP drop not surfaced, OS clipboard/Explorer drag unavailable | `ticket-61-platforms.json` `windowsChrome.inputInjection`; `docs/evidence/ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS, 6/6 checks | `ticket-61-native-data.json` + `.md` |
 | Performance (3 s / 1 s / 512 MiB) | PASS on the source-identical #60 build | `tests/product/evidence/performance-2026-11-22-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
@@ -49,3 +49,6 @@ so the thresholds carry over while the artifact digests do not.
 * The controlled provider (`compatibility/omp/fixtures/live-provider.ts`) is not real inference.
 * Native data evidence uses synthetic isolated Sessions; real user history is never migrated or
   rewritten by tests.
+* The Windows browser half is real Win32 Chrome driven over CDP. Its keyboard, menu and file-input
+  paths are PASS; OS clipboard paste and an Explorer-originated drag need a visible Windows desktop
+  and are not claimed.

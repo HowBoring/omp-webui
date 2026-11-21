@@ -100,5 +100,7 @@ Originals live under `<data>/attachments` in private storage with display-only f
   (`bun run product:build && bun run product:verify && bun run product:enroll`).
 * Real model-provider inference is out of scope for every recorded product run; the controlled
   provider is always labelled `realProviderInference: false`.
-* Windows input (keyboard, menus, paste, drop) was **not** executed on this combination; see
-  `docs/evidence/ticket-61-platforms.json`.
+* Windows input was executed on real Win32 Chrome Dev over CDP for keyboard, menus, a file input
+  and a rendered turn; a CDP file drop was not surfaced by the page and OS clipboard paste or an
+  Explorer-originated drag need a visible Windows desktop. See
+  `docs/evidence/ticket-61-platforms.json` and `docs/evidence/ticket-61-windows-input.json`.

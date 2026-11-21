@@ -773,19 +773,14 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
   }
 });
 
-test("ordinary native cut recovery after a settings renewal advances to a fresh presentation generation", async () => {
-  let cut: HistoryCut = {
-    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
-    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
-    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
-  };
+function cutHistory(cut: () => HistoryCut): HistoryClient {
   let current: HistoryOpen | undefined;
-  const history = new HistoryClient(async command => {
+  return new HistoryClient(async command => {
     switch (command.type) {
       case "history_snapshot_open": {
         current = {
           version: "coherent-history-v1", handoff: "live", snapshot: "snapshot", cursor: "active-0", scope: "active",
-          cut, cursors: { active: "active-0", live: "live-0", tree: "tree-0", running: "running-0" },
+          cut: cut(), cursors: { active: "active-0", live: "live-0", tree: "tree-0", running: "running-0" },
           expiresAt: Date.now() + 10_000, count: 1, prefix: null, streaming: false, compacting: false,
           scannedBytes: 0, scanMs: 0, snapshotMs: 0,
           limits: { entries: 20_000, runningMessages: 10_000, scanItems: 60_000, bytes: 320 * 1024 * 1024,
@@ -798,7 +793,7 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
       }
       case "history_snapshot_close": return { closed: true };
       case "history_observation_poll":
-        return { cut, after: cut.observationSeq, through: cut.observationSeq, events: [], hasMore: false };
+        return { cut: cut(), after: cut().observationSeq, through: cut().observationSeq, events: [], hasMore: false };
       case "history_snapshot_page": {
         const opened = current!;
         const scope = command.cursor.startsWith("active-") ? "active" : "live";
@@ -811,7 +806,15 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
       }
     }
   });
-  const f = await sourceFixture(undefined, undefined, history);
+}
+
+test("ordinary native cut recovery after a settings renewal advances to a fresh presentation generation", async () => {
+  let cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  const f = await sourceFixture(undefined, undefined, cutHistory(() => cut));
   try {
     const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
     const initial = (await f.supervisor.presentation(f.identity, sessionId)).projection.generation;
@@ -823,5 +826,29 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
     const recovered = await f.supervisor.presentation(f.identity, sessionId);
     expect(recovered).not.toBe(renewed!);
     expect(recovered.projection.generation).not.toBe(renewed!.projection.generation);
+  } finally { await f.close(); }
+});
+
+test("a live poll that observes a native cut change republishes the presentation for control", async () => {
+  let cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  const f = await sourceFixture(undefined, undefined, cutHistory(() => cut));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const presented = await f.supervisor.presentation(f.identity, sessionId);
+    cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
+    await expect(f.supervisor.pollPresentation(f.identity, sessionId, presented)).rejects.toThrow("live_context_changed");
+    // The failed follower is replaced immediately: control sees a new epoch naming an open generation,
+    // so the stuck viewer rebuilds instead of waiting for a manual page reload.
+    const recovered = f.supervisor.activeJournal(f.identity);
+    expect(recovered).toBeDefined(); expect(recovered).not.toBe(presented);
+    expect(recovered!.failure).toBeUndefined();
+    expect(recovered!.projection.generation).not.toBe(presented.projection.generation);
+    expect(f.supervisor.presentationEpoch(f.identity)).toBeGreaterThan(0);
+    expect(() => f.supervisor.requirePresentation(f.identity, sessionId, presented))
+      .toThrow("SESSION_PRESENTATION_INVALIDATED");
   } finally { await f.close(); }
 });

@@ -42,6 +42,8 @@ socket.addEventListener("message", (event) => {
   }
   if (reply.method === "Runtime.consoleAPICalled" && reply.params?.type === "error")
     consoleErrors.push(JSON.stringify(reply.params.args).slice(0, 300));
+  if (reply.method === "Runtime.consoleAPICalled" && process.env.OMP_WEB_WINDOWS_DEBUG === "1")
+    console.log("CONSOLE", reply.params?.type, JSON.stringify(reply.params?.args).slice(0, 500));
   if (reply.method === "Runtime.exceptionThrown") consoleErrors.push(JSON.stringify(reply.params).slice(0, 300));
   if (reply.method === "Network.loadingFailed") failedRequests.push(JSON.stringify(reply.params).slice(0, 300));
 });
@@ -74,10 +76,22 @@ const field = (label: string) => `[...document.querySelectorAll('input, textarea
 /** Bind the element to `window.__t61` so the coordinates and the click cannot disagree. */
 const bind = async (expression: string) => Boolean(await evaluate(`(() => { window.__t61 = undefined;
   window.__t61 = (${expression}); return Boolean(window.__t61); })()`));
-const box = async () => JSON.parse(String((await evaluate(`(() => { const element = window.__t61;
-  element.scrollIntoView({block: "center"});
-  const rect = element.getBoundingClientRect();
-  return JSON.stringify({x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, w: rect.width}); })()`)) ?? "{}"));
+const box = async () => {
+  // Smooth scrolling or a re-layout between scrolling and measuring would send the click to stale
+  // coordinates; poll until the element is actually inside the viewport.
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const measured = JSON.parse(String((await evaluate(`(() => { const element = window.__t61;
+      if (!element?.isConnected) return JSON.stringify({gone: true});
+      element.scrollIntoView({block: "center", behavior: "instant"});
+      const rect = element.getBoundingClientRect();
+      return JSON.stringify({x: rect.x + rect.width / 2, y: rect.y + rect.height / 2, w: rect.width,
+        top: rect.top, bottom: rect.bottom, height: innerHeight}); })()`)) ?? "{}"));
+    if (measured.gone) throw new Error("click target left the document");
+    if (measured.y > 0 && measured.y < measured.height && measured.w > 0) return measured;
+    await Bun.sleep(50);
+  }
+  throw new Error("click target never entered the viewport");
+};
 
 /** A real browser mouse press/release on the element a page-side expression resolves to. */
 const click = async (expression: string) => {
@@ -112,8 +126,12 @@ const typeInto = async (expression: string, text: string) => {
 const bodyText = async () => String((await evaluate("document.body.innerText")) ?? "");
 
 await send("Page.enable");
+await send("Page.bringToFront");
 await send("Runtime.enable");
 await send("Network.enable");
+// Earlier runs against a wiped data directory leave session cookies for the same origin in this
+// long-lived Windows Chrome profile; clear them so admission always comes from this run's link.
+await send("Network.clearBrowserCookies");
 await send("DOM.enable");
 await send("Page.navigate", { url: link });
 await waitFor(`() => Boolean(${field("Directory to authorize")})`, 120000);
@@ -129,32 +147,50 @@ await Bun.sleep(1500);
 console.log("ALERT", JSON.stringify(await evaluate(`[...document.querySelectorAll('[role=alert],[role=status]')].map((element) => element.textContent)`)));
 const review = await bodyText();
 console.log("REVIEW", JSON.stringify(review.slice(0, 600)));
-await clickText("Grant this directory and descendants");
+const grant = "Grant this directory and descendants";
+await waitFor(`() => { const button = [...document.querySelectorAll('button')]
+  .find((element) => (element.textContent ?? '').trim() === ${JSON.stringify(grant)});
+  return Boolean(button && !button.disabled); }`, 120000);
+await clickText(grant);
+// Confirming only records the grant; the visible authorized-directories list is refreshed by its
+// own action, exactly as a person must click it after confirming.
+await clickText("Refresh grants and catalog");
 await waitFor(`() => document.querySelector('li[data-product-grant][data-product-grant-status="valid"]') !== null`, 120000);
 await clickText("New Session here");
 await waitFor("() => (document.querySelector('[data-chat-native-session]')?.getAttribute('data-chat-native-session') ?? '') !== ''", 180000);
 const native = await evaluate(`document.querySelector('[data-chat-native-session]').getAttribute('data-chat-native-session')`);
-
-const prompt = "windows browser key turn";
-await typeInto(field("Message"), prompt);
-await waitFor(`() => document.querySelector('[data-chat-draft-ready="true"]') !== null`, 120000);
-await clickText("Send");
-await waitFor(`() => document.body.innerText.includes('authoritative controlled final')`, 180000);
 
 const attachment: Record<string, unknown> = {};
 if (attachPath) {
   const input = await send("Runtime.evaluate", { expression: 'document.querySelector(\'input[type=file]\')' });
   const objectId = input.result?.result && record(input.result.result)?.objectId;
   const set = await send("DOM.setFileInputFiles", { files: [attachPath], objectId: String(objectId) });
-  attachment.fileInput = set.error ? { error: set.error.message } : { ok: true, bytes: (await Bun.file(attachPath).arrayBuffer()).byteLength };
+  // Chrome runs on Windows and resolves the selected path there; Bun runs in WSL, so a drive path
+  // is measured through its /mnt mount instead of asking the Windows process for the bytes.
+  const hostPath = /^[A-Za-z]:[\\/]/.test(attachPath)
+    ? `/mnt/${attachPath[0]!.toLowerCase()}${attachPath.slice(2).replaceAll("\\", "/")}` : attachPath;
+  const bytes = set.error ? undefined : await Bun.file(hostPath).arrayBuffer().then(buffer => buffer.byteLength, () => undefined);
+  attachment.fileInput = set.error ? { error: set.error.message } : { ok: true, ...(bytes === undefined ? {} : { bytes }) };
 }
 
-const drag = { x: 320, y: 260 };
-await send("Input.dispatchDragEvent", { type: "dragEnter", ...drag, data: { items: [{ mimeType: "text/plain", data: "windows drop" }], dragOperationsMask: 1 } });
-await send("Input.dispatchDragEvent", { type: "dragOver", ...drag, data: { items: [{ mimeType: "text/plain", data: "windows drop" }], dragOperationsMask: 1 } });
-await send("Input.dispatchDragEvent", { type: "drop", ...drag, data: { items: [{ mimeType: "text/plain", data: "windows drop" }], dragOperationsMask: 1 } });
+// The product accepts files from a drop, so the browser drag carries a real Windows file. The
+// coordinate is measured on the Session section that owns the drop handler, not guessed.
+const dropFile = process.env.OMP_WEB_WINDOWS_DROP ?? "C:\\Users\\Public\\t61-drop.txt";
+const drag = JSON.parse(String((await evaluate(`(() => { const section = document.querySelector('[data-chat-native-session]');
+  const rect = section.getBoundingClientRect();
+  return JSON.stringify({ x: rect.x + rect.width / 2, y: rect.y + Math.min(120, rect.height / 2) }); })()`)) ?? "{}"));
+const dragData = { items: [{ mimeType: "text/plain", data: "windows drop" }], files: [dropFile], dragOperationsMask: 1 };
+console.log("DROP", JSON.stringify({ drag, dropFile }));
+for (const type of ["dragEnter", "dragOver", "drop"])
+  await send("Input.dispatchDragEvent", { type, ...drag, data: dragData });
 await Bun.sleep(1500);
 const afterDrop = await bodyText();
+
+const prompt = "windows browser key turn";
+await typeInto(field("Message"), prompt);
+await waitFor(`() => document.querySelector('[data-chat-draft-ready="true"]') !== null`, 120000);
+await clickText("Send");
+await waitFor(`() => document.body.innerText.includes('authoritative controlled final')`, 180000);
 
 const shot = await send("Page.captureScreenshot", { format: "png" });
 await Bun.write(outPng!, Buffer.from(shot.result?.data ?? "", "base64"));
@@ -176,7 +212,7 @@ const result = {
   keyboardTypedPrompt: prompt,
   turnRendered: true,
   attachment,
-  dropObserved: afterDrop.includes("windows drop") || afterDrop.includes("dropped"),
+  dropObserved: afterDrop.includes(String(dropFile).split(/[\\/]/).pop()!),
   consoleErrors,
   failedRequests,
   screenshot: outPng,
