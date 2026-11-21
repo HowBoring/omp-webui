@@ -519,13 +519,28 @@ async def chat_run(browser_args, product=False):
                 reachable_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
                 reachable_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
                 oldest = await page.locator("#conversation [data-chat-node], #conversation [data-chat-native-record]").first.text_content()
+                # Refresh re-presents the live Session. That duplicate view must refresh metadata only: releasing
+                # and reopening it would collapse the window this walk just proved reachable back to the first page.
+                duplicate_nodes = reachable_nodes
+                duplicate_seq = reachable_first
+                await page.locator("[data-chat-refresh]").click()
+                await page.wait_for_timeout(2000)
+                duplicate_after_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
+                duplicate_after_seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
+                duplicate_present = {"nodesBefore": duplicate_nodes, "nodesAfter": duplicate_after_nodes,
+                    "firstSeqBefore": duplicate_seq, "firstSeqAfter": duplicate_after_seq,
+                    "preserved": duplicate_after_nodes >= duplicate_nodes and duplicate_after_seq == duplicate_seq}
+                stage(f"duplicate-present={duplicate_present}")
                 reachability = {"nodes": reachable_nodes, "steps": steps, "more": reachable_more,
                     "firstSeqBefore": first_before, "firstSeqAfter": reachable_first,
                     "firstNode": (oldest or "")[:120],
-                    "allNativeReachable": not reachable_more and reach_reset is None and steps > 0 and "Entry 0 " in (oldest or ""),
+                    "allNativeReachable": not reachable_more and reach_reset is None and steps > 0
+                        and "Entry 0 " in (oldest or "") and duplicate_present["preserved"],
+                    "duplicatePresent": duplicate_present,
                     "reset": reach_reset,
-                    "reason": reach_reset["detail"] if reach_reset is not None else (
-                        None if not reachable_more else f"stopped after 400 steps at seq {reachable_first}"),
+                    "reason": reach_reset["detail"] if reach_reset is not None else
+                        f"stopped after 400 steps at seq {reachable_first}" if reachable_more else
+                        "re-presenting the live Session collapsed the loaded window" if not duplicate_present["preserved"] else None,
                     "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
                 stage(f"reachability={reachability}")
             finally:

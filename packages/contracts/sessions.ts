@@ -43,11 +43,12 @@ export type BranchOutcome = z.infer<typeof branchOutcome>;
 const catalog = z.strictObject({ status: z.enum(["complete", "partial", "scanning"]),
   choices: z.array(z.strictObject({ selectionId: selection, nativeSessionId: path, sourceId: path, instanceId: path,
     cwd: path.optional(), title: z.string().max(8192).optional(), ownership: z.enum(["held", "free", "unknown"]),
-    directory: z.string().max(32) })).max(32), nextCursor: token.optional() });
+    directory: z.string().max(32) })).max(1000), nextCursor: token.optional() });
 const index = z.strictObject({ records: z.array(record).max(32), nextCursor: token.optional() });
 const page = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(32).optional() });
 /** Catalog reads may additionally ask the Host to rescan native sessions; every other page stays cache-only. */
-const catalogPage = page.extend({ refresh: z.boolean().optional() });
+const catalogPage = z.strictObject({ cursor: token.optional(), pageSize: z.number().int().min(1).max(1000).optional(),
+  refresh: z.boolean().optional() });
 const currentSession = z.strictObject({ view: sessionViewSchema.optional(), running: z.boolean(), blank: z.boolean() });
 const grant = z.strictObject({ id: z.string().uuid(), path, grantedAt: z.string().datetime(), status: z.enum(["valid", "changed"]) });
 const preview = z.strictObject({ path, confirmation: z.string().uuid(), expiresAt: z.string().datetime() });

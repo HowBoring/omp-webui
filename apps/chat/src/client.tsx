@@ -128,6 +128,8 @@ const provider = createDraftProvider({ owner, storage: sessionStorage, authority
   authorizeRecovery: (_scope, previous) => recoveryAuthorized.has(String(previous.id)), prepareOriginals });
 let csrf = "", reference: SessionReference | undefined, liveBinding: SessionBinding | undefined, unsubscribe: (() => void) | undefined, unsubscribeSession: (() => void) | undefined;
 let unsubscribeProjection: (() => void) | undefined, presentationGeneration: string | undefined;
+/** Identity of the live presentation; a reload restore and a manual Open can race to present it twice. */
+let presentedView: PublicSessionView | undefined;
 let currentScope: DraftScope | undefined, draftDirty = false;
 const removedOriginals = new Set<string>();
 let viewChanged: (view: PublicSessionView | undefined) => void = () => {}, historyChanged: (rows: unknown[]) => void = () => {};
@@ -162,6 +164,7 @@ function release(reason: "access" | "present" | "surface-unmount" | "pagehide") 
   debugChat("session-release", { reason, sessionId: reference?.sessionId, stack: new Error().stack });
   ++presentationRevision; unsubscribe?.(); unsubscribe = undefined;
   unsubscribeProjection?.(); unsubscribeProjection = undefined;
+  presentedView = undefined;
   if (reference) { authorities.delete(String(reference.sessionId)); reference.release(); reference = undefined; }
   historyChanged([]); liveBinding = undefined;
 }
@@ -194,7 +197,27 @@ async function renewSessionProjection(view: PublicSessionView, progress: (status
   if (liveBinding) { progress("Waiting for the rebuilt Session projection…"); await waitRebuiltProjection(liveBinding, current.projection.generation); }
   if (renewEnrollment) { progress("Renewing the Chat attachment…"); await renewEnrollment(current.projection); }
 }
-async function present(view: PublicSessionView) {
+/** The presentation still running, so a second caller joins it instead of releasing and reopening the window. */
+let presenting: { view: PublicSessionView; promise: Promise<void> } | undefined;
+function present(view: PublicSessionView): Promise<void> {
+  // A reload restore and an Open/Switch click can resolve at different times for the same Session. Presenting
+  // it twice would release the live window and throw away every older page the reader had loaded, so an
+  // identical presentation — finished or still running — only refreshes its view metadata.
+  const known = presentedView, running = presenting;
+  if (reference !== undefined && liveBinding !== undefined && known !== undefined && known.workerId === view.workerId
+    && known.generation === view.generation && known.registration.nativeSessionId === view.registration.nativeSessionId) {
+    viewChanged(view);
+    return Promise.resolve();
+  }
+  if (running !== undefined && running.view.workerId === view.workerId && running.view.generation === view.generation
+    && running.view.registration.nativeSessionId === view.registration.nativeSessionId) {
+    return running.promise.then(() => viewChanged(view));
+  }
+  const promise = presentOnce(view), record = { view, promise };
+  presenting = record;
+  return promise.finally(() => { if (presenting === record) presenting = undefined; });
+}
+async function presentOnce(view: PublicSessionView) {
   release("present");
   const current = presentationRevision, access = accessRevision;
   await ctx.sessions.refresh();
@@ -230,6 +253,7 @@ async function present(view: PublicSessionView) {
   draftDirty = false;
   // Input stays closed and empty until this Session's record is authoritative: no other Session's text or files.
   draftPending(); draftChanged(""); draftOriginals([]);
+  presentedView = view;
   viewChanged(view);
   let saved: SemanticDraftRecord | undefined;
   try {
@@ -615,14 +639,15 @@ function Surface() {
     try {
       let cursor: string | undefined;
       // A native scan reports intermediates; follow the bounded cursor instead of losing the catalog.
+      // One page per round trip: 1000 Sessions render once instead of once per 32-item page.
       for (let step = 0; step < 1000; step++) {
-        const page = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 32, ...(cursor === undefined ? {} : { cursor }) }));
+        const page = resultValue(await ctx.remote.ompSessions.catalog({ pageSize: 1000, ...(cursor === undefined ? {} : { cursor }) }));
         if (revision !== accessRevision) return;
         for (const choice of page.choices) if (!seen.has(choice.selectionId)) { seen.add(choice.selectionId); found.push(choice); }
-        setChoices([...found]);
-        if (page.nextCursor === undefined) return;
+        if (page.nextCursor === undefined) break;
         cursor = page.nextCursor;
       }
+      setChoices(found);
     } finally { setCataloging(false); }
   };
   const refreshGrants = async () => {

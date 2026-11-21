@@ -99,7 +99,7 @@ export class LiveJournal {
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
-  private constructor(readonly opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
+  private constructor(public opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
     if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
     this.#nativeLeaf = opened.cut.leafId;
@@ -130,7 +130,7 @@ export class LiveJournal {
       await journal.#quiesce(history);
       return journal;
     } catch (error) {
-      await history.close(opened.snapshot).catch(() => {});
+      await history.close(journal.opened.snapshot).catch(() => {});
       journal.invalidate(error instanceof Error ? error.message : 'live_open_failed'); throw error;
     }
   }
@@ -195,11 +195,32 @@ export class LiveJournal {
       || page.offset! < 0 || page.offset! + page.items.length !== before) throw Error('live_open_cut_changed');
     return page.offset!;
   }
+  /** Native snapshots carry a bounded lease; re-acquire the same cut once its lease lapses instead of
+   * failing older paging. A cut that moved cannot be paged at the retained seqs and fails loudly. */
+  async #nativePage(history: HistoryClient, before: number) {
+    try { return await history.page(this.opened.cursors.active, before); }
+    catch (error) {
+      if (errorCode(error) !== 'history_stale_cursor') throw error;
+      const expired = this.opened;
+      const renewed = await history.open('active', 'live');
+      if (renewed.scope !== 'active' || renewed.handoff !== 'live' || renewed.cursor !== renewed.cursors.active
+        || renewed.compacting || renewed.count !== expired.count
+        || renewed.cut.contentRevision !== expired.cut.contentRevision || renewed.cut.leafId !== expired.cut.leafId
+        || renewed.cut.sessionId !== expired.cut.sessionId || renewed.cut.workerId !== expired.cut.workerId
+        || renewed.cut.sourceId !== expired.cut.sourceId || renewed.cut.contextId !== expired.cut.contextId) {
+        await history.close(renewed.snapshot).catch(() => {});
+        this.#fail('live_open_cut_changed');
+      }
+      this.opened = renewed;
+      await history.close(expired.snapshot).catch(() => {});
+      return await history.page(this.opened.cursors.active, before);
+    }
+  }
   /** Read one whole Native chunk ending before an absolute row offset, starting at a user boundary when possible. */
   async #nativeOlder(history: HistoryClient, before: number, parent: string | null): Promise<{items: HistoryItem[]; offset: number}> {
     let accumulated: HistoryItem[] = [], offset = before, bytes = 0;
     for (let pages = 0; pages < 32; pages++) {
-      const page = await history.page(this.opened.cursors.active, before);
+      const page = await this.#nativePage(history, before);
       const start = this.#checkPage(page, before);
       if (page.items.length === 0) break;
       accumulated = page.items.concat(accumulated); offset = start;
