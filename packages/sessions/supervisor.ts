@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { BrowserAccess, BrowserAuthority } from "../access/index.ts";
 import { sameNativeSession } from "../contracts/catalog-identity.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
-import type { CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
+import type { BranchMessage, CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { InteractionSnapshot, UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
@@ -94,6 +94,8 @@ interface Active {
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
   finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
+  /** Last Native branch-point read and the worker cut it describes; one entry per Session. */
+  branchPoints?: { cut: string; points: readonly BranchMessage[] };
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
   exitCode?: number;
@@ -569,9 +571,18 @@ export class SessionSupervisor {
    */
   /** Native allows only historical user messages; the Host never decides this on its own. */
   async branchPoints(identity: BrowserAccess, workerId: string) {
-    const runtime = this.runtime(identity, workerId);
-    const points = await runtime.worker.branchMessages(), latest = this.runtime(identity, workerId);
+    const runtime = this.runtime(identity, workerId), active = this.#active;
+    // The client rereads this on every load, but the Native list changes only with the Session's cut:
+    // every accepted Native event advances the worker's notification count, and a new worker brings a
+    // new generation. One memo entry per Session, so an unchanged cut is not re-read as a tens-of-MiB
+    // transcript scan per load; any published change drops it.
+    const cut = `${runtime.view.generation}\u0000${runtime.worker.notificationCount}`;
+    const memo = active?.branchPoints;
+    const points = memo?.cut === cut ? memo.points : await runtime.worker.branchMessages();
+    const latest = this.runtime(identity, workerId);
     if (latest.view.generation !== runtime.view.generation) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    const current = this.#active;
+    if (memo?.cut !== cut && current !== undefined) current.branchPoints = { cut, points };
     return { workerId: latest.view.workerId, generation: latest.view.generation, points };
   }
   async branch(identity: BrowserAccess, workerId: string, generation: string, entryId: string): Promise<BranchedSession> {

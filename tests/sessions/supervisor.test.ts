@@ -40,6 +40,26 @@ test("simultaneous explicit opens and warm views share one actual native worker"
   } finally { await f.close(); }
 }, 30_000);
 
+test("an unchanged cut serves the Native branch points once instead of rescanning per load", async () => {
+  const f = await fixture();
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected);
+    await f.supervisor.presentation(f.identity, opened.registration.nativeSessionId);
+    const first = await f.supervisor.branchPoints(f.identity, opened.workerId);
+    const second = await f.supervisor.branchPoints(f.identity, opened.workerId);
+    expect(first.points.map(point => point.entryId)).toEqual(["entry-0"]);
+    // The cut did not move: the memo answers, so no second Native transcript scan is issued.
+    expect(second.points).toBe(first.points);
+    expect(second.generation).toBe(first.generation);
+    // A different Session never inherits the previous cut's points.
+    const sibling = (await f.discovery.catalog.page()).items.find(item => item.nativeSessionId === "native-0001")!;
+    const switched = await f.supervisor.switchTo(f.identity, sibling);
+    await f.supervisor.presentation(f.identity, switched.registration.nativeSessionId);
+    const other = await f.supervisor.branchPoints(f.identity, switched.workerId);
+    expect(other.points.map(point => point.entryId)).toEqual(["entry-1"]);
+  } finally { await f.close(); }
+}, 30_000);
+
 test("revoking one overlapping root preserves the worker; revoking effective access denies then reaps it", async () => {
   const f = await fixture();
   try {
