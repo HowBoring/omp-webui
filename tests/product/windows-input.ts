@@ -42,8 +42,6 @@ socket.addEventListener("message", (event) => {
   }
   if (reply.method === "Runtime.consoleAPICalled" && reply.params?.type === "error")
     consoleErrors.push(JSON.stringify(reply.params.args).slice(0, 300));
-  if (reply.method === "Runtime.consoleAPICalled" && process.env.OMP_WEB_WINDOWS_DEBUG === "1")
-    console.log("CONSOLE", reply.params?.type, JSON.stringify(reply.params?.args).slice(0, 500));
   if (reply.method === "Runtime.exceptionThrown") consoleErrors.push(JSON.stringify(reply.params).slice(0, 300));
   if (reply.method === "Network.loadingFailed") failedRequests.push(JSON.stringify(reply.params).slice(0, 300));
 });
@@ -178,9 +176,9 @@ if (attachPath) {
 const dropFile = process.env.OMP_WEB_WINDOWS_DROP ?? "C:\\Users\\Public\\t61-drop.txt";
 const drag = JSON.parse(String((await evaluate(`(() => { const section = document.querySelector('[data-chat-native-session]');
   const rect = section.getBoundingClientRect();
-  return JSON.stringify({ x: rect.x + rect.width / 2, y: rect.y + Math.min(120, rect.height / 2) }); })()`)) ?? "{}"));
+  return JSON.stringify({ x: Math.min(Math.max(rect.x + rect.width / 2, 20), innerWidth - 20),
+    y: Math.min(Math.max(rect.y + 40, 20), innerHeight - 20) }); })()`)) ?? "{}"));
 const dragData = { items: [{ mimeType: "text/plain", data: "windows drop" }], files: [dropFile], dragOperationsMask: 1 };
-console.log("DROP", JSON.stringify({ drag, dropFile }));
 for (const type of ["dragEnter", "dragOver", "drop"])
   await send("Input.dispatchDragEvent", { type, ...drag, data: dragData });
 await Bun.sleep(1500);

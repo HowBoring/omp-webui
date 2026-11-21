@@ -419,7 +419,7 @@
     },
     "windowsInput": {
       "path": "tests/product/windows-input.ts",
-      "sha256": "61a7fe64d8d3dcf1488f72aa2322e88d21336500be0e3a32a70071fce770e2d1"
+      "sha256": "1efa4c454c8469c2e7c2b34f317791c442c1dd52a0472ecf1c5143e39657bd3d"
     }
   },
   "notFrozen": [
