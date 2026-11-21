@@ -30,8 +30,12 @@ export type SessionPreferences = z.infer<typeof sessionPreferencesSchema>;
 const preferencesChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), revision: z.number().int().min(0),
   model: z.strictObject({ provider: token, id: token }).optional(), thinking: thinkingLevel.optional() })
   .refine(value => value.model !== undefined || value.thinking !== undefined, "Choose a model or thinking level.");
-const branchPoint = z.strictObject({ entryId: path, text: z.string().max(1_048_576) });
-/** Native branch-message list; the Host re-checks membership when a branch is committed. */
+const branchPoint = z.strictObject({ entryId: path });
+/**
+ * Native branchable entry IDs only. The browser only decides where to offer a branch, so it needs membership,
+ * not transcript text: carrying the text of every branchable message resent the whole Session per load.
+ * `branch` re-reads the Native allow-list and checks the chosen entry before cutting.
+ */
 export const branchPointsSchema = z.strictObject({ workerId: worker, generation: z.string().uuid(), points: z.array(branchPoint).max(20_000) });
 const branchChange = z.strictObject({ workerId: worker, generation: z.string().uuid(), entryId: path });
 const branchOutcome = z.discriminatedUnion("status", [

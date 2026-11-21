@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { BrowserAccess, BrowserAuthority } from "../access/index.ts";
 import { sameNativeSession } from "../contracts/catalog-identity.ts";
 import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
-import type { BranchMessage, CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
+import type { CatalogDescriptor, StrictStartState, SessionState } from "../contracts/generated/omp-wire.ts";
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { InteractionSnapshot, UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
@@ -88,6 +88,8 @@ interface RetainedLaunch {
   cleanupFacts: OwnedCleanupFacts;
   report?(): WorkerExit;
 }
+/** A Native branchable entry. Only its identity leaves the Host; the browser decides where to offer a cut. */
+interface BranchPoint { entryId: string }
 interface Active {
   id: string; key: string; cwd: string; cwdIdentity: string; generation: string; selected?: CatalogDescriptor; record?: RegisteredSession;
   opening: Promise<void>; launching?: Promise<LaunchResult>; retained?: RetainedLaunch; state: SessionView["state"];
@@ -95,7 +97,7 @@ interface Active {
   finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
   /** Last Native branch-point read and the worker cut it describes; one entry per Session. */
-  branchPoints?: { cut: string; points: readonly BranchMessage[] };
+  branchPoints?: { cut: string; points: readonly BranchPoint[] };
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
   exitIndexFailure?: WorkerExit["indexFailure"];
   exitCode?: number;
@@ -578,7 +580,10 @@ export class SessionSupervisor {
     // transcript scan per load; any published change drops it.
     const cut = `${runtime.view.generation}\u0000${runtime.worker.notificationCount}`;
     const memo = active?.branchPoints;
-    const points = memo?.cut === cut ? memo.points : await runtime.worker.branchMessages();
+    // Only IDs leave the Host: the browser needs membership, and the text of every branchable message is
+    // the better part of the whole transcript. Keeping IDs in the memo also stops the Session retaining it.
+    const points = memo?.cut === cut ? memo.points
+      : (await runtime.worker.branchMessages()).map(message => ({ entryId: message.entryId }));
     const latest = this.runtime(identity, workerId);
     if (latest.view.generation !== runtime.view.generation) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     const current = this.#active;

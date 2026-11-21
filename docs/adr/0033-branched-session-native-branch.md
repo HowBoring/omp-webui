@@ -15,9 +15,13 @@ The Host uses the public OMP v2 `branch` command and nothing else.
 
 1. `branchPoints` reads the Native allow-list (`get_branch_messages`) for the
    current worker generation. Rendering and selection never infer branchability
-   from an entry's role, text or position. An unchanged presented cut may answer
-   from the last Native response of that generation; a new journal, cut or
-   generation drops it, so the allow-list is never older than the shown Session.
+   from an entry's role, text or position. Only entry IDs are published: the
+   browser needs membership to place the affordance, and the text of every
+   branchable message is most of the transcript, so a per-load record of it would
+   put a barely changing tens-of-MiB payload on every reload. An unchanged
+   presented cut may answer from the last Native IDs of that generation; a new
+   journal, cut or generation drops it, so the allow-list is never older than the
+   shown Session.
 2. `branch` revalidates Browser authority, the exact worker and generation, the
    native target membership, native quiescence and current interaction deadlines.
    A busy Session fails with `SESSION_WORKER_BUSY_STOP_REQUIRED`; the Host neither
