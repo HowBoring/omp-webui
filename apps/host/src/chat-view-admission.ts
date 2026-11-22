@@ -117,6 +117,14 @@ export class ChatViewAdmission {
     return { current, signal, run };
   }
 
+  /** The credential behind an active chat invocation; the manual-retry gate revalidates it independently. */
+  retryView(caller: ChatCaller): { clientId: string; credentialId: string } | undefined {
+    const invocation = this.#invocations.get(caller.view);
+    if (!invocation || invocation.peer !== caller.peer || !invocation.current()) return;
+    const { credentialId } = invocation.enrollment.identity;
+    return { clientId: credentialId, credentialId };
+  }
+
   /** Bind this to the worker's ChatWorkerPort, using its exact supervised generation. */
   authorize(caller: ChatCaller, sessionId: string, worker: Pick<ChatWorkerPort, "generation" | "target">) {
     const invocation = this.#invocations.get(caller.view);

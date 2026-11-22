@@ -5,8 +5,8 @@ import {historyMessage,ToolCallLedger,settledCoordinates} from '../../packages/p
 
 const collect=(item:HistoryItem,id='entry',ledger?:ToolCallLedger)=>{
   const records=[] as NonNullable<ReturnType<typeof historyMessage>>[];
-  historyMessage(item,id,{turn:2,step:3},(type,data,surface)=>{
-    const record={type:'event',event:{type,seq:records.length,time:0,data,...(surface?{surfaceOp:'append'}:{ignorable:true})}} as NonNullable<ReturnType<typeof historyMessage>>;
+  historyMessage(item,id,{turn:2,step:3},(type,data,surface,time)=>{
+    const record={type:'event',event:{type,seq:records.length,time:time??0,data,...(surface?{surfaceOp:'append'}:{ignorable:true})}} as NonNullable<ReturnType<typeof historyMessage>>;
     records.push(record);return record;
   },false,ledger);
   return records;
@@ -38,10 +38,22 @@ test('native terminal stop reasons close the turn with the matching stock reason
   };
   expect(reason('length')).toMatchObject({type:'turn/end',data:{turn:2,reason:{kind:'max-tokens'}}});
   expect(reason('error',{error:{reason:'quota exhausted',code:429,status:429}})).toMatchObject({type:'turn/end',
-    data:{turn:2,reason:{kind:'error',error:{message:'quota exhausted',code:'429',status:429}}}});
+    data:{turn:2,reason:{kind:'error',error:{message:'quota exhausted',code:'RATE_LIMIT',status:429}}}});
+  expect(reason('error',{error:{reason:'upstream',status:503}})).toMatchObject({type:'turn/end',
+    data:{reason:{kind:'error',error:{message:'upstream',code:'SERVER',status:503}}}});
+  expect(reason('error',{error:{reason:'slow',code:0x0004_0000}})).toMatchObject({type:'turn/end',
+    data:{reason:{kind:'error',error:{code:'TIMEOUT'}}}});
   expect(reason('error')).toMatchObject({type:'turn/end',data:{reason:{kind:'error',error:{code:'UNKNOWN'}}}});
   expect(reason('toolUse')).toMatchObject({type:'step/end'});
   expect(reason('unknown-native')).toMatchObject({type:'step/end'});
+});
+
+test('a terminal provider failure emits the invisible attempt the stock retry gate reads',()=>{
+  const records=collect({id:'a',active:true,parentId:'u',kind:'message',role:'assistant',text:'',provider:'p',model:'m',
+    stopReason:'error',error:{reason:'upstream',status:503}});
+  expect(records.map(r=>r.event.type)).toEqual(['step/start','assistant/attempt','step/end','turn/end']);
+  expect(records[1]!.event.ignorable).toBe(true);
+  expect(records.at(-1)!.event).toMatchObject({data:{turn:2,reason:{kind:'error',error:{code:'SERVER'}}}});
 });
 
 test('tool result pairs by native owner and preserves error semantics',()=>{
@@ -92,8 +104,21 @@ test('unknown native kinds and roles are blocked rather than stringified',()=>{
 test('structural native entries stay typed and never expose credential or config state',()=>{
   // Selection, usage and credential bookkeeping carry no conversation text: they are explicitly omitted.
   expect(collect({id:'s',active:true,parentId:null,kind:'credential_pin',text:'[Native structural record]'},'s')).toEqual([]);
+  // A native `custom` entry is bookkeeping too; a role-bearing custom message is a visible row.
+  expect(collect({id:'k',active:true,parentId:'u',kind:'custom',text:'[Native structural record]'},'k')).toEqual([]);
+  expect(collect({id:'k',active:true,parentId:'u',kind:'custom',role:'custom',text:'kept'},'k')).toHaveLength(1);
   // A record the native side marked hidden stays hidden.
   expect(collect({id:'c',active:true,parentId:'u',kind:'custom_message',text:'[Internal custom message]',display:false},'c')).toEqual([]);
   // Unknown non-ignorable kinds are a typed compatibility failure, never a silent or stringified row.
   expect(()=>collect({id:'u',active:true,parentId:null,kind:'provider_payload',text:'secret'})).toThrow('live_native_record_unsupported');
+});
+
+test('every record carries the native timestamp instead of the epoch',()=>{
+  const timestamp='2026-11-22T21:18:31.078Z',time=Date.parse(timestamp);
+  const records=collect({id:'a',active:true,parentId:'u',kind:'message',role:'assistant',text:'done',provider:'p',model:'m',
+    stopReason:'stop',timestamp,toolCalls:[{callId:'call-1',name:'s0_fixture',arguments:{}}]});
+  expect(records.map(record=>record.event.time)).toEqual(records.map(()=>time));
+  expect(collect({id:'u',active:true,parentId:null,kind:'message',role:'user',text:'hi',timestamp})
+    .map(record=>record.event.time)).toEqual([time,time]);
+  expect(collect({id:'n',active:true,parentId:null,kind:'message',role:'user',text:'hi'})[0]!.event.time).toBe(0);
 });

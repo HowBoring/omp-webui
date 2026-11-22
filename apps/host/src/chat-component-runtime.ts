@@ -343,6 +343,15 @@ export class ChatComponentRuntime {
       },
       request: async (command: SubmissionClientCommand) => await worker.submitCommand(command),
       externalBusy: () => retry.blocksAdmission(),
+      // The stock "Continue generating" button submits an empty prompt; that click is the confirmation.
+      retry: async caller => {
+        const view = this.admission.retryView(caller);
+        if (!view) throw Error("RETRY_NOT_ADMITTED");
+        const offer = retry.offer(view);
+        if (offer.status !== "confirmation") throw Error(`RETRY_${offer.reason.toUpperCase()}`);
+        await retry.confirm(view, offer.requestId);
+      },
+
       cancel: async () => {
         const page = entry.pages.values().next().value;
         if (page) { entry.stop.stop(page); this.#refresh(entry, page); return; }

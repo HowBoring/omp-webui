@@ -46,6 +46,8 @@ export interface ChatWorkerPort {
   externalBusy?(): boolean;
   /** Native cancel of the active turn; keeps the pending inbox. */
   cancel(): Promise<unknown>;
+  /** The stock "Continue generating" submission retries the failed turn instead of admitting a turn. */
+  retry?(caller: ChatCaller, signal: AbortSignal): Promise<unknown>;
   /** Present only when the Host composes the attachment gate for this worker. */
   readonly attachments?: {
     has(requestId: string): boolean;
@@ -157,9 +159,17 @@ export class ChatGateway {
       throw new ChatError("invalid");
     }
     const text = content.map(part => part.type === "text" ? part.text : "").join("");
-    if (!text.trim() || Buffer.byteLength(text) > 262_144) throw new ChatError("invalid");
+    if (Buffer.byteLength(text) > 262_144) throw new ChatError("invalid");
     const { saved, current } = this.#current(caller, sessionId, signal);
     if (!sameProjection(request.projection, saved.projection)) throw new ChatError("authority");
+    // An empty prompt is the stock "Continue generating" button: it retries the failed turn under the
+    // manual-retry gate (its warning and confirmation are that click), never a new turn.
+    if (!text.trim()) {
+      const retry = this.port.retry;
+      if (!retry) throw new ChatError("invalid");
+      await retry(caller, signal);
+      return { accepted: true as const };
+    }
     const fingerprint = createHash("sha256").update(JSON.stringify([mode, text])).digest("hex");
     const active = this.#latest;
     if (!this.#attempts.has(id.data) && active?.phase === "admitted" && !active.settled) {

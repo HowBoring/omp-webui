@@ -45,6 +45,7 @@ export default function(pi) {
         const scenario=process.env.OMP_LIVE_FIXTURE_SCENARIO;
         if(scenario==='retry'&&calls===1){
           partial.stopReason='error';
+          partial.errorStatus=503;
           partial.errorMessage='synthetic retryable terminal error';
           stream.push({type:'error',reason:'error',error:partial});stream.end();return;
         }
@@ -56,6 +57,7 @@ export default function(pi) {
         }
         if(calls>1&&['empty-error','refusal','empty-overflow'].includes(scenario)){
           partial.stopReason='error';
+          partial.errorStatus=400;
           partial.errorMessage=scenario==='empty-overflow'?'maximum context length exceeded for synthetic fixture':'synthetic non-retryable terminal error';
           if(scenario==='refusal'){partial.content=[{type:'text',text:'synthetic refusal'}];partial.stopDetails={type:'refusal'};}
           stream.push({type:'error',reason:'error',error:partial});stream.end();return;

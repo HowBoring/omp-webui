@@ -19,8 +19,9 @@ export function pageCoordinates(request: PageRequest, cursor: number) {
   return { end, maximum: Math.min(128, maximum) };
 }
 
-export function historyEvent(seq: number, type: string, data: JsonValue, surface = false): SessionHistoryRecord {
-  return { type: 'event', event: { type, seq, time: 0, data,
+export function historyEvent(seq: number, type: string, data: JsonValue, surface = false,
+  time = 0): SessionHistoryRecord {
+  return { type: 'event', event: { type, seq, time, data,
     ...(surface ? { surfaceOp: 'append' } : type === 'tool/parsed-call' ? {} : { ignorable: true }) } };
 }
 
@@ -33,7 +34,13 @@ export function settledCoordinates(role: HistoryItem['role'], { turn, step }: Co
   return { turn, step, length: 1 };
 }
 
-type EmitEvent = (type: string, data: JsonValue, surface?: boolean) => SessionHistoryRecord;
+type EmitEvent = (type: string, data: JsonValue, surface?: boolean, time?: number) => SessionHistoryRecord;
+
+/** The native record's own clock is the only honest source; an unstamped record stays at zero. */
+export function eventTime(item: HistoryItem): number {
+  const time = item.timestamp === undefined ? Number.NaN : Date.parse(item.timestamp);
+  return Number.isFinite(time) ? time : 0;
+}
 
 /** Native call ids are ordered; an unanswered call may not silently change owner. */
 export class ToolCallLedger {
@@ -82,6 +89,9 @@ function nativeMessage(item: HistoryItem, id: string): JsonValue | undefined {
     : item.role === 'branchSummary' ? 'branch_summary'
     : item.role === 'resetBoundary' ? 'reset_boundary'
     : (item.kind === 'message' && item.role !== undefined ? item.role : item.kind);
+  // A native `custom` entry is bookkeeping (the worker hands it a placeholder text), not dialogue;
+  // only a role-bearing custom message is a visible row.
+  if (item.kind === 'custom' && item.role === undefined) return undefined;
   if (ignorableKinds.has(surface)) return undefined;
   if (!visibleKinds.has(surface) && surface !== 'custom') throw Error('live_native_record_unsupported');
   if (item.role !== undefined && !nativeRoles.has(item.role)) throw Error('live_native_record_unsupported');
@@ -92,6 +102,23 @@ function nativeMessage(item: HistoryItem, id: string): JsonValue | undefined {
   return { id, role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: `${item.text}${files}` }] };
 }
 
+/**
+ * Native provider failure → the stock error class. Native `code` is pi-ai's error-id bit set and `status`
+ * the HTTP status; both are read here so a transient failure keeps the stock "Continue generating" path.
+ */
+export function errorCodeFor(error: HistoryError | undefined): string {
+  const id = typeof error?.code === 'number' ? error.code : 0;
+  if (id & 0x0008_0000) return 'RATE_LIMIT';     // Flag.UsageLimit
+  if (id & 0x0004_0000) return 'TIMEOUT';        // Flag.Timeout
+  if (id & 0x0000_2000) return 'EMPTY_RESPONSE'; // Flag.EmptyResponse
+  if (id & 0x0002_0000) return 'SERVER';         // Flag.Transient
+  const status = error?.status;
+  if (status === 408 || status === 504) return 'TIMEOUT';
+  if (status === 429) return 'RATE_LIMIT';
+  if (typeof status === 'number' && status >= 500) return 'SERVER';
+  return 'UNKNOWN';
+}
+
 /** Native stop reasons that end the whole turn, not just the current step. */
 export function turnEndReasonFor(stopReason: string | undefined, error: HistoryError | undefined): TurnEndReason | undefined {
   switch (stopReason) {
@@ -100,7 +127,7 @@ export function turnEndReasonFor(stopReason: string | undefined, error: HistoryE
     case 'aborted': return { kind: 'aborted', reason: { kind: 'user' } };
     case 'error':
       return { kind: 'error', error: { message: error?.reason ?? 'The model request failed',
-        code: error?.code !== undefined ? String(error.code) : 'UNKNOWN',
+        code: errorCodeFor(error),
         ...(error?.status !== undefined ? { status: error.status } : {}) } };
     default: return undefined; // `toolUse` and unknown native reasons keep the turn open
   }
@@ -113,30 +140,37 @@ export function turnEndReason(item: HistoryItem): TurnEndReason | undefined {
 export function historyMessage(item: HistoryItem, id: string, { turn, step }: Counters,
   emit: EmitEvent, continuingAssistant = false, ledger?: ToolCallLedger): SessionHistoryRecord | undefined {
   const content: JsonValue[] = [];
+  const time = eventTime(item);
   if (item.role === 'assistant' && item.reasoning) content.push({ type: 'reasoning', text: item.reasoning });
   content.push({ type: 'text', text: item.text });
   if (item.role === 'user') {
-    emit('turn/start', { turn });
-    return emit('user/message', { id, role: 'user', source: { kind: 'user' }, content }, true);
+    emit('turn/start', { turn }, false, time);
+    return emit('user/message', { id, role: 'user', source: { kind: 'user' }, content }, true, time);
   }
   if (item.role === 'assistant') {
     if (!item.provider || !item.model) throw Error('live_missing_model_source');
-    if (!continuingAssistant) emit('step/start', { turn, step });
+    if (!continuingAssistant) emit('step/start', { turn, step }, false, time);
+    const reason = continuingAssistant ? undefined : turnEndReason(item);
     const usage = usageValue(item);
-    const message = emit('assistant/message', {
-      turn, step, message: { id, role: 'assistant',
-        source: { kind: 'model', provider: item.provider, model: item.model }, content },
-      stream: [], ...(usage ? { usage } : {}), ...(item.stopReason === 'aborted' ? { interrupted: true } : {}),
-    }, true);
+    // A terminal provider failure committed no surface message: the stock contract records an attempt,
+    // which is also what keeps its failed-attempt retry live.
+    const message = reason?.kind === 'error'
+      ? emit('assistant/attempt', { turn, step, stream: item.text === '' ? [] : [{ type: 'chunk', time,
+        chunk: { type: 'block-end', index: 0, block: { type: 'text', text: item.text } } }] as unknown as JsonValue[] },
+      false, time)
+      : emit('assistant/message', {
+        turn, step, message: { id, role: 'assistant',
+          source: { kind: 'model', provider: item.provider, model: item.model }, content },
+        stream: [], ...(usage ? { usage } : {}), ...(item.stopReason === 'aborted' ? { interrupted: true } : {}),
+      }, true, time);
     for (const call of item.toolCalls ?? []) {
       ledger?.call(call.callId, id);
       emit('tool/parsed-call', { turn, step, callId: call.callId, name: call.name, arguments: call.arguments as JsonValue,
-        ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}) });
+        ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}) }, false, time);
     }
     if (!continuingAssistant) {
-      emit('step/end', { turn, step });
-      const reason = turnEndReason(item);
-      if (reason) emit('turn/end', { turn, reason: reason as unknown as JsonValue });
+      emit('step/end', { turn, step }, false, time);
+      if (reason) emit('turn/end', { turn, reason: reason as unknown as JsonValue }, false, time);
     }
     return message;
   }
@@ -147,17 +181,17 @@ export function historyMessage(item: HistoryItem, id: string, { turn, step }: Co
         reason: item.error.reason } : undefined;
     return emit('tool/result', { turn, step, message: { id, role: 'tool',
       source: { kind: 'tool', callId: item.toolCallId }, content, toolCallId: item.toolCallId,
-      ...(item.isError ? { isError: true } : {}) }, ...(error ? { error } : {}) }, true);
+      ...(item.isError ? { isError: true } : {}) }, ...(error ? { error } : {}) }, true, time);
   }
   const message = nativeMessage(item, id);
-  return message === undefined ? undefined : emit('user/message', message, true);
+  return message === undefined ? undefined : emit('user/message', message, true, time);
 }
 
 export function settledHistoryRecords(item: HistoryItem, id: string, start: number, position: Counters,
   ledger?: ToolCallLedger) {
   const records: SessionHistoryRecord[] = [];
-  historyMessage(item, id, position, (type, data, surface) => {
-    const record = historyEvent(start + records.length, type, data, surface);
+  historyMessage(item, id, position, (type, data, surface, time) => {
+    const record = historyEvent(start + records.length, type, data, surface, time);
     records.push(record);
     return record;
   }, false, ledger);

@@ -32,7 +32,8 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
         expect(ends.at(-1)?.outcome.kind).toBe(['refusal','empty-overflow'].includes(scenario)?'abandoned':'committed');
         const end=records.filter(record=>record.event.type==='turn/end').at(-1);
         expect(end).toBeDefined();
-        expect(end?.event.data).toMatchObject({reason:{kind:scenario==='empty-overflow'?'error':'completed'}});
+        const terminal=['refusal','empty-error','empty-overflow'].includes(scenario)?'error':'completed';
+        expect(end?.event.data).toMatchObject({reason:{kind:terminal}});
       }
     }finally{await fixture.close();}
   },20000);
@@ -51,4 +52,26 @@ test('genuine native rewind invalidates the old DSH generation before accepting 
     expect(failure).toMatch(/^live_(context_changed|projection_invalidated)$/);
     expect(()=>journal.snapshot()).toThrow(failure);
   }finally{await fixture.close();}
+},20000);
+
+test('a committed user message keeps its turn open until the assistant settles',async()=>{
+  const fixture=await openLiveFixture(true);
+  try {
+    const journal=await LiveJournal.open(fixture.transport.history);
+    await fixture.transport.prompt();
+    for(let attempt=0;attempt<160;attempt++){
+      journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
+      if((await fixture.transport.state()).isSettled)break;
+      if(attempt===159)throw Error('fixture_settlement_timeout');await Bun.sleep(25);
+    }
+    const records=(await journal.page({maxMessages:128})).records;
+    const types=records.map(record=>record.event.type);
+    for(let index=0;index<types.length;index++){
+      if(types[index]!=='turn/end')continue;
+      const open=types.lastIndexOf('turn/start',index);
+      expect(types.slice(open,index)).toContain('assistant/message');
+    }
+    const user=types.lastIndexOf('user/message');
+    expect(types.indexOf('turn/end',user)).toBeGreaterThan(types.lastIndexOf('assistant/message'));
+  } finally { await fixture.close(); }
 },20000);

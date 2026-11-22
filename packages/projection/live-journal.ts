@@ -297,8 +297,8 @@ export class LiveJournal {
   #build(items: HistoryItem[], start: {turn: number; step: number}, ledger: ToolCallLedger) {
     const records: SessionHistoryRecord[] = [];
     let counters = start;
-    const emit = (type: string, data: JsonValue, surface = false) => {
-      const entry = historyEvent(records.length, type, data, surface); records.push(entry); return entry;
+    const emit = (type: string, data: JsonValue, surface = false, time = 0) => {
+      const entry = historyEvent(records.length, type, data, surface, time); records.push(entry); return entry;
     };
     for (const item of items) {
       const id = item.entryId ?? item.id;
@@ -438,8 +438,10 @@ export class LiveJournal {
     const stamped = {...frame, projection: this.projection};
     for (const listener of this.#listeners) listener(structuredClone(stamped));
   }
-  #event(type: string, data: JsonValue, surface = false): SessionHistoryRecord {
-    const entry = historyEvent(this.#firstSeq + this.#records.length, type, data, surface);
+  /** Live frames with no native item (step boundaries, a turn the worker closed) take the host clock,
+   *  which is the same clock DSH itself stamps events with. */
+  #event(type: string, data: JsonValue, surface = false, time = Date.now()): SessionHistoryRecord {
+    const entry = historyEvent(this.#firstSeq + this.#records.length, type, data, surface, time);
     const bytes = Buffer.byteLength(JSON.stringify(entry));
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
     const end = this.#recordBytesBefore(this.#records.length) + bytes;
@@ -466,7 +468,7 @@ export class LiveJournal {
       this.#turn = coordinates.turn; this.#step = coordinates.step;
     }
     return historyMessage(item, id, attempt ?? coordinates,
-      (type, data, surface) => this.#event(type, data, surface), !!attempt, this.#toolCalls);
+      (type, data, surface, time) => this.#event(type, data, surface, time), !!attempt, this.#toolCalls);
   }
   #cursor(value: number) { return value === -1 ? -1 : SessionSeq(value); }
   #beginAttempt(live: HistoryLiveIdentity): void {
@@ -569,8 +571,10 @@ export class LiveJournal {
         ? {kind: 'committed', eventType: 'assistant/message', seq: entry.event.seq} : {kind: 'abandoned'}});
       this.#event('step/end', {turn: attempt.turn, step: attempt.step}); this.#attempt = undefined;
     }
-    // `toolUse` keeps the turn open for the next step; a committed terminal assistant already closed it
-    // (unless this settlement continued an adopted attempt, where the step/end above had to come first).
-    this.#closeTurn(turnEndReasonFor(item.stopReason, item.error));
+    // A user or tool settlement opens/belongs to a turn that is still running; only an assistant
+    // settlement may close it. `toolUse` keeps the turn open for the next step, and a committed
+    // terminal assistant already closed it (unless this settlement continued an adopted attempt,
+    // where the step/end above had to come first).
+    if (item.role === 'assistant') this.#closeTurn(turnEndReasonFor(item.stopReason, item.error));
   }
 }
