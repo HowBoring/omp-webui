@@ -14,9 +14,15 @@ interface PluginDefinition { inject?: string[]; apply(ctx: Context): void }
 
 const loaded: PluginDefinition[] = [];
 const storage = new Map<string, string>();
+const reactStub = {
+  createElement: () => undefined, useState: () => [undefined, () => {}],
+  useEffect: () => {}, useRef: () => ({ current: true }),
+};
 // Bun's module-loader boundary: the browser module registers itself on globals that a test does not have.
 Object.defineProperty(globalThis, "__ModuleLoader__", { configurable: true,
-  value: { load: (entry: { factory: () => PluginDefinition }) => { loaded.push(entry.factory()); } } });
+  value: { load: (entry: { factory: (require: (id: string) => unknown) => PluginDefinition }) => {
+    loaded.push(entry.factory(id => id === "react" ? reactStub : undefined));
+  } } });
 Object.defineProperty(globalThis, "sessionStorage", { configurable: true,
   value: { getItem: (key: string) => storage.get(key) ?? null, setItem: (key: string, value: string) => { storage.set(key, value); } } });
 // Static import cannot run the browser module's Loader registration before the capture above exists.
@@ -71,6 +77,9 @@ async function fixture() {
     } }), release: () => {} }),
   });
   ctx.provide("uiSession", { adapter: { current: { getSnapshot: () => ({ key: sessionId }), subscribe: () => () => {} } } });
+  ctx.provide("slots", { inject: () => () => {}, register: () => () => {} });
+  ctx.provide("workspaces", {});
+  ctx.provide("uiWorkspace", {});
   remote.view = { workerId: "worker-1", generation: "g1", state: "open", registration: { nativeSessionId: sessionId } };
   const plugin: Plugin = definition;
   await ctx.plugin(plugin);

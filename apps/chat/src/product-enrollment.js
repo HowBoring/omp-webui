@@ -20,9 +20,101 @@ const unwrap = result => {
   throw new Error(error && typeof error.message === "string" ? error.message : "Remote call failed");
 };
 
-function apply(ctx) {
+function apply(ctx, require) {
+  const React = require("react");
+  const h = React.createElement;
+  const { useEffect, useRef, useState } = React;
   let remote;
   let sessions;
+  let openDirectories = () => {};
+  const brandStyle = size => ({ display: "inline-flex", alignItems: "center", justifyContent: "center",
+    width: size, height: size, borderRadius: 6, background: "#1f6feb", color: "#fff",
+    fontWeight: 700, fontSize: Math.max(10, Math.round(size * 0.55)), lineHeight: 1 });
+
+  function BrandMark({ size }) { return h("span", { style: brandStyle(size), "data-product-brand": "mark", "aria-hidden": "true" }, "O"); }
+  function BrandName() { return h("span", { "data-product-brand": "name" }, "OMP WebUI"); }
+  function DirectoriesToggle() {
+    return h("button", {
+      type: "button", title: "Directories", "aria-label": "Directories", "data-product-directories-toggle": "",
+      style: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: 0,
+        color: "inherit", cursor: "pointer", font: "inherit", padding: "6px 8px" },
+      onClick: () => openDirectories(),
+    }, h("span", { "aria-hidden": "true" }, "\u{1F4C1}"), h("span", {}, "Directories"));
+  }
+  function Directories() {
+    const [open, setOpen] = useState(false);
+    const [path, setPath] = useState("");
+    const [review, setReview] = useState(undefined);
+    const [rows, setRows] = useState([]);
+    const [note, setNote] = useState("");
+    const [busy, setBusy] = useState(false);
+    const alive = useRef(true);
+    useEffect(() => () => { alive.current = false; }, []);
+    useEffect(() => { openDirectories = () => setOpen(true); return () => { openDirectories = () => {}; }; }, []);
+    const run = async operation => {
+      setBusy(true); setNote("");
+      try { await operation(); } catch (error) { if (alive.current) setNote(failureText(error)); }
+      finally { if (alive.current) setBusy(false); }
+    };
+    const refresh = async () => {
+      const list = unwrap(await remote.ompSessions.grants());
+      if (!alive.current) return;
+      setRows(list);
+      await sessions.refresh().catch(() => {});
+    };
+    useEffect(() => { if (open) void run(refresh); }, [open]);
+    const reviewPath = () => run(async () => {
+      const preview = unwrap(await remote.ompSessions.preview(path));
+      if (!alive.current) return;
+      setReview(preview); setNote(`Review ${preview.path}; grant expires ${new Date(preview.expiresAt).toLocaleTimeString()}.`);
+    });
+    const grant = () => run(async () => {
+      if (!review) return;
+      unwrap(await remote.ompSessions.confirm(review.confirmation));
+      if (!alive.current) return;
+      setReview(undefined); await refresh(); setNote("Directory granted.");
+    });
+    const openGrant = grantId => run(async () => {
+      const row = rows.find(candidate => candidate.id === grantId);
+      if (!row) throw new Error("That directory is no longer listed.");
+      const workspace = await ctx.workspaces.create({ path: row.path });
+      await ctx.uiWorkspace.openWorkspace(workspace.workspaceId);
+      if (alive.current) setOpen(false);
+    });
+    const revoke = grantId => run(async () => {
+      unwrap(await remote.ompSessions.revoke(grantId));
+      await refresh();
+    });
+    return h("div", { "data-product-directories-open": open ? "true" : "false", hidden: !open,
+      style: { position: "fixed", inset: 0, zIndex: 1000, display: open ? "flex" : "none",
+        alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.45)" } },
+      h("aside", { role: "dialog", "aria-modal": "true", "aria-label": "Authorized directories", "data-product-directories": "",
+        style: { width: "min(560px, 92vw)", maxHeight: "86vh", overflow: "auto", background: "Canvas", color: "CanvasText",
+          borderRadius: 12, padding: 20, boxShadow: "0 18px 60px rgba(0,0,0,.35)" } },
+        h("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between" } },
+          h("h2", { style: { margin: 0, fontSize: 18 } }, "Authorized directories"),
+          h("button", { type: "button", "aria-label": "Close directories", onClick: () => setOpen(false) }, "Close")),
+        h("p", {}, "Review one directory, then grant it and its descendants before creating a Session there."),
+        h("div", { style: { display: "flex", gap: 8 } },
+          h("input", { "aria-label": "Directory to authorize", value: path, disabled: busy,
+            placeholder: "/absolute/path", style: { flex: 1, minWidth: 0, padding: "8px 10px" },
+            onChange: event => { setPath(event.target.value); setReview(undefined); } }),
+          h("button", { type: "button", disabled: busy || path.trim() === "", onClick: reviewPath }, "Review directory")),
+        review && h("button", { type: "button", disabled: busy, onClick: grant }, "Grant this directory and descendants"),
+        h("p", { role: "status", "data-product-directory-note": "" }, note),
+        h("section", { "data-product-grants": "", "aria-label": "Granted directories" },
+          h("button", { type: "button", disabled: busy, onClick: () => run(refresh) }, "Refresh grants and catalog"),
+          rows.length === 0
+            ? h("p", { "data-product-no-grants": "" }, "No directory is authorized yet.")
+            : h("ul", { style: { listStyle: "none", padding: 0 } }, rows.map(row => h("li", {
+              key: row.id, "data-product-grant": row.id, "data-product-grant-status": row.status,
+              style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(128,128,128,.3)" } },
+            h("span", { style: { flex: 1, overflowWrap: "anywhere" } }, `${row.path} · ${row.status}`),
+            h("button", { type: "button", "data-product-new-session": row.id, disabled: busy || row.status !== "valid",
+              onClick: () => openGrant(row.id) }, "New Session here"),
+            h("button", { type: "button", "data-product-revoke": row.id, disabled: busy,
+              onClick: () => revoke(row.id) }, "Revoke directory")))))));
+  }
   const draftId = (() => {
     const key = "omp-product-draft";
     const saved = sessionStorage.getItem(key);
@@ -108,6 +200,12 @@ function apply(ctx) {
     queue = queue.then(() => sync(selected)).catch(error => debug("sync-failed", { sessionId: selected, error: failureText(error) }));
   };
 
+  ctx.slots.inject("sidebar.brand.mark", () => ctx.slots.register({ name: "sidebar.brand.mark", id: "omp.brand.mark" }, BrandMark));
+  ctx.slots.inject("sidebar.brand.name", () => ctx.slots.register({ name: "sidebar.brand.name", id: "omp.brand.name" }, BrandName));
+  ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register(
+    { name: "sidebar.footer.action", id: "omp.directories.toggle", order: 10 }, DirectoriesToggle));
+  ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.directories" }, Directories));
+
   remote = ctx.remote;
   sessions = ctx.sessions;
   void Promise.all([remote.$mount(sessionsContribution), remote.$mount(chatComponentContribution)])
@@ -133,4 +231,7 @@ function apply(ctx) {
   });
 }
 
-globalThis.__ModuleLoader__.load({ id: "@omp-webui/product-enrollment", factory: () => ({ inject: ["sessions", "remote", "uiSession"], apply }) });
+globalThis.__ModuleLoader__.load({
+  id: "@omp-webui/product-enrollment",
+  factory: require => ({ inject: ["sessions", "remote", "uiSession", "slots", "workspaces", "uiWorkspace"], apply: ctx => apply(ctx, require) }),
+});
