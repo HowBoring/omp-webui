@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "bun --watch apps/host/src/main.ts",
     "start": "bun apps/host/src/main.ts",
-    "test": "bun test --timeout 30000",
+    "test": "bun test --timeout 30000 --max-concurrency=8",
     "test:access:browser": "python3 tests/access/browser.py",
     "lint": "oxlint apps packages scripts tests compatibility",
     "lint:lsp": "oxlint --lsp",

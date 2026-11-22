@@ -2,9 +2,10 @@
  * S5 performance corpus authoring only.
  *
  * Creates real native OMP sessions through the pinned SessionManager, then assigns
- * deterministic ids/timestamps and a pinned session cwd so the corpus bytes reproduce
- * across checkouts of this generator. `generator.sha256` records which generator a
- * corpus came from, so a seed is only comparable against the same generator version.
+ * deterministic ids/timestamps and one shared checkout cwd. Recorded digests tokenize
+ * that checkout path, so they compare across checkouts of this generator while the
+ * on-disk sessions keep the real path the product Host grants. `generator.sha256`
+ * records which generator a corpus came from.
  * The Host never imports this file and never edits session files at runtime.
  */
 import { createHash } from "node:crypto";
@@ -20,10 +21,17 @@ const HISTORY_ID = "10000000-0000-4000-8000-000000000000";
 const HISTORY_TIMESTAMP = "2026-02-01T00:00:00.000Z";
 const HISTORY_FILENAME = "2026-02-01T00-00-00-000Z_10000000-0000-4000-8000-000000000000.jsonl";
 const SEED = "omp-webui-s5-performance-v1";
+/** Sessions carry the corpus project path because the gate grants exactly `<corpus>/project` and its
+ * descendants, so the list only shows Sessions inside it. Digests tokenize the checkout prefix:
+ * `canonical` is the cross-checkout identity, the on-disk bytes are per-checkout. */
+const CHECKOUT_TOKEN = "<checkout>";
+/** The only checkout-specific bytes are the corpus project path, which every Session records as its cwd. */
+const canonical = (contents: string, home: string): string =>
+	contents.replaceAll(join(home, "project"), "<corpus>/project");
 
 type Json = Record<string, unknown>;
 
-function normalizeHistory(contents: string): { body: string; distribution: Record<string, number> } {
+function normalizeHistory(contents: string, home: string): { body: string; distribution: Record<string, number> } {
 	const parsed = contents.trimEnd().split("\n").map(line => JSON.parse(line) as Json);
 	const ids = new Map<string, string>();
 	let entryIndex = 0;
@@ -33,8 +41,7 @@ function normalizeHistory(contents: string): { body: string; distribution: Recor
 			value.timestamp = HISTORY_TIMESTAMP;
 			value.title = "S5 Native 10000 Entry History";
 			value.titleSource = "user";
-			// The session cwd is the checkout the corpus was authored in; pin it so the bytes reproduce.
-			value.cwd = "/performance-fixture/project";
+			value.cwd = join(home, "project");
 		} else if (value.type === "title") {
 			value.updatedAt = HISTORY_TIMESTAMP;
 			value.title = "S5 Native 10000 Entry History";
@@ -69,6 +76,14 @@ function normalizeHistory(contents: string): { body: string; distribution: Recor
 	return { body: parsed.map(value => JSON.stringify(value)).join("\n") + "\n", distribution };
 }
 
+/**
+ * Catalog sessions keep native formatting, so the only checkout-specific bytes are their absolute cwd
+ * values; rewrite every one (header and nested entry fields) to this checkout's root.
+ */
+function normalizeCatalog(contents: string, home: string): string {
+	return contents.replaceAll(/"cwd":"[^"]*"/g, `"cwd":${JSON.stringify(join(home, "project"))}`);
+}
+
 const sha256 = (bytes: Uint8Array): string => createHash("sha256").update(bytes).digest("hex");
 
 async function jsonlFiles(root: string): Promise<string[]> {
@@ -101,16 +116,28 @@ async function main(): Promise<void> {
 	]);
 	if (code !== 0) throw new Error(`PERFORMANCE_HISTORY_AUTHORING_FAILED:${err.slice(0, 1_024)}`);
 	const { file } = JSON.parse(out) as { file: string };
-	const normalized = normalizeHistory(await readFile(file, "utf8"));
+	const normalized = normalizeHistory(await readFile(file, "utf8"), home);
 	const historyDir = dirname(file);
 	const historyPath = join(historyDir, HISTORY_FILENAME);
 	await writeFile(historyPath, normalized.body);
 	if (resolve(historyPath) !== resolve(file)) await rm(file);
 	const historyBytes = Buffer.byteLength(normalized.body);
 	if (historyBytes < TARGET_BYTES) throw new Error(`PERFORMANCE_HISTORY_BELOW_TARGET:${historyBytes}`);
+	const canonicalBody = canonical(normalized.body, home);
 	const catalogFiles = (await jsonlFiles(sessions)).filter(path => path !== historyPath);
-	const catalogFilesSha256 = sha256(Buffer.from((await Promise.all(catalogFiles.map(async path =>
-		`${path.split("/").at(-1)}\0${(await stat(path)).size}\0${sha256(await readFile(path))}`))).sort().join("\n")));
+	for (const path of catalogFiles) {
+		const contents = await readFile(path, "utf8");
+		const normalizedCatalog = normalizeCatalog(contents, home);
+		if (normalizedCatalog !== contents) await writeFile(path, normalizedCatalog);
+	}
+	/* Raw bytes/sha256 describe this checkout; canonical bytes/sha256 are the reproducible identity. */
+	const fileDigests = await Promise.all(catalogFiles.map(async path => {
+		const raw = await readFile(path), canonicalContents = canonical(raw.toString("utf8"), home);
+		return { path: relative(home, path), bytes: raw.byteLength, sha256: sha256(raw),
+			canonicalBytes: Buffer.byteLength(canonicalContents), canonicalSha256: sha256(Buffer.from(canonicalContents)) };
+	}));
+	const canonicalFilesSha256 = sha256(Buffer.from(fileDigests.map(file =>
+		`${file.path.split("/").at(-1)}\0${file.canonicalBytes}\0${file.canonicalSha256}`).sort().join("\n")));
 	const corpus = {
 		kind: "S5-native-performance-corpus",
 		privateData: false,
@@ -123,10 +150,8 @@ async function main(): Promise<void> {
 			sessions: catalogFiles.length,
 			root: relative(home, sessions),
 			idsSha256: sha256(Buffer.from(catalogFiles.map(path => path.split("/").at(-1)!.replace(/\.jsonl$/, "")).sort().join("\n"))),
-			filesSha256: catalogFilesSha256,
-			files: await Promise.all(catalogFiles.map(async path => ({
-				path: relative(home, path), bytes: (await stat(path)).size, sha256: sha256(await readFile(path)),
-			}))),
+			canonicalFilesSha256,
+			files: fileDigests,
 		},
 		history: {
 			nativeSessionId: HISTORY_ID,
@@ -134,8 +159,12 @@ async function main(): Promise<void> {
 			entries: HISTORY_ENTRIES,
 			bytes: historyBytes,
 			sha256: sha256(Buffer.from(normalized.body)),
+			canonicalBytes: Buffer.byteLength(canonicalBody),
+			canonicalSha256: sha256(Buffer.from(canonicalBody)),
 			typeDistribution: normalized.distribution,
 		},
+		canonicalization: { checkoutToken: CHECKOUT_TOKEN,
+			note: "Recorded digests and byte counts tokenize this checkout's path; on-disk sessions keep it because the Host only lists granted directories." },
 		home,
 		createdAt: new Date().toISOString(),
 	};

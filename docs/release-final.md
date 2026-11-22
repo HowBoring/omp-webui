@@ -23,11 +23,14 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 
 The performance corpus is frozen separately: `tests/product/evidence/performance-corpus-2026-11-22.json`
 records the seed `omp-webui-s5-performance-v1`, the generator digest
-`60b896f9…426518`, the catalog digest `0a3ee736…dd0a6b` and the history digest
-`a8a5d98a…4213d5` (10000 entries, 112923735 bytes). Ids, timestamps and the session cwd are pinned, so
-two generations of the same generator produce identical digests; a seed is only comparable against the
-same generator digest, and `createdAt` records when a corpus was made. Corpora generated before the cwd
-was pinned differ per checkout and are superseded.
+`33626c5d…20dcd3`, the catalog identity `88143d46…35063b` (1000 native Session files) and the history
+identity `55f7bca1…54dcd` (10000 entries). Ids and timestamps are pinned; each Session's cwd is the corpus
+project directory, because the gate grants exactly that directory and the product lists only granted
+directories. Recorded identity fields (`canonicalFilesSha256`, `canonicalBytes`, `canonicalSha256`) replace
+that path with `<corpus>/project`, so two generations in different directories agree, while `bytes` and
+`sha256` report the actual serialised payload of the corpus as written. A seed is only comparable against
+the same generator digest, and `createdAt` records when a corpus was made; corpora generated before this
+canonicalisation are superseded.
 
 Full machine-readable identities, keymap chords and budgets: `docs/evidence/ticket-61-freeze.json`.
 `tests/product/freeze.test.ts` fails if the enrolled installation drifts from that record. The gate
@@ -39,10 +42,12 @@ same file names fails.
 Reproducing this tuple needs the 38-archive native closure (`stage-strict-runtime.py`, recorded as
 `enrolled: false` in `docs/evidence/ticket-41-navigation-roster.json` because `vendor/omp-strict` holds only
 the installed validators). `.github/workflows/check.yml` pins `ubuntu-24.04`, stages the continuation
-fixtures, the navigation pins and the enrollment, and runs the full provisioned suite — no coverage is
-narrowed for a green run. The freeze gate runs there too: a checkout whose closure is not this tuple makes
-the job fail instead of claiming the recorded combination, so tuple reproduction stays local and the gate's
-rejection is asserted as normal source-check behaviour.
+fixtures, the navigation pins and the enrollment, and runs the full provisioned suite. The one narrowing is
+explicit: `tests/product/freeze.test.ts` is the only test held out of the general suite, because it asserts
+this checkout's native closure equals the recorded tuple. It runs in its own step instead: with the
+recorded closure provisioned the step requires the gate to pass, and without it the step requires the gate
+to reject, so a foreign runner reports the expected rejection and stays green without erasing an identity
+or claiming tuple reproduction, which remains local.
 
 ## What was executed on this combination
 
@@ -54,13 +59,16 @@ rejection is asserted as normal source-check behaviour.
 | Windows Chrome (real Win32 browser) shell, admission, console | PASS | `ticket-61-platforms.json` `windowsChrome` |
 | Windows input (keyboard, menus, file input) | PASS; CDP drop not surfaced, OS clipboard/Explorer drag unavailable | `ticket-61-platforms.json` `windowsChrome.inputInjection`; `docs/evidence/ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS, 6/6 checks | `ticket-61-native-data.json` + `.md` |
-| Performance (3 s / 1 s / 512 MiB) | PASS on the source-identical #60 build | `tests/product/evidence/performance-2026-11-22-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 2670.8 ms, old page P95 426.8 ms, Host peak RSS 325.2 MiB, reachability complete | `tests/product/evidence/performance-2026-11-22-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
-The #60 performance artifact is recorded against a build whose source/patch/schema and DSH assets
-are identical to this one; only bundler comment paths and the content-derived chunk filename differ,
-so the thresholds carry over while the artifact digests do not.
+The performance record was produced by this build on the recorded combination: 4 of 20 processors by
+affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page samples (1 warmup + 30 measured),
+reachability 49 steps / 10446 nodes with `allNativeReachable: true`, and
+`BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
+different machine, and it is only valid for the recorded corpus identity in
+`tests/product/evidence/performance-corpus-2026-11-22.json`.
 
 ## Known limits
 
