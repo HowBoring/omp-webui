@@ -4,9 +4,9 @@ import type {HistoryItem} from '../../packages/contracts/generated/omp-wire.ts';
 import {historyMessage,ToolCallLedger,settledCoordinates} from '../../packages/projection/history-records.ts';
 
 const collect=(item:HistoryItem,id='entry',ledger?:ToolCallLedger)=>{
-  const records=[] as ReturnType<typeof historyMessage>[];
+  const records=[] as NonNullable<ReturnType<typeof historyMessage>>[];
   historyMessage(item,id,{turn:2,step:3},(type,data,surface)=>{
-    const record={type:'event',event:{type,seq:records.length,time:0,data,...(surface?{surfaceOp:'append'}:{ignorable:true})}} as ReturnType<typeof historyMessage>;
+    const record={type:'event',event:{type,seq:records.length,time:0,data,...(surface?{surfaceOp:'append'}:{ignorable:true})}} as NonNullable<ReturnType<typeof historyMessage>>;
     records.push(record);return record;
   },false,ledger);
   return records;
@@ -52,15 +52,15 @@ test('reused call id cannot silently change native owner',()=>{
 test('special records are surface-typed, safe and honest about unavailable payloads',()=>{
   const file=collect({id:'f',active:true,parentId:'u',kind:'fileMention',role:'fileMention',text:'[File mention: a.txt]\nbody',
     files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]})[0];
-  expect(file!.event).toMatchObject({type:'omp/native-record',surfaceOp:'append',
-    data:{kind:'fileMention',role:'fileMention',files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]}});
+  expect(file!.event).toMatchObject({type:'user/message',surfaceOp:'append',
+    data:{role:'user',content:[{type:'text',text:'[File mention: a.txt]\nbody\n[file] a.txt'}]}});
   const messageKind=collect({id:'f',active:true,parentId:'u',kind:'message',role:'fileMention',text:'[File mention: a.txt]\nbody',
     files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]})[0];
-  expect(messageKind!.event).toMatchObject({type:'omp/native-record',data:{kind:'fileMention',role:'fileMention'}});
+  expect(messageKind!.event).toMatchObject({type:'user/message',data:{content:[{type:'text',text:'[File mention: a.txt]\nbody\n[file] a.txt'}]}});
   const mentioned=collect({id:'fm',active:true,parentId:'u',kind:'message',role:'fileMention',text:'[File mention: a.txt]',files:[{path:'a.txt',available:true,hasImage:false,byteSize:4}]})[0];
-  expect(mentioned!.event.data).toMatchObject({kind:'fileMention',role:'fileMention',files:[{path:'a.txt'}]});
-  const internal=collect({id:'c',active:true,parentId:'u',kind:'custom_message',role:'custom',text:'[Internal custom message]',display:false},'c');
-  expect(internal[0]!.event.data).toEqual({id:'c',kind:'custom_message',role:'custom',text:'[Internal custom message]',display:false});
+  expect(mentioned!.event.data).toMatchObject({role:'user',content:[{type:'text',text:'[File mention: a.txt]\n[file] a.txt'}]});
+  const internal=collect({id:'c',active:true,parentId:'u',kind:'custom_message',role:'custom',text:'[Internal custom message]'},'c');
+  expect(internal[0]!.event.data).toEqual({id:'c',role:'user',source:{kind:'user'},content:[{type:'text',text:'[Internal custom message]'}]});
   const missing=collect({id:'m',active:true,parentId:'u',kind:'message',role:'assistant',text:'',provider:'p',model:'m',unavailable:true,truncated:true});
   expect(missing[1]!.event.type).toBe('assistant/message');
   expect(collect({id:'t',active:true,parentId:'u',kind:'message',role:'toolResult',text:'[Native payload unavailable]',
@@ -74,8 +74,10 @@ test('unknown native kinds and roles are blocked rather than stringified',()=>{
 });
 
 test('structural native entries stay typed and never expose credential or config state',()=>{
-  const structural=collect({id:'s',active:true,parentId:null,kind:'credential_pin',text:'[Native structural record]'},'s')[0];
-  expect(structural!.event.data).toEqual({id:'s',kind:'structural',text:'[Native structural record]'});
-  const hidden=collect({id:'c',active:true,parentId:'u',kind:'custom_message',text:'[Internal custom message]',display:false},'c')[0];
-  expect(hidden!.event.data).toEqual({id:'c',kind:'custom_message',text:'[Internal custom message]',display:false});
+  // Selection, usage and credential bookkeeping carry no conversation text: they are explicitly omitted.
+  expect(collect({id:'s',active:true,parentId:null,kind:'credential_pin',text:'[Native structural record]'},'s')).toEqual([]);
+  // A record the native side marked hidden stays hidden.
+  expect(collect({id:'c',active:true,parentId:'u',kind:'custom_message',text:'[Internal custom message]',display:false},'c')).toEqual([]);
+  // Unknown non-ignorable kinds are a typed compatibility failure, never a silent or stringified row.
+  expect(()=>collect({id:'u',active:true,parentId:null,kind:'provider_payload',text:'secret'})).toThrow('live_native_record_unsupported');
 });

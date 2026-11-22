@@ -236,7 +236,7 @@ export async function startSessionComponentServer(options: Options) {
             try {
               sendFrame(socket, { type: "error", streamId: frame.streamId,
                 error: ctx.typertGateway.wireStream.failure(
-                  new RemoteError("gateway/service-unavailable", "This connection cannot open another stream.", {})) }, true);
+                  new RemoteError("gateway/service-unavailable", "This connection cannot open another stream.", { endpoint: frame.endpoint })) }, true);
             } catch { socket.close(1011, "stream failure could not be delivered"); }
             return;
           }
