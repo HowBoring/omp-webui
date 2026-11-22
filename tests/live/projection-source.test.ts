@@ -177,7 +177,7 @@ test('multipart opening keeps older pages and the in-flight assistant settlement
     [0, 'turn/start'], [1, 'user/message'], [2, 'step/start'], [3, 'assistant/message'], [4, 'step/end'], [5, 'step/start'],
   ]);
   assert.deepEqual(opening.assistantStream?.activeAttempt?.stream, [
-    {type: 'chunk', time: 0, chunk: {type: 'block-end', index: 0, block: {type: 'text', text: 'In flight'}}},
+    {type: 'chunk', time: 0, chunk: {type: 'text-delta', index: 1, text: 'In flight'}},
   ]);
   const older = await journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2});
   assert.deepEqual(older.records[1]?.event.data, {

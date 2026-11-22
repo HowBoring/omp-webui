@@ -1,0 +1,44 @@
+diff --git a/packages/coding-agent/src/modes/rpc/rpc-history.ts b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+index 84ab930..ea4fb01 100644
+--- a/packages/coding-agent/src/modes/rpc/rpc-history.ts
++++ b/packages/coding-agent/src/modes/rpc/rpc-history.ts
+@@ -83,12 +83,15 @@ interface Snapshot { runtimeFingerprints: RuntimeFingerprint[]; handoffHeaderRev
+ function record(value: unknown): Record<string, unknown> {
+   return asRecord(value) ?? {};
+ }
+-function textContent(value: unknown): string {
++function textContent(value: unknown, visibleOnly = false): string {
+   if (typeof value === "string") return value;
+   if (!Array.isArray(value)) return "";
+-  return value.map(part => {
++  const parts = value.map(part => {
+     const block = record(part);
+     if (block.type === "text" && typeof block.text === "string") return block.text;
++    // Assistant reasoning and tool calls travel in their own HistoryItem fields; folding them into
++    // visible text makes the stock conversation render both the typed block and a marker copy.
++    if (visibleOnly && (block.type === "thinking" || block.type === "toolCall")) return "";
+     if (block.type === "thinking" && typeof block.thinking === "string") return `[Thinking] ${block.thinking}`;
+     if (block.type === "toolCall") return `[Tool call: ${typeof block.name === "string" ? block.name : "unknown"}]`;
+     if (block.type === "image") return block.data === ""
+@@ -98,7 +101,8 @@ function textContent(value: unknown): string {
+     if (block.type === "fallback") return "[Native provider fallback boundary]";
+     if (block.type === "anthropicServerTool") return "[Native provider-managed tool record]";
+     throw new Error("history_unknown_content");
+-  }).join("\n");
++  });
++  return (visibleOnly ? parts.filter(text => text !== "") : parts).join("\n");
+ }
+ function numberField(value: unknown, key: string): number | undefined {
+   const field = record(value)[key];
+@@ -172,9 +176,10 @@ function readableMessage(value: unknown, content?: (value: unknown) => HistoryCo
+     const reasoning = role === "assistant" ? reasoningValue(message.content) : undefined;
+     const usage = role === "assistant" ? usageValue(message.usage) : undefined;
+     const error = errorValue(message);
++    const text = textContent(message.content, role === "assistant") || (role === "assistant" ? "" : `[${role}]`);
+     const unavailable = typeof message.prunedAt === "number"
+       || (Array.isArray(message.content) && message.content.some(part => record(part).type === "image" && record(part).data === ""));
+-    return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: (textContent(message.content) || `[${role}]`) +
++    return { role, ...(role === "assistant" && typeof message.provider === "string" && typeof message.model === "string" ? { provider: message.provider, model: message.model } : {}), text: text +
+       (typeof message.errorMessage === "string" ? `\n[Native error: ${message.errorMessage}]` : "") +
+       (typeof message.prunedAt === "number" ? "\n[Native pruned content]" : ""),
+       ...(toolCalls.length === 0 ? {} : { toolCalls }),

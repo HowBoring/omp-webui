@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {LiveTransport} from '../../../packages/compatibility/live-transport.ts';
-export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean;seed?:number;delayMs?:number;scenario?:"empty-error"|"refusal"|"empty-overflow"|"rewind"|"transform"|"handled"}={}){
+export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean;seed?:number;delayMs?:number;scenario?:"reasoning"|"empty-error"|"refusal"|"empty-overflow"|"rewind"|"transform"|"handled"}={}){
   const profile=await fs.mkdtemp(path.join(os.tmpdir(),'omp-live-cli-'));
   const argv=[process.execPath,'--no-env-file','--preload',
     path.resolve('compatibility/omp/fixtures/history-network-guard.js'),path.resolve('vendor/omp-candidate/cli.js'),

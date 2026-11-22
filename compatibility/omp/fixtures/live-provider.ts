@@ -69,6 +69,23 @@ export default function(pi) {
           stream.push({type:'toolcall_end',contentIndex:0,toolCall,partial});
           partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
         }
+        if(scenario==='reasoning'){
+          partial.content=[{type:'thinking',thinking:''}];
+          stream.push({type:'thinking_start',contentIndex:0,partial});
+          partial.content[0].thinking='controlled reason';
+          stream.push({type:'thinking_delta',contentIndex:0,delta:'controlled reason',partial});
+          stream.push({type:'thinking_end',contentIndex:0,content:'controlled reason',partial});
+          partial.content.push({type:'text',text:''});
+          stream.push({type:'text_start',contentIndex:1,partial});
+          for(const delta of ['authoritative ','controlled ','final']){
+            partial.content[1].text+=delta;
+            stream.push({type:'text_delta',contentIndex:1,delta,partial});
+            await Bun.sleep(Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80));
+          }
+          partial.content[1].text='authoritative controlled final';
+          stream.push({type:'text_end',contentIndex:1,content:'authoritative controlled final',partial});
+          stream.push({type:'done',reason:'stop',message:partial});stream.end();return;
+        }
         const toolMode=process.env.OMP_LIVE_FIXTURE_TOOLS;
         const lastUser=context.messages.filter(message=>message.role==='user').at(-1);
         const promptText=lastUser===undefined?'':lastUser.content.flatMap(content=>content.type==='text'?[content.text]:[]).join(' ');

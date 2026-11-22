@@ -48,7 +48,7 @@ const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
 ]);
 interface Attempt {
   id: LlmAttemptId; live: HistoryLiveIdentity; index: number; turn: number; step: number;
-  startedAfterSeq: number; stream: JsonValue[]; bytes: number;
+  startedAfterSeq: number; stream: JsonValue[]; bytes: number; reasoning: string; text: string;
 }
 interface OpeningBudget { bytes: number; items: number }
 
@@ -167,7 +167,7 @@ export class LiveJournal {
       if (this.#settled.has(key)) continue;
       if (item.livePhase === 'streaming') {
         if (item.role !== 'assistant' || this.#attempt) throw Error('live_overlapping_assistant');
-        this.#beginAttempt(live); this.#chunk(item.text, false);
+        this.#beginAttempt(live); this.#chunk(item.text, item.reasoning ?? '', false);
       } else {
         this.#pendingFinals.add(key);
         if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
@@ -477,19 +477,35 @@ export class LiveJournal {
     this.#groups.push(this.#records.length);
     const turn = this.#turn, step = ++this.#step; this.#event('step/start', {turn, step});
     this.#attempt = {id: LlmAttemptId(identity(live)), live, index: 0, turn, step,
-      startedAfterSeq: this.cursor, stream: [], bytes: 0};
+      startedAfterSeq: this.cursor, stream: [], bytes: 0, reasoning: '', text: ''};
   }
   #frame(frame: AssistantFrameInput): void {
     this.#publish({type: 'assistant-stream', frame: {...frame, revision: ++this.#assistantRevision} as SessionAssistantStreamFrame});
   }
-  #chunk(text: string, publish = true): void {
+  #chunk(text: string, reasoning: string, publish = true): void {
     const attempt = this.#attempt; if (!attempt) this.#fail('live_missing_attempt');
-    const chunk = {type: 'block-end' as const, index: 0, block: {type: 'text' as const, text}};
+    if (reasoning !== attempt.reasoning) {
+      if (!reasoning.startsWith(attempt.reasoning)) this.#fail('live_reasoning_rewrite');
+      this.#delta('reasoning-delta', 0, reasoning.slice(attempt.reasoning.length), publish);
+      attempt.reasoning = reasoning;
+    }
+    if (text !== attempt.text) {
+      if (!text.startsWith(attempt.text)) this.#fail('live_text_rewrite');
+      this.#delta('text-delta', 1, text.slice(attempt.text.length), publish);
+      attempt.text = text;
+    }
+  }
+  #delta(type: 'text-delta' | 'reasoning-delta', index: number, text: string, publish: boolean): void {
+    if (text === '') return;
+    const attempt = this.#attempt; if (!attempt) this.#fail('live_missing_attempt');
+    const chunk = type === 'text-delta'
+      ? {type: 'text-delta' as const, index, text}
+      : {type: 'reasoning-delta' as const, index, text};
     const record = {type: 'chunk', time: 0, chunk};
     const bytes = Buffer.byteLength(JSON.stringify(record));
     if (bytes > MAX_ITEM_BYTES || attempt.index >= ASSOCIATIONS || attempt.bytes + bytes > ATTEMPT_BYTES) this.#fail('live_attempt_evicted');
-    const index = attempt.index++; attempt.bytes += bytes; attempt.stream.push(record);
-    if (publish) this.#frame({type: 'chunk', attemptId: attempt.id, index, time: 0, chunk});
+    const frameIndex = attempt.index++; attempt.bytes += bytes; attempt.stream.push(record as unknown as JsonValue);
+    if (publish) this.#frame({type: 'chunk', attemptId: attempt.id, index: frameIndex, time: 0, chunk});
   }
   accept(poll: HistoryPoll): void {
     this.#assert();
@@ -549,7 +565,7 @@ export class LiveJournal {
       this.#frame({type: 'start', attemptId: attempt.id, startedAfterSeq: this.#cursor(this.cursor), turn: attempt.turn, step: attempt.step});
     } else if (event.kind === 'message_update' && event.item.role === 'assistant') {
       if (!this.#attempt || identity(this.#attempt.live) !== key) this.#fail('live_late_attempt');
-      this.#chunk(event.item.text);
+      this.#chunk(event.item.text, event.item.reasoning ?? '');
     } else if (event.kind === 'message_settlement') this.#settle(event, key);
   }
   #settle(event: HistoryChange, key: string): void {

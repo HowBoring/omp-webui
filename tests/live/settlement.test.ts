@@ -41,6 +41,28 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
   },20000);
 }
 
+test('native reasoning stays a typed block and never folds into visible text',async()=>{
+  const fixture=await openLiveFixture(false,{scenario:'reasoning'});
+  try {
+    const journal=await LiveJournal.open(fixture.transport.history);
+    await fixture.transport.prompt();
+    for(let attempt=0;attempt<200;attempt++){
+      journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
+      if((await fixture.transport.state()).isSettled){
+        journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));break;
+      }
+      if(attempt===199)throw Error('fixture_reasoning_timeout');await Bun.sleep(25);
+    }
+    const records=(await journal.page({maxMessages:128})).records;
+    const assistant=records.filter(record=>record.event.type==='assistant/message').at(-1)?.event.data;
+    expect(assistant).toMatchObject({message:{content:[
+      {type:'reasoning',text:'controlled reason'},
+      {type:'text',text:'authoritative controlled final'},
+    ]}});
+    expect(JSON.stringify(assistant)).not.toContain('[Thinking]');
+  }finally{await fixture.close();}
+},20000);
+
 test('genuine native rewind invalidates the old DSH generation before accepting another branch',async()=>{
   const fixture=await openLiveFixture(true,{scenario:'rewind'});
   try {

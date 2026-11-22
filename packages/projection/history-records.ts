@@ -143,8 +143,12 @@ export function historyMessage(item: HistoryItem, id: string, { turn, step }: Co
   emit: EmitEvent, continuingAssistant = false, ledger?: ToolCallLedger): SessionHistoryRecord | undefined {
   const content: JsonValue[] = [];
   const time = eventTime(item);
-  if (item.role === 'assistant' && item.reasoning) content.push({ type: 'reasoning', text: item.reasoning });
-  content.push({ type: 'text', text: item.text });
+  if (item.role === 'assistant') {
+    if (item.reasoning) content.push({ type: 'reasoning', text: item.reasoning });
+    // Native `text` is visible text only; keep an explicit empty part when the attempt carried no
+    // renderable content so the stock contract still sees a typed assistant message.
+    if (item.text !== '' || content.length === 0) content.push({ type: 'text', text: item.text });
+  } else content.push({ type: 'text', text: item.text });
   if (item.role === 'user') {
     // Native submission causality is the durable identity a Host-minted prompt keeps across reopen.
     // Carrying it as the stock rpcId lets the Client retire its optimistic echo and dedupe the render.
