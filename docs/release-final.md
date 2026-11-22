@@ -17,7 +17,7 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 | OMP launcher | `vendor/omp-candidate/omp` → `cli.js` (identity in the installation manifest) |
 | DSH base / source tree | `38a6a5c9…2fced` / `52c982f3…6d0309`, 7 pinned patches |
 | DSH client assets | `client.js` `4884905c…dd45d9`, `index.html` `f19cdbe5…ba7315` |
-| Installation manifest | `vendor/product/installation.json` (raw sha256 `d5f48716…a9ee924`; freeze gate compares the checkout-canonical `5796b8e4…cf5b93ba`) |
+| Installation manifest | `vendor/product/installation.json` (raw sha256 `d5f48716…a9ee924`; freeze gate compares the checkout-canonical `e54c64f3…5386fe`) |
 | Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 for the browser half |
 | Previous build (rollback) | `@oh-my-pi/pi-coding-agent@18.20.2`, `dist/cli.js` sha256 `648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76` |
 

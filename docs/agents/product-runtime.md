@@ -57,7 +57,7 @@ bun test tests/product/freeze.test.ts      # fails when the enrolled installatio
 
 The freeze gate hashes the enrolled manifest with checkout-relative asset paths and tokenized runtime
 and system dependency paths. The canonical digest is
-`5796b8e455685a5cbc0cf8ab8e348a30c607677949338e60b35bfbcfcf5b93ba`; every checkout that enrolls the
+`e54c64f33fa1718d0a98577df15af6c911d9bda981a7ce99303b8c9c547386fe`; every checkout that enrolls the
 same closure produces it, while source/patch/schema and each asset identity stay pinned individually.
 The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
 admission executes.
