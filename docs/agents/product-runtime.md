@@ -63,6 +63,11 @@ same closure produces it, while source/patch/schema and each asset identity stay
 The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
 admission executes.
 
+The performance corpus is authoring-only: `bun scripts/create-performance-corpus.ts` writes
+`vendor/performance-fixture` with pinned ids, timestamps and session cwd, so two runs of the same
+generator produce identical catalog and history digests (`tests/product/evidence/performance-corpus-2026-11-22.json`
+records the frozen one). A seed only compares against the same `generator.sha256`.
+
 Host environment: `OMP_WEB_MANIFEST`, `OMP_WEB_LAUNCHER`, `OMP_WEB_MANIFEST_SHA256` (all required),
 `OMP_WEB_PORT` (3180), `OMP_WEB_ORIGIN`, `OMP_WEB_DATA_DIR` (`~/.local/share/omp-webui`),
 `OMP_WEB_ASSETS` (`vendor/dsh-product`). `--print-bootstrap` exits 1 with

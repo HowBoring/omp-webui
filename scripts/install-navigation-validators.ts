@@ -39,7 +39,9 @@ export const validNavigationResult = (value:unknown):value is NavigationResult =
 `;
 /** The pinned OMP patch adds the public client the strict worker and its tests import. */
 const CLIENT_PATCH = "compatibility/omp/0008-durable-navigation.patch";
-const CLIENT_FILE = "packages/coding-agent/src/modes/rpc/navigation-client.ts";
+/** The patch adds the client at its upstream path; the strict tree stages it beside the validators. */
+const CLIENT_SOURCE = "packages/coding-agent/src/modes/rpc/navigation-client.ts";
+const CLIENT_FILE = "navigation-client.ts";
 
 type Artifact = { path: string; bytes: number; sha256: string };
 type Candidate = { artifacts: Record<string, { bytes: number; sha256: string }>;
@@ -69,7 +71,7 @@ export async function installNavigationValidators(): Promise<{ status: string; i
 	const patchBytes = new Uint8Array(await readFile(join(ROOT, CLIENT_PATCH)));
 	if (patchBytes.byteLength !== patchPin.bytes || digest(patchBytes) !== patchPin.sha256)
 		throw new Error(`Pinned ${CLIENT_PATCH} differs from candidate.json`);
-	await Bun.write(join(ROOT, CLIENT_FILE), addedFile(new TextDecoder().decode(patchBytes), CLIENT_FILE));
+	await Bun.write(join(RPC, CLIENT_FILE), addedFile(new TextDecoder().decode(patchBytes), CLIENT_SOURCE));
 
 	for (const artifact of ARTIFACTS) {
 		const pin = candidate.artifacts[artifact.source];
@@ -79,6 +81,12 @@ export async function installNavigationValidators(): Promise<{ status: string; i
 			throw new Error(`Pinned ${artifact.source} differs from candidate.json`);
 		await Bun.write(join(RPC, artifact.target), contents);
 		installed.push({ path: MANIFEST_PREFIX + artifact.target, bytes: contents.byteLength, sha256: digest(contents) });
+	}
+
+	for (const target of [CLIENT_FILE]) {
+		if (installed.some(entry => entry.path === MANIFEST_PREFIX + target)) continue;
+		const contents = new Uint8Array(await readFile(join(RPC, target)));
+		installed.push({ path: MANIFEST_PREFIX + target, bytes: contents.byteLength, sha256: digest(contents) });
 	}
 
 	const wrapper = new TextEncoder().encode(WRAPPER);

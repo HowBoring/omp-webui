@@ -17,9 +17,17 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 | OMP launcher | `vendor/omp-candidate/omp` → `cli.js` (identity in the installation manifest) |
 | DSH base / source tree | `38a6a5c9…2fced` / `52c982f3…6d0309`, 7 pinned patches |
 | DSH client assets | `client.js` `4884905c…dd45d9`, `index.html` `f19cdbe5…ba7315` |
-| Installation manifest | `vendor/product/installation.json` (raw sha256 `d5f48716…a9ee924`; freeze gate compares the checkout-canonical `9b02a029…6e402a`) |
+| Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `9b02a029…6e402a` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
 | Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 for the browser half |
 | Previous build (rollback) | `@oh-my-pi/pi-coding-agent@18.20.2`, `dist/cli.js` sha256 `648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76` |
+
+The performance corpus is frozen separately: `tests/product/evidence/performance-corpus-2026-11-22.json`
+records the seed `omp-webui-s5-performance-v1`, the generator digest
+`60b896f9…426518`, the catalog digest `0a3ee736…dd0a6b` and the history digest
+`a8a5d98a…4213d5` (10000 entries, 112923735 bytes). Ids, timestamps and the session cwd are pinned, so
+two generations of the same generator produce identical digests; a seed is only comparable against the
+same generator digest, and `createdAt` records when a corpus was made. Corpora generated before the cwd
+was pinned differ per checkout and are superseded.
 
 Full machine-readable identities, keymap chords and budgets: `docs/evidence/ticket-61-freeze.json`.
 `tests/product/freeze.test.ts` fails if the enrolled installation drifts from that record. The gate
