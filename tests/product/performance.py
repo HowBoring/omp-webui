@@ -369,8 +369,15 @@ async def settle(page, quiet):
     await page.evaluate(
         "async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }")
     await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT_MS)
-    await wait_until(
-        lambda: quiet["inflight"] == 0 and (time.monotonic() - quiet["last"]) * 1000 >= QUIET_MS, SETTLE_TIMEOUT_MS)
+    async def quieted():
+        return quiet["inflight"] == 0 and (time.monotonic() - quiet["last"]) * 1000 >= QUIET_MS
+
+    try:
+        await wait_until(quieted, SETTLE_TIMEOUT_MS)
+    except TimeoutError:
+        print(f"SETTLE_PENDING inflight={quiet['inflight']} "
+              f"idle_ms={(time.monotonic() - quiet['last']) * 1000:.0f}", flush=True)
+        raise
 
 
 async def count_at_least(locator, minimum):
@@ -565,15 +572,18 @@ async def chat_run(browser_args, product=False):
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
-                    """Acceptance of a reload: the Host restores the open Session, so no Open/Switch click is issued.
+                    """Acceptance of a reload: the catalog is restored and the Session transcript is opened.
 
-                    Clicking here would measure a manual restore racing the automatic one, and issuing a catalog
-                    refresh would measure a recovery path instead of what a reload actually costs.
+                    A reload restores the page shell only. The conversation keeps its native Session marker but
+                    carries no records until the row is opened (probe after a reload: rows=1001, native=1, nodes=0),
+                    so accepting a reload without the open would measure a page that never shows the Session it
+                    restored. The catalog itself is restored by the reload, so no refresh is issued.
                     """
                     refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
                     await wait_until(lambda: refresh.is_enabled(), timeout)
-                    await session_ready(page, timeout)
                     await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
+                    await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
+                    await session_ready(page, timeout)
                 for index in range(WARMUPS + SAMPLES):
                     await settle(page, quiet)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
