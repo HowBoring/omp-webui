@@ -5,15 +5,15 @@
   "recordedAt": "2026-11-22T04:40:00+08:00",
   "host": {
     "repository": "HowBoring/omp-webui",
-    "worktree": "/home/howboring/Projects/omp-webui-ticket-61",
+    "worktree": "/home/howboring/Projects/omp-webui-review",
     "branch": "mvp/ticket-61-delivery",
-    "commit": "7a5be8faf2cb164bfcf76e5e47e0f6bd838dacf0",
+    "commit": "56cc4d35a467ac47a5d28a523f976ee89c83bc7a",
     "integrationBase": {
       "branch": "mvp/spec-29",
       "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77"
     },
     "productSourceDirty": false,
-    "note": "Identity of the tree the product was built from. Documentation-only commits that record this freeze come later on the same branch.",
+    "note": "Identity of the tree the product was built from and the tree the 30-sample Q3 gate ran on. Documentation-only commits that record this freeze come later on the same branch.",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -401,7 +401,7 @@
     "docs/evidence/ticket-61-windows-chrome.json": "659e34286f4a9da0f4efdab1db3c0d004da174eb24c53f9b123a94f3011e043d",
     "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
     "docs/evidence/ticket-59-platforms.json": "01a8ebb81a2b05b8f6e0dd58a3755cb21a12e03fd03ac0eabf303b7a75955776",
-    "tests/product/evidence/performance-2026-11-22-product.json": "7beb0f1c2748156b03c77cf25a722dea1ede3e54f468ee5084e783d3d251cf4f",
+    "tests/product/evidence/performance-2026-11-22-product.json": "f2d65d3a042cf1e2303633d89816a239fe8755ca8d76c0b051308d7f1794db81",
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40"
   },
