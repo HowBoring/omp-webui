@@ -6,8 +6,8 @@
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-review",
-    "branch": "mvp/ticket-61-delivery",
-    "commit": "56cc4d35a467ac47a5d28a523f976ee89c83bc7a",
+    "branch": "mvp/spec-29-review",
+    "commit": "ebc3ff2eafe4b658ab9724d517b6d9bd79080f64",
     "integrationBase": {
       "branch": "mvp/spec-29",
       "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77"
