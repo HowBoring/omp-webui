@@ -37,6 +37,11 @@
       "path": "patches/0009-linux-web-shortcuts.patch",
       "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
       "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+    },
+    {
+      "path": "patches/0010-chat-source-rebind.patch",
+      "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
+      "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
     }
   ]
 }

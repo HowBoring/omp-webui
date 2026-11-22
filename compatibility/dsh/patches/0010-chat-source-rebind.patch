@@ -1,0 +1,104 @@
+diff --git a/packages/client/ui-chat/src/client/apply.ts b/packages/client/ui-chat/src/client/apply.ts
+index 7e4a3a5f..48e13232 100644
+--- a/packages/client/ui-chat/src/client/apply.ts
++++ b/packages/client/ui-chat/src/client/apply.ts
+@@ -122,10 +122,42 @@ export function apply(ctx: Context): void {
+         }
+       }, 'ui-chat: Provider binding quota notices')
+       quotaSubscriptions.add(dispose)
+-      const target = ctx.uiConversation.binding(binding).target('chat')
++      // A projection rebuild retires the loaded Conversation assembly, so the
++      // target resolved now dies with it. Follow the replacement generation and
++      // hand the one listener set to its target instead of serving a stale one.
++      let target: ObservableSnapshot<ChatSnapshot | undefined> = ctx.uiConversation.binding(binding).target('chat')
++      let leaveTarget: (() => void) | undefined
++      let stopProjection: (() => void) | undefined
++      const listeners = new Set<() => void>()
++      const notify = (): void => { for (const listener of listeners) listener() }
++      const follow = (): void => {
++        let next: ObservableSnapshot<ChatSnapshot | undefined>
++        try {
++          next = ctx.uiConversation.binding(binding).target('chat')
++        } catch {
++          // The Session binding was withdrawn; its ctx effect drops this source.
++          stopProjection?.()
++          return
++        }
++        if (next === target) return
++        leaveTarget?.()
++        target = next
++        leaveTarget = listeners.size > 0 ? target.subscribe(notify) : undefined
++        notify()
++      }
++      stopProjection = binding.projection.subscribe(follow)
+       source = {
+         getSnapshot: () => target.getSnapshot() ?? EMPTY_CHAT_SNAPSHOT,
+-        subscribe: listener => target.subscribe(listener),
++        subscribe: (listener) => {
++          listeners.add(listener)
++          if (leaveTarget === undefined) leaveTarget = target.subscribe(notify)
++          return () => {
++            listeners.delete(listener)
++            if (listeners.size > 0) return
++            leaveTarget?.()
++            leaveTarget = undefined
++          }
++        },
+       }
+       chatSources.set(binding, source)
+     }
+diff --git a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+index 7a6a7c5b..b2c24ca1 100644
+--- a/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
++++ b/packages/client/ui-chat/tests/chat-apply.client.spec.tsx
+@@ -10,6 +10,7 @@ import {
+ import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+ import { resolveSlotLabel } from '@deepseek-ai/dsh-client-ui-slots'
+ import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
++import { parseProjectionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
+ import type { SessionId } from '@deepseek-ai/dsh-session/types'
+ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
+@@ -340,6 +341,42 @@ describe('Chat apply wiring', () => {
+     await b.runtime.dispose()
+   })
+ 
++  it('follows the replacement Conversation generation with the same listener', async () => {
++    const b = await bench()
++    await b.runtime.sessions.add({ id: SID })
++    using reference = b.runtime.sessions.retain(SID)
++    const binding = reference.binding
++    const source = (b.sourceDescriptor.resolve(binding) as {
++      hooks: { chat: ObservableSnapshot<ChatSnapshot> }
++    }).hooks.chat
++    const listener = vi.fn()
++    const off = source.subscribe(listener)
++    const before = b.runtime.ctx.uiConversation.binding(binding)
++    const beforeTarget = before.target('chat')
++    expect(beforeTarget.getSnapshot()).toBeDefined()
++
++    // A projection rebuild retires the loaded assembly and admits a new one.
++    listener.mockClear()
++    binding.projection.set({ phase: 'rebuilding', signal: new AbortController().signal })
++    binding.projection.set({
++      phase: 'ready',
++      binding: parseProjectionBinding({ source: 'window', generation: 'generation-2' }),
++      signal: new AbortController().signal,
++    })
++
++    const after = b.runtime.ctx.uiConversation.binding(binding)
++    const afterTarget = after.target('chat')
++    expect(after).not.toBe(before)
++    expect(afterTarget).not.toBe(beforeTarget)
++    expect(listener).toHaveBeenCalled()
++    expect(afterTarget.getSnapshot()).toBeDefined()
++    expect(source.getSnapshot()).toBe(afterTarget.getSnapshot())
++    expect(source.getSnapshot()).toBeDefined()
++
++    off()
++    await b.runtime.dispose()
++  })
++
+   it('binds Turn data directly to its keyed Location source', async () => {
+     const b = await bench()
+     const spec = b.runtime.slots.spec('conversation.chat.node') as unknown as {
