@@ -42,6 +42,11 @@
       "path": "patches/0010-chat-source-rebind.patch",
       "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
       "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
+    },
+    {
+      "path": "patches/0011-conversation-source-rebind.patch",
+      "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
+      "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
     }
   ]
 }
