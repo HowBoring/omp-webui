@@ -236,39 +236,6 @@ export class LiveJournal {
       } finally { this.#renewing = undefined; }
     })();
   }
-  /** Continue this generation across a Native cut move (activation bookkeeping, a new submission).
-   *  The observation stream is contiguous from `#after`, so every change since the opening is still
-   *  delivered and `accept` proves branch continuity; only the paging snapshot is replaced. Published
-   *  records, seqs and assistant frames stay bound to the facts they were derived from. */
-  async rebase(): Promise<void> {
-    this.#assert();
-    if (this.#closed) throw Error('live_history_closed');
-    // A stream still in flight owns live identities the successor cut cannot settle; a rebuild is the
-    // only correct answer there, and the supervisor publishes one.
-    if (this.#attempt || this.#pendingFinals.size > 0) throw Error('live_context_changed');
-    const renewing = this.#renewing; if (renewing) await renewing.catch(() => {});
-    this.#assert();
-    const previous = this.opened;
-    const next = await this.history.open('active', 'live');
-    try {
-      if (this.#failure) throw Error(this.#failure);
-      if (this.#closed) throw Error('live_history_closed');
-      // Same execution: only the cut/context and its source binding may move. Retained rows never shrink
-      // on a safe append, and the successor cannot have observed less than this journal already has.
-      if (next.scope !== 'active' || next.handoff !== 'live' || next.cursor !== next.cursors.active
-        || next.compacting || next.cut.workerId !== previous.cut.workerId
-        || next.cut.sessionId !== previous.cut.sessionId
-        || next.count < previous.count || next.cut.observationSeq < this.#after) throw Error('live_context_changed');
-    } catch (error) {
-      await this.history.close(next.snapshot).catch(() => {});
-      throw error;
-    }
-    // A lease renewal that landed during the opening published a snapshot of the previous cut; the next
-    // poll retries this rebase against that snapshot instead of republishing over it.
-    if (this.opened !== previous) { await this.history.close(next.snapshot).catch(() => {}); throw Error('live_context_changed'); }
-    this.opened = next;
-    await this.history.close(previous.snapshot).catch(() => {});
-  }
   async #nativePage(history: HistoryClient, before: number) {
     try { return await history.page(this.opened.cursors.active, before); }
     catch (error) {
@@ -504,7 +471,9 @@ export class LiveJournal {
     if (poll.cut.workerId !== this.opened.cut.workerId || poll.cut.sessionId !== this.sessionId || poll.after !== this.#after) {
       this.#fail('live_observation_out_of_order');
     }
-    if (poll.cut.sourceId !== this.opened.cut.sourceId || poll.cut.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
+    // Cut/source/context bookkeeping moves under this journal without retiring it: the event stream is
+    // still contiguous from `after`, the execution worker and native Session are unchanged, and a real
+    // branch move, rewrite or rebuild is rejected in `#apply` below.
     for (const event of poll.events) {
       if (event.seq !== this.#after + 1) this.#fail('live_observation_gap');
       this.#apply(event); this.#after = event.seq;
@@ -550,7 +519,6 @@ export class LiveJournal {
     if (!event.live || !event.item) return;
     const key = identity(event.live); if (this.#settled.has(key)) return;
     if (event.item.role === 'toolResult' && !event.live.toolOwnerMessageId) this.#fail('live_tool_owner_unavailable');
-    if (event.live.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
     if (event.kind === 'message_start' && event.item.role === 'assistant') {
       this.#beginAttempt(event.live); const attempt = this.#attempt!;
       this.#frame({type: 'start', attemptId: attempt.id, startedAfterSeq: this.#cursor(this.cursor), turn: attempt.turn, step: attempt.step});

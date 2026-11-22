@@ -829,7 +829,7 @@ function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error 
   });
 }
 
-test("ordinary native cut recovery after a settings renewal advances to a fresh presentation generation", async () => {
+test("ordinary native cut recovery after a settings renewal continues the renewed presentation", async () => {
   let cut: HistoryCut = {
     durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
     workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
@@ -842,11 +842,14 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
     const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
     expect(renewed?.projection.generation).not.toBe(initial);
     cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
+    // A settings renewal already publishes a fresh generation; the following cut move is bookkeeping and
+    // stays on it instead of retiring the generation the viewer just bound.
     expect(() => renewed!.accept({ cut, after: renewed!.after, through: renewed!.after, events: [], hasMore: false }))
-      .toThrow("live_context_changed");
-    const recovered = await f.supervisor.presentation(f.identity, sessionId);
-    expect(recovered).not.toBe(renewed!);
-    expect(recovered.projection.generation).not.toBe(renewed!.projection.generation);
+      .not.toThrow();
+    expect(renewed!.opened.cut.contextId).toBe("context-1");
+    expect((await renewed!.page({ maxMessages: 1 })).records.length).toBeGreaterThan(0);
+    const current = await f.supervisor.presentation(f.identity, sessionId);
+    expect(current?.projection.generation).toBe(renewed!.projection.generation);
   } finally { await f.close(); }
 });
 
@@ -943,7 +946,8 @@ test("a live poll that observes a native cut move continues the presented genera
     // the mounted Conversation follows; `accept` still proves the stream and branch contiguous.
     await f.supervisor.pollPresentation(f.identity, sessionId, presented);
     expect(f.supervisor.activeJournal(f.identity)).toBe(presented);
-    expect(presented.opened.cut.contextId).toBe("context-2");
+    expect(presented.opened.cut.contextId).toBe("context-1");
+    expect(presented.opened.cut.contentRevision).toBe("content-v1");
     expect(f.supervisor.presentationEpoch(f.identity)).toBe(epoch);
     expect(() => f.supervisor.requirePresentation(f.identity, sessionId, presented)).not.toThrow();
     // The successor snapshot pages the same records, so scrolling keeps working without a reload.

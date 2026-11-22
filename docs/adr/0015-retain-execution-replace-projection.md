@@ -36,3 +36,19 @@ The Host fixture shares one bounded public RPC carrier between the accepted Hist
 InteractionBridge. Projection journals do not own native shutdown or construct new Interaction deadlines.
 Native observations retain `durability: not_attested`; this decision does not supply #37 durable navigation or #36 durable submissions,
 #47 product Broker admission, real-provider inference, private Session access or deferred Windows evidence.
+
+## Amendment 2026-11-23: cut moves that publish no new visible facts keep the generation
+
+The stock web client resolves its chat source once per `SessionBinding` (`ui-chat` `chatSources` WeakMap) and its
+conversation record per `projectionGeneration`; a published replacement therefore leaves a mounted Conversation on the
+retired record until a page reload. So a cut/context move that changes no published visible fact must not retire the
+generation. `LiveJournal.rebase()` reopens the paging snapshot on the successor cut when execution (worker and native
+Session), retained row count and observation position continue; `accept` still proves the event stream is contiguous
+from `after` and that the successor cut's leaf equals the published tip. `native_source_replaced`,
+`native_source_binding`, `native_untracked_rewrite`, `native_content_changed` and a `setLeaf` back to the published tip
+are bookkeeping: they keep published records, seqs and assistant frames. Rebuilds, real branch moves, compaction,
+irreparable gaps and settlement eviction still fail loudly and publish a replacement, so the "worker, context, branch,
+retained-content discontinuity and irreparable observation gaps retire the generation" rule narrows to *visible*
+continuity: context/source bookkeeping alone no longer retires it. Residual risk: an in-place entry rewrite that
+changes no lifecycle can leave an already-published record stale until the next real replacement; settled assistant
+text and header/usage-only rewrites are unaffected.

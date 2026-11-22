@@ -912,14 +912,10 @@ export class SessionSupervisor {
     this.requirePresentation(identity, sessionId, journal);
     const poll = await active.worker.history.poll(journal.opened.cut.workerId, journal.after); this.requirePresentation(identity, sessionId, journal);
     if (process.env.OMP_PRESENTATION_TRACE) console.error("POLL_KINDS", JSON.stringify(poll.events).slice(0, 6000));
-    // Activation bookkeeping and a new submission move the Native cut without changing this Session's
-    // execution or source. Continue the presented generation on the successor cut instead of retiring a
-    // generation the viewer is still following; `accept` still proves every change since `after` and
-    // fails loudly on a rewrite, branch move or gap, which then forces a full replacement below.
-    if (poll.cut.contextId !== journal.opened.cut.contextId) {
-      try { await journal.rebase(); } catch { /* the accept below reports why this generation cannot continue */ }
-      this.requirePresentation(identity, sessionId, journal);
-    }
+    // Activation bookkeeping and a new submission move the Native cut, source and context without
+    // changing this Session's execution. The journal keeps its generation across that move; `accept`
+    // still proves every change since `after` and fails loudly on a rewrite, branch move or gap, which
+    // then forces the replacement below.
     try { journal.accept(poll); }
     catch (error) {
       if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_POLL_FAILED", (error as Error)?.message,
