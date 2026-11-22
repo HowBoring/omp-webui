@@ -111,9 +111,16 @@ function apply(ctx) {
   remote = ctx.remote;
   sessions = ctx.sessions;
   void Promise.all([remote.$mount(sessionsContribution), remote.$mount(chatComponentContribution)])
-    .then(() => { debug("mounted"); observe(); })
+    .then(() => debug("mounted"))
     .catch(error => debug("mount-failed", { error: failureText(error) }));
-  observe = () => schedule(ctx.uiSession.adapter.current.getSnapshot()?.key);
+  // A mounted Remote namespace is the sibling service `remote.<namespace>`; a plugin fiber may only
+  // read that name from its inject, and the namespaces do not exist until `$mount` above. This child
+  // scope is the public seam that waits for both and gives every namespace call the right lifetime.
+  ctx.inject(["remote", "remote.ompSessions", "remote.ompChatComponent"], scoped => {
+    remote = scoped.remote;
+    observe = () => schedule(scoped.uiSession.adapter.current.getSnapshot()?.key);
+    observe();
+  });
   const off = ctx.uiSession.adapter.current.subscribe(() => observe());
   // A stock restore can publish the selection before the Host worker reports open; one bounded poll
   // closes that race without observing private Session internals.
