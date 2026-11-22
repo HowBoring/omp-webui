@@ -773,17 +773,28 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
   }
 });
 
-function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error | undefined): HistoryClient {
+function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error | undefined,
+                    hold?: (opens: number) => Promise<void> | undefined,
+                    stats?: { opens: number; closes: number }): HistoryClient {
   let current: HistoryOpen | undefined;
   let opens = 0;
+  const live = new Set<string>();
   return new HistoryClient(async command => {
     switch (command.type) {
       case "history_snapshot_open": {
-        const fault = openFault?.(++opens);
+        ++opens;
+        if (stats) stats.opens = opens;
+        const fault = openFault?.(opens);
         if (fault) throw fault;
+        await hold?.(opens);
+        // Native refuses a third live snapshot (`limits.snapshots: 2`), so a journal dropped without
+        // dispose fails the *next* open here instead of leaking quietly until the lease TTL.
+        if (live.size >= 2) throw new Error("history_cache_full");
+        const snapshot = `snapshot-${opens}`;
+        live.add(snapshot);
         current = {
-          version: "coherent-history-v1", handoff: "live", snapshot: "snapshot", cursor: "active-0", scope: "active",
-          cut: cut(), cursors: { active: "active-0", live: "live-0", tree: "tree-0", running: "running-0" },
+          version: "coherent-history-v1", handoff: "live", snapshot, cursor: `active-${opens}`, scope: "active",
+          cut: cut(), cursors: { active: `active-${opens}`, live: `live-${opens}`, tree: "tree-0", running: "running-0" },
           expiresAt: Date.now() + 10_000, count: 1, prefix: null, streaming: false, compacting: false,
           scannedBytes: 0, scanMs: 0, snapshotMs: 0,
           limits: { entries: 20_000, runningMessages: 10_000, scanItems: 60_000, bytes: 320 * 1024 * 1024,
@@ -794,7 +805,10 @@ function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error 
         };
         return current;
       }
-      case "history_snapshot_close": return { closed: true };
+      case "history_snapshot_close":
+        live.delete(command.snapshot);
+        if (stats) stats.closes += 1;
+        return { closed: true };
       case "history_observation_poll":
         return { cut: cut(), after: cut().observationSeq, through: cut().observationSeq, events: [], hasMore: false };
       case "history_snapshot_page": {
@@ -854,6 +868,57 @@ test("a failed presentation renewal keeps the current journal, generation and co
     const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
     expect(renewed?.generation).not.toBe(current.generation);
     expect(await f.supervisor.presentation(f.identity, sessionId)).toBe(renewed!);
+  } finally { await f.close(); }
+});
+
+test("a replacement published during a refresh disposes every opening it displaces", async () => {
+  const cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  let holding = false;
+  const stats = { opens: 0, closes: 0 };
+  const pending: (() => void)[] = [];
+  const settle = async (count: number) => {
+    for (let spins = 0; spins < 200 && pending.length < count; spins++) await Bun.sleep(0);
+    expect(pending.length).toBe(count);
+  };
+  const f = await sourceFixture(undefined, undefined, cutHistory(() => cut, undefined, () => {
+    if (!holding) return undefined;
+    const gate = Promise.withResolvers<void>();
+    pending.push(() => gate.resolve());
+    return gate.promise;
+  }, stats));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const initial = await f.supervisor.presentation(f.identity, sessionId);
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, sessionId);
+    // The refresh publishes while the concurrent replacement is still opening, so that opening resolves
+    // into an `active.journal` nobody reads again: it must be retired, not left holding a native snapshot.
+    holding = true;
+    const refresh = f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
+    await settle(1);
+    const concurrent = f.supervisor.presentation(f.identity, sessionId);
+    await settle(2);
+    pending[0]!();
+    const renewed = await refresh;
+    expect(renewed).toBeDefined();
+    pending[1]!();
+    expect(await concurrent).toBe(renewed!);
+    expect(f.supervisor.activeJournal(f.identity)).toBe(renewed!);
+    // Exactly one snapshot may still be live: the published replacement. An opening dropped by the
+    // overwritten `active.journal` leaves its snapshot open until the lease TTL otherwise.
+    for (let spins = 0; spins < 50 && stats.closes < stats.opens - 1; spins++) await Bun.sleep(0);
+    expect(stats.opens).toBe(3);
+    expect(stats.closes).toBe(2);
+    // Native allows 2 live snapshots: an undisposed orphan would make this next open fail the cap.
+    holding = false;
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, sessionId);
+    const recovered = await f.supervisor.presentation(f.identity, sessionId);
+    expect(recovered.failure).toBeUndefined();
+    expect(recovered).not.toBe(renewed!);
+    expect(initial.failure).toBe("navigation_pending");
   } finally { await f.close(); }
 });
 

@@ -791,7 +791,12 @@ export class SessionSupervisor {
         throw error;
       }
       this.#current(identity, active);
-      if (active.journal !== pending) continue; // a concurrent caller retired this opening first
+      if (active.journal !== pending) { // a concurrent caller retired this opening first
+        // Only a journal that reached the viewer is allowed to stay open; an orphan of a retired opening
+        // still owns a native snapshot, so it is retired here instead of waiting for the lease to expire.
+        if (active.journalValue !== journal) journal.dispose();
+        continue;
+      }
       if (journal.sessionId === sessionId && !journal.failure) {
         const previous = active.journalValue;
         if (previous === journal) return journal;
@@ -818,7 +823,10 @@ export class SessionSupervisor {
         throw error;
       }
       this.#current(identity, active);
-      if (active.journal !== replacement) continue;
+      if (active.journal !== replacement) {
+        if (active.journalValue !== journal) journal.dispose();
+        continue;
+      }
       if (journal.sessionId !== sessionId) { delete active.journal; break; }
       const previous = active.journalValue;
       // Publish the successor and retire the predecessor together: control must never advertise a
@@ -857,6 +865,15 @@ export class SessionSupervisor {
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
     if (active.journalValue !== previous) { journal.dispose(); return active.journalValue; } // a newer generation won
+    // Publishing here retires a concurrent opening that is still unpublished on `active.journal`. It is
+    // not awaited — that would make this refresh depend on an unrelated opener — but whatever it lands on
+    // is closed unless it is the incoming journal, the predecessor, or something a viewer now follows.
+    const opening = active.journal;
+    if (opening !== undefined) {
+      void opening.then(settled => {
+        if (settled !== journal && settled !== previous && active.journalValue !== settled) settled.dispose();
+      }, () => undefined);
+    }
     // Publish the replacement and retire the predecessor together; dispose the old one only after the
     // successor is visible, so a pre-publish failure cannot strand the viewer on a closed journal.
     active.journal = Promise.resolve(journal); active.journalValue = journal;
