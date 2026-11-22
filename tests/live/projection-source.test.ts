@@ -218,6 +218,27 @@ test('page byte limits keep chronological message groups separately addressable'
   assert.equal(older.hasMore, false);
 });
 
+test('native bookkeeping keeps the generation and a matching setLeaf realigns the leaf', async () => {
+  const first = item('first', null, 'Question'), last = item('last', 'first', 'Answer');
+  const journal = await LiveJournal.open(fixture([[first], [last]]));
+  const generation = journal.projection.generation;
+  const source = (kind: string) => ({kind, revision: 2, contextRevision: 2,
+    sessionId: initialCut.sessionId, leafId: 'last'});
+  journal.accept({cut: initialCut, after: 0, through: 5, hasMore: false, events: [
+    {seq: 1, kind: 'native_content_changed'},
+    {seq: 2, kind: 'native_untracked_rewrite'},
+    {seq: 3, kind: 'native_source_replaced', source: source('source_replaced')},
+    {seq: 4, kind: 'native_source_binding', source: source('source_binding')},
+    {seq: 5, kind: 'native_setLeaf', source: source('setLeaf')},
+  ]});
+  // Activation rewrites the Native header and re-points its leaf at the tip already served: that is
+  // bookkeeping, so the projection the stock client is bound to survives and keeps paging.
+  assert.equal(journal.failure, undefined);
+  assert.equal(journal.projection.generation, generation);
+  assert.equal(journal.after, 5);
+  assert.ok((await journal.page({maxMessages: 1})).records.length > 0);
+});
+
 test('a branch change withdraws old pages and a fresh opening uses the same Native Session', async () => {
   const cut = {...initialCut, leafId: 'new-leaf', observationSeq: 1, nativeRevision: 2, contentRevision: 'content-v2'};
   const first = item('first', null, 'Shared ancestor');

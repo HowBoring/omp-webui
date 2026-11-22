@@ -806,6 +806,8 @@ export class SessionSupervisor {
         // that viewer onto this journal instead of leaving it on the retired one.
         if (previous !== undefined) {
           active.journalEpoch = ++journalIdentity;
+          if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REPLACED",
+            previous.generation, "->", journal.generation, "reason", journal.failure);
           previous.invalidate("presentation_replaced");
         }
         return journal;
@@ -834,7 +836,11 @@ export class SessionSupervisor {
       // same replacement first; keep its (later) epoch rather than moving the announcement backwards.
       if (previous !== journal) {
         active.journalValue = journal; active.journalEpoch = epoch;
-        if (previous !== undefined) previous.invalidate("presentation_replaced");
+        if (previous !== undefined) {
+          if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REBUILT",
+            previous.generation, "->", journal.generation, "failure", journal.failure);
+          previous.invalidate("presentation_replaced");
+        }
       }
       return journal;
     }
@@ -878,6 +884,8 @@ export class SessionSupervisor {
     // successor is visible, so a pre-publish failure cannot strand the viewer on a closed journal.
     active.journal = Promise.resolve(journal); active.journalValue = journal;
     active.journalEpoch = Math.max(active.journalEpoch ?? 0, epoch);
+    if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REFRESHED",
+      previous.generation, "->", journal.generation);
     if (previous !== journal) previous.invalidate("presentation_replaced");
     return journal;
   }
@@ -903,8 +911,20 @@ export class SessionSupervisor {
     if (!active?.worker || active.record?.nativeSessionId !== sessionId) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     this.requirePresentation(identity, sessionId, journal);
     const poll = await active.worker.history.poll(journal.opened.cut.workerId, journal.after); this.requirePresentation(identity, sessionId, journal);
+    if (process.env.OMP_PRESENTATION_TRACE) console.error("POLL_KINDS", JSON.stringify(poll.events).slice(0, 6000));
+    // Activation bookkeeping and a new submission move the Native cut without changing this Session's
+    // execution or source. Continue the presented generation on the successor cut instead of retiring a
+    // generation the viewer is still following; `accept` still proves every change since `after` and
+    // fails loudly on a rewrite, branch move or gap, which then forces a full replacement below.
+    if (poll.cut.contextId !== journal.opened.cut.contextId) {
+      try { await journal.rebase(); } catch { /* the accept below reports why this generation cannot continue */ }
+      this.requirePresentation(identity, sessionId, journal);
+    }
     try { journal.accept(poll); }
     catch (error) {
+      if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_POLL_FAILED", (error as Error)?.message,
+        "cut", journal.opened.cut.contextId, "poll", poll.cut.contextId, "after", journal.after, poll.after,
+        "leaf", journal.opened.cut.leafId, "pollLeaf", poll.cut.leafId, "events", poll.events.length);
       // A new submission moves a cold Session's native cut/context, so the polling journal dies before it
       // sees the turn. Publish the authoritative replacement now: control then announces a generation the
       // viewer's next follow can open, instead of leaving it on a dead follow until a manual reload.

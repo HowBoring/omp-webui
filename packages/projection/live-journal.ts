@@ -102,13 +102,16 @@ export class LiveJournal {
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
+  /** Last published tip: the visible path this generation already served. Activation re-points the
+   *  Native leaf here without changing that path, so a matching setLeaf is bookkeeping, not a branch move. */
+  #publishedLeaf: string | null;
   /** In-flight lease renewal shared by concurrent stale pages. */
   #renewing: Promise<HistoryOpen> | undefined;
   readonly #maxBytes = journalMaxBytes();
   private constructor(public opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
     if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
-    this.#nativeLeaf = opened.cut.leafId;
+    this.#nativeLeaf = opened.cut.leafId; this.#publishedLeaf = opened.cut.leafId;
   }
   static async open(history: HistoryClient, generation?: string): Promise<LiveJournal> {
     for (let attempt = 1; ; attempt++) {
@@ -232,6 +235,39 @@ export class LiveJournal {
         return renewed;
       } finally { this.#renewing = undefined; }
     })();
+  }
+  /** Continue this generation across a Native cut move (activation bookkeeping, a new submission).
+   *  The observation stream is contiguous from `#after`, so every change since the opening is still
+   *  delivered and `accept` proves branch continuity; only the paging snapshot is replaced. Published
+   *  records, seqs and assistant frames stay bound to the facts they were derived from. */
+  async rebase(): Promise<void> {
+    this.#assert();
+    if (this.#closed) throw Error('live_history_closed');
+    // A stream still in flight owns live identities the successor cut cannot settle; a rebuild is the
+    // only correct answer there, and the supervisor publishes one.
+    if (this.#attempt || this.#pendingFinals.size > 0) throw Error('live_context_changed');
+    const renewing = this.#renewing; if (renewing) await renewing.catch(() => {});
+    this.#assert();
+    const previous = this.opened;
+    const next = await this.history.open('active', 'live');
+    try {
+      if (this.#failure) throw Error(this.#failure);
+      if (this.#closed) throw Error('live_history_closed');
+      // Same execution: only the cut/context and its source binding may move. Retained rows never shrink
+      // on a safe append, and the successor cannot have observed less than this journal already has.
+      if (next.scope !== 'active' || next.handoff !== 'live' || next.cursor !== next.cursors.active
+        || next.compacting || next.cut.workerId !== previous.cut.workerId
+        || next.cut.sessionId !== previous.cut.sessionId
+        || next.count < previous.count || next.cut.observationSeq < this.#after) throw Error('live_context_changed');
+    } catch (error) {
+      await this.history.close(next.snapshot).catch(() => {});
+      throw error;
+    }
+    // A lease renewal that landed during the opening published a snapshot of the previous cut; the next
+    // poll retries this rebase against that snapshot instead of republishing over it.
+    if (this.opened !== previous) { await this.history.close(next.snapshot).catch(() => {}); throw Error('live_context_changed'); }
+    this.opened = next;
+    await this.history.close(previous.snapshot).catch(() => {});
   }
   async #nativePage(history: HistoryClient, before: number) {
     try { return await history.page(this.opened.cursors.active, before); }
@@ -430,7 +466,7 @@ export class LiveJournal {
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id;
     if (this.#entries.has(id)) return;
-    this.#entries.add(id); if (item.live) this.#settled.add(identity(item.live));
+    this.#entries.add(id); this.#publishedLeaf = id; if (item.live) this.#settled.add(identity(item.live));
     if (item.role === 'assistant' && (!item.provider || !item.model)) this.#fail('live_missing_model_source');
     const attempt = item.role === 'assistant' && item.live && this.#attempt
       && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
@@ -495,8 +531,19 @@ export class LiveJournal {
     this.#appended.set(source.entryId, {item, bytes}); this.#appendBytes += bytes;
   }
   #apply(event: HistoryChange): void {
-    if (['native_setLeaf', 'native_clear', 'native_rebuild', 'native_rewrite', 'native_source_replaced', 'native_source_binding',
-      'native_untracked_rewrite', 'native_runtime_replaced', 'native_live_gap', 'native_settlement_evicted', 'auto_compaction_start'].includes(event.kind)) {
+    // Native bookkeeping keeps this generation: OMP rewrites the file when it records activation, a
+    // submission or settled metadata. The published entries and the retained paging snapshot stay valid,
+    // and `accept` still proves the stream is contiguous, so a projection the stock client cannot rebind
+    // is not retired here — a rebuild, branch move or compaction below still retires it.
+    if (event.kind === 'native_setLeaf') {
+      const leaf = event.source?.leafId ?? null;
+      if (leaf !== this.#publishedLeaf) this.#fail('live_projection_invalidated');
+      this.#nativeLeaf = leaf; return;
+    }
+    if (event.kind === 'native_content_changed' || event.kind === 'native_untracked_rewrite'
+      || event.kind === 'native_source_replaced' || event.kind === 'native_source_binding') return;
+    if (['native_clear', 'native_rebuild', 'native_rewrite', 'native_runtime_replaced', 'native_live_gap',
+      'native_settlement_evicted', 'auto_compaction_start'].includes(event.kind)) {
       this.#fail('live_projection_invalidated');
     }
     if (event.kind === 'native_append') this.#sourceAppend(event);
