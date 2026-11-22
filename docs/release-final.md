@@ -64,8 +64,9 @@ or claiming tuple reproduction, which remains local.
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The performance record was produced by this build on the recorded combination: 4 of 20 processors by
-affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page samples (1 warmup + 30 measured),
-reachability 46 steps / 10062 nodes with `allNativeReachable: true`, and
+affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
+the cold open (11939.7 ms), with two warmups discarded — reachability 46 steps / 10062 nodes with
+`allNativeReachable: true`, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in
 `tests/product/evidence/performance-corpus-2026-11-22.json`.
