@@ -127,8 +127,10 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const method = Object.entries(chat ? chatMethods : methods ?? sessionMethods).find(([name]) => name === envelope.method)?.[1];
     if (!method || (!scoped && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
-    const payload = z.strictObject({ args: z.record(z.string(), z.unknown()) }).parse(envelope.payload);
-    const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(payload.args));
+    const payload = z.record(z.string(), z.unknown()).parse(envelope.payload);
+    // The OMP client wraps arguments in `{args}`; stock DSH callers post them directly.
+    const wrapped = z.object({ args: z.record(z.string(), z.unknown()) }).safeParse(payload);
+    const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(wrapped.data?.args ?? payload));
     decoded = { envelope, method, args };
   } catch (error) {
     if (scoped) {

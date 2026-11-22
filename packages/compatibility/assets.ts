@@ -60,7 +60,7 @@ async function trustedAssets(manifestPath: string, directory: string, expectedId
           return new Response(body, { headers: {
             "content-type": contentType(name), "cache-control": "no-store",
             "x-content-type-options": "nosniff",
-            "content-security-policy": "default-src 'self'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'",
+            "content-security-policy": "default-src 'self'; script-src 'self' 'unsafe-eval'; connect-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:",
           } });
         } catch { return new Response(policy.unverified, { status: 503 }); }
       },

@@ -1,5 +1,5 @@
 import { mkdir, readdir, writeFile } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { compatibilityBuild } from "../packages/contracts/generated/identity.ts";
 import { digest, identifyAsset, inspectInstallation, type AssetIdentity } from "../packages/compatibility/installation.ts";
 import { runtimeMappings } from "../packages/compatibility/runtime-mappings.ts";
@@ -27,7 +27,7 @@ async function walk(directory: string): Promise<string[]> {
 const assets: AssetIdentity[] = [];
 for (const path of await walk(candidate)) assets.push(await identifyAsset(root, path, manifestPath));
 // The frozen product tree is served file by file, so every enrolled path must be listed.
-for (const path of await walk(resolve("vendor/dsh-product"))) assets.push(await identifyAsset(root, path, manifestPath));
+for (const path of await walk(resolve("vendor/dsh-product"))) assets.push(await identifyAsset(root, relative(root, path), manifestPath));
 // The enrolled runtime closure is what the preflight child actually maps, not a guessed list.
 const probeHome = await mkdtemp(join(tmpdir(), "omp-product-enroll-"));
 let runtimeDependencies: AssetIdentity[] = [];

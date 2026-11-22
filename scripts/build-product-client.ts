@@ -129,6 +129,31 @@ function splice(html: string, match: RegExp, markup: string): string {
   return open === null ? `${markup}${html}` : `${html.slice(0, open.index + open[0].length)}${markup}${html.slice(open.index + open[0].length)}`;
 }
 
+/**
+ * Bridge the stock client transport onto the Host's CSRF-protected writes.
+ *
+ * The served DSH page carries no `__DSH_TRANSPORT__`, so the gateway calls the
+ * global fetch. This classic script installs the public `fetch` hook before the
+ * bootstrap batch loads and stamps every request with the Host-issued token.
+ */
+const TRANSPORT_BRIDGE = `(() => {
+  const send = globalThis.fetch.bind(globalThis);
+  const status = send("/auth/status", { cache: "no-store" }).then(
+    response => response.ok ? response.json() : undefined,
+    () => undefined,
+  );
+  let csrf;
+  globalThis.__DSH_TRANSPORT__ = {
+    ...globalThis.__DSH_TRANSPORT__,
+    fetch: async (input, init) => {
+      csrf ??= (await status)?.csrf;
+      const headers = new Headers(init?.headers);
+      if (typeof csrf === "string") headers.set("x-omp-csrf", csrf);
+      return send(input, { ...init, headers });
+    },
+  };
+})();`;
+
 /** Compose the served index page: stock shell markup plus the externalized boot graph. */
 async function renderIndex(outdir: string, dist: string, graph: WebBootGraph, title: string): Promise<void> {
   let head = "";
@@ -154,6 +179,8 @@ async function renderIndex(outdir: string, dist: string, graph: WebBootGraph, ti
       if (row.placement === "head") head += row.html; else body += row.html;
     }
   }
+  const transport = await externalize(outdir, "transport", TRANSPORT_BRIDGE);
+  body += `<script src="./${transport}"></script>`;
   const ready = await externalize(outdir, "ready",
     "(globalThis.__DSH_BOOT_READY__ ??= Promise.withResolvers()).resolve()");
   body += `<script src="./${ready}"></script>`;
