@@ -81,6 +81,10 @@ interface SocketData {
 }
 type StreamOpen = Extract<RemoteStreamClientMessage, { type: "open" }>;
 class FixtureStreamWriteError extends Error {}
+/** Frozen route keys carry literal `@`; browsers percent-encode it in asset URLs. */
+function decoded(target: string): string {
+  try { return decodeURIComponent(target); } catch { return target; }
+}
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   const done = Promise.withResolvers<void>();
   const abort = () => { done.resolve(); };
@@ -209,7 +213,7 @@ export async function startSessionComponentServer(options: Options) {
       }
       if (request.method !== "GET") return new Response("Not found", { status: 404 });
       const target = path + new URL(request.url).search;
-      const enrolled = path === "/" ? "index.html" : routes?.get(target) ?? routes?.get(decodeURI(target))
+      const enrolled = path === "/" ? "index.html" : routes?.get(target) ?? routes?.get(decoded(target))
         ?? (path === "/client.js" ? "client.js" : undefined);
       if (enrolled === undefined) return new Response("Not found", { status: 404 });
       return staticAssets.response(enrolled);
