@@ -13,6 +13,10 @@ import type {} from "@deepseek-ai/dsh-settings/types";
 import { TYPERT_REMOTE } from "@deepseek-ai/dsh-api-settings-controller/remote";
 import { WebPreferences, preferencesHostContribution } from "../../packages/preferences/service.ts";
 
+/** The stock theme subscriber reads a complete section, so every read carries its defaults. */
+const THEME = Object.freeze({ preference: "system", fontSize: 14, codeFontSize: 11, terminalFontSize: 13,
+  textFontFamily: "", codeFontFamily: "", terminalFontFamily: "" });
+
 async function fixture() {
   const host = new Context(), client = new Context();
   await host.plugin(TypertRegistry);
@@ -77,10 +81,10 @@ test("a WebUI theme preference is read and changed through the actual settings R
     expect(before.ok && before.value.namespaces.map(row => row.ns)).toEqual(["ui-theme", "locale"]);
     const saved = await f.remote.mutate("ui-theme", [{ op: "set", path: ["preference"], value: "dark" }], 0);
     expect(saved.ok && { value: saved.value.value, revision: saved.value.revision }).toEqual({
-      value: { preference: "dark" }, revision: 1,
+      value: { ...THEME, preference: "dark" }, revision: 1,
     });
     const after = await f.remote.describe();
-    expect(after.ok && after.value.namespaces[0]?.value).toEqual({ preference: "dark" });
+    expect(after.ok && after.value.namespaces[0]?.value).toEqual({ ...THEME, preference: "dark" });
     expect(after.ok && after.value.hasDocument).toBe(false);
   } finally { await f.dispose(); }
 });
@@ -92,7 +96,7 @@ test("a canceled carrier invocation cannot change a preference, its revision or 
     expect((await f.remote.mutate("ui-theme", [{ op: "set", path: ["preference"], value: "dark" }], 0)).ok).toBe(false);
     const after = await f.remote.describe();
     expect(after.ok && after.value.namespaces.map(row => ({ value: row.value, revision: row.revision })))
-      .toEqual([{ value: { preference: "system" }, revision: 0 }, { value: {}, revision: 0 }]);
+      .toEqual([{ value: THEME, revision: 0 }, { value: {}, revision: 0 }]);
     expect(f.notifications).toEqual([]);
   } finally { await f.dispose(); }
 });
@@ -104,7 +108,7 @@ test("a Peer canceled after admission cannot change preferences, revisions or no
     expect((await f.remote.mutate("locale", [{ op: "set", path: ["preference"], value: "zh-CN" }], 0)).ok).toBe(false);
     const after = await f.remote.describe();
     expect(after.ok && after.value.namespaces.map(row => ({ value: row.value, revision: row.revision })))
-      .toEqual([{ value: { preference: "system" }, revision: 0 }, { value: {}, revision: 0 }]);
+      .toEqual([{ value: THEME, revision: 0 }, { value: {}, revision: 0 }]);
     expect(f.notifications).toEqual([]);
   } finally { await f.dispose(); }
 });
@@ -115,7 +119,7 @@ test("locale preference edits preserve theme and unset delegates language select
     expect((await f.remote.mutate("locale", [{ op: "set", path: ["preference"], value: "zh-CN" }], 0)).ok).toBe(true);
     const saved = await f.remote.describe();
     expect(saved.ok && saved.value.namespaces.map(row => row.value)).toEqual([
-      { preference: "system" }, { preference: "zh-CN" },
+      THEME, { preference: "zh-CN" },
     ]);
     const cleared = await f.remote.mutate("locale", [{ op: "unset", path: ["preference"] }], 1);
     expect(cleared.ok && { value: cleared.value.value, revision: cleared.value.revision })
@@ -132,7 +136,7 @@ test("stale or unconditional edits cannot overwrite another page's accepted pref
         .toBe(false);
     }
     const after = await f.remote.describe();
-    expect(after.ok && after.value.namespaces[0]?.value).toEqual({ preference: "dark" });
+    expect(after.ok && after.value.namespaces[0]?.value).toEqual({ ...THEME, preference: "dark" });
   } finally { await f.dispose(); }
 });
 
@@ -144,7 +148,7 @@ test("expired browser authority refuses reads and edits even for the DSH owner p
     expect((await f.remote.mutate("ui-theme", [{ op: "set", path: ["preference"], value: "dark" }], 0)).ok).toBe(false);
     f.authorize();
     const after = await f.remote.describe();
-    expect(after.ok && after.value.namespaces[0]?.value).toEqual({ preference: "system" });
+    expect(after.ok && after.value.namespaces[0]?.value).toEqual(THEME);
   } finally { await f.dispose(); }
 });
 
@@ -170,7 +174,7 @@ test("global configuration, unknown capabilities and malformed edits cannot chan
     expect(after.ok && after.value.namespaces.map(row => ({
       value: row.value, revision: row.revision, secrets: row.secrets,
     }))).toEqual([
-      { value: { preference: "system" }, revision: 0, secrets: [] }, { value: {}, revision: 0, secrets: [] },
+      { value: THEME, revision: 0, secrets: [] }, { value: {}, revision: 0, secrets: [] },
     ]);
   } finally { await f.dispose(); }
 });

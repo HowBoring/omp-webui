@@ -49,15 +49,33 @@
         "bytes": 2305,
         "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
         "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+      },
+      {
+        "path": "compatibility/dsh/patches/0010-chat-source-rebind.patch",
+        "bytes": 4843,
+        "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
+        "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
+      },
+      {
+        "path": "compatibility/dsh/patches/0011-conversation-source-rebind.patch",
+        "bytes": 10808,
+        "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
+        "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
+      },
+      {
+        "path": "compatibility/dsh/patches/0012-client-test-projection-seam.patch",
+        "bytes": 1517,
+        "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
+        "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
       }
     ],
-    "declaredTree": "52c982f334decf8c27e2296445dedada1e6d0309"
+    "declaredTree": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
   },
   "page": {
     "kind": "isolated-navigation-fixture",
     "lockSha256": "9bf7a9ee0e6c446d82e6f21677009fa65cb2593b3460cff00abb9d65a17b8d54",
     "dshBase": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
-    "sourceTree": "52c982f334decf8c27e2296445dedada1e6d0309",
+    "sourceTree": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c",
     "contractSha256": "05e15e264ac1c7d77cb31a23ecdd4248c4edddd4afc5172f356db0cc96389a99",
     "assets": {
       "client.js": "f8a138b74aabfc6a0a2faa19aae20070a0c11ea7dd43ede3e15262f777bec46d",
@@ -1204,6 +1222,13 @@
         "sha256": "fac9ecf821336364f8ddc8c4240f41309021a32e6e9fd397d2718f411fd30128",
         "actual": "fac9ecf821336364f8ddc8c4240f41309021a32e6e9fd397d2718f411fd30128",
         "actualBytes": 5736
+      },
+      {
+        "path": "compatibility/omp/0015-visible-assistant-text.patch",
+        "bytes": 3242,
+        "sha256": "118134ed56c936a17c690fcdc6f1eea2615f9e1e48e167ce27baa1d92c1ffc7d",
+        "actual": "118134ed56c936a17c690fcdc6f1eea2615f9e1e48e167ce27baa1d92c1ffc7d",
+        "actualBytes": 3242
       }
     ]
   },
