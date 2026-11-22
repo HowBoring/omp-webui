@@ -17,9 +17,12 @@ jobs:
           node-version: 24.22.1
       - run: corepack enable
       - run: bun install --frozen-lockfile
-      - run: bun scripts/prepare-compatibility.ts --source-only
+      - run: bun scripts/prepare-compatibility.ts
+      - run: bun run compat:build
+      - run: bun scripts/build-continuation-fixtures.ts
       - run: bun run dsh:prepare
       - run: bun run dsh:link
-      - run: bun run check
       - run: bun run product:build
+      - run: bun run product:enroll
+      - run: bun run check
       - run: bun run product:verify
