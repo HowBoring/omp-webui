@@ -96,7 +96,8 @@ test(
 		generatedOutputs: { path: string; bytes: number; sha256: string }[];
 	};
 	const navigation = manifest.generatedOutputs.filter(entry => entry.path.includes("navigation"));
-	expect(navigation).toHaveLength(4);
+	// Four generated validator artifacts plus the patched client the strict worker imports.
+	expect(navigation).toHaveLength(5);
 	for (const entry of navigation) {
 		const contents = await Bun.file(join(ROOT, "vendor/omp-strict", entry.path)).bytes();
 		expect(contents.byteLength).toBe(entry.bytes);

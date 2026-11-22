@@ -2,14 +2,17 @@
  * S5 performance corpus authoring only.
  *
  * Creates real native OMP sessions through the pinned SessionManager, then assigns
- * deterministic ids/timestamps so the corpus bytes reproduce across runs. The Host
- * never imports this file and never edits session files at runtime.
+ * deterministic ids/timestamps and a pinned session cwd so the corpus bytes reproduce
+ * across checkouts of this generator. `generator.sha256` records which generator a
+ * corpus came from, so a seed is only comparable against the same generator version.
+ * The Host never imports this file and never edits session files at runtime.
  */
 import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { nativeFixture } from "../tests/catalog/fixture.ts";
 
+const ROOT = resolve(import.meta.dir, "..");
 const CATALOG_SESSIONS = 1000;
 const HISTORY_ENTRIES = 10_000;
 const TARGET_BYTES = 100 * 1024 * 1024;
@@ -30,6 +33,8 @@ function normalizeHistory(contents: string): { body: string; distribution: Recor
 			value.timestamp = HISTORY_TIMESTAMP;
 			value.title = "S5 Native 10000 Entry History";
 			value.titleSource = "user";
+			// The session cwd is the checkout the corpus was authored in; pin it so the bytes reproduce.
+			value.cwd = "/performance-fixture/project";
 		} else if (value.type === "title") {
 			value.updatedAt = HISTORY_TIMESTAMP;
 			value.title = "S5 Native 10000 Entry History";
@@ -104,10 +109,13 @@ async function main(): Promise<void> {
 	const historyBytes = Buffer.byteLength(normalized.body);
 	if (historyBytes < TARGET_BYTES) throw new Error(`PERFORMANCE_HISTORY_BELOW_TARGET:${historyBytes}`);
 	const catalogFiles = (await jsonlFiles(sessions)).filter(path => path !== historyPath);
+	const catalogFilesSha256 = sha256(Buffer.from((await Promise.all(catalogFiles.map(async path =>
+		`${path.split("/").at(-1)}\0${(await stat(path)).size}\0${sha256(await readFile(path))}`))).sort().join("\n")));
 	const corpus = {
 		kind: "S5-native-performance-corpus",
 		privateData: false,
-		generator: "scripts/create-performance-corpus.ts",
+		generator: { path: "scripts/create-performance-corpus.ts",
+			sha256: sha256(await readFile(join(ROOT, "scripts/create-performance-corpus.ts"))) },
 		seed: SEED,
 		reference: { cpus: 4, memoryMiB: 8_192, storage: "SSD", note: "Declared acceptance profile; actual runner recorded by the harness." },
 		limits: { catalogSessions: CATALOG_SESSIONS, historyEntries: HISTORY_ENTRIES, historyBytes: TARGET_BYTES },
@@ -115,6 +123,7 @@ async function main(): Promise<void> {
 			sessions: catalogFiles.length,
 			root: relative(home, sessions),
 			idsSha256: sha256(Buffer.from(catalogFiles.map(path => path.split("/").at(-1)!.replace(/\.jsonl$/, "")).sort().join("\n"))),
+			filesSha256: catalogFilesSha256,
 			files: await Promise.all(catalogFiles.map(async path => ({
 				path: relative(home, path), bytes: (await stat(path)).size, sha256: sha256(await readFile(path)),
 			}))),

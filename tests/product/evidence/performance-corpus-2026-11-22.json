@@ -1,0 +1,48 @@
+{
+  "kind": "S5-native-performance-corpus-record",
+  "corpus": "vendor/performance-fixture/corpus.json",
+  "privateData": false,
+  "generated": "2026-11-22",
+  "command": "bun scripts/create-performance-corpus.ts",
+  "seed": "omp-webui-s5-performance-v1",
+  "generator": {
+    "path": "scripts/create-performance-corpus.ts",
+    "sha256": "60b896f998ecb0fd21e38d48da961405cee3cfa3a20fc9faf2804440fb426518"
+  },
+  "reproducible": "two consecutive generations of the same generator produced identical catalog and history digests; the session cwd is pinned, ids and timestamps are assigned deterministically, and createdAt is the only varying field",
+  "limits": {
+    "catalogSessions": 1000,
+    "historyEntries": 10000,
+    "historyBytes": 104857600
+  },
+  "catalog": {
+    "sessions": 1000,
+    "idsSha256": "697dbe016ff2d86a65747a56cbedc0c8c78bfacdf1fdb32d71845f75f07d04f6",
+    "filesSha256": "0a3ee7365c493cb7aeb866f697a29acdace78b9fc81d16002c9ec48c4edd0a6b",
+    "root": "sessions"
+  },
+  "history": {
+    "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+    "path": "sessions/performance-project/2026-02-01T00-00-00-000Z_10000000-0000-4000-8000-000000000000.jsonl",
+    "entries": 10000,
+    "bytes": 112923735,
+    "sha256": "a8a5d98a4e1ea89df4f3a0b334f814b1d7eccb70611635bd70f62bab544213d5",
+    "typeDistribution": {
+      "message": 8980,
+      "message:user": 3100,
+      "message:assistant": 3880,
+      "toolCall": 1000,
+      "message:toolResult": 1000,
+      "branch": 100,
+      "message:fileMention": 1000,
+      "custom": 1000,
+      "custom:s5.performance-marker": 1000,
+      "reset_boundary": 10,
+      "compaction": 10
+    }
+  },
+  "superseded": {
+    "historySha256": "bcf9d2557e288d733d7a220adaef6648578464669092465e9de1785c6a1c69d2",
+    "reason": "generated before the session cwd was pinned, so that corpus bytes were checkout-specific (history hashes differed per worktree). The 30-sample product measurement in performance-2026-11-22-product.json was taken on that corpus; the product gate must be rerun on this record's corpus before the final tuple claim."
+  }
+}

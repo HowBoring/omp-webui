@@ -101,6 +101,11 @@
       "sha256": "0ebf9aab91c7b091be48a737030c4819c98986999648c9fa0933cbf6e09ed92d"
     },
     {
+      "path": "packages/coding-agent/src/modes/rpc/navigation-client.ts",
+      "bytes": 1696,
+      "sha256": "29ed7ce7ab90f39e4aaf52b2c00e01ddacf6026f563a1dbf1459912fe990ef70"
+    },
+    {
       "path": "packages/coding-agent/src/modes/rpc/navigation-preview.generated.js",
       "bytes": 7690,
       "sha256": "4fc0077363cb2c73da9b92e21557ab708c5c732defe10184dd6a6bcb2e70e1c8"
