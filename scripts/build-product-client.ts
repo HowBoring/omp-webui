@@ -59,6 +59,8 @@ export interface PackagedPlugin {
   id: string;
   /** Absolute path of the built browser bundle. */
   bundle: string;
+  /** Absolute directory a package exports as `./assets/*`, served beside its bundle. */
+  assets?: string;
   inject?: string[];
   external?: string[];
   immediately?: boolean;
@@ -95,9 +97,13 @@ async function packageBundle(name: string): Promise<PackagedPlugin> {
   const exported = manifest.exports?.["./client"];
   const entry = typeof exported === "string" ? exported : exported?.default;
   if (entry === undefined) throw new Error(`product client: ${name} declares dsh.client without a ./client export`);
+  const assetsExport = manifest.exports?.["./assets/*"];
+  const assets = typeof assetsExport === "string"
+    ? resolve(directory, assetsExport.slice(0, -"/*".length)) : undefined;
   return {
     id: name,
     bundle: resolve(directory, entry),
+    ...(assets === undefined ? {} : { assets }),
     ...(declaration.inject === undefined ? {} : { inject: declaration.inject }),
     ...(declaration.external === undefined ? {} : { external: declaration.external }),
     ...(declaration.immediately === true ? { immediately: true } : {}),
@@ -240,6 +246,24 @@ export async function buildProductClient(options: {
   const contents = new Map<string, Buffer>();
   for (const plugin of packaged) contents.set(plugin.id, await readFile(plugin.bundle));
 
+  // The stock composer serves package exports; this tree serves enrolled files only, so a
+  // bundle-relative `plugins/<id>/assets/...` URL needs its own copied file and route.
+  const assetRoutes: Record<string, string> = {};
+  const assetFiles = async (directory: string, prefix: string): Promise<void> => {
+    for (const entry of (await readdir(directory, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name))) {
+      const source = join(directory, entry.name), target = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) { await assetFiles(source, target); continue; }
+      if (entry.name.endsWith(".map")) continue;
+      await mkdir(dirname(join(outdir, target)), { recursive: true });
+      await cp(source, join(outdir, target));
+      assetRoutes[`/${target}`] = target;
+    }
+  };
+  for (const plugin of packaged) {
+    if (plugin.assets === undefined) continue;
+    await assetFiles(plugin.assets, `plugins/${plugin.id}/assets`);
+  }
+
   const entries = orderByModuleGraph(packaged.map((plugin): WebBootEntry => ({
     id: plugin.id,
     rev: revisionOf([contents.get(plugin.id) ?? Buffer.alloc(0)]),
@@ -254,7 +278,7 @@ export async function buildProductClient(options: {
   const sourceOf = (entry: WebBootEntry): string =>
     (contents.get(entry.id) ?? Buffer.alloc(0)).toString("utf8").replace(SOURCE_MAP_TRAILER, "").replace(/\n?$/, "\n");
 
-  const routes: Record<string, string> = {};
+  const routes: Record<string, string> = { ...assetRoutes };
   for (const [index, entry] of entries.entries()) {
     const file = `plugins/singles/${String(index)}.js`;
     await writeFile(join(outdir, file), sourceOf(entry));

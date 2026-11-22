@@ -47,6 +47,11 @@
       "path": "patches/0011-conversation-source-rebind.patch",
       "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
       "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
+    },
+    {
+      "path": "patches/0012-client-test-projection-seam.patch",
+      "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
+      "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
     }
   ]
 }

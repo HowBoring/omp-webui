@@ -75,7 +75,8 @@ def bootstrap(scenario=None, delay=None):
 
 async def start_host(scenario=None, delay=None):
     host = subprocess.Popen([BUN, "--no-env-file", "apps/host/src/main.ts"], cwd=ROOT,
-                            env=host_env(scenario, delay), stdout=open(ROOT / "vendor/product-flow/host.log", "w"), stderr=subprocess.STDOUT)
+                            env=host_env(scenario, delay), stdout=open(ROOT / "vendor/product-flow/host.log", "w"), stderr=subprocess.STDOUT,
+                            start_new_session=True)
     for _ in range(300):
         if health():
             return host
@@ -85,13 +86,20 @@ async def start_host(scenario=None, delay=None):
 
 
 async def stop_host(host):
-    subprocess.run(["pkill", "-f", f"{ROOT}/vendor/omp-candidate/cli.js"], check=False)
-    if host.poll() is None:
-        host.send_signal(signal.SIGTERM)
+    # The Host starts its native worker in this recorded process group; signalling the group never
+    # touches another run's Host or worker on the machine.
+    try:
+        os.killpg(os.getpgid(host.pid), signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        host.wait(timeout=10)
+    except subprocess.TimeoutExpired:
         try:
-            host.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            host.kill()
+            os.killpg(os.getpgid(host.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        host.kill()
     await asyncio.sleep(0.5)
 
 

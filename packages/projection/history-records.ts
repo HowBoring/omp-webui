@@ -146,8 +146,12 @@ export function historyMessage(item: HistoryItem, id: string, { turn, step }: Co
   if (item.role === 'assistant' && item.reasoning) content.push({ type: 'reasoning', text: item.reasoning });
   content.push({ type: 'text', text: item.text });
   if (item.role === 'user') {
+    // Native submission causality is the durable identity a Host-minted prompt keeps across reopen.
+    // Carrying it as the stock rpcId lets the Client retire its optimistic echo and dedupe the render.
+    const rpcId = item.submission?.origin.clientSubmissionId;
     emit('turn/start', { turn }, false, time);
-    return emit('user/message', { id, role: 'user', source: { kind: 'user' }, content }, true, time);
+    return emit('user/message', { id, role: 'user',
+      source: { kind: 'user', ...(rpcId === undefined ? {} : { rpcId }) }, content }, true, time);
   }
   if (item.role === 'assistant') {
     if (!item.provider || !item.model) throw Error('live_missing_model_source');
