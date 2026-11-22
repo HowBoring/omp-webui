@@ -7,7 +7,7 @@
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-review",
     "branch": "mvp/spec-29-review",
-    "commit": "ebc3ff2eafe4b658ab9724d517b6d9bd79080f64",
+    "commit": "f82277ad457da63723bec742f7ece7fe33493282",
     "integrationBase": {
       "branch": "mvp/spec-29",
       "commit": "e0ca8d561903c343ee8fdc33875d4fcd0903af77"
@@ -401,7 +401,7 @@
     "docs/evidence/ticket-61-windows-chrome.json": "659e34286f4a9da0f4efdab1db3c0d004da174eb24c53f9b123a94f3011e043d",
     "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
     "docs/evidence/ticket-59-platforms.json": "01a8ebb81a2b05b8f6e0dd58a3755cb21a12e03fd03ac0eabf303b7a75955776",
-    "tests/product/evidence/performance-2026-11-22-product.json": "0dc011f0ccb5f8cbe8c1508eddb42c8ed125df6ba5d96bae849d8872fe24538f",
+    "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40"
   },

@@ -5,7 +5,7 @@ Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/
 `catalog` and `chat` measure isolated component Hosts. `product` measures the product Host
 (apps/host/src/main.ts) against the enrolled installation; only `product` is product measurement.
 """
-import argparse, asyncio, hashlib, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
+import argparse, asyncio, hashlib, inspect, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from statistics import median
 
@@ -29,6 +29,8 @@ CATALOG_P95_MS = 3000.0
 OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
 CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
+SETTLE_TIMEOUT_MS = int(os.environ.get("OMP_PERF_SETTLE_TIMEOUT_MS", "5000"))
+QUIET_MS = int(os.environ.get("OMP_PERF_QUIET_MS", "500"))
 REACH_STEP_MS = int(os.environ.get("OMP_PERF_REACH_STEP_MS", "30000"))
 
 
@@ -276,14 +278,106 @@ async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
     raise TimeoutError("session nodes did not render before timeout")
 
 
-async def settle(page):
-    """A reload aborts whatever the current document still has in flight, and the browser reports each aborted
-    request as a console error. Wait for the document to go idle first so every sample measures a reload of a
-    settled page instead of its own navigation aborts."""
+def classify_console_error(text, measuring_open, errors, teardown_errors):
+    """Classify one console error where playwright dispatched it.
+
+    A message that arrives while the measurement is open failed the sample; only an error that arrives after the
+    final sample is teardown fault.
+    """
+    if "404" in text:
+        return
+    (errors if measuring_open else teardown_errors).append(f"console: {text}")
+
+
+def console_handler(errors, teardown_errors, measuring, position=lambda: ""):
+    """Build the console listener. It must stay synchronous: a coroutine listener would run as a scheduled task and
+    could read the flag after the measurement already closed."""
+
+    def log_console(message):
+        if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
+            print("PRODUCT_CONSOLE", message.text, flush=True)
+        if message.type != "error":
+            return
+        classify_console_error(message.text, measuring["open"], errors, teardown_errors)
+        if os.environ.get("OMP_PERF_DEBUG"):
+            print(f"PRODUCT_CONSOLE_ERROR measuring={measuring['open']} {position()} {message.text}", flush=True)
+
+    return log_console
+
+
+def console_classification_self_check():
+    """An error emitted immediately before measurement close stays fatal, and the listener runs at dispatch."""
+    measuring = {"open": True}
+    errors, teardown_errors = [], []
+    handler = console_handler(errors, teardown_errors, measuring)
+
+    class Message:
+        type = "error"
+        text = "WebSocket connection to 'ws://localhost/api/remote.mux' failed"
+
+    handler(Message())  # last console event of the measurement
+    measuring["open"] = False
+    handler(Message())  # the same error during teardown
+    assert errors == [f"console: {Message.text}"], errors
+    assert teardown_errors == [f"console: {Message.text}"], teardown_errors
+    assert not inspect.iscoroutinefunction(handler), "console listener must run at dispatch, not as a task"
+    ignored = []
+    classify_console_error("Failed to load resource: 404", True, ignored, [])
+    assert ignored == [], ignored
+
+
+def request_tracker(page):
+    """Count the requests the document currently has in flight and when the last one started or finished."""
+    quiet = {"inflight": 0, "last": time.monotonic()}
+    def started(_request):
+        quiet["inflight"] += 1
+        quiet["last"] = time.monotonic()
+    def ended(_request):
+        quiet["inflight"] = max(0, quiet["inflight"] - 1)
+        quiet["last"] = time.monotonic()
+    page.on("request", started)
+    page.on("requestfinished", ended)
+    page.on("requestfailed", ended)
+    return quiet
+
+
+def request_tracker_self_check():
+    """A request that starts after the load settles must reopen the quiet window."""
+    class Page:
+        def __init__(self):
+            self.handlers = {}
+        def on(self, event, handler):
+            self.handlers.setdefault(event, []).append(handler)
+    page = Page()
+    quiet = request_tracker(page)
+    page.handlers["request"][0](None)
+    assert quiet["inflight"] == 1
+    assert (time.monotonic() - quiet["last"]) * 1000 < QUIET_MS
+    page.handlers["requestfinished"][0](None)
+    assert quiet["inflight"] == 0
+
+
+async def settle(page, quiet):
+    """Wait until the document has stopped issuing requests before the sampled reload.
+
+    A reload discards whatever the current document still has in flight, and the browser reports each aborted
+    request as a console error. `networkidle` alone returns as soon as that lifecycle was reached once, which can
+    be before the page's effects issue their own requests, so the wait also requires a fresh quiet window: the
+    document crossed two animation frames, no request is in flight, and none started for the quiescence period.
+    A document that never quiets fails the sample.
+    """
+    await page.evaluate(
+        "async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }")
+    await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT_MS)
+    async def quieted():
+        return quiet["inflight"] == 0 and (time.monotonic() - quiet["last"]) * 1000 >= QUIET_MS
+
     try:
-        await page.wait_for_load_state("networkidle", timeout=5000)
+        await wait_until(quieted, SETTLE_TIMEOUT_MS)
     except TimeoutError:
-        pass
+        print(f"SETTLE_PENDING inflight={quiet['inflight']} "
+              f"idle_ms={(time.monotonic() - quiet['last']) * 1000:.0f}", flush=True)
+        raise
 
 
 async def count_at_least(locator, minimum):
@@ -427,22 +521,30 @@ async def chat_run(browser_args, product=False):
             page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
             if os.environ.get("OMP_PERF_DEBUG"):
                 await page.add_init_script("globalThis.__OMP_CHAT_DEBUG__ = true")
+            # The strict UI carries the Session over one websocket. A socket is reported only after its handshake,
+            # so a message about a handshake that never completed belongs to an attempt playwright never saw.
+            sockets = []
+            def track_socket(socket):
+                if not socket.url.endswith("/api/remote.mux"):
+                    return
+                sockets.append(socket)
+                if os.environ.get("OMP_PERF_DEBUG"):
+                    print(f"WS_OPEN {socket.url} first={len(first)} old={len(old)}", flush=True)
+                    socket.on("socketerror", lambda error: print(
+                        f"WS_ERROR {socket.url} first={len(first)} old={len(old)} error={error}", flush=True))
+                    socket.on("close", lambda _socket: print(f"WS_CLOSE {socket.url}", flush=True))
+            page.on("websocket", track_socket)
+            quiet = request_tracker(page)
             # Console errors count only while the measurement is running. Once the last sample is taken the page is
             # torn down (browser and Host close), and a connection reset during that teardown is not a measured
-            # failure; it is recorded as teardown fault text so the run stays auditable.
+            # failure; it is recorded as teardown fault text so the run stays auditable. The listener is a plain
+            # synchronous function: playwright dispatches console events synchronously, so the flag is read at
+            # dispatch time and an error emitted just before the final sample cannot be re-classified as teardown
+            # by a task that happens to run after the measurement closes.
             measuring = {"open": True}
             teardown_errors = []
-            async def log_console(message):
-                if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
-                    print("PRODUCT_CONSOLE", message.text, flush=True)
-                if message.type == "error" and "404" not in message.text:
-                    if measuring["open"]:
-                        errors.append(f"console: {message.text}")
-                    else:
-                        teardown_errors.append(f"console: {message.text}")
-                    if os.environ.get("OMP_PERF_DEBUG"):
-                        print(f"PRODUCT_CONSOLE_ERROR measuring={measuring['open']} {message.location} {message.text}", flush=True)
-            page.on("console", lambda message: asyncio.create_task(log_console(message)))
+            page.on("console", console_handler(errors, teardown_errors, measuring,
+                                               lambda: f"first={len(first)} old={len(old)}"))
             if os.environ.get("OMP_PERF_DEBUG"):
                 page.on("requestfailed", lambda request: print(f"REQUEST_FAILED {request.failure} {request.url}", flush=True))
                 page.on("response", lambda response: print(f"MUX_RESPONSE {response.status} {response.url}", flush=True)
@@ -470,15 +572,20 @@ async def chat_run(browser_args, product=False):
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
+                    """Acceptance of a reload: the catalog is restored and the Session transcript is opened.
+
+                    A reload restores the page shell only. The conversation keeps its native Session marker but
+                    carries no records until the row is opened (probe after a reload: rows=1001, native=1, nodes=0),
+                    so accepting a reload without the open would measure a page that never shows the Session it
+                    restored. The catalog itself is restored by the reload, so no refresh is issued.
+                    """
                     refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
                     await wait_until(lambda: refresh.is_enabled(), timeout)
-                    if await page.locator("li[data-native-id]").count() < 1000:
-                        await refresh.click()
                     await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
                     await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
                     await session_ready(page, timeout)
                 for index in range(WARMUPS + SAMPLES):
-                    await settle(page)
+                    await settle(page, quiet)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
@@ -506,7 +613,7 @@ async def chat_run(browser_args, product=False):
                     stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
-                    await settle(page)
+                    await settle(page, quiet)
                     await page.reload(wait_until="domcontentloaded")
                     await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
@@ -662,6 +769,8 @@ def self_check():
     evidence_with_latency = evidence({"allNativeReachable": False})
     evidence_with_latency["classes"][0]["firstPage"] = failed
     assert run_verdict(evidence_with_latency) == (["product"], ["product"])
+    console_classification_self_check()
+    request_tracker_self_check()
     print("performance exit self-check ok")
 
 
