@@ -7,9 +7,9 @@
   "seed": "omp-webui-s5-performance-v1",
   "generator": {
     "path": "scripts/create-performance-corpus.ts",
-    "sha256": "80908ca8df831b3229cac8b3fe5e4de5c50fc7c9ed884a3c298144dc54ad2e48"
+    "sha256": "ff7e8663ce9b046a67a415720547827b3c015641f3d1f14f463997dbab43eae6"
   },
-  "reproducible": "cross-checkout: catalog sessions and the history pin the session cwd to /performance-fixture/project, so two generations in different directories (vendor/performance-fixture and /tmp/corpus-alt) produced identical catalog filesSha256 and history sha256; ids and timestamps are assigned deterministically, and createdAt is the only varying field",
+  "reproducible": "cross-checkout: the catalog and the history pin every session cwd to <corpus>/project and record the canonical digests with that token, so two generations in different directories (vendor/performance-fixture and /tmp/corpus-alt) produced identical generator, catalog canonical and history canonical digests; ids and timestamps are assigned deterministically and createdAt is the only varying field",
   "limits": {
     "catalogSessions": 1000,
     "historyEntries": 10000,
