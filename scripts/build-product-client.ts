@@ -30,6 +30,16 @@ export const baselineRoster = [
   "dsh-client-ui-file-drag", "dsh-client-ui-input-trigger",
 ].map(name => `@deepseek-ai/${name}`);
 
+/**
+ * Stock Client plugins whose Host-facing policy this deployment selects. The Host presents
+ * generation-scoped history journals, so the stock session controller must rebuild its window from
+ * control invalidations; pinned to one journal, a native cut change would strand the page on the
+ * retired generation. Defaults (no config row) enable no other deployment behavior.
+ */
+export const clientConfigs: Readonly<Record<string, Record<string, unknown>>> = {
+  "@deepseek-ai/dsh-api-session-controller": { projectionRebuild: true },
+};
+
 /** The one CMS boot package the HTML preloads and materializes first. */
 const BOOTSTRAP_ID = "@deepseek-ai/dsh-client-modules";
 /** Upstream combo URLs stay below conservative browser request-target limits. */
@@ -233,6 +243,7 @@ export async function buildProductClient(options: {
   const entries = orderByModuleGraph(packaged.map((plugin): WebBootEntry => ({
     id: plugin.id,
     rev: revisionOf([contents.get(plugin.id) ?? Buffer.alloc(0)]),
+    ...(clientConfigs[plugin.id] === undefined ? {} : { config: clientConfigs[plugin.id] }),
     url: "",
     ...(plugin.inject === undefined ? {} : { inject: plugin.inject }),
     ...(plugin.external === undefined ? {} : { external: plugin.external }),

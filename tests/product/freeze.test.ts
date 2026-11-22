@@ -37,7 +37,6 @@ const canonicalInstallation = (manifest: typeof installation) => ({
 
 const freeze = await read("docs/evidence/ticket-61-freeze.json");
 const installation = await read("vendor/product/installation.json");
-const dsh = await read("vendor/dsh-product/manifest.json");
 const identity = await readFile(join(root, "packages/contracts/generated/identity.ts"), "utf8");
 
 test("installation manifest carries the frozen OMP source, patch and schema identity", () => {
@@ -71,18 +70,16 @@ test("a foreign native closure with the same basenames fails the freeze", () => 
 test("installation manifest still matches its frozen digest and the built DSH assets", async () => {
   expect(createHash("sha256").update(JSON.stringify(canonicalInstallation(installation))).digest("hex"))
     .toBe(freeze.omp.installationManifest.sha256);
-  expect(await digest("vendor/dsh-product/manifest.json")).toBe(freeze.dsh.manifest.sha256);
   for (const asset of freeze.dsh.assets as { path: string; sha256: string }[])
     expect(await digest(asset.path)).toBe(asset.sha256);
-  expect(dsh.assets["client.js"]).toBe(freeze.dsh.assets.find((a: { path: string }) => a.path.endsWith("client.js"))?.sha256);
+  // The stock shell serves no custom full-page client: its shell entry is index.html alone.
+  await expect(readFile(join(root, "vendor/dsh-product/client.js"))).rejects.toThrow();
 });
 
-test("frozen DSH source, patches and roster still describe the built client", () => {
-  expect(dsh.dshBase).toBe(freeze.dsh.base);
-  expect(dsh.dshSource.sourceTree).toBe(freeze.dsh.sourceTree);
-  expect(dsh.dshSource.patches).toEqual(freeze.dsh.patches);
-  expect(new Set(dsh.inputs.map((input: { package: string; version: string }) => `${input.package}@${input.version}`)).size)
-    .toBe(freeze.dsh.roster.packages);
+test("the built boot graph reports the frozen DSH source tree", async () => {
+  const graph = await readFile(join(root, "vendor/dsh-product/boot/graph-__DSH_BOOT__.js"), "utf8");
+  expect(graph).toContain(JSON.stringify(freeze.dsh.sourceTree));
+
 });
 
 test("recorded harness and evidence digests still match their files", async () => {

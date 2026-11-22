@@ -46,6 +46,9 @@ import { createNavigationPorts } from "./navigation-ports.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 import { originalHistoryResponse } from "./original-history.ts";
 const streams = new Set(["$events", "session/follow", "session/control", "workspace/follow", "remoteAccess/follow"]);
+// The stock roster holds five independent streams open at once (`remoteAccess`, `workspace`, `$events`,
+// `session/control`, `session/follow`); extra openings are refused per stream, never by killing the mux.
+const MAX_STREAMS_PER_SOCKET = 16;
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
   "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections",
   "/api/session/create"]);
@@ -225,10 +228,17 @@ export async function startSessionComponentServer(options: Options) {
           const text = typeof bytes === "string" ? bytes : new TextDecoder("utf-8", { fatal: true }).decode(bytes);
           const frame = parseRemoteStreamClientMessage(text);
           if (frame.type === "cancel") { socket.data.streams.get(frame.streamId)?.abort(); return; }
-          const brokerStream = frame.type === "open" ? interactionCarrier?.streamKind(frame.endpoint) : undefined;
-          if (frame.type !== "open" || (!streams.has(frame.endpoint) && !brokerStream) ||
-            socket.data.streams.size >= 4 || socket.data.streams.has(frame.streamId)) {
-            socket.close(1008, "diagnostics streams only"); return;
+          if (frame.type !== "open") return;
+          const brokerStream = interactionCarrier?.streamKind(frame.endpoint);
+          if ((!streams.has(frame.endpoint) && !brokerStream) ||
+            socket.data.streams.size >= MAX_STREAMS_PER_SOCKET || socket.data.streams.has(frame.streamId)) {
+            // Refuse only the offending stream: closing the socket would abort the stock roster's siblings.
+            try {
+              sendFrame(socket, { type: "error", streamId: frame.streamId,
+                error: ctx.typertGateway.wireStream.failure(
+                  new RemoteError("gateway/service-unavailable", "This connection cannot open another stream.", {})) }, true);
+            } catch { socket.close(1011, "stream failure could not be delivered"); }
+            return;
           }
           const current = () => {
             if (!access.revalidate(socket.data.identity)) return false;
@@ -379,14 +389,17 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
     // A client cancel aborts only that stream. The DSH client cancels streams in flight on reconnect,
     // and treating that abort as socket-fatal would kill every other stream and loop the connection.
     if (control.signal.aborted || socket.readyState !== WebSocket.OPEN) return;
-    if (!terminal) throw error;
     try {
       if (error instanceof FixtureStreamWriteError) throw error;
-      const failure = new RemoteError("gateway/internal", {
-        snapshot: "Interaction snapshot failed.",
-        answer: "Interaction answer failed.",
-        events: "Interaction event stream failed.",
-      }[kind ?? "events"], {});
+      // A failed stream is a typed failure for that stream only. The stock roster multiplexes five
+      // streams on one socket, so closing the carrier here would also tear down its siblings.
+      const failure = kind !== undefined || events !== undefined
+        ? new RemoteError("gateway/internal", {
+          snapshot: "Interaction snapshot failed.",
+          answer: "Interaction answer failed.",
+          events: "Interaction event stream failed.",
+        }[kind ?? "events"], {})
+        : error;
       sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) }, true);
     } catch {
       socket.close(1011, "stream failed");
