@@ -96,6 +96,8 @@ interface Active {
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
   finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
+  /** Worker quiet notification for the journal a viewer currently follows. */
+  settle?: () => void;
   /** Last Native branch-point read and the worker cut it describes; one entry per Session. */
   branchPoints?: { cut: string; points: readonly BranchPoint[] };
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
@@ -751,6 +753,7 @@ export class SessionSupervisor {
     if (active.stopping) return;
     active.exited = true; active.released = observedEOF(drain);
     active.state = active.released ? "closed" : "outcome_unknown";
+    this.#unwatchSettlement(active);
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const finalInteractions = active.bridge?.snapshot();
     if (finalInteractions) active.finalInteractions = finalInteractions;
@@ -777,6 +780,18 @@ export class SessionSupervisor {
     return { view: this.#view(active), running: status !== undefined && !statusSettled(status),
              blank: active.journalValue !== undefined && active.journalValue.cursor < 0 };
   }
+  /** Only the journal a viewer currently follows may receive the worker's quiet notification. */
+  #watchSettlement(active: Active, journal: LiveJournal): void {
+    this.#unwatchSettlement(active);
+    const worker = active.worker;
+    if (!worker) return;
+    active.settle = worker.subscribe(frame => {
+      if (frame.type !== 'session_settled' && (frame.type !== 'prompt_result' || !frame.sessionSettled)) return;
+      if (active.state !== 'open' || active.journalValue !== journal) return;
+      try { journal.settle(); } catch { /* the follow surfaces a projection failure at its own boundary */ }
+    });
+  }
+  #unwatchSettlement(active: Active): void { active.settle?.(); delete active.settle; }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {
     this.#browser(identity); const active = this.#active;
     if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId) {
@@ -801,6 +816,7 @@ export class SessionSupervisor {
         const previous = active.journalValue;
         if (previous === journal) return journal;
         active.journalValue = journal;
+        this.#watchSettlement(active, journal);
         // A fresh opening may replace a failed generation the viewer still follows (for example after a
         // cut rebuild could not settle during the turn). Announce every replacement so control can move
         // that viewer onto this journal instead of leaving it on the retired one.
@@ -836,6 +852,7 @@ export class SessionSupervisor {
       // same replacement first; keep its (later) epoch rather than moving the announcement backwards.
       if (previous !== journal) {
         active.journalValue = journal; active.journalEpoch = epoch;
+        this.#watchSettlement(active, journal);
         if (previous !== undefined) {
           if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REBUILT",
             previous.generation, "->", journal.generation, "failure", journal.failure);
@@ -852,6 +869,7 @@ export class SessionSupervisor {
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return;
     this.#current(identity, active);
+    this.#unwatchSettlement(active);
     active.journalValue.invalidate("navigation_pending");
     active.journalEpoch = ++journalIdentity;
   }
@@ -883,6 +901,7 @@ export class SessionSupervisor {
     // Publish the replacement and retire the predecessor together; dispose the old one only after the
     // successor is visible, so a pre-publish failure cannot strand the viewer on a closed journal.
     active.journal = Promise.resolve(journal); active.journalValue = journal;
+    this.#watchSettlement(active, journal);
     active.journalEpoch = Math.max(active.journalEpoch ?? 0, epoch);
     if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REFRESHED",
       previous.generation, "->", journal.generation);
@@ -958,6 +977,7 @@ export class SessionSupervisor {
         } catch { /* Keep fencing and observing the original ownership when the Host clock is unavailable. */ }
       }
       active.retired = true;
+      this.#unwatchSettlement(active);
       stopping.resolve(this.#drain(active, reason));
     }
     return active.stopping;
@@ -1052,6 +1072,7 @@ export class SessionSupervisor {
     const ui = active.bridge?.snapshot();
     uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
+    this.#unwatchSettlement(active);
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const finalInteractions = active.bridge?.snapshot();
     if (finalInteractions) active.finalInteractions = finalInteractions;

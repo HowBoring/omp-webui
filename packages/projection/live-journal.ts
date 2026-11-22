@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import type { TurnEndReason } from '@deepseek-ai/dsh-session/types';
 import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
@@ -10,7 +11,7 @@ import type {
 import type { HistoryClient } from '../contracts/generated/history-client.ts';
 import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
-import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
+import { historyEvent, historyMessage, turnEndReasonFor, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
   pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
 
 type AssistantFrameInput = {
@@ -101,6 +102,9 @@ export class LiveJournal {
   /** Native boundaries already served, keyed by the seq an older page must end at. */
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
+  /** Stock `turn/end` closes the running surface; a worker settle may have to close a turn that no
+   *  final assistant settlement committed (Stop before the first block, tool-only abort). */
+  #turnOpen = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
   /** Last published tip: the visible path this generation already served. Activation re-points the
    *  Native leaf here without changing that path, so a matching setLeaf is bookkeeping, not a branch move. */
@@ -298,7 +302,8 @@ export class LiveJournal {
     };
     for (const item of items) {
       const id = item.entryId ?? item.id;
-      counters = settledCoordinates(item.role, counters, item.toolCalls?.length ?? 0);
+      counters = settledCoordinates(item.role, counters, item.toolCalls?.length ?? 0,
+        turnEndReasonFor(item.stopReason, item.error) !== undefined);
       historyMessage(item, id, counters, emit, false, ledger);
     }
     return {records, end: counters};
@@ -331,6 +336,17 @@ export class LiveJournal {
   get cursor(): number { return this.#firstSeq + this.#records.length - 1; }
   get after(): number { return this.#after; }
   get failure(): string | undefined { return this.#failure; }
+  /** Native reports the Session quiet: close a turn that ended without a final assistant settlement. */
+  settle(): void {
+    if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0) return;
+    this.#closeTurn();
+  }
+  #closeTurn(explicit?: TurnEndReason): void {
+    if (!this.#turnOpen) return;
+    const reason = explicit ?? turnEndReasonFor(this.#lastStop.stopReason, this.#lastStop.error)
+      ?? {kind: 'aborted' as const, reason: {kind: 'legacy' as const}};
+    this.#event('turn/end', {turn: this.#turn, reason: reason as unknown as JsonValue});
+  }
   /** Release the retained native cut; older-page paging is impossible after this. */
   dispose(): void {
     if (this.#closed) return; this.#closed = true;
@@ -428,16 +444,23 @@ export class LiveJournal {
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
     const end = this.#recordBytesBefore(this.#records.length) + bytes;
     if (this.#records.length >= MAX_EVENTS || end > this.#maxBytes) this.#fail('live_projection_evicted');
-    this.#records.push(entry); this.#recordByteEnds.push(end); this.#publish(entry); return entry;
+    this.#records.push(entry); this.#recordByteEnds.push(end);
+    if (type === 'turn/start') this.#turnOpen = true;
+    else if (type === 'turn/end') this.#turnOpen = false;
+    this.#publish(entry); return entry;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id;
     if (this.#entries.has(id)) return;
     this.#entries.add(id); this.#publishedLeaf = id; if (item.live) this.#settled.add(identity(item.live));
+    if (item.role === 'assistant') this.#lastStop = {
+      ...(item.stopReason !== undefined ? {stopReason: item.stopReason} : {}),
+      ...(item.error !== undefined ? {error: item.error} : {})};
     if (item.role === 'assistant' && (!item.provider || !item.model)) this.#fail('live_missing_model_source');
     const attempt = item.role === 'assistant' && item.live && this.#attempt
       && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
-    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step }, item.toolCalls?.length ?? 0);
+    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step },
+      item.toolCalls?.length ?? 0, turnEndReasonFor(item.stopReason, item.error) !== undefined);
     if (!attempt) {
       if (coordinates.length > 1 || !this.#attempt) this.#groups.push(this.#records.length);
       this.#turn = coordinates.turn; this.#step = coordinates.step;
@@ -546,5 +569,8 @@ export class LiveJournal {
         ? {kind: 'committed', eventType: 'assistant/message', seq: entry.event.seq} : {kind: 'abandoned'}});
       this.#event('step/end', {turn: attempt.turn, step: attempt.step}); this.#attempt = undefined;
     }
+    // `toolUse` keeps the turn open for the next step; a committed terminal assistant already closed it
+    // (unless this settlement continued an adopted attempt, where the step/end above had to come first).
+    this.#closeTurn(turnEndReasonFor(item.stopReason, item.error));
   }
 }

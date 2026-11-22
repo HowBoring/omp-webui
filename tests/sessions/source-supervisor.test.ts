@@ -878,6 +878,39 @@ test("a failed presentation renewal keeps the current journal, generation and co
   } finally { await f.close(); }
 });
 
+test("a worker settle closes the followed journal only and stops at retirement", async () => {
+  const cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  const f = await sourceFixture(undefined, undefined, cutHistory(() => cut));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const initial = await f.supervisor.presentation(f.identity, sessionId);
+    const renewed = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
+    const initialCursor = initial.cursor, renewedCursor = renewed.cursor;
+    f.emit({ type: "session_settled" });
+    expect(renewed.cursor).toBe(renewedCursor + 1);
+    expect((await renewed.page({ maxMessages: 8 })).records.at(-1)?.event)
+      .toMatchObject({ type: "turn/end", data: { turn: 1, reason: { kind: "aborted", reason: { kind: "legacy" } } } });
+    // The retired generation never receives the quiet notification.
+    expect(initial.cursor).toBe(initialCursor);
+    initial.settle();
+    expect(initial.cursor).toBe(initialCursor);
+    // The followed generation also sees a prompt result that carries settlement.
+    const again = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
+    const againCursor = again.cursor;
+    f.emit({ type: "prompt_result", agentInvoked: false, status: "completed", sessionSettled: true });
+    expect(again.cursor).toBe(againCursor + 1);
+    // Retirement releases the hook: a further notification cannot append to a dead generation.
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, sessionId);
+    const retiredCursor = again.cursor;
+    f.emit({ type: "session_settled" });
+    expect(again.cursor).toBe(retiredCursor);
+  } finally { await f.close(); }
+});
+
 test("a replacement published during a refresh disposes every opening it displaces", async () => {
   const cut: HistoryCut = {
     durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",

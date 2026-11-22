@@ -16,16 +16,32 @@ test('assistant keeps reasoning, real usage, parsed arguments and thought signat
   const records=collect({id:'a',active:true,parentId:'u',kind:'message',role:'assistant',text:'done',provider:'p',model:'m',
     reasoning:'think',stopReason:'stop',usage:{inputTokens:11,outputTokens:22,totalTokens:33,cacheReadTokens:4,reasoningTokens:5},
     toolCalls:[{callId:'call-1',name:'s0_fixture',arguments:{path:'a.txt',count:2},thoughtSignature:'sig-1'}]});
-  expect(records.map(r=>r.event.type)).toEqual(['step/start','assistant/message','tool/parsed-call','step/end']);
+  expect(records.map(r=>r.event.type)).toEqual(['step/start','assistant/message','tool/parsed-call','step/end','turn/end']);
   expect(records[1]!.event.data).toMatchObject({usage:{inputTokens:11,outputTokens:22,totalTokens:33,cacheReadTokens:4,reasoningTokens:5},
     message:{content:[{type:'reasoning',text:'think'},{type:'text',text:'done'}]}});
   expect(records[2]!.event.data).toEqual({turn:2,step:3,callId:'call-1',name:'s0_fixture',arguments:{path:'a.txt',count:2},thoughtSignature:'sig-1'});
+  expect(records[4]!.event.data).toEqual({turn:2,reason:{kind:'completed'}});
   expect(settledCoordinates('assistant',{turn:2,step:3},1).length).toBe(4);
 });
 
 test('interrupted assistant remains typed and carries no invented content',()=>{
   const records=collect({id:'a',active:true,parentId:'u',kind:'message',role:'assistant',text:'',provider:'p',model:'m',stopReason:'aborted'});
   expect(records[1]!.event.data).toMatchObject({interrupted:true,message:{content:[{type:'text',text:''}]}});
+  expect(records.at(-1)!.event).toMatchObject({type:'turn/end',data:{turn:2,reason:{kind:'aborted',reason:{kind:'user'}}}});
+});
+
+test('native terminal stop reasons close the turn with the matching stock reason',()=>{
+  const reason=(stopReason:string,extra:Partial<HistoryItem>={})=>{
+    const records=collect({id:'a',active:true,parentId:'u',kind:'message',role:'assistant',text:'x',provider:'p',model:'m',
+      stopReason,...extra});
+    return records.at(-1)!.event;
+  };
+  expect(reason('length')).toMatchObject({type:'turn/end',data:{turn:2,reason:{kind:'max-tokens'}}});
+  expect(reason('error',{error:{reason:'quota exhausted',code:429,status:429}})).toMatchObject({type:'turn/end',
+    data:{turn:2,reason:{kind:'error',error:{message:'quota exhausted',code:'429',status:429}}}});
+  expect(reason('error')).toMatchObject({type:'turn/end',data:{reason:{kind:'error',error:{code:'UNKNOWN'}}}});
+  expect(reason('toolUse')).toMatchObject({type:'step/end'});
+  expect(reason('unknown-native')).toMatchObject({type:'step/end'});
 });
 
 test('tool result pairs by native owner and preserves error semantics',()=>{

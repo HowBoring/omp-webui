@@ -64,6 +64,10 @@ test('public native abort settles an adopted DSH attempt without replaying execu
     }
     expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
     expect(frames.some(frame=>frame.type==='assistant-stream'&&frame.frame.type==='end')).toBe(true);
+    const records=(await journal.page({maxMessages:128})).records;
+    expect(records.at(-1)?.event).toMatchObject({type:'turn/end',data:{reason:{kind:'aborted',reason:{kind:'user'}}}});
+    expect(records.filter(record=>record.event.type==='assistant/message').at(-1)?.event.data)
+      .toMatchObject({interrupted:true});
     expect((await fixture.transport.state()).isSettled).toBe(true);
   }finally{await fixture.close();}
 },20000);

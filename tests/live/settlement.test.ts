@@ -28,7 +28,12 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
       expect(assistant).toHaveLength(['empty-error','transform'].includes(scenario)?2:1);
       const ends=frames.flatMap(frame=>frame.type==='assistant-stream'&&frame.frame.type==='end'?[frame.frame]:[]);
       if(scenario==='handled'){expect(journal.cursor).toBe(before);expect(ends).toHaveLength(0);}
-      else expect(ends.at(-1)?.outcome.kind).toBe(['refusal','empty-overflow'].includes(scenario)?'abandoned':'committed');
+      else {
+        expect(ends.at(-1)?.outcome.kind).toBe(['refusal','empty-overflow'].includes(scenario)?'abandoned':'committed');
+        const end=records.filter(record=>record.event.type==='turn/end').at(-1);
+        expect(end).toBeDefined();
+        expect(end?.event.data).toMatchObject({reason:{kind:scenario==='empty-overflow'?'error':'completed'}});
+      }
     }finally{await fixture.close();}
   },20000);
 }

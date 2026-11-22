@@ -198,10 +198,35 @@ test('multipart opening keeps older pages and the in-flight assistant settlement
   assert.deepEqual(await journal.page({maxMessages: 1, throughSeq: 5, beforeSeq: 2}), older);
   const latest = await journal.page({maxMessages: 1});
   assert.deepEqual(latest.records.map(record => [record.event.seq, record.event.type]), [
-    [5, 'step/start'], [6, 'assistant/message'], [7, 'step/end'],
+    [5, 'step/start'], [6, 'assistant/message'], [7, 'step/end'], [8, 'turn/end'],
   ]);
   assert.equal(latest.hasMore, true);
   assert.equal(journal.snapshot().assistantStream?.activeAttempt, undefined);
+});
+
+test('a worker settle waits for the final assistant settlement it must not overtake', async () => {
+  const cut = {...initialCut};
+  const journal = await LiveJournal.open(fixture([[item('last', null, 'Hello')]], {cut}));
+  const live = {...prefixLive, messageId: 'assistant-1', branchLeafId: 'last'};
+  const assistant: HistoryItem = {id: 'assistant-1', parentId: 'last', active: true, kind: 'message',
+    role: 'assistant', provider: 'fixture-provider', model: 'fixture-model', text: 'partial',
+    stopReason: 'aborted', live};
+  journal.accept({cut, after: 0, through: 1, hasMore: false,
+    events: [{seq: 1, kind: 'message_start', live, item: assistant}]});
+  journal.settle();
+  assert.deepEqual((await journal.page({maxMessages: 10})).records.map(record => record.event.type),
+    ['turn/start', 'user/message', 'step/start']);
+  journal.accept({cut: {...cut, leafId: 'assistant-1', observationSeq: 3}, after: 1, through: 3, hasMore: false,
+    events: [
+      {seq: 2, kind: 'native_append', live, item: assistant,
+        source: {entryId: 'assistant-1', leafId: 'assistant-1', parentId: 'last'}},
+      {seq: 3, kind: 'message_settlement', live, item: assistant,
+        settlement: {status: 'observed', durability: 'not_attested', entryId: 'assistant-1'}}]});
+  const records = (await journal.page({maxMessages: 10})).records;
+  assert.deepEqual(records.map(record => record.event.type),
+    ['turn/start', 'user/message', 'step/start', 'assistant/message', 'step/end', 'turn/end']);
+  assert.deepEqual(records.at(-1)?.event.data, {turn: 1,
+    reason: {kind: 'aborted', reason: {kind: 'user'}}});
 });
 
 test('page byte limits keep chronological message groups separately addressable', async () => {

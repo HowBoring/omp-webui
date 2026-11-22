@@ -1,6 +1,7 @@
 import type { SessionHistoryRecord, SessionPageRequest } from '@deepseek-ai/dsh-api-session-controller/types';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
-import type { HistoryItem } from '../contracts/generated/omp-wire.ts';
+import type { TurnEndReason } from '@deepseek-ai/dsh-session/types';
+import type { HistoryError, HistoryItem } from '../contracts/generated/omp-wire.ts';
 
 export const MAX_EVENTS = 60_000;
 export const MAX_ITEM_BYTES = 512 * 1024;
@@ -25,9 +26,10 @@ export function historyEvent(seq: number, type: string, data: JsonValue, surface
 
 interface Counters { turn: number; step: number }
 
-export function settledCoordinates(role: HistoryItem['role'], { turn, step }: Counters, toolCalls = 0) {
+export function settledCoordinates(role: HistoryItem['role'], { turn, step }: Counters, toolCalls = 0,
+                                    turnEnds = false) {
   if (role === 'user') return { turn: turn + 1, step, length: 2 };
-  if (role === 'assistant') return { turn, step: step + 1, length: 3 + toolCalls };
+  if (role === 'assistant') return { turn, step: step + 1, length: 3 + toolCalls + (turnEnds ? 1 : 0) };
   return { turn, step, length: 1 };
 }
 
@@ -90,6 +92,24 @@ function nativeMessage(item: HistoryItem, id: string): JsonValue | undefined {
   return { id, role: 'user', source: { kind: 'user' }, content: [{ type: 'text', text: `${item.text}${files}` }] };
 }
 
+/** Native stop reasons that end the whole turn, not just the current step. */
+export function turnEndReasonFor(stopReason: string | undefined, error: HistoryError | undefined): TurnEndReason | undefined {
+  switch (stopReason) {
+    case 'stop': return { kind: 'completed' };
+    case 'length': return { kind: 'max-tokens' };
+    case 'aborted': return { kind: 'aborted', reason: { kind: 'user' } };
+    case 'error':
+      return { kind: 'error', error: { message: error?.reason ?? 'The model request failed',
+        code: error?.code !== undefined ? String(error.code) : 'UNKNOWN',
+        ...(error?.status !== undefined ? { status: error.status } : {}) } };
+    default: return undefined; // `toolUse` and unknown native reasons keep the turn open
+  }
+}
+
+export function turnEndReason(item: HistoryItem): TurnEndReason | undefined {
+  return item.role === 'assistant' ? turnEndReasonFor(item.stopReason, item.error) : undefined;
+}
+
 export function historyMessage(item: HistoryItem, id: string, { turn, step }: Counters,
   emit: EmitEvent, continuingAssistant = false, ledger?: ToolCallLedger): SessionHistoryRecord | undefined {
   const content: JsonValue[] = [];
@@ -113,7 +133,11 @@ export function historyMessage(item: HistoryItem, id: string, { turn, step }: Co
       emit('tool/parsed-call', { turn, step, callId: call.callId, name: call.name, arguments: call.arguments as JsonValue,
         ...(call.thoughtSignature ? { thoughtSignature: call.thoughtSignature } : {}) });
     }
-    if (!continuingAssistant) emit('step/end', { turn, step });
+    if (!continuingAssistant) {
+      emit('step/end', { turn, step });
+      const reason = turnEndReason(item);
+      if (reason) emit('turn/end', { turn, reason: reason as unknown as JsonValue });
+    }
     return message;
   }
   if (item.role === 'toolResult' && item.toolCallId) {
