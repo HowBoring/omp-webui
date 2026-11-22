@@ -38,7 +38,9 @@ type EmitEvent = (type: string, data: JsonValue, surface?: boolean, time?: numbe
 
 /** The native record's own clock is the only honest source; an unstamped record stays at zero. */
 export function eventTime(item: HistoryItem): number {
-  const time = item.timestamp === undefined ? Number.NaN : Date.parse(item.timestamp);
+  // Native entries stamp epoch milliseconds; the wire type only admits an ISO string.
+  const stamp = item.timestamp as string | number | undefined;
+  const time = typeof stamp === 'number' ? stamp : stamp === undefined ? Number.NaN : Date.parse(stamp);
   return Number.isFinite(time) ? time : 0;
 }
 

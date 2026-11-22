@@ -10,7 +10,7 @@ import type { HistoryCut, HistoryItem, HistorySourceBinding } from '../contracts
 import type { StopSnapshot } from '../contracts/stop.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
 import { MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
-  pageCoordinates, settledCoordinates, settledHistoryRecords, ToolCallLedger, turnEndReason, type PageRequest } from './history-records.ts';
+  pageCoordinates, settledCoordinates, settledHistoryRecords, ToolCallLedger, turnEndReasonFor, type PageRequest } from './history-records.ts';
 
 const INDEX_BYTES = 8 * 1024 * 1024;
 const INDEX_ENTRIES = 20_000;
@@ -230,7 +230,7 @@ export class ArchivedJournal {
         if (size > MAX_ITEM_BYTES || bytes > indexBytes) throw Error('live_archive_index_budget');
         this.#validateEntry(item, leaf, seen);
         const position = settledCoordinates(item.role, counters, item.toolCallCount ?? 0,
-          turnEndReason(item) !== undefined);
+          item.role === 'assistant' && turnEndReasonFor(item.stopReason, undefined) !== undefined);
         this.#rows.push({ entry: structuredClone(item), start: this.#nextSeq,
           turn: position.turn, step: position.step });
         this.#nextSeq += position.length;

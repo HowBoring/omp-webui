@@ -219,7 +219,8 @@ test('a worker settle waits for the final assistant settlement it must not overt
   journal.accept({cut: {...cut, leafId: 'assistant-1', observationSeq: 3}, after: 1, through: 3, hasMore: false,
     events: [
       {seq: 2, kind: 'native_append', live, item: assistant,
-        source: {entryId: 'assistant-1', leafId: 'assistant-1', parentId: 'last'}},
+        source: {kind: 'append', revision: 2, contextRevision: 1, sessionId: cut.sessionId,
+          leafId: 'assistant-1', entryId: 'assistant-1'}},
       {seq: 3, kind: 'message_settlement', live, item: assistant,
         settlement: {status: 'observed', durability: 'not_attested', entryId: 'assistant-1'}}]});
   const records = (await journal.page({maxMessages: 10})).records;

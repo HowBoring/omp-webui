@@ -563,7 +563,8 @@ export class LiveJournal {
     let entry: SessionHistoryRecord | undefined;
     if (settlement.status === 'observed') {
       if (!settlement.entryId || (!source && !this.#entries.has(settlement.entryId))) this.#fail('live_unknown_settlement_entry');
-      if (source?.item.active) entry = this.#commit({...item, id: settlement.entryId, entryId: settlement.entryId});
+      if (source?.item.active) entry = this.#commit({...(source?.item ?? {}), ...item,
+        id: settlement.entryId, entryId: settlement.entryId});
     }
     this.#settled.add(key); this.#pendingFinals.delete(key);
     if (attempt) {

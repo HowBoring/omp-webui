@@ -23,6 +23,8 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
       if(invalidated){expect(()=>journal.snapshot()).toThrow('live_projection_invalidated');return;}
       const records=(await journal.page({maxMessages:128})).records;
       expect(records.map(record=>record.event.seq)).toEqual(Array.from({length:records.length},(_,index)=>journal.cursor-records.length+1+index));
+      // Native events are stamped in epoch milliseconds, not the ISO string the wire type declares.
+      for(const record of records) if(record.event.type==='user/message'||record.event.type==='assistant/message') expect(record.event.time).toBeGreaterThan(0);
       expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
       const assistant=records.filter(record=>record.event.type==='assistant/message');
       expect(assistant).toHaveLength(['empty-error','transform'].includes(scenario)?2:1);
