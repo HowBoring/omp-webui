@@ -2,7 +2,7 @@
 
 Status: 用户已确认 Q1–Q3。产品实现与最终组合已在本地记录的 4 vCPU／8 GiB 组合上冻结、验证并录入身份
 （`docs/release-final.md`、`docs/evidence/ticket-61-freeze.json`）；维护者操作验收与不可变公开发布仍未完成。
-GitHub Actions 仅运行固定镜像上的源代码检查，不能复现原生闭包，也不构成组合验收。
+GitHub Actions 在固定镜像上运行完整源代码检查（含冻结门禁的拒绝行为）；通过不构成组合验收，冻结组合仍以本地记录为准。
 日期：2026-11-16（Asia/Singapore）。决策：[扩展 MVP 的验收证据与实施交接顺序](https://github.com/HowBoring/omp-webui/issues/24)。
 本合同汇总开发依赖和验收目标，不声明新的 RPC API、产物 SHA、浏览器版本或通过结果。
 

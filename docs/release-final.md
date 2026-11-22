@@ -28,12 +28,13 @@ source, patch, schema or asset identities: system dependency paths reduce to the
 content identity and byte count of every archive entry must still match, so a foreign closure with the
 same file names fails.
 
-Reproducing this tuple needs the 38-archive native closure, which only the local combination has
-(`stage-strict-runtime.py` is recorded as `enrolled: false` in `docs/evidence/ticket-41-navigation-roster.json`).
-`.github/workflows/check.yml` is therefore a **source check on the pinned `ubuntu-24.04` image only**: it
-stages the checked-in navigation pins, runs lint/typecheck/build and the navigation byte compare, and
-reports the native closure as incompatible instead of claiming tuple reproduction. The tuple remains the
-locally recorded combination below.
+Reproducing this tuple needs the 38-archive native closure (`stage-strict-runtime.py`, recorded as
+`enrolled: false` in `docs/evidence/ticket-41-navigation-roster.json` because `vendor/omp-strict` holds only
+the installed validators). `.github/workflows/check.yml` pins `ubuntu-24.04`, stages the continuation
+fixtures, the navigation pins and the enrollment, and runs the full provisioned suite — no coverage is
+narrowed for a green run. The freeze gate runs there too: a checkout whose closure is not this tuple makes
+the job fail instead of claiming the recorded combination, so tuple reproduction stays local and the gate's
+rejection is asserted as normal source-check behaviour.
 
 ## What was executed on this combination
 
