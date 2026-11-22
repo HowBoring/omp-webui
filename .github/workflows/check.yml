@@ -1,12 +1,18 @@
 name: check
 
+# Source check on a pinned image, with the full provisioned suite.
+#
+# Frozen-tuple reproduction stays local (docs/release-final.md, docs/evidence/ticket-61-freeze.json): a
+# runner that lacks the exact 38-archive native closure must not claim it. The freeze gate is still
+# exercised here, as a negative assertion — a foreign closure has to make `tests/product/freeze.test.ts`
+# fail, which is the behaviour the gate exists for. Coverage is never narrowed to get a green run.
 on:
   push:
   pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  source-check:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -22,7 +28,23 @@ jobs:
       - run: bun scripts/build-continuation-fixtures.ts
       - run: bun run dsh:prepare
       - run: bun run dsh:link
+      - name: Stage navigation fixtures from checked-in pins
+        run: bun apps/navigation-fixture/build.ts && bun scripts/build-navigation-host.ts
       - run: bun run product:build
       - run: bun run product:enroll
-      - run: bun run check
+      - name: Lint, typecheck, full test suite and build
+        run: bun run check
       - run: bun run product:verify
+      - name: Freeze gate rejects anything but the recorded tuple
+        run: |
+          set +e
+          bun test tests/product/freeze.test.ts
+          status=$?
+          set -e
+          if [ -d vendor/omp-strict/packages/natives/native ]; then
+            [ "$status" -eq 0 ] || { echo "freeze gate rejected a provisioned closure"; exit 1; }
+            echo "freeze: accepted this checkout's native closure"
+          else
+            [ "$status" -ne 0 ] || { echo "freeze gate accepted a checkout without the native closure"; exit 1; }
+            echo "freeze: rejected a non-tuple closure as expected; tuple reproduction remains local"
+          fi

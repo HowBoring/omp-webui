@@ -7,11 +7,12 @@ import { ompPatches } from "../../scripts/omp-source.ts";
 import { buildNavigationRoster } from "../../scripts/write-navigation-roster.ts";
 
 /** The roster must fail loudly when a bundle, a contract artifact or the lock drifts; vendor/ is gitignored. */
-const staged = existsSync("vendor/dsh-navigation/manifest.json") && existsSync("vendor/host-navigation/manifest.json");
+if (!existsSync("vendor/dsh-navigation/manifest.json") || !existsSync("vendor/host-navigation/manifest.json"))
+  throw new Error("NAVIGATION_BUNDLES_UNSTAGED: run bun apps/navigation-fixture/build.ts && bun scripts/build-navigation-host.ts");
 const digestOf = async (path: string) => createHash("sha256").update(await readFile(resolve(path))).digest("hex");
 const recorded = JSON.parse(await readFile(resolve("docs/evidence/ticket-41-navigation-roster.json"), "utf8"));
 
-test.skipIf(!staged)("roster matches the checked-in candidate, the lock and the staged bundles", async () => {
+test("roster matches the checked-in candidate, the lock and the staged bundles", async () => {
   const roster = await buildNavigationRoster();
   expect(roster.page.lockSha256).toBe(await digestOf("upstreams.lock.json"));
   expect(roster.page.dshBase).not.toBeNull();
@@ -36,6 +37,6 @@ test.skipIf(!staged)("roster matches the checked-in candidate, the lock and the 
   expect(JSON.stringify(roster)).not.toContain("vendor/navigation-profile/");
 });
 
-test.skipIf(!staged)("checked-in roster is the current roster, not a stale copy", async () => {
+test("checked-in roster is the current roster, not a stale copy", async () => {
   expect(recorded).toEqual(await buildNavigationRoster());
 });

@@ -773,11 +773,14 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
   }
 });
 
-function cutHistory(cut: () => HistoryCut): HistoryClient {
+function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error | undefined): HistoryClient {
   let current: HistoryOpen | undefined;
+  let opens = 0;
   return new HistoryClient(async command => {
     switch (command.type) {
       case "history_snapshot_open": {
+        const fault = openFault?.(++opens);
+        if (fault) throw fault;
         current = {
           version: "coherent-history-v1", handoff: "live", snapshot: "snapshot", cursor: "active-0", scope: "active",
           cut: cut(), cursors: { active: "active-0", live: "live-0", tree: "tree-0", running: "running-0" },
@@ -826,6 +829,31 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
     const recovered = await f.supervisor.presentation(f.identity, sessionId);
     expect(recovered).not.toBe(renewed!);
     expect(recovered.projection.generation).not.toBe(renewed!.projection.generation);
+  } finally { await f.close(); }
+});
+
+test("a failed presentation renewal keeps the current journal, generation and control", async () => {
+  const cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  let fail = true;
+  const f = await sourceFixture(undefined, undefined,
+    cutHistory(() => cut, opens => fail && opens > 1 ? new Error("PRIVATE_HISTORY_OPEN_FAILED") : undefined));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const current = await f.supervisor.presentation(f.identity, sessionId);
+    await expect(f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))
+      .rejects.toThrow("PRIVATE_HISTORY_OPEN_FAILED");
+    const retained = await f.supervisor.presentation(f.identity, sessionId);
+    expect(retained).toBe(current);
+    expect(retained.generation).toBe(current.generation);
+    expect(retained.failure).toBeUndefined();
+    fail = false;
+    const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
+    expect(renewed?.generation).not.toBe(current.generation);
+    expect(await f.supervisor.presentation(f.identity, sessionId)).toBe(renewed!);
   } finally { await f.close(); }
 });
 

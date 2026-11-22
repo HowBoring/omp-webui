@@ -846,14 +846,22 @@ export class SessionSupervisor {
     const active = this.#active; this.#browser(identity);
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return undefined;
+    const previous = active.journalValue;
     const epoch = ++journalIdentity;
-    active.journalValue?.dispose();
-    const journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`); this.#current(identity, active);
+    // Open before retiring: a failed open keeps the current journal, value and epoch intact, so control
+    // never advertises a generation the next follow cannot open and never follows a closed journal.
+    const journal = await LiveJournal.open(active.worker.history, `${sessionId}:${epoch}`);
+    try { this.#current(identity, active); } catch (error) { journal.dispose(); throw error; }
     if (active.state !== "open" || active.id !== workerId || active.record?.nativeSessionId !== sessionId) {
+      journal.dispose();
       throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     }
+    if (active.journalValue !== previous) { journal.dispose(); return active.journalValue; } // a newer generation won
+    // Publish the replacement and retire the predecessor together; dispose the old one only after the
+    // successor is visible, so a pre-publish failure cannot strand the viewer on a closed journal.
     active.journal = Promise.resolve(journal); active.journalValue = journal;
-    active.journalEpoch = epoch;
+    active.journalEpoch = Math.max(active.journalEpoch ?? 0, epoch);
+    if (previous !== journal) previous.invalidate("presentation_replaced");
     return journal;
   }
   /** The currently presented journal for this authority, when a viewer is attached. */

@@ -15,22 +15,24 @@ const digest = async (path: string) =>
 /**
  * Enrollment records the concrete checkout so admission can execute it. The freeze gate
  * compares the same closure without the checkout prefix: artifact identities stay pinned,
- * while the manifest digest describes the installation rather than one worktree or one host's
- * system libraries.
+ * while the manifest digest describes the installation rather than one worktree. Host
+ * system libraries keep their content identity so a different closure with the same
+ * basenames cannot pass.
  */
 const worktreeRelative = (value: string) => {
   const marker = value.lastIndexOf("/vendor/");
   return marker < 0 ? value : value.slice(marker + 1);
 };
+/** A native dependency by basename and content identity: the path prefix is per-host, the bytes are not. */
+const closureEntry = (entry: { path: string; identity: string }) =>
+  [entry.path.split("/").pop(), entry.identity] as const;
 const canonicalInstallation = (manifest: typeof installation) => ({
   ...manifest,
   launcher: worktreeRelative(manifest.launcher),
   target: worktreeRelative(manifest.target),
   runtime: { ...manifest.runtime, path: "<runtime>" },
   assets: manifest.assets.map((asset: { path: string }) => ({ ...asset, path: worktreeRelative(asset.path) })),
-  runtimeDependencies: manifest.runtimeDependencies.map((entry: { path: string }) => ({
-    path: `<system>/${entry.path.split("/").pop()}`,
-  })),
+  runtimeDependencies: manifest.runtimeDependencies.map(closureEntry),
 });
 
 const freeze = await read("docs/evidence/ticket-61-freeze.json");
@@ -54,8 +56,16 @@ test("installation manifest carries the frozen launcher, runtime and native clos
   expect(installation.runtime.identity).toBe(freeze.host.runtime.sha256);
   expect(installation.assets.map((asset: { path: string; identity: string }) => [worktreeRelative(asset.path), asset.identity]))
     .toEqual(freeze.omp.installationAssets.map((asset: { path: string; identity: string }) => [asset.path, asset.identity]));
-  expect(installation.runtimeDependencies.map((entry: { path: string }) => entry.path.split("/").pop()))
-    .toEqual(freeze.omp.nativeClosure.map((entry: { path: string }) => entry.path.split("/").pop()));
+  expect(installation.runtimeDependencies.map(closureEntry))
+    .toEqual(freeze.omp.nativeClosure.map(closureEntry));
+});
+
+test("a foreign native closure with the same basenames fails the freeze", () => {
+  const foreign = installation.runtimeDependencies.map((entry: { path: string; identity: string }, index: number) =>
+    index === 0 ? { ...entry, identity: "0".repeat(64) } : entry);
+  expect(foreign.map(closureEntry)).not.toEqual(freeze.omp.nativeClosure.map(closureEntry));
+  expect(createHash("sha256").update(JSON.stringify(canonicalInstallation({ ...installation,
+    runtimeDependencies: foreign }))).digest("hex")).not.toBe(freeze.omp.installationManifest.sha256);
 });
 
 test("installation manifest still matches its frozen digest and the built DSH assets", async () => {
