@@ -30,6 +30,7 @@ OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
 CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
 SETTLE_TIMEOUT_MS = int(os.environ.get("OMP_PERF_SETTLE_TIMEOUT_MS", "5000"))
+QUIET_MS = int(os.environ.get("OMP_PERF_QUIET_MS", "500"))
 REACH_STEP_MS = int(os.environ.get("OMP_PERF_REACH_STEP_MS", "30000"))
 
 
@@ -325,14 +326,51 @@ def console_classification_self_check():
     assert ignored == [], ignored
 
 
-async def settle(page):
-    """Wait until the document is idle before the sampled reload.
+def request_tracker(page):
+    """Count the requests the document currently has in flight and when the last one started or finished."""
+    quiet = {"inflight": 0, "last": time.monotonic()}
+    def started(_request):
+        quiet["inflight"] += 1
+        quiet["last"] = time.monotonic()
+    def ended(_request):
+        quiet["inflight"] = max(0, quiet["inflight"] - 1)
+        quiet["last"] = time.monotonic()
+    page.on("request", started)
+    page.on("requestfinished", ended)
+    page.on("requestfailed", ended)
+    return quiet
+
+
+def request_tracker_self_check():
+    """A request that starts after the load settles must reopen the quiet window."""
+    class Page:
+        def __init__(self):
+            self.handlers = {}
+        def on(self, event, handler):
+            self.handlers.setdefault(event, []).append(handler)
+    page = Page()
+    quiet = request_tracker(page)
+    page.handlers["request"][0](None)
+    assert quiet["inflight"] == 1
+    assert (time.monotonic() - quiet["last"]) * 1000 < QUIET_MS
+    page.handlers["requestfinished"][0](None)
+    assert quiet["inflight"] == 0
+
+
+async def settle(page, quiet):
+    """Wait until the document has stopped issuing requests before the sampled reload.
 
     A reload discards whatever the current document still has in flight, and the browser reports each aborted
-    request as a console error. Waiting for network idle first keeps each sample measuring a reload of a settled
-    page rather than its own navigation aborts; a document that never goes idle fails the sample.
+    request as a console error. `networkidle` alone returns as soon as that lifecycle was reached once, which can
+    be before the page's effects issue their own requests, so the wait also requires a fresh quiet window: the
+    document crossed two animation frames, no request is in flight, and none started for the quiescence period.
+    A document that never quiets fails the sample.
     """
+    await page.evaluate(
+        "async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }")
     await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT_MS)
+    await wait_until(
+        lambda: quiet["inflight"] == 0 and (time.monotonic() - quiet["last"]) * 1000 >= QUIET_MS, SETTLE_TIMEOUT_MS)
 
 
 async def count_at_least(locator, minimum):
@@ -489,6 +527,7 @@ async def chat_run(browser_args, product=False):
                         f"WS_ERROR {socket.url} first={len(first)} old={len(old)} error={error}", flush=True))
                     socket.on("close", lambda _socket: print(f"WS_CLOSE {socket.url}", flush=True))
             page.on("websocket", track_socket)
+            quiet = request_tracker(page)
             # Console errors count only while the measurement is running. Once the last sample is taken the page is
             # torn down (browser and Host close), and a connection reset during that teardown is not a measured
             # failure; it is recorded as teardown fault text so the run stays auditable. The listener is a plain
@@ -526,15 +565,17 @@ async def chat_run(browser_args, product=False):
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
                 async def reopen(timeout):
+                    """Acceptance of a reload: the Host restores the open Session, so no Open/Switch click is issued.
+
+                    Clicking here would measure a manual restore racing the automatic one, and issuing a catalog
+                    refresh would measure a recovery path instead of what a reload actually costs.
+                    """
                     refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
                     await wait_until(lambda: refresh.is_enabled(), timeout)
-                    if await page.locator("li[data-native-id]").count() < 1000:
-                        await refresh.click()
-                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
-                    await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
                     await session_ready(page, timeout)
+                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
                 for index in range(WARMUPS + SAMPLES):
-                    await settle(page)
+                    await settle(page, quiet)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
@@ -562,7 +603,7 @@ async def chat_run(browser_args, product=False):
                     stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
-                    await settle(page)
+                    await settle(page, quiet)
                     await page.reload(wait_until="domcontentloaded")
                     await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
@@ -719,6 +760,7 @@ def self_check():
     evidence_with_latency["classes"][0]["firstPage"] = failed
     assert run_verdict(evidence_with_latency) == (["product"], ["product"])
     console_classification_self_check()
+    request_tracker_self_check()
     print("performance exit self-check ok")
 
 
