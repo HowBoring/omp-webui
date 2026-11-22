@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { Context } from "@deepseek-ai/cordis";
 import type { SessionFollowRequest, SessionPageRequest, SessionProjectionBinding } from "@deepseek-ai/dsh-api-session-controller/types";
 import type { BrowserAccess } from "../../packages/access/index.ts";
-import { sessionCaller } from "../../packages/sessions/service.ts";
+import { sessionCaller, type SessionsService } from "../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../packages/sessions/presentation-service.ts";
 import type { SessionSupervisor } from "../../packages/sessions/supervisor.ts";
 
@@ -65,7 +65,7 @@ interface InvalidatedFrame { type: string; projection: SessionProjectionBinding 
 interface SnapshotFrame { type: string; cursor: number; projections: { projection: SessionProjectionBinding; asOfSeq: number } }
 
 function service(state: FakeSupervisor) {
-  return new SessionPresentationService(new Context(), state as unknown as SessionSupervisor);
+  return new SessionPresentationService(new Context(), state as unknown as SessionSupervisor, {} as SessionsService);
 }
 
 /** Remote calls read the browser identity from the ambient stores exactly as the Gateway invokes them. */

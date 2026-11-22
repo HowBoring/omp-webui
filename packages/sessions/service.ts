@@ -7,6 +7,7 @@ import type { CatalogClient } from "../contracts/generated/catalog-client.ts";
 import type { CatalogDescriptor } from "../contracts/generated/omp-wire.ts";
 import { sessionPreferencesSchema, sessionViewSchema, type SessionSelectionId } from "../contracts/sessions.ts";
 import type { UIAnswer } from "../contracts/interactions.ts";
+import type { SessionId } from "@deepseek-ai/dsh-session/types";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
 import type { SessionIndex } from "./index.ts";
 import { nativeSettled, type SessionSupervisor, type SessionView } from "./supervisor.ts";
@@ -16,7 +17,9 @@ export const sessionCaller = new AsyncLocalStorage<BrowserAccess>();
 /** The catalog snapshot is a bounded read-only native scan; pages slice it so a reopen never rescans storage. */
 const CATALOG_LIMIT = 4_096, CATALOG_PAGES = 256, CATALOG_CURSOR = "snap:";
 type CatalogStatus = "complete" | "partial" | "scanning";
-interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor }
+interface Options { authority: BrowserAuthority; catalog: CatalogClient; grants: DirectoryGrants; index: SessionIndex; supervisor: SessionSupervisor;
+  /** Stock Workspace id → canonical root path; the stock client addresses sessions by workspace. */
+  workspacePath?: (workspaceId: string) => string | undefined }
 class SessionSettingsError extends RemoteError<"gateway/bad-request"> {}
 const settingsFailure = (reason: "stale" | "busy" | "conflict" | "capability" | "unconfirmed" | "projection"): never => {
   const text = {
@@ -214,6 +217,109 @@ export class SessionsService extends TypertRemoteService {
     const view = await this.options.supervisor.create(identity, grant.path);
     this.catalogSnapshot = undefined;
     return publicView(view);
+  }
+  /**
+   * Authorized native catalog snapshot for the stock Workspace and Session-list faces.
+   * Reads the same bounded scan as `catalog`, under the caller's authority.
+   */
+  async nativeCatalog(): Promise<CatalogDescriptor[]> {
+    this.identity();
+    const snapshot = await this.catalogSnapshotFor(false);
+    this.identity();
+    return snapshot.items.filter(item => this.options.grants.authorize(item.cwd.recorded, item.cwd.canonical).status === "authorized");
+  }
+  /** Bind a stock-addressed native Session; the supervisor keeps one live worker, so this switches. */
+  async nativeOpen(nativeSessionId: string): Promise<SessionView> {
+    const identity = this.identity();
+    const snapshot = await this.catalogSnapshotFor(false);
+    this.identity();
+    const found = snapshot.items.find(item => item.nativeSessionId === nativeSessionId);
+    if (!found) throw new RemoteError("gateway/bad-request", "This Session is not in the authorized native catalog.", {});
+    return this.options.supervisor.switchTo(identity, found);
+  }
+  /**
+   * Create the stock client's Session. A requested id is reused only when it names an authorized native
+   * Session; otherwise Native creates a new one and the response reports its actual id.
+   */
+  async stockCreate(request: { workspaceId?: string; cwd?: string; sessionId?: string }): Promise<{ sessionId: string }> {
+    const identity = this.identity();
+    const requestedCwd = request.cwd ?? (request.workspaceId === undefined ? undefined : this.options.workspacePath?.(request.workspaceId));
+    if (requestedCwd === undefined) throw new RemoteError("session/workspace-attach-failed",
+      "Choose an authorized Workspace directory before creating a Session.",
+      { sessionId: brandString<SessionId>(request.sessionId ?? ""), workspaceId: request.workspaceId ?? "" });
+    const reviewed = this.options.grants.authorize(requestedCwd);
+    if (reviewed.status !== "authorized" || !reviewed.canonical) {
+      throw new RemoteError("session/workspace-attach-failed",
+        "This directory is not granted to the WebUI; review and grant it before creating a Session.",
+        { sessionId: brandString<SessionId>(request.sessionId ?? ""), workspaceId: request.workspaceId ?? "" });
+    }
+    if (request.sessionId !== undefined) {
+      const found = (await this.catalogSnapshotFor(false)).items.find(item => item.nativeSessionId === request.sessionId);
+      if (found) { const view = await this.options.supervisor.switchTo(identity, found); return { sessionId: view.registration.nativeSessionId }; }
+    }
+    const view = await this.options.supervisor.create(identity, reviewed.canonical);
+    this.catalogSnapshot = undefined;
+    return { sessionId: view.registration.nativeSessionId };
+  }
+  /** The presented Session's native models shaped as the stock global model catalog. */
+  async stockModelCatalog(): Promise<unknown> {
+    const identity = this.identity();
+    const listed = await this.options.supervisor.listed(identity);
+    if (listed === undefined) {
+      throw new RemoteError("session/provider-models-unavailable", "Open a Session before choosing a model.", { provider: "native" });
+    }
+    const runtime = this.runtime(identity, listed.view.workerId);
+    const state = await runtime.worker.state(); this.identity();
+    const models = await runtime.worker.models(); this.identity();
+    const levels = await runtime.worker.thinkingLevels(); this.identity();
+    const current = state.model;
+    if (!current) throw new RemoteError("session/provider-models-unavailable", "The native Session reports no active model.", { provider: "native" });
+    const efforts = levels.filter(level => level !== "off" && level !== "inherit")
+      .map(level => ({ id: level, name: level }));
+    const byProvider = new Map<string, { provider: string; id: string; name: string; reasoning: boolean;
+      efforts: { id: string; name: string }[] }[]>();
+    for (const candidate of models) {
+      const group = byProvider.get(candidate.provider) ?? [];
+      const seen = new Set(group.map(model => model.id));
+      if (!seen.has(candidate.id)) group.push({ provider: candidate.provider, id: candidate.id, name: candidate.name,
+        reasoning: candidate.reasoning, efforts });
+      byProvider.set(candidate.provider, group);
+    }
+    return {
+      default: { provider: current.provider, model: current.id,
+        ...(state.thinkingLevel === undefined ? {} : { reasoningEffort: state.thinkingLevel }) },
+      routableProviders: [...byProvider.keys()],
+      groups: [...byProvider].map(([id, group]) => ({ id, name: id, models: group.map(model => ({
+        id: model.id, name: model.name, ...(model.efforts.length === 0 ? {} : { reasoning: { efforts: model.efforts } }),
+      })) })),
+      failures: [],
+    };
+  }
+  /** Apply a stock model choice to the presented or addressed native Session. */
+  async stockSelectModel(request: { sessionId: string; provider: string; model: string; reasoningEffort?: string }): Promise<unknown> {
+    const identity = this.identity();
+    const listed = await this.options.supervisor.listed(identity);
+    const view = listed?.view.registration.nativeSessionId === request.sessionId
+      ? listed.view : await this.nativeOpen(request.sessionId);
+    const runtime = this.runtime(identity, view.workerId);
+    const state = await runtime.worker.state(); this.identity();
+    if (!nativeSettled(state)) throw new RemoteError("session/agent-busy", "Stop the current turn before changing the model.", { reason: "busy" });
+    const models = await runtime.worker.models(); this.identity();
+    const selected = models.find(model => model.provider === request.provider && model.id === request.model);
+    if (!selected) throw new RemoteError("session/model-unavailable",
+      "This provider model is not available in the native Session.", { provider: request.provider, model: request.model });
+    await runtime.worker.selectModel(selected.provider, selected.id); this.identity();
+    if (request.reasoningEffort !== undefined) {
+      const levels = await runtime.worker.thinkingLevels(); this.identity();
+      if (!levels.includes(request.reasoningEffort as (typeof levels)[number])) {
+        throw new RemoteError("session/model-unavailable", "This reasoning effort is not available for the selected model.",
+          { provider: request.provider, model: request.model });
+      }
+      await runtime.worker.setThinkingLevel(request.reasoningEffort as (typeof levels)[number]); this.identity();
+    }
+    try { await this.options.supervisor.refreshPresentation(identity, view.workerId, view.registration.nativeSessionId); } catch { /* next open rebuilds */ }
+    return { selected: { provider: selected.provider, model: selected.id,
+      ...(request.reasoningEffort === undefined ? {} : { reasoningEffort: request.reasoningEffort }) } };
   }
   @Remote("view") view(workerId: string) { return publicView(this.options.supervisor.view(this.identity(), workerId)); }
   @Remote("current") async current() {

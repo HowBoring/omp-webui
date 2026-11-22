@@ -10,12 +10,15 @@ import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import type { ServerWebSocket } from "bun";
 import { join, resolve } from "node:path";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
+import { TYPERT } from "@deepseek-ai/dsh-api-workspace-controller/typert";
+import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor, type DirectLaunchOptions, type OwnedLaunchOptions } from "../../../packages/sessions/supervisor.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
+import { StockWorkspaceService } from "../../../packages/workspaces/stock-service.ts";
 import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
   chatMethods, isSuccessfulSessionReply, preferenceMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
@@ -42,9 +45,10 @@ import { HistoryNavigationSource } from "../../../packages/history-navigation-so
 import { createNavigationPorts } from "./navigation-ports.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 import { originalHistoryResponse } from "./original-history.ts";
-const streams = new Set(["$events", "session/follow", "session/control"]);
+const streams = new Set(["$events", "session/follow", "session/control", "workspace/follow", "remoteAccess/follow"]);
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
-  "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
+  "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections",
+  "/api/session/create"]);
 import type { CatalogClient } from "../../../packages/contracts/generated/catalog-client.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
 import { trustedDiagnosticAssets, trustedProductAssets } from "../../../packages/compatibility/assets.ts";
@@ -104,6 +108,10 @@ export async function startSessionComponentServer(options: Options) {
     model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors.filter(method =>
       !(options.chat && (promptDescriptor && method.id === promptDescriptor.id
         || cancelDescriptor && method.id === cancelDescriptor.id))) });
+  const workspaceContribution = TYPERT as unknown as TypertContribution;
+  // Workspace verbs only: the stock directory picker stays unserved rather than inventing a native dialog.
+  ctx.typert.register({ ...workspaceContribution, invocations: workspaceContribution.invocations.filter(method =>
+    method.namespace === "workspace") });
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
   new WorkspaceService(ctx, options.catalog, directories, index);
@@ -118,7 +126,8 @@ export async function startSessionComponentServer(options: Options) {
   let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
   let attachmentStore: OriginalStore | undefined;
   let expirySweep: Timer | undefined;
-  let unaryMethods = unary;
+  const stockUnary = ["session/create", "session/modelCatalog", "session/selectModel"];
+  let unaryMethods = new Set([...unary, ...stockUnary]);
   const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
@@ -250,8 +259,11 @@ export async function startSessionComponentServer(options: Options) {
       attachmentStore?.inheritBranchLinks(previous.sessionId, previous.instanceId, native.sessionId, native.instanceId, entryIds);
     },
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
-  new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
-  new SessionPresentationService(ctx, supervisor);
+  let stockWorkspaces: StockWorkspaceService;
+  const sessionsService = new SessionsService(ctx, { authority: access, grants: directories, index,
+    catalog: options.catalog, supervisor, workspacePath: id => stockWorkspaces.pathOf(id) });
+  new SessionPresentationService(ctx, supervisor, sessionsService, () => stockWorkspaces?.changed());
+  stockWorkspaces = new StockWorkspaceService(ctx, directories, sessionsService, supervisor);
   if (options.chat) {
     ctx.typert.register({ ...chatHostContribution, invocations: [...chatHostContribution.invocations,
       ...(promptDescriptor ? [{ ...promptDescriptor, service: "chatPrompt" }] : []),
@@ -305,7 +317,7 @@ export async function startSessionComponentServer(options: Options) {
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
       (_request, identity) => runtime.enrollment(identity), identity => runtime.stopBinding(identity),
       identity => runtime.retryBinding(identity)) };
-    unaryMethods = new Set([...unary, ...Object.keys(preferenceMethods),
+    unaryMethods = new Set([...unary, ...stockUnary, ...Object.keys(preferenceMethods),
       "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }
   const detachRevocation = access.onRevokeAll(() => {
