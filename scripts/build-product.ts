@@ -1,13 +1,8 @@
-import { buildClient } from "../apps/chat/build.ts";
+import { buildProductClient } from "./build-product-client.ts";
 
+/** Compose the served product tree: stock DSH shell, audited roster, enrolled boot graph. */
 export async function buildProduct(outdir = "vendor/dsh-product"): Promise<void> {
-  await buildClient({
-    outdir,
-    kind: "product",
-    title: "OMP WebUI",
-    entry: "src/product-entry.tsx",
-    naming: { entry: "client.[ext]", chunk: "chunk-[hash].[ext]" },
-  });
+  await buildProductClient({ outdir });
 }
 
 if (import.meta.main) await buildProduct();

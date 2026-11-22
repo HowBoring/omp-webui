@@ -88,6 +88,10 @@ export async function startSessionComponentServer(options: Options) {
   const staticAssets = options.product
     ? await trustedProductAssets(options.manifest, assets, options.expectedIdentity ?? "")
     : await trustedDiagnosticAssets(options.manifest, assets, options.expectedIdentity);
+  /** Request target → enrolled file, from the frozen route table the product build emitted. */
+  const routes = options.product
+    ? new Map(Object.entries(JSON.parse(new TextDecoder().decode(await staticAssets.bytes("plugins/routes.json"))) as Record<string, string>))
+    : undefined;
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);
   await ctx.plugin(TypertGatewayService, {});
@@ -190,8 +194,12 @@ export async function startSessionComponentServer(options: Options) {
           stage: options.product ? "product" : "isolated-session-component",
           sessionAdmission: options.product ? "admitted" : "blocked" });
       }
-      if (request.method !== "GET" || !["/", "/client.js"].includes(path)) return new Response("Not found", { status: 404 });
-      return staticAssets.response(path === "/" ? "index.html" : "client.js");
+      if (request.method !== "GET") return new Response("Not found", { status: 404 });
+      const target = path + new URL(request.url).search;
+      const enrolled = path === "/" ? "index.html" : routes?.get(target) ?? routes?.get(decodeURI(target))
+        ?? (path === "/client.js" ? "client.js" : undefined);
+      if (enrolled === undefined) return new Response("Not found", { status: 404 });
+      return staticAssets.response(enrolled);
     },
     websocket: {
       maxPayloadLength: 16_384, idleTimeout: 60,
