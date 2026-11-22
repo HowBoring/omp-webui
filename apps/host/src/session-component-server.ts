@@ -16,6 +16,7 @@ import { sessionsHostContribution } from "../../../packages/contracts/sessions.t
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor, type DirectLaunchOptions, type OwnedLaunchOptions } from "../../../packages/sessions/supervisor.ts";
+import { sessionStatusEvents } from "../../../packages/sessions/status-events.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import { StockWorkspaceService } from "../../../packages/workspaces/stock-service.ts";
@@ -118,7 +119,7 @@ export async function startSessionComponentServer(options: Options) {
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
   new WorkspaceService(ctx, options.catalog, directories, index);
-  const unregister = ctx.typertGateway.registerRemoteEvents(idle, { home: "/" });
+  let unregister: (() => Promise<void>) | undefined;
   const peers = new Set<Peer>();
   const sockets = new Set<ServerWebSocket<SocketData>>();
   const owner = new Peer(ctx, { principal: { kind: "owner" } });
@@ -269,6 +270,8 @@ export async function startSessionComponentServer(options: Options) {
       attachmentStore?.inheritBranchLinks(previous.sessionId, previous.instanceId, native.sessionId, native.instanceId, entryIds);
     },
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
+  unregister = ctx.typertGateway.registerRemoteEvents(
+    sessionStatusEvents(listener => supervisor.subscribeStatus(listener)), { home: "/" });
   let stockWorkspaces: StockWorkspaceService;
   const sessionsService = new SessionsService(ctx, { authority: access, grants: directories, index,
     catalog: options.catalog, supervisor, workspacePath: id => stockWorkspaces.pathOf(id) });
@@ -356,7 +359,7 @@ export async function startSessionComponentServer(options: Options) {
       interactionBroker?.close();
       await draining; directories.close(); index.close();
       for (const socket of sockets) socket.close(1001, "Host shutdown");
-      await unregister();
+      await unregister?.();
       await ctx.fiber.dispose();
       await server.stop(true);
     },

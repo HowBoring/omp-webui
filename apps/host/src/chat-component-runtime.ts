@@ -73,7 +73,7 @@ export class ChatComponentRuntime {
   #closed = false;
 
   constructor(private readonly authority: BrowserAuthority, private readonly grants: DirectoryGrants,
-    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view" | "forceWorker">,
+    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view" | "forceWorker" | "statusChanged">,
     private readonly admission: ChatViewAdmission, private readonly gate?: AttachmentSubmissionGate) {}
 
   attach(identity: BrowserAccess, input: ChatAttachment): ChatAttachmentResult | undefined {
@@ -182,7 +182,11 @@ export class ChatComponentRuntime {
       return {
         prepare: input => entry.worker.attachments.prepare(input),
         cancel: preparationId => entry.worker.attachments.cancel(preparationId),
-        submit: input => entry.worker.submissions.submit(input),
+        submit: async input => {
+          const result = await entry.worker.submissions.submit(input);
+          this.supervisor.statusChanged();
+          return result;
+        },
         query: (clientSubmissionId, offset, limit) => entry.worker.submissions.query(clientSubmissionId, offset, limit),
       };
     }
@@ -350,12 +354,14 @@ export class ChatComponentRuntime {
         const offer = retry.offer(view);
         if (offer.status !== "confirmation") throw Error(`RETRY_${offer.reason.toUpperCase()}`);
         await retry.confirm(view, offer.requestId);
+        this.supervisor.statusChanged();
       },
 
       cancel: async () => {
         const page = entry.pages.values().next().value;
-        if (page) { entry.stop.stop(page); this.#refresh(entry, page); return; }
+        if (page) { entry.stop.stop(page); this.supervisor.statusChanged(); this.#refresh(entry, page); return; }
         await worker.control("abort_and_restore_queue");
+        this.supervisor.statusChanged();
       },
       ...(this.gate ? { attachments: {
         has: (requestId: string) => this.gate!.has(requestId),

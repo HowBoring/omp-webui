@@ -4,7 +4,7 @@ import {settledHistoryRecords} from '../../packages/projection/history-records.t
 import type {HistoryItem} from '../../packages/contracts/generated/omp-wire.ts';
 
 const user=(submission?: HistoryItem['submission']):HistoryItem=>({id:'entry-1',parentId:null,kind:'message',
-  active:false,text:'hello',role:'user',timestamp:1_700_000_000_123,...(submission?{submission}:{})});
+  active:false,text:'hello',role:'user',timestamp:'2023-11-14T22:13:20.123Z',...(submission?{submission}:{})});
 
 test('a durable native user row carries its submission causality as the stock rpcId',()=>{
   const records=settledHistoryRecords(user({origin:{sourceId:'source',instanceId:'instance',
