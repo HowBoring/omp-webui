@@ -1,6 +1,6 @@
 # ADR 0005: Reuse the DSH client foundation with explicit OMP navigation policy
 
-- Status: Accepted composition and product scope; public seam and integration unimplemented
+- Status: Accepted composition and product scope; stock product cutover in progress (ticket #63)
 - Date: 2026-11-15
 - Decision: [原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)
 
@@ -26,6 +26,28 @@ identity separately; this is not an already available API or permission to float
 
 The [client composition contract](../client-composition.md) records selected scope and gates. The
 navigation experiment and attachment contract must complete before implementation handoff.
+
+## Served client policy
+
+The Host's history journals are generation-scoped: a native cut change replaces the presented journal,
+and `session/control` announces the new projection. Stock `@deepseek-ai/dsh-api-session-controller`
+defaults to `projectionRebuild: false`, which drops that announcement and leaves the view on
+`openState = 'error'` after the first cut change. The served `WebBootEntry` therefore carries
+`config: { projectionRebuild: true }` for that package (`scripts/build-product-client.ts`,
+`clientConfigs`), verified against the built boot graph. This is a stock option, not a fork.
+
+## Native records on the stock surface
+
+Native log kinds have no arbitrary-event escape hatch: the stock surface event union accepts only
+system/developer/user/assistant/tool result, and Decision 9 of Spec #29 forbids inserting native fields
+into strict envelopes. Records that carry conversation text (custom messages, file mentions,
+compaction/branch/reset boundaries) therefore project as one stock `user/message` with their exact text
+and file list. Records that only record bookkeeping (`model_usage`, `thinking_level_change`,
+`model_change`, `service_tier_change`, `title_change`, `session_init`, `mode_change`, `credential_pin`,
+`ttsr_injection`, `label`) are explicitly omitted; the same projections expose that state through their
+own surfaces. A record the native side marks hidden (`display: false`) stays hidden. Any other kind or
+role raises `live_native_record_unsupported` rather than emitting an unknown surface event, so an
+unmapped native feature is a typed compatibility failure instead of a silent skip.
 
 ## Semantic draft package
 
