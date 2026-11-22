@@ -276,6 +276,16 @@ async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
     raise TimeoutError("session nodes did not render before timeout")
 
 
+async def settle(page):
+    """A reload aborts whatever the current document still has in flight, and the browser reports each aborted
+    request as a console error. Wait for the document to go idle first so every sample measures a reload of a
+    settled page instead of its own navigation aborts."""
+    try:
+        await page.wait_for_load_state("networkidle", timeout=5000)
+    except TimeoutError:
+        pass
+
+
 async def count_at_least(locator, minimum):
     return await locator.count() >= minimum
 
@@ -417,12 +427,26 @@ async def chat_run(browser_args, product=False):
             page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
             if os.environ.get("OMP_PERF_DEBUG"):
                 await page.add_init_script("globalThis.__OMP_CHAT_DEBUG__ = true")
+            # Console errors count only while the measurement is running. Once the last sample is taken the page is
+            # torn down (browser and Host close), and a connection reset during that teardown is not a measured
+            # failure; it is recorded as teardown fault text so the run stays auditable.
+            measuring = {"open": True}
+            teardown_errors = []
             async def log_console(message):
                 if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
                     print("PRODUCT_CONSOLE", message.text, flush=True)
                 if message.type == "error" and "404" not in message.text:
-                    errors.append(f"console: {message.text}")
+                    if measuring["open"]:
+                        errors.append(f"console: {message.text}")
+                    else:
+                        teardown_errors.append(f"console: {message.text}")
+                    if os.environ.get("OMP_PERF_DEBUG"):
+                        print(f"PRODUCT_CONSOLE_ERROR measuring={measuring['open']} {message.location} {message.text}", flush=True)
             page.on("console", lambda message: asyncio.create_task(log_console(message)))
+            if os.environ.get("OMP_PERF_DEBUG"):
+                page.on("requestfailed", lambda request: print(f"REQUEST_FAILED {request.failure} {request.url}", flush=True))
+                page.on("response", lambda response: print(f"MUX_RESPONSE {response.status} {response.url}", flush=True)
+                    if "remote.mux" in response.url else None)
             first, old = [], []
             rows = 0
             try:
@@ -454,6 +478,7 @@ async def chat_run(browser_args, product=False):
                     await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
                     await session_ready(page, timeout)
                 for index in range(WARMUPS + SAMPLES):
+                    await settle(page)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
@@ -481,6 +506,7 @@ async def chat_run(browser_args, product=False):
                     stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
+                    await settle(page)
                     await page.reload(wait_until="domcontentloaded")
                     await reopen(CHAT_TIMEOUT_MS)
                 reach_started = time.perf_counter()
@@ -545,6 +571,7 @@ async def chat_run(browser_args, product=False):
                     "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
                 stage(f"reachability={reachability}")
             finally:
+                measuring["open"] = False
                 sampler.stop()
                 await sampling
                 peak = sampler.report()
@@ -558,6 +585,7 @@ async def chat_run(browser_args, product=False):
             "firstPage": summarize(f"{kind}-first-page", first + [cold_open_ms], CATALOG_P95_MS, peak["hostPeakMiB"], errors),
             "oldPage": summarize(f"{kind}-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
             "rss": peak,
+            "teardownConsoleErrors": teardown_errors,
         }
         if product:
             result["productAdmission"] = startup

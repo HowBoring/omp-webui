@@ -217,6 +217,19 @@ test("replacing the actual cwd under an overlapping parent grant immediately den
   } finally { await f.close(); }
 }, 30_000);
 
+test("a concurrent sweep awaits the stop it joined instead of reporting an empty exit", async () => {
+  const f = await fixture();
+  try {
+    f.grants.confirm(f.grants.preview(f.home).confirmation);
+    await f.supervisor.open(f.identity, f.selected);
+    await rename(f.cwd, f.cwd + ".selected"); await mkdir(f.cwd);
+    const stopping = f.supervisor.permissionsChanged();
+    await f.supervisor.permissionsChanged();
+    expect(f.supervisor.exits()[0]?.reason).toBe("directory-revoked");
+    await stopping;
+  } finally { await f.close(); }
+}, 30_000);
+
 test("repeated Open rechecks native ownership and makes an active instance replacement explicit without a second worker", async () => {
   const f = await fixture();
   try {

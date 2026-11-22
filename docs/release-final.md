@@ -59,13 +59,13 @@ or claiming tuple reproduction, which remains local.
 | Windows Chrome (real Win32 browser) shell, admission, console | PASS | `ticket-61-platforms.json` `windowsChrome` |
 | Windows input (keyboard, menus, file input) | PASS; CDP drop not surfaced, OS clipboard/Explorer drag unavailable | `ticket-61-platforms.json` `windowsChrome.inputInjection`; `docs/evidence/ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS, 6/6 checks | `ticket-61-native-data.json` + `.md` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 2670.8 ms, old page P95 426.8 ms, Host peak RSS 325.2 MiB, reachability complete | `tests/product/evidence/performance-2026-11-22-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 2772.0 ms, old page P95 324.6 ms, Host peak RSS 344.4 MiB, reachability complete | `tests/product/evidence/performance-2026-11-22-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The performance record was produced by this build on the recorded combination: 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page samples (1 warmup + 30 measured),
-reachability 45 steps / 9905 nodes with `allNativeReachable: true`, and
+reachability 45 steps / 9910 nodes with `allNativeReachable: true`, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in
 `tests/product/evidence/performance-corpus-2026-11-22.json`.

@@ -24,10 +24,10 @@ const SEED = "omp-webui-s5-performance-v1";
 /** Sessions carry the corpus project path because the gate grants exactly `<corpus>/project` and its
  * descendants, so the list only shows Sessions inside it. Digests tokenize the checkout prefix:
  * `canonical` is the cross-checkout identity, the on-disk bytes are per-checkout. */
-const CHECKOUT_TOKEN = "<checkout>";
+const CWD_TOKEN = "<corpus>/project";
 /** The only checkout-specific bytes are the corpus project path, which every Session records as its cwd. */
 const canonical = (contents: string, home: string): string =>
-	contents.replaceAll(join(home, "project"), "<corpus>/project");
+	contents.replaceAll(join(home, "project"), CWD_TOKEN);
 
 type Json = Record<string, unknown>;
 
@@ -163,8 +163,8 @@ async function main(): Promise<void> {
 			canonicalSha256: sha256(Buffer.from(canonicalBody)),
 			typeDistribution: normalized.distribution,
 		},
-		canonicalization: { checkoutToken: CHECKOUT_TOKEN,
-			note: "Recorded digests and byte counts tokenize this checkout's path; on-disk sessions keep it because the Host only lists granted directories." },
+		canonicalization: { token: CWD_TOKEN,
+			note: "Canonical fields replace the corpus project path (every Session's cwd) with <corpus>/project and are the reproducible identity. Raw bytes/sha256 are the payload as written in this checkout, because the gate grants the corpus project directory and the product lists only granted directories." },
 		home,
 		createdAt: new Date().toISOString(),
 	};

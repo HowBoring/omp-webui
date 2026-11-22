@@ -914,7 +914,9 @@ export class SessionSupervisor {
   }
   /** Recompute overlapping root grants. Browser logout withdraws only that browser's view/answer rights. */
   async permissionsChanged(): Promise<void> {
-    const active = this.#active; if (!active || active.stopping || active.released) return;
+    const active = this.#active; if (!active || active.released) return;
+    // A sweep that joins an in-flight stop must observe its exit, not return while the drain is still running.
+    if (active.stopping) { await active.stopping; return; }
     let authorized = false;
     try { authorized = this.options.grants.authorize(active.cwd, active.cwd).status === "authorized"
       && directoryIdentity(active.cwd) === active.cwdIdentity; } catch {}
