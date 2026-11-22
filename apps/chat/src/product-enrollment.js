@@ -138,6 +138,7 @@ function apply(ctx, require) {
     reference = undefined;
     attached = undefined;
     generation = undefined;
+    attachedProjection = undefined;
   };
 
   const waitReady = async binding => {
@@ -150,6 +151,10 @@ function apply(ctx, require) {
     throw new Error("Session projection is not ready");
   };
 
+  // attach() reports the worker generation, not the projection generation, so renew
+  // against the projection identity actually attached instead of that result.
+  const projectionKey = projection => `${projection.source}\u0000${projection.generation}`;
+  let attachedProjection;
   const attach = async binding => {
     const projection = await waitReady(binding);
     if (!projection) throw new Error("Session projection is not ready");
@@ -157,6 +162,7 @@ function apply(ctx, require) {
       workerId: attachedWorker, projection: { source: projection.source, generation: projection.generation }, draftId,
     }));
     generation = result.generation;
+    attachedProjection = projectionKey(projection);
     debug("attached", { sessionId: result.sessionId, generation: result.generation });
   };
 
@@ -184,12 +190,15 @@ function apply(ctx, require) {
     const binding = attached;
     unsubscribeProjection = binding.projection.subscribe(() => {
       const state = binding.projection.getSnapshot();
-      if (state.phase !== "ready" || state.binding.generation === generation) return;
+      if (state.phase !== "ready" || projectionKey(state.binding) === attachedProjection) return;
       const nextState = state.binding;
       void remote.ompChatComponent.attach({
         workerId: attachedWorker, projection: { source: nextState.source, generation: nextState.generation }, draftId,
-      }).then(result => { generation = unwrap(result).generation; debug("renewed", { generation }); },
-        error => debug("renew-failed", { error: failureText(error) }));
+      }).then(result => {
+        generation = unwrap(result).generation;
+        attachedProjection = projectionKey(nextState);
+        debug("renewed", { generation });
+      }, error => debug("renew-failed", { error: failureText(error) }));
     });
   };
 
