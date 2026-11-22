@@ -2,6 +2,8 @@ import type { Context } from "@deepseek-ai/cordis";
 import { type Peer, clientRequestSchema } from "@deepseek-ai/dsh-client-connection";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
 import { z } from "zod";
+import { TYPERT as workspaceTypert } from "@deepseek-ai/dsh-api-workspace-controller/typert";
+import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import type { BrowserAccess } from "../../../packages/access/index.ts";
 import { chatRequestFailure } from "../../../packages/chat/service.ts";
 import { chatContribution } from "../../../packages/contracts/chat.ts";
@@ -23,6 +25,16 @@ import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admissio
 
 export const preferenceMethods = Object.fromEntries(preferencesHostContribution.invocations
   .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
+/**
+ * The stock Workspace surface is part of the product shell, so its verbs are dispatched here too.
+ * The Host service enforces directory grants and session ownership; only the `workspace` namespace
+ * is registered, so the native directory picker stays unserved instead of inventing a dialog.
+ */
+const workspaceContribution = workspaceTypert as unknown as TypertContribution;
+/** Stock Workspace unary verbs; streams and the distinguished directory picker stay unserved. */
+export const workspaceUnary = new Set(workspaceContribution.invocations
+  .filter(descriptor => descriptor.namespace === "workspace" && descriptor.mode !== "stream")
+  .map(descriptor => `${descriptor.namespace}/${descriptor.method}`));
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods, ...preferenceMethods,
   "ompTree/read": treeContribution.methods["ompTree/read"],
   "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
@@ -33,7 +45,7 @@ const treeUnary = new Set(["ompTree/read"]);
 const navigationUnary = new Set(["ompHistoryNavigationSource/action"]);
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
   "session/create", "session/modelCatalog", "session/selectModel",
-  "ompChatComponent/attach", ...Object.keys(preferenceMethods)]);
+  "ompChatComponent/attach", ...Object.keys(preferenceMethods), ...workspaceUnary]);
 export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
   "session/cancel": sessionContribution.methods["session/cancel"],
@@ -125,13 +137,18 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const data = scoped ? await readChatRequestBody(request, chat?.signal ?? request.signal, authority, original)
       : await request.json();
     const envelope = clientRequestSchema.parse(data);
-    const method = Object.entries(chat ? chatMethods : methods ?? sessionMethods).find(([name]) => name === envelope.method)?.[1];
-    if (!method || (!scoped && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
+    const workspace = workspaceUnary.has(envelope.method);
+    const method = workspace ? undefined
+      : Object.entries(chat ? chatMethods : methods ?? sessionMethods).find(([name]) => name === envelope.method)?.[1];
+    if ((!method && !workspace) || (!scoped && !sessionUnary.has(envelope.method) && !treeUnary.has(envelope.method) && !navigationUnary.has(envelope.method))
       || new URL(request.url).pathname !== `/api/${envelope.method}`) throw new Error("endpoint mismatch");
     const payload = z.record(z.string(), z.unknown()).parse(envelope.payload);
     // The OMP client wraps arguments in `{args}`; stock DSH callers post them directly.
     const wrapped = z.object({ args: z.record(z.string(), z.unknown()) }).safeParse(payload);
-    const args = z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(wrapped.data?.args ?? payload));
+    const raw = wrapped.data?.args ?? payload;
+    // Stock Workspace args are validated against the registered descriptor by the gateway itself.
+    const args = method === undefined ? z.record(z.string(), z.unknown()).parse(raw)
+      : z.record(z.string(), z.unknown()).parse(method.input({ strict: true }).create().parse(raw));
     decoded = { envelope, method, args };
   } catch (error) {
     if (scoped) {
@@ -147,7 +164,9 @@ async function dispatch(request: Request, ctx: Context, peer: Peer, authority: (
     const signal = chat?.signal ?? request.signal;
     signal.throwIfAborted();
     if (!current()) return invalidated();
-    const invoke = () => ctx.typertGateway.invoke({ namespace: method.namespace, method: method.method, args, peer, signal });
+    const [namespace, name] = method === undefined ? envelope.method.split("/", 2) as [string, string]
+      : [method.namespace, method.method];
+    const invoke = () => ctx.typertGateway.invoke({ namespace, method: name, args, peer, signal });
     const value = await (chat ? chat.run(() => stop ? stopCaller.run(stop, invoke) : invoke()) : invoke());
     if (chat && !current()) return invalidated();
     const response = Response.json({ type: "server-response", rpcId: envelope.rpcId, result: { ok: true, value } }, options);
