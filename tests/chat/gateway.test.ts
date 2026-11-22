@@ -106,6 +106,19 @@ test("an attachment attempt is handed to the gate, never resubmitted as text", a
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
 });
 
+test("the stock Continue generating prompt retries through the manual-retry gate, not a new turn", async () => {
+  const f = fixture();
+  let retried = 0;
+  f.ports.retry = async () => { retried++; };
+  expect(await f.gateway.prompt(f.peer, prompt("request-continue", "   "), new AbortController().signal))
+    .toEqual({ accepted: true });
+  expect(retried).toBe(1);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+  const bare = fixture();
+  await expect(bare.gateway.prompt(bare.peer, prompt("request-continue", ""), new AbortController().signal))
+    .rejects.toThrow("chat_invalid");
+});
+
 test("a busy native Session refuses an attachment Send before preparing, queueing, or submitting", async () => {
   const f = fixture();
   let submitted = 0;
