@@ -1,6 +1,7 @@
 # DSH 客户端组合与能力合同目标
 
-Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过，最终产品构建与集成仍待验证。
+Status: 用户已确认组合方向和产品范围；公开接缝隔离实验已通过。stock 产品外壳已服务并由真实浏览器验证
+（首屏历史可恢复、无未知 surface 事件）；OMP 特性模块/slot 与旧自定义 Shell 的删除仍在进行中。
 
 日期：2026-11-15。决策：[原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)。
 取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。同 Session 多持有者重建在保留执行 scope 内采用窄公开投影生命周期，见 [ADR 0015](adr/0015-retain-execution-replace-projection.md)；复用现有 Conversation 窗口替换，无第二套 assembler。
