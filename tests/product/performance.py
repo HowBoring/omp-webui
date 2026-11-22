@@ -5,7 +5,7 @@ Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/
 `catalog` and `chat` measure isolated component Hosts. `product` measures the product Host
 (apps/host/src/main.ts) against the enrolled installation; only `product` is product measurement.
 """
-import argparse, asyncio, hashlib, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
+import argparse, asyncio, hashlib, inspect, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from statistics import median
 
@@ -29,6 +29,7 @@ CATALOG_P95_MS = 3000.0
 OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
 CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
+SETTLE_TIMEOUT_MS = int(os.environ.get("OMP_PERF_SETTLE_TIMEOUT_MS", "5000"))
 REACH_STEP_MS = int(os.environ.get("OMP_PERF_REACH_STEP_MS", "30000"))
 
 
@@ -276,14 +277,62 @@ async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
     raise TimeoutError("session nodes did not render before timeout")
 
 
+def classify_console_error(text, measuring_open, errors, teardown_errors):
+    """Classify one console error where playwright dispatched it.
+
+    A message that arrives while the measurement is open failed the sample; only an error that arrives after the
+    final sample is teardown fault.
+    """
+    if "404" in text:
+        return
+    (errors if measuring_open else teardown_errors).append(f"console: {text}")
+
+
+def console_handler(errors, teardown_errors, measuring, position=lambda: ""):
+    """Build the console listener. It must stay synchronous: a coroutine listener would run as a scheduled task and
+    could read the flag after the measurement already closed."""
+
+    def log_console(message):
+        if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
+            print("PRODUCT_CONSOLE", message.text, flush=True)
+        if message.type != "error":
+            return
+        classify_console_error(message.text, measuring["open"], errors, teardown_errors)
+        if os.environ.get("OMP_PERF_DEBUG"):
+            print(f"PRODUCT_CONSOLE_ERROR measuring={measuring['open']} {position()} {message.text}", flush=True)
+
+    return log_console
+
+
+def console_classification_self_check():
+    """An error emitted immediately before measurement close stays fatal, and the listener runs at dispatch."""
+    measuring = {"open": True}
+    errors, teardown_errors = [], []
+    handler = console_handler(errors, teardown_errors, measuring)
+
+    class Message:
+        type = "error"
+        text = "WebSocket connection to 'ws://localhost/api/remote.mux' failed"
+
+    handler(Message())  # last console event of the measurement
+    measuring["open"] = False
+    handler(Message())  # the same error during teardown
+    assert errors == [f"console: {Message.text}"], errors
+    assert teardown_errors == [f"console: {Message.text}"], teardown_errors
+    assert not inspect.iscoroutinefunction(handler), "console listener must run at dispatch, not as a task"
+    ignored = []
+    classify_console_error("Failed to load resource: 404", True, ignored, [])
+    assert ignored == [], ignored
+
+
 async def settle(page):
-    """A reload aborts whatever the current document still has in flight, and the browser reports each aborted
-    request as a console error. Wait for the document to go idle first so every sample measures a reload of a
-    settled page instead of its own navigation aborts."""
-    try:
-        await page.wait_for_load_state("networkidle", timeout=5000)
-    except TimeoutError:
-        pass
+    """Wait until the document is idle before the sampled reload.
+
+    A reload discards whatever the current document still has in flight, and the browser reports each aborted
+    request as a console error. Waiting for network idle first keeps each sample measuring a reload of a settled
+    page rather than its own navigation aborts; a document that never goes idle fails the sample.
+    """
+    await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT_MS)
 
 
 async def count_at_least(locator, minimum):
@@ -427,22 +476,29 @@ async def chat_run(browser_args, product=False):
             page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
             if os.environ.get("OMP_PERF_DEBUG"):
                 await page.add_init_script("globalThis.__OMP_CHAT_DEBUG__ = true")
+            # The strict UI carries the Session over one websocket. A socket is reported only after its handshake,
+            # so a message about a handshake that never completed belongs to an attempt playwright never saw.
+            sockets = []
+            def track_socket(socket):
+                if not socket.url.endswith("/api/remote.mux"):
+                    return
+                sockets.append(socket)
+                if os.environ.get("OMP_PERF_DEBUG"):
+                    print(f"WS_OPEN {socket.url} first={len(first)} old={len(old)}", flush=True)
+                    socket.on("socketerror", lambda error: print(
+                        f"WS_ERROR {socket.url} first={len(first)} old={len(old)} error={error}", flush=True))
+                    socket.on("close", lambda _socket: print(f"WS_CLOSE {socket.url}", flush=True))
+            page.on("websocket", track_socket)
             # Console errors count only while the measurement is running. Once the last sample is taken the page is
             # torn down (browser and Host close), and a connection reset during that teardown is not a measured
-            # failure; it is recorded as teardown fault text so the run stays auditable.
+            # failure; it is recorded as teardown fault text so the run stays auditable. The listener is a plain
+            # synchronous function: playwright dispatches console events synchronously, so the flag is read at
+            # dispatch time and an error emitted just before the final sample cannot be re-classified as teardown
+            # by a task that happens to run after the measurement closes.
             measuring = {"open": True}
             teardown_errors = []
-            async def log_console(message):
-                if os.environ.get("OMP_PERF_DEBUG") and message.text.startswith("OMP_CHAT "):
-                    print("PRODUCT_CONSOLE", message.text, flush=True)
-                if message.type == "error" and "404" not in message.text:
-                    if measuring["open"]:
-                        errors.append(f"console: {message.text}")
-                    else:
-                        teardown_errors.append(f"console: {message.text}")
-                    if os.environ.get("OMP_PERF_DEBUG"):
-                        print(f"PRODUCT_CONSOLE_ERROR measuring={measuring['open']} {message.location} {message.text}", flush=True)
-            page.on("console", lambda message: asyncio.create_task(log_console(message)))
+            page.on("console", console_handler(errors, teardown_errors, measuring,
+                                               lambda: f"first={len(first)} old={len(old)}"))
             if os.environ.get("OMP_PERF_DEBUG"):
                 page.on("requestfailed", lambda request: print(f"REQUEST_FAILED {request.failure} {request.url}", flush=True))
                 page.on("response", lambda response: print(f"MUX_RESPONSE {response.status} {response.url}", flush=True)
@@ -662,6 +718,7 @@ def self_check():
     evidence_with_latency = evidence({"allNativeReachable": False})
     evidence_with_latency["classes"][0]["firstPage"] = failed
     assert run_verdict(evidence_with_latency) == (["product"], ["product"])
+    console_classification_self_check()
     print("performance exit self-check ok")
 
 

@@ -65,7 +65,7 @@ or claiming tuple reproduction, which remains local.
 
 The performance record was produced by this build on the recorded combination: 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page samples (1 warmup + 30 measured),
-reachability 45 steps / 9910 nodes with `allNativeReachable: true`, and
+reachability 45 steps / 9945 nodes with `allNativeReachable: true`, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in
 `tests/product/evidence/performance-corpus-2026-11-22.json`.
