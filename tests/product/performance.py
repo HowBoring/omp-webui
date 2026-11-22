@@ -678,7 +678,12 @@ async def main():
                                   "s0-controlled/deterministic-live; deterministic fixture, not real model inference",
             "runtime": "see corpus.json",
         },
-        "corpus": {"seed": manifest["seed"], "limits": manifest["limits"], "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256")}, "history": {key: manifest["history"][key] for key in ("entries", "bytes", "sha256", "typeDistribution")}},
+        "corpus": {"seed": manifest["seed"], "generator": manifest["generator"].get("sha256"),
+                   "limits": manifest["limits"],
+                   "canonicalization": manifest.get("canonicalization"),
+                   "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256", "canonicalFilesSha256")},
+                   "history": {key: manifest["history"][key] for key in
+                               ("entries", "bytes", "sha256", "canonicalBytes", "canonicalSha256", "typeDistribution")}},
         "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]", "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM", "chatJournalLimitBytes": int(os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"))},
         "limits": {"firstPageP95Ms": CATALOG_P95_MS, "oldPageP95Ms": OLD_PAGE_P95_MS, "hostPeakMiB": HOST_RSS_MIB},
         "classes": [],

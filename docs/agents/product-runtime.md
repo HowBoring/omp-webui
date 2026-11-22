@@ -38,6 +38,10 @@ bun run product:build
 bun run product:verify
 bun run product:enroll
 OMP_PERF_DEBUG=1 python -u tests/product/performance.py --class product --samples 0
+
+# Final 4 CPU / 8 GiB gate (memory.max is read from the cgroup, so the cap is recorded, not asserted)
+systemd-run --user --scope -p MemoryMax=8G --quiet \
+  taskset -c 0-3 uv run --with playwright python -u tests/product/performance.py --class product --samples 30
 ```
 
 `--samples 0` exercises cold open and older-page reachability without producing an accepted performance
@@ -64,9 +68,13 @@ The raw `vendor/product/installation.json` bytes still contain the concrete chec
 admission executes.
 
 The performance corpus is authoring-only: `bun scripts/create-performance-corpus.ts` writes
-`vendor/performance-fixture` with pinned ids, timestamps and session cwd, so two runs of the same
-generator produce identical catalog and history digests (`tests/product/evidence/performance-corpus-2026-11-22.json`
-records the frozen one). A seed only compares against the same `generator.sha256`.
+`vendor/performance-fixture` with pinned ids and timestamps and one session cwd — the corpus `project`
+directory the gate grants, since the product lists only granted directories. Two runs of the same generator
+in different directories therefore differ in raw bytes; the recorded identity replaces that path with
+`<corpus>/project` (`canonicalFilesSha256`, `canonicalBytes`, `canonicalSha256`) and `bytes`/`sha256` stay
+the actual serialised payload (`tests/product/evidence/performance-corpus-2026-11-22.json` records the
+frozen one, generator `33626c5d…20dcd3`). A seed only compares against the same `generator.sha256`, and a
+reproducibility claim applies to the canonical fields, never to `bytes`/`sha256`.
 
 Host environment: `OMP_WEB_MANIFEST`, `OMP_WEB_LAUNCHER`, `OMP_WEB_MANIFEST_SHA256` (all required),
 `OMP_WEB_PORT` (3180), `OMP_WEB_ORIGIN`, `OMP_WEB_DATA_DIR` (`~/.local/share/omp-webui`),

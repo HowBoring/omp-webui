@@ -15,7 +15,7 @@ export function fixtureCandidatePath(candidate: FixtureCandidate): string {
   }
   throw Error("FIXTURE_CANDIDATE_UNSUPPORTED");
 }
-export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, leaseDirectory?: string, trace?: string, requestTimeoutMs = 10_000, candidate: FixtureCandidate = "baseline") {
+export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = [], ordinaryFile?: string, fault?: { name: string; target: string }, leaseDirectory?: string, trace?: string, requestTimeoutMs = 20_000, candidate: FixtureCandidate = "baseline") {
   if (fault && !existsSync(resolve("vendor/strict-fixture/native-faults.so"))) throw new Error("STRICT_FIXTURE_FAULT_SHIM_MISSING");
   if (!Number.isInteger(requestTimeoutMs) || requestTimeoutMs < 1000 || requestTimeoutMs > 120_000) throw new Error("STRICT_FIXTURE_TIMEOUT_BOUNDS");
   if (trace && !trace.startsWith(home + "/")) throw new Error("STRICT_FIXTURE_TRACE_PATH");
@@ -45,6 +45,8 @@ export function strictWorker(home: string, cwd: string, runtimeArgs: string[] = 
     physical.finish();
   })();
   reader.catch(() => {});
+  // ponytail: the frame bound must dominate real work while the suite runs files in parallel; a true
+  // hang still fails here with STRICT_FIXTURE_TIMEOUT before the per-test bound.
   const wait = async (predicate: (frame: StrictFrame) => boolean): Promise<StrictFrame> => {
     const found = frames.find(predicate); if (found) return found;
     const pending = Promise.withResolvers<StrictFrame>();
