@@ -1,12 +1,19 @@
 name: check
 
+# Source check on a pinned image.
+#
+# This job is NOT the frozen-tuple reproduction. GitHub runners cannot provision the 38-archive
+# native closure (`compatibility/omp/candidates/native-cohort-38/stage-strict-runtime.py`), so no
+# step here may claim tuple reproduction: the final tuple is the locally recorded combination in
+# docs/release-final.md and docs/evidence/ticket-61-freeze.json. The navigation boundary is fully
+# pinned, so it is staged and byte-compared here; a checkout that cannot stage it fails.
 on:
   push:
   pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  source-check:
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
@@ -19,10 +26,30 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun scripts/prepare-compatibility.ts
       - run: bun run compat:build
-      - run: bun scripts/build-continuation-fixtures.ts
       - run: bun run dsh:prepare
       - run: bun run dsh:link
+      - name: Stage navigation fixtures from checked-in pins
+        run: bun apps/navigation-fixture/build.ts && bun scripts/build-navigation-host.ts
       - run: bun run product:build
-      - run: bun run product:enroll
-      - run: bun run check
-      - run: bun run product:verify
+      - name: Lint, typecheck and build authored source
+        run: bun run lint && bun run typecheck && bun run build
+      - name: Navigation contract and staged-asset byte compare
+        run: bun test tests/navigation tests/history-navigation-contract tests/history-navigation-source
+      - name: Report native closure incompatibility
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          strict = pathlib.Path("vendor/omp-strict/packages/natives/native")
+          record = {
+              "status": "SOURCE_CHECK_ONLY",
+              "image": "ubuntu-24.04",
+              "nativeClosure": "present" if strict.is_dir() else "absent",
+              "frozenTupleReproduction": "not-attempted",
+              "reason": "GitHub runners cannot provision the 38-archive native closure; the frozen "
+                        "tuple stays the local recorded combination in docs/release-final.md",
+              "evidence": "docs/evidence/ticket-61-freeze.json",
+          }
+          print(json.dumps(record))
+          if strict.is_dir():
+              raise SystemExit("this job must not claim the tuple; move it to the local acceptance run")
+          PY

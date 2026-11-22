@@ -70,3 +70,84 @@ test('a lease renewed after the Native cut moved rejects the older page instead 
   await expect(page).rejects.toThrow('live_open_cut_changed');
   expect(journal.failure).toBe('live_open_cut_changed');
 },20000);
+
+/** A pool that enforces the Native snapshot cap (`limits.snapshots`) and can hold an opening open. */
+function pooledFixture() {
+  const state={opens:0,staleFor:0,live:new Set<string>(),closed:[] as string[],maxLive:0,
+    snapshot:'',cursor:'',expiresAt:1_000_000,gate:undefined as Promise<void>|undefined};
+  const cut=():HistoryCut=>({durability:'not_attested',sourceBindingStatus:'worker',
+    sourceId:'source',sessionId:'native-session',workerId:'worker',contextId:'context',contentRevision:'content-v1',
+    nativeRevision:1,retainedRevision:'retained-1',leafId:rows[ROWS-1]!.id,observationSeq:1});
+  const opening=():HistoryOpen=>({version:'coherent-history-v1',handoff:'live',snapshot:state.snapshot,
+    cursor:state.cursor,scope:'active',cut:cut(),cursors:{tree:state.cursor,active:state.cursor,
+      running:'running',live:'live'},expiresAt:state.expiresAt,count:rows.length,streaming:false,compacting:false,
+    prefix:null,scannedBytes:1,scanMs:0,snapshotMs:0,limits});
+  const history=new HistoryClient(async command=>{
+    if(command.type==='history_snapshot_close'){
+      if(!state.live.delete(command.snapshot))throw Error('history_unknown_snapshot');
+      state.closed.push(command.snapshot);
+      return {closed:true};
+    }
+    if(command.type==='history_snapshot_open'){
+      state.opens++;
+      if(state.live.size>=limits.snapshots)throw Error('history_cache_full');
+      state.snapshot=`snapshot-${state.opens}`;state.cursor=`active-${state.opens}`;
+      state.expiresAt=1_000_000*state.opens;state.live.add(state.snapshot);
+      state.maxLive=Math.max(state.maxLive,state.live.size);
+      if(state.gate)await state.gate;
+      return opening();
+    }
+    if(command.type==='history_observation_poll')
+      return {cut:cut(),after:command.after,through:command.after,events:[],hasMore:false};
+    if(command.type!=='history_snapshot_page')throw Error('UNEXPECTED_NATIVE_OPERATION');
+    if(command.cursor==='live')
+      return {snapshot:state.snapshot,scope:'live' as const,cut:cut(),expiresAt:state.expiresAt,items:[],
+        complete:true as const};
+    if(command.cursor!==state.cursor)throw Error('history_stale_cursor');
+    if(state.staleFor>0){state.staleFor--;throw Error('history_stale_cursor');}
+    const before=command.before??rows.length,start=Math.max(0,before-PAGE);
+    return {snapshot:state.snapshot,scope:'active' as const,cut:cut(),expiresAt:state.expiresAt,
+      items:rows.slice(start,before),offset:start,complete:true as const};
+  });
+  return {history,state};
+}
+const tick=()=>new Promise(resolve=>setTimeout(resolve,0));
+
+test('concurrent stale pages share one renewal inside the Native snapshot cap',async()=>{
+  const {history,state}=pooledFixture();
+  const journal=await LiveJournal.open(history);
+  expect(state.opens).toBe(1);
+  state.staleFor=2;
+  const {promise:gate,resolve:release}=Promise.withResolvers<void>();
+  state.gate=gate;
+  const before=1_000_000,request={throughSeq:journal.cursor,beforeSeq:before,maxMessages:8};
+  const first=journal.page(request),second=journal.page(request);
+  await tick();
+  // Single-flight: both stale pages wait on the same Native opening instead of exceeding the cap.
+  expect(state.opens).toBe(2);
+  release();state.gate=undefined;
+  const [a,b]=await Promise.all([first,second]);
+  expect(a.records.length).toBeGreaterThan(0);
+  expect(b.records.length).toBe(a.records.length);
+  expect(state.maxLive).toBeLessThanOrEqual(limits.snapshots);
+  expect(journal.opened.snapshot).toBe('snapshot-2');
+  expect([...state.live]).toEqual(['snapshot-2']);
+  expect(state.closed.filter(name=>name==='snapshot-1')).toHaveLength(1);
+},20000);
+
+test('dispose during a renewal closes both snapshots and never publishes the renewed one',async()=>{
+  const {history,state}=pooledFixture();
+  const journal=await LiveJournal.open(history);
+  state.staleFor=1;
+  const {promise:gate,resolve:release}=Promise.withResolvers<void>();
+  state.gate=gate;
+  const page=journal.page({throughSeq:journal.cursor,beforeSeq:1_000_000,maxMessages:8});
+  await tick();
+  expect(state.opens).toBe(2); // the renewal is in flight while the journal is still presented
+  journal.dispose();
+  release();state.gate=undefined;
+  await expect(page).rejects.toThrow('live_history_closed');
+  await tick();
+  expect(state.live.size).toBe(0);
+  expect(state.closed.slice().sort()).toEqual(['snapshot-1','snapshot-2']);
+},20000);

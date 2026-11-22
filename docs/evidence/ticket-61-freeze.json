@@ -84,8 +84,8 @@
     ],
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "e54c64f33fa1718d0a98577df15af6c911d9bda981a7ce99303b8c9c547386fe",
-      "canonicalization": "checkout-relative asset paths; runtime path and system dependency identities tokenized"
+      "sha256": "9b02a0297f62fd2d2ebb953a0a218411e5481ded18282eabca4c5606696e402a",
+      "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
       {

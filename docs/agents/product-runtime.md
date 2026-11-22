@@ -55,9 +55,10 @@ bun run product:verify && bun run product:enroll
 bun test tests/product/freeze.test.ts      # fails when the enrolled installation drifts
 ```
 
-The freeze gate hashes the enrolled manifest with checkout-relative asset paths and tokenized runtime
-and system dependency paths. The canonical digest is
-`e54c64f33fa1718d0a98577df15af6c911d9bda981a7ce99303b8c9c547386fe`; every checkout that enrolls the
+The freeze gate hashes the enrolled manifest with checkout-relative asset paths and a tokenized runtime
+path. System dependency paths are reduced to their basename, but each dependency keeps its content
+identity and size, so a foreign glibc with the same library names cannot pass. The canonical digest is
+`9b02a0297f62fd2d2ebb953a0a218411e5481ded18282eabca4c5606696e402a`; every checkout that enrolls the
 same closure produces it, while source/patch/schema and each asset identity stay pinned individually.
 The raw `vendor/product/installation.json` bytes still contain the concrete checkout paths that
 admission executes.

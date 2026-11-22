@@ -36,13 +36,14 @@ type Validators = {
 const load = async (path: string): Promise<unknown> =>
 	import(new URL(path, `file://${RPC}/`).href) as Promise<unknown>;
 
-// The strict worker tree is an external stage (compatibility/omp/candidates/native-cohort-38/stage-strict-runtime.py).
-// BLOCKED without it: vendor/omp-strict here holds only the installed validators, not the module graph they import.
-const staged = existsSync(join(ROOT, "vendor/omp-strict/packages/coding-agent/src/cli.ts"));
-const validators = staged ? ((await load("navigation.generated.ts")) as Validators) : (undefined as unknown as Validators);
+// The navigation boundary of the strict worker is a pinned stage: `scripts/install-navigation-validators.ts`
+// writes the candidate validators, the wrapper and the patched public client from checked-in pins. Absence is
+// a failure, not a skip: a checkout that cannot stage it cannot claim the validated navigation boundary.
+if (!existsSync(join(RPC, "navigation.generated.ts")) || !existsSync(join(RPC, "navigation-client.ts")))
+	throw new Error("NAVIGATION_ASSETS_UNSTAGED: run bun scripts/install-navigation-validators.ts");
+const validators = (await load("navigation.generated.ts")) as Validators;
 
-if (!staged) test.skip("navigation validators require the external strict runtime stage", () => {});
-describe.skipIf(!staged)("navigation validators", () => {
+describe("navigation validators", () => {
 	test("rejects malformed commands before dispatch", () => {
 		expect(validators.validNavigationCommand({})).toBe(false);
 		expect(validators.validNavigationCommand({ type: "navigation_inspect", entryId: 5 })).toBe(false);
@@ -85,11 +86,11 @@ describe.skipIf(!staged)("navigation validators", () => {
 	});
 });
 
-// The strict worker tree is ticket-37 build output staged outside Git. A fresh checkout cannot
-// reproduce those bytes, so compare them only where the tree was staged; the pinned manifest and
-// the roster exclusion are still asserted everywhere.
-test.skipIf(!existsSync(join(ROOT, "vendor/omp-strict")))(
-  "the installed worker tree matches the pinned validator manifest",
+// Byte acceptance of the staged navigation boundary against the pinned strict-runtime inventory. The
+// rest of the 38-archive worker tree stays an external stage recorded by the roster; these four
+// generated files and the client are fully reproducible from checked-in pins, so they are required.
+test(
+  "the installed navigation boundary matches the pinned validator manifest",
   async () => {
 	const manifest = JSON.parse(await readFile(MANIFEST, "utf8")) as {
 		generatedOutputs: { path: string; bytes: number; sha256: string }[];

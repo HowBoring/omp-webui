@@ -8,7 +8,6 @@ Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/
 import argparse, asyncio, hashlib, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from statistics import median
-from playwright.async_api import async_playwright
 
 ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME") or shutil.which("google-chrome") or shutil.which("chromium")
@@ -311,6 +310,7 @@ async def catalog_run(browser_args):
     errors = []
     try:
         await wait_port(CATALOG_PORT)
+        from playwright.async_api import async_playwright
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(executable_path=CHROME, headless=True, args=browser_args)
             sampler = RssSampler(host.pid, browser_process_pid())
@@ -408,6 +408,7 @@ async def chat_run(browser_args, product=False):
                 raise RuntimeError(f"product Host did not admit the installation: {startup}")
             print(f"product-admission: {json.dumps(startup)}", file=sys.stderr, flush=True)
         stage("host-ready")
+        from playwright.async_api import async_playwright
         async with async_playwright() as playwright:
             browser = await playwright.chromium.launch(executable_path=CHROME, headless=True, args=browser_args)
             sampler = RssSampler(host.pid, browser_process_pid())
@@ -606,12 +607,46 @@ def memory_limit_mib():
         return None
 
 
+def run_verdict(evidence):
+    """Classes that fail the gate: latency/RSS samples and a short or reset native reach walk."""
+    measured = [result for result in evidence["classes"] if result.get("status") != "blocked"]
+    failed = [result["class"] for result in measured
+              for entry in (result["firstPage"], result["oldPage"]) if not entry["pass"]]
+    def short_walk(result):
+        reachability = result.get("reachability") or {}
+        return reachability.get("allNativeReachable") is False or bool(reachability.get("reset"))
+    reach_failed = [result["class"] for result in measured if short_walk(result)]
+    return failed + [name for name in reach_failed if name not in failed], reach_failed
+
+
+def self_check():
+    """A measured history walk that resets or stops short fails the run even when latency passes."""
+    passing = {"samples": [1.0], "pass": True}
+    def evidence(reachability):
+        return {"classes": [{"class": "product", "firstPage": passing, "oldPage": passing,
+                             "reachability": reachability}]}
+    assert run_verdict(evidence({"allNativeReachable": True})) == ([], [])
+    assert run_verdict(evidence({"allNativeReachable": False})) == (["product"], ["product"])
+    assert run_verdict(evidence(None)) == ([], [])
+    assert run_verdict(evidence({"allNativeReachable": True, "reset": "history_stale_cursor"})) == (["product"], ["product"])
+    assert run_verdict({"classes": [{"class": "product", "status": "blocked"}]}) == ([], [])
+    failed = {"samples": [2.0], "pass": False}
+    evidence_with_latency = evidence({"allNativeReachable": False})
+    evidence_with_latency["classes"][0]["firstPage"] = failed
+    assert run_verdict(evidence_with_latency) == (["product"], ["product"])
+    print("performance exit self-check ok")
+
+
 async def main():
     global SAMPLES
     parser = argparse.ArgumentParser()
     parser.add_argument("--class", dest="classes", choices=["catalog", "chat", "product", "all"], default="all")
     parser.add_argument("--samples", type=int, default=SAMPLES)
+    parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
+    if args.self_check:
+        self_check()
+        return 0
     SAMPLES = args.samples
     if not CORPUS.joinpath("corpus.json").is_file():
         sys.exit("missing corpus; run scripts/create-performance-corpus.ts")
@@ -673,10 +708,10 @@ async def main():
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(evidence, indent=2) + "\n")
         print(json.dumps(evidence, indent=2))
-    failed = [result["class"] for result in evidence["classes"] if result.get("status") != "blocked"
-              for entry in (result["firstPage"], result["oldPage"]) if not entry["pass"]]
+    failed, reach_failed = run_verdict(evidence)
     blocked = [result["class"] for result in evidence["classes"] if result.get("status") == "blocked"]
     print(f"BLOCKED_CLASSES={blocked}", file=sys.stderr)
+    print(f"REACH_FAILED_CLASSES={reach_failed}", file=sys.stderr)
     print(f"FAILED_CLASSES={failed}", file=sys.stderr)
     return 1 if failed else 0
 
