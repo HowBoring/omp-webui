@@ -123,3 +123,20 @@ test("the Chat client mounts only the WebUI presentation settings methods", () =
     || value.namespace === "settings" && (value.method === "document" || value.method === "replace"
       || value.method === "update"))).toBe(false);
 });
+
+test("model selection never opens a worker the owner has not explicitly opened", async () => {
+  const f = await sourceFixture(), host = new Context();
+  try {
+    const service = new SessionsService(host, f);
+    const choose = () => sessionCaller.run(f.identity, () => service.stockSelectModel({
+      sessionId: f.selected.nativeSessionId, provider: "synthetic", model: "other" }));
+    // The stock model seat restores before the owner opens; selection must not become an implicit Open.
+    await expect(choose()).rejects.toMatchObject({ code: "session/manual-open-required" });
+    expect(f.controls.launches).toBe(0);
+    expect(f.controls.model.id).toBe("fixture");
+    // The explicit public Open admits the worker; the same selection then writes through.
+    await sessionCaller.run(f.identity, () => f.supervisor.switchTo(f.identity, f.selected));
+    await choose();
+    expect(f.controls.model.id).toBe("other");
+  } finally { await host.fiber.dispose(); await f.close(); }
+});

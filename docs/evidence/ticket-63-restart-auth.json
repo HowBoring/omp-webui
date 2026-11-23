@@ -14,20 +14,25 @@
     "packages/sessions/presentation-service.ts: reads never open; the typed manual-open condition propagates to the client.",
     "apps/host/src/session-component-server.ts: follow admission is auth-only; typed Session errors cross the wire through sessionFailure instead of gateway/internal.",
     "packages/sessions/errors.ts: SESSION_MANUAL_OPEN_REQUIRED and SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED recovery sentences.",
-    "apps/chat/src/product-enrollment.js: Sessions sidebar action and overlay listing authorized Sessions with their attempt marker and an explicit Open Session control (public ompSessions.index/catalog/open; no replay)."
+    "apps/chat/src/product-enrollment.js: Sessions sidebar action and overlay listing authorized Sessions with their attempt marker and an explicit Open Session control (public ompSessions.index/catalog/open; no replay).",
+    "packages/sessions/presentation-service.ts: follow and page re-prove presentation through supervisor.requirePresentation immediately before their first yield/return, so a model-catalog or page await cannot ship records to a browser whose grant was revoked meanwhile.",
+    "packages/sessions/service.ts: stock model selection refuses with session/manual-open-required instead of calling nativeOpen; the private auto-open path is deleted, so choosing a model never starts an unopened outcome_unknown worker.",
+    "packages/contracts/session-errors.ts: declares the typed session/manual-open-required unary refusal (sessionId detail)."
   ],
   "regressions": {
     "tests/sessions/index.test.ts": "outcome_unknown attempt requires manual reopen after restart (red at index.test.ts:41 with the old startup list)",
     "tests/sessions/presentation.test.ts": "a read never opens a worker; the manual-open marker stands until an explicit open",
     "tests/sessions/restart-reopen.test.ts": "real native fixture + actual Host stop/start: index marker, typed follow refusal (not auth, no worker start), explicit open, then the snapshot carries the native history",
-    "tests/product/restart-flow.py": "rebuilt product tuple: SIGTERM/relaunch shows the marker and no replay, explicit Open Session recovers the history in place"
+    "tests/product/restart-flow.py": "rebuilt product tuple: SIGTERM/relaunch shows the marker and no replay, explicit Open Session recovers the history in place",
+    "tests/sessions/presentation.test.ts#revocation-during-initial-catalog-await": "a snapshot captured before the model catalog resolves never yields after the grant is revoked - red proof: the pending follow resolved",
+    "tests/sessions/settings-remote.test.ts#model-selection-never-opens": "stock model selection refuses session/manual-open-required with zero launches, then succeeds after the explicit supervisor.switchTo open - red proof: it launched a worker"
   },
   "productRestartFlow": {
     "kind": "product-restart-flow",
-    "recordedAt": "2026-11-23T13:20:01Z",
+    "recordedAt": "2026-11-23T14:24:30Z",
     "checks": {
-      "installationManifestSha256": "b3aaa942709dcad1c2f0ff77fd547c9dcd71bc4b20b4710d8537deeed6285155",
-      "native": "01a2088f-fb95-7367-a1d9-466cd85a3aad",
+      "installationManifestSha256": "289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4",
+      "native": "01a208ca-e4dc-70a8-b45a-6e067221ee85",
       "beforeRestart": {
         "finals": 1,
         "providerCalls": 19
@@ -44,7 +49,7 @@
       ],
       "consoleErrors": []
     },
-    "nativeFile": "/home/howboring/Projects/omp-webui-restart-auth/vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T13-19-43-509Z_01a2088f-fb95-7367-a1d9-466cd85a3aad.jsonl",
+    "nativeFile": "/home/howboring/Projects/omp-webui-restart-auth/vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T14-24-04-316Z_01a208ca-e4dc-70a8-b45a-6e067221ee85.jsonl",
     "scenarios": [
       "stock-restart-no-auto-open",
       "stock-restart-manual-open-retained-history"
@@ -52,10 +57,12 @@
     "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"
   },
   "gates": {
-    "focused": "bun test tests/sessions -> 157 pass / 0 fail (18 files)",
-    "productBuild": "bun run product:build + bun run product:verify -> 136 files verified; bun run product:enroll -> 152 assets",
-    "productTuple": "tests/product/product-flow.py PASS 10/10 previously; installation manifest sha256 b3aaa942709dcad1c2f0ff77fd547c9dcd71bc4b20b4710d8537deeed6285155 (new tuple with the Sessions affordance)",
-    "fullCheck": "bun run check (typecheck, lint, full bun test) recorded in the final report"
+    "focused": "bun test tests/sessions -> 159 pass / 0 fail (18 files), plus tests/sessions/presentation.test.ts 7 pass and tests/sessions/restart-reopen.test.ts + settings-remote.test.ts 6 pass after the activation policy",
+    "security": "HIGH revocation-during-catalog-await and MEDIUM model-selection auto-open regressions are proven red without the fixes and green with them",
+    "productBuild": "bun run product:build + bun run product:verify -> 136 files verified; bun run product:enroll -> 152 assets; installation manifest sha256 289e94d2542f47f493e806288351626814f4f60b31bc10257ebe3e8162f649d4",
+    "productTuple": "tests/product/product-flow.py PASS 10/10 (2026-11-23T14:25:03Z, zero console errors) and tests/product/restart-flow.py PASS (2026-11-23T14:24:30Z): restart marker shown, no automatic open or replay, explicit Open Session recovers the same native Session in place",
+    "performance": "tests/product/performance.py --class product --samples 30 under systemd-run -p MemoryMax=8G + taskset -c 0-3 (2026-11-23T14:33:25Z): first-page P95 968.1 ms (limit 3000), old-page P95 382.2 ms (limit 1000), Host peak RSS 248.4 MiB (limit 512), reachability 49 steps / 12783 nodes, BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]",
+    "fullCheck": "bun run check re-run after the security fixes and the evidence update (recorded after the final green run)"
   },
   "notClaimed": [
     "real-provider inference (the stock product flow uses the controlled provider compatibility/omp/fixtures/live-provider.ts; the real-provider SIGTERM scenario was not re-run in this worktree)",

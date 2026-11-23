@@ -186,5 +186,8 @@ export function sessionFailureCode(error: unknown): string {
     ? code : "SESSION_OPEN_OUTCOME_UNKNOWN";
 }
 declare module "@deepseek-ai/dsh-typert-protocol" {
-  interface RemoteErrorDetailsMap extends Record<SessionErrorCode | NativeSessionErrorCode | NativeHistoryErrorCode, Record<string, never>> {}
+  interface RemoteErrorDetailsMap extends Record<SessionErrorCode | NativeSessionErrorCode | NativeHistoryErrorCode, Record<string, never>> {
+    /** A stock unary read tried to reach a Session the owner has not explicitly opened. */
+    "session/manual-open-required": { readonly sessionId: string };
+  }
 }

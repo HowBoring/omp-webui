@@ -99,6 +99,16 @@ export class SessionIndex implements SessionIndexReader {
     this.#current(); const row = this.#db.query<Row, [string]>("SELECT body FROM sessions WHERE id=?").get(id);
     return row ? this.#decode(row) : undefined;
   }
+  /**
+   * The durable attempt a Host recorded for this native Session, across registrations. A stock activation
+   * may only register a Session this Host never opened (`registered`), so the most restrictive attempt wins.
+   */
+  attemptOf(nativeSessionId: string): SessionAttempt | undefined {
+    this.#current();
+    const attempts = this.#db.query<Row, [string]>("SELECT body FROM sessions WHERE native=? ORDER BY id").all(nativeSessionId)
+      .map(row => this.#decode(row).attempt);
+    return attempts.find(attempt => attempt.state !== "registered") ?? attempts[0];
+  }
   observe(id: string, attempt: SessionAttempt): RegisteredSession {
     return this.#observe(id, attempt)!;
   }

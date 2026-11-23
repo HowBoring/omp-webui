@@ -240,6 +240,17 @@ export class SessionsService extends TypertRemoteService {
     return this.options.supervisor.switchTo(identity, found);
   }
   /**
+   * The stock client activates one native Session by following it. That is the owner's first explicit Open
+   * only for a Session this Host never opened; an interrupted, failed or closed attempt keeps its typed
+   * manual-open marker, so a read can never start a new worker for the owner's unknown outcome.
+   */
+  async activateUnopened(nativeSessionId: string): Promise<SessionView> {
+    this.identity();
+    const state = this.options.index.attemptOf(nativeSessionId)?.state;
+    if (state !== undefined && state !== "registered") throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    return this.nativeOpen(nativeSessionId);
+  }
+  /**
    * Create the stock client's Session. A requested id is reused only when it names an authorized native
    * Session; otherwise Native creates a new one and the response reports its actual id.
    */
@@ -302,8 +313,14 @@ export class SessionsService extends TypertRemoteService {
   async stockSelectModel(request: { sessionId: string; provider: string; model: string; reasoningEffort?: string }): Promise<unknown> {
     const identity = this.identity();
     const listed = await this.options.supervisor.listed(identity);
-    const view = listed?.view.registration.nativeSessionId === request.sessionId
-      ? listed.view : await this.nativeOpen(request.sessionId);
+    if (listed === undefined || listed.view.registration.nativeSessionId !== request.sessionId) {
+      // The stock model seat asks about a Session it restored; answering with an implicit worker start
+      // would repeat interrupted work without its owner's explicit Open. Admission and ownership stay
+      // with the public Open path, so selection never becomes a second way in.
+      throw new RemoteError("session/manual-open-required",
+        "Open this Session explicitly before choosing a model; nothing is replayed.", { sessionId: request.sessionId });
+    }
+    const view = listed.view;
     const runtime = this.runtime(identity, view.workerId);
     const state = await runtime.worker.state(); this.identity();
     if (!nativeSettled(state)) throw new RemoteError("session/agent-busy", "Stop the current turn before changing the model.", { reason: "busy" });
