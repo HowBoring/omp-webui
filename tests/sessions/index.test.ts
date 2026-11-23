@@ -32,6 +32,18 @@ test("Host restart preserves native identity and requires manual reopen without 
   index.close();
 });
 
+test("an exit the previous Host observed as unconfirmed requires manual reopen after its restart", async () => {
+  const data = directory(); let index = new SessionIndex(data);
+  const record = index.register(descriptor);
+  index.observe(record.id, { state: "outcome_unknown", code: "SESSION_EXIT_OUTCOME_UNKNOWN" });
+  index.close(); index = new SessionIndex(data);
+  // The worker did not survive the restart, so the attempt stays unconfirmed and names the recovery.
+  expect(index.get(record.id)?.attempt).toEqual({ state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" });
+  index.observe(record.id, { state: "open" });
+  expect(index.get(record.id)?.attempt).toMatchObject({ state: "open" });
+  index.close();
+});
+
 test("same native ID in different physical instances remains distinct and snapshots reject expired cursors", async () => {
   let now = 1_794_787_200_000;
   const index = new SessionIndex(directory(), () => now);

@@ -1,0 +1,66 @@
+{
+  "kind": "ticket-63-restart-auth",
+  "recordedAt": "2026-11-23T13:20:01Z",
+  "base": "90b9083433 (origin/mvp/spec-29 tip at the time of the run; no later commits to merge)",
+  "defect": "A real-provider Session interrupted by Host SIGTERM reopened its worker automatically after relaunch while its history refused reads with SESSION_AUTH_REQUIRED (gateway/internal); every index regeneration was refused as outcome_unknown/SESSION_EXIT_OUTCOME_UNKNOWN and a manual open could not recover the view.",
+  "rootCauses": [
+    "packages/sessions/presentation-service.ts auto-opened a worker from every read when the supervisor answered SESSION_MANUAL_OPEN_REQUIRED, so page load resurrected interrupted Sessions without owner consent.",
+    "apps/host/src/session-component-server.ts probed supervisor.assertObjectAccess inside current() for session/follow and converted the typed manual-open refusal into the literal SESSION_AUTH_REQUIRED, which the gateway masked as gateway/internal.",
+    "packages/sessions/index.ts only re-marked opening/open attempts at Host startup, so an attempt the dying Host had observed as outcome_unknown/SESSION_EXIT_OUTCOME_UNKNOWN carried no restart marker or manual-reopen instruction.",
+    "The frozen stock shell has no explicit Open control, so no affordance could answer the marker."
+  ],
+  "changes": [
+    "packages/sessions/index.ts: outcome_unknown attempts also become outcome_unknown/SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED at Host startup.",
+    "packages/sessions/presentation-service.ts: reads never open; the typed manual-open condition propagates to the client.",
+    "apps/host/src/session-component-server.ts: follow admission is auth-only; typed Session errors cross the wire through sessionFailure instead of gateway/internal.",
+    "packages/sessions/errors.ts: SESSION_MANUAL_OPEN_REQUIRED and SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED recovery sentences.",
+    "apps/chat/src/product-enrollment.js: Sessions sidebar action and overlay listing authorized Sessions with their attempt marker and an explicit Open Session control (public ompSessions.index/catalog/open; no replay)."
+  ],
+  "regressions": {
+    "tests/sessions/index.test.ts": "outcome_unknown attempt requires manual reopen after restart (red at index.test.ts:41 with the old startup list)",
+    "tests/sessions/presentation.test.ts": "a read never opens a worker; the manual-open marker stands until an explicit open",
+    "tests/sessions/restart-reopen.test.ts": "real native fixture + actual Host stop/start: index marker, typed follow refusal (not auth, no worker start), explicit open, then the snapshot carries the native history",
+    "tests/product/restart-flow.py": "rebuilt product tuple: SIGTERM/relaunch shows the marker and no replay, explicit Open Session recovers the history in place"
+  },
+  "productRestartFlow": {
+    "kind": "product-restart-flow",
+    "recordedAt": "2026-11-23T13:20:01Z",
+    "checks": {
+      "installationManifestSha256": "b3aaa942709dcad1c2f0ff77fd547c9dcd71bc4b20b4710d8537deeed6285155",
+      "native": "01a2088f-fb95-7367-a1d9-466cd85a3aad",
+      "beforeRestart": {
+        "finals": 1,
+        "providerCalls": 19
+      },
+      "restartAttempt": "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED",
+      "recovery": "in-place",
+      "afterReopenAttempt": "open",
+      "nativeRecords": 29,
+      "nativeMessages": 2,
+      "restartTransportResets": [
+        "WebSocket connection to 'ws://127.0.0.1:3206/api/remote.mux' failed: Error during WebSocket handshake: net::ERR_CONNECTION_RESET",
+        "Failed to load resource: net::ERR_CONNECTION_RESET",
+        "WebSocket connection to 'ws://127.0.0.1:3206/api/remote.mux' failed: Error during WebSocket handshake: net::ERR_CONNECTION_RESET"
+      ],
+      "consoleErrors": []
+    },
+    "nativeFile": "/home/howboring/Projects/omp-webui-restart-auth/vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T13-19-43-509Z_01a2088f-fb95-7367-a1d9-466cd85a3aad.jsonl",
+    "scenarios": [
+      "stock-restart-no-auto-open",
+      "stock-restart-manual-open-retained-history"
+    ],
+    "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"
+  },
+  "gates": {
+    "focused": "bun test tests/sessions -> 157 pass / 0 fail (18 files)",
+    "productBuild": "bun run product:build + bun run product:verify -> 136 files verified; bun run product:enroll -> 152 assets",
+    "productTuple": "tests/product/product-flow.py PASS 10/10 previously; installation manifest sha256 b3aaa942709dcad1c2f0ff77fd547c9dcd71bc4b20b4710d8537deeed6285155 (new tuple with the Sessions affordance)",
+    "fullCheck": "bun run check (typecheck, lint, full bun test) recorded in the final report"
+  },
+  "notClaimed": [
+    "real-provider inference (the stock product flow uses the controlled provider compatibility/omp/fixtures/live-provider.ts; the real-provider SIGTERM scenario was not re-run in this worktree)",
+    "Windows acceptance (OS-locked, another owner)",
+    "maintainer acceptance (external)"
+  ],
+  "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)"
+}

@@ -140,6 +140,9 @@ test("the multiplexed carrier serves the stock five-stream roster and refuses ex
     }
     // No presented Session exists, so follow answers on its own stream; its siblings must stay alive.
     while (!frames.some(frame => frame.streamId === "roster-4" && frame.type === "error")) await Bun.sleep(5);
+    const refused = frames.find(frame => frame.streamId === "roster-4") as unknown as { error: { code: string } };
+    // A malformed opening is refused on its own stream; the failure is typed, never a carrier teardown.
+    expect(refused.error.code).toBe("gateway/arguments-invalid");
     expect(closed).toBeUndefined();
     expect(socket.readyState).toBe(WebSocket.OPEN);
 

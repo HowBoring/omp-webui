@@ -71,16 +71,6 @@ export class SessionPresentationService extends TypertRemoteService {
     items.sort((left, right) => right.updatedAt - left.updatedAt);
     return { items };
   }
-  /** Present a stock-addressed native Session, switching the one live worker when needed. */
-  private async presented(sessionId: string): Promise<LiveJournal> {
-    const identity = this.identity();
-    try { return await this.supervisor.presentation(identity, sessionId); }
-    catch (error) {
-      if (!(error instanceof Error) || error.message !== "SESSION_MANUAL_OPEN_REQUIRED") throw error;
-      await this.sessions.nativeOpen(sessionId);
-      return this.supervisor.presentation(identity, sessionId);
-    }
-  }
   @Remote("create") async create(request: SessionCreateRequest): Promise<SessionCreateValue> {
     const view = await this.sessions.stockCreate({ ...(request.workspaceId === undefined ? {} : { workspaceId: request.workspaceId }),
       ...(request.cwd === undefined ? {} : { cwd: request.cwd }), ...(request.sessionId === undefined ? {} : { sessionId: request.sessionId }) });
@@ -111,7 +101,10 @@ export class SessionPresentationService extends TypertRemoteService {
     } catch { return { lastUsed: null, next: null }; }
   }
   @Remote("page") async page(request: SessionPageRequest) {
-    const id = this.addressId(request.address), journal = await this.presented(id);
+    // Reads never open a worker: after a Host or worker restart the supervisor refuses with the typed
+    // manual-open condition, the client surfaces that marker, and an explicit public Open answers it.
+    // Opening here would resurrect an interrupted worker without its owner's consent.
+    const id = this.addressId(request.address), journal = await this.supervisor.presentation(this.identity(), id);
     this.assertOpening(journal, request.projection);
     const page = await journal.page(request);
     return { cursor: request.throughSeq ?? journal.cursor, ...page,
@@ -178,7 +171,7 @@ export class SessionPresentationService extends TypertRemoteService {
   }
   @Remote({ mode: "stream" }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncGenerator<SessionFollowFrame> {
     const identity = this.identity(), id = this.addressId(request.address);
-    const journal = await this.presented(id);
+    const journal = await this.supervisor.presentation(identity, id);
     this.assertOpening(journal, request.projection);
     const queue: SessionFollowFrame[] = []; let bytes = 0;
     const dispose = journal.subscribe(frame => {

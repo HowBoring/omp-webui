@@ -47,7 +47,9 @@ export class SessionIndex implements SessionIndexReader {
       "SELECT coalesce(sum(length(CAST(body AS BLOB))),0) AS bytes, count(*) AS count FROM sessions").get()!;
     if (stored.bytes > 16 * 1024 * 1024 || stored.count > 10_000) throw new Error("INDEX_STORAGE_LIMIT");
     for (const record of this.#records()) {
-      if (["opening", "open"].includes(record.attempt.state)) {
+      // No worker survives a Host restart, so an unconfirmed attempt is now a restart fact too: the
+      // state stays unconfirmed and the owner must reopen explicitly. The exit log keeps the observation.
+      if (["opening", "open", "outcome_unknown"].includes(record.attempt.state)) {
         record.attempt = { state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" };
         ++record.attemptRevision;
         this.#write(record);

@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T11:03:16.990Z",
+  "recordedAt": "2026-11-23T13:33:07.792Z",
   "host": {
     "repository": "HowBoring/omp-webui",
-    "worktree": "/home/howboring/Projects/omp-webui-review-stock",
-    "branch": "mvp/spec-29-review-stock",
-    "commit": "5c4eebe05411ce761c4452dbe917ed14f1a7daab",
+    "worktree": "/home/howboring/Projects/omp-webui-restart-auth",
+    "branch": "mvp/restart-auth-recovery",
+    "commit": "90b9083433225c8cb12227bf83da8d1222df1bd0",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -45,7 +45,7 @@
     },
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "aae65242822552be450d340acaf0e6e2bc9bc67f1f7b3690f8b18f17e9113da8",
+      "sha256": "25264463325a039439e793971da6e49ec62b43886ea88181596aaf58b88ab30f",
       "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
@@ -634,7 +634,7 @@
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
         "kind": "file",
-        "identity": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c",
+        "identity": "cbb893764ccc9d5f069dba39c751990fc470a6849e93e3a8712b74b4d911ea69",
         "mode": 420
       },
       {
@@ -688,7 +688,7 @@
       {
         "path": "vendor/dsh-product/index.html",
         "kind": "file",
-        "identity": "0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e",
+        "identity": "c1b6563130fef2eff9e0a1a0d7f8b98ac2340c603906e969780d5e3e1c69bf54",
         "mode": 420
       },
       {
@@ -742,13 +742,13 @@
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
         "kind": "file",
-        "identity": "db8685b7545827f8111bf0728ddefa4e0b1f79ba24a7b7f8140b629ac88574f4",
+        "identity": "2d231c305313634feeec843c31da8084117e2f061a988d68190b3a614c3dc4bc",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
         "kind": "file",
-        "identity": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a",
+        "identity": "61c19b6419299ed3578a6cd18bf399f2a7ed79ccd787eddceeff31fa9b781070",
         "mode": 420
       },
       {
@@ -922,7 +922,7 @@
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
         "kind": "file",
-        "identity": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4",
+        "identity": "8255cec601e09cdcab0c225e9fcd903e45b078cdd3a52fea587aa5c3dae93228",
         "mode": 420
       },
       {
@@ -1302,16 +1302,16 @@
     "product": {
       "path": "vendor/dsh-product",
       "files": 136,
-      "sha256": "efae7cbebff1b1e7aa010325e099a481812d5243dcb3bfd146ad320383b46908"
+      "sha256": "5e516da61af3c150bbaac1f0b6bf6dcf498a6abdb2ae8f20e4e9828979a3bd9d"
     },
     "routes": {
       "path": "vendor/dsh-product/plugins/routes.json",
-      "sha256": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a"
+      "sha256": "61c19b6419299ed3578a6cd18bf399f2a7ed79ccd787eddceeff31fa9b781070"
     },
     "graph": {
       "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-      "sha256": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c",
-      "rev": "1d19a9695e2d",
+      "sha256": "cbb893764ccc9d5f069dba39c751990fc470a6849e93e3a8712b74b4d911ea69",
+      "rev": "2497e0318d5b",
       "release": {
         "version": "0.1.0",
         "commit": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
@@ -1668,7 +1668,7 @@
       },
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-        "sha256": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c"
+        "sha256": "cbb893764ccc9d5f069dba39c751990fc470a6849e93e3a8712b74b4d911ea69"
       },
       {
         "path": "vendor/dsh-product/boot/injection-0.js",
@@ -1704,7 +1704,7 @@
       },
       {
         "path": "vendor/dsh-product/index.html",
-        "sha256": "0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e"
+        "sha256": "c1b6563130fef2eff9e0a1a0d7f8b98ac2340c603906e969780d5e3e1c69bf54"
       },
       {
         "path": "vendor/dsh-product/manifest.webmanifest",
@@ -1720,11 +1720,11 @@
       },
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
-        "sha256": "db8685b7545827f8111bf0728ddefa4e0b1f79ba24a7b7f8140b629ac88574f4"
+        "sha256": "2d231c305313634feeec843c31da8084117e2f061a988d68190b3a614c3dc4bc"
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
-        "sha256": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a"
+        "sha256": "61c19b6419299ed3578a6cd18bf399f2a7ed79ccd787eddceeff31fa9b781070"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/0.js",
@@ -1836,7 +1836,7 @@
       },
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
-        "sha256": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4"
+        "sha256": "8255cec601e09cdcab0c225e9fcd903e45b078cdd3a52fea587aa5c3dae93228"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/4.js",
