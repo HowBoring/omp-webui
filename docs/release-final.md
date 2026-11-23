@@ -53,20 +53,20 @@ or claiming tuple reproduction, which remains local.
 
 | Area | Result | Evidence |
 |---|---|---|
-| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":136}`; installation `7c1554fd…ce1f`) | `ticket-63-freeze.json` |
+| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":136}`; installation `289e94d2…f649d4`) | `ticket-63-freeze.json` |
 | Frozen stock-shell composition | PASS: 10/10 freeze tests, roster 34, stock assets 136, no custom `/client.js` | `tests/product/freeze.test.ts`; `ticket-63-freeze.json` |
 | Linux product flow on the stock DSH shell: model/thinking, preferences reload, explicit continue, new native Session, Stop, send after Stop, Enter/New Session, draft reload, unsupported attachment refusal, PNG+TXT send, byte-exact Originals, and the retained 200×200 image rendered as a stock `<img>` after reload | PASS: 10 scenarios, 25 s, zero console errors | `docs/evidence/ticket-63-product-flow.json`; `tests/product/product-flow.py` |
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
 | Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the final review tuple — first page P95 1025.3 ms, old page P95 361.9 ms, Host peak RSS 245.8 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the restart-auth tuple — first page P95 996.0 ms, old page P95 357.5 ms, Host peak RSS 248.4 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
-The performance artifact was produced on the final review tuple (installation manifest
-`7c1554fd…ce1f`, source tree `f5cc084…e08f`) by the unchanged gate: 30 samples, 4 of 20 processors by
+The performance artifact was produced on the final restart-auth tuple (installation manifest
+`289e94d2…f649d4`, source tree `f5cc084…e08f`) by the unchanged gate: 30 samples, 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
-the cold open (18520.7 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
+the cold open (15949.3 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
 `allNativeReachable: true` and the duplicate-preserving reset check intact, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in

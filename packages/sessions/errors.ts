@@ -12,6 +12,10 @@ const recovery: Readonly<Record<string, string>> = {
   SESSION_SWITCH_REQUIRES_EXPLICIT_ACTION: "Use the explicit Switch action to select a different Session.",
   SESSION_SELECTION_EXPIRED: "Refresh discovered Sessions and explicitly select the Session again.",
   SESSION_AUTH_REQUIRED: "Sign in again before accessing the Session.",
+  SESSION_MANUAL_OPEN_REQUIRED:
+    "No native worker is open for this Session. Explicitly Open it to continue; nothing is replayed.",
+  SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED:
+    "The Host restarted while this Session was open. Sign in again and explicitly Open it; nothing is replayed.",
   SESSION_HOST_CLOSING: "Wait for the Host to restart, sign in, and explicitly Open the Session.",
   SESSION_ATTEMPT_UNAVAILABLE:
     "The Session attempt could not be saved. Restore Host storage and manually inspect the outcome before opening again.",

@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T11:03:16.990Z",
+  "recordedAt": "2026-11-23T15:14:15.925Z",
   "host": {
     "repository": "HowBoring/omp-webui",
-    "worktree": "/home/howboring/Projects/omp-webui-review-stock",
-    "branch": "mvp/spec-29-review-stock",
-    "commit": "5c4eebe05411ce761c4452dbe917ed14f1a7daab",
+    "worktree": "/home/howboring/Projects/omp-webui-restart-auth",
+    "branch": "mvp/restart-auth-recovery",
+    "commit": "8066c434301a49332752f7541cd82f2bfaf8da75",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -45,7 +45,7 @@
     },
     "installationManifest": {
       "path": "vendor/product/installation.json",
-      "sha256": "aae65242822552be450d340acaf0e6e2bc9bc67f1f7b3690f8b18f17e9113da8",
+      "sha256": "c40a338b25f4f1cc336eb17f5c774ecf441a7baea47b4bcbcdd294244c533956",
       "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
     },
     "installationAssets": [
@@ -634,7 +634,7 @@
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
         "kind": "file",
-        "identity": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c",
+        "identity": "2f7e5a950789ab2d4f1b50e26d1d3eb141aca4fddebac351e4bc7579743715de",
         "mode": 420
       },
       {
@@ -688,7 +688,7 @@
       {
         "path": "vendor/dsh-product/index.html",
         "kind": "file",
-        "identity": "0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e",
+        "identity": "b7abc71b1c69f1febe37724f9aecb53b28904a8e622e232bd306f87586bc3e6a",
         "mode": 420
       },
       {
@@ -742,13 +742,13 @@
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
         "kind": "file",
-        "identity": "db8685b7545827f8111bf0728ddefa4e0b1f79ba24a7b7f8140b629ac88574f4",
+        "identity": "c33773d21f7a1f7c8fe0421421b59947181c00ea1de657336d0e08264f1a7011",
         "mode": 420
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
         "kind": "file",
-        "identity": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a",
+        "identity": "4de485164a6fc3ed9d951fb388d8e7c5d85d085f681ca4b7c877aba4873ac0cd",
         "mode": 420
       },
       {
@@ -922,7 +922,7 @@
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
         "kind": "file",
-        "identity": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4",
+        "identity": "fecc40f62e71ca78621d745e42235e650c44e50838854c1d4d5d5708a8f0d45e",
         "mode": 420
       },
       {
@@ -1302,16 +1302,16 @@
     "product": {
       "path": "vendor/dsh-product",
       "files": 136,
-      "sha256": "efae7cbebff1b1e7aa010325e099a481812d5243dcb3bfd146ad320383b46908"
+      "sha256": "67ce8a28cc1d67b4200f19f55e61f7a9196ad9ec883ae997e6e43c4442839503"
     },
     "routes": {
       "path": "vendor/dsh-product/plugins/routes.json",
-      "sha256": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a"
+      "sha256": "4de485164a6fc3ed9d951fb388d8e7c5d85d085f681ca4b7c877aba4873ac0cd"
     },
     "graph": {
       "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-      "sha256": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c",
-      "rev": "1d19a9695e2d",
+      "sha256": "2f7e5a950789ab2d4f1b50e26d1d3eb141aca4fddebac351e4bc7579743715de",
+      "rev": "479e3e3fd053",
       "release": {
         "version": "0.1.0",
         "commit": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
@@ -1668,7 +1668,7 @@
       },
       {
         "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
-        "sha256": "997c6dcdfb09c1085c62ecbcf7d9d10462202b72740bab7886450ce89e8b999c"
+        "sha256": "2f7e5a950789ab2d4f1b50e26d1d3eb141aca4fddebac351e4bc7579743715de"
       },
       {
         "path": "vendor/dsh-product/boot/injection-0.js",
@@ -1704,7 +1704,7 @@
       },
       {
         "path": "vendor/dsh-product/index.html",
-        "sha256": "0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e"
+        "sha256": "b7abc71b1c69f1febe37724f9aecb53b28904a8e622e232bd306f87586bc3e6a"
       },
       {
         "path": "vendor/dsh-product/manifest.webmanifest",
@@ -1720,11 +1720,11 @@
       },
       {
         "path": "vendor/dsh-product/plugins/batches/1.js",
-        "sha256": "db8685b7545827f8111bf0728ddefa4e0b1f79ba24a7b7f8140b629ac88574f4"
+        "sha256": "c33773d21f7a1f7c8fe0421421b59947181c00ea1de657336d0e08264f1a7011"
       },
       {
         "path": "vendor/dsh-product/plugins/routes.json",
-        "sha256": "09808a23cd0dab37b6ef99b0f2f1acf34a25af0bb462e24737cd20d3ffa6c95a"
+        "sha256": "4de485164a6fc3ed9d951fb388d8e7c5d85d085f681ca4b7c877aba4873ac0cd"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/0.js",
@@ -1836,7 +1836,7 @@
       },
       {
         "path": "vendor/dsh-product/plugins/singles/33.js",
-        "sha256": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4"
+        "sha256": "fecc40f62e71ca78621d745e42235e650c44e50838854c1d4d5d5708a8f0d45e"
       },
       {
         "path": "vendor/dsh-product/plugins/singles/4.js",
@@ -1889,9 +1889,9 @@
     "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
-    "docs/evidence/ticket-63-product-flow.json": "11ff2afaa59ea61778666d7861c84db3e9910d26379f5754faf7c7bbfa7f3abb",
+    "docs/evidence/ticket-63-product-flow.json": "cdcbd39f6ce497057c09e6c20c2c63ac20cf3ef86f4e2b72aaf4073eaf002836",
     "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
-    "tests/product/evidence/performance-2026-11-23-product.json": "bf394bd79e8cd2be3c43ca51a767d06b4a465a1ab3f20ae381f37ed1ce31d981"
+    "tests/product/evidence/performance-2026-11-23-product.json": "3ef793729abc824b066e92fbea05e600048a24b964f8068d0ad615cb16b1f8cb"
   },
   "history": {
     "docs/evidence/ticket-61-freeze.json": "4671a3f5999036807dff5343cc7f81cfc93f45a586f25deec447b4c2e91ace43",

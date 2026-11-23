@@ -19,6 +19,7 @@ import { SessionSupervisor, type DirectLaunchOptions, type OwnedLaunchOptions } 
 import { sessionStatusEvents } from "../../../packages/sessions/status-events.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
+import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { StockWorkspaceService } from "../../../packages/workspaces/stock-service.ts";
 import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
   chatMethods, isSuccessfulSessionReply, preferenceMethods, commandsMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
@@ -260,13 +261,10 @@ export async function startSessionComponentServer(options: Options) {
             } catch { socket.close(1011, "stream failure could not be delivered"); }
             return;
           }
-          const current = () => {
-            if (!access.revalidate(socket.data.identity)) return false;
-            if (frame.endpoint === "session/follow") {
-              try { supervisor.assertObjectAccess(socket.data.identity); } catch { return false; }
-            }
-            return true;
-          };
+          // Stream admission asks whether this credential is still live, nothing more. Whether a worker
+          // is presented is Session state: the follow stream answers that with the typed manual-open
+          // marker, and an explicit public Open is what starts a worker after a restart.
+          const current = () => access.revalidate(socket.data.identity);
           void runFixtureStream(socket, frame, ctx, current, interactionCarrier, brokerStream)
             .catch(() => socket.close(1011, "stream failed"));
         } catch { socket.close(1008, "invalid stream frame"); }
@@ -439,7 +437,8 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
           answer: "Interaction answer failed.",
           events: "Interaction event stream failed.",
         }[kind ?? "events"], {})
-        : error;
+        // A typed Session failure is public; a raw exception must not leak its message or stack.
+        : error instanceof RemoteError ? error : sessionFailure(error);
       sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) }, true);
     } catch {
       socket.close(1011, "stream failed");

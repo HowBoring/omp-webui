@@ -22,6 +22,19 @@ export class SessionPresentationService extends TypertRemoteService {
     super(ctx, "sessionController", { namespace: "session" });
   }
   private identity(): BrowserAccess { const identity = sessionCaller.getStore(); if (!identity) throw new Error("SESSION_AUTH_REQUIRED"); return identity; }
+  /**
+   * Only an `activate: true` follow is the owner's explicit Open, and only for a Session this Host never
+   * opened. Page and passive follows carry no activation: an interrupted attempt keeps its typed
+   * manual-open marker, and the explicit public Open stays the only way to start a new worker.
+   */
+  private async activation(identity: BrowserAccess, id: string): Promise<LiveJournal> {
+    try { return await this.supervisor.presentation(identity, id); }
+    catch (error) {
+      if (!(error instanceof Error) || error.message !== "SESSION_MANUAL_OPEN_REQUIRED") throw error;
+      await this.sessions.activateUnopened(id);
+      return this.supervisor.presentation(identity, id);
+    }
+  }
   /** Replace a retained-image placeholder with the stock image block the conversation surface renders. */
   private decorate(identity: BrowserAccess, sessionId: string, records: readonly SessionHistoryRecord[]):
     readonly SessionHistoryRecord[] {
@@ -71,16 +84,6 @@ export class SessionPresentationService extends TypertRemoteService {
     items.sort((left, right) => right.updatedAt - left.updatedAt);
     return { items };
   }
-  /** Present a stock-addressed native Session, switching the one live worker when needed. */
-  private async presented(sessionId: string): Promise<LiveJournal> {
-    const identity = this.identity();
-    try { return await this.supervisor.presentation(identity, sessionId); }
-    catch (error) {
-      if (!(error instanceof Error) || error.message !== "SESSION_MANUAL_OPEN_REQUIRED") throw error;
-      await this.sessions.nativeOpen(sessionId);
-      return this.supervisor.presentation(identity, sessionId);
-    }
-  }
   @Remote("create") async create(request: SessionCreateRequest): Promise<SessionCreateValue> {
     const view = await this.sessions.stockCreate({ ...(request.workspaceId === undefined ? {} : { workspaceId: request.workspaceId }),
       ...(request.cwd === undefined ? {} : { cwd: request.cwd }), ...(request.sessionId === undefined ? {} : { sessionId: request.sessionId }) });
@@ -111,9 +114,14 @@ export class SessionPresentationService extends TypertRemoteService {
     } catch { return { lastUsed: null, next: null }; }
   }
   @Remote("page") async page(request: SessionPageRequest) {
-    const id = this.addressId(request.address), journal = await this.presented(id);
+    // Reads never open a worker: after a Host or worker restart the supervisor refuses with the typed
+    // manual-open condition, the client surfaces that marker, and an explicit public Open answers it.
+    // Opening here would resurrect an interrupted worker without its owner's consent.
+    const id = this.addressId(request.address), journal = await this.supervisor.presentation(this.identity(), id);
     this.assertOpening(journal, request.projection);
     const page = await journal.page(request);
+    // The page read is asynchronous too: prove the Session is still presented before its records leave.
+    this.supervisor.requirePresentation(this.identity(), id, journal);
     return { cursor: request.throughSeq ?? journal.cursor, ...page,
       records: this.decorate(this.identity(), id, page.records) };
   }
@@ -178,7 +186,11 @@ export class SessionPresentationService extends TypertRemoteService {
   }
   @Remote({ mode: "stream" }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncGenerator<SessionFollowFrame> {
     const identity = this.identity(), id = this.addressId(request.address);
-    const journal = await this.presented(id);
+    // Only the stock activation (`activate: true`) may ask for the owner's Open; a passive follow is a
+    // read and must surface the typed marker instead.
+    const journal = request.activate === true
+      ? await this.activation(identity, id)
+      : await this.supervisor.presentation(identity, id);
     this.assertOpening(journal, request.projection);
     const queue: SessionFollowFrame[] = []; let bytes = 0;
     const dispose = journal.subscribe(frame => {
@@ -193,6 +205,9 @@ export class SessionPresentationService extends TypertRemoteService {
       const snapshot = journal.snapshot();
       const values: SessionProjectionValues = { ...snapshot.projections.values };
       values.modelSelection = await this.modelSelection();
+      // The catalog await above can outlive the grant or the presented journal; prove the Session is
+      // still presented to this browser before any record leaves the Host.
+      this.supervisor.requirePresentation(identity, id, journal);
       yield { ...snapshot, records: this.decorate(identity, id, snapshot.records),
         projections: { ...snapshot.projections, values } };
       while (!signal.aborted) {

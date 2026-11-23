@@ -33,6 +33,7 @@ function apply(ctx, require) {
   let uiWorkspace;
   let openDirectories = () => {};
   let openHistory = () => {};
+  let openSessions = () => {};
   const brandStyle = size => ({ display: "inline-flex", alignItems: "center", justifyContent: "center",
     width: size, height: size, borderRadius: 6, background: "#1f6feb", color: "#fff",
     fontWeight: 700, fontSize: Math.max(10, Math.round(size * 0.55)), lineHeight: 1 });
@@ -315,6 +316,71 @@ function apply(ctx, require) {
         h("button", { type: "button", disabled: busy, onClick: () => setBranchTarget(undefined) }, "Cancel")),
       note === "" ? null : h("p", { role: "status", "data-product-history-note": "" }, note));
   }
+  function SessionsToggle() {
+    return h("button", {
+      type: "button", title: "Sessions", "aria-label": "Sessions", "data-product-sessions-toggle": "",
+      style: { display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: 0,
+        color: "inherit", cursor: "pointer", font: "inherit", padding: "6px 8px" },
+      onClick: () => openSessions(),
+    }, h("span", { "aria-hidden": "true" }, "\u{1F4DA}"), h("span", {}, "Sessions"));
+  }
+  /**
+   * The stock shell has no explicit Open: a read after a Host or worker restart is refused with the
+   * typed manual-open marker and only an explicit public Open starts a new native worker. This panel is
+   * that affordance; it lists only authorized Sessions and replays nothing.
+   */
+  function Sessions({ onClose }) {
+    const [registered, setRegistered] = useState([]);
+    const [choices, setChoices] = useState([]);
+    const [note, setNote] = useState("");
+    const [busy, setBusy] = useState(false);
+    const alive = useRef(true);
+    useEffect(() => () => { alive.current = false; }, []);
+    const load = async () => {
+      const [index, catalog] = await Promise.all([
+        remote.ompSessions.index({ pageSize: 32 }).then(unwrap),
+        remote.ompSessions.catalog({ pageSize: 32 }).then(unwrap),
+      ]);
+      if (!alive.current) return;
+      setRegistered(index.records); setChoices(catalog.choices);
+      if (catalog.status !== "complete") setNote("Native discovery is partial; only listed Sessions can be opened here.");
+    };
+    useEffect(() => { void load().catch(error => { if (alive.current) setNote(failureText(error)); }); }, []);
+    const open = choice => {
+      setBusy(true); setNote("");
+      void remote.ompSessions.open(choice.selectionId).then(result => {
+        unwrap(result);
+        return load().then(() => { if (alive.current) setNote(`Opened ${choice.nativeSessionId} as a new native worker.`); });
+      }).catch(error => { if (alive.current) setNote(failureText(error)); })
+        .finally(() => { if (alive.current) setBusy(false); });
+    };
+    const rows = new Map();
+    for (const record of registered) rows.set(record.nativeSessionId, { record });
+    for (const choice of choices) rows.set(choice.nativeSessionId, { ...rows.get(choice.nativeSessionId), choice });
+    return modal("Sessions", h("div", { "data-product-sessions": "" },
+      h("p", {}, "Opening a Session starts a new native worker for it. Nothing is replayed."),
+      h("button", { type: "button", disabled: busy, onClick: () => { setBusy(true); setNote("");
+        void load().catch(error => setNote(failureText(error))).finally(() => setBusy(false)); } }, "Refresh Sessions"),
+      rows.size === 0 ? h("p", { role: "status" }, "No authorized Session is listed yet.")
+        : h("ul", { style: { listStyle: "none", padding: 0 } }, [...rows].map(([nativeSessionId, row]) => {
+          const attempt = row.record?.attempt;
+          return h("li", { key: nativeSessionId, "data-product-session": nativeSessionId,
+            "data-product-session-attempt": attempt?.code ?? attempt?.state ?? "unavailable",
+            style: { display: "flex", alignItems: "center", gap: 8, padding: "8px 0", borderTop: "1px solid rgba(128,128,128,.3)" } },
+          h("span", { style: { flex: 1, overflowWrap: "anywhere" } },
+            `${row.choice?.title ?? nativeSessionId} · ${row.choice?.cwd ?? "unknown directory"}`,
+            attempt === undefined ? "" : ` · last attempt ${attempt.state}${attempt.code ? ` · ${attempt.code}` : ""}`,
+            !row.choice ? " · not discovered now" : ""),
+          h("button", { type: "button", disabled: busy || !row.choice, "data-product-open-session": nativeSessionId,
+            onClick: () => open(row.choice) }, "Open Session"));
+        })),
+      note === "" ? null : h("p", { role: "status", "data-product-sessions-note": "" }, note)), onClose);
+  }
+  function SessionsOverlay() {
+    const [open, setOpen] = useState(false);
+    useEffect(() => { openSessions = () => setOpen(true); return () => { openSessions = () => {}; }; }, []);
+    return open ? h(Sessions, { onClose: () => setOpen(false) }) : null;
+  }
   function HistoryOverlay() {
     const [open, setOpen] = useState(false);
     useEffect(() => { openHistory = () => setOpen(true); return () => { openHistory = () => {}; }; }, []);
@@ -441,8 +507,11 @@ function apply(ctx, require) {
     { name: "sidebar.footer.action", id: "omp.directories.toggle", order: 10 }, DirectoriesToggle));
   ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register(
     { name: "sidebar.footer.action", id: "omp.history.toggle", order: 20 }, HistoryToggle));
+  ctx.slots.inject("sidebar.footer.action", () => ctx.slots.register(
+    { name: "sidebar.footer.action", id: "omp.sessions.toggle", order: 30 }, SessionsToggle));
   ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.directories" }, Directories));
   ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.history" }, HistoryOverlay));
+  ctx.slots.inject("shell.overlay", () => ctx.slots.register({ name: "shell.overlay", id: "omp.sessions" }, SessionsOverlay));
 
   remote = ctx.remote;
   sessions = ctx.sessions;
