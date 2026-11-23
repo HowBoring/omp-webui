@@ -14,8 +14,11 @@ stock 斜杠菜单直接读取 Native command catalog；冻结客户端自身拥
 浏览器附件上传、provider 草稿恢复和 Original 重开；`tests/product/product-flow.py` 的最终组合
 场景覆盖 200×200 PNG 与文本附件发送、native `fileMention`/inline image、草稿 reload、拒绝不可用
 附件后继续发送，以及历史重开后经 `/api/ompOriginals/history|original` 按字节核对两个 Original。
-stock 转写仍把 retained image 显示为 native 文本占位（图片字节在 JSONL inline image 中，不渲染为
-`<img>`），该限制记录在 product-flow 检查中，不用重建历史代替。
+history 重开后，stock 会话把 retained image 作为真实图片渲染：Host 用 OMP `contents` 中
+`retained_native`/关联的 Original 元数据替换 native 占位文本，投影为 stock `image` block；客户端经
+`session/attachment` 读取同一 Session、同一 Tree 索引内已关联的 Original 字节，不暴露任意文件路由，
+也不替换 stock shell。product-flow 在 reload 后断言 200×200 PNG 的 `<img>` 实际加载，并按字节核对
+两个 Original。
 
 日期：2026-11-15。决策：[原生会话与历史导航 MVP 的 DSH 客户端组合](https://github.com/HowBoring/omp-webui/issues/19)。
 取舍见 [ADR 0005](adr/0005-dsh-client-composition.md)。同 Session 多持有者重建在保留执行 scope 内采用窄公开投影生命周期，见 [ADR 0015](adr/0015-retain-execution-replace-projection.md)；复用现有 Conversation 窗口替换，无第二套 assembler。

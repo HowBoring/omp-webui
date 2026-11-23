@@ -48,7 +48,8 @@ const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution
 const treeUnary = new Set(["ompTree/read"]);
 /** Native navigation is authorized by the source service, not by a Chat presentation binding. */
 const navigationUnary = new Set(["ompHistoryNavigationSource/action"]);
-export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
+export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page",
+  "session/projections", "session/attachment",
   "session/create", "session/modelCatalog", "session/selectModel",
   "ompChatComponent/attach", ...Object.keys(preferenceMethods), ...Object.keys(commandsMethods), ...workspaceUnary]);
 export const chatMethods = {

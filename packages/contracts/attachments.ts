@@ -9,7 +9,8 @@ const token = z.string().min(1).max(256);
 const mediaType = z.enum(originalMediaTypes);
 export const attachmentTarget = z.strictObject({ sessionId: token, draftId: token });
 export const originalDescriptor = z.strictObject({ displayName: z.string().min(1).max(255),
-  mediaType, byteLength: z.number().int().min(1).max(imageOriginalBytes) });
+  mediaType, byteLength: z.number().int().min(1).max(imageOriginalBytes),
+  width: z.number().int().positive().optional(), height: z.number().int().positive().optional() });
 export type OriginalDescriptor = z.infer<typeof originalDescriptor>;
 const originalMetadata = originalDescriptor.extend({ objectId: z.uuid(), sha256: z.string().regex(/^[0-9a-f]{64}$/),
   state: z.literal("staged-unprepared"), nativeAssociation: z.literal("unassociated"), stagedAt: z.number().int().nonnegative() });

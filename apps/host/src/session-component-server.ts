@@ -47,7 +47,8 @@ import { historyNavigationSourceHostContribution } from "../../../packages/contr
 import { HistoryNavigationSource } from "../../../packages/history-navigation-source/service.ts";
 import { createNavigationPorts } from "./navigation-ports.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
-import { originalHistoryResponse } from "./original-history.ts";
+import { originalHistoryImages, originalHistoryResponse } from "./original-history.ts";
+import type { SessionImages } from "../../../packages/projection/history-images.ts";
 const streams = new Set(["$events", "session/follow", "session/control", "workspace/follow", "remoteAccess/follow"]);
 // The stock roster holds five independent streams open at once (`remoteAccess`, `workspace`, `$events`,
 // `session/control`, `session/follow`); extra openings are refused per stream, never by killing the mux.
@@ -137,6 +138,7 @@ export async function startSessionComponentServer(options: Options) {
   let attachmentStore: OriginalStore | undefined;
   let stockUploads: StockUploads | undefined;
   let readonlyTree: ReadonlyTree | undefined;
+  let stockImages: SessionImages | undefined;
   let expirySweep: Timer | undefined;
   const stockUnary = ["session/create", "session/modelCatalog", "session/selectModel"];
   let unaryMethods = new Set([...unary, ...stockUnary]);
@@ -292,7 +294,8 @@ export async function startSessionComponentServer(options: Options) {
   let stockWorkspaces: StockWorkspaceService;
   const sessionsService = new SessionsService(ctx, { authority: access, grants: directories, index,
     catalog: options.catalog, supervisor, workspacePath: id => stockWorkspaces.pathOf(id) });
-  new SessionPresentationService(ctx, supervisor, sessionsService, () => stockWorkspaces?.changed());
+  new SessionPresentationService(ctx, supervisor, sessionsService, () => stockWorkspaces?.changed(),
+    () => stockImages);
   stockWorkspaces = new StockWorkspaceService(ctx, directories, sessionsService, supervisor);
   if (options.chat) {
     ctx.typert.register({ ...chatHostContribution, invocations: [...chatHostContribution.invocations,
@@ -304,6 +307,14 @@ export async function startSessionComponentServer(options: Options) {
     attachmentStore = new OriginalStore({ dataDir: join(options.dataDir, "attachments"), recovery: "exclusive-host-startup",
       // Late-bound: startup recovery runs before the gate exists, and an absent gate must refuse deletion.
       protection: original => gate?.protection(original.binding, original.objectId) ?? { status: "unknown" } });
+    stockImages = originalHistoryImages({ store: attachmentStore,
+      session: (identity, sessionId) => {
+        const tree = supervisor.treeAccess(identity, sessionId);
+        return { history: tree.history, scope: { hostId: access.hostId, browserId: identity.credentialId,
+          pageId: identity.credentialId, profileId: access.hostId, sourceId: tree.sourceId,
+          instanceId: tree.instanceId, sessionId, canonicalCwd: tree.cwd, authorityEpoch: tree.epoch } };
+      },
+      retains: (sessionId, entryId) => readonlyTree?.retains(sessionId, entryId) });
     let runtime: ChatComponentRuntime;
     const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
     stockUploads = new StockUploads(authority, () => runtime);

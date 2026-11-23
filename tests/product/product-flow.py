@@ -477,6 +477,15 @@ async def phase_linux(browser, errors, scenarios, checks, link):
             await page.wait_for_timeout(3000)
     await expect(page.locator("body")).to_contain_text(FINAL, timeout=180000)
     await expect(page.locator("body")).to_contain_text("attachment-prepared://", timeout=60000)
+    # The retained image is a real stock conversation image, not the native placeholder text.
+    await page.wait_for_function(
+        """() => [...document.querySelectorAll('[data-conversation-session] img')].some(img =>
+          img.complete && img.naturalWidth === 200 && img.naturalHeight === 200 &&
+          (img.currentSrc.startsWith('blob:') || img.currentSrc.startsWith('data:image/')))""",
+        timeout=60000)
+    assert await page.get_by_text("Retained native image available", exact=False).count() == 0, \
+        "the retained image was not replaced by placeholder text"
+    checks["attachmentHistoryImage"] = "stock <img> 200x200 after reload"
     file_items = await originals(page, attachment_session, mention["id"])
     image_items = await originals(page, attachment_session, user["id"])
     assert file_items and image_items, "history reopen lists both retained Originals"

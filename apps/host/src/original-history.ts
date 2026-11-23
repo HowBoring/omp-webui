@@ -8,6 +8,7 @@
 import type { BrowserAccess } from "../../../packages/access/index.ts";
 import type { OriginalHistoryScope, OriginalStore } from "../../../packages/attachments/store.ts";
 import type { TreeHistory } from "../../../packages/tree/service.ts";
+import type { RetainedImage, SessionImages } from "../../../packages/projection/history-images.ts";
 
 export interface OriginalHistorySession { scope: OriginalHistoryScope; history: TreeHistory }
 export interface OriginalHistoryDeps {
@@ -51,6 +52,37 @@ async function retained(history: TreeHistory, entryIds: readonly string[]): Prom
     }
   } finally { await history.close(opened.snapshot).catch(() => {}); }
   return found;
+}
+
+/** The Host face of stock conversation images: retained metadata for the Projection, exact bytes for reads. */
+export function originalHistoryImages(deps: Pick<OriginalHistoryDeps, "session" | "retains" | "store">): SessionImages {
+  return {
+    retained(identity, sessionId, entryIds) {
+      let session: OriginalHistorySession;
+      try { session = deps.session(identity, sessionId); } catch { return new Map(); }
+      const items = deps.store.history(() => session.scope, entryIds);
+      const images = new Map<string, RetainedImage>();
+      for (const item of items) {
+        if (!item.mediaType.startsWith("image/") || item.width === null || item.height === null) continue;
+        images.set(item.entryId, { entryId: item.entryId, objectId: item.objectId,
+          mediaType: item.mediaType as RetainedImage["mediaType"], bytes: item.byteLength,
+          width: item.width, height: item.height, name: item.displayName });
+      }
+      return images;
+    },
+    async read(identity, sessionId, reference) {
+      const session = deps.session(identity, sessionId);
+      const entryId = deps.store.entryFor(() => session.scope, reference.attachmentId);
+      if (entryId === undefined) throw new Error("attachment_object_unavailable");
+      const indexed = deps.retains?.(sessionId, entryId);
+      if (indexed === false) throw new Error("attachment_entry_unavailable");
+      const present = indexed === true || (await retained(session.history, [entryId])).has(entryId);
+      if (!present) throw new Error("attachment_entry_unavailable");
+      const original = await deps.store.readHistorical(() => session.scope, entryId,
+        reference.attachmentId, [entryId]);
+      return { data: original.bytes, mediaType: original.mediaType };
+    },
+  };
 }
 
 function single(url: URL, name: string): string | undefined {

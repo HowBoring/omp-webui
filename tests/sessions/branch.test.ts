@@ -114,7 +114,7 @@ test("a Host-verified native branch inherits Originals only for forwarded entry 
     const branch: OriginalScope = { ...source, sessionId: registration.nativeSessionId, sourceId: registration.sourceId, instanceId: registration.instanceId };
     expect(store.history(() => branch, ["entry-0", "entry-1"])).toEqual([{ entryId: "entry-0", objectId: originalId,
       displayName: "photo.gif", mediaType: "image/gif", byteLength: branchImage.length, sha256: branchSha,
-      availability: "available" }]);
+      availability: "available", width: null, height: null }]);
     expect(new Uint8Array((await store.readHistorical(() => branch, "entry-0", originalId, ["entry-0"])).bytes))
       .toEqual(branchImage);
     expect(copied).toEqual([1]);

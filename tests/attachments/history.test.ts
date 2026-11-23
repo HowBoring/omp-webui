@@ -87,6 +87,19 @@ function route(store: OriginalStore, options: { retained?: string[]; revoke?: ()
   });
 }
 
+test("stage records image geometry and entry lookup finds the retained link", async () => {
+  const { open } = fixture();
+  const store = open();
+  const original = await store.stage(access, { displayName: "photo.gif", mediaType: "image/gif",
+    byteLength: image.length, width: 200, height: 100 }, body());
+  const { receipt, result } = evidence(original.objectId);
+  store.reserveForSubmission(access, attempt, [original.objectId], receipt);
+  store.recordSubmission(access, attempt.clientSubmissionId, result);
+  expect(store.history(access, ["user"])).toMatchObject([{ entryId: "user", width: 200, height: 100 }]);
+  expect(store.entryFor(access, original.objectId)).toBe("user");
+  expect(store.entryFor(() => ({ ...access(), browserId: "other" }), original.objectId)).toBeUndefined();
+});
+
 test("historical Originals stay readable after Host restart and reject another browser, page or session", async () => {
   const { open } = fixture();
   const first = open();
@@ -95,7 +108,7 @@ test("historical Originals stay readable after Host restart and reject another b
   const reopened = open();
   expect(await reopened.history(access, ["user"])).toEqual([{ entryId: "user", objectId: original.objectId,
     displayName: "photo.gif", mediaType: "image/gif", byteLength: image.length, sha256,
-    availability: "available" }]);
+    availability: "available", width: null, height: null }]);
   expect(new Uint8Array((await reopened.readHistorical(access, "user", original.objectId, ["user"])).bytes))
     .toEqual(image);
   const copy = () => ({ ...scope, sourceId: "c".repeat(64) });

@@ -3,22 +3,40 @@ import type { Context } from "@deepseek-ai/cordis";
 import type { SessionFollowRequest, SessionPageRequest, SessionControlFrame, SessionFollowFrame,
   SessionListRequest, SessionProjectionsRequest, SessionProjectionBinding, SessionCreateRequest,
   SessionCreateValue, ModelCatalog, SessionProjectionValues, SessionSelectModelRequest,
-  SessionSelectModelValue } from "@deepseek-ai/dsh-api-session-controller/types";
+  SessionSelectModelValue, SessionAttachmentRequest, SessionAttachmentValue,
+  SessionHistoryRecord } from "@deepseek-ai/dsh-api-session-controller/types";
 import { sameProjection } from "@deepseek-ai/dsh-api-session-controller/projection";
 import { ReasoningEffortId } from "@deepseek-ai/dsh-llm/brand";
 import { SessionId } from "@deepseek-ai/dsh-session/types";
 import type { BrowserAccess } from "../access/index.ts";
 import type { LiveJournal } from "../projection/live-journal.ts";
+import { applyHistoryImages, type SessionImages } from "../projection/history-images.ts";
 import type { SessionSupervisor } from "./supervisor.ts";
 import { sessionCaller, type SessionsService } from "./service.ts";
 /** Wire shape of a model-selection face value; an alias (not interface) so JSON carriers accept it too. */
 type SelectionJson = { provider: string; model: string; reasoningEffort?: ReasoningEffortId };
 export class SessionPresentationService extends TypertRemoteService {
   constructor(ctx: Context, readonly supervisor: SessionSupervisor,
-    private readonly sessions: SessionsService, private readonly changed?: () => void) {
+    private readonly sessions: SessionsService, private readonly changed?: () => void,
+    private readonly images?: () => SessionImages | undefined) {
     super(ctx, "sessionController", { namespace: "session" });
   }
   private identity(): BrowserAccess { const identity = sessionCaller.getStore(); if (!identity) throw new Error("SESSION_AUTH_REQUIRED"); return identity; }
+  /** Replace a retained-image placeholder with the stock image block the conversation surface renders. */
+  private decorate(identity: BrowserAccess, sessionId: string, records: readonly SessionHistoryRecord[]):
+    readonly SessionHistoryRecord[] {
+    const images = this.images?.();
+    if (images === undefined) return records;
+    const ids = [...new Set(records.flatMap(record => {
+      if (record.type !== "event" || record.event.type !== "user/message") return [];
+      const id = (record.event.data as { id?: unknown }).id;
+      return typeof id === "string" ? [id] : [];
+    }))];
+    if (ids.length === 0) return records;
+    try {
+      return applyHistoryImages(records, [...images.retained(identity, sessionId, ids).values()]);
+    } catch { return records; }
+  }
   private addressId(address: SessionFollowRequest["address"]): string {
     if (address.kind !== "session") throw new Error("SESSION_ADDRESS_DENIED"); return address.sessionId;
   }
@@ -93,9 +111,28 @@ export class SessionPresentationService extends TypertRemoteService {
     } catch { return { lastUsed: null, next: null }; }
   }
   @Remote("page") async page(request: SessionPageRequest) {
-    const journal = await this.presented(this.addressId(request.address));
+    const id = this.addressId(request.address), journal = await this.presented(id);
     this.assertOpening(journal, request.projection);
-    return { cursor: request.throughSeq ?? journal.cursor, ...await journal.page(request) };
+    const page = await journal.page(request);
+    return { cursor: request.throughSeq ?? journal.cursor, ...page,
+      records: this.decorate(this.identity(), id, page.records) };
+  }
+  /** Stock durable image read: the Projection only publishes references backed by an associated Original. */
+  @Remote("attachment") async attachment(request: SessionAttachmentRequest): Promise<SessionAttachmentValue> {
+    const identity = this.identity(), images = this.images?.(), reference = request.attachment;
+    if (images === undefined) throw new RemoteError("session/attachment-invalid", "Session images are unavailable.", { reason: "images-unavailable" });
+    if (typeof reference.attachmentId !== "string" || !Number.isSafeInteger(reference.bytes)
+      || reference.bytes < 1 || !Number.isSafeInteger(reference.width) || reference.width < 1
+      || !Number.isSafeInteger(reference.height) || reference.height < 1) {
+      throw new RemoteError("gateway/bad-request", "The image reference is invalid.",
+        { issues: [] });
+    }
+    const found = await images.read(identity, request.sessionId, reference);
+    if (found.mediaType !== reference.mediaType || found.data.byteLength !== reference.bytes) {
+      throw new RemoteError("session/attachment-invalid", "The retained image no longer matches its reference.",
+        { reason: "reference-mismatch" });
+    }
+    return { attachment: reference, data: Buffer.from(found.data).toString("base64") };
   }
   @Remote({ mode: "stream" }) async *control(signal: AbortSignal): AsyncGenerator<SessionControlFrame> {
     const identity = this.identity();
@@ -156,12 +193,14 @@ export class SessionPresentationService extends TypertRemoteService {
       const snapshot = journal.snapshot();
       const values: SessionProjectionValues = { ...snapshot.projections.values };
       values.modelSelection = await this.modelSelection();
-      yield { ...snapshot, projections: { ...snapshot.projections, values } };
+      yield { ...snapshot, records: this.decorate(identity, id, snapshot.records),
+        projections: { ...snapshot.projections, values } };
       while (!signal.aborted) {
         this.supervisor.requirePresentation(identity, id, journal);
         if (journal.failure) throw new RemoteError("gateway/bad-request", "Session history changed; manually reopen the full view.", {});
         while (queue.length) { this.supervisor.requirePresentation(identity, id, journal); const frame = queue.shift()!;
-          bytes -= Buffer.byteLength(JSON.stringify(frame)); yield frame; }
+          bytes -= Buffer.byteLength(JSON.stringify(frame));
+          yield frame.type === "event" ? this.decorate(identity, id, [frame])[0]! : frame; }
         await this.supervisor.pollPresentation(identity, id, journal); await Bun.sleep(100);
       }
     } finally { dispose(); }

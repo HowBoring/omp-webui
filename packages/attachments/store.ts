@@ -26,7 +26,9 @@ export type OriginalProtectionGate = (original: Readonly<{ objectId: string; bin
 /** Recheck live browser, directory, exact native identity and trusted page binding on every invocation. */
 export type OriginalAccess = () => OriginalScope;
 export type DraftOriginalActivity = "explicit-edit" | "active-recovery";
-export interface OriginalDescriptor { displayName: string; mediaType: OriginalMediaType; byteLength: number }
+export interface OriginalDescriptor { displayName: string; mediaType: OriginalMediaType; byteLength: number;
+  /** Decoded image geometry; absent for non-images and for Originals staged before it was recorded. */
+  width?: number | undefined; height?: number | undefined }
 export type StagedOriginal = Omit<OriginalDescriptor, "mediaType"> & {
   objectId: string; sha256: string; state: "staged-unprepared"; nativeAssociation: "unassociated";
   stagedAt: number;
@@ -48,7 +50,7 @@ export interface OriginalHistoryScope {
 export type OriginalHistoryAccess = () => OriginalHistoryScope;
 export interface OriginalHistoryItem {
   entryId: string; objectId: string; displayName: string; mediaType: OriginalMediaType; byteLength: number;
-  sha256: string; availability: "available" | "missing";
+  sha256: string; availability: "available" | "missing"; width: number | null; height: number | null;
 }
 export interface OriginalDeletionPreview {
   original: StagedOriginal;
@@ -77,6 +79,7 @@ interface Row {
   id: string; scope: string; size: number; displayName: string; mediaType: OriginalMediaType;
   state: "receiving" | "staged-unprepared" | "native-associated" | "deleting";
   sha256: string | null; stagedAt: number; activityAt: number;
+  width: number | null; height: number | null;
 }
 interface SubmissionRow { scope: string; preparationId: string; preparation: string; associations: string | null }
 interface PendingDeletion {
@@ -149,7 +152,8 @@ export class OriginalStore {
         CREATE TABLE IF NOT EXISTS budget (id INTEGER PRIMARY KEY CHECK(id=1), limits TEXT NOT NULL);
         CREATE TABLE IF NOT EXISTS originals (id TEXT PRIMARY KEY, scope TEXT NOT NULL, size INTEGER NOT NULL,
           displayName TEXT NOT NULL, mediaType TEXT NOT NULL, state TEXT NOT NULL,
-          sha256 TEXT, stagedAt INTEGER NOT NULL, activityAt INTEGER NOT NULL);
+          sha256 TEXT, stagedAt INTEGER NOT NULL, activityAt INTEGER NOT NULL,
+          width INTEGER, height INTEGER);
         CREATE INDEX IF NOT EXISTS original_scope ON originals(scope);
         CREATE TABLE IF NOT EXISTS original_submissions (target TEXT NOT NULL, submissionId TEXT NOT NULL,
           scope TEXT NOT NULL, preparationId TEXT NOT NULL, preparation TEXT NOT NULL, associations TEXT,
@@ -165,6 +169,7 @@ export class OriginalStore {
         if (saved && saved.limits !== JSON.stringify(this.limits)) fail("limits_changed");
         if (!saved) this.db.query("INSERT INTO budget VALUES(1, ?)").run(JSON.stringify(this.limits));
         this.migrateActivityClock();
+        this.migrateImageGeometry();
         this.backfillLinks();
       }).immediate();
       if (options.recovery === "exclusive-host-startup") this.recover();
@@ -177,6 +182,14 @@ export class OriginalStore {
       this.db.exec("ALTER TABLE originals ADD COLUMN activityAt INTEGER NOT NULL DEFAULT 0;"
         + "UPDATE originals SET activityAt=stagedAt;");
     }
+  }
+
+  private migrateImageGeometry(): void {
+    const columns = this.db.query<{ name: string }, []>("PRAGMA table_info(originals)").all();
+    const add = (name: string) => {
+      if (!columns.some(column => column.name === name)) this.db.exec(`ALTER TABLE originals ADD COLUMN ${name} INTEGER;`);
+    };
+    add("width"); add("height");
   }
 
   /**
@@ -240,6 +253,10 @@ export class OriginalStore {
       || !isOriginalMediaType(descriptor.mediaType)) fail("invalid_descriptor");
     if (!Number.isSafeInteger(descriptor.byteLength) || descriptor.byteLength < 1
       || descriptor.byteLength > this.objectCeiling(descriptor.mediaType)) fail("object_budget");
+    const width = descriptor.width, height = descriptor.height;
+    if ((width === undefined) !== (height === undefined)
+      || (width !== undefined && (!Number.isSafeInteger(width) || width < 1
+        || !Number.isSafeInteger(height) || height! < 1))) fail("invalid_descriptor");
     return this.db.transaction(() => {
       const total = this.db.query<{ bytes: number; count: number; intakes: number }, []>(
         "SELECT coalesce(sum(size),0) AS bytes, count(*) AS count, "
@@ -257,10 +274,12 @@ export class OriginalStore {
       const stagedAt = this.now();
       const row: Row = { id: randomUUID(), scope: scopeKey(scope), size: descriptor.byteLength,
         displayName: descriptor.displayName, mediaType: descriptor.mediaType, state: "receiving", sha256: null,
-        stagedAt, activityAt: stagedAt };
-      this.db.query(`INSERT INTO originals (id, scope, size, displayName, mediaType, state, sha256, stagedAt, activityAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-        .run(row.id, row.scope, row.size, row.displayName, row.mediaType, row.state, row.sha256, row.stagedAt, row.activityAt);
+        stagedAt, activityAt: stagedAt, width: width ?? null, height: height ?? null };
+      this.db.query(`INSERT INTO originals
+        (id, scope, size, displayName, mediaType, state, sha256, stagedAt, activityAt, width, height)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+        .run(row.id, row.scope, row.size, row.displayName, row.mediaType, row.state, row.sha256, row.stagedAt,
+          row.activityAt, row.width, row.height);
       return row;
     }).immediate();
   }
@@ -494,8 +513,9 @@ export class OriginalStore {
     const marks = unique.map(() => "?").join(",");
     const rows = this.db.query<{ entryId: string; objectId: string; target: string; submissionId: string;
       displayName: string; mediaType: OriginalMediaType; size: number; sha256: string | null; associations: string | null;
-      scope: string }, string[]>(`SELECT l.entryId, l.objectId, l.target, l.submissionId, o.displayName, o.mediaType,
-        o.size, o.sha256, s.associations, s.scope FROM original_entry_links l
+      scope: string; width: number | null; height: number | null }, string[]>(`SELECT l.entryId, l.objectId, l.target,
+        l.submissionId, o.displayName, o.mediaType, o.size, o.sha256, s.associations, s.scope, o.width, o.height
+        FROM original_entry_links l
         JOIN originals o ON o.id=l.objectId
         JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
         WHERE l.sessionId=? AND l.instanceId=? AND l.entryId IN (${marks}) AND o.state='native-associated'`)
@@ -505,12 +525,26 @@ export class OriginalStore {
       const stored = storedBinding(row.scope);
       if (!stored || !this.sameRequester(stored, scope) || !row.sha256) return [];
       return [{ entryId: row.entryId, objectId: row.objectId, displayName: row.displayName, mediaType: row.mediaType,
-        byteLength: row.size, sha256: row.sha256, availability: this.available(row.objectId, row.size, row.mediaType) }];
+        byteLength: row.size, sha256: row.sha256, availability: this.available(row.objectId, row.size, row.mediaType),
+        width: row.width, height: row.height }];
     });
     items.sort((first, second) => (order.get(first.entryId) ?? 0) - (order.get(second.entryId) ?? 0)
       || first.objectId.localeCompare(second.objectId));
     this.currentHistory(access, scope, signal);
     return items;
+  }
+
+  /** The retained entry carrying this object for the exact trusted Session binding, if one exists. */
+  entryFor(access: OriginalHistoryAccess, objectId: string, signal?: AbortSignal): string | undefined {
+    const scope = this.currentHistory(access, undefined, signal);
+    if (!idPattern.test(objectId)) return;
+    const row = this.db.query<{ entryId: string; scope: string }, [string, string, string]>(`SELECT l.entryId, s.scope
+      FROM original_entry_links l JOIN originals o ON o.id=l.objectId
+      JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
+      WHERE l.sessionId=? AND l.instanceId=? AND l.objectId=? AND o.state='native-associated' LIMIT 1`)
+      .get(scope.sessionId, scope.instanceId, objectId);
+    const stored = row && storedBinding(row.scope);
+    return stored && this.sameRequester(stored, scope) ? row.entryId : undefined;
   }
 
   private available(objectId: string, size: number, mediaType: OriginalMediaType): "available" | "missing" {
@@ -531,9 +565,9 @@ export class OriginalStore {
     if (!entryPattern.test(entryId) || !idPattern.test(objectId) || !entries.includes(entryId)) fail("object_unavailable");
     const { item, bytes } = this.db.transaction(() => {
       const row = this.db.query<{ entryId: string; objectId: string; displayName: string; mediaType: OriginalMediaType;
-        size: number; sha256: string | null; scope: string; state: string }, [string, string, string, string]>(`SELECT
-        l.entryId, l.objectId, o.displayName, o.mediaType, o.size, o.sha256, s.scope, o.state
-        FROM original_entry_links l JOIN originals o ON o.id=l.objectId
+        size: number; sha256: string | null; scope: string; state: string; width: number | null; height: number | null },
+        [string, string, string, string]>(`SELECT l.entryId, l.objectId, o.displayName, o.mediaType, o.size, o.sha256,
+        s.scope, o.state, o.width, o.height FROM original_entry_links l JOIN originals o ON o.id=l.objectId
         JOIN original_submissions s ON s.target=l.target AND s.submissionId=l.submissionId
         WHERE l.sessionId=? AND l.instanceId=? AND l.entryId=? AND l.objectId=?`)
         .get(scope.sessionId, scope.instanceId, entryId, objectId);
@@ -541,9 +575,11 @@ export class OriginalStore {
       const stored = storedBinding(row.scope);
       if (!stored || !this.sameRequester(stored, scope)) fail("object_unavailable");
       const bytes = this.payload({ id: row.objectId, scope: row.scope, size: row.size, displayName: row.displayName,
-        mediaType: row.mediaType, state: "native-associated", sha256: row.sha256, stagedAt: 0, activityAt: 0 });
+        mediaType: row.mediaType, state: "native-associated", sha256: row.sha256, stagedAt: 0, activityAt: 0,
+        width: row.width, height: row.height });
       return { item: { entryId, objectId, displayName: row.displayName, mediaType: row.mediaType,
-        byteLength: row.size, sha256: row.sha256, availability: "available" as const }, bytes };
+        byteLength: row.size, sha256: row.sha256, availability: "available" as const,
+        width: row.width, height: row.height }, bytes };
     }).deferred();
     this.currentHistory(access, scope, signal);
     if (bytes.length !== item.byteLength || createHash("sha256").update(bytes).digest("hex") !== item.sha256) {

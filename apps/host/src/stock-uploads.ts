@@ -149,8 +149,9 @@ export class StockUploads {
       if (bytes.toString("base64") !== part.data || !bytes.length) throw Error("ATTACHMENT_INVALID_BASE64");
       if (bytes.length > imageOriginalBytes || sniffImage(bytes) !== part.mediaType
         || !imageDimensions(bytes, part.mediaType)) throw Error("ATTACHMENT_FORMAT_UNSUPPORTED");
+      const size = imageDimensions(bytes, part.mediaType)!;
       const descriptor = { displayName: attachmentName(part.name ?? `image.${extension[part.mediaType]}`),
-        mediaType: part.mediaType, byteLength: bytes.length } as const;
+        mediaType: part.mediaType, byteLength: bytes.length, width: size.width, height: size.height } as const;
       const staged = await this.authority.stageStock(identity, target, descriptor, oneShot(bytes), signal);
       originalIds.push(staged.objectId); total += bytes.length;
     }
@@ -189,8 +190,8 @@ export class StockUploads {
       throw new StockUploadError("The image dimensions cannot be read.", "attachment_decoded_invalid");
     }
     const displayName = attachmentName(name ?? (isImageMediaType(mediaType) ? `image.${extension[mediaType]}` : "attachment"));
-    const staged = await this.authority.stageStock(identity, target, { displayName, mediaType, byteLength: bytes.length },
-      oneShot(bytes), signal);
+    const staged = await this.authority.stageStock(identity, target, { displayName, mediaType, byteLength: bytes.length,
+      ...(size === undefined ? {} : { width: size.width, height: size.height }) }, oneShot(bytes), signal);
     const receiptId = randomUUID();
     this.#prune();
     this.#receipts.set(receiptId, { credential: identity.credentialId, sessionId: target.sessionId,

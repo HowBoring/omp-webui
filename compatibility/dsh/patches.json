@@ -52,6 +52,11 @@
       "path": "patches/0012-client-test-projection-seam.patch",
       "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
       "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+    },
+    {
+      "path": "patches/0013-css-module-relative-hash.patch",
+      "sha256": "754ea9266e5ad4ba4be317c494465a4bfe2df893d5bf288b21d32acac88e1b2b",
+      "treeAfter": "f5cc084f803a001930f8d1c6fa1abba5bd78e08f"
     }
   ]
 }
