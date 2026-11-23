@@ -1,10 +1,20 @@
 import { expect, test } from "bun:test";
-import {
+
+/**
+ * Static import cannot be used: `vendor/omp` is vendored upstream source outside this repository's
+ * strict TypeScript program, and a literal specifier makes `tsc` typecheck the whole upstream tree.
+ */
+const source = new URL("../../vendor/omp/packages/coding-agent/src/attachments/model-binding.ts",
+  import.meta.url).pathname;
+const {
   attachmentImageCapable,
   attachmentModelFingerprint,
-} from "../../vendor/omp/packages/coding-agent/src/attachments/model-binding.ts";
+} = (await import(source)) as {
+  attachmentImageCapable(model: unknown, policy: unknown): boolean;
+  attachmentModelFingerprint(model: unknown, policy: unknown): string;
+};
 
-type BoundModel = Parameters<typeof attachmentModelFingerprint>[0];
+type BoundModel = Record<string, unknown>;
 const openai: BoundModel = {
   provider: "kimi-code", id: "k3.1-pro", api: "openai-completions", baseUrl: "https://api.kimi.com/coding/v1",
   input: ["text", "image"], compat: {}, name: "K3.1 Pro", contextWindow: 1_048_576, maxTokens: 131_072,
