@@ -30,7 +30,7 @@ export default function(pi) {
   });
   pi.registerProvider('s0-controlled', {
     baseUrl:'https://forbidden.invalid',apiKey:'synthetic-fixture-key',api:'s0-controlled',
-    models:[{id:'deterministic-live',name:'Controlled fixture (not real AI)',reasoning:true,input:['text'],
+    models:[{id:'deterministic-live',name:'Controlled fixture (not real AI)',reasoning:true,input:['text','image'],
       contextWindow:128000,maxTokens:8192,cost:{input:0,output:0,cacheRead:0,cacheWrite:0}}],
     streamSimple(model,context,options) {
       if(model.provider!=='s0-controlled'||model.id!=='deterministic-live') throw Error('unexpected_fixture_provider');
