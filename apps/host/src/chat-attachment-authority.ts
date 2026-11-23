@@ -19,7 +19,7 @@ export class ChatAttachmentAuthority implements AttachmentAuthority {
   readonly #intake: OriginalIntake<unknown>;
   constructor(private readonly authority: BrowserAuthority, private readonly runtime: () => ChatComponentRuntime,
     private readonly store: OriginalStore) {
-    this.#intake = new OriginalIntake(store, (_caller, target) => this.scope(target));
+    this.#intake = new OriginalIntake(store, (caller, target) => this.scopeFor(caller as BrowserAccess, target));
   }
 
   /** Trusted OriginalIntake authority: always resolved from the current admitted Chat View. */

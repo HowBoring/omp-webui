@@ -40,13 +40,18 @@ export class BrowserAuthority {
   /** Stable non-secret namespace for this origin + canonical data directory + material generation. */
   get hostId() { return this.store.identity(); }
 
-  admit(request: Request, kind: AdmissionKind): BrowserAccess | Response {
+  /**
+   * `csrf` is opt-out only for a same-origin raw-byte carrier whose stock browser worker cannot
+   * attach the header: the exact Origin, `sec-fetch-site`, and a non-form content type already
+   * exclude cross-site writes. Every JSON/form write keeps the token check.
+   */
+  admit(request: Request, kind: AdmissionKind, csrf = true): BrowserAccess | Response {
     if (this.unavailable || this.revoking) return failure("ACCESS_STATE_UNAVAILABLE", 503);
-    try { return this.admitCurrent(request, kind); }
+    try { return this.admitCurrent(request, kind, csrf); }
     catch { return failure("ACCESS_STATE_UNAVAILABLE", 503); }
   }
 
-  private admitCurrent(request: Request, kind: AdmissionKind): BrowserAccess | Response {
+  private admitCurrent(request: Request, kind: AdmissionKind, csrf: boolean): BrowserAccess | Response {
     const denied = trust(request, this.origin, kind);
     if (denied) return denied;
     const cookies = (request.headers.get("cookie") ?? "").split(";").map((part) => part.trim());
@@ -54,7 +59,7 @@ export class BrowserAuthority {
     const token = matches.length === 1 ? matches[0]!.slice("omp_browser=".length) : "";
     const credential = /^[A-Za-z0-9_-]{43}$/.test(token) ? this.store.lookup(token, this.now()) : null;
     if (!credential) return failure("AUTH_REQUIRED", 401);
-    if (kind === "write" && !equal(request.headers.get("x-omp-csrf") ?? "", this.store.csrf(credential))) {
+    if (kind === "write" && csrf && !equal(request.headers.get("x-omp-csrf") ?? "", this.store.csrf(credential))) {
       return failure("CSRF_REQUIRED", 403);
     }
     const identity = Object.freeze({ credentialId: credential.id, expiresAt: credential.expiresAt });

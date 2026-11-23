@@ -94,3 +94,19 @@ test("a receipt is bound to the attached draft and never survives a detach", asy
   const detached = await upload(f.uploads, new TextEncoder().encode("detached\n"), { name: "notes.txt" });
   expect(detached.ok).toBe(false);
 });
+
+test("the encoded Remote upload shares staging and receipt authority with the raw route", async () => {
+  const f = fixture();
+  const bytes = new TextEncoder().encode("remote upload\n");
+  const value = await f.uploads.upload(identity, "native", {
+    data: Buffer.from(bytes).toString("base64"), name: "remote.txt" });
+  expect(value.file).toMatchObject({ name: "remote.txt", bytes: bytes.length });
+  const resolved = await f.uploads.resolve(identity, { sessionId: "native", draftId: "draft" },
+    [{ type: "file", receiptId: value.receiptId }], new AbortController().signal);
+  expect(resolved.originalIds).toEqual([value.file.attachmentId]);
+  await expect(f.uploads.upload(identity, "native", { data: pngBase64, name: "pixel.png" }))
+    .rejects.toThrow("Only files are accepted by this transport.");
+  f.hide();
+  await expect(f.uploads.upload(identity, "native", { data: "", name: "late.txt" }))
+    .rejects.toThrow("not attached");
+});

@@ -30,6 +30,8 @@ export const baselineRoster = [
   "dsh-client-ui-tool", "dsh-client-ui-approval", "dsh-client-ui-user-questions", "dsh-client-ui-workspace",
   "dsh-client-ui-sidebar", "dsh-client-ui-sidebar-right", "dsh-client-resources", "dsh-client-ui-context-menu",
   "dsh-client-ui-file-drag", "dsh-client-ui-input-trigger",
+  // Composer attachment rail, drop/paste intake, and image galleries; ui-attachment injects ui-trajectory.
+  "dsh-client-ui-attachment", "dsh-client-ui-trajectory",
 ].map(name => `@deepseek-ai/${name}`);
 
 /**

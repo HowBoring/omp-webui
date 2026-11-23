@@ -3,6 +3,11 @@
  * inside a normal `session/prompt`. Authority is the attached View; bytes stay in the private Store.
  */
 import { randomUUID } from "node:crypto";
+import type { Context } from "@deepseek-ai/cordis";
+import { TYPERT_REMOTE as FILE_UPLOAD_REMOTE } from "@deepseek-ai/dsh-client-file-upload/remote";
+import type { EncodedFileUploadRequest, FileUploadValue } from "@deepseek-ai/dsh-client-file-upload/types";
+import { Remote, RemoteError, TypertRemoteService } from "@deepseek-ai/dsh-typert-protocol";
+import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import type { BrowserAccess } from "../../../packages/access/index.ts";
 import { attachmentName, classifyAttachment } from "../../../packages/attachments/classify.ts";
 import { documentOriginalBytes, imageDimensions, imageOriginalBytes, isImageMediaType,
@@ -10,6 +15,14 @@ import { documentOriginalBytes, imageDimensions, imageOriginalBytes, isImageMedi
 import type { AttachmentTarget, OriginalDescriptor } from "../../../packages/contracts/attachments.ts";
 import { chatSessionId } from "../../../packages/contracts/chat.ts";
 import type { SessionPromptRequest } from "@deepseek-ai/dsh-api-session-controller/types";
+import { sessionCaller } from "../../../packages/sessions/service.ts";
+
+/** Host face of the stock `fileUploads` Remote; the browser Blob path still uses the HTTP route. */
+export const stockUploadsHostContribution: TypertContribution = {
+  package: FILE_UPLOAD_REMOTE.package, face: "host", schemas: [],
+  model: { services: [], events: [], objects: [] },
+  invocations: FILE_UPLOAD_REMOTE.descriptors.filter(value => value.namespace === "fileUploads"),
+};
 /** The two Host seams this transport needs; the real authority and runtime satisfy them. */
 export interface StockAuthority {
   stageStock(caller: BrowserAccess, target: AttachmentTarget, descriptor: OriginalDescriptor,
@@ -34,7 +47,7 @@ interface Receipt {
   readonly at: number;
 }
 
-class StockUploadError extends Error {
+export class StockUploadError extends Error {
   constructor(message: string, readonly reason = "invalid_request") { super(message); }
 }
 
@@ -93,6 +106,25 @@ export class StockUploads {
       return Response.json({ ok: true, value: await this.#stage(identity, target, bytes, name, declared, request.signal) },
         { headers: { "cache-control": "no-store" } });
     } catch (error) { return jsonFailure(refusal(error)); }
+  }
+
+  /** `fileUploads/upload` for encoded bytes; staging, receipts and refusals match {@link handle}. */
+  async upload(identity: BrowserAccess, sessionId: string, request: EncodedFileUploadRequest,
+    signal?: AbortSignal): Promise<FileUploadValue> {
+    if (!chatSessionId.safeParse(sessionId).success) throw new StockUploadError("The Session is unavailable.");
+    const target = this.runtime().attached(identity, sessionId);
+    if (!target) throw new StockUploadError("The Session view is not attached.");
+    if (typeof request.data !== "string" || request.data.length % 4 !== 0
+      || !/^[A-Za-z0-9+/]*={0,2}$/.test(request.data)) {
+      throw new StockUploadError("The upload is invalid.", "attachment_invalid_base64");
+    }
+    const bytes = Buffer.from(request.data, "base64");
+    if (bytes.toString("base64") !== request.data) throw new StockUploadError("The upload is invalid.", "attachment_invalid_base64");
+    const staged = await this.#stage(identity, target, bytes, request.name, undefined,
+      signal ?? new AbortController().signal);
+    if (!("file" in staged)) throw new StockUploadError("Only files are accepted by this transport.", "unsupported");
+    return { receiptId: staged.receiptId as FileUploadValue["receiptId"],
+      file: staged.file as unknown as FileUploadValue["file"] };
   }
 
   /** Exact prompt content for one attempt: text and receipt-backed or inline originals, never browser bytes. */
@@ -177,6 +209,23 @@ export class StockUploads {
       const oldest = this.#receipts.keys().next().value;
       if (oldest === undefined) break;
       this.#receipts.delete(oldest);
+    }
+  }
+}
+
+/** Host service answering the stock `fileUploads/upload` Remote with the same private Store authority. */
+export class FileUploadsRemote extends TypertRemoteService {
+  constructor(ctx: Context, private readonly uploads: StockUploads) { super(ctx, "fileUploads"); }
+
+  @Remote("upload") async upload(agent: { readonly id: string }, request: EncodedFileUploadRequest,
+    signal?: AbortSignal): Promise<FileUploadValue> {
+    const identity = sessionCaller.getStore();
+    if (!identity) throw new RemoteError("gateway/bad-request", "Upload authority is unavailable.", {});
+    try { return await this.uploads.upload(identity, agent.id, request, signal); }
+    catch (error) {
+      const reason = error instanceof StockUploadError ? error.reason : "invalid_request";
+      throw new RemoteError("session/attachment-invalid" as never,
+        error instanceof Error ? error.message : "The upload was refused.", { reason } as never);
     }
   }
 }

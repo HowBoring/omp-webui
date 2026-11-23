@@ -22,7 +22,11 @@ test("changed served JavaScript or startup trust manifest cannot publish verifie
     const forged = await trustedDiagnosticAssets(manifest, assets, "f".repeat(64));
     expect((await forged.response("client.js")).status).toBe(503);
     const carrier = await trustedDiagnosticAssets(manifest, assets, enrolled);
-    expect((await carrier.response("client.js")).status).toBe(200);
+    const served = await carrier.response("client.js");
+    expect(served.status).toBe(200);
+    const csp = served.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("worker-src 'self' blob:");
+    expect(csp).toContain("img-src 'self' blob: data:");
     await writeFile(join(assets, "client.js"), "same-name replacement");
     expect((await carrier.response("client.js")).status).toBe(503);
     await writeFile(manifest, "{}");

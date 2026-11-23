@@ -30,7 +30,7 @@ import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { preferencesHostContribution, WebPreferences } from "../../../packages/preferences/service.ts";
 import { commandsHostContribution, CommandsService } from "../../../packages/commands/service.ts";
 import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
-import { StockUploads } from "./stock-uploads.ts";
+import { FileUploadsRemote, StockUploads, stockUploadsHostContribution } from "./stock-uploads.ts";
 import { OriginalStore } from "../../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../../packages/attachments/service.ts";
 import { AttachmentBridge } from "../../../packages/attachments/bridge.ts";
@@ -156,7 +156,7 @@ export async function startSessionComponentServer(options: Options) {
         const auth = await access.handle(request);
         if (auth) return auth;
       }
-      if (path === "/" || path.startsWith("/api/")) {
+      if ((path === "/" || path.startsWith("/api/")) && path !== "/api/session/uploadFileBinary") {
         const identity = access.admit(request, path === "/api/remote.mux" ? "websocket"
           : request.method === "POST" ? "write" : "read");
         if (identity instanceof Response) return identity;
@@ -191,7 +191,8 @@ export async function startSessionComponentServer(options: Options) {
       }
       if (path === "/api/session/uploadFileBinary") {
         if (request.headers.get("origin") !== origin.origin) return new Response("Forbidden", { status: 403 });
-        const identity = access.admit(request, "write");
+        // Stock uploads arrive from a blob Worker that only sends cookies, content-type and Origin.
+        const identity = access.admit(request, "write", false);
         if (identity instanceof Response) return identity;
         if (!stockUploads) return new Response("Not found", { status: 404 });
         return stockUploads.handle(identity, request);
@@ -345,6 +346,8 @@ export async function startSessionComponentServer(options: Options) {
       if (!identity || !access.revalidate(identity)) throw new Error("WEBUI_PREFERENCE_AUTHORITY");
     });
     ctx.typert.register(commandsHostContribution);
+    ctx.typert.register(stockUploadsHostContribution);
+    new FileUploadsRemote(ctx, stockUploads);
     new CommandsService(ctx, sessionId => {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) return undefined;
