@@ -39,7 +39,7 @@ source, patch, schema or asset identities: system dependency paths reduce to the
 content identity and byte count of every archive entry must still match, so a foreign closure with the
 same file names fails.
 
-Reproducing this tuple needs the 38-archive native closure (`stage-strict-runtime.py`, recorded as
+Reproducing this tuple needs the recorded native closure (`stage-strict-runtime.py`, recorded as
 `enrolled: false` in `docs/evidence/ticket-41-navigation-roster.json` because `vendor/omp-strict` holds only
 the installed validators). `.github/workflows/check.yml` pins `ubuntu-24.04`, stages the continuation
 fixtures, the navigation pins and the enrollment, and runs the full provisioned suite. The one narrowing is
