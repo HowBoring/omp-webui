@@ -88,6 +88,7 @@ test("the product Chat Host serves the read-only tree to a real DSH client and n
         attachments: new AttachmentClient(async () => { throw new Error("UNUSED"); }, isAttachmentReceipt),
         navigation: new NavigationClient(async () => { throw new Error("UNUSED"); }, (_value): _value is never => false, (_value): _value is never => false),
         async submitCommand() { throw new Error("UNUSED"); },
+        async availableCommands() { return []; },
         async command() { return { status: "answered" }; }, async control() { return {}; },
         async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
         async setAskDialog() { return { enabled: true }; }, get readyPolicy(): unknown { return undefined; },

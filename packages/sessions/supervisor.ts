@@ -536,6 +536,17 @@ export class SessionSupervisor {
     return { history: active.worker.history, sourceId: active.record.sourceId,
       instanceId: active.record.instanceId, cwd: active.cwd, sessionId, epoch: active.generation };
   }
+  /** Exact live worker's Native slash-command catalog and the target a chosen line submits to. */
+  commandsAccess(identity: BrowserAccess, sessionId: string) {
+    this.#browser(identity); const active = this.#active;
+    if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId
+      || !("availableCommands" in active.worker) || !("submitCommand" in active.worker)) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    return { worker: active.worker,
+      target: { sourceId: active.record.sourceId, instanceId: active.record.instanceId, nativeSessionId: sessionId } };
+  }
   /** Exact live worker plus its current presented journal for a native navigation request. */
   async navigationAccess(identity: BrowserAccess, sessionId: string) {
     this.#browser(identity); const active = this.#active;

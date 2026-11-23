@@ -125,6 +125,7 @@ test("the product Chat Host serves durable native navigation to a real DSH clien
         }, (value): value is NavigationResult => typeof value === "object" && value !== null,
           (value): value is NavigationPreview => typeof value === "object" && value !== null),
         async submitCommand() { throw new Error("UNUSED"); },
+        async availableCommands() { return []; },
         async command() { return { status: "answered" }; }, async control() { return {}; },
         async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
         readyPolicy: undefined as unknown, async setAskDialog() { return { enabled: true }; },

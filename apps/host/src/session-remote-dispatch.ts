@@ -21,9 +21,13 @@ import { sessionFailure } from "../../../packages/sessions/errors.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
 import { ChatBodyError, hasCurrentChatAuthority, readChatRequestBody } from "./chat-request-body.ts";
 import { preferencesHostContribution } from "../../../packages/preferences/service.ts";
+import { commandsHostContribution } from "../../../packages/commands/service.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 
 export const preferenceMethods = Object.fromEntries(preferencesHostContribution.invocations
+  .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
+/** The stock commands face is unary and governed by the exact-worker authorization inside its service. */
+export const commandsMethods = Object.fromEntries(commandsHostContribution.invocations
   .map(descriptor => [`${descriptor.namespace}/${descriptor.method}`, descriptor]));
 /**
  * The stock Workspace surface is part of the product shell, so its verbs are dispatched here too.
@@ -36,6 +40,7 @@ export const workspaceUnary = new Set(workspaceContribution.invocations
   .filter(descriptor => descriptor.namespace === "workspace" && descriptor.mode !== "stream")
   .map(descriptor => `${descriptor.namespace}/${descriptor.method}`));
 const sessionMethods = { ...sessionsContribution.methods, ...sessionContribution.methods, ...preferenceMethods,
+  ...commandsMethods,
   "ompTree/read": treeContribution.methods["ompTree/read"],
   "ompHistoryNavigationSource/action": historyNavigationSourceContribution.methods["ompHistoryNavigationSource/action"],
   "ompChatComponent/attach": chatComponentContribution.methods["ompChatComponent/attach"] };
@@ -45,7 +50,7 @@ const treeUnary = new Set(["ompTree/read"]);
 const navigationUnary = new Set(["ompHistoryNavigationSource/action"]);
 export const sessionUnary = new Set([...Object.keys(sessionsContribution.methods), "session/list", "session/page", "session/projections",
   "session/create", "session/modelCatalog", "session/selectModel",
-  "ompChatComponent/attach", ...Object.keys(preferenceMethods), ...workspaceUnary]);
+  "ompChatComponent/attach", ...Object.keys(preferenceMethods), ...Object.keys(commandsMethods), ...workspaceUnary]);
 export const chatMethods = {
   "session/prompt": sessionContribution.methods["session/prompt"],
   "session/cancel": sessionContribution.methods["session/cancel"],

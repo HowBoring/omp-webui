@@ -21,13 +21,14 @@ import { SessionsService, sessionCaller } from "../../../packages/sessions/servi
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
 import { StockWorkspaceService } from "../../../packages/workspaces/stock-service.ts";
 import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
-  chatMethods, isSuccessfulSessionReply, preferenceMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
+  chatMethods, isSuccessfulSessionReply, preferenceMethods, commandsMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
 import { ChatAttachService, ChatCancelService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
 import { ChatViewAdmission } from "./chat-view-admission.ts";
 import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { preferencesHostContribution, WebPreferences } from "../../../packages/preferences/service.ts";
+import { commandsHostContribution, CommandsService } from "../../../packages/commands/service.ts";
 import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
 import { OriginalStore } from "../../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../../packages/attachments/service.ts";
@@ -331,11 +332,17 @@ export async function startSessionComponentServer(options: Options) {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) throw new Error("WEBUI_PREFERENCE_AUTHORITY");
     });
+    ctx.typert.register(commandsHostContribution);
+    new CommandsService(ctx, sessionId => {
+      const identity = sessionCaller.getStore();
+      if (!identity || !access.revalidate(identity)) return undefined;
+      return supervisor.commandsAccess(identity, sessionId);
+    });
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
       (_request, identity) => runtime.enrollment(identity), identity => runtime.stopBinding(identity),
       identity => runtime.retryBinding(identity)) };
     unaryMethods = new Set([...unary, ...stockUnary, ...Object.keys(preferenceMethods),
-      "ompChatComponent/attach", ...Object.keys(chatMethods)]);
+      ...Object.keys(commandsMethods), "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }
   const detachRevocation = access.onRevokeAll(() => {
     chatComposition?.runtime.close();
