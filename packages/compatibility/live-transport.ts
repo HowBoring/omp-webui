@@ -30,6 +30,12 @@ export class LiveTransport {
     if(state.model?.provider!=='s0-controlled'||state.model.id!=='deterministic-live')throw Error('LIVE_PROVIDER_NOT_SELECTED');
     await this.core.request({id:crypto.randomUUID(),type:'prompt',message:'controlled fixture input'});
   }
+  /** The stock Continue control submits the native `/retry` prompt, never a second user turn. */
+  async retry():Promise<void>{
+    const state=await this.state();
+    if(state.model?.provider!=='s0-controlled'||state.model.id!=='deterministic-live')throw Error('LIVE_PROVIDER_NOT_SELECTED');
+    await this.core.request({id:crypto.randomUUID(),type:'prompt',message:'/retry'});
+  }
   async filter():Promise<void>{await this.core.request({id:crypto.randomUUID(),type:'set_event_filter',events:[]});}
   async stop():Promise<void>{await this.core.request({id:crypto.randomUUID(),type:'abort'});}
   async navigate(targetId:string):Promise<void>{await this.core.request({id:crypto.randomUUID(),type:'navigate_tree',entryId:targetId});}

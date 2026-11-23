@@ -112,6 +112,8 @@ export class LiveJournal {
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
   /** Stock `conversationContinuation` fold over the durable records this journal serves. */
   #admitted = false; #failedAttempt = false; #ending: SessionSeq | null = null;
+  /** A user prompt already opened the current turn; a retry turn has none and must synthesize one. */
+  #userCommitted = false;
   /** Last published tip: the visible path this generation already served. Activation re-points the
    *  Native leaf here without changing that path, so a matching setLeaf is bookkeeping, not a branch move. */
   #publishedLeaf: string | null;
@@ -174,7 +176,7 @@ export class LiveJournal {
       if (item.livePhase === 'streaming') {
         if (item.role !== 'assistant' || this.#attempt) throw Error('live_overlapping_assistant');
         this.#beginAttempt(live); this.#chunk(item.text, item.reasoning ?? '', false);
-      } else {
+      } else if (item.active) {
         this.#pendingFinals.add(key);
         if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
       }
@@ -202,6 +204,15 @@ export class LiveJournal {
       if (!id || !item.active || (this.#entries.has(id) && id !== leaf) || (leaf !== null && id !== leaf && item.parentId !== leaf)) throw Error('live_open_active_path');
       budget.bytes += Buffer.byteLength(JSON.stringify(item)); budget.items++;
       if (budget.bytes > OPEN_BYTES || budget.items > MAX_EVENTS) throw Error('live_open_budget');
+      if (item.live && item.role === 'assistant' && item.livePhase === 'streaming') {
+        // The tail can already contain the in-flight assistant. Keep its source for the settlement
+        // and let #loadOpening adopt it as the live attempt instead of freezing partial output as a
+        // settled message whose settlement event would then be ignored.
+        if (id !== this.opened.cut.leafId) throw Error('live_open_active_path');
+        const bytes = Buffer.byteLength(JSON.stringify(item));
+        if (this.#appended.size >= ASSOCIATIONS || this.#appendBytes + bytes > ATTEMPT_BYTES) throw Error('live_open_budget');
+        this.#appended.set(id, {item, bytes}); this.#appendBytes += bytes; leaf = id; continue;
+      }
       this.#commit(item); leaf = id;
       if (this.#settled.size > ASSOCIATIONS) throw Error('live_settlement_evicted');
     }
@@ -466,11 +477,12 @@ export class LiveJournal {
     const value = data as {source?: {kind?: string}; content?: unknown[]; reason?: {kind?: string; error?: {code?: string}}};
     switch (type) {
       case 'turn/start':
-        this.#admitted = false; this.#failedAttempt = false; this.#ending = null; return;
+        this.#admitted = false; this.#failedAttempt = false; this.#ending = null; this.#userCommitted = false; return;
       case 'step/start':
       case 'assistant/message':
         this.#failedAttempt = false; return;
       case 'user/message': {
+        this.#userCommitted = true;
         if (this.#admitted || !surface) return;
         const kind = value.source?.kind, content = value.content;
         if (!Array.isArray(content)) return;
@@ -484,7 +496,7 @@ export class LiveJournal {
         const eligible = error?.code !== undefined && CONTINUABLE_FAILURES.has(error.code)
           && this.#admitted && this.#failedAttempt;
         this.#ending = eligible ? SessionSeq(seq) : null;
-        this.#admitted = false; this.#failedAttempt = false; return;
+        this.#admitted = false; this.#failedAttempt = false; this.#userCommitted = false; return;
       }
     }
   }
@@ -598,6 +610,12 @@ export class LiveJournal {
     const key = identity(event.live); if (this.#settled.has(key)) return;
     if (event.item.role === 'toolResult' && !event.live.toolOwnerMessageId) this.#fail('live_tool_owner_unavailable');
     if (event.kind === 'message_start' && event.item.role === 'assistant') {
+      if (this.#ending !== null && !this.#userCommitted) {
+        this.#turn += 1; this.#step = 0;
+        this.#event('turn/start', {turn: this.#turn});
+        this.#event('user/message', {id: `retry-${event.seq}`, role: 'user',
+          source: {kind: 'retry'}, content: []}, true);
+      }
       this.#beginAttempt(event.live); const attempt = this.#attempt!;
       this.#frame({type: 'start', attemptId: attempt.id, startedAfterSeq: this.#cursor(this.cursor), turn: attempt.turn, step: attempt.step});
     } else if (event.kind === 'message_update' && event.item.role === 'assistant') {
@@ -620,9 +638,16 @@ export class LiveJournal {
         id: settlement.entryId, entryId: settlement.entryId});
     }
     this.#settled.add(key); this.#pendingFinals.delete(key);
+    // A failed record that Native keeps off the active branch still proved this live attempt failed;
+    // publish the attempt so the stock fold keeps its retryable turn, without inventing a surface message.
+    if (attempt && !entry && turnEndReasonFor(item.stopReason, item.error)?.kind === 'error') {
+      this.#event('assistant/attempt', {turn: attempt.turn, step: attempt.step,
+        stream: structuredClone(attempt.stream)});
+    }
     if (attempt) {
       this.#frame({type: 'end', attemptId: attempt.id, index: attempt.index, outcome: entry
-        ? {kind: 'committed', eventType: 'assistant/message', seq: entry.event.seq} : {kind: 'abandoned'}});
+        ? {kind: 'committed', eventType: entry.event.type as 'assistant/message' | 'assistant/attempt',
+          seq: entry.event.seq} : {kind: 'abandoned'}});
       this.#event('step/end', {turn: attempt.turn, step: attempt.step}); this.#attempt = undefined;
     }
     // A user or tool settlement opens/belongs to a turn that is still running; only an assistant

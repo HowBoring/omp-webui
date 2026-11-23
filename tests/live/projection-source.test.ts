@@ -2,6 +2,7 @@ import { strict as assert } from 'node:assert';
 import { test } from 'node:test';
 import { HistoryClient } from '../../packages/contracts/generated/history-client.ts';
 import type { HistoryCut, HistoryItem, HistoryOpen, HistoryPage } from '../../packages/contracts/generated/omp-wire.ts';
+import type { SessionFollowFrame } from '@deepseek-ai/dsh-api-session-controller/types';
 import { LiveJournal } from '../../packages/projection/live-journal.ts';
 
 const initialCut: HistoryCut = {
@@ -305,3 +306,69 @@ for (const [label, extra] of [
     assert.deepEqual(journal.snapshot().projections.values, {conversationContinuation: null});
   });
 }
+
+test('a retryable failure settled while its attempt is live commits the attempt and keeps Continue', async () => {
+  const cut = {...initialCut, leafId: 'u'};
+  const journal = await LiveJournal.open(fixture([[item('u', null, 'go')]], {cut}));
+  const live = {...prefixLive, messageId: 'assistant-live', branchLeafId: 'u'};
+  const failed: HistoryItem = {id: 'assistant-live', parentId: 'u', active: true, kind: 'message', role: 'assistant',
+    provider: 'p', model: 'm', text: 'failed', stopReason: 'error', error: {reason: 'upstream', status: 503}, live};
+  const frames: SessionFollowFrame[] = [];
+  journal.subscribe(frame => frames.push(frame));
+  journal.accept({cut, after: 0, through: 1, hasMore: false,
+    events: [{seq: 1, kind: 'message_start', live, item: {...failed, active: false, text: '', livePhase: 'streaming'}}]});
+  journal.accept({cut: {...cut, leafId: 'assistant-live', nativeRevision: 2, observationSeq: 3},
+    after: 1, through: 3, hasMore: false, events: [
+      {seq: 2, kind: 'native_append', live, item: failed,
+        source: {kind: 'append', revision: 2, contextRevision: 1, sessionId: cut.sessionId,
+          leafId: 'assistant-live', entryId: 'assistant-live'}},
+      {seq: 3, kind: 'message_settlement', live, item: {...failed, active: false},
+        settlement: {status: 'observed', durability: 'not_attested', entryId: 'assistant-live'}}]});
+  const records = (await journal.page({maxMessages: 10})).records;
+  assert.deepEqual(records.map(record => record.event.type),
+    ['turn/start', 'user/message', 'step/start', 'assistant/attempt', 'step/end', 'turn/end']);
+  const attempt = records.find(record => record.event.type === 'assistant/attempt');
+  assert.equal(attempt?.event.ignorable, true);
+  const end = records.at(-1)!;
+  assert.deepEqual(end.event.data, {turn: 1,
+    reason: {kind: 'error', error: {message: 'upstream', code: 'SERVER', status: 503}}});
+  assert.deepEqual(journal.snapshot().projections.values, {conversationContinuation: end.event.seq});
+  const streamEnd = frames.flatMap(frame =>
+    frame.type === 'assistant-stream' && frame.frame.type === 'end' ? [frame.frame] : []).at(-1);
+  assert.deepEqual(streamEnd?.outcome, {kind: 'committed', eventType: 'assistant/attempt', seq: attempt!.event.seq});
+});
+
+test('an inactive failed settlement still publishes the attempt and closes the turn once', async () => {
+  const cut = {...initialCut, leafId: 'u'};
+  const journal = await LiveJournal.open(fixture([[item('u', null, 'go')]], {cut}));
+  const live = {...prefixLive, messageId: 'assistant-inactive', branchLeafId: 'u'};
+  const failed: HistoryItem = {id: 'assistant-inactive', parentId: 'u', active: false, kind: 'message',
+    role: 'assistant', provider: 'p', model: 'm', text: 'partial', stopReason: 'error',
+    error: {reason: 'upstream', status: 503}, live};
+  journal.accept({cut, after: 0, through: 2, hasMore: false, events: [
+    {seq: 1, kind: 'message_start', live, item: {...failed, text: '', livePhase: 'streaming'}},
+    {seq: 2, kind: 'message_update', live, item: failed}]});
+  journal.accept({cut: {...cut, leafId: 'assistant-inactive', nativeRevision: 2, observationSeq: 5},
+    after: 2, through: 5, hasMore: false, events: [
+      {seq: 3, kind: 'native_append', live, item: failed,
+        source: {kind: 'append', revision: 2, contextRevision: 1, sessionId: cut.sessionId,
+          leafId: 'assistant-inactive', entryId: 'assistant-inactive'}},
+      {seq: 4, kind: 'message_settlement', live, item: failed,
+        settlement: {status: 'observed', durability: 'not_attested', entryId: 'assistant-inactive'}},
+      {seq: 5, kind: 'turn_end'}]});
+  const cursor = journal.cursor;
+  const records = (await journal.page({maxMessages: 10})).records;
+  assert.deepEqual(records.map(record => record.event.type),
+    ['turn/start', 'user/message', 'step/start', 'assistant/attempt', 'step/end', 'turn/end']);
+  const attempt = records.find(record => record.event.type === 'assistant/attempt');
+  assert.deepEqual(attempt?.event.data, {turn: 1, step: 1,
+    stream: [{type: 'chunk', time: 0, chunk: {type: 'text-delta', index: 1, text: 'partial'}}]});
+  const end = records.at(-1)!;
+  assert.deepEqual(end.event.data, {turn: 1,
+    reason: {kind: 'error', error: {message: 'upstream', code: 'SERVER', status: 503}}});
+  assert.deepEqual(journal.snapshot().projections.values, {conversationContinuation: end.event.seq});
+  journal.settle();
+  assert.equal(journal.cursor, cursor);
+  assert.deepEqual((await journal.page({maxMessages: 10})).records.map(record => record.event.seq),
+    records.map(record => record.event.seq));
+});

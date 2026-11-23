@@ -27,7 +27,9 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
       for(const record of records) if(record.event.type==='user/message'||record.event.type==='assistant/message') expect(record.event.time).toBeGreaterThan(0);
       expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
       const assistant=records.filter(record=>record.event.type==='assistant/message');
-      expect(assistant).toHaveLength(['empty-error','transform'].includes(scenario)?2:1);
+      expect(assistant).toHaveLength(scenario==='transform'?2:1);
+      const attempts=records.filter(record=>record.event.type==='assistant/attempt');
+      expect(attempts).toHaveLength(['refusal','empty-error','empty-overflow'].includes(scenario)?1:0);
       const ends=frames.flatMap(frame=>frame.type==='assistant-stream'&&frame.frame.type==='end'?[frame.frame]:[]);
       if(scenario==='handled'){expect(journal.cursor).toBe(before);expect(ends).toHaveLength(0);}
       else {
@@ -40,6 +42,56 @@ for(const scenario of ['refusal','empty-error','empty-overflow','transform','han
     }finally{await fixture.close();}
   },20000);
 }
+
+test('a settled retryable failure keeps Continue and /retry clears it without repeating the user',async()=>{
+  const fixture=await openLiveFixture(false,{scenario:'retry'});
+  try{
+    const journal=await LiveJournal.open(fixture.transport.history);
+    await fixture.transport.prompt();
+    for(let attempt=0;attempt<400;attempt++){
+      journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
+      if(journal.continuation!==null)break;
+      if(attempt===399)throw Error('fixture_failed_turn_timeout');await Bun.sleep(25);
+    }
+    const first=(await journal.page({maxMessages:128})).records;
+    const failedEnd=first.filter(record=>record.event.type==='turn/end').at(-1);
+    expect(failedEnd?.event.data).toMatchObject({reason:{kind:'error',error:{code:'SERVER'}}});
+    expect(journal.continuation).toBe(failedEnd!.event.seq);
+    expect(first.filter(record=>record.event.type==='assistant/message')).toHaveLength(0);
+    expect(first.filter(record=>record.event.type==='assistant/attempt')).toHaveLength(1);
+    expect(first.filter(record=>record.event.type==='user/message'
+      && record.event.surfaceOp==='append'&&record.event.data.source.kind==='user')).toHaveLength(1);
+
+    await fixture.transport.retry();
+    let invalidated=false;
+    for(let attempt=0;attempt<400;attempt++){
+      try{journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));}
+      catch(error){if(!String(error).includes('live_projection_invalidated'))throw error;invalidated=true;break;}
+      await Bun.sleep(25);
+    }
+    expect(invalidated).toBe(true);
+    const reborn=await LiveJournal.open(fixture.transport.history);
+    for(let attempt=0;attempt<400;attempt++){
+      reborn.accept(await fixture.transport.history.poll(reborn.opened.cut.workerId,reborn.after));
+      if((await fixture.transport.state()).isSettled)reborn.settle();
+      const records=(await reborn.page({maxMessages:128})).records;
+      if(reborn.continuation===null
+        &&records.some(record=>record.event.type==='assistant/message')
+        &&records.filter(record=>record.event.type==='turn/end').at(-1)?.event.data
+          &&(records.filter(record=>record.event.type==='turn/end').at(-1)!.event.data as {reason?:{kind?:string}}).reason?.kind==='completed')break;
+      if(attempt===399)throw Error('fixture_retry_timeout');await Bun.sleep(25);
+    }
+    const records=(await reborn.page({maxMessages:128})).records;
+    expect(records.filter(record=>record.event.type==='user/message'
+      && record.event.surfaceOp==='append'&&record.event.data.source.kind==='user')).toHaveLength(1);
+    expect(records.filter(record=>record.event.type==='user/message'
+      && record.event.data.source.kind==='retry'&&record.event.data.content.length===0)).toHaveLength(1);
+    expect(records.filter(record=>record.event.type==='assistant/message').length).toBeGreaterThanOrEqual(1);
+    const lastEnd=records.filter(record=>record.event.type==='turn/end').at(-1);
+    expect(lastEnd?.event.data).toMatchObject({reason:{kind:'completed'}});
+    expect(reborn.continuation).toBeNull();
+  }finally{await fixture.close();}
+},30000);
 
 test('native reasoning stays a typed block and never folds into visible text',async()=>{
   const fixture=await openLiveFixture(false,{scenario:'reasoning'});

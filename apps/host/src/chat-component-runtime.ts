@@ -345,7 +345,11 @@ export class ChatComponentRuntime {
         if (page) entry.idle = entry.stop.state(page);
         return state;
       },
-      request: async (command: SubmissionClientCommand) => await worker.submitCommand(command),
+      request: async (command: SubmissionClientCommand) => {
+        const response = await worker.submitCommand(command);
+        this.supervisor.statusChanged();
+        return response;
+      },
       externalBusy: () => retry.blocksAdmission(),
       // The stock "Continue generating" button submits an empty prompt; that click is the confirmation.
       retry: async caller => {

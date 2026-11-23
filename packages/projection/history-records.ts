@@ -160,11 +160,13 @@ export function historyMessage(item: HistoryItem, id: string, { turn, step }: Co
   if (item.role === 'assistant') {
     if (!item.provider || !item.model) throw Error('live_missing_model_source');
     if (!continuingAssistant) emit('step/start', { turn, step }, false, time);
-    const reason = continuingAssistant ? undefined : turnEndReason(item);
+    const failure = turnEndReasonFor(item.stopReason, item.error);
+    const reason = continuingAssistant ? undefined : failure;
     const usage = usageValue(item);
     // A terminal provider failure committed no surface message: the stock contract records an attempt,
-    // which is also what keeps its failed-attempt retry live.
-    const message = reason?.kind === 'error'
+    // which is also what keeps its failed-attempt retry live. A settlement closes the step started for
+    // the live attempt, so the attempt record itself carries no step or turn boundaries.
+    const message = failure?.kind === 'error'
       ? emit('assistant/attempt', { turn, step, stream: item.text === '' ? [] : [{ type: 'chunk', time,
         chunk: { type: 'block-end', index: 0, block: { type: 'text', text: item.text } } }] as unknown as JsonValue[] },
       false, time)
