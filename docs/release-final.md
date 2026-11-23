@@ -10,7 +10,7 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 
 | Part | Identity |
 |---|---|
-| Host source | `mvp/spec-29-review-stock` @ `752b4572c5fd5d611040682f1eae395bd56ba803`; product entry `apps/host/src/main.ts` |
+| Host source | `mvp/spec-29-review-stock` @ `5c4eebe05411ce761c4452dbe917ed14f1a7daab`; product entry `apps/host/src/main.ts` |
 | Host runtime | bun 1.4.4, sha256 `10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235` |
 | OMP base | `57771ae562b9345e0579bceb2d68d585e3e6927e` |
 | OMP source / patch / schema | `fbe8188cb6d7fc55680dd7c41f3f456122169d7c7a652df335cb11c14dcd86ae` / `ec7bb9c8b255725fbc628664f807376dfd3c172bd75fa515928f9e1c817f83d1` / `bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2` |
@@ -59,14 +59,14 @@ or claiming tuple reproduction, which remains local.
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
 | Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the final review tuple — first page P95 1062.2 ms, old page P95 394.9 ms, Host peak RSS 248.8 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the final review tuple — first page P95 1025.3 ms, old page P95 361.9 ms, Host peak RSS 245.8 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The performance artifact was produced on the final review tuple (installation manifest
 `7c1554fd…ce1f`, source tree `f5cc084…e08f`) by the unchanged gate: 30 samples, 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
-the cold open (17024.7 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
+the cold open (18520.7 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
 `allNativeReachable: true` and the duplicate-preserving reset check intact, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in

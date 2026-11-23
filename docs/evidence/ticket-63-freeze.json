@@ -2,12 +2,12 @@
   "ticket": 63,
   "kind": "final-combination-freeze",
   "spec": 29,
-  "recordedAt": "2026-11-23T10:21:07.145Z",
+  "recordedAt": "2026-11-23T11:03:16.990Z",
   "host": {
     "repository": "HowBoring/omp-webui",
     "worktree": "/home/howboring/Projects/omp-webui-review-stock",
     "branch": "mvp/spec-29-review-stock",
-    "commit": "752b4572c5fd5d611040682f1eae395bd56ba803",
+    "commit": "5c4eebe05411ce761c4452dbe917ed14f1a7daab",
     "entry": "apps/host/src/main.ts",
     "runtime": {
       "name": "bun",
@@ -1889,9 +1889,9 @@
     "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
     "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
     "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
-    "docs/evidence/ticket-63-product-flow.json": "eb77a06cc7311644181c3bf71511bf55d4068692e0787c156863cab36ee2042c",
+    "docs/evidence/ticket-63-product-flow.json": "11ff2afaa59ea61778666d7861c84db3e9910d26379f5754faf7c7bbfa7f3abb",
     "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
-    "tests/product/evidence/performance-2026-11-23-product.json": "d7be2a31e61f71fee6c96c4200c99a1500cd0fe049b18b4a1b6362d1072f3a43"
+    "tests/product/evidence/performance-2026-11-23-product.json": "bf394bd79e8cd2be3c43ca51a767d06b4a465a1ab3f20ae381f37ed1ce31d981"
   },
   "history": {
     "docs/evidence/ticket-61-freeze.json": "4671a3f5999036807dff5343cc7f81cfc93f45a586f25deec447b4c2e91ace43",

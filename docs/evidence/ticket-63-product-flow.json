@@ -1,7 +1,7 @@
 {
   "kind": "product-flow",
-  "recordedAt": "2026-11-23T09:11:15Z",
-  "native": "01a207ac-3ba4-77e1-8e09-823577019a08",
+  "recordedAt": "2026-11-23T10:39:46Z",
+  "native": "01a207fd-4563-76b6-95ea-138a8c07e301",
   "scenarios": [
     "stock-model-thinking",
     "stock-preferences-reload",
@@ -16,7 +16,7 @@
   ],
   "checks": {
     "grantAdmitted": true,
-    "newSession": "01a207ac-6ae2-7066-8287-ce267b0bf542",
+    "newSession": "01a207fd-7799-7163-bfc0-cc93d2230281",
     "slashCatalog": [
       "File",
       "compact",
@@ -140,7 +140,7 @@
       "init"
     ],
     "slashCommand": "/context",
-    "liveAttachSession": "01a207ac-3ba4-77e1-8e09-823577019a08",
+    "liveAttachSession": "01a207fd-4563-76b6-95ea-138a8c07e301",
     "liveAttachRenderedText": true,
     "liveAttachNodes": 1,
     "historyReopen": true,
@@ -151,7 +151,7 @@
     "thinkingLevel": "minimal",
     "preferenceTheme": "dark",
     "preferencePersisted": true,
-    "multiViewSession": "01a207ac-3ba4-77e1-8e09-823577019a08",
+    "multiViewSession": "01a207fd-4563-76b6-95ea-138a8c07e301",
     "multiViewLive": true,
     "retryOffer": true,
     "retry": 1,
@@ -167,16 +167,16 @@
       "file/drop.txt"
     ],
     "attachmentPrepared": {
-      "mention": "attachment-prepared://20e86052-36f7-45b3-83b8-d5333c2f9842",
-      "textOriginal": "d4a14823-7090-4db4-b8e6-3ff48f289eee",
-      "imageOriginal": "7c220c3a-1fd2-4914-af8f-5b291f27ec2c"
+      "mention": "attachment-prepared://11051faf-0048-4251-8dba-dafa2740213c",
+      "textOriginal": "be2b76fa-2d4c-47fd-9204-96cdc0188286",
+      "imageOriginal": "62c77aa5-9693-4dfa-a9d6-c503a1a97661"
     },
     "attachmentHistoryImage": "stock <img> 200x200 after reload",
     "attachmentOriginals": {
       "text": "a327c3e84b7a32a07b8c1cf3c1ab7437abae08b191b4ad54265fff88b5a88dc9",
       "image": "233460d9ceabd422e2ac1b974e6ed9fef756e7a9f344e4fa83c596f9f283c86a"
     },
-    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-review-stock-vendor-product-flow-project--/2026-11-23T09-10-57-700Z_01a207ac-3ba4-77e1-8e09-823577019a08.jsonl",
+    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-review-stock-vendor-product-flow-project--/2026-11-23T10-39-28-611Z_01a207fd-4563-76b6-95ea-138a8c07e301.jsonl",
     "nativeRecords": 57,
     "nativeMessages": 13,
     "nativeSessions": 2,
