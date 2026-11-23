@@ -74,7 +74,8 @@ export class SessionPresentationService extends TypertRemoteService {
   }
   @Remote("projections") async projections(request: SessionProjectionsRequest) {
     const journal = await this.supervisor.presentation(this.identity(), request.sessionId);
-    return { kind: "sequenced" as const, projection: journal.projection, asOfSeq: journal.cursor, values: {} };
+    return { kind: "sequenced" as const, projection: journal.projection, asOfSeq: journal.cursor,
+      values: { conversationContinuation: journal.continuation } };
   }
   @Remote("page") async page(request: SessionPageRequest) {
     const journal = await this.presented(this.addressId(request.address));
@@ -91,8 +92,9 @@ export class SessionPresentationService extends TypertRemoteService {
     if (presented !== undefined) {
       try { live = await this.supervisor.presentation(identity, presented.sessionId); } catch { live = undefined; }
     }
+    let continuation = live?.continuation ?? null;
     yield { type: "baseline", value: { projections: live ? { [live.sessionId]: {
-      projection: live.projection, asOfSeq: live.cursor, values: {},
+      projection: live.projection, asOfSeq: live.cursor, values: { conversationContinuation: live.continuation },
     } } : {} } };
     while (!signal.aborted) {
       await Bun.sleep(100);
@@ -106,9 +108,18 @@ export class SessionPresentationService extends TypertRemoteService {
         current = this.supervisor.activeJournal(identity);
       }
       const next = this.supervisor.presentationEpoch(identity);
-      if (next === epoch || !current) continue; // never consume an epoch that names no journal
-      epoch = next;
-      yield { type: "projection-invalidated", sessionId: SessionId(current.sessionId), projection: current.projection };
+      if (next !== epoch && current) {
+        epoch = next;
+        yield { type: "projection-invalidated", sessionId: SessionId(current.sessionId), projection: current.projection };
+        continue;
+      }
+      // The stock Continue button reads this view through the control stream; a failure that settles
+      // while the page is open must publish the new value, not wait for a reload.
+      const value = current?.continuation ?? null;
+      if (!current || value === continuation) continue;
+      continuation = value;
+      yield { type: "projection", sessionId: SessionId(current.sessionId), projection: current.projection,
+        seq: current.cursor, changes: [{ key: "conversationContinuation", val: value }] };
     }
   }
   @Remote({ mode: "stream" }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncGenerator<SessionFollowFrame> {

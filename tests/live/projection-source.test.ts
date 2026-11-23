@@ -283,3 +283,25 @@ test('a branch change withdraws old pages and a fresh opening uses the same Nati
     id: 'new-leaf', role: 'user', source: {kind: 'user'}, content: [{type: 'text', text: 'Current'}],
   });
 });
+
+const assistant = (id: string, parentId: string | null, extra: Partial<HistoryItem> = {}): HistoryItem =>
+  ({id, parentId, active: true, kind: 'message', role: 'assistant', text: '', provider: 'p', model: 'm', ...extra});
+
+test('a retryable terminal failure exposes conversationContinuation at its turn/end seq', async () => {
+  const journal = await LiveJournal.open(fixture([[item('u', null, 'go'),
+    assistant('last', 'u', {stopReason: 'error', error: {reason: 'upstream', status: 503}})]]));
+  const end = (await journal.page({maxMessages: 10})).records.find(record => record.event.type === 'turn/end');
+  assert.equal(typeof end?.event.seq, 'number');
+  assert.deepEqual(journal.snapshot().projections.values, {conversationContinuation: end!.event.seq});
+});
+
+for (const [label, extra] of [
+  ['a completed turn', {text: 'done', stopReason: 'stop'}],
+  ['an aborted turn', {stopReason: 'aborted'}],
+  ['a nonretryable failure', {stopReason: 'error', error: {reason: 'bad request', status: 400}}],
+] as const) {
+  test(`${label} exposes no conversationContinuation`, async () => {
+    const journal = await LiveJournal.open(fixture([[item('u', null, 'go'), assistant('last', 'u', extra)]]));
+    assert.deepEqual(journal.snapshot().projections.values, {conversationContinuation: null});
+  });
+}

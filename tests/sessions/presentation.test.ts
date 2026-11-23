@@ -13,6 +13,7 @@ const identity = {} as BrowserAccess;
 
 interface FakeJournal {
   sessionId: string; generation: string; projection: SessionProjectionBinding; cursor: number;
+  continuation: number | null;
   failure: string | undefined; snapshots: number;
   subscribe(listener: unknown): () => void;
   snapshot(): unknown;
@@ -22,11 +23,12 @@ interface FakeJournal {
 function journal(sessionId: string, generation: string, cursor = 7): FakeJournal {
   const projection = binding(generation);
   return {
-    sessionId, generation, projection, cursor, failure: undefined, snapshots: 0,
+    sessionId, generation, projection, cursor, continuation: null, failure: undefined, snapshots: 0,
     subscribe: (_listener: unknown) => () => {},
     snapshot() {
       this.snapshots += 1;
-      return { type: "snapshot", cursor, projections: { projection, asOfSeq: cursor }, projection, records: [] };
+      return { type: "snapshot", cursor, projections: { projection, asOfSeq: cursor,
+        values: { conversationContinuation: this.continuation } }, projection, records: [] };
     },
     page: async () => ({ records: [], projection }),
   };
@@ -59,7 +61,11 @@ function supervisor(state: { announced: FakeJournal | undefined; live: () => Fak
 
 interface BaselineFrame {
   type: string;
-  value: { projections: Record<string, { projection: SessionProjectionBinding; asOfSeq: number }> };
+  value: { projections: Record<string, { projection: SessionProjectionBinding; asOfSeq: number; values: Record<string, unknown> }> };
+}
+interface ProjectionFrame {
+  type: string; seq: number; projection: SessionProjectionBinding;
+  changes: { key: string; val: unknown }[];
 }
 interface InvalidatedFrame { type: string; projection: SessionProjectionBinding }
 interface SnapshotFrame { type: string; cursor: number; projections: { projection: SessionProjectionBinding; asOfSeq: number } }
@@ -128,4 +134,22 @@ test("a stale or out-of-order opening is refused; the current generation reloads
     expect(snapshot).toMatchObject({ type: "snapshot", cursor: 7, projections: { asOfSeq: 7 } });
     expect(snapshot.projections.projection).toEqual(binding("native-0000:2"));
   } finally { await call(() => frames.return(undefined)); }
+});
+
+test("the continuation view reaches projections and live control without a reload", async () => {
+  const live = journal("native-0000", "native-0000:2");
+  live.continuation = 5;
+  const state = supervisor({ announced: live, live: () => live });
+  const api = service(state);
+  const projections = await call(() => api.projections({ sessionId: live.sessionId } as never));
+  expect(projections).toMatchObject({ values: { conversationContinuation: 5 }, asOfSeq: live.cursor });
+  const abort = new AbortController(), frames = call(() => api.control(abort.signal));
+  try {
+    const baseline = await firstFrame(frames) as BaselineFrame;
+    expect(baseline.value.projections["native-0000"]!.values).toEqual({ conversationContinuation: 5 });
+    live.continuation = 9; live.cursor = 9;
+    const update = await firstFrame(frames) as ProjectionFrame;
+    expect(update).toMatchObject({ type: "projection", seq: 9, projection: binding("native-0000:2"),
+      changes: [{ key: "conversationContinuation", val: 9 }] });
+  } finally { abort.abort(); await frames.return(undefined); }
 });

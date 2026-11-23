@@ -23,6 +23,10 @@ function journalMaxBytes(): number {
   return Number.isSafeInteger(configured) && configured > 0 ? configured : 32 * 1024 * 1024;
 }
 const ATTEMPT_BYTES = 8 * 1024 * 1024;
+/** Manual continuation is offered only for the terminal provider failures the stock gate accepts. */
+const CONTINUABLE_FAILURES: ReadonlySet<string> = new Set([
+  'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT', 'EMPTY_RESPONSE', 'STREAM_CLOSED',
+]);
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
 /** The Native cut moves while a cold Session activates (bookkeeping is appended), so an opening
  * that observed a changed cut retries the same journal instead of failing the projection. */
@@ -106,6 +110,8 @@ export class LiveJournal {
    *  final assistant settlement committed (Stop before the first block, tool-only abort). */
   #turnOpen = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
+  /** Stock `conversationContinuation` fold over the durable records this journal serves. */
+  #admitted = false; #failedAttempt = false; #ending: SessionSeq | null = null;
   /** Last published tip: the visible path this generation already served. Activation re-points the
    *  Native leaf here without changing that path, so a matching setLeaf is bookkeeping, not a branch move. */
   #publishedLeaf: string | null;
@@ -336,6 +342,8 @@ export class LiveJournal {
   get cursor(): number { return this.#firstSeq + this.#records.length - 1; }
   get after(): number { return this.#after; }
   get failure(): string | undefined { return this.#failure; }
+  /** DSH `conversationContinuation` view: the retryable failure seq offered to the stock Continue button. */
+  get continuation(): SessionSeq | null { return this.#ending; }
   /** Native reports the Session quiet: close a turn that ended without a final assistant settlement. */
   settle(): void {
     if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0) return;
@@ -428,7 +436,8 @@ export class LiveJournal {
     if (reserve >= PAGE_BYTES) throw Error('live_prefix_bytes');
     const page = this.#page({throughSeq: this.cursor, maxMessages: 32}, PAGE_BYTES - reserve);
     return {type: 'snapshot', projection: this.projection, header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
-      cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor, values: {}}, assistantStream};
+      cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor,
+      values: {conversationContinuation: this.#ending}}, assistantStream};
   }
   subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
     this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
@@ -449,7 +458,35 @@ export class LiveJournal {
     this.#records.push(entry); this.#recordByteEnds.push(end);
     if (type === 'turn/start') this.#turnOpen = true;
     else if (type === 'turn/end') this.#turnOpen = false;
+    this.#fold(type, data, entry.event.seq, surface);
     this.#publish(entry); return entry;
+  }
+  /** Mirror DSH's constant-size continuation fold over the events this journal publishes. */
+  #fold(type: string, data: JsonValue, seq: number, surface: boolean): void {
+    const value = data as {source?: {kind?: string}; content?: unknown[]; reason?: {kind?: string; error?: {code?: string}}};
+    switch (type) {
+      case 'turn/start':
+        this.#admitted = false; this.#failedAttempt = false; this.#ending = null; return;
+      case 'step/start':
+      case 'assistant/message':
+        this.#failedAttempt = false; return;
+      case 'user/message': {
+        if (this.#admitted || !surface) return;
+        const kind = value.source?.kind, content = value.content;
+        if (!Array.isArray(content)) return;
+        if ((kind === 'user' && content.length > 0) || (kind === 'retry' && content.length === 0)) this.#admitted = true;
+        return;
+      }
+      case 'assistant/attempt':
+        this.#failedAttempt = true; return;
+      case 'turn/end': {
+        const error = value.reason?.kind === 'error' ? value.reason.error : undefined;
+        const eligible = error?.code !== undefined && CONTINUABLE_FAILURES.has(error.code)
+          && this.#admitted && this.#failedAttempt;
+        this.#ending = eligible ? SessionSeq(seq) : null;
+        this.#admitted = false; this.#failedAttempt = false; return;
+      }
+    }
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id;
