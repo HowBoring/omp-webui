@@ -368,16 +368,36 @@ new file mode 100644
 index 00000000..89c4d443
 --- /dev/null
 +++ b/packages/coding-agent/src/attachments/model-binding.ts
-@@ -0,0 +1,15 @@
+@@ -0,0 +1,35 @@
 +import type { Model } from "@oh-my-pi/pi-ai";
++import { reachesBudgetedHost } from "@oh-my-pi/pi-ai";
 +import { sendsImageInputOnWire } from "@oh-my-pi/pi-ai/providers/vision-guard";
++import { resolveInlineImageByteBudget, resolveRequestBodyByteLimit } from "@oh-my-pi/pi-catalog/compat/request-size";
++import { modelLacksWebpSupport } from "@oh-my-pi/pi-tui/chat/image-loading";
++import { providerImageBudget } from "@oh-my-pi/snapcompact";
 +import { ATTACHMENT_BUDGET_VERSION } from "./limits";
 +
 +export interface AttachmentImagePolicy { blocked: boolean; urls: boolean }
 +
++/**
++ * Attachment-relevant model semantics. A registry refresh may swap the wire row
++ * for the same model (api, baseUrl, headers, discovery metadata), and that must
++ * not invalidate a prepared receipt; a different model or different image
++ * handling must.
++ */
++function attachmentDeliveryModel(model: Model): object {
++	const budgetedHost = reachesBudgetedHost(model);
++	return { provider: model.provider, id: model.id, input: model.input,
++		imageWire: sendsImageInputOnWire(model), imageInputDecoder: model.imageInputDecoder ?? null,
++		providerImageBudget: providerImageBudget(model),
++		inlineImageByteBudget: resolveInlineImageByteBudget(model, budgetedHost) ?? null,
++		requestBodyByteLimit: resolveRequestBodyByteLimit(model, budgetedHost) ?? null,
++		lacksWebpSupport: modelLacksWebpSupport(model) };
++}
++
 +/** Bind effective wire modality and normalization settings; model IDs alone do not establish compatibility. */
 +export function attachmentModelFingerprint(model: Model | undefined, policy: AttachmentImagePolicy): string {
-+	return Bun.SHA256.hash(JSON.stringify({ model, policy, imageWire: model ? sendsImageInputOnWire(model) : false,
++	return Bun.SHA256.hash(JSON.stringify({ model: model ? attachmentDeliveryModel(model) : null, policy,
 +		budgetVersion: ATTACHMENT_BUDGET_VERSION, normalization: "inline-png-jpeg-v1" }), "hex");
 +}
 +
