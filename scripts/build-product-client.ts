@@ -23,8 +23,10 @@ const repoRoot = resolve(import.meta.dir, "..");
 export const baselineRoster = [
   "dsh-client-modules", "dsh-client-connection", "dsh-typert-registry", "dsh-api-gateway", "dsh-api-remotes",
   "dsh-client-file-upload", "dsh-api-session-controller", "dsh-api-remote-access", "dsh-api-workspace-controller",
-  "dsh-client-ui-renderer", "dsh-client-ui-settings", "dsh-client-locale", "dsh-client-ui-theme", "dsh-client-shortcuts",
-  "dsh-client-ui-layout", "dsh-client-ui-session", "dsh-client-ui-conversation", "dsh-client-ui-chat",
+  "dsh-client-ui-renderer", "dsh-client-ui-settings", "dsh-client-ui-settings-general", "dsh-client-locale",
+  "dsh-client-ui-theme", "dsh-client-shortcuts",
+  "dsh-client-ui-layout", "dsh-client-ui-session", "dsh-client-ui-commands", "dsh-client-ui-model-selection",
+  "dsh-client-ui-conversation", "dsh-client-ui-chat",
   "dsh-client-ui-tool", "dsh-client-ui-approval", "dsh-client-ui-user-questions", "dsh-client-ui-workspace",
   "dsh-client-ui-sidebar", "dsh-client-ui-sidebar-right", "dsh-client-resources", "dsh-client-ui-context-menu",
   "dsh-client-ui-file-drag", "dsh-client-ui-input-trigger",
