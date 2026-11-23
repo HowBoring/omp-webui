@@ -39,7 +39,7 @@ test("an unconfirmed attempt reopens only after an explicit Open and then carrie
     registry(ctx); gateway(ctx); await ctx.remote.$mount(sessionsContribution);
     return { ctx, origin, cookie, csrf };
   };
-  const follow = async (host: Awaited<ReturnType<typeof start>>, cookie: string, sessionId: string) => {
+  const follow = async (host: Awaited<ReturnType<typeof start>>, cookie: string, sessionId: string, activate?: boolean) => {
     const url = new URL("api/remote.mux", host.server.url.href); url.protocol = "ws:";
     const socket = new WebSocket(url.href, { headers: { cookie, origin: host.server.url.origin } } as unknown as string[]);
     const frames: { type: string; streamId: string; value?: unknown; error?: { code: string; message: string } }[] = [];
@@ -49,7 +49,8 @@ test("an unconfirmed attempt reopens only after an explicit Open and then carrie
       socket.addEventListener("error", () => reject(new Error("websocket refused")), { once: true });
     });
     socket.send(JSON.stringify({ type: "open", streamId: "follow", endpoint: "session/follow",
-      payload: { args: { request: { address: { kind: "session", sessionId }, activate: true, maxMessages: 500 } } } }));
+      payload: { args: { request: { address: { kind: "session", sessionId },
+        ...(activate === undefined ? {} : { activate }), maxMessages: 500 } } } }));
     while (!frames.some(frame => frame.type === "item" || frame.type === "error")) await Bun.sleep(5);
     const settled = frames.find(frame => frame.type === "item" || frame.type === "error")!;
     socket.close();
@@ -77,10 +78,13 @@ test("an unconfirmed attempt reopens only after an explicit Open and then carrie
       const registered = await second.ctx.remote.ompSessions.index({}); if (!registered.ok) throw registered.error;
       expect(registered.value.records).toMatchObject([{ nativeSessionId: "native-0000",
         attempt: { state: "outcome_unknown", code: "SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED" } }]);
-      // The read is refused with the manual-open marker, never auth, and starts nothing.
-      const refused = await follow(host, second.cookie, "native-0000");
-      expect(refused.error?.code).toBe("SESSION_MANUAL_OPEN_REQUIRED");
-      expect(refused.error?.message).not.toContain("SESSION_AUTH_REQUIRED");
+      // Passive reads and the stock activation answer with the manual-open marker, never auth, and
+      // start nothing: only an explicit public Open may revive this interrupted Session.
+      const omitted = await follow(host, second.cookie, "native-0000");
+      expect(omitted.error?.code).toBe("SESSION_MANUAL_OPEN_REQUIRED");
+      expect(omitted.error?.message).not.toContain("SESSION_AUTH_REQUIRED");
+      expect((await follow(host, second.cookie, "native-0000", false)).error?.code).toBe("SESSION_MANUAL_OPEN_REQUIRED");
+      expect((await follow(host, second.cookie, "native-0000", true)).error?.code).toBe("SESSION_MANUAL_OPEN_REQUIRED");
       expect(host.supervisor.starts).toBe(0);
       // Only the explicit public Open starts a worker; the next follow carries the retained native history.
       const choices = await second.ctx.remote.ompSessions.catalog({ refresh: true }); if (!choices.ok) throw choices.error;
@@ -88,7 +92,7 @@ test("an unconfirmed attempt reopens only after an explicit Open and then carrie
       if (!reopened.ok) throw reopened.error;
       expect(reopened.value.workerId).not.toBe(before);
       expect(host.supervisor.starts).toBe(1);
-      const snapshot = await follow(host, second.cookie, "native-0000");
+      const snapshot = await follow(host, second.cookie, "native-0000", true);
       expect(snapshot.type).toBe("item");
       expect(JSON.stringify(snapshot.value)).toContain("Synthetic fixture input");
     } finally { await second.ctx.fiber.dispose(); await host.stop(); }

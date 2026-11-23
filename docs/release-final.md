@@ -59,14 +59,14 @@ or claiming tuple reproduction, which remains local.
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
 | Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
 | Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the restart-auth tuple — first page P95 968.1 ms, old page P95 382.2 ms, Host peak RSS 248.4 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on the restart-auth tuple — first page P95 996.0 ms, old page P95 357.5 ms, Host peak RSS 248.4 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The performance artifact was produced on the final restart-auth tuple (installation manifest
 `289e94d2…f649d4`, source tree `f5cc084…e08f`) by the unchanged gate: 30 samples, 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
-the cold open (18784.0 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
+the cold open (15949.3 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
 `allNativeReachable: true` and the duplicate-preserving reset check intact, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in

@@ -198,10 +198,9 @@ test("the first activation of a Session this Host never opened is the owner's ex
   } finally { await call(() => frames.return(undefined)); }
 });
 
-test("a read never opens a worker; the manual-open marker stands until an explicit open", async () => {
+test("page and passive follows never open; only an activate:true follow asks for the owner's Open", async () => {
   const live = journal("native-0000", "native-0000:2");
   const state = { presented: false };
-  const opened: string[] = [];
   const fake = supervisor({ announced: live, live: () => live });
   fake.presentation = async (_identity: BrowserAccess, id: string) => {
     if (!state.presented) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
@@ -209,25 +208,33 @@ test("a read never opens a worker; the manual-open marker stands until an explic
     return live;
   };
   const activated: string[] = [];
+  const starts: string[] = [];
   const stub = {
     // The index still holds the interrupted attempt, so the stock activation is refused with the marker.
     activateUnopened: async (id: string) => { activated.push(id); throw new Error("SESSION_MANUAL_OPEN_REQUIRED"); },
-    nativeOpen: async (id: string) => { opened.push(id); return { workerId: "worker-new" }; },
+    nativeOpen: async (id: string) => { starts.push(id); return { workerId: "worker-new" }; },
   };
   const api = new SessionPresentationService(new Context(), fake as unknown as SessionSupervisor, stub as unknown as SessionsService);
-  const request = { address: { kind: "session", sessionId: "native-0000" }, maxMessages: 500, activate: true } as SessionFollowRequest;
-  // Reads are refused with the typed condition instead of silently starting a worker.
-  await expect(call(() => api.follow(request, new AbortController().signal).next()))
-    .rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
-  await expect(call(() => api.page({ address: { kind: "session", sessionId: "native-0000" } } as SessionPageRequest)))
-    .rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
-  expect(activated).toEqual(["native-0000", "native-0000"]);
-  expect(opened).toEqual([]);
+  const address = { kind: "session", sessionId: "native-0000" } as const;
+  const follow = (activate?: boolean) => call(() => api.follow({
+    address, maxMessages: 500, ...(activate === undefined ? {} : { activate }) } as SessionFollowRequest,
+    new AbortController().signal).next());
+  const page = () => call(() => api.page({ address } as SessionPageRequest));
+  // Passive reads never reach the activation policy: the typed manual-open condition is what they answer.
+  await expect(follow()).rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+  await expect(follow(false)).rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+  await expect(page()).rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+  expect(activated).toEqual([]);
+  // The stock activation asks the policy, which refuses because the attempt is interrupted.
+  await expect(follow(true)).rejects.toThrow("SESSION_MANUAL_OPEN_REQUIRED");
+  expect(activated).toEqual(["native-0000"]);
+  expect(starts).toEqual([]);
   expect(live.snapshots).toBe(0);
-  // The owner answers with the explicit public Open; the next follow carries the real snapshot.
+  // The owner answers with the explicit public Open; the next activation carries the real snapshot.
   await stub.nativeOpen("native-0000");
   state.presented = true;
-  const frames = call(() => api.follow(request, new AbortController().signal));
+  const frames = call(() => api.follow({ address, maxMessages: 500, activate: true } as SessionFollowRequest,
+    new AbortController().signal));
   try {
     const snapshot = await firstFrame(frames) as SnapshotFrame;
     expect(snapshot).toMatchObject({ type: "snapshot", cursor: 7, projections: { asOfSeq: 7 } });

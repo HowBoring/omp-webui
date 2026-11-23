@@ -1,7 +1,7 @@
 {
   "kind": "product-flow",
-  "recordedAt": "2026-11-23T14:25:03Z",
-  "native": "01a208cb-8b15-73e4-bbc6-0343492ab0b6",
+  "recordedAt": "2026-11-23T15:04:51Z",
+  "native": "01a208ef-f870-752e-b434-9afa750680d0",
   "scenarios": [
     "stock-model-thinking",
     "stock-preferences-reload",
@@ -16,7 +16,7 @@
   ],
   "checks": {
     "grantAdmitted": true,
-    "newSession": "01a208cb-b7e7-7146-9761-a3560b001108",
+    "newSession": "01a208f0-2800-70b5-a751-2943d959e405",
     "slashCatalog": [
       "File",
       "compact",
@@ -140,7 +140,7 @@
       "init"
     ],
     "slashCommand": "/context",
-    "liveAttachSession": "01a208cb-8b15-73e4-bbc6-0343492ab0b6",
+    "liveAttachSession": "01a208ef-f870-752e-b434-9afa750680d0",
     "liveAttachRenderedText": true,
     "liveAttachNodes": 1,
     "historyReopen": true,
@@ -151,7 +151,7 @@
     "thinkingLevel": "minimal",
     "preferenceTheme": "dark",
     "preferencePersisted": true,
-    "multiViewSession": "01a208cb-8b15-73e4-bbc6-0343492ab0b6",
+    "multiViewSession": "01a208ef-f870-752e-b434-9afa750680d0",
     "multiViewLive": true,
     "retryOffer": true,
     "retry": 1,
@@ -167,16 +167,16 @@
       "file/drop.txt"
     ],
     "attachmentPrepared": {
-      "mention": "attachment-prepared://2294a611-9946-4b3f-b951-b2dd558a5dc6",
-      "textOriginal": "e8dfd8f5-0594-4a2e-b277-b94d54ddf428",
-      "imageOriginal": "a0d527aa-1d5a-4825-9f23-251876822759"
+      "mention": "attachment-prepared://32b178d5-38a6-44f3-b08d-76e9ed80479c",
+      "textOriginal": "56e6b32a-ffbd-4946-aa56-c2cc7a75a020",
+      "imageOriginal": "276f43cc-3f47-4119-adbb-4be97263812e"
     },
     "attachmentHistoryImage": "stock <img> 200x200 after reload",
     "attachmentOriginals": {
       "text": "a327c3e84b7a32a07b8c1cf3c1ab7437abae08b191b4ad54265fff88b5a88dc9",
       "image": "233460d9ceabd422e2ac1b974e6ed9fef756e7a9f344e4fa83c596f9f283c86a"
     },
-    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T14-24-46-869Z_01a208cb-8b15-73e4-bbc6-0343492ab0b6.jsonl",
+    "nativeFile": "vendor/product-flow/project/agent-home/sessions/--home-howboring-Projects-omp-webui-restart-auth-vendor-product-flow-project--/2026-11-23T15-04-34-160Z_01a208ef-f870-752e-b434-9afa750680d0.jsonl",
     "nativeRecords": 57,
     "nativeMessages": 13,
     "nativeSessions": 2,
