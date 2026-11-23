@@ -9,7 +9,7 @@ import type { ActiveHistoryEntry, ActiveHistoryEntryKey, ActiveHistoryOpen, Acti
 import type { HistoryCut, HistoryItem, HistorySourceBinding } from '../contracts/generated/omp-wire.ts';
 import type { StopSnapshot } from '../contracts/stop.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
-import { MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
+import { ContinuationFold, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
   pageCoordinates, settledCoordinates, settledHistoryRecords, ToolCallLedger, turnEndReasonFor, type PageRequest } from './history-records.ts';
 
 const INDEX_BYTES = 8 * 1024 * 1024;
@@ -188,8 +188,14 @@ export class ArchivedJournal {
     const reserve = encodedBytes(assistantStream) + 8192;
     const page = await this.#page(requestAccess, {}, PAGE_BYTES - reserve);
     this.#assertAccess(requestAccess);
+    // The stock continuation fold resets at every turn boundary, so the served tail window decides it.
+    // ponytail: a single turn longer than the snapshot window reads as no continuation; fold the index
+    // instead once it carries the failure code the gate needs.
+    const continuation = new ContinuationFold();
+    for (const record of page.records) continuation.apply(record);
     return { type: 'snapshot', projection: this.projection, header: { version: 4, id: this.sessionId, createdAt: 0, isSeeded: false },
-      cursor: this.cursor, ...page, projections: { projection: this.projection, asOfSeq: this.cursor, values: {} }, assistantStream };
+      cursor: this.cursor, ...page, projections: { projection: this.projection, asOfSeq: this.cursor,
+        values: { conversationContinuation: continuation.ending } }, assistantStream };
   }
 
   #binding() { return { snapshot: this.#opened.snapshot, contentRevision: this.#opened.cut.contentRevision }; }

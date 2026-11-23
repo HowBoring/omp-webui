@@ -11,8 +11,8 @@ import type {
 import type { HistoryClient } from '../contracts/generated/history-client.ts';
 import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
-import { historyEvent, historyMessage, turnEndReasonFor, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
-  pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
+import { ContinuationFold, historyEvent, historyMessage, turnEndReasonFor, MAX_EVENTS, MAX_ITEM_BYTES,
+  PAGE_BYTES, PAGE_OVERHEAD, pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
 
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
@@ -23,10 +23,6 @@ function journalMaxBytes(): number {
   return Number.isSafeInteger(configured) && configured > 0 ? configured : 32 * 1024 * 1024;
 }
 const ATTEMPT_BYTES = 8 * 1024 * 1024;
-/** Manual continuation is offered only for the terminal provider failures the stock gate accepts. */
-const CONTINUABLE_FAILURES: ReadonlySet<string> = new Set([
-  'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT', 'EMPTY_RESPONSE', 'STREAM_CLOSED',
-]);
 const OPEN_BYTES = 256 * 1024 * 1024, ASSOCIATIONS = 4096;
 /** The Native cut moves while a cold Session activates (bookkeeping is appended), so an opening
  * that observed a changed cut retries the same journal instead of failing the projection. */
@@ -111,7 +107,7 @@ export class LiveJournal {
   #turnOpen = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
   /** Stock `conversationContinuation` fold over the durable records this journal serves. */
-  #admitted = false; #failedAttempt = false; #ending: SessionSeq | null = null;
+  readonly #continuation = new ContinuationFold();
   /** A user prompt already opened the current turn; a retry turn has none and must synthesize one. */
   #userCommitted = false;
   /** Last published tip: the visible path this generation already served. Activation re-points the
@@ -354,7 +350,7 @@ export class LiveJournal {
   get after(): number { return this.#after; }
   get failure(): string | undefined { return this.#failure; }
   /** DSH `conversationContinuation` view: the retryable failure seq offered to the stock Continue button. */
-  get continuation(): SessionSeq | null { return this.#ending; }
+  get continuation(): SessionSeq | null { return this.#continuation.ending; }
   /** Native reports the Session quiet: close a turn that ended without a final assistant settlement. */
   settle(): void {
     if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0) return;
@@ -448,7 +444,7 @@ export class LiveJournal {
     const page = this.#page({throughSeq: this.cursor, maxMessages: 32}, PAGE_BYTES - reserve);
     return {type: 'snapshot', projection: this.projection, header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
       cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor,
-      values: {conversationContinuation: this.#ending}}, assistantStream};
+      values: {conversationContinuation: this.#continuation.ending}}, assistantStream};
   }
   subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
     this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
@@ -469,36 +465,16 @@ export class LiveJournal {
     this.#records.push(entry); this.#recordByteEnds.push(end);
     if (type === 'turn/start') this.#turnOpen = true;
     else if (type === 'turn/end') this.#turnOpen = false;
-    this.#fold(type, data, entry.event.seq, surface);
+    this.#fold(entry);
     this.#publish(entry); return entry;
   }
   /** Mirror DSH's constant-size continuation fold over the events this journal publishes. */
-  #fold(type: string, data: JsonValue, seq: number, surface: boolean): void {
-    const value = data as {source?: {kind?: string}; content?: unknown[]; reason?: {kind?: string; error?: {code?: string}}};
-    switch (type) {
-      case 'turn/start':
-        this.#admitted = false; this.#failedAttempt = false; this.#ending = null; this.#userCommitted = false; return;
-      case 'step/start':
-      case 'assistant/message':
-        this.#failedAttempt = false; return;
-      case 'user/message': {
-        this.#userCommitted = true;
-        if (this.#admitted || !surface) return;
-        const kind = value.source?.kind, content = value.content;
-        if (!Array.isArray(content)) return;
-        if ((kind === 'user' && content.length > 0) || (kind === 'retry' && content.length === 0)) this.#admitted = true;
-        return;
-      }
-      case 'assistant/attempt':
-        this.#failedAttempt = true; return;
-      case 'turn/end': {
-        const error = value.reason?.kind === 'error' ? value.reason.error : undefined;
-        const eligible = error?.code !== undefined && CONTINUABLE_FAILURES.has(error.code)
-          && this.#admitted && this.#failedAttempt;
-        this.#ending = eligible ? SessionSeq(seq) : null;
-        this.#admitted = false; this.#failedAttempt = false; this.#userCommitted = false; return;
-      }
-    }
+  #fold(record: SessionHistoryRecord): void {
+    this.#continuation.apply(record);
+    const type = record.type === 'event' ? record.event.type : '';
+    if (type === 'turn/start') this.#userCommitted = false;
+    else if (type === 'user/message') this.#userCommitted = true;
+    else if (type === 'turn/end') this.#userCommitted = false;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id;
@@ -610,7 +586,7 @@ export class LiveJournal {
     const key = identity(event.live); if (this.#settled.has(key)) return;
     if (event.item.role === 'toolResult' && !event.live.toolOwnerMessageId) this.#fail('live_tool_owner_unavailable');
     if (event.kind === 'message_start' && event.item.role === 'assistant') {
-      if (this.#ending !== null && !this.#userCommitted) {
+      if (this.#continuation.ending !== null && !this.#userCommitted) {
         this.#turn += 1; this.#step = 0;
         this.#event('turn/start', {turn: this.#turn});
         this.#event('user/message', {id: `retry-${event.seq}`, role: 'user',
