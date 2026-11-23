@@ -9,7 +9,7 @@ import type { BrowserAccess } from '../access/index.ts';
 
 /** Exact text the OMP runtime writes for an image whose bytes remain retained. */
 export const retainedImageMarker = '[Retained native image available; original association unproven]';
-const markerPattern = new RegExp(`\\n?${retainedImageMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
+const markerPattern = new RegExp(`\\n?${retainedImageMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`);
 
 export interface RetainedImage {
   entryId: string; objectId: string;
@@ -19,9 +19,9 @@ export interface RetainedImage {
 
 /** Host port the stock Session service uses to turn a retained entry into image blocks and bytes. */
 export interface SessionImages {
-  /** Metadata for entries the exact Session still retains; no bytes are read here. */
+  /** Metadata for entries the exact Session still retains, in stable association order. */
   retained(identity: BrowserAccess, sessionId: string, entryIds: readonly string[]):
-    ReadonlyMap<string, RetainedImage>;
+    ReadonlyMap<string, readonly RetainedImage[]>;
   /** The stock `session/attachment` read: rechecks association and exact bytes, then returns them. */
   read(identity: BrowserAccess, sessionId: string, attachment: {
     attachmentId: string; mediaType: string; bytes: number; width: number; height: number }):
@@ -64,7 +64,9 @@ export function applyHistoryImages(records: readonly SessionHistoryRecord[],
     const index = original.findIndex(part => isTextPart(part) && part.text.includes(retainedImageMarker));
     if (index < 0) return record;
     const content = [...original];
-    const text = (content[index] as TextPart).text.replace(markerPattern, '').replace(/\n+$/, '');
+    let text = (content[index] as TextPart).text;
+    for (let count = 0; count < retained.length; count++) text = text.replace(markerPattern, '');
+    text = text.replace(/\n+$/, '').replace(/^\n+/, '');
     if (text === '') content.splice(index, 1); else content[index] = { type: 'text', text };
     for (const image of retained) content.push({ type: 'image', attachment: {
       attachmentId: image.objectId, mediaType: image.mediaType, bytes: image.bytes,

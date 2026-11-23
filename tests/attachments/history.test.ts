@@ -3,7 +3,9 @@ import { createHash } from "node:crypto";
 import { mkdtempSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { OriginalStore, type OriginalScope } from "../../packages/attachments/store.ts";
-import { originalHistoryResponse, retainedEntries } from "../../apps/host/src/original-history.ts";
+import { originalHistoryImages, originalHistoryResponse, retainedEntries } from "../../apps/host/src/original-history.ts";
+import { applyHistoryImages, retainedImageMarker } from "../../packages/projection/history-images.ts";
+import { settledHistoryRecords } from "../../packages/projection/history-records.ts";
 import type { TreeHistory } from "../../packages/tree/service.ts";
 
 const sourceId = "a".repeat(64), instanceId = "b".repeat(64);
@@ -128,6 +130,9 @@ test("missing and corrupt original files keep a typed reason and leave Native hi
   const file = join(dataDir, `${original.objectId}.original`);
   unlinkSync(file);
   expect((await store.history(access, ["user"]))[0]).toMatchObject({ availability: "missing" });
+  const images = originalHistoryImages({ store,
+    session: () => ({ scope, history: history(["user"]) }) });
+  expect(images.retained({ credentialId: "browser", expiresAt: 1 }, "native", ["user"]).size).toBe(0);
   await expect(store.readHistorical(access, "user", original.objectId, ["user"]))
     .rejects.toThrow("attachment_original_unavailable");
   writeFileSync(file, new Uint8Array(image.length).fill(7));
@@ -183,4 +188,40 @@ test("a complete Tree index confirms retention without a second Native history s
   expect(Buffer.from(await inline.arrayBuffer())).toEqual(Buffer.from(image));
   const absent = await route(store, { retains: () => false })(new Request(`http://127.0.0.1/api/ompOriginals/history?${query}`));
   expect(absent.status).toBe(404);
+});
+
+test("every available image of one entry projects and stays readable; a missing original is skipped", async () => {
+  const first = Uint8Array.of(1, 2), second = Uint8Array.of(9, 8, 7);
+  const object = (suffix: string, displayName: string, availability: "available" | "missing", byteLength: number) => ({
+    entryId: "user", objectId: `00000000-0000-4000-8000-00000000000${suffix}`, displayName,
+    mediaType: "image/png" as const, byteLength, sha256, availability, width: 2, height: 2 });
+  const items = [object("a", "first.png", "available", 2), object("b", "second.png", "available", 3),
+    object("c", "missing.png", "missing", 2)];
+  const store = {
+    history: () => items,
+    entryFor: () => "user",
+    readHistorical: async (_access: unknown, _entryId: string, objectId: string) =>
+      ({ bytes: objectId.endsWith("b") ? second : first, mediaType: "image/png" }),
+  } as unknown as OriginalStore;
+  const images = originalHistoryImages({
+    session: () => ({ scope, history: history(["user"]) }), store });
+  const retained = images.retained({ credentialId: "browser", expiresAt: 1 }, "native", ["user"]);
+  expect(retained.get("user")?.map(image => image.objectId)).toEqual([
+    "00000000-0000-4000-8000-00000000000a", "00000000-0000-4000-8000-00000000000b"]);
+  const text = [retainedImageMarker, retainedImageMarker, retainedImageMarker].join("\n");
+  const message = settledHistoryRecords({ id: "user", parentId: null, kind: "message", active: false, text,
+    role: "user", timestamp: "2023-11-14T22:13:20.123Z" }, "user", 10, { turn: 0, step: 0 });
+  const projected = applyHistoryImages(message, [...retained.values()].flat());
+  const event = projected.find(record => record.type === "event" && record.event.type === "user/message") as
+    Extract<typeof projected[number], { type: "event" }>;
+  expect(event.event.data).toMatchObject({ content: [{ type: "text", text: retainedImageMarker },
+    { type: "image", attachment: { attachmentId: "00000000-0000-4000-8000-00000000000a" } },
+    { type: "image", attachment: { attachmentId: "00000000-0000-4000-8000-00000000000b" } }] });
+  const identity = { credentialId: "browser", expiresAt: 1 };
+  for (const [index, objectId] of ["00000000-0000-4000-8000-00000000000a",
+    "00000000-0000-4000-8000-00000000000b"].entries()) {
+    const read = await images.read(identity, "native", { attachmentId: objectId, mediaType: "image/png",
+      bytes: index === 0 ? 2 : 3, width: 2, height: 2 });
+    expect(read.data).toEqual(index === 0 ? first : second);
+  }
 });

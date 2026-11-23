@@ -61,12 +61,15 @@ export function originalHistoryImages(deps: Pick<OriginalHistoryDeps, "session" 
       let session: OriginalHistorySession;
       try { session = deps.session(identity, sessionId); } catch { return new Map(); }
       const items = deps.store.history(() => session.scope, entryIds);
-      const images = new Map<string, RetainedImage>();
+      const images = new Map<string, RetainedImage[]>();
       for (const item of items) {
-        if (!item.mediaType.startsWith("image/") || item.width === null || item.height === null) continue;
-        images.set(item.entryId, { entryId: item.entryId, objectId: item.objectId,
+        if (item.availability !== "available" || !item.mediaType.startsWith("image/")
+          || item.width === null || item.height === null) continue;
+        const image: RetainedImage = { entryId: item.entryId, objectId: item.objectId,
           mediaType: item.mediaType as RetainedImage["mediaType"], bytes: item.byteLength,
-          width: item.width, height: item.height, name: item.displayName });
+          width: item.width, height: item.height, name: item.displayName };
+        const found = images.get(item.entryId);
+        if (found === undefined) images.set(item.entryId, [image]); else found.push(image);
       }
       return images;
     },

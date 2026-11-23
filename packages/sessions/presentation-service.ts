@@ -34,7 +34,7 @@ export class SessionPresentationService extends TypertRemoteService {
     }))];
     if (ids.length === 0) return records;
     try {
-      return applyHistoryImages(records, [...images.retained(identity, sessionId, ids).values()]);
+      return applyHistoryImages(records, [...images.retained(identity, sessionId, ids).values()].flat());
     } catch { return records; }
   }
   private addressId(address: SessionFollowRequest["address"]): string {
