@@ -10,14 +10,14 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 
 | Part | Identity |
 |---|---|
-| Host source | `mvp/ticket-63-dsh-ui` @ `9f762b97e3e62873198a027ebd0f9fdb4305438f`; product entry `apps/host/src/main.ts` |
+| Host source | `mvp/spec-29-review-stock` @ `752b4572c5fd5d611040682f1eae395bd56ba803`; product entry `apps/host/src/main.ts` |
 | Host runtime | bun 1.4.4, sha256 `10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235` |
 | OMP base | `57771ae562b9345e0579bceb2d68d585e3e6927e` |
 | OMP source / patch / schema | `fbe8188cb6d7fc55680dd7c41f3f456122169d7c7a652df335cb11c14dcd86ae` / `ec7bb9c8b255725fbc628664f807376dfd3c172bd75fa515928f9e1c817f83d1` / `bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2` |
 | OMP launcher | `vendor/omp-candidate/omp` → `cli.js` (identity in the installation manifest) |
-| DSH base / source tree | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` / `8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c`, 10 pinned patches |
-| DSH client | Stock DSH release `0.1.0` @ `8e4ea0b1…` served from `vendor/dsh-product`; boot graph rev `af0cc31f7f36`, roster 34 entries (33 DSH packages + `@omp-webui/product-enrollment`), 136 assets sha256 `acdafd35…2ea0ce`; `index.html` `cbe98cf7…e8ccdd`; no `/client.js` |
-| Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `a0a06db5b1f02f1822f42b62b687bad07ddd535bf01d9310ad515597f7a4c040` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
+| DSH base / source tree | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` / `f5cc084f803a001930f8d1c6fa1abba5bd78e08f`, 11 pinned patches (includes `0013` checkout-relative CSS-module hashing) |
+| DSH client | Stock DSH release `0.1.0` @ `f5cc084f…` served from `vendor/dsh-product`; boot graph rev `1d19a9695e2d`, roster 34 entries (33 DSH packages + `@omp-webui/product-enrollment`), 136 assets sha256 `efae7cbebff1b1e7aa010325e099a481812d5243dcb3bfd146ad320383b46908`; `index.html` `0aa1ab0f1bab550a2d730b9d85401a361a19efab508c1c9664d8cf45f244fb7e`; no `/client.js` |
+| Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `aae65242822552be450d340acaf0e6e2bc9bc67f1f7b3690f8b18f17e9113da8` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
 | Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 is available but the #63 stock-shell browser rerun is not in this record |
 | Previous build (rollback) | `@oh-my-pi/pi-coding-agent@18.20.2`, `dist/cli.js` sha256 `648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76` |
 
