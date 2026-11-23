@@ -38,7 +38,7 @@ test.each([undefined, "RPC_PROTOCOL"])("Open failure survives older idle complet
   } finally { completion.resolve(f.controls.drain); await f.close(); }
 });
 
-test("idle Switch retains the owned worker when one reader has no EOF observation", async () => {
+test("idle Switch continues after an exit whose reader EOF was not observed", async () => {
   const f = await sourceFixture();
   const drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true };
   try {
@@ -48,24 +48,18 @@ test("idle Switch retains the owned worker when one reader has no EOF observatio
       binding: { ...f.other, ownership: { ...f.other.ownership, state: "held" } } });
     f.controls.retirement = { status: "closed", drain };
 
-    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
-    expect(f.supervisor.starts).toBe(1);
+    const switched = await f.supervisor.switchTo(f.identity, f.other);
+    expect(switched.state).toBe("open");
+    expect(switched.workerId).not.toBe(opened.workerId);
+    expect(f.supervisor.starts).toBe(2);
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({
       state: "outcome_unknown", code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48",
     });
     expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "explicit-switch", drain }]);
-
-    await f.supervisor.close();
-    expect(f.supervisor.hasOwnedReservation).toBe(false);
-    expect(f.supervisor.exits().at(-1)).toMatchObject({ workerId: opened.workerId, reason: "host-shutdown",
-      drain: f.controls.drain });
   } finally { await f.close(); }
 });
 
-test("a lost worker fences its view and keeps the slot until both owned readers finish", async () => {
+test("a lost worker fences its view, releases the slot, and permits an independent Session", async () => {
   const f = await sourceFixture();
   const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
   const drain = { code: 7, forced: false, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
@@ -77,23 +71,19 @@ test("a lost worker fences its view and keeps the slot until both owned readers 
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({
       state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
     });
-    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    await expect(f.supervisor.create(f.identity, f.cwd)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    await expect(f.supervisor.switchTo(f.identity, f.other)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
-    expect(f.supervisor.starts).toBe(1);
-
-    completion.resolve(drain); await completion.promise;
-    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, drain }]);
-    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "failed", code: "SESSION_WORKER_DRAINING" });
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     const reopened = await f.supervisor.open(f.identity, f.selected);
     expect(reopened.state).toBe("open");
     expect(reopened.workerId).not.toBe(opened.workerId);
     expect(reopened.generation).not.toBe(opened.generation);
+    expect(f.supervisor.starts).toBe(2);
+
+    completion.resolve(drain); await completion.promise;
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, drain }]);
   } finally { completion.resolve(drain); await f.close(); }
 });
 
-test.each(["incomplete", "rejected"])("a lost worker remains owned when its drain is %s", async outcome => {
+test.each(["incomplete", "rejected"])("a lost worker still releases when its drain is %s", async outcome => {
   const f = await sourceFixture();
   const completion = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").DrainResult>();
   const drain = { code: 0, forced: false, stderrBytes: 0, stdoutEOF: true, stderrEOF: false };
@@ -101,22 +91,19 @@ test.each(["incomplete", "rejected"])("a lost worker remains owned when its drai
   try {
     const opened = await f.supervisor.open(f.identity, f.selected);
     await f.exitWorker(drain.code);
-    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
-
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     if (outcome === "rejected") completion.reject(new Error("SYNTHETIC_DRAIN_FAILED"));
     else completion.resolve(drain);
     await completion.promise.catch(() => {});
-    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    expect(f.supervisor.starts).toBe(1);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     expect(f.supervisor.exits()[0]?.drain).toEqual(outcome === "rejected"
       ? { status: "unresolved", code: 0, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" }
       : drain);
-
-    f.controls.drain = { ...drain, stderrEOF: true };
-    await f.supervisor.close();
-    expect(f.supervisor.exits().at(-1)).toMatchObject({
-      workerId: opened.workerId, reason: "host-shutdown", drain: f.controls.drain,
-    });
+    const reopened = await f.supervisor.open(f.identity, f.selected);
+    expect(reopened.state).toBe("open");
+    expect(f.supervisor.starts).toBe(2);
+    expect(f.supervisor.exits()[0]?.workerId).toBe(opened.workerId);
   } finally { completion.resolve(drain); await f.close(); }
 });
 
@@ -291,8 +278,13 @@ test.each(["launch rejection", "close rejection", "missing EOF"])(
       const replacement = f.supervisor.open(f.identity, f.selected);
       void replacement.catch(() => {});
       await clock.advance(32_000, false);
-      expect(f.supervisor.starts).toBe(1);
-      await expect(replacement).rejects.toThrow("SESSION_WORKER_DRAINING");
+      if (outcome === "missing EOF") {
+        expect(f.supervisor.starts).toBe(2);
+        expect(await replacement).toMatchObject({ state: "open" });
+      } else {
+        expect(f.supervisor.starts).toBe(1);
+        await expect(replacement).rejects.toThrow("SESSION_WORKER_DRAINING");
+      }
       const expectedDrain = outcome === "launch rejection"
         ? { status: "unresolved", failure: "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" }
         : outcome === "close rejection" ? { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" }
@@ -326,10 +318,17 @@ test.each(["missing EOF", "rejected close"])("%s retains a worker delivered at 2
     if (outcome === "missing EOF") completion.resolve(partial);
     else completion.reject(new Error("SYNTHETIC_DRAIN_FAILED"));
     await revocation;
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
     expect(f.index.get(latest!.id)).toEqual(latest);
-    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
-    expect(f.supervisor.starts).toBe(1);
+    if (outcome === "missing EOF") {
+      expect(f.supervisor.hasOwnedReservation).toBe(false);
+      const reopened = await f.supervisor.open(f.identity, f.selected);
+      expect(reopened.state).toBe("open");
+      expect(f.supervisor.starts).toBe(2);
+    } else {
+      expect(f.supervisor.hasOwnedReservation).toBe(true);
+      await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
+      expect(f.supervisor.starts).toBe(1);
+    }
     const drain = outcome === "missing EOF" ? partial : { status: "unresolved", failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
     expect(f.supervisor.exits()).toMatchObject([{ reason: "directory-revoked", tailNotificationsLowerBound: true, drain }]);
   } finally {
@@ -367,7 +366,7 @@ test("a launch delivered after the force deadline cannot hold the bounded shutdo
   }
 });
 
-test("mandatory shutdown retains the root exit's failed index observation during passive drain", async () => {
+test("a passive drain retains the root exit's failed index observation without a duplicate shutdown stop", async () => {
   const f = await sourceFixture();
   const retirement = Promise.withResolvers<import("../../packages/compatibility/stdio-transport.ts").GracefulDrainResult>();
   const drain = { code: 7, forced: false, stderrBytes: 12, stdoutEOF: true, stderrEOF: true };
@@ -385,14 +384,13 @@ test("mandatory shutdown retains the root exit's failed index observation during
     retirement.reject(new Error("SYNTHETIC_RETIREMENT_FAILED"));
     await retirement.promise.catch(() => {});
     await shutdown;
+    await new Promise<void>(resolve => setImmediate(resolve));
     const exits = f.supervisor.exits();
-    const mandatory = exits.find(exit => exit.reason === "host-shutdown");
-    expect(mandatory).toMatchObject({ workerId: opened.workerId, indexFailure: "SESSION_ATTEMPT_UNAVAILABLE", drain });
-    const passive = exits.find(exit => exit.reason === "worker-lost");
-    expect(passive).toMatchObject({ workerId: opened.workerId, indexFailure: "SESSION_ATTEMPT_UNAVAILABLE" });
-    expect(passive?.drain).toEqual({ status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" });
-    expect(exits).toHaveLength(2);
-    expect(f.index.get(opened.registration.id)?.attempt.state).toBe("outcome_unknown");
+    expect(exits).toHaveLength(1);
+    expect(exits[0]).toMatchObject({ workerId: opened.workerId, reason: "worker-lost",
+      indexFailure: "SESSION_ATTEMPT_UNAVAILABLE" });
+    expect(exits[0]?.drain).toEqual({ status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" });
+    expect(f.index.get(opened.registration.id)?.attempt).toEqual({ state: "open" });
   } finally {
     retirement.resolve({ status: "closed", drain });
     if (replaced) { await rm(f.dataDir, { recursive: true, force: true }); await rename(f.dataDir + ".original", f.dataDir); }
@@ -400,23 +398,26 @@ test("mandatory shutdown retains the root exit's failed index observation during
   }
 });
 
-test("Host shutdown can proceed after close rejects and records only the observed root exit", async () => {
+test("Host shutdown releases an already exited worker without waiting for its rejecting close", async () => {
   const f = await sourceFixture();
   const readers = Promise.withResolvers<DrainResult>();
   f.controls.retirement = { status: "pending", completion: readers.promise, stdoutEOF: false, stderrEOF: false };
-  f.controls.close = async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); };
+  const close = spyOn(f.controls, "close").mockImplementation(async () => { throw new Error("SYNTHETIC_DRAIN_FAILED"); });
   try {
     const opened = await f.supervisor.open(f.identity, f.selected);
     await f.exitWorker(7);
     await f.supervisor.close();
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
-    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "host-shutdown",
-      drain: { status: "unresolved", code: 7, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" } }]);
+    expect(close).not.toHaveBeenCalled();
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
+    readers.resolve(f.controls.drain);
+    await new Promise<void>(resolve => setImmediate(resolve));
+    expect(f.supervisor.exits()).toMatchObject([{ workerId: opened.workerId, reason: "worker-lost",
+      drain: f.controls.drain }]);
     expect(f.index.get(opened.registration.id)?.attempt).toEqual({
       state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
     });
     f.index.close();
-  } finally { readers.resolve(f.controls.drain); await f.close(); }
+  } finally { readers.resolve(f.controls.drain); close.mockRestore(); await f.close(); }
 });
 
 test("zero exit with a failed final protocol tail persists an unknown shutdown outcome", async () => {
@@ -621,7 +622,7 @@ test.each(["same-code error", "late arbitrary rejection"] as const)(
   },
 );
 
-test("shutdown fences the retained connection while readiness is pending and waits for domain completion and both EOFs", async () => {
+test("shutdown releases the retained connection once the root exit is observed without domain or EOF gate", async () => {
   const owned = pendingOwnedConnection();
   const launched: string[] = [];
   const cutoffsAtAbort: number[] = [];
@@ -651,14 +652,14 @@ test("shutdown fences the retained connection while readiness is pending and wai
     expect(f.supervisor.exits()).toMatchObject([{ drain: {
       status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 0 },
     } }]);
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     owned.completed.resolve();
     await clock.advance(200);
     expect(f.supervisor.exits()).toMatchObject([{ drain: {
       status: "owned-unresolved", domain: "completed", rootExit: { exitCode: 0, signal: 0 },
     } }]);
     expect(f.supervisor.exits()[0]?.drain).not.toHaveProperty("output");
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     owned.output.resolve({ stdoutEOF: true, stderrEOF: true, stderrBytes: 12, observedTailNotifications: 2 });
     await shutdown;
     await expect(opening).rejects.toThrow("SESSION_OPEN_OUTCOME_UNKNOWN");
@@ -715,7 +716,7 @@ test("a connection delivered after the shutdown observation is fenced with the o
       status: "owned-unresolved", domain: "pending", rootExit: { exitCode: 0, signal: 15 },
       output: { stdoutEOF: true, stderrEOF: true },
     } }]);
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
 
     owned.completed.resolve();
     await clock.advance(40_000);
@@ -738,7 +739,7 @@ test("a connection delivered after the shutdown observation is fenced with the o
   }
 });
 
-test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an owned launch with %s keeps the retired slot", async outcome => {
+test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an owned launch with %s releases the retired slot", async outcome => {
   const owned = pendingOwnedConnection();
   const f = await sourceFixture(Date.now, () => owned.connection);
   const opening = f.supervisor.open(f.identity, f.selected);
@@ -756,9 +757,8 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
     if (outcome === "failed output") owned.output.reject(new Error("RPC_PIPE_ATTACH_FAILED"));
     else owned.output.resolve(output);
     await new Promise<void>(resolve => setImmediate(resolve));
-    await expect(f.supervisor.open(f.identity, f.selected)).rejects.toThrow("SESSION_WORKER_DRAINING");
     expect(f.supervisor.starts).toBe(1);
-    expect(f.supervisor.hasOwnedReservation).toBe(true);
+    expect(f.supervisor.hasOwnedReservation).toBe(false);
     expect(f.supervisor.exits()).toMatchObject([{ reason: "open-failed", drain: {
       status: "owned-unresolved", domain: outcome === "failed domain" ? "unresolved" : "completed",
       ...(outcome === "failed output" ? { rootExitUnobserved: true, outputUnavailable: true }

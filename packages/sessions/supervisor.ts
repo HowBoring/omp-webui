@@ -442,19 +442,22 @@ export class SessionSupervisor {
       state: "outcome_unknown", code: "SESSION_WORKER_LOST_MANUAL_OPEN_REQUIRED",
     });
     if (indexFailure) active.exitIndexFailure = indexFailure;
-    // Root exit fences the generation immediately. Keep the slot until the same handle's readers finish.
-    let drain: WorkerExit["drain"];
+    // The root handle is gone: no native work can use this reservation again. Reader EOF only
+    // describes pipe draining; a descendant may hold it open forever, so it must never fence New/Open.
+    active.released = true;
+    const record = (drain: WorkerExit["drain"]) => this.#appendExit({ workerId: active.id, reason: "worker-lost",
+      elapsedMs: performance.now() - start, nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false,
+      ...(indexFailure ? { indexFailure } : {}), drain, notificationCount: worker.notificationCount,
+      tailNotifications: Math.max(0, worker.notificationCount - atExit) });
     try {
       const retired = await worker.retireIdle(0);
-      drain = retired.status === "pending" ? await retired.completion : retired.drain;
-      if (active.stopping) return;
-      active.released = observedEOF(drain);
+      if (retired.status === "closed") { if (!active.stopping) record(retired.drain); return; }
+      void retired.completion.then(drain => { if (!active.stopping) record(drain); }, () => {
+        if (!active.stopping) record({ status: "unresolved", code, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" });
+      });
     } catch {
-      drain = { status: "unresolved", code, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" };
+      record({ status: "unresolved", code, failure: "SESSION_WORKER_DRAIN_UNAVAILABLE" });
     }
-    this.#appendExit({ workerId: active.id, reason: "worker-lost", elapsedMs: performance.now() - start,
-      nativeSettled: false, queuedInputsWithdrawn: false, uiCancelled: false, ...(indexFailure ? { indexFailure } : {}),
-      drain, notificationCount: worker.notificationCount, tailNotifications: Math.max(0, worker.notificationCount - atExit) });
   }
   #accept(active: Active, result: StrictStartState, explicitAttempt?: RegisteredSession): void {
     if (result.phase !== "open") {
@@ -772,14 +775,15 @@ export class SessionSupervisor {
   }
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
-    active.exited = true; active.released = observedEOF(drain);
+    // retireIdle only resolves closed after the child exited; a missing reader EOF does not keep it usable.
+    const clean = cleanDrain(drain);
+    active.exited = true; active.released = true;
     this.#clearStatus(active);
-    active.state = active.released ? "closed" : "outcome_unknown";
+    active.state = clean ? "closed" : "outcome_unknown";
     this.#unwatchSettlement(active);
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const finalInteractions = active.bridge?.snapshot();
     if (finalInteractions) active.finalInteractions = finalInteractions;
-    const clean = cleanDrain(drain);
     const indexFailure = this.#observeExit(active, { state: clean ? "closed" : "outcome_unknown",
       ...(clean ? {} : { code: "SESSION_IDLE_EXIT_UNCONFIRMED_PENDING_48" }) });
     this.#appendExit({ workerId: active.id, reason, elapsedMs: performance.now() - start, nativeSettled: true,
@@ -1116,10 +1120,14 @@ export class SessionSupervisor {
       const { facts, connection } = retained;
       const { domain, output } = facts;
       const notLaunched = !connection && retained.launchRefusal === "not-launched";
-      active.released = notLaunched || (domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true);
+      const rootGone = facts.rootExit !== undefined || facts.rootExitUnobserved === true;
+      const drained = domain === "completed" && output?.stdoutEOF === true && output.stderrEOF === true;
+      // A terminal root observation means the adapter can no longer be used. Waiting for reader EOF here
+      // made an inherited pipe a permanent New/Open fence; EOF now only labels the exit observation.
+      active.released = notLaunched || rootGone || domain !== "pending";
       if (notLaunched) active.state = "closed";
       const drain: WorkerExit["drain"] = connection ? {
-        status: active.released ? "owned-completed" : "owned-unresolved", ...facts,
+        status: drained ? "owned-completed" : "owned-unresolved", ...facts,
       } : notLaunched ? { status: "not-launched" } : {
         status: "unresolved",
         failure: retained.launchRefusal ? "SESSION_WORKER_LAUNCH_REJECTED_UNCONFIRMED" : "SESSION_WORKER_LAUNCH_UNRESOLVED",
@@ -1148,8 +1156,10 @@ export class SessionSupervisor {
     try {
       const drain = await worker.close(policy);
       active.exited = true;
-      active.released = observedEOF(drain);
-      active.state = active.released ? "closed" : "outcome_unknown";
+      // `close` resolved after reaping (or force-killing): the reservation is unusable even when a reader
+      // never saw EOF. EOF still decides whether the exit may be reported as clean.
+      active.released = true;
+      active.state = cleanDrain(drain) ? "closed" : "outcome_unknown";
       return drain;
     } catch {
       active.state = "outcome_unknown";
