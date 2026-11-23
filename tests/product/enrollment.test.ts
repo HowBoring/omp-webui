@@ -78,6 +78,7 @@ async function fixture() {
   });
   ctx.provide("uiSession", { adapter: { current: { getSnapshot: () => ({ key: sessionId }), subscribe: () => () => {} } } });
   ctx.provide("slots", { inject: () => () => {}, register: () => () => {} });
+  ctx.provide("conversation", {});
   ctx.provide("workspaces", {});
   ctx.provide("uiWorkspace", {});
   remote.view = { workerId: "worker-1", generation: "g1", state: "open", registration: { nativeSessionId: sessionId } };
