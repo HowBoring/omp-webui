@@ -26,14 +26,18 @@ Rows citing `ticket-61-platforms.json` were recorded on the earlier custom-shell
 | Stop to `cancelled`, recovery send | HISTORICAL (superseded custom shell only) | `linux.productFlow.stop` and `recovery` in `ticket-61-platforms.json`; the final stock tuple settles Stop to `Stopped` (`ticket-63-product-flow.json` `stop`) and was not rerun on this custom-shell scenario |
 | Explicit confirmed retry | PASS | `linux.productFlow.retry` (`succeeded`) |
 | Revoke-all | PASS | `linux.revokeAll` |
-| Host restart: no automatic reopen or replay, typed manual-open marker, explicit Open loads the retained history | PASS (controlled provider) | `ticket-63-restart-auth.json` (`restartAttempt` = `SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED`, `recovery` = `in-place`, provider calls unchanged, one turn in the native JSONL); the real-provider restart stays in the maintainer checklist above |
+| Host restart: no automatic reopen or replay, typed manual-open marker, explicit Open loads the retained history | PASS (controlled provider and real provider) | `ticket-63-restart-auth.json` (`restartAttempt` = `SESSION_HOST_RESTARTED_MANUAL_OPEN_REQUIRED`, `recovery` = `in-place`, provider calls unchanged, one turn in the native JSONL); real provider on the maintainer Host: `ticket-63-real-provider-restart.json` (`catalogRows` 87 across `null`/`snap:32`/`snap:64`, Open enabled, native sha unchanged by Open, four records appended by the post-recovery turn) |
 | Windows Chrome shell, admission, console clean | NOT RERUN | `windowsChrome` is superseded custom-shell evidence, not this tuple |
 | Windows keyboard, menus and file input | NOT RERUN | `windowsChrome.inputInjection` is superseded custom-shell evidence; drop and OS clipboard remain limitations |
 
 ## Maintainer operational acceptance — NOT RUN
 
-Not executed by an agent, and no substitute is offered. Suggested checklist for the maintainer on
-their own machine, using `docs/operations.md`:
+The agent exercised prepare/enroll, Host start, one real-provider turn and the Host-restart recovery
+on the maintainer Host (real `~/.omp` provider configuration); `ticket-63-real-provider-restart.json`
+records that run. The checklist below still needs the maintainer's own acceptance, and Windows is
+not rerun.
+
+Suggested checklist for the maintainer on their own machine, using `docs/operations.md`:
 
 1. Prepare and enroll from a clean checkout (§1) and confirm `bun run product:verify` and
    `bun test tests/product/freeze.test.ts` both pass.

@@ -13,6 +13,7 @@ import { chatComponentContribution } from "../../../packages/contracts/chat-comp
 import { treeContribution } from "../../../packages/contracts/tree.ts";
 import { historyNavigationSourceContribution } from "../../../packages/contracts/history-navigation-source.ts";
 import { TreeBrowser } from "../../../packages/tree/browser.ts";
+import { readSessionCatalog } from "./session-catalog.js";
 
 const DEBUG = () => globalThis.__OMP_PRODUCT_DEBUG__ === true;
 const debug = (event, details = {}) => { if (DEBUG()) console.info("OMP_PRODUCT", JSON.stringify({ event, ...details })); };
@@ -339,9 +340,9 @@ function apply(ctx, require) {
     const load = async () => {
       const [index, catalog] = await Promise.all([
         remote.ompSessions.index({ pageSize: 32 }).then(unwrap),
-        remote.ompSessions.catalog({ pageSize: 32 }).then(unwrap),
+        readSessionCatalog(remote.ompSessions, unwrap, () => alive.current),
       ]);
-      if (!alive.current) return;
+      if (!alive.current || catalog === undefined) return;
       setRegistered(index.records); setChoices(catalog.choices);
       if (catalog.status !== "complete") setNote("Native discovery is partial; only listed Sessions can be opened here.");
     };
