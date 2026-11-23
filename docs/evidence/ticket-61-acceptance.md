@@ -23,7 +23,7 @@ Rows citing `ticket-61-platforms.json` were recorded on the earlier custom-shell
 | Directory grant through the product UI | PASS | `linux.grant` |
 | New native Session with verified identity | PASS | `linux.productFlow.newSession` (`01a20027-38bc-735c-ac36-7ac1ee487ee0`) |
 | Live attach, send and streaming answer | PASS | `linux.productFlow.liveAttach` 11 nodes; `send` native journal sha256 `cabb69d7…f344a` |
-| Stop to `cancelled`, recovery send | PASS | `linux.productFlow.stop` and `recovery` |
+| Stop to `cancelled`, recovery send | HISTORICAL (superseded custom shell only) | `linux.productFlow.stop` and `recovery` in `ticket-61-platforms.json`; the final stock tuple settles Stop to `Stopped` (`ticket-63-product-flow.json` `stop`) and was not rerun on this custom-shell scenario |
 | Explicit confirmed retry | PASS | `linux.productFlow.retry` (`succeeded`) |
 | Revoke-all | PASS | `linux.revokeAll` |
 | Windows Chrome shell, admission, console clean | NOT RERUN | `windowsChrome` is superseded custom-shell evidence, not this tuple |
