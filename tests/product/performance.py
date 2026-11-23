@@ -431,6 +431,16 @@ async def load_earlier(page):
     return page.locator(HISTORY).get_by_role("button", name=re.compile(r"Load earlier"))
 
 
+async def older_control(page):
+    """The stock older-history control, independent of its label.
+
+    While the shell settles a page the button's accessible name becomes "Processing"; its
+    visible label is not a reachability signal. Native reach is whether this control remains
+    enabled and each activation prepends another native page.
+    """
+    return page.locator(f"{HISTORY} button")
+
+
 async def activate(control):
     """Activate the stock control by keyboard; turn action overlays can cover it after a scroll."""
     await control.first.focus()
@@ -558,7 +568,7 @@ async def product_run(browser_args):
                 steps = 0
                 reach_reset = None
                 while steps < REACH_STEPS:
-                    control = await load_earlier(page)
+                    control = await older_control(page)
                     if not await control.count() or await control.first.is_disabled():
                         break
                     before_nodes = await page.locator(NODE).count()
@@ -583,7 +593,7 @@ async def product_run(browser_args):
                         raise
                     steps += 1
                 reachable_nodes = await page.locator(NODE).count()
-                control = await load_earlier(page)
+                control = await older_control(page)
                 reachable_more = bool(await control.count() and not await control.first.is_disabled())
                 reachable_text = await page.locator(HISTORY).text_content() or ""
                 oldest = await page.locator(NODE).first.text_content() or ""
