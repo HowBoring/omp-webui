@@ -53,7 +53,7 @@ or claiming tuple reproduction, which remains local.
 
 | Area | Result | Evidence |
 |---|---|---|
-| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":136}`; installation `7c1554fd…ce1f`) | `ticket-63-freeze.json` |
+| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":136}`; installation `289e94d2…f649d4`) | `ticket-63-freeze.json` |
 | Frozen stock-shell composition | PASS: 10/10 freeze tests, roster 34, stock assets 136, no custom `/client.js` | `tests/product/freeze.test.ts`; `ticket-63-freeze.json` |
 | Linux product flow on the stock DSH shell: model/thinking, preferences reload, explicit continue, new native Session, Stop, send after Stop, Enter/New Session, draft reload, unsupported attachment refusal, PNG+TXT send, byte-exact Originals, and the retained 200×200 image rendered as a stock `<img>` after reload | PASS: 10 scenarios, 25 s, zero console errors | `docs/evidence/ticket-63-product-flow.json`; `tests/product/product-flow.py` |
 | Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
