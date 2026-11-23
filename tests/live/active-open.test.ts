@@ -42,6 +42,11 @@ test('one derived opening spans sustained prefix and native append progress, the
     expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
     const ends=frames.flatMap(frame=>frame.type==='assistant-stream'&&frame.frame.type==='end'?[frame.frame]:[]);
     expect(ends[0]?.attemptId).toBe(attempt.attemptId);
+    // Attempt stream records are authored only by LiveJournal.#delta; the JSON type is structural.
+    const stream = attempt.stream as unknown as {chunk?: {type?: string; text?: string}}[];
+    const deltas=stream.flatMap(record=>record.chunk?.type==='text-delta'&&typeof record.chunk.text==='string'?[record.chunk.text]:[]);
+    expect(deltas.length).toBeGreaterThan(1);
+    expect(deltas.join('')).toBe('authoritative controlled final');
     expect(opens).toBe(1);
   }finally{await fixture.close();}
 },30000);
@@ -64,6 +69,10 @@ test('public native abort settles an adopted DSH attempt without replaying execu
     }
     expect(journal.snapshot().assistantStream?.activeAttempt).toBeUndefined();
     expect(frames.some(frame=>frame.type==='assistant-stream'&&frame.frame.type==='end')).toBe(true);
+    const records=(await journal.page({maxMessages:128})).records;
+    expect(records.at(-1)?.event).toMatchObject({type:'turn/end',data:{reason:{kind:'aborted',reason:{kind:'user'}}}});
+    expect(records.filter(record=>record.event.type==='assistant/message').at(-1)?.event.data)
+      .toMatchObject({interrupted:true});
     expect((await fixture.transport.state()).isSettled).toBe(true);
   }finally{await fixture.close();}
 },20000);

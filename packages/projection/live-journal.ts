@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from 'node:util';
+import type { TurnEndReason } from '@deepseek-ai/dsh-session/types';
 import { SessionId, SessionSeq } from '@deepseek-ai/dsh-session/types';
 import { LlmAttemptId } from '@deepseek-ai/dsh-llm/brand';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
@@ -10,8 +11,8 @@ import type {
 import type { HistoryClient } from '../contracts/generated/history-client.ts';
 import type { HistoryOpen, HistoryItem, HistoryChange, HistoryPoll, HistoryLiveIdentity } from '../contracts/generated/omp-wire.ts';
 import { HistoryRecordParts } from './history-record-parts.ts';
-import { historyEvent, historyMessage, MAX_EVENTS, MAX_ITEM_BYTES, PAGE_BYTES, PAGE_OVERHEAD,
-  pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
+import { ContinuationFold, historyEvent, historyMessage, turnEndReasonFor, MAX_EVENTS, MAX_ITEM_BYTES,
+  PAGE_BYTES, PAGE_OVERHEAD, pageCoordinates, settledCoordinates, ToolCallLedger, type PageRequest } from './history-records.ts';
 
 type AssistantFrameInput = {
   [K in SessionAssistantStreamFrame['type']]: Omit<Extract<SessionAssistantStreamFrame, {type: K}>, 'revision'>
@@ -47,7 +48,7 @@ const identity = (live: HistoryLiveIdentity): string => JSON.stringify([
 ]);
 interface Attempt {
   id: LlmAttemptId; live: HistoryLiveIdentity; index: number; turn: number; step: number;
-  startedAfterSeq: number; stream: JsonValue[]; bytes: number;
+  startedAfterSeq: number; stream: JsonValue[]; bytes: number; reasoning: string; text: string;
 }
 interface OpeningBudget { bytes: number; items: number }
 
@@ -101,14 +102,24 @@ export class LiveJournal {
   /** Native boundaries already served, keyed by the seq an older page must end at. */
   readonly #boundaries = new Map<number, { offset: number; turn: number; step: number; parent: string | null }>();
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
+  /** Stock `turn/end` closes the running surface; a worker settle may have to close a turn that no
+   *  final assistant settlement committed (Stop before the first block, tool-only abort). */
+  #turnOpen = false; #quiet = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
+  /** Stock `conversationContinuation` fold over the durable records this journal serves. */
+  readonly #continuation = new ContinuationFold();
+  /** A user prompt already opened the current turn; a retry turn has none and must synthesize one. */
+  #userCommitted = false;
+  /** Last published tip: the visible path this generation already served. Activation re-points the
+   *  Native leaf here without changing that path, so a matching setLeaf is bookkeeping, not a branch move. */
+  #publishedLeaf: string | null;
   /** In-flight lease renewal shared by concurrent stale pages. */
   #renewing: Promise<HistoryOpen> | undefined;
   readonly #maxBytes = journalMaxBytes();
   private constructor(public opened: HistoryOpen, readonly history: HistoryClient, generation?: string) {
     if (generation !== undefined) this.generation = generation;
     this.sessionId = SessionId(opened.cut.sessionId); this.#after = opened.cut.observationSeq;
-    this.#nativeLeaf = opened.cut.leafId;
+    this.#nativeLeaf = opened.cut.leafId; this.#publishedLeaf = opened.cut.leafId;
   }
   static async open(history: HistoryClient, generation?: string): Promise<LiveJournal> {
     for (let attempt = 1; ; attempt++) {
@@ -160,8 +171,8 @@ export class LiveJournal {
       if (this.#settled.has(key)) continue;
       if (item.livePhase === 'streaming') {
         if (item.role !== 'assistant' || this.#attempt) throw Error('live_overlapping_assistant');
-        this.#beginAttempt(live); this.#chunk(item.text, false);
-      } else {
+        this.#beginAttempt(live); this.#chunk(item.text, item.reasoning ?? '', false);
+      } else if (item.active) {
         this.#pendingFinals.add(key);
         if (this.#pendingFinals.size > ASSOCIATIONS) throw Error('live_open_pending_budget');
       }
@@ -189,6 +200,15 @@ export class LiveJournal {
       if (!id || !item.active || (this.#entries.has(id) && id !== leaf) || (leaf !== null && id !== leaf && item.parentId !== leaf)) throw Error('live_open_active_path');
       budget.bytes += Buffer.byteLength(JSON.stringify(item)); budget.items++;
       if (budget.bytes > OPEN_BYTES || budget.items > MAX_EVENTS) throw Error('live_open_budget');
+      if (item.live && item.role === 'assistant' && item.livePhase === 'streaming') {
+        // The tail can already contain the in-flight assistant. Keep its source for the settlement
+        // and let #loadOpening adopt it as the live attempt instead of freezing partial output as a
+        // settled message whose settlement event would then be ignored.
+        if (id !== this.opened.cut.leafId) throw Error('live_open_active_path');
+        const bytes = Buffer.byteLength(JSON.stringify(item));
+        if (this.#appended.size >= ASSOCIATIONS || this.#appendBytes + bytes > ATTEMPT_BYTES) throw Error('live_open_budget');
+        this.#appended.set(id, {item, bytes}); this.#appendBytes += bytes; leaf = id; continue;
+      }
       this.#commit(item); leaf = id;
       if (this.#settled.size > ASSOCIATIONS) throw Error('live_settlement_evicted');
     }
@@ -290,12 +310,13 @@ export class LiveJournal {
   #build(items: HistoryItem[], start: {turn: number; step: number}, ledger: ToolCallLedger) {
     const records: SessionHistoryRecord[] = [];
     let counters = start;
-    const emit = (type: string, data: JsonValue, surface = false) => {
-      const entry = historyEvent(records.length, type, data, surface); records.push(entry); return entry;
+    const emit = (type: string, data: JsonValue, surface = false, time = 0) => {
+      const entry = historyEvent(records.length, type, data, surface, time); records.push(entry); return entry;
     };
     for (const item of items) {
       const id = item.entryId ?? item.id;
-      counters = settledCoordinates(item.role, counters, item.toolCalls?.length ?? 0);
+      counters = settledCoordinates(item.role, counters, item.toolCalls?.length ?? 0,
+        turnEndReasonFor(item.stopReason, item.error) !== undefined);
       historyMessage(item, id, counters, emit, false, ledger);
     }
     return {records, end: counters};
@@ -328,6 +349,22 @@ export class LiveJournal {
   get cursor(): number { return this.#firstSeq + this.#records.length - 1; }
   get after(): number { return this.#after; }
   get failure(): string | undefined { return this.#failure; }
+  /** DSH `conversationContinuation` view: the retryable failure seq offered to the stock Continue button. */
+  get continuation(): SessionSeq | null { return this.#continuation.ending; }
+  /** Native reports the Session quiet: close a turn that ended without a final assistant settlement.
+   *  The quiet frame can lead the observation cursor by a poll, so the close waits for the next
+   *  observation and only fires when Native had nothing left to report; a settlement in between
+   *  closes the turn itself and a new turn discards the mark. */
+  settle(): void {
+    if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0 || !this.#turnOpen) return;
+    this.#quiet = true;
+  }
+  #closeTurn(explicit?: TurnEndReason): void {
+    if (!this.#turnOpen) return;
+    const reason = explicit ?? turnEndReasonFor(this.#lastStop.stopReason, this.#lastStop.error)
+      ?? {kind: 'aborted' as const, reason: {kind: 'legacy' as const}};
+    this.#event('turn/end', {turn: this.#turn, reason: reason as unknown as JsonValue});
+  }
   /** Release the retained native cut; older-page paging is impossible after this. */
   dispose(): void {
     if (this.#closed) return; this.#closed = true;
@@ -409,7 +446,8 @@ export class LiveJournal {
     if (reserve >= PAGE_BYTES) throw Error('live_prefix_bytes');
     const page = this.#page({throughSeq: this.cursor, maxMessages: 32}, PAGE_BYTES - reserve);
     return {type: 'snapshot', projection: this.projection, header: {version: 4, id: this.sessionId, createdAt: 0, isSeeded: false},
-      cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor, values: {}}, assistantStream};
+      cursor: this.cursor, ...page, projections: {projection: this.projection, asOfSeq: this.cursor,
+      values: {conversationContinuation: this.#continuation.ending}}, assistantStream};
   }
   subscribe(listener: (frame: SessionFollowFrame) => void): () => void {
     this.#assert(); this.#listeners.add(listener); return () => { this.#listeners.delete(listener); };
@@ -419,28 +457,46 @@ export class LiveJournal {
     const stamped = {...frame, projection: this.projection};
     for (const listener of this.#listeners) listener(structuredClone(stamped));
   }
-  #event(type: string, data: JsonValue, surface = false): SessionHistoryRecord {
-    const entry = historyEvent(this.#firstSeq + this.#records.length, type, data, surface);
+  /** Live frames with no native item (step boundaries, a turn the worker closed) take the host clock,
+   *  which is the same clock DSH itself stamps events with. */
+  #event(type: string, data: JsonValue, surface = false, time = Date.now()): SessionHistoryRecord {
+    const entry = historyEvent(this.#firstSeq + this.#records.length, type, data, surface, time);
     const bytes = Buffer.byteLength(JSON.stringify(entry));
     if (bytes > MAX_ITEM_BYTES) this.#fail('live_event_bytes');
     const end = this.#recordBytesBefore(this.#records.length) + bytes;
     if (this.#records.length >= MAX_EVENTS || end > this.#maxBytes) this.#fail('live_projection_evicted');
-    this.#records.push(entry); this.#recordByteEnds.push(end); this.#publish(entry); return entry;
+    this.#records.push(entry); this.#recordByteEnds.push(end);
+    if (type === 'turn/start') this.#turnOpen = true;
+    else if (type === 'turn/end') this.#turnOpen = false;
+    this.#fold(entry);
+    this.#publish(entry); return entry;
+  }
+  /** Mirror DSH's constant-size continuation fold over the events this journal publishes. */
+  #fold(record: SessionHistoryRecord): void {
+    this.#continuation.apply(record);
+    const type = record.type === 'event' ? record.event.type : '';
+    if (type === 'turn/start') this.#userCommitted = false;
+    else if (type === 'user/message') this.#userCommitted = true;
+    else if (type === 'turn/end') this.#userCommitted = false;
   }
   #commit(item: HistoryItem): SessionHistoryRecord | undefined {
     const id = item.entryId ?? item.id;
     if (this.#entries.has(id)) return;
-    this.#entries.add(id); if (item.live) this.#settled.add(identity(item.live));
+    this.#entries.add(id); this.#publishedLeaf = id; if (item.live) this.#settled.add(identity(item.live));
+    if (item.role === 'assistant') this.#lastStop = {
+      ...(item.stopReason !== undefined ? {stopReason: item.stopReason} : {}),
+      ...(item.error !== undefined ? {error: item.error} : {})};
     if (item.role === 'assistant' && (!item.provider || !item.model)) this.#fail('live_missing_model_source');
     const attempt = item.role === 'assistant' && item.live && this.#attempt
       && identity(item.live) === identity(this.#attempt.live) ? this.#attempt : undefined;
-    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step }, item.toolCalls?.length ?? 0);
+    const coordinates = settledCoordinates(item.role, { turn: this.#turn, step: this.#step },
+      item.toolCalls?.length ?? 0, turnEndReasonFor(item.stopReason, item.error) !== undefined);
     if (!attempt) {
       if (coordinates.length > 1 || !this.#attempt) this.#groups.push(this.#records.length);
       this.#turn = coordinates.turn; this.#step = coordinates.step;
     }
     return historyMessage(item, id, attempt ?? coordinates,
-      (type, data, surface) => this.#event(type, data, surface), !!attempt, this.#toolCalls);
+      (type, data, surface, time) => this.#event(type, data, surface, time), !!attempt, this.#toolCalls);
   }
   #cursor(value: number) { return value === -1 ? -1 : SessionSeq(value); }
   #beginAttempt(live: HistoryLiveIdentity): void {
@@ -449,26 +505,44 @@ export class LiveJournal {
     this.#groups.push(this.#records.length);
     const turn = this.#turn, step = ++this.#step; this.#event('step/start', {turn, step});
     this.#attempt = {id: LlmAttemptId(identity(live)), live, index: 0, turn, step,
-      startedAfterSeq: this.cursor, stream: [], bytes: 0};
+      startedAfterSeq: this.cursor, stream: [], bytes: 0, reasoning: '', text: ''};
   }
   #frame(frame: AssistantFrameInput): void {
     this.#publish({type: 'assistant-stream', frame: {...frame, revision: ++this.#assistantRevision} as SessionAssistantStreamFrame});
   }
-  #chunk(text: string, publish = true): void {
+  #chunk(text: string, reasoning: string, publish = true): void {
     const attempt = this.#attempt; if (!attempt) this.#fail('live_missing_attempt');
-    const chunk = {type: 'block-end' as const, index: 0, block: {type: 'text' as const, text}};
+    if (reasoning !== attempt.reasoning) {
+      if (!reasoning.startsWith(attempt.reasoning)) this.#fail('live_reasoning_rewrite');
+      this.#delta('reasoning-delta', 0, reasoning.slice(attempt.reasoning.length), publish);
+      attempt.reasoning = reasoning;
+    }
+    if (text !== attempt.text) {
+      if (!text.startsWith(attempt.text)) this.#fail('live_text_rewrite');
+      this.#delta('text-delta', 1, text.slice(attempt.text.length), publish);
+      attempt.text = text;
+    }
+  }
+  #delta(type: 'text-delta' | 'reasoning-delta', index: number, text: string, publish: boolean): void {
+    if (text === '') return;
+    const attempt = this.#attempt; if (!attempt) this.#fail('live_missing_attempt');
+    const chunk = type === 'text-delta'
+      ? {type: 'text-delta' as const, index, text}
+      : {type: 'reasoning-delta' as const, index, text};
     const record = {type: 'chunk', time: 0, chunk};
     const bytes = Buffer.byteLength(JSON.stringify(record));
     if (bytes > MAX_ITEM_BYTES || attempt.index >= ASSOCIATIONS || attempt.bytes + bytes > ATTEMPT_BYTES) this.#fail('live_attempt_evicted');
-    const index = attempt.index++; attempt.bytes += bytes; attempt.stream.push(record);
-    if (publish) this.#frame({type: 'chunk', attemptId: attempt.id, index, time: 0, chunk});
+    const frameIndex = attempt.index++; attempt.bytes += bytes; attempt.stream.push(record as unknown as JsonValue);
+    if (publish) this.#frame({type: 'chunk', attemptId: attempt.id, index: frameIndex, time: 0, chunk});
   }
   accept(poll: HistoryPoll): void {
     this.#assert();
     if (poll.cut.workerId !== this.opened.cut.workerId || poll.cut.sessionId !== this.sessionId || poll.after !== this.#after) {
       this.#fail('live_observation_out_of_order');
     }
-    if (poll.cut.sourceId !== this.opened.cut.sourceId || poll.cut.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
+    // Cut/source/context bookkeeping moves under this journal without retiring it: the event stream is
+    // still contiguous from `after`, the execution worker and native Session are unchanged, and a real
+    // branch move, rewrite or rebuild is rejected in `#apply` below.
     for (const event of poll.events) {
       if (event.seq !== this.#after + 1) this.#fail('live_observation_gap');
       this.#apply(event); this.#after = event.seq;
@@ -476,6 +550,10 @@ export class LiveJournal {
     if (!poll.hasMore && [...this.#appended.values()].some(value => value.item.active)) this.#fail('live_unassociated_source_append');
     if (this.#settled.size > ASSOCIATIONS) this.#fail('live_settlement_evicted');
     if (poll.through !== this.#after || (!poll.hasMore && poll.cut.leafId !== this.#nativeLeaf)) this.#fail('live_observation_gap');
+    if (this.#quiet) {
+      this.#quiet = false;
+      if (poll.events.length === 0 && !this.#attempt && this.#pendingFinals.size === 0) this.#closeTurn();
+    }
   }
   #sourceAppend(event: HistoryChange): void {
     const source = event.source, item = event.item;
@@ -495,21 +573,37 @@ export class LiveJournal {
     this.#appended.set(source.entryId, {item, bytes}); this.#appendBytes += bytes;
   }
   #apply(event: HistoryChange): void {
-    if (['native_setLeaf', 'native_clear', 'native_rebuild', 'native_rewrite', 'native_source_replaced', 'native_source_binding',
-      'native_untracked_rewrite', 'native_runtime_replaced', 'native_live_gap', 'native_settlement_evicted', 'auto_compaction_start'].includes(event.kind)) {
+    // Native bookkeeping keeps this generation: OMP rewrites the file when it records activation, a
+    // submission or settled metadata. The published entries and the retained paging snapshot stay valid,
+    // and `accept` still proves the stream is contiguous, so a projection the stock client cannot rebind
+    // is not retired here — a rebuild, branch move or compaction below still retires it.
+    if (event.kind === 'native_setLeaf') {
+      const leaf = event.source?.leafId ?? null;
+      if (leaf !== this.#publishedLeaf) this.#fail('live_projection_invalidated');
+      this.#nativeLeaf = leaf; return;
+    }
+    if (event.kind === 'native_content_changed' || event.kind === 'native_untracked_rewrite'
+      || event.kind === 'native_source_replaced' || event.kind === 'native_source_binding') return;
+    if (['native_clear', 'native_rebuild', 'native_rewrite', 'native_runtime_replaced', 'native_live_gap',
+      'native_settlement_evicted', 'auto_compaction_start'].includes(event.kind)) {
       this.#fail('live_projection_invalidated');
     }
     if (event.kind === 'native_append') this.#sourceAppend(event);
     if (!event.live || !event.item) return;
     const key = identity(event.live); if (this.#settled.has(key)) return;
     if (event.item.role === 'toolResult' && !event.live.toolOwnerMessageId) this.#fail('live_tool_owner_unavailable');
-    if (event.live.contextId !== this.opened.cut.contextId) this.#fail('live_context_changed');
     if (event.kind === 'message_start' && event.item.role === 'assistant') {
+      if (this.#continuation.ending !== null && !this.#userCommitted) {
+        this.#turn += 1; this.#step = 0;
+        this.#event('turn/start', {turn: this.#turn});
+        this.#event('user/message', {id: `retry-${event.seq}`, role: 'user',
+          source: {kind: 'retry'}, content: []}, true);
+      }
       this.#beginAttempt(event.live); const attempt = this.#attempt!;
       this.#frame({type: 'start', attemptId: attempt.id, startedAfterSeq: this.#cursor(this.cursor), turn: attempt.turn, step: attempt.step});
     } else if (event.kind === 'message_update' && event.item.role === 'assistant') {
       if (!this.#attempt || identity(this.#attempt.live) !== key) this.#fail('live_late_attempt');
-      this.#chunk(event.item.text);
+      this.#chunk(event.item.text, event.item.reasoning ?? '');
     } else if (event.kind === 'message_settlement') this.#settle(event, key);
   }
   #settle(event: HistoryChange, key: string): void {
@@ -523,13 +617,26 @@ export class LiveJournal {
     let entry: SessionHistoryRecord | undefined;
     if (settlement.status === 'observed') {
       if (!settlement.entryId || (!source && !this.#entries.has(settlement.entryId))) this.#fail('live_unknown_settlement_entry');
-      if (source?.item.active) entry = this.#commit({...item, id: settlement.entryId, entryId: settlement.entryId});
+      if (source?.item.active) entry = this.#commit({...(source?.item ?? {}), ...item,
+        id: settlement.entryId, entryId: settlement.entryId});
     }
     this.#settled.add(key); this.#pendingFinals.delete(key);
+    // A failed record that Native keeps off the active branch still proved this live attempt failed;
+    // publish the attempt so the stock fold keeps its retryable turn, without inventing a surface message.
+    if (attempt && !entry && turnEndReasonFor(item.stopReason, item.error)?.kind === 'error') {
+      this.#event('assistant/attempt', {turn: attempt.turn, step: attempt.step,
+        stream: structuredClone(attempt.stream)});
+    }
     if (attempt) {
       this.#frame({type: 'end', attemptId: attempt.id, index: attempt.index, outcome: entry
-        ? {kind: 'committed', eventType: 'assistant/message', seq: entry.event.seq} : {kind: 'abandoned'}});
+        ? {kind: 'committed', eventType: entry.event.type as 'assistant/message' | 'assistant/attempt',
+          seq: entry.event.seq} : {kind: 'abandoned'}});
       this.#event('step/end', {turn: attempt.turn, step: attempt.step}); this.#attempt = undefined;
     }
+    // A user or tool settlement opens/belongs to a turn that is still running; only an assistant
+    // settlement may close it. `toolUse` keeps the turn open for the next step, and a committed
+    // terminal assistant already closed it (unless this settlement continued an adopted attempt,
+    // where the step/end above had to come first).
+    if (item.role === 'assistant') this.#closeTurn(turnEndReasonFor(item.stopReason, item.error));
   }
 }

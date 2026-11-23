@@ -23,6 +23,8 @@ export PNPM_CONFIG_STORE_DIR="${DSH_STORE_DIR:-$repo_root/vendor/pnpm-store}"
 [[ "$(corepack pnpm --version)" == 11.28.5 ]]
 corepack pnpm install --frozen-lockfile --ignore-scripts
 bun --no-env-file "$repo_root/scripts/dsh-source.ts" "$dsh_source"
+# Brand the stock client through the upstream public build value (read as process.env.DSH_CLIENT_TITLE).
+export DSH_CLIENT_TITLE="${OMP_PRODUCT_TITLE:-OMP WebUI}"
 corepack pnpm run build:artifacts --serial
 corepack pnpm run build:check --serial
 

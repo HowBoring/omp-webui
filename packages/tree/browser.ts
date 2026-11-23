@@ -33,6 +33,12 @@ export class TreeBrowser {
     this.generation++; this.release();
     this.publish({ ...empty(), phase: "blocked", error: code });
   }
+  /** Release the Native snapshot without discarding the visible index; callers reopen after a write. */
+  async suspend(): Promise<void> {
+    this.generation++;
+    const snapshot = this.snapshot; this.snapshot = undefined; this.cursor = undefined;
+    if (snapshot) await this.read({ operation: "close", snapshot }).catch(() => {});
+  }
   async open(): Promise<void> {
     if (this.disposed) return;
     this.generation++; this.release();

@@ -7,12 +7,13 @@ import type { CatalogDescriptor, StrictStartState, SessionState } from "../contr
 import { isNativeSessionErrorCode, sessionFailureCode } from "../contracts/session-errors.ts";
 import type { InteractionSnapshot, UIAnswer } from "../contracts/interactions.ts";
 import type { DirectoryGrants } from "../workspaces/grants.ts";
-import type { OwnedSessionCleanup, OwnedSessionConnection, SessionWorker } from "../compatibility/session-worker.ts";
+import type { OwnedSessionCleanup, OwnedSessionConnection, SessionStatus, SessionWorker } from "../compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult, StdioOutput } from "../compatibility/stdio-transport.ts";
 import { InteractionBridge } from "../interactions/bridge.ts";
 import { LiveJournal } from "../projection/live-journal.ts";
 import { confirmsPreSpawnRefusal } from "../supervision/owner.ts";
 import { SessionIndex, type RegisteredSession, type SessionAttempt } from "./index.ts";
+import type { SessionRunning } from "./status-events.ts";
 
 /** Public native adapter port; concrete workers and deterministic public-RPC fixtures share this boundary. */
 export type SupervisedSessionWorker = Pick<SessionWorker, keyof SessionWorker>;
@@ -96,6 +97,14 @@ interface Active {
   worker?: SupervisedSessionWorker | OwnedSessionWorker; bridge?: OwnedSessionWorker["interactions"];
   finalInteractions?: InteractionSnapshot;
   journal?: Promise<LiveJournal>; journalValue?: LiveJournal; journalEpoch?: number;
+  /** Worker quiet notification for the journal a viewer currently follows. */
+  settle?: () => void;
+  /** Last Host-published Native running state; absent until the first observation. */
+  statusValue?: boolean;
+  statusReading?: boolean;
+  statusDirty?: boolean;
+  statusExpect?: boolean;
+  statusUnwatch?: (() => void) | undefined;
   /** Last Native branch-point read and the worker cut it describes; one entry per Session. */
   branchPoints?: { cut: string; points: readonly BranchPoint[] };
   retired: boolean; exited: boolean; released: boolean; stopping?: Promise<WorkerExit>; startupAttempted: boolean;
@@ -170,6 +179,7 @@ export class SessionSupervisor {
   #closed = false;
   #exits: WorkerExit[] = [];
   #starts = 0;
+  #statusListeners = new Set<(status: SessionRunning | undefined) => void>();
   #sweeper: Timer;
   constructor(readonly options: Options) {
     this.#sweeper = setInterval(() => { void this.permissionsChanged().catch(() => {}); }, 1000);
@@ -423,6 +433,7 @@ export class SessionSupervisor {
   }
   async #workerExited(active: Active, worker: SupervisedSessionWorker, code: number): Promise<void> {
     active.exited = true;
+    this.#clearStatus(active);
     active.exitCode = code;
     if (active.retired) return;
     active.state = "outcome_unknown";
@@ -464,6 +475,7 @@ export class SessionSupervisor {
     if (observed) active.record = observed;
     active.state = "open";
     active.bridge!.bindSession(binding.nativeSessionId);
+    this.#watchStatus(active);
   }
   #view(active: Active): SessionView {
     if (!active.record) throw new Error("SESSION_NATIVE_IDENTITY_UNCONFIRMED");
@@ -523,6 +535,17 @@ export class SessionSupervisor {
     this.#current(identity, active);
     return { history: active.worker.history, sourceId: active.record.sourceId,
       instanceId: active.record.instanceId, cwd: active.cwd, sessionId, epoch: active.generation };
+  }
+  /** Exact live worker's Native slash-command catalog and the target a chosen line submits to. */
+  commandsAccess(identity: BrowserAccess, sessionId: string) {
+    this.#browser(identity); const active = this.#active;
+    if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId
+      || !("availableCommands" in active.worker) || !("submitCommand" in active.worker)) {
+      throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
+    }
+    this.#current(identity, active);
+    return { worker: active.worker,
+      target: { sourceId: active.record.sourceId, instanceId: active.record.instanceId, nativeSessionId: sessionId } };
   }
   /** Exact live worker plus its current presented journal for a native navigation request. */
   async navigationAccess(identity: BrowserAccess, sessionId: string) {
@@ -750,7 +773,9 @@ export class SessionSupervisor {
   #finishIdle(active: Active, reason: string, start: number, notificationsAtStop: number, drain: DrainResult): void {
     if (active.stopping) return;
     active.exited = true; active.released = observedEOF(drain);
+    this.#clearStatus(active);
     active.state = active.released ? "closed" : "outcome_unknown";
+    this.#unwatchSettlement(active);
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const finalInteractions = active.bridge?.snapshot();
     if (finalInteractions) active.finalInteractions = finalInteractions;
@@ -777,6 +802,98 @@ export class SessionSupervisor {
     return { view: this.#view(active), running: status !== undefined && !statusSettled(status),
              blank: active.journalValue !== undefined && active.journalValue.cursor < 0 };
   }
+  /** Forward Host-observed running transitions to the Client status stream. */
+  subscribeStatus(listener: (status: SessionRunning | undefined) => void): () => void {
+    this.#statusListeners.add(listener);
+    return () => { this.#statusListeners.delete(listener); };
+  }
+  /** The active Session's Native running state, or undefined when it cannot currently be observed. */
+  async activeStatus(): Promise<SessionRunning | undefined> {
+    const active = this.#active;
+    if (this.#closed || !active?.worker || active.state !== "open" || active.retired || active.exited) return undefined;
+    let status: SessionStatus;
+    try { status = await active.worker.status(); } catch { return undefined; }
+    if (this.#closed || active !== this.#active || active.state !== "open" || active.retired || active.exited) return undefined;
+    return { sessionId: active.record!.nativeSessionId, running: !statusSettled(status) };
+  }
+  /** A Host composition observed work that may have changed Native running without a worker frame. */
+  statusChanged(): void {
+    const active = this.#active;
+    if (active && active.state === "open" && !active.retired && !active.exited) {
+      active.statusExpect = true;
+      void this.#observeStatus(active);
+    }
+  }
+  #watchStatus(active: Active): void {
+    this.#unwatchStatus(active);
+    const worker = active.worker;
+    if (!worker) return;
+    active.statusUnwatch = worker.subscribe(frame => {
+      if (active !== this.#active || active.state !== "open" || active.retired || active.exited) return;
+      const settled = frame.type === "session_settled"
+        || (frame.type === "prompt_result" && frame.sessionSettled === true);
+      // Streaming frames cannot make a running Session idle; only an authoritative read on a
+      // settlement frame (or the next observation window) closes the turn. Before any turn is
+      // requested, an interaction frame is not evidence that Native running changed.
+      if (!settled && (active.statusValue === true || active.statusExpect !== true)) return;
+      if (settled) active.statusExpect = false;
+      void this.#observeStatus(active);
+    });
+  }
+  #unwatchStatus(active: Active): void {
+    active.statusUnwatch?.();
+    active.statusUnwatch = undefined;
+  }
+  async #observeStatus(active: Active): Promise<void> {
+    if (active !== this.#active || active.state !== "open" || active.retired || active.exited || !active.worker) {
+      this.#clearStatus(active);
+      return;
+    }
+    if (active.statusReading) { active.statusDirty = true; return; }
+    active.statusReading = true;
+    try {
+      const status = await active.worker.status();
+      if (active !== this.#active || active.state !== "open" || active.retired || active.exited) {
+        this.#clearStatus(active);
+        return;
+      }
+      const running = !statusSettled(status);
+      if (running) active.statusExpect = false;
+      this.#publishStatus(active, running);
+    } catch { /* Keep the last observation; a later frame opens another window. */ }
+    finally {
+      active.statusReading = false;
+      if (active.statusDirty) { active.statusDirty = false; void this.#observeStatus(active); }
+    }
+  }
+  #publishStatus(active: Active, running: boolean): void {
+    if (active.statusValue === running) return;
+    active.statusValue = running;
+    const sessionId = active.record?.nativeSessionId;
+    if (sessionId === undefined) return;
+    const status: SessionRunning = { sessionId, running };
+    for (const listener of this.#statusListeners) {
+      try { listener(status); } catch { /* A broken Client stream must not fence the Native worker. */ }
+    }
+  }
+  /** Stop/retire ends the visible turn immediately; the worker's own exit path cannot hang Stop. */
+  #clearStatus(active: Active): void {
+    this.#unwatchStatus(active);
+    active.statusExpect = false;
+    this.#publishStatus(active, false);
+  }
+  /** Only the journal a viewer currently follows may receive the worker's quiet notification. */
+  #watchSettlement(active: Active, journal: LiveJournal): void {
+    this.#unwatchSettlement(active);
+    const worker = active.worker;
+    if (!worker) return;
+    active.settle = worker.subscribe(frame => {
+      if (frame.type !== 'session_settled' && (frame.type !== 'prompt_result' || !frame.sessionSettled)) return;
+      if (active.state !== 'open' || active.journalValue !== journal) return;
+      try { journal.settle(); } catch { /* the follow surfaces a projection failure at its own boundary */ }
+    });
+  }
+  #unwatchSettlement(active: Active): void { active.settle?.(); delete active.settle; }
   async presentation(identity: BrowserAccess, sessionId: string): Promise<LiveJournal> {
     this.#browser(identity); const active = this.#active;
     if (!active?.worker || active.state !== "open" || active.record?.nativeSessionId !== sessionId) {
@@ -801,11 +918,14 @@ export class SessionSupervisor {
         const previous = active.journalValue;
         if (previous === journal) return journal;
         active.journalValue = journal;
+        this.#watchSettlement(active, journal);
         // A fresh opening may replace a failed generation the viewer still follows (for example after a
         // cut rebuild could not settle during the turn). Announce every replacement so control can move
         // that viewer onto this journal instead of leaving it on the retired one.
         if (previous !== undefined) {
           active.journalEpoch = ++journalIdentity;
+          if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REPLACED",
+            previous.generation, "->", journal.generation, "reason", journal.failure);
           previous.invalidate("presentation_replaced");
         }
         return journal;
@@ -834,7 +954,12 @@ export class SessionSupervisor {
       // same replacement first; keep its (later) epoch rather than moving the announcement backwards.
       if (previous !== journal) {
         active.journalValue = journal; active.journalEpoch = epoch;
-        if (previous !== undefined) previous.invalidate("presentation_replaced");
+        this.#watchSettlement(active, journal);
+        if (previous !== undefined) {
+          if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REBUILT",
+            previous.generation, "->", journal.generation, "failure", journal.failure);
+          previous.invalidate("presentation_replaced");
+        }
       }
       return journal;
     }
@@ -846,6 +971,7 @@ export class SessionSupervisor {
     if (!active?.worker || active.state !== "open" || active.id !== workerId
       || active.record?.nativeSessionId !== sessionId || !active.journalValue) return;
     this.#current(identity, active);
+    this.#unwatchSettlement(active);
     active.journalValue.invalidate("navigation_pending");
     active.journalEpoch = ++journalIdentity;
   }
@@ -877,7 +1003,10 @@ export class SessionSupervisor {
     // Publish the replacement and retire the predecessor together; dispose the old one only after the
     // successor is visible, so a pre-publish failure cannot strand the viewer on a closed journal.
     active.journal = Promise.resolve(journal); active.journalValue = journal;
+    this.#watchSettlement(active, journal);
     active.journalEpoch = Math.max(active.journalEpoch ?? 0, epoch);
+    if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_REFRESHED",
+      previous.generation, "->", journal.generation);
     if (previous !== journal) previous.invalidate("presentation_replaced");
     return journal;
   }
@@ -903,8 +1032,16 @@ export class SessionSupervisor {
     if (!active?.worker || active.record?.nativeSessionId !== sessionId) throw new Error("SESSION_MANUAL_OPEN_REQUIRED");
     this.requirePresentation(identity, sessionId, journal);
     const poll = await active.worker.history.poll(journal.opened.cut.workerId, journal.after); this.requirePresentation(identity, sessionId, journal);
+    if (process.env.OMP_PRESENTATION_TRACE) console.error("POLL_KINDS", JSON.stringify(poll.events).slice(0, 6000));
+    // Activation bookkeeping and a new submission move the Native cut, source and context without
+    // changing this Session's execution. The journal keeps its generation across that move; `accept`
+    // still proves every change since `after` and fails loudly on a rewrite, branch move or gap, which
+    // then forces the replacement below.
     try { journal.accept(poll); }
     catch (error) {
+      if (process.env.OMP_PRESENTATION_TRACE) console.error("PRESENTATION_POLL_FAILED", (error as Error)?.message,
+        "cut", journal.opened.cut.contextId, "poll", poll.cut.contextId, "after", journal.after, poll.after,
+        "leaf", journal.opened.cut.leafId, "pollLeaf", poll.cut.leafId, "events", poll.events.length);
       // A new submission moves a cold Session's native cut/context, so the polling journal dies before it
       // sees the turn. Publish the authoritative replacement now: control then announces a generation the
       // viewer's next follow can open, instead of leaving it on a dead follow until a manual reload.
@@ -942,6 +1079,8 @@ export class SessionSupervisor {
         } catch { /* Keep fencing and observing the original ownership when the Host clock is unavailable. */ }
       }
       active.retired = true;
+      this.#unwatchSettlement(active);
+      this.#clearStatus(active);
       stopping.resolve(this.#drain(active, reason));
     }
     return active.stopping;
@@ -1036,6 +1175,7 @@ export class SessionSupervisor {
     const ui = active.bridge?.snapshot();
     uiCancelled = uiCancelled && (!ui || (ui.pending.length === 0 && !ui.outcomes.some(outcome =>
       !priorUIOutcomes.has(outcome.id) && ["unknown", "answered", "stale"].includes(outcome.status))));
+    this.#unwatchSettlement(active);
     if (active.bridge instanceof InteractionBridge) active.bridge.dispose();
     const finalInteractions = active.bridge?.snapshot();
     if (finalInteractions) active.finalInteractions = finalInteractions;

@@ -15,6 +15,8 @@ export interface OriginalHistoryDeps {
   admit(request: Request): BrowserAccess | Response;
   /** Rechecks the browser, the directory grant and the exact open Native Session. */
   session(identity: BrowserAccess, sessionId: string): OriginalHistorySession;
+  /** Answers from an already complete Tree index; undefined falls back to a bounded Native scan. */
+  retains?(sessionId: string, entryId: string): boolean | undefined;
   store: OriginalStore;
 }
 
@@ -85,7 +87,10 @@ export async function originalHistoryResponse(request: Request, deps: OriginalHi
   try { session = deps.session(identity, sessionId); }
   catch { return failure("attachment_authority_unavailable"); }
   let present: Set<string>;
-  try { present = await retained(session.history, [entryId]); }
+  const indexed = deps.retains?.(sessionId, entryId);
+  if (indexed === true) present = new Set([entryId]);
+  else if (indexed === false) return failure("attachment_entry_unavailable");
+  else try { present = await retained(session.history, [entryId]); }
   catch { return failure("attachment_authority_unavailable"); }
   if (!present.has(entryId)) return failure("attachment_entry_unavailable");
   const access = () => session.scope;

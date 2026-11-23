@@ -17,6 +17,7 @@ import { SubmissionClient, isSubmissionResult } from "../../packages/contracts/s
 import { AttachmentClient } from "../../packages/contracts/generated/attachment-client.ts";
 import { NavigationClient } from "../../packages/contracts/generated/navigation-client.ts";
 import { isAttachmentReceipt } from "../../packages/contracts/attachment-preparation.ts";
+import type { SubmissionClientCommand } from "../../packages/contracts/candidates/durable-submission-v1/submission-client.ts";
 
 interface NativeFixtureControls {
   catalogFailure: unknown; busy: boolean; launches: number; closed: boolean; notificationCount: number;
@@ -24,6 +25,7 @@ interface NativeFixtureControls {
   sessionId: string; sessionFile: string; branchPoints: { entryId: string; text: string }[];
   branchResult: { text: string; cancelled: boolean } | undefined; branchFailure: unknown;
   branchSessionId: string | undefined; branchParent: string;
+  submissionReply: ((command: SubmissionClientCommand) => unknown) | undefined;
   start(): Promise<StrictStartState>; observe(): Promise<StrictStartState>; launch(): Promise<void>;
   close(policy: DrainPolicy): Promise<DrainResult>; drain: DrainResult; retirement: GracefulDrainResult | Promise<GracefulDrainResult> | undefined;
 }
@@ -55,6 +57,7 @@ export async function sourceFixture(now: () => number = Date.now,
     sessionId: selected.nativeSessionId, sessionFile: "/synthetic/source.jsonl",
     branchPoints: [{ entryId: "entry-0", text: "Synthetic fixture input" }],
     branchResult: undefined, branchFailure: undefined, branchSessionId: undefined, branchParent: "/synthetic/source.jsonl",
+    submissionReply: undefined,
     start: async (): Promise<StrictStartState> => opened,
     observe: async (): Promise<StrictStartState> => opened,
     launch: async (): Promise<void> => {},
@@ -73,7 +76,13 @@ export async function sourceFixture(now: () => number = Date.now,
     submissions: new SubmissionClient(async () => { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); }, isSubmissionResult),
     attachments: new AttachmentClient(async () => { throw new Error("SYNTHETIC_ATTACHMENT_UNUSED"); }, isAttachmentReceipt),
     navigation: new NavigationClient(async () => { throw new Error("SYNTHETIC_NAVIGATION_UNUSED"); }, (_value): _value is never => false, (_value): _value is never => false),
-    async submitCommand() { throw new Error("SYNTHETIC_SUBMISSION_UNUSED"); },
+    async submitCommand(command: SubmissionClientCommand) {
+      if (controls.submissionReply) return controls.submissionReply(command);
+      throw new Error("SYNTHETIC_SUBMISSION_UNUSED");
+    },
+    async availableCommands() { return [
+      { name: "model", description: "Show current model selection", input: { hint: "model" }, source: "builtin" },
+      { name: "context", description: "Show context usage", source: "builtin" }]; },
     async command() { return { status: "answered" }; }, async control() { return {}; },
     async steer() { throw new Error("UNUSED"); }, async followUp() { throw new Error("UNUSED"); },
     async setAskDialog() { return { enabled: true }; }, get readyPolicy(): unknown { return undefined; },

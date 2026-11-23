@@ -11,6 +11,7 @@ function fixture() {
   let revision = "1", owner = true, prepares = 0, submits = 0;
   let preparedMessage = "", submittedMessage = "";
   let failSubmit = false, noInput = false, mismatchOrigin = false, mismatchTarget = false, missingPart = false, unavailablePart = false;
+  let degraded = true;
   let terminal = true; let deferred: PromiseWithResolvers<void> | undefined;
   let operationOutcome: "succeeded" | "failed" | "cancelled" | "unknown" = "unknown";
   const bridge = new AttachmentBridge({ async authorize(request) {
@@ -25,7 +26,7 @@ function fixture() {
       binding: { ...target, contextId: "e".repeat(64), modelFingerprint: "f".repeat(64), imageCapable: true }, expiresAt: Date.now() + 60_000,
       status: "ready", resultDigest: "d".repeat(64), items: [{ originalId: "original", originalSha256: "c".repeat(64),
         preparedId: "prepared", preparedSha256: "e".repeat(64), status: "ready", representation: { kind: "text", text: "processed original" },
-        degradations: ["text_truncated"] }] } satisfies AttachmentReceipt;
+        degradations: degraded ? ["text_truncated"] : [] }] } satisfies AttachmentReceipt;
   }, async cancel() { return { cancelled: true }; }, async submit(input: RpcWireCommands["submission_submit"]["params"]) {
     submits++; submittedMessage = input.message; if (failSubmit) throw Error("RPC_LOST_RESPONSE");
     if (deferred) await deferred.promise;
@@ -45,7 +46,7 @@ function fixture() {
     edit: () => { revision = "2"; }, revoke: () => { owner = false; }, loseReply: () => { failSubmit = true; },
     handledWithoutInput: (outcome: typeof operationOutcome = "unknown", settled = true) => { noInput = true; operationOutcome = outcome; terminal = settled; },
     mismatchOrigin: () => { mismatchOrigin = true; }, mismatchTarget: () => { mismatchTarget = true; }, missingPart: () => { missingPart = true; },
-    unavailablePart: () => { unavailablePart = true; },
+    unavailablePart: () => { unavailablePart = true; }, noDegradations: () => { degraded = false; },
     deferSubmit: () => { deferred = Promise.withResolvers<void>(); return () => { deferred?.resolve(); deferred = undefined; }; } };
 }
 async function awaiting(gate: AttachmentSubmissionGate) {
@@ -234,4 +235,29 @@ test("a cancelled attempt never exposes an Original that a newer live attempt st
   const resolved = f.gate.protection(binding, "original");
   expect(resolved.status).toBe("unreferenced");
   expect("revision" in resolved && resolved.revision).not.toBe("revision" in initial && initial.revision);
+});
+
+test("stock preparation stays one attempt: degrade-free consent continues it, lossy receipts refuse", async () => {
+  const f = fixture(); await f.gate.begin(attempt);
+  const receipt = await f.gate.stockPrepare("request", "attach the report", new AbortController().signal);
+  expect(receipt.status).toBe("ready");
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  await expect(f.gate.stockAccept("request")).rejects.toThrow("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+  await f.gate.abort("request");
+  expect(f.counts().submits).toBe(0);
+  await expect(f.gate.stockPrepare("request", "another message", new AbortController().signal))
+    .rejects.toThrow();
+});
+
+test("degradation-free stock receipt accepts and submits the same exact message once", async () => {
+  const f = fixture(); f.noDegradations(); await f.gate.begin(attempt);
+  const signal = new AbortController().signal, prompt = "attached notes";
+  await f.gate.stockPrepare("request", prompt, signal);
+  await f.gate.stockPrepare("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 0 });
+  await f.gate.stockAccept("request");
+  await f.gate.submit("request", prompt, signal);
+  expect(f.counts()).toEqual({ prepares: 1, submits: 1 });
+  expect(f.messages()).toEqual({ preparedMessage: prompt, submittedMessage: prompt });
+  expect(await f.gate.status("request")).toMatchObject({ phase: "submitted", recovery: "accepted" });
 });

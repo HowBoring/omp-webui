@@ -30,7 +30,7 @@ export default function(pi) {
   });
   pi.registerProvider('s0-controlled', {
     baseUrl:'https://forbidden.invalid',apiKey:'synthetic-fixture-key',api:'s0-controlled',
-    models:[{id:'deterministic-live',name:'Controlled fixture (not real AI)',reasoning:false,input:['text'],
+    models:[{id:'deterministic-live',name:'Controlled fixture (not real AI)',reasoning:true,input:['text','image'],
       contextWindow:128000,maxTokens:8192,cost:{input:0,output:0,cacheRead:0,cacheWrite:0}}],
     streamSimple(model,context,options) {
       if(model.provider!=='s0-controlled'||model.id!=='deterministic-live') throw Error('unexpected_fixture_provider');
@@ -43,8 +43,15 @@ export default function(pi) {
         stream.push({type:'start',partial});
         await Bun.sleep(80);
         const scenario=process.env.OMP_LIVE_FIXTURE_SCENARIO;
+        if(fs.existsSync(path.join(profile,'retry-fail'))){
+          partial.stopReason='error';
+          partial.errorStatus=503;
+          partial.errorMessage='synthetic retryable terminal error';
+          stream.push({type:'error',reason:'error',error:partial});stream.end();return;
+        }
         if(scenario==='retry'&&calls===1){
           partial.stopReason='error';
+          partial.errorStatus=503;
           partial.errorMessage='synthetic retryable terminal error';
           stream.push({type:'error',reason:'error',error:partial});stream.end();return;
         }
@@ -56,6 +63,7 @@ export default function(pi) {
         }
         if(calls>1&&['empty-error','refusal','empty-overflow'].includes(scenario)){
           partial.stopReason='error';
+          partial.errorStatus=400;
           partial.errorMessage=scenario==='empty-overflow'?'maximum context length exceeded for synthetic fixture':'synthetic non-retryable terminal error';
           if(scenario==='refusal'){partial.content=[{type:'text',text:'synthetic refusal'}];partial.stopDetails={type:'refusal'};}
           stream.push({type:'error',reason:'error',error:partial});stream.end();return;
@@ -67,9 +75,28 @@ export default function(pi) {
           stream.push({type:'toolcall_end',contentIndex:0,toolCall,partial});
           partial.stopReason='toolUse';stream.push({type:'done',reason:'toolUse',message:partial});stream.end();return;
         }
+        if(scenario==='reasoning'){
+          partial.content=[{type:'thinking',thinking:''}];
+          stream.push({type:'thinking_start',contentIndex:0,partial});
+          partial.content[0].thinking='controlled reason';
+          stream.push({type:'thinking_delta',contentIndex:0,delta:'controlled reason',partial});
+          stream.push({type:'thinking_end',contentIndex:0,content:'controlled reason',partial});
+          partial.content.push({type:'text',text:''});
+          stream.push({type:'text_start',contentIndex:1,partial});
+          for(const delta of ['authoritative ','controlled ','final']){
+            partial.content[1].text+=delta;
+            stream.push({type:'text_delta',contentIndex:1,delta,partial});
+            await Bun.sleep(Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80));
+          }
+          partial.content[1].text='authoritative controlled final';
+          stream.push({type:'text_end',contentIndex:1,content:'authoritative controlled final',partial});
+          stream.push({type:'done',reason:'stop',message:partial});stream.end();return;
+        }
         const toolMode=process.env.OMP_LIVE_FIXTURE_TOOLS;
         const lastUser=context.messages.filter(message=>message.role==='user').at(-1);
-        const promptText=lastUser===undefined?'':lastUser.content.flatMap(content=>content.type==='text'?[content.text]:[]).join(' ');
+        const lastUserContent=lastUser?.content;
+        const promptText=typeof lastUserContent==='string'?lastUserContent
+          :lastUserContent?.flatMap(content=>content.type==='text'?[content.text]:[]).join(' ')??'';
         const toolResults=context.messages.filter(message=>message.role==='toolResult').length;
         const batch=toolMode==='batch'||(toolMode==='all'&&(promptText.includes('both')||promptText.includes('all')));
         const background=toolMode==='background'||(toolMode==='all'&&promptText.includes('background'));
@@ -110,6 +137,8 @@ export default function(pi) {
         partial.content=[{type:'text',text:''}];stream.push({type:'text_start',contentIndex:0,partial});
         if(process.env.OMP_LIVE_FIXTURE_BURST==='1')for(let i=0;i<4500;i++){const delta=Bun.SHA256.hash(String(i),'hex').slice(0,6)+' ';partial.content[0].text+=delta;
           stream.push({type:'text_delta',contentIndex:0,delta,partial:{...partial,content:partial.content.map(block=>({...block}))}});if(i%20===0)await Bun.sleep(0);}
+        const slowStream=fs.existsSync(path.join(profile,'slow-stream'));
+        const pause=slowStream?Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80):80;
         for(const [index,delta] of ['authoritative ','controlled ','final'].entries()) {
           if(options?.signal?.aborted) break;
           partial.content[0].text+=delta;
@@ -117,7 +146,7 @@ export default function(pi) {
           if(calls>1&&index===1&&seed)pi.appendEntry('s0-append-during-prefix',{controlled:true});
           // The delay models a streaming turn of the configured length; exempting the first
           // call made it a ~240ms turn, too fast for a busy refusal plus Stop to reach it.
-          await Bun.sleep(Number(process.env.OMP_LIVE_FIXTURE_DELAY_MS??80));
+          await Bun.sleep(pause);
         }
         if(process.env.OMP_LIVE_FIXTURE_BURST!=='1')partial.content[0].text='authoritative controlled final';
         stream.push({type:'text_end',contentIndex:0,content:partial.content[0].text,partial});

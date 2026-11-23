@@ -10,21 +10,27 @@ import { RemoteError } from "@deepseek-ai/dsh-typert-protocol";
 import type { ServerWebSocket } from "bun";
 import { join, resolve } from "node:path";
 import sessionContribution from "@deepseek-ai/dsh-api-session-controller/remote";
+import { TYPERT } from "@deepseek-ai/dsh-api-workspace-controller/typert";
+import type { TypertContribution } from "@deepseek-ai/dsh-typert-registry";
 import { sessionsHostContribution } from "../../../packages/contracts/sessions.ts";
 import { workspaceHostContribution } from "../../../packages/contracts/workspaces.ts";
 import { SessionIndex } from "../../../packages/sessions/index.ts";
 import { SessionSupervisor, type DirectLaunchOptions, type OwnedLaunchOptions } from "../../../packages/sessions/supervisor.ts";
+import { sessionStatusEvents } from "../../../packages/sessions/status-events.ts";
 import { SessionsService, sessionCaller } from "../../../packages/sessions/service.ts";
 import { SessionPresentationService } from "../../../packages/sessions/presentation-service.ts";
+import { StockWorkspaceService } from "../../../packages/workspaces/stock-service.ts";
 import {createChatSessionDispatch, dispatchSessionRequest as dispatch, sessionUnary as unary,
-  chatMethods, isSuccessfulSessionReply, preferenceMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
+  chatMethods, isSuccessfulSessionReply, preferenceMethods, commandsMethods, type ChatSessionDispatch } from "./session-remote-dispatch.ts";
 import { chatHostContribution } from "../../../packages/contracts/chat.ts";
 import { chatComponentHostContribution } from "../../../packages/contracts/chat-component.ts";
 import { ChatAttachService, ChatCancelService, ChatLookupService, ChatPromptService } from "../../../packages/chat/service.ts";
 import { ChatViewAdmission } from "./chat-view-admission.ts";
 import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { preferencesHostContribution, WebPreferences } from "../../../packages/preferences/service.ts";
+import { commandsHostContribution, CommandsService } from "../../../packages/commands/service.ts";
 import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
+import { FileUploadsRemote, StockUploads, stockUploadsHostContribution } from "./stock-uploads.ts";
 import { OriginalStore } from "../../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../../packages/attachments/service.ts";
 import { AttachmentBridge } from "../../../packages/attachments/bridge.ts";
@@ -42,9 +48,13 @@ import { HistoryNavigationSource } from "../../../packages/history-navigation-so
 import { createNavigationPorts } from "./navigation-ports.ts";
 import { dispatchWorkspaceRequest, WorkspaceService } from "./workspace-component-server.ts";
 import { originalHistoryResponse } from "./original-history.ts";
-const streams = new Set(["$events", "session/follow", "session/control"]);
+const streams = new Set(["$events", "session/follow", "session/control", "workspace/follow", "remoteAccess/follow"]);
+// The stock roster holds five independent streams open at once (`remoteAccess`, `workspace`, `$events`,
+// `session/control`, `session/follow`); extra openings are refused per stream, never by killing the mux.
+const MAX_STREAMS_PER_SOCKET = 16;
 const objectReplies = new Set(["/api/ompSessions/open", "/api/ompSessions/switch", "/api/ompSessions/new",
-  "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections"]);
+  "/api/ompSessions/view", "/api/ompSessions/recheck", "/api/ompSessions/answer", "/api/session/page", "/api/session/projections",
+  "/api/session/create"]);
 import type { CatalogClient } from "../../../packages/contracts/generated/catalog-client.ts";
 import type { InstallationSelection } from "../../../packages/compatibility/installation.ts";
 import { trustedDiagnosticAssets, trustedProductAssets } from "../../../packages/compatibility/assets.ts";
@@ -73,6 +83,10 @@ interface SocketData {
 }
 type StreamOpen = Extract<RemoteStreamClientMessage, { type: "open" }>;
 class FixtureStreamWriteError extends Error {}
+/** Frozen route keys carry literal `@`; browsers percent-encode it in asset URLs. */
+function decoded(target: string): string {
+  try { return decodeURIComponent(target); } catch { return target; }
+}
 async function* idle(signal: AbortSignal): AsyncGenerator<never> {
   const done = Promise.withResolvers<void>();
   const abort = () => { done.resolve(); };
@@ -88,6 +102,10 @@ export async function startSessionComponentServer(options: Options) {
   const staticAssets = options.product
     ? await trustedProductAssets(options.manifest, assets, options.expectedIdentity ?? "")
     : await trustedDiagnosticAssets(options.manifest, assets, options.expectedIdentity);
+  /** Request target → enrolled file, from the frozen route table the product build emitted. */
+  const routes = options.product
+    ? new Map(Object.entries(JSON.parse(new TextDecoder().decode(await staticAssets.bytes("plugins/routes.json"))) as Record<string, string>))
+    : undefined;
   await ctx.plugin(TypertRegistry);
   await ctx.plugin(RemoteAccessService);
   await ctx.plugin(TypertGatewayService, {});
@@ -100,10 +118,14 @@ export async function startSessionComponentServer(options: Options) {
     model: { services: [], events: [], objects: [] }, invocations: sessionContribution.descriptors.filter(method =>
       !(options.chat && (promptDescriptor && method.id === promptDescriptor.id
         || cancelDescriptor && method.id === cancelDescriptor.id))) });
+  const workspaceContribution = TYPERT as unknown as TypertContribution;
+  // Workspace verbs only: the stock directory picker stays unserved rather than inventing a native dialog.
+  ctx.typert.register({ ...workspaceContribution, invocations: workspaceContribution.invocations.filter(method =>
+    method.namespace === "workspace") });
   const directories = new DirectoryGrants(options.dataDir);
   const index = new SessionIndex(options.dataDir);
   new WorkspaceService(ctx, options.catalog, directories, index);
-  const unregister = ctx.typertGateway.registerRemoteEvents(idle, { home: "/" });
+  let unregister: (() => Promise<void>) | undefined;
   const peers = new Set<Peer>();
   const sockets = new Set<ServerWebSocket<SocketData>>();
   const owner = new Peer(ctx, { principal: { kind: "owner" } });
@@ -113,8 +135,11 @@ export async function startSessionComponentServer(options: Options) {
   let supervisor: SessionSupervisor;
   let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
   let attachmentStore: OriginalStore | undefined;
+  let stockUploads: StockUploads | undefined;
+  let readonlyTree: ReadonlyTree | undefined;
   let expirySweep: Timer | undefined;
-  let unaryMethods = unary;
+  const stockUnary = ["session/create", "session/modelCatalog", "session/selectModel"];
+  let unaryMethods = new Set([...unary, ...stockUnary]);
   const chatEndpoints = new Set(Object.keys(chatMethods).map(method => `/api/${method}`));
   let revokedStop: Promise<void> | undefined;
   let access: ReturnType<typeof openBrowserAccess>;
@@ -131,7 +156,7 @@ export async function startSessionComponentServer(options: Options) {
         const auth = await access.handle(request);
         if (auth) return auth;
       }
-      if (path === "/" || path.startsWith("/api/")) {
+      if ((path === "/" || path.startsWith("/api/")) && path !== "/api/session/uploadFileBinary") {
         const identity = access.admit(request, path === "/api/remote.mux" ? "websocket"
           : request.method === "POST" ? "write" : "read");
         if (identity instanceof Response) return identity;
@@ -160,8 +185,17 @@ export async function startSessionComponentServer(options: Options) {
               pageId: identity.credentialId, profileId: access.hostId, sourceId: tree.sourceId,
               instanceId: tree.instanceId, sessionId, canonicalCwd: tree.cwd, authorityEpoch: tree.epoch } };
           },
+          retains: (sessionId, entryId) => readonlyTree?.retains(sessionId, entryId),
           store: attachmentStore,
         });
+      }
+      if (path === "/api/session/uploadFileBinary") {
+        if (request.headers.get("origin") !== origin.origin) return new Response("Forbidden", { status: 403 });
+        // Stock uploads arrive from a blob Worker that only sends cookies, content-type and Origin.
+        const identity = access.admit(request, "write", false);
+        if (identity instanceof Response) return identity;
+        if (!stockUploads) return new Response("Not found", { status: 404 });
+        return stockUploads.handle(identity, request);
       }
       const registeredWorkspace = path === "/api/ompWorkspaces/registered";
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
@@ -190,8 +224,12 @@ export async function startSessionComponentServer(options: Options) {
           stage: options.product ? "product" : "isolated-session-component",
           sessionAdmission: options.product ? "admitted" : "blocked" });
       }
-      if (request.method !== "GET" || !["/", "/client.js"].includes(path)) return new Response("Not found", { status: 404 });
-      return staticAssets.response(path === "/" ? "index.html" : "client.js");
+      if (request.method !== "GET") return new Response("Not found", { status: 404 });
+      const target = path + new URL(request.url).search;
+      const enrolled = path === "/" ? "index.html" : routes?.get(target) ?? routes?.get(decoded(target))
+        ?? (path === "/client.js" ? "client.js" : undefined);
+      if (enrolled === undefined) return new Response("Not found", { status: 404 });
+      return staticAssets.response(enrolled);
     },
     websocket: {
       maxPayloadLength: 16_384, idleTimeout: 60,
@@ -208,10 +246,17 @@ export async function startSessionComponentServer(options: Options) {
           const text = typeof bytes === "string" ? bytes : new TextDecoder("utf-8", { fatal: true }).decode(bytes);
           const frame = parseRemoteStreamClientMessage(text);
           if (frame.type === "cancel") { socket.data.streams.get(frame.streamId)?.abort(); return; }
-          const brokerStream = frame.type === "open" ? interactionCarrier?.streamKind(frame.endpoint) : undefined;
-          if (frame.type !== "open" || (!streams.has(frame.endpoint) && !brokerStream) ||
-            socket.data.streams.size >= 4 || socket.data.streams.has(frame.streamId)) {
-            socket.close(1008, "diagnostics streams only"); return;
+          if (frame.type !== "open") return;
+          const brokerStream = interactionCarrier?.streamKind(frame.endpoint);
+          if ((!streams.has(frame.endpoint) && !brokerStream) ||
+            socket.data.streams.size >= MAX_STREAMS_PER_SOCKET || socket.data.streams.has(frame.streamId)) {
+            // Refuse only the offending stream: closing the socket would abort the stock roster's siblings.
+            try {
+              sendFrame(socket, { type: "error", streamId: frame.streamId,
+                error: ctx.typertGateway.wireStream.failure(
+                  new RemoteError("gateway/service-unavailable", "This connection cannot open another stream.", { endpoint: frame.endpoint })) }, true);
+            } catch { socket.close(1011, "stream failure could not be delivered"); }
+            return;
           }
           const current = () => {
             if (!access.revalidate(socket.data.identity)) return false;
@@ -242,8 +287,13 @@ export async function startSessionComponentServer(options: Options) {
       attachmentStore?.inheritBranchLinks(previous.sessionId, previous.instanceId, native.sessionId, native.instanceId, entryIds);
     },
     ...(launchOwned === undefined ? { launch } : { launchOwned }) });
-  new SessionsService(ctx, { authority: access, grants: directories, index, catalog: options.catalog, supervisor });
-  new SessionPresentationService(ctx, supervisor);
+  unregister = ctx.typertGateway.registerRemoteEvents(
+    sessionStatusEvents(listener => supervisor.subscribeStatus(listener)), { home: "/" });
+  let stockWorkspaces: StockWorkspaceService;
+  const sessionsService = new SessionsService(ctx, { authority: access, grants: directories, index,
+    catalog: options.catalog, supervisor, workspacePath: id => stockWorkspaces.pathOf(id) });
+  new SessionPresentationService(ctx, supervisor, sessionsService, () => stockWorkspaces?.changed());
+  stockWorkspaces = new StockWorkspaceService(ctx, directories, sessionsService, supervisor);
   if (options.chat) {
     ctx.typert.register({ ...chatHostContribution, invocations: [...chatHostContribution.invocations,
       ...(promptDescriptor ? [{ ...promptDescriptor, service: "chatPrompt" }] : []),
@@ -256,6 +306,7 @@ export async function startSessionComponentServer(options: Options) {
       protection: original => gate?.protection(original.binding, original.objectId) ?? { status: "unknown" } });
     let runtime: ChatComponentRuntime;
     const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
+    stockUploads = new StockUploads(authority, () => runtime);
     const bridge = new AttachmentBridge(authority, target => runtime.native(target));
     gate = new AttachmentSubmissionGate(bridge, attempt => authority.authorizeAttempt(attempt));
     // Restart never resets the staged clock: drain the persisted inventory in bounded pages before serving.
@@ -269,7 +320,7 @@ export async function startSessionComponentServer(options: Options) {
     ctx.typert.register(attachmentHostContribution);
     new AttachmentRemote(ctx, attachmentStore, (_peer, target) => authority.scope(target));
     installAttachmentRemote(ctx, gate);
-    runtime = new ChatComponentRuntime(access, directories, supervisor, admission, gate);
+    runtime = new ChatComponentRuntime(access, directories, supervisor, admission, gate, stockUploads);
     new ChatPromptService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatCancelService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
@@ -281,7 +332,7 @@ export async function startSessionComponentServer(options: Options) {
     new StopService(ctx);
     ctx.typert.register(retryHostContribution);
     new RetryService(ctx);
-    new ReadonlyTree(ctx, (_peer, sessionId) => {
+    readonlyTree = new ReadonlyTree(ctx, (_peer, sessionId) => {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) throw new Error("TREE_AUTHORITY_UNAVAILABLE");
       return supervisor.treeAccess(identity, sessionId);
@@ -294,11 +345,19 @@ export async function startSessionComponentServer(options: Options) {
       const identity = sessionCaller.getStore();
       if (!identity || !access.revalidate(identity)) throw new Error("WEBUI_PREFERENCE_AUTHORITY");
     });
+    ctx.typert.register(commandsHostContribution);
+    ctx.typert.register(stockUploadsHostContribution);
+    new FileUploadsRemote(ctx, stockUploads);
+    new CommandsService(ctx, sessionId => {
+      const identity = sessionCaller.getStore();
+      if (!identity || !access.revalidate(identity)) return undefined;
+      return supervisor.commandsAccess(identity, sessionId);
+    });
     chatComposition = { runtime, dispatch: createChatSessionDispatch(admission,
       (_request, identity) => runtime.enrollment(identity), identity => runtime.stopBinding(identity),
       identity => runtime.retryBinding(identity)) };
-    unaryMethods = new Set([...unary, ...Object.keys(preferenceMethods),
-      "ompChatComponent/attach", ...Object.keys(chatMethods)]);
+    unaryMethods = new Set([...unary, ...stockUnary, ...Object.keys(preferenceMethods),
+      ...Object.keys(commandsMethods), "ompChatComponent/attach", ...Object.keys(chatMethods)]);
   }
   const detachRevocation = access.onRevokeAll(() => {
     chatComposition?.runtime.close();
@@ -326,7 +385,7 @@ export async function startSessionComponentServer(options: Options) {
       interactionBroker?.close();
       await draining; directories.close(); index.close();
       for (const socket of sockets) socket.close(1001, "Host shutdown");
-      await unregister();
+      await unregister?.();
       await ctx.fiber.dispose();
       await server.stop(true);
     },
@@ -359,14 +418,17 @@ async function runFixtureStream(socket: ServerWebSocket<SocketData>, frame: Stre
     // A client cancel aborts only that stream. The DSH client cancels streams in flight on reconnect,
     // and treating that abort as socket-fatal would kill every other stream and loop the connection.
     if (control.signal.aborted || socket.readyState !== WebSocket.OPEN) return;
-    if (!terminal) throw error;
     try {
       if (error instanceof FixtureStreamWriteError) throw error;
-      const failure = new RemoteError("gateway/internal", {
-        snapshot: "Interaction snapshot failed.",
-        answer: "Interaction answer failed.",
-        events: "Interaction event stream failed.",
-      }[kind ?? "events"], {});
+      // A failed stream is a typed failure for that stream only. The stock roster multiplexes five
+      // streams on one socket, so closing the carrier here would also tear down its siblings.
+      const failure = kind !== undefined || events !== undefined
+        ? new RemoteError("gateway/internal", {
+          snapshot: "Interaction snapshot failed.",
+          answer: "Interaction answer failed.",
+          events: "Interaction event stream failed.",
+        }[kind ?? "events"], {})
+        : error;
       sendFrame(socket, { type: "error", streamId: frame.streamId, error: ctx.typertGateway.wireStream.failure(failure) }, true);
     } catch {
       socket.close(1011, "stream failed");

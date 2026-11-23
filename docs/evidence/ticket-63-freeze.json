@@ -1,0 +1,1900 @@
+{
+  "ticket": 63,
+  "kind": "final-combination-freeze",
+  "spec": 29,
+  "recordedAt": "2026-11-23T07:39:13.302Z",
+  "host": {
+    "repository": "HowBoring/omp-webui",
+    "worktree": "/home/howboring/Projects/omp-webui-ticket-63",
+    "branch": "mvp/ticket-63-dsh-ui",
+    "commit": "9f762b97e3e62873198a027ebd0f9fdb4305438f",
+    "entry": "apps/host/src/main.ts",
+    "runtime": {
+      "name": "bun",
+      "version": "1.4.4",
+      "path": "/home/howboring/.bun/bin/bun",
+      "sha256": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235"
+    },
+    "platform": "linux",
+    "arch": "x64",
+    "bind": "127.0.0.1",
+    "defaultPort": 3206,
+    "note": "Identity of the tree the stock DSH product was built and verified from. Documentation-only commits that record this freeze come later on the same branch."
+  },
+  "machine": {
+    "os": "Ubuntu 26.04.1 LTS",
+    "kernel": "6.18.58.1-microsoft-standard-WSL2",
+    "machineCpus": 20,
+    "memoryMiB": 19843,
+    "filesystem": "ext4"
+  },
+  "omp": {
+    "source": {
+      "base": "57771ae562b9345e0579bceb2d68d585e3e6927e",
+      "sourceSha256": "0706f095cf2d02dde65a7e37c8feb0ba9a7d5c3aa866df319264b7822f867ed4",
+      "patchSha256": "b29ddb4a5faa5d2ee0913d93dd2c9399c78fd9a164108a0a6388a5d424f39519",
+      "schemaSha256": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2"
+    },
+    "launcher": "vendor/omp-candidate/omp",
+    "target": "vendor/omp-candidate/cli.js",
+    "runtime": {
+      "path": "<runtime>",
+      "kind": "file",
+      "identity": "10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235",
+      "mode": 493
+    },
+    "installationManifest": {
+      "path": "vendor/product/installation.json",
+      "sha256": "a0a06db5b1f02f1822f42b62b687bad07ddd535bf01d9310ad515597f7a4c040",
+      "canonicalization": "checkout-relative asset paths; runtime path tokenized; system dependency paths reduced to basename with content identity and bytes retained"
+    },
+    "installationAssets": [
+      {
+        "path": "vendor/omp-candidate",
+        "kind": "directory",
+        "identity": "8f742f0cbac7531e65fd443c48132abf7d4d1af7f41f0109904b226c13ca32cf",
+        "mode": 493
+      },
+      {
+        "path": "vendor/omp-candidate/chunk-031j9ysd.js",
+        "kind": "file",
+        "identity": "a430c74c3fa188e9c16259fc8185d0eef40dec8de11741ab7bc6db9f7eff498c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/omp-candidate/cli.js",
+        "kind": "file",
+        "identity": "2ee0fd05f3e165a5f91c641d079a1c2e7c84282ae44310ff9a124370480bbb08",
+        "mode": 493
+      },
+      {
+        "path": "vendor/omp-candidate/omp",
+        "kind": "link",
+        "identity": "cli.js",
+        "mode": 511
+      },
+      {
+        "path": "vendor/omp-candidate/rpc-wire.schema.json",
+        "kind": "file",
+        "identity": "bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product",
+        "kind": "directory",
+        "identity": "689295972d68d5cdacaaa05a118bff533680184dd5d839e4ffb86b8b6f06876d",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/apple-touch-icon.png",
+        "kind": "file",
+        "identity": "30a68c6871fc3974968cd285c63c42ddc80aa0e4d37a349cb4dbe824fa52ab92",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets",
+        "kind": "directory",
+        "identity": "54ecaceae64fd54467777c42b34c2fed716c07b0b34401b5e2f3cf19980d306a",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts",
+        "kind": "directory",
+        "identity": "63ff7a2a2976a63031140c1cb8642d0f38d36c740be9fa157c71eefa06982251",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_AMS-Regular-BQhdFMY1.woff2",
+        "kind": "file",
+        "identity": "0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2",
+        "kind": "file",
+        "identity": "de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2",
+        "kind": "file",
+        "identity": "5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Fraktur-Bold-CL6g_b3V.woff2",
+        "kind": "file",
+        "identity": "74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Fraktur-Regular-CTYiF6lA.woff2",
+        "kind": "file",
+        "identity": "51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Bold-Cx986IdX.woff2",
+        "kind": "file",
+        "identity": "0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2",
+        "kind": "file",
+        "identity": "99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Italic-NWA7e6Wa.woff2",
+        "kind": "file",
+        "identity": "97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Regular-B22Nviop.woff2",
+        "kind": "file",
+        "identity": "c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2",
+        "kind": "file",
+        "identity": "dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Math-Italic-t53AETM-.woff2",
+        "kind": "file",
+        "identity": "7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Bold-D1sUS0GD.woff2",
+        "kind": "file",
+        "identity": "e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Italic-C3H0VqGB.woff2",
+        "kind": "file",
+        "identity": "00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2",
+        "kind": "file",
+        "identity": "68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Script-Regular-D3wIWfF6.woff2",
+        "kind": "file",
+        "identity": "036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size1-Regular-mCD8mA8B.woff2",
+        "kind": "file",
+        "identity": "6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size2-Regular-Dy4dx90m.woff2",
+        "kind": "file",
+        "identity": "d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size4-Regular-Dl5lxZxV.woff2",
+        "kind": "file",
+        "identity": "a4af7d414440a1c1790825cfb700cf9cf43b0f2c4b04f0ebc523011ad9853ec0",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Typewriter-Regular-CO6r4hn1.woff2",
+        "kind": "file",
+        "identity": "71d517d67827787cfabdf186914cc3358eda539e37931941f2b2fd4a21f68c0b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-light-Cvd2VjE_.woff2",
+        "kind": "file",
+        "identity": "da25f1327eb1dcc70c193897b5d7e00d31821d9518c0a49e073ff50d97a3f10a",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-medium-B4OyO9CN.woff2",
+        "kind": "file",
+        "identity": "8a81ca6f05cb6831d5487e4b287ce5a625a718c39226b736f155900adc394166",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/Montserrat-OFL.txt",
+        "kind": "file",
+        "identity": "861d64229728cd65a98d119612c12769582574d1a092f0b63c8b0fd474e7065f",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-regular-DYep38cA.woff2",
+        "kind": "file",
+        "identity": "0f4a15e29a9535af580a64db967929a8d6b202fad9a467be390619a591d2c4c5",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/index-Ciz7DZxv.js",
+        "kind": "file",
+        "identity": "65411dabad4de33466b12643cf30376d3d41ea1b7ce10ce329e97c89992d308b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/index-CSAdOBx6.css",
+        "kind": "file",
+        "identity": "d487cca8d8a97f1e0cc5eca02343528c873e544eb7ec3a5b323a0f035553551d",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs",
+        "kind": "directory",
+        "identity": "ebbbdeb5be26a1bc866f4b3488fdeefa18264717073d9bbf738f9dc55744cf87",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/asciidoc-CSVQ5wI8.js",
+        "kind": "file",
+        "identity": "ccbe3ab4515748773c185140855a976f2f3723a4e482f8423c36cf9ee6954b12",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/bat-CickPsom.js",
+        "kind": "file",
+        "identity": "443aa1c3678e319e553f3ae7aef4ef7e6f068e2c83172ced17247d5ba850d6a3",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/bibtex-CHM0blh-.js",
+        "kind": "file",
+        "identity": "4af4d61dd9d7297f65b361204af72d53e91fa70a4ede5e85bcaf40b4a63cd4a2",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/c-BIGW1oBm.js",
+        "kind": "file",
+        "identity": "9c06263922b97a0e5890b832e23d44f3c0da54430ac6f971aa0ede8f4c2b8b66",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/clojure-P80f7IUj.js",
+        "kind": "file",
+        "identity": "e70b326f33d37ddb29dd71abcc72321f1b0d900888ef05db9d7821fdf60eab22",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/cmake-D1j8_8rp.js",
+        "kind": "file",
+        "identity": "f87d0ba1478aa4f5eb35b22e1276f0b330f30030b2c2e33cc7400a7b14f96eb2",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/cpp-DddhVWhK.js",
+        "kind": "file",
+        "identity": "532fe55f0cf99df5f27e5396453ffae2d2afa7da82cdb19abaf245004c67da1b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/csharp-DSvCPggb.js",
+        "kind": "file",
+        "identity": "8443ef70cc6fec2de601c15c548ab1890e9bbc71a21ba9c216de77481c3cb6d6",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/css-CLj8gQPS.js",
+        "kind": "file",
+        "identity": "69ee0204c2c40a92b8368049da700f0d08d40f5274809cfb624fd09e73eb32ee",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/csv-fuZLfV_i.js",
+        "kind": "file",
+        "identity": "dc5872798e0825621bc48f5907e872a0fb34bd3bb2c7a5fd3c6841670675f830",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/dart-bE4Kk8sk.js",
+        "kind": "file",
+        "identity": "8d6d70a18e68e8c4ef0aecf78ed03f9768342b9953dd0e9f8963b070152b1ab5",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/diff-D97Zzqfu.js",
+        "kind": "file",
+        "identity": "710e6506726fe0befb51b8e40fc9aa12cf7fa733ec8f24019359276c4ea653dc",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/dotenv-Da5cRb03.js",
+        "kind": "file",
+        "identity": "c7dc2e241e78b22b2a8015afb7c759b019616267ace3ab7660b3a8aa2fe207d7",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/elixir-CvYZzuDY.js",
+        "kind": "file",
+        "identity": "be08af7448a3bc9de8e6d71e8fc351a09a5d5ba77784a8c4012199a9e3f5f5fe",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/erlang-DsQrWhSR.js",
+        "kind": "file",
+        "identity": "87ef69877dda1297912b0a7a12ee0f3f00de0f675bb6214b0f1adf58629b75fa",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/fish-BvzEVeQv.js",
+        "kind": "file",
+        "identity": "f7881c9158118435c2f1a6d3859ecd84ad7539c845584fd110ab844c69e7972b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/fsharp-CXgrBDvD.js",
+        "kind": "file",
+        "identity": "7cda55ae2e03fd929e8d18dbde6c9dfbe48d91f02e4c65bbb88e21ef3e38653a",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/go-C27-OAKa.js",
+        "kind": "file",
+        "identity": "a6c3f73f1abb778ef3f5e489db1942542dc88ddac5b111ff55813fa1655dd23c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/graphql-DFkUqiqq.js",
+        "kind": "file",
+        "identity": "fca0dd51a16d52c6f43f5bc6db63cc8c21d23a9c5c3fc603179636a1a50b26b6",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/groovy-gcz8RCvz.js",
+        "kind": "file",
+        "identity": "25aafe383369a4f78a33abdb518404d8836773f3dfb0f199e7d5104acea74832",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/haskell-Df6bDoY_.js",
+        "kind": "file",
+        "identity": "731f9a3ba301c738fbbb6278b596171b0195cb69bd42febdf6edc6da10f87faf",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/hcl-BWvSN4gD.js",
+        "kind": "file",
+        "identity": "2f141d770bcd86b2e056b76b6a65b74c534454f371490d3bdff2dec63ceb9fd8",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/html-derivative-DOyKdj44.js",
+        "kind": "file",
+        "identity": "fa06bb6afb8b726edde9412e7aee065c560fe4afd21fcac4ac9992b783dd8ddb",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/html-fwsONPVS.js",
+        "kind": "file",
+        "identity": "98fab9ca36666a6cd0163a9c54349d9d05b891912056028d6fd1cf0f012c3cdf",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/http-BbPA7N5Y.js",
+        "kind": "file",
+        "identity": "2a8cc57fa0bee98cd0c04334d29d0a8b2306adda175dcd7cd12ad44e65f1d2c7",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/ini-BEwlwnbL.js",
+        "kind": "file",
+        "identity": "d72bde3de42bb1ef3268bd65afedecf54747c208ac24335f7c6b4456924091c1",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/java-CylS5w8V.js",
+        "kind": "file",
+        "identity": "934a0e63cf4cefb991100f15c42fdc60aaee3c7036a7ba6cb10ce5a6322a7ae9",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/javascript-DI5JR1nB.js",
+        "kind": "file",
+        "identity": "b0952ac6a3182b0c45b005da5d76a764890d6da3df2fe61affe471a59744a169",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/julia-BfSmLjIk.js",
+        "kind": "file",
+        "identity": "6523a4247b0a4a5c1d933134baa96cc12c9685a1b06237f0fce5ab6ed2059730",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/kotlin-BdnUsdx6.js",
+        "kind": "file",
+        "identity": "99d81f485d9366a1f3f8c84b0fc5cee69b0d28d6c8f7f1e8dac29e554e80d24f",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/latex-B2nUCzCX.js",
+        "kind": "file",
+        "identity": "265d43c3cae080cc97ac1f40a569aca48758cc680aad6a9f940dbdb584d55fc1",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/less-B1dDrJ26.js",
+        "kind": "file",
+        "identity": "50c4bace8838379b74e0a22dab369c3cb81b57ba1b5b17ea5af8668f8290e8bf",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/log-2UxHyX5q.js",
+        "kind": "file",
+        "identity": "7b2292970ede37be20c120a51d12bcbff43e82278aef1626816d71c344a07e27",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/lua-BaeVxFsk.js",
+        "kind": "file",
+        "identity": "b218901041a92a152f51a7f3f74f26120e931e258abb1c73bcee551721015f67",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/make-CHLpvVh8.js",
+        "kind": "file",
+        "identity": "9ef9765da0e58e256d97f4f2da8197a72ad4d84e8217b7160728d646c7e5e236",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/markdown-Cvjx9yec.js",
+        "kind": "file",
+        "identity": "d9a83df9f57287a1f3594d5231480ea90a14adf7a8550c7a57930c3cf5b3f47d",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/mdx-Cmh6b_Ma.js",
+        "kind": "file",
+        "identity": "8b88c45af52bcc95513e479bfce5b068d91f60a811acf8bb614bbb071d0e1151",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/nix-CwoSXNpI.js",
+        "kind": "file",
+        "identity": "1af30178686ebb1c86d28d0511450379ac22d55fe0c0a72d5fa323915128afce",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/perl-DsWkoyyU.js",
+        "kind": "file",
+        "identity": "170909d86f068983ff341d2effa52fdf73e870231a2527550c8b3b996faa3c82",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/php-BcJWnZHR.js",
+        "kind": "file",
+        "identity": "1a1cb9a8bf0d8043df90a6a88a7785205343fdeefa3a76df07f5912d52574d77",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/powershell-BmBUJMz7.js",
+        "kind": "file",
+        "identity": "8c4b6d7c57d7624ac4fcb6882377a78db37b617fc3974831961fe837c364f52c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/proto-C7zT0LnQ.js",
+        "kind": "file",
+        "identity": "fc5a20a7755c13ecedd65173c09d76e4694d4db44771318d89872607e2559659",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/python-B6aJPvgy.js",
+        "kind": "file",
+        "identity": "1c6725168b498ade965cf0d8723c600fc9bf0de74988b6191106b304b571aaae",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/r-Cf5RLm7j.js",
+        "kind": "file",
+        "identity": "8b6463b604a4c77d19e14aef404c920e66f2f04585e258280f543e93ce52f3bd",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/rst-CtdShwKQ.js",
+        "kind": "file",
+        "identity": "61345ce0161431dbb22acbc798c160ab2f9f2d01dfbe914fc86ef20f3907b646",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/ruby-DllPV2XI.js",
+        "kind": "file",
+        "identity": "c110b7a41534ca0465f36587d29aff292d42930a324ce2c916dad569a88f372a",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/rust-B1yitclQ.js",
+        "kind": "file",
+        "identity": "c02d27696b07c37fa2cac9de826a967a30401a33959cd891ebbf11d5bf245ce3",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/scala-CqE71os6.js",
+        "kind": "file",
+        "identity": "5068f9ad81fc447782644ebe267a492032aee9580cfff6c96fb44984f71055ae",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/scss-D5BDwBP9.js",
+        "kind": "file",
+        "identity": "d873165bb797f0547966aa681ade9af96c06ec17c2b0c12708303d9ace461753",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/sql-CRqJ_cUM.js",
+        "kind": "file",
+        "identity": "60e00dca0f03a580d3717adbb9c730772e750909dc8c78408051091278eda6c0",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/svelte-ZPgsG5h9.js",
+        "kind": "file",
+        "identity": "77c50c994ab8ed4ad86dddb730607139c29c5f5842cb1d8958c72a93a2f3ba70",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/swift-C2oV4EkX.js",
+        "kind": "file",
+        "identity": "f77b5e491884859198e703e3e981a46e218c05a5b82ec33984c05ec851a8d3b3",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/system-verilog-0hqHdDBg.js",
+        "kind": "file",
+        "identity": "c9b9df256a28ddc9d5b60dcd0bd43137f3b3cdeb8ca472a4e8921f42232897b4",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/toml-vGWfd6FD.js",
+        "kind": "file",
+        "identity": "aeb916b96e9eb064aa87c8f765abfded0ab0d53aefa3aa9b90cc1af4d1ad75d2",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/vb-Cu-pLBUe.js",
+        "kind": "file",
+        "identity": "f5806bce4864a69a019a73599bf174bbdb32539ec19e8d6dc3ac0254262b8410",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/verilog-nZwndyjY.js",
+        "kind": "file",
+        "identity": "9f43d6af8cbbd2b38473fb28ca9f59043129433e021f2d9c308c85bf11333900",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/vue-CnLRC5W9.js",
+        "kind": "file",
+        "identity": "db9ef1340b99f48e292104279e6e911fea4218af06e3cea08742555dc34c5c0c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/xml-sdJ4AIDG.js",
+        "kind": "file",
+        "identity": "d41d94621a62727ad56943d2d7e04e820c2642c3a9c246eb10e7d6e6e89d1fed",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/yaml-Buea-lGh.js",
+        "kind": "file",
+        "identity": "8aad9cddbe3602b06b194e66d021aa63d715df01cf94e8ffcac810e48f0529e3",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/vendor-BUMdD3V7.js",
+        "kind": "file",
+        "identity": "7675048a90d0419365a342c4eb81713aa8582b82a76b08ba2a8fc27160575265",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/assets/vendor-DV2921Zo.css",
+        "kind": "file",
+        "identity": "4cea59483551208ce61ff27251da83d5f7a0893ef34cfe4b808d61be6e13ebc7",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/boot",
+        "kind": "directory",
+        "identity": "14823f6b829b49cdee464518e0327d114da35dbd9b61e56d5aa4cd4d3545ea9d",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
+        "kind": "file",
+        "identity": "52ffb618be5504ed8656fac09231d2736e1326bf64c3053ec2e04d85a35f0061",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/boot/injection-0.js",
+        "kind": "file",
+        "identity": "66dff26c5fc49a84f182c9e29bb501253c721c51e2c08f1300c5229f23dd6662",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/boot/ready.js",
+        "kind": "file",
+        "identity": "953148bd44d7e76a6249751499b94e43fdc74edb6fe7acbf927987098573cf0b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/boot/transport.js",
+        "kind": "file",
+        "identity": "d53742d7ffe03ce4ebdc338394011ca498361bacd56c28d7e53cbea688ff96bc",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/favicon-dark.svg",
+        "kind": "file",
+        "identity": "dde7db781f41e7aeb4709ff5485af2bdcf7f4b4ea81b4500cfd5df44efdbd817",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/favicon.svg",
+        "kind": "file",
+        "identity": "9e983b4f649c25c6ca0623a50be1a6e705fd8f49f756638b980fa13b40575ab6",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/icon-192.png",
+        "kind": "file",
+        "identity": "dfbf42e79fa2a44fedb67497efa81e897e446f64b313531738f32974a117602c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/icon-512.png",
+        "kind": "file",
+        "identity": "0aa6ff8cac04541957b937465341e1840e0323d6076f0c7f3c61ff937b7e6d63",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/icon-maskable-512.png",
+        "kind": "file",
+        "identity": "0b80994078a417bf33370e6c4e5b6174313bbece29ce7f3e8c6dc538d6ec46eb",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/index.html",
+        "kind": "file",
+        "identity": "cbe98cf7375fb128aa91d2f38d2d9599edddaecca46552c940bdab26f4e8ccdd",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/manifest.webmanifest",
+        "kind": "file",
+        "identity": "0684508930a5e3b36e43afc1dc89252a95893a3d66cdfaccb453cc675012715b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins",
+        "kind": "directory",
+        "identity": "60b2828c995cef79704a0b73b3927203782cecd312ae91c58bd94702f99db671",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/@deepseek-ai",
+        "kind": "directory",
+        "identity": "b0333cd80812d13b9ccb7c509622b6efb8a107afd7e8bd324b2b43ac1d17a99f",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/@deepseek-ai/dsh-client-ui-chat",
+        "kind": "directory",
+        "identity": "ce309855f9d6cbf346b861ae5631489637964092366d0cc4d54569592bf9aef8",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/@deepseek-ai/dsh-client-ui-chat/assets",
+        "kind": "directory",
+        "identity": "6d5a23a3e67e57db253a3ac0089a8a55b2786872f65f59c47ccbe09536e5ee69",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/@deepseek-ai/dsh-client-ui-chat/assets/running-whale@2x-06738fa29b2f.png",
+        "kind": "file",
+        "identity": "0fd990d118113d19af7af4480f2b55d610b103451a08be6f7bf5a146823f8bd3",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/batches",
+        "kind": "directory",
+        "identity": "b71e286e4cbaa2cc05eff1f632946c306e0ca3a8ceed8e2f32a62cd0364c1cba",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/batches/0.js",
+        "kind": "file",
+        "identity": "dde6101af296ef3bbc462be697fd91129c432ecd5d11e11fccbc1fb775902698",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/batches/1.js",
+        "kind": "file",
+        "identity": "8cacc5e35df1b39336518ec55fe817e2c81268caa0b11bba921489818136e839",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/routes.json",
+        "kind": "file",
+        "identity": "fc3e3b3f80ff6a0932acfa449371e9d4074feb4aa926214ab5daa9ec9c8151cb",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles",
+        "kind": "directory",
+        "identity": "0ff7d7643e2b67f42c93d790d6c0ba72c959101fbda3404f932f5a71940cca31",
+        "mode": 493
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/0.js",
+        "kind": "file",
+        "identity": "dde6101af296ef3bbc462be697fd91129c432ecd5d11e11fccbc1fb775902698",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/1.js",
+        "kind": "file",
+        "identity": "1d4ef65f1b4052f5a1c3a911531c621fbe50f502e11d7760bd1b7722135cfd62",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/10.js",
+        "kind": "file",
+        "identity": "6f064000eca492dd627b91d73c094ec46b73003a8d379feecd09c44792d7b4a7",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/11.js",
+        "kind": "file",
+        "identity": "05f41a536f57f28fb672c201842cb36d7671cc7c8b54adc9a39d786f0090332a",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/12.js",
+        "kind": "file",
+        "identity": "c0f998aa074f2edf93b968637e80fe15b28d8091584231fdbdcbaa85b4c5eac5",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/13.js",
+        "kind": "file",
+        "identity": "4bb1fc1be079f1e7c05dcaea2bb54ab82259c42bf70e293978d4b39e22881001",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/14.js",
+        "kind": "file",
+        "identity": "7a73e7d36aaae00c7b2a68ec7f1b56040a549a91bdce6650e1bdcf8deb98a535",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/15.js",
+        "kind": "file",
+        "identity": "20cc43ad99016109cc1e94d5028d273285d2fc339ec389665c1e191a82d11f93",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/16.js",
+        "kind": "file",
+        "identity": "099ede04937aae210403f3219c7475aa1646592eab269bfb25c3a497e51c076f",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/17.js",
+        "kind": "file",
+        "identity": "1e257e9f25051788a9e101306af1e003cbb9426e08b3c272ef91c21680016050",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/18.js",
+        "kind": "file",
+        "identity": "95bbbaa1bb9ea55eda008afb56db9f4b098d804426e5ef7e4b906a91eb119293",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/19.js",
+        "kind": "file",
+        "identity": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/2.js",
+        "kind": "file",
+        "identity": "2d04cc7103781df79e2513163d1353a7e5a0650ca8c68e0a1b37512e412d011b",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/20.js",
+        "kind": "file",
+        "identity": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/21.js",
+        "kind": "file",
+        "identity": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/22.js",
+        "kind": "file",
+        "identity": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/23.js",
+        "kind": "file",
+        "identity": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/24.js",
+        "kind": "file",
+        "identity": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/25.js",
+        "kind": "file",
+        "identity": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/26.js",
+        "kind": "file",
+        "identity": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/27.js",
+        "kind": "file",
+        "identity": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/28.js",
+        "kind": "file",
+        "identity": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/29.js",
+        "kind": "file",
+        "identity": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/3.js",
+        "kind": "file",
+        "identity": "d0ab20024c0fe9af308830825d1988d45a0885ebf42789338081e7e3b9776f46",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/30.js",
+        "kind": "file",
+        "identity": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/31.js",
+        "kind": "file",
+        "identity": "7e94769571f40c85ecb2b6fb869a3793bfc94308a3982619b447b9d38f276b61",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/32.js",
+        "kind": "file",
+        "identity": "8def84ba3495fa2ee697243884b4e4ce235115db2d56f931b39d1b53612624ab",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/33.js",
+        "kind": "file",
+        "identity": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/4.js",
+        "kind": "file",
+        "identity": "74618c92dc5f59ef7f8f9a29358134e63da99e22306278b485cb97a433aca410",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/5.js",
+        "kind": "file",
+        "identity": "0f8411ed6a20ca27129c25f3ec9e44d4ca7cc5af989182dc096ef676284182aa",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/6.js",
+        "kind": "file",
+        "identity": "a67d4d813ffba9902ae996eb542eb893c4e6e805b1279d8eb0bfe3a3f0cc349c",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/7.js",
+        "kind": "file",
+        "identity": "d6b959f12a274b62d7648bb50435fce7774e318b0d57e2dcf7b3faa48279e88e",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/8.js",
+        "kind": "file",
+        "identity": "a1522f3f16f27abcd10858b2dc518d201bf56006dc5459760a580c0b78be3914",
+        "mode": 420
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/9.js",
+        "kind": "file",
+        "identity": "2f28960a7d5f42242141afbbc761a65b05a2c639679db80b0fe5d990e4be6c99",
+        "mode": 420
+      }
+    ],
+    "nativeClosure": [
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/ld-linux-x86-64.so.2",
+        "kind": "file",
+        "identity": "c0b20d6e1ced12abfe0b1ef2b5b68017950beaaea3df69eb6949d73e0ecf7b40",
+        "mode": 493
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libc.so.6",
+        "kind": "file",
+        "identity": "9941dc28e68bc5fd788d9cd024c69e68c791d63799e7538a97b6040dd9f50fb6",
+        "mode": 493
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libdl.so.2",
+        "kind": "file",
+        "identity": "403a5f4b5fb7468b8e59dcfaa290d3bccf89722b482c5a0e1802f62fca0a7a15",
+        "mode": 420
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libm.so.6",
+        "kind": "file",
+        "identity": "37b9e6c977b2a0b02a110d93eb8f01b643c9848653f18bd51682c5279ac88f54",
+        "mode": 420
+      },
+      {
+        "path": "/usr/lib/x86_64-linux-gnu/libpthread.so.0",
+        "kind": "file",
+        "identity": "e059c2f9742c5de70a7f813501069ea85bab210b365f8b37fc5c205fc1c097e9",
+        "mode": 420
+      }
+    ]
+  },
+  "dsh": {
+    "base": "38a6a5c965aa99ab525161efb7cc5cf1fe62fced",
+    "mode": "candidate",
+    "sourceTree": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c",
+    "patches": [
+      {
+        "path": "patches/0001-navigation-policy.patch",
+        "sha256": "d70bfb244979edd3dbc3732f5b19d219923e1abe854901964d2def00de8177d4",
+        "treeAfter": "be590b5411230c215158bb6359635d409a653523"
+      },
+      {
+        "path": "patches/0002-semantic-drafts.patch",
+        "sha256": "5424ef87842b96ba7af0b465bbeda573d0bd798cac3ee673ffdddccdf79f883f",
+        "treeAfter": "c0b09e15c170a82894608c397a363a7a96e5d05c"
+      },
+      {
+        "path": "patches/0003-projection-rebuild.patch",
+        "sha256": "d911660293aacdab136de5cbaa4cf8aba69b45ec5bd658a90d03ed29366b7302",
+        "treeAfter": "1e1207058448079f0c7e45287c4fd39dca7d2de2"
+      },
+      {
+        "path": "patches/semantic-draft-esm.patch",
+        "sha256": "52718beaff79d4892f2cf89768b9f7e8846b72d17e883007f9e308a8a70ff9d2",
+        "treeAfter": "d05468939bcb06446ace47045d138f716406c788"
+      },
+      {
+        "path": "patches/0006-parsed-tool-presentation.patch",
+        "sha256": "e3ef9ab063b735d192279e3d46740d635128c500e308f89c6ee759e547147ab5",
+        "treeAfter": "a590d82e6d2404f91a6b1ee3032cc7d2bc9634ea"
+      },
+      {
+        "path": "patches/0008-provider-runtime.patch",
+        "sha256": "48887717d2e13ab5a9b77a91fdecc29c7e72c250851030b05c58c2d38a87ca08",
+        "treeAfter": "d876ff7a0636f71bdcae2148ec1a45d5a42e142f"
+      },
+      {
+        "path": "patches/0009-linux-web-shortcuts.patch",
+        "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
+        "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+      },
+      {
+        "path": "patches/0010-chat-source-rebind.patch",
+        "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
+        "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
+      },
+      {
+        "path": "patches/0011-conversation-source-rebind.patch",
+        "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
+        "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
+      },
+      {
+        "path": "patches/0012-client-test-projection-seam.patch",
+        "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
+        "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+      }
+    ],
+    "lockSha256": "9bf7a9ee0e6c446d82e6f21677009fa65cb2593b3460cff00abb9d65a17b8d54",
+    "contractSha256": "908da595283046b7ccea89426a7f7a28814d5d2b35ae5644eca046d821e8752c",
+    "sourceSha256": "834269164acb23d46a6c1d1028765cb66523670700c5fd2b2aa4da728682b352",
+    "roster": {
+      "packages": 34,
+      "ids": [
+        "@deepseek-ai/dsh-client-modules",
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-typert-registry",
+        "@deepseek-ai/dsh-api-gateway",
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-file-upload",
+        "@deepseek-ai/dsh-api-session-controller",
+        "@deepseek-ai/dsh-api-remote-access",
+        "@deepseek-ai/dsh-api-workspace-controller",
+        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-general",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-theme",
+        "@deepseek-ai/dsh-client-shortcuts",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-session",
+        "@deepseek-ai/dsh-client-ui-commands",
+        "@deepseek-ai/dsh-client-ui-model-selection",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat",
+        "@deepseek-ai/dsh-client-ui-tool",
+        "@deepseek-ai/dsh-client-ui-approval",
+        "@deepseek-ai/dsh-client-ui-user-questions",
+        "@deepseek-ai/dsh-client-ui-workspace",
+        "@deepseek-ai/dsh-client-ui-sidebar",
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-resources",
+        "@deepseek-ai/dsh-client-ui-context-menu",
+        "@deepseek-ai/dsh-client-ui-file-drag",
+        "@deepseek-ai/dsh-client-ui-input-trigger",
+        "@deepseek-ai/dsh-client-ui-attachment",
+        "@deepseek-ai/dsh-client-ui-trajectory",
+        "@omp-webui/product-enrollment"
+      ],
+      "edges": {
+        "@deepseek-ai/dsh-client-modules": [],
+        "@deepseek-ai/dsh-client-connection": [],
+        "@deepseek-ai/dsh-typert-registry": [],
+        "@deepseek-ai/dsh-api-gateway": [
+          "@deepseek-ai/dsh-typert-registry",
+          "@deepseek-ai/dsh-client-connection"
+        ],
+        "@deepseek-ai/dsh-api-remotes": [
+          "@deepseek-ai/dsh-api-gateway"
+        ],
+        "@deepseek-ai/dsh-client-file-upload": [
+          "@deepseek-ai/dsh-api-remotes"
+        ],
+        "@deepseek-ai/dsh-api-session-controller": [
+          "@deepseek-ai/dsh-api-gateway",
+          "@deepseek-ai/dsh-client-file-upload"
+        ],
+        "@deepseek-ai/dsh-api-remote-access": [
+          "@deepseek-ai/dsh-api-gateway",
+          "@deepseek-ai/dsh-client-ui-renderer"
+        ],
+        "@deepseek-ai/dsh-api-workspace-controller": [
+          "@deepseek-ai/dsh-api-gateway",
+          "@deepseek-ai/dsh-client-connection"
+        ],
+        "@deepseek-ai/dsh-client-ui-settings": [
+          "@deepseek-ai/dsh-api-remotes"
+        ],
+        "@deepseek-ai/dsh-client-ui-settings-general": [
+          "@deepseek-ai/dsh-client-ui-settings",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-client-ui-sidebar",
+          "@deepseek-ai/dsh-client-shortcuts",
+          "@deepseek-ai/dsh-client-modules",
+          "@deepseek-ai/dsh-client-ui-layout"
+        ],
+        "@deepseek-ai/dsh-client-locale": [
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-settings",
+          "@deepseek-ai/dsh-api-remotes"
+        ],
+        "@deepseek-ai/dsh-client-ui-theme": [
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-shortcuts",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-settings",
+          "@deepseek-ai/dsh-api-remotes"
+        ],
+        "@deepseek-ai/dsh-client-shortcuts": [
+          "@deepseek-ai/dsh-client-locale"
+        ],
+        "@deepseek-ai/dsh-client-ui-layout": [
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-theme",
+          "@deepseek-ai/dsh-client-shortcuts"
+        ],
+        "@deepseek-ai/dsh-client-ui-session": [
+          "@deepseek-ai/dsh-api-remote-access",
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-ui-renderer"
+        ],
+        "@deepseek-ai/dsh-client-ui-commands": [
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-input-trigger",
+          "@deepseek-ai/dsh-client-ui-conversation"
+        ],
+        "@deepseek-ai/dsh-client-ui-model-selection": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-commands",
+          "@deepseek-ai/dsh-api-remotes"
+        ],
+        "@deepseek-ai/dsh-client-ui-conversation": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-file-upload",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-settings",
+          "@deepseek-ai/dsh-client-ui-workspace",
+          "@deepseek-ai/dsh-client-ui-context-menu"
+        ],
+        "@deepseek-ai/dsh-client-ui-chat": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-api-workspace-controller",
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-input-trigger",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-settings",
+          "@deepseek-ai/dsh-client-ui-sidebar-right",
+          "@deepseek-ai/dsh-client-ui-workspace",
+          "@deepseek-ai/dsh-client-ui-file-drag",
+          "@deepseek-ai/dsh-client-ui-context-menu"
+        ],
+        "@deepseek-ai/dsh-client-ui-tool": [
+          "@deepseek-ai/dsh-api-workspace-controller",
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-api-session-controller"
+        ],
+        "@deepseek-ai/dsh-client-ui-approval": [
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session"
+        ],
+        "@deepseek-ai/dsh-client-ui-user-questions": [
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-chat"
+        ],
+        "@deepseek-ai/dsh-client-ui-workspace": [
+          "@deepseek-ai/dsh-api-remote-access",
+          "@deepseek-ai/dsh-api-remotes",
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-api-workspace-controller",
+          "@deepseek-ai/dsh-client-connection",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-shortcuts",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-sidebar",
+          "@deepseek-ai/dsh-client-ui-context-menu"
+        ],
+        "@deepseek-ai/dsh-client-ui-sidebar": [
+          "@deepseek-ai/dsh-api-workspace-controller",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-ui-workspace",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-shortcuts"
+        ],
+        "@deepseek-ai/dsh-client-ui-sidebar-right": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-resources",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-ui-session",
+          "@deepseek-ai/dsh-client-shortcuts",
+          "@deepseek-ai/dsh-client-ui-context-menu"
+        ],
+        "@deepseek-ai/dsh-client-resources": [
+          "@deepseek-ai/dsh-client-ui-renderer"
+        ],
+        "@deepseek-ai/dsh-client-ui-context-menu": [
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-layout",
+          "@deepseek-ai/dsh-client-shortcuts"
+        ],
+        "@deepseek-ai/dsh-client-ui-file-drag": [
+          "@deepseek-ai/dsh-client-ui-layout"
+        ],
+        "@deepseek-ai/dsh-client-ui-input-trigger": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-renderer"
+        ],
+        "@deepseek-ai/dsh-client-ui-attachment": [
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-chat",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-trajectory",
+          "@deepseek-ai/dsh-client-ui-tool",
+          "@deepseek-ai/dsh-client-ui-file-drag",
+          "@deepseek-ai/dsh-client-ui-context-menu"
+        ],
+        "@deepseek-ai/dsh-client-ui-trajectory": [
+          "@deepseek-ai/dsh-api-session-controller",
+          "@deepseek-ai/dsh-client-locale",
+          "@deepseek-ai/dsh-client-ui-conversation",
+          "@deepseek-ai/dsh-client-ui-renderer",
+          "@deepseek-ai/dsh-client-ui-session"
+        ]
+      },
+      "pluginRuntime": "none: the product manifest declares no runtime plugins; the composition is the pinned client bundle"
+    },
+    "product": {
+      "path": "vendor/dsh-product",
+      "files": 136,
+      "sha256": "acdafd35d7b36cce07f7b67fdbd9d19bd7439b9ddd991ce53c1e27ba232ea0ce"
+    },
+    "routes": {
+      "path": "vendor/dsh-product/plugins/routes.json",
+      "sha256": "fc3e3b3f80ff6a0932acfa449371e9d4074feb4aa926214ab5daa9ec9c8151cb"
+    },
+    "graph": {
+      "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
+      "sha256": "52ffb618be5504ed8656fac09231d2736e1326bf64c3053ec2e04d85a35f0061",
+      "rev": "af0cc31f7f36",
+      "release": {
+        "version": "0.1.0",
+        "commit": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
+      }
+    },
+    "assets": [
+      {
+        "path": "vendor/dsh-product/apple-touch-icon.png",
+        "sha256": "30a68c6871fc3974968cd285c63c42ddc80aa0e4d37a349cb4dbe824fa52ab92"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_AMS-Regular-BQhdFMY1.woff2",
+        "sha256": "0cdd387c9590a1a9f9794560022dbb59654a7d86f187aa0c81495ad42d3a7308"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2",
+        "sha256": "de7701e42cf1f4cf0b766c03fb27977207eee2f4fd5d76fa82188406da43ea4c"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2",
+        "sha256": "5d53e70ad607c2352162dec9e0923fb54ecdafaccbf604cd8dcf7d00facb989b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Fraktur-Bold-CL6g_b3V.woff2",
+        "sha256": "74444efd593c005e3f4573b44524704c0af0a937fe911cca9e94068d0d140d3f"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Fraktur-Regular-CTYiF6lA.woff2",
+        "sha256": "51814d270d06ff0255dba0799994fa4d8c84d11f09951d47595f4abb1f3602dc"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Bold-Cx986IdX.woff2",
+        "sha256": "0f60d1b897938ec918c8ce073092411baf9438f6739465693ff18b0f9d20b021"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2",
+        "sha256": "99cd42a3c072d918f2f44984a807cf7aa16e13545fd0875fc07c6c65f99e715b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Italic-NWA7e6Wa.woff2",
+        "sha256": "97479ca6cce906abc961ecac96faa5f9ca2e61b8e7670d475826bcdee9a7c267"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Main-Regular-B22Nviop.woff2",
+        "sha256": "c2342cd8b869e01752a9321dc17213fc40d4d04c79688c1d43f2cf316abd7866"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2",
+        "sha256": "dc47344dbb6cb5b655c8460d561f4df5f501b90c804ad3c6cec65fe322351ab1"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Math-Italic-t53AETM-.woff2",
+        "sha256": "7af58c5ec8f132a2ddde9027c6d7814decce4d3b822a11192a42a20e2e973264"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Bold-D1sUS0GD.woff2",
+        "sha256": "e99ae51144bf1232efcc1bfe5add36262c6866b0faab24fa75740e1b98577a62"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Italic-C3H0VqGB.woff2",
+        "sha256": "00b26ac825e2095056396e0553b8ac26d3f8ad158c3826e28b4c45b385c4714a"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2",
+        "sha256": "68e8c73ef42afd3ccec58bf0fba302cce448938e7fc020a5e31f8a952eee1342"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Script-Regular-D3wIWfF6.woff2",
+        "sha256": "036d4e95149b69ff9bcc0cd55771efeb25ffa3947293e69acd78d5ac328c684b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size1-Regular-mCD8mA8B.woff2",
+        "sha256": "6b47c40166b6dbe21a5dfca7718413f2147fd2399be1ba605d8ad39cedf25dfe"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size2-Regular-Dy4dx90m.woff2",
+        "sha256": "d04c54219f9eaec6d4d4fd42dfb28785975a4794d6b2fc71e566b9cd6db842dd"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Size4-Regular-Dl5lxZxV.woff2",
+        "sha256": "a4af7d414440a1c1790825cfb700cf9cf43b0f2c4b04f0ebc523011ad9853ec0"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/KaTeX_Typewriter-Regular-CO6r4hn1.woff2",
+        "sha256": "71d517d67827787cfabdf186914cc3358eda539e37931941f2b2fd4a21f68c0b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/Montserrat-OFL.txt",
+        "sha256": "861d64229728cd65a98d119612c12769582574d1a092f0b63c8b0fd474e7065f"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-light-Cvd2VjE_.woff2",
+        "sha256": "da25f1327eb1dcc70c193897b5d7e00d31821d9518c0a49e073ff50d97a3f10a"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-medium-B4OyO9CN.woff2",
+        "sha256": "8a81ca6f05cb6831d5487e4b287ce5a625a718c39226b736f155900adc394166"
+      },
+      {
+        "path": "vendor/dsh-product/assets/fonts/montserrat-regular-DYep38cA.woff2",
+        "sha256": "0f4a15e29a9535af580a64db967929a8d6b202fad9a467be390619a591d2c4c5"
+      },
+      {
+        "path": "vendor/dsh-product/assets/index-CSAdOBx6.css",
+        "sha256": "d487cca8d8a97f1e0cc5eca02343528c873e544eb7ec3a5b323a0f035553551d"
+      },
+      {
+        "path": "vendor/dsh-product/assets/index-Ciz7DZxv.js",
+        "sha256": "65411dabad4de33466b12643cf30376d3d41ea1b7ce10ce329e97c89992d308b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/asciidoc-CSVQ5wI8.js",
+        "sha256": "ccbe3ab4515748773c185140855a976f2f3723a4e482f8423c36cf9ee6954b12"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/bat-CickPsom.js",
+        "sha256": "443aa1c3678e319e553f3ae7aef4ef7e6f068e2c83172ced17247d5ba850d6a3"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/bibtex-CHM0blh-.js",
+        "sha256": "4af4d61dd9d7297f65b361204af72d53e91fa70a4ede5e85bcaf40b4a63cd4a2"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/c-BIGW1oBm.js",
+        "sha256": "9c06263922b97a0e5890b832e23d44f3c0da54430ac6f971aa0ede8f4c2b8b66"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/clojure-P80f7IUj.js",
+        "sha256": "e70b326f33d37ddb29dd71abcc72321f1b0d900888ef05db9d7821fdf60eab22"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/cmake-D1j8_8rp.js",
+        "sha256": "f87d0ba1478aa4f5eb35b22e1276f0b330f30030b2c2e33cc7400a7b14f96eb2"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/cpp-DddhVWhK.js",
+        "sha256": "532fe55f0cf99df5f27e5396453ffae2d2afa7da82cdb19abaf245004c67da1b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/csharp-DSvCPggb.js",
+        "sha256": "8443ef70cc6fec2de601c15c548ab1890e9bbc71a21ba9c216de77481c3cb6d6"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/css-CLj8gQPS.js",
+        "sha256": "69ee0204c2c40a92b8368049da700f0d08d40f5274809cfb624fd09e73eb32ee"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/csv-fuZLfV_i.js",
+        "sha256": "dc5872798e0825621bc48f5907e872a0fb34bd3bb2c7a5fd3c6841670675f830"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/dart-bE4Kk8sk.js",
+        "sha256": "8d6d70a18e68e8c4ef0aecf78ed03f9768342b9953dd0e9f8963b070152b1ab5"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/diff-D97Zzqfu.js",
+        "sha256": "710e6506726fe0befb51b8e40fc9aa12cf7fa733ec8f24019359276c4ea653dc"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/dotenv-Da5cRb03.js",
+        "sha256": "c7dc2e241e78b22b2a8015afb7c759b019616267ace3ab7660b3a8aa2fe207d7"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/elixir-CvYZzuDY.js",
+        "sha256": "be08af7448a3bc9de8e6d71e8fc351a09a5d5ba77784a8c4012199a9e3f5f5fe"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/erlang-DsQrWhSR.js",
+        "sha256": "87ef69877dda1297912b0a7a12ee0f3f00de0f675bb6214b0f1adf58629b75fa"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/fish-BvzEVeQv.js",
+        "sha256": "f7881c9158118435c2f1a6d3859ecd84ad7539c845584fd110ab844c69e7972b"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/fsharp-CXgrBDvD.js",
+        "sha256": "7cda55ae2e03fd929e8d18dbde6c9dfbe48d91f02e4c65bbb88e21ef3e38653a"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/go-C27-OAKa.js",
+        "sha256": "a6c3f73f1abb778ef3f5e489db1942542dc88ddac5b111ff55813fa1655dd23c"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/graphql-DFkUqiqq.js",
+        "sha256": "fca0dd51a16d52c6f43f5bc6db63cc8c21d23a9c5c3fc603179636a1a50b26b6"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/groovy-gcz8RCvz.js",
+        "sha256": "25aafe383369a4f78a33abdb518404d8836773f3dfb0f199e7d5104acea74832"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/haskell-Df6bDoY_.js",
+        "sha256": "731f9a3ba301c738fbbb6278b596171b0195cb69bd42febdf6edc6da10f87faf"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/hcl-BWvSN4gD.js",
+        "sha256": "2f141d770bcd86b2e056b76b6a65b74c534454f371490d3bdff2dec63ceb9fd8"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/html-derivative-DOyKdj44.js",
+        "sha256": "fa06bb6afb8b726edde9412e7aee065c560fe4afd21fcac4ac9992b783dd8ddb"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/html-fwsONPVS.js",
+        "sha256": "98fab9ca36666a6cd0163a9c54349d9d05b891912056028d6fd1cf0f012c3cdf"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/http-BbPA7N5Y.js",
+        "sha256": "2a8cc57fa0bee98cd0c04334d29d0a8b2306adda175dcd7cd12ad44e65f1d2c7"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/ini-BEwlwnbL.js",
+        "sha256": "d72bde3de42bb1ef3268bd65afedecf54747c208ac24335f7c6b4456924091c1"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/java-CylS5w8V.js",
+        "sha256": "934a0e63cf4cefb991100f15c42fdc60aaee3c7036a7ba6cb10ce5a6322a7ae9"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/javascript-DI5JR1nB.js",
+        "sha256": "b0952ac6a3182b0c45b005da5d76a764890d6da3df2fe61affe471a59744a169"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/julia-BfSmLjIk.js",
+        "sha256": "6523a4247b0a4a5c1d933134baa96cc12c9685a1b06237f0fce5ab6ed2059730"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/kotlin-BdnUsdx6.js",
+        "sha256": "99d81f485d9366a1f3f8c84b0fc5cee69b0d28d6c8f7f1e8dac29e554e80d24f"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/latex-B2nUCzCX.js",
+        "sha256": "265d43c3cae080cc97ac1f40a569aca48758cc680aad6a9f940dbdb584d55fc1"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/less-B1dDrJ26.js",
+        "sha256": "50c4bace8838379b74e0a22dab369c3cb81b57ba1b5b17ea5af8668f8290e8bf"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/log-2UxHyX5q.js",
+        "sha256": "7b2292970ede37be20c120a51d12bcbff43e82278aef1626816d71c344a07e27"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/lua-BaeVxFsk.js",
+        "sha256": "b218901041a92a152f51a7f3f74f26120e931e258abb1c73bcee551721015f67"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/make-CHLpvVh8.js",
+        "sha256": "9ef9765da0e58e256d97f4f2da8197a72ad4d84e8217b7160728d646c7e5e236"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/markdown-Cvjx9yec.js",
+        "sha256": "d9a83df9f57287a1f3594d5231480ea90a14adf7a8550c7a57930c3cf5b3f47d"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/mdx-Cmh6b_Ma.js",
+        "sha256": "8b88c45af52bcc95513e479bfce5b068d91f60a811acf8bb614bbb071d0e1151"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/nix-CwoSXNpI.js",
+        "sha256": "1af30178686ebb1c86d28d0511450379ac22d55fe0c0a72d5fa323915128afce"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/perl-DsWkoyyU.js",
+        "sha256": "170909d86f068983ff341d2effa52fdf73e870231a2527550c8b3b996faa3c82"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/php-BcJWnZHR.js",
+        "sha256": "1a1cb9a8bf0d8043df90a6a88a7785205343fdeefa3a76df07f5912d52574d77"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/powershell-BmBUJMz7.js",
+        "sha256": "8c4b6d7c57d7624ac4fcb6882377a78db37b617fc3974831961fe837c364f52c"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/proto-C7zT0LnQ.js",
+        "sha256": "fc5a20a7755c13ecedd65173c09d76e4694d4db44771318d89872607e2559659"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/python-B6aJPvgy.js",
+        "sha256": "1c6725168b498ade965cf0d8723c600fc9bf0de74988b6191106b304b571aaae"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/r-Cf5RLm7j.js",
+        "sha256": "8b6463b604a4c77d19e14aef404c920e66f2f04585e258280f543e93ce52f3bd"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/rst-CtdShwKQ.js",
+        "sha256": "61345ce0161431dbb22acbc798c160ab2f9f2d01dfbe914fc86ef20f3907b646"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/ruby-DllPV2XI.js",
+        "sha256": "c110b7a41534ca0465f36587d29aff292d42930a324ce2c916dad569a88f372a"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/rust-B1yitclQ.js",
+        "sha256": "c02d27696b07c37fa2cac9de826a967a30401a33959cd891ebbf11d5bf245ce3"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/scala-CqE71os6.js",
+        "sha256": "5068f9ad81fc447782644ebe267a492032aee9580cfff6c96fb44984f71055ae"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/scss-D5BDwBP9.js",
+        "sha256": "d873165bb797f0547966aa681ade9af96c06ec17c2b0c12708303d9ace461753"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/sql-CRqJ_cUM.js",
+        "sha256": "60e00dca0f03a580d3717adbb9c730772e750909dc8c78408051091278eda6c0"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/svelte-ZPgsG5h9.js",
+        "sha256": "77c50c994ab8ed4ad86dddb730607139c29c5f5842cb1d8958c72a93a2f3ba70"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/swift-C2oV4EkX.js",
+        "sha256": "f77b5e491884859198e703e3e981a46e218c05a5b82ec33984c05ec851a8d3b3"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/system-verilog-0hqHdDBg.js",
+        "sha256": "c9b9df256a28ddc9d5b60dcd0bd43137f3b3cdeb8ca472a4e8921f42232897b4"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/toml-vGWfd6FD.js",
+        "sha256": "aeb916b96e9eb064aa87c8f765abfded0ab0d53aefa3aa9b90cc1af4d1ad75d2"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/vb-Cu-pLBUe.js",
+        "sha256": "f5806bce4864a69a019a73599bf174bbdb32539ec19e8d6dc3ac0254262b8410"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/verilog-nZwndyjY.js",
+        "sha256": "9f43d6af8cbbd2b38473fb28ca9f59043129433e021f2d9c308c85bf11333900"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/vue-CnLRC5W9.js",
+        "sha256": "db9ef1340b99f48e292104279e6e911fea4218af06e3cea08742555dc34c5c0c"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/xml-sdJ4AIDG.js",
+        "sha256": "d41d94621a62727ad56943d2d7e04e820c2642c3a9c246eb10e7d6e6e89d1fed"
+      },
+      {
+        "path": "vendor/dsh-product/assets/langs/yaml-Buea-lGh.js",
+        "sha256": "8aad9cddbe3602b06b194e66d021aa63d715df01cf94e8ffcac810e48f0529e3"
+      },
+      {
+        "path": "vendor/dsh-product/assets/vendor-BUMdD3V7.js",
+        "sha256": "7675048a90d0419365a342c4eb81713aa8582b82a76b08ba2a8fc27160575265"
+      },
+      {
+        "path": "vendor/dsh-product/assets/vendor-DV2921Zo.css",
+        "sha256": "4cea59483551208ce61ff27251da83d5f7a0893ef34cfe4b808d61be6e13ebc7"
+      },
+      {
+        "path": "vendor/dsh-product/boot/graph-__DSH_BOOT__.js",
+        "sha256": "52ffb618be5504ed8656fac09231d2736e1326bf64c3053ec2e04d85a35f0061"
+      },
+      {
+        "path": "vendor/dsh-product/boot/injection-0.js",
+        "sha256": "66dff26c5fc49a84f182c9e29bb501253c721c51e2c08f1300c5229f23dd6662"
+      },
+      {
+        "path": "vendor/dsh-product/boot/ready.js",
+        "sha256": "953148bd44d7e76a6249751499b94e43fdc74edb6fe7acbf927987098573cf0b"
+      },
+      {
+        "path": "vendor/dsh-product/boot/transport.js",
+        "sha256": "d53742d7ffe03ce4ebdc338394011ca498361bacd56c28d7e53cbea688ff96bc"
+      },
+      {
+        "path": "vendor/dsh-product/favicon-dark.svg",
+        "sha256": "dde7db781f41e7aeb4709ff5485af2bdcf7f4b4ea81b4500cfd5df44efdbd817"
+      },
+      {
+        "path": "vendor/dsh-product/favicon.svg",
+        "sha256": "9e983b4f649c25c6ca0623a50be1a6e705fd8f49f756638b980fa13b40575ab6"
+      },
+      {
+        "path": "vendor/dsh-product/icon-192.png",
+        "sha256": "dfbf42e79fa2a44fedb67497efa81e897e446f64b313531738f32974a117602c"
+      },
+      {
+        "path": "vendor/dsh-product/icon-512.png",
+        "sha256": "0aa6ff8cac04541957b937465341e1840e0323d6076f0c7f3c61ff937b7e6d63"
+      },
+      {
+        "path": "vendor/dsh-product/icon-maskable-512.png",
+        "sha256": "0b80994078a417bf33370e6c4e5b6174313bbece29ce7f3e8c6dc538d6ec46eb"
+      },
+      {
+        "path": "vendor/dsh-product/index.html",
+        "sha256": "cbe98cf7375fb128aa91d2f38d2d9599edddaecca46552c940bdab26f4e8ccdd"
+      },
+      {
+        "path": "vendor/dsh-product/manifest.webmanifest",
+        "sha256": "0684508930a5e3b36e43afc1dc89252a95893a3d66cdfaccb453cc675012715b"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/@deepseek-ai/dsh-client-ui-chat/assets/running-whale@2x-06738fa29b2f.png",
+        "sha256": "0fd990d118113d19af7af4480f2b55d610b103451a08be6f7bf5a146823f8bd3"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/batches/0.js",
+        "sha256": "dde6101af296ef3bbc462be697fd91129c432ecd5d11e11fccbc1fb775902698"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/batches/1.js",
+        "sha256": "8cacc5e35df1b39336518ec55fe817e2c81268caa0b11bba921489818136e839"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/routes.json",
+        "sha256": "fc3e3b3f80ff6a0932acfa449371e9d4074feb4aa926214ab5daa9ec9c8151cb"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/0.js",
+        "sha256": "dde6101af296ef3bbc462be697fd91129c432ecd5d11e11fccbc1fb775902698"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/1.js",
+        "sha256": "1d4ef65f1b4052f5a1c3a911531c621fbe50f502e11d7760bd1b7722135cfd62"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/10.js",
+        "sha256": "6f064000eca492dd627b91d73c094ec46b73003a8d379feecd09c44792d7b4a7"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/11.js",
+        "sha256": "05f41a536f57f28fb672c201842cb36d7671cc7c8b54adc9a39d786f0090332a"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/12.js",
+        "sha256": "c0f998aa074f2edf93b968637e80fe15b28d8091584231fdbdcbaa85b4c5eac5"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/13.js",
+        "sha256": "4bb1fc1be079f1e7c05dcaea2bb54ab82259c42bf70e293978d4b39e22881001"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/14.js",
+        "sha256": "7a73e7d36aaae00c7b2a68ec7f1b56040a549a91bdce6650e1bdcf8deb98a535"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/15.js",
+        "sha256": "20cc43ad99016109cc1e94d5028d273285d2fc339ec389665c1e191a82d11f93"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/16.js",
+        "sha256": "099ede04937aae210403f3219c7475aa1646592eab269bfb25c3a497e51c076f"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/17.js",
+        "sha256": "1e257e9f25051788a9e101306af1e003cbb9426e08b3c272ef91c21680016050"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/18.js",
+        "sha256": "95bbbaa1bb9ea55eda008afb56db9f4b098d804426e5ef7e4b906a91eb119293"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/19.js",
+        "sha256": "9c31af176894010a705049f5f4c7a1ea1fbce56da04bd78c9402db6d6ce50d22"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/2.js",
+        "sha256": "2d04cc7103781df79e2513163d1353a7e5a0650ca8c68e0a1b37512e412d011b"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/20.js",
+        "sha256": "eced06617a1bcb8ef0422e064753fbcf775020d7f02d4d79da6fd4418cd68bf8"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/21.js",
+        "sha256": "8e0af56cba1dec0354bc20d3c8b3efe41486b1cf357fb18740489a62db7c22bd"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/22.js",
+        "sha256": "56fbe9a599f29cbedaa0c8e01bc775557c504a67d7d72c5d8822924b38c245eb"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/23.js",
+        "sha256": "b6262de0e9484ccda43bbbc1d3daac532a59899dbd94b4463ca7b2fd5b109bbc"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/24.js",
+        "sha256": "edab15d1d684eedb7ca2d5d06b9735848a47845083fe1baa52ca27498ec5257e"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/25.js",
+        "sha256": "ee7590cc3f86beba937618d6e928e6da9ab652744c7f5e45d9aa5c07d48ec7e5"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/26.js",
+        "sha256": "b0d979334ceaec30d35c259dc3e693b8f00ad356fb2a0300696d24c15a3378cf"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/27.js",
+        "sha256": "2ce112704783cbe33b1beaaa036157c6b43587eb0149e6068fe3ea8ba9b3b7b5"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/28.js",
+        "sha256": "3c59761e324de0f9895796d5a3e1e675da4e46706525a2124e96b75b9c432549"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/29.js",
+        "sha256": "db50b2fc80ac54a744ed5b9a32e0d58d10f3baa79ee793fe72cd317df3cf4a64"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/3.js",
+        "sha256": "d0ab20024c0fe9af308830825d1988d45a0885ebf42789338081e7e3b9776f46"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/30.js",
+        "sha256": "60a113e99e66f36c0c15202faeeb2fc7395f85726abc60f7031a6118ae99a294"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/31.js",
+        "sha256": "7e94769571f40c85ecb2b6fb869a3793bfc94308a3982619b447b9d38f276b61"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/32.js",
+        "sha256": "8def84ba3495fa2ee697243884b4e4ce235115db2d56f931b39d1b53612624ab"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/33.js",
+        "sha256": "a0bb206a0e544d33403f69bad46e5403d69cf9d179547089a06c84d804aa30b4"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/4.js",
+        "sha256": "74618c92dc5f59ef7f8f9a29358134e63da99e22306278b485cb97a433aca410"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/5.js",
+        "sha256": "0f8411ed6a20ca27129c25f3ec9e44d4ca7cc5af989182dc096ef676284182aa"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/6.js",
+        "sha256": "a67d4d813ffba9902ae996eb542eb893c4e6e805b1279d8eb0bfe3a3f0cc349c"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/7.js",
+        "sha256": "d6b959f12a274b62d7648bb50435fce7774e318b0d57e2dcf7b3faa48279e88e"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/8.js",
+        "sha256": "a1522f3f16f27abcd10858b2dc518d201bf56006dc5459760a580c0b78be3914"
+      },
+      {
+        "path": "vendor/dsh-product/plugins/singles/9.js",
+        "sha256": "2f28960a7d5f42242141afbbc761a65b05a2c639679db80b0fe5d990e4be6c99"
+      }
+    ]
+  },
+  "harness": {
+    "nativeData": {
+      "path": "tests/continuation/native-data.py",
+      "sha256": "903125106bb4cb2bae4a5745dee24dd3504990519f110e66604400ba235fde64"
+    },
+    "windowsChrome": {
+      "path": "tests/product/windows-chrome.ts",
+      "sha256": "0fc0d248879d5082aad87def5b50e97229c1ebe76e2b3ba5620a5d8b441aa6f3"
+    },
+    "productFlow": {
+      "path": "tests/product/product-flow.py",
+      "sha256": "31ee533c2daa555674020ce8f8dd44966dd4090cfeeab3ba36a7137cd8d7d940"
+    },
+    "windowsInput": {
+      "path": "tests/product/windows-input.ts",
+      "sha256": "1efa4c454c8469c2e7c2b34f317791c442c1dd52a0472ecf1c5143e39657bd3d"
+    }
+  },
+  "evidence": {
+    "docs/evidence/ticket-59-platforms.json": "01a8ebb81a2b05b8f6e0dd58a3755cb21a12e03fd03ac0eabf303b7a75955776",
+    "docs/evidence/ticket-61-native-data.json": "89ee21dd49f5687d1496f888e42412e1fe07a988a8f75a9807d7c7f7587b9508",
+    "docs/evidence/ticket-61-windows-chrome.json": "659e34286f4a9da0f4efdab1db3c0d004da174eb24c53f9b123a94f3011e043d",
+    "docs/evidence/ticket-61-windows-chrome.png": "0a35b3910fe998db8ce004941f72c1e93192a8392e6d13d6b594e15d07f763f6",
+    "docs/evidence/ticket-61-windows-input.json": "7155af9bee9a90a9df57258c81a78fb9101bf509f32d025d5bf2dc979a7bfc84",
+    "docs/evidence/ticket-61-windows-input.png": "246ea246e9853c5465a394457deba2c32f9894bd05b0c5220d1183adc53afe40",
+    "docs/evidence/ticket-63-product-flow.json": "a6803381c9802d79537c66b77ce68a3a8daca392e6e6d7de0e23e7920acaaea2",
+    "tests/product/evidence/performance-2026-11-22-product.json": "e0e71f465aed39179dc26b3b764c0ea1100b144e2d048c38d37e2370c1258652",
+    "tests/product/evidence/performance-2026-11-23-product.json": "59707cde30264a9a8a6f003204aaa41835a302815ffbd757c06c777b391258ab"
+  },
+  "history": {
+    "docs/evidence/ticket-61-freeze.json": "4671a3f5999036807dff5343cc7f81cfc93f45a586f25deec447b4c2e91ace43",
+    "note": "The ticket-61 custom-shell freeze is retained byte-for-byte as superseded product-composition history; it no longer gates this combination."
+  },
+  "notFrozen": [
+    "a real model provider (all product flows used the controlled in-process provider unless a separate real-provider run is recorded)",
+    "the delivery lease and package distribution (packages/delivery/gate.ts still blocks globally)",
+    "maintainer operational acceptance (NOT RUN)"
+  ]
+}

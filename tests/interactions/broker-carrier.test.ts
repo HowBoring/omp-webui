@@ -631,9 +631,17 @@ test("a logical end fences a held answer and allows redelivery after physical re
 
     const origin = f.host.server.url.origin;
     const duplicate = connect(origin.replace("http:", "ws:") + "/api/remote.mux", a.cookie, origin);
+    // A second Peer cannot claim the event stream; the refusal is typed on that stream and must not
+    // close a carrier that may already multiplex unrelated streams.
+    const refused = new Promise<RemoteStreamServerMessage>(resolve => duplicate.addEventListener("message", event => {
+      const frame = parseRemoteStreamServerMessage(String(event.data));
+      if (frame.type === "error") resolve(frame);
+    }));
     duplicate.addEventListener("open", () => duplicate.send(JSON.stringify({ type: "open", streamId: "duplicate",
       endpoint: REMOTE_EVENT_STREAM_ENDPOINT, payload: REMOTE_EVENT_STREAM_PAYLOAD })), { once: true });
-    expect(await waitForClose(duplicate)).toBe(1011);
+    expect(await refused).toMatchObject({ type: "error", streamId: "duplicate" });
+    expect(duplicate.readyState).toBe(WebSocket.OPEN);
+    duplicate.close();
 
     f.receive("settling");
     const old = await delivery(first);

@@ -28,6 +28,7 @@ import type { AttachmentNativePort } from "../../../packages/attachments/bridge.
 import type { SubmissionTarget } from "../../../packages/contracts/generated/omp-wire.ts";
 import type { ChatViewAdmission, ChatViewEnrollment } from "./chat-view-admission.ts";
 import type { SessionSupervisor, SessionView, SupervisedSessionWorker } from "../../../packages/sessions/supervisor.ts";
+import type { StockUploads } from "./stock-uploads.ts";
 
 interface Entry {
   readonly workerId: string;
@@ -73,8 +74,9 @@ export class ChatComponentRuntime {
   #closed = false;
 
   constructor(private readonly authority: BrowserAuthority, private readonly grants: DirectoryGrants,
-    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view" | "forceWorker">,
-    private readonly admission: ChatViewAdmission, private readonly gate?: AttachmentSubmissionGate) {}
+    private readonly supervisor: Pick<SessionSupervisor, "runtime" | "view" | "forceWorker" | "statusChanged">,
+    private readonly admission: ChatViewAdmission, private readonly gate?: AttachmentSubmissionGate,
+    private readonly uploads?: StockUploads) {}
 
   attach(identity: BrowserAccess, input: ChatAttachment): ChatAttachmentResult | undefined {
     if (this.#closed) return;
@@ -182,7 +184,11 @@ export class ChatComponentRuntime {
       return {
         prepare: input => entry.worker.attachments.prepare(input),
         cancel: preparationId => entry.worker.attachments.cancel(preparationId),
-        submit: input => entry.worker.submissions.submit(input),
+        submit: async input => {
+          const result = await entry.worker.submissions.submit(input);
+          this.supervisor.statusChanged();
+          return result;
+        },
         query: (clientSubmissionId, offset, limit) => entry.worker.submissions.query(clientSubmissionId, offset, limit),
       };
     }
@@ -202,6 +208,14 @@ export class ChatComponentRuntime {
       || current.registration.nativeSessionId !== sessionId || current.registration.sourceId !== entry.target.sourceId
       || current.registration.instanceId !== entry.target.instanceId || this.#grantId(current.cwd) !== entry.grantId) return;
     return { view: current, entry };
+  }
+
+  /** Current View's draft for the stock upload route; staging resolves the same authority again. */
+  attached(identity: BrowserAccess, sessionId: string): { sessionId: string; draftId: string } | undefined {
+    if (this.#closed || !this.authority.revalidate(identity)) return;
+    const held = this.#views.get(identity.credentialId);
+    if (!held || held.sessionId !== sessionId || !this.attachment(identity, sessionId, held.draftId)) return;
+    return { sessionId, draftId: held.draftId };
   }
 
   close(): void {
@@ -341,17 +355,50 @@ export class ChatComponentRuntime {
         if (page) entry.idle = entry.stop.state(page);
         return state;
       },
-      request: async (command: SubmissionClientCommand) => await worker.submitCommand(command),
+      request: async (command: SubmissionClientCommand) => {
+        const response = await worker.submitCommand(command);
+        this.supervisor.statusChanged();
+        return response;
+      },
       externalBusy: () => retry.blocksAdmission(),
+      // The stock "Continue generating" button submits an empty prompt; that click is the confirmation.
+      retry: async caller => {
+        const view = this.admission.retryView(caller);
+        if (!view) throw Error("RETRY_NOT_ADMITTED");
+        const offer = retry.offer(view);
+        if (offer.status !== "confirmation") throw Error(`RETRY_${offer.reason.toUpperCase()}`);
+        await retry.confirm(view, offer.requestId);
+        this.supervisor.statusChanged();
+      },
+
       cancel: async () => {
         const page = entry.pages.values().next().value;
-        if (page) { entry.stop.stop(page); this.#refresh(entry, page); return; }
+        if (page) { entry.stop.stop(page); this.supervisor.statusChanged(); this.#refresh(entry, page); return; }
         await worker.control("abort_and_restore_queue");
+        this.supervisor.statusChanged();
       },
       ...(this.gate ? { attachments: {
         has: (requestId: string) => this.gate!.has(requestId),
         submit: (requestId: string, message: string, signal: AbortSignal) => this.gate!.submit(requestId, message, signal),
         recovery: (requestId: string) => this.gate!.recovery(requestId),
+      } } : {}),
+      ...(this.gate && this.uploads ? { stock: {
+        // The stock composer has no attachment consent UI; a lossy receipt is refused before any native dispatch.
+        prepare: async (caller, requestId, request, signal) => {
+          const credential = this.admission.retryView(caller);
+          const held = credential && this.#views.get(credential.credentialId);
+          if (!held || !this.uploads || !this.gate) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
+          const target = { sessionId: held.sessionId, draftId: held.draftId };
+          const prepared = await this.uploads.resolve(held.identity, target, request.content, signal);
+          await this.gate.begin({ selection: { session: held.sessionId, draftId: held.draftId, revision: held.owner,
+            originalIds: prepared.originalIds }, submissionId: requestId, requestId });
+          const receipt = await this.gate.stockPrepare(requestId, prepared.message, signal);
+          const degradations = receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []);
+          if (degradations.length) throw Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+          return { message: prepared.message };
+        },
+        accept: async (requestId: string) => { await this.gate!.stockAccept(requestId); },
+        abort: (requestId: string) => this.gate!.abort(requestId),
       } } : {}),
     });
     const unsubscribe = worker.subscribe(frame => {

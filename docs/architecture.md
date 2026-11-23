@@ -63,8 +63,11 @@ New image/file input is part of the usable MVP. Session-local model/thinking sel
 appearance/language preferences are included; provider, credential and plugin administration is deferred.
 The [attachment contract](attachment-contract.md) records original retention, byte ownership and history
 retrieval targets, with complete preparation before prompt admission and explicit acceptance of degradation.
-Native submission/persistence evidence, preparation/consumption and public draft recovery need additional
-interfaces; attachment integration is unimplemented.
+Native submission/persistence evidence, preparation/consumption and public draft recovery are implemented in
+the stock product shell; `tests/product/product-flow.py` verifies prepared `fileMention`/inline-image
+submission, per-tab draft reload, unsupported-file refusal without blocking a valid send, and byte-exact
+Originals after history reopen. Retained images are still shown as native text placeholders rather than
+inline `<img>` history rendering.
 
 Select the latest official published DSH release, including prereleases, then lock its exact tag and commit
 in `upstreams.lock.json`. The current pin is `dsh-v0.2.2-rc.3` at

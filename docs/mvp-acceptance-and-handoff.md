@@ -1,7 +1,7 @@
 # 扩展 MVP 验收与实施交接合同
 
 Status: 用户已确认 Q1–Q3。产品实现与最终组合已在本地记录的 4 vCPU／8 GiB 组合上冻结、验证并录入身份
-（`docs/release-final.md`、`docs/evidence/ticket-61-freeze.json`）；维护者操作验收与不可变公开发布仍未完成。
+（`docs/release-final.md`、`docs/evidence/ticket-63-freeze.json`）；维护者操作验收与不可变公开发布仍未完成。
 GitHub Actions 在固定镜像上运行完整源代码检查（含冻结门禁的拒绝行为）；通过不构成组合验收，冻结组合仍以本地记录为准。
 日期：2026-11-16（Asia/Singapore）。决策：[扩展 MVP 的验收证据与实施交接顺序](https://github.com/HowBoring/omp-webui/issues/24)。
 本合同汇总开发依赖和验收目标，不声明新的 RPC API、产物 SHA、浏览器版本或通过结果。
@@ -14,7 +14,7 @@ GitHub Actions 在固定镜像上运行完整源代码检查（含冻结门禁�
 | Q2 浏览器矩阵 | Linux Chromium；Windows Chrome 经 localhost 连接 WSL2 Host。具体实际版本记录在获准组合及证据中，键位和入口使用真实平台验证；Linux 模拟 Win32 不能替代 Windows/WSL2 验收 |
 | Q3 初始目标 | 目录 1,000 个 Session；单 Session 基准语料 10,000 个原生 entry／100 MiB 序列化历史。参考 4 vCPU、8 GiB、SSD；稳定运行且无待答交互时，目录/会话首屏 P95≤3 秒、旧历史分页 P95≤1 秒、Bun Host 自身 RSS≤512 MiB。OMP、浏览器、工具另计，首次启动及模型/工具耗时另测 |
 
-Q3 是必须实测的初始目标，通过记录见 `tests/product/evidence/performance-2026-11-22-product.json`（最终代码上 30 次采样：首屏 P95 1180.5 ms、旧分页 P95 116.3 ms、Host 峰值 RSS 334.7 MiB，可达性 46 步 / 10062 节点完整；每次替换都先等文档动画帧与 500 ms 请求静默窗口，再重载产品 URL，测量窗口不包含导航中断）；该记录只对记录的组合（4/20 核 affinity、`MemoryMax=8 GiB` 硬限、本机 20 核 19.4 GiB）有效，其他机器须重测。不达标须优化、补能力或明确与维护者调整，不能用截断历史、
+Q3 是必须实测的初始目标，通过记录见 `tests/product/evidence/performance-2026-11-23-product.json`（最终 stock DSH 组合上 30 次采样：首屏 P95 949.0 ms、旧分页 P95 364.4 ms、Host 峰值 RSS 243.9 MiB，可达性 49 步 / 12783 节点完整；每次替换都先等文档动画帧与 500 ms 请求静默窗口，再重载产品 URL，测量窗口不包含导航中断）；该记录只对记录的组合（4/20 核 affinity、`MemoryMax=8 GiB` 硬限、本机 20 核 19.4 GiB）有效，其他机器须重测。不达标须优化、补能力或明确与维护者调整，不能用截断历史、
 减少既定功能、隐藏失败样本或更换未披露的机器达标。附件原件、单项协议、解码和模型预算分别验收。
 
 ## 范围与准入边界

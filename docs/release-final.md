@@ -10,15 +10,15 @@ keeps reporting `blocked`/`GLOBAL_TARGET_NOT_SELECTED` and nothing here claims a
 
 | Part | Identity |
 |---|---|
-| Host source | `mvp/ticket-61-delivery` @ the merged integration tip; product entry `apps/host/src/main.ts` |
+| Host source | `mvp/ticket-63-dsh-ui` @ `9f762b97e3e62873198a027ebd0f9fdb4305438f`; product entry `apps/host/src/main.ts` |
 | Host runtime | bun 1.4.4, sha256 `10702245766b225e70bbf6235fd6b47214fd94b4760d00ffaed8ab0df57ac235` |
 | OMP base | `57771ae562b9345e0579bceb2d68d585e3e6927e` |
-| OMP source / patch / schema | `66552c62…cb551` / `265e1741…7f1d23` / `bf298085…9fbfc2` |
+| OMP source / patch / schema | `0706f095cf2d02dde65a7e37c8feb0ba9a7d5c3aa866df319264b7822f867ed4` / `b29ddb4a5faa5d2ee0913d93dd2c9399c78fd9a164108a0a6388a5d424f39519` / `bf29808523c0d3217729b1398c1fa7932f45c5f9298a49f713f2386bec9fbfc2` |
 | OMP launcher | `vendor/omp-candidate/omp` → `cli.js` (identity in the installation manifest) |
-| DSH base / source tree | `38a6a5c9…2fced` / `52c982f3…6d0309`, 7 pinned patches |
-| DSH client assets | `client.js` `4884905c…dd45d9`, `index.html` `f19cdbe5…ba7315` |
-| Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `9b02a029…6e402a` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
-| Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 for the browser half |
+| DSH base / source tree | `38a6a5c965aa99ab525161efb7cc5cf1fe62fced` / `8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c`, 10 pinned patches |
+| DSH client | Stock DSH release `0.1.0` @ `8e4ea0b1…` served from `vendor/dsh-product`; boot graph rev `af0cc31f7f36`, roster 34 entries (33 DSH packages + `@omp-webui/product-enrollment`), 136 assets sha256 `acdafd35…2ea0ce`; `index.html` `cbe98cf7…e8ccdd`; no `/client.js` |
+| Installation manifest | `vendor/product/installation.json`; the gate compares the checkout-canonical digest `a0a06db5b1f02f1822f42b62b687bad07ddd535bf01d9310ad515597f7a4c040` (the raw file also carries this checkout's paths, so its own sha256 is per-checkout and not a release identity) |
+| Platform | Linux (WSL2) x64 `127.0.0.1` loopback, Linux Chromium 157.0.8103.38; Windows Chrome Dev 160.0.8171.0 is available but the #63 stock-shell browser rerun is not in this record |
 | Previous build (rollback) | `@oh-my-pi/pi-coding-agent@18.20.2`, `dist/cli.js` sha256 `648be0034d37318687525546dcbef0bd1596dda87d008cc14fecc801c821ac76` |
 
 The performance corpus is frozen separately: `tests/product/evidence/performance-corpus-2026-11-22.json`
@@ -32,7 +32,7 @@ that path with `<corpus>/project`, so two generations in different directories a
 the same generator digest, and `createdAt` records when a corpus was made; corpora generated before this
 canonicalisation are superseded.
 
-Full machine-readable identities, keymap chords and budgets: `docs/evidence/ticket-61-freeze.json`.
+Full machine-readable identities, keymap chords and budgets: `docs/evidence/ticket-63-freeze.json`.
 `tests/product/freeze.test.ts` fails if the enrolled installation drifts from that record. The gate
 canonicalizes checkout paths, so the same closure enrolls in any worktree without weakening the pinned
 source, patch, schema or asset identities: system dependency paths reduce to their basename, and the
@@ -53,20 +53,20 @@ or claiming tuple reproduction, which remains local.
 
 | Area | Result | Evidence |
 |---|---|---|
-| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":4}`) | `ticket-61-freeze.json` |
-| Linux Host start, bootstrap admission, assets, revoke-all | PASS | `ticket-61-platforms.json` `linux` |
-| Linux product flow: new native Session, live attach, send/stream, Stop, retry, keymap chords | PASS | `ticket-61-platforms.json` `linux.productFlow`; `tests/product/product-flow.py` |
-| Windows Chrome (real Win32 browser) shell, admission, console | PASS | `ticket-61-platforms.json` `windowsChrome` |
-| Windows input (keyboard, menus, file input) | PASS; CDP drop not surfaced, OS clipboard/Explorer drag unavailable | `ticket-61-platforms.json` `windowsChrome.inputInjection`; `docs/evidence/ticket-61-windows-input.json` |
-| Native TUI/history/upgrade/current-data rollback on isolated data | PASS, 6/6 checks | `ticket-61-native-data.json` + `.md` |
-| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 1180.5 ms, old page P95 116.3 ms, Host peak RSS 334.7 MiB, reachability complete | `tests/product/evidence/performance-2026-11-22-product.json` |
+| Build → verify → enroll | PASS (`product:verify` `{"status":"verified","files":136}`; installation `af5451f2…6ff7`) | `ticket-63-freeze.json` |
+| Frozen stock-shell composition | PASS: 10/10 freeze tests, roster 34, stock assets 136, no custom `/client.js` | `tests/product/freeze.test.ts`; `ticket-63-freeze.json` |
+| Linux product flow on the stock DSH shell: model/thinking, preferences reload, explicit continue, new native Session, Stop, send after Stop, Enter/New Session, draft reload, unsupported attachment refusal, PNG+TXT send and byte-exact Originals | PASS: 10 scenarios, 25 s, zero console errors | `docs/evidence/ticket-63-product-flow.json`; `tests/product/product-flow.py` |
+| Linux Host start, bootstrap admission, assets, revoke-all | PASS | `docs/evidence/ticket-59-platforms.json` `linux` |
+| Windows Chrome (real Win32 browser) stock-shell shell/admission/input | NOT RERUN for #63; the recorded Windows evidence belongs to the superseded #61 custom-shell tuple and is not a claim about this composition | `ticket-61-windows-chrome.json`, `ticket-61-windows-input.json` |
+| Native TUI/history/upgrade/current-data rollback on isolated data | PASS on the same OMP base (shell-independent); not rerun in this session because `vendor/omp-previous` is not provisioned in this worktree | `docs/evidence/ticket-61-native-data.json` |
+| Performance (3 s / 1 s / 512 MiB) | PASS: 30 samples on this build — first page P95 949.0 ms, old page P95 364.4 ms, Host peak RSS 243.9 MiB, reachability complete | `tests/product/evidence/performance-2026-11-23-product.json` |
 | Public distribution / automatic update | out of MVP scope | spec *Out of Scope*; `packages/delivery/gate.ts` is unwired |
 | Maintainer operational acceptance | NOT RUN | `ticket-61-acceptance.md` checklist |
 
 The performance record was produced by this build on the recorded combination: 4 of 20 processors by
 affinity (`taskset`), a hard `MemoryMax=8 GiB` cgroup, 31 first-page values — the 30 measured reloads plus
-the cold open (11939.7 ms), with two warmups discarded — reachability 46 steps / 10062 nodes with
-`allNativeReachable: true`, and
+the cold open (17838.2 ms), with two warmups discarded — reachability 49 steps / 12783 nodes with
+`allNativeReachable: true` and the duplicate-preserving reset check intact, and
 `BLOCKED_CLASSES=[] REACH_FAILED_CLASSES=[] FAILED_CLASSES=[]`. It is not 4-vCPU hardware and not a
 different machine, and it is only valid for the recorded corpus identity in
 `tests/product/evidence/performance-corpus-2026-11-22.json`.
@@ -78,6 +78,7 @@ different machine, and it is only valid for the recorded corpus identity in
 * The controlled provider (`compatibility/omp/fixtures/live-provider.ts`) is not real inference.
 * Native data evidence uses synthetic isolated Sessions; real user history is never migrated or
   rewritten by tests.
-* The Windows browser half is real Win32 Chrome driven over CDP. Its keyboard, menu and file-input
-  paths are PASS; OS clipboard paste and an Explorer-originated drag need a visible Windows desktop
-  and are not claimed.
+* The recorded Windows browser evidence predates the #63 stock shell: it is real Win32 Chrome over CDP
+  against the superseded custom-shell tuple. The stock-shell Windows shell/admission/keyboard rerun is
+  still required before #63 acceptance; OS clipboard paste and Explorer-originated drag need a visible
+  Windows desktop and are not claimed.

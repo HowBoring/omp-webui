@@ -106,6 +106,10 @@ const nativeThinking = z.enum(["inherit", "off", "minimal", "low", "medium", "hi
 const nativeModel = z.object({ provider: z.string().min(1), id: z.string().min(1), name: z.string().min(1),
   reasoning: z.boolean(), thinking: z.object({ efforts: z.array(nativeThinking).max(8) }).passthrough().optional() }).passthrough();
 export type AvailableModel = z.infer<typeof nativeModel>;
+/** The public slash-command catalog entry; unknown native fields pass through untouched. */
+const nativeCommand = z.object({ name: z.string().min(1).max(128), description: z.string().max(8192).optional(),
+  input: z.object({ hint: z.string().max(2048) }).passthrough().optional(), source: z.string().min(1).max(32) }).passthrough();
+export type NativeCommand = z.infer<typeof nativeCommand>;
 
 async function readSessionState(request: Request): Promise<SessionState> {
   const value = await request({ type: "get_state", id: crypto.randomUUID() });
@@ -193,6 +197,12 @@ class SessionRpc {
     const value = z.object({ models: z.array(nativeModel).max(4096) }).parse(
       await this.core.request({ type: "get_available_models", id: crypto.randomUUID() }));
     return value.models;
+  }
+  /** Public native slash-command catalog: builtins, skills, extensions, custom, MCP prompts and files. */
+  async availableCommands(): Promise<readonly NativeCommand[]> {
+    const value = z.object({ commands: z.array(nativeCommand).max(4096) }).parse(
+      await this.core.request({ type: "get_available_commands", id: crypto.randomUUID() }));
+    return value.commands;
   }
   async thinkingLevels(): Promise<z.infer<typeof nativeThinking>[]> {
     const value = z.object({ levels: z.array(nativeThinking).max(8) }).parse(

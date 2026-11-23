@@ -92,6 +92,11 @@
         "path": "compatibility/omp/0014-rpc-session-status.patch",
         "bytes": 5736,
         "sha256": "fac9ecf821336364f8ddc8c4240f41309021a32e6e9fd397d2718f411fd30128"
+      },
+      {
+        "path": "compatibility/omp/0015-visible-assistant-text.patch",
+        "bytes": 3242,
+        "sha256": "118134ed56c936a17c690fcdc6f1eea2615f9e1e48e167ce27baa1d92c1ffc7d"
       }
     ],
     "immutableFreeze": {

@@ -2,7 +2,7 @@ import { expect, spyOn, test } from "bun:test";
 import { z } from "zod";
 import { rm, rename, mkdir } from "node:fs/promises";
 import { HistoryClient } from "../../packages/contracts/generated/history-client.ts";
-import type { HistoryCut, HistoryOpen, HistoryPage } from "../../packages/contracts/generated/omp-wire.ts";
+import type { HistoryChange, HistoryCut, HistoryOpen, HistoryPage } from "../../packages/contracts/generated/omp-wire.ts";
 import { sourceFixture } from "./source-fixture.ts";
 import type { OwnedSessionConnection } from "../../packages/compatibility/session-worker.ts";
 import type { DrainPolicy, DrainResult } from "../../packages/compatibility/stdio-transport.ts";
@@ -775,7 +775,8 @@ test.each(["incomplete EOF", "failed domain", "failed output"] as const)("an own
 
 function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error | undefined,
                     hold?: (opens: number) => Promise<void> | undefined,
-                    stats?: { opens: number; closes: number }): HistoryClient {
+                    stats?: { opens: number; closes: number },
+                    pollEvents?: () => HistoryChange[]): HistoryClient {
   let current: HistoryOpen | undefined;
   let opens = 0;
   const live = new Set<string>();
@@ -809,15 +810,18 @@ function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error 
         live.delete(command.snapshot);
         if (stats) stats.closes += 1;
         return { closed: true };
-      case "history_observation_poll":
-        return { cut: cut(), after: cut().observationSeq, through: cut().observationSeq, events: [], hasMore: false };
+      case "history_observation_poll": {
+        const events = pollEvents?.() ?? [];
+        const seq = cut().observationSeq;
+        return { cut: cut(), after: seq, through: seq + events.length, events, hasMore: false };
+      }
       case "history_snapshot_page": {
         const opened = current!;
         const scope = command.cursor.startsWith("active-") ? "active" : "live";
         const page: HistoryPage = { snapshot: opened.snapshot, scope, cut: opened.cut, expiresAt: opened.expiresAt,
           complete: true,
           items: scope === "active"
-            ? [{ id: "leaf", parentId: null, active: true, kind: "message", role: "user", text: "Hello" }] : [],
+            ? [{ id: cut().leafId ?? "leaf", parentId: null, active: true, kind: "message", role: "user", text: "Hello" }] : [],
           ...(scope === "active" ? { offset: Math.max(0, (command.before ?? 1) - 1) } : {}) };
         return page;
       }
@@ -825,7 +829,7 @@ function cutHistory(cut: () => HistoryCut, openFault?: (opens: number) => Error 
   });
 }
 
-test("ordinary native cut recovery after a settings renewal advances to a fresh presentation generation", async () => {
+test("ordinary native cut recovery after a settings renewal continues the renewed presentation", async () => {
   let cut: HistoryCut = {
     durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
     workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
@@ -838,11 +842,14 @@ test("ordinary native cut recovery after a settings renewal advances to a fresh 
     const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
     expect(renewed?.projection.generation).not.toBe(initial);
     cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
+    // A settings renewal already publishes a fresh generation; the following cut move is bookkeeping and
+    // stays on it instead of retiring the generation the viewer just bound.
     expect(() => renewed!.accept({ cut, after: renewed!.after, through: renewed!.after, events: [], hasMore: false }))
-      .toThrow("live_context_changed");
-    const recovered = await f.supervisor.presentation(f.identity, sessionId);
-    expect(recovered).not.toBe(renewed!);
-    expect(recovered.projection.generation).not.toBe(renewed!.projection.generation);
+      .not.toThrow();
+    expect(renewed!.opened.cut.contextId).toBe("context-1");
+    expect((await renewed!.page({ maxMessages: 1 })).records.length).toBeGreaterThan(0);
+    const current = await f.supervisor.presentation(f.identity, sessionId);
+    expect(current?.projection.generation).toBe(renewed!.projection.generation);
   } finally { await f.close(); }
 });
 
@@ -868,6 +875,45 @@ test("a failed presentation renewal keeps the current journal, generation and co
     const renewed = await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId);
     expect(renewed?.generation).not.toBe(current.generation);
     expect(await f.supervisor.presentation(f.identity, sessionId)).toBe(renewed!);
+  } finally { await f.close(); }
+});
+
+test("a worker settle closes the followed journal only and stops at retirement", async () => {
+  const cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  const f = await sourceFixture(undefined, undefined, cutHistory(() => cut));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const initial = await f.supervisor.presentation(f.identity, sessionId);
+    const renewed = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
+    const initialCursor = initial.cursor, renewedCursor = renewed.cursor;
+    f.emit({ type: "session_settled" });
+    // Native's quiet frame can lead the observation cursor, so the close lands on the next quiet
+    // observation instead of ahead of an assistant settlement the Worker has not handed over yet.
+    expect(renewed.cursor).toBe(renewedCursor);
+    renewed.accept({ cut: renewed.opened.cut, after: renewed.after, through: renewed.after, events: [], hasMore: false });
+    expect(renewed.cursor).toBe(renewedCursor + 1);
+    expect((await renewed.page({ maxMessages: 8 })).records.at(-1)?.event)
+      .toMatchObject({ type: "turn/end", data: { turn: 1, reason: { kind: "aborted", reason: { kind: "legacy" } } } });
+    // The retired generation never receives the quiet notification.
+    expect(initial.cursor).toBe(initialCursor);
+    initial.settle();
+    expect(initial.cursor).toBe(initialCursor);
+    // The followed generation also sees a prompt result that carries settlement.
+    const again = (await f.supervisor.refreshPresentation(f.identity, opened.workerId, sessionId))!;
+    const againCursor = again.cursor;
+    f.emit({ type: "prompt_result", agentInvoked: false, status: "completed", sessionSettled: true });
+    expect(again.cursor).toBe(againCursor);
+    again.accept({ cut: again.opened.cut, after: again.after, through: again.after, events: [], hasMore: false });
+    expect(again.cursor).toBe(againCursor + 1);
+    // Retirement releases the hook: a further notification cannot append to a dead generation.
+    f.supervisor.invalidatePresentation(f.identity, opened.workerId, sessionId);
+    const retiredCursor = again.cursor;
+    f.emit({ type: "session_settled" });
+    expect(again.cursor).toBe(retiredCursor);
   } finally { await f.close(); }
 });
 
@@ -922,7 +968,7 @@ test("a replacement published during a refresh disposes every opening it displac
   } finally { await f.close(); }
 });
 
-test("a live poll that observes a native cut change republishes the presentation for control", async () => {
+test("a live poll that observes a native cut move continues the presented generation", async () => {
   let cut: HistoryCut = {
     durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
     workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
@@ -932,14 +978,48 @@ test("a live poll that observes a native cut change republishes the presentation
   try {
     const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
     const presented = await f.supervisor.presentation(f.identity, sessionId);
-    cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
-    await expect(f.supervisor.pollPresentation(f.identity, sessionId, presented)).rejects.toThrow("live_context_changed");
-    // The failed follower is replaced immediately: control sees a new epoch naming an open generation,
-    // so the stuck viewer rebuilds instead of waiting for a manual page reload.
+    const epoch = f.supervisor.presentationEpoch(f.identity);
+    cut = { ...cut, sourceId: "source-2", contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2 };
+    // Activation and a first submission move the Native cut under a viewer the stock client cannot
+    // rebind. The presentation continues on the successor cut instead of retiring the only generation
+    // the mounted Conversation follows; `accept` still proves the stream and branch contiguous.
+    await f.supervisor.pollPresentation(f.identity, sessionId, presented);
+    expect(f.supervisor.activeJournal(f.identity)).toBe(presented);
+    expect(presented.opened.cut.contextId).toBe("context-1");
+    expect(presented.opened.cut.contentRevision).toBe("content-v1");
+    expect(f.supervisor.presentationEpoch(f.identity)).toBe(epoch);
+    expect(() => f.supervisor.requirePresentation(f.identity, sessionId, presented)).not.toThrow();
+    // The successor snapshot pages the same records, so scrolling keeps working without a reload.
+    expect((await presented.page({ maxMessages: 1 })).records.length).toBeGreaterThan(0);
+    // A later poll on the same generation is still accepted.
+    await f.supervisor.pollPresentation(f.identity, sessionId, presented);
+    expect(f.supervisor.activeJournal(f.identity)).toBe(presented);
+  } finally { await f.close(); }
+});
+
+test("a live poll that observes a native branch move retires the presentation and republishes", async () => {
+  let cut: HistoryCut = {
+    durability: "not_attested", sourceBindingStatus: "worker", sourceId: "source", sessionId: "native-session",
+    workerId: "worker", contextId: "context-1", contentRevision: "content-v1", nativeRevision: 1,
+    retainedRevision: "retained-v1", leafId: "leaf", observationSeq: 0,
+  };
+  let events: HistoryChange[] = [];
+  const f = await sourceFixture(undefined, undefined,
+    cutHistory(() => cut, undefined, undefined, undefined, () => { const served = events; events = []; return served; }));
+  try {
+    const opened = await f.supervisor.open(f.identity, f.selected), sessionId = opened.registration.nativeSessionId;
+    const presented = await f.supervisor.presentation(f.identity, sessionId);
+    cut = { ...cut, contextId: "context-2", contentRevision: "content-v2", nativeRevision: 2, leafId: "other" };
+    events = [{ seq: 1, kind: "native_setLeaf",
+      source: { kind: "setLeaf", revision: 2, contextRevision: 2, sessionId: "native-session", leafId: "other" } }];
+    await expect(f.supervisor.pollPresentation(f.identity, sessionId, presented))
+      .rejects.toThrow("live_projection_invalidated");
+    // A visible path the viewer did not see cannot be continued: control gets a replacement generation
+    // and the retired journal rejects every later frame from its followers.
     const recovered = f.supervisor.activeJournal(f.identity);
     expect(recovered).toBeDefined(); expect(recovered).not.toBe(presented);
     expect(recovered!.failure).toBeUndefined();
-    expect(recovered!.projection.generation).not.toBe(presented.projection.generation);
+    expect(presented.failure).toBe("live_projection_invalidated");
     expect(f.supervisor.presentationEpoch(f.identity)).toBeGreaterThan(0);
     expect(() => f.supervisor.requirePresentation(f.identity, sessionId, presented))
       .toThrow("SESSION_PRESENTATION_INVALIDATED");

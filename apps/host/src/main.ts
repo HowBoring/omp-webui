@@ -1,6 +1,8 @@
 /** Product Host entry. It serves the UI only for the independently enrolled installation. */
+import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve, join } from "node:path";
+import { getSessionsDir } from "@oh-my-pi/pi-utils/dirs";
 import { openBrowserAccess } from "../../../packages/access/index.ts";
 import { configuredOrigin } from "../../../packages/access/trust.ts";
 import { CatalogTransport } from "../../../packages/compatibility/catalog-transport.ts";
@@ -56,6 +58,10 @@ if (admission.status !== "admitted" || admission.verified === undefined) {
     console.info(authority.bootstrapLink()); authority.close(); process.exit(0);
   }
   const prefix = [verified.runtime, verified.target];
+  // NativeCatalog resolves its sources once when it starts. A sessions root created after that stays
+  // INVALID_SOURCE for the whole process, so History and branch lineage would never see a Session native
+  // creates in a fresh agent home. The root belongs to native storage; we only make it exist in time.
+  await mkdir(getSessionsDir(), { recursive: true });
   const catalog = await CatalogTransport.open({ argv: [...prefix, "--rpc-catalog"], env, cwd: process.cwd(),
     readyTimeoutMs: 20_000 });
   const host = await startSessionComponentServer({

@@ -14,6 +14,7 @@ import { ChatGateway, type ChatCaller, type ChatWorkerPort } from "../../package
 import type { SubmissionClientCommand } from "../../packages/contracts/candidates/durable-submission-v1/submission-client.ts";
 import type { SubmissionResult } from "../../packages/contracts/candidates/durable-submission-v1/omp-wire.ts";
 import type { StopSnapshot } from "../../packages/contracts/stop.ts";
+import { brandString, type Branded } from "@deepseek-ai/dsh-brand";
 
 const target = { sourceId: "a".repeat(64), instanceId: "b".repeat(64), nativeSessionId: "native" };
 const sessionId = SessionId("native");
@@ -104,6 +105,19 @@ test("an attachment attempt is handed to the gate, never resubmitted as text", a
   expect(await f.gateway.prompt(f.peer, prompt("request-image"), new AbortController().signal)).toEqual({ accepted: true });
   expect(calls).toEqual([["request-image", "  /help\n@literal  "]]);
   expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
+test("the stock Continue generating prompt retries through the manual-retry gate, not a new turn", async () => {
+  const f = fixture();
+  let retried = 0;
+  f.ports.retry = async () => { retried++; };
+  expect(await f.gateway.prompt(f.peer, prompt("request-continue", "   "), new AbortController().signal))
+    .toEqual({ accepted: true });
+  expect(retried).toBe(1);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+  const bare = fixture();
+  await expect(bare.gateway.prompt(bare.peer, prompt("request-continue", ""), new AbortController().signal))
+    .rejects.toThrow("chat_invalid");
 });
 
 test("a busy native Session refuses an attachment Send before preparing, queueing, or submitting", async () => {
@@ -542,4 +556,71 @@ test("after a terminal conflict a fresh Gateway request still needs current Nati
   expect(f.commands.map(command => [command.type, command.clientSubmissionId])).toEqual([
     ["submission_submit", "conflict-key"], ["submission_submit", "fresh-key"], ["submission_query", "fresh-key"],
   ]);
+});
+
+function stockFixture() {
+  const f = fixture(), events: string[] = [];
+  Object.defineProperty(f.ports, "attachments", { configurable: true, value: {
+    has: () => true,
+    async submit(_requestId: string, message: string) { events.push(`submit:${message}`); },
+    recovery: () => "accepted" as const,
+  } });
+  Object.defineProperty(f.ports, "stock", { configurable: true, value: {
+    async prepare(_caller: ChatCaller, _requestId: string, request: SessionPromptRequest) {
+      events.push(`prepare:${request.content.map(part => part.type).join(",")}`);
+      return { message: request.content.flatMap(part => part.type === "text" ? [part.text] : []).join("") };
+    },
+    async accept() { events.push("accept"); },
+    async abort() { events.push("abort"); },
+  } });
+  f.state(async () => { events.push("state"); return idle; });
+  return { f, events };
+}
+
+const filePart = (receiptId: string) => ({ type: "file" as const,
+  receiptId: brandString<Branded<"file-upload-receipt-id">>(receiptId) });
+
+function attachedPrompt(id: string, content: SessionPromptRequest["content"]): SessionPromptRequest {
+  return { requestId: id as SessionPromptRequest["requestId"], sessionId, projection, mode: "queue", content };
+}
+
+test("a stock file prompt prepares first, then crosses the idle gate and submits the resolved message", async () => {
+  const { f, events } = stockFixture();
+  const content = [{ type: "text" as const, text: "see " }, filePart("receipt-1")];
+  expect(await f.gateway.prompt(f.peer, attachedPrompt("request-file", content), new AbortController().signal))
+    .toEqual({ accepted: true });
+  expect(events).toEqual(["prepare:text,file", "state", "accept", "submit:see "]);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
+test("empty stock text with a file is a real send while empty text alone stays a manual retry", async () => {
+  const { f, events } = stockFixture();
+  expect(await f.gateway.prompt(f.peer, attachedPrompt("request-empty",
+    [filePart("receipt-2")]), new AbortController().signal))
+    .toEqual({ accepted: true });
+  expect(events.at(-1)).toBe("submit:");
+  const retried = stockFixture();
+  let retries = 0;
+  retried.f.ports.retry = async () => { retries++; };
+  await retried.f.gateway.prompt(retried.f.peer, prompt("request-continue", ""), new AbortController().signal);
+  expect(retries).toBe(1);
+  expect(retried.events).toEqual([]);
+});
+
+test("a busy native Session refuses the prepared stock receipt without accepting or submitting", async () => {
+  const { f, events } = stockFixture();
+  f.state(async () => { events.push("state"); return { ...idle, isStreaming: true }; });
+  await expect(f.gateway.prompt(f.peer, attachedPrompt("request-busy",
+    [filePart("receipt-3")]), new AbortController().signal))
+    .rejects.toThrow("chat_busy");
+  expect(events).toEqual(["prepare:file", "state", "abort"]);
+  expect(f.commands.filter(command => command.type === "submission_submit")).toHaveLength(0);
+});
+
+test("the stock fingerprint covers receipt ids so a changed attachment cannot reuse a request key", async () => {
+  const { f } = stockFixture();
+  const first = attachedPrompt("request-print", [filePart("receipt-4")]);
+  const second = attachedPrompt("request-print", [filePart("receipt-5")]);
+  await f.gateway.prompt(f.peer, first, new AbortController().signal);
+  await expect(f.gateway.prompt(f.peer, second, new AbortController().signal)).rejects.toThrow("chat_conflict");
 });

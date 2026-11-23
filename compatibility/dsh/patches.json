@@ -37,6 +37,21 @@
       "path": "patches/0009-linux-web-shortcuts.patch",
       "sha256": "9ba36f2083360e113118e1f86619081334ebc9a6c4e78ba15aaaa4c2347ead32",
       "treeAfter": "52c982f334decf8c27e2296445dedada1e6d0309"
+    },
+    {
+      "path": "patches/0010-chat-source-rebind.patch",
+      "sha256": "90df8ac2915bd793af9988a545d06adcae64b1de1d5922bee3019c7fcf2c8592",
+      "treeAfter": "23caf717f04503207a6154c68fd25fea79b15957"
+    },
+    {
+      "path": "patches/0011-conversation-source-rebind.patch",
+      "sha256": "4caaf35b190d19164d47eb480e4192311e444b13e1611b5d268c7cbf0c144e2a",
+      "treeAfter": "3c517fbb5a4eb5397de624e550bd253576b91bd4"
+    },
+    {
+      "path": "patches/0012-client-test-projection-seam.patch",
+      "sha256": "81208a578e4e7b04a4812889a0c58d5312ad5c158705b899b48f0b252e7abedf",
+      "treeAfter": "8e4ea0b1ed2a01ab008ee8c9ff20f5edc6f01b8c"
     }
   ]
 }

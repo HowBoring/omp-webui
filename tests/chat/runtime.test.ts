@@ -82,6 +82,72 @@ test("a Session relaunched after switching away resolves Chat to the new worker 
   }
 });
 
+test("a plain gateway submission publishes the running turn for the stock Stop control", async () => {
+  const source = await sourceFixture();
+  const admission = new ChatViewAdmission(source.authority, source.grants, source.supervisor);
+  const runtime = new ChatComponentRuntime(source.authority, source.grants, source.supervisor, admission);
+  try {
+    const { nativeSessionId, sourceId, instanceId } = source.selected;
+    const sessionId = SessionId(nativeSessionId);
+    const opened = await source.supervisor.open(source.identity, source.selected);
+    expect(runtime.attach(source.identity, { workerId: opened.workerId, projection, draftId: "draft" })?.generation)
+      .toBe(opened.generation);
+    const { worker } = source.supervisor.runtime(source.identity, opened.workerId);
+    const target = { nativeSessionId, sourceId, instanceId };
+    let submitted = 0;
+    worker.submitCommand = async (command: SubmissionClientCommand) => {
+      const clientSubmissionId = command.clientSubmissionId;
+      if (command.type === "submission_submit") {
+        ++submitted;
+        // Native starts the turn before it acknowledges the accepted submission.
+        source.controls.busy = true;
+      }
+      const data: SubmissionResult = {
+        version: "durable-submission-v1", clientSubmissionId, target, found: true, duplicate: false, admission: "local",
+        origin: { ...target, clientSubmissionId }, reservation: "committed", nextOffset: null, operationOutcome: "unknown",
+        inputOutcome: "generated", terminal: false, persistence: "committed",
+        relations: [{ relationId: `entry:${clientSubmissionId}`, role: "input", status: "observed",
+          persistence: "committed", entryId: "real-input", availability: "retained" }],
+      };
+      return { type: "response", id: command.id, command: command.type, success: true, data };
+    };
+    const seen: { sessionId: string; running: boolean }[] = [];
+    const published = Promise.withResolvers<void>();
+    const release = source.supervisor.subscribeStatus(status => {
+      if (!status) return;
+      seen.push(status);
+      published.resolve();
+    });
+    try {
+      const enrollment = runtime.enrollment(source.identity);
+      expect(enrollment).toBeDefined();
+      const peer = { signal: new AbortController().signal } as PeerScope;
+      const binding = admission.bind(source.identity, enrollment!, peer, new AbortController().signal);
+      expect(binding).toBeDefined();
+      const request = { sessionId, requestId: brandString<SessionRequestId>("draft-b"), projection,
+        mode: "queue" as const, content: [{ type: "text" as const, text: "start a turn" }] };
+      const outcome = await binding!.run(async () => {
+        const gateway = runtime.gateway(sessionId);
+        if (!gateway) return "no-gateway";
+        const view = chatViewCaller.getStore();
+        if (!view) return "no-capability";
+        try {
+          await gateway.prompt({ view, peer }, request, new AbortController().signal);
+          return "accepted";
+        } catch (error) {
+          return error instanceof ChatError ? error.code : "other";
+        }
+      });
+      expect({ outcome, submitted }).toEqual({ outcome: "accepted", submitted: 1 });
+      await published.promise;
+      expect(seen).toEqual([{ sessionId: nativeSessionId, running: true }]);
+    } finally { release(); }
+  } finally {
+    runtime.close();
+    await source.close();
+  }
+});
+
 test("a replacement browser attaches to the live worker after the first browser is gone", async () => {
   const source = await sourceFixture();
   const admission = new ChatViewAdmission(source.authority, source.grants, source.supervisor);

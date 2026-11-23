@@ -1,13 +1,10 @@
-"""Final product tuple -> real Linux Chromium -> public product Host -> strict native worker.
+"""Final product tuple -> real Linux Chromium -> stock DSH UI -> public Host -> strict native worker.
 
 Controlled provider only (`compatibility/omp/fixtures/live-provider.ts`); never real inference.
-Covers the scenarios ticket 59 recorded on an older patch set: new Session, send, Stop, retry.
-
-Status on the ticket-61 combination: new Session and send/stream pass; the Stop and retry phases do not
-finish inside the deadline on this Host (the composer stays disabled between phases), so
-`docs/evidence/ticket-61-platforms.json` records them as NOT RUN rather than inheriting ticket 59.
+Drives the stock DSH shell (no custom full-page client): directory grant, New Session, composer,
+Send, Stop, Continue, history reopen, a second view and the native JSONL identity behind them.
 """
-import asyncio, json, os, shutil, signal, subprocess, sys, time, urllib.request
+import asyncio, base64, hashlib, json, os, re, shutil, signal, subprocess, sys, time, urllib.request
 from pathlib import Path
 from playwright.async_api import async_playwright, expect
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
@@ -20,7 +17,14 @@ WORK = Path(os.environ.get("OMP_PRODUCT_FLOW_DIR", ROOT / "vendor/product-flow")
 HOME = WORK / "project" / "agent-home"
 DATA = WORK / "data"
 PROJECT = WORK / "project"
-LINUX_WEB_MAC = "Control+Alt+Enter"
+FINAL = "authoritative controlled final"
+SESSION = "[data-conversation-session]"
+COMPOSER = '[contenteditable="true"][data-phase]'
+# 200x200 white PNG: the native image policy leaves it untouched (a smaller image is scaled and
+# reports an image_transformed degradation the stock composer cannot consent to).
+PNG_200 = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAMgAAADICAIAAAAiOjnJAAABcUlEQVR42u3SMQ0AAAzDsPIn3aKYtMOGECWFA5EAY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWGAsjIWxwFgYC2OBsTAWxgJjYSyMBcbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbHAWBgLY4GxMBbGAmNhLIwFxsJYGAuMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbHAWBgLY4GxMBbGAmNhLIwFxsJYGAuMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGAtjYSwwFsbCWGAsjIWxwFgYC2OBsTAWxgJjYSyMBcbCWBgLjIWxMBYYC2NhLDAWxsJYYCyMhbEwFhgLY2EsMBbGwlhgLIyFscBYGAtjgbEwFsYCY2EsjAXGwlgYC4yFsTAWGItvBsLKBp6arxoqAAAAAElFTkSuQmCC"
+)
 
 CONFIG = """extensions:
   - %s
@@ -74,8 +78,10 @@ def bootstrap(scenario=None, delay=None):
 
 
 async def start_host(scenario=None, delay=None):
+    (ROOT / "vendor/product-flow").mkdir(parents=True, exist_ok=True)
     host = subprocess.Popen([BUN, "--no-env-file", "apps/host/src/main.ts"], cwd=ROOT,
-                            env=host_env(scenario, delay), stdout=open(ROOT / "vendor/product-flow/host.log", "w"), stderr=subprocess.STDOUT)
+                            env=host_env(scenario, delay), stdout=open(ROOT / "vendor/product-flow/host.log", "w"), stderr=subprocess.STDOUT,
+                            start_new_session=True)
     for _ in range(300):
         if health():
             return host
@@ -85,17 +91,25 @@ async def start_host(scenario=None, delay=None):
 
 
 async def stop_host(host):
-    subprocess.run(["pkill", "-f", f"{ROOT}/vendor/omp-candidate/cli.js"], check=False)
-    if host.poll() is None:
-        host.send_signal(signal.SIGTERM)
+    # The Host starts its native worker in this recorded process group; signalling the group never
+    # touches another run's Host or worker on the machine.
+    try:
+        os.killpg(os.getpgid(host.pid), signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    try:
+        host.wait(timeout=10)
+    except subprocess.TimeoutExpired:
         try:
-            host.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            host.kill()
+            os.killpg(os.getpgid(host.pid), signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        host.kill()
     await asyncio.sleep(0.5)
 
 
 async def grant(page):
+    await page.locator("[data-product-directories-toggle]").click()
     await page.get_by_label("Directory to authorize").fill(str(PROJECT))
     await page.get_by_role("button", name="Review directory", exact=True).click()
     await page.get_by_role("button", name="Grant this directory and descendants", exact=True).click()
@@ -103,126 +117,391 @@ async def grant(page):
     await page.wait_for_selector('li[data-product-grant][data-product-grant-status="valid"]', timeout=60000)
 
 
-async def new_session(page):
+async def native_session(page, timeout=180000):
+    await page.wait_for_function(
+        "() => (document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') ?? '') !== ''",
+        timeout=timeout)
+    return await page.locator(SESSION).first.get_attribute("data-conversation-session")
+
+
+async def new_session(page, previous=""):
     await page.locator('li[data-product-grant][data-product-grant-status="valid"]').get_by_role(
         "button", name="New Session here", exact=True).click()
     await page.wait_for_function(
-        "() => (document.querySelector('[data-chat-native-session]')?.getAttribute('data-chat-native-session') ?? '') !== ''",
-        timeout=180000)
-    return await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session")
+        "previous => (document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') ?? '') !== previous",
+        arg=previous, timeout=180000)
+    return await native_session(page)
 
 
-async def send(page, text):
-    await expect(page.get_by_label("Message")).to_be_enabled(timeout=180000)
-    await page.get_by_label("Message").fill(text)
-    await page.wait_for_selector('[data-chat-draft-ready="true"]', state="attached", timeout=60000)
-    await page.get_by_role("button", name="Send", exact=True).click()
+async def stock_command(page, checks):
+    """Type the stock slash menu, pick a Native command, and let Native consume the bare line."""
+    box = await wait_composer(page)
+    await box.click()
+    await box.type("/")
+    await expect(page.get_by_role("listbox")).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("option", name=re.compile(r"^context\b")).first).to_be_visible(timeout=60000)
+    names = [text.split("\n", 1)[0].strip() for text in await page.get_by_role("option").all_inner_texts()]
+    checks["slashCatalog"] = names
+    assert "context" in names, "the Native catalog left the stock slash menu"
+    assert "Model" in names, "the stock /model contribution left the menu"
+    await box.type("cont")
+    option = page.get_by_role("option", name=re.compile(r"^context\b"))
+    await expect(option.first).to_be_visible(timeout=60000)
+    await option.first.click()
+    await page.wait_for_function(
+        "selector => { const nodes = document.querySelectorAll(selector); const node = nodes[nodes.length - 1];"
+        " return node !== undefined && node.innerText.trim() === ''; }",
+        arg=COMPOSER, timeout=60000)
+    checks["slashCommand"] = "/context"
 
 
-async def settle(page, outcome="succeeded"):
-    await expect(page.locator("[data-chat-settlement]")).to_contain_text(outcome, timeout=120000)
+async def composer(page):
+    return page.locator(COMPOSER).last
 
 
-async def streaming(page):
-    await expect(page.locator("[data-chat-settlement]")).to_have_attribute(
-        "data-chat-settlement", "running", timeout=120000)
+async def wait_composer(page, timeout=180000):
+    box = page.locator(COMPOSER).last
+    await expect(box).to_be_visible(timeout=timeout)
+    await page.wait_for_function(
+        "selector => { const nodes = document.querySelectorAll(selector); const node = nodes[nodes.length - 1];"
+        " return node !== undefined && node.getAttribute('aria-disabled') !== 'true'; }",
+        arg=COMPOSER, timeout=timeout)
+    return box
+
+
+async def send(page, text, enter=False):
+    box = await wait_composer(page)
+    await box.fill(text)
+    if enter:
+        await box.press("Enter")
+        return
+    await expect(page.get_by_role("button", name="Send message", exact=True)).to_be_enabled(timeout=60000)
+    notice = "projection is synchronizing; retry input after it is ready"
+    for _ in range(4):
+        await page.get_by_role("button", name="Send message", exact=True).click()
+        try:
+            await page.wait_for_function(
+                "([selector, notice]) => {"
+                " const nodes = document.querySelectorAll(selector); const node = nodes[nodes.length - 1];"
+                " return node !== undefined && (node.innerText.trim() === '' || document.body.innerText.includes(notice)); }",
+                arg=[COMPOSER, notice], timeout=15000)
+        except PlaywrightTimeoutError:
+            pass
+        if (await page.locator(COMPOSER).last.inner_text()).strip() == "":
+            return
+        try:
+            await page.wait_for_function(
+                "text => !document.body.innerText.includes(text)", arg=notice, timeout=180000)
+        except PlaywrightTimeoutError:
+            pass
+        await wait_composer(page)
+    raise RuntimeError("the stock host kept refusing the prompt after projection synchronization")
+
+
+async def wait_final(page, previous=0, timeout=180000):
+    await page.wait_for_function(
+        "([text, previous]) => (document.body.innerText.match(new RegExp(text, 'g')) ?? []).length > previous",
+        arg=[FINAL, previous], timeout=timeout)
+    await wait_composer(page, timeout=timeout)
+
+
+async def body_final_count(page):
+    return (await page.locator("body").inner_text()).count(FINAL)
+
+
+async def wait_continue(page, timeout=180000):
+    await expect(page.get_by_role("button", name="Continue generating", exact=True)).to_be_visible(timeout=timeout)
+    await wait_composer(page, timeout=timeout)
+
+
+async def wait_stopped(page, timeout=180000):
+    await expect(page.locator("body")).to_contain_text("Stopped", timeout=timeout)
+    await wait_composer(page, timeout=timeout)
+
+
+async def open_settings(page):
+    """Open stock Settings: the shell's own trigger, or the account menu when it owns that slot."""
+    direct = page.get_by_role("button", name="Settings", exact=True)
+    if await direct.count() > 0:
+        await direct.first.click()
+        return
+    await page.get_by_role("button", name="Account menu", exact=True).first.click()
+    await page.get_by_role("menuitem", name="Settings", exact=True).click()
+
+
+async def drop_files(page, files):
+    payload = [{"name": name, "mime": mime, "b64": base64.b64encode(data).decode()} for name, mime, data in files]
+    await page.evaluate("""files => {
+      const transfer = new DataTransfer();
+      for (const file of files) transfer.items.add(new File(
+        [Uint8Array.from(atob(file.b64), character => character.charCodeAt(0))], file.name, {type: file.mime}));
+      const card = document.querySelector('[data-composer-card]') ?? document.body;
+      for (const type of ['dragenter', 'dragover', 'drop'])
+        card.dispatchEvent(new DragEvent(type, {bubbles: true, cancelable: true, dataTransfer: transfer}));
+    }""", payload)
+
+
+async def originals(page, session, entry):
+    listing = await page.evaluate("""async ([session, entry]) => {
+      const response = await fetch('/api/ompOriginals/history?' + new URLSearchParams({sessionId: session, entryId: entry}),
+        {credentials: 'same-origin', headers: {accept: 'application/json'}});
+      return {status: response.status, body: await response.text()};
+    }""", [session, entry])
+    assert listing["status"] == 200, f"originals listing for {entry} answered {listing['status']}: {listing['body']}"
+    return json.loads(listing["body"]).get("items") or []
+
+
+async def original_sha256(page, session, entry, object_id):
+    got = await page.evaluate("""async ([session, entry, objectId]) => {
+      const response = await fetch('/api/ompOriginals/original?' + new URLSearchParams(
+        {sessionId: session, entryId: entry, objectId, disposition: 'inline'}), {credentials: 'same-origin'});
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      let raw = '';
+      for (const byte of bytes) raw += String.fromCharCode(byte);
+      return {status: response.status, type: response.headers.get('content-type'), b64: btoa(raw)};
+    }""", [session, entry, object_id])
+    assert got["status"] == 200, f"original {object_id} answered {got['status']}"
+    return got["type"], hashlib.sha256(base64.b64decode(got["b64"])).hexdigest()
 
 
 async def phase_linux(browser, errors, scenarios, checks, link):
     context = await browser.new_context()
     page = await context.new_page()
     page.on("pageerror", lambda error: errors.append(str(error)))
-    async def dump(response):
-        try:
-            body = (await response.body())[:400].decode("utf-8", "replace")
-        except Exception:
-            body = "<unavailable>"
-        print("HTTP", response.status, response.request.method, response.url[:90], body, flush=True)
-
-    def trace(response):
-        if response.request.method == "POST" or response.status >= 400:
-            asyncio.ensure_future(dump(response))
-    page.on("response", trace)
-    page.on("requestfailed", lambda request: print("FAILED", request.url[:120], request.failure, flush=True))
-    wslog = open("/tmp/t61-ws.log", "a")
-    page.on("websocket", lambda socket: socket.on("framesent", lambda payload: print("WS>", str(payload)[:200], flush=True))
-            or socket.on("framereceived", lambda payload: wslog.write(str(payload) + "\n")))
-    page.on("console", lambda message: print("CONSOLE", message.type, message.text[:400], flush=True)
-            if message.type == "error" else None)
+    page.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
     await page.goto(link, wait_until="domcontentloaded")
     await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
     await grant(page)
     checks["grantAdmitted"] = True
     native = await new_session(page)
     checks["newSession"] = native
+    await stock_command(page, checks)
     await send(page, "final tuple turn one")
-    await settle(page)
-    checks["liveAttachNodes"] = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
-    checks["liveAttachRenderedText"] = "authoritative controlled final" in await page.locator("body").inner_text()
-    await expect(page.locator("body")).to_contain_text("authoritative controlled final", timeout=180000)
+    await wait_final(page)
+    checks["liveAttachSession"] = await page.locator(SESSION).first.get_attribute("data-conversation-session")
+    checks["liveAttachRenderedText"] = FINAL in await page.locator("body").inner_text()
+    checks["liveAttachNodes"] = await page.locator(SESSION).count()
+
     reopened = False
     for attempt in range(3):
         await page.reload(wait_until="domcontentloaded")
         await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
         try:
             await page.wait_for_function(
-                "() => (document.querySelector('[data-chat-native-session]')?.getAttribute('data-chat-native-session') ?? '') !== ''",
-                timeout=40000)
+                "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+                arg=native, timeout=40000)
             reopened = True
             break
         except PlaywrightTimeoutError:
             await page.wait_for_timeout(5000)
     checks["historyReopen"] = reopened
-    if reopened:
-        await expect(page.locator("body")).to_contain_text("authoritative controlled final", timeout=180000)
-        checks["historyNodes"] = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
+    assert reopened, "the stock shell restored the selected native Session after reload"
+    await expect(page.locator("body")).to_contain_text(FINAL, timeout=180000)
+    checks["historyRenderedText"] = FINAL in await page.locator("body").inner_text()
+    checks["historyNodes"] = await page.locator(SESSION).count()
+    checks["sessionTree"] = await page.get_by_role("tree").count()
+    assert checks["sessionTree"] > 0, "the stock shell renders the Session tree"
+
+    # Model and thinking travel the stock model-picker menu; the effort choice must reach the native worker.
+    model_trigger = page.get_by_role("button", name=re.compile(r"^Select model, current "))
+    await expect(model_trigger).to_be_visible(timeout=120000)
+    checks["modelTrigger"] = await model_trigger.get_attribute("aria-label")
+    await model_trigger.click()
+    menu = page.get_by_role("menu", name="Model and reasoning effort")
+    await expect(menu).to_be_visible(timeout=60000)
+    effort_row = menu.get_by_role("menuitem", name=re.compile(r"^Effort"))
+    await expect(effort_row).to_be_visible(timeout=60000)
+    await effort_row.click()
+    labels = [label.strip() for label in await page.get_by_role("menuitemradio").all_inner_texts()]
+    current_effort = (checks["modelTrigger"] or "").rsplit("reasoning effort ", 1)[-1]
+    target_effort = next((label for label in labels if label not in ("Default", current_effort)), None)
+    assert target_effort, f"the stock model picker exposes no alternate reasoning effort: {labels}"
+    await page.get_by_role("menuitemradio", name=target_effort, exact=True).click()
+    await expect(model_trigger).to_have_attribute(
+        "aria-label", re.compile(rf"reasoning effort {re.escape(target_effort)}$"), timeout=120000)
+    checks["thinkingLevel"] = target_effort
+    scenarios.append("stock-model-thinking")
+
+    # Appearance is a stock Settings surface; the Host must persist the preference across reloads.
+    await open_settings(page)
+    dark = page.get_by_role("button", name="Dark", exact=True)
+    await expect(dark).to_be_visible(timeout=60000)
+    await dark.click()
+    await expect(dark).to_have_attribute("aria-pressed", "true", timeout=60000)
+    await page.keyboard.press("Escape")
+    checks["preferenceTheme"] = "dark"
+    await page.reload(wait_until="domcontentloaded")
+    await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+    await page.wait_for_function(
+        "text => document.body.innerText.includes(text)", arg=FINAL, timeout=180000)
+    await open_settings(page)
+    await expect(page.get_by_role("button", name="Dark", exact=True)).to_have_attribute(
+        "aria-pressed", "true", timeout=60000)
+    await page.keyboard.press("Escape")
+    checks["preferencePersisted"] = True
+    scenarios.append("stock-preferences-reload")
+
+    # A second view of the same stock Session must converge on the same native projection.
+    view = await context.new_page()
+    view.on("pageerror", lambda error: errors.append(str(error)))
+    view.on("console", lambda message: errors.append(message.text) if message.type == "error" else None)
+    await view.goto(f"http://127.0.0.1:{PORT}/", wait_until="domcontentloaded")
+    await view.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+    await view.wait_for_function(
+        "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+        arg=native, timeout=120000)
+    checks["multiViewSession"] = await view.locator(SESSION).first.get_attribute("data-conversation-session")
+    await send(page, "shared view turn")
+    await wait_final(page)
+    await expect(view.locator("body")).to_contain_text("shared view turn", timeout=120000)
+    await expect(view.locator("body")).to_contain_text(FINAL, timeout=120000)
+    checks["multiViewLive"] = True
+    await view.close()
+
+    # Continue generating is a retryable-failure action; a one-shot flag fails exactly this call.
+    (HOME / "retry-fail").write_text("1")
+    await send(page, "retryable turn")
+    await wait_continue(page)
+    checks["retryOffer"] = True
+    attempts = provider_calls()
+    (HOME / "retry-fail").unlink()
+    await page.get_by_role("button", name="Continue generating", exact=True).click()
+    await wait_final(page, previous=await body_final_count(page))
+    checks["retry"] = provider_calls() - attempts
+    scenarios.append("explicit-stock-continue")
     checks["send"] = provider_calls()
     scenarios.append("new-native-session-and-send")
-    await page.get_by_label("Message").fill("second turn")
+
+    (HOME / "slow-stream").write_text("1")
     await send(page, "second turn")
-    await streaming(page)
-    await page.get_by_role("button", name="Stop", exact=True).click()
-    await settle(page, "cancelled")
-    checks["stop"] = "cancelled"
-    scenarios.append("stop-settles-cancelled")
-    await page.locator("[data-chat-retry-offer]").click(timeout=60000)
-    await page.locator("[data-chat-retry-confirm]").click()
-    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', state="attached", timeout=180000)
-    attempt = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
-    checks["retry"] = attempt
-    scenarios.append(f"explicit-confirmed-native-retry:{attempt}")
-    await expect(page.get_by_label("Message")).to_be_enabled(timeout=120000)
-    await send(page, "after retry")
-    await settle(page, "succeeded")
+    await expect(page.get_by_role("button", name="Stop generating", exact=True).first).to_be_visible(timeout=120000)
+    await page.get_by_role("button", name="Stop generating", exact=True).first.click()
+    await wait_stopped(page)
+    (HOME / "slow-stream").unlink()
+    checks["stop"] = "Stopped"
+    scenarios.append("stop-settles-stopped")
+    await send(page, "after stop")
+    await wait_final(page, previous=await body_final_count(page))
     checks["recovery"] = provider_calls()
-    scenarios.append("send-after-retry")
-    await send(page, "chord stop turn")
-    await streaming(page)
-    await page.keyboard.press("Control+Alt+KeyK")
-    await settle(page, "cancelled")
-    checks["stopChord"] = "cancelled"
-    await page.keyboard.press("Control+Alt+KeyR")
-    await page.wait_for_selector('[data-chat-retry-attempt][data-chat-retry-settled="true"]', state="attached", timeout=180000)
-    checks["retryChord"] = await page.locator("[data-chat-retry-attempt]").get_attribute("data-chat-retry-attempt")
-    await expect(page.get_by_label("Message")).to_be_enabled(timeout=120000)
-    await page.get_by_label("Message").fill("chord send turn")
-    await page.wait_for_selector('[data-chat-draft-ready="true"]', state="attached", timeout=60000)
-    await page.keyboard.press(LINUX_WEB_MAC)
-    await settle(page, "succeeded")
-    checks["sendChord"] = "succeeded"
-    previous = await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session")
+    scenarios.append("send-after-stop")
+
+    # Stock web:linux declares no session.new default; the sidebar control is the supported path.
+    previous = await native_session(page)
+    await send(page, "keyboard send turn", enter=True)
+    await wait_final(page, previous=await body_final_count(page))
+    checks["sendEnter"] = "succeeded"
     await page.keyboard.press("Control+Alt+KeyN")
+    await page.wait_for_timeout(1000)
+    assert await native_session(page) == previous, "stock web:linux must not invent a custom new-session shortcut"
+    checks["newSessionShortcut"] = "unbound on web:linux"
+    await page.locator("[data-product-directories-toggle]").click()
+    await page.get_by_role("button", name="New Session here", exact=True).click()
     await page.wait_for_function(
-        "previous => document.querySelector('[data-chat-native-session]')?.getAttribute('data-chat-native-session') !== previous",
+        "previous => (document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') ?? '') !== previous",
         arg=previous, timeout=180000)
-    checks["newSessionChord"] = await page.locator("[data-chat-native-session]").get_attribute("data-chat-native-session")
-    scenarios.append("linux-web-keymap-chords")
+    checks["newSession"] = await native_session(page)
+    scenarios.append("stock-enter-and-new-session-control")
+
+    # A typed draft is tab-scoped and survives reload without being submitted.
+    await (await wait_composer(page)).fill("draft survives reload")
+    await page.wait_for_timeout(500)
+    for attempt in range(3):
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+        try:
+            await page.wait_for_function(
+                "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+                arg=checks["newSession"], timeout=40000)
+            break
+        except PlaywrightTimeoutError:
+            await page.wait_for_timeout(3000)
+    await wait_composer(page)
+    assert (await page.locator(COMPOSER).last.inner_text()).strip() == "draft survives reload", \
+        "the stock draft did not survive reload"
+    checks["attachmentDraft"] = "restored after reload"
+    await (await wait_composer(page)).fill("")
+    await page.wait_for_timeout(500)
+    scenarios.append("stock-draft-reload")
+
+    # An unsupported upload is refused in the rail and removable without blocking a valid send.
+    await drop_files(page, [("opaque.bin", "application/octet-stream", b"\xff\xfe\x00")])
+    await expect(page.get_by_role("button", name="Retry uploading opaque.bin", exact=True)).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("button", name="Send message", exact=True)).to_be_disabled(timeout=60000)
+    checks["attachmentUnsupported"] = "refused and blocked send"
+    await page.get_by_role("button", name="Remove file opaque.bin", exact=True).click()
+    await expect(page.get_by_role("button", name="Retry uploading opaque.bin", exact=True)).to_have_count(0, timeout=60000)
+    scenarios.append("stock-unsupported-attachment-refused")
+
+    await drop_files(page, [("pixel.png", "image/png", PNG_200),
+                            ("drop.txt", "text/plain", b"hello attachment drop\n")])
+    await expect(page.get_by_role("button", name="Remove image pixel.png", exact=True)).to_be_visible(timeout=60000)
+    await expect(page.get_by_role("button", name="Remove file drop.txt", exact=True)).to_be_visible(timeout=60000)
+    checks["attachmentRail"] = ["image/pixel.png", "file/drop.txt"]
+    previous_final = await body_final_count(page)
+    await send(page, "attachment png turn")
+    await wait_final(page, previous=previous_final)
+    attachment_session = await native_session(page)
+
+    _, records, _ = read_native(native_session_files(), attachment_session)
+    mention = next((record for record in records
+                    if (record.get("message") or {}).get("role") == "fileMention"), None)
+    assert mention is not None, "native JSONL keeps the prepared fileMention"
+    files = mention["message"].get("files") or []
+    assert any(str(item.get("path", "")).startswith("attachment-prepared://")
+               and item.get("content") == "hello attachment drop\n" for item in files), \
+        "the fileMention points at the prepared attachment and keeps its text"
+    user = next((record for record in records
+                 if (record.get("message") or {}).get("role") == "user"
+                 and any(block.get("type") == "image" for block in (record["message"].get("content") or []))), None)
+    assert user is not None, "native JSONL keeps the inline image prompt"
+    image_block = next(block for block in user["message"]["content"] if block.get("type") == "image")
+    assert image_block.get("data"), "the inline image carries its prepared bytes"
+    text_attachment = next((item for item in ((mention.get("submission") or {}).get("attachments") or [])
+                            if item.get("representationKind") == "text"), None)
+    image_attachment = next((item for item in ((user.get("submission") or {}).get("attachments") or [])
+                             if item.get("representationKind") == "image"), None)
+    assert text_attachment is not None and image_attachment is not None, "both originals stay associated"
+    checks["attachmentPrepared"] = {"mention": files[0]["path"],
+                                    "textOriginal": text_attachment["originalId"],
+                                    "imageOriginal": image_attachment["originalId"]}
+
+    for attempt in range(3):
+        await page.reload(wait_until="domcontentloaded")
+        await page.wait_for_function("() => document.title === 'OMP WebUI'", timeout=60000)
+        try:
+            await page.wait_for_function(
+                "id => document.querySelector('[data-conversation-session]')?.getAttribute('data-conversation-session') === id",
+                arg=attachment_session, timeout=40000)
+            break
+        except PlaywrightTimeoutError:
+            await page.wait_for_timeout(3000)
+    await expect(page.locator("body")).to_contain_text(FINAL, timeout=180000)
+    await expect(page.locator("body")).to_contain_text("attachment-prepared://", timeout=60000)
+    file_items = await originals(page, attachment_session, mention["id"])
+    image_items = await originals(page, attachment_session, user["id"])
+    assert file_items and image_items, "history reopen lists both retained Originals"
+    file_type, file_sha = await original_sha256(page, attachment_session, mention["id"], file_items[0]["objectId"])
+    image_type, image_sha = await original_sha256(page, attachment_session, user["id"], image_items[0]["objectId"])
+    assert file_type == "text/plain" and file_sha == hashlib.sha256(b"hello attachment drop\n").hexdigest(), \
+        "the reopened text Original is byte-exact"
+    assert image_type == "image/png" and image_sha == hashlib.sha256(PNG_200).hexdigest(), \
+        "the reopened image Original is byte-exact"
+    checks["attachmentOriginals"] = {"text": file_sha, "image": image_sha}
+    scenarios.append("stock-attachment-send-and-originals")
     await context.close()
     return native
 
 
 def native_session_files():
     return sorted(path for path in HOME.rglob("*.jsonl") if "sessions" in path.parts)
+
+
+def read_native(files, native):
+    target = next((path for path in files if native in path.name), None)
+    assert target is not None, f"native Session {native} has no JSONL"
+    records = [json.loads(line) for line in target.read_text().splitlines() if line.strip()]
+    messages = [record["message"] for record in records if record.get("type") == "message"]
+    return target, records, messages
 
 
 async def main():
@@ -233,9 +512,9 @@ async def main():
     (HOME / "config.yml").write_text(CONFIG)
     if health():
         raise RuntimeError(f"port {PORT} is already serving; another product Host survived a previous run")
-    host = await start_host(delay=1200)
+    host = await start_host(delay=2000)
     try:
-        link = bootstrap(delay=1200)
+        link = bootstrap(delay=2000)
         async with async_playwright() as p:
             browser = await p.chromium.launch(executable_path=CHROME, headless=True, args=["--no-sandbox"])
             try:
@@ -249,11 +528,48 @@ async def main():
         await stop_host(host)
     files = native_session_files()
     assert files, "the product wrote a native Session under the isolated HOME"
-    checks["nativeFile"] = str(files[0].relative_to(ROOT))
+    target, records, messages = read_native(files, native)
+    texts = [block.get("text") for message in messages for block in (message.get("content") or []) if block.get("type") == "text"]
+    assert "final tuple turn one" in texts, "native JSONL keeps the first user turn"
+    assert FINAL in texts, "native JSONL keeps the assistant visible text"
+    assert any(message.get("stopReason") == "aborted" and message.get("errorMessage") == "Interrupted by user"
+               for message in messages), "native JSONL records the stopped attempt"
+    assert any(record.get("type") == "custom"
+               and record.get("customType") == "omp.native-control/submission-v1"
+               and str(record.get("data", {}).get("submission", {}).get("preparationId", "")).startswith("command-v1:")
+               and record["data"]["submission"].get("inputOutcome") == "no_input"
+               for record in records), "native JSONL records the stock slash command Native consumed"
+    assert any(record.get("type") == "model_change" for record in records), "native JSONL keeps the model identity"
+    assert any(record.get("type") == "thinking_level_change" for record in records), "native JSONL keeps the thinking level"
+    chosen_level = checks.get("thinkingLevel")
+    assert any(record.get("type") == "thinking_level_change" and record.get("thinkingLevel") == chosen_level
+               for record in records), f"native JSONL records the stock thinking level {chosen_level}"
+    try:
+        checks["nativeFile"] = str(target.relative_to(ROOT))
+    except ValueError:
+        checks["nativeFile"] = str(target)
+    checks["nativeRecords"] = len(records)
+    checks["nativeMessages"] = len(messages)
+    checks["nativeSessions"] = len(files)
     checks["providerCalls"] = provider_calls()
     checks["consoleErrors"] = errors
+    assert checks["newSession"] != native, "the stock new-Session control switched to a new native Session"
     assert not errors, errors
-    print(json.dumps({"status": "PASS", "native": native, "scenarios": scenarios, "checks": checks}, indent=2))
+    evidence = {
+        "kind": "product-flow",
+        "recordedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "native": native,
+        "scenarios": scenarios,
+        "checks": checks,
+        "installationManifestSha256": hashlib_file(ROOT / "vendor/product/installation.json"),
+        "freeze": "docs/evidence/ticket-63-freeze.json",
+        "provider": "compatibility/omp/fixtures/live-provider.ts s0-controlled/deterministic-live (controlled, not real inference)",
+    }
+    out = Path(os.environ.get("OMP_PRODUCT_FLOW_EVIDENCE", str(WORK / "evidence.json")))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(evidence, indent=2) + "\n")
+    print(json.dumps({"status": "PASS", "native": native, "scenarios": scenarios, "checks": checks,
+                      "evidence": str(out)}, indent=2))
 
 
 if __name__ == "__main__":

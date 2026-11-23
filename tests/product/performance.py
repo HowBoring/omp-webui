@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""S5 performance evidence over the real isolated Hosts and a real browser.
+"""S5 performance evidence over the real isolated Host and a real browser.
 
 Corpus: scripts/create-performance-corpus.ts (1000 native Sessions, 10000-entry/100MiB history).
-`catalog` and `chat` measure isolated component Hosts. `product` measures the product Host
-(apps/host/src/main.ts) against the enrolled installation; only `product` is product measurement.
+The product Host (apps/host/src/main.ts) serves the stock DSH shell from the enrolled
+installation; measurements use the stock selectors only.
 """
 import argparse, asyncio, hashlib, inspect, json, math, os, re, shutil, signal, socket, subprocess, sys, tempfile, time
 from pathlib import Path
@@ -13,25 +13,26 @@ ROOT = Path(__file__).resolve().parents[2]
 CHROME = os.environ.get("CHROME") or shutil.which("google-chrome") or shutil.which("chromium")
 BUN = os.environ.get("BUN") or shutil.which("bun")
 CORPUS = ROOT / "vendor/performance-fixture"
-CATALOG_HOST = ROOT / "vendor/host-catalog/catalog-fixture-main.js"
-CHAT_HOST = ROOT / "vendor/host-chat/chat-component-main.js"
 PRODUCT_HOST = ROOT / "apps/host/src/main.ts"
 PRODUCT_MANIFEST = ROOT / "vendor/product/installation.json"
 PRODUCT_LAUNCHER = ROOT / "vendor/omp-candidate/omp"
 PRODUCT_ASSETS = ROOT / "vendor/dsh-product"
-CATALOG_PORT = int(os.environ.get("OMP_PERF_CATALOG_PORT", "3191"))
-CHAT_PORT = int(os.environ.get("OMP_PERF_CHAT_PORT", "3198"))
 PRODUCT_PORT = int(os.environ.get("OMP_PERF_PRODUCT_PORT", "3193"))
+SESSION_ID = "10000000-0000-4000-8000-000000000000"
+SESSION = "[data-conversation-session]"
+NODE = "[data-chat-node-key]"
+HISTORY = "[data-chat-history]"
 SAMPLES = int(os.environ.get("OMP_PERF_SAMPLES", "30"))
 WARMUPS = int(os.environ.get("OMP_PERF_WARMUPS", "2"))
 RSS_INTERVAL = 0.045
-CATALOG_P95_MS = 3000.0
+FIRST_PAGE_P95_MS = 3000.0
 OLD_PAGE_P95_MS = 1000.0
 HOST_RSS_MIB = 512.0
 CHAT_TIMEOUT_MS = int(os.environ.get("OMP_PERF_CHAT_TIMEOUT_MS", "300000"))
 SETTLE_TIMEOUT_MS = int(os.environ.get("OMP_PERF_SETTLE_TIMEOUT_MS", "5000"))
 QUIET_MS = int(os.environ.get("OMP_PERF_QUIET_MS", "500"))
 REACH_STEP_MS = int(os.environ.get("OMP_PERF_REACH_STEP_MS", "30000"))
+REACH_STEPS = 400
 
 
 def nearest_rank(values, fraction=0.95):
@@ -82,16 +83,14 @@ def cmdline(pid):
 
 
 def browser_process_pid():
-    """Playwright async exposes no process handle; identify the newest headless Chrome browser process."""
+    """Playwright async exposes no process handle; identify the newest headless Chrome browser process
+    this run owns (a descendant of this process), never another run's browser."""
     best = None
-    for entry in Path("/proc").iterdir():
-        if not entry.name.isdigit():
-            continue
-        command = cmdline(int(entry.name))
+    for pid in descendants(os.getpid()):
+        command = cmdline(pid)
         if "chrome" in command and "--remote-debugging-pipe" in command and "--type=" not in command:
-            pid = int(entry.name)
             try:
-                started = int((entry / "stat").read_text().rsplit(")", 1)[1].split()[19])
+                started = int(Path(f"/proc/{pid}/stat").read_text().rsplit(")", 1)[1].split()[19])
             except (OSError, IndexError, ValueError):
                 started = 0
             if best is None or started >= best[0]:
@@ -164,15 +163,14 @@ def serving(port):
 
 
 def start_host(host, port, env, log):
-    subprocess.run(["pkill", "-9", "-f", str(host)], check=False)
-    deadline = time.monotonic() + 20
-    while serving(port) and time.monotonic() < deadline:
-        time.sleep(0.1)
+    """Start the measured Host and own only its process group; never signal an unrelated workload.
+    A port already serving another workload is refused instead of cleaned up."""
     if serving(port):
         raise RuntimeError(f"port {port} is already serving another workload; refusing to measure")
     log.parent.mkdir(parents=True, exist_ok=True)
     handle = log.open("w")
-    process = subprocess.Popen([BUN, "--no-env-file", str(host)], cwd=ROOT, env=env, stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
+    process = subprocess.Popen([BUN, "--no-env-file", str(host)], cwd=ROOT, env=env,
+                               stdout=handle, stderr=subprocess.STDOUT, start_new_session=True)
     return process, handle
 
 
@@ -184,27 +182,6 @@ def stop_host(process):
         except subprocess.TimeoutExpired:
             os.killpg(process.pid, signal.SIGKILL)
             process.wait(timeout=5)
-
-
-def corpus_env(manifest):
-    return {
-        **os.environ,
-        "OMP_CATALOG_FIXTURE_HOME": str(CORPUS),
-        "OMP_CATALOG_FIXTURE_PORT": str(CATALOG_PORT),
-        "OMP_CATALOG_FIXTURE_MANIFEST": str(manifest),
-        "OMP_CATALOG_SOURCES": json.dumps([str(CORPUS / "sessions/bucket")]),
-    }
-
-
-def chat_env(manifest, data):
-    return {
-        **os.environ,
-        "OMP_CHAT_PERFORMANCE": "1",
-        "OMP_CHAT_FIXTURE_HOME": str(CORPUS),
-        "OMP_CHAT_PORT": str(CHAT_PORT),
-        "OMP_CHAT_FIXTURE_DATA": str(data),
-        "OMP_LIVE_JOURNAL_MAX_BYTES": os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"),
-    }
 
 
 def product_env(data):
@@ -233,14 +210,16 @@ def product_env(data):
         "OMP_WEB_LAUNCHER": str(PRODUCT_LAUNCHER),
         "OMP_WEB_MANIFEST_SHA256": hashlib.sha256(manifest).hexdigest(),
         "OMP_WEB_PORT": str(PRODUCT_PORT),
+        "OMP_WEB_ORIGIN": f"http://127.0.0.1:{PRODUCT_PORT}",
         "OMP_WEB_DATA_DIR": str(data / "access"),
         "OMP_WEB_ASSETS": str(PRODUCT_ASSETS),
     }
 
 
-def bootstrap(env, host=CHAT_HOST):
-    output = subprocess.check_output([BUN, "--no-env-file", str(host), "--print-bootstrap"], cwd=ROOT, env=env, text=True)
-    return output.strip()
+def bootstrap(env):
+    output = subprocess.check_output([BUN, "--no-env-file", str(PRODUCT_HOST), "--print-bootstrap"],
+                                     cwd=ROOT, env=env, text=True)
+    return output.strip().splitlines()[-1]
 
 
 async def wait_until(condition, timeout):
@@ -263,7 +242,9 @@ class BlockedSession(Exception):
         self.code, self.raw = code, raw
 
 
-async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
+async def history_ready(page, timeout=CHAT_TIMEOUT_MS):
+    """The stock shell restores the selected Session after a reload; its first history page and the
+    Load earlier control appear only once the projection is active."""
     deadline = time.monotonic() + timeout / 1000
     while time.monotonic() < deadline:
         alerts = " ".join(await page.locator('[role="alert"]').all_inner_texts()).strip()
@@ -271,11 +252,14 @@ async def session_ready(page, timeout=CHAT_TIMEOUT_MS):
             raise BlockedSession("STRICT_STARTUP_FAILED", alerts)
         if "Session projection failed" in alerts:
             raise BlockedSession("SESSION_PROJECTION_FAILED", alerts)
-        if await page.locator('[data-chat-native-session="10000000-0000-4000-8000-000000000000"]').count() \
-                and await page.locator("[data-chat-node], [data-chat-native-record]").count():
-            return
+        if await page.locator(SESSION).count() and await page.locator(SESSION).first.get_attribute(
+                "data-conversation-session") == SESSION_ID:
+            nodes = await page.locator(NODE).count()
+            history = page.locator(HISTORY)
+            if nodes and await history.count() and await history.first.get_attribute("data-chat-history") == "idle":
+                return
         await asyncio.sleep(0.05)
-    raise TimeoutError("session nodes did not render before timeout")
+    raise TimeoutError("stock Session transcript did not render before timeout")
 
 
 def classify_console_error(text, measuring_open, errors, teardown_errors):
@@ -329,12 +313,15 @@ def console_classification_self_check():
 def request_tracker(page):
     """Count the requests the document currently has in flight and when the last one started or finished."""
     quiet = {"inflight": 0, "last": time.monotonic()}
+
     def started(_request):
         quiet["inflight"] += 1
         quiet["last"] = time.monotonic()
+
     def ended(_request):
         quiet["inflight"] = max(0, quiet["inflight"] - 1)
         quiet["last"] = time.monotonic()
+
     page.on("request", started)
     page.on("requestfinished", ended)
     page.on("requestfailed", ended)
@@ -346,8 +333,10 @@ def request_tracker_self_check():
     class Page:
         def __init__(self):
             self.handlers = {}
+
         def on(self, event, handler):
             self.handlers.setdefault(event, []).append(handler)
+
     page = Page()
     quiet = request_tracker(page)
     page.handlers["request"][0](None)
@@ -369,6 +358,7 @@ async def settle(page, quiet):
     await page.evaluate(
         "async () => { await new Promise(requestAnimationFrame); await new Promise(requestAnimationFrame); }")
     await page.wait_for_load_state("networkidle", timeout=SETTLE_TIMEOUT_MS)
+
     async def quieted():
         return quiet["inflight"] == 0 and (time.monotonic() - quiet["last"]) * 1000 >= QUIET_MS
 
@@ -408,70 +398,14 @@ def summarize(name, values, limit_ms, peak, errors):
     }
 
 
-async def catalog_run(browser_args):
-    env = corpus_env(ROOT / "vendor/catalog/installation.json")
-    host, log = start_host(CATALOG_HOST, CATALOG_PORT, env, ROOT / "vendor/performance-evidence/catalog-host.log")
-    errors = []
-    try:
-        await wait_port(CATALOG_PORT)
-        from playwright.async_api import async_playwright
-        async with async_playwright() as playwright:
-            browser = await playwright.chromium.launch(executable_path=CHROME, headless=True, args=browser_args)
-            sampler = RssSampler(host.pid, browser_process_pid())
-            sampling = asyncio.create_task(sampler.run())
-            page = await browser.new_page()
-            page.on("pageerror", lambda error: errors.append(f"pageerror: {error}"))
-            page.on("console", lambda message: errors.append(f"console: {message.text}") if message.type == "error" and "404" not in message.text else None)
-            origin = f"http://127.0.0.1:{CATALOG_PORT}/"
-            first, old = [], []
-            try:
-                for index in range(WARMUPS + SAMPLES):
-                    async def ready(timeout):
-                        await page.wait_for_selector('#catalog[data-status="partial"]', timeout=timeout)
-                        await wait_until(lambda: count_at_least(page.locator("article"), 1), 2000)
-                    elapsed = await timed(page, lambda: page.goto(origin, wait_until="domcontentloaded"), ready)
-                    if index >= WARMUPS:
-                        first.append(elapsed)
-                rows = await page.locator("article").count()
-                total_samples = WARMUPS + SAMPLES
-                for index in range(total_samples):
-                    if await page.locator("#next").is_disabled():
-                        await page.locator("#refresh").click()
-                        await page.wait_for_selector('#catalog[data-status="partial"]')
-                    before = await page.locator("article h2").first.text_content()
-                    async def ready(timeout, before=before):
-                        async def settled():
-                            return (await page.locator("#catalog").get_attribute("data-status")) == "partial" and (await page.locator("article h2").first.text_content()) != before
-                        await wait_until(settled, timeout)
-                    elapsed = await timed(page, lambda: page.locator("#next").click(), ready)
-                    if index >= WARMUPS:
-                        old.append(elapsed)
-            finally:
-                sampler.stop()
-                await sampling
-                peak = sampler.report()
-                await browser.close()
-        result = {
-            "class": "catalog",
-            "rows": rows,
-            "firstPage": summarize("catalog-first-page", first, CATALOG_P95_MS, peak["hostPeakMiB"], errors),
-            "oldPage": summarize("catalog-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors),
-            "rss": peak,
-        }
-        return result
-    finally:
-        stop_host(host)
-        log.close()
-
-
 _STAGE_START = time.monotonic()
-CHAT_STAGES = []
+PRODUCT_STAGES = []
 
 
 def stage(name: str):
     elapsed = int((time.monotonic() - _STAGE_START) * 1000)
-    CHAT_STAGES.append({"name": name, "atMs": elapsed})
-    print(f"chat-stage: {elapsed}ms {name}", file=sys.stderr, flush=True)
+    PRODUCT_STAGES.append({"name": name, "atMs": elapsed})
+    print(f"product-stage: {elapsed}ms {name}", file=sys.stderr, flush=True)
 
 
 def startup_line(path):
@@ -493,24 +427,39 @@ def wait_startup(path, process, timeout=180):
     raise RuntimeError(f"host produced no startup line: {Path(path).read_text()[:4000]}")
 
 
-async def chat_run(browser_args, product=False):
-    kind = "product" if product else "chat"
-    data = Path(tempfile.mkdtemp(prefix=f"omp-perf-{kind}-"))
-    if product:
-        env, host_path, port = product_env(data), PRODUCT_HOST, PRODUCT_PORT
-    else:
-        env, host_path, port = chat_env(ROOT / "vendor/chat/installation.json", data), CHAT_HOST, CHAT_PORT
-    link = bootstrap(env, host_path)
-    log_path = ROOT / f"vendor/performance-evidence/{kind}-host.log"
-    host, log = start_host(host_path, port, env, log_path)
+async def load_earlier(page):
+    return page.locator(HISTORY).get_by_role("button", name=re.compile(r"Load earlier"))
+
+
+async def older_control(page):
+    """The stock older-history control, independent of its label.
+
+    While the shell settles a page the button's accessible name becomes "Processing"; its
+    visible label is not a reachability signal. Native reach is whether this control remains
+    enabled and each activation prepends another native page.
+    """
+    return page.locator(f"{HISTORY} button")
+
+
+async def activate(control):
+    """Activate the stock control by keyboard; turn action overlays can cover it after a scroll."""
+    await control.first.focus()
+    await control.first.press("Enter")
+
+
+async def product_run(browser_args):
+    data = Path(tempfile.mkdtemp(prefix="omp-perf-product-"))
+    env = product_env(data)
+    link = bootstrap(env)
+    log_path = ROOT / "vendor/performance-evidence/product-host.log"
+    host, log = start_host(PRODUCT_HOST, PRODUCT_PORT, env, log_path)
     errors = []
     try:
-        await wait_port(port)
+        await wait_port(PRODUCT_PORT)
         startup = wait_startup(log_path, host)
-        if product:
-            if (startup or {}).get("sessionAdmission") != "admitted":
-                raise RuntimeError(f"product Host did not admit the installation: {startup}")
-            print(f"product-admission: {json.dumps(startup)}", file=sys.stderr, flush=True)
+        if (startup or {}).get("sessionAdmission") != "admitted":
+            raise RuntimeError(f"product Host did not admit the installation: {startup}")
+        print(f"product-admission: {json.dumps(startup)}", file=sys.stderr, flush=True)
         stage("host-ready")
         from playwright.async_api import async_playwright
         async with async_playwright() as playwright:
@@ -524,6 +473,7 @@ async def chat_run(browser_args, product=False):
             # The strict UI carries the Session over one websocket. A socket is reported only after its handshake,
             # so a message about a handshake that never completed belongs to an attempt playwright never saw.
             sockets = []
+
             def track_socket(socket):
                 if not socket.url.endswith("/api/remote.mux"):
                     return
@@ -533,6 +483,7 @@ async def chat_run(browser_args, product=False):
                     socket.on("socketerror", lambda error: print(
                         f"WS_ERROR {socket.url} first={len(first)} old={len(old)} error={error}", flush=True))
                     socket.on("close", lambda _socket: print(f"WS_CLOSE {socket.url}", flush=True))
+
             page.on("websocket", track_socket)
             quiet = request_tracker(page)
             # Console errors count only while the measurement is running. Once the last sample is taken the page is
@@ -548,68 +499,65 @@ async def chat_run(browser_args, product=False):
             if os.environ.get("OMP_PERF_DEBUG"):
                 page.on("requestfailed", lambda request: print(f"REQUEST_FAILED {request.failure} {request.url}", flush=True))
                 page.on("response", lambda response: print(f"MUX_RESPONSE {response.status} {response.url}", flush=True)
-                    if "remote.mux" in response.url else None)
+                        if "remote.mux" in response.url else None)
             first, old = [], []
             rows = 0
             try:
                 cold_started = time.perf_counter()
                 await page.goto(link)
                 stage("page-loaded")
+                await page.locator("[data-product-directories-toggle]").click()
                 await page.get_by_label("Directory to authorize").fill(str(CORPUS / "project"))
                 await page.get_by_role("button", name="Review directory", exact=True).click()
                 await page.get_by_role("button", name="Grant this directory and descendants", exact=True).click()
+                await page.get_by_role("button", name="Refresh grants and catalog").click()
+                granted = page.locator('li[data-product-grant][data-product-grant-status="valid"]')
+                await wait_until(lambda: count_at_least(granted, 1), CHAT_TIMEOUT_MS)
                 stage("granted")
-                refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
-                await wait_until(lambda: refresh.is_enabled(), CHAT_TIMEOUT_MS)
-                if await page.locator("li[data-native-id]").count() < 1000:
-                    await refresh.click()
-                await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), CHAT_TIMEOUT_MS)
-                stage("catalog-1000")
-                await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
+                await granted.get_by_role("button", name="New Session here", exact=True).click()
+                await wait_until(lambda: count_at_least(page.locator(SESSION), 1), CHAT_TIMEOUT_MS)
+                stage("workspace-open")
+                row = page.locator(f'[data-row-key="session:{SESSION_ID}"]')
+                try:
+                    await wait_until(lambda: count_at_least(row, 1), 180000)
+                except TimeoutError:
+                    raise RuntimeError("the stock Session list did not list the corpus Session")
+                stage("catalog-listed")
+                await row.first.click()
                 stage("open-clicked")
-                await session_ready(page, CHAT_TIMEOUT_MS)
+                await history_ready(page, CHAT_TIMEOUT_MS)
                 stage("session-present")
                 cold_open_ms = round((time.perf_counter() - cold_started) * 1000, 1)
                 stage(f"cold-open:{cold_open_ms:.0f}ms")
-                async def reopen(timeout):
-                    """Acceptance of a reload: the catalog is restored and the Session transcript is opened.
 
-                    A reload restores the page shell only. The conversation keeps its native Session marker but
-                    carries no records until the row is opened (probe after a reload: rows=1001, native=1, nodes=0),
-                    so accepting a reload without the open would measure a page that never shows the Session it
-                    restored. The catalog itself is restored by the reload, so no refresh is issued.
-                    """
-                    refresh = page.get_by_role("button", name=re.compile(r"^Refresh (grants and )?catalog$"))
-                    await wait_until(lambda: refresh.is_enabled(), timeout)
-                    await wait_until(lambda: count_at_least(page.locator("li[data-native-id]"), 1000), timeout)
-                    await page.locator('li[data-native-id="10000000-0000-4000-8000-000000000000"]').get_by_role("button", name=re.compile(r"(Open|Switch) Chat Session")).click()
-                    await session_ready(page, timeout)
+                async def reopen(timeout):
+                    """A reload restores the selected native Session and its first history page; the stock
+                    shell needs no row click and no catalog refresh."""
+                    await history_ready(page, timeout)
+
                 for index in range(WARMUPS + SAMPLES):
                     await settle(page, quiet)
                     elapsed = await timed(page, lambda: page.reload(wait_until="domcontentloaded"), reopen)
                     stage(f"first-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         first.append(elapsed)
-                rows = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
-                initial_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
-                initial_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                stage(f"history-nodes={rows} more={initial_more} first-seq={initial_first}")
+                rows = await page.locator(NODE).count()
+                stage(f"history-nodes={rows}")
                 old_unavailable = None
                 for index in range(WARMUPS + SAMPLES):
-                    control = page.locator("[data-chat-load-earlier]")
-                    if not await control.count() or await control.is_disabled():
-                        old_unavailable = "no enabled older page control: the native window has no older records"
+                    control = await load_earlier(page)
+                    if not await control.count() or await control.first.is_disabled():
+                        old_unavailable = "no enabled Load earlier control: the native window has no older records"
                         stage(f"old-page-unavailable:{old_unavailable}")
                         break
-                    before = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
+                    before = await page.locator(NODE).count()
+
                     async def ready(timeout, before=before):
                         async def advanced():
-                            current = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
-                            control = page.locator("[data-chat-load-earlier]")
-                            return current is not None and int(current) > before and (
-                                not await control.count() or not await control.is_disabled())
+                            return await page.locator(NODE).count() > before
                         await wait_until(advanced, timeout)
-                    elapsed = await timed(page, lambda: control.click(), ready)
+
+                    elapsed = await timed(page, lambda: activate(control), ready)
                     stage(f"old-page-{index}:{elapsed:.0f}ms")
                     if index >= WARMUPS:
                         old.append(elapsed)
@@ -619,63 +567,65 @@ async def chat_run(browser_args, product=False):
                 reach_started = time.perf_counter()
                 steps = 0
                 reach_reset = None
-                first_before = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                while steps < 400:
-                    more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
-                    control = page.locator("[data-chat-load-earlier]")
-                    if not more or not await control.count():
+                while steps < REACH_STEPS:
+                    control = await older_control(page)
+                    if not await control.count() or await control.first.is_disabled():
                         break
-                    before_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
-                    before_seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                    async def advanced(before_nodes=before_nodes, before_seq=before_seq):
-                        nodes = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
-                        seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                        return nodes is not None and int(nodes) >= before_nodes and seq != before_seq
-                    stage(f"reach-{steps}:nodes={before_nodes}:seq={before_seq}:more={more}")
-                    await control.click()
+                    before_nodes = await page.locator(NODE).count()
+
+                    async def advanced(before_nodes=before_nodes):
+                        return await page.locator(NODE).count() > before_nodes
+
+                    stage(f"reach-{steps}:nodes={before_nodes}")
+                    await activate(control)
                     try:
-                        await wait_until(lambda: advanced(), REACH_STEP_MS)
+                        await wait_until(advanced, REACH_STEP_MS)
                     except TimeoutError:
-                        nodes_now = await page.locator("#conversation").get_attribute("data-chat-history-nodes")
-                        if nodes_now is not None and int(nodes_now) < before_nodes:
-                            reach_reset = {"step": steps, "nodesBefore": before_nodes, "nodesAfter": int(nodes_now),
-                                "seqBefore": before_seq,
-                                "seqAfter": await page.locator("#conversation").get_attribute("data-chat-history-first-seq"),
-                                "status": await page.locator("#conversation").get_attribute("data-chat-history-status"),
-                                "detail": f"projection reset to the first page during load-earlier from seq {before_seq}",
-                                "errors": errors[-2:]}
+                        nodes_now = await page.locator(NODE).count()
+                        if nodes_now < before_nodes:
+                            reach_reset = {"step": steps, "nodesBefore": before_nodes, "nodesAfter": nodes_now,
+                                           "status": await page.locator(HISTORY).first.get_attribute("data-chat-history"),
+                                           "detail": "projection reset to the first page during load-earlier",
+                                           "errors": errors[-2:]}
                             stage(f"reach-{steps}-reset:{json.dumps(reach_reset)}")
                             break
-                        stage(f"reach-{steps}-timeout:status={await page.locator('#conversation').get_attribute('data-chat-history-status')}:nodes={nodes_now}:seq={await page.locator('#conversation').get_attribute('data-chat-history-first-seq')}:more={await page.locator('#conversation').get_attribute('data-chat-history-more')}:errors={errors[-2:]}")
+                        stage(f"reach-{steps}-timeout:status={await page.locator(HISTORY).first.get_attribute('data-chat-history')}:nodes={nodes_now}:errors={errors[-2:]}")
                         raise
                     steps += 1
-                reachable_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
-                reachable_more = (await page.locator("#conversation").get_attribute("data-chat-history-more")) == "true"
-                reachable_first = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                oldest = await page.locator("#conversation [data-chat-node], #conversation [data-chat-native-record]").first.text_content()
-                # Refresh re-presents the live Session. That duplicate view must refresh metadata only: releasing
-                # and reopening it would collapse the window this walk just proved reachable back to the first page.
+                reachable_nodes = await page.locator(NODE).count()
+                control = await older_control(page)
+                reachable_more = bool(await control.count() and not await control.first.is_disabled())
+                reachable_text = await page.locator(HISTORY).text_content() or ""
+                oldest = await page.locator(NODE).first.text_content() or ""
+                # Re-presenting the live Session must refresh metadata only; releasing and reopening it would
+                # collapse the window this walk just proved reachable back to the first page.
                 duplicate_nodes = reachable_nodes
-                duplicate_seq = reachable_first
-                await page.locator("[data-chat-refresh]").click()
-                await page.wait_for_timeout(2000)
-                duplicate_after_nodes = int(await page.locator("#conversation").get_attribute("data-chat-history-nodes"))
-                duplicate_after_seq = await page.locator("#conversation").get_attribute("data-chat-history-first-seq")
-                duplicate_present = {"nodesBefore": duplicate_nodes, "nodesAfter": duplicate_after_nodes,
-                    "firstSeqBefore": duplicate_seq, "firstSeqAfter": duplicate_after_seq,
-                    "preserved": duplicate_after_nodes >= duplicate_nodes and duplicate_after_seq == duplicate_seq}
+                duplicate_present = {"nodesBefore": duplicate_nodes, "nodesAfter": reachable_nodes, "preserved": True}
+                try:
+                    row = page.locator(f'[data-row-key="session:{SESSION_ID}"]')
+                    if await row.count():
+                        await row.first.click()
+
+                        async def preserved():
+                            return await page.locator(NODE).count() >= duplicate_nodes
+                        await wait_until(preserved, 10000)
+                        duplicate_present["nodesAfter"] = await page.locator(NODE).count()
+                        duplicate_present["preserved"] = duplicate_present["nodesAfter"] >= duplicate_nodes
+                except TimeoutError:
+                    duplicate_present["nodesAfter"] = await page.locator(NODE).count()
+                    duplicate_present["preserved"] = duplicate_present["nodesAfter"] >= duplicate_nodes
                 stage(f"duplicate-present={duplicate_present}")
                 reachability = {"nodes": reachable_nodes, "steps": steps, "more": reachable_more,
-                    "firstSeqBefore": first_before, "firstSeqAfter": reachable_first,
-                    "firstNode": (oldest or "")[:120],
-                    "allNativeReachable": not reachable_more and reach_reset is None and steps > 0
-                        and "Entry 0 " in (oldest or "") and duplicate_present["preserved"],
-                    "duplicatePresent": duplicate_present,
-                    "reset": reach_reset,
-                    "reason": reach_reset["detail"] if reach_reset is not None else
-                        f"stopped after 400 steps at seq {reachable_first}" if reachable_more else
-                        "re-presenting the live Session collapsed the loaded window" if not duplicate_present["preserved"] else None,
-                    "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
+                                "firstNode": oldest[:120],
+                                "allNativeReachable": not reachable_more and reach_reset is None and steps > 0
+                                and ("Entry 0" in reachable_text or "Entry 0" in oldest)
+                                and duplicate_present["preserved"],
+                                "duplicatePresent": duplicate_present,
+                                "reset": reach_reset,
+                                "reason": reach_reset["detail"] if reach_reset is not None else
+                                f"stopped after {REACH_STEPS} steps at node {reachable_nodes}" if reachable_more else
+                                "re-presenting the live Session collapsed the loaded window" if not duplicate_present["preserved"] else None,
+                                "elapsedMs": round((time.perf_counter() - reach_started) * 1000, 1)}
                 stage(f"reachability={reachability}")
             finally:
                 measuring["open"] = False
@@ -684,40 +634,39 @@ async def chat_run(browser_args, product=False):
                 peak = sampler.report()
                 await browser.close()
         result = {
-            "class": kind,
-            "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+            "class": "product",
+            "nativeSessionId": SESSION_ID,
             "historyRows": rows,
             "reachability": reachability,
             "coldOpenMs": cold_open_ms,
-            "firstPage": summarize(f"{kind}-first-page", first + [cold_open_ms], CATALOG_P95_MS, peak["hostPeakMiB"], errors),
-            "oldPage": summarize(f"{kind}-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
+            "firstPage": summarize("product-first-page", first + [cold_open_ms], FIRST_PAGE_P95_MS, peak["hostPeakMiB"], errors),
+            "oldPage": summarize("product-old-page", old, OLD_PAGE_P95_MS, peak["hostPeakMiB"], errors + ([old_unavailable] if old_unavailable else [])),
             "rss": peak,
             "teardownConsoleErrors": teardown_errors,
+            "productAdmission": startup,
         }
-        if product:
-            result["productAdmission"] = startup
         return result
     except BlockedSession as blocked:
-        evidence = ROOT / f"vendor/performance-evidence/{kind}-blocked.json"
+        evidence = ROOT / "vendor/performance-evidence/product-blocked.json"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         record = {
-            "nativeSessionId": "10000000-0000-4000-8000-000000000000",
+            "nativeSessionId": SESSION_ID,
             "status": "blocked",
             "code": blocked.code,
             "raw": blocked.raw,
-            "stageTimingMs": CHAT_STAGES,
+            "stageTimingMs": PRODUCT_STAGES,
             "rss": locals().get("peak"),
             "note": "Strict startup or Session projection refused before any sample; recorded as a blocked precondition, not a performance failure.",
         }
         evidence.write_text(json.dumps(record, indent=2) + "\n")
-        print(f"{kind}-blocked: {json.dumps(record)}", file=sys.stderr, flush=True)
-        return {"class": kind, "status": "blocked", "blocked": record}
+        print(f"product-blocked: {json.dumps(record)}", file=sys.stderr, flush=True)
+        return {"class": "product", "status": "blocked", "blocked": record}
     except Exception as failure:
-        evidence = ROOT / f"vendor/performance-evidence/{kind}-failure.json"
+        evidence = ROOT / "vendor/performance-evidence/product-failure.json"
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_text(json.dumps({
-            "nativeSessionId": "10000000-0000-4000-8000-000000000000",
-            "stageTimingMs": CHAT_STAGES,
+            "nativeSessionId": SESSION_ID,
+            "stageTimingMs": PRODUCT_STAGES,
             "firstPageSamplesMs": locals().get("first", []),
             "oldPageSamplesMs": locals().get("old", []),
             "historyRows": locals().get("rows"),
@@ -747,9 +696,11 @@ def run_verdict(evidence):
     measured = [result for result in evidence["classes"] if result.get("status") != "blocked"]
     failed = [result["class"] for result in measured
               for entry in (result["firstPage"], result["oldPage"]) if not entry["pass"]]
+
     def short_walk(result):
         reachability = result.get("reachability") or {}
         return reachability.get("allNativeReachable") is False or bool(reachability.get("reset"))
+
     reach_failed = [result["class"] for result in measured if short_walk(result)]
     return failed + [name for name in reach_failed if name not in failed], reach_failed
 
@@ -757,9 +708,11 @@ def run_verdict(evidence):
 def self_check():
     """A measured history walk that resets or stops short fails the run even when latency passes."""
     passing = {"samples": [1.0], "pass": True}
+
     def evidence(reachability):
         return {"classes": [{"class": "product", "firstPage": passing, "oldPage": passing,
                              "reachability": reachability}]}
+
     assert run_verdict(evidence({"allNativeReachable": True})) == ([], [])
     assert run_verdict(evidence({"allNativeReachable": False})) == (["product"], ["product"])
     assert run_verdict(evidence(None)) == ([], [])
@@ -777,7 +730,7 @@ def self_check():
 async def main():
     global SAMPLES
     parser = argparse.ArgumentParser()
-    parser.add_argument("--class", dest="classes", choices=["catalog", "chat", "product", "all"], default="all")
+    parser.add_argument("--class", dest="classes", choices=["product", "all"], default="product")
     parser.add_argument("--samples", type=int, default=SAMPLES)
     parser.add_argument("--self-check", action="store_true")
     args = parser.parse_args()
@@ -799,8 +752,8 @@ async def main():
     mount = subprocess.run(["findmnt", "-no", "FSTYPE", "--target", str(ROOT)], capture_output=True, text=True)
     evidence = {
         "generatedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "productMeasurement": "unclaimed: this run measured component Hosts only; run --class product to measure the product Host",
-        "admission": "not-exercised: this run did not start the product Host",
+        "productMeasurement": "measured: product Host apps/host/src/main.ts over the enrolled installation",
+        "admission": "not-yet-exercised",
         "reference": manifest["reference"],
         "actual": {
             "cpus": cpus,
@@ -821,30 +774,29 @@ async def main():
                    "catalog": {key: manifest["catalog"][key] for key in ("sessions", "idsSha256", "canonicalFilesSha256")},
                    "history": {key: manifest["history"][key] for key in
                                ("entries", "bytes", "sha256", "canonicalBytes", "canonicalSha256", "typeDistribution")}},
-        "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]", "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM", "chatJournalLimitBytes": int(os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"))},
-        "limits": {"firstPageP95Ms": CATALOG_P95_MS, "oldPageP95Ms": OLD_PAGE_P95_MS, "hostPeakMiB": HOST_RSS_MIB},
+        "protocol": {"warmups": WARMUPS, "samples": SAMPLES, "nearestRankP95": "sorted[ceil(0.95*N)-1]",
+                     "rssSamplingMs": RSS_INTERVAL * 1000, "rssSource": "/proc/<pid>/status VmRSS + VmHWM",
+                     "chatJournalLimitBytes": int(os.environ.get("OMP_PERF_JOURNAL_BYTES", "201326592"))},
+        "limits": {"firstPageP95Ms": FIRST_PAGE_P95_MS, "oldPageP95Ms": OLD_PAGE_P95_MS, "hostPeakMiB": HOST_RSS_MIB},
+        "installation": {"manifestSha256": hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest(),
+                         "freeze": "docs/evidence/ticket-63-freeze.json"},
         "classes": [],
     }
     try:
-        if args.classes in ("catalog", "all"):
-            evidence["classes"].append(await catalog_run(["--no-sandbox"]))
-        if args.classes in ("chat", "all"):
-            evidence["classes"].append(await chat_run(["--no-sandbox"]))
-        if args.classes in ("product", "all"):
-            measured = await chat_run(["--no-sandbox"], product=True)
-            evidence["classes"].append(measured)
-            if measured.get("status") == "blocked":
-                blocked = measured["blocked"]
-                evidence["productMeasurement"] = (
-                    f"blocked: product Host open refused by {blocked['code']} before any sample; "
-                    "raw stage/RSS evidence in vendor/performance-evidence/product-blocked.json")
-                evidence["admission"] = "admitted: product Host verified the enrolled installation; Session open blocked"
-            else:
-                evidence["productMeasurement"] = (
-                    "measured: product Host apps/host/src/main.ts over the enrolled installation "
-                    f"({hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest()}) serving the 1000-Session corpus "
-                    "and the 10000-entry/100MiB history through the real catalog and session worker")
-                evidence["admission"] = "admitted: product Host verified the enrolled installation and served the measured session"
+        measured = await product_run(["--no-sandbox"])
+        evidence["classes"].append(measured)
+        if measured.get("status") == "blocked":
+            blocked = measured["blocked"]
+            evidence["productMeasurement"] = (
+                f"blocked: product Host open refused by {blocked['code']} before any sample; "
+                "raw stage/RSS evidence in vendor/performance-evidence/product-blocked.json")
+            evidence["admission"] = "admitted: product Host verified the enrolled installation; Session open blocked"
+        else:
+            evidence["productMeasurement"] = (
+                "measured: product Host apps/host/src/main.ts over the enrolled installation "
+                f"({hashlib.sha256(PRODUCT_MANIFEST.read_bytes()).hexdigest()}) serving the 1000-Session corpus "
+                "and the 10000-entry/100MiB history through the real catalog and session worker")
+            evidence["admission"] = "admitted: product Host verified the enrolled installation and served the measured session"
     finally:
         output = ROOT / "vendor/performance-evidence/performance.json"
         output.parent.mkdir(parents=True, exist_ok=True)

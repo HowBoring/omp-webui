@@ -106,3 +106,51 @@ test("cancelling a live Session stream keeps the multiplexed websocket open", as
     await host.stop(); await rm(home, { recursive: true, force: true });
   }
 });
+
+test("the multiplexed carrier serves the stock five-stream roster and refuses extras per stream", async () => {
+  const home = await mkdtemp(join(tmpdir(), "session-stream-roster-"));
+  class Options {
+    readonly dataDir = join(home, "state");
+    readonly port = 0;
+    readonly catalog = new CatalogClient(async () => { throw new Error("UNEXPECTED_CATALOG_REQUEST"); });
+    readonly manifest = join(home, "absent-manifest");
+    readonly launcher = join(home, "absent-launcher");
+    readonly launchOwned = async () => { throw new Error("UNEXPECTED_LAUNCH"); };
+  }
+  const host = await startSessionComponentServer(new Options());
+  try {
+    const origin = host.server.url.origin;
+    const exchange = await fetch(host.bootstrapLink(), { redirect: "manual" });
+    const cookie = exchange.headers.get("set-cookie")!.split(";")[0]!;
+    const url = new URL("api/remote.mux", host.server.url.href);
+    url.protocol = "ws:";
+    const socket = new WebSocket(url.href, { headers: { cookie, origin } } as unknown as string[]);
+    const frames: { type: string; streamId: string }[] = [];
+    let closed: { code: number; reason: string } | undefined;
+    socket.addEventListener("message", event => { frames.push(JSON.parse(String(event.data)) as { type: string; streamId: string }); });
+    socket.addEventListener("close", event => { closed = { code: event.code, reason: event.reason }; });
+    await new Promise<void>((resolve, reject) => {
+      socket.addEventListener("open", () => resolve(), { once: true });
+      socket.addEventListener("error", () => reject(new Error("websocket refused")), { once: true });
+    });
+    // The stock shell opens these five streams on one multiplexed socket.
+    const roster = ["remoteAccess/follow", "workspace/follow", "$events", "session/control", "session/follow"];
+    for (const [index, endpoint] of roster.entries()) {
+      socket.send(JSON.stringify({ type: "open", streamId: `roster-${index}`, endpoint, payload: { args: {} } }));
+    }
+    // No presented Session exists, so follow answers on its own stream; its siblings must stay alive.
+    while (!frames.some(frame => frame.streamId === "roster-4" && frame.type === "error")) await Bun.sleep(5);
+    expect(closed).toBeUndefined();
+    expect(socket.readyState).toBe(WebSocket.OPEN);
+
+    for (let index = 0; index < 20; index++) {
+      socket.send(JSON.stringify({ type: "open", streamId: `extra-${index}`, endpoint: "session/control", payload: { args: {} } }));
+    }
+    while (!frames.some(frame => frame.type === "error" && frame.streamId.startsWith("extra-"))) await Bun.sleep(5);
+    expect(closed).toBeUndefined();
+    expect(socket.readyState).toBe(WebSocket.OPEN);
+    socket.close();
+  } finally {
+    await host.stop(); await rm(home, { recursive: true, force: true });
+  }
+});

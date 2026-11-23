@@ -216,7 +216,7 @@ test('multipart archived groups match eager DSH pages under cut and encoded byte
   const view = { generation: archive.generation, current: () => true };
   const current = await archive.snapshot(view);
   expect(current).toEqual(eager.snapshot());
-  expect(current.records.map(record => record.event.seq)).toEqual([2, 3, 4, 5]);
+  expect(current.records.map(record => record.event.seq)).toEqual([2, 3, 4, 5, 6]);
   expect(current.records[1]?.event.data).toMatchObject({ turn: 1, step: 1, interrupted: true,
     message: { id: '1', source: { kind: 'model', provider: 'fixture-provider', model: 'fixture-model' },
       content: [{ type: 'text', text: assistantText }] } });

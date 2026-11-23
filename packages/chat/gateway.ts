@@ -46,11 +46,19 @@ export interface ChatWorkerPort {
   externalBusy?(): boolean;
   /** Native cancel of the active turn; keeps the pending inbox. */
   cancel(): Promise<unknown>;
+  /** The stock "Continue generating" submission retries the failed turn instead of admitting a turn. */
+  retry?(caller: ChatCaller, signal: AbortSignal): Promise<unknown>;
   /** Present only when the Host composes the attachment gate for this worker. */
   readonly attachments?: {
     has(requestId: string): boolean;
     submit(requestId: string, message: string, signal: AbortSignal): Promise<unknown>;
     recovery(requestId: string): "accepted" | "not-submitted" | "completed-without-input" | "unresolved";
+  };
+  /** Stock file/image receipts: prepare first, idle-check, then accept the degradation-free receipt. */
+  readonly stock?: {
+    prepare(caller: ChatCaller, requestId: string, request: SessionPromptRequest, signal: AbortSignal): Promise<{ message: string }>;
+    accept(requestId: string): Promise<void>;
+    abort(requestId: string): Promise<void>;
   };
 }
 
@@ -152,15 +160,34 @@ export class ChatGateway {
   async prompt(caller: ChatCaller, request: SessionPromptRequest, signal: AbortSignal) {
     const { sessionId, mode, content } = request;
     const id = chatRequestId.safeParse(request.requestId);
+    const validPart = (part: (typeof content)[number] | undefined): boolean =>
+      part?.type === "text" ? typeof part.text === "string"
+        : part?.type === "file" ? typeof part.receiptId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(part.receiptId)
+        : part?.type === "image" ? typeof part.mediaType === "string" && typeof part.data === "string"
+          && (part.name === undefined || typeof part.name === "string")
+        : false;
     if (!id.success || (mode !== "queue" && mode !== "steer") || !Array.isArray(content)
-      || content.some(part => !part || part.type !== "text" || typeof part.text !== "string")) {
+      || content.some(part => !validPart(part))) {
       throw new ChatError("invalid");
     }
     const text = content.map(part => part.type === "text" ? part.text : "").join("");
-    if (!text.trim() || Buffer.byteLength(text) > 262_144) throw new ChatError("invalid");
+    if (Buffer.byteLength(text) > 262_144) throw new ChatError("invalid");
+    const hasAttachments = content.some(part => part.type !== "text");
+    if (hasAttachments && (!this.port.stock || !this.port.attachments)) throw new ChatError("invalid");
     const { saved, current } = this.#current(caller, sessionId, signal);
     if (!sameProjection(request.projection, saved.projection)) throw new ChatError("authority");
-    const fingerprint = createHash("sha256").update(JSON.stringify([mode, text])).digest("hex");
+    // An empty prompt is the stock "Continue generating" button: it retries the failed turn under the
+    // manual-retry gate (its warning and confirmation are that click), never a new turn.
+    if (!text.trim() && !hasAttachments) {
+      const retry = this.port.retry;
+      if (!retry) throw new ChatError("invalid");
+      await retry(caller, signal);
+      return { accepted: true as const };
+    }
+    const fingerprint = createHash("sha256").update(JSON.stringify([mode, content.map(part =>
+      part.type === "text" ? ["text", part.text]
+        : part.type === "file" ? ["file", part.receiptId]
+        : ["image", part.mediaType, part.name ?? "", createHash("sha256").update(part.data).digest("hex")])])).digest("hex");
     const active = this.#latest;
     if (!this.#attempts.has(id.data) && active?.phase === "admitted" && !active.settled) {
       await this.#reconcile(() => this.#refresh(active, current));
@@ -181,6 +208,9 @@ export class ChatGateway {
     this.#attempts.set(attempt.id, attempt);
     if (busy) throw new ChatError("busy");
     this.#latest = attempt;
+    if (hasAttachments) {
+      return this.#stock(attempt, caller, request, text, current, signal);
+    }
     if (this.port.attachments?.has(attempt.id)) {
       const snapshot = await this.port.state();
       if (!isNativeIdle(snapshot, this.#target.nativeSessionId) || !this.#idle()) {
@@ -215,6 +245,46 @@ export class ChatGateway {
     }
     await this.#dispatch(attempt, text, current);
     return this.#accept(attempt, current, signal);
+  }
+
+  /** Native preparation first, then the same idle gate as text; no degradation is ever accepted silently. */
+  async #stock(attempt: Attempt, caller: ChatCaller, request: SessionPromptRequest, text: string,
+    current: () => void, signal: AbortSignal) {
+    const stock = this.port.stock!;
+    const attachments = this.port.attachments!;
+    let message = text;
+    try {
+      ({ message } = await stock.prepare(caller, attempt.id, request, signal));
+      current();
+      const snapshot = await this.port.state();
+      current();
+      if (!isNativeIdle(snapshot, this.#target.nativeSessionId) || !this.#idle()) throw new ChatError("busy");
+      attempt.phase = "dispatching";
+      await stock.accept(attempt.id);
+      const reply = await attachments.submit(attempt.id, message, signal) as SubmissionResult | undefined;
+      current();
+      if (reply && reply.terminal && reply.operationOutcome !== "unknown") {
+        const input = reply.relations?.some(relation => relation.role === "input" && relation.status === "observed"
+          && !!relation.entryId) === true;
+        attempt.result = { agentInvoked: input, sessionSettled: true,
+          status: reply.operationOutcome === "succeeded" ? "completed" : reply.operationOutcome === "cancelled" ? "aborted" : "error" };
+      }
+      attempt.phase = "admitted";
+      return this.#accept(attempt, current, signal);
+    } catch (error) {
+      const cancelled = error instanceof Error && error.message === "ATTACHMENT_CANCELLED";
+      let recovery: string | undefined;
+      try { recovery = attachments.recovery(attempt.id); } catch { /* The gate may already be finished. */ }
+      const local = !cancelled && (error instanceof ChatError && error.code !== "unknown"
+        || recovery === "not-submitted" || error instanceof Error
+        && /^ATTACHMENT_(?:CONVERSION|FORMAT|NOT_READY|DRAFT|ORIGINAL|ARCHIVE|DECODED|PREPARED|REQUEST_|CONSENT_|DEGRADATION_CONSENT|NATIVE_RESULT_INVALID|ATTEMPT_|AUTHORITY_|TARGET_)/.test(error.message));
+      attempt.phase = cancelled || local ? "refused" : "unknown";
+      if (cancelled || local) attempt.settled = true;
+      delete attempt.result;
+      current();
+      if (cancelled || local) await stock.abort(attempt.id).catch(() => {});
+      throw error instanceof ChatError ? error : new ChatError(cancelled ? "cancelled" : "unknown");
+    }
   }
 
   async #dispatch(attempt: Attempt, text: string, current: () => void): Promise<void> {
