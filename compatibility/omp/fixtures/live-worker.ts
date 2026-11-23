@@ -3,7 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import {LiveTransport} from '../../../packages/compatibility/live-transport.ts';
-export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean;seed?:number;delayMs?:number;scenario?:"reasoning"|"empty-error"|"refusal"|"empty-overflow"|"rewind"|"transform"|"handled"}={}){
+export async function openLiveFixture(warmup=true,options:{trace?:boolean;tools?:boolean;burst?:boolean;seed?:number;delayMs?:number;scenario?:"reasoning"|"empty-error"|"refusal"|"empty-overflow"|"rewind"|"transform"|"handled"|"retry"}={}){
   const profile=await fs.mkdtemp(path.join(os.tmpdir(),'omp-live-cli-'));
   // A configured delay stretches only the final text deltas, so it must arm the provider's slow-stream marker.
   if(options.delayMs) await fs.writeFile(path.join(profile,'slow-stream'),'');

@@ -1,6 +1,7 @@
 /** Actual native RPC plus public DSH derived journal/assistant contract. Controlled provider only. */
 import {test,expect} from 'bun:test';
 import type {SessionFollowFrame} from '@deepseek-ai/dsh-api-session-controller/types';
+import {SessionSeq} from '@deepseek-ai/dsh-session/types';
 import {openLiveFixture} from '../../compatibility/omp/fixtures/live-worker.ts';
 import {LiveJournal} from '../../packages/projection/live-journal.ts';
 for(const scenario of ['refusal','empty-error','empty-overflow','transform','handled'] as const){
@@ -56,11 +57,12 @@ test('a settled retryable failure keeps Continue and /retry clears it without re
     const first=(await journal.page({maxMessages:128})).records;
     const failedEnd=first.filter(record=>record.event.type==='turn/end').at(-1);
     expect(failedEnd?.event.data).toMatchObject({reason:{kind:'error',error:{code:'SERVER'}}});
-    expect(journal.continuation).toBe(failedEnd!.event.seq);
+    expect(journal.continuation).toBe(SessionSeq(failedEnd!.event.seq));
     expect(first.filter(record=>record.event.type==='assistant/message')).toHaveLength(0);
     expect(first.filter(record=>record.event.type==='assistant/attempt')).toHaveLength(1);
+    const data=(record:{event:{data:unknown}})=>record.event.data as {source?:{kind?:string};content?:unknown[]};
     expect(first.filter(record=>record.event.type==='user/message'
-      && record.event.surfaceOp==='append'&&record.event.data.source.kind==='user')).toHaveLength(1);
+      && record.event.surfaceOp==='append'&&data(record).source?.kind==='user')).toHaveLength(1);
 
     await fixture.transport.retry();
     let invalidated=false;
@@ -83,9 +85,9 @@ test('a settled retryable failure keeps Continue and /retry clears it without re
     }
     const records=(await reborn.page({maxMessages:128})).records;
     expect(records.filter(record=>record.event.type==='user/message'
-      && record.event.surfaceOp==='append'&&record.event.data.source.kind==='user')).toHaveLength(1);
+      && record.event.surfaceOp==='append'&&data(record).source?.kind==='user')).toHaveLength(1);
     expect(records.filter(record=>record.event.type==='user/message'
-      && record.event.data.source.kind==='retry'&&record.event.data.content.length===0)).toHaveLength(1);
+      && data(record).source?.kind==='retry'&&data(record).content?.length===0)).toHaveLength(1);
     expect(records.filter(record=>record.event.type==='assistant/message').length).toBeGreaterThanOrEqual(1);
     const lastEnd=records.filter(record=>record.event.type==='turn/end').at(-1);
     expect(lastEnd?.event.data).toMatchObject({reason:{kind:'completed'}});
@@ -139,6 +141,14 @@ test('a committed user message keeps its turn open until the assistant settles',
       journal.accept(await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after));
       if((await fixture.transport.state()).isSettled)break;
       if(attempt===159)throw Error('fixture_settlement_timeout');await Bun.sleep(25);
+    }
+    // Native's idle flag leads the observation cursor: drain what Native already recorded before
+    // asserting the settled turn's shape.
+    for(let attempt=0;attempt<40;attempt++){
+      const poll=await fixture.transport.history.poll(journal.opened.cut.workerId,journal.after);
+      journal.accept(poll);
+      if(poll.events.length===0)break;
+      if(attempt===39)throw Error('fixture_drain_timeout');
     }
     const records=(await journal.page({maxMessages:128})).records;
     const types=records.map(record=>record.event.type);

@@ -104,7 +104,7 @@ export class LiveJournal {
   #appendBytes = 0; #after: number; #turn = 0; #step = 0; #assistantRevision = 0;
   /** Stock `turn/end` closes the running surface; a worker settle may have to close a turn that no
    *  final assistant settlement committed (Stop before the first block, tool-only abort). */
-  #turnOpen = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
+  #turnOpen = false; #quiet = false; #lastStop: {stopReason?: string; error?: HistoryItem['error']} = {};
   #attempt: Attempt | undefined; #failure: string | undefined; #nativeLeaf: string | null; #closed = false;
   /** Stock `conversationContinuation` fold over the durable records this journal serves. */
   readonly #continuation = new ContinuationFold();
@@ -351,10 +351,13 @@ export class LiveJournal {
   get failure(): string | undefined { return this.#failure; }
   /** DSH `conversationContinuation` view: the retryable failure seq offered to the stock Continue button. */
   get continuation(): SessionSeq | null { return this.#continuation.ending; }
-  /** Native reports the Session quiet: close a turn that ended without a final assistant settlement. */
+  /** Native reports the Session quiet: close a turn that ended without a final assistant settlement.
+   *  The quiet frame can lead the observation cursor by a poll, so the close waits for the next
+   *  observation and only fires when Native had nothing left to report; a settlement in between
+   *  closes the turn itself and a new turn discards the mark. */
   settle(): void {
-    if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0) return;
-    this.#closeTurn();
+    if (this.#closed || this.#failure || this.#attempt || this.#pendingFinals.size > 0 || !this.#turnOpen) return;
+    this.#quiet = true;
   }
   #closeTurn(explicit?: TurnEndReason): void {
     if (!this.#turnOpen) return;
@@ -547,6 +550,10 @@ export class LiveJournal {
     if (!poll.hasMore && [...this.#appended.values()].some(value => value.item.active)) this.#fail('live_unassociated_source_append');
     if (this.#settled.size > ASSOCIATIONS) this.#fail('live_settlement_evicted');
     if (poll.through !== this.#after || (!poll.hasMore && poll.cut.leafId !== this.#nativeLeaf)) this.#fail('live_observation_gap');
+    if (this.#quiet) {
+      this.#quiet = false;
+      if (poll.events.length === 0 && !this.#attempt && this.#pendingFinals.size === 0) this.#closeTurn();
+    }
   }
   #sourceAppend(event: HistoryChange): void {
     const source = event.source, item = event.item;
