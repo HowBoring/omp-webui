@@ -10,6 +10,7 @@ const mediaType = z.enum(originalMediaTypes);
 export const attachmentTarget = z.strictObject({ sessionId: token, draftId: token });
 export const originalDescriptor = z.strictObject({ displayName: z.string().min(1).max(255),
   mediaType, byteLength: z.number().int().min(1).max(imageOriginalBytes) });
+export type OriginalDescriptor = z.infer<typeof originalDescriptor>;
 const originalMetadata = originalDescriptor.extend({ objectId: z.uuid(), sha256: z.string().regex(/^[0-9a-f]{64}$/),
   state: z.literal("staged-unprepared"), nativeAssociation: z.literal("unassociated"), stagedAt: z.number().int().nonnegative() });
 const original = z.discriminatedUnion("validation", [

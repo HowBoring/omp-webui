@@ -12,6 +12,8 @@ interface Flow {
   attempt: AttachmentAttempt; preparationId: string; abort: AbortController; phase: AttachmentGatePhase;
   nativeStarted: boolean; cancelled: boolean; message?: string; receipt?: AttachmentReceipt; code?: string; result?: SubmissionResult;
   consent: PromiseWithResolvers<string>; operation?: Promise<SubmissionResult>;
+  /** Resolves when the exact receipt is ready for consent; stock has no separate consent UI. */
+  prepared: PromiseWithResolvers<void>;
 }
 const codeOf = (error: unknown): string => error instanceof Error && /^(?:ATTACHMENT|SUBMISSION|STRICT)_[A-Z_]+$/.test(error.message)
   ? error.message : "ATTACHMENT_SEND_FAILED";
@@ -60,9 +62,10 @@ export class AttachmentSubmissionGate {
     }
     if (this.#flows.size >= 2) throw Error("ATTACHMENT_ATTEMPT_LIMIT");
     const consent = Promise.withResolvers<string>(); void consent.promise.catch(() => {});
+    const prepared = Promise.withResolvers<void>(); void prepared.promise.catch(() => {});
     this.#epoch++;
     this.#flows.set(attempt.requestId, { attempt: structuredClone(attempt), preparationId: crypto.randomUUID(),
-      abort: new AbortController(), phase: "registered", nativeStarted: false, cancelled: false, consent });
+      abort: new AbortController(), phase: "registered", nativeStarted: false, cancelled: false, consent, prepared });
     return { registered: true };
   }
 
@@ -107,6 +110,42 @@ export class AttachmentSubmissionGate {
     if (flow.phase !== "awaiting-consent") throw Error("ATTACHMENT_CONSENT_STALE");
     flow.consent.resolve(accepted.consentId);
     return { continuing: true };
+  }
+
+  /**
+   * Stock uploads have no degradation dialog: prepare the exact receipt, then accept only a
+   * degradation-free one. Any conversion loss is refused rather than silently accepted.
+   */
+  async stockPrepare(requestId: string, exactMessage: string, signal: AbortSignal): Promise<AttachmentReceipt> {
+    const flow = this.#flow(requestId); await this.authorizeAttempt(flow.attempt);
+    if (flow.message !== undefined && flow.message !== exactMessage) throw Error("ATTACHMENT_REQUEST_CONFLICT");
+    flow.message = exactMessage;
+    if (!flow.operation) {
+      const abort = () => { void this.#cancel(flow); };
+      signal.addEventListener("abort", abort, { once: true });
+      flow.operation = this.#run(flow).finally(() => signal.removeEventListener("abort", abort));
+      void flow.operation.catch(() => {});
+    }
+    await flow.prepared.promise;
+    flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
+    if (!flow.receipt || flow.phase !== "awaiting-consent") throw Error("ATTACHMENT_NOT_READY");
+    return structuredClone(flow.receipt);
+  }
+
+  /** Consent for a stock receipt with no required degradations; never a second preparation. */
+  async stockAccept(requestId: string): Promise<{ continuing: true }> {
+    const flow = this.#flow(requestId), receipt = flow.receipt;
+    if (!receipt) throw Error("ATTACHMENT_NOT_READY");
+    const required = receipt.items.flatMap(item => item.status === "ready" ? item.degradations : []);
+    if (required.length) throw Error("ATTACHMENT_DEGRADATION_CONSENT_REQUIRED");
+    return this.consent({ requestId, selection: flow.attempt.selection, receiptId: receipt.receiptId,
+      resultDigest: receipt.resultDigest, acceptedDegradations: [] });
+  }
+
+  /** Release a prepared stock attempt that never reached consent (busy, degradation refusal). */
+  async abort(requestId: string): Promise<void> {
+    const flow = this.#flows.get(requestId);
+    if (flow) await this.#cancel(flow);
   }
 
   async cancel(requestId: string): Promise<{ cancelled: boolean }> {
@@ -166,7 +205,7 @@ export class AttachmentSubmissionGate {
       flow.receipt = await this.bridge.prepare(flow.attempt.selection, flow.preparationId, flow.message!);
       flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
       if (flow.receipt.status !== "ready") throw Error("ATTACHMENT_NOT_READY");
-      this.#epoch++; flow.phase = "awaiting-consent";
+      this.#epoch++; flow.phase = "awaiting-consent"; flow.prepared.resolve();
       timer = setTimeout(() => { void this.#cancel(flow); }, Math.max(0, flow.receipt.expiresAt - Date.now()));
       const consentId = await flow.consent.promise;
       flow.abort.signal.throwIfAborted(); await this.authorizeAttempt(flow.attempt);
@@ -181,6 +220,7 @@ export class AttachmentSubmissionGate {
     } catch (error) {
       this.#epoch++; flow.code = flow.abort.signal.aborted ? "ATTACHMENT_CANCELLED" : codeOf(error);
       flow.phase = flow.nativeStarted ? "unresolved" : flow.abort.signal.aborted ? "cancelled" : "failed";
+      flow.prepared.reject(Error(flow.code));
       if (!flow.nativeStarted) await this.bridge.discardUnsubmitted(flow.attempt.selection, flow.preparationId).catch(() => {});
       throw Error(flow.code);
     } finally { if (timer !== undefined) clearTimeout(timer); }

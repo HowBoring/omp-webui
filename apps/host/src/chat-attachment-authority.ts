@@ -10,7 +10,7 @@ import { OriginalIntake } from "../../../packages/attachments/intake.ts";
 import { attachmentFormat } from "../../../packages/attachments/media.ts";
 import type { OriginalScope, OriginalStore } from "../../../packages/attachments/store.ts";
 import type { AttachmentSelection, AttachmentAttempt } from "../../../packages/contracts/attachment-remote.ts";
-import type { AttachmentTarget } from "../../../packages/contracts/attachments.ts";
+import type { AttachmentTarget, OriginalDescriptor } from "../../../packages/contracts/attachments.ts";
 import { sessionCaller } from "../../../packages/sessions/service.ts";
 import type { ChatComponentRuntime } from "./chat-component-runtime.ts";
 
@@ -23,8 +23,10 @@ export class ChatAttachmentAuthority implements AttachmentAuthority {
   }
 
   /** Trusted OriginalIntake authority: always resolved from the current admitted Chat View. */
-  scope(target: AttachmentTarget): OriginalScope {
-    const caller = this.#identity();
+  scope(target: AttachmentTarget): OriginalScope { return this.scopeFor(this.#identity(), target); }
+
+  /** Same check for a caller resolved outside AsyncLocalStorage (the stock upload route). */
+  scopeFor(caller: BrowserAccess, target: AttachmentTarget): OriginalScope {
     const resolved = this.runtime().attachment(caller, target.sessionId, target.draftId);
     if (!resolved) throw Error("ATTACHMENT_AUTHORITY_CHANGED");
     return { hostId: this.authority.hostId, browserId: caller.credentialId, pageId: caller.credentialId,
@@ -32,6 +34,12 @@ export class ChatAttachmentAuthority implements AttachmentAuthority {
       instanceId: resolved.entry.target.instanceId, sessionId: target.sessionId,
       canonicalCwd: resolved.view.cwd, draftId: target.draftId,
       authorityEpoch: resolved.view.generation, explicitOpen: true };
+  }
+
+  /** Stock upload staging keeps the same per-call View authority as the Remote preview path. */
+  stageStock(caller: BrowserAccess, target: AttachmentTarget, descriptor: OriginalDescriptor,
+    body: AsyncIterable<Uint8Array>, signal?: AbortSignal) {
+    return this.#intake.stage(caller, target, descriptor, body, signal);
   }
 
   /** Gate attempt revalidation, including before every consent and native call. */

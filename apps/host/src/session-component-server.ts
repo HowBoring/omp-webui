@@ -30,6 +30,7 @@ import { ChatComponentRuntime } from "./chat-component-runtime.ts";
 import { preferencesHostContribution, WebPreferences } from "../../../packages/preferences/service.ts";
 import { commandsHostContribution, CommandsService } from "../../../packages/commands/service.ts";
 import { ChatAttachmentAuthority } from "./chat-attachment-authority.ts";
+import { StockUploads } from "./stock-uploads.ts";
 import { OriginalStore } from "../../../packages/attachments/store.ts";
 import { AttachmentRemote } from "../../../packages/attachments/service.ts";
 import { AttachmentBridge } from "../../../packages/attachments/bridge.ts";
@@ -134,6 +135,7 @@ export async function startSessionComponentServer(options: Options) {
   let supervisor: SessionSupervisor;
   let chatComposition: { runtime: ChatComponentRuntime; dispatch: ChatSessionDispatch } | undefined;
   let attachmentStore: OriginalStore | undefined;
+  let stockUploads: StockUploads | undefined;
   let readonlyTree: ReadonlyTree | undefined;
   let expirySweep: Timer | undefined;
   const stockUnary = ["session/create", "session/modelCatalog", "session/selectModel"];
@@ -186,6 +188,13 @@ export async function startSessionComponentServer(options: Options) {
           retains: (sessionId, entryId) => readonlyTree?.retains(sessionId, entryId),
           store: attachmentStore,
         });
+      }
+      if (path === "/api/session/uploadFileBinary") {
+        if (request.headers.get("origin") !== origin.origin) return new Response("Forbidden", { status: 403 });
+        const identity = access.admit(request, "write");
+        if (identity instanceof Response) return identity;
+        if (!stockUploads) return new Response("Not found", { status: 404 });
+        return stockUploads.handle(identity, request);
       }
       const registeredWorkspace = path === "/api/ompWorkspaces/registered";
       const brokerRoute = interactionCarrier?.handles(path) ? interactionCarrier : undefined;
@@ -296,6 +305,7 @@ export async function startSessionComponentServer(options: Options) {
       protection: original => gate?.protection(original.binding, original.objectId) ?? { status: "unknown" } });
     let runtime: ChatComponentRuntime;
     const authority = new ChatAttachmentAuthority(access, () => runtime, attachmentStore);
+    stockUploads = new StockUploads(authority, () => runtime);
     const bridge = new AttachmentBridge(authority, target => runtime.native(target));
     gate = new AttachmentSubmissionGate(bridge, attempt => authority.authorizeAttempt(attempt));
     // Restart never resets the staged clock: drain the persisted inventory in bounded pages before serving.
@@ -309,7 +319,7 @@ export async function startSessionComponentServer(options: Options) {
     ctx.typert.register(attachmentHostContribution);
     new AttachmentRemote(ctx, attachmentStore, (_peer, target) => authority.scope(target));
     installAttachmentRemote(ctx, gate);
-    runtime = new ChatComponentRuntime(access, directories, supervisor, admission, gate);
+    runtime = new ChatComponentRuntime(access, directories, supervisor, admission, gate, stockUploads);
     new ChatPromptService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatCancelService(ctx, sessionId => runtime.gateway(sessionId));
     new ChatLookupService(ctx, sessionId => runtime.gateway(sessionId));
