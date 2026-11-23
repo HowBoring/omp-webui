@@ -34,8 +34,10 @@ The harness opens the enrolled installation and a real browser. Set `OMP_PERF_DE
 console diagnostics. It also enables `OMP_CHAT` Session lifecycle records and projection-generation records.
 The product-flow counterpart, `tests/product/product-flow.py`, writes its browser/native checks to
 `vendor/product-flow/evidence.json` (override with `OMP_PRODUCT_FLOW_EVIDENCE`).
-The legacy `apps/chat/src/client.tsx` isolated component fixture is not the product shell; it remains
-only for the attachment/original/draft evidence the stock product does not yet expose.
+The product shell is `apps/chat/src/client.tsx`, loaded by `apps/chat/src/product-entry.tsx`; it composes
+the pinned DSH Conversation and the OMP attachment/draft/tree contributions. `tests/product/product-flow.py`
+walks upload, draft reload, unsupported-file refusal, native attachment submission, history reopen and
+Original byte checks against the enrolled product.
 
 Useful commands:
 
