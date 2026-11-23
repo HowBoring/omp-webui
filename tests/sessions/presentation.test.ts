@@ -146,7 +146,8 @@ test("the continuation view reaches projections and live control without a reloa
   const abort = new AbortController(), frames = call(() => api.control(abort.signal));
   try {
     const baseline = await firstFrame(frames) as BaselineFrame;
-    expect(baseline.value.projections["native-0000"]!.values).toEqual({ conversationContinuation: 5 });
+    expect(baseline.value.projections["native-0000"]!.values).toEqual({
+      conversationContinuation: 5, modelSelection: { lastUsed: null, next: null } });
     live.continuation = 9; live.cursor = 9;
     const update = await firstFrame(frames) as ProjectionFrame;
     expect(update).toMatchObject({ type: "projection", seq: 9, projection: binding("native-0000:2"),
