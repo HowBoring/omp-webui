@@ -1,5 +1,6 @@
 import type { SessionHistoryRecord, SessionPageRequest } from '@deepseek-ai/dsh-api-session-controller/types';
 import type { JsonValue } from '@deepseek-ai/dsh-util-values';
+import { SessionSeq } from '@deepseek-ai/dsh-session/types';
 import type { TurnEndReason } from '@deepseek-ai/dsh-session/types';
 import type { HistoryError, HistoryItem } from '../contracts/generated/omp-wire.ts';
 
@@ -208,4 +209,48 @@ export function settledHistoryRecords(item: HistoryItem, id: string, start: numb
     return record;
   }, false, ledger);
   return records;
+}
+
+/** Manual continuation is offered only for the terminal provider failures the stock gate accepts. */
+const CONTINUABLE_FAILURES: ReadonlySet<string> = new Set([
+  'RATE_LIMIT', 'SERVER', 'TIMEOUT', 'TRANSPORT', 'EMPTY_RESPONSE', 'STREAM_CLOSED',
+]);
+
+/** DSH `conversationContinuation`: the retryable failure seq offered to the stock Continue button. */
+export class ContinuationFold {
+  #admitted = false;
+  #failedAttempt = false;
+  #ending: SessionSeq | null = null;
+
+  get ending(): SessionSeq | null { return this.#ending; }
+
+  /** Mirror DSH's constant-size fold over one published record. */
+  apply(record: SessionHistoryRecord): void {
+    if (record.type !== 'event') return;
+    const { type, seq, data, surfaceOp } = record.event;
+    const value = data as {source?: {kind?: string}; content?: unknown[]; reason?: {kind?: string; error?: {code?: string}}};
+    switch (type) {
+      case 'turn/start':
+        this.#admitted = false; this.#failedAttempt = false; this.#ending = null; return;
+      case 'step/start':
+      case 'assistant/message':
+        this.#failedAttempt = false; return;
+      case 'user/message': {
+        if (this.#admitted || surfaceOp !== 'append') return;
+        const kind = value.source?.kind, content = value.content;
+        if (!Array.isArray(content)) return;
+        if ((kind === 'user' && content.length > 0) || (kind === 'retry' && content.length === 0)) this.#admitted = true;
+        return;
+      }
+      case 'assistant/attempt':
+        this.#failedAttempt = true; return;
+      case 'turn/end': {
+        const error = value.reason?.kind === 'error' ? value.reason.error : undefined;
+        const eligible = error?.code !== undefined && CONTINUABLE_FAILURES.has(error.code)
+          && this.#admitted && this.#failedAttempt;
+        this.#ending = eligible ? SessionSeq(seq) : null;
+        this.#admitted = false; this.#failedAttempt = false; return;
+      }
+    }
+  }
 }
